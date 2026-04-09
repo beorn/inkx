@@ -25,6 +25,8 @@ export type InputMode =
   | "dialog:filter"
   | "dialog:omnibox"
   | "dialog:favorites"
+  | "dialog:localFind"
+  | "dialog:searchReplace"
 
 /** Create a mode stack with push/pop/current semantics. Factory function, no classes. */
 export function createModeStack() {

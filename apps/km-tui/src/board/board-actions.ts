@@ -1428,6 +1428,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
     case "LOCAL_FIND_PREV":
       return handleLocalFindPrev(ctx)
     case "LOCAL_FIND_CLOSE":
+      popDialogMode()
       ctx.setUI({ localSearch: null })
       return ok()
     case "LOCAL_FIND_CONFIRM":
@@ -1435,6 +1436,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
     case "SEARCH_REPLACE_OPEN":
       return handleSearchReplaceOpen(ctx)
     case "SEARCH_REPLACE_CLOSE":
+      popDialogMode()
       ctx.setUI({ searchReplace: null })
       return ok()
     case "SEARCH_REPLACE_NEXT":

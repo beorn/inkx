@@ -11,9 +11,11 @@ import { KNode } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
+import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 
 /** Open the search & replace dialog */
 export function handleSearchReplaceOpen(ctx: OpCtx): OpResult {
+  pushDialogMode("dialog:searchReplace")
   ctx.setUI({
     searchReplace: {
       searchQuery: "",

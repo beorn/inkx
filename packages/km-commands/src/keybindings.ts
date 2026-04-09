@@ -6,10 +6,6 @@ import {
   textInputFocused,
   isInDetailPane,
   isInlineEditing,
-  searchDialogOpen,
-  anyDialogOpen,
-  filterDialogOpen,
-  favoritesDialogOpen,
   favoritesKeySelected,
   helpOverlayOpen,
   deleteConfirmOpen,
@@ -22,6 +18,8 @@ import {
   hasKitty,
   not,
   and,
+  inDialog,
+  inScope,
 } from "./when.ts"
 import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
 import { getAllFavorites } from "./favorites.ts"
@@ -545,20 +543,20 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "filter-dialog",
       bindings: [
-        { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
-        { key: "ctrl-/", commandId: "dialog.cancel", when: filterDialogOpen },
+        { key: "Escape", commandId: "dialog.cancel", when: inScope("dialog:filter") },
+        { key: "ctrl-/", commandId: "dialog.cancel", when: inScope("dialog:filter") },
         // ⌃g is now a goto chord prefix — no longer cancels filter dialog
-        { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
-        { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
-        { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
-        { key: "ArrowUp", commandId: "dialog.nav_up", when: filterDialogOpen },
-        { key: "h", commandId: "filter.nav_left", when: filterDialogOpen },
-        { key: "l", commandId: "filter.nav_right", when: filterDialogOpen },
-        { key: "ArrowLeft", commandId: "filter.nav_left", when: filterDialogOpen },
-        { key: "ArrowRight", commandId: "filter.nav_right", when: filterDialogOpen },
-        { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
-        { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
-        { key: "shift-x", commandId: "filter.clear_all", when: filterDialogOpen },
+        { key: "j", commandId: "dialog.nav_down", when: inScope("dialog:filter") },
+        { key: "k", commandId: "dialog.nav_up", when: inScope("dialog:filter") },
+        { key: "ArrowDown", commandId: "dialog.nav_down", when: inScope("dialog:filter") },
+        { key: "ArrowUp", commandId: "dialog.nav_up", when: inScope("dialog:filter") },
+        { key: "h", commandId: "filter.nav_left", when: inScope("dialog:filter") },
+        { key: "l", commandId: "filter.nav_right", when: inScope("dialog:filter") },
+        { key: "ArrowLeft", commandId: "filter.nav_left", when: inScope("dialog:filter") },
+        { key: "ArrowRight", commandId: "filter.nav_right", when: inScope("dialog:filter") },
+        { key: " ", commandId: "dialog.confirm", when: inScope("dialog:filter") },
+        { key: "Enter", commandId: "dialog.confirm", when: inScope("dialog:filter") },
+        { key: "shift-x", commandId: "filter.clear_all", when: inScope("dialog:filter") },
       ],
     },
 
@@ -567,13 +565,13 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       name: "favorites-dialog",
       bindings: [
         // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
-        { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        { key: "Backspace", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        { key: "Enter", commandId: "favorites.assign", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        { key: "Delete", commandId: "favorites.clear", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        { key: "Backspace", commandId: "favorites.clear", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        { key: "Escape", commandId: "favorites.back", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
         // List view: Escape closes, any key selects it
-        { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
-        { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
+        { key: "Escape", commandId: "dialog.cancel", when: inScope("dialog:favorites") },
+        { key: "*", wildcard: true, commandId: "favorites.select_key", when: inScope("dialog:favorites") },
       ],
     },
 
@@ -625,8 +623,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "input-type-tab",
       bindings: [
-        { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(searchDialogOpen)) },
-        { key: "shift-Tab", commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
+        { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(inScope("dialog:search"))) },
+        { key: "shift-Tab", commandId: "focus_prev", when: and(inputTypeField, not(inScope("dialog:search"))) },
       ],
     },
 
@@ -634,13 +632,13 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "dialog",
       bindings: [
-        { key: "Escape", commandId: "dialog.cancel", when: anyDialogOpen },
-        { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
-        { key: "ArrowUp", commandId: "dialog.nav_up", when: anyDialogOpen },
-        { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
-        { key: "ctrl-p", commandId: "dialog.nav_up", when: anyDialogOpen },
-        { key: "ctrl-n", commandId: "dialog.nav_down", when: anyDialogOpen },
-        { key: "Tab", commandId: "dialog.toggle_search_scope", when: searchDialogOpen },
+        { key: "Escape", commandId: "dialog.cancel", when: inDialog },
+        { key: "Enter", commandId: "dialog.confirm", when: inDialog },
+        { key: "ArrowUp", commandId: "dialog.nav_up", when: inDialog },
+        { key: "ArrowDown", commandId: "dialog.nav_down", when: inDialog },
+        { key: "ctrl-p", commandId: "dialog.nav_up", when: inDialog },
+        { key: "ctrl-n", commandId: "dialog.nav_down", when: inDialog },
+        { key: "Tab", commandId: "dialog.toggle_search_scope", when: inScope("dialog:search") },
       ],
     },
 
@@ -963,10 +961,10 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // Bare symbol shortcuts (convenience aliases for common chord actions)
         // These only fire in node mode (not text edit, not dialog)
-        { key: "shift-2", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(anyDialogOpen)) }, // @
-        { key: "shift-3", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(anyDialogOpen)) }, // #
-        { key: "shift-=", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(anyDialogOpen)) }, // +
-        { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        { key: "shift-2", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(inDialog)) }, // @
+        { key: "shift-3", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(inDialog)) }, // #
+        { key: "shift-=", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(inDialog)) }, // +
+        { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(inDialog)) },
 
         // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
         { key: "g", commandId: "cursor_first" },

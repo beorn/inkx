@@ -12,6 +12,7 @@ import type { KNode } from "@km/core"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
+import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 
 /**
  * Search visible nodes for a query string (case-insensitive substring).
@@ -50,6 +51,7 @@ export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection
 
 /** Open the local find bar */
 export function handleLocalFindOpen(ctx: OpCtx): OpResult {
+  pushDialogMode("dialog:localFind")
   ctx.setUI({
     localSearch: {
       query: "",
