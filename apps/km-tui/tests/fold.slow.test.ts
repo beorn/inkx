@@ -25,7 +25,7 @@ import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("fold-all-corruption", () => {
   test("zM (fold all chord) folds all cards in column", async () => {
-    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     expect(app.text).toContain("child-1")
 
@@ -39,7 +39,7 @@ describe("fold-all-corruption", () => {
   })
 
   test("H folds a card, > should unfold it", async () => {
-    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold via H
     await app.command("fold_more")
@@ -55,7 +55,7 @@ describe("fold-all-corruption", () => {
   })
 
   test("H (fold_node) folds current card and hides children", async () => {
-    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     expect(app.text).toContain("child-1")
 
@@ -69,7 +69,7 @@ describe("fold-all-corruption", () => {
   })
 
   test("L (unfold node) restores children after fold", async () => {
-    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold with H
     await app.command("fold_more")
@@ -84,7 +84,7 @@ describe("fold-all-corruption", () => {
   })
 
   test("Z unfolds all after individually folding multiple cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item.folder("Processing", item("sub-a"), item("sub-b")), item.folder("Review", item("sub-c"))),
@@ -649,7 +649,7 @@ describe("fold border blank — buffer-level assertions", () => {
 
   test("fold with many cards and realistic viewport (5+ cards, constrained height)", async () => {
     // Smaller viewport forces scrolling and more border stress
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -776,7 +776,7 @@ describe("Fold border regression", () => {
 
   test("every visible card has matching top and bottom borders", async () => {
     // Cards with children overflow a 20-row viewport with default fold depth.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -813,7 +813,7 @@ describe("Fold border regression", () => {
   })
 
   test("border integrity after scrolling then folding", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -858,7 +858,7 @@ describe("fold overflow transition border integrity", () => {
   test("fold card with overflow preserves bottom border (no blank cells)", async () => {
     // Create cards with enough children to trigger overflow
     // maxContentLines defaults to 3, so 6 children will show +3 overflow
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -933,7 +933,7 @@ describe("fold overflow transition border integrity", () => {
   })
 
   test("unfold card restores overflow indicator without border corruption", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -974,7 +974,7 @@ describe("fold overflow transition border integrity", () => {
   })
 
   test("decrease outline depth with overflow cards preserves all borders (cell-level)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -1199,7 +1199,7 @@ describe("progressive fold/unfold", () => {
     )
 
   test("initial fold depth: cards render with remainingDepth=2, deepest children folded", () => {
-    using app = createTestApp(deepTree(), { rows: 30 })
+    using app = await createTestApp(deepTree(), { rows: 30 })
 
     const initial = app.text
     // remainingDepth={2}: card content visible down to depth 2 from card root
@@ -1217,7 +1217,7 @@ describe("progressive fold/unfold", () => {
   test("L unfolds per-card depth, eventually revealing deepest children", async () => {
     // Disable incremental check: expanding folded nodes changes tree height,
     // which can cause fresh-render layout drift in silvery
-    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially everything visible down to depth 2, subtask-x hidden
     expect(app.text).toContain("Phase 1")
@@ -1236,7 +1236,7 @@ describe("progressive fold/unfold", () => {
 
   test("H folds deepest unfolded level progressively", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded. Unfold both levels first.
     await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
@@ -1262,7 +1262,7 @@ describe("progressive fold/unfold", () => {
 
   test("L on fully-folded card reveals only one level (progressive disclosure, km-ovuzg)", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Fold Project completely (3 H presses: depth 2 -> depth 1 -> depth 0)
     await app.command("fold_more") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
@@ -1296,7 +1296,7 @@ describe("progressive fold/unfold", () => {
 
   test("L on card with flat children (no grandchildren) reveals all at once", async () => {
     // When children are all leaves, L should show them all — no unnecessary folding
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
       { rows: 30, checkIncremental: false },
     )
@@ -1315,7 +1315,7 @@ describe("progressive fold/unfold", () => {
 
   test("H/L round-trip: fold then unfold restores visibility", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded at depth 1. Unfold first.
     await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
@@ -1763,7 +1763,7 @@ describe("fold depth preservation across zoom", () => {
   })
 
   test("progressive fold all (< x3) then unfold all (> x3) restores children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3")))),
     )
 

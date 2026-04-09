@@ -89,7 +89,7 @@ describe("spatial navigation: Y-position matching", () => {
   })
 
   test("j then l with body column: Y-match still works", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item.p("Some body text"),
@@ -115,7 +115,7 @@ describe("spatial navigation: Y-position matching", () => {
   })
 
   test("3 columns: l from middle column matches Y position", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3")),
@@ -170,7 +170,7 @@ describe("spatial navigation: Y-position matching", () => {
   })
 
   test("many columns with varying card counts: Y-match with unequal columns", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5"), item("A6"), item("A7"), item("A8")),
@@ -244,7 +244,7 @@ describe("spatial navigation: Y-position matching", () => {
 
 describe("vbody-nav: left into virtual body column", () => {
   test("h from structural column card lands on Y-matched body card", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item.p("body-1"),
@@ -270,7 +270,7 @@ describe("vbody-nav: left into virtual body column", () => {
   })
 
   test("h from first structural column directly into body", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item.p("intro"),
@@ -294,7 +294,7 @@ describe("vbody-nav: left into virtual body column", () => {
   })
 
   test("round-trip: body->structural->body preserves approximate Y position", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item.p("b1"), item.p("b2"), item.p("b3"), item("s1", item("t1"), item("t2"), item("t3"))),
       { rows: 40 },
     )
@@ -316,7 +316,7 @@ describe("vbody-nav: left into virtual body column", () => {
     const bodyCards = Array.from({ length: 20 }, (_, i) => item.p(`body-${i + 1}`))
     const structCards = Array.from({ length: 20 }, (_, i) => item(`task-${i + 1}`))
 
-    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 20,
       cols: 80,
     })
@@ -336,7 +336,7 @@ describe("vbody-nav: left into virtual body column", () => {
   })
 
   test("h from middle of second structural col, then to first, then to body", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item.p("bp1"),
@@ -376,7 +376,7 @@ describe("vbody-nav: left into virtual body column", () => {
     const bodyCards = Array.from({ length: 10 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 10 }, (_, i) => item(`t-${i + 1}`))
 
-    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 12,
       cols: 80,
     })
@@ -415,7 +415,7 @@ describe("vbody-nav: left into virtual body column", () => {
     const bodyCards = Array.from({ length: 3 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 30 }, (_, i) => item(`t-${i + 1}`))
 
-    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 15,
       cols: 80,
     })

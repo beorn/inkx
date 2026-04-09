@@ -134,7 +134,7 @@ describe("omnibox", () => {
 
   it("search results appear below command results", async () => {
     // Use extra-tall terminal so both sections are visible
-    using app = createTestApp([...item("board", item("col1", item("task1"), item("task2")))], { rows: 60 })
+    using app = await createTestApp([...item("board", item("col1", item("task1"), item("task2")))], { rows: 60 })
     await app.command("command_palette")
     // Type "task1" — matches few commands but definitely matches the node
     await app.press("t")
@@ -175,7 +175,7 @@ describe("omnibox", () => {
   it("command result shortcut hint is visible despite long description", async () => {
     // With a narrow terminal, command labels + descriptions can overflow.
     // The shortcut hint (e.g., "gi") must remain visible — the description truncates instead.
-    using app = createTestApp([...item("board", item("col1", item("task1")))], { rows: 40, cols: 60 })
+    using app = await createTestApp([...item("board", item("col1", item("task1")))], { rows: 40, cols: 60 })
     await app.command("command_palette")
     // Go to Inbox has shortcut "gi" — it must be visible even at 60 columns
     expect(app.text).toContain("gi")
@@ -186,7 +186,7 @@ describe("omnibox", () => {
   it("command result items are single-line (no wrapping)", async () => {
     // At narrow widths, command items must truncate rather than wrap to multiple lines.
     // Without height=1 + overflow="hidden" + wrap="truncate", text wraps and breaks layout.
-    using app = createTestApp([...item("board", item("col1", item("task1")))], { rows: 40, cols: 50 })
+    using app = await createTestApp([...item("board", item("col1", item("task1")))], { rows: 40, cols: 50 })
     await app.command("command_palette")
     // "Go to Inbox" and "Go to Journal" should both be visible on separate lines.
     // If items wrapped, they would consume 2 rows each and fewer items would be visible.
@@ -199,7 +199,7 @@ describe("omnibox", () => {
   it("search result parent context is not truncated by long title", async () => {
     // Use a board with a long task title and a recognizable column (parent) name.
     // The task title is long enough to push parentContext off-screen if not laid out properly.
-    using app = createTestApp(
+    using app = await createTestApp(
       [
         ...item(
           "FAMILY SPRINT",

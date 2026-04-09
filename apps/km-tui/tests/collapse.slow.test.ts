@@ -28,7 +28,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("collapse/uncollapse columns", () => {
   test("c collapses the current column (regular children)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -48,7 +48,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c on collapsed column uncollapses it", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -69,7 +69,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("c collapses column with file children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col-files", item.file("file1"), item.file("file2")), item("col-other", item("task1"))),
     )
 
@@ -87,7 +87,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c collapses column with folder children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a")), item.folder("sub-b")),
@@ -105,7 +105,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c collapses column with mixed file/folder/task children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col-mixed", item.file("file-a"), item.folder("folder-b"), item("task-c")),
@@ -121,7 +121,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c collapses column with body content (paragraphs before items)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col-body", item.p("intro text"), item("task1")), item("col-other", item("x"))),
     )
 
@@ -136,7 +136,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c collapses empty column", async () => {
-    using app = createTestApp(item.root("board", item("empty-col"), item("col-other", item("x"))))
+    using app = await createTestApp(item.root("board", item("empty-col"), item("col-other", item("x"))))
 
     // Navigate to empty column header
     // First, navigate up to board level
@@ -157,7 +157,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("column with km.collapse:: true starts collapsed (narrow rendering)", () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -174,7 +174,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("keypress collapse works as alternative to km.collapse:: true rule", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -200,7 +200,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("h/l navigation works between collapsed and uncollapsed columns", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col1", item("task-a"), item("task-b")),
@@ -235,7 +235,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("j/k on collapsed column stays on header", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -254,7 +254,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("cursor moves to column header on collapse", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b"), item("task-c")), item("col2", item("task-d"))),
     )
 
@@ -274,7 +274,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("cursor goes to first card on uncollapse", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -294,7 +294,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("multiple columns can be collapsed independently", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a")), item("col2", item("task-b")), item("col3", item("task-c"))),
     )
 
@@ -328,7 +328,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("c on virtual body column (Description) does not crash", async () => {
-    using app = createTestApp(item.root("board", item.p("intro text"), item("col1", item("task-a"))))
+    using app = await createTestApp(item.root("board", item.p("intro text"), item("col1", item("task-a"))))
 
     // Cursor starts on body card ("intro text")
     expect(app.q("[data-cursor]").textContent()).toContain("intro text")
@@ -346,7 +346,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("c from column header level collapses the column", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
@@ -359,7 +359,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c from board level does nothing (no column to collapse)", async () => {
-    using app = createTestApp(item.root("board", item("col1", item("task-a")), item("col2", item("task-b"))))
+    using app = await createTestApp(item.root("board", item("col1", item("task-a")), item("col2", item("task-b"))))
 
     // Navigate to board level
     await app.command("cursor_up")
@@ -382,7 +382,7 @@ describe("collapsed column width", () => {
   it("collapsed column via keypress should be narrow (<=5 chars wide)", async () => {
     // Use wider terminal (120 cols) to avoid silvery EXCESS layout warnings
     // when column widths change during collapse
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("task-a"), item("task-b")),
@@ -406,7 +406,7 @@ describe("collapsed column width", () => {
   })
 
   it("collapsed column via km.collapse:: true rule should be narrow", () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("task-a"), item("task-b")),
@@ -434,7 +434,7 @@ describe("collapsed column width", () => {
   })
 
   it("expanded columns should get more space when sibling is collapsed", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { cols: 80, rows: 24 },
     )
@@ -515,7 +515,7 @@ describe("collapsed column width", () => {
   })
 
   it("collapsed column cards are not visible in rendered output", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { cols: 80, rows: 24 },
     )
@@ -733,7 +733,7 @@ describe("collapsed column after shift", () => {
   })
 
   test("collapsed column at different positions renders correctly", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Alpha", item("a1")),
@@ -819,7 +819,7 @@ describe("uncollapse header rendering", () => {
   })
 
   test("header row contains column name after uncollapsing", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("MyColumn", item("task1"), item("task2")), item("Other", item("other1"))),
       { cols: 80, rows: 20 },
     )
@@ -840,7 +840,7 @@ describe("uncollapse header rendering", () => {
   })
 
   test("card count visible in header after uncollapsing", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Alpha", item("a1"), item("a2"), item("a3")), item("Beta", item("b1"))),
       { cols: 80, rows: 20 },
     )

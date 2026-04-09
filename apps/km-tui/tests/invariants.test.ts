@@ -139,10 +139,7 @@ describe("cursor-under-root invariant", () => {
 
     // Create repo with two separate roots
     const repo = createFakeRepo({
-      nodes: [
-        ...item("board", item("col1", item("1a"))),
-        ...item("other-root", item("orphan-card")),
-      ],
+      nodes: [...item("board", item("col1", item("1a"))), ...item("other-root", item("orphan-card"))],
     })
     const sel = createMockSel()
     const ctx = validCtx({

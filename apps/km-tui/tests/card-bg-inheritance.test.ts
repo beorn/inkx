@@ -31,7 +31,7 @@ import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../src/board/command-bridge.ts"
 import { getChordState } from "@km/commands"
-import { resetModeStack } from "../src/dialog-guard.ts"
+import { resetDialogGuard } from "../src/dialog-guard.ts"
 import { resetBoardAppState } from "../src/board/board-app.ts"
 import { defaultDarkTheme } from "@silvery/theme"
 import { selectedBg } from "../src/theme.ts"
@@ -64,7 +64,7 @@ function renderBoardWithTruecolor(options: {
   // Reset module-level state
   ensureCommandSystemInitialized()
   getChordState().cancel()
-  resetModeStack()
+  resetDialogGuard()
   resetBoardAppState()
 
   const navigator = createGridNavigator()

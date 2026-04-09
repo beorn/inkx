@@ -243,7 +243,7 @@ describe("extractTags", () => {
 describe("Search dialog bugs", () => {
   describe("km-tui.2: [2 after backspace", () => {
     test("backspacing to empty shows placeholder, not [2", async () => {
-      using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
+      using app = await createTestApp(item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
       await app.dispatch("search")
@@ -266,7 +266,7 @@ describe("Search dialog bugs", () => {
     })
 
     test("rapid backspace doesn't leave artifacts", async () => {
-      using app = createTestApp(item("board", item("col", item("test"))))
+      using app = await createTestApp(item("board", item("col", item("test"))))
 
       await app.dispatch("search")
       await app.press("t")
@@ -289,7 +289,7 @@ describe("Search dialog bugs", () => {
 
   describe("km-tui.3: title visibility during loading", () => {
     test("Search title remains visible with results", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item(
           "board",
           item(
@@ -1180,7 +1180,7 @@ describe("search flow via key presses", () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
     //                            > project-b > taskB1
     // User searches for "taskA2" and expects cursor to land on it.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "root",
         item(
@@ -1212,7 +1212,7 @@ describe("search flow via key presses", () => {
   test("search + Enter for already-visible card uses SELECT (no zoom)", async () => {
     // Structure: root > col1 > taskA, taskB > col2 > taskC
     // User is at root, taskB is already visible (grandchild of root).
-    using app = createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
+    using app = await createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
       incremental: false,
     })
 
@@ -1237,7 +1237,7 @@ describe("search flow via key presses", () => {
     // Structure: root > projects > project-a > task1 > subtask1
     // subtask1 is depth 4 from root. After search, board should zoom so that
     // subtask1 (or its parent task1) is a visible card, not just a descendant.
-    using app = createTestApp(item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))), {
+    using app = await createTestApp(item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))), {
       incremental: false,
     })
 
@@ -1260,7 +1260,7 @@ describe("search flow via key presses", () => {
     // Structure: vault > section > project > my-task, other-task
     // my-task is at depth 3 from vault. Search should zoom to section
     // and place cursor on my-task (now a card under project column).
-    using app = createTestApp(item("vault", item("section", item("project", item("my-task"), item("other-task")))), {
+    using app = await createTestApp(item("vault", item("section", item("project", item("my-task"), item("other-task")))), {
       incremental: false,
     })
 
@@ -1279,7 +1279,7 @@ describe("search flow via key presses", () => {
 
   test("search with multiple results selects the first match", async () => {
     // When search returns multiple results, pressing Enter selects the first one.
-    using app = createTestApp(
+    using app = await createTestApp(
       item("root", item("col1", item("alpha-task"), item("beta-task")), item("col2", item("alpha-note"))),
       { incremental: false },
     )
@@ -1316,7 +1316,7 @@ describe("search flow via key presses", () => {
     const nodes = item("root", item("docs", item("other-file")))
     // Insert the file node as child of docs
     nodes.push(fileNode)
-    using app = createTestApp(nodes, { incremental: false })
+    using app = await createTestApp(nodes, { incremental: false })
 
     await app.dispatch("search")
     for (const ch of "README") await app.press(ch)
@@ -1331,7 +1331,7 @@ describe("search flow via key presses", () => {
     // When cursor is already on a card in col1 and search selects a different
     // card in the same column, selectedNode should update to the new card.
     // This tests the cursorPosition memo dependency chain.
-    using app = createTestApp(
+    using app = await createTestApp(
       item("root", item("col1", item("taskA"), item("taskB"), item("taskC")), item("col2", item("taskD"))),
       { incremental: false },
     )
@@ -1352,7 +1352,7 @@ describe("search flow via key presses", () => {
 
   test("search + Enter + j/k navigation works after search", async () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "root",
         item(
@@ -1386,7 +1386,7 @@ describe("search flow via key presses", () => {
     // Asana import structure: all nodes are oi
     // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
     // User views Project, searches for Task B -- cursor should land on Task B card
-    using app = createTestApp(
+    using app = await createTestApp(
       item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
       { incremental: false },
     )
@@ -1403,7 +1403,7 @@ describe("search flow via key presses", () => {
     // Asana-like: Project > Section > Task > Subtask
     // User views Project, searches for Subtask -- should zoom to Section,
     // making Task a column and Subtask a card.
-    using app = createTestApp(
+    using app = await createTestApp(
       item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
       { incremental: false },
     )
@@ -1424,7 +1424,7 @@ describe("search flow via key presses", () => {
     // Regression: when search SELECTs a card in the same column,
     // selectedNode should update to the new card (not stay on the old one).
     // This verifies the store's selectedNode is consistent with cursor.
-    using app = createTestApp(item("root", item("col", item("first"), item("second"), item("third"))), {
+    using app = await createTestApp(item("root", item("col", item("first"), item("second"), item("third"))), {
       incremental: false,
     })
 

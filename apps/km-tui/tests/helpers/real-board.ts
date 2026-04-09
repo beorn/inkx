@@ -28,7 +28,7 @@ import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { StoreContext } from "@silvery/create/create-app"
 import { parseKey } from "@silvery/ag-term/runtime"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
-import { bindFocusManager } from "../../src/dialog-guard.ts"
+import { installDialogGuard } from "../../src/dialog-guard.ts"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board/board-types.ts"
@@ -144,7 +144,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()
-  bindFocusManager(focusManager)
+  installDialogGuard(focusManager)
 
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })

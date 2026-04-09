@@ -166,10 +166,9 @@ describe("cursor skips hidden nodes", () => {
 
 describe("cursor signal invariants after move", () => {
   test("after j/k, cursor is on new node and not on old node", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      incremental: false,
+    })
     // Initial cursor on 1a
     const c0 = expectCursor(store)
     expect(c0).toBe("1a")
@@ -199,11 +198,7 @@ describe("cursor signal invariants after move", () => {
 
   test("cursorDescendant propagates — parent card visible when cursor is on child", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling")),
-        ),
+      () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { incremental: false },
     )
     // Initial cursor is on first card (Parent)

@@ -67,7 +67,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select multiple tasks, bulk status toggle, verify screen and persistence", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("task-1"), item("task-2"), item("task-3"), item("task-4"))),
     )
     setTaskStatus(app.repo, ["task-1", "task-2", "task-3", "task-4"])
@@ -94,7 +94,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select cards with children, delete requires confirmation", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("simple"), item("parent", item("child-a"), item("child-b")), item("after"))),
     )
 
@@ -122,9 +122,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select upward with Shift+ArrowUp, delete, verify correct cards removed", async () => {
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Step 1: Navigate to D
     await app.command("cursor_down")
@@ -180,7 +178,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("bulk delete at end of column, cursor repositions to remaining cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("stay-1"), item("stay-2"), item("go-1"), item("go-2"), item("go-3"))),
     )
 

@@ -11,7 +11,7 @@
  *
  * @example
  * ```typescript
- * using app = createTestApp(realisticBoard(), { cols: 120, rows: 30 })
+ * using app = await createTestApp(realisticBoard(), { cols: 120, rows: 30 })
  * await app.press("j")
  * app.expectScreen("Buy groceries")
  * app.expect("#ch1").toExist()
@@ -146,6 +146,8 @@ export interface TestApp {
    * Use for orphan commands with no key binding (e.g. "search" dialog).
    */
   dispatch(commandId: string): TestAppChain
+  /** Wait for initial render to complete. Required on termless backend before sync assertions. No-op on headless. */
+  ready(): Promise<void>
   /** Navigate cursor to a node by pressing cursor_down (max 50 steps). Throws if not found. */
   navigateTo(target: string): Promise<void>
   /** Current screen content as plain text */
@@ -289,14 +291,28 @@ export function realisticBoard(): KNode[] {
  *
  * @param nodes - Node array from item() or realisticBoard(), or a function returning one
  * @param opts - Terminal dimensions and backend selection
+ *
+ * Returns a Promise that resolves to the TestApp. On headless, resolves immediately.
+ * On termless, waits for the initial render to complete so locators work from the start.
+ *
+ * @example
+ * ```typescript
+ * using app = await createTestApp(item("board", item("col1")))
+ * app.expect("#col1").toExist()  // works immediately — handle is ready
+ * ```
  */
-export function createTestApp(nodes: KNode[] | (() => KNode[]), opts: TestAppOptions = {}): TestApp {
+export async function createTestApp(
+  nodes: KNode[] | (() => KNode[]),
+  opts: TestAppOptions = {},
+): Promise<TestApp> {
   const resolvedNodes = typeof nodes === "function" ? nodes() : nodes
   const { cols = 120, rows = 30, backend } = opts
   const resolvedBackend = backend ?? process.env.TEST_BACKEND ?? "headless"
 
   if (resolvedBackend === "termless") {
-    return createTermlessTestApp(resolvedNodes, cols, rows, opts)
+    const app = createTermlessTestApp(resolvedNodes, cols, rows, opts)
+    await app.ready()
+    return app
   }
 
   return createHeadlessTestApp(resolvedNodes, cols, rows, opts)
@@ -412,6 +428,10 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
 
     dispatch(commandId: string): TestAppChain {
       return new TestAppChainImpl(chainFns, [() => rawDispatch(commandId)])
+    },
+
+    async ready(): Promise<void> {
+      // No-op on headless — synchronous backend is always ready
     },
 
     async navigateTo(target: string): Promise<void> {
@@ -655,23 +675,51 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
   })
 
   async function ensureHandle(): Promise<void> {
-    if (!handle) await handleReady
+    if (!handle) {
+      await handleReady
+      // Allow initial render + output to propagate through emulator
+      await new Promise((r) => setTimeout(r, TERMLESS_SETTLE_MS))
+    }
   }
+
+  // Eagerly resolve the handle — by the time the test's first `await` runs,
+  // the microtask for handleReady will have completed, making locators work.
+  // This doesn't block the sync return of createTestApp, but ensures the
+  // handle resolves as early as possible.
+  void handleReady
 
   const savedLogLevel = getLogLevel()
 
+  // Locator helpers: if handle isn't ready yet, return an empty locator
+  // that reports count=0. This lets sync assertions work before the first
+  // await (they'll fail with "expected >0, got 0" rather than crashing).
+  // After the first press/command (which awaits handle), locators work normally.
+  const emptyLocator: AutoLocator = {
+    count: () => 0,
+    textContent: () => "",
+    boundingBox: () => null,
+    getAttribute: () => null,
+    getByText: () => emptyLocator,
+    getByTestId: () => emptyLocator,
+    locator: () => emptyLocator,
+    filter: () => emptyLocator,
+    first: () => emptyLocator,
+    last: () => emptyLocator,
+    nth: () => emptyLocator,
+  } as unknown as AutoLocator
+
   function getLocator(selector: string): AutoLocator {
-    if (!handle) throw new Error("locator() called before handle is ready — await a press() first")
+    if (!handle) return emptyLocator
     return createAutoLocator(() => handle!.root).locator(selector)
   }
 
   function getByTextLocator(text: string | RegExp): AutoLocator {
-    if (!handle) throw new Error("getByText() called before handle is ready")
+    if (!handle) return emptyLocator
     return createAutoLocator(() => handle!.root).getByText(text)
   }
 
   function getByTestIdLocator(id: string): AutoLocator {
-    if (!handle) throw new Error("getByTestId() called before handle is ready")
+    if (!handle) return emptyLocator
     return createAutoLocator(() => handle!.root).getByTestId(id)
   }
 
@@ -735,6 +783,10 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
     dispatch(commandId: string): TestAppChain {
       return new TestAppChainImpl(chainFns, [() => rawDispatch(commandId)])
+    },
+
+    async ready(): Promise<void> {
+      await ensureHandle()
     },
 
     async navigateTo(target: string): Promise<void> {

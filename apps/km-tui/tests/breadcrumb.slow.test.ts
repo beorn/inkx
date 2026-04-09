@@ -234,7 +234,7 @@ describe("breadcrumb ANSI replay on h/l navigation", () => {
 
 describe("P2: Breadcrumb ghost prefix after navigation", () => {
   test("top-bar breadcrumb has no ghost prefix after horizontal navigation", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Alpha Column", item("a1"), item("a2")),
@@ -272,7 +272,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
 
   test("breadcrumb screen buffer has no ghost chars after navigation", async () => {
     // Verify at the screen/buffer level -- the actual rendered output
-    using app = createTestApp(item("board", item("Projects", item("p1")), item("TaskNotes", item("t1"))), {
+    using app = await createTestApp(item("board", item("Projects", item("p1")), item("TaskNotes", item("t1"))), {
       cols: 80,
       rows: 24,
     })
@@ -298,7 +298,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
   test("top-bar text shrinks cleanly without trailing ghost chars", async () => {
     // When switching from a long path to a short path, the buffer should
     // not show leftover chars from the longer text
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Short", item("s1")), item("VeryLongColumnNameThatTakesSpace", item("v1"))),
       { cols: 80, rows: 24 },
     )
@@ -377,7 +377,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
 describe("Breadcrumb path when zoomed deep", () => {
   test("top bar shows ancestor path after zooming into a card", async () => {
     // hierarchy: board > col > section > subsection > items
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("section", item("subsection", item("task-a"), item("task-b"))))),
       { cols: 120, rows: 24 },
     )
@@ -397,7 +397,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   })
 
   test("top bar shows full ancestor breadcrumb path when zoomed two levels deep", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -425,7 +425,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   })
 
   test("breadcrumb truncates from left when path is too long for terminal width", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "VeryLongBoardNameThatEatsSpace",
         item(
@@ -448,7 +448,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   })
 
   test("breadcrumb uses dim style for ancestors and bold for board root", async () => {
-    using app = createTestApp(item("board", item("col", item("parent", item("child", item("gc-a"), item("gc-b"))))), {
+    using app = await createTestApp(item("board", item("col", item("parent", item("child", item("gc-a"), item("gc-b"))))), {
       cols: 120,
       rows: 24,
     })
@@ -463,7 +463,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   })
 
   test("breadcrumb updates when zooming out with Z", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("level1", item("level2", item("level3", item("deep")))))),
       { cols: 120, rows: 24 },
     )
@@ -485,7 +485,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   test("within-board segments use > separator for clear hierarchy", async () => {
     // Within-board segments use > separator to distinguish hierarchy
     // from filesystem path (which uses / and #)
-    using app = createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+    using app = await createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
       cols: 120,
       rows: 24,
     })
@@ -504,7 +504,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   test("breadcrumb shows zoom context after deep search jump", async () => {
     // Simulates what happens after a search navigates to a deep node:
     // the user zooms into the found location and needs to see where they are
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "root",
         item(
@@ -567,7 +567,7 @@ describe("zoom-mismatch: multi-line paragraph text bleed", () => {
     // A heading card with:
     //   1. A paragraph child with multi-line content (URLs + wikilink)
     //   2. Task children with clean content
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item(

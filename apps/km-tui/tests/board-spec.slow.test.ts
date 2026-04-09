@@ -922,8 +922,8 @@ describe("Inline edit + undo interaction", () => {
 
 describe("selection state through cursor movement", () => {
   test("cursor moves through j/k — sel.node.cursor() tracks current node", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
     )
 
     // Initial cursor
@@ -950,9 +950,7 @@ describe("selection state through cursor movement", () => {
   })
 
   test("cursor position matches data-cursor attribute on screen", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // task1 has cursor
     board.expect("#task1[data-cursor]").toExist()
@@ -975,9 +973,7 @@ describe("selection state through cursor movement", () => {
 
 describe("edit signal propagation", () => {
   test("enter edit mode sets editing, exit clears it", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Initially not editing
     board.expectNotEditing()
@@ -995,9 +991,7 @@ describe("edit signal propagation", () => {
   })
 
   test("edit on different cards tracks correct nodeId", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Edit task1
     board.press("i")
@@ -1021,12 +1015,8 @@ describe("edit signal propagation", () => {
   })
 
   test("edit sub-item in nested card works and cleans up", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("Parent", item("child-a"), item("child-b"))),
-        ),
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")))),
     )
 
     // Navigate into children via j keys

@@ -264,7 +264,7 @@ describe("Escape Layering", () => {
   // ---------------------------------------------------------------------------
 
   test("single Escape exits inline edit mode to normal mode", async () => {
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
     await app.press("Enter") // enter edit mode
 
@@ -277,7 +277,7 @@ describe("Escape Layering", () => {
   })
 
   test("single Escape after typing saves and exits to normal mode", async () => {
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
     await app.press("Enter")
     await app.command("toggle_task_done")
@@ -295,7 +295,7 @@ describe("Escape Layering", () => {
   })
 
   test("Escape exits edit mode even with local find results visible (regression)", async () => {
-    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
+    using app = await createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
 
     // Do a local find (/) to set localSearch state
     await app.command("local_find") // open find bar

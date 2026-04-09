@@ -59,7 +59,7 @@ function press(board: ReturnType<typeof testEnv>["board"], key: string, label: s
 
 describe("stickyY reliability", () => {
   test("j then l: lands on matching card (basic, no race condition)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
@@ -135,12 +135,8 @@ describe("stickyY reliability", () => {
   })
 
   test("single j then l: basic case works", async () => {
-    using app = createTestApp(
-      item(
-        "board",
-        item("ColA", item("A1"), item("A2"), item("A3")),
-        item("ColB", item("B1"), item("B2"), item("B3")),
-      ),
+    using app = await createTestApp(
+      item("board", item("ColA", item("A1"), item("A2"), item("A3")), item("ColB", item("B1"), item("B2"), item("B3"))),
       { rows: 24, cols: 80 },
     )
 
@@ -539,7 +535,7 @@ describe("stickyY reset on boundary actions", () => {
 
 describe("curswantY sticky navigation", () => {
   test("navigating right preserves Y position (no scroll)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
@@ -582,7 +578,7 @@ describe("curswantY sticky navigation", () => {
     // - Column A has many cards, scrolled so card 10 is visible
     // - Column B has fewer cards, not scrolled
     // - Navigating right from card 10 should find closest card in B
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -640,7 +636,7 @@ describe("curswantY sticky navigation", () => {
   test("j/k resets stickyY so next h/l uses new position", async () => {
     // j/k resets curswantY to current card's position.
     // h/l keeps curswantY and uses it for cross-column navigation.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
@@ -673,7 +669,7 @@ describe("curswantY sticky navigation", () => {
 
   test("h/l preserves stickyY across multiple columns", async () => {
     // When only pressing h/l (no j/k), stickyY stays the same.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3")),
@@ -703,7 +699,7 @@ describe("curswantY sticky navigation", () => {
     // 2. Navigate right to empty column (stickyY should be captured)
     // 3. Navigate right again to column with cards
     // 4. Should land on card at original Y position, not first card
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3")),

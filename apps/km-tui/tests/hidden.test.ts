@@ -267,9 +267,33 @@ describe("computeHiddenNodeIds", () => {
 
   test("hides matching columns and cards", () => {
     const root = mkNode({ id: "root", parent_id: null })
-    const col1 = mkNode({ id: "col1", parent_id: "root", parent_idx: 0, fs_path: "todo.md", type: "h", fstype: "mdfile", item: {} })
-    const col2 = mkNode({ id: "col2", parent_id: "root", parent_idx: 1, fs_path: "done.md", type: "h", fstype: "mdfile", item: {} })
-    const card = mkNode({ id: "card1", parent_id: "col1", parent_idx: 0, fs_path: "task.md", type: "h", fstype: "mdfile", item: {} })
+    const col1 = mkNode({
+      id: "col1",
+      parent_id: "root",
+      parent_idx: 0,
+      fs_path: "todo.md",
+      type: "h",
+      fstype: "mdfile",
+      item: {},
+    })
+    const col2 = mkNode({
+      id: "col2",
+      parent_id: "root",
+      parent_idx: 1,
+      fs_path: "done.md",
+      type: "h",
+      fstype: "mdfile",
+      item: {},
+    })
+    const card = mkNode({
+      id: "card1",
+      parent_id: "col1",
+      parent_idx: 0,
+      fs_path: "task.md",
+      type: "h",
+      fstype: "mdfile",
+      item: {},
+    })
 
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })

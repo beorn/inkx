@@ -24,7 +24,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Column Collapse Journeys", () => {
   test("collapse a column with v c, verify it shrinks and hides cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Todo", item("buy-milk"), item("write-tests")), item("Done", item("ship-v1"))),
       { cols: 80, rows: 24 },
     )
@@ -54,7 +54,7 @@ describe("Column Collapse Journeys", () => {
   })
 
   test("navigate between collapsed and expanded columns with h/l", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("Alpha", item("a1"), item("a2")),
@@ -91,7 +91,7 @@ describe("Column Collapse Journeys", () => {
   })
 
   test("collapse then uncollapse round-trip restores all cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Projects", item("redesign"), item("migration"), item("cleanup")),
@@ -125,7 +125,7 @@ describe("Column Collapse Journeys", () => {
   })
 
   test("collapse multiple columns independently, verify layout changes", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col1", item("task-a")),
@@ -168,7 +168,7 @@ describe("Column Collapse Journeys", () => {
   })
 
   test("collapse column, navigate away, come back — column stays collapsed", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("Inbox", item("new-item"), item("urgent")),
@@ -204,7 +204,7 @@ describe("Column Collapse Journeys", () => {
   })
 
   test("collapsed column cursor is on header, j/k does not enter column", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("task-a"), item("task-b"), item("task-c")), item("col2", item("other"))),
       { cols: 80, rows: 24 },
     )

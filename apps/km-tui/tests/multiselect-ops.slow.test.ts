@@ -42,7 +42,7 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 
 describe("Multi-select delete", () => {
   test("delete multiple selected empty cards", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Cursor starts on A. Move to B, then extend selection B→D (2 J presses).
     await app.command("cursor_down") // → B (card 1)
@@ -56,7 +56,7 @@ describe("Multi-select delete", () => {
   })
 
   test("batch delete shows confirmation when any node has children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
@@ -73,7 +73,7 @@ describe("Multi-select delete", () => {
   })
 
   test("batch delete confirms and executes all nodes", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
@@ -89,7 +89,7 @@ describe("Multi-select delete", () => {
   })
 
   test("batch delete cursor moves to valid position after deletion", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Cursor starts on A. Move to C, extend C→E (2 J presses).
     await app.command("cursor_down") // → B
@@ -104,7 +104,7 @@ describe("Multi-select delete", () => {
   })
 
   test("batch delete clears selection", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Cursor starts on A. Select A→C (2 J presses).
     await app.press("shift+ArrowDown") // anchor=A, cursor→B
@@ -117,7 +117,7 @@ describe("Multi-select delete", () => {
   })
 
   test("single card delete still works (no regression)", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor starts on A. Move to B. No selection.
     await app.command("cursor_down") // → B
@@ -172,7 +172,7 @@ describe("Multi-select delete", () => {
 
 describe("Multi-select status toggle", () => {
   test("toggle status on multiple selected tasks", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
@@ -192,7 +192,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("batch status toggle preserves selection for repeated toggling", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
@@ -213,7 +213,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("batch status toggle with mixed statuses advances each independently", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
@@ -238,7 +238,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("single card status toggle still works (no regression)", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     setTaskStatus(app.repo, ["A", "B"])
 

@@ -39,4 +39,3 @@ function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNod
 export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KNode[] = []): KNode {
   return createTestKNode(nodeOverrides)
 }
-

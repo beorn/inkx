@@ -23,17 +23,17 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 Backend-agnostic test API. Write once, run on headless (default) or termless (`TEST_BACKEND=termless`).
 
-| Helper                            | Purpose                                                    |
-| --------------------------------- | ---------------------------------------------------------- |
-| `createTestApp(nodes, opts?)`     | Create test app with headless or termless backend         |
-| `realisticBoard()`                | Pre-built fixture: multi-column board with varied content |
+| Helper                        | Purpose                                                   |
+| ----------------------------- | --------------------------------------------------------- |
+| `createTestApp(nodes, opts?)` | Create test app with headless or termless backend         |
+| `realisticBoard()`            | Pre-built fixture: multi-column board with varied content |
 
 ```typescript
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 test("buy milk task", async () => {
-  using app = createTestApp(item("board", item("Todo", item("Buy milk")), item("Done")))
+  using app = await createTestApp(item("board", item("Todo", item("Buy milk")), item("Done")))
   await app.press("Enter") // interact (async!)
   app.expect("#Buy milk").toExist() // verify screen (sync)
   expect(app.repo.getNode("Buy milk")).toBeDefined() // verify persistence
@@ -44,15 +44,16 @@ See `.claude/skills/tests/reference.md#createTestApp` for the full API.
 
 ### `helpers/board-test.ts` — @deprecated — legacy testEnv (still used by ~20 tests)
 
-| Helper                                     | Purpose                                              |
-| ------------------------------------------ | ---------------------------------------------------- |
+| Helper                                     | Purpose                                                |
+| ------------------------------------------ | ------------------------------------------------------ |
 | `item(title, ...children)`                 | Fluent tree builder for test fixtures (**still used**) |
-| `testEnv(builder)`                         | @deprecated — prefer createTestApp                   |
-| `testEnvWithRepo(builder)`                 | @deprecated — for existing Repo + custom rootId     |
-| `renderBoard(nodes, opts)`                 | Static render without interaction                    |
-| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                     |
+| `testEnv(builder)`                         | @deprecated — prefer createTestApp                     |
+| `testEnvWithRepo(builder)`                 | @deprecated — for existing Repo + custom rootId        |
+| `renderBoard(nodes, opts)`                 | Static render without interaction                      |
+| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                       |
 
 `testEnv` remains for tests that need:
+
 - `store` (Zustand) white-box state inspection
 - `board.click(x, y)` mouse events
 - `board.bell`, `board.getStatus()` status bar

@@ -24,7 +24,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Fold/Unfold Journeys", () => {
   test("H folds card children, navigate away and back, children stay hidden", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("parent1", item("ch1"), item("ch2")), item("sib1")),
@@ -56,7 +56,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("H then L round-trips: fold and unfold restores visibility", async () => {
-    using app = createTestApp(item("board", item("col1", item("task1", item("subA"), item("subB")))))
+    using app = await createTestApp(item("board", item("col1", item("task1", item("subA"), item("subB")))))
     app.expect("#task1[data-cursor]").toExist()
     app.expect("#subA").toExist()
     app.expect("#subB").toExist()
@@ -80,7 +80,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold all (<) hides children in all columns, unfold all (>) restores", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("nodeA", item("nodeA-ch"))), item("col2", item("nodeB", item("nodeB-ch")))),
     )
     app.expect("#nodeA-ch").toExist()
@@ -103,7 +103,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold all then selectively unfold one card with L", async () => {
-    using app = createTestApp(item("board", item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch")))))
+    using app = await createTestApp(item("board", item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch")))))
     app.expect("#p1-ch").toExist()
     app.expect("#p2-ch").toExist()
 
@@ -122,7 +122,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold one card, navigate to another and fold it, both stay folded", async () => {
-    using app = createTestApp(item("board", item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch")))))
+    using app = await createTestApp(item("board", item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch")))))
     app.expect("#a1[data-cursor]").toExist()
     app.expect("#a1-ch").toExist()
     app.expect("#b1-ch").toExist()
@@ -146,7 +146,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold preserves cursor position, unfold keeps cursor on parent", async () => {
-    using app = createTestApp(item("board", item("col1", item("par1", item("c1"), item("c2"), item("c3")))))
+    using app = await createTestApp(item("board", item("col1", item("par1", item("c1"), item("c2"), item("c3")))))
     app.expect("#par1[data-cursor]").toExist()
 
     // Step 1: Fold — cursor stays on par1
@@ -164,7 +164,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("progressive fold: H folds deepest level first, L unfolds one level at a time", async () => {
-    using app = createTestApp(item("board", item("col1", item("root1", item("mid1", item("deep1"))))))
+    using app = await createTestApp(item("board", item("col1", item("root1", item("mid1", item("deep1"))))))
     app.expect("#root1[data-cursor]").toExist()
     app.expect("#mid1").toExist()
     app.expect("#deep1").toExist()

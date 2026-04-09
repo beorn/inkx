@@ -30,7 +30,7 @@ describe("Filter/View Journeys", () => {
       }
     }
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: All tasks visible initially
     let screen = app.text
@@ -60,7 +60,7 @@ describe("Filter/View Journeys", () => {
   })
 
   test("filter via V panel, navigate filtered results, close panel, unfilter", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { cols: 120, rows: 24 },
     )
@@ -108,7 +108,7 @@ describe("Filter/View Journeys", () => {
       }
     }
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: Navigate to my-task
     await app.command("cursor_down")
@@ -135,7 +135,7 @@ describe("Filter/View Journeys", () => {
       }
     }
 
-    using app = createTestApp(nodes, { cols: 120, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 120, rows: 24 })
 
     // Step 1: Hide done tasks
     await app.command("toggle_hide_done")
@@ -167,7 +167,7 @@ describe("Filter/View Journeys", () => {
       }
     }
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: No hidden indicator initially
     let screen = app.text

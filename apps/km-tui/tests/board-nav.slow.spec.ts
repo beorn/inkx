@@ -13,7 +13,7 @@ describe("Cursoring", () => {
   // Default view mode tests (cards view)
   describe("Cards View", () => {
     test("vertical (j/k): cards → column → board → boundary", async () => {
-      using app = createTestApp(item.simpleBoard())
+      using app = await createTestApp(item.simpleBoard())
       // j down through cards
       app.expect("#1a[data-cursor]").toExist()
       await app.command("cursor_down")
@@ -51,7 +51,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): columns at card level and header level → boundary", async () => {
-      using app = createTestApp(item.multiColBoard())
+      using app = await createTestApp(item.multiColBoard())
 
       // --- Card level ---
       // l right through columns
@@ -107,7 +107,7 @@ describe("Cursoring", () => {
     })
 
     test("g/G: jump to first/last in column", async () => {
-      using app = createTestApp(item.simpleBoard())
+      using app = await createTestApp(item.simpleBoard())
       // Start at middle
       await app.command("cursor_down")
       app.expect("#1b[data-cursor]").toExist()
@@ -131,7 +131,7 @@ describe("Cursoring", () => {
 
     describe("curswantX (horizontal position memory)", () => {
       test("remembers column when moving through headers", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item(
             "board",
             item("col1", item("1a"), item("1b")),
@@ -160,7 +160,7 @@ describe("Cursoring", () => {
       })
 
       test("preserves column when jumping between first/last card", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item(
             "board",
             item("col1", item("1a"), item("1b"), item("1c")),
@@ -181,7 +181,7 @@ describe("Cursoring", () => {
       })
 
       test("remembers X position in columns view", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item("board", item("col1", item("task")), item("col2", item("task")), item("col3", item("task"))),
           { cols: 120 }, // Wide terminal for side-by-side columns
         )
@@ -203,7 +203,7 @@ describe("Cursoring", () => {
 
     describe("curswantY (vertical position memory)", () => {
       test("remembers card position when moving between columns", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item(
             "board",
             item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
@@ -237,7 +237,7 @@ describe("Cursoring", () => {
       })
 
       test("adjusts Y position when target column is shorter", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item(
             "board",
             item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
@@ -259,7 +259,7 @@ describe("Cursoring", () => {
       })
 
       test("maintains Y position in columns view", async () => {
-        using app = createTestApp(
+        using app = await createTestApp(
           item(
             "board",
             item("col1", item("task1"), item("task2"), item("task3")),
@@ -284,7 +284,7 @@ describe("Cursoring", () => {
   // View mode variations
   describe("List View", () => {
     test("vertical (j/k) navigation and g/G jump to first/last", async () => {
-      using app = createTestApp(item.simpleBoard(), {
+      using app = await createTestApp(item.simpleBoard(), {
         viewMode: "list",
       })
 
@@ -339,7 +339,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): moves between columns", async () => {
-      using app = createTestApp(item.multiColBoard(), { viewMode: "list" })
+      using app = await createTestApp(item.multiColBoard(), { viewMode: "list" })
 
       // l right through columns (same as cards view)
       app.expect("#1a[data-cursor]").toExist()
@@ -373,7 +373,7 @@ describe("Cursoring", () => {
 
   describe("Tabs View", () => {
     test("vertical (j/k): cards within active tab → boundary", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"))),
         { viewMode: "tabs" },
       )
@@ -406,7 +406,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): switch between tabs", async () => {
-      using app = createTestApp(item.multiColBoard(), { viewMode: "tabs" })
+      using app = await createTestApp(item.multiColBoard(), { viewMode: "tabs" })
       // Start in col1 tab
       app.expect("#1a[data-cursor]").toExist()
 
@@ -444,7 +444,7 @@ describe("Cursoring", () => {
     })
 
     test("cursor position when switching tabs", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item(
           "board",
           item("col1", item("1a"), item("1b"), item("1c")),
@@ -470,7 +470,7 @@ describe("Cursoring", () => {
     })
 
     test("tab header selection with k", async () => {
-      using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         viewMode: "tabs",
       })
       // Start at card level
@@ -492,7 +492,7 @@ describe("Cursoring", () => {
     })
 
     test("empty tab shows placeholder", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item(
           "board",
           item("col1", item("1a")),
@@ -511,13 +511,13 @@ describe("Cursoring", () => {
 describe("Boundaries and Edge Cases", () => {
   describe("empty states", () => {
     test("empty board shows helpful message", async () => {
-      using app = createTestApp(item("board"))
+      using app = await createTestApp(item("board"))
       const output = app.text
       expect(output).toContain("Empty board")
     })
 
     test("empty column - j/k do nothing", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("col1", item("task")), item("col2")), // col2 is empty
       )
       // Move to col2
@@ -528,7 +528,7 @@ describe("Boundaries and Edge Cases", () => {
     })
 
     test("single card - g/G do nothing", async () => {
-      using app = createTestApp(item("board", item("col", item("only"))))
+      using app = await createTestApp(item("board", item("col", item("only"))))
       app.expect("#only[data-cursor]").toExist()
       await app.command("cursor_first")
       app.expect("#only[data-cursor]").toExist()
@@ -538,7 +538,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("single column: h goes to column header, l does nothing", async () => {
-    using app = createTestApp(item("board", item("col", item("task"))))
+    using app = await createTestApp(item("board", item("col", item("task"))))
     app.expect("#task[data-cursor]").toExist()
 
     // h at first card of first column goes to column header
@@ -559,7 +559,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("k stops at top boundary, j stops at bottom boundary", async () => {
-    using app = createTestApp(item.simpleBoard())
+    using app = await createTestApp(item.simpleBoard())
 
     // --- k boundary: move up through column header to board title ---
     app.expect("#1a[data-cursor]").toExist()
@@ -593,7 +593,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("h stops at left boundary, l stops at right boundary", async () => {
-    using app = createTestApp(item.multiColBoard())
+    using app = await createTestApp(item.multiColBoard())
 
     // --- h boundary: navigate right then back to left edge ---
     app.expect("#1a[data-cursor]").toExist()
@@ -628,14 +628,14 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("g does nothing at first card", async () => {
-    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    using app = await createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
     app.expect("#1a[data-cursor]").toExist()
     await app.press("g")
     app.expect("#1a[data-cursor]").toExist()
   })
 
   test("g G does nothing at last card", async () => {
-    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    using app = await createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
     await app.command("cursor_last")
     app.expect("#1c[data-cursor]").toExist()
     await app.command("cursor_last")
@@ -645,7 +645,7 @@ describe("Boundaries and Edge Cases", () => {
   // Keys that should do nothing in specific contexts
   describe("no-op key boundaries", () => {
     test("Escape, [, ], z on column header do nothing on task card", async () => {
-      using app = createTestApp(item("board", item("col", item("task"))))
+      using app = await createTestApp(item("board", item("col", item("task"))))
 
       // Escape in board view
       app.expect("#task[data-cursor]").toExist()
@@ -668,7 +668,7 @@ describe("Boundaries and Edge Cases", () => {
     })
 
     test("Enter and z do nothing on leaf card", async () => {
-      using app = createTestApp(item("board", item("col", item("leaf"))))
+      using app = await createTestApp(item("board", item("col", item("leaf"))))
 
       // Enter on card without children
       app.expect("#leaf[data-cursor]").toExist()
@@ -957,7 +957,7 @@ describe("Outline navigation with grandchildren", () => {
 
 describe("Spatial block navigation (J/K)", () => {
   test("J walks through all visible blocks in document order", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Column", item("card1", item("child1a"), item("child1b")), item("card2"))),
       { cols: 80, rows: 24 },
     )
@@ -978,7 +978,7 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("K walks backward through visible blocks", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Column", item("card1", item("child1a"), item("child1b")), item("card2"))),
       { cols: 80, rows: 24 },
     )
@@ -1002,7 +1002,7 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("J on leaf card moves to next card (no children to visit)", async () => {
-    using app = createTestApp(item("board", item("Column", item("card1"), item("card2"))), {
+    using app = await createTestApp(item("board", item("Column", item("card1"), item("card2"))), {
       cols: 80,
       rows: 24,
     })
@@ -1014,7 +1014,7 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("K from first card moves to column header", async () => {
-    using app = createTestApp(item("board", item("Column", item("card1"), item("card2"))), {
+    using app = await createTestApp(item("board", item("Column", item("card1"), item("card2"))), {
       cols: 80,
       rows: 24,
     })
@@ -1026,7 +1026,7 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("J/K are strict inverses — full spatial journey", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Column", item("parent", item("child-a"), item("child-b")), item("sibling"))),
       { cols: 80, rows: 24 },
     )
@@ -1061,7 +1061,7 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("J/K with nested children traverses in DFS order", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
       { cols: 80, rows: 24 },
     )
@@ -1089,13 +1089,10 @@ describe("Spatial block navigation (J/K)", () => {
   })
 
   test("J traverses into grandchildren (depth 2+) when visible", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
-        item(
-          "Column",
-          item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b")),
-        ),
+        item("Column", item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b"))),
       ),
       { cols: 80, rows: 24 },
     )

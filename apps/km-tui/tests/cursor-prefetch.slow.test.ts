@@ -19,7 +19,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("cursor prefetch on horizontal navigation", () => {
   test("rapid h/l navigation across 5 columns lands on correct final position", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -50,7 +50,7 @@ describe("cursor prefetch on horizontal navigation", () => {
   })
 
   test("h/l navigation with mixed j/k between columns renders correctly", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c")),
@@ -82,7 +82,7 @@ describe("cursor prefetch on horizontal navigation", () => {
   })
 
   test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", async () => {
-    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
 
     app.expect("#1a[data-cursor]").toExist()
 
@@ -107,7 +107,7 @@ describe("cursor prefetch on horizontal navigation", () => {
     // adjacent column children. This test verifies the prefetch doesn't
     // throw or corrupt state by navigating and then performing operations
     // that depend on column data being correct.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -136,7 +136,7 @@ describe("cursor prefetch on horizontal navigation", () => {
   })
 
   test("horizontal nav across boundary doesn't cause errors", async () => {
-    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+    using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
       cols: 80,
       rows: 20,
     })

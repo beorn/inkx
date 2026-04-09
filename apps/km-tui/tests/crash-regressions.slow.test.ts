@@ -19,7 +19,7 @@ const FAST = { checkIncremental: false } as const
 
 describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
   test("pressing C (hide_node) does not crash on fake repo", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 80, rows: 24, ...FAST },
     )
@@ -45,7 +45,7 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
   })
 
   test("pressing C shows error toast instead of crashing", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 80, rows: 24, ...FAST },
     )
@@ -65,7 +65,7 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
 
 describe("Open in System crash when repo.data is null (km-otgyy)", () => {
   test("pressing go does not crash when repo.data is null", async () => {
-    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
+    using app = await createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
     await app.command("cursor_down")
@@ -81,7 +81,7 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
   })
 
   test("pressing gO (open in terminal) does not crash when repo.data is null", async () => {
-    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
+    using app = await createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     await app.command("cursor_down")
 
@@ -102,7 +102,7 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
 
 describe("h/l at boundary crash (km-cwn2)", () => {
   test("h/l at right boundary doesn't crash", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -135,7 +135,7 @@ describe("h/l at boundary crash (km-cwn2)", () => {
   })
 
   test("h at left boundary doesn't crash", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -170,7 +170,7 @@ describe("h/l at boundary crash (km-cwn2)", () => {
 
 describe("card index out of bounds on h (km-53uqt)", () => {
   test("h does not throw after mixed operations that change column sizes", { timeout: 30_000 }, async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -236,7 +236,7 @@ describe("card index out of bounds on h (km-53uqt)", () => {
 
 describe("stale-cursor-after-delete-all", () => {
   test("deleting all cards in column should not leave stale cursor", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
 
     // Delete A (cursor moves to B)
     await app.press("Backspace")
@@ -258,7 +258,7 @@ describe("stale-cursor-after-delete-all", () => {
 
 describe("Pane close crash (km-tui.pane-close-crash)", () => {
   test("split then close last board pane is prevented (bells instead of crash)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 120, rows: 24, ...FAST },
     )
@@ -289,7 +289,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
   })
 
   test("split, focus empty pane, close empty pane works", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 120, rows: 24, ...FAST },
     )

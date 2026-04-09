@@ -13,7 +13,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   test("opt+l shifts column right — cursor stays on same column header", async () => {
-    using app = createTestApp(item.multiColBoard())
+    using app = await createTestApp(item.multiColBoard())
     // Navigate to col1 header
     await app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
@@ -30,7 +30,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+h shifts column left — cursor stays on same column header", async () => {
-    using app = createTestApp(item.multiColBoard())
+    using app = await createTestApp(item.multiColBoard())
     // Navigate to col2 header
     await app.command("cursor_right")
     await app.command("cursor_up")
@@ -48,7 +48,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+l shifts column right — pressing l from shifted column moves to next column", async () => {
-    using app = createTestApp(item.multiColBoard())
+    using app = await createTestApp(item.multiColBoard())
     // Navigate to col1 header
     await app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
@@ -63,7 +63,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+h shifts column left — pressing h from shifted column moves to previous column", async () => {
-    using app = createTestApp(item.multiColBoard())
+    using app = await createTestApp(item.multiColBoard())
     // Navigate to col3 header
     await app.command("cursor_right")
     await app.command("cursor_right")
@@ -80,7 +80,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift column right then down enters correct column's cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -106,7 +106,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift column left then down enters correct column's cards", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
@@ -129,7 +129,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("opt+l visually reorders columns — all 3 columns visible", async () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
     // Navigate to col1 header and shift right
     await app.command("cursor_up")
     await app.press("opt+l")
@@ -147,7 +147,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("opt+h visually reorders columns — all 3 columns visible", async () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
     // Navigate to col2 header and shift left
     await app.command("cursor_right")
     await app.command("cursor_up")
@@ -166,7 +166,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("multiple shifts preserve cursor and visual order", async () => {
     // Use wider terminal for 4 columns
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("1a")),
@@ -208,7 +208,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift right then left returns column to original position", async () => {
-    using app = createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
     await app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
@@ -228,7 +228,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift right twice then left once — column ends in middle", async () => {
-    using app = createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
     await app.command("cursor_up")
 
     await app.press("opt+l") // col1: pos 0 → 1
@@ -249,7 +249,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   test("shift column with narrow viewport scrolls cursor into view", async () => {
     // 80-wide viewport with 3 columns: maxCols = floor(80/35) = 2
     // So only 2 columns visible at once — scroll is active
-    using app = createTestApp(item.multiColBoard(), { cols: 80, rows: 24 })
+    using app = await createTestApp(item.multiColBoard(), { cols: 80, rows: 24 })
     // Navigate to col1 header
     await app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
@@ -293,7 +293,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
   })
 
   test("batch toggle after single J affects both A and B", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Make A and B proper tasks
     app.repo.updateNode("A", { item: { task: { status: "todo", marker: "[ ]" } } })
@@ -319,7 +319,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
   })
 
   test("batch delete after single J removes both A and B", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor on A, press J to select range A→B
     await app.press("shift+ArrowDown")

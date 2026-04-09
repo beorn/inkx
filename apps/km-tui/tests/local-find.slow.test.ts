@@ -41,7 +41,7 @@ describe("Local Find", () => {
   })
 
   test("find bar disappears from screen after Escape", async () => {
-    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    using app = await createTestApp(item("board", item("col", item("task1"), item("task2"))))
     await app.command("local_find")
     app.expect("#find-bar").toExist()
     await app.press("Escape")
@@ -67,7 +67,7 @@ describe("Local Find", () => {
   })
 
   test("match count displays on screen", async () => {
-    using app = createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
+    using app = await createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
     await app.command("local_find")
     // Type "ox" — matches fox, box
     await app.command("insert_below")
@@ -76,7 +76,7 @@ describe("Local Find", () => {
   })
 
   test("no matches shows 'No matches' indicator", async () => {
-    using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
+    using app = await createTestApp(item("board", item("col", item("alpha"), item("beta"))))
     await app.command("local_find")
     await app.command("zoom_inwards")
     await app.command("zoom_inwards")
@@ -209,7 +209,7 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("match indicator updates as query changes", async () => {
-    using app = createTestApp(item("board", item("col", item("fox"), item("foxy"), item("dog"))))
+    using app = await createTestApp(item("board", item("col", item("fox"), item("foxy"), item("dog"))))
     await app.command("local_find")
     // "fox" matches fox and foxy
     await app.press("f")

@@ -583,7 +583,7 @@ describe("undo: delete with descendants", () => {
 
 describe("undo: TUI integration", () => {
   test("u undoes the last operation", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate task-a
     await app.press("cmd+d")
@@ -601,7 +601,7 @@ describe("undo: TUI integration", () => {
   })
 
   test("U redoes the last undone operation", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate
     await app.press("cmd+d")
@@ -617,7 +617,7 @@ describe("undo: TUI integration", () => {
   })
 
   test("undo shows operation label in status bar", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate to create an undoable operation
     await app.press("cmd+d")
@@ -628,7 +628,7 @@ describe("undo: TUI integration", () => {
   })
 
   test("redo shows operation label in status bar", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     await app.press("cmd+d")
     await app.command("undo")
@@ -639,7 +639,7 @@ describe("undo: TUI integration", () => {
   })
 
   test("undo shows batch label for multi-mutation operations", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Delete is a batched operation with label "Delete"
     await app.press("Backspace")
@@ -655,7 +655,7 @@ describe("undo: TUI integration", () => {
 
 describe("Undo duplicate node", () => {
   test("duplicate then undo removes the duplicate", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Verify initial state
     expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
@@ -690,7 +690,7 @@ describe("Undo duplicate node", () => {
   })
 
   test("multiple duplicates then multiple undos", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
 
@@ -720,7 +720,7 @@ describe("Undo duplicate node", () => {
 
 describe("undo cursor restore", () => {
   it("restores cursor to original card after duplicate + undo", async () => {
-    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Cursor starts on task-a. Move to task-b.
     await app.command("cursor_down")
@@ -740,7 +740,7 @@ describe("undo cursor restore", () => {
   })
 
   it("restores cursor when undoing duplicate of first card", async () => {
-    using app = createTestApp(item("board", item("col1", item("first"), item("second"))))
+    using app = await createTestApp(item("board", item("col1", item("first"), item("second"))))
 
     // Cursor starts on first card
     app.expect("#first[data-cursor]").toExist()
@@ -762,7 +762,7 @@ describe("undo cursor restore", () => {
 
 describe("redo-duplicate-broken (km-wacsx)", () => {
   test("redo after undo restores the duplicated node", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     // Baseline: 2 children
     expect(app.repo.getChildren("col1").map((n) => n.id)).toEqual(["A", "B"])
@@ -781,7 +781,7 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
   })
 
   test("rapid undo/redo cycle preserves duplicate", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     await app.press("cmd+d") // dup -> 3
     await app.command("undo") // undo -> 2

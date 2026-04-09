@@ -22,66 +22,66 @@
  * - Direct function tests for nested outdent scenarios
  */
 
-import { describe, test, expect } from "vitest";
-import { testEnv, item } from "./helpers/board-test.ts";
-import { createTestApp } from "./helpers/test-app.ts";
+import { describe, test, expect } from "vitest"
+import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // Helper: get child IDs of a parent from repo
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
-  return repo.getChildren(parentId).map((n) => n.id);
+  return repo.getChildren(parentId).map((n) => n.id)
 }
 
 // Helper: get cursor target node ID from the sel store.
 function cursorTargetId(store: {
   getState(): {
-    sel: { node: { cursor(): string | null } };
-  };
+    sel: { node: { cursor(): string | null } }
+  }
 }): string | null {
-  return store.getState().sel.node.cursor() as string | null;
+  return store.getState().sel.node.cursor() as string | null
 }
 
 describe("Indent (Tab)", () => {
   describe("basic indent", () => {
     test("indent reparents node under previous sibling", async () => {
       // col1: [A, B, C] — cursor on A, j → B, Tab → B becomes child of A
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      await app.command("cursor_down"); // Navigate to B
-      expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"]);
+      await app.command("cursor_down") // Navigate to B
+      expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
 
-      await app.command("indent_node");
+      await app.command("indent_node")
 
-      expect(childIds(app.repo, "A")).toContain("B");
-      expect(childIds(app.repo, "col1")).toEqual(["A", "C"]);
-    });
+      expect(childIds(app.repo, "A")).toContain("B")
+      expect(childIds(app.repo, "col1")).toEqual(["A", "C"])
+    })
 
     test("indent last sibling reparents under previous", async () => {
       // col1: [A, B, C] — j.j → C, Tab → C becomes child of B
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      await app.command("cursor_down");
-      await app.command("cursor_down"); // Navigate to C
+      await app.command("cursor_down")
+      await app.command("cursor_down") // Navigate to C
 
-      await app.command("indent_node");
+      await app.command("indent_node")
 
-      expect(childIds(app.repo, "B")).toContain("C");
-      expect(childIds(app.repo, "col1")).toEqual(["A", "B"]);
-    });
+      expect(childIds(app.repo, "B")).toContain("C")
+      expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
+    })
 
     test("indent appends as last child of previous sibling", async () => {
       // col1: [parent(child1, child2), target] — j → target, Tab → last child of parent
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("col1", item("parent", item("child1"), item("child2")), item("target"))),
-      );
+      )
 
-      await app.command("cursor_down"); // Navigate to target (second card)
+      await app.command("cursor_down") // Navigate to target (second card)
 
-      await app.command("indent_node");
+      await app.command("indent_node")
 
-      const parentChildren = childIds(app.repo, "parent");
-      expect(parentChildren).toEqual(["child1", "child2", "target"]);
-    });
-  });
+      const parentChildren = childIds(app.repo, "parent")
+      expect(parentChildren).toEqual(["child1", "child2", "target"])
+    })
+  })
 
   describe("boundary cases", () => {
     test.each([
@@ -96,11 +96,11 @@ describe("Indent (Tab)", () => {
         expected: ["only-child"],
       },
     ])("indent $name bells (no-op)", async ({ fixture, expected }) => {
-      using app = createTestApp(fixture());
-      await app.command("indent_node");
-      expect(childIds(app.repo, "col1")).toEqual(expected);
-    });
-  });
+      using app = await createTestApp(fixture())
+      await app.command("indent_node")
+      expect(childIds(app.repo, "col1")).toEqual(expected)
+    })
+  })
 
   describe("multi-level indent", () => {
     test("sequential indent from bottom nests progressively", async () => {
@@ -108,25 +108,25 @@ describe("Indent (Tab)", () => {
       // Indent C under B → col1=[A, B], cursor follows C (now child of B)
       // Navigate to B, indent B under A → col1=[A], cursor follows B
       // Result: A → B → C
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
       // Navigate to C, indent under B
-      await app.command("cursor_down");
-      await app.command("cursor_down"); // cardIndex=2 (C)
-      await app.command("indent_node");
-      expect(childIds(app.repo, "B")).toEqual(["C"]);
-      expect(childIds(app.repo, "col1")).toEqual(["A", "B"]);
+      await app.command("cursor_down")
+      await app.command("cursor_down") // cardIndex=2 (C)
+      await app.command("indent_node")
+      expect(childIds(app.repo, "B")).toEqual(["C"])
+      expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
 
       // Cursor follows C (now under B). Navigate up to B to indent it.
-      await app.command("cursor_up"); // C → B (or card-level B)
-      await app.command("indent_node");
-      expect(childIds(app.repo, "A")).toContain("B");
-      expect(childIds(app.repo, "col1")).toEqual(["A"]);
+      await app.command("cursor_up") // C → B (or card-level B)
+      await app.command("indent_node")
+      expect(childIds(app.repo, "A")).toContain("B")
+      expect(childIds(app.repo, "col1")).toEqual(["A"])
 
       // Verify full nested tree: A → B → C
-      expect(childIds(app.repo, "A")).toEqual(["B"]);
-      expect(childIds(app.repo, "B")).toEqual(["C"]);
-    });
+      expect(childIds(app.repo, "A")).toEqual(["B"])
+      expect(childIds(app.repo, "B")).toEqual(["C"])
+    })
 
     test("four-level sequential indent", async () => {
       // Start: col1 = [A, B, C, D]
@@ -134,91 +134,85 @@ describe("Indent (Tab)", () => {
       // Indent C under B, cursor follows C → navigate to B
       // Indent B under A, cursor follows B
       // Result: A → B → C → D
-      using app = createTestApp(
-        item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-      );
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-      await app.command("cursor_down");
-      await app.command("cursor_down");
-      await app.command("cursor_down"); // Navigate to D (cardIndex=3)
-      await app.command("indent_node");
-      expect(childIds(app.repo, "C")).toEqual(["D"]);
+      await app.command("cursor_down")
+      await app.command("cursor_down")
+      await app.command("cursor_down") // Navigate to D (cardIndex=3)
+      await app.command("indent_node")
+      expect(childIds(app.repo, "C")).toEqual(["D"])
 
       // Cursor follows D. Navigate to C to indent it.
-      await app.command("cursor_up"); // D → C
-      await app.command("indent_node");
-      expect(childIds(app.repo, "B")).toContain("C");
+      await app.command("cursor_up") // D → C
+      await app.command("indent_node")
+      expect(childIds(app.repo, "B")).toContain("C")
 
       // Cursor follows C. Navigate to B to indent it.
-      await app.command("cursor_up"); // C → B
-      await app.command("indent_node");
-      expect(childIds(app.repo, "A")).toContain("B");
+      await app.command("cursor_up") // C → B
+      await app.command("indent_node")
+      expect(childIds(app.repo, "A")).toContain("B")
 
       // Verify: A → B → C → D
-      expect(childIds(app.repo, "col1")).toEqual(["A"]);
-      expect(childIds(app.repo, "A")).toEqual(["B"]);
-      expect(childIds(app.repo, "B")).toEqual(["C"]);
-      expect(childIds(app.repo, "C")).toEqual(["D"]);
-    });
-  });
+      expect(childIds(app.repo, "col1")).toEqual(["A"])
+      expect(childIds(app.repo, "A")).toEqual(["B"])
+      expect(childIds(app.repo, "B")).toEqual(["C"])
+      expect(childIds(app.repo, "C")).toEqual(["D"])
+    })
+  })
 
   describe("cursor follows node after indent", () => {
     // NOTE: these tests use `store` (Zustand) which is not exposed by createTestApp — stay on testEnv.
     test("cursor follows indented node", () => {
       // col1: [A, B, C] — indent B under A → cursor follows B (now child of A)
-      const { board, store, repo } = testEnv(() =>
-        item("board", item("col1", item("A"), item("B"), item("C"))),
-      );
+      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      board.command("cursor_down"); // → B
-      board.command("indent_node"); // indent B under A → col1=[A, C], cursor follows B
+      board.command("cursor_down") // → B
+      board.command("indent_node") // indent B under A → col1=[A, C], cursor follows B
 
       // B was indented under A
-      expect(childIds(repo, "A")).toEqual(["B"]);
-      expect(childIds(repo, "col1")).toEqual(["A", "C"]);
+      expect(childIds(repo, "A")).toEqual(["B"])
+      expect(childIds(repo, "col1")).toEqual(["A", "C"])
       // Cursor follows B (the indented node)
-      expect(cursorTargetId(store)).toBe("B");
-    });
+      expect(cursorTargetId(store)).toBe("B")
+    })
 
     test("cursor follows indented node when last sibling", () => {
       // col1: [A, B] — indent B under A → col1=[A], cursor follows B
-      const { board, store, repo } = testEnv(() =>
-        item("board", item("col1", item("A"), item("B"))),
-      );
+      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
-      board.command("cursor_down"); // → B
-      board.command("indent_node"); // indent B under A → col1=[A]
+      board.command("cursor_down") // → B
+      board.command("indent_node") // indent B under A → col1=[A]
 
-      expect(childIds(repo, "A")).toEqual(["B"]);
-      expect(cursorTargetId(store)).toBe("B");
-    });
-  });
-});
+      expect(childIds(repo, "A")).toEqual(["B"])
+      expect(cursorTargetId(store)).toBe("B")
+    })
+  })
+})
 
 describe("Outdent (Shift+Tab)", () => {
   describe("basic outdent", () => {
     test("outdent moves card from column to board level", async () => {
       // col1: [card1, card2] — card1's grandparent is board
       // Shift+Tab on card1 → card1 becomes sibling of col1 under board
-      using app = createTestApp(item("board", item("col1", item("card1"), item("card2"))));
+      using app = await createTestApp(item("board", item("col1", item("card1"), item("card2"))))
 
-      await app.press("shift+Tab");
+      await app.press("shift+Tab")
 
-      expect(childIds(app.repo, "board")).toContain("card1");
-      expect(childIds(app.repo, "col1")).toEqual(["card2"]);
-    });
+      expect(childIds(app.repo, "board")).toContain("card1")
+      expect(childIds(app.repo, "col1")).toEqual(["card2"])
+    })
 
     test("outdent preserves remaining siblings in column", async () => {
       // col1: [A, B, C] — outdent B → col1=[A, C], board gets B
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      await app.command("cursor_down"); // → B
-      await app.press("shift+Tab");
+      await app.command("cursor_down") // → B
+      await app.press("shift+Tab")
 
-      expect(childIds(app.repo, "col1")).toEqual(["A", "C"]);
-      expect(childIds(app.repo, "board")).toContain("B");
-    });
-  });
+      expect(childIds(app.repo, "col1")).toEqual(["A", "C"])
+      expect(childIds(app.repo, "board")).toContain("B")
+    })
+  })
 
   describe("outdent after indent (round-trip at column level)", () => {
     test("indent then outdent the same card back via zoom", async () => {
@@ -226,258 +220,250 @@ describe("Outdent (Shift+Tab)", () => {
       // 1. Indent B under A (B moves from col1 to A's children)
       // 2. Navigate to B requires zoom into A (separate view)
       // Here we test the reverse: outdent a card to board level, then re-indent
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
       // Outdent A from col1 to board level
-      await app.press("shift+Tab");
-      expect(childIds(app.repo, "board")).toContain("A");
-      expect(childIds(app.repo, "col1")).toEqual(["B"]);
+      await app.press("shift+Tab")
+      expect(childIds(app.repo, "board")).toContain("A")
+      expect(childIds(app.repo, "col1")).toEqual(["B"])
 
       // Note: can't easily navigate back and re-indent via keyboard
       // since A is now a board-level node (not in any column)
-    });
-  });
+    })
+  })
 
   describe("sort order after outdent", () => {
     test("outdent places card after its column in board children", async () => {
       // col1: [card1] — outdent card1 → board = [col1, card1]
-      using app = createTestApp(item("board", item("col1", item("card1"))));
+      using app = await createTestApp(item("board", item("col1", item("card1"))))
 
-      await app.press("shift+Tab");
+      await app.press("shift+Tab")
 
-      const boardKids = childIds(app.repo, "board");
-      expect(boardKids).toContain("col1");
-      expect(boardKids).toContain("card1");
-      const colIdx = boardKids.indexOf("col1");
-      const cardIdx = boardKids.indexOf("card1");
-      expect(cardIdx).toBeGreaterThan(colIdx);
-    });
+      const boardKids = childIds(app.repo, "board")
+      expect(boardKids).toContain("col1")
+      expect(boardKids).toContain("card1")
+      const colIdx = boardKids.indexOf("col1")
+      const cardIdx = boardKids.indexOf("card1")
+      expect(cardIdx).toBeGreaterThan(colIdx)
+    })
 
     test("outdent middle card places correctly relative to other columns", async () => {
       // board: [col1(A, B, C), col2] — outdent B → board = [col1, B, col2]
-      using app = createTestApp(
-        item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("X"))),
-      );
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("X"))))
 
-      await app.command("cursor_down"); // → B
-      await app.press("shift+Tab");
+      await app.command("cursor_down") // → B
+      await app.press("shift+Tab")
 
       // B should be placed after col1 in board's children
-      const boardKids = childIds(app.repo, "board");
-      expect(boardKids).toContain("B");
-      const col1Idx = boardKids.indexOf("col1");
-      const bIdx = boardKids.indexOf("B");
-      expect(bIdx).toBeGreaterThan(col1Idx);
-    });
-  });
+      const boardKids = childIds(app.repo, "board")
+      expect(boardKids).toContain("B")
+      const col1Idx = boardKids.indexOf("col1")
+      const bIdx = boardKids.indexOf("B")
+      expect(bIdx).toBeGreaterThan(col1Idx)
+    })
+  })
 
   describe("cursor follows node after outdent", () => {
     test("cursor follows outdented node to board level", async () => {
       // col1: [A, B, C] — outdent A → A moves to board level, cursor follows A
-      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+      using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      await app.press("shift+Tab"); // outdent A → cursor follows A to board level
+      await app.press("shift+Tab") // outdent A → cursor follows A to board level
 
-      expect(app.q("[data-cursor]").textContent()).toContain("A");
-    });
-  });
-});
+      expect(app.q("[data-cursor]").textContent()).toContain("A")
+    })
+  })
+})
 
 describe("Sort order preservation", () => {
   test("indent preserves relative order of remaining siblings", async () => {
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Indent B under A
-    await app.command("cursor_down"); // Navigate to B
-    await app.command("indent_node");
+    await app.command("cursor_down") // Navigate to B
+    await app.command("indent_node")
 
     // col1 should still have A, C, D in order
-    expect(childIds(app.repo, "col1")).toEqual(["A", "C", "D"]);
-  });
+    expect(childIds(app.repo, "col1")).toEqual(["A", "C", "D"])
+  })
 
   test("indent preserves sort order of target's existing children", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("target"))),
-    );
+    )
 
-    await app.command("cursor_down"); // → target
-    await app.command("indent_node"); // indent target under parent
+    await app.command("cursor_down") // → target
+    await app.command("indent_node") // indent target under parent
 
     // target should be AFTER existing children
-    const kids = childIds(app.repo, "parent");
-    expect(kids).toEqual(["child1", "child2", "target"]);
-  });
+    const kids = childIds(app.repo, "parent")
+    expect(kids).toEqual(["child1", "child2", "target"])
+  })
 
   test("indent with two items produces correct parent_idx ordering", async () => {
-    using app = createTestApp(item("board", item("col1", item("parent"), item("A"), item("B"))));
+    using app = await createTestApp(item("board", item("col1", item("parent"), item("A"), item("B"))))
 
     // Indent A under parent
-    await app.command("cursor_down"); // → A
-    await app.command("indent_node"); // A under parent, cursor follows A → card "parent" (index 0)
+    await app.command("cursor_down") // → A
+    await app.command("indent_node") // A under parent, cursor follows A → card "parent" (index 0)
 
     // Navigate to B (now at index 1 in [parent, B])
-    await app.command("cursor_down"); // → B
+    await app.command("cursor_down") // → B
     // Indent B under parent
-    await app.command("indent_node");
+    await app.command("indent_node")
 
     // Both A and B should be children of parent, in order
-    const parentChildren = app.repo.getChildren("parent");
-    expect(parentChildren.map((c) => c.id)).toEqual(["A", "B"]);
+    const parentChildren = app.repo.getChildren("parent")
+    expect(parentChildren.map((c) => c.id)).toEqual(["A", "B"])
 
-    const aIdx = parentChildren.find((c) => c.id === "A")?.parent_idx ?? -1;
-    const bIdx = parentChildren.find((c) => c.id === "B")?.parent_idx ?? -1;
-    expect(bIdx).toBeGreaterThan(aIdx);
-  });
-});
+    const aIdx = parentChildren.find((c) => c.id === "A")?.parent_idx ?? -1
+    const bIdx = parentChildren.find((c) => c.id === "B")?.parent_idx ?? -1
+    expect(bIdx).toBeGreaterThan(aIdx)
+  })
+})
 
 describe("Interaction with folded nodes", () => {
   test("indent works when previous sibling is folded", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("target"))),
-    );
+    )
 
     // Fold parent
-    await app.command("fold_more"); // fold_node on parent
+    await app.command("fold_more") // fold_node on parent
 
     // Navigate to target
-    await app.command("cursor_down"); // → target
+    await app.command("cursor_down") // → target
 
     // Indent target under parent (folded parent is still valid)
-    await app.command("indent_node");
+    await app.command("indent_node")
 
-    expect(childIds(app.repo, "parent")).toContain("target");
-  });
+    expect(childIds(app.repo, "parent")).toContain("target")
+  })
 
   test("indent works when previous sibling has children", async () => {
-    using app = createTestApp(
-      item("board", item("col1", item("A", item("deep1"), item("deep2")), item("B"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A", item("deep1"), item("deep2")), item("B"))))
 
-    await app.command("cursor_down"); // → B
-    await app.command("indent_node"); // indent B under A
+    await app.command("cursor_down") // → B
+    await app.command("indent_node") // indent B under A
 
     // B should be appended as last child of A (after deep1, deep2)
-    expect(childIds(app.repo, "A")).toEqual(["deep1", "deep2", "B"]);
-  });
-});
+    expect(childIds(app.repo, "A")).toEqual(["deep1", "deep2", "B"])
+  })
+})
 
 describe("Different view modes", () => {
   test("indent in columns view works", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))), {
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))), {
       viewMode: "columns",
-    });
+    })
 
-    await app.command("cursor_down"); // Navigate to B
+    await app.command("cursor_down") // Navigate to B
 
-    await app.command("indent_node");
+    await app.command("indent_node")
 
-    expect(childIds(app.repo, "A")).toContain("B");
-    expect(childIds(app.repo, "col1")).toEqual(["A", "C"]);
-  });
+    expect(childIds(app.repo, "A")).toContain("B")
+    expect(childIds(app.repo, "col1")).toEqual(["A", "C"])
+  })
 
   test("indent in list view works", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))), {
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))), {
       viewMode: "list",
-    });
+    })
 
-    await app.command("cursor_down"); // Navigate to B
+    await app.command("cursor_down") // Navigate to B
 
-    await app.command("indent_node");
+    await app.command("indent_node")
 
-    expect(childIds(app.repo, "A")).toContain("B");
-  });
+    expect(childIds(app.repo, "A")).toContain("B")
+  })
 
   test("outdent in columns view works", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))), {
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))), {
       viewMode: "columns",
-    });
+    })
 
-    await app.press("shift+Tab"); // outdent A from col1 to board
+    await app.press("shift+Tab") // outdent A from col1 to board
 
-    expect(childIds(app.repo, "board")).toContain("A");
-  });
-});
+    expect(childIds(app.repo, "board")).toContain("A")
+  })
+})
 
 describe("Edge cases", () => {
   test("outdent from column to board level works", async () => {
     // board → col1 → card1 — Shift+Tab makes card1 sibling of col1
-    using app = createTestApp(item("board", item("col1", item("card1"), item("card2"))));
+    using app = await createTestApp(item("board", item("col1", item("card1"), item("card2"))))
 
-    await app.press("shift+Tab");
+    await app.press("shift+Tab")
 
-    expect(childIds(app.repo, "board")).toContain("card1");
-  });
+    expect(childIds(app.repo, "board")).toContain("card1")
+  })
 
   test("sequential indent + outdent on different cards", async () => {
     // col1: [A, B, C]
     // Indent C under B → col1=[A, B], cursor follows C (now child of B)
     // Navigate to B, outdent B (with C as child) to board
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Indent C under B
-    await app.command("cursor_down");
-    await app.command("cursor_down"); // → C
-    await app.command("indent_node");
-    expect(childIds(app.repo, "B")).toEqual(["C"]);
-    expect(childIds(app.repo, "col1")).toEqual(["A", "B"]);
+    await app.command("cursor_down")
+    await app.command("cursor_down") // → C
+    await app.command("indent_node")
+    expect(childIds(app.repo, "B")).toEqual(["C"])
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
 
     // Cursor follows C (now child of B). Navigate up to B.
-    await app.command("cursor_up"); // → B
+    await app.command("cursor_up") // → B
     // Outdent B (with C as child) from col1 to board
-    await app.press("shift+Tab");
-    expect(childIds(app.repo, "board")).toContain("B");
-    expect(childIds(app.repo, "col1")).toEqual(["A"]);
+    await app.press("shift+Tab")
+    expect(childIds(app.repo, "board")).toContain("B")
+    expect(childIds(app.repo, "col1")).toEqual(["A"])
 
     // B should still have C as child (outdent moves subtree)
-    expect(childIds(app.repo, "B")).toEqual(["C"]);
-  });
+    expect(childIds(app.repo, "B")).toEqual(["C"])
+  })
 
   test("multiple sequential indents building deep hierarchy", async () => {
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Indent D under C: col1=[A, B, C], cursor follows D (now child of C)
-    await app.command("cursor_down");
-    await app.command("cursor_down");
-    await app.command("cursor_down"); // → D
-    await app.command("indent_node");
-    expect(childIds(app.repo, "C")).toEqual(["D"]);
-    expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"]);
+    await app.command("cursor_down")
+    await app.command("cursor_down")
+    await app.command("cursor_down") // → D
+    await app.command("indent_node")
+    expect(childIds(app.repo, "C")).toEqual(["D"])
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
 
     // Cursor follows D. Navigate to C to indent it under B.
-    await app.command("cursor_up"); // → C
-    await app.command("indent_node");
-    expect(childIds(app.repo, "B")).toContain("C");
-    expect(childIds(app.repo, "col1")).toEqual(["A", "B"]);
+    await app.command("cursor_up") // → C
+    await app.command("indent_node")
+    expect(childIds(app.repo, "B")).toContain("C")
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
 
     // Verify nested: A, B → C → D
-    expect(childIds(app.repo, "A")).toEqual([]);
-    expect(childIds(app.repo, "B")).toEqual(["C"]);
-    expect(childIds(app.repo, "C")).toEqual(["D"]);
-  });
+    expect(childIds(app.repo, "A")).toEqual([])
+    expect(childIds(app.repo, "B")).toEqual(["C"])
+    expect(childIds(app.repo, "C")).toEqual(["D"])
+  })
 
   test.each([
     { name: "board level", nav: ["k", "k"] },
     { name: "column level", nav: ["k"] },
   ])("Tab and Shift+Tab are no-ops at $name", async ({ nav }) => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))));
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
 
-    for (const k of nav) await app.press(k);
+    for (const k of nav) await app.press(k)
 
-    const beforeBoard = childIds(app.repo, "board");
-    const beforeCol1 = childIds(app.repo, "col1");
+    const beforeBoard = childIds(app.repo, "board")
+    const beforeCol1 = childIds(app.repo, "col1")
 
-    await app.command("indent_node");
-    await app.press("shift+Tab");
+    await app.command("indent_node")
+    await app.press("shift+Tab")
 
     // Structure unchanged
-    expect(childIds(app.repo, "board")).toEqual(beforeBoard);
-    expect(childIds(app.repo, "col1")).toEqual(beforeCol1);
-  });
-});
+    expect(childIds(app.repo, "board")).toEqual(beforeBoard)
+    expect(childIds(app.repo, "col1")).toEqual(beforeCol1)
+  })
+})
 
 // =============================================================================
 // Multi-select indent/outdent (atomic batch)
@@ -489,77 +475,69 @@ describe("Multi-select indent (atomic batch)", () => {
     // (1st J: anchor=B, cursor→C, multiSelected={B}
     //  2nd J: cursor→D, range B→D = {B,C,D})
     // Tab → batch indent bottom-up: D→C, C→B, B→A
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
-    await app.command("cursor_down"); // → B (index 1)
-    await app.press("shift+ArrowDown"); // anchor=B, multiSelected={B:0}, cursor→C
-    await app.press("shift+ArrowDown"); // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    await app.command("cursor_down") // → B (index 1)
+    await app.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    await app.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
-    await app.command("indent_node");
+    await app.command("indent_node")
 
     // Bottom-up: D under C, C under B, B under A
-    expect(childIds(app.repo, "A")).toEqual(["B"]);
-    expect(childIds(app.repo, "B")).toEqual(["C"]);
-    expect(childIds(app.repo, "C")).toEqual(["D"]);
-    expect(childIds(app.repo, "col1")).toEqual(["A", "E"]);
-  });
+    expect(childIds(app.repo, "A")).toEqual(["B"])
+    expect(childIds(app.repo, "B")).toEqual(["C"])
+    expect(childIds(app.repo, "C")).toEqual(["D"])
+    expect(childIds(app.repo, "col1")).toEqual(["A", "E"])
+  })
 
   test("multi-select indent fails atomically when first card can't indent", async () => {
     // col1: [A, B, C, D] — select A,B,C via 2 J presses from A
     // A is first child (no prev sibling) → entire batch fails
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    await app.press("shift+ArrowDown"); // anchor=A, multiSelected={A:0}, cursor→B
-    await app.press("shift+ArrowDown"); // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    await app.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    await app.press("shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
-    await app.command("indent_node");
+    await app.command("indent_node")
 
     // Nothing moved — atomic failure
-    expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C", "D"]);
-  });
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C", "D"])
+  })
 
   // NOTE: uses board.getStatus() which is not exposed by createTestApp — stays on testEnv.
   test("selection is cleared after successful multi-select indent", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    );
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.command("cursor_down"); // → B
-    board.press("shift+ArrowDown"); // anchor=B, multiSelected={B:0}
-    board.press("shift+ArrowDown"); // range B→D, multiSelected={B:0,C:0,D:0}
-    board.command("indent_node");
+    board.command("cursor_down") // → B
+    board.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}
+    board.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
+    board.command("indent_node")
 
     // After successful batch indent, no "selected" status
-    const status = board.getStatus();
+    const status = board.getStatus()
     if (status) {
-      expect(status.message).not.toContain("selected");
+      expect(status.message).not.toContain("selected")
     }
-  });
-});
+  })
+})
 
 describe("Multi-select outdent (atomic batch)", () => {
   test("outdent selected cards from column to board level", async () => {
     // col1: [A, B, C, D] — select A,B,C via 2 J presses from A
     // Shift+Tab → all three move to board level
-    using app = createTestApp(
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    await app.press("shift+ArrowDown"); // anchor=A, multiSelected={A:0}, cursor→B
-    await app.press("shift+ArrowDown"); // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    await app.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    await app.press("shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
-    await app.press("shift+Tab");
+    await app.press("shift+Tab")
 
-    expect(childIds(app.repo, "board")).toContain("A");
-    expect(childIds(app.repo, "board")).toContain("B");
-    expect(childIds(app.repo, "board")).toContain("C");
-    expect(childIds(app.repo, "col1")).toEqual(["D"]);
-  });
-});
+    expect(childIds(app.repo, "board")).toContain("A")
+    expect(childIds(app.repo, "board")).toContain("B")
+    expect(childIds(app.repo, "board")).toContain("C")
+    expect(childIds(app.repo, "col1")).toEqual(["D"])
+  })
+})
 
 // =============================================================================
 // Cursor position tracking (detailed)
@@ -597,67 +575,65 @@ describe("Cursor follows node (invariant)", () => {
       expected: "B",
     },
   ])("$name", ({ fixture, nav, key, expected }) => {
-    const { board, store } = testEnv(fixture);
-    for (const k of nav) board.press(k);
-    board.press(key);
+    const { board, store } = testEnv(fixture)
+    for (const k of nav) board.press(k)
+    board.press(key)
     // After structural tree changes (indent/outdent), cursor store is the source of truth.
     // The data-cursor render attribute may not update within the same press cycle due to
     // React's useSyncExternalStore flush timing during the silvery render pipeline.
-    expect(cursorTargetId(store)).toBe(expected);
-  });
+    expect(cursorTargetId(store)).toBe(expected)
+  })
 
   test("indent then navigate: can reach next sibling after indent", async () => {
     // Verify navigation works after cursor-follows-node
     // col1: [A, B, C] — indent B under A → cursor follows B, navigate to C
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))));
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-    await app.command("cursor_down"); // → B
-    await app.command("indent_node"); // indent B → cursor follows B (now child of A)
+    await app.command("cursor_down") // → B
+    await app.command("indent_node") // indent B → cursor follows B (now child of A)
     // Navigate: cursor is on B (inside A). j should move down within the column.
-    await app.command("cursor_down"); // → C (next visible item)
+    await app.command("cursor_down") // → C (next visible item)
 
-    expect(app.q("[data-cursor]").textContent()).toContain("C");
-  });
+    expect(app.q("[data-cursor]").textContent()).toContain("C")
+  })
 
   // NOTE: uses `store` — stays on testEnv.
   test("INVARIANT: indent then outdent preserves tree structure", () => {
     // col1: [A, B, C] — indent B under A → directly verify repo state
     // Then test outdent by constructing pre-nested tree
-    const { board, repo, store } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    );
-    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"]);
+    const { board, repo, store } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
-    board.command("cursor_down"); // → B
-    board.command("indent_node"); // indent B under A → cursor follows B
-    expect(childIds(repo, "col1")).toEqual(["A", "C"]); // B moved under A
-    expect(childIds(repo, "A")).toEqual(["B"]);
-    expect(cursorTargetId(store)).toBe("B");
-  });
+    board.command("cursor_down") // → B
+    board.command("indent_node") // indent B under A → cursor follows B
+    expect(childIds(repo, "col1")).toEqual(["A", "C"]) // B moved under A
+    expect(childIds(repo, "A")).toEqual(["B"])
+    expect(cursorTargetId(store)).toBe("B")
+  })
 
   test("non-item nodes cannot be indented (type restriction)", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))));
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
     // Change B to a non-item block (item=false) — non-indentable
-    app.repo.updateNode("B", { type: "p", item: undefined });
+    app.repo.updateNode("B", { type: "p", item: undefined })
 
-    await app.command("cursor_down"); // → B
-    await app.command("indent_node"); // attempt indent — should be blocked
+    await app.command("cursor_down") // → B
+    await app.command("indent_node") // attempt indent — should be blocked
 
     // B should still be a direct child of col1 (not moved under A)
-    expect(childIds(app.repo, "col1")).toEqual(["A", "B"]);
-    expect(childIds(app.repo, "A")).toEqual([]);
-  });
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
+    expect(childIds(app.repo, "A")).toEqual([])
+  })
 
   test("section and task nodes can still be indented (type restriction allows them)", async () => {
-    using app = createTestApp(item("board", item("col1", item("A"), item("B"))));
+    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
     // B is a task (default from item()), A is also a task — both should be indentable
-    await app.command("cursor_down"); // → B
-    await app.command("indent_node"); // indent B under A — should succeed
+    await app.command("cursor_down") // → B
+    await app.command("indent_node") // indent B under A — should succeed
 
-    expect(childIds(app.repo, "col1")).toEqual(["A"]);
-    expect(childIds(app.repo, "A")).toEqual(["B"]);
-  });
-});
+    expect(childIds(app.repo, "col1")).toEqual(["A"])
+    expect(childIds(app.repo, "A")).toEqual(["B"])
+  })
+})
 
 // =============================================================================
 // Column Indent
@@ -665,40 +641,38 @@ describe("Cursor follows node (invariant)", () => {
 
 describe("Column Indent", () => {
   test("Tab on column header indents column under previous column", async () => {
-    using app = createTestApp(
-      item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))),
-    );
+    using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
 
     // Navigate to col2 header: right from col1's first card
-    await app.command("cursor_up"); // → col1 header
-    await app.command("cursor_right"); // → col2 header
-    app.expect("#col2[data-cursor]").toExist();
+    await app.command("cursor_up") // → col1 header
+    await app.command("cursor_right") // → col2 header
+    app.expect("#col2[data-cursor]").toExist()
 
-    await app.command("indent_node"); // indent col2 under col1
+    await app.command("indent_node") // indent col2 under col1
 
     // col2 should now be a child of col1 (alongside 1a)
-    const col1Children = childIds(app.repo, "col1");
-    expect(col1Children).toContain("col2");
-    expect(col1Children).toContain("1a");
+    const col1Children = childIds(app.repo, "col1")
+    expect(col1Children).toContain("col2")
+    expect(col1Children).toContain("1a")
 
     // col2's children should still be intact
-    expect(childIds(app.repo, "col2")).toEqual(["2a", "2b"]);
-  });
+    expect(childIds(app.repo, "col2")).toEqual(["2a", "2b"])
+  })
 
   test("Tab on first column header is blocked (boundary)", async () => {
-    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))));
+    using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to col1 header
-    await app.command("cursor_up"); // → col1 header
-    app.expect("#col1[data-cursor]").toExist();
+    await app.command("cursor_up") // → col1 header
+    app.expect("#col1[data-cursor]").toExist()
 
-    await app.command("indent_node"); // try indent — should be blocked (first column)
+    await app.command("indent_node") // try indent — should be blocked (first column)
 
     // col1 should still be a top-level column
-    expect(childIds(app.repo, "board")).toContain("col1");
-    expect(childIds(app.repo, "board")).toContain("col2");
-  });
-});
+    expect(childIds(app.repo, "board")).toContain("col1")
+    expect(childIds(app.repo, "board")).toContain("col2")
+  })
+})
 
 // =============================================================================
 // Indent visibility — indented node must remain visible on screen
@@ -706,70 +680,64 @@ describe("Column Indent", () => {
 
 describe("Indent visibility (regression: tab-disappear)", () => {
   test("indented node remains visible on screen after Tab", async () => {
-    using app = createTestApp(
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    );
+    using app = await createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
-    await app.command("cursor_down"); // Move to task2
-    await app.command("indent_node"); // Indent task2 under task1
+    await app.command("cursor_down") // Move to task2
+    await app.command("indent_node") // Indent task2 under task1
 
     // Data: node was reparented correctly
-    expect(app.repo.getNode("task2")?.parent_id).toBe("task1");
+    expect(app.repo.getNode("task2")?.parent_id).toBe("task1")
 
     // Visual: task2 must still be visible as a child of task1
-    app.expectScreen("task2");
-  });
+    app.expectScreen("task2")
+  })
 
   test("indented node visible when previous sibling has no children", async () => {
-    using app = createTestApp(item("board", item("col", item("A"), item("B"))));
+    using app = await createTestApp(item("board", item("col", item("A"), item("B"))))
 
-    await app.command("cursor_down"); // Move to B
-    await app.command("indent_node"); // Indent B under A
+    await app.command("cursor_down") // Move to B
+    await app.command("indent_node") // Indent B under A
 
-    expect(app.repo.getNode("B")?.parent_id).toBe("A");
-    app.expectScreen("B");
-  });
+    expect(app.repo.getNode("B")?.parent_id).toBe("A")
+    app.expectScreen("B")
+  })
 
   test("all sibling items remain visible after indent", async () => {
-    using app = createTestApp(
-      item("board", item("col", item("first"), item("second"), item("third"))),
-    );
+    using app = await createTestApp(item("board", item("col", item("first"), item("second"), item("third"))))
 
-    await app.command("cursor_down"); // Move to second
-    await app.command("indent_node"); // Indent second under first
+    await app.command("cursor_down") // Move to second
+    await app.command("indent_node") // Indent second under first
 
-    app.expectScreen("first");
-    app.expectScreen("second");
-    app.expectScreen("third");
-  });
+    app.expectScreen("first")
+    app.expectScreen("second")
+    app.expectScreen("third")
+  })
 
   // NOTE: uses `expectCursorVisible()` which is not exposed by createTestApp — stays on testEnv.
   test("cursor is visible after indent", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    );
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
-    board.command("cursor_down"); // Move to task2
-    board.command("indent_node"); // Indent task2 under task1
+    board.command("cursor_down") // Move to task2
+    board.command("indent_node") // Indent task2 under task1
 
-    board.expectCursorVisible();
-  });
+    board.expectCursorVisible()
+  })
 
   test("sequential indent keeps all nodes visible", async () => {
-    using app = createTestApp(item("board", item("col", item("A"), item("B"), item("C"))));
+    using app = await createTestApp(item("board", item("col", item("A"), item("B"), item("C"))))
 
     // Indent C under B
-    await app.command("cursor_down");
-    await app.command("cursor_down"); // → C
-    await app.command("indent_node");
-    app.expectScreen("C");
+    await app.command("cursor_down")
+    await app.command("cursor_down") // → C
+    await app.command("indent_node")
+    app.expectScreen("C")
 
     // Indent B (with C as child) under A
-    await app.command("indent_node");
-    app.expectScreen("A");
-    app.expectScreen("B");
-  });
-});
+    await app.command("indent_node")
+    app.expectScreen("A")
+    app.expectScreen("B")
+  })
+})
 
 // =============================================================================
 // Indent/Outdent during inline edit mode
@@ -779,23 +747,21 @@ describe("Indent visibility (regression: tab-disappear)", () => {
 // entire describe block stays on testEnv.
 describe("Indent/Outdent during inline edit mode", () => {
   test("Tab indents node while in inline edit mode", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    );
+    const { board, repo } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
-    board.command("cursor_down"); // → task2
-    board.press("Enter"); // enter inline edit mode
-    board.expectEditing("task2");
+    board.command("cursor_down") // → task2
+    board.press("Enter") // enter inline edit mode
+    board.expectEditing("task2")
 
-    board.press("Tab"); // indent task2 under task1
+    board.press("Tab") // indent task2 under task1
 
     // task2 should now be a child of task1
-    expect(childIds(repo, "task1")).toContain("task2");
-    expect(childIds(repo, "col")).toEqual(["task1", "task3"]);
+    expect(childIds(repo, "task1")).toContain("task2")
+    expect(childIds(repo, "col")).toEqual(["task1", "task3"])
 
     // Should still be in inline edit mode
-    board.expectEditing();
-  });
+    board.expectEditing()
+  })
 
   test("Tab on first child in inline edit is no-op (no previous sibling)", () => {
     // Bug: km-tui.tab-first-child — Tab on first child indents the CARD
@@ -808,57 +774,53 @@ describe("Indent/Outdent during inline edit mode", () => {
     // (which had card0 as previous sibling).
     const { board, repo } = testEnv(() =>
       item("board", item("col", item("card0"), item("card1", item("sub1"), item("sub2")))),
-    );
+    )
 
-    board.command("cursor_down"); // → card1
-    board.command("block_nav_down"); // J: enter card1's children → sub1 (outline mode)
-    board.press("Enter"); // enter inline edit on sub1
+    board.command("cursor_down") // → card1
+    board.command("block_nav_down") // J: enter card1's children → sub1 (outline mode)
+    board.press("Enter") // enter inline edit on sub1
 
-    board.expectEditing("sub1");
+    board.expectEditing("sub1")
 
-    const parentBefore = repo.getNode("sub1")?.parent_id;
-    expect(parentBefore).toBe("card1");
+    const parentBefore = repo.getNode("sub1")?.parent_id
+    expect(parentBefore).toBe("card1")
 
-    board.press("Tab"); // should be no-op — sub1 is first child
+    board.press("Tab") // should be no-op — sub1 is first child
 
     // sub1 should NOT have moved — still a child of card1
-    expect(repo.getNode("sub1")?.parent_id).toBe(parentBefore);
+    expect(repo.getNode("sub1")?.parent_id).toBe(parentBefore)
     // card1 should NOT have been indented under card0
-    expect(childIds(repo, "col")).toContain("card1");
-    expect(childIds(repo, "card1")).toEqual(["sub1", "sub2"]);
-  });
+    expect(childIds(repo, "col")).toContain("card1")
+    expect(childIds(repo, "card1")).toEqual(["sub1", "sub2"])
+  })
 
   test("Tab on second child in inline edit indents under first child", () => {
     // When editing sub2 (which has sub1 as prev sibling),
     // Tab should indent sub2 under sub1 — not move the parent card.
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("card1", item("sub1"), item("sub2")))),
-    );
+    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1"), item("sub2")))))
 
-    board.command("block_nav_down"); // J: enter card1's children → sub1
-    board.command("cursor_down"); // → sub2
-    board.press("Enter"); // enter inline edit on sub2
-    board.expectEditing("sub2");
+    board.command("block_nav_down") // J: enter card1's children → sub1
+    board.command("cursor_down") // → sub2
+    board.press("Enter") // enter inline edit on sub2
+    board.expectEditing("sub2")
 
-    board.press("Tab"); // indent sub2 under sub1
+    board.press("Tab") // indent sub2 under sub1
 
-    expect(repo.getNode("sub2")?.parent_id).toBe("sub1");
-  });
+    expect(repo.getNode("sub2")?.parent_id).toBe("sub1")
+  })
 
   test("Shift+Tab outdents sub-item in inline edit mode", () => {
     // In inline edit mode on a nested child, Shift+Tab should outdent the
     // sub-item, not the card.
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("card1", item("sub1", item("nested"))))),
-    );
+    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1", item("nested"))))))
 
-    board.command("block_nav_down"); // J: enter card1 → sub1
-    board.command("block_nav_down"); // J: enter sub1 → nested
-    board.press("Enter"); // enter inline edit on nested
-    board.expectEditing("nested");
+    board.command("block_nav_down") // J: enter card1 → sub1
+    board.command("block_nav_down") // J: enter sub1 → nested
+    board.press("Enter") // enter inline edit on nested
+    board.expectEditing("nested")
 
-    board.press("shift+Tab"); // outdent nested to sibling of sub1
+    board.press("shift+Tab") // outdent nested to sibling of sub1
 
-    expect(repo.getNode("nested")?.parent_id).toBe("card1");
-  });
-});
+    expect(repo.getNode("nested")?.parent_id).toBe("card1")
+  })
+})

@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe("Incremental ANSI output verification", () => {
   test("changesToAnsi produces correct ANSI sequences during navigation", { retry: 2 }, async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
@@ -81,7 +81,7 @@ describe("Incremental ANSI output verification", () => {
   })
 
   test("larger board with more columns", { retry: 2 }, async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col-1", item("a1"), item("a2"), item("a3"), item("a4")),

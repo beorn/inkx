@@ -36,7 +36,7 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", async () => {
     // Create a board with columns and cards — simple case
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("Task Alpha"), item("Task Beta"), item("Task Gamma")),
@@ -73,7 +73,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
   test("navigation with body paragraphs does not corrupt text", async () => {
     // Cards with body content (paragraphs) — closer to real vault structure
     // The bug specifically affects body text during navigation
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -133,7 +133,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
   })
 
   test("view mode switching (v) does not corrupt card text", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("Important task with long content")),
@@ -164,7 +164,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
   test("zoom in/out (z/Z) with navigation does not corrupt card text", async () => {
     // This test matches the exact reproduction: navigate, then zoom in with 'e',
     // and verify content before and after zoom
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -217,7 +217,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
   })
 
   test("search open/close (/ then Escape) does not corrupt card text", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("Search target task")), item("col2", item("Another task here"))),
     )
 

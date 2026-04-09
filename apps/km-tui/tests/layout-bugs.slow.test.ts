@@ -19,7 +19,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("km-tui.uncollapse-header", () => {
   test("header row has column name text (not card content) after uncollapse", async () => {
-    using app = createTestApp(item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
+    using app = await createTestApp(item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
       cols: 80,
       rows: 20,
     })
@@ -45,7 +45,7 @@ describe("km-tui.uncollapse-header", () => {
   })
 
   test("header is not rendered as card (no card border chars) after uncollapse", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("MyCol", item("task1"), item("task2")), item("Other", item("task3"))),
       { cols: 80, rows: 20 },
     )
@@ -69,7 +69,7 @@ describe("km-tui.uncollapse-header", () => {
   })
 
   test("cards are rendered below separator after uncollapse", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Col1", item("task-x"), item("task-y")), item("Col2", item("task-z"))),
       { cols: 80, rows: 20 },
     )
@@ -95,7 +95,7 @@ describe("km-tui.uncollapse-header", () => {
   })
 
   test("uncollapse works after navigating to another column and back", async () => {
-    using app = createTestApp(item("board", item("Left", item("l1"), item("l2")), item("Right", item("r1"))), {
+    using app = await createTestApp(item("board", item("Left", item("l1"), item("l2")), item("Right", item("r1"))), {
       cols: 80,
       rows: 20,
     })
@@ -130,7 +130,7 @@ describe("km-tui.uncollapse-header", () => {
 
 describe("km-tui.collapsed-shift", () => {
   test("collapsed column starts at x=0 (no left margin shift) in 2-column board", async () => {
-    using app = createTestApp(item("board", item("First", item("f1"), item("f2")), item("Second", item("s1"))), {
+    using app = await createTestApp(item("board", item("First", item("f1"), item("f2")), item("Second", item("s1"))), {
       cols: 80,
       rows: 20,
     })
@@ -145,7 +145,7 @@ describe("km-tui.collapsed-shift", () => {
   })
 
   test("collapsed column width is exactly COLLAPSED_WIDTH=3", async () => {
-    using app = createTestApp(item("board", item("Todo", item("t1")), item("Done", item("d1"))), { cols: 80, rows: 20 })
+    using app = await createTestApp(item("board", item("Todo", item("t1")), item("Done", item("d1"))), { cols: 80, rows: 20 })
 
     await app.command("toggle_collapse")
 
@@ -155,7 +155,7 @@ describe("km-tui.collapsed-shift", () => {
   })
 
   test("expanded column starts right after collapsed column + separator", async () => {
-    using app = createTestApp(item("board", item("ColA", item("a1")), item("ColB", item("b1"))), { cols: 80, rows: 20 })
+    using app = await createTestApp(item("board", item("ColA", item("a1")), item("ColB", item("b1"))), { cols: 80, rows: 20 })
 
     await app.command("toggle_collapse")
 
@@ -172,7 +172,7 @@ describe("km-tui.collapsed-shift", () => {
     // transient layout overflow that is unrelated to border rendering correctness
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
         { cols: 80, rows: 20 },
       )
@@ -245,7 +245,7 @@ describe("km-tui.card-border-missing", () => {
 
   test("selected card visible after scrolling through many cards", async () => {
     const items = Array.from({ length: 10 }, (_, i) => item(`card-${i}`))
-    using app = createTestApp(item("board", item("BigCol", ...items)), { cols: 80, rows: 15 })
+    using app = await createTestApp(item("board", item("BigCol", ...items)), { cols: 80, rows: 15 })
 
     // Navigate to a card near the middle
     for (let i = 0; i < 5; i++) await app.command("cursor_down")
@@ -337,7 +337,7 @@ describe("uncollapse header edge cases", () => {
   })
 
   test("multiple collapse/uncollapse cycles keep header visible", async () => {
-    using app = createTestApp(item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
+    using app = await createTestApp(item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
       cols: 80,
       rows: 20,
     })
@@ -353,7 +353,7 @@ describe("uncollapse header edge cases", () => {
   })
 
   test("uncollapse column after manual collapse shows header", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("ColToCollapse", item("p1"), item("p2")), item("Normal", item("n1"))),
       { cols: 80, rows: 20 },
     )
@@ -413,7 +413,7 @@ describe("uncollapse header edge cases", () => {
 
 describe("collapsed column shift edge cases", () => {
   test("two collapsed columns side by side have correct positions", async () => {
-    using app = createTestApp(item("board", item("A", item("a1")), item("B", item("b1")), item("C", item("c1"))), {
+    using app = await createTestApp(item("board", item("A", item("a1")), item("B", item("b1")), item("C", item("c1"))), {
       cols: 80,
       rows: 20,
     })
@@ -441,7 +441,7 @@ describe("collapsed column shift edge cases", () => {
   })
 
   test("collapsed column with 3+ columns: middle collapsed maintains position", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("Left", item("l1")), item("Mid", item("m1")), item("Right", item("r1"))),
       { cols: 120, rows: 20 },
     )

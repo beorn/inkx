@@ -25,7 +25,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Breadcrumb Navigation Journeys", () => {
   test("zoom into a card, breadcrumb shows full ancestor path", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Projects", item("Frontend", item("react-app"), item("vue-app")), item("Backend", item("api-server"))),
@@ -49,7 +49,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("navigate columns with h/l, breadcrumb updates current column", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Inbox", item("msg1"), item("msg2")),
@@ -82,7 +82,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("zoom out with Z, breadcrumb reflects parent level", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("level1", item("level2", item("deep-a"), item("deep-b"))))),
       { cols: 120, rows: 24 },
     )
@@ -108,7 +108,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("long breadcrumb path truncates with ellipsis on narrow terminal", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "VeryLongBoardName",
         item(
@@ -132,7 +132,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("breadcrumb path uses > separator for hierarchy within board", async () => {
-    using app = createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+    using app = await createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
       cols: 120,
       rows: 24,
     })
@@ -149,7 +149,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("zoom in, navigate columns, zoom out — breadcrumb stays consistent", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Work", item("Sprint-1", item("feat-a"), item("feat-b")), item("Sprint-2", item("feat-c"))),

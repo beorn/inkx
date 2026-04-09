@@ -23,7 +23,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("DatePromptDialog lifecycle", () => {
   test("td opens dialog — selector matches and screenshot shows title", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
     await app.command("cursor_down") // move to card level
     await app.command("set_due_date")
@@ -33,7 +33,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> type date -> Enter confirms and closes dialog", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
     await app.command("set_due_date")
@@ -56,7 +56,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> Escape cancels without setting date", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
     await app.command("set_due_date")
@@ -77,7 +77,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> type date -> Escape cancels without applying typed date", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
     await app.command("set_due_date")
@@ -97,7 +97,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td opens due date dialog and Escape cancels", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
     await app.command("set_due_date")
@@ -118,7 +118,7 @@ describe("DatePromptDialog lifecycle", () => {
 
 describe("SearchDialog lifecycle", () => {
   test("search command opens search dialog — selector matches and screenshot shows title", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     await app.dispatch("search")
 
@@ -127,7 +127,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("search -> Escape cancels search dialog", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     await app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
@@ -138,7 +138,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("search -> type query -> Escape cancels without navigating", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     await app.dispatch("search")
 
@@ -157,7 +157,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("search -> type query -> Enter confirms search (closes dialog)", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
 
     await app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
@@ -179,7 +179,7 @@ describe("SearchDialog lifecycle", () => {
 
 describe("NewItemDialog lifecycle", () => {
   test("cmd+shift+Enter opens new item dialog — selector matches and screenshot shows title", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
     await app.command("cursor_down") // move to card level
     await app.press("cmd+shift+Enter")
@@ -189,7 +189,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("cmd+shift+Enter -> Escape cancels new item dialog without creating nodes", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
@@ -210,7 +210,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("cmd+shift+Enter -> type name -> Escape cancels without creating nodes", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
@@ -231,7 +231,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("cmd+shift+Enter -> type name -> Enter creates the new item", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
@@ -266,7 +266,7 @@ describe("NewItemDialog lifecycle", () => {
 
 describe("dialog state isolation", () => {
   test("opening one dialog does not show other dialog markers", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     // Open date dialog
     await app.command("cursor_down")
@@ -300,7 +300,7 @@ describe("dialog state isolation", () => {
   })
 
   test("sequential open/cancel cycles leave no dialog open", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
 
@@ -323,7 +323,7 @@ describe("dialog state isolation", () => {
   })
 
   test("confirm in one dialog, then open another — no interference", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
 
     await app.command("cursor_down")
 

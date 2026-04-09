@@ -64,7 +64,7 @@ describe("Date Badge Display Journeys", () => {
     const futureNode = nodes.find((n) => n.content === "Future task")!
     futureNode.due_at = daysFromNow(30)
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: All task names visible
     const screenshot = app.text
@@ -92,7 +92,7 @@ describe("Date Badge Display Journeys", () => {
     const taskNode = nodes.find((n) => n.content === "Due today")!
     taskNode.due_at = today()
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: Task visible
     expect(app.text).toContain("Due today")
@@ -107,7 +107,7 @@ describe("Date Badge Display Journeys", () => {
   })
 
   test("set due date via td chord, verify badge appears and persists", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))))
 
     // Step 1: No date badge initially
     expect(app.text).not.toContain("Today")
@@ -135,7 +135,7 @@ describe("Date Badge Display Journeys", () => {
     urgentNode.due_at = daysFromNow(3)
     urgentNode.priority = "P1"
 
-    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: Both badges should be visible on the same card
     expect(app.text).toContain("P1")
@@ -151,7 +151,7 @@ describe("Date Badge Display Journeys", () => {
   })
 
   test("cancel date dialog with Escape, no date is set", async () => {
-    using app = createTestApp(item("board", item("col1", item.task("My task"))))
+    using app = await createTestApp(item("board", item("col1", item.task("My task"))))
 
     // Step 1: Open date dialog
     await app.command("set_due_date")
@@ -175,7 +175,7 @@ describe("Date Badge Display Journeys", () => {
 
   test("ts cycles task status, tr opens recurrence dialog", async () => {
     // ts was remapped from set_start_date to cycle_task_status
-    using app = createTestApp(item("board", item("col1", item.task("Recurring task"))))
+    using app = await createTestApp(item("board", item("col1", item.task("Recurring task"))))
 
     // Step 1: ts cycles task status (no dialog)
     await app.command("cycle_task_status_t")

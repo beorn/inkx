@@ -114,7 +114,7 @@ describe("stable visual classification under cursor movement", () => {
     // t1/t2/t3 get reclassified as body (they are now BEFORE an outline item),
     // stripping their bullets. The fix uses a stable bodyIdSet computed from the
     // FULL children array so classification is data-derived, not slice-derived.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col", item("parent", item("t1"), item("t2"), item("t3"), item("t4"), item.file("sec", item("s1")))),
@@ -183,7 +183,7 @@ describe("stable visual classification under cursor movement", () => {
 
 describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   test("sp (priority) preserves cursor on same card", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"), item.task("tD"))),
     )
 
@@ -199,7 +199,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   })
 
   test("sp preserves cursor when board has body content (virtual body column)", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.file(
         "myboard",
         item.p("description"),
@@ -221,7 +221,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   })
 
   test("x (task status toggle) preserves cursor on same card", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
     )
 
@@ -237,7 +237,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   })
 
   test("x preserves cursor when board has body content", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.file(
         "myboard",
         item.p("intro"),
@@ -259,7 +259,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   })
 
   test("undo/redo preserves cursor position", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
       { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
     )
@@ -334,7 +334,7 @@ function findBoardRoot(repo: Repo): string {
 describe("card borders after cursor navigation (synthetic)", () => {
   for (const cols of [40, 60, 80, 100]) {
     test(`${cols}-col: borders clean after cursor right/left`, async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item(
           "board",
           item(
@@ -379,7 +379,7 @@ describe("card borders after cursor navigation (synthetic)", () => {
 
   test("cursor right with deep card content at 80 cols", async () => {
     // Match real vault pattern: cards with many children (deep outline)
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -491,7 +491,7 @@ describe.skipIf(!process.env.TEST_VAULT)("card borders after cursor right (real 
 describe("cursor-lost-col-header-j (km-3wk32)", () => {
   test("j from column header selects first card (folder children - control)", async () => {
     // Control case: columns with folder-type children work correctly
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a"))),
@@ -515,7 +515,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
   test("j from column header selects first card (file children)", async () => {
     // Bug case: columns with file-type children
-    using app = createTestApp(item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
+    using app = await createTestApp(item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
 
     // Navigate up to board level
     await app.command("cursor_up")
@@ -532,7 +532,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
   test("j from second column header selects first card (file children)", async () => {
     // Test entering the second column specifically
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a"))),
@@ -556,7 +556,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from column header with mixed file/folder children", async () => {
-    using app = createTestApp(item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
+    using app = await createTestApp(item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
 
     // Navigate to board level
     await app.command("cursor_up")
@@ -574,7 +574,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   test("j from column header with paragraph body content", async () => {
     // Edge case: column has only paragraph children (body content, no structural items)
     // This tests the extractBody filtering scenario
-    using app = createTestApp(item.root("board", item("col-body", item.p("para-1"), item.p("para-2"))))
+    using app = await createTestApp(item.root("board", item("col-body", item.p("para-1"), item.p("para-2"))))
 
     // Navigate up to board level
     await app.command("cursor_up")
@@ -593,7 +593,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     // Body content (paragraphs, code, quotes) before structural children
     // becomes a virtual "Description" column with individually navigable cards.
     // j from board level lands on the first body card directly.
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root(
         "board",
         item.p("intro text"),
@@ -618,7 +618,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from board level with code block before columns lands on code card", async () => {
-    using app = createTestApp(item.root("board", item.code("some code"), item("col1", item("task1"))))
+    using app = await createTestApp(item.root("board", item.code("some code"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
     await app.command("cursor_up")
@@ -631,7 +631,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from board level with quote before columns lands on quote card", async () => {
-    using app = createTestApp(item.root("board", item.quote("a quote"), item("col1", item("task1"))))
+    using app = await createTestApp(item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
     await app.command("cursor_up")
@@ -643,7 +643,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("round-trip navigation preserves cursor for file children columns", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item.file("f1"), item.file("f2")), item("col2", item.file("f3"))),
     )
 

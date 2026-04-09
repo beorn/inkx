@@ -46,7 +46,7 @@ describe("Zoom-out rendering at wide terminal", () => {
     { cols: 120, rows: 30 },
   ])("zoom out at $cols x $rows does not garble rendering", async ({ cols, rows }) => {
     // Start zoomed into child-board
-    using app = createTestApp(deepTree(), { cols, rows })
+    using app = await createTestApp(deepTree(), { cols, rows })
 
     // Zoom into child-board
     await app.press("z")
@@ -64,7 +64,7 @@ describe("Zoom-out rendering at wide terminal", () => {
 
   test("double zoom out at 200 cols", async () => {
     // Even deeper: root > mid > child-board > gc-cols
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "root",
         item(
@@ -93,7 +93,7 @@ describe("Zoom-out rendering at wide terminal", () => {
 
   test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", async () => {
     const cols = 200
-    using app = createTestApp(deepTree(), { cols, rows: 50 })
+    using app = await createTestApp(deepTree(), { cols, rows: 50 })
 
     // Zoom into child-board, then zoom back out
     await app.press("z")

@@ -22,7 +22,7 @@ import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 test("D opens detail pane", async () => {
-  using app = createTestApp(item("board", item("col1", item.task("Buy milk"))))
+  using app = await createTestApp(item("board", item("col1", item.task("Buy milk"))))
 
   app.expect("#buy-milk[data-cursor]").toExist()
   await app.command("toggle_detail_pane")
@@ -146,7 +146,7 @@ import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 test("foo", async () => {
-  using app = createTestApp(item("board", item("col1")))
+  using app = await createTestApp(item("board", item("col1")))
   await app.command("cursor_down")
   expect(app.repo.getNode("col1")).toBeDefined()
 })
@@ -154,7 +154,7 @@ test("foo", async () => {
 
 Key differences:
 - `testEnv(() => item(...))` → `createTestApp(item(...))` — strip `() =>` wrapper
-- `const { board, repo } = testEnv(...)` → `using app = createTestApp(...)` — `using` for auto-cleanup
+- `const { board, repo } = testEnv(...)` → `using app = await createTestApp(...)` — `using` for auto-cleanup
 - `board.command(...)` → `await app.command(...)` — async
 - `repo.getNode(...)` → `app.repo.getNode(...)`
 - `{ columns: 80 }` → `{ cols: 80 }` — option name change

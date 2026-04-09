@@ -246,8 +246,12 @@ describe("undo stack edge cases", () => {
     let value = 0
     stack.push({
       label: "inc",
-      undo: () => { value-- },
-      redo: () => { value++ },
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
     })
     value++
 
@@ -265,8 +269,12 @@ describe("undo stack edge cases", () => {
     let value = 0
     stack.push({
       label: "inc",
-      undo: () => { value-- },
-      redo: () => { value++ },
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
     })
     value++
 

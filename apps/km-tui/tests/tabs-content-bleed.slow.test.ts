@@ -19,7 +19,7 @@ import { createFakeRepo } from "@km/storage"
 
 describe("P2: TABS view content bleed from inactive tabs", () => {
   test("breadcrumb updates cleanly when switching tabs", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha task one"), item("Alpha task two")),
@@ -59,7 +59,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
   })
 
   test("active tab content has no fragments from other tabs", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha task one"), item("Alpha task two")),
@@ -86,7 +86,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
   })
 
   test("switching from long to short content clears completely", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(
@@ -120,12 +120,8 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
   })
 
   test("switching tabs cleans content area completely", async () => {
-    using app = createTestApp(
-      item(
-        "board",
-        item("First", item("First-unique-content-AAA")),
-        item("Second", item("Second-unique-content-BBB")),
-      ),
+    using app = await createTestApp(
+      item("board", item("First", item("First-unique-content-AAA")), item("Second", item("Second-unique-content-BBB"))),
       { cols: 120, rows: 25 },
     )
 
@@ -148,7 +144,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
   })
 
   test("rapid back-and-forth tab switching has no bleed", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha-unique-111")),

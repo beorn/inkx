@@ -19,7 +19,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("cursor: j/k/h/l navigation", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("j")
     await app.press("k")
@@ -30,7 +30,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("cursor: gg and G (first/last)", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("j")
     await app.press("j")
@@ -40,7 +40,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("cursor: page jump Ctrl+D/U", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("Control+d")
     await app.press("Control+u")
     await app.press("Control+d")
@@ -49,7 +49,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("cursor: block nav J/K", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("J") // block nav down
     await app.press("J")
     await app.press("K") // block nav up
@@ -60,7 +60,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("detail: D open/close cycle", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("D") // open
     await app.press("D") // focus
@@ -69,7 +69,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("detail: navigate while open", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("D") // open
     await app.press("h") // back to board
@@ -79,7 +79,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("detail: open on different items", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("D") // open on first task
     await app.press("h")
@@ -98,7 +98,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("fold: H/L single item", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("H") // fold
     await app.press("L") // unfold
@@ -109,7 +109,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("fold: </> board-wide", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("<") // fold all
     await app.press("<") // fold deeper
     await app.press(">") // unfold
@@ -121,7 +121,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("search: / open, type, navigate, close", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("/")
     await app.type("tax")
     await app.press("Escape")
@@ -132,7 +132,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("selection: Space toggle", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press(" ") // select
     await app.press("j")
@@ -147,7 +147,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("zoom: z in, Z out", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("z") // zoom in
     await app.press("j")
@@ -156,7 +156,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("zoom: deep zoom and back", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("z") // zoom into card
     await app.press("j")
@@ -170,7 +170,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("content lines: . and ,", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press(".")
     await app.press(".")
     await app.press(",")
@@ -182,7 +182,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("edit: i enter, Escape exit", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("i") // enter edit
     await app.press("Escape") // exit
@@ -190,7 +190,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("edit: Enter enter, Escape exit", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("j")
     await app.press("Enter") // enter edit
     await app.press("Escape") // exit
@@ -201,7 +201,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("help: ? open, Escape close", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     await app.press("?")
     await app.press("j") // scroll in help
     await app.press("k")
@@ -213,7 +213,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("combined: navigate, zoom, detail, fold, navigate", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     // Navigate
     await app.press("j")
     await app.press("l")
@@ -235,7 +235,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("combined: rapid mixed operations", async () => {
-    using app = createTestApp(realisticBoard())
+    using app = await createTestApp(realisticBoard())
     const ops = [
       "j",
       "j",
@@ -271,7 +271,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("small terminal: 40x10", async () => {
-    using app = createTestApp(realisticBoard(), { cols: 40, rows: 10 })
+    using app = await createTestApp(realisticBoard(), { cols: 40, rows: 10 })
     await app.press("j")
     await app.press("l")
     await app.press("D")
@@ -280,7 +280,7 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   })
 
   test("wide terminal: 200x50", async () => {
-    using app = createTestApp(realisticBoard(), { cols: 200, rows: 50 })
+    using app = await createTestApp(realisticBoard(), { cols: 200, rows: 50 })
     await app.press("j")
     await app.press("l")
     await app.press("j")

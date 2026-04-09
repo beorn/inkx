@@ -22,7 +22,7 @@ import { existsSync } from "fs"
 
 describe("Layout", () => {
   test("columns are horizontal", () => {
-    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))))
+    using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))))
     const col1Box = app.q("#col1").boundingBox()
     const col2Box = app.q("#col2").boundingBox()
     expect(col2Box!.x).toBeGreaterThan(col1Box!.x)
@@ -30,7 +30,7 @@ describe("Layout", () => {
   })
 
   test("cards stack vertically", () => {
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b"))))
     const aBox = app.q("#1a").boundingBox()
     const bBox = app.q("#1b").boundingBox()
     expect(bBox!.y).toBeGreaterThan(aBox!.y)
@@ -40,7 +40,7 @@ describe("Layout", () => {
 
 describe("Zooming", () => {
   test("z zooms into card with children, Z returns to previous level", async () => {
-    using app = createTestApp(item("board", item("col", item("card", item("subcard")))))
+    using app = await createTestApp(item("board", item("col", item("card", item("subcard")))))
 
     // z zooms in
     app.expect("#card").toExist()
@@ -55,7 +55,7 @@ describe("Zooming", () => {
   })
 
   test("e on card without children does nothing", async () => {
-    using app = createTestApp(item("board", item("col", item("leaf"))))
+    using app = await createTestApp(item("board", item("col", item("leaf"))))
     app.expect("#leaf[data-cursor]").toExist()
     await app.press("z")
     // Should stay in board view
@@ -65,7 +65,7 @@ describe("Zooming", () => {
   })
 
   test("zoom into column shows column as board", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
     )
     // Move to column header and press e to zoom
@@ -80,7 +80,7 @@ describe("Zooming", () => {
   })
 
   test("zoom into card shows card's children as columns", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("project", item("todo", item("t1"), item("t2")), item("done", item("d1"))))),
     )
     app.expect("#project[data-cursor]").toExist()
@@ -94,7 +94,7 @@ describe("Zooming", () => {
   })
 
   test("nested zoom - zoom into multiple levels", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("level1", item("level2", item("level3", item("deepest")))))),
     )
     // Zoom into level1
@@ -111,7 +111,7 @@ describe("Zooming", () => {
   })
 
   test("Z after multiple zooms - returns to previous level", async () => {
-    using app = createTestApp(item("board", item("col", item("level1", item("level2", item("level3"))))))
+    using app = await createTestApp(item("board", item("col", item("level1", item("level2", item("level3"))))))
     await app.press("z") // Zoom to level1
     app.expect("#level2").toExist()
     await app.press("z") // Zoom to level2
@@ -133,7 +133,7 @@ describe("Zooming", () => {
   })
 
   test("cursor preserved on zoom in/out, u zooms out, zoom out returns cursor to parent", async () => {
-    using app = createTestApp(item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))))
+    using app = await createTestApp(item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))))
 
     // --- cursor position preserved when zooming in and out (nav_back) ---
     // Move to card2
@@ -175,7 +175,7 @@ describe("Zooming", () => {
   })
 
   test("zoom shows path in header", async () => {
-    using app = createTestApp(item("board", item("col", item("parent", item("child")))))
+    using app = await createTestApp(item("board", item("col", item("parent", item("child")))))
     await app.press("z")
     const output = app.text
     // Should show breadcrumb: board > col > parent
@@ -186,9 +186,7 @@ describe("Zooming", () => {
     // board > col > level1(level2(level3)), other
     // With cursor on level1 (which has children), pressing 'z' zooms one level
     // closer: board → col. A second 'z' goes col → level1.
-    using app = createTestApp(
-      item("board", item("col", item("level1", item("level2", item("level3"))), item("other"))),
-    )
+    using app = await createTestApp(item("board", item("col", item("level1", item("level2", item("level3"))), item("other"))))
     // Cursor starts at level1 (first card in col)
     app.expect("#level1[data-cursor]").toExist()
 
@@ -208,7 +206,7 @@ describe("Zooming", () => {
 
   test("z at cursor's parent level zooms one level toward cursor", async () => {
     // When cursor is already a direct child of root's child, z zooms one level (to col)
-    using app = createTestApp(item("board", item("col", item("card", item("sub")))))
+    using app = await createTestApp(item("board", item("col", item("card", item("sub")))))
     app.expect("#card[data-cursor]").toExist()
 
     // col is direct child of board, and card is child of col.
@@ -238,7 +236,7 @@ describe("Zooming", () => {
     }
 
     test("paragraph fixture — descendant ids are unique after zoom in/in/out", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item(
           "board",
           item(
@@ -260,7 +258,7 @@ describe("Zooming", () => {
     })
 
     test("folder fixture — descendant ids are unique after zoom in/in/out", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item.folder(
           "vault",
           item.folder(
@@ -284,7 +282,7 @@ describe("Zooming", () => {
 
   describe("cursor position after zooming", () => {
     test("zoom in preserves cursor on first child", async () => {
-      using app = createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
+      using app = await createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
       app.expect("#parent[data-cursor]").toExist()
 
       // zoom_inwards: first z goes board → col, second z goes col → parent
@@ -296,7 +294,7 @@ describe("Zooming", () => {
     test("navigate in zoomed view, then nav back", async () => {
       // Fixture: child1 and child2 are folders (have children)
       // so they become columns with cards when zoomed to parent
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("col", item("parent", item("child1", item("c1")), item("child2", item("c2"))))),
       )
       // zoom_inwards: two presses to reach parent (board → col → parent)
@@ -318,7 +316,7 @@ describe("Zooming", () => {
 
 describe("History", () => {
   test("back navigation with [ after zooming", async () => {
-    using app = createTestApp(item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))))
+    using app = await createTestApp(item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))))
     await app.press("j")
     app.expect("#card2[data-cursor]").toExist()
     await app.press("z")
@@ -329,7 +327,7 @@ describe("History", () => {
   })
 
   test("forward navigation with ] restores zoom view", async () => {
-    using app = createTestApp(item("board", item("col", item("card", item("childA"), item("childB")))))
+    using app = await createTestApp(item("board", item("col", item("card", item("childA"), item("childB")))))
     await app.press("z")
     app.expect("#childA").toExist()
     await app.press("{")
@@ -343,7 +341,7 @@ describe("History", () => {
   // Tests for [ and ] must use zoom (z) to create history entries.
   describe("cursor position after history navigation", () => {
     test("[ restores cursor after zoom, ] restores zoom state", async () => {
-      using app = createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
+      using app = await createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
       // Move to parent card
       app.expect("#parent[data-cursor]").toExist()
 
@@ -362,7 +360,7 @@ describe("History", () => {
     })
 
     test("history preserves zoom cursor position", async () => {
-      using app = createTestApp(
+      using app = await createTestApp(
         item("board", item("col", item("parent", item("c1", item("gc1")), item("c2", item("gc2"))))),
       )
       // zoom_inwards: two presses to reach parent (board → col → parent)
@@ -386,7 +384,7 @@ describe("History", () => {
     })
 
     test("[ at start of history does nothing", async () => {
-      using app = createTestApp(item("board", item("col", item("task"))))
+      using app = await createTestApp(item("board", item("col", item("task"))))
       app.expect("#task[data-cursor]").toExist()
 
       // Repeatedly try [ with no history - should stay put
@@ -397,7 +395,7 @@ describe("History", () => {
     })
 
     test("] at end of history does nothing", async () => {
-      using app = createTestApp(item("board", item("col", item("card1"), item("card2"))))
+      using app = await createTestApp(item("board", item("col", item("card1"), item("card2"))))
       // Create some history
       await app.press("j")
       await app.press("{") // Go back
@@ -417,7 +415,7 @@ describe("History", () => {
 
 describe("View Modes", () => {
   test("switching view modes preserves cursor on same node", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("task1"), item("task2"), item("task3")),
@@ -440,7 +438,7 @@ describe("View Modes", () => {
   // Note: Individual view mode cursor tests covered by "switching between cards/list/columns/tabs views" below
 
   test("switching between cards/list/columns/tabs views", async () => {
-    using app = createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
+    using app = await createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
     // Start in cards view at task2
     await app.press("j")
     app.expect("#task2[data-cursor]").toExist()
@@ -774,7 +772,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
 describe("zoom-out fallback: cursor moves up when at repo root", () => {
   it("moves cursor from card to column header when at repo root", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item.root("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
@@ -789,7 +787,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
   })
 
   it("moves cursor from column header to board root when at repo root", async () => {
-    using app = createTestApp(item.root("board", item("col1", item("task1")), item("col2", item("task3"))))
+    using app = await createTestApp(item.root("board", item("col1", item("task1")), item("col2", item("task3"))))
 
     // Move to column header first
     await app.press("k") // card → column header
@@ -841,7 +839,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
 
 describe("u zooms out to parent", () => {
   test("u zooms out one level, cursor stays on visible node nearest to where user was", async () => {
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
+    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     // Zoom into col1 via e (first move to column header)
     await app.press("k") // card → column header
@@ -864,7 +862,7 @@ describe("u zooms out to parent", () => {
 
   test("u from deeply zoomed level zooms out one level at a time", async () => {
     // Deep tree: board > col > parent > child1(gc1,gc2) + child2(gc3)
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
     )
 
@@ -898,7 +896,7 @@ describe("u zooms out to parent", () => {
   })
 
   test("u saves history so ] (nav_forward) can return to zoomed view", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"))))),
     )
 
@@ -921,7 +919,7 @@ describe("u zooms out to parent", () => {
 
   test("u keeps cursor on current column (not root) when cursor is on a card", async () => {
     // board > col > parent > child1(gc1,gc2) + child2(gc3)
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
     )
 
@@ -944,7 +942,7 @@ describe("u zooms out to parent", () => {
 
   test("u keeps cursor on current column even when in second column", async () => {
     // board > col > parent > child1(gc1) + child2(gc2, gc3)
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"), item("gc3"))))),
     )
 
@@ -964,7 +962,7 @@ describe("u zooms out to parent", () => {
   })
 
   test("at repo root, u acts as cursor-up instead of zoom", async () => {
-    using app = createTestApp(item.root("board", item("col1", item("task1"), item("task2"))))
+    using app = await createTestApp(item.root("board", item("col1", item("task1"), item("task2"))))
 
     // At repo root, cursor on first card
     app.expect("#task1[data-cursor]").toExist()
@@ -976,7 +974,7 @@ describe("u zooms out to parent", () => {
   })
 
   test("u closes detail pane before zooming", async () => {
-    using app = createTestApp(item("board", item("col", item("card1", item("sub1")), item("card2", item("sub2")))))
+    using app = await createTestApp(item("board", item("col", item("card1", item("sub1")), item("card2", item("sub2")))))
 
     // zoom_inwards: two presses to reach card1 (board → col → card1)
     await app.press("z") // root=col
@@ -1063,7 +1061,7 @@ describe("u zooms out to parent", () => {
 
 describe("u key — go to parent, not previous sibling", () => {
   test("u from 2nd card goes to column header (parent), not prev sibling", async () => {
-    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+    using app = await createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
       cols: 120,
       rows: 24,
     })
@@ -1076,7 +1074,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from 3rd card goes to column header (parent), not prev sibling", async () => {
-    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+    using app = await createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
       cols: 120,
       rows: 24,
     })
@@ -1090,7 +1088,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u twice from card: card → column → board", async () => {
-    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+    using app = await createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
       cols: 120,
       rows: 24,
     })
@@ -1119,7 +1117,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from column header goes to board level", async () => {
-    using app = createTestApp(item("board", item("col1", item("A1")), item("col2", item("B1"))), {
+    using app = await createTestApp(item("board", item("col1", item("A1")), item("col2", item("B1"))), {
       cols: 120,
       rows: 24,
     })
@@ -1156,7 +1154,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from card in col2 goes to col2 header", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("A1")), item("col2", item("B1"), item("B2"), item("B3"))),
       { cols: 120, rows: 24 },
     )
@@ -1170,7 +1168,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from body card goes to board level (body cards are children of root)", async () => {
-    using app = createTestApp(item("board", item.p("para1"), item.p("para2"), item("col1", item("A1"))), {
+    using app = await createTestApp(item("board", item.p("para1"), item.p("para2"), item("col1", item("A1"))), {
       cols: 120,
       rows: 24,
     })
@@ -1242,7 +1240,7 @@ describe("zoom out from file to folder shows multiple columns", () => {
     // Simulate folder structure: early-orbit folder with 3 md files
     // When zoomed into one file and pressing Z, the folder's children
     // should become columns (horizontal layout), not a single-column list.
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item(

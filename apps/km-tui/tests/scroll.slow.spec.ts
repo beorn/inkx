@@ -24,7 +24,7 @@ describe("Vertical Scroll Journeys", () => {
   test("navigate past bottom edge scrolls, cursor stays visible", async () => {
     // Create a tall column that exceeds the viewport (24 rows, ~4 visible cards)
     const tasks = Array.from({ length: 12 }, (_, i) => item(`task-${i}`))
-    using app = createTestApp(item("board", item("col1", ...tasks)), {
+    using app = await createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
     })
@@ -52,7 +52,7 @@ describe("Vertical Scroll Journeys", () => {
 
   test("navigate to bottom then back to top, first card becomes visible again", async () => {
     const tasks = Array.from({ length: 10 }, (_, i) => item(`item-${i}`))
-    using app = createTestApp(item("board", item("col1", ...tasks)), {
+    using app = await createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
     })
@@ -73,7 +73,7 @@ describe("Vertical Scroll Journeys", () => {
   })
 
   test("scroll at top boundary: k on first card stays put", async () => {
-    using app = createTestApp(item("board", item("col1", item("first"), item("second"), item("third"))), {
+    using app = await createTestApp(item("board", item("col1", item("first"), item("second"), item("third"))), {
       rows: 24,
       cols: 80,
     })
@@ -91,7 +91,7 @@ describe("Vertical Scroll Journeys", () => {
   })
 
   test("scroll at bottom boundary: j on last card stays put", async () => {
-    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"), item("gamma"))), {
+    using app = await createTestApp(item("board", item("col1", item("alpha"), item("beta"), item("gamma"))), {
       rows: 24,
       cols: 80,
     })
@@ -110,7 +110,7 @@ describe("Vertical Scroll Journeys", () => {
 
 describe("Horizontal Scroll Journeys", () => {
   test("navigate right through many columns, then back to first", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("a1")),
@@ -146,7 +146,7 @@ describe("Horizontal Scroll Journeys", () => {
   })
 
   test("horizontal scroll indicators appear and disappear correctly", async () => {
-    using app = createTestApp(
+    using app = await createTestApp(
       item(
         "board",
         item("col1", item("t1")),
@@ -178,7 +178,7 @@ describe("Horizontal Scroll Journeys", () => {
   test("vertical scroll within column after horizontal navigation", async () => {
     // Tall col3 with many items, navigate right then down
     const tasks = Array.from({ length: 10 }, (_, i) => item(`deep-${i}`))
-    using app = createTestApp(
+    using app = await createTestApp(
       item("board", item("col1", item("a1")), item("col2", item("b1")), item("col3", ...tasks)),
       { cols: 80, rows: 24 },
     )
@@ -205,7 +205,7 @@ describe("Horizontal Scroll Journeys", () => {
 describe("Scroll + View Mode Journeys", () => {
   test("scroll position maintained when navigating in columns view", async () => {
     const tasks = Array.from({ length: 12 }, (_, i) => item(`row-${i}`))
-    using app = createTestApp(item("board", item("col1", ...tasks), item("col2", item("other"))), {
+    using app = await createTestApp(item("board", item("col1", ...tasks), item("col2", item("other"))), {
       rows: 20,
       cols: 80,
       viewMode: "columns",
@@ -224,7 +224,7 @@ describe("Scroll + View Mode Journeys", () => {
 
   test("scroll in list view preserves cursor visibility", async () => {
     const tasks = Array.from({ length: 14 }, (_, i) => item(`list-${i}`))
-    using app = createTestApp(item("board", item("col1", ...tasks)), {
+    using app = await createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
       viewMode: "list",
