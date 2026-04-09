@@ -13,7 +13,9 @@ import type { OpCtx } from "./tui-context.ts"
 
 const log = createLogger("km:invariants")
 
-/** Virtual/synthetic node ID prefixes — these nodes don't exist in the repo by design */
+/** Virtual/synthetic node ID prefixes — these IDs don't exist in the repo by design.
+ *  __meta__* = focusable metadata row testIDs in DetailView (e.g., __meta__Status)
+ *  __body__* = virtual body column IDs */
 const VIRTUAL_PREFIXES = ["__meta__", "__body__"]
 
 /** Check if a node ID is a synthetic/virtual node (not stored in repo) */

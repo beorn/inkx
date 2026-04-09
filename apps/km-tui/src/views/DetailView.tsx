@@ -5,9 +5,11 @@
  * document outline — headings, body paragraphs, task items with markers,
  * nested lists with indentation. Like reading the .md file in the TUI.
  *
- * Cursor navigation: j/k moves through __meta__ property rows first,
- * then document lines. The cursor ID uses the DETAIL_META_PREFIX
- * convention (e.g., "__meta__Status", "__meta__Due").
+ * Navigation: all elements (title, metadata rows, doc nodes) are real
+ * focusable React components with testID props. The TEA command system
+ * handles j/k via view-navigation.ts, setting cursor to the target
+ * testID (e.g., "__meta__Status" for metadata rows, node IDs for
+ * children). No virtual KNode objects are created.
  */
 
 import React, { useMemo } from "react"
@@ -100,6 +102,8 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           {/* Document title — H1 (selectable) + node badge */}
           <Box
             id={effectiveId}
+            testID={effectiveId}
+            focusable
             paddingX={1}
             backgroundColor={isTitleCursor ? "$selection-bg" : undefined}
             {...(isTitleCursor ? { "data-cursor": true } : {})}
@@ -283,7 +287,7 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box height={1} />
-        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
               {headingTaskIcon && (
@@ -350,7 +354,7 @@ function DocNode({
     const textColor = isCursor ? "$selection" : isDone ? "$muted" : undefined
     return (
       <Box flexDirection="column">
-        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <CheckboxIcon
             nodeId={node.id}
             icon={icon}
@@ -388,7 +392,7 @@ function DocNode({
   if (isItem) {
     return (
       <Box flexDirection="column">
-        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.item?.list ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
             <InlineText text={content} context={cursorCtx} />
@@ -415,15 +419,15 @@ function DocNode({
   // ── Block content (paragraph, quote, code, hr) ──
   if (node.type === "hr") {
     return (
-      <Box id={node.id} paddingLeft={0}>
+      <Box id={node.id} testID={node.id} focusable paddingLeft={0}>
         <HR />
       </Box>
     )
   }
-  if (!content) return <Box id={node.id} paddingLeft={0} />
+  if (!content) return <Box id={node.id} testID={node.id} focusable paddingLeft={0} />
   if (node.type === "quote") {
     return (
-      <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+      <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
         <Blockquote>
           <InlineText text={content} context={cursorCtx} />
         </Blockquote>
@@ -432,14 +436,14 @@ function DocNode({
   }
   if (node.type === "code") {
     return (
-      <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+      <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
         <CodeBlock>{content}</CodeBlock>
       </Box>
     )
   }
   // Paragraph
   return (
-    <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+    <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
       <Text wrap="wrap">
         <InlineText text={content} context={cursorCtx} />
       </Text>
@@ -496,6 +500,8 @@ function MetadataRow({ metaId, label, node, isSelected, width }: MetadataRowProp
   return (
     <Box
       id={metaId}
+      testID={metaId}
+      focusable
       height={1}
       flexShrink={0}
       width={width + 2}

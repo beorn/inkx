@@ -31,7 +31,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
-import { deriveDetailColumns, buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
+import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { createViewTree } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -216,9 +216,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       s.selTreeSource.update(board.signals.visibleLens())
     }
 
-    // Derive cursor indices, columnId, card from tree (board mode) or DerivedColumn (detail mode).
-    // Detail mode uses deriveDetailColumns because it creates virtual metadata columns
-    // that don't exist in the tree. Board mode uses the tree directly.
+    // Derive cursor indices, columnId, card from tree (board mode) or flat cursor (detail mode).
+    // Detail mode: metadata rows are focusable React components with __meta__ testIDs,
+    // navigated by the view-navigation system. No virtual KNode derivation needed.
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     let columnId: string | null
     let card: KNode | undefined
@@ -226,17 +226,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     const cc = locals.cursorCache
     if (board?.viewMode === "detail") {
-      // Detail mode: derive via DerivedColumn (virtual metadata columns not in tree)
-      const columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-      if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
-        cursor = cc
-      } else {
-        cursor = deriveCursorIndices(columns, cursor_, nodeIndex, (id) => s.repo.getNode(id))
-      }
-      const _column = columns[cursor.colIndex]
-      columnId = _column?.node.id ?? null
-      card = _column?.cardNodes[cursor.cardIndex]
-      selectedNode = card ?? _column?.node ?? null
+      // Detail mode: flat cursor — every item (meta row or child node) is at card level.
+      // No column-based derivation needed; cursor IS the cursorCardNodeId.
+      const isMetaCursor = cursor_ ? (cursor_ as string).startsWith("__meta__") : false
+      cursor = { colIndex: 0, cardIndex: 0, isAtCardLevel: !!cursor_ }
+      columnId = null
+      card = cursor_ && !isMetaCursor ? (s.repo.getNode(cursor_ as string) ?? undefined) : undefined
+      selectedNode = card ?? (cursor_ ? ({ id: cursor_, content: cursor_ } as unknown as KNode) : null)
     } else {
       // Board mode: derive entirely from tree (no DerivedColumn needed)
       const treeColIds = rootId ? tree.children(rootId) : []

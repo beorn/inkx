@@ -11,7 +11,7 @@ import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import type { SectionRules } from "@km/markdown"
 import { createLogger } from "loggily"
-import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
+import { computeMetadataKeys } from "../views/detail-pane-items.ts"
 import { createViewLens, extractWipLimits, type ViewLensRepo } from "@km/board"
 
 // =============================================================================
@@ -21,9 +21,11 @@ import { createViewLens, extractWipLimits, type ViewLensRepo } from "@km/board"
 /**
  * A materialized column: a parent KNode whose children render as KNode[].
  *
- * Used by `deriveColumnsFromRepo` / `deriveDetailColumns` for consumers that
- * can't subscribe reactively (tests, web canvas, detail-mode cursor derivation).
- * Live rendering uses `colId: string` + `useNode(id)` + `useSignal(ps.visibleLens)`.
+ * Used by `deriveColumnsFromRepo` for consumers that can't subscribe
+ * reactively (tests, web canvas). Detail mode uses `deriveDetailColumns`
+ * for real children only — metadata rows are focusable React components
+ * in DetailView.tsx. Live rendering uses `colId: string` +
+ * `useNode(id)` + `useSignal(ps.visibleLens)`.
  */
 export interface DerivedColumn {
   node: KNode
@@ -113,54 +115,27 @@ export function deriveColumnsFromRepo(
 /**
  * Derive columns for the detail view mode.
  *
- * Returns a single virtual column containing:
- * 1. Virtual metadata property nodes (with __meta__ IDs) — navigable property rows
- * 2. Actual tree children — shown as card-like rows below the properties
- *
- * This gives standard j/k navigation through metadata rows first, then children.
+ * Returns a single virtual column containing only real tree children.
+ * Metadata property rows are rendered as focusable React components
+ * in DetailView.tsx (with testID="__meta__<Key>") and navigated via
+ * the view-navigation system — no virtual KNode objects needed.
  */
 export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDepths: Map<string, number>): DerivedColumn[] {
   const rootNode = rootId ? repo.getNode(rootId) : null
-
-  // Compute metadata rows for the root node
   const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-  const metaNodes = metaKeys.map((key) => createVirtualMetaNode(rootId, key))
 
   const allChildren = repo.getChildren(rootId)
 
-  // If no metadata rows and no children, still show an empty column
-  if (metaNodes.length === 0 && allChildren.length === 0) return []
-
-  // All items (meta + children) are virtual/body for the detail column
-  const allNodes = [...metaNodes, ...allChildren]
-  const bodyIds = new Set(allNodes.map((n) => n.id))
+  // If no metadata rows and no children, nothing to show
+  if (metaKeys.length === 0 && allChildren.length === 0) return []
 
   return [
     {
       node: createVirtualBodyNode(rootId),
-      cardNodes: toCards(repo, allNodes, bodyIds),
+      cardNodes: allChildren,
       isVirtual: true,
     },
   ]
-}
-
-/**
- * Create a virtual node representing a metadata property row in the detail pane.
- * Uses the DETAIL_META_PREFIX convention: "__meta__Status", "__meta__Due", etc.
- */
-function createVirtualMetaNode(parentId: string | null, key: string): KNode {
-  const now = Date.now()
-  return {
-    id: `${DETAIL_META_PREFIX}${key}`,
-    type: "p",
-    parent_id: parentId,
-    parent_idx: 0,
-    content: key,
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "",
-  }
 }
 
 /**
@@ -185,10 +160,6 @@ function createVirtualBodyNode(parentId: string | null): KNode {
   }
 }
 
-/** Convert KNode[] to plain KNode[] (identity — CardView enrichment no longer needed). */
-function toCards(_repo: Repo, nodes: KNode[], _bodyIds: Set<string>): KNode[] {
-  return nodes
-}
 
 // =============================================================================
 // Cursor Position Derivation

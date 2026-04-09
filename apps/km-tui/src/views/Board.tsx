@@ -48,7 +48,7 @@ import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
-import { buildNodeIndexFromTree, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
+import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor } from "../board/board-types.ts"
@@ -735,12 +735,14 @@ export function Board({ patchedConsole }: BoardProps) {
   const visibleLensValue = useSignal(ps.visibleLens)
   const columnIds = useMemo((): readonly string[] => {
     if (ui.viewMode === "detail") {
-      // Detail mode: virtual metadata columns need DerivedColumn derivation
-      return deriveDetailColumns(repo, rootId, foldDepths).map((c) => c.node.id)
+      // Detail mode: no column derivation needed. DetailView renders metadata rows
+      // as focusable React components and children directly. Return an empty array
+      // since the detail view path in JSX doesn't use columnIds.
+      return []
     }
     const lensRoot = visibleLensValue.rootId
     return lensRoot ? visibleLensValue.children(lensRoot) : []
-  }, [visibleLensValue, ui.viewMode, repo, rootId, foldDepths])
+  }, [visibleLensValue, ui.viewMode])
 
   // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
   // On root change (zoom), columns with rules.collapse should start collapsed.
@@ -795,7 +797,13 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive cursorCardNodeId and cursorColumnNodeId from layout indices via lens.
   // Uses the lens column/card lists instead of DerivedColumn[] for identity resolution.
+  // Detail mode: cursor IS the cursorCardNodeId (flat layout, no column derivation).
   const cursorCardNodeId = useMemo(() => {
+    if (ui.viewMode === "detail") {
+      // In detail mode, every navigable item (metadata rows, doc nodes) is at card level.
+      // The cursor string directly IS the card node ID (or a __meta__ testID).
+      return cursor
+    }
     const rootLensId = visibleLensValue.rootId
     if (!rootLensId || cursorPosition.colIndex < 0) return null
     const colIds = visibleLensValue.children(rootLensId)
@@ -803,13 +811,14 @@ export function Board({ patchedConsole }: BoardProps) {
     if (!colId || cursorPosition.cardIndex < 0) return null
     const cardIds = visibleLensValue.children(colId)
     return cardIds[cursorPosition.cardIndex] ?? null
-  }, [visibleLensValue, cursorPosition.colIndex, cursorPosition.cardIndex])
+  }, [visibleLensValue, cursorPosition.colIndex, cursorPosition.cardIndex, ui.viewMode, cursor])
   const cursorColumnNodeId = useMemo(() => {
+    if (ui.viewMode === "detail") return null
     const rootLensId = visibleLensValue.rootId
     if (!rootLensId || cursorPosition.colIndex < 0) return null
     const colIds = visibleLensValue.children(rootLensId)
     return colIds[cursorPosition.colIndex] ?? null
-  }, [visibleLensValue, cursorPosition.colIndex])
+  }, [visibleLensValue, cursorPosition.colIndex, ui.viewMode])
 
   // Sync cursor state to NodeStore after render.
   // The initial sync happens in the useMemo above (pre-render); subsequent syncs
