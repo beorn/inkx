@@ -141,6 +141,32 @@ export function createNodeStore() {
     return reduced.get(nodeId).excludedSigils as () => string[]
   }
 
+  /** Collect all descendant IDs of a node into the target set. */
+  function collectDescendantsInto(
+    repo: { getChildren(parentId: string | null): { id: string }[] },
+    nodeId: string,
+    target: Set<string>,
+  ): void {
+    const children = repo.getChildren(nodeId)
+    for (const child of children) {
+      target.add(child.id)
+      collectDescendantsInto(repo, child.id, target)
+    }
+  }
+
+  /** Expand a set of node IDs to include all their descendants. */
+  function expandSelectionWithDescendants(
+    repo: { getChildren(parentId: string | null): { id: string }[] },
+    ids: ReadonlySet<string>,
+  ): Set<string> {
+    if (ids.size === 0) return new Set()
+    const expanded = new Set<string>(ids)
+    for (const id of ids) {
+      collectDescendantsInto(repo, id, expanded)
+    }
+    return expanded
+  }
+
   /** Mark all descendants of a selected node as visually selected during hydration. */
   function hydrateDescendantSelection(repo: Repo, parentId: string): void {
     const markDescendants = (nodeId: string): void => {
@@ -150,6 +176,96 @@ export function createNodeStore() {
       }
     }
     markDescendants(parentId)
+  }
+
+  // ── Internal prev-tracking state for store write API ─────────────────
+  let prevCursorId: string | null = null
+  let prevSelectedExpanded = new Set<string>()
+  let prevSelectedDirect = new Set<string>()
+  let prevEditNodeId: string | null = null
+  let prevFoldOverrides = new Map<string, number>()
+  let prevStickyFolds = new Map<string, "folded" | "unfolded">()
+
+  // ── Centralized store write API ──────────────────────────────────────
+
+  /** Set cursor — clears old per-node cursor boolean, sets new one.
+   * Also writes the store-level cursor signal. */
+  function setCursor(nodeId: string | null): void {
+    const prev = prevCursorId
+    if (prev === nodeId) return
+    if (prev) reduced.get(prev).cursor(false)
+    if (nodeId) reduced.get(nodeId).cursor(true)
+    cursor(nodeId)
+    prevCursorId = nodeId
+  }
+
+  /** Replace entire selection — diffs against current, writes selected signals.
+   * Expands to include descendants for visual selection. */
+  function setSelection(ids: ReadonlySet<string>, repo: { getChildren(parentId: string | null): { id: string }[] }): void {
+    const newExpanded = expandSelectionWithDescendants(repo, ids)
+    // Clear nodes that were expanded-selected but no longer are
+    for (const key of prevSelectedExpanded) {
+      if (!newExpanded.has(key)) reduced.get(key).selected(false)
+    }
+    // Set newly expanded-selected nodes
+    for (const key of newExpanded) {
+      if (!prevSelectedExpanded.has(key)) reduced.get(key).selected(true)
+    }
+    // Write DIRECT selections — selectedAncestor auto-propagates via computeds
+    for (const key of prevSelectedDirect) {
+      if (!ids.has(key)) reduced.get(key).selected(false)
+    }
+    for (const key of ids) {
+      if (!prevSelectedDirect.has(key)) reduced.get(key).selected(true)
+    }
+    prevSelectedExpanded = newExpanded
+    prevSelectedDirect = new Set(ids)
+  }
+
+  /** Begin editing a node — sets edit + editing signals, clears any previous edit. */
+  function beginEdit(nodeId: string, blockIndex = 0): void {
+    const prev = prevEditNodeId
+    if (prev && prev !== nodeId) {
+      reduced.get(prev).edit(null)
+      reduced.get(prev).editing(false)
+    }
+    reduced.get(nodeId).edit({ blockIndex })
+    reduced.get(nodeId).editing(true)
+    prevEditNodeId = nodeId
+  }
+
+  /** End editing — clears edit + editing signals on the currently editing node. */
+  function endEdit(): void {
+    const prev = prevEditNodeId
+    if (prev) {
+      reduced.get(prev).edit(null)
+      reduced.get(prev).editing(false)
+      prevEditNodeId = null
+    }
+  }
+
+  /** Replace all fold overrides — clears removed, sets changed. */
+  function replaceFoldOverrides(overrides: Map<string, number>): void {
+    const prev = prevFoldOverrides
+    for (const [id] of prev) {
+      if (!overrides.has(id)) reduced.get(id).foldOverride(undefined)
+    }
+    for (const [id, depth] of overrides) {
+      if (prev.get(id) !== depth) reduced.get(id).foldOverride(depth)
+    }
+    prevFoldOverrides = overrides
+  }
+
+  /** Replace all sticky folds — clears removed, sets changed. */
+  function replaceStickyFolds(folds: Map<string, "folded" | "unfolded">): void {
+    const prev = prevStickyFolds
+    for (const [id] of prev) {
+      if (!folds.has(id)) reduced.get(id).sticky(null)
+    }
+    for (const [id, state] of folds) {
+      if (prev.get(id) !== state) reduced.get(id).sticky(state)
+    }
+    prevStickyFolds = folds
   }
 
   /**
@@ -232,6 +348,13 @@ export function createNodeStore() {
     doneAncestor,
     excludedSigils,
     hydrate,
+    // Centralized store write API (Phase 9)
+    setCursor,
+    setSelection,
+    beginEdit,
+    endEdit,
+    replaceFoldOverrides,
+    replaceStickyFolds,
   }
 }
 
