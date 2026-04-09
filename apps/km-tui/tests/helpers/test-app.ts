@@ -192,7 +192,6 @@ export interface TestApp {
   [Symbol.dispose](): void
 }
 
-
 export interface CellInfo {
   char: string
   fg: { r: number; g: number; b: number } | number | null

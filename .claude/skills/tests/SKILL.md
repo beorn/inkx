@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 
 # Testing
 
-**Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, silvery
+**Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, silvery, createTestApp
 
 ---
 

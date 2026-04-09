@@ -230,9 +230,7 @@ describe("Terminal Sizes", () => {
     //
     // We verify this by checking that cursor elements have stable node IDs.
 
-    using app = createTestApp(
-      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
-    )
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))))
 
     // Navigate to a card
     app.command("cursor_right") // Move to col2's first card

@@ -128,9 +128,7 @@ describe("Multi-select delete", () => {
   })
 
   test("delete card with only empty children reports zero childCount", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
-    )
+    using app = createTestApp(item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))))
 
     // Clear content from children to make them empty
     app.repo.updateNode("child1", { content: undefined })

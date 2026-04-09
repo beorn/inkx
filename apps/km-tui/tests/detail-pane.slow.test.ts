@@ -971,11 +971,7 @@ describe("detail pane on link-type nodes", () => {
   test("detail pane closes on link node pointing to existing target", { timeout: 5000 }, () => {
     // The link target exists in the repo
     using app = createTestApp(
-      item(
-        "board",
-        item("col1", item.link("embed-link", "card2"), item("another-card")),
-        item("col2", item("card2")),
-      ),
+      item("board", item("col1", item.link("embed-link", "card2"), item("another-card")), item("col2", item("card2"))),
       { checkIncremental: false, incremental: false },
     )
 

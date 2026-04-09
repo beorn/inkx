@@ -10,6 +10,12 @@
  * Filter state persists across view mode changes.
  *
  * Row order: Status, Priority, Due (filters first), then View, Icons (radio).
+ *
+ * testEnv FREEZE bucket — see km-all.test-system bead. Reason: uses
+ * board.setUI() + store.getState() + board.screenshot() white-box API.
+ * Needs per-test REWRITE (add testIDs to FilterDialog + filter-bar components)
+ * before migration. Batch refactor tried and reverted — see revert commit
+ * 2c2b94c8b.
  */
 
 import { describe, test, expect, afterEach } from "vitest"

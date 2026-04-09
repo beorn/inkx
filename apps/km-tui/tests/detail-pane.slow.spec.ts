@@ -37,10 +37,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("open detail, return to board, navigate cursor down, detail follows", () => {
-    using app = createTestApp(
-      item("board", item("col1", item.task("task1"), item.task("task2"), item.task("task3"))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item.task("task1"), item.task("task2"), item.task("task3"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Step 1: Open detail pane — auto-focuses detail, shows task1
     app.command("toggle_detail_pane")
@@ -58,10 +58,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("detail pane shows folder children when cursor is on folder card", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("project", item("subtask-a"), item("subtask-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("project", item("subtask-a"), item("subtask-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Step 1: Open detail pane for folder card — auto-focuses detail, cursor on first child
     app.command("toggle_detail_pane")
@@ -147,10 +147,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("Enter on structural child triggers inline edit and typing saves", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Step 1: Open detail pane — cursor starts on first child (child-a)
     app.command("toggle_detail_pane")
@@ -175,10 +175,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("Escape during inline edit saves and exits (no stray sibling)", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open detail (cursor starts on child-a), start editing
     app.command("toggle_detail_pane")
@@ -195,10 +195,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("i on structural child in detail pane also triggers inline edit", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open detail (cursor starts on child-a)
     app.command("toggle_detail_pane")
@@ -317,10 +317,10 @@ describe("Detail Pane Journeys", () => {
   // =========================================================================
 
   test("detail pane children render as cards with data-view attribute", () => {
-    using app = createTestApp(
-      item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Step 1: Open detail pane — auto-focuses detail, cursor on first child
     app.command("toggle_detail_pane")
