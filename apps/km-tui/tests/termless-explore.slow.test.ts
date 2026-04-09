@@ -1,8 +1,8 @@
 /**
  * Exhaustive exploration via board driver + STRICT_TERMINAL verification.
  *
- * Uses createBoardDriver with withDiagnostics to verify both buffer correctness
- * AND ANSI output through xterm.js (STRICT_TERMINAL=xterm). This catches:
+ * Uses createTestApp (headless backend) which wraps createBoardDriver with
+ * withDiagnostics to verify both buffer correctness AND ANSI output. This catches:
  * - Incremental rendering mismatches (buffer level)
  * - ANSI generation bugs (output phase level)
  * - Terminal interpretation bugs (xterm.js level)
@@ -11,57 +11,7 @@
  * require vault setup), this approach is fast, reliable, and in-process.
  */
 import { describe, test } from "vitest"
-import { withDiagnostics } from "@silvery/ag-react"
-import { createBoardDriver } from "../src/driver.ts"
-import { createFakeRepo } from "@km/storage"
-import { item } from "./helpers/board-test.ts"
-
-/** Create a realistic board fixture with varied content */
-function realisticBoard() {
-  return item(
-    "board",
-    item(
-      "Next",
-      item.task("Buy groceries"),
-      item.task("Fix plumbing — call 2024-01-16"),
-      item(
-        "+Taxes — reply to @Shubam",
-        item("(1) confirm Q1 figures"),
-        item("(2) send W-2 copies"),
-      ),
-      item.task("Schedule dentist"),
-    ),
-    item(
-      "Waiting",
-      item.task("@JoseChu — file US Form 4868 extension"),
-      item.task("Insurance claim #4421"),
-    ),
-    item(
-      "Inbox",
-      item("2025 Tax Document.pdf"),
-      item("Meeting notes from Monday"),
-      item("Project Alpha kickoff"),
-      item("Review **bold text** and `code blocks`"),
-    ),
-    item("Done", item.task("Set up direct deposit"), item.task("File Q4 report")),
-    item("Archived", item("Old project notes")),
-  )
-}
-
-function createExploreDriver(cols = 120, rows = 30) {
-  const nodes = realisticBoard()
-  const boardRootId = nodes[0]!.id
-  const repo = createFakeRepo({ nodes })
-
-  return withDiagnostics(
-    createBoardDriver(repo, boardRootId, { columns: cols, rows }),
-    {
-      checkIncremental: true,
-      checkStability: true,
-      skipLines: [0, -1], // breadcrumb and status bar may have timing diffs
-    },
-  )
-}
+import { createTestApp, realisticBoard } from "./helpers/test-app.ts"
 
 describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
@@ -69,40 +19,40 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("cursor: j/k/h/l navigation", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("j")
-    await d.press("k")
-    await d.press("l") // cross-column
-    await d.press("j")
-    await d.press("h") // back
-    await d.press("k")
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("j")
+    await app.press("k")
+    await app.press("l") // cross-column
+    await app.press("j")
+    await app.press("h") // back
+    await app.press("k")
   })
 
   test("cursor: gg and G (first/last)", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("j")
-    await d.press("j")
-    await d.type("gg") // first
-    await d.press("G") // last
-    await d.type("gg") // back to first
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("j")
+    await app.press("j")
+    await app.type("gg") // first
+    await app.press("G") // last
+    await app.type("gg") // back to first
   })
 
   test("cursor: page jump Ctrl+D/U", async () => {
-    const d = createExploreDriver()
-    await d.press("Control+d")
-    await d.press("Control+u")
-    await d.press("Control+d")
-    await d.press("Control+d")
-    await d.press("Control+u")
+    using app = createTestApp(realisticBoard())
+    await app.press("Control+d")
+    await app.press("Control+u")
+    await app.press("Control+d")
+    await app.press("Control+d")
+    await app.press("Control+u")
   })
 
   test("cursor: block nav J/K", async () => {
-    const d = createExploreDriver()
-    await d.press("J") // block nav down
-    await d.press("J")
-    await d.press("K") // block nav up
+    using app = createTestApp(realisticBoard())
+    await app.press("J") // block nav down
+    await app.press("J")
+    await app.press("K") // block nav up
   })
 
   // =========================================================================
@@ -110,37 +60,37 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("detail: D open/close cycle", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("D") // open
-    await d.press("D") // focus
-    await d.press("D") // close
-    await d.press("j")
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("D") // open
+    await app.press("D") // focus
+    await app.press("D") // close
+    await app.press("j")
   })
 
   test("detail: navigate while open", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("D") // open
-    await d.press("h") // back to board
-    await d.press("j") // navigate in board
-    await d.press("j")
-    await d.press("D") // close
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("D") // open
+    await app.press("h") // back to board
+    await app.press("j") // navigate in board
+    await app.press("j")
+    await app.press("D") // close
   })
 
   test("detail: open on different items", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("D") // open on first task
-    await d.press("h")
-    await d.press("j") // move to second task
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("D") // open on first task
+    await app.press("h")
+    await app.press("j") // move to second task
     // Detail should update
-    await d.press("D") // close
-    await d.press("l") // move to Waiting column
-    await d.press("j") // first waiting task
-    await d.press("D") // open detail on waiting task
-    await d.press("D") // focus
-    await d.press("D") // close
+    await app.press("D") // close
+    await app.press("l") // move to Waiting column
+    await app.press("j") // first waiting task
+    await app.press("D") // open detail on waiting task
+    await app.press("D") // focus
+    await app.press("D") // close
   })
 
   // =========================================================================
@@ -148,22 +98,22 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("fold: H/L single item", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("H") // fold
-    await d.press("L") // unfold
-    await d.press("H") // fold again
-    await d.press("H") // fold deeper
-    await d.press("L") // unfold one level
-    await d.press("L") // unfold all
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("H") // fold
+    await app.press("L") // unfold
+    await app.press("H") // fold again
+    await app.press("H") // fold deeper
+    await app.press("L") // unfold one level
+    await app.press("L") // unfold all
   })
 
   test("fold: </> board-wide", async () => {
-    const d = createExploreDriver()
-    await d.press("<") // fold all
-    await d.press("<") // fold deeper
-    await d.press(">") // unfold
-    await d.press(">") // unfold more
+    using app = createTestApp(realisticBoard())
+    await app.press("<") // fold all
+    await app.press("<") // fold deeper
+    await app.press(">") // unfold
+    await app.press(">") // unfold more
   })
 
   // =========================================================================
@@ -171,10 +121,10 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("search: / open, type, navigate, close", async () => {
-    const d = createExploreDriver()
-    await d.press("/")
-    await d.type("tax")
-    await d.press("Escape")
+    using app = createTestApp(realisticBoard())
+    await app.press("/")
+    await app.type("tax")
+    await app.press("Escape")
   })
 
   // =========================================================================
@@ -182,14 +132,14 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("selection: Space toggle", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press(" ") // select
-    await d.press("j")
-    await d.press(" ") // select second
-    await d.press(" ") // deselect second
-    await d.press("k")
-    await d.press(" ") // deselect first
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press(" ") // select
+    await app.press("j")
+    await app.press(" ") // select second
+    await app.press(" ") // deselect second
+    await app.press("k")
+    await app.press(" ") // deselect first
   })
 
   // =========================================================================
@@ -197,22 +147,22 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("zoom: z in, Z out", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("z") // zoom in
-    await d.press("j")
-    await d.press("j")
-    await d.press("Z") // zoom out
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("z") // zoom in
+    await app.press("j")
+    await app.press("j")
+    await app.press("Z") // zoom out
   })
 
   test("zoom: deep zoom and back", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("z") // zoom into card
-    await d.press("j")
-    await d.press("z") // zoom deeper
-    await d.press("Z") // out
-    await d.press("Z") // out to root
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("z") // zoom into card
+    await app.press("j")
+    await app.press("z") // zoom deeper
+    await app.press("Z") // out
+    await app.press("Z") // out to root
   })
 
   // =========================================================================
@@ -220,11 +170,11 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("content lines: . and ,", async () => {
-    const d = createExploreDriver()
-    await d.press(".")
-    await d.press(".")
-    await d.press(",")
-    await d.press(",")
+    using app = createTestApp(realisticBoard())
+    await app.press(".")
+    await app.press(".")
+    await app.press(",")
+    await app.press(",")
   })
 
   // =========================================================================
@@ -232,18 +182,18 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("edit: i enter, Escape exit", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("i") // enter edit
-    await d.press("Escape") // exit
-    await d.press("j") // verify navigation works after
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("i") // enter edit
+    await app.press("Escape") // exit
+    await app.press("j") // verify navigation works after
   })
 
   test("edit: Enter enter, Escape exit", async () => {
-    const d = createExploreDriver()
-    await d.press("j")
-    await d.press("Enter") // enter edit
-    await d.press("Escape") // exit
+    using app = createTestApp(realisticBoard())
+    await app.press("j")
+    await app.press("Enter") // enter edit
+    await app.press("Escape") // exit
   })
 
   // =========================================================================
@@ -251,11 +201,11 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("help: ? open, Escape close", async () => {
-    const d = createExploreDriver()
-    await d.press("?")
-    await d.press("j") // scroll in help
-    await d.press("k")
-    await d.press("Escape") // close help
+    using app = createTestApp(realisticBoard())
+    await app.press("?")
+    await app.press("j") // scroll in help
+    await app.press("k")
+    await app.press("Escape") // close help
   })
 
   // =========================================================================
@@ -263,40 +213,56 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("combined: navigate, zoom, detail, fold, navigate", async () => {
-    const d = createExploreDriver()
+    using app = createTestApp(realisticBoard())
     // Navigate
-    await d.press("j")
-    await d.press("l")
-    await d.press("j")
+    await app.press("j")
+    await app.press("l")
+    await app.press("j")
     // Zoom
-    await d.press("z")
+    await app.press("z")
     // Detail
-    await d.press("D")
-    await d.press("D")
-    await d.press("D")
+    await app.press("D")
+    await app.press("D")
+    await app.press("D")
     // Fold
-    await d.press("H")
-    await d.press("L")
+    await app.press("H")
+    await app.press("L")
     // Zoom out
-    await d.press("Z")
+    await app.press("Z")
     // Navigate
-    await d.press("h")
-    await d.press("j")
+    await app.press("h")
+    await app.press("j")
   })
 
   test("combined: rapid mixed operations", async () => {
-    const d = createExploreDriver()
+    using app = createTestApp(realisticBoard())
     const ops = [
-      "j", "j", "l", "j", "h", "k",
-      "z", "j", "j", "Z",
-      "D", "D", "D",
-      "H", "L",
-      "<", ">",
-      " ", "j", " ", " ",
-      "k", "h",
+      "j",
+      "j",
+      "l",
+      "j",
+      "h",
+      "k",
+      "z",
+      "j",
+      "j",
+      "Z",
+      "D",
+      "D",
+      "D",
+      "H",
+      "L",
+      "<",
+      ">",
+      " ",
+      "j",
+      " ",
+      " ",
+      "k",
+      "h",
     ]
     for (const key of ops) {
-      await d.press(key)
+      await app.press(key)
     }
   })
 
@@ -305,23 +271,23 @@ describe("Exhaustive exploration via board driver + diagnostics", () => {
   // =========================================================================
 
   test("small terminal: 40x10", async () => {
-    const d = createExploreDriver(40, 10)
-    await d.press("j")
-    await d.press("l")
-    await d.press("D")
-    await d.press("D")
-    await d.press("D")
+    using app = createTestApp(realisticBoard(), { cols: 40, rows: 10 })
+    await app.press("j")
+    await app.press("l")
+    await app.press("D")
+    await app.press("D")
+    await app.press("D")
   })
 
   test("wide terminal: 200x50", async () => {
-    const d = createExploreDriver(200, 50)
-    await d.press("j")
-    await d.press("l")
-    await d.press("j")
-    await d.press("D")
-    await d.press("D")
-    await d.press("D")
-    await d.press("z")
-    await d.press("Z")
+    using app = createTestApp(realisticBoard(), { cols: 200, rows: 50 })
+    await app.press("j")
+    await app.press("l")
+    await app.press("j")
+    await app.press("D")
+    await app.press("D")
+    await app.press("D")
+    await app.press("z")
+    await app.press("Z")
   })
 })
