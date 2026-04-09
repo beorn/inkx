@@ -6,7 +6,7 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ## Writing new tests
 
-New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The legacy `testEnv`/`testEnvWithRepo` API is `@deprecated` — it remains only for the FREEZE bucket in `km-all.test-system` bead (mouse, bell, expectNodeBorder, PTY, and a few smoke tests).
+New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The legacy `testEnv`/`testEnvWithRepo` API is `@deprecated` — it remains only for the FREEZE bucket in `km-all.test-system` bead (mouse, bell, expectNodeBorder, and a few smoke tests).
 
 ## What to Test Here
 
