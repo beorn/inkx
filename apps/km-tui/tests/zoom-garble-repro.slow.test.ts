@@ -46,14 +46,14 @@ describe("Zoom-out rendering at wide terminal", () => {
     { cols: 120, rows: 30 },
   ])("zoom out at $cols x $rows does not garble rendering", async ({ cols, rows }) => {
     // Start zoomed into child-board
-    using app = await createTestApp(deepTree(), { cols, rows })
+    using app = createTestApp(deepTree(), { cols, rows })
 
     // Zoom into child-board
-    await app.press("z")
+    app.press("z")
     app.expect("#gc-col-A").toExist()
 
     // Zoom out (Z) — this is where garbling happens
-    await app.press("Z")
+    app.press("Z")
 
     // After zoom out, we should be back at root with child boards as columns
     app.expect("#child-board").toExist()
@@ -62,9 +62,9 @@ describe("Zoom-out rendering at wide terminal", () => {
     // (checkIncremental: true is the createTestApp default)
   })
 
-  test("double zoom out at 200 cols", async () => {
+  test("double zoom out at 200 cols", () => {
     // Even deeper: root > mid > child-board > gc-cols
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "root",
         item(
@@ -79,26 +79,26 @@ describe("Zoom-out rendering at wide terminal", () => {
     )
 
     // Zoom into mid → deep
-    await app.press("z") // into mid
-    await app.press("z") // into deep
+    app.press("z") // into mid
+    app.press("z") // into deep
 
     app.expect("#col1").toExist()
 
     // First zoom out — incremental matches fresh check is automatic via withDiagnostics
-    await app.press("Z")
+    app.press("Z")
 
     // Second zoom out
-    await app.press("Z")
+    app.press("Z")
   })
 
-  test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", async () => {
+  test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", () => {
     const cols = 200
-    using app = await createTestApp(deepTree(), { cols, rows: 50 })
+    using app = createTestApp(deepTree(), { cols, rows: 50 })
 
     // Zoom into child-board, then zoom back out
-    await app.press("z")
+    app.press("z")
     app.expect("#gc-col-A").toExist()
-    await app.press("Z")
+    app.press("Z")
     app.expect("#child-board").toExist()
 
     // Row 0 is the breadcrumb/top bar. It should have a consistent background

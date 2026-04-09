@@ -104,7 +104,7 @@ describe("Cursor movement preserves text content", () => {
 // =============================================================================
 
 describe("stable visual classification under cursor movement", () => {
-  test("card with body+structural mix: cursor expand does not reclassify siblings", async () => {
+  test("card with body+structural mix: cursor expand does not reclassify siblings", () => {
     // Card "parent" has tasks (non-outline) followed by a heading section (outline).
     // With maxContentLines=3, only the first 3 children fit; the slice contains
     // no outline node → extractBody says items=all, body=[] → tasks get bullets.
@@ -114,7 +114,7 @@ describe("stable visual classification under cursor movement", () => {
     // t1/t2/t3 get reclassified as body (they are now BEFORE an outline item),
     // stripping their bullets. The fix uses a stable bodyIdSet computed from the
     // FULL children array so classification is data-derived, not slice-derived.
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col", item("parent", item("t1"), item("t2"), item("t3"), item("t4"), item.file("sec", item("s1")))),
@@ -128,11 +128,11 @@ describe("stable visual classification under cursor movement", () => {
 
     // Descend into the card via J (block_nav_down) — cursor lands on t1.
     // Now cursorInDescendant=true, shouldExpand fires, maxChildren jumps to 20.
-    await app.command("block_nav_down")
+    app.command("block_nav_down")
     const afterDescend = getBoardContent(app.text)
 
     // Return to the card level — cursor back on "parent".
-    await app.command("block_nav_up")
+    app.command("block_nav_up")
     const backOnCard = getBoardContent(app.text)
 
     // Extract the leading characters before each task title — this captures
@@ -182,24 +182,24 @@ describe("stable visual classification under cursor movement", () => {
 // =============================================================================
 
 describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
-  test("sp (priority) preserves cursor on same card", async () => {
-    using app = await createTestApp(
+  test("sp (priority) preserves cursor on same card", () => {
+    using app = createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"), item.task("tD"))),
     )
 
     // Navigate to tB (col1, card index 1)
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#tB[data-cursor]").toExist()
 
     // Set priority
-    await app.command("set_priority")
+    app.command("set_priority")
 
     // Cursor should still be on tB
     app.expect("#tB[data-cursor]").toExist()
   })
 
-  test("sp preserves cursor when board has body content (virtual body column)", async () => {
-    using app = await createTestApp(
+  test("sp preserves cursor when board has body content (virtual body column)", () => {
+    using app = createTestApp(
       item.file(
         "myboard",
         item.p("description"),
@@ -209,35 +209,35 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate past virtual body column to Todo column, then to tB
-    await app.command("cursor_right") // Move to Todo column
-    await app.command("cursor_down") // Move to tB (second card in Todo)
+    app.command("cursor_right") // Move to Todo column
+    app.command("cursor_down") // Move to tB (second card in Todo)
     app.expect("#tB[data-cursor]").toExist()
 
     // Set priority — triggers SELECT to re-resolve cursor position
-    await app.command("set_priority")
+    app.command("set_priority")
 
     // Cursor must still be on tB — NOT jumped to a different card
     app.expect("#tB[data-cursor]").toExist()
   })
 
-  test("x (task status toggle) preserves cursor on same card", async () => {
-    using app = await createTestApp(
+  test("x (task status toggle) preserves cursor on same card", () => {
+    using app = createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
     )
 
     // Navigate to second column, first card (tC)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#tC[data-cursor]").toExist()
 
     // Toggle task status
-    await app.command("toggle_task_done")
+    app.command("toggle_task_done")
 
     // Cursor should still be on tC
     app.expect("#tC[data-cursor]").toExist()
   })
 
-  test("x preserves cursor when board has body content", async () => {
-    using app = await createTestApp(
+  test("x preserves cursor when board has body content", () => {
+    using app = createTestApp(
       item.file(
         "myboard",
         item.p("intro"),
@@ -247,37 +247,37 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate to Active column (past body), then to tB
-    await app.command("cursor_right") // Past body column to Active
-    await app.command("cursor_down") // tB
+    app.command("cursor_right") // Past body column to Active
+    app.command("cursor_down") // tB
     app.expect("#tB[data-cursor]").toExist()
 
     // Toggle task status
-    await app.command("toggle_task_done")
+    app.command("toggle_task_done")
 
     // Cursor must still be on tB
     app.expect("#tB[data-cursor]").toExist()
   })
 
-  test("undo/redo preserves cursor position", async () => {
-    using app = await createTestApp(
+  test("undo/redo preserves cursor position", () => {
+    using app = createTestApp(
       item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
       { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
     )
 
     // Navigate to tB
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#tB[data-cursor]").toExist()
 
     // Set priority (creates undo entry)
-    await app.command("set_priority")
+    app.command("set_priority")
     app.expect("#tB[data-cursor]").toExist()
 
     // Undo (Ctrl-z)
-    await app.press("Control-z")
+    app.press("Control-z")
     app.expect("#tB[data-cursor]").toExist()
 
     // Redo (Ctrl-y)
-    await app.press("Control-y")
+    app.press("Control-y")
     app.expect("#tB[data-cursor]").toExist()
   })
 })
@@ -333,8 +333,8 @@ function findBoardRoot(repo: Repo): string {
 
 describe("card borders after cursor navigation (synthetic)", () => {
   for (const cols of [40, 60, 80, 100]) {
-    test(`${cols}-col: borders clean after cursor right/left`, async () => {
-      using app = await createTestApp(
+    test(`${cols}-col: borders clean after cursor right/left`, () => {
+      using app = createTestApp(
         item(
           "board",
           item(
@@ -354,32 +354,32 @@ describe("card borders after cursor navigation (synthetic)", () => {
       assertCardBordersClean(app.text, `${cols} initial`)
 
       // Navigate between columns
-      await app.command("cursor_right")
+      app.command("cursor_right")
       assertCardBordersClean(app.text, `${cols} right(1)`)
 
-      await app.command("cursor_right")
+      app.command("cursor_right")
       assertCardBordersClean(app.text, `${cols} right(2)`)
 
-      await app.command("cursor_left")
+      app.command("cursor_left")
       assertCardBordersClean(app.text, `${cols} left(1)`)
 
-      await app.command("cursor_left")
+      app.command("cursor_left")
       assertCardBordersClean(app.text, `${cols} left(2)`)
 
       // Down then right (different scroll positions)
-      await app.command("cursor_down")
-      await app.command("cursor_right")
+      app.command("cursor_down")
+      app.command("cursor_right")
       assertCardBordersClean(app.text, `${cols} down+right`)
 
-      await app.command("cursor_down")
-      await app.command("cursor_left")
+      app.command("cursor_down")
+      app.command("cursor_left")
       assertCardBordersClean(app.text, `${cols} down+left`)
     })
   }
 
-  test("cursor right with deep card content at 80 cols", async () => {
+  test("cursor right with deep card content at 80 cols", () => {
     // Match real vault pattern: cards with many children (deep outline)
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -416,13 +416,13 @@ describe("card borders after cursor navigation (synthetic)", () => {
     assertCardBordersClean(app.text, "deep initial")
 
     // Move right — this is where the bug manifests
-    await app.command("cursor_right")
+    app.command("cursor_right")
     assertCardBordersClean(app.text, "deep right(1)")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     assertCardBordersClean(app.text, "deep right(2)")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     assertCardBordersClean(app.text, "deep right(3)")
   })
 })
@@ -489,9 +489,9 @@ describe.skipIf(!process.env.TEST_VAULT)("card borders after cursor right (real 
 // =============================================================================
 
 describe("cursor-lost-col-header-j (km-3wk32)", () => {
-  test("j from column header selects first card (folder children - control)", async () => {
+  test("j from column header selects first card (folder children - control)", () => {
     // Control case: columns with folder-type children work correctly
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a"))),
@@ -500,12 +500,12 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate to board level
-    await app.command("cursor_up")
-    await app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up")
     // Board -> first column header
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // Column header -> first card
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -513,26 +513,26 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     expect(cursor.textContent()).toContain("sub-a")
   })
 
-  test("j from column header selects first card (file children)", async () => {
+  test("j from column header selects first card (file children)", () => {
     // Bug case: columns with file-type children
-    using app = await createTestApp(item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
+    using app = createTestApp(item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
 
     // Navigate up to board level
-    await app.command("cursor_up")
-    await app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up")
     // Board -> column header
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // Column header -> first card (should be file1)
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("file1")
   })
 
-  test("j from second column header selects first card (file children)", async () => {
+  test("j from second column header selects first card (file children)", () => {
     // Test entering the second column specifically
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a"))),
@@ -541,59 +541,59 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate up to board level
-    await app.command("cursor_up")
-    await app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up")
     // Board -> first column header (col-folders)
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // Move right to second column header (col-files)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     // Column header -> first card (should be file1)
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("file1")
   })
 
-  test("j from column header with mixed file/folder children", async () => {
-    using app = await createTestApp(item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
+  test("j from column header with mixed file/folder children", () => {
+    using app = createTestApp(item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
 
     // Navigate to board level
-    await app.command("cursor_up")
-    await app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up")
     // j -> column header
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // j -> first card (should be file-a)
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("file-a")
   })
 
-  test("j from column header with paragraph body content", async () => {
+  test("j from column header with paragraph body content", () => {
     // Edge case: column has only paragraph children (body content, no structural items)
     // This tests the extractBody filtering scenario
-    using app = await createTestApp(item.root("board", item("col-body", item.p("para-1"), item.p("para-2"))))
+    using app = createTestApp(item.root("board", item("col-body", item.p("para-1"), item.p("para-2"))))
 
     // Navigate up to board level
-    await app.command("cursor_up")
-    await app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up")
     // Board -> column header
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // Column header -> first card (should be para-1)
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("para-1")
   })
 
-  test("j from board level with body content lands on first body card", async () => {
+  test("j from board level with body content lands on first body card", () => {
     // Body content (paragraphs, code, quotes) before structural children
     // becomes a virtual "Description" column with individually navigable cards.
     // j from board level lands on the first body card directly.
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item.p("intro text"),
@@ -603,26 +603,26 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate up to board level (k from body card goes directly to board)
-    await app.command("cursor_up")
+    app.command("cursor_up")
     // Board -> first body card in virtual Description column
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("intro text")
 
     // l moves to the first structural column
-    await app.command("cursor_right")
+    app.command("cursor_right")
     const cursor2 = app.q("[data-cursor]")
     expect(cursor2.textContent()).toContain("file1")
   })
 
-  test("j from board level with code block before columns lands on code card", async () => {
-    using app = await createTestApp(item.root("board", item.code("some code"), item("col1", item("task1"))))
+  test("j from board level with code block before columns lands on code card", () => {
+    using app = createTestApp(item.root("board", item.code("some code"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
-    await app.command("cursor_up")
-    await app.command("cursor_down")
+    app.command("cursor_up")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -630,35 +630,35 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     expect(cursor.textContent()).toContain("some code")
   })
 
-  test("j from board level with quote before columns lands on quote card", async () => {
-    using app = await createTestApp(item.root("board", item.quote("a quote"), item("col1", item("task1"))))
+  test("j from board level with quote before columns lands on quote card", () => {
+    using app = createTestApp(item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
-    await app.command("cursor_up")
-    await app.command("cursor_down")
+    app.command("cursor_up")
+    app.command("cursor_down")
 
     const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("a quote")
   })
 
-  test("round-trip navigation preserves cursor for file children columns", async () => {
-    using app = await createTestApp(
+  test("round-trip navigation preserves cursor for file children columns", () => {
+    using app = createTestApp(
       item.root("board", item("col1", item.file("f1"), item.file("f2")), item("col2", item.file("f3"))),
     )
 
     // Navigate down through col1
-    await app.command("cursor_down") // f1 -> f2 (next card)
+    app.command("cursor_down") // f1 -> f2 (next card)
     expect(app.q("[data-cursor]").textContent()).toContain("f2")
 
     // Navigate up: f2 -> f1 -> col header -> board (3 presses of k)
-    await app.command("cursor_up") // f2 -> f1 (prev sibling)
-    await app.command("cursor_up") // f1 -> column header (first card -> parent)
-    await app.command("cursor_up") // column header -> board
+    app.command("cursor_up") // f2 -> f1 (prev sibling)
+    app.command("cursor_up") // f1 -> column header (first card -> parent)
+    app.command("cursor_up") // column header -> board
 
     // Navigate down: board -> column header -> first card
-    await app.command("cursor_down") // board -> column header
-    await app.command("cursor_down") // column header -> first card
+    app.command("cursor_down") // board -> column header
+    app.command("cursor_down") // column header -> first card
     // Should be on f1 (first card in col1)
     expect(app.q("[data-cursor]").textContent()).toContain("f1")
   })

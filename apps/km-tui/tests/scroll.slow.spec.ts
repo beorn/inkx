@@ -24,7 +24,7 @@ describe("Vertical Scroll Journeys", () => {
   test("navigate past bottom edge scrolls, cursor stays visible", async () => {
     // Create a tall column that exceeds the viewport (24 rows, ~4 visible cards)
     const tasks = Array.from({ length: 12 }, (_, i) => item(`task-${i}`))
-    using app = await createTestApp(item("board", item("col1", ...tasks)), {
+    using app = createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
     })
@@ -35,7 +35,7 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 2: Navigate down past visible area
     for (let i = 0; i < 8; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
 
     // Step 3: Cursor should be visible on task-8
@@ -44,7 +44,7 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 4: Continue to the last task
     for (let i = 8; i < 11; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
     app.expect("#task-11[data-cursor]").toExist()
     app.expectScreen("task-11")
@@ -52,28 +52,28 @@ describe("Vertical Scroll Journeys", () => {
 
   test("navigate to bottom then back to top, first card becomes visible again", async () => {
     const tasks = Array.from({ length: 10 }, (_, i) => item(`item-${i}`))
-    using app = await createTestApp(item("board", item("col1", ...tasks)), {
+    using app = createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
     })
 
     // Step 1: Navigate to bottom
     for (let i = 0; i < 9; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
     app.expect("#item-9[data-cursor]").toExist()
     app.expectScreen("item-9")
 
     // Step 2: Navigate back to top
     for (let i = 0; i < 9; i++) {
-      await app.command("cursor_up")
+      app.command("cursor_up")
     }
     app.expect("#item-0[data-cursor]").toExist()
     app.expectScreen("item-0")
   })
 
-  test("scroll at top boundary: k on first card stays put", async () => {
-    using app = await createTestApp(item("board", item("col1", item("first"), item("second"), item("third"))), {
+  test("scroll at top boundary: k on first card stays put", () => {
+    using app = createTestApp(item("board", item("col1", item("first"), item("second"), item("third"))), {
       rows: 24,
       cols: 80,
     })
@@ -82,7 +82,7 @@ describe("Vertical Scroll Journeys", () => {
     app.expect("#first[data-cursor]").toExist()
 
     // Step 2: Press k — should not crash or move off-screen
-    await app.command("cursor_up")
+    app.command("cursor_up")
 
     // Cursor should move to column header (standard nav behavior), not crash
     // Verify the screen is still rendering correctly
@@ -90,19 +90,19 @@ describe("Vertical Scroll Journeys", () => {
     app.expectScreen("second")
   })
 
-  test("scroll at bottom boundary: j on last card stays put", async () => {
-    using app = await createTestApp(item("board", item("col1", item("alpha"), item("beta"), item("gamma"))), {
+  test("scroll at bottom boundary: j on last card stays put", () => {
+    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"), item("gamma"))), {
       rows: 24,
       cols: 80,
     })
 
     // Step 1: Navigate to last card
-    await app.command("cursor_down")
-    await app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#gamma[data-cursor]").toExist()
 
     // Step 2: j on last card — should stay on last card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#gamma[data-cursor]").toExist()
     app.expectScreen("gamma")
   })
@@ -110,7 +110,7 @@ describe("Vertical Scroll Journeys", () => {
 
 describe("Horizontal Scroll Journeys", () => {
   test("navigate right through many columns, then back to first", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("a1")),
@@ -125,28 +125,28 @@ describe("Horizontal Scroll Journeys", () => {
     app.expect("#a1[data-cursor]").toExist()
 
     // Step 2: Navigate right to col4 (triggers horizontal scroll)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#b1[data-cursor]").toExist()
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#c1[data-cursor]").toExist()
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#d1[data-cursor]").toExist()
 
     // Step 3: col4 should be visible
     app.expectScreen("d1")
 
     // Step 4: Navigate all the way back to col1
-    await app.command("cursor_left")
-    await app.command("cursor_left")
-    await app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#a1[data-cursor]").toExist()
 
     // Step 5: col1 should be visible again
     app.expectScreen("a1")
   })
 
-  test("horizontal scroll indicators appear and disappear correctly", async () => {
-    using app = await createTestApp(
+  test("horizontal scroll indicators appear and disappear correctly", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("t1")),
@@ -164,10 +164,10 @@ describe("Horizontal Scroll Journeys", () => {
     expect(screen).toContain("\u25B8") // right arrow
 
     // Step 2: Navigate to rightmost column
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#t5[data-cursor]").toExist()
 
     // Step 3: Should see left arrow (more columns to the left)
@@ -175,37 +175,37 @@ describe("Horizontal Scroll Journeys", () => {
     expect(screen).toContain("\u25C2") // left arrow
   })
 
-  test("vertical scroll within column after horizontal navigation", async () => {
+  test("vertical scroll within column after horizontal navigation", () => {
     // Tall col3 with many items, navigate right then down
     const tasks = Array.from({ length: 10 }, (_, i) => item(`deep-${i}`))
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("a1")), item("col2", item("b1")), item("col3", ...tasks)),
       { cols: 80, rows: 24 },
     )
 
     // Step 1: Navigate right to col3
-    await app.command("cursor_right")
-    await app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#deep-0[data-cursor]").toExist()
 
     // Step 2: Navigate down past viewport in col3
     for (let i = 0; i < 8; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
     app.expect("#deep-8[data-cursor]").toExist()
     app.expectScreen("deep-8")
 
     // Step 3: Navigate back left — should scroll horizontally
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#b1[data-cursor]").toExist()
     app.expectScreen("b1")
   })
 })
 
 describe("Scroll + View Mode Journeys", () => {
-  test("scroll position maintained when navigating in columns view", async () => {
+  test("scroll position maintained when navigating in columns view", () => {
     const tasks = Array.from({ length: 12 }, (_, i) => item(`row-${i}`))
-    using app = await createTestApp(item("board", item("col1", ...tasks), item("col2", item("other"))), {
+    using app = createTestApp(item("board", item("col1", ...tasks), item("col2", item("other"))), {
       rows: 20,
       cols: 80,
       viewMode: "columns",
@@ -214,7 +214,7 @@ describe("Scroll + View Mode Journeys", () => {
     // Step 1: Navigate down past visible area in columns view
     // (columns view uses single-row items, so more fit)
     for (let i = 0; i < 11; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
     app.expect("#row-11[data-cursor]").toExist()
 
@@ -222,9 +222,9 @@ describe("Scroll + View Mode Journeys", () => {
     app.expectScreen("row-11")
   })
 
-  test("scroll in list view preserves cursor visibility", async () => {
+  test("scroll in list view preserves cursor visibility", () => {
     const tasks = Array.from({ length: 14 }, (_, i) => item(`list-${i}`))
-    using app = await createTestApp(item("board", item("col1", ...tasks)), {
+    using app = createTestApp(item("board", item("col1", ...tasks)), {
       rows: 24,
       cols: 80,
       viewMode: "list",
@@ -232,7 +232,7 @@ describe("Scroll + View Mode Journeys", () => {
 
     // Step 1: Navigate down to trigger scroll
     for (let i = 0; i < 12; i++) {
-      await app.command("cursor_down")
+      app.command("cursor_down")
     }
 
     // Step 2: The scrolled item should be visible

@@ -24,7 +24,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Fold/Unfold Journeys", () => {
   test("H folds card children, navigate away and back, children stay hidden", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("parent1", item("ch1"), item("ch2")), item("sib1")),
@@ -36,58 +36,58 @@ describe("Fold/Unfold Journeys", () => {
     app.expect("#ch2").toExist()
 
     // Step 1: Fold parent1 — children should disappear
-    await app.command("fold_more")
+    app.command("fold_more")
 
     app.expect("#ch1").not.toExist()
     app.expect("#ch2").not.toExist()
     app.expect("#parent1").toExist()
 
     // Step 2: Navigate to sib1, then to col2
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#sib1[data-cursor]").toExist()
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#other1[data-cursor]").toExist()
 
     // Step 3: Navigate back — children should still be hidden
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#ch1").not.toExist()
     app.expect("#ch2").not.toExist()
     app.expect("#parent1").toExist()
   })
 
-  test("H then L round-trips: fold and unfold restores visibility", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task1", item("subA"), item("subB")))))
+  test("H then L round-trips: fold and unfold restores visibility", () => {
+    using app = createTestApp(item("board", item("col1", item("task1", item("subA"), item("subB")))))
     app.expect("#task1[data-cursor]").toExist()
     app.expect("#subA").toExist()
     app.expect("#subB").toExist()
 
     // Step 1: Fold
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#subA").not.toExist()
     app.expect("#subB").not.toExist()
 
     // Step 2: Unfold
-    await app.command("unfold_more")
+    app.command("unfold_more")
     app.expect("#subA").toExist()
     app.expect("#subB").toExist()
 
     // Step 3: Fold again, unfold again — no state corruption
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#subA").not.toExist()
-    await app.command("unfold_more")
+    app.command("unfold_more")
     app.expect("#subA").toExist()
     app.expect("#subB").toExist()
   })
 
   test("fold all (<) hides children in all columns, unfold all (>) restores", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("nodeA", item("nodeA-ch"))), item("col2", item("nodeB", item("nodeB-ch")))),
     )
     app.expect("#nodeA-ch").toExist()
     app.expect("#nodeB-ch").toExist()
 
     // Step 1: Fold all — hides children everywhere
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
 
     app.expect("#nodeA-ch").not.toExist()
     app.expect("#nodeB-ch").not.toExist()
@@ -96,25 +96,25 @@ describe("Fold/Unfold Journeys", () => {
     app.expect("#nodeB").toExist()
 
     // Step 2: Unfold all — restores children everywhere
-    await app.command("unfold_all_more")
+    app.command("unfold_all_more")
 
     app.expect("#nodeA-ch").toExist()
     app.expect("#nodeB-ch").toExist()
   })
 
-  test("fold all then selectively unfold one card with L", async () => {
-    using app = await createTestApp(item("board", item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch")))))
+  test("fold all then selectively unfold one card with L", () => {
+    using app = createTestApp(item("board", item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch")))))
     app.expect("#p1-ch").toExist()
     app.expect("#p2-ch").toExist()
 
     // Step 1: Fold all
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
     app.expect("#p1-ch").not.toExist()
     app.expect("#p2-ch").not.toExist()
 
     // Step 2: Selectively unfold p1 only
     app.expect("#p1[data-cursor]").toExist()
-    await app.command("unfold_more")
+    app.command("unfold_more")
 
     // p1's children visible, p2's children still hidden
     app.expect("#p1-ch").toExist()
@@ -122,20 +122,20 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold one card, navigate to another and fold it, both stay folded", async () => {
-    using app = await createTestApp(item("board", item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch")))))
+    using app = createTestApp(item("board", item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch")))))
     app.expect("#a1[data-cursor]").toExist()
     app.expect("#a1-ch").toExist()
     app.expect("#b1-ch").toExist()
 
     // Step 1: Fold a1
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#a1-ch").not.toExist()
     app.expect("#b1-ch").toExist()
 
     // Step 2: Navigate to b1 and fold it too
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#b1[data-cursor]").toExist()
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#b1-ch").not.toExist()
 
     // Step 3: Both should still be folded
@@ -146,15 +146,15 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold preserves cursor position, unfold keeps cursor on parent", async () => {
-    using app = await createTestApp(item("board", item("col1", item("par1", item("c1"), item("c2"), item("c3")))))
+    using app = createTestApp(item("board", item("col1", item("par1", item("c1"), item("c2"), item("c3")))))
     app.expect("#par1[data-cursor]").toExist()
 
     // Step 1: Fold — cursor stays on par1
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#par1[data-cursor]").toExist()
 
     // Step 2: Unfold — cursor stays on par1 (not on a child)
-    await app.command("unfold_more")
+    app.command("unfold_more")
     app.expect("#par1[data-cursor]").toExist()
 
     // Children should be visible again
@@ -164,25 +164,25 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("progressive fold: H folds deepest level first, L unfolds one level at a time", async () => {
-    using app = await createTestApp(item("board", item("col1", item("root1", item("mid1", item("deep1"))))))
+    using app = createTestApp(item("board", item("col1", item("root1", item("mid1", item("deep1"))))))
     app.expect("#root1[data-cursor]").toExist()
     app.expect("#mid1").toExist()
     app.expect("#deep1").toExist()
 
     // Step 1: First H — folds deepest visible children
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#root1").toExist()
 
     // Step 2: Another H — folds the next level
-    await app.command("fold_more")
+    app.command("fold_more")
     app.expect("#root1").toExist()
 
     // Step 3: L unfolds one level
-    await app.command("unfold_more")
+    app.command("unfold_more")
     app.expect("#root1").toExist()
 
     // Step 4: Another L — should eventually restore deep1
-    await app.command("unfold_more")
+    app.command("unfold_more")
     app.expect("#root1").toExist()
     app.expect("#mid1").toExist()
     app.expect("#deep1").toExist()

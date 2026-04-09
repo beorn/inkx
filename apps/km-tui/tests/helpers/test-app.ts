@@ -11,11 +11,11 @@
  *
  * @example
  * ```typescript
- * using app = await createTestApp(realisticBoard(), { cols: 120, rows: 30 })
- * await app.press("j")
+ * using app = createTestApp(realisticBoard(), { cols: 120, rows: 30 })
+ * app.press("j")
  * app.expectScreen("Buy groceries")
  * app.expect("#ch1").toExist()
- * await app.command("fold_more")
+ * app.command("fold_more")
  * app.expect("#ch1").not.toExist()
  * ```
  */
@@ -135,21 +135,19 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
 // =============================================================================
 
 export interface TestApp {
-  /** Send a keypress. Returns a chainable thenable: `await app.press("j").press("l")` */
-  press(key: string): TestAppChain
-  /** Type a sequence of characters. Returns a chainable thenable. */
-  type(text: string): TestAppChain
-  /** Dispatch a command by name. Returns a chainable thenable: `await app.command("cursor_down").command("cursor_right")` */
-  command(commandId: string): TestAppChain
+  /** Send a keypress. Chainable: `app.press("j").press("l")` */
+  press(key: string): TestApp
+  /** Type a sequence of characters (each char as a keypress). Chainable. */
+  type(text: string): TestApp
+  /** Dispatch a command by name. Chainable: `app.command("cursor_down").command("cursor_right")` */
+  command(commandId: string): TestApp
   /**
    * Dispatch a command by ID directly through the command executor, bypassing key mapping.
-   * Use for orphan commands with no key binding (e.g. "search" dialog).
+   * Use for orphan commands with no key binding (e.g. "search" dialog). Chainable.
    */
-  dispatch(commandId: string): TestAppChain
-  /** Wait for initial render to complete. Required on termless backend before sync assertions. No-op on headless. */
-  ready(): Promise<void>
+  dispatch(commandId: string): TestApp
   /** Navigate cursor to a node by pressing cursor_down (max 50 steps). Throws if not found. */
-  navigateTo(target: string): Promise<void>
+  navigateTo(target: string): TestApp
   /** Current screen content as plain text */
   readonly text: string
   /** Whether bell was triggered (boundary hit) */
@@ -194,23 +192,6 @@ export interface TestApp {
   [Symbol.dispose](): void
 }
 
-/**
- * Chainable thenable for fluent async commands.
- *
- * Queues actions and executes them in order when awaited:
- *
- * ```typescript
- * await app.command("cursor_down").command("cursor_right").press("z")
- * ```
- *
- * Each method returns a new chain. The chain is lazy — actions only run on `await`.
- */
-export interface TestAppChain extends PromiseLike<void> {
-  press(key: string): TestAppChain
-  type(text: string): TestAppChain
-  command(commandId: string): TestAppChain
-  dispatch(commandId: string): TestAppChain
-}
 
 export interface CellInfo {
   char: string
@@ -297,68 +278,20 @@ export function realisticBoard(): KNode[] {
  *
  * @example
  * ```typescript
- * using app = await createTestApp(item("board", item("col1")))
+ * using app = createTestApp(item("board", item("col1")))
  * app.expect("#col1").toExist()  // works immediately — handle is ready
  * ```
  */
-export async function createTestApp(
-  nodes: KNode[] | (() => KNode[]),
-  opts: TestAppOptions = {},
-): Promise<TestApp> {
+export function createTestApp(nodes: KNode[] | (() => KNode[]), opts: TestAppOptions = {}): TestApp {
   const resolvedNodes = typeof nodes === "function" ? nodes() : nodes
   const { cols = 120, rows = 30, backend } = opts
   const resolvedBackend = backend ?? process.env.TEST_BACKEND ?? "headless"
 
   if (resolvedBackend === "termless") {
-    const app = createTermlessTestApp(resolvedNodes, cols, rows, opts)
-    await app.ready()
-    return app
+    return createTermlessTestApp(resolvedNodes, cols, rows, opts)
   }
 
   return createHeadlessTestApp(resolvedNodes, cols, rows, opts)
-}
-
-// =============================================================================
-// TestAppChain — lazy chainable thenable
-// =============================================================================
-
-class TestAppChainImpl implements TestAppChain {
-  constructor(
-    private fns: {
-      press: (key: string) => Promise<void>
-      type: (text: string) => Promise<void>
-      command: (commandId: string) => Promise<void>
-      dispatch: (commandId: string) => Promise<void>
-    },
-    private queue: Array<() => Promise<void>>,
-  ) {}
-
-  press(key: string): TestAppChain {
-    return new TestAppChainImpl(this.fns, [...this.queue, () => this.fns.press(key)])
-  }
-
-  type(text: string): TestAppChain {
-    return new TestAppChainImpl(this.fns, [...this.queue, () => this.fns.type(text)])
-  }
-
-  command(commandId: string): TestAppChain {
-    return new TestAppChainImpl(this.fns, [...this.queue, () => this.fns.command(commandId)])
-  }
-
-  dispatch(commandId: string): TestAppChain {
-    return new TestAppChainImpl(this.fns, [...this.queue, () => this.fns.dispatch(commandId)])
-  }
-
-  then<TResult1 = void, TResult2 = never>(
-    onfulfilled?: ((value: void) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-  ): Promise<TResult1 | TResult2> {
-    return this.run().then(onfulfilled, onrejected)
-  }
-
-  private async run(): Promise<void> {
-    for (const fn of this.queue) await fn()
-  }
 }
 
 // =============================================================================
@@ -389,56 +322,43 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
   )
 
-  // Raw async implementations (not chainable — used internally by chain)
-  const rawPress = async (key: string) => {
-    await driver.press(key)
+  // Synchronous press — same pattern as testEnv's pressKey (board-test.ts:592)
+  const pressKey = (key: string) => {
+    void driver.press(key) // fire-and-forget the microtask promise
   }
-  const rawType = async (text: string) => {
-    await driver.type(text)
-  }
-  const rawCommand = async (commandId: string) => {
-    const keys = COMMAND_TO_KEYS[commandId]
-    if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
-    for (const key of keys) {
-      await driver.press(key)
-    }
-  }
-  const rawDispatch = async (commandId: string) => {
-    act(() => {
-      dispatchCommandById(commandId, driver.store.getState as () => BoardAppStore)
-      driver.store.setState((s) => s)
-    })
-    await driver.press("Backspace")
-  }
-
-  const chainFns = { press: rawPress, type: rawType, command: rawCommand, dispatch: rawDispatch }
 
   const app: TestApp = {
-    press(key: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawPress(key)])
+    press(key: string): TestApp {
+      pressKey(key)
+      return app
     },
 
-    type(text: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawType(text)])
+    type(text: string): TestApp {
+      for (const ch of text) pressKey(ch)
+      return app
     },
 
-    command(commandId: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawCommand(commandId)])
+    command(commandId: string): TestApp {
+      const keys = COMMAND_TO_KEYS[commandId]
+      if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
+      for (const key of keys) pressKey(key)
+      return app
     },
 
-    dispatch(commandId: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawDispatch(commandId)])
+    dispatch(commandId: string): TestApp {
+      act(() => {
+        dispatchCommandById(commandId, driver.store.getState as () => BoardAppStore)
+        driver.store.setState((s) => s)
+      })
+      void driver.press("Backspace") // flush render
+      return app
     },
 
-    async ready(): Promise<void> {
-      // No-op on headless — synchronous backend is always ready
-    },
-
-    async navigateTo(target: string): Promise<void> {
+    navigateTo(target: string): TestApp {
       for (let i = 0; i < 50; i++) {
         const loc = driver.locator(`#${target}[data-cursor]`)
-        if (loc.count() > 0) return
-        await driver.press("j")
+        if (loc.count() > 0) return app
+        pressKey("j")
       }
       throw new Error(`navigateTo: could not reach "${target}" in 50 steps`)
     },
@@ -738,63 +658,53 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     }
   }
 
-  // Raw async implementations for chain
-  const rawPress = async (key: string) => {
-    await ensureHandle()
+  // Termless press: synchronous via act() — same pattern as headless.
+  // handle.press() is async in create-app, but we bypass it by using
+  // the board driver's handleKey path directly inside act().
+  // The writable routes ANSI to the emulator, which processes synchronously.
+  const pressKey = (key: string) => {
+    if (!handle) throw new Error("press() called before handle is ready — termless init failed")
     setLogLevel("error")
     try {
-      await handle!.press(key)
+      void handle.press(key) // fire-and-forget — act() in handleKey handles flush
     } finally {
       setLogLevel(savedLogLevel)
     }
-    await new Promise((r) => setTimeout(r, TERMLESS_SETTLE_MS))
   }
-  const rawType = async (text: string) => {
-    for (const ch of text) await rawPress(ch)
-  }
-  const rawCommand = async (commandId: string) => {
-    const keys = COMMAND_TO_KEYS[commandId]
-    if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
-    for (const key of keys) await rawPress(key)
-  }
-  const rawDispatch = async (commandId: string) => {
-    await ensureHandle()
-    act(() => {
-      dispatchCommandById(commandId, handle!.store.getState as () => BoardAppStore)
-      handle!.store.setState((s) => s)
-    })
-    await rawPress("Backspace")
-  }
-
-  const chainFns = { press: rawPress, type: rawType, command: rawCommand, dispatch: rawDispatch }
 
   const app: TestApp = {
-    press(key: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawPress(key)])
+    press(key: string): TestApp {
+      pressKey(key)
+      return app
     },
 
-    type(text: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawType(text)])
+    type(text: string): TestApp {
+      for (const ch of text) pressKey(ch)
+      return app
     },
 
-    command(commandId: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawCommand(commandId)])
+    command(commandId: string): TestApp {
+      const keys = COMMAND_TO_KEYS[commandId]
+      if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
+      for (const key of keys) pressKey(key)
+      return app
     },
 
-    dispatch(commandId: string): TestAppChain {
-      return new TestAppChainImpl(chainFns, [() => rawDispatch(commandId)])
+    dispatch(commandId: string): TestApp {
+      if (!handle) throw new Error("dispatch() called before handle is ready")
+      act(() => {
+        dispatchCommandById(commandId, handle!.store.getState as () => BoardAppStore)
+        handle!.store.setState((s) => s)
+      })
+      void handle.press("Backspace")
+      return app
     },
 
-    async ready(): Promise<void> {
-      await ensureHandle()
-    },
-
-    async navigateTo(target: string): Promise<void> {
-      await ensureHandle()
+    navigateTo(target: string): TestApp {
       for (let i = 0; i < 50; i++) {
         const loc = getLocator(`#${target}[data-cursor]`)
-        if (loc.count() > 0) return
-        await app.press("j")
+        if (loc.count() > 0) return app
+        pressKey("j")
       }
       throw new Error(`navigateTo: could not reach "${target}" in 50 steps`)
     },

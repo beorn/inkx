@@ -263,61 +263,61 @@ describe("Escape Layering", () => {
   // text.exit_edit. Fix: find_close requires not(isInlineEditing).
   // ---------------------------------------------------------------------------
 
-  test("single Escape exits inline edit mode to normal mode", async () => {
-    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+  test("single Escape exits inline edit mode to normal mode", () => {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
-    await app.press("Enter") // enter edit mode
+    app.press("Enter") // enter edit mode
 
     // Single Escape should exit edit mode
-    await app.press("Escape")
+    app.press("Escape")
 
     // Verify we're back in normal mode by pressing j to navigate
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("single Escape after typing saves and exits to normal mode", async () => {
-    using app = await createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+  test("single Escape after typing saves and exits to normal mode", () => {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
-    await app.press("Enter")
-    await app.command("toggle_task_done")
-    await app.press("y")
+    app.press("Enter")
+    app.command("toggle_task_done")
+    app.press("y")
 
     // Single Escape should save and exit
-    await app.press("Escape")
+    app.press("Escape")
 
     // Content should be saved
     expect(app.repo.getNode("1a")?.content).toBe("1axy")
 
     // Should be in normal mode — j navigates
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("Escape exits edit mode even with local find results visible (regression)", async () => {
-    using app = await createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
+  test("Escape exits edit mode even with local find results visible (regression)", () => {
+    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
 
     // Do a local find (/) to set localSearch state
-    await app.command("local_find") // open find bar
+    app.command("local_find") // open find bar
 
     // Type a search term and confirm to keep results visible
-    await app.press("a")
-    await app.press("Enter") // confirm find — keeps matches, closes input
+    app.press("a")
+    app.press("Enter") // confirm find — keeps matches, closes input
 
     // Now enter edit mode on the card
-    await app.press("Enter") // edit card "alpha"
+    app.press("Enter") // edit card "alpha"
 
     // Type something
-    await app.press("!")
+    app.press("!")
 
     // Single Escape should exit edit mode (not close find results)
-    await app.press("Escape")
+    app.press("Escape")
 
     // Content should be saved
     expect(app.repo.getNode("alpha")?.content).toBe("alpha!")
 
     // Should be in normal mode — j navigates
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#beta[data-cursor]").toExist()
   })
 })

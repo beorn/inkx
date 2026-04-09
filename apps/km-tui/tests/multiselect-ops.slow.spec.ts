@@ -67,17 +67,17 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select multiple tasks, bulk status toggle, verify screen and persistence", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("task-1"), item("task-2"), item("task-3"), item("task-4"))),
     )
     setTaskStatus(app.repo, ["task-1", "task-2", "task-3", "task-4"])
 
     // Step 1: Select task-1 through task-3
-    await app.press("shift+ArrowDown") // anchor=task-1, cursor->task-2
-    await app.press("shift+ArrowDown") // range task-1..task-3, cursor->task-3
+    app.press("shift+ArrowDown") // anchor=task-1, cursor->task-2
+    app.press("shift+ArrowDown") // range task-1..task-3, cursor->task-3
 
     // Step 2: Toggle status (todo -> wip)
-    await app.command("cycle_task_status")
+    app.command("cycle_task_status")
 
     // Step 3: Verify persistence — first 3 tasks should be wip, task-4 unchanged
     expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("wip")
@@ -86,7 +86,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     expect(app.repo.getNode("task-4")?.item?.task?.status).toBe("todo")
 
     // Step 4: Toggle again (wip -> blocked)
-    await app.command("cycle_task_status")
+    app.command("cycle_task_status")
     expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("blocked")
     expect(app.repo.getNode("task-2")?.item?.task?.status).toBe("blocked")
     expect(app.repo.getNode("task-3")?.item?.task?.status).toBe("blocked")
@@ -94,22 +94,22 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select cards with children, delete requires confirmation", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("simple"), item("parent", item("child-a"), item("child-b")), item("after"))),
     )
 
     // Step 1: Select simple and parent (which has children)
-    await app.press("shift+ArrowDown") // anchor=simple, cursor->parent
+    app.press("shift+ArrowDown") // anchor=simple, cursor->parent
 
     // Step 2: Delete — should show confirmation because parent has children
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Step 3: Nothing deleted yet (confirmation dialog open)
     expect(app.repo.getChildren("col1").map((n) => n.id)).toContain("simple")
     expect(app.repo.getChildren("col1").map((n) => n.id)).toContain("parent")
 
     // Step 4: Confirm deletion
-    await app.press("Enter")
+    app.press("Enter")
 
     // Step 5: Both simple and parent (with children) should be deleted
     const remaining = app.repo.getChildren("col1").map((n) => n.id)
@@ -122,20 +122,20 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("select upward with Shift+ArrowUp, delete, verify correct cards removed", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Step 1: Navigate to D
-    await app.command("cursor_down")
-    await app.command("cursor_down")
-    await app.command("cursor_down") // -> D
+    app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down") // -> D
     app.expect("#D[data-cursor]").toExist()
 
     // Step 2: Select upward to cover B, C, D
-    await app.press("shift+ArrowUp") // anchor=D, cursor->C
-    await app.press("shift+ArrowUp") // range B..D, cursor->B
+    app.press("shift+ArrowUp") // anchor=D, cursor->C
+    app.press("shift+ArrowUp") // range B..D, cursor->B
 
     // Step 3: Delete
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Step 4: Verify screen
     app.expect("#A").toExist()
@@ -178,21 +178,21 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("bulk delete at end of column, cursor repositions to remaining cards", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("stay-1"), item("stay-2"), item("go-1"), item("go-2"), item("go-3"))),
     )
 
     // Step 1: Navigate to go-1
-    await app.command("cursor_down")
-    await app.command("cursor_down") // -> go-1
+    app.command("cursor_down")
+    app.command("cursor_down") // -> go-1
     app.expect("#go-1[data-cursor]").toExist()
 
     // Step 2: Select go-1, go-2, go-3
-    await app.press("shift+ArrowDown") // anchor=go-1, cursor->go-2
-    await app.press("shift+ArrowDown") // range go-1..go-3, cursor->go-3
+    app.press("shift+ArrowDown") // anchor=go-1, cursor->go-2
+    app.press("shift+ArrowDown") // range go-1..go-3, cursor->go-3
 
     // Step 3: Delete
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Step 4: Verify remaining cards
     const remaining = app.repo.getChildren("col1").map((n) => n.id)

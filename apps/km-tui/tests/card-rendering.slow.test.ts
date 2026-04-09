@@ -111,7 +111,7 @@ function expectDimBorder(board: BoardLike, nodeId: string) {
 
 describe("card border: structural cards (files)", () => {
   test("structural cards always have borders", () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item.file("1a", item("1a-child")), item.file("1b", item("1b-child")))),
       { cols: 80, rows: 24 },
     )
@@ -119,8 +119,8 @@ describe("card border: structural cards (files)", () => {
     expectCardBorder(app, "1b", 80)
   })
 
-  test("borders persist after cursor navigation", async () => {
-    using app = await createTestApp(
+  test("borders persist after cursor navigation", () => {
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -132,7 +132,7 @@ describe("card border: structural cards (files)", () => {
       ),
       { cols: 80, rows: 24 },
     )
-    await app.press("j")
+    app.press("j")
     expectCardBorder(app, "1a", 80)
     expectCardBorder(app, "1b", 80)
     expectCardBorder(app, "1c", 80)
@@ -172,11 +172,11 @@ describe("card border: virtual body cards", () => {
 // ─── Card Border: Scrolling ─────────────────────────────────────────────────
 
 describe("card border: scrolling", () => {
-  test("borders present after scrolling down (structural)", async () => {
+  test("borders present after scrolling down (structural)", () => {
     const cards = Array.from({ length: 15 }, (_, i) => item.file(`card-${i}`, item(`card-${i}-child`)))
-    using app = await createTestApp(item("board", item("col", ...cards)), { rows: 20 })
+    using app = createTestApp(item("board", item("col", ...cards)), { rows: 20 })
 
-    for (let i = 0; i < 10; i++) await app.press("j")
+    for (let i = 0; i < 10; i++) app.press("j")
 
     const box = app.screen.nodeBox("card-10")
     if (box) expectCardBorder(app, "card-10", 80)
@@ -184,10 +184,10 @@ describe("card border: scrolling", () => {
 
   test("borders present after scrolling back up (structural)", { timeout: 15_000 }, async () => {
     const cards = Array.from({ length: 20 }, (_, i) => item.file(`card-${i}`, item(`card-${i}-child`)))
-    using app = await createTestApp(item("board", item("col", ...cards)), { rows: 20 })
+    using app = createTestApp(item("board", item("col", ...cards)), { rows: 20 })
 
-    for (let i = 0; i < 15; i++) await app.press("j")
-    for (let i = 0; i < 15; i++) await app.press("k")
+    for (let i = 0; i < 15; i++) app.press("j")
+    for (let i = 0; i < 15; i++) app.press("k")
 
     expectCardBorder(app, "card-0", 80)
     expectCardBorder(app, "card-1", 80)
@@ -198,19 +198,19 @@ describe("card border: scrolling", () => {
 
 describe("card border: terminal widths", () => {
   test.each([30, 200])("single column borders intact at %d cols", (cols) => {
-    using app = await createTestApp(item("board", item("col1", item.file("1a", item("1a-child")))), {
+    using app = createTestApp(item("board", item("col1", item.file("1a", item("1a-child")))), {
       cols,
     })
     expectCardBorder(app, "1a", cols)
   })
 
-  test("narrow terminal with two columns (80 cols)", async () => {
-    using app = await createTestApp(
+  test("narrow terminal with two columns (80 cols)", () => {
+    using app = createTestApp(
       item("board", item("col1", item.file("1a", item("1a-child"))), item("col2", item.file("2a", item("2a-child")))),
       { cols: 80 },
     )
     expectCardBorder(app, "1a", 80)
-    await app.press("l")
+    app.press("l")
     expectCardBorder(app, "2a", 80)
   })
 })
@@ -220,7 +220,7 @@ describe("card border: terminal widths", () => {
 describe("card border: overflow indicator", () => {
   test("card with overflow still has left/right borders", () => {
     const children = Array.from({ length: 10 }, (_, i) => item(`c${i}`))
-    using app = await createTestApp(item("board", item("col", item.file("parent", ...children))), {
+    using app = createTestApp(item("board", item("col", item.file("parent", ...children))), {
       cols: 80,
       rows: 30,
     })
@@ -245,7 +245,7 @@ describe("card border: overflow indicator", () => {
 describe("card border: multi-column", () => {
   test("borders in all columns of 3-column layout (structural)", () => {
     const cols = 120
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item.file("1a", item("1a-c")), item.file("1b", item("1b-c"))),
@@ -260,9 +260,9 @@ describe("card border: multi-column", () => {
     }
   })
 
-  test("borders persist after navigating between columns", async () => {
+  test("borders persist after navigating between columns", () => {
     const cols = 120
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item.file("1a", item("1a-c"))),
@@ -272,12 +272,12 @@ describe("card border: multi-column", () => {
       { cols },
     )
 
-    await app.press("l")
+    app.press("l")
     expectCardBorder(app, "2a", cols)
-    await app.press("l")
+    app.press("l")
     expectCardBorder(app, "3a", cols)
-    await app.press("h")
-    await app.press("h")
+    app.press("h")
+    app.press("h")
     expectCardBorder(app, "1a", cols)
   })
 })
@@ -285,9 +285,9 @@ describe("card border: multi-column", () => {
 // ─── Card Border: Edge Cases ─────────────────────────────────────────────────
 
 describe("card border: edge cases", () => {
-  test("many columns with narrow cards", async () => {
+  test("many columns with narrow cards", () => {
     const cols = 120
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item.file("1a", item("1a-c"))),
@@ -299,13 +299,13 @@ describe("card border: edge cases", () => {
       { cols },
     )
     expectCardBorder(app, "1a", cols)
-    await app.press("l")
+    app.press("l")
     expectCardBorder(app, "2a", cols)
   })
 
-  test("card adjacent to collapsed column", async () => {
+  test("card adjacent to collapsed column", () => {
     const cols = 120
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1 km.collapse:: true", item.file("1a", item("1a-c"))),
@@ -313,12 +313,12 @@ describe("card border: edge cases", () => {
       ),
       { cols },
     )
-    await app.press("l")
+    app.press("l")
     expectCardBorder(app, "2a", cols)
   })
 
   test("full border verification: corners and all sides (structural card)", () => {
-    using app = await createTestApp(item("board", item("col", item.file("task1", item("task1-c")))), {
+    using app = createTestApp(item("board", item("col", item.file("task1", item("task1-c")))), {
       cols: 80,
       rows: 24,
     })
@@ -391,9 +391,9 @@ describe("layout stability invariant: body blocks", () => {
     return ys
   }
 
-  test("content Y positions stable: pure body blocks", async () => {
+  test("content Y positions stable: pure body blocks", () => {
     const ids = ["a", "b", "c", "d"]
-    using app = await createTestApp(item("board", item("col", item("a"), item("b"), item("c"), item("d"))), {
+    using app = createTestApp(item("board", item("col", item("a"), item("b"), item("c"), item("d"))), {
       cols: 80,
       rows: 40,
     })
@@ -402,19 +402,19 @@ describe("layout stability invariant: body blocks", () => {
 
     // Navigate through all body blocks and back
     for (let i = 0; i < 3; i++) {
-      await app.press("j")
+      app.press("j")
       assertStableYs(app, ids, initialYs, `after ${i + 1}x j`)
     }
     for (let i = 0; i < 3; i++) {
-      await app.press("k")
+      app.press("k")
       assertStableYs(app, ids, initialYs, `after ${i + 1}x k`)
     }
   })
 
-  test("content Y positions stable: body blocks followed by structural", async () => {
+  test("content Y positions stable: body blocks followed by structural", () => {
     // Body blocks come BEFORE structural (extractBody puts body first)
     const ids = ["a", "b", "c", "s1"]
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("a"), item("b"), item("c"), item.file("sec", item("s1")))),
       { cols: 80, rows: 40 },
     )
@@ -422,21 +422,21 @@ describe("layout stability invariant: body blocks", () => {
     const initialYs = getYs(app, ids)
 
     // Navigate through body blocks into structural
-    await app.press("j") // cursor on b
+    app.press("j") // cursor on b
     assertStableYs(app, ids, initialYs, "cursor on b")
-    await app.press("j") // cursor on c
+    app.press("j") // cursor on c
     assertStableYs(app, ids, initialYs, "cursor on c")
-    await app.press("j") // cursor on sec
+    app.press("j") // cursor on sec
     assertStableYs(app, ids, initialYs, "cursor on sec")
-    await app.press("k")
-    await app.press("k")
-    await app.press("k") // back to a
+    app.press("k")
+    app.press("k")
+    app.press("k") // back to a
     assertStableYs(app, ids, initialYs, "back on a")
   })
 
-  test("total column height is constant across cursor moves", async () => {
+  test("total column height is constant across cursor moves", () => {
     const ids = ["a", "b", "c", "d", "e"]
-    using app = await createTestApp(item("board", item("col", item("a"), item("b"), item("c"), item("d"), item("e"))), {
+    using app = createTestApp(item("board", item("col", item("a"), item("b"), item("c"), item("d"), item("e"))), {
       cols: 80,
       rows: 50,
     })
@@ -453,18 +453,18 @@ describe("layout stability invariant: body blocks", () => {
     expect(initialBottom, "should have visible content").toBeGreaterThan(0)
 
     for (let i = 0; i < 4; i++) {
-      await app.press("j")
+      app.press("j")
       expect(getLastBoxBottom(), `column bottom should be constant at cursor ${i + 1}`).toBe(initialBottom)
     }
     for (let i = 0; i < 4; i++) {
-      await app.press("k")
+      app.press("k")
       expect(getLastBoxBottom(), `column bottom should be constant going back ${3 - i}`).toBe(initialBottom)
     }
   })
 
-  test("total height stable: body blocks then structural", async () => {
+  test("total height stable: body blocks then structural", () => {
     // Realistic: body content (description, HR) followed by sections
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("b1"), item("b2"), item("b3"), item.file("sec", item("s1")))),
       { cols: 80, rows: 50 },
     )
@@ -481,18 +481,18 @@ describe("layout stability invariant: body blocks", () => {
     expect(initialBottom, "should have visible content").toBeGreaterThan(0)
 
     for (let i = 0; i < 3; i++) {
-      await app.press("j")
+      app.press("j")
       expect(getLastBoxBottom(), `height stable at cursor ${i + 1}`).toBe(initialBottom)
     }
     for (let i = 0; i < 3; i++) {
-      await app.press("k")
+      app.press("k")
       expect(getLastBoxBottom(), `height stable going back ${2 - i}`).toBe(initialBottom)
     }
   })
 
-  test("content Y positions stable: body blocks with HR", async () => {
+  test("content Y positions stable: body blocks with HR", () => {
     const ids = ["a", "b", "c"]
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.hr("hr2"), item("c"))),
       { cols: 80, rows: 40 },
     )
@@ -501,40 +501,40 @@ describe("layout stability invariant: body blocks", () => {
 
     // Navigate through all cards including HRs
     for (let i = 0; i < 4; i++) {
-      await app.press("j")
+      app.press("j")
       assertStableYs(app, ids, initialYs, `after ${i + 1}x j`)
     }
     for (let i = 0; i < 4; i++) {
-      await app.press("k")
+      app.press("k")
       assertStableYs(app, ids, initialYs, `after ${i + 1}x k`)
     }
   })
 
-  test("content Y positions stable: body blocks with HR (pure body column)", async () => {
+  test("content Y positions stable: body blocks with HR (pure body column)", () => {
     // Pure virtual column — all body blocks including HR
     const ids = ["a", "b"]
-    using app = await createTestApp(item("board", item("col", item("a"), item.hr("hr1"), item("b"))), {
+    using app = createTestApp(item("board", item("col", item("a"), item.hr("hr1"), item("b"))), {
       cols: 80,
       rows: 40,
     })
 
     const initialYs = getYs(app, ids)
 
-    await app.press("j") // cursor on hr1
+    app.press("j") // cursor on hr1
     assertStableYs(app, ids, initialYs, "cursor on hr1")
-    await app.press("j") // cursor on b
+    app.press("j") // cursor on b
     assertStableYs(app, ids, initialYs, "cursor on b")
-    await app.press("k")
-    await app.press("k") // back to a
+    app.press("k")
+    app.press("k") // back to a
     assertStableYs(app, ids, initialYs, "back on a")
   })
 
-  test("content Y positions stable: body blocks before structural", async () => {
+  test("content Y positions stable: body blocks before structural", () => {
     // extractBody: body nodes BEFORE the first oi become body cards.
     // Body nodes AFTER the first oi are treated as structural.
     // This test verifies body blocks + structural in the same column.
     const ids = ["a", "b", "s1"]
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.file("sec", item("s1")))),
       { cols: 80, rows: 40 },
     )
@@ -542,15 +542,15 @@ describe("layout stability invariant: body blocks", () => {
     const initialYs = getYs(app, ids)
 
     // Navigate through body blocks and into structural
-    await app.press("j") // cursor on hr1
+    app.press("j") // cursor on hr1
     assertStableYs(app, ids, initialYs, "cursor on hr1")
-    await app.press("j") // cursor on b
+    app.press("j") // cursor on b
     assertStableYs(app, ids, initialYs, "cursor on b")
-    await app.press("j") // cursor on sec
+    app.press("j") // cursor on sec
     assertStableYs(app, ids, initialYs, "cursor on sec")
-    await app.press("k")
-    await app.press("k")
-    await app.press("k") // back to a
+    app.press("k")
+    app.press("k")
+    app.press("k") // back to a
     assertStableYs(app, ids, initialYs, "back on a")
   })
 })
@@ -560,7 +560,7 @@ describe("layout stability invariant: body blocks", () => {
 describe("card-overflow-dots", () => {
   test("card with overflow shows border indicator with count", () => {
     // Create a card with a heading that has more children than maxContentLines (default 3)
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("heading1", item("child1"), item("child2"), item("child3"), item("child4"), item("child5"))),
@@ -577,7 +577,7 @@ describe("card-overflow-dots", () => {
 
   test("card without overflow does not show overflow border", () => {
     // Create a card with few enough children to not overflow
-    using app = await createTestApp(item("board", item("col1", item("heading1", item("child1"), item("child2")))), {
+    using app = createTestApp(item("board", item("col1", item("heading1", item("child1"), item("child2")))), {
       rows: 30,
       cols: 80,
       viewMode: "cards",
@@ -630,7 +630,7 @@ describe("card-overflow-dots", () => {
 
   test("columns view does not show overflow border", () => {
     // In columns view (oneliner variant), no border overflow indicator
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -673,10 +673,10 @@ describe("card-overflow-dots", () => {
 // ─── Card Child Line Truncation ──────────────────────────────────────────────
 
 describe("card child line truncation", () => {
-  test("long child items render on exactly one line in cards view", async () => {
+  test("long child items render on exactly one line in cards view", () => {
     // Use item() with a simple ID but make the content long via the node
     // item() uses content as ID, so we need a simple ID
-    using app = await createTestApp(item("board", item("col1", item("card1", item("long-child")))), {
+    using app = createTestApp(item("board", item("col1", item("card1", item("long-child")))), {
       cols: 40,
       rows: 20,
     })
@@ -687,8 +687,8 @@ describe("card child line truncation", () => {
     })
 
     // Re-render to pick up the content change
-    await app.press("j")
-    await app.press("k")
+    app.press("j")
+    app.press("k")
 
     // The child node should exist
     const childNode = app.q("#long-child")
@@ -699,8 +699,8 @@ describe("card child line truncation", () => {
     expect(rect!.height).toBe(1)
   })
 
-  test("card root (depth 0) remains multiline while children truncate", async () => {
-    using app = await createTestApp(item("board", item("col1", item("card1", item("child1"), item("child2")))), {
+  test("card root (depth 0) remains multiline while children truncate", () => {
+    using app = createTestApp(item("board", item("col1", item("card1", item("child1"), item("child2")))), {
       cols: 40,
       rows: 20,
     })
@@ -714,8 +714,8 @@ describe("card child line truncation", () => {
     })
 
     // Re-render
-    await app.press("j")
-    await app.press("k")
+    app.press("j")
+    app.press("k")
 
     // Both children should exist
     app.expect("#child1").toExist()
@@ -742,7 +742,7 @@ describe("card border: date badge overflow", () => {
       taskNodes[0].due_at = "2026-09-30T00:00:00Z"
     }
 
-    using app = await createTestApp(item("board", item("col", taskNodes)), { cols: 40, rows: 12 })
+    using app = createTestApp(item("board", item("col", taskNodes)), { cols: 40, rows: 12 })
 
     // Find the task's box
     const taskId = taskNodes[0]!.id
@@ -771,7 +771,7 @@ describe("card border: date badge overflow", () => {
         taskNodes[0].due_at = "2026-09-30T00:00:00Z"
       }
 
-      using app = await createTestApp(item("board", item("col", taskNodes)), { cols: termWidth, rows: 12 })
+      using app = createTestApp(item("board", item("col", taskNodes)), { cols: termWidth, rows: 12 })
 
       const taskId = taskNodes[0]!.id
       const box = app.screen.nodeBox(taskId)
@@ -799,7 +799,7 @@ describe("card overflow: title wrap lines", () => {
     // With maxContentLines=3 and 5 children: hidden = (5-3) + (2-1 title lines) = 3
     const longTitle =
       "This is a very long card title that should definitely wrap to two lines in the card view because it exceeds width"
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item(longTitle, item("child1"), item("child2"), item("child3"), item("child4"), item("child5"))),
@@ -825,7 +825,7 @@ describe("card overflow: title wrap lines", () => {
 describe("card body list markers (not italics)", () => {
   test("* at line start is not rendered as italic", () => {
     // Create a card with a paragraph body that has list-like content
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("task-with-notes", item.p("* first item\n* second item"))),
@@ -885,7 +885,7 @@ describe("col-header-last-char", () => {
   })
 
   test("single column header shows full name", () => {
-    using app = await createTestApp(item.root("board", item("FAMILY SCHEDULE", item("task-a"))), {
+    using app = createTestApp(item.root("board", item("FAMILY SCHEDULE", item("task-a"))), {
       cols: 80,
       rows: 20,
     })
@@ -895,7 +895,7 @@ describe("col-header-last-char", () => {
   })
 
   test("two-column board shows full column names", () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root("board", item("FAMILY SCHEDULE", item("task-a")), item("PORTFOLIO", item("task-b"))),
       { cols: 80, rows: 20 },
     )
@@ -908,7 +908,7 @@ describe("col-header-last-char", () => {
   test.each(["SPRINT", "BACKLOG", "SCHEDULE", "PORTFOLIO", "PRODUCTIVITY"])(
     "column header last char not eaten by off-by-one: %s",
     (name) => {
-      using app = await createTestApp(item.root("board", item(name, item("task"))), { cols: 80, rows: 15 })
+      using app = createTestApp(item.root("board", item(name, item("task"))), { cols: 80, rows: 15 })
       const text = app.text
       expect(text, `Column "${name}" should be fully visible`).toContain(name)
     },
@@ -939,7 +939,7 @@ describe("col-header-last-char", () => {
     // the PUA folder icon took 2 cells but was measured as 1. The layout engine
     // allocated 1 extra cell to the name, causing the last char to be clipped
     // at the column boundary.
-    using app = await createTestApp(item.root("board", item("FAMILY SPRINT", item("task-a")), item("col2", item("task-b"))), {
+    using app = createTestApp(item.root("board", item("FAMILY SPRINT", item("task-a")), item("col2", item("task-b"))), {
       cols: 80,
       rows: 20,
     })
@@ -953,7 +953,7 @@ describe("col-header-last-char", () => {
     // Total icon area: 2 (PUA icon) + 1 (space) + display name.
     // The name "FAMILY SPRINT" = 2 (emoji) + 1 (space) + 13 (name) = 16.
     // Total header: 2 + 1 + 16 = 19 cells. Must fit in column width.
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root("board", item("\u{1F4C5} FAMILY SPRINT", item("task-a")), item("col2", item("task-b"))),
       { cols: 80, rows: 20 },
     )
@@ -1073,10 +1073,10 @@ describe("col-header-dup: column header style transition", () => {
     }
   })
 
-  test("card↔column transitions with incremental check (testEnv)", async () => {
+  test("card↔column transitions with incremental check (testEnv)", () => {
     // testEnv enables checkIncremental by default, which compares
     // incremental buffer against fresh render after every press()
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
@@ -1085,25 +1085,25 @@ describe("col-header-dup: column header style transition", () => {
     )
 
     // card → column (bg transition: undefined → yellow)
-    await app.press("k")
+    app.press("k")
 
     // column → card (bg transition: yellow → undefined)
-    await app.press("j")
+    app.press("j")
 
     // card → card (no bg transition)
-    await app.press("j")
+    app.press("j")
 
     // card → next column via right
-    await app.press("l")
+    app.press("l")
 
     // column header of beta-col
-    await app.press("k")
+    app.press("k")
 
     // back to card
-    await app.press("j")
+    app.press("j")
 
     // back to alpha-col
-    await app.press("h")
+    app.press("h")
 
     // All incremental checks passed — no buffer mismatches
     const text = stripAnsi(app.text)
@@ -1137,7 +1137,7 @@ describe("emoji content garble reproduction", () => {
     delete process.env.SILVERY_STRICT
   })
 
-  test("cards with flag emoji + navigation", async () => {
+  test("cards with flag emoji + navigation", () => {
     const nodes = item(
       "board",
       item(
@@ -1155,15 +1155,15 @@ describe("emoji content garble reproduction", () => {
       ),
       item("Regular Column", item("Plain task A"), item("Plain task B")),
     )
-    using app = await createTestApp(nodes, { cols: 120, rows: 30 })
+    using app = createTestApp(nodes, { cols: 120, rows: 30 })
 
     // Navigate through emoji columns
     for (const key of ["l", "l", "j", "j", "h", "j", "k", "l", "h", "h"]) {
-      await app.press(key)
+      app.press(key)
     }
   })
 
-  test("mixed emoji and ASCII — navigation doesn't garble", async () => {
+  test("mixed emoji and ASCII — navigation doesn't garble", () => {
     const nodes = item(
       "board",
       item(
@@ -1177,15 +1177,15 @@ describe("emoji content garble reproduction", () => {
       item("Harmon from Modo called", item("Follow up on proposal"), item("Send contract \u{1F4C4}")),
       item("Calendar", item("10:00 Standup"), item("14:00 1:1 with @bj\u00F8rn-st"), item("15:30 Demo prep")),
     )
-    using app = await createTestApp(nodes, { cols: 100, rows: 25 })
+    using app = createTestApp(nodes, { cols: 100, rows: 25 })
 
     // Navigate — SILVERY_STRICT checks buffer + output on each press
     for (const key of ["l", "l", "j", "j", "j", "h", "h", "k", "k", "l", "j"]) {
-      await app.press(key)
+      app.press(key)
     }
   })
 
-  test("wide chars with extensive navigation", async () => {
+  test("wide chars with extensive navigation", () => {
     const nodes = item(
       "board",
       item(
@@ -1204,12 +1204,12 @@ describe("emoji content garble reproduction", () => {
         item("Read 50 books \u{1F4DA}"),
       ),
     )
-    using app = await createTestApp(nodes, { cols: 80, rows: 20 })
+    using app = createTestApp(nodes, { cols: 80, rows: 20 })
 
     // Navigate extensively — SILVERY_STRICT catches any mismatch
     const sequence = ["j", "j", "j", "l", "j", "j", "h", "k", "k", "l", "l", "j", "j", "j", "k", "h", "j", "j"]
     for (const key of sequence) {
-      await app.press(key)
+      app.press(key)
     }
   })
 })

@@ -351,7 +351,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load — Launch Academy view should show "INBOX"
-    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
+    expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
     saveSnapshot(term, "zoom-garble-before")
@@ -408,7 +408,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load
-    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
+    expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
 
@@ -444,7 +444,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load
-    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
+    expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
 
@@ -487,7 +487,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
         cwd: KM_CWD,
         env: { SILVERY_STRICT: "1" },
       })
-      await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
+      expect(term.screen).toContainText("INBOX", { timeout: 20000 })
       await term.waitForStable(2000, 25000)
 
       // Press Z to zoom outwards

@@ -18,8 +18,8 @@ import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 
 describe("P2: TABS view content bleed from inactive tabs", () => {
-  test("breadcrumb updates cleanly when switching tabs", async () => {
-    using app = await createTestApp(
+  test("breadcrumb updates cleanly when switching tabs", () => {
+    using app = createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha task one"), item("Alpha task two")),
@@ -30,8 +30,8 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     )
 
     // Switch to TABS view
-    await app.command("cycle_view_mode")
-    await app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
 
     // Alpha tab should be active, breadcrumb should show Alpha
     let screen = app.text
@@ -44,22 +44,22 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     expect(line0).not.toContain("Gamma")
 
     // Switch to Beta tab
-    await app.command("cursor_right")
+    app.command("cursor_right")
     screen = app.text
     const line0After = screen.split("\n")[0]!
     // Breadcrumb should now show "Beta" path, NOT fragments from "Alpha"
     expect(line0After, `Top bar after switching to Beta: "${line0After}"`).not.toContain("Alpha")
 
     // Switch to Gamma tab
-    await app.command("cursor_right")
+    app.command("cursor_right")
     screen = app.text
     const line0Gamma = screen.split("\n")[0]!
     expect(line0Gamma, `Top bar after switching to Gamma: "${line0Gamma}"`).not.toContain("Alpha")
     expect(line0Gamma, `Top bar after switching to Gamma: "${line0Gamma}"`).not.toContain("Beta")
   })
 
-  test("active tab content has no fragments from other tabs", async () => {
-    using app = await createTestApp(
+  test("active tab content has no fragments from other tabs", () => {
+    using app = createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha task one"), item("Alpha task two")),
@@ -69,8 +69,8 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { cols: 120, rows: 25 },
     )
 
-    await app.command("cycle_view_mode")
-    await app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
 
     const screen = app.text
     expect(screen).toContain("Alpha task one")
@@ -86,7 +86,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
   })
 
   test("switching from long to short content clears completely", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -100,15 +100,15 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { cols: 120, rows: 25 },
     )
 
-    await app.command("cycle_view_mode")
-    await app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
 
     // First tab (TaskNotes) should show its content
     let screen = app.text
     expect(screen).toContain("HDHP enrollment")
 
     // Switch to ref tab (much shorter content)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     screen = app.text
     expect(screen).toContain("Reference doc")
 
@@ -119,19 +119,19 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     expect(screen).not.toContain("HR department")
   })
 
-  test("switching tabs cleans content area completely", async () => {
-    using app = await createTestApp(
+  test("switching tabs cleans content area completely", () => {
+    using app = createTestApp(
       item("board", item("First", item("First-unique-content-AAA")), item("Second", item("Second-unique-content-BBB"))),
       { cols: 120, rows: 25 },
     )
 
-    await app.command("cycle_view_mode")
-    await app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
 
     let screen = app.text
     expect(screen).toContain("First-unique-content-AAA")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     screen = app.text
     expect(screen).toContain("Second-unique-content-BBB")
 
@@ -143,8 +143,8 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     }
   })
 
-  test("rapid back-and-forth tab switching has no bleed", async () => {
-    using app = await createTestApp(
+  test("rapid back-and-forth tab switching has no bleed", () => {
+    using app = createTestApp(
       item(
         "board",
         item("Alpha", item("Alpha-unique-111")),
@@ -154,15 +154,15 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { cols: 120, rows: 25 },
     )
 
-    await app.command("cycle_view_mode")
-    await app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
+    app.command("cycle_view_mode")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_left")
-    await app.command("cursor_left")
-    await app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_right")
 
     const screen = app.text
     expect(screen).toContain("Beta-unique-222")

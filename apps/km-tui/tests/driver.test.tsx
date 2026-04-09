@@ -245,7 +245,7 @@ describe("withKeybindings", () => {
     })
 
     // Press j should trigger cursor_down
-    await app.press("j")
+    app.press("j")
 
     expect(dispatchedActions).toHaveLength(1)
     expect(dispatchedActions[0]).toEqual({ type: "CURSOR_MOVE", dir: "down" })
@@ -274,7 +274,7 @@ describe("withKeybindings", () => {
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
-    await app.press("ArrowDown")
+    app.press("ArrowDown")
 
     expect(dispatchedActions).toHaveLength(1)
     expect(dispatchedActions[0]).toEqual({ type: "CURSOR_MOVE", dir: "down" })
@@ -303,7 +303,7 @@ describe("withKeybindings", () => {
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
-    await app.press("k")
+    app.press("k")
 
     expect(dispatchedActions).toHaveLength(1)
     expect(dispatchedActions[0]).toEqual({ type: "CURSOR_MOVE", dir: "up" })
@@ -333,7 +333,7 @@ describe("withKeybindings", () => {
     })
 
     // 'x' is not bound to any command
-    await app.press("x")
+    app.press("x")
 
     // No command should be dispatched
     expect(dispatchedActions).toHaveLength(0)
@@ -394,7 +394,7 @@ describe("composed app driver", () => {
     expect(app.cmd.right).toBeDefined()
 
     // Verify keybinding triggers command
-    await app.press("j")
+    app.press("j")
     expect(actions).toContainEqual({ type: "CURSOR_MOVE", dir: "down" })
 
     // Verify direct command invocation

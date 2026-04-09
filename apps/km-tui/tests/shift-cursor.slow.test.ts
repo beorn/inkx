@@ -12,75 +12,75 @@ import { item, testEnv } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
-  test("opt+l shifts column right — cursor stays on same column header", async () => {
-    using app = await createTestApp(item.multiColBoard())
+  test("opt+l shifts column right — cursor stays on same column header", () => {
+    using app = createTestApp(item.multiColBoard())
     // Navigate to col1 header
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    await app.press("opt+l")
+    app.press("opt+l")
 
     // Cursor should still be on col1 (now at position 1)
     app.expect("#col1[data-cursor]").toExist()
 
     // Navigate down into the column — should enter col1's cards, not col2's
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1a[data-cursor]").toExist()
   })
 
-  test("opt+h shifts column left — cursor stays on same column header", async () => {
-    using app = await createTestApp(item.multiColBoard())
+  test("opt+h shifts column left — cursor stays on same column header", () => {
+    using app = createTestApp(item.multiColBoard())
     // Navigate to col2 header
-    await app.command("cursor_right")
-    await app.command("cursor_up")
+    app.command("cursor_right")
+    app.command("cursor_up")
     app.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    await app.press("opt+h")
+    app.press("opt+h")
 
     // Cursor should still be on col2 (now at position 0)
     app.expect("#col2[data-cursor]").toExist()
 
     // Navigate down into the column — should enter col2's cards
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#2a[data-cursor]").toExist()
   })
 
-  test("opt+l shifts column right — pressing l from shifted column moves to next column", async () => {
-    using app = await createTestApp(item.multiColBoard())
+  test("opt+l shifts column right — pressing l from shifted column moves to next column", () => {
+    using app = createTestApp(item.multiColBoard())
     // Navigate to col1 header
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right (col1 is now at position 1, between col2 and col3)
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
 
     // Press l to move to next column — should go to col3 (which is now at position 2)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#col3[data-cursor]").toExist()
   })
 
-  test("opt+h shifts column left — pressing h from shifted column moves to previous column", async () => {
-    using app = await createTestApp(item.multiColBoard())
+  test("opt+h shifts column left — pressing h from shifted column moves to previous column", () => {
+    using app = createTestApp(item.multiColBoard())
     // Navigate to col3 header
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_up")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_up")
     app.expect("#col3[data-cursor]").toExist()
 
     // Shift col3 left (col3 is now at position 1, between col1 and col2)
-    await app.press("opt+h")
+    app.press("opt+h")
     app.expect("#col3[data-cursor]").toExist()
 
     // Press h to move to previous column — should go to col1 (at position 0)
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#col1[data-cursor]").toExist()
   })
 
-  test("shift column right then down enters correct column's cards", async () => {
-    using app = await createTestApp(
+  test("shift column right then down enters correct column's cards", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -89,50 +89,50 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       ),
     )
     // Navigate to col1 header
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
 
     // Navigate down — should enter col1's first card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1a[data-cursor]").toExist()
 
     // Navigate further down — should see col1's second card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("shift column left then down enters correct column's cards", async () => {
-    using app = await createTestApp(
+  test("shift column left then down enters correct column's cards", () => {
+    using app = createTestApp(
       item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
-    await app.command("cursor_right")
-    await app.command("cursor_up")
+    app.command("cursor_right")
+    app.command("cursor_up")
     app.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    await app.press("opt+h")
+    app.press("opt+h")
     app.expect("#col2[data-cursor]").toExist()
 
     // Navigate down — should enter col2's first card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#2a[data-cursor]").toExist()
 
     // Navigate further down — should see col2's second card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#2b[data-cursor]").toExist()
   })
 
-  test("opt+l visually reorders columns — all 3 columns visible", async () => {
+  test("opt+l visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
     // Navigate to col1 header and shift right
-    await app.command("cursor_up")
-    await app.press("opt+l")
+    app.command("cursor_up")
+    app.press("opt+l")
 
     // After shift: visual order should be col2, col1, col3
     const col1Box = app.q("#col1").boundingBox()
@@ -145,13 +145,13 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(col1Box!.x).toBeLessThan(col3Box!.x)
   })
 
-  test("opt+h visually reorders columns — all 3 columns visible", async () => {
+  test("opt+h visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
     // Navigate to col2 header and shift left
-    await app.command("cursor_right")
-    await app.command("cursor_up")
-    await app.press("opt+h")
+    app.command("cursor_right")
+    app.command("cursor_up")
+    app.press("opt+h")
 
     // After shift: visual order should be col2, col1, col3
     const col1Box = app.q("#col1").boundingBox()
@@ -164,9 +164,9 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(col1Box!.x).toBeLessThan(col3Box!.x)
   })
 
-  test("multiple shifts preserve cursor and visual order", async () => {
+  test("multiple shifts preserve cursor and visual order", () => {
     // Use wider terminal for 4 columns
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a")),
@@ -177,15 +177,15 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       { cols: 160, rows: 24 },
     )
     // Navigate to col1 header
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right three times (col1 moves: pos 0 -> 1 -> 2 -> 3)
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
 
     // col1 should now be at the rightmost position
@@ -203,39 +203,39 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(col4Box!.x).toBeLessThan(col1Box!.x)
 
     // Navigate down — should enter col1's card
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1a[data-cursor]").toExist()
   })
 
-  test("shift right then left returns column to original position", async () => {
-    using app = await createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
-    await app.command("cursor_up")
+  test("shift right then left returns column to original position", () => {
+    using app = createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     const c1Before = app.q("#col1").boundingBox()!.x
     const c2Before = app.q("#col2").boundingBox()!.x
 
     // Shift right (col1 moves to position 1)
-    await app.press("opt+l")
+    app.press("opt+l")
     app.expect("#col1[data-cursor]").toExist()
     expect(app.q("#col1").boundingBox()!.x, "col1 moved right").toBeGreaterThan(c1Before)
 
     // Shift left (col1 returns to position 0)
-    await app.press("opt+h")
+    app.press("opt+h")
     app.expect("#col1[data-cursor]").toExist()
     expect(app.q("#col1").boundingBox()!.x, "col1 returned to original").toBe(c1Before)
     expect(app.q("#col2").boundingBox()!.x, "col2 returned to original").toBe(c2Before)
   })
 
-  test("shift right twice then left once — column ends in middle", async () => {
-    using app = await createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
-    await app.command("cursor_up")
+  test("shift right twice then left once — column ends in middle", () => {
+    using app = createTestApp(item.multiColBoard(), { cols: 160, rows: 24 })
+    app.command("cursor_up")
 
-    await app.press("opt+l") // col1: pos 0 → 1
-    await app.press("opt+l") // col1: pos 1 → 2
+    app.press("opt+l") // col1: pos 0 → 1
+    app.press("opt+l") // col1: pos 1 → 2
     app.expect("#col1[data-cursor]").toExist()
 
-    await app.press("opt+h") // col1: pos 2 → 1
+    app.press("opt+h") // col1: pos 2 → 1
     app.expect("#col1[data-cursor]").toExist()
 
     // Order should be: col2, col1, col3
@@ -246,16 +246,16 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(c1x).toBeLessThan(c3x)
   })
 
-  test("shift column with narrow viewport scrolls cursor into view", async () => {
+  test("shift column with narrow viewport scrolls cursor into view", () => {
     // 80-wide viewport with 3 columns: maxCols = floor(80/35) = 2
     // So only 2 columns visible at once — scroll is active
-    using app = await createTestApp(item.multiColBoard(), { cols: 80, rows: 24 })
+    using app = createTestApp(item.multiColBoard(), { cols: 80, rows: 24 })
     // Navigate to col1 header
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    await app.press("opt+l")
+    app.press("opt+l")
 
     // Cursor should still be on col1 — and col1 should be visible (in viewport)
     app.expect("#col1[data-cursor]").toExist()
@@ -292,8 +292,8 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     expect(status!.message).toContain("2")
   })
 
-  test("batch toggle after single J affects both A and B", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+  test("batch toggle after single J affects both A and B", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Make A and B proper tasks
     app.repo.updateNode("A", { item: { task: { status: "todo", marker: "[ ]" } } })
@@ -301,10 +301,10 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     app.repo.updateNode("C", { item: { task: { status: "todo", marker: "[ ]" } } })
 
     // Re-render to pick up node type changes
-    await app.press("shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
+    app.press("shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
 
     // Toggle status on selection
-    await app.command("toggle_task_done")
+    app.command("toggle_task_done")
 
     // Both A and B should have their status toggled (not just B)
     const statusA = app.repo.getNode("A")?.item?.task?.status
@@ -318,14 +318,14 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     expect(statusC).toBe("todo")
   })
 
-  test("batch delete after single J removes both A and B", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+  test("batch delete after single J removes both A and B", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor on A, press J to select range A→B
-    await app.press("shift+ArrowDown")
+    app.press("shift+ArrowDown")
 
     // Delete the selection
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Both A and B should be deleted, only C remains
     const children = app.repo.getChildren("col1").map((n) => n.id)

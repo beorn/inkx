@@ -71,20 +71,20 @@ function asanaLikeBoard() {
 }
 
 describe("Navigation garble at wide terminal", () => {
-  test("pressing j then l at 220x50 does not garble first column", async () => {
-    using app = await createTestApp(asanaLikeBoard(), { cols: 220, rows: 50 })
+  test("pressing j then l at 220x50 does not garble first column", () => {
+    using app = createTestApp(asanaLikeBoard(), { cols: 220, rows: 50 })
 
     // Initial state — first card should be visible
     const initialScreen = app.text
     expect(initialScreen).toContain("UNIQUE_CARD_A")
 
     // Press j to move cursor to second card in INBOX
-    await app.press("j")
+    app.press("j")
     const afterJ = app.text
     expect(afterJ).toContain("UNIQUE_CARD_B")
 
     // Press l to move to PROJECTS column — this triggers the garble
-    await app.press("l")
+    app.press("l")
 
     const afterL = app.text
 
@@ -108,11 +108,11 @@ describe("Navigation garble at wide terminal", () => {
     }
   })
 
-  test("column switch does not duplicate cards at various widths", async () => {
+  test("column switch does not duplicate cards at various widths", () => {
     for (const cols of [220, 200, 160]) {
-      using app = await createTestApp(asanaLikeBoard(), { cols, rows: 50 })
-      await app.press("j")
-      await app.press("l")
+      using app = createTestApp(asanaLikeBoard(), { cols, rows: 50 })
+      app.press("j")
+      app.press("l")
 
       const screen = app.text
       const shanCount = countOccurrences(screen, "UNIQUE_CARD_A")
@@ -120,13 +120,13 @@ describe("Navigation garble at wide terminal", () => {
     }
   })
 
-  test("j then l then h round-trip preserves INBOX column", async () => {
-    using app = await createTestApp(asanaLikeBoard(), { cols: 220, rows: 50 })
+  test("j then l then h round-trip preserves INBOX column", () => {
+    using app = createTestApp(asanaLikeBoard(), { cols: 220, rows: 50 })
 
     // Navigate: j → l → h (should return to same view)
-    await app.press("j")
-    await app.press("l")
-    await app.press("h")
+    app.press("j")
+    app.press("l")
+    app.press("h")
 
     const afterRoundTrip = app.text
 
@@ -141,9 +141,9 @@ describe("Navigation garble at wide terminal", () => {
     { cols: 200, rows: 50 },
     { cols: 160, rows: 40 },
   ])("no screen corruption after j+l at $cols x $rows", async ({ cols, rows }) => {
-    using app = await createTestApp(asanaLikeBoard(), { cols, rows })
-    await app.press("j")
-    await app.press("l")
+    using app = createTestApp(asanaLikeBoard(), { cols, rows })
+    app.press("j")
+    app.press("l")
     // Verify no crash + card still visible
     expect(app.text).toContain("UNIQUE_CARD_A")
   })

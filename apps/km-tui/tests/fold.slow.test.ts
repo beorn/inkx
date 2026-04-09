@@ -24,13 +24,13 @@ import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 // =============================================================================
 
 describe("fold-all-corruption", () => {
-  test("zM (fold all chord) folds all cards in column", async () => {
-    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+  test("zM (fold all chord) folds all cards in column", () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     expect(app.text).toContain("child-1")
 
     // zM chord → fold_all (FOLD_LEVEL depth:1)
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
 
     expect(app.text).not.toContain("child-1")
     expect(app.text).not.toContain("child-2")
@@ -39,28 +39,28 @@ describe("fold-all-corruption", () => {
   })
 
   test("H folds a card, > should unfold it", async () => {
-    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold via H
-    await app.command("fold_more")
+    app.command("fold_more")
 
     // Children should be hidden
     expect(app.text).not.toContain("child-1")
 
     // Z (unfold all) should restore children
-    await app.command("unfold_all_more")
+    app.command("unfold_all_more")
 
     expect(app.text).toContain("child-1")
     expect(app.text).toContain("child-2")
   })
 
-  test("H (fold_node) folds current card and hides children", async () => {
-    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+  test("H (fold_node) folds current card and hides children", () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     expect(app.text).toContain("child-1")
 
     // H → fold_node
-    await app.command("fold_more")
+    app.command("fold_more")
 
     const folded = app.text
     expect(folded).not.toContain("child-1")
@@ -68,23 +68,23 @@ describe("fold-all-corruption", () => {
     expect(folded).toContain("Parent")
   })
 
-  test("L (unfold node) restores children after fold", async () => {
-    using app = await createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
+  test("L (unfold node) restores children after fold", () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold with H
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("child-1")
 
     // Unfold with L
-    await app.command("unfold_more")
+    app.command("unfold_more")
 
     const unfolded = app.text
     expect(unfolded).toContain("child-1")
     expect(unfolded).toContain("child-2")
   })
 
-  test("Z unfolds all after individually folding multiple cards", async () => {
-    using app = await createTestApp(
+  test("Z unfolds all after individually folding multiple cards", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item.folder("Processing", item("sub-a"), item("sub-b")), item.folder("Review", item("sub-c"))),
@@ -92,15 +92,15 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold both cards individually with H
-    await app.command("fold_more") // fold Processing
-    await app.command("cursor_down") // move to Review
-    await app.command("fold_more") // fold Review
+    app.command("fold_more") // fold Processing
+    app.command("cursor_down") // move to Review
+    app.command("fold_more") // fold Review
 
     expect(app.text).not.toContain("sub-a")
     expect(app.text).not.toContain("sub-c")
 
     // Z should unfold all
-    await app.command("unfold_all_more")
+    app.command("unfold_all_more")
 
     const after = app.text
     expect(after).toContain("sub-a")
@@ -566,12 +566,12 @@ describe("fold border blank — buffer-level assertions", () => {
     }
   }
 
-  test("decrease outline depth (<) preserves bottom border of folded cards", async () => {
+  test("decrease outline depth (<) preserves bottom border of folded cards", () => {
     using app = multiCardBoard()
 
     // Decrease outline depth twice: hides all children
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
 
     // After folding: all cards should have intact bottom borders
     expectBottomBorderIntact(app, "Parent-A")
@@ -580,16 +580,16 @@ describe("fold border blank — buffer-level assertions", () => {
     expectBottomBorderIntact(app, "Leaf-C")
   })
 
-  test("decrease outline depth preserves borders between adjacent cards", async () => {
+  test("decrease outline depth preserves borders between adjacent cards", () => {
     using app = multiCardBoard()
 
     // Fold once
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
     expectBottomBorderIntact(app, "Parent-A")
     expectTopBorderIntact(app, "Parent-B")
 
     // Fold again
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
     expectBottomBorderIntact(app, "Parent-A")
     expectTopBorderIntact(app, "Parent-B")
     expectBottomBorderIntact(app, "Leaf-C")
@@ -597,11 +597,11 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(app, "Parent-B", "Leaf-C")
   })
 
-  test("individual fold (H) preserves border of card below", async () => {
+  test("individual fold (H) preserves border of card below", () => {
     using app = multiCardBoard()
 
     // Fold Parent-A via H
-    await app.command("fold_more")
+    app.command("fold_more")
 
     // Parent-A bottom border should be intact
     expectBottomBorderIntact(app, "Parent-A")
@@ -611,12 +611,12 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(app, "Parent-A", "Parent-B")
   })
 
-  test("toggle fold (H) preserves borders of folded card and neighbors", async () => {
+  test("toggle fold (H) preserves borders of folded card and neighbors", () => {
     using app = multiCardBoard()
 
     // Navigate to Parent-B then fold it
-    await app.command("cursor_down")
-    await app.command("fold_more")
+    app.command("cursor_down")
+    app.command("fold_more")
 
     // Parent-B bottom border should be intact
     expectBottomBorderIntact(app, "Parent-B")
@@ -629,12 +629,12 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(app, "Parent-B", "Leaf-C")
   })
 
-  test("fold then unfold round-trip preserves all borders", async () => {
+  test("fold then unfold round-trip preserves all borders", () => {
     using app = multiCardBoard()
 
     // Fold Parent-A, then unfold it — individual card fold round-trip
-    await app.command("fold_more") // fold Parent-A
-    await app.command("unfold_more") // unfold Parent-A
+    app.command("fold_more") // fold Parent-A
+    app.command("unfold_more") // unfold Parent-A
 
     // All cards should have intact borders after round-trip
     expectBottomBorderIntact(app, "Parent-A")
@@ -649,7 +649,7 @@ describe("fold border blank — buffer-level assertions", () => {
 
   test("fold with many cards and realistic viewport (5+ cards, constrained height)", async () => {
     // Smaller viewport forces scrolling and more border stress
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -666,8 +666,8 @@ describe("fold border blank — buffer-level assertions", () => {
     )
 
     // Fold twice to hide nested children
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
 
     const text = app.text
     // Every bottom border line should have continuous dashes (no blanks)
@@ -695,34 +695,34 @@ describe("fold border blank — buffer-level assertions", () => {
     using app = multiCardBoard()
 
     // Step 1: fold Parent-A
-    await app.command("fold_more")
+    app.command("fold_more")
     expectBottomBorderIntact(app, "Parent-A")
 
     // Step 2: move down to Parent-B, fold it
-    await app.command("cursor_down")
-    await app.command("fold_more")
+    app.command("cursor_down")
+    app.command("fold_more")
     expectBottomBorderIntact(app, "Parent-B")
 
     // Step 3: move down to Leaf-C — its borders should be intact
-    await app.command("cursor_down")
+    app.command("cursor_down")
     expectTopBorderIntact(app, "Leaf-C")
     expectBottomBorderIntact(app, "Leaf-C")
 
     // Step 4: move down to Parent-D, fold it
-    await app.command("cursor_down")
-    await app.command("fold_more")
+    app.command("cursor_down")
+    app.command("fold_more")
     expectBottomBorderIntact(app, "Parent-D")
 
     // Step 5: unfold each card individually via zl, verify borders restored
     // Cursor is on Parent-D after step 4
-    await app.command("unfold_more") // unfold Parent-D
+    app.command("unfold_more") // unfold Parent-D
     expectBottomBorderIntact(app, "Parent-D")
-    await app.command("cursor_up") // move up to Leaf-C
-    await app.command("cursor_up") // move up to Parent-B
-    await app.command("unfold_more") // unfold Parent-B
+    app.command("cursor_up") // move up to Leaf-C
+    app.command("cursor_up") // move up to Parent-B
+    app.command("unfold_more") // unfold Parent-B
     expectBottomBorderIntact(app, "Parent-B")
-    await app.command("cursor_up") // move up to Parent-A
-    await app.command("unfold_more") // unfold Parent-A
+    app.command("cursor_up") // move up to Parent-A
+    app.command("unfold_more") // unfold Parent-A
     expectBottomBorderIntact(app, "Parent-A")
     // No stale between cards
     expectNoStaleBetweenCards(app, "Parent-A", "Parent-B")
@@ -730,12 +730,12 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(app, "Leaf-C", "Parent-D")
   })
 
-  test("cell-level border check: bottom border cells are not blank after fold", async () => {
+  test("cell-level border check: bottom border cells are not blank after fold", () => {
     using app = multiCardBoard()
 
     // Fold via < <
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
 
     // Find each card's bottom border row and check cell-by-cell
     for (const nodeText of ["Parent-A", "Parent-B", "Leaf-C", "Parent-D"]) {
@@ -774,9 +774,9 @@ describe("Fold border regression", () => {
     return screenshot.split("\n").filter((line) => /╭.*─.*╮/.test(line)).length
   }
 
-  test("every visible card has matching top and bottom borders", async () => {
+  test("every visible card has matching top and bottom borders", () => {
     // Cards with children overflow a 20-row viewport with default fold depth.
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -795,7 +795,7 @@ describe("Fold border regression", () => {
 
     // At every fold level, top borders must equal bottom borders
     for (let press = 0; press < 4; press++) {
-      if (press > 0) await app.command("fold_all_more")
+      if (press > 0) app.command("fold_all_more")
       const text = app.text
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
@@ -804,7 +804,7 @@ describe("Fold border regression", () => {
     }
 
     for (let press = 0; press < 4; press++) {
-      await app.command("unfold_all_more")
+      app.command("unfold_all_more")
       const text = app.text
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
@@ -812,8 +812,8 @@ describe("Fold border regression", () => {
     }
   })
 
-  test("border integrity after scrolling then folding", async () => {
-    using app = await createTestApp(
+  test("border integrity after scrolling then folding", () => {
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -831,12 +831,12 @@ describe("Fold border regression", () => {
       { cols: 60, rows: 20 },
     )
 
-    await app.command("cursor_down")
-    await app.command("cursor_down")
-    await app.command("cursor_down")
-    await app.command("cursor_down")
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
+    app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
 
     const text = app.text
     const top = countTopBorders(text)
@@ -855,10 +855,10 @@ describe("fold overflow transition border integrity", () => {
    * and the card transitions from custom bottom border (╰─ +N ─╯) to standard
    * round border (╰──────╯). This transition must not leave stale pixels.
    */
-  test("fold card with overflow preserves bottom border (no blank cells)", async () => {
+  test("fold card with overflow preserves bottom border (no blank cells)", () => {
     // Create cards with enough children to trigger overflow
     // maxContentLines defaults to 3, so 6 children will show +3 overflow
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -875,7 +875,7 @@ describe("fold overflow transition border integrity", () => {
     expect(before, "should show overflow indicator").toContain("+")
 
     // Fold BigCard via H
-    await app.command("fold_more")
+    app.command("fold_more")
 
     // After fold, the +N indicator should be gone and borders should be intact
     const after = app.text
@@ -932,8 +932,8 @@ describe("fold overflow transition border integrity", () => {
     expect(rowText, "bottom border should have ╯").toContain("╯")
   })
 
-  test("unfold card restores overflow indicator without border corruption", async () => {
-    using app = await createTestApp(
+  test("unfold card restores overflow indicator without border corruption", () => {
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -946,8 +946,8 @@ describe("fold overflow transition border integrity", () => {
     )
 
     // Fold then unfold — should restore overflow indicator with intact borders
-    await app.command("fold_more") // fold
-    await app.command("unfold_more") // unfold
+    app.command("fold_more") // fold
+    app.command("unfold_more") // unfold
 
     const after = app.text
     expect(after, "should show overflow indicator after unfold").toContain("+")
@@ -973,8 +973,8 @@ describe("fold overflow transition border integrity", () => {
     }
   })
 
-  test("decrease outline depth with overflow cards preserves all borders (cell-level)", async () => {
-    using app = await createTestApp(
+  test("decrease outline depth with overflow cards preserves all borders (cell-level)", () => {
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -995,7 +995,7 @@ describe("fold overflow transition border integrity", () => {
     )
 
     // Decrease outline depth — should change overflow counts
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
 
     // Check every visible card's bottom border row
     for (const nodeText of ["CardA", "CardB", "CardC"]) {
@@ -1199,7 +1199,7 @@ describe("progressive fold/unfold", () => {
     )
 
   test("initial fold depth: cards render with remainingDepth=2, deepest children folded", () => {
-    using app = await createTestApp(deepTree(), { rows: 30 })
+    using app = createTestApp(deepTree(), { rows: 30 })
 
     const initial = app.text
     // remainingDepth={2}: card content visible down to depth 2 from card root
@@ -1217,7 +1217,7 @@ describe("progressive fold/unfold", () => {
   test("L unfolds per-card depth, eventually revealing deepest children", async () => {
     // Disable incremental check: expanding folded nodes changes tree height,
     // which can cause fresh-render layout drift in silvery
-    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially everything visible down to depth 2, subtask-x hidden
     expect(app.text).toContain("Phase 1")
@@ -1226,52 +1226,52 @@ describe("progressive fold/unfold", () => {
 
     // First L: increases Project foldOverride from inherited 1 → 2 (same as default remainingDepth)
     // No visible change since resolved depth was already 2
-    await app.command("unfold_more")
+    app.command("unfold_more")
     expect(app.text).not.toContain("subtask-x")
 
     // Second L: increases Project foldOverride to 3, Task A gets depth 1, subtask-x visible
-    await app.command("unfold_more")
+    app.command("unfold_more")
     expect(app.text).toContain("subtask-x")
   })
 
-  test("H folds deepest unfolded level progressively", async () => {
+  test("H folds deepest unfolded level progressively", () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded. Unfold both levels first.
-    await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
-    await app.command("unfold_more") // unfold Task A
+    app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
+    app.command("unfold_more") // unfold Task A
     expect(app.text).toContain("subtask-x")
 
     // H folds deepest unfolded foldable level (Task A at depth 2)
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("subtask-x")
     expect(app.text).toContain("Task A") // still visible, just folded
 
     // Another H folds Phase 1/2 (depth 1)
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("Task A")
     expect(app.text).not.toContain("Task B")
     expect(app.text).toContain("Phase 1") // still shows as folded header
 
     // Another H folds Project itself (depth 0)
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("Phase 1")
     expect(app.text).toContain("Project") // card title always visible
   })
 
   test("L on fully-folded card reveals only one level (progressive disclosure, km-ovuzg)", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Fold Project completely (3 H presses: depth 2 -> depth 1 -> depth 0)
-    await app.command("fold_more") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
-    await app.command("fold_more") // fold Project (depth 0)
+    app.command("fold_more") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
+    app.command("fold_more") // fold Project (depth 0)
     expect(app.text).not.toContain("Phase 1")
     expect(app.text).toContain("Project")
 
     // First L: unfold Project — should reveal Phase 1/2 but NOT their children
-    await app.command("unfold_more")
+    app.command("unfold_more")
     const afterFirstL = app.text
     expect(afterFirstL).toContain("Phase 1")
     expect(afterFirstL).toContain("Phase 2")
@@ -1281,7 +1281,7 @@ describe("progressive fold/unfold", () => {
     expect(afterFirstL).not.toContain("Task C")
 
     // Second L: unfold Phase 1/2 — should reveal Task A/B/C but NOT subtask-x
-    await app.command("unfold_more")
+    app.command("unfold_more")
     const afterSecondL = app.text
     expect(afterSecondL).toContain("Task A")
     expect(afterSecondL).toContain("Task B")
@@ -1290,46 +1290,46 @@ describe("progressive fold/unfold", () => {
     expect(afterSecondL).not.toContain("subtask-x")
 
     // Third L: unfold Task A — reveals subtask-x
-    await app.command("unfold_more")
+    app.command("unfold_more")
     expect(app.text).toContain("subtask-x")
   })
 
-  test("L on card with flat children (no grandchildren) reveals all at once", async () => {
+  test("L on card with flat children (no grandchildren) reveals all at once", () => {
     // When children are all leaves, L should show them all — no unnecessary folding
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
       { rows: 30, checkIncremental: false },
     )
 
     // Fold FlatParent
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("child-a")
 
     // Unfold — all children should be visible (they're all leaves)
-    await app.command("unfold_more")
+    app.command("unfold_more")
     const after = app.text
     expect(after).toContain("child-a")
     expect(after).toContain("child-b")
     expect(after).toContain("child-c")
   })
 
-  test("H/L round-trip: fold then unfold restores visibility", async () => {
+  test("H/L round-trip: fold then unfold restores visibility", () => {
     // Disable incremental check: fold/unfold changes tree height
-    using app = await createTestApp(deepTree(), { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded at depth 1. Unfold first.
-    await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
+    app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
     expect(app.text).toContain("Task A")
 
     // H folds the deepest unfolded level (Phase 1/2 at depth 1, since Task A is auto-folded)
-    await app.command("fold_more")
+    app.command("fold_more")
     const folded = app.text
     expect(folded).not.toContain("Task A")
     expect(folded).toContain("Phase 1") // visible but folded
 
     // L unfolds the shallowest fold — Phase 1/2 at depth 1
     // With progressive disclosure, children-with-children (Task A) get auto-folded
-    await app.command("unfold_more")
+    app.command("unfold_more")
     const restored = app.text
     expect(restored).toContain("Phase 1")
     expect(restored).toContain("Task A") // visible but folded (auto-folded by progressive disclosure)
@@ -1762,8 +1762,8 @@ describe("fold depth preservation across zoom", () => {
     expect(board.screenshot()).toContain("child-1")
   })
 
-  test("progressive fold all (< x3) then unfold all (> x3) restores children", async () => {
-    using app = await createTestApp(
+  test("progressive fold all (< x3) then unfold all (> x3) restores children", () => {
+    using app = createTestApp(
       item("board", item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3")))),
     )
 
@@ -1771,16 +1771,16 @@ describe("fold depth preservation across zoom", () => {
     expect(app.text).toContain("c3")
 
     // Fold all progressively
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
-    await app.command("fold_all_more")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
+    app.command("fold_all_more")
     expect(app.text).not.toContain("c1")
     expect(app.text).not.toContain("c3")
 
     // Unfold all progressively — children should restore
-    await app.command("unfold_all_more")
-    await app.command("unfold_all_more")
-    await app.command("unfold_all_more")
+    app.command("unfold_all_more")
+    app.command("unfold_all_more")
+    app.command("unfold_all_more")
     expect(app.text).toContain("c1")
     expect(app.text).toContain("c3")
   })

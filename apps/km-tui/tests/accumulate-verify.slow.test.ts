@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe("Incremental ANSI output verification", () => {
   test("changesToAnsi produces correct ANSI sequences during navigation", { retry: 2 }, async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
@@ -73,7 +73,7 @@ describe("Incremental ANSI output verification", () => {
     ]
 
     for (const key of sequence) {
-      await app.press(key)
+      app.press(key)
       // SILVERY_STRICT verifies buffer content and ANSI output (vt100 backend)
     }
 
@@ -81,7 +81,7 @@ describe("Incremental ANSI output verification", () => {
   })
 
   test("larger board with more columns", { retry: 2 }, async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item("col-1", item("a1"), item("a2"), item("a3"), item("a4")),
@@ -117,7 +117,7 @@ describe("Incremental ANSI output verification", () => {
     ]
 
     for (const key of sequence) {
-      await app.press(key)
+      app.press(key)
     }
 
     expect(true).toBe(true)

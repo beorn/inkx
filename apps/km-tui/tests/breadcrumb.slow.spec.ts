@@ -25,7 +25,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Breadcrumb Navigation Journeys", () => {
   test("zoom into a card, breadcrumb shows full ancestor path", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("Projects", item("Frontend", item("react-app"), item("vue-app")), item("Backend", item("api-server"))),
@@ -38,7 +38,7 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(initialTopBar).toContain("board")
 
     // Step 2: Zoom into Frontend (cursor starts on first card)
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     app.expect("#react-app").toExist()
 
     // Step 3: Breadcrumb should show the ancestor path
@@ -49,7 +49,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("navigate columns with h/l, breadcrumb updates current column", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("Inbox", item("msg1"), item("msg2")),
@@ -64,17 +64,17 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(topBar).toContain("Inbox")
 
     // Step 2: Move to Projects column
-    await app.command("cursor_right")
+    app.command("cursor_right")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
 
     // Step 3: Move to Archive column
-    await app.command("cursor_right")
+    app.command("cursor_right")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Archive")
 
     // Step 4: Move back to Projects
-    await app.command("cursor_left")
+    app.command("cursor_left")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
     // Should not contain ghost chars from Archive
@@ -82,33 +82,33 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("zoom out with Z, breadcrumb reflects parent level", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("level1", item("level2", item("deep-a"), item("deep-b"))))),
       { cols: 120, rows: 24 },
     )
 
     // Step 1: Zoom in twice
-    await app.command("zoom_inwards") // into level1
-    await app.command("zoom_inwards") // into level2
+    app.command("zoom_inwards") // into level1
+    app.command("zoom_inwards") // into level2
     app.expect("#deep-a").toExist()
 
     let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
     // Step 2: Zoom out once
-    await app.command("zoom_outwards")
+    app.command("zoom_outwards")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
 
     // Step 3: Zoom out again — back to root board
-    await app.command("zoom_outwards")
+    app.command("zoom_outwards")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("board")
     app.expect("#col").toExist()
   })
 
-  test("long breadcrumb path truncates with ellipsis on narrow terminal", async () => {
-    using app = await createTestApp(
+  test("long breadcrumb path truncates with ellipsis on narrow terminal", () => {
+    using app = createTestApp(
       item(
         "VeryLongBoardName",
         item(
@@ -120,8 +120,8 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Zoom deep so the full path is longer than 60 chars
-    await app.command("zoom_inwards") // into VeryLongSectionName
-    await app.command("zoom_inwards") // into VeryLongSubsection
+    app.command("zoom_inwards") // into VeryLongSectionName
+    app.command("zoom_inwards") // into VeryLongSubsection
 
     // Step 2: Breadcrumb should truncate with ellipsis
     const topBar = app.q("#top-bar").textContent()
@@ -131,14 +131,14 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(topBar).toContain("leaf-a")
   })
 
-  test("breadcrumb path uses > separator for hierarchy within board", async () => {
-    using app = await createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+  test("breadcrumb path uses > separator for hierarchy within board", () => {
+    using app = createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
       cols: 120,
       rows: 24,
     })
 
     // Step 1: Navigate to card level
-    await app.command("cursor_down")
+    app.command("cursor_down")
     const topBar = app.q("#top-bar").textContent()
 
     // Step 2: Path segments should be separated by >
@@ -149,7 +149,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("zoom in, navigate columns, zoom out — breadcrumb stays consistent", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("Work", item("Sprint-1", item("feat-a"), item("feat-b")), item("Sprint-2", item("feat-c"))),
@@ -159,25 +159,25 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Zoom into Work
-    await app.command("cursor_up") // to column header
-    await app.command("zoom_inwards")
+    app.command("cursor_up") // to column header
+    app.command("zoom_inwards")
     app.expect("#Sprint-1").toExist()
 
     let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Work")
 
     // Step 2: Navigate to Sprint-2 column
-    await app.command("cursor_right")
+    app.command("cursor_right")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-2")
 
     // Step 3: Navigate back to Sprint-1
-    await app.command("cursor_left")
+    app.command("cursor_left")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-1")
 
     // Step 4: Zoom out back to root
-    await app.command("zoom_outwards")
+    app.command("zoom_outwards")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("board")
     app.expect("#Work").toExist()

@@ -582,69 +582,69 @@ describe("undo: delete with descendants", () => {
 // =============================================================================
 
 describe("undo: TUI integration", () => {
-  test("u undoes the last operation", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+  test("u undoes the last operation", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate task-a
-    await app.press("cmd+d")
+    app.press("cmd+d")
 
     // Should have 3 cards now
     const childrenAfterDup = app.repo.getChildren("col1")
     expect(childrenAfterDup.length).toBe(3)
 
     // u to undo (vim-style)
-    await app.command("undo")
+    app.command("undo")
 
     // Should be back to 2 cards
     const childrenAfterUndo = app.repo.getChildren("col1")
     expect(childrenAfterUndo.length).toBe(2)
   })
 
-  test("U redoes the last undone operation", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+  test("U redoes the last undone operation", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate
-    await app.press("cmd+d")
+    app.press("cmd+d")
     expect(app.repo.getChildren("col1").length).toBe(3)
 
     // Undo
-    await app.command("undo")
+    app.command("undo")
     expect(app.repo.getChildren("col1").length).toBe(2)
 
     // Redo (U = redo)
-    await app.command("redo")
+    app.command("redo")
     expect(app.repo.getChildren("col1").length).toBe(3)
   })
 
-  test("undo shows operation label in status bar", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+  test("undo shows operation label in status bar", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate to create an undoable operation
-    await app.press("cmd+d")
+    app.press("cmd+d")
 
     // Undo — status bar should show what was undone
-    await app.command("undo")
+    app.command("undo")
     expect(app.text).toContain("Undo: Add")
   })
 
-  test("redo shows operation label in status bar", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
+  test("redo shows operation label in status bar", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"))))
 
-    await app.press("cmd+d")
-    await app.command("undo")
+    app.press("cmd+d")
+    app.command("undo")
 
     // Redo — status bar should show what was redone
-    await app.command("redo")
+    app.command("redo")
     expect(app.text).toContain("Redo: Add")
   })
 
-  test("undo shows batch label for multi-mutation operations", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+  test("undo shows batch label for multi-mutation operations", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Delete is a batched operation with label "Delete"
-    await app.press("Backspace")
+    app.press("Backspace")
 
-    await app.command("undo")
+    app.command("undo")
     expect(app.text).toContain("Undo: Delete")
   })
 })
@@ -654,14 +654,14 @@ describe("undo: TUI integration", () => {
 // =============================================================================
 
 describe("Undo duplicate node", () => {
-  test("duplicate then undo removes the duplicate", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+  test("duplicate then undo removes the duplicate", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Verify initial state
     expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
 
     // Press d to duplicate node A (cursor starts on first card)
-    await app.press("cmd+d")
+    app.press("cmd+d")
 
     // Should now have 4 children — original A + duplicate + B + C
     const afterDup = childIds(app.repo, "col1")
@@ -673,7 +673,7 @@ describe("Undo duplicate node", () => {
     expect(afterDup[3]).toBe("C")
 
     // Press u to undo
-    await app.command("undo")
+    app.command("undo")
 
     // The duplicate should be removed
     expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
@@ -689,27 +689,27 @@ describe("Undo duplicate node", () => {
     expect(board.bell).toBe(true)
   })
 
-  test("multiple duplicates then multiple undos", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
+  test("multiple duplicates then multiple undos", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
 
     // Duplicate A
-    await app.press("cmd+d")
+    app.press("cmd+d")
     expect(childIds(app.repo, "col1")).toHaveLength(3)
 
     // Navigate to B (now at index 2) and duplicate it
-    await app.command("cursor_down") // to dup of A
-    await app.command("cursor_down") // to B
-    await app.press("cmd+d")
+    app.command("cursor_down") // to dup of A
+    app.command("cursor_down") // to B
+    app.press("cmd+d")
     expect(childIds(app.repo, "col1")).toHaveLength(4)
 
     // Undo last duplicate (B's duplicate)
-    await app.command("undo")
+    app.command("undo")
     expect(childIds(app.repo, "col1")).toHaveLength(3)
 
     // Undo first duplicate (A's duplicate)
-    await app.command("undo")
+    app.command("undo")
     expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
   })
 })
@@ -719,37 +719,37 @@ describe("Undo duplicate node", () => {
 // =============================================================================
 
 describe("undo cursor restore", () => {
-  it("restores cursor to original card after duplicate + undo", async () => {
-    using app = await createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+  it("restores cursor to original card after duplicate + undo", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Cursor starts on task-a. Move to task-b.
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#task-b[data-cursor]").toExist()
 
     // Duplicate task-b (key: d)
-    await app.press("cmd+d")
+    app.press("cmd+d")
     // After duplicate, cursor moves to the new duplicate (task-b copy)
     // The original task-b should still be visible
     app.expect("#task-b").toExist()
 
     // Undo
-    await app.command("undo")
+    app.command("undo")
 
     // After undo, cursor should be back on task-b (not at root or lost)
     app.expect("#task-b[data-cursor]").toExist()
   })
 
-  it("restores cursor when undoing duplicate of first card", async () => {
-    using app = await createTestApp(item("board", item("col1", item("first"), item("second"))))
+  it("restores cursor when undoing duplicate of first card", () => {
+    using app = createTestApp(item("board", item("col1", item("first"), item("second"))))
 
     // Cursor starts on first card
     app.expect("#first[data-cursor]").toExist()
 
     // Duplicate first card
-    await app.press("cmd+d")
+    app.press("cmd+d")
 
     // Undo
-    await app.command("undo")
+    app.command("undo")
 
     // Cursor should be back on first card
     app.expect("#first[data-cursor]").toExist()
@@ -761,33 +761,33 @@ describe("undo cursor restore", () => {
 // =============================================================================
 
 describe("redo-duplicate-broken (km-wacsx)", () => {
-  test("redo after undo restores the duplicated node", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
+  test("redo after undo restores the duplicated node", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     // Baseline: 2 children
     expect(app.repo.getChildren("col1").map((n) => n.id)).toEqual(["A", "B"])
 
     // Duplicate A -> 3 children
-    await app.press("cmd+d")
+    app.press("cmd+d")
     expect(app.repo.getChildren("col1")).toHaveLength(3)
 
     // Undo -> back to 2
-    await app.command("undo")
+    app.command("undo")
     expect(app.repo.getChildren("col1")).toHaveLength(2)
 
     // Redo -> should be back to 3
-    await app.command("redo")
+    app.command("redo")
     expect(app.repo.getChildren("col1")).toHaveLength(3)
   })
 
-  test("rapid undo/redo cycle preserves duplicate", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
+  test("rapid undo/redo cycle preserves duplicate", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
 
-    await app.press("cmd+d") // dup -> 3
-    await app.command("undo") // undo -> 2
-    await app.command("redo") // redo -> 3
-    await app.command("undo") // undo -> 2
-    await app.command("redo") // redo -> 3
+    app.press("cmd+d") // dup -> 3
+    app.command("undo") // undo -> 2
+    app.command("redo") // redo -> 3
+    app.command("undo") // undo -> 2
+    app.command("redo") // redo -> 3
 
     expect(app.repo.getChildren("col1")).toHaveLength(3)
   })

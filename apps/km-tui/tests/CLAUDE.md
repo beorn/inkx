@@ -33,8 +33,8 @@ import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 test("buy milk task", async () => {
-  using app = await createTestApp(item("board", item("Todo", item("Buy milk")), item("Done")))
-  await app.press("Enter") // interact (async!)
+  using app = createTestApp(item("board", item("Todo", item("Buy milk")), item("Done")))
+  app.press("Enter") // interact (async!)
   app.expect("#Buy milk").toExist() // verify screen (sync)
   expect(app.repo.getNode("Buy milk")).toBeDefined() // verify persistence
 })

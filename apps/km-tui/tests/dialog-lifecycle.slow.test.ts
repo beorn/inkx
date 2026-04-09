@@ -22,28 +22,28 @@ import { createTestApp } from "./helpers/test-app.ts"
 // ---------------------------------------------------------------------------
 
 describe("DatePromptDialog lifecycle", () => {
-  test("td opens dialog — selector matches and screenshot shows title", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
+  test("td opens dialog — selector matches and screenshot shows title", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
-    await app.command("cursor_down") // move to card level
-    await app.command("set_due_date")
+    app.command("cursor_down") // move to card level
+    app.command("set_due_date")
 
     app.expect("[data-dialog='date-prompt']").toExist()
     expect(app.text).toContain("Set Due Date")
   })
 
-  test("td -> type date -> Enter confirms and closes dialog", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("td -> type date -> Enter confirms and closes dialog", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
-    await app.command("set_due_date")
+    app.command("cursor_down")
+    app.command("set_due_date")
     expect(app.text).toContain("Set Due Date")
 
     // Type a date
-    for (const ch of "tomorrow") await app.press(ch)
+    for (const ch of "tomorrow") app.press(ch)
 
     // Confirm
-    await app.press("Enter")
+    app.press("Enter")
 
     // Dialog closed
     app.expect("[data-dialog='date-prompt']").not.toExist()
@@ -55,16 +55,16 @@ describe("DatePromptDialog lifecycle", () => {
     expect(task.due_at).toBeTruthy()
   })
 
-  test("td -> Escape cancels without setting date", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("td -> Escape cancels without setting date", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
-    await app.command("set_due_date")
+    app.command("cursor_down")
+    app.command("set_due_date")
     app.expect("[data-dialog='date-prompt']").toExist()
     expect(app.text).toContain("Set Due Date")
 
     // Cancel
-    await app.press("Escape")
+    app.press("Escape")
 
     // Dialog closed
     app.expect("[data-dialog='date-prompt']").not.toExist()
@@ -76,15 +76,15 @@ describe("DatePromptDialog lifecycle", () => {
     expect(task.due_at).toBeFalsy()
   })
 
-  test("td -> type date -> Escape cancels without applying typed date", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("td -> type date -> Escape cancels without applying typed date", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
-    await app.command("set_due_date")
+    app.command("cursor_down")
+    app.command("set_due_date")
 
     // Type a date but then cancel
-    for (const ch of "friday") await app.press(ch)
-    await app.press("Escape")
+    for (const ch of "friday") app.press(ch)
+    app.press("Escape")
 
     // Dialog closed
     app.expect("[data-dialog='date-prompt']").not.toExist()
@@ -96,16 +96,16 @@ describe("DatePromptDialog lifecycle", () => {
     expect(task.due_at).toBeFalsy()
   })
 
-  test("td opens due date dialog and Escape cancels", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("td opens due date dialog and Escape cancels", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
-    await app.command("set_due_date")
+    app.command("cursor_down")
+    app.command("set_due_date")
 
     app.expect("[data-dialog='date-prompt']").toExist()
     expect(app.text).toContain("Set Due Date")
 
-    await app.press("Escape")
+    app.press("Escape")
 
     app.expect("[data-dialog='date-prompt']").not.toExist()
     expect(app.text).not.toContain("Set Due Date")
@@ -117,36 +117,36 @@ describe("DatePromptDialog lifecycle", () => {
 // ---------------------------------------------------------------------------
 
 describe("SearchDialog lifecycle", () => {
-  test("search command opens search dialog — selector matches and screenshot shows title", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+  test("search command opens search dialog — selector matches and screenshot shows title", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    await app.dispatch("search")
+    app.dispatch("search")
 
     app.expect("[data-dialog='search']").toExist()
     expect(app.text).toContain("Search")
   })
 
-  test("search -> Escape cancels search dialog", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+  test("search -> Escape cancels search dialog", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
 
-    await app.press("Escape")
+    app.press("Escape")
 
     app.expect("[data-dialog='search']").not.toExist()
   })
 
-  test("search -> type query -> Escape cancels without navigating", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
+  test("search -> type query -> Escape cancels without navigating", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    await app.dispatch("search")
+    app.dispatch("search")
 
     // Type a query
-    for (const ch of "Alpha") await app.press(ch)
+    for (const ch of "Alpha") app.press(ch)
 
     // Cancel
-    await app.press("Escape")
+    app.press("Escape")
 
     // Dialog closed
     app.expect("[data-dialog='search']").not.toExist()
@@ -156,17 +156,17 @@ describe("SearchDialog lifecycle", () => {
     expect(app.text).toContain("Beta")
   })
 
-  test("search -> type query -> Enter confirms search (closes dialog)", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
+  test("search -> type query -> Enter confirms search (closes dialog)", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
 
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
 
     // Type a query
-    for (const ch of "Alpha") await app.press(ch)
+    for (const ch of "Alpha") app.press(ch)
 
     // Confirm
-    await app.press("Enter")
+    app.press("Enter")
 
     // Dialog should be closed after confirm
     app.expect("[data-dialog='search']").not.toExist()
@@ -178,27 +178,27 @@ describe("SearchDialog lifecycle", () => {
 // ---------------------------------------------------------------------------
 
 describe("NewItemDialog lifecycle", () => {
-  test("cmd+shift+Enter opens new item dialog — selector matches and screenshot shows title", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
+  test("cmd+shift+Enter opens new item dialog — selector matches and screenshot shows title", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
-    await app.command("cursor_down") // move to card level
-    await app.press("cmd+shift+Enter")
+    app.command("cursor_down") // move to card level
+    app.press("cmd+shift+Enter")
 
     app.expect("[data-dialog='new-item']").toExist()
     expect(app.text).toContain("New")
   })
 
-  test("cmd+shift+Enter -> Escape cancels new item dialog without creating nodes", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("cmd+shift+Enter -> Escape cancels new item dialog without creating nodes", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
 
-    await app.command("cursor_down")
-    await app.press("cmd+shift+Enter")
+    app.command("cursor_down")
+    app.press("cmd+shift+Enter")
     app.expect("[data-dialog='new-item']").toExist()
 
-    await app.press("Escape")
+    app.press("Escape")
 
     // Dialog closed
     app.expect("[data-dialog='new-item']").not.toExist()
@@ -209,18 +209,18 @@ describe("NewItemDialog lifecycle", () => {
     expect(nodesAfter).toBe(nodesBefore)
   })
 
-  test("cmd+shift+Enter -> type name -> Escape cancels without creating nodes", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("cmd+shift+Enter -> type name -> Escape cancels without creating nodes", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
 
-    await app.command("cursor_down")
-    await app.press("cmd+shift+Enter")
+    app.command("cursor_down")
+    app.press("cmd+shift+Enter")
 
     // Type a name but then cancel
-    for (const ch of "Groceries") await app.press(ch)
-    await app.press("Escape")
+    for (const ch of "Groceries") app.press(ch)
+    app.press("Escape")
 
     // Dialog closed
     app.expect("[data-dialog='new-item']").not.toExist()
@@ -230,21 +230,21 @@ describe("NewItemDialog lifecycle", () => {
     expect(nodesAfter).toBe(nodesBefore)
   })
 
-  test("cmd+shift+Enter -> type name -> Enter creates the new item", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("cmd+shift+Enter -> type name -> Enter creates the new item", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
     const col = app.repo.getChildren("board")[0]!
     const nodesBefore = app.repo.getChildren(col.id).length
 
-    await app.command("cursor_down")
-    await app.press("cmd+shift+Enter")
+    app.command("cursor_down")
+    app.press("cmd+shift+Enter")
     app.expect("[data-dialog='new-item']").toExist()
 
     // Type name
-    for (const ch of "Buy milk") await app.press(ch)
+    for (const ch of "Buy milk") app.press(ch)
 
     // Confirm
-    await app.press("Enter")
+    app.press("Enter")
 
     // Dialog closed
     app.expect("[data-dialog='new-item']").not.toExist()
@@ -265,33 +265,33 @@ describe("NewItemDialog lifecycle", () => {
 // ---------------------------------------------------------------------------
 
 describe("dialog state isolation", () => {
-  test("opening one dialog does not show other dialog markers", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("opening one dialog does not show other dialog markers", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
     // Open date dialog
-    await app.command("cursor_down")
-    await app.command("set_due_date")
+    app.command("cursor_down")
+    app.command("set_due_date")
     app.expect("[data-dialog='date-prompt']").toExist()
     app.expect("[data-dialog='search']").not.toExist()
     app.expect("[data-dialog='new-item']").not.toExist()
 
-    await app.press("Escape")
+    app.press("Escape")
 
     // Open search dialog
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
     app.expect("[data-dialog='date-prompt']").not.toExist()
     app.expect("[data-dialog='new-item']").not.toExist()
 
-    await app.press("Escape")
+    app.press("Escape")
 
     // Open new item dialog
-    await app.press("cmd+shift+Enter")
+    app.press("cmd+shift+Enter")
     app.expect("[data-dialog='new-item']").toExist()
     app.expect("[data-dialog='date-prompt']").not.toExist()
     app.expect("[data-dialog='search']").not.toExist()
 
-    await app.press("Escape")
+    app.press("Escape")
 
     // All clean
     app.expect("[data-dialog='date-prompt']").not.toExist()
@@ -299,22 +299,22 @@ describe("dialog state isolation", () => {
     app.expect("[data-dialog='new-item']").not.toExist()
   })
 
-  test("sequential open/cancel cycles leave no dialog open", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+  test("sequential open/cancel cycles leave no dialog open", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     // Cycle 1: date dialog
-    await app.command("set_due_date")
-    await app.press("Escape")
+    app.command("set_due_date")
+    app.press("Escape")
 
     // Cycle 2: search dialog
-    await app.dispatch("search")
-    await app.press("Escape")
+    app.dispatch("search")
+    app.press("Escape")
 
     // Cycle 3: new item dialog
-    await app.press("cmd+shift+Enter")
-    await app.press("Escape")
+    app.press("cmd+shift+Enter")
+    app.press("Escape")
 
     // All dialogs closed
     app.expect("[data-dialog='date-prompt']").not.toExist()
@@ -323,22 +323,22 @@ describe("dialog state isolation", () => {
   })
 
   test("confirm in one dialog, then open another — no interference", async () => {
-    using app = await createTestApp(item("board", item("col1", item.task("Task1"))))
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
 
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     // Confirm a date
-    await app.command("set_due_date")
-    for (const ch of "tomorrow") await app.press(ch)
-    await app.press("Enter")
+    app.command("set_due_date")
+    for (const ch of "tomorrow") app.press(ch)
+    app.press("Enter")
     app.expect("[data-dialog='date-prompt']").not.toExist()
 
     // Now open search — should work cleanly
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
     expect(app.text).toContain("Search")
 
-    await app.press("Escape")
+    app.press("Escape")
     app.expect("[data-dialog='search']").not.toExist()
   })
 })

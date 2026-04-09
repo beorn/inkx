@@ -37,7 +37,7 @@ async function spawnKm(vaultContent: string, opts?: { cols?: number; rows?: numb
     cwd: KM_CWD,
     env: { KM_EAGER_LOAD: "1" },
   })
-  await expect(term.screen).toContainText("helloworld", { timeout: 15000 })
+  expect(term.screen).toContainText("helloworld", { timeout: 15000 })
   return { term, vault }
 }
 
@@ -102,7 +102,7 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col + 3, pos!.row)
-    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
+    expect(term.screen).toContainText("INSERT", { timeout: 5000 })
   })
 
   test.skip("click repositions cursor — type inserts at clicked position", async () => {
@@ -112,13 +112,13 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col + 3, pos!.row)
-    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
+    expect(term.screen).toContainText("INSERT", { timeout: 5000 })
 
     term.click(pos!.col + 2, pos!.row)
     await new Promise((r) => setTimeout(r, 200))
 
     term.type("X")
-    await expect(term.screen).toContainText("heXlloworld", { timeout: 5000 })
+    expect(term.screen).toContainText("heXlloworld", { timeout: 5000 })
   })
 
   test.skip("click at start of text positions cursor at beginning", async () => {
@@ -128,12 +128,12 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col, pos!.row)
-    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
+    expect(term.screen).toContainText("INSERT", { timeout: 5000 })
 
     term.click(pos!.col, pos!.row)
     await new Promise((r) => setTimeout(r, 200))
 
     term.type("Z")
-    await expect(term.screen).toContainText("Zhelloworld", { timeout: 5000 })
+    expect(term.screen).toContainText("Zhelloworld", { timeout: 5000 })
   })
 })

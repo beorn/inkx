@@ -18,8 +18,8 @@ import { createTestApp } from "./helpers/test-app.ts"
 // =============================================================================
 
 describe("cursor prefetch on horizontal navigation", () => {
-  test("rapid h/l navigation across 5 columns lands on correct final position", async () => {
-    using app = await createTestApp(
+  test("rapid h/l navigation across 5 columns lands on correct final position", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -35,22 +35,22 @@ describe("cursor prefetch on horizontal navigation", () => {
     app.expect("#1a[data-cursor]").toExist()
 
     // Navigate right rapidly through all columns
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#5a[data-cursor]").toExist()
 
     // Navigate back left rapidly
-    await app.command("cursor_left")
-    await app.command("cursor_left")
-    await app.command("cursor_left")
-    await app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#1a[data-cursor]").toExist()
   })
 
-  test("h/l navigation with mixed j/k between columns renders correctly", async () => {
-    using app = await createTestApp(
+  test("h/l navigation with mixed j/k between columns renders correctly", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c")),
@@ -61,38 +61,38 @@ describe("cursor prefetch on horizontal navigation", () => {
     )
 
     // Move down in col1
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#1b[data-cursor]").toExist()
 
     // Move right to col2 — stickyY should position near 1b
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.text).toContain("2a")
     expect(app.text).toContain("2b")
 
     // Move right again to col3
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.text).toContain("3a")
 
     // Move back left twice
-    await app.command("cursor_left")
-    await app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
     expect(app.text).toContain("1a")
     expect(app.text).toContain("1b")
     expect(app.text).toContain("1c")
   })
 
-  test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", async () => {
-    using app = await createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
+  test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", () => {
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
 
     app.expect("#1a[data-cursor]").toExist()
 
     // Rapid back-and-forth
-    await app.command("cursor_right") // -> col2
-    await app.command("cursor_right") // -> col3
-    await app.command("cursor_left") // -> col2
-    await app.command("cursor_right") // -> col3
-    await app.command("cursor_left") // -> col2
-    await app.command("cursor_left") // -> col1
+    app.command("cursor_right") // -> col2
+    app.command("cursor_right") // -> col3
+    app.command("cursor_left") // -> col2
+    app.command("cursor_right") // -> col3
+    app.command("cursor_left") // -> col2
+    app.command("cursor_left") // -> col1
 
     app.expect("#1a[data-cursor]").toExist()
 
@@ -102,12 +102,12 @@ describe("cursor prefetch on horizontal navigation", () => {
     expect(app.text).toContain("col2")
   })
 
-  test("prefetch fires after horizontal nav without errors", async () => {
+  test("prefetch fires after horizontal nav without errors", () => {
     // The prefetch in handleHorizontalNav uses setTimeout(0) to warm
     // adjacent column children. This test verifies the prefetch doesn't
     // throw or corrupt state by navigating and then performing operations
     // that depend on column data being correct.
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -118,47 +118,47 @@ describe("cursor prefetch on horizontal navigation", () => {
     )
 
     // Navigate right — triggers prefetch of col1 and col3
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#2a[data-cursor]").toExist()
 
     // Subsequent vertical navigation should work — depends on column data
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#2b[data-cursor]").toExist()
 
     // Navigate to col3 — if prefetch corrupted col3 data, this would fail
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#3b[data-cursor]").toExist()
 
     // Navigate back to col1
-    await app.command("cursor_left")
-    await app.command("cursor_left")
+    app.command("cursor_left")
+    app.command("cursor_left")
     expect(app.text).toContain("1a")
   })
 
-  test("horizontal nav across boundary doesn't cause errors", async () => {
-    using app = await createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+  test("horizontal nav across boundary doesn't cause errors", () => {
+    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
       cols: 80,
       rows: 20,
     })
 
     // Navigate to right boundary
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#2a[data-cursor]").toExist()
 
     // Try to go further right — should hit boundary, no crash
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#2a[data-cursor]").toExist()
 
     // Navigate left
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#1a[data-cursor]").toExist()
 
     // h at leftmost card goes to column header
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#col1[data-cursor]").toExist()
 
     // h at column header is boundary, no crash
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#col1[data-cursor]").toExist()
   })
 })

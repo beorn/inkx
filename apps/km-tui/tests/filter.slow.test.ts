@@ -23,8 +23,8 @@ import { createFakeRepo } from "@km/storage"
 import { addHidden, computeHiddenPath, readBoardHidden, isHidden } from "../src/hidden.ts"
 
 describe("P2: Filter feature", () => {
-  test("V toggles filter panel", async () => {
-    using app = await createTestApp(
+  test("V toggles filter panel", () => {
+    using app = createTestApp(
       item(
         "board",
         item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs")),
@@ -37,112 +37,112 @@ describe("P2: Filter feature", () => {
     expect(app.text).not.toContain("View Settings")
 
     // Open filter panel with V
-    await app.command("filter")
+    app.command("filter")
     expect(app.text).toContain("View Settings")
     expect(app.text).toContain("Status")
     expect(app.text).toContain("Priority")
     expect(app.text).toContain("Due")
   })
 
-  test("Escape closes filter panel", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+  test("Escape closes filter panel", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
       cols: 120,
       rows: 24,
     })
 
-    await app.command("filter")
+    app.command("filter")
     expect(app.text).toContain("View Settings")
 
-    await app.press("Escape")
+    app.press("Escape")
     expect(app.text).not.toContain("Status")
   })
 
-  test("j/k navigates between filter rows", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
+  test("j/k navigates between filter rows", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    await app.command("filter")
+    app.command("filter")
     // Status is now row 0 (first row) — cursor starts there
     // Status row should be active (first row)
     expect(app.text).toContain("Status")
 
     // Move down to Priority
-    await app.command("cursor_down")
+    app.command("cursor_down")
     expect(app.text).toContain("Priority")
 
     // Move down to Due
-    await app.command("cursor_down")
+    app.command("cursor_down")
     expect(app.text).toContain("Due")
 
     // Move back up
-    await app.command("cursor_up")
+    app.command("cursor_up")
     expect(app.text).toContain("Priority")
   })
 
-  test("Space toggles a filter value", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+  test("Space toggles a filter value", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
       cols: 120,
       rows: 24,
     })
 
-    await app.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle 'todo' on
-    await app.command("select_toggle")
+    app.command("select_toggle")
     expect(app.text).toContain("✓ todo")
 
     // Toggle it off
-    await app.command("select_toggle")
+    app.command("select_toggle")
     expect(app.text).toContain("□ todo")
   })
 
-  test("h/l navigates between values in a row", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
+  test("h/l navigates between values in a row", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    await app.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
     // Move right to second value (wip)
-    await app.command("cursor_right")
-    await app.command("select_toggle") // toggle wip on
+    app.command("cursor_right")
+    app.command("select_toggle") // toggle wip on
     expect(app.text).toContain("✓ wip")
 
     // Move left back to first value (todo)
-    await app.command("cursor_left")
-    await app.command("select_toggle") // toggle todo on
+    app.command("cursor_left")
+    app.command("select_toggle") // toggle todo on
     expect(app.text).toContain("✓ todo")
     expect(app.text).toContain("✓ wip")
   })
 
-  test("X clears all filters", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
+  test("X clears all filters", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    await app.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle some filters on
-    await app.command("select_toggle") // todo on
-    await app.command("cursor_right")
-    await app.command("select_toggle") // wip on
+    app.command("select_toggle") // todo on
+    app.command("cursor_right")
+    app.command("select_toggle") // wip on
 
     expect(app.text).toContain("✓ todo")
     expect(app.text).toContain("✓ wip")
 
     // Clear all
-    await app.command("cycle_task_status")
+    app.command("cycle_task_status")
     expect(app.text).toContain("□ todo")
     expect(app.text).toContain("□ wip")
   })
 
-  test("filter indicator shows in top bar when filters active", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
+  test("filter indicator shows in top bar when filters active", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // No filter indicator initially
     expect(app.text).not.toContain("[F]")
 
     // Open filter — Status is row 0, toggle todo
-    await app.command("filter")
-    await app.command("select_toggle") // toggle todo on
+    app.command("filter")
+    app.command("select_toggle") // toggle todo on
 
     // Close filter panel
-    await app.press("Escape")
+    app.press("Escape")
 
     // Filter indicator should be visible in top bar
     expect(app.text).toContain("[F]")
@@ -218,15 +218,15 @@ describe("P2: Filter feature", () => {
     expect(cardArea).not.toContain("Buy groceries")
   })
 
-  test("V closes filter panel when already open (toggle)", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
+  test("V closes filter panel when already open (toggle)", () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // Open
-    await app.command("filter")
+    app.command("filter")
     expect(app.text).toContain("View Settings")
 
     // Close via V again
-    await app.command("filter")
+    app.command("filter")
     expect(app.text).not.toContain("Status")
   })
 })
@@ -372,8 +372,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     return [board, tasksCol, embed1, embed2, normalTask, srcParent, src1, src2]
   }
 
-  test("filtering by 'todo' status includes embed whose source is todo", async () => {
-    using app = await createTestApp(buildEmbedBoard(), {
+  test("filtering by 'todo' status includes embed whose source is todo", () => {
+    using app = createTestApp(buildEmbedBoard(), {
       cols: 120,
       rows: 24,
       checkIncremental: false,
@@ -384,9 +384,9 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(app.text).toContain("Normal task")
 
     // Apply 'todo' status filter — Status is row 0
-    await app.command("filter") // open filter
-    await app.command("select_toggle") // toggle todo (Status row, first value)
-    await app.press("Escape") // close filter
+    app.command("filter") // open filter
+    app.command("select_toggle") // toggle todo (Status row, first value)
+    app.press("Escape") // close filter
 
     // embed1 links to src1 which is task_status=todo → should be visible
     // embed2 links to src2 which is task_status=done → should be hidden
@@ -396,22 +396,22 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(app.text).not.toContain("Source task 2")
   })
 
-  test("filtering by 'done' status includes embed whose source is done", async () => {
-    using app = await createTestApp(buildEmbedBoard(), {
+  test("filtering by 'done' status includes embed whose source is done", () => {
+    using app = createTestApp(buildEmbedBoard(), {
       cols: 120,
       rows: 24,
       checkIncremental: false,
     })
 
     // Apply 'done' status filter — Status is row 0
-    await app.command("filter") // open filter
+    app.command("filter") // open filter
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right") // move to 'done'
-    await app.command("select_toggle") // toggle done
-    await app.press("Escape") // close filter
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right") // move to 'done'
+    app.command("select_toggle") // toggle done
+    app.press("Escape") // close filter
 
     // embed2 links to src2 which is task_status=done → should be visible
     // embed1 links to src1 which is task_status=todo → should be hidden
@@ -716,7 +716,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
 // =============================================================================
 
 describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", () => {
-  test("toggle_hide_done preserves manually-folded card state", async () => {
+  test("toggle_hide_done preserves manually-folded card state", () => {
     // Build a board where we can fold a card and observe its children disappear,
     // then toggle the done filter and verify the fold state survives.
     const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("sibling-todo")))
@@ -724,7 +724,7 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     const sibling = nodes.find((n) => n.id === "sibling-todo")!
     sibling.item = { ...sibling.item, task: { status: "todo", marker: "[ ]" } }
 
-    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Initially: parent1's children visible
     expect(app.text).toContain("parent1")
@@ -732,13 +732,13 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     expect(app.text).toContain("child-b")
 
     // Fold parent1 — children disappear
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).toContain("parent1")
     expect(app.text).not.toContain("child-a")
     expect(app.text).not.toContain("child-b")
 
     // Toggle done filter via vd — this should NOT silently undo the fold
-    await app.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
     // The fold state should be preserved — children should still be hidden
     expect(app.text).toContain("parent1")
@@ -746,57 +746,57 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     expect(app.text).not.toContain("child-b")
   })
 
-  test("opening filter dialog preserves fold state", async () => {
-    using app = await createTestApp(item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")))))
+  test("opening filter dialog preserves fold state", () => {
+    using app = createTestApp(item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")))))
 
     expect(app.text).toContain("parent1")
     expect(app.text).toContain("child-a")
 
     // Fold parent1
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).not.toContain("child-a")
 
     // Open filter dialog (V)
-    await app.command("filter")
+    app.command("filter")
     // Close filter dialog
-    await app.press("Escape")
+    app.press("Escape")
 
     // Fold should be preserved
     expect(app.text).toContain("parent1")
     expect(app.text).not.toContain("child-a")
   })
 
-  test("repro: fold (H) → open filter (V) → toggle done value preserves fold", async () => {
+  test("repro: fold (H) → open filter (V) → toggle done value preserves fold", () => {
     // Exact repro from bead km-tui.filter-undoes-fold:
     // "Fold a card with H → open filter (V) → toggle done. The fold is silently undone."
     const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("done-task")))
     const doneNode = nodes.find((n) => n.id === "done-task")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    using app = await createTestApp(nodes, { cols: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     expect(app.text).toContain("parent1")
     expect(app.text).toContain("child-a")
 
     // Fold parent1 with H (fold_more)
-    await app.command("fold_more")
+    app.command("fold_more")
     expect(app.text).toContain("parent1")
     expect(app.text).not.toContain("child-a")
     expect(app.text).not.toContain("child-b")
 
     // Open filter dialog with V
-    await app.command("filter")
+    app.command("filter")
 
     // Toggle the "done" value via DIALOG_CONFIRM. Status row is row 0,
     // value index 3 = "done" (todo, wip, blocked, done). Move right 3 times,
     // then Space to toggle.
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("cursor_right")
-    await app.command("select_toggle")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("cursor_right")
+    app.command("select_toggle")
 
     // Close the dialog
-    await app.press("Escape")
+    app.press("Escape")
 
     // The fold state should be preserved — child-a should still be hidden
     expect(app.text).toContain("parent1")

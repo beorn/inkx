@@ -40,11 +40,11 @@ describe("Local Find", () => {
     expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
-  test("find bar disappears from screen after Escape", async () => {
-    using app = await createTestApp(item("board", item("col", item("task1"), item("task2"))))
-    await app.command("local_find")
+  test("find bar disappears from screen after Escape", () => {
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.command("local_find")
     app.expect("#find-bar").toExist()
-    await app.press("Escape")
+    app.press("Escape")
     app.expect("#find-bar").not.toExist()
   })
 
@@ -66,21 +66,21 @@ describe("Local Find", () => {
     expect(ls!.matchNodeIds).toContain("box")
   })
 
-  test("match count displays on screen", async () => {
-    using app = await createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
-    await app.command("local_find")
+  test("match count displays on screen", () => {
+    using app = createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
+    app.command("local_find")
     // Type "ox" — matches fox, box
-    await app.command("insert_below")
-    await app.command("toggle_task_done")
+    app.command("insert_below")
+    app.command("toggle_task_done")
     expect(app.text).toContain("1 of 2")
   })
 
-  test("no matches shows 'No matches' indicator", async () => {
-    using app = await createTestApp(item("board", item("col", item("alpha"), item("beta"))))
-    await app.command("local_find")
-    await app.command("zoom_inwards")
-    await app.command("zoom_inwards")
-    await app.command("zoom_inwards")
+  test("no matches shows 'No matches' indicator", () => {
+    using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
+    app.command("local_find")
+    app.command("zoom_inwards")
+    app.command("zoom_inwards")
+    app.command("zoom_inwards")
     expect(app.text).toContain("No matches")
   })
 
@@ -208,17 +208,17 @@ describe("Local Find", () => {
   // Match indicator updates
   // ---------------------------------------------------------------------------
 
-  test("match indicator updates as query changes", async () => {
-    using app = await createTestApp(item("board", item("col", item("fox"), item("foxy"), item("dog"))))
-    await app.command("local_find")
+  test("match indicator updates as query changes", () => {
+    using app = createTestApp(item("board", item("col", item("fox"), item("foxy"), item("dog"))))
+    app.command("local_find")
     // "fox" matches fox and foxy
-    await app.press("f")
-    await app.command("insert_below")
-    await app.command("toggle_task_done")
+    app.press("f")
+    app.command("insert_below")
+    app.command("toggle_task_done")
     expect(app.text).toContain("1 of 2")
 
     // Add "y" to narrow to only "foxy"
-    await app.press("y")
+    app.press("y")
     expect(app.text).toContain("1 of 1")
   })
 

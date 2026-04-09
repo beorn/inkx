@@ -88,8 +88,8 @@ describe("spatial navigation: Y-position matching", () => {
     expect(cursor).toContain("B4")
   })
 
-  test("j then l with body column: Y-match still works", async () => {
-    using app = await createTestApp(
+  test("j then l with body column: Y-match still works", () => {
+    using app = createTestApp(
       item(
         "board",
         item.p("Some body text"),
@@ -100,22 +100,22 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate from body to ColA
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.q("[data-cursor]").textContent()).toContain("A1")
 
-    await app.command("cursor_down")
-    await app.command("cursor_down")
-    await app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
     expect(app.q("[data-cursor]").textContent()).toContain("A4")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     const cursor = app.q("[data-cursor]").textContent()
     // With real positions, should land on exactly B4
     expect(cursor).toContain("B4")
   })
 
-  test("3 columns: l from middle column matches Y position", async () => {
-    using app = await createTestApp(
+  test("3 columns: l from middle column matches Y position", () => {
+    using app = createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3")),
@@ -126,12 +126,12 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate to B3 (last card in ColB)
-    await app.command("cursor_right") // -> B1
-    await app.command("cursor_down")
-    await app.command("cursor_down") // -> B3
+    app.command("cursor_right") // -> B1
+    app.command("cursor_down")
+    app.command("cursor_down") // -> B3
     expect(app.q("[data-cursor]").textContent()).toContain("B3")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     const cursor = app.q("[data-cursor]").textContent()
     // Should match Y position of B3 -> C3
     expect(cursor).toContain("C3")
@@ -169,8 +169,8 @@ describe("spatial navigation: Y-position matching", () => {
     expect(registry.stickyY).not.toBeNull()
   })
 
-  test("many columns with varying card counts: Y-match with unequal columns", async () => {
-    using app = await createTestApp(
+  test("many columns with varying card counts: Y-match with unequal columns", () => {
+    using app = createTestApp(
       item(
         "board",
         item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5"), item("A6"), item("A7"), item("A8")),
@@ -180,10 +180,10 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate to A8 (last card in long column)
-    for (let i = 0; i < 7; i++) await app.command("cursor_down")
+    for (let i = 0; i < 7; i++) app.command("cursor_down")
     expect(app.q("[data-cursor]").textContent()).toContain("A8")
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     const cursor = app.q("[data-cursor]").textContent()
     // A8 is at the bottom, ColB only has 3 cards -> should land on B3 (closest)
     expect(cursor).toContain("B3")
@@ -243,8 +243,8 @@ describe("spatial navigation: Y-position matching", () => {
 // =============================================================================
 
 describe("vbody-nav: left into virtual body column", () => {
-  test("h from structural column card lands on Y-matched body card", async () => {
-    using app = await createTestApp(
+  test("h from structural column card lands on Y-matched body card", () => {
+    using app = createTestApp(
       item(
         "board",
         item.p("body-1"),
@@ -258,19 +258,19 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     app.expect("#body-1[data-cursor]").toExist()
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.q("[data-cursor]").getAttribute("id")).toMatch(/^task-/)
-    await app.command("cursor_down")
-    await app.command("cursor_down")
+    app.command("cursor_down")
+    app.command("cursor_down")
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const bodyTarget = app.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^body-/)
     expect(bodyTarget).not.toBe("body-5")
   })
 
-  test("h from first structural column directly into body", async () => {
-    using app = await createTestApp(
+  test("h from first structural column directly into body", () => {
+    using app = createTestApp(
       item(
         "board",
         item.p("intro"),
@@ -283,51 +283,51 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     app.expect("#intro[data-cursor]").toExist()
-    await app.command("cursor_right")
-    await app.command("cursor_down")
-    await app.command("cursor_down")
+    app.command("cursor_right")
+    app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#t3[data-cursor]").toExist()
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const target = app.q("[data-cursor]").getAttribute("id")
     expect(target).toMatch(/^(intro|detail|notes)$/)
   })
 
-  test("round-trip: body->structural->body preserves approximate Y position", async () => {
-    using app = await createTestApp(
+  test("round-trip: body->structural->body preserves approximate Y position", () => {
+    using app = createTestApp(
       item("board", item.p("b1"), item.p("b2"), item.p("b3"), item("s1", item("t1"), item("t2"), item("t3"))),
       { rows: 40 },
     )
 
-    await app.command("cursor_down") // -> b2
-    await app.command("cursor_down") // -> b3
+    app.command("cursor_down") // -> b2
+    app.command("cursor_down") // -> b3
     app.expect("#b3[data-cursor]").toExist()
 
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.q("[data-cursor]").getAttribute("id")).toMatch(/^t/)
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const backTarget = app.q("[data-cursor]").getAttribute("id")
     expect(backTarget).toMatch(/^b/)
     expect(backTarget).not.toBe("b1")
   })
 
-  test("large board with scrolling: h into body navigates to correct card", async () => {
+  test("large board with scrolling: h into body navigates to correct card", () => {
     const bodyCards = Array.from({ length: 20 }, (_, i) => item.p(`body-${i + 1}`))
     const structCards = Array.from({ length: 20 }, (_, i) => item(`task-${i + 1}`))
 
-    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 20,
       cols: 80,
     })
 
     app.expect("#body-1[data-cursor]").toExist()
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.q("[data-cursor]").getAttribute("id")).toMatch(/^task-/)
 
-    for (let i = 0; i < 8; i++) await app.command("cursor_down")
+    for (let i = 0; i < 8; i++) app.command("cursor_down")
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const bodyTarget = app.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^body-/)
     const bodyIdx = parseInt(bodyTarget!.replace("body-", ""))
@@ -336,7 +336,7 @@ describe("vbody-nav: left into virtual body column", () => {
   })
 
   test("h from middle of second structural col, then to first, then to body", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item.p("bp1"),
@@ -349,22 +349,22 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     app.expect("#bp1[data-cursor]").toExist()
-    await app.command("cursor_right") // -> Col1 first card
-    await app.command("cursor_right") // -> Col2 first card
-    await app.command("cursor_down") // -> b2
-    await app.command("cursor_down") // -> b3
+    app.command("cursor_right") // -> Col1 first card
+    app.command("cursor_right") // -> Col2 first card
+    app.command("cursor_down") // -> b2
+    app.command("cursor_down") // -> b3
     app.expect("#b3[data-cursor]").toExist()
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const col1Target = app.q("[data-cursor]").getAttribute("id")
     expect(col1Target).toMatch(/^a/)
 
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const bodyTarget = app.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp/)
   })
 
-  test("h from scrolled structural column to unscrolled body: Y-mismatch from scroll offset", async () => {
+  test("h from scrolled structural column to unscrolled body: Y-mismatch from scroll offset", () => {
     // When the structural column has been scrolled down to show card N,
     // its card N has screen Y near the top of the column. But the body
     // column hasn't scrolled -- its card N is still at its natural (further down)
@@ -376,7 +376,7 @@ describe("vbody-nav: left into virtual body column", () => {
     const bodyCards = Array.from({ length: 10 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 10 }, (_, i) => item(`t-${i + 1}`))
 
-    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 12,
       cols: 80,
     })
@@ -385,18 +385,18 @@ describe("vbody-nav: left into virtual body column", () => {
     app.expect("#bp-1[data-cursor]").toExist()
 
     // Navigate to structural column
-    await app.command("cursor_right")
+    app.command("cursor_right")
     expect(app.q("[data-cursor]").getAttribute("id")).toBe("t-1")
 
     // Navigate down to t-5 (structural column scrolls)
-    await app.command("cursor_down") // t-2
-    await app.command("cursor_down") // t-3
-    await app.command("cursor_down") // t-4
-    await app.command("cursor_down") // t-5
+    app.command("cursor_down") // t-2
+    app.command("cursor_down") // t-3
+    app.command("cursor_down") // t-4
+    app.command("cursor_down") // t-5
     app.expect("#t-5[data-cursor]").toExist()
 
     // h to body column -- should land near bp-5, not bp-1 or bp-2
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const bodyTarget = app.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp-/)
     const bodyIdx = parseInt(bodyTarget!.replace("bp-", ""))
@@ -406,7 +406,7 @@ describe("vbody-nav: left into virtual body column", () => {
     expect(bodyIdx).toBeLessThanOrEqual(6)
   })
 
-  test("scrolled structural col with unscrolled body: h should not overshoot", async () => {
+  test("scrolled structural col with unscrolled body: h should not overshoot", () => {
     // The structural column has many cards; user scrolls deep into it.
     // The body column has few cards at the top.
     // When pressing h, stickyY is based on the structural card's screen position
@@ -415,7 +415,7 @@ describe("vbody-nav: left into virtual body column", () => {
     const bodyCards = Array.from({ length: 3 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 30 }, (_, i) => item(`t-${i + 1}`))
 
-    using app = await createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
+    using app = createTestApp(item("board", ...bodyCards, item("col1", ...structCards)), {
       rows: 15,
       cols: 80,
     })
@@ -423,14 +423,14 @@ describe("vbody-nav: left into virtual body column", () => {
     app.expect("#bp-1[data-cursor]").toExist()
 
     // Navigate to structural column and scroll down deep
-    await app.command("cursor_right")
-    for (let i = 0; i < 10; i++) await app.command("cursor_down")
+    app.command("cursor_right")
+    for (let i = 0; i < 10; i++) app.command("cursor_down")
     const structId = app.q("[data-cursor]").getAttribute("id")
     expect(structId).toMatch(/^t-/)
 
     // h to body -- stickyY is from a card well below the body column's visible area
     // Should land on a body card (clamped to last body card is acceptable)
-    await app.command("cursor_left")
+    app.command("cursor_left")
     const bodyTarget = app.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp-/)
 

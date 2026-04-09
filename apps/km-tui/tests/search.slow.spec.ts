@@ -243,19 +243,19 @@ describe("extractTags", () => {
 describe("Search dialog bugs", () => {
   describe("km-tui.2: [2 after backspace", () => {
     test("backspacing to empty shows placeholder, not [2", async () => {
-      using app = await createTestApp(item("board", item("col", item("alpha"), item("beta"))))
+      using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
-      await app.dispatch("search")
-      await app.press("a")
-      await app.press("b")
+      app.dispatch("search")
+      app.press("a")
+      app.press("b")
 
       // Verify we have "ab" in input
       expect(app.text).toContain("ab")
 
       // Backspace twice to empty
-      await app.press("Backspace")
-      await app.press("Backspace")
+      app.press("Backspace")
+      app.press("Backspace")
 
       // Should NOT contain [2
       expect(app.text).not.toContain("[2")
@@ -265,20 +265,20 @@ describe("Search dialog bugs", () => {
       expect(app.text).toContain("Search")
     })
 
-    test("rapid backspace doesn't leave artifacts", async () => {
-      using app = await createTestApp(item("board", item("col", item("test"))))
+    test("rapid backspace doesn't leave artifacts", () => {
+      using app = createTestApp(item("board", item("col", item("test"))))
 
-      await app.dispatch("search")
-      await app.press("t")
-      await app.press("e")
-      await app.press("s")
-      await app.press("t")
+      app.dispatch("search")
+      app.press("t")
+      app.press("e")
+      app.press("s")
+      app.press("t")
 
       // Rapid backspace
-      await app.press("Backspace")
-      await app.press("Backspace")
-      await app.press("Backspace")
-      await app.press("Backspace")
+      app.press("Backspace")
+      app.press("Backspace")
+      app.press("Backspace")
+      app.press("Backspace")
 
       // Should not have any escape sequence fragments
       expect(app.text).not.toContain("[2")
@@ -288,8 +288,8 @@ describe("Search dialog bugs", () => {
   })
 
   describe("km-tui.3: title visibility during loading", () => {
-    test("Search title remains visible with results", async () => {
-      using app = await createTestApp(
+    test("Search title remains visible with results", () => {
+      using app = createTestApp(
         item(
           "board",
           item(
@@ -304,9 +304,9 @@ describe("Search dialog bugs", () => {
         { rows: 20 },
       )
 
-      await app.dispatch("search")
-      await app.command("task_dialog")
-      await app.press("a")
+      app.dispatch("search")
+      app.command("task_dialog")
+      app.press("a")
 
       // Title should always be visible
       expect(app.text).toContain("Search")
@@ -333,45 +333,45 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
     )
   }
 
-  test("pressing Escape closes the search dialog", async () => {
+  test("pressing Escape closes the search dialog", () => {
     using app = makeEscapeTestApp()
 
     // Open search dialog
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
 
     // Press Escape to close
-    await app.press("Escape")
+    app.press("Escape")
 
     // Search dialog should be gone
     app.expect("[data-dialog='search']").not.toExist()
   })
 
-  test("pressing Escape closes search dialog after typing a query", async () => {
+  test("pressing Escape closes search dialog after typing a query", () => {
     using app = makeEscapeTestApp()
 
     // Open search, type a query
-    await app.dispatch("search")
-    await app.press("a")
-    await app.command("cursor_right")
+    app.dispatch("search")
+    app.press("a")
+    app.command("cursor_right")
     app.expect("[data-dialog='search']").toExist()
 
     // Press Escape to close
-    await app.press("Escape")
+    app.press("Escape")
 
     // Search dialog should be gone
     app.expect("[data-dialog='search']").not.toExist()
   })
 
-  test("board is navigable after closing search with Escape", async () => {
+  test("board is navigable after closing search with Escape", () => {
     using app = makeEscapeTestApp()
 
     // Open and close search
-    await app.dispatch("search")
-    await app.press("Escape")
+    app.dispatch("search")
+    app.press("Escape")
 
     // Should be able to navigate normally
-    await app.command("cursor_down")
+    app.command("cursor_down")
     // Board content should be visible, not a dialog
     expect(app.text).not.toContain("Type to search")
   })
@@ -398,9 +398,9 @@ function scopeDialogText(app: ReturnType<typeof createTestApp>): string {
 }
 
 describe("Search scope: UI toggle", () => {
-  test("search dialog opens with 'All' scope by default", async () => {
+  test("search dialog opens with 'All' scope by default", () => {
     using app = makeScopeApp()
-    await app.dispatch("search")
+    app.dispatch("search")
     const text = scopeDialogText(app)
     // Scope prompt: "All > "
     expect(text).toContain("All")
@@ -410,20 +410,20 @@ describe("Search scope: UI toggle", () => {
 
   test("Tab toggles scope between All and scoped, back to All", async () => {
     using app = makeScopeApp()
-    await app.dispatch("search")
+    app.dispatch("search")
 
     // Initially "All > " prompt
     let text = scopeDialogText(app)
     expect(text).toContain("All")
 
     // Tab switches to scoped — prompt shows "in <node name> > "
-    await app.command("indent_node")
+    app.command("indent_node")
     text = scopeDialogText(app)
     expect(text).toContain("in ")
     expect(text).toContain("search all") // Footer: "Tab search all"
 
     // Tab switches back to "All > "
-    await app.command("indent_node")
+    app.command("indent_node")
     text = scopeDialogText(app)
     expect(text).toContain("All")
     expect(text).toContain("narrow") // Footer: "Tab narrow ..."
@@ -431,17 +431,17 @@ describe("Search scope: UI toggle", () => {
 })
 
 describe("Search scope: result filtering", () => {
-  test("'All' scope returns results from entire repo", async () => {
+  test("'All' scope returns results from entire repo", () => {
     using app = makeScopeApp()
-    await app.dispatch("search")
+    app.dispatch("search")
 
     // Type a query that matches items in both columns
     // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
     // Only leaf nodes (tasks) are searchable.
-    await app.press("p")
-    await app.press("r")
-    await app.command("insert_below")
-    await app.command("cursor_down")
+    app.press("p")
+    app.press("r")
+    app.command("insert_below")
+    app.command("cursor_down")
     const text = scopeDialogText(app)
 
     // Should find leaf items from both columns
@@ -450,18 +450,18 @@ describe("Search scope: result filtering", () => {
     expect(text).toContain("Delta")
   })
 
-  test("'Subtree' scope restricts results to cursor node descendants", async () => {
+  test("'Subtree' scope restricts results to cursor node descendants", () => {
     using app = makeScopeApp()
 
     // Cursor starts on first card ("Alpha project" which has children)
     // Open search, switch to Subtree scope
-    await app.dispatch("search")
-    await app.command("indent_node") // Switch to "Subtree" scope
+    app.dispatch("search")
+    app.command("indent_node") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
-    await app.press("s")
-    await app.command("undo")
-    await app.press("b")
+    app.press("s")
+    app.command("undo")
+    app.press("b")
     const text = scopeDialogText(app)
     expect(text).toContain("Alpha subtask one")
     expect(text).toContain("Alpha subtask two")
@@ -472,30 +472,30 @@ describe("Search scope: result filtering", () => {
     expect(text).not.toContain("Delta")
   })
 
-  test("'Subtree' scope with query matching nothing in subtree shows no results", async () => {
+  test("'Subtree' scope with query matching nothing in subtree shows no results", () => {
     using app = makeScopeApp()
 
     // Cursor starts on "Alpha project"
-    await app.dispatch("search")
-    await app.command("indent_node") // Subtree scope
+    app.dispatch("search")
+    app.command("indent_node") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
-    await app.command("toggle_detail_pane")
-    await app.press("e")
-    await app.command("cursor_right")
+    app.command("toggle_detail_pane")
+    app.press("e")
+    app.command("cursor_right")
     const text = scopeDialogText(app)
     expect(text).toContain("No matching items")
   })
 
-  test("switching scope re-filters results", async () => {
+  test("switching scope re-filters results", () => {
     using app = makeScopeApp()
-    await app.dispatch("search")
+    app.dispatch("search")
 
     // Type query matching items across the board
-    await app.press("p")
-    await app.press("r")
-    await app.command("insert_below")
-    await app.command("cursor_down")
+    app.press("p")
+    app.press("r")
+    app.command("insert_below")
+    app.command("cursor_down")
 
     // In All scope, should see results from both columns
     let text = scopeDialogText(app)
@@ -506,7 +506,7 @@ describe("Search scope: result filtering", () => {
     // Switch to Subtree scope (cursor is on Alpha project)
     // Alpha project descendants include Alpha subtask one/two but they don't match "proj"
     // Alpha project itself is a folder (skipped). So only Alpha's leaf descendants matching "proj" would show.
-    await app.command("indent_node")
+    app.command("indent_node")
     text = scopeDialogText(app)
 
     // Gamma/Delta are not descendants of Alpha, should not appear in dialog results
@@ -516,21 +516,21 @@ describe("Search scope: result filtering", () => {
 })
 
 describe("Search scope: scope node capture", () => {
-  test("scope uses cursor node when search opens", async () => {
+  test("scope uses cursor node when search opens", () => {
     using app = makeScopeApp()
 
     // Move cursor to second card (Beta project)
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     // Open search with Subtree scope
-    await app.dispatch("search")
-    await app.command("indent_node")
+    app.dispatch("search")
+    app.command("indent_node")
 
     // Search for "project" — only Beta should match (it has no descendants with "project")
-    await app.press("p")
-    await app.press("r")
-    await app.command("insert_below")
-    await app.command("cursor_down")
+    app.press("p")
+    app.press("r")
+    app.command("insert_below")
+    app.command("cursor_down")
     const text = scopeDialogText(app)
     expect(text).toContain("Beta")
     // Alpha is not a descendant of Beta — should not appear in dialog results
@@ -555,12 +555,12 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
     )
   }
 
-  test("typing 'ready-' does not blank the screen", async () => {
+  test("typing 'ready-' does not blank the screen", () => {
     using app = makeSearchApp()
 
-    await app.dispatch("search")
+    app.dispatch("search")
     // Type "ready-" character by character
-    for (const c of "ready-") await app.press(c)
+    for (const c of "ready-") app.press(c)
 
     // The search dialog must still be visible — not blank
     expect(app.text).toContain("Search")
@@ -568,26 +568,26 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
     expect(app.text).toContain("ready-")
   })
 
-  test("typing backtick does not blank the screen", async () => {
+  test("typing backtick does not blank the screen", () => {
     using app = makeSearchApp()
 
-    await app.dispatch("search")
-    await app.press("`")
+    app.dispatch("search")
+    app.press("`")
 
     // The search dialog must still be visible — not blank
     expect(app.text).toContain("Search")
   })
 
-  test("typing parentheses in search does not crash", async () => {
+  test("typing parentheses in search does not crash", () => {
     using app = makeSearchApp()
 
-    await app.dispatch("search")
-    await app.press("(")
-    await app.press("t")
-    await app.press("e")
-    await app.press("s")
-    await app.press("t")
-    await app.press(")")
+    app.dispatch("search")
+    app.press("(")
+    app.press("t")
+    app.press("e")
+    app.press("s")
+    app.press("t")
+    app.press(")")
 
     expect(app.text).toContain("Search")
   })
@@ -1176,11 +1176,11 @@ describe("navigateToNode", () => {
 // =============================================================================
 
 describe("search flow via key presses", () => {
-  test("search + Enter navigates cursor to the matched card (deep tree)", async () => {
+  test("search + Enter navigates cursor to the matched card (deep tree)", () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
     //                            > project-b > taskB1
     // User searches for "taskA2" and expects cursor to land on it.
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "root",
         item(
@@ -1193,14 +1193,14 @@ describe("search flow via key presses", () => {
     )
 
     // Open search dialog
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
 
     // Type search query
-    for (const ch of "taskA2") await app.press(ch)
+    for (const ch of "taskA2") app.press(ch)
 
     // Confirm search result
-    await app.press("Enter")
+    app.press("Enter")
 
     // Dialog should be closed
     app.expect("[data-dialog='search']").not.toExist()
@@ -1209,22 +1209,22 @@ describe("search flow via key presses", () => {
     app.expect("#taskA2[data-cursor]").toExist()
   })
 
-  test("search + Enter for already-visible card uses SELECT (no zoom)", async () => {
+  test("search + Enter for already-visible card uses SELECT (no zoom)", () => {
     // Structure: root > col1 > taskA, taskB > col2 > taskC
     // User is at root, taskB is already visible (grandchild of root).
-    using app = await createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
+    using app = createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
       incremental: false,
     })
 
     // Open search dialog
-    await app.dispatch("search")
+    app.dispatch("search")
     app.expect("[data-dialog='search']").toExist()
 
     // Type search query
-    for (const ch of "taskB") await app.press(ch)
+    for (const ch of "taskB") app.press(ch)
 
     // Confirm search result
-    await app.press("Enter")
+    app.press("Enter")
 
     // Cursor should be on the matched card; col1/col2 still both visible (root unchanged)
     app.expect("[data-dialog='search']").not.toExist()
@@ -1233,18 +1233,18 @@ describe("search flow via key presses", () => {
     app.expect("#taskB[data-cursor]").toExist()
   })
 
-  test("search + Enter for deeply nested node zooms to make it a card", async () => {
+  test("search + Enter for deeply nested node zooms to make it a card", () => {
     // Structure: root > projects > project-a > task1 > subtask1
     // subtask1 is depth 4 from root. After search, board should zoom so that
     // subtask1 (or its parent task1) is a visible card, not just a descendant.
-    using app = await createTestApp(item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))), {
+    using app = createTestApp(item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))), {
       incremental: false,
     })
 
     // Search for the deeply nested subtask
-    await app.dispatch("search")
-    for (const ch of "subtask-xyz") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "subtask-xyz") app.press(ch)
+    app.press("Enter")
 
     app.expect("[data-dialog='search']").not.toExist()
 
@@ -1252,22 +1252,22 @@ describe("search flow via key presses", () => {
     app.expect("[data-cursor]").toExist()
 
     // The cursor should be navigable with j/k (didn't break)
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("[data-cursor]").toExist()
   })
 
-  test("search for depth-3 node zooms and places cursor on exact card", async () => {
+  test("search for depth-3 node zooms and places cursor on exact card", () => {
     // Structure: vault > section > project > my-task, other-task
     // my-task is at depth 3 from vault. Search should zoom to section
     // and place cursor on my-task (now a card under project column).
-    using app = await createTestApp(item("vault", item("section", item("project", item("my-task"), item("other-task")))), {
+    using app = createTestApp(item("vault", item("section", item("project", item("my-task"), item("other-task")))), {
       incremental: false,
     })
 
     // Search for the depth-3 node
-    await app.dispatch("search")
-    for (const ch of "my-task") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "my-task") app.press(ch)
+    app.press("Enter")
 
     app.expect("[data-dialog='search']").not.toExist()
     // Cursor should be on the exact matched card
@@ -1277,16 +1277,16 @@ describe("search flow via key presses", () => {
     expect(app.text).toContain("other-task")
   })
 
-  test("search with multiple results selects the first match", async () => {
+  test("search with multiple results selects the first match", () => {
     // When search returns multiple results, pressing Enter selects the first one.
-    using app = await createTestApp(
+    using app = createTestApp(
       item("root", item("col1", item("alpha-task"), item("beta-task")), item("col2", item("alpha-note"))),
       { incremental: false },
     )
 
-    await app.dispatch("search")
-    for (const ch of "alpha") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "alpha") app.press(ch)
+    app.press("Enter")
 
     // First result should be selected (order depends on repo.search)
     app.expect("[data-dialog='search']").not.toExist()
@@ -1296,7 +1296,7 @@ describe("search flow via key presses", () => {
     expect(alphaTaskCursor + alphaNoteCursor).toBeGreaterThan(0)
   })
 
-  test("search for oi file node (non-folder) selects it correctly", async () => {
+  test("search for oi file node (non-folder) selects it correctly", () => {
     // oi nodes with fstype="file" are NOT skipped by search.
     // When selected, they may be at column level or card level.
     const fileNode: KNode = {
@@ -1316,22 +1316,22 @@ describe("search flow via key presses", () => {
     const nodes = item("root", item("docs", item("other-file")))
     // Insert the file node as child of docs
     nodes.push(fileNode)
-    using app = await createTestApp(nodes, { incremental: false })
+    using app = createTestApp(nodes, { incremental: false })
 
-    await app.dispatch("search")
-    for (const ch of "README") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "README") app.press(ch)
+    app.press("Enter")
 
     app.expect("[data-dialog='search']").not.toExist()
     // README file is a grandchild of root -> SELECT
     app.expect("#readme-file[data-cursor]").toExist()
   })
 
-  test("search SELECT within same column updates selectedNode correctly", async () => {
+  test("search SELECT within same column updates selectedNode correctly", () => {
     // When cursor is already on a card in col1 and search selects a different
     // card in the same column, selectedNode should update to the new card.
     // This tests the cursorPosition memo dependency chain.
-    using app = await createTestApp(
+    using app = createTestApp(
       item("root", item("col1", item("taskA"), item("taskB"), item("taskC")), item("col2", item("taskD"))),
       { incremental: false },
     )
@@ -1340,9 +1340,9 @@ describe("search flow via key presses", () => {
     app.expect("#taskA[data-cursor]").toExist()
 
     // Search for taskC (different card in the same column)
-    await app.dispatch("search")
-    for (const ch of "taskC") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "taskC") app.press(ch)
+    app.press("Enter")
 
     // Cursor should be on taskC
     app.expect("#taskC[data-cursor]").toExist()
@@ -1350,9 +1350,9 @@ describe("search flow via key presses", () => {
     app.expect("#taskA[data-cursor]").not.toExist()
   })
 
-  test("search + Enter + j/k navigation works after search", async () => {
+  test("search + Enter + j/k navigation works after search", () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "root",
         item(
@@ -1365,52 +1365,52 @@ describe("search flow via key presses", () => {
     )
 
     // Search and select taskA2
-    await app.dispatch("search")
-    for (const ch of "taskA2") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "taskA2") app.press(ch)
+    app.press("Enter")
 
     app.expect("#taskA2[data-cursor]").toExist()
 
     // j/k should work from the search result position
-    await app.command("cursor_down")
+    app.command("cursor_down")
     app.expect("#taskA3[data-cursor]").toExist()
 
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#taskA2[data-cursor]").toExist()
 
-    await app.command("cursor_up")
+    app.command("cursor_up")
     app.expect("#taskA1[data-cursor]").toExist()
   })
 
-  test("search selects correct card when target is oi task under oi section (Asana-like)", async () => {
+  test("search selects correct card when target is oi task under oi section (Asana-like)", () => {
     // Asana import structure: all nodes are oi
     // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
     // User views Project, searches for Task B -- cursor should land on Task B card
-    using app = await createTestApp(
+    using app = createTestApp(
       item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
       { incremental: false },
     )
 
-    await app.dispatch("search")
-    for (const ch of "task-beta") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "task-beta") app.press(ch)
+    app.press("Enter")
 
     app.expect("[data-dialog='search']").not.toExist()
     app.expect("#task-beta[data-cursor]").toExist()
   })
 
-  test("search for oi subtask zooms correctly and lands cursor on subtask", async () => {
+  test("search for oi subtask zooms correctly and lands cursor on subtask", () => {
     // Asana-like: Project > Section > Task > Subtask
     // User views Project, searches for Subtask -- should zoom to Section,
     // making Task a column and Subtask a card.
-    using app = await createTestApp(
+    using app = createTestApp(
       item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
       { incremental: false },
     )
 
-    await app.dispatch("search")
-    for (const ch of "my-subtask") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "my-subtask") app.press(ch)
+    app.press("Enter")
 
     app.expect("[data-dialog='search']").not.toExist()
     // Cursor should be on the subtask itself
@@ -1420,11 +1420,11 @@ describe("search flow via key presses", () => {
     expect(app.text).toContain("other-subtask")
   })
 
-  test("search selectedNode matches cursor after same-column SELECT", async () => {
+  test("search selectedNode matches cursor after same-column SELECT", () => {
     // Regression: when search SELECTs a card in the same column,
     // selectedNode should update to the new card (not stay on the old one).
     // This verifies the store's selectedNode is consistent with cursor.
-    using app = await createTestApp(item("root", item("col", item("first"), item("second"), item("third"))), {
+    using app = createTestApp(item("root", item("col", item("first"), item("second"), item("third"))), {
       incremental: false,
     })
 
@@ -1432,9 +1432,9 @@ describe("search flow via key presses", () => {
     app.expect("#first[data-cursor]").toExist()
 
     // Search for third (same column, different card)
-    await app.dispatch("search")
-    for (const ch of "third") await app.press(ch)
-    await app.press("Enter")
+    app.dispatch("search")
+    for (const ch of "third") app.press(ch)
+    app.press("Enter")
 
     // Cursor must move to third, not stay on first
     app.expect("#third[data-cursor]").toExist()

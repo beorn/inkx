@@ -34,9 +34,9 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
 }
 
 describe("P1: Navigation keys must not corrupt card text", () => {
-  test("h/l/j/k navigation does not insert characters into card content", async () => {
+  test("h/l/j/k navigation does not insert characters into card content", () => {
     // Create a board with columns and cards — simple case
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("Task Alpha"), item("Task Beta"), item("Task Gamma")),
@@ -49,18 +49,18 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(app.repo.getNode("Task Delta")?.content).toBe("Task Delta")
 
     // Navigate extensively
-    await app.press("l") // right to col2
-    await app.press("h") // back to col1
-    await app.press("j") // down to Task Beta
-    await app.press("j") // down to Task Gamma
-    await app.press("l") // right to col2
-    await app.press("j") // down to Task Epsilon
-    await app.press("k") // up to Task Delta
-    await app.press("h") // left to col1
-    await app.press("k") // up to Task Beta
-    await app.press("k") // up to Task Alpha
-    await app.press("l") // right again
-    await app.press("h") // left again
+    app.press("l") // right to col2
+    app.press("h") // back to col1
+    app.press("j") // down to Task Beta
+    app.press("j") // down to Task Gamma
+    app.press("l") // right to col2
+    app.press("j") // down to Task Epsilon
+    app.press("k") // up to Task Delta
+    app.press("h") // left to col1
+    app.press("k") // up to Task Beta
+    app.press("k") // up to Task Alpha
+    app.press("l") // right again
+    app.press("h") // left again
 
     // After all navigation, NO card content should be modified
     expect(app.repo.getNode("Task Alpha")?.content).toBe("Task Alpha")
@@ -70,10 +70,10 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(app.repo.getNode("Task Epsilon")?.content).toBe("Task Epsilon")
   })
 
-  test("navigation with body paragraphs does not corrupt text", async () => {
+  test("navigation with body paragraphs does not corrupt text", () => {
     // Cards with body content (paragraphs) — closer to real vault structure
     // The bug specifically affects body text during navigation
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -102,21 +102,21 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Navigate extensively — matching the real reproduction sequence
-    await app.press("l") // right to col2
-    await app.press("l") // right (boundary or further)
-    await app.press("h") // left
-    await app.press("h") // left
-    await app.press("h") // left (boundary)
-    await app.press("j") // down
-    await app.press("l") // right
-    await app.press("l") // right
-    await app.press("h") // left
-    await app.press("h") // left
-    await app.press("k") // up
-    await app.press("l") // right
-    await app.press("j") // down
-    await app.press("k") // up
-    await app.press("h") // left
+    app.press("l") // right to col2
+    app.press("l") // right (boundary or further)
+    app.press("h") // left
+    app.press("h") // left
+    app.press("h") // left (boundary)
+    app.press("j") // down
+    app.press("l") // right
+    app.press("l") // right
+    app.press("h") // left
+    app.press("h") // left
+    app.press("k") // up
+    app.press("l") // right
+    app.press("j") // down
+    app.press("k") // up
+    app.press("h") // left
 
     // After navigation, ALL paragraph content must be UNCHANGED
     // The bug would insert 'h', 'l', 'j', 'k' chars into paragraph text
@@ -132,8 +132,8 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(app.repo.getNode("More details about the fourth item")?.content).toBe("More details about the fourth item")
   })
 
-  test("view mode switching (v) does not corrupt card text", async () => {
-    using app = await createTestApp(
+  test("view mode switching (v) does not corrupt card text", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("Important task with long content")),
@@ -145,26 +145,26 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     const originalContent2 = app.repo.getNode("Another critical item here")?.content
 
     // Switch view modes and navigate — matches reproduction sequence
-    await app.press("l") // navigate right
-    await app.press("v")
-    await app.press("v") // switch to columns view
-    await app.press("v")
-    await app.press("v") // switch to tabs view
-    await app.press("v")
-    await app.press("v") // back to cards view
-    await app.press("h") // navigate left
-    await app.press("j") // navigate down (even if only one card)
-    await app.press("k") // navigate up
+    app.press("l") // navigate right
+    app.press("v")
+    app.press("v") // switch to columns view
+    app.press("v")
+    app.press("v") // switch to tabs view
+    app.press("v")
+    app.press("v") // back to cards view
+    app.press("h") // navigate left
+    app.press("j") // navigate down (even if only one card)
+    app.press("k") // navigate up
 
     // Content must remain unchanged
     expect(app.repo.getNode("Important task with long content")?.content).toBe(originalContent1)
     expect(app.repo.getNode("Another critical item here")?.content).toBe(originalContent2)
   })
 
-  test("zoom in/out (z/Z) with navigation does not corrupt card text", async () => {
+  test("zoom in/out (z/Z) with navigation does not corrupt card text", () => {
     // This test matches the exact reproduction: navigate, then zoom in with 'e',
     // and verify content before and after zoom
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -182,12 +182,12 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Navigate around
-    await app.press("l") // right to Tasks column
-    await app.press("j") // down to Task Two
-    await app.press("h") // left to Projects
-    await app.press("j") // down to Project Beta
-    await app.press("l") // right to Tasks
-    await app.press("k") // up to Task One
+    app.press("l") // right to Tasks column
+    app.press("j") // down to Task Two
+    app.press("h") // left to Projects
+    app.press("j") // down to Project Beta
+    app.press("l") // right to Tasks
+    app.press("k") // up to Task One
 
     // Verify content not corrupted BEFORE zoom
     expect(app.repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
@@ -196,18 +196,18 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(app.repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
 
     // Zoom in (z) then escape back out
-    await app.press("z") // zoom into Task One
+    app.press("z") // zoom into Task One
 
     // Content should still be intact after zoom
     expect(app.repo.getNode("First task details go here")?.content).toBe("First task details go here")
 
-    await app.press("Z") // exit zoom (zoom out)
+    app.press("Z") // exit zoom (zoom out)
 
     // Navigate more after zoom
-    await app.press("h")
-    await app.press("j")
-    await app.press("l")
-    await app.press("k")
+    app.press("h")
+    app.press("j")
+    app.press("l")
+    app.press("k")
 
     // All content still intact
     expect(app.repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
@@ -216,18 +216,18 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(app.repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
   })
 
-  test("search open/close (/ then Escape) does not corrupt card text", async () => {
-    using app = await createTestApp(
+  test("search open/close (/ then Escape) does not corrupt card text", () => {
+    using app = createTestApp(
       item("board", item("col1", item("Search target task")), item("col2", item("Another task here"))),
     )
 
     // Navigate, open search, close it, navigate more
-    await app.press("l") // right
-    await app.press("h") // left
-    await app.press("cmd+f") // open search
-    await app.press("Escape") // close search
-    await app.press("l") // right again
-    await app.press("h") // left again
+    app.press("l") // right
+    app.press("h") // left
+    app.press("cmd+f") // open search
+    app.press("Escape") // close search
+    app.press("l") // right again
+    app.press("h") // left again
 
     // Content must remain unchanged
     expect(app.repo.getNode("Search target task")?.content).toBe("Search target task")

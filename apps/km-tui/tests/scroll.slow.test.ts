@@ -267,7 +267,7 @@ describe("Horizontal scroll indicators", () => {
       item("col6", item("t6")),
     )
     // Width 80 => maxCols = floor(80/35) = 2. 6 columns > 2 => right indicator
-    using app = await createTestApp(nodes, { cols: 80, rows: 20 })
+    using app = createTestApp(nodes, { cols: 80, rows: 20 })
     // Check DOM for the indicator component
     const rightIndicator = app.locator('[data-scroll-indicator="right"]')
     expect(rightIndicator.count()).toBe(1)
@@ -275,7 +275,7 @@ describe("Horizontal scroll indicators", () => {
     expect(rightIndicator.textContent()).toContain("▸")
   })
 
-  test("shows left arrow after scrolling right", async () => {
+  test("shows left arrow after scrolling right", () => {
     const nodes = item.root(
       "board",
       item("col1", item("t1")),
@@ -285,12 +285,12 @@ describe("Horizontal scroll indicators", () => {
       item("col5", item("t5")),
       item("col6", item("t6")),
     )
-    using app = await createTestApp(nodes, { cols: 80, rows: 20 })
+    using app = createTestApp(nodes, { cols: 80, rows: 20 })
 
     // Navigate right past visible columns to trigger scroll
-    await app.press("l") // col 1
-    await app.press("l") // col 2 - should trigger scroll
-    await app.press("l") // col 3 - definitely scrolled
+    app.press("l") // col 1
+    app.press("l") // col 2 - should trigger scroll
+    app.press("l") // col 3 - definitely scrolled
 
     const ansi = app.driver.ansi
     const text = app.text
@@ -302,7 +302,7 @@ describe("Horizontal scroll indicators", () => {
   test("no indicators when all columns fit", () => {
     const nodes = item.root("board", item("col1", item("t1")), item("col2", item("t2")))
     // Width 80 => maxCols = 2. 2 columns = 2 => no overflow
-    using app = await createTestApp(nodes, { cols: 80, rows: 20 })
+    using app = createTestApp(nodes, { cols: 80, rows: 20 })
     const screen = app.text
     expect(screen).not.toContain("◂")
     expect(screen).not.toContain("▸")

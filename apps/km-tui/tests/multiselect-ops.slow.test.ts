@@ -41,30 +41,30 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 // =============================================================================
 
 describe("Multi-select delete", () => {
-  test("delete multiple selected empty cards", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
+  test("delete multiple selected empty cards", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Cursor starts on A. Move to B, then extend selection B→D (2 J presses).
-    await app.command("cursor_down") // → B (card 1)
-    await app.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
-    await app.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    app.command("cursor_down") // → B (card 1)
+    app.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    app.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // B, C, D should be gone
     expect(childIds(app.repo, "col1")).toEqual(["A", "E"])
   })
 
-  test("batch delete shows confirmation when any node has children", async () => {
-    using app = await createTestApp(
+  test("batch delete shows confirmation when any node has children", () => {
+    using app = createTestApp(
       item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    await app.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→parent
-    await app.press("shift+ArrowDown") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
+    app.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→parent
+    app.press("shift+ArrowDown") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
 
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Nothing deleted yet — confirmation dialog should be open
     expect(childIds(app.repo, "col1")).toContain("A")
@@ -72,57 +72,57 @@ describe("Multi-select delete", () => {
     expect(childIds(app.repo, "col1")).toContain("C")
   })
 
-  test("batch delete confirms and executes all nodes", async () => {
-    using app = await createTestApp(
+  test("batch delete confirms and executes all nodes", () => {
+    using app = createTestApp(
       item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    await app.press("shift+ArrowDown") // anchor=A, cursor→parent
-    await app.press("shift+ArrowDown") // range A→C, cursor→C
+    app.press("shift+ArrowDown") // anchor=A, cursor→parent
+    app.press("shift+ArrowDown") // range A→C, cursor→C
 
-    await app.press("Backspace") // triggers confirmation dialog
-    await app.press("Enter") // confirm delete
+    app.press("Backspace") // triggers confirmation dialog
+    app.press("Enter") // confirm delete
 
     // A, parent (with children), and C should all be deleted
     expect(childIds(app.repo, "col1")).toEqual(["D"])
   })
 
-  test("batch delete cursor moves to valid position after deletion", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
+  test("batch delete cursor moves to valid position after deletion", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
 
     // Cursor starts on A. Move to C, extend C→E (2 J presses).
-    await app.command("cursor_down") // → B
-    await app.command("cursor_down") // → C
-    await app.press("shift+ArrowDown") // anchor=C, cursor→D
-    await app.press("shift+ArrowDown") // range C→E, cursor→E
+    app.command("cursor_down") // → B
+    app.command("cursor_down") // → C
+    app.press("shift+ArrowDown") // anchor=C, cursor→D
+    app.press("shift+ArrowDown") // range C→E, cursor→E
 
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // C, D, E deleted; cursor should land on B (last remaining at edge)
     expect(childIds(app.repo, "col1")).toEqual(["A", "B"])
   })
 
-  test("batch delete clears selection", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+  test("batch delete clears selection", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Cursor starts on A. Select A→C (2 J presses).
-    await app.press("shift+ArrowDown") // anchor=A, cursor→B
-    await app.press("shift+ArrowDown") // range A→C, cursor→C
+    app.press("shift+ArrowDown") // anchor=A, cursor→B
+    app.press("shift+ArrowDown") // range A→C, cursor→C
 
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // A, B, C deleted. Only D remains.
     expect(childIds(app.repo, "col1")).toEqual(["D"])
   })
 
-  test("single card delete still works (no regression)", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+  test("single card delete still works (no regression)", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor starts on A. Move to B. No selection.
-    await app.command("cursor_down") // → B
+    app.command("cursor_down") // → B
 
-    await app.press("Backspace")
+    app.press("Backspace")
 
     expect(childIds(app.repo, "col1")).toEqual(["A", "C"])
   })
@@ -171,16 +171,16 @@ describe("Multi-select delete", () => {
 // =============================================================================
 
 describe("Multi-select status toggle", () => {
-  test("toggle status on multiple selected tasks", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+  test("toggle status on multiple selected tasks", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    await app.press("shift+ArrowDown") // anchor=A, cursor→B
-    await app.press("shift+ArrowDown") // range A→C, cursor→C
+    app.press("shift+ArrowDown") // anchor=A, cursor→B
+    app.press("shift+ArrowDown") // range A→C, cursor→C
 
-    await app.command("cycle_task_status") // batch toggle
+    app.command("cycle_task_status") // batch toggle
 
     // A, B, C should all advance to "wip"
     expect(nodeStatus(app.repo, "A")).toBe("wip")
@@ -191,19 +191,19 @@ describe("Multi-select status toggle", () => {
     expect(nodeStatus(app.repo, "D")).toBe("todo")
   })
 
-  test("batch status toggle preserves selection for repeated toggling", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+  test("batch status toggle preserves selection for repeated toggling", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    await app.press("shift+ArrowDown") // anchor=A, cursor→B
-    await app.press("shift+ArrowDown") // range A→C, cursor→C
+    app.press("shift+ArrowDown") // anchor=A, cursor→B
+    app.press("shift+ArrowDown") // range A→C, cursor→C
 
-    await app.command("cycle_task_status") // batch toggle: A→wip, B→wip, C→wip
+    app.command("cycle_task_status") // batch toggle: A→wip, B→wip, C→wip
 
     // Selection preserved: toggling again affects all selected cards
-    await app.command("cycle_task_status")
+    app.command("cycle_task_status")
     expect(nodeStatus(app.repo, "A")).toBe("blocked") // wip→blocked
     expect(nodeStatus(app.repo, "B")).toBe("blocked") // wip→blocked
     expect(nodeStatus(app.repo, "C")).toBe("blocked") // wip→blocked
@@ -212,24 +212,24 @@ describe("Multi-select status toggle", () => {
     expect(nodeStatus(app.repo, "D")).toBe("todo")
   })
 
-  test("batch status toggle with mixed statuses advances each independently", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+  test("batch status toggle with mixed statuses advances each independently", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Move to B and cycle it to "blocked" (todo→wip→blocked)
-    await app.command("cursor_down") // → B
-    await app.command("cycle_task_status") // todo→wip
-    await app.command("cycle_task_status") // wip→blocked
+    app.command("cursor_down") // → B
+    app.command("cycle_task_status") // todo→wip
+    app.command("cycle_task_status") // wip→blocked
 
     expect(nodeStatus(app.repo, "B")).toBe("blocked")
 
     // Move back to A. Select A→C (2 J presses). A=todo, B=blocked, C=todo.
-    await app.command("cursor_up") // → A
-    await app.press("shift+ArrowDown") // anchor=A, cursor→B
-    await app.press("shift+ArrowDown") // range A→C, cursor→C
+    app.command("cursor_up") // → A
+    app.press("shift+ArrowDown") // anchor=A, cursor→B
+    app.press("shift+ArrowDown") // range A→C, cursor→C
 
-    await app.command("cycle_task_status") // batch toggle
+    app.command("cycle_task_status") // batch toggle
 
     // Each advances from its own position
     expect(nodeStatus(app.repo, "A")).toBe("wip") // todo→wip
@@ -237,15 +237,15 @@ describe("Multi-select status toggle", () => {
     expect(nodeStatus(app.repo, "C")).toBe("wip") // todo→wip
   })
 
-  test("single card status toggle still works (no regression)", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B"))))
+  test("single card status toggle still works (no regression)", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
 
     setTaskStatus(app.repo, ["A", "B"])
 
     // Navigate to trigger re-render so command system picks up task_status
-    await app.command("cursor_down") // → B
-    await app.command("cursor_up") // → A
-    await app.command("cycle_task_status") // single toggle
+    app.command("cursor_down") // → B
+    app.command("cursor_up") // → A
+    app.command("cycle_task_status") // single toggle
 
     expect(nodeStatus(app.repo, "A")).toBe("wip")
     expect(nodeStatus(app.repo, "B")).toBe("todo") // unchanged

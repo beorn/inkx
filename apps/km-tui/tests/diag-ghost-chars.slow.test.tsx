@@ -151,14 +151,14 @@ describe("Ghost characters — cumulative terminal replay", () => {
 
     // Navigate down through all sections
     for (let i = 1; i < sections.length; i++) {
-      await app.press("j")
+      app.press("j")
       term.update(app.lastBuffer()!, `j → ${sections[i]!.title}`)
       firstVisit.push(app.text)
     }
 
     // Navigate all the way back up
     for (let i = sections.length - 2; i >= 0; i--) {
-      await app.press("k")
+      app.press("k")
       term.update(app.lastBuffer()!, `k → ${sections[i]!.title}`)
 
       // Screen should be identical to first visit of this section
@@ -174,26 +174,26 @@ describe("Ghost characters — cumulative terminal replay", () => {
     term.update(app.lastBuffer()!, "initial (Rich Text)")
 
     // Rich Text (5 lines) → Tags (2 lines) — big shrink
-    await app.press("j")
+    app.press("j")
     term.update(app.lastBuffer()!, "j → Tags")
 
     // Tags → Rich Text — back to long
-    await app.press("k")
+    app.press("k")
     term.update(app.lastBuffer()!, "k → Rich Text")
 
     // Again: Rich Text → Tags → Fold Markers → Tags → Rich Text
-    await app.press("j")
+    app.press("j")
     term.update(app.lastBuffer()!, "j → Tags (2nd)")
-    await app.press("j")
+    app.press("j")
     term.update(app.lastBuffer()!, "j → Fold Markers")
-    await app.press("k")
+    app.press("k")
     term.update(app.lastBuffer()!, "k → Tags (3rd)")
-    await app.press("k")
+    app.press("k")
     term.update(app.lastBuffer()!, "k → Rich Text (3rd)")
 
     // Rapid bounce: j j k k j j k k
     for (const key of ["j", "j", "k", "k", "j", "j", "k", "k"]) {
-      await app.press(key)
+      app.press(key)
       term.update(app.lastBuffer()!, `rapid ${key}`)
     }
   })

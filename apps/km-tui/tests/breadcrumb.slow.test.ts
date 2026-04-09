@@ -233,8 +233,8 @@ describe("breadcrumb ANSI replay on h/l navigation", () => {
 // =============================================================================
 
 describe("P2: Breadcrumb ghost prefix after navigation", () => {
-  test("top-bar breadcrumb has no ghost prefix after horizontal navigation", async () => {
-    using app = await createTestApp(
+  test("top-bar breadcrumb has no ghost prefix after horizontal navigation", () => {
+    using app = createTestApp(
       item(
         "board",
         item("Alpha Column", item("a1"), item("a2")),
@@ -249,36 +249,36 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     expect(initialTopBar).toContain("board")
 
     // Navigate right into columns and back
-    await app.command("cursor_right") // move to Beta Column
+    app.command("cursor_right") // move to Beta Column
     const topBarAtBeta = app.q("#top-bar").textContent()
     expect(topBarAtBeta).toContain("Beta Column")
     expect(topBarAtBeta).not.toContain("ABeta")
 
-    await app.command("cursor_right") // move to Gamma Column
+    app.command("cursor_right") // move to Gamma Column
     const topBarAtGamma = app.q("#top-bar").textContent()
     expect(topBarAtGamma).toContain("Gamma Column")
     expect(topBarAtGamma).not.toContain("BGamma")
 
-    await app.command("cursor_left") // back to Beta Column
+    app.command("cursor_left") // back to Beta Column
     const topBarAfterBack1 = app.q("#top-bar").textContent()
     expect(topBarAfterBack1).toContain("Beta Column")
     expect(topBarAfterBack1).not.toContain("GBeta")
 
-    await app.command("cursor_left") // back to Alpha Column
+    app.command("cursor_left") // back to Alpha Column
     const topBarAfterBack2 = app.q("#top-bar").textContent()
     expect(topBarAfterBack2).toContain("Alpha Column")
     expect(topBarAfterBack2).not.toContain("BAlpha")
   })
 
-  test("breadcrumb screen buffer has no ghost chars after navigation", async () => {
+  test("breadcrumb screen buffer has no ghost chars after navigation", () => {
     // Verify at the screen/buffer level -- the actual rendered output
-    using app = await createTestApp(item("board", item("Projects", item("p1")), item("TaskNotes", item("t1"))), {
+    using app = createTestApp(item("board", item("Projects", item("p1")), item("TaskNotes", item("t1"))), {
       cols: 80,
       rows: 24,
     })
 
     // Navigate to TaskNotes column then back
-    await app.command("cursor_right") // to TaskNotes
+    app.command("cursor_right") // to TaskNotes
 
     // Capture screen at TaskNotes - top bar should show TaskNotes, not "PTaskNotes"
     const screenAtTask = app.text
@@ -286,7 +286,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     expect(topLineAtTask).toContain("TaskNotes")
     expect(topLineAtTask).not.toContain("PTaskNotes")
 
-    await app.command("cursor_left") // back to Projects
+    app.command("cursor_left") // back to Projects
 
     // Check screen for ghost prefix: "TProjects" would indicate bleed
     const screenBack = app.text
@@ -298,18 +298,18 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
   test("top-bar text shrinks cleanly without trailing ghost chars", async () => {
     // When switching from a long path to a short path, the buffer should
     // not show leftover chars from the longer text
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("Short", item("s1")), item("VeryLongColumnNameThatTakesSpace", item("v1"))),
       { cols: 80, rows: 24 },
     )
 
     // Navigate to the long-named column
-    await app.command("cursor_right") // to VeryLongColumnNameThatTakesSpace
+    app.command("cursor_right") // to VeryLongColumnNameThatTakesSpace
     const topBarLong = app.q("#top-bar").textContent()
     expect(topBarLong).toContain("VeryLongColumnNameThatTakesSpace")
 
     // Navigate back to the short-named column
-    await app.command("cursor_left") // to Short
+    app.command("cursor_left") // to Short
     const topBarShort = app.q("#top-bar").textContent()
     expect(topBarShort).toContain("Short")
 
@@ -375,9 +375,9 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
 // =============================================================================
 
 describe("Breadcrumb path when zoomed deep", () => {
-  test("top bar shows ancestor path after zooming into a card", async () => {
+  test("top bar shows ancestor path after zooming into a card", () => {
     // hierarchy: board > col > section > subsection > items
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col", item("section", item("subsection", item("task-a"), item("task-b"))))),
       { cols: 120, rows: 24 },
     )
@@ -387,7 +387,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(initialTopBar).toContain("board")
 
     // Zoom into "section" (e on card with children)
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     // Now section is the root, subsection should be a column
     app.expect("#subsection").toExist()
 
@@ -396,8 +396,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(zoomedTopBar).toContain("section")
   })
 
-  test("top bar shows full ancestor breadcrumb path when zoomed two levels deep", async () => {
-    using app = await createTestApp(
+  test("top bar shows full ancestor breadcrumb path when zoomed two levels deep", () => {
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -409,11 +409,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom into Frontend
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     app.expect("#React").toExist()
 
     // Zoom into React
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     app.expect("#hooks").toExist()
 
     const topBar = app.q("#top-bar").textContent()
@@ -424,8 +424,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain("React")
   })
 
-  test("breadcrumb truncates from left when path is too long for terminal width", async () => {
-    using app = await createTestApp(
+  test("breadcrumb truncates from left when path is too long for terminal width", () => {
+    using app = createTestApp(
       item(
         "VeryLongBoardNameThatEatsSpace",
         item(
@@ -437,8 +437,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom deep
-    await app.command("zoom_inwards") // into VeryLongSectionNameHere
-    await app.command("zoom_inwards") // into VeryLongSubsectionName
+    app.command("zoom_inwards") // into VeryLongSectionNameHere
+    app.command("zoom_inwards") // into VeryLongSubsectionName
 
     const topBar = app.q("#top-bar").textContent()
     // Path should be truncated with ellipsis when it doesn't fit
@@ -447,14 +447,14 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain("DeepAlpha")
   })
 
-  test("breadcrumb uses dim style for ancestors and bold for board root", async () => {
-    using app = await createTestApp(item("board", item("col", item("parent", item("child", item("gc-a"), item("gc-b"))))), {
+  test("breadcrumb uses dim style for ancestors and bold for board root", () => {
+    using app = createTestApp(item("board", item("col", item("parent", item("child", item("gc-a"), item("gc-b"))))), {
       cols: 120,
       rows: 24,
     })
 
     // Zoom into parent
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     app.expect("#child").toExist()
 
     // The top bar should contain all ancestors
@@ -462,36 +462,36 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain("parent")
   })
 
-  test("breadcrumb updates when zooming out with Z", async () => {
-    using app = await createTestApp(
+  test("breadcrumb updates when zooming out with Z", () => {
+    using app = createTestApp(
       item("board", item("col", item("level1", item("level2", item("level3", item("deep")))))),
       { cols: 120, rows: 24 },
     )
 
     // Zoom in twice
-    await app.command("zoom_inwards") // into level1
-    await app.command("zoom_inwards") // into level2
+    app.command("zoom_inwards") // into level1
+    app.command("zoom_inwards") // into level2
     let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
     // Zoom out
-    await app.command("zoom_outwards")
+    app.command("zoom_outwards")
     topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
     // level2 should still be visible as it's now a column
     expect(topBar).toContain("level2")
   })
 
-  test("within-board segments use > separator for clear hierarchy", async () => {
+  test("within-board segments use > separator for clear hierarchy", () => {
     // Within-board segments use > separator to distinguish hierarchy
     // from filesystem path (which uses / and #)
-    using app = await createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+    using app = createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
       cols: 120,
       rows: 24,
     })
 
     // Navigate into column to see card-level path
-    await app.command("cursor_down") // select card
+    app.command("cursor_down") // select card
     const topBar = app.q("#top-bar").textContent()
     // Path should show board > col > card with > separators for within-board segments
     expect(topBar).toContain("board")
@@ -501,10 +501,10 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain(">")
   })
 
-  test("breadcrumb shows zoom context after deep search jump", async () => {
+  test("breadcrumb shows zoom context after deep search jump", () => {
     // Simulates what happens after a search navigates to a deep node:
     // the user zooms into the found location and needs to see where they are
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "root",
         item(
@@ -517,11 +517,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom to Work level (simulating what search does)
-    await app.command("zoom_inwards") // zoom into Work
+    app.command("zoom_inwards") // zoom into Work
     app.expect("#Immigration").toExist()
 
     // Zoom into Immigration
-    await app.command("zoom_inwards")
+    app.command("zoom_inwards")
     app.expect("#form-i130").toExist()
 
     // Top bar should show the full path so user knows where they are
@@ -567,7 +567,7 @@ describe("zoom-mismatch: multi-line paragraph text bleed", () => {
     // A heading card with:
     //   1. A paragraph child with multi-line content (URLs + wikilink)
     //   2. Task children with clean content
-    using app = await createTestApp(
+    using app = createTestApp(
       item.root(
         "board",
         item(

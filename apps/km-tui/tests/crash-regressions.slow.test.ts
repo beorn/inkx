@@ -18,8 +18,8 @@ const FAST = { checkIncremental: false } as const
 // ---------------------------------------------------------------------------
 
 describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
-  test("pressing C (hide_node) does not crash on fake repo", async () => {
-    using app = await createTestApp(
+  test("pressing C (hide_node) does not crash on fake repo", () => {
+    using app = createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 80, rows: 24, ...FAST },
     )
@@ -30,8 +30,8 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
     // Press gC to ignore node — should not throw
     let threw = false
     try {
-      await app.press("v")
-      await app.command("fold_more")
+      app.press("v")
+      app.command("fold_more")
     } catch {
       threw = true
     }
@@ -44,14 +44,14 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
     expect(after).not.toContain("EROFS")
   })
 
-  test("pressing C shows error toast instead of crashing", async () => {
-    using app = await createTestApp(
+  test("pressing C shows error toast instead of crashing", () => {
+    using app = createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 80, rows: 24, ...FAST },
     )
 
-    await app.press("v")
-    await app.command("fold_more")
+    app.press("v")
+    app.command("fold_more")
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render
@@ -64,31 +64,31 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
 // ---------------------------------------------------------------------------
 
 describe("Open in System crash when repo.data is null (km-otgyy)", () => {
-  test("pressing go does not crash when repo.data is null", async () => {
-    using app = await createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
+  test("pressing go does not crash when repo.data is null", () => {
+    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     // This should NOT throw — it should handle missing repo.data gracefully
     let threw = false
     try {
-      await app.command("open_in_system")
+      app.command("open_in_system")
     } catch {
       threw = true
     }
     expect(threw).toBe(false)
   })
 
-  test("pressing gO (open in terminal) does not crash when repo.data is null", async () => {
-    using app = await createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
+  test("pressing gO (open in terminal) does not crash when repo.data is null", () => {
+    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
-    await app.command("cursor_down")
+    app.command("cursor_down")
 
     // Same issue: handleOpenInTerminal also calls resolveNodeFsPath
     let threw = false
     try {
-      await app.command("open_in_terminal")
+      app.command("open_in_terminal")
     } catch {
       threw = true
     }
@@ -101,8 +101,8 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
 // ---------------------------------------------------------------------------
 
 describe("h/l at boundary crash (km-cwn2)", () => {
-  test("h/l at right boundary doesn't crash", async () => {
-    using app = await createTestApp(
+  test("h/l at right boundary doesn't crash", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -116,26 +116,26 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     app.expect("#1a[data-cursor]").toExist()
 
     // Move right to col2
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#2a[data-cursor]").toExist()
 
     // Move right to col3
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#3a[data-cursor]").toExist()
 
     // Try to move right past boundary (should not crash)
-    await app.command("cursor_right")
+    app.command("cursor_right")
     app.expect("#3a[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      await app.command("cursor_right")
+      app.command("cursor_right")
       app.expect("#3a[data-cursor]").toExist()
     }
   })
 
-  test("h at left boundary doesn't crash", async () => {
-    using app = await createTestApp(
+  test("h at left boundary doesn't crash", () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("1a"), item("1b")),
@@ -149,16 +149,16 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     app.expect("#1a[data-cursor]").toExist()
 
     // h at leftmost card goes to column header (not boundary)
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#col1[data-cursor]").toExist()
 
     // h at column header is boundary - should not crash
-    await app.command("cursor_left")
+    app.command("cursor_left")
     app.expect("#col1[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      await app.command("cursor_left")
+      app.command("cursor_left")
       app.expect("#col1[data-cursor]").toExist()
     }
   })
@@ -170,7 +170,7 @@ describe("h/l at boundary crash (km-cwn2)", () => {
 
 describe("card index out of bounds on h (km-53uqt)", () => {
   test("h does not throw after mixed operations that change column sizes", { timeout: 30_000 }, async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -214,14 +214,14 @@ describe("card index out of bounds on h (km-53uqt)", () => {
         // This is "h" and should NOT throw — card index must be clamped
         let threw = false
         try {
-          await app.press(op)
+          app.press(op)
         } catch {
           threw = true
         }
         expect(threw).toBe(false)
       } else {
         try {
-          await app.press(op)
+          app.press(op)
         } catch {
           inEdit = false
         }
@@ -235,17 +235,17 @@ describe("card index out of bounds on h (km-53uqt)", () => {
 // ---------------------------------------------------------------------------
 
 describe("stale-cursor-after-delete-all", () => {
-  test("deleting all cards in column should not leave stale cursor", async () => {
-    using app = await createTestApp(item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
+  test("deleting all cards in column should not leave stale cursor", () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
 
     // Delete A (cursor moves to B)
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Delete B (col1 now empty — cursor should move to col header or col2)
-    await app.press("Backspace")
+    app.press("Backspace")
 
     // Navigate to col2 — should NOT produce console.error about stale cursor
-    await app.command("cursor_right")
+    app.command("cursor_right")
 
     // C should be visible and cursor should be on it
     app.expectScreen("C")
@@ -257,8 +257,8 @@ describe("stale-cursor-after-delete-all", () => {
 // ---------------------------------------------------------------------------
 
 describe("Pane close crash (km-tui.pane-close-crash)", () => {
-  test("split then close last board pane is prevented (bells instead of crash)", async () => {
-    using app = await createTestApp(
+  test("split then close last board pane is prevented (bells instead of crash)", () => {
+    using app = createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 120, rows: 24, ...FAST },
     )
@@ -269,7 +269,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     // Split pane: vs (creates empty pane, focus stays on board pane)
     let threw = false
     try {
-      await app.command("pane_split_vertical")
+      app.command("pane_split_vertical")
     } catch {
       threw = true
     }
@@ -278,7 +278,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     // Try to close last board pane: vw — should be prevented (bell)
     threw = false
     try {
-      await app.command("pane_close")
+      app.command("pane_close")
     } catch {
       threw = true
     }
@@ -289,18 +289,18 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
   })
 
   test("split, focus empty pane, close empty pane works", async () => {
-    using app = await createTestApp(
+    using app = createTestApp(
       item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
       { cols: 120, rows: 24, ...FAST },
     )
 
     // Split pane: vs (creates empty pane)
-    await app.command("pane_split_vertical")
+    app.command("pane_split_vertical")
 
     // Focus the empty pane: vl (focus right) — should not crash
     let threw = false
     try {
-      await app.command("pane_focus_right")
+      app.command("pane_focus_right")
     } catch {
       threw = true
     }
@@ -309,7 +309,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     // Close the empty pane: vw
     threw = false
     try {
-      await app.command("pane_close")
+      app.command("pane_close")
     } catch {
       threw = true
     }
