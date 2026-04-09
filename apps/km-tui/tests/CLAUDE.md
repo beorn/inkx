@@ -4,6 +4,10 @@
 
 This is the largest test directory (~112 files). Tests here verify what the user sees and what gets saved — the full pipeline from keypress to rendered screen to persisted data.
 
+## Writing new tests
+
+New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The legacy `testEnv`/`testEnvWithRepo` API is `@deprecated` — it remains only for the FREEZE bucket in `km-all.test-system` bead (mouse, bell, expectNodeBorder, PTY, and a few smoke tests).
+
 ## What to Test Here
 
 - User journeys: multi-step sequences of keypresses → verify screen output AND persisted data
@@ -145,9 +149,9 @@ Navigate directly to a card by name instead of chaining cursor commands:
 board.navigateTo("task-name") // instead of repeated board.command("cursor_down")
 ```
 
-### Prefer `board.app()` for New Tests
+### `board.app()` for Exploration / AI Driver Use
 
-The `board.app()` DSL (from `helpers/board-app.ts`) is the preferred way to set up fixtures in new tests — it's concise and supports spatial queries:
+The `board.app()` DSL (from `helpers/board-app.ts`) is used by exploration and AI driver flows where spatial queries and auto-checked invariants are needed. For regular journey tests, prefer `createTestApp()` — see "Writing new tests" at the top of this file.
 
 ```typescript
 const app = board.app(["Todo > Task 1", "Done > Task 2"])
@@ -304,8 +308,8 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## Efficiency
 
-- **Use `testEnv()` with `createFakeRepo()`** — in-memory, no disk I/O. Never use `withTestEnv()` (real DB) in fast TUI tests.
-- **Share fixtures**: If multiple tests use the same `item()` tree, combine into a journey test with one `testEnv()` call. Each `testEnv()` costs ~1.8s import overhead per file.
+- **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. Legacy `testEnv()` is `@deprecated` and only retained for the FREEZE bucket in `km-all.test-system`.
+- **Share fixtures**: If multiple tests use the same `item()` tree, combine into a journey test with one `createTestApp()` call. Each test-app creation costs ~1.8s import overhead per file.
 - **Prefer lower layers**: If your test doesn't need screen assertions, write it in km-board (pure state) or km-storage (pipeline) instead — cheaper and faster.
 - **Tests >5s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.
 - **Tests with >100 nodes or >100 iterations → `.bench.ts`**. Never `.test.ts`.

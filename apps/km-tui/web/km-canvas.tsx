@@ -232,8 +232,8 @@ function findCardAtPixel(
 
   for (let ci = 0; ci < numColumns; ci++) {
     const col = columnsContainer.children[ci]
-    if (!col?.renderRect) continue
-    const colRect = col.renderRect
+    if (!col?.screenRect) continue
+    const colRect = col.screenRect
     if (pixelX < colRect.x || pixelX >= colRect.x + colRect.width) continue
 
     // Found the column — now find the card
@@ -242,8 +242,8 @@ function findCardAtPixel(
 
     for (let ri = 0; ri < cardsContainer.children.length; ri++) {
       const card = cardsContainer.children[ri]
-      if (!card?.renderRect) continue
-      const r = card.renderRect
+      if (!card?.screenRect) continue
+      const r = card.screenRect
       if (pixelY >= r.y && pixelY < r.y + r.height) {
         return { colIdx: ci, cardIdx: ri }
       }
@@ -264,10 +264,10 @@ function scrollToCursor(colIdx: number, cardIdx: number, instant?: boolean) {
     const root = instance.getRoot()
     if (root) {
       const cardNode = findCardNode(root, colIdx, cardIdx)
-      if (cardNode?.renderRect) {
-        // In proportional mode, renderRect coords are already in CSS pixels
-        const pixelY = cardNode.renderRect.y
-        const pixelH = cardNode.renderRect.height
+      if (cardNode?.screenRect) {
+        // In proportional mode, screenRect coords are already in CSS pixels
+        const pixelY = cardNode.screenRect.y
+        const pixelH = cardNode.screenRect.height
         const viewTop = viewport.scrollTop
         const viewBottom = viewTop + viewport.clientHeight
         const padding = 40

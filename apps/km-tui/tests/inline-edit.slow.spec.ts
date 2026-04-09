@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: board.click(x,y) for cursor positioning
 /**
  * Inline Edit Acceptance Tests
  *

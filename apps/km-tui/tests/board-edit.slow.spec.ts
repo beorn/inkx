@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: createBoardDriver internals + store
 /**
  * Board Acceptance Tests - Edit & Move Operations
  *

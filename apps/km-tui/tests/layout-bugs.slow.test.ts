@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: expectNodeBorder pixel-level
 /**
  * Layout/rendering bug regression tests
  *

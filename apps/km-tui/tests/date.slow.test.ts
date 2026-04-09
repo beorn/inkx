@@ -1,4 +1,5 @@
 /* oxlint-disable complexity/complexity -- Test file with nested assertions */
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: MemoryStore + createBareRepo + act for time mocking
 /**
  * Date, priority, and recurrence tests: badge display, date prompt dialog,
  * priority cycling, due date filtering for @next board.

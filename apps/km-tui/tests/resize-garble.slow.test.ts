@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: createBoardDriver + store internals
 /**
  * Resize garble regression test.
  *

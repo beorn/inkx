@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: bell + act for feature-level integration tests
 /**
  * Board Feature Tests - Display, Search, Content, Folding, etc.
  *

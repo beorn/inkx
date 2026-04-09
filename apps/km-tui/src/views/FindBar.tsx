@@ -63,6 +63,11 @@ export function FindBar({ localSearch, width, onQueryChange }: FindBarProps): Re
   return (
     <Box
       id="find-bar"
+      testID="find-bar"
+      data-query={query}
+      data-match-count={matchCount}
+      data-match-index={matchIndex}
+      data-input-active={isInputActive || undefined}
       flexShrink={0}
       width={width}
       height={1}

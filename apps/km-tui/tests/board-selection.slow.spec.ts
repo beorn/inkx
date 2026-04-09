@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: bell + expectNodeBorder/Color for visual selection feedback
 /**
  * Board Acceptance Tests - Selection
  *

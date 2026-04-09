@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: createBoardDriver + _result
 /**
  * Breadcrumb tests -- navigation, zoom, ghost chars, text bleed, ANSI replay.
  *

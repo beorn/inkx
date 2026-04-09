@@ -1,18 +1,15 @@
 /**
- * Board App — createApp() definition (Layer 3)
+ * Board App — THE public API for the km-tui board application.
  *
- * Defines the board application with signal store + term:key/term:mouse event handlers.
- * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
- * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
+ * `createBoardApp(storeParams)` is the canonical entry point for tests and the CLI.
+ * It returns an app definition that can be `.run()` with a React element.
+ * See the "Internals" section at the bottom for the handler factory, helpers, and types.
  */
 
 import { createApp, type EventHandlerContext } from "@silvery/create/create-app"
 import type { Key, ParsedMouse, FocusManager, AgNode } from "@silvery/ag-react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
 import { createLogger } from "loggily"
-
-/** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
-type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import type { ID } from "@silvery/selection"
 import { isErr, type KNode } from "@km/core"
 import type { BoardAppStore } from "../state/board-app-store.ts"
@@ -37,29 +34,13 @@ import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
 
-// =============================================================================
-// Board App — THE public API
-// =============================================================================
-
 /**
- * Create the board app definition.
- *
- * TODO(km-canonical): Migrate to pipe() composition. Currently uses createApp()
- * with an event handler map, which couples store creation and event wiring.
- * The pipe() migration would separate these concerns:
- *   pipe(
- *     createApp(storeCreator),
- *     withReact(<BoardApp />),
- *     withTerminal(process, { mouse, kitty, ... }),
- *     withFocus(),
- *     withDomEvents(),
- *   )
- * This requires createApp() to support deferred event handler registration
- * (e.g., via a withEventHandlers() plugin) so term:key/term:mouse/term:resize
- * handlers can be composed as plugins rather than constructor args.
+ * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
+ * reaching into handlers/state directly (tests, CLI, and fixtures should all
+ * call `createBoardApp()`).
  *
  * @param storeParams - Parameters for creating the initial store state
- * @returns AppDefinition that can be .run() with a React element
+ * @returns AppDefinition that can be `.run()` with a React element
  */
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
   let exitFn: (() => void) | null = null

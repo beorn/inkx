@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: bell + createUndoStack/createUndoableRepo helpers
 /**
  * Undo/Redo Tests
  *
