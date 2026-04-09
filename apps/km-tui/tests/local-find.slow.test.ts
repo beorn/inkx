@@ -8,6 +8,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Local Find", () => {
@@ -39,12 +40,12 @@ describe("Local Find", () => {
     expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
-  test("find bar disappears from screen after Escape", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.command("local_find")
-    board.expect("#find-bar").toExist()
-    board.press("Escape")
-    board.expect("#find-bar").not.toExist()
+  test("find bar disappears from screen after Escape", async () => {
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    await app.command("local_find")
+    app.expect("#find-bar").toExist()
+    await app.press("Escape")
+    app.expect("#find-bar").not.toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -65,24 +66,22 @@ describe("Local Find", () => {
     expect(ls!.matchNodeIds).toContain("box")
   })
 
-  test("match count displays on screen", () => {
-    const { board } = testEnv(() => item("board", item("col", item("fox"), item("box"), item("dog"))))
-    board.command("local_find")
+  test("match count displays on screen", async () => {
+    using app = createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
+    await app.command("local_find")
     // Type "ox" — matches fox, box
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    const output = board.screenshot()
-    expect(output).toContain("1 of 2")
+    await app.command("insert_below")
+    await app.command("toggle_task_done")
+    expect(app.text).toContain("1 of 2")
   })
 
-  test("no matches shows 'No matches' indicator", () => {
-    const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
-    board.command("local_find")
-    board.command("zoom_inwards")
-    board.command("zoom_inwards")
-    board.command("zoom_inwards")
-    const output = board.screenshot()
-    expect(output).toContain("No matches")
+  test("no matches shows 'No matches' indicator", async () => {
+    using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
+    await app.command("local_find")
+    await app.command("zoom_inwards")
+    await app.command("zoom_inwards")
+    await app.command("zoom_inwards")
+    expect(app.text).toContain("No matches")
   })
 
   test("search is case-insensitive", () => {
@@ -209,18 +208,18 @@ describe("Local Find", () => {
   // Match indicator updates
   // ---------------------------------------------------------------------------
 
-  test("match indicator updates as query changes", () => {
-    const { board } = testEnv(() => item("board", item("col", item("fox"), item("foxy"), item("dog"))))
-    board.command("local_find")
+  test("match indicator updates as query changes", async () => {
+    using app = createTestApp(item("board", item("col", item("fox"), item("foxy"), item("dog"))))
+    await app.command("local_find")
     // "fox" matches fox and foxy
-    board.press("f")
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    expect(board.screenshot()).toContain("1 of 2")
+    await app.press("f")
+    await app.command("insert_below")
+    await app.command("toggle_task_done")
+    expect(app.text).toContain("1 of 2")
 
     // Add "y" to narrow to only "foxy"
-    board.press("y")
-    expect(board.screenshot()).toContain("1 of 1")
+    await app.press("y")
+    expect(app.text).toContain("1 of 1")
   })
 
   test("clearing query resets match count", () => {

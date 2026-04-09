@@ -13,6 +13,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Escape Layering", () => {
@@ -262,61 +263,61 @@ describe("Escape Layering", () => {
   // text.exit_edit. Fix: find_close requires not(isInlineEditing).
   // ---------------------------------------------------------------------------
 
-  test("single Escape exits inline edit mode to normal mode", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+  test("single Escape exits inline edit mode to normal mode", async () => {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
-    board.press("Enter") // enter edit mode
+    await app.press("Enter") // enter edit mode
 
     // Single Escape should exit edit mode
-    board.press("Escape")
+    await app.press("Escape")
 
     // Verify we're back in normal mode by pressing j to navigate
-    board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
+    await app.command("cursor_down")
+    app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("single Escape after typing saves and exits to normal mode", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+  test("single Escape after typing saves and exits to normal mode", async () => {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
-    board.press("Enter")
-    board.command("toggle_task_done")
-    board.press("y")
+    await app.press("Enter")
+    await app.command("toggle_task_done")
+    await app.press("y")
 
     // Single Escape should save and exit
-    board.press("Escape")
+    await app.press("Escape")
 
     // Content should be saved
-    expect(repo.getNode("1a")?.content).toBe("1axy")
+    expect(app.repo.getNode("1a")?.content).toBe("1axy")
 
     // Should be in normal mode — j navigates
-    board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
+    await app.command("cursor_down")
+    app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("Escape exits edit mode even with local find results visible (regression)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+  test("Escape exits edit mode even with local find results visible (regression)", async () => {
+    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
 
     // Do a local find (/) to set localSearch state
-    board.command("local_find") // open find bar
+    await app.command("local_find") // open find bar
 
     // Type a search term and confirm to keep results visible
-    board.press("a")
-    board.press("Enter") // confirm find — keeps matches, closes input
+    await app.press("a")
+    await app.press("Enter") // confirm find — keeps matches, closes input
 
     // Now enter edit mode on the card
-    board.press("Enter") // edit card "alpha"
+    await app.press("Enter") // edit card "alpha"
 
     // Type something
-    board.press("!")
+    await app.press("!")
 
     // Single Escape should exit edit mode (not close find results)
-    board.press("Escape")
+    await app.press("Escape")
 
     // Content should be saved
-    expect(repo.getNode("alpha")?.content).toBe("alpha!")
+    expect(app.repo.getNode("alpha")?.content).toBe("alpha!")
 
     // Should be in normal mode — j navigates
-    board.command("cursor_down")
-    board.expect("#beta[data-cursor]").toExist()
+    await app.command("cursor_down")
+    app.expect("#beta[data-cursor]").toExist()
   })
 })
