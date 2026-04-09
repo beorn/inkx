@@ -7,7 +7,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 /** Crash-regression tests don't need incremental rendering verification. */
 const FAST = { checkIncremental: false } as const
@@ -17,40 +18,44 @@ const FAST = { checkIncremental: false } as const
 // ---------------------------------------------------------------------------
 
 describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
-  function makeBoard() {
-    return testEnv(() => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))), {
-      columns: 80,
-      rows: 24,
-      ...FAST,
-    })
-  }
-
-  test("pressing C (hide_node) does not crash on fake repo", () => {
-    const { board } = makeBoard()
+  test("pressing C (hide_node) does not crash on fake repo", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { cols: 80, rows: 24, ...FAST },
+    )
 
     // Cursor should be on first card
-    const before = board.screenshot()
-    expect(before).toContain("Task A")
+    app.expectScreen("Task A")
 
     // Press gC to ignore node — should not throw
-    expect(() => board.press("v").command("fold_more")).not.toThrow()
+    let threw = false
+    try {
+      await app.press("v")
+      await app.command("fold_more")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
 
     // Board should still be usable
-    const after = board.screenshot()
+    const after = app.text
     expect(after).not.toContain("[object Object]")
     expect(after).not.toContain("TypeError")
     expect(after).not.toContain("EROFS")
   })
 
-  test("pressing C shows error toast instead of crashing", () => {
-    const { board } = makeBoard()
+  test("pressing C shows error toast instead of crashing", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { cols: 80, rows: 24, ...FAST },
+    )
 
-    board.press("v").command("fold_more")
+    await app.press("v")
+    await app.command("fold_more")
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render
-    const text = board.screenshot()
-    expect(text).toContain("col1")
+    app.expectScreen("col1")
   })
 })
 
@@ -59,23 +64,35 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
 // ---------------------------------------------------------------------------
 
 describe("Open in System crash when repo.data is null (km-otgyy)", () => {
-  test("pressing go does not crash when repo.data is null", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
+  test("pressing go does not crash when repo.data is null", async () => {
+    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
-    board.command("cursor_down")
+    await app.command("cursor_down")
 
     // This should NOT throw — it should handle missing repo.data gracefully
-    expect(() => board.command("open_in_system")).not.toThrow()
+    let threw = false
+    try {
+      await app.command("open_in_system")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
   })
 
-  test("pressing gO (open in terminal) does not crash when repo.data is null", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
+  test("pressing gO (open in terminal) does not crash when repo.data is null", async () => {
+    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
-    board.command("cursor_down")
+    await app.command("cursor_down")
 
     // Same issue: handleOpenInTerminal also calls resolveNodeFsPath
-    expect(() => board.command("open_in_terminal")).not.toThrow()
+    let threw = false
+    try {
+      await app.command("open_in_terminal")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
   })
 })
 
@@ -84,67 +101,65 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
 // ---------------------------------------------------------------------------
 
 describe("h/l at boundary crash (km-cwn2)", () => {
-  test("h/l at right boundary doesn't crash", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
-        ),
+  test("h/l at right boundary doesn't crash", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a"), item("3b")),
+      ),
       FAST,
     )
 
     // Start at first card
-    board.expect("#1a[data-cursor]").toExist()
+    app.expect("#1a[data-cursor]").toExist()
 
     // Move right to col2
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#2a[data-cursor]").toExist()
 
     // Move right to col3
-    board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#3a[data-cursor]").toExist()
 
     // Try to move right past boundary (should not crash)
-    board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#3a[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      board.command("cursor_right")
-      board.expect("#3a[data-cursor]").toExist()
+      await app.command("cursor_right")
+      app.expect("#3a[data-cursor]").toExist()
     }
   })
 
-  test("h at left boundary doesn't crash", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
-        ),
+  test("h at left boundary doesn't crash", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a"), item("3b")),
+      ),
       FAST,
     )
 
     // Start at first card
-    board.expect("#1a[data-cursor]").toExist()
+    app.expect("#1a[data-cursor]").toExist()
 
     // h at leftmost card goes to column header (not boundary)
-    board.command("cursor_left")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.command("cursor_left")
+    app.expect("#col1[data-cursor]").toExist()
 
     // h at column header is boundary - should not crash
-    board.command("cursor_left")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.command("cursor_left")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      board.command("cursor_left")
-      board.expect("#col1[data-cursor]").toExist()
+      await app.command("cursor_left")
+      app.expect("#col1[data-cursor]").toExist()
     }
   })
 })
@@ -154,24 +169,23 @@ describe("h/l at boundary crash (km-cwn2)", () => {
 // ---------------------------------------------------------------------------
 
 describe("card index out of bounds on h (km-53uqt)", () => {
-  test("h does not throw after mixed operations that change column sizes", { timeout: 30_000 }, () => {
-    const { board } = testEnv(
-      () =>
+  test("h does not throw after mixed operations that change column sizes", { timeout: 30_000 }, async () => {
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "projects",
-            item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
-            item("proj-b", item("task-b1"), item("task-b2")),
-          ),
-          item(
-            "areas",
-            item("health", item("exercise"), item("diet")),
-            item("finance", item("budget"), item("invest")),
-            item("learning", item("books"), item("courses")),
-          ),
-          item("inbox", item("note-1"), item("note-2"), item("note-3")),
+          "projects",
+          item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
+          item("proj-b", item("task-b1"), item("task-b2")),
         ),
+        item(
+          "areas",
+          item("health", item("exercise"), item("diet")),
+          item("finance", item("budget"), item("invest")),
+          item("learning", item("books"), item("courses")),
+        ),
+        item("inbox", item("note-1"), item("note-2"), item("note-3")),
+      ),
       FAST,
     )
 
@@ -198,10 +212,16 @@ describe("card index out of bounds on h (km-53uqt)", () => {
 
       if (i === 147) {
         // This is "h" and should NOT throw — card index must be clamped
-        expect(() => board.press(op)).not.toThrow()
+        let threw = false
+        try {
+          await app.press(op)
+        } catch {
+          threw = true
+        }
+        expect(threw).toBe(false)
       } else {
         try {
-          board.press(op)
+          await app.press(op)
         } catch {
           inEdit = false
         }
@@ -215,21 +235,20 @@ describe("card index out of bounds on h (km-53uqt)", () => {
 // ---------------------------------------------------------------------------
 
 describe("stale-cursor-after-delete-all", () => {
-  test("deleting all cards in column should not leave stale cursor", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
+  test("deleting all cards in column should not leave stale cursor", async () => {
+    using app = createTestApp(item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
 
     // Delete A (cursor moves to B)
-    board.press("Backspace")
+    await app.press("Backspace")
 
     // Delete B (col1 now empty — cursor should move to col header or col2)
-    board.press("Backspace")
+    await app.press("Backspace")
 
     // Navigate to col2 — should NOT produce console.error about stale cursor
-    board.command("cursor_right")
+    await app.command("cursor_right")
 
     // C should be visible and cursor should be on it
-    const text = board.screenshot()
-    expect(text).toContain("C")
+    app.expectScreen("C")
   })
 })
 
@@ -238,44 +257,65 @@ describe("stale-cursor-after-delete-all", () => {
 // ---------------------------------------------------------------------------
 
 describe("Pane close crash (km-tui.pane-close-crash)", () => {
-  test("split then close last board pane is prevented (bells instead of crash)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
-      { columns: 120, rows: 24, ...FAST },
+  test("split then close last board pane is prevented (bells instead of crash)", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { cols: 120, rows: 24, ...FAST },
     )
 
     // Verify board renders
-    const before = board.screenshot()
-    expect(before).toContain("Task A")
+    app.expectScreen("Task A")
 
     // Split pane: vs (creates empty pane, focus stays on board pane)
-    expect(() => board.command("pane_split_vertical")).not.toThrow()
+    let threw = false
+    try {
+      await app.command("pane_split_vertical")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
 
     // Try to close last board pane: vw — should be prevented (bell)
-    expect(() => board.command("pane_close")).not.toThrow()
+    threw = false
+    try {
+      await app.command("pane_close")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
 
     // Board should still be usable — close was prevented since it's the last board pane
-    const after = board.screenshot()
-    expect(after).toContain("Task A")
+    app.expectScreen("Task A")
   })
 
-  test("split, focus empty pane, close empty pane works", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
-      { columns: 120, rows: 24, ...FAST },
+  test("split, focus empty pane, close empty pane works", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { cols: 120, rows: 24, ...FAST },
     )
 
     // Split pane: vs (creates empty pane)
-    board.command("pane_split_vertical")
+    await app.command("pane_split_vertical")
 
     // Focus the empty pane: vl (focus right) — should not crash
-    expect(() => board.command("pane_focus_right")).not.toThrow()
+    let threw = false
+    try {
+      await app.command("pane_focus_right")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
 
     // Close the empty pane: vw
-    expect(() => board.command("pane_close")).not.toThrow()
+    threw = false
+    try {
+      await app.command("pane_close")
+    } catch {
+      threw = true
+    }
+    expect(threw).toBe(false)
 
     // Board should return to single-pane mode with content
-    const after = board.screenshot()
-    expect(after).toContain("Task A")
+    app.expectScreen("Task A")
   })
 })
