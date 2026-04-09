@@ -1213,7 +1213,7 @@ function NodeChildren({
     [allFolded, repo, orderedChildren],
   )
 
-  // Get cursor position from ReactiveNodeStore to determine which child is selected.
+  // Get cursor position from NodeStore to determine which child is selected.
   // When suppressCursorHighlight is true (parent is editing or has an editing
   // descendant), suppress cursor selection highlights — the bold focusborder
   // is sufficient, row-level inverse is redundant.

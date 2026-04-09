@@ -490,7 +490,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/visibility-model.md](design/visibility-model.md) for the full picture.
 - **Structural exclusion** (ViewLens construction): nodes never appear in `walkOrder` — `isCollapsedChild`, `isDetailOnly`, `hiddenNodeIds`
 - **Collapsed columns** (VisibleLens construction): card children of collapsed columns excluded
-- **Per-node fold** (ReactiveNodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `km-tui.view-mode-feature-parity`
+- **Per-node fold** (NodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `km-tui.view-mode-feature-parity`
 
 **visual lasso** — During area-select gestures, a rectangular overlay (inverse video + dim background) showing the drag selection region.
 

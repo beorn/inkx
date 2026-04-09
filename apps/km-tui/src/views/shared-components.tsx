@@ -44,7 +44,7 @@ interface MemoizedTreeCardProps {
  *
  * Key optimization: cursor movement only changes isSelected for 2 cards
  * (old selection and new selection). All other cards skip re-render.
- * Selection state is self-subscribed via ReactiveNodeStore — no prop threading needed.
+ * Selection state is self-subscribed via NodeStore — no prop threading needed.
  *
  * Registers card layout for cross-column navigation (h/l with sticky Y).
  */
@@ -58,7 +58,7 @@ export const MemoizedTreeCard = React.memo(
     getBoardPills,
     extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
-    // Self-subscribe to ReactiveNodeStore for selection state (by nodeId)
+    // Self-subscribe to NodeStore for selection state (by nodeId)
     const nodeStore = useNodeStore()
     const _cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
     const _cursorDepth = useSignal(nodeStore.cursorDepth)
@@ -102,7 +102,7 @@ export const MemoizedTreeCard = React.memo(
     return content
   },
   (prev, next) => {
-    // Props-based memo check — ReactiveNodeStore triggers re-renders independently
+    // Props-based memo check — NodeStore triggers re-renders independently
     return (
       prev.card.id === next.card.id &&
       prev.card.content === next.card.content &&

@@ -889,19 +889,19 @@ TEA produces **one new state object per operation**. React performance requires 
 
 km uses `Reactive<T>` — a lightweight signal primitive (value holder + subscriber set, `Object.is` comparison) — for per-node reactive state. Each node has independent signals for fold, edit, multi-selection, and excluded sigils. Cursor position uses board-level signals.
 
-The `ReactiveNodeStore` manages per-node signal lifecycle with delta-based sync methods:
+The `NodeStore` (created via `createNodeStore()` factory) manages per-node signal lifecycle. Board.tsx writes signals directly — no sync methods needed:
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │  Zustand Store (board-app-store.ts)                  │
 │  Board state: columns, cursor, foldDepths, etc.      │
 └──────────────┬───────────────────────────────────────┘
-               │ useEffect syncs on change
+               │ Board.tsx writes signals directly
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  ReactiveNodeStore (reactive.ts)                     │
-│  syncCursor(), syncFoldDepths(), syncMultiSelected() │
-│  syncEdit() — delta-based, only update changed keys  │
+│  NodeStore (reactive.ts)                             │
+│  createNodeStore() factory — no classes, no sync()   │
+│  Board.tsx sets cursor/fold/edit signals directly     │
 └──────────────┬───────────────────────────────────────┘
                │ only changed signals notify
                ▼
@@ -913,15 +913,15 @@ The `ReactiveNodeStore` manages per-node signal lifecycle with delta-based sync 
 └──────────────────────────────────────────────────────┘
 ```
 
-**Performance**: O(affected) per operation. Cursor move touches 1 signal (~0.1ms). Fold toggle touches 1 signal. Sync methods compare previous vs current and skip unchanged nodes.
+**Performance**: O(affected) per operation. Cursor move touches 1 signal (~0.1ms). Fold toggle touches 1 signal. Board.tsx writes only changed signals — unchanged nodes are untouched.
 
 ### What Was Replaced
 
 | Before | After |
 |---|---|
-| Jotai atoms + atomFamily (9 atom families, 5 cursor globals) | `Reactive<T>` signals in `ReactiveNodeStore` |
-| `node-atoms-hydrate.ts` — 5 manual sync functions (216 LOC) | `ReactiveNodeStore.hydrate()` + delta sync methods |
-| `node-atoms.ts` — atom definitions (135 LOC) | Deleted — signals created on-demand via `getOrCreate()` |
+| Jotai atoms + atomFamily (9 atom families, 5 cursor globals) | `Reactive<T>` signals in `NodeStore` |
+| `node-atoms-hydrate.ts` — 5 manual sync functions (216 LOC) | Board.tsx writes signals directly |
+| `node-atoms.ts` — atom definitions (135 LOC) | Deleted — signals created on-demand via `store.node(id)` |
 | Jotai `useAtomValue()` in 10+ component files | `useReactive()` hook (thin wrapper around `useSyncExternalStore`) |
 | Jotai + jotai-family npm dependencies | Zero external deps — `Reactive<T>` is 27 lines |
 

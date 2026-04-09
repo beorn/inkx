@@ -1,9 +1,9 @@
 /**
- * ScrollTracker — thin wrapper that subscribes to ReactiveNodeStore cursor for scroll position.
+ * ScrollTracker — thin wrapper that subscribes to NodeStore cursor for scroll position.
  *
  * Re-renders on j/k (via cursorCardNodeId Reactive) and passes scrollTo to ListView.
  * This isolates cursor-driven re-renders: Column doesn't re-render, only this
- * wrapper + ListView. Cards self-subscribe via ReactiveNodeStore.
+ * wrapper + ListView. Cards self-subscribe via NodeStore.
  *
  * The wrapper approach avoids the cross-component effect timing issue where
  * setScrollOffset from a sibling's useEffect doesn't get flushed by act().
@@ -23,7 +23,7 @@ interface ScrollTrackingListViewProps<T> extends Omit<ListViewProps<T>, "scrollT
 }
 
 /**
- * ListView wrapper that subscribes to ReactiveNodeStore for scroll position.
+ * ListView wrapper that subscribes to NodeStore for scroll position.
  * Isolates j/k re-renders from Column — only this wrapper + ListView re-render.
  */
 export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtualList<T>({

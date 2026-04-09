@@ -97,7 +97,7 @@ store.node(nodeId)           // get or lazily create per-node state
 store.node(nodeId).cursor    // Signal<boolean>
 ```
 
-Always auto-creates. Replaces `getOrCreate()`.
+Always auto-creates (factory function, no class).
 
 ### Components
 
@@ -247,9 +247,9 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 | Old | New (planned) | Blocker |
 |-----|-----|-----|
 | Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` | Needs `.reduce()` combinator |
-| `expandWithDescendants()` (visual selection) | `selectedAncestor` reduces automatically | None (can remove helper) |
+| ~~`expandWithDescendants()` (visual selection)~~ | ~~`selectedAncestor` reduces automatically~~ | Done — helper removed |
 | `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` | None |
-| `ReactiveNodeStore` class | Factory function per principles.md | None |
+| ~~`ReactiveNodeStore` class~~ | ~~Factory function per principles.md~~ | Done — `createNodeStore()` factory |
 | `expandedEditCardId` store signal (1 reader) | `editingDescendant` or direct edit check | None |
 
 ### Kept by design (not tree-reduced)

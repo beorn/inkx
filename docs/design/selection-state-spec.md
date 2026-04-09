@@ -156,7 +156,7 @@ cursor: string | null           // sel.node.cursor()
 selectedIds: Set<string>        // sel.node.ids() — includes cursor
 editTarget: { nodeId, offset }  // sel.text()
 ```
-Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth — computed in Board.tsx and synced to ReactiveNodeStore. Editing scope detected via `editingDescendant` reduced signal (per-node, not store-level).
+Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth — computed in Board.tsx and written directly to NodeStore signals. Editing scope detected via `editingDescendant` reduced signal (per-node, not store-level).
 
 ### Target (Phase F of km-tui.focus)
 ```ts

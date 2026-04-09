@@ -50,15 +50,15 @@ There are three independent ways a node can be excluded from view, each operatin
 
 **Effect**: Visual + navigational — cards within collapsed columns are not rendered AND not enumerable from the lens. Navigation skips into collapsed columns (lands on the header row, not on cards inside).
 
-### 3. Per-node fold (ReactiveNodeStore, React layer)
+### 3. Per-node fold (NodeStore, React layer)
 
-**Where**: `apps/km-tui/src/state/reactive.ts` — `ReactiveNodeStore.foldDepths`. Hydrated from `BoardState.foldDepths` in `Board.tsx`.
+**Where**: `apps/km-tui/src/state/reactive.ts` — `createNodeStore()`. Fold signals written directly by `Board.tsx`.
 
 **When**: At React render time. `TreeNode.tsx` reads per-node fold signals via the reactive node store and skips rendering folded subtrees.
 
-**Why not in the lens?** Filter text changes on every keystroke. If fold/filter lived in the lens (as construction options), every keypress would invalidate `walkOrder`, the children cache, and the visible-lens cache — kills the per-node-signal incremental rendering that makes cards view fast. The current design keeps fold at the React layer where ReactiveNodeStore can flip a single per-node signal and only the affected `TreeNode` re-renders.
+**Why not in the lens?** Filter text changes on every keystroke. If fold/filter lived in the lens (as construction options), every keypress would invalidate `walkOrder`, the children cache, and the visible-lens cache — kills the per-node-signal incremental rendering that makes cards view fast. The current design keeps fold at the React layer where NodeStore can flip a single per-node signal and only the affected `TreeNode` re-renders.
 
-**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the reactive node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `bd show km-tui.view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
+**Caveat (current limitation)**: This means **only the cards view honors fold**. The alternate views (`columns`, `list`, `tabs`) consume the lens directly via `useSignal(ps.visibleLens)` and never read the node store. They render flat (one row per column-direct child) and have no per-card fold awareness. See `bd show km-tui.view-mode-feature-parity` for the planned fix — the alternate views need to graduate to consuming `ViewTree` (the React-side projection) the way cards view does.
 
 ## Choosing the Right API
 
@@ -88,6 +88,6 @@ The old bare functions (`walkVisibleDescendants`, `countVisibleDescendants`, `ge
 |---|---|---|---|
 | Structural exclusion | ViewLens construction | Predicates on KNode + `hiddenNodeIds` set | Nodes never appear in `walkOrder` at all |
 | Collapsed columns | VisibleLens construction | `collapsedNodes` set | Card children of collapsed columns excluded |
-| Per-node fold | ReactiveNodeStore (React layer) | `foldDepths` map → per-node signals | Subtree rendering skipped in cards view; alternate views currently bypassed (see km-tui.view-mode-feature-parity) |
+| Per-node fold | NodeStore (React layer) | `foldDepths` map → per-node signals | Subtree rendering skipped in cards view; alternate views currently bypassed (see km-tui.view-mode-feature-parity) |
 
 **Open work**: pushing fold into the lens layer would simplify the architecture (alternate views would honor it for free) but conflicts with per-node-signal incremental rendering performance. Tracked in `km-tui.view-mode-feature-parity` — the proposed approach is to keep fold at the React layer but graduate alternate views to consume `ViewTree` (and per-node signals) instead of the raw lens.

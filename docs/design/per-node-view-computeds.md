@@ -44,7 +44,7 @@ subtrees.
 - `Board.tsx` — sole `useSignal(ps.view)` subscriber; derives columns, nodeIndex
 - `board-app.ts` — reads `ps.view()` imperatively in `buildOpCtx` for navigation
 - `board-app-store.ts` — reads `ps.view()` for selection adapter sync
-- `ReactiveNodeStore.hydrate()` — syncs fold/selection state after tree rebuild
+- `Board.tsx` — writes fold/selection signals directly to `NodeStore` after tree rebuild
 
 ## 2. Dependency Graph: ViewNode Field x Input Trigger
 
@@ -62,7 +62,7 @@ subtrees.
 **Key finding:** Cursor move (j/k) does NOT change ANY ViewNode field. The view
 tree is structurally identical before and after a cursor move. The cursor lives
 entirely in the selection store (`sel.node.cursor()`) and in
-`ReactiveNodeStore.syncCursor()`. The current architecture already handles this
+`NodeStore` cursor signals (written directly by Board.tsx). The current architecture already handles this
 correctly: `ps.view` does not depend on cursor, so j/k does not trigger a
 ViewSnapshot rebuild.
 
@@ -223,7 +223,7 @@ implicitly by `buildViewTree` which simply rebuilds the tree.
    matching nodes' `children` computeds. Currently rebuilds full tree.
 
 3. **Theoretical composability:** Per-node signals compose naturally with
-   `ReactiveNodeStore`'s existing per-node interactive state.
+   `NodeStore`'s existing per-node interactive state.
 
 ### Costs of Per-Node Computeds
 
@@ -345,7 +345,7 @@ the performance benefit for km's current and foreseeable scale.
 
 1. **The hot path is already optimal.** Cursor movement (j/k) — the most
    frequent user action by orders of magnitude — does not rebuild the view tree.
-   It only updates selection signals in `ReactiveNodeStore`.
+   It only updates selection signals in `NodeStore`.
 
 2. **Column-level caching already provides 80% of the benefit.** The
    `ViewNodeColumnCache` means that a mutation in column A only rebuilds column
@@ -389,7 +389,7 @@ Revisit this decision if ANY of these become true:
    `buildCardNode` (same pattern as `buildColumnNodeCached`). This would be a
    10-line change vs. the 500+ line per-node reactive architecture.
 
-4. **For live editing performance,** use the existing `ReactiveNodeStore.edit`
+4. **For live editing performance,** use the existing `NodeStore` edit
    signal to skip re-rendering non-editing cards. This is already implemented.
 
 ### Key Risks If Adopted Later

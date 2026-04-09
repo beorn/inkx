@@ -202,7 +202,7 @@ const Card = React.memo(
     const viewNode = useNode(nodeId)
     const isBodyCard = viewNode?.isBody ?? isBodyCardProp
 
-    // Get selection state from ReactiveNodeStore (self-subscription via nodeId).
+    // Get selection state from NodeStore (self-subscription via nodeId).
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
     const nodeStore = useNodeStore()
@@ -563,8 +563,8 @@ const Card = React.memo(
   (prev, next) => {
     // Reference equality on card — structural sharing in useColumns ensures
     // unchanged cards keep the same object reference across re-derivations.
-    // isSelected is driven by ReactiveNodeStore self-subscription (not props),
-    // so it's not compared here — ReactiveNodeStore triggers re-renders independently.
+    // isSelected is driven by NodeStore self-subscription (not props),
+    // so it's not compared here — NodeStore triggers re-renders independently.
     return (
       prev.card === next.card &&
       prev.width === next.width &&
@@ -672,7 +672,7 @@ interface ColumnProps {
  *
  * Column subscribes only to column selection state (stable on j/k).
  * ScrollTrackingVirtualList subscribes to cardIndex and passes scrollTo to ListView.
- * Cards get selection state from ReactiveNodeStore self-subscription.
+ * Cards get selection state from NodeStore self-subscription.
  * Result: j/k only re-renders ScrollTrackingVirtualList + ListView + 2 Cards.
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX ternaries inflate score
@@ -876,7 +876,7 @@ export const Column = React.memo(function Column({
   }, [viewTree, cardNodes])
 
   // Stable renderItem callback — doesn't depend on cardIndex.
-  // Cards get selection state from ReactiveNodeStore self-subscription.
+  // Cards get selection state from NodeStore self-subscription.
   const renderItem = useCallback(
     (card: KNode, actualIndex: number) => {
       layoutLog.trace?.(

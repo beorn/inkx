@@ -68,7 +68,7 @@ export interface ViewLensOptions {
  *
  * Known stub: the `foldDepths` option is part of `ViewLensOptions` but is
  * NOT currently read by this function. Per-node fold lives at the React
- * layer in `ReactiveNodeStore` (apps/km-tui/src/state/reactive.ts) for
+ * layer in `NodeStore` (apps/km-tui/src/state/reactive.ts) for
  * incremental rendering performance reasons. See
  * `bd show km-tui.view-mode-feature-parity` for the planned cleanup.
  */
