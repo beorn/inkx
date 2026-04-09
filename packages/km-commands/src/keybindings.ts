@@ -567,7 +567,11 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
         { key: "Enter", commandId: "favorites.assign", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
         { key: "Delete", commandId: "favorites.clear", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
-        { key: "Backspace", commandId: "favorites.clear", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        {
+          key: "Backspace",
+          commandId: "favorites.clear",
+          when: and(inScope("dialog:favorites"), favoritesKeySelected),
+        },
         { key: "Escape", commandId: "favorites.back", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
         // List view: Escape closes, any key selects it
         { key: "Escape", commandId: "dialog.cancel", when: inScope("dialog:favorites") },

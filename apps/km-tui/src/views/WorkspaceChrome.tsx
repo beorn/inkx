@@ -107,7 +107,13 @@ function TopRightDialog({
   focusScope?: boolean
 }): React.ReactElement {
   return (
-    <Box position="absolute" marginLeft={Math.max(0, termWidth - width)} marginTop={1} focusScope={focusScope} {...rest}>
+    <Box
+      position="absolute"
+      marginLeft={Math.max(0, termWidth - width)}
+      marginTop={1}
+      focusScope={focusScope}
+      {...rest}
+    >
       {children}
     </Box>
   )

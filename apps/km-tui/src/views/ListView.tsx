@@ -153,12 +153,7 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
 
         return (
           <Box key={`header-${colNodeId}-${flatIndex}`} position="sticky" stickyTop={0}>
-            <MemoizedColumnHeader
-              colId={colNodeId}
-              colIdx={cIdx}
-              width={width}
-              showTopSpacer={cIdx > 0}
-            />
+            <MemoizedColumnHeader colId={colNodeId} colIdx={cIdx} width={width} showTopSpacer={cIdx > 0} />
           </Box>
         )
       }
