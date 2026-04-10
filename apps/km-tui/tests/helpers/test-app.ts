@@ -21,7 +21,7 @@
  */
 
 import React from "react"
-import { expect, vi } from "vitest"
+import { expect, vi, onTestFailed } from "vitest"
 // Register termless matchers (toMatchTerminalSnapshot, toMatchSvgSnapshot, etc.)
 // so tests using createTestApp().expectSnapshot() get them without extra imports.
 import "@termless/test/matchers"
@@ -32,11 +32,14 @@ import { createStoreFromRepo, withReactive } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createToastQueue } from "@km/core"
 import type { FrameCell } from "@silvery/ag"
+import { createFocusManager, hitTest } from "@silvery/ag-react"
 import { createTermless, createAutoLocator, type AutoLocator } from "@silvery/test"
 import type { Term } from "@silvery/ag-term"
 import type { AgNode } from "@silvery/ag/types"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
-import { createBoardApp, resetBoardAppState, dispatchCommandById } from "../../src/board/board-app.ts"
+import { createBoardApp, resetBoardAppState, dispatchCommandById, handleMouse } from "../../src/board/board-app.ts"
+import type { EventHandlerContext } from "@silvery/create/create-app"
+import type { ParsedMouse } from "@silvery/ag-react"
 import { Workspace, type BoardAppStore, type CreateBoardAppStoreParams } from "../../src/state/board-app-store.ts"
 import type { SignalStoreApi } from "../../src/state/signal-store.ts"
 import { act } from "react"
@@ -244,6 +247,52 @@ export interface TestApp {
   /** Assert cell fg/bg color at screen position. Chainable. */
   expectCellColor(x: number, y: number, opts: { fg?: number | null; bg?: number | null }): TestApp
   /**
+   * Simulate a left mouse click at terminal coordinates (x, y). Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.click(5, 3) // click at column 5, row 3
+   * app.click(10, 5, { ctrl: true }) // ctrl-click for multi-select
+   * ```
+   */
+  click(x: number, y: number, opts?: { ctrl?: boolean }): TestApp
+  /**
+   * Assert that a rendered node has a complete border (vertical border chars
+   * on left and right edges for each row of its bounding box). Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.expectNodeBorder("task1")
+   * ```
+   */
+  expectNodeBorder(nodeId: string): TestApp
+  /**
+   * Assert foreground and/or background color of a node's rendered text.
+   * Finds the node by ID, gets its screen position, checks the first
+   * non-space character's colors. Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.expectNodeColor("task1", { fg: 0, bg: 3 }) // black on yellow (selected)
+   * app.expectNodeColor("task1", { attrs: { dim: true } }) // dimmed text
+   * ```
+   */
+  expectNodeColor(
+    nodeId: string,
+    opts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+  ): TestApp
+  /**
+   * Assert no ghost/leftover characters on screen: NUL bytes, stray control
+   * characters, "[object Object]", "undefined", "NaN". Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.expectNoGhostChars() // full screen
+   * app.expectNoGhostChars({ x: 0, y: 0, width: 40, height: 12 }) // region
+   * ```
+   */
+  expectNoGhostChars(region?: { x: number; y: number; width: number; height: number }): TestApp
+  /**
    * Capture the full screen and match against a golden snapshot file.
    *
    * Snapshots land in `<test-dir>/__snapshots__/<test-file>.snap` (Vitest default).
@@ -301,6 +350,8 @@ export interface CellInfo {
 
 export interface ScreenAccess {
   readonly text: string
+  /** ANSI-styled content with color escape sequences */
+  readonly ansi: string
   readonly rows: string[]
   row(n: number): string
   cell(x: number, y: number): CellInfo
@@ -662,6 +713,68 @@ function runDisposeInvariants(getStoreState: () => BoardAppStore, actionHistory:
 }
 
 // =============================================================================
+// Failure Artifact Dump
+// =============================================================================
+
+/**
+ * Register an onTestFailed hook to dump action history, board state, and screen
+ * content when a test using createTestApp fails. Provides context for debugging
+ * without needing to re-run the test.
+ *
+ * Uses vitest's onTestFailed which must be called during test execution (not in
+ * setup files). Wrapped in try/catch for safety — if called outside a test
+ * context (e.g., beforeAll), it silently skips registration.
+ */
+function registerFailureArtifacts(
+  actionHistory: readonly string[],
+  getState: () => TestAppState | null,
+  getText: () => string,
+): void {
+  try {
+    onTestFailed((context) => {
+      const state = getState()
+      const lines = [
+        `\n--- TestApp Failure Artifacts ---`,
+        `Action history (${actionHistory.length} actions):`,
+        ...actionHistory.map((a, i) => `  ${i + 1}. ${a}`),
+      ]
+
+      if (state) {
+        lines.push(
+          `Board state:`,
+          `  cursor: ${state.cursor}`,
+          `  selection: [${state.selection.join(", ")}]`,
+          `  view: ${state.view}`,
+          `  overlay: ${state.overlay}`,
+          `  bell: ${state.bell}`,
+          `  visible: [${state.visible.slice(0, 10).join(", ")}${state.visible.length > 10 ? `, ...(${state.visible.length} total)` : ""}]`,
+        )
+      }
+
+      const screen = getText()
+      if (screen) {
+        lines.push(`Screen (first 20 rows):`)
+        const rows = screen.split("\n").slice(0, 20)
+        for (const row of rows) {
+          lines.push(`  | ${row}`)
+        }
+      }
+
+      lines.push(`--- End Failure Artifacts ---\n`)
+
+      // Attach to the first error's message for vitest output
+      const artifact = lines.join("\n")
+      const errors = context.task.result?.errors
+      if (errors?.[0]) {
+        errors[0].message += artifact
+      }
+    })
+  } catch {
+    // Outside test context — skip silently
+  }
+}
+
+// =============================================================================
 // Headless Backend
 // =============================================================================
 
@@ -692,6 +805,35 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
   // Synchronous press — same pattern as testEnv's pressKey (board-test.ts:592)
   const pressKey = (key: string) => {
     void driver.press(key) // fire-and-forget the microtask promise
+  }
+
+  // Build event handler context for mouse events — same shape as driver.ts eventCtx
+  const mouseEventCtx: EventHandlerContext<BoardAppStore> = {
+    get: driver.store.getState,
+    set: driver.store.setState,
+    focusManager: driver.focusManager,
+    focus(testID: string) {
+      driver.focusManager.focusById(testID, driver.getContainer(), "programmatic")
+    },
+    activateScope(scopeId: string) {
+      driver.focusManager.activateScope(scopeId, driver.getContainer())
+    },
+    getFocusPath() {
+      return driver.focusManager.getFocusPath(driver.getContainer())
+    },
+    hitTest(x: number, y: number) {
+      return hitTest(driver.getContainer(), x, y)
+    },
+  }
+
+  // Send a mouse event through handleMouse (same path as board-test.ts)
+  const sendMouseEvent = (mouse: ParsedMouse) => {
+    act(() => {
+      handleMouse(mouse, mouseEventCtx)
+      driver.store.setState((s) => s)
+    })
+    // Flush React effects via a no-op press
+    void driver.press("")
   }
 
   const _actionHistory: string[] = []
@@ -843,6 +985,107 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return app
     },
 
+    click(x: number, y: number, clickOpts?: { ctrl?: boolean }): TestApp {
+      _actionHistory.push(`click(${x},${y}${clickOpts?.ctrl ? ",ctrl" : ""})`)
+      sendMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: clickOpts?.ctrl ?? false,
+      })
+      return app
+    },
+
+    expectNodeBorder(nodeId: string): TestApp {
+      const loc = driver.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return app
+      const borderLeft = box.x - 1
+      const borderRight = box.x + box.width
+      const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+      for (let cy = box.y; cy < box.y + box.height; cy++) {
+        if (borderLeft >= 0) {
+          const leftCell = driver.cell(borderLeft, cy)
+          expect(
+            isBorderChar(leftCell.char),
+            `node "${nodeId}" left border at (${borderLeft},${cy}): got "${leftCell.char}"`,
+          ).toBe(true)
+        }
+        if (borderRight < cols) {
+          const rightCell = driver.cell(borderRight, cy)
+          expect(
+            isBorderChar(rightCell.char),
+            `node "${nodeId}" right border at (${borderRight},${cy}): got "${rightCell.char}"`,
+          ).toBe(true)
+        }
+      }
+      return app
+    },
+
+    expectNodeColor(
+      nodeId: string,
+      colorOpts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+    ): TestApp {
+      const loc = driver.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return app
+      for (let cx = box.x; cx < box.x + box.width; cx++) {
+        const cell = driver.cell(cx, box.y)
+        if (cell.char.trim() === "") continue
+        if (colorOpts.fg !== undefined) {
+          expect(cell.fg, `node "${nodeId}" fg at (${cx},${box.y}) char="${cell.char}"`).toEqual(colorOpts.fg)
+        }
+        if (colorOpts.bg !== undefined) {
+          expect(cell.bg, `node "${nodeId}" bg at (${cx},${box.y}) char="${cell.char}"`).toEqual(colorOpts.bg)
+        }
+        if (colorOpts.attrs) {
+          for (const [attr, value] of Object.entries(colorOpts.attrs)) {
+            expect(
+              (cell as unknown as Record<string, unknown>)[attr],
+              `node "${nodeId}" attrs.${attr} at (${cx},${box.y})`,
+            ).toBe(value)
+          }
+        }
+        break
+      }
+      return app
+    },
+
+    expectNoGhostChars(region?: { x: number; y: number; width: number; height: number }): TestApp {
+      const x0 = region?.x ?? 0
+      const y0 = region?.y ?? 0
+      const w = region?.width ?? cols
+      const h = region?.height ?? rows
+      for (let cy = y0; cy < y0 + h && cy < rows; cy++) {
+        for (let cx = x0; cx < x0 + w && cx < cols; cx++) {
+          const ch = driver.cell(cx, cy).char
+          if (ch.length === 1) {
+            const code = ch.charCodeAt(0)
+            expect(code !== 0, `ghost char: NUL byte at (${cx},${cy})`).toBe(true)
+            if (code >= 1 && code <= 31 && code !== 9 && code !== 10 && code !== 13) {
+              expect(false, `ghost char: control char 0x${code.toString(16).padStart(2, "0")} at (${cx},${cy})`).toBe(
+                true,
+              )
+            }
+          }
+        }
+      }
+      const screenText = driver.text
+      const artifactPatterns = ["[object Object]", "undefined", "NaN"]
+      for (const pattern of artifactPatterns) {
+        expect(!screenText.includes(pattern), `ghost char: found "${pattern}" in screen text`).toBe(true)
+      }
+      return app
+    },
+
     expectSnapshot(name?: string): TestApp {
       const snapshot = normalizeScreenText(driver.text)
       if (name !== undefined) expect(snapshot).toMatchSnapshot(name)
@@ -901,6 +1144,9 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
         get text() {
           return driver.text
         },
+        get ansi() {
+          return driver.ansi
+        },
         get rows() {
           return driver.text.split("\n")
         },
@@ -945,6 +1191,24 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       }
     },
   }
+
+  registerFailureArtifacts(
+    _actionHistory,
+    () => {
+      try {
+        return app.state
+      } catch {
+        return null
+      }
+    },
+    () => {
+      try {
+        return app.text
+      } catch {
+        return ""
+      }
+    },
+  )
 
   return app
 }
@@ -1246,6 +1510,39 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     }
   }
 
+  // Focus manager for mouse event context — used by click().
+  // The termless boardApp's internal focus manager isn't exposed, so we
+  // create a minimal one for the handleMouse EventHandlerContext.
+  const termlessClickFm = createFocusManager()
+
+  // Send a mouse event through handleMouse (same module-level singleton as boardApp)
+  const sendTermlessMouseEvent = (mouse: ParsedMouse) => {
+    if (!handle) throw new Error("click() called before handle is ready — termless init failed")
+    const mouseCtx: EventHandlerContext<BoardAppStore> = {
+      get: handle.store.getState,
+      set: handle.store.setState,
+      focusManager: termlessClickFm,
+      focus(_testID: string) {
+        /* no-op in termless click */
+      },
+      activateScope(scopeId: string) {
+        termlessClickFm.activateScope(scopeId, handle!.root)
+      },
+      getFocusPath() {
+        return termlessClickFm.getFocusPath(handle!.root)
+      },
+      hitTest(x: number, y: number) {
+        return hitTest(handle!.root, x, y)
+      },
+    }
+    act(() => {
+      handleMouse(mouse, mouseCtx)
+      handle!.store.setState((s) => s)
+    })
+    // Flush via a no-op press
+    void handle.press("")
+  }
+
   const _actionHistory: string[] = []
 
   const app: TestApp = {
@@ -1403,6 +1700,107 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       return app
     },
 
+    click(x: number, y: number, clickOpts?: { ctrl?: boolean }): TestApp {
+      _actionHistory.push(`click(${x},${y}${clickOpts?.ctrl ? ",ctrl" : ""})`)
+      sendTermlessMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: clickOpts?.ctrl ?? false,
+      })
+      return app
+    },
+
+    expectNodeBorder(nodeId: string): TestApp {
+      const loc = getLocator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return app
+      const borderLeft = box.x - 1
+      const borderRight = box.x + box.width
+      const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+      for (let cy = box.y; cy < box.y + box.height; cy++) {
+        if (borderLeft >= 0) {
+          const leftCell = getCellFromBuffer(borderLeft, cy)
+          expect(
+            isBorderChar(leftCell.char),
+            `node "${nodeId}" left border at (${borderLeft},${cy}): got "${leftCell.char}"`,
+          ).toBe(true)
+        }
+        if (borderRight < cols) {
+          const rightCell = getCellFromBuffer(borderRight, cy)
+          expect(
+            isBorderChar(rightCell.char),
+            `node "${nodeId}" right border at (${borderRight},${cy}): got "${rightCell.char}"`,
+          ).toBe(true)
+        }
+      }
+      return app
+    },
+
+    expectNodeColor(
+      nodeId: string,
+      colorOpts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+    ): TestApp {
+      const loc = getLocator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return app
+      for (let cx = box.x; cx < box.x + box.width; cx++) {
+        const cell = getCellFromBuffer(cx, box.y)
+        if (cell.char.trim() === "") continue
+        if (colorOpts.fg !== undefined) {
+          expect(cell.fg, `node "${nodeId}" fg at (${cx},${box.y}) char="${cell.char}"`).toEqual(colorOpts.fg)
+        }
+        if (colorOpts.bg !== undefined) {
+          expect(cell.bg, `node "${nodeId}" bg at (${cx},${box.y}) char="${cell.char}"`).toEqual(colorOpts.bg)
+        }
+        if (colorOpts.attrs) {
+          for (const [attr, value] of Object.entries(colorOpts.attrs)) {
+            expect(
+              (cell as unknown as Record<string, unknown>)[attr],
+              `node "${nodeId}" attrs.${attr} at (${cx},${box.y})`,
+            ).toBe(value)
+          }
+        }
+        break
+      }
+      return app
+    },
+
+    expectNoGhostChars(region?: { x: number; y: number; width: number; height: number }): TestApp {
+      const x0 = region?.x ?? 0
+      const y0 = region?.y ?? 0
+      const w = region?.width ?? cols
+      const h = region?.height ?? rows
+      for (let cy = y0; cy < y0 + h && cy < rows; cy++) {
+        for (let cx = x0; cx < x0 + w && cx < cols; cx++) {
+          const ch = getCellFromBuffer(cx, cy).char
+          if (ch.length === 1) {
+            const code = ch.charCodeAt(0)
+            expect(code !== 0, `ghost char: NUL byte at (${cx},${cy})`).toBe(true)
+            if (code >= 1 && code <= 31 && code !== 9 && code !== 10 && code !== 13) {
+              expect(false, `ghost char: control char 0x${code.toString(16).padStart(2, "0")} at (${cx},${cy})`).toBe(
+                true,
+              )
+            }
+          }
+        }
+      }
+      const screenText = handle?.text ?? ""
+      const artifactPatterns = ["[object Object]", "undefined", "NaN"]
+      for (const pattern of artifactPatterns) {
+        expect(!screenText.includes(pattern), `ghost char: found "${pattern}" in screen text`).toBe(true)
+      }
+      return app
+    },
+
     expectSnapshot(name?: string): TestApp {
       // Termless: delegate to @termless/test toMatchTerminalSnapshot, which
       // renders a human-readable grid (header + cursor + altScreen + numbered lines)
@@ -1466,6 +1864,10 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
         get text() {
           return handle?.text ?? ""
         },
+        get ansi() {
+          // Termless: no direct ANSI from silvery output phase — return plain text
+          return handle?.text ?? ""
+        },
         get rows() {
           return (handle?.text ?? "").split("\n")
         },
@@ -1510,6 +1912,24 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       toastQueue[Symbol.dispose]()
     },
   }
+
+  registerFailureArtifacts(
+    _actionHistory,
+    () => {
+      try {
+        return app.state
+      } catch {
+        return null
+      }
+    },
+    () => {
+      try {
+        return app.text
+      } catch {
+        return ""
+      }
+    },
+  )
 
   return app
 }

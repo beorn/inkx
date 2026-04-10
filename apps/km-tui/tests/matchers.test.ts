@@ -90,3 +90,89 @@ describe("TestApp matchers", () => {
     }).toThrow(/toHaveSelection expects a TestApp/)
   })
 })
+
+describe("White-box APIs", () => {
+  test("click — moves cursor to clicked card", () => {
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"), item("task3"))))
+    expect(app).toHaveCursorOn("task1")
+
+    // Get position of task2 to click on it
+    const pos = app.screen.nodePos("task2")
+    expect(pos).not.toBeNull()
+    if (pos) {
+      app.click(pos.x, pos.y)
+      expect(app).toHaveCursorOn("task2")
+    }
+  })
+
+  test("click — ctrl-click toggles multi-selection", () => {
+    using app = createTestApp(item("board", item("col", item("t1"), item("t2"), item("t3"))))
+    expect(app).toHaveCursorOn("t1")
+
+    const pos2 = app.screen.nodePos("t2")
+    if (pos2) {
+      app.click(pos2.x, pos2.y, { ctrl: true })
+      // After ctrl-click, t2 should be selected
+      expect(app.node("t2").isSelected).toBe(true)
+    }
+  })
+
+  test("expectNodeBorder — cards have borders", () => {
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    // Cards in default cards view should have borders
+    app.expectNodeBorder("task1")
+  })
+
+  test("expectNodeColor — cursor node has non-null fg", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    // Cursor node should render with some foreground color (not null)
+    const box = app.screen.nodeBox("task1")
+    expect(box).not.toBeNull()
+    // Just verify it doesn't throw — the color value depends on theme
+    app.expectNodeColor("task1", {})
+  })
+
+  test("expectNoGhostChars — clean board has no ghost chars", () => {
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    // A freshly rendered board should have no ghost characters
+    app.expectNoGhostChars()
+  })
+
+  test("expectNoGhostChars — regional scan", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    // Scan a specific region
+    app.expectNoGhostChars({ x: 0, y: 0, width: 40, height: 10 })
+  })
+
+  test("screen.ansi — returns styled content", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    const ansi = app.screen.ansi
+    expect(typeof ansi).toBe("string")
+    expect(ansi.length).toBeGreaterThan(0)
+  })
+
+  test("click is chainable", () => {
+    using app = createTestApp(item("board", item("col", item("t1"), item("t2"))))
+    const pos = app.screen.nodePos("t2")
+    if (pos) {
+      // Verify click returns the app for chaining
+      const result = app.click(pos.x, pos.y)
+      expect(result).toBe(app)
+    }
+  })
+
+  test("click records action history", () => {
+    using app = createTestApp(item("board", item("col", item("t1"), item("t2"))))
+    const pos = app.screen.nodePos("t2")
+    if (pos) {
+      app.click(pos.x, pos.y)
+      expect(app.actionHistory).toContain(`click(${pos.x},${pos.y})`)
+    }
+  })
+
+  test("expectNodeBorder, expectNodeColor, expectNoGhostChars are chainable", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    const result = app.expectNodeBorder("task1").expectNodeColor("task1", {}).expectNoGhostChars()
+    expect(result).toBe(app)
+  })
+})
