@@ -335,6 +335,20 @@ export interface TestApp {
   readonly repo: Repo
   /** Access the underlying BoardDriver (headless only — throws on termless) */
   readonly driver: BoardDriver
+  /**
+   * White-box store access — intentionally callback-based to discourage casual use.
+   * Prefer app.state, app.card(), app.node() for assertions. Use this ONLY when
+   * the public API genuinely doesn't cover what you need (e.g., checking internal
+   * UI state like undoStack, pane layout, text edit hints).
+   *
+   * @example
+   * ```typescript
+   * app.withStore(s => {
+   *   expect(s.workspace.panes.size).toBe(2)
+   * })
+   * ```
+   */
+  withStore<T>(fn: (store: BoardAppStore) => T): T
   /** Dispose the test app */
   [Symbol.dispose](): void
 }
@@ -1184,6 +1198,10 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return driver
     },
 
+    withStore<T>(fn: (store: BoardAppStore) => T): T {
+      return fn(driver.store.getState() as BoardAppStore)
+    },
+
     [Symbol.dispose](): void {
       runDisposeInvariants(() => driver.store.getState(), _actionHistory)
       if ("unmount" in driver && typeof driver.unmount === "function") {
@@ -1900,6 +1918,11 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
     get driver(): BoardDriver {
       throw new Error("driver is not available on termless backend — use headless backend for driver access")
+    },
+
+    withStore<T>(fn: (store: BoardAppStore) => T): T {
+      if (!handle) throw new Error("withStore: termless handle not ready")
+      return fn(handle.store.getState() as BoardAppStore)
     },
 
     [Symbol.dispose](): void {
