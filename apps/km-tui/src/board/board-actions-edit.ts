@@ -30,6 +30,30 @@ import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-op
 import { clearSelection, getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
+import { captureTree } from "../state/capture-tree.ts"
+
+/**
+ * Find the nearest surviving node to `target` in the new tree,
+ * using the previous walk order for proximity.
+ */
+function findNearestSurvivor(target: ID, prevOrder: readonly ID[], nextOrder: readonly ID[]): ID | null {
+  if (nextOrder.length === 0) return null
+  const targetIdx = prevOrder.indexOf(target)
+  if (targetIdx === -1) return nextOrder[0] ?? null
+
+  // Scan outward from target position in prev order to find nearest survivor
+  let best: ID | null = null
+  let bestDist = Infinity
+  for (const id of nextOrder) {
+    const idx = prevOrder.indexOf(id)
+    const dist = idx === -1 ? Infinity : Math.abs(idx - targetIdx)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = id
+    }
+  }
+  return best
+}
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
 // needs to mount before the next event handler runs.
@@ -179,11 +203,10 @@ export function executeDelete(ctx: OpCtx, nodeId: string): void {
  * Execute batch deletion of multiple nodes and adjust cursor position.
  *
  * Deletes nodes bottom-up (highest index first) to avoid index invalidation.
- * Clears multi-selection after deletion.
+ * Uses sel.transform() for atomic cursor repair — no manual cursor computation.
  */
 export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
   const { repo } = ctx
-  const deleteSet = new Set(nodeIds)
 
   // Recursively delete all descendants bottom-up
   const deleteRecursive = (id: string) => {
@@ -194,43 +217,9 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
     repo.deleteNode(id)
   }
 
-  // Determine if we're deleting a column (direct child of root)
-  const firstNode = repo.getNode(nodeIds[0] ?? "")
-  const isDeletingColumn = firstNode?.parent_id === ctx.rootId
-
-  // Pre-compute the cursor target: find next surviving sibling BEFORE deletion
-  let cursorTarget: string | null = null
-  if (isDeletingColumn) {
-    // For column delete, find adjacent column not being deleted (via ViewTreeProjection)
-    const columnIds = ctx.tree.rootId ? [...ctx.tree.children(ctx.tree.rootId)] : []
-    const colIdx = columnIds.findIndex((id) => deleteSet.has(id))
-    // Try next column, then previous
-    const nextColId = columnIds.slice(colIdx + 1).find((id) => !deleteSet.has(id))
-    const prevColId = columnIds
-      .slice(0, colIdx)
-      .reverse()
-      .find((id) => !deleteSet.has(id))
-    const targetColId = nextColId ?? prevColId
-    if (targetColId) {
-      const targetCardIds = ctx.tree.children(targetColId)
-      cursorTarget = targetCardIds[0] ?? targetColId
-    }
-  } else {
-    // For card/subitem delete, find adjacent sibling not being deleted.
-    // Use the node's parent children (not column cardNodes) so subitems
-    // find their siblings correctly instead of falling through to column header.
-    const firstParentId = firstNode?.parent_id
-    if (firstParentId) {
-      const siblings = repo.getChildren(firstParentId)
-      const idx = siblings.findIndex((c) => deleteSet.has(c.id))
-      const nextSib = siblings.slice(idx + 1).find((c) => !deleteSet.has(c.id))
-      const prevSib = siblings
-        .slice(0, idx)
-        .reverse()
-        .find((c) => !deleteSet.has(c.id))
-      cursorTarget = (nextSib ?? prevSib)?.id ?? firstParentId
-    }
-  }
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(repo, selRoot)
 
   // Batch all deletions into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
@@ -243,14 +232,30 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
 
   ctx.undoHandle.endBatch()
 
-  clearSelection(ctx)
+  // Snapshot tree AFTER mutations
+  const nextTree = captureTree(repo, selRoot)
 
-  if (cursorTarget) {
-    ctx.sel.node.select([cursorTarget as ID])
-  } else {
-    // Fallback: re-select current cursor (may land on column header)
-    ctx.sel.node.select([ctx.cursor as ID])
+  // Atomic selection repair: transform handles cursor/anchor repair,
+  // multi-selection survivors, and sub-selection cleanup.
+  // Must run BEFORE clearSelection — transform needs the full multi-selection
+  // to find surviving nodes for cursor repair.
+  const prevCursor = ctx.sel.node.cursor()
+  for (const nodeId of nodeIds) {
+    ctx.sel.transform({ type: "deleteNode", id: nodeId as ID }, prevTree, nextTree)
   }
+
+  // If all selected nodes were deleted, transform leaves cursor null.
+  // Recover by finding the nearest surviving node to the original cursor.
+  if (ctx.sel.node.cursor() === null && prevCursor !== null) {
+    const prevOrder = prevTree.walkOrder(selRoot)
+    const nextOrder = nextTree.walkOrder(selRoot)
+    const nearestId = findNearestSurvivor(prevCursor, prevOrder, nextOrder)
+    if (nearestId !== null) {
+      ctx.sel.node.select([nearestId])
+    }
+  }
+
+  clearSelection(ctx)
 }
 
 /**
@@ -463,6 +468,10 @@ export function handleConfirmMove(ctx: OpCtx): void {
   if (sourceNodeIds.length === 0) return
   if (!ctx.columnId) return
 
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(repo, selRoot)
+
   // Batch all moves into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Move cards")
@@ -475,10 +484,11 @@ export function handleConfirmMove(ctx: OpCtx): void {
 
   ctx.undoHandle.endBatch()
   ctx.dispatchBoard({ type: "CONFIRM_MOVE" })
-  // Select the last moved node by ID
-  const lastMovedId = sourceNodeIds[sourceNodeIds.length - 1]
-  if (lastMovedId) {
-    ctx.sel.node.select([lastMovedId as ID])
+
+  // Atomic selection repair: transform handles cursor/anchor for moved nodes
+  const nextTree = captureTree(repo, selRoot)
+  for (const nodeId of sourceNodeIds) {
+    ctx.sel.transform({ type: "moveNode", id: nodeId as ID, newParent: ctx.columnId as ID }, prevTree, nextTree)
   }
 }
 
@@ -742,14 +752,19 @@ export function handleIndentColumn(ctx: OpCtx, colId: string): OpResult {
   // Calculate sort order: after last card in target column
   const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(prevColId))
 
+  // Snapshot tree BEFORE mutation for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(repo, selRoot)
+
   // Record cursor for undo
   ctx.undoHandle.setCursor(ctx.cursor)
 
   // Move the column node under the previous column
   repo.moveNode(colId, prevColId, newSortOrder)
 
-  // The indented column is now a card under prevCol — select it by node ID
-  ctx.sel.node.select([colId as ID])
+  // Atomic selection repair: transform handles cursor/anchor if node moved out of scope
+  const nextTree = captureTree(repo, selRoot)
+  ctx.sel.transform({ type: "moveNode", id: colId as ID, newParent: prevColId as ID }, prevTree, nextTree)
 
   return ok()
 }

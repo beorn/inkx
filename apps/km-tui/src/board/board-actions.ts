@@ -53,6 +53,7 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
+import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
 
@@ -2210,14 +2211,23 @@ function handleReparentTo(ctx: OpCtx, to: Position): OpResult {
   if (cards.length === 1 && cards[0]!.parent_id === to.parentId) {
     const nodeId = cards[0]!.id
     if (Tree.isAtPosition(ctx.repo, nodeId, to)) return ok()
+    const selRoot = ctx.sel.root.id()
+    const prevTree = captureTree(ctx.repo, selRoot)
     ctx.undoHandle.setCursor(nodeId)
     Tree.moveTo(ctx.repo, nodeId, to)
-    ctx.sel.node.select([nodeId as ID])
+    const nextTree = captureTree(ctx.repo, selRoot)
+    ctx.sel.transform({ type: "moveNode", id: nodeId as ID, newParent: to.parentId as ID }, prevTree, nextTree)
     return ok()
   }
 
   // Cross-parent or multi-selection — batch move
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
   const { moved } = moveSelectedTo(ctx, to)
+  const nextTree = captureTree(ctx.repo, selRoot)
+  for (const card of cards) {
+    ctx.sel.transform({ type: "moveNode", id: card.id as ID, newParent: to.parentId as ID }, prevTree, nextTree)
+  }
   clearSelection(ctx)
   const targetNode = ctx.repo.getNode(to.parentId)
   ctx.toastQueue.success(`Moved ${moved} item(s) to ${targetNode?.name ?? to.parentId}`)

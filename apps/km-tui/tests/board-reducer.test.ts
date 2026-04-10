@@ -948,6 +948,7 @@ function mockCtx() {
     textEditHints: null as import("../src/tui-context.ts").TextEditHints | null,
     repo: {
       getNode: () => null,
+      getChildren: () => [],
       moveNode: (...args: unknown[]) => calls.push({ method: "repo.moveNode", args }),
       addNode: (...args: unknown[]) => {
         calls.push({ method: "repo.addNode", args })

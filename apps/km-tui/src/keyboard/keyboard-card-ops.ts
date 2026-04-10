@@ -10,6 +10,7 @@ import { KNode } from "@km/core"
 import type { OpCtx } from "../tui-context.ts"
 import { clearSelection, getSelectedCardIndices } from "../board/board-selection-helpers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
+import { captureTree } from "../state/capture-tree.ts"
 
 /** Get column info from ViewTree by index. Returns colId + card IDs + KNode[] for the column. */
 function treeColumn(ctx: OpCtx, colIndex: number) {
@@ -143,6 +144,10 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
     return boundary(direction)
   }
 
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
     if (cardTargetIndex < 0 || cardTargetIndex >= col.cardNodes.length) continue
@@ -155,8 +160,11 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
 
   const movedCardIds = validCards.map((c) => c.card.id)
 
-  // Cursor follows the moved card — its ID is unchanged, just its position shifted
-  ctx.sel.node.select([ctx.cursor as ID])
+  // Atomic selection repair: transform re-orders IDs in walk order after moves
+  const nextTree = captureTree(ctx.repo, selRoot)
+  for (const cardId of movedCardIds) {
+    ctx.sel.transform({ type: "moveNode", id: cardId as ID, newParent: col.node.id as ID }, prevTree, nextTree)
+  }
 
   if (movedCardIds.length > 1) {
     rebuildSelectionForMovedCards(ctx, ctx.colIndex, movedCardIds)
@@ -186,6 +194,10 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
 
   if (cardsToMove.length === 0) return boundary(direction)
 
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   // Batch all moves into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Move card to column")
@@ -202,10 +214,10 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
 
   const movedCardIds = cardsToMove.map((c) => c.id)
 
-  // Cursor follows the first moved card to its new column
-  const firstMoved = cardsToMove[0]
-  if (firstMoved) {
-    ctx.sel.node.select([firstMoved.id as ID])
+  // Atomic selection repair: transform handles cursor/anchor for cross-column moves
+  const nextTree = captureTree(ctx.repo, selRoot)
+  for (const cardId of movedCardIds) {
+    ctx.sel.transform({ type: "moveNode", id: cardId as ID, newParent: targetCol.node.id as ID }, prevTree, nextTree)
   }
 
   rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
@@ -230,12 +242,18 @@ export function indentNode(ctx: OpCtx, card: KNode): boolean {
 
   if (!canIndent(ctx, card)) return false
 
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   ctx.undoHandle.setCursor(ctx.cursor)
   executeIndent(ctx, card)
-  // Cursor follows the indented node. nodeIndex maps descendants to their
-  // containing card, so visual cursor lands on the parent card. Navigation
-  // resolves sub-card nodes to card level (see navigateVertical).
-  ctx.sel.node.select([card.id as ID])
+
+  // Atomic selection repair: transform handles cursor for indented node
+  const nextTree = captureTree(ctx.repo, selRoot)
+  const newParent = ctx.repo.getNode(card.id)?.parent_id
+  if (newParent) {
+    ctx.sel.transform({ type: "moveNode", id: card.id as ID, newParent: newParent as ID }, prevTree, nextTree)
+  }
   return true
 }
 
@@ -252,9 +270,18 @@ export function outdentNode(ctx: OpCtx, card: KNode): boolean {
 
   if (!canOutdent(ctx, card)) return false
 
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   ctx.undoHandle.setCursor(ctx.cursor)
   executeOutdent(ctx, card)
-  ctx.sel.node.select([card.id as ID])
+
+  // Atomic selection repair: transform handles cursor for outdented node
+  const nextTree = captureTree(ctx.repo, selRoot)
+  const newParent = ctx.repo.getNode(card.id)?.parent_id
+  if (newParent) {
+    ctx.sel.transform({ type: "moveNode", id: card.id as ID, newParent: newParent as ID }, prevTree, nextTree)
+  }
   return true
 }
 
@@ -347,6 +374,10 @@ function indentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selected
     if (!canIndent(ctx, card)) return false
   }
 
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   // Batch all indent moves into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Indent nodes")
@@ -360,9 +391,14 @@ function indentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selected
 
   ctx.undoHandle.endBatch()
 
-  // Cursor follows first indented card (resolves to parent card via nodeIndex)
-  const firstCard = cards[0]
-  if (firstCard) ctx.sel.node.select([firstCard.id as ID])
+  // Atomic selection repair: transform handles cursor for all indented cards
+  const nextTree = captureTree(ctx.repo, selRoot)
+  for (const card of cards) {
+    const newParent = ctx.repo.getNode(card.id)?.parent_id
+    if (newParent) {
+      ctx.sel.transform({ type: "moveNode", id: card.id as ID, newParent: newParent as ID }, prevTree, nextTree)
+    }
+  }
   clearSelection(ctx)
   return true
 }
@@ -381,6 +417,10 @@ function outdentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selecte
     if (!canOutdent(ctx, card)) return false
   }
 
+  // Snapshot tree BEFORE mutations for sel.transform()
+  const selRoot = ctx.sel.root.id()
+  const prevTree = captureTree(ctx.repo, selRoot)
+
   // Batch all outdent moves into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Outdent nodes")
@@ -394,9 +434,14 @@ function outdentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selecte
 
   ctx.undoHandle.endBatch()
 
-  // Cursor follows first card in batch
-  const firstOutdented = cards[0]
-  if (firstOutdented) ctx.sel.node.select([firstOutdented.id as ID])
+  // Atomic selection repair: transform handles cursor for all outdented cards
+  const nextTree = captureTree(ctx.repo, selRoot)
+  for (const card of cards) {
+    const newParent = ctx.repo.getNode(card.id)?.parent_id
+    if (newParent) {
+      ctx.sel.transform({ type: "moveNode", id: card.id as ID, newParent: newParent as ID }, prevTree, nextTree)
+    }
+  }
   clearSelection(ctx)
   return true
 }

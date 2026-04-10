@@ -16,6 +16,7 @@ import { clearSelection } from "./board-selection-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
 import { defaultNormalize, validateEffects } from "./normalize-plugins.ts"
+import { captureTree } from "../state/capture-tree.ts"
 
 /** Execute a single repo mutation through the effect pipeline (normalization + validation). */
 export function runRepoEffect(ctx: OpCtx, effect: BoardEffect): void {
@@ -59,12 +60,25 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
       ctx.setUI({ columnScrollAnchor: null })
       break
 
-    // Repo mutation effects
-    case "REPO_MOVE_NODE":
+    // Repo mutation effects — each wrapped with sel.transform() for atomic selection repair
+    case "REPO_MOVE_NODE": {
+      const selRoot = ctx.sel.root.id()
+      const prevTree = captureTree(ctx.repo, selRoot)
       ctx.repo.moveNode(effect.nodeId, effect.newParentId, effect.sortOrder)
+      const nextTree = captureTree(ctx.repo, selRoot)
+      ctx.sel.transform(
+        { type: "moveNode", id: effect.nodeId as ID, newParent: effect.newParentId as ID },
+        prevTree,
+        nextTree,
+      )
       break
+    }
     case "REPO_ADD_NODE": {
+      const selRoot = ctx.sel.root.id()
+      const prevTree = captureTree(ctx.repo, selRoot)
       const newId = ctx.repo.addNode(effect.parentId, effect.node)
+      const nextTree = captureTree(ctx.repo, selRoot)
+      ctx.sel.transform({ type: "insertNode", id: newId as ID, parent: effect.parentId as ID }, prevTree, nextTree)
       if (effect.selectAfter) {
         ctx.sel.node.select([newId as ID])
         ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
@@ -72,9 +86,14 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
       }
       break
     }
-    case "REPO_DELETE_NODE":
+    case "REPO_DELETE_NODE": {
+      const selRoot = ctx.sel.root.id()
+      const prevTree = captureTree(ctx.repo, selRoot)
       ctx.repo.deleteNode(effect.nodeId)
+      const nextTree = captureTree(ctx.repo, selRoot)
+      ctx.sel.transform({ type: "deleteNode", id: effect.nodeId as ID }, prevTree, nextTree)
       break
+    }
     case "REPO_UPDATE_NODE":
       ctx.repo.updateNode(effect.nodeId, effect.updates)
       break
