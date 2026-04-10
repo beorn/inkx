@@ -336,8 +336,6 @@ export interface TestApp {
    * @param name - Optional snapshot name (multiple snapshots per test).
    */
   expectSnapshot(name?: string): TestApp
-  /** Alias for expectSnapshot(name) with an explicit required name. */
-  expectScreenMatches(name: string): TestApp
   /** Locator-based assertions: app.expect("#id").toExist() */
   expect(selector: string): {
     toExist(): void
@@ -1273,12 +1271,6 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return app
     },
 
-    expectScreenMatches(name: string): TestApp {
-      const snapshot = normalizeScreenText(driver.text)
-      expect(snapshot).toMatchSnapshot(name)
-      return app
-    },
-
     expect(selector: string) {
       return {
         toExist: () => {
@@ -2080,13 +2072,6 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
           name,
         })
       } else (expect(term) as unknown as { toMatchTerminalSnapshot(): void }).toMatchTerminalSnapshot()
-      return app
-    },
-
-    expectScreenMatches(name: string): TestApp {
-      ;(expect(term) as unknown as { toMatchTerminalSnapshot(o: { name: string }): void }).toMatchTerminalSnapshot({
-        name,
-      })
       return app
     },
 

@@ -1902,11 +1902,6 @@ export function createDriverTestWithRepo(repo: Repo, rootId: string, options?: T
   return { board, registry: env.registry, toastQueue: env.toastQueue, store: env.store, focusManager: env.focusManager }
 }
 
-/** @deprecated Use createDriverTest instead */
-export const testEnv = createDriverTest
-/** @deprecated Use createDriverTestWithRepo instead */
-export const testEnvWithRepo = createDriverTestWithRepo
-
 // =============================================================================
 // Custom Matchers
 // =============================================================================

@@ -403,7 +403,7 @@ Journey tests are the primary guard against bugs at layer boundaries (board↔st
 | --------------------------------- | ----------------------------------------- | ------------------------- |
 | `.spec.ts`                        | Keys in, screen out — user-level journeys | `board-edit.slow.spec.ts` |
 | `.test.ts`                        | Internal API, component rendering         | `card-layout.test.tsx`    |
-| `.slow.test.ts` / `.slow.spec.ts` | Takes >5s (heavy TUI setup)               | `fold.slow.test.ts`       |
+| `.slow.test.ts` / `.slow.spec.ts` | Takes >2s (heavy TUI setup)               | `fold.slow.test.ts`       |
 | `.bench.ts`                       | Performance measurement                   | `scroll-perf.bench.ts`    |
 | `.fuzz.ts`                        | Chaos/randomized testing                  | `monkey.fuzz.ts`          |
 
@@ -513,8 +513,17 @@ board.expectNodeColor("Buy milk", "whiteBright")
 - **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. `createDriverTest()` is for driver-level integration tests only — see the FREEZE bucket in `km-all.test-system`.
 - **Share fixtures**: If multiple tests use the same `item()` tree, combine into a journey test with one `createTestApp()` call. Each test-app creation costs ~1.8s import overhead per file.
 - **Prefer lower layers**: If your test doesn't need screen assertions, write it in km-board (pure state) or km-storage (pipeline) instead — cheaper and faster.
-- **Tests >5s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.
+- **Tests >2s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.
 - **Tests with >100 nodes or >100 iterations → `.bench.ts`**. Never `.test.ts`.
+
+## CI Pattern Checks
+
+`test:ci` runs `infra/check-test-patterns.sh` after lint but before test execution. It enforces:
+
+- **No `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
+- **No `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
+
+Pattern violations fail CI. To check locally: `bash infra/check-test-patterns.sh`.
 
 ## Termless TTY Regression Tests
 
