@@ -104,6 +104,33 @@ Run pre-flight checks:
 - No commits since last tag? → Nothing to release, abort
 - Version drift (local ≠ npm but no tag)? → Warn, confirm
 
+### Pre-flight: workspace:* dependency check (BLOCKING)
+
+Before publishing, verify no `workspace:*` dependencies remain. These break npm consumers since Bun treats them as local workspace references that don't exist outside the monorepo.
+
+```bash
+# Check this package and all workspace packages for workspace:* deps
+has_ws=0
+for pkg in package.json packages/*/package.json; do
+  [ ! -f "$pkg" ] && continue
+  ws=$(python3 -c "
+import json
+d = json.load(open('$pkg'))
+deps = {**d.get('dependencies',{}), **d.get('peerDependencies',{})}
+bad = [f'  {k}: {v}' for k,v in deps.items() if 'workspace:' in str(v)]
+print('\n'.join(bad))
+" 2>/dev/null)
+  if [ -n "$ws" ]; then
+    echo "⚠️  $pkg has workspace:* deps:"
+    echo "$ws"
+    has_ws=1
+  fi
+done
+[ "$has_ws" = "0" ] && echo "✓ No workspace:* dependencies"
+```
+
+If any `workspace:*` dependencies are found: **STOP**. Replace them with real npm version numbers before publishing. Bun workspaces will still resolve them locally when the version matches. See `vendor/CLAUDE.md` for the policy.
+
 ### Pre-flight: link check (soft warning, vendor packages with public sites only)
 
 For vendor packages that ship a public docs site (silvery, termless, terminfo.dev, flexily, loggily, mdspec), run the cross-site link checker against the affected site as a final sanity check before publish:
