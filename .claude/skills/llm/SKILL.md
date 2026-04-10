@@ -173,22 +173,24 @@ Before calling `bun llm`, use `/recall` to search session history for relevant p
 
 ## Execution
 
-**ALWAYS run in background** for deep research and debate (2-15 minutes). Foreground blocks
-Claude Code and makes you unresponsive. Quick questions (`/ask`) are fast enough for foreground.
+**Deep research is fire-and-forget.** The command fires the request, prints the response ID, and exits immediately (~5s). No poll loop, no background tasks needed.
 
+```bash
+# Deep research — run normally (NOT in background), exits in ~5s
+bun llm --deep -y "topic"
+# → prints: Response ID: resp_abc123... (recoverable with 'bun llm recover')
+# → exits immediately
+
+# Recover result later (15-30 min):
+bun llm recover resp_abc123...
+
+# Quick question — foreground, completes in seconds
+bun llm "question"
 ```
-# Deep research — ALWAYS background
-Bash(command='bun llm --deep -y "topic"', run_in_background=true)
-# Then: TaskOutput(task_id=<id>, block=true, timeout=600000)
-# Then: ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
-# Then: Read the output file
 
-# Quick question — foreground is fine
-Bash(command='bun llm "question"', timeout=30000)
-```
+**Do NOT** run `bun llm --deep` with `run_in_background=true` — the output pipe truncates and you lose the response ID. Just run it normally; it exits in ~5s.
 
-Response is ALWAYS written to a file (`/tmp/llm-*.txt`). The task output is streaming tokens
-(noisy, truncated) — always read the OUTPUT FILE for the actual response.
+If you forgot the response ID: `bun llm recover` lists all partial responses.
 
 ## Recovery (CRITICAL)
 

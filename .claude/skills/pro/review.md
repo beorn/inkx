@@ -61,21 +61,28 @@ bun llm --deep --model gpt-5.4-pro -y --no-recover \
   "GPT 5.4 Pro code review: <package-name>. Review for correctness bugs, safety issues, API design problems, and performance. Classify findings as P0 (correctness bugs causing wrong behavior), P1 (important safety/quality), P2 (medium quality), P3 (style). For each finding include: file path, line range, classification, description, and suggested fix. Do NOT report style preferences, missing JSDoc, import ordering, or linter-handled issues."
 ```
 
-**Execution**:
-- ALWAYS run in background: `Bash(command='...', run_in_background=true)`
-- Launch up to 3 reviews concurrently
-- Track task IDs for each package
+**Execution — fire-and-forget**:
+
+Deep research is always fire-and-forget. The command fires the request, prints the response ID, and exits immediately (~5s). No poll loop, no background tasks, no timeout.
+
+1. Run the command normally (NOT in background): `bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-<pkg>.md "..."`
+2. Note the response ID from the output
+3. Move on to other work
+4. Recover later: `bun llm recover <response-id>`
+
+Launch up to 3 reviews sequentially — each exits in ~5s after firing.
 
 ## Step 3: Retrieve Results
 
-After background task completes:
+After 15-30 minutes, recover the results:
 
 ```bash
-# Find the output file (NOT the task output — that's streaming tokens)
-ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -5
+bun llm recover <response-id>
 ```
 
-Read the output file with `Read`. Then proceed to [triage.md](triage.md).
+If you forgot the ID: `bun llm recover` lists all partial responses.
+
+Read the recovered output, then proceed to [triage.md](triage.md).
 
 ## Review Prompt Customization
 
@@ -83,26 +90,23 @@ The base prompt covers standard review areas. Add **dynamic focus areas** based 
 
 ```
 # Additional focus areas based on prior reviews:
-- [If history shows pattern]: Pay special attention to <pattern> — prior reviews found this across multiple packages
-- [If package had specific weakness]: Deep dive into <area> — historically problematic in this package
+- [If history shows pattern]: Pay special attention to <pattern>
+- [If package had specific weakness]: Deep dive into <area>
 ```
 
 These focus areas come from [history.md](history.md) pattern analysis.
 
 ## Parallel Execution
 
-When reviewing multiple packages:
+When reviewing multiple packages, fire all sequentially (each exits in ~5s):
 
-```
-# Launch all reviews in background (max 3 at a time)
-Bash(command='bun llm --deep ...for pkg1...', run_in_background=true)  → task_id_1
-Bash(command='bun llm --deep ...for pkg2...', run_in_background=true)  → task_id_2
-Bash(command='bun llm --deep ...for pkg3...', run_in_background=true)  → task_id_3
-
-# Wait for first batch
-TaskOutput(task_id=task_id_1, block=true, timeout=600000)
-# Triage pkg1, then launch pkg4 if queue remains
-...
+```bash
+bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-pkg1.md "..."
+# → Response ID: resp_abc123...
+bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-pkg2.md "..."
+# → Response ID: resp_def456...
+bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-pkg3.md "..."
+# → Response ID: resp_ghi789...
 ```
 
-As each completes, triage immediately and launch the next queued package. This keeps the pipeline flowing without overloading the deep research queue.
+Recover each after 15-30 min: `bun llm recover resp_abc123...`
