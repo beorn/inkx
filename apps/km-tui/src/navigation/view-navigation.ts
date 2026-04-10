@@ -12,7 +12,8 @@ import type { Repo } from "@km/storage"
 import type { GridNavigator, ViewTreeProjection, ViewType } from "@km/board"
 import { classifyCursorFromLens, createViewLens } from "@km/board"
 import type { ViewMode } from "../types.ts"
-import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
+// computeDetailMetadataKeys/DETAIL_META_PREFIX removed — detail navigation
+// now skips virtual __meta__ IDs (not in sel walkOrder).
 
 // =============================================================================
 // ViewNavigation interface
@@ -103,35 +104,17 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       if (dir === "left" || dir === "right") return null
 
-      // Build the flat list of navigable items: root node + metadata keys + flattened doc tree
-      const rootNode = rootId ? repo.getNode(rootId) : null
-      const metaKeys = rootNode ? computeDetailMetadataKeys(rootNode) : []
-      const metaIds = metaKeys.map((key) => `${DETAIL_META_PREFIX}${key}`)
+      // Build the flat list of navigable items: root node + flattened doc tree.
+      // Metadata rows (__meta__* IDs) are rendered visually but NOT navigable —
+      // they are virtual IDs that don't exist in the sel walkOrder, so selecting
+      // them normalizes to deselection (cursor null). Skip them in navigation.
       const allChildren = repo.getChildren(rootId)
-      // Flatten the doc tree to match what DocContent renders (items only, up to depth 3)
-      if (allChildren.length === 0 && metaIds.length === 0) return null
-
-      // j/k = sibling navigation (same parent level), like cards view.
-      // H1 (rootId) → meta rows → direct children of root.
-      // Within a heading's children, j/k moves between siblings at that level.
-      // Use z/l to enter a heading's children (zoom in).
+      if (allChildren.length === 0) return null
 
       // Cursor is the H1 (root)
       if (cursor === rootId) {
-        if (dir === "down") return metaIds[0] ?? allChildren[0]?.id ?? null
+        if (dir === "down") return allChildren[0]?.id ?? null
         return null // k on H1 = boundary
-      }
-
-      // Cursor is a meta row
-      const metaIdx = metaIds.indexOf(cursor)
-      if (metaIdx >= 0) {
-        if (dir === "down") {
-          const next = metaIdx + 1
-          if (next < metaIds.length) return metaIds[next]!
-          return allChildren[0]?.id ?? null // past meta → first child
-        }
-        const prev = metaIdx - 1
-        return prev >= 0 ? metaIds[prev]! : rootId // before first meta → H1
       }
 
       // Cursor is a child node
@@ -174,8 +157,8 @@ export function createDetailViewNavigation(): ViewNavigation {
           }
           return target.id
         }
-        // k before first sibling → parent
-        if (parentId === rootId) return metaIds.length > 0 ? metaIds[metaIds.length - 1]! : rootId
+        // k before first sibling → parent (rootId)
+        if (parentId === rootId) return rootId
         return parentId
       }
 

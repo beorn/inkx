@@ -74,7 +74,8 @@ import {
 } from "../layout-helpers.ts"
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "../workspace-persist.ts"
 import { deserializeFilterProperties } from "../workspace-persist.ts"
-import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
+// computeMetadataKeys/DETAIL_META_PREFIX removed — detail initial cursor
+// now skips virtual __meta__ IDs (not in sel walkOrder).
 import { resolveSymlink } from "../views/symlink-display.ts"
 
 // =============================================================================
@@ -433,10 +434,10 @@ function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string |
   const rawNode = repo.getNode(nodeId)
   const { displayNode } = rawNode ? resolveSymlink(repo, rawNode) : { displayNode: null }
   const effectiveId = displayNode?.id ?? nodeId
-  const metaKeys = displayNode ? computeMetadataKeys(displayNode) : []
-  if (metaKeys.length > 0) return `${DETAIL_META_PREFIX}${metaKeys[0]}`
+  // Always start on first real child — metadata rows (__meta__* IDs) are virtual
+  // and not in the sel walkOrder, so selecting them normalizes to cursor null.
   const children = repo.getChildren(effectiveId)
-  return children[0]?.id ?? null
+  return children[0]?.id ?? effectiveId
 }
 
 /**

@@ -1463,6 +1463,274 @@ describe("detail pane j/k navigation", () => {
     board.press("k")
     expect(dc(store)).toBe("c-a")
   })
+
+  test("j navigates past H2 headings into their children and to next H2 (item builder)", () => {
+    // Card with H2 sections containing children — like a real Quarterly Plan document
+    const { board, store } = createDriverTest(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "card1",
+              item.section("Constitution", item("task-c1"), item("task-c2")),
+              item.section("Craft", item("task-r1")),
+              item.section("Clan", item("task-l1"), item("task-l2")),
+            ),
+          ),
+        ),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+
+    // Cursor starts on first child: Constitution (H2)
+    expect(dc(store)).toBe("Constitution")
+
+    // j → enter Constitution's children → task-c1
+    board.press("j")
+    expect(dc(store)).toBe("task-c1")
+
+    // j → next sibling under Constitution → task-c2
+    board.press("j")
+    expect(dc(store)).toBe("task-c2")
+
+    // j → past last child of Constitution → next H2 sibling → Craft
+    board.press("j")
+    expect(dc(store)).toBe("Craft")
+
+    // j → enter Craft's children → task-r1
+    board.press("j")
+    expect(dc(store)).toBe("task-r1")
+
+    // j → past last child of Craft → next H2 sibling → Clan
+    board.press("j")
+    expect(dc(store)).toBe("Clan")
+
+    // j → enter Clan's children → task-l1
+    board.press("j")
+    expect(dc(store)).toBe("task-l1")
+
+    // j → next sibling → task-l2
+    board.press("j")
+    expect(dc(store)).toBe("task-l2")
+
+    // k → back through entire tree
+    board.press("k")
+    expect(dc(store)).toBe("task-l1")
+
+    board.press("k")
+    expect(dc(store)).toBe("Clan")
+
+    board.press("k")
+    expect(dc(store)).toBe("task-r1")
+
+    board.press("k")
+    expect(dc(store)).toBe("Craft")
+
+    board.press("k")
+    expect(dc(store)).toBe("task-c2")
+
+    board.press("k")
+    expect(dc(store)).toBe("task-c1")
+
+    board.press("k")
+    expect(dc(store)).toBe("Constitution")
+  })
+
+  test("j navigates H2 headings under a task card (metadata + sections)", () => {
+    // Task card with metadata rows + H2 sections: the real-world scenario.
+    // The detail pane initial cursor targets __meta__Status for tasks.
+    // Bug: __meta__ IDs aren't in the sel walkOrder, so cursor normalizes to null.
+    const nodes: KNode[] = [
+      {
+        id: "board",
+        type: "h",
+        item: {},
+        fstype: "folder" as const,
+        data: { name: "board" },
+        parent_id: null,
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "col1",
+        type: "h",
+        item: {},
+        fstype: "folder" as const,
+        data: { name: "col1" },
+        parent_id: "board",
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "plan",
+        type: "h",
+        item: { task: { marker: "[ ]", status: "todo" as const } },
+        fstype: "mdfile" as const,
+        content: "Quarterly Plan Q19",
+        data: { name: "Quarterly Plan Q19" },
+        parent_id: "col1",
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "constitution",
+        type: "h",
+        item: {},
+        fstype: "mdsection" as const,
+        data: { name: "Constitution" },
+        parent_id: "plan",
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "task-c1",
+        type: "p",
+        item: { list: "-", task: { marker: "[ ]", status: "todo" as const } },
+        content: "Review charter",
+        data: {},
+        parent_id: "constitution",
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "craft",
+        type: "h",
+        item: {},
+        fstype: "mdsection" as const,
+        data: { name: "Craft" },
+        parent_id: "plan",
+        parent_idx: 1,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "task-r1",
+        type: "p",
+        item: { list: "-", task: { marker: "[ ]", status: "todo" as const } },
+        content: "Build prototype",
+        data: {},
+        parent_id: "craft",
+        parent_idx: 0,
+        symlink_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+    ] as KNode[]
+
+    const { board, store } = createDriverTest(() => nodes, { checkIncremental: false, incremental: false })
+    board.press("D")
+
+    // Initial cursor starts on first real child (H2 heading), not __meta__
+    expect(dc(store)).toBe("constitution")
+
+    // j → enter Constitution's first child
+    board.press("j")
+    expect(dc(store)).toBe("task-c1")
+
+    // j → past last child of Constitution → next H2 sibling
+    board.press("j")
+    expect(dc(store)).toBe("craft")
+
+    // j → enter Craft's first child
+    board.press("j")
+    expect(dc(store)).toBe("task-r1")
+
+    // k → back to Craft heading
+    board.press("k")
+    expect(dc(store)).toBe("craft")
+
+    // k → back to task-c1 (last descendant of Constitution)
+    board.press("k")
+    expect(dc(store)).toBe("task-c1")
+
+    // k → back to Constitution heading
+    board.press("k")
+    expect(dc(store)).toBe("constitution")
+  })
+
+  test("j navigates past H2 headings with fromMarkdown (real parser)", () => {
+    // Realistic: a document with H1 (becomes board root) and H2 sections (columns)
+    // Then each H2 section has task items as cards.
+    // The detail pane is opened on ONE card, and we navigate its H2 sub-sections.
+    // A card with H2 sub-sections = item("card1", item.section("H2A", ...), item.section("H2B", ...))
+    const { board, store } = createDriverTest(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "plan",
+              item.section("Constitution", item("Review charter"), item("Update bylaws")),
+              item.section("Craft", item("Build prototype")),
+              item.section("Clan", item("Team review"), item("Hire designer")),
+            ),
+          ),
+        ),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+    // Cursor starts on first child
+    expect(dc(store)).toBe("Constitution")
+
+    // Navigate through the entire tree with j
+    board.press("j")
+    expect(dc(store)).toBe("Review charter")
+    board.press("j")
+    expect(dc(store)).toBe("Update bylaws")
+    board.press("j")
+    expect(dc(store)).toBe("Craft")
+    board.press("j")
+    expect(dc(store)).toBe("Build prototype")
+    board.press("j")
+    expect(dc(store)).toBe("Clan")
+    board.press("j")
+    expect(dc(store)).toBe("Team review")
+    board.press("j")
+    expect(dc(store)).toBe("Hire designer")
+
+    // j at the end should stay (boundary)
+    board.press("j")
+    expect(dc(store)).toBe("Hire designer")
+
+    // Now navigate back up with k
+    board.press("k")
+    expect(dc(store)).toBe("Team review")
+    board.press("k")
+    expect(dc(store)).toBe("Clan")
+    board.press("k")
+    expect(dc(store)).toBe("Build prototype")
+    board.press("k")
+    expect(dc(store)).toBe("Craft")
+    board.press("k")
+    expect(dc(store)).toBe("Update bylaws")
+    board.press("k")
+    expect(dc(store)).toBe("Review charter")
+    board.press("k")
+    expect(dc(store)).toBe("Constitution")
+  })
 })
 
 // =============================================================================
@@ -1834,5 +2102,41 @@ describe("Detail Pane Journeys", () => {
     // Step 3: Children should still be visible on screen
     app.expectScreen("child-a")
     app.expectScreen("child-b")
+  })
+})
+
+// =============================================================================
+// Detail pane edit-mode styling
+// =============================================================================
+
+describe("detail pane edit-mode styling", () => {
+  test("editing a detail pane node suppresses selection-bg and shows focusborder color", () => {
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item("card1", item("child-a"), item("child-b")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D") // open + focus detail pane
+
+    // Cursor is on child-a — should have selection-bg
+    const cursorBox = board.screen.nodeBox("child-a")
+    expect(cursorBox).not.toBeNull()
+
+    // Enter edit mode on the cursor node
+    board.press("Enter")
+
+    // After editing: cursor node should NOT have selection-bg background
+    // (it should be clear/undefined) and text should use $focusborder color
+    const editBox = board.screen.nodeBox("child-a")
+    expect(editBox).not.toBeNull()
+
+    // The node should still be visible (editing didn't break rendering)
+    board.expectScreen("child-a")
+
+    // Exit edit mode
+    board.press("Escape")
+
+    // After exiting: selection-bg should return
+    board.expectScreen("child-a")
   })
 })
