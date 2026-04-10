@@ -103,7 +103,30 @@ For each package.json in vendor/:
 
 Flag any package with `dist/` in exports as **BLOCK** — it should use `src/` instead.
 
-### 1F: Security and dependency scan (optional)
+### 1F: CI/CD Workflows
+
+```
+Check .github/workflows/ exists:
+  - release.yml: required for any published package. Must:
+    - Trigger on v* tag push
+    - Publish in dependency order (if monorepo)
+    - Be idempotent (skip already-published versions)
+    - Use correct package directories (verify paths match actual packages/)
+  - docs.yml: required if package has a docs/ site
+  - ci.yml or test.yml: required if package has tests
+
+For monorepos with sub-packages:
+  - Verify release.yml publishes ALL sub-packages, not just root
+  - Verify publish order matches dependency graph
+  - Check for stale directory names (packages renamed but workflow not updated)
+  - No manual npm publish — CI handles it (prevents race conditions)
+
+Flag as HIGH if: release.yml missing on published package, or release.yml
+  references wrong/nonexistent package directories.
+Flag as MEDIUM if: no CI test workflow, or docs workflow missing for a docs site.
+```
+
+### 1G: Security and dependency scan (optional)
 
 ```
 Secret scan — grep for API_KEY, SECRET=, password=, token= in source files
@@ -129,6 +152,7 @@ Synthesize findings into categorized issues. For each issue, classify:
 | **Narrative** | README doesn't sell the project | High | Tagline undersells, features are a flat dump |
 | **Pkg metadata** | Missing/weak npm discoverability fields | Medium | No keywords, abstract description, blank homepage |
 | **Provenance** | Numbers without dates/methodology | Medium | 3 different benchmark runs, no dates |
+| **CI/CD** | Missing/broken workflows | High | release.yml references wrong directories, no CI tests |
 
 ### Severity rules
 
