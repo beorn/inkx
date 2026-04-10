@@ -90,7 +90,7 @@
     "test:compat:ink": "cd vendor/silvery && bun run compat:ink",
     "test:compat:chalk": "cd vendor/silvery && bun run compat:chalk",
     "test:fuzz": "bun vitest run --project fuzz",
-    "test:ci": "bash infra/typecheck/check.sh && bun fix && bun vitest run && bun vitest run --project slow && bun vitest run --project vendor && bun vitest run --project fuzz",
+    "test:ci": "bash infra/typecheck/check.sh && bun fix && bash infra/check-test-patterns.sh && bun vitest run && bun vitest run --project slow && bun vitest run --project vendor && bun vitest run --project fuzz",
     "test:strictest": "SILVERY_STRICT=2 bash infra/typecheck/check.sh && bun fix && bun vitest run && bun vitest run --project slow && bun vitest run --project vendor",
     "test:fast:serial": "bun vitest run --sequence.concurrent=false --sequence.shuffle=false",
     "test:fast:html": "bun vitest run --reporter=html --reporter=junit && bun infra/test-perf/track.ts",
