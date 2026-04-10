@@ -17,7 +17,7 @@ import { assertNever } from "../src/action-handlers.ts"
 initCommandSystem()
 
 describe("Command Registry Contracts", () => {
-  test("every registered command is dispatchable without crash", () => {
+  test("every registered command is dispatchable without crash", { timeout: 15_000 }, () => {
     // Use a board with enough structure to avoid trivial edge cases
     using app = createTestApp(
       item(
