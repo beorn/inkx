@@ -350,7 +350,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "loggily": "^0.4.2",
@@ -364,7 +364,7 @@
     },
     "vendor/loggily": {
       "name": "loggily",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "vitepress": "^1.6.4",
@@ -375,7 +375,10 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.11.1",
+      "version": "0.15.0",
+      "bin": {
+        "silvery": "./bin/silvery.ts",
+      },
       "dependencies": {
         "@chenglou/pretext": "^0.0.3",
         "@silvery/commander": "0.8.1",
@@ -441,6 +444,7 @@
         "@silvery/ansi": "0.3.1",
         "@silvery/create": "0.5.0",
         "@silvery/headless": "0.5.0",
+        "@silvery/signals": "0.5.0",
         "@silvery/test": "0.5.0",
         "@silvery/theme": "0.5.0",
         "flexily": "github:beorn/flexily",
@@ -448,7 +452,7 @@
     },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@silvery/color": ">=0.1.0",
         "string-width": "^8.2.0",
@@ -478,7 +482,7 @@
     },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "dependencies": {
         "@silvery/ag": "0.5.0",
         "@silvery/ag-react": "0.5.0",
@@ -488,18 +492,6 @@
         "@silvery/ink": "0.5.0",
         "@silvery/test": "0.5.0",
         "alien-signals": "^3.1.2",
-      },
-    },
-    "vendor/silvery/packages/examples": {
-      "name": "@silvery/examples",
-      "version": "0.5.1",
-      "bin": {
-        "silvery-examples": "./bin/cli.ts",
-      },
-      "dependencies": {
-        "@silvery/ag-term": "0.5.0",
-        "@silvery/create": "0.5.0",
-        "silvery": "0.11.1",
       },
     },
     "vendor/silvery/packages/headless": {
@@ -540,7 +532,7 @@
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "dependencies": {
         "@silvery/ag": "0.5.0",
         "@silvery/ag-react": "0.5.0",
@@ -620,7 +612,7 @@
     },
     "vendor/termless/packages/alacritty": {
       "name": "@termless/alacritty",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "@napi-rs/cli": "^3.0.0",
       },
@@ -630,7 +622,7 @@
     },
     "vendor/termless/packages/cli": {
       "name": "@termless/cli",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "bin": {
         "termless": "./src/cli.ts",
       },
@@ -648,7 +640,7 @@
     },
     "vendor/termless/packages/ghostty": {
       "name": "@termless/ghostty",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "ghostty-web": "^0.4.0",
       },
@@ -658,28 +650,28 @@
     },
     "vendor/termless/packages/ghostty-native": {
       "name": "@termless/ghostty-native",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
       },
     },
     "vendor/termless/packages/kitty": {
       "name": "@termless/kitty",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
       },
     },
     "vendor/termless/packages/libvterm": {
       "name": "@termless/libvterm",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
       },
     },
     "vendor/termless/packages/peekaboo": {
       "name": "@termless/peekaboo",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@xterm/headless": "^5.5.0",
       },
@@ -690,7 +682,7 @@
     },
     "vendor/termless/packages/viterm": {
       "name": "@termless/test",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
         "vitest": ">=2.0.0",
@@ -698,7 +690,7 @@
     },
     "vendor/termless/packages/vt100": {
       "name": "@termless/vt100",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "vt100.js": "^0.3.0",
       },
@@ -708,14 +700,14 @@
     },
     "vendor/termless/packages/vt100-rust": {
       "name": "@termless/vt100-rust",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
       },
     },
     "vendor/termless/packages/vt220": {
       "name": "@termless/vt220",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "vt220.js": "^0.1.0",
       },
@@ -725,7 +717,7 @@
     },
     "vendor/termless/packages/vterm": {
       "name": "@termless/vterm",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "vterm.js": "^0.1.0",
       },
@@ -735,14 +727,14 @@
     },
     "vendor/termless/packages/wezterm": {
       "name": "@termless/wezterm",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "peerDependencies": {
         "@termless/core": "*",
       },
     },
     "vendor/termless/packages/xtermjs": {
       "name": "@termless/xtermjs",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@xterm/headless": "^5.5.0",
       },
@@ -765,7 +757,7 @@
         "vitest": ">=4.0.0",
       },
     },
-    "vendor/vt100": {
+    "vendor/vterm": {
       "name": "vterm",
       "version": "0.0.1",
       "devDependencies": {
@@ -803,9 +795,9 @@
     "silvery": "vendor/silvery",
     "vimonkey": "vendor/vimonkey",
     "vitepress-enrich": "vendor/bearly/packages/vitepress-enrich",
-    "vt100.js": "file:vendor/vt100/packages/vt100",
-    "vt220.js": "file:vendor/vt100/packages/vt220",
-    "vterm.js": "file:vendor/vt100/packages/vterm",
+    "vt100.js": "file:vendor/vterm/packages/vt100",
+    "vt220.js": "file:vendor/vterm/packages/vt220",
+    "vterm.js": "file:vendor/vterm/packages/vterm",
     "zod": "^4.3.6",
   },
   "catalog": {
@@ -1424,8 +1416,6 @@
     "@silvery/commands": ["@silvery/commands@workspace:vendor/silvery/packages/commands"],
 
     "@silvery/create": ["@silvery/create@workspace:vendor/silvery/packages/create"],
-
-    "@silvery/examples": ["@silvery/examples@workspace:vendor/silvery/packages/examples"],
 
     "@silvery/headless": ["@silvery/headless@workspace:vendor/silvery/packages/headless"],
 
@@ -2717,7 +2707,7 @@
 
     "vscode-uri": ["vscode-uri@3.1.0", "", {}, "sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ=="],
 
-    "vterm": ["vterm@workspace:vendor/vt100"],
+    "vterm": ["vterm@workspace:vendor/vterm"],
 
     "vue": ["vue@3.5.31", "", { "dependencies": { "@vue/compiler-dom": "3.5.31", "@vue/compiler-sfc": "3.5.31", "@vue/runtime-dom": "3.5.31", "@vue/server-renderer": "3.5.31", "@vue/shared": "3.5.31" }, "peerDependencies": { "typescript": "*" }, "optionalPeers": ["typescript"] }, "sha512-iV/sU9SzOlmA/0tygSmjkEN6Jbs3nPoIPFhCMLD2STrjgOU8DX7ZtzMhg4ahVwf5Rp9KoFzcXeB1ZrVbLBp5/Q=="],
 
@@ -2767,7 +2757,11 @@
 
     "@inquirer/core/signal-exit": ["signal-exit@4.1.0", "", {}, "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw=="],
 
+    "@km/agent/@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
+
     "@km/agent/ulid": ["ulid@2.4.0", "", { "bin": { "ulid": "bin/cli.js" } }, "sha512-fIRiVTJNcSRmXKPZtGzFQv9WRrZ3M9eoptl/teFJvjOzmpU+/K/JH6HZ8deBfb5vMEpicJcLn7JmvdknlMq7Zg=="],
+
+    "@km/beads/@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
 
     "@km/beads/ulid": ["ulid@2.4.0", "", { "bin": { "ulid": "bin/cli.js" } }, "sha512-fIRiVTJNcSRmXKPZtGzFQv9WRrZ3M9eoptl/teFJvjOzmpU+/K/JH6HZ8deBfb5vMEpicJcLn7JmvdknlMq7Zg=="],
 
@@ -2781,11 +2775,11 @@
 
     "@termless/core/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
-    "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vt100/packages/vt100", {}],
+    "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vterm/packages/vt100", {}],
 
-    "@termless/vt220/vt220.js": ["vt220.js@file:vendor/vt100/packages/vt220", {}],
+    "@termless/vt220/vt220.js": ["vt220.js@file:vendor/vterm/packages/vt220", {}],
 
-    "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vt100/packages/vterm", {}],
+    "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vterm/packages/vterm", {}],
 
     "@ts-morph/common/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 
@@ -2798,6 +2792,8 @@
     "@vue/compiler-sfc/estree-walker": ["estree-walker@2.0.2", "", {}, "sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w=="],
 
     "ansi-align/string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
+
+    "bearly/@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
 
     "boxen/string-width": ["string-width@7.2.0", "", { "dependencies": { "emoji-regex": "^10.3.0", "get-east-asian-width": "^1.0.0", "strip-ansi": "^7.1.0" } }, "sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ=="],
 
@@ -2881,6 +2877,10 @@
 
     "yargs/string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 
+    "@km/agent/@types/bun/bun-types": ["bun-types@1.3.12", "", { "dependencies": { "@types/node": "*" } }, "sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA=="],
+
+    "@km/beads/@types/bun/bun-types": ["bun-types@1.3.12", "", { "dependencies": { "@types/node": "*" } }, "sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA=="],
+
     "@termless/core/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@ts-morph/common/minimatch/brace-expansion": ["brace-expansion@2.0.3", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA=="],
@@ -2890,6 +2890,8 @@
     "ansi-align/string-width/is-fullwidth-code-point": ["is-fullwidth-code-point@3.0.0", "", {}, "sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg=="],
 
     "ansi-align/string-width/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
+
+    "bearly/@types/bun/bun-types": ["bun-types@1.3.12", "", { "dependencies": { "@types/node": "*" } }, "sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA=="],
 
     "cliui/string-width/emoji-regex": ["emoji-regex@8.0.0", "", {}, "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="],
 
