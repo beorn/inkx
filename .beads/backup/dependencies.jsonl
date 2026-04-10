@@ -147,10 +147,13 @@
 {"created_at":"2026-04-06T13:31:37Z","created_by":"Bjørn Stabell","depends_on_id":"km-all","issue_id":"km-all.session-learnings-0406","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all","issue_id":"km-all.tea-finish","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all","issue_id":"km-all.tea-machines","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-09T23:05:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-system","issue_id":"km-all.test-ergonomics","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all","issue_id":"km-all.test-helper-cleanup","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-09T19:41:19Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-ergonomics","issue_id":"km-all.test-migrate","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-09T22:57:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-ergonomics","issue_id":"km-all.test-pro-findings","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-09T07:30:10Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-system","issue_id":"km-all.test-reclassify","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-09T08:42:55Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-system","issue_id":"km-all.test-sync","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-09T23:05:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-system","issue_id":"km-all.test-trace-replay","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-09T19:41:19Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.test-ergonomics","issue_id":"km-all.test-whitebox-api","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T16:12:36Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-all.unify-p2-action-to-op","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T16:12:36Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-all.unify-p3-event-to-change","metadata":"{}","type":"parent-child"}

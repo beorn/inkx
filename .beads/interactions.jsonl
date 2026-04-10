@@ -751,3 +751,5 @@
 {"id":"int-94f71280","kind":"field_change","created_at":"2026-04-10T00:00:31.391476Z","actor":"Bjørn Stabell","issue_id":"km-silvery.skip-unused-phases","extra":{"field":"status","new_value":"closed","old_value":"open"}}
 {"id":"int-9930dc4f","kind":"field_change","created_at":"2026-04-10T00:16:00.233855Z","actor":"Bjørn Stabell","issue_id":"km-silvery.style-fast-path","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
 {"id":"int-bac92d6c","kind":"field_change","created_at":"2026-04-10T01:28:34.721493Z","actor":"Bjørn Stabell","issue_id":"km-all.test-migrate","extra":{"field":"status","new_value":"in_progress","old_value":"closed"}}
+{"id":"int-a03eb16b","kind":"field_change","created_at":"2026-04-10T06:04:54.341176Z","actor":"Bjørn Stabell","issue_id":"km-all.test-system","extra":{"field":"status","new_value":"open","old_value":"closed"}}
+{"id":"int-e278725d","kind":"field_change","created_at":"2026-04-10T06:04:54.34133Z","actor":"Bjørn Stabell","issue_id":"km-all.test-system","extra":{"field":"priority","new_value":"0","old_value":"2"}}
