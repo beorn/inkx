@@ -53,7 +53,7 @@ For any vendor package to be "standalone-ready":
 | **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor     |
 | **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                          |
 | **loggily**          | `loggily`              | Structured logging                                        |
-| **accountly**        | `@beorn/accountly`     | LLM API accounting/cost tracking                          |
+| **accountly**        | `@beorn/accountly`     | Multi-account manager — credential switching, quota monitoring, auto-rotation |
 | **tap**              | `@beorn/tap`           | Terminal app protocol                                     |
 | **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern            |
 | **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                |
