@@ -11,7 +11,8 @@
 import { describe, test, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "@silvery/test"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { OverflowIndicator } from "../src/views/OverflowIndicator.tsx"
 import type { KNode } from "@km/core"
 
@@ -22,38 +23,36 @@ import type { KNode } from "@km/core"
 describe("overflow-top-spurious", () => {
   test("no spurious ▲ at top (cards view)", () => {
     const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
+    using app = createTestApp(item("board", item("col1", ...children)), { rows: 24, cols: 80 })
 
-    const text = board.screenshot()
-    expect(text).not.toContain("\u25b2")
-    expect(text).toContain("\u25bc")
+    expect(app.text).not.toContain("\u25b2")
+    expect(app.text).toContain("\u25bc")
   })
 
   test("no spurious ▲ at top (columns view)", () => {
     const children = Array.from({ length: 40 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...children)), {
+    using app = createTestApp(item("board", item("col1", ...children)), {
       rows: 24,
-      columns: 80,
+      cols: 80,
       viewMode: "columns",
     })
 
-    const text = board.screenshot()
-    expect(text).not.toContain("\u25b2")
-    expect(text).toContain("\u25bc")
+    expect(app.text).not.toContain("\u25b2")
+    expect(app.text).toContain("\u25bc")
   })
 
   test("▼ disappears after scrolling back to top", () => {
     const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
+    using app = createTestApp(item("board", item("col1", ...children)), { rows: 24, cols: 80, incremental: false })
 
     // Scroll down — ▼ should be visible (items below viewport)
-    for (let i = 0; i < 10; i++) board.command("cursor_down")
-    expect(board.screenshot()).toContain("\u25bc")
+    for (let i = 0; i < 10; i++) app.command("cursor_down")
+    expect(app.text).toContain("\u25bc")
 
     // Scroll back to top — ▼ should still be visible (still items below)
-    for (let i = 0; i < 10; i++) board.command("cursor_up")
+    for (let i = 0; i < 10; i++) app.command("cursor_up")
     // At top, no ▲ should show
-    expect(board.screenshot()).not.toContain("\u25b2")
+    expect(app.text).not.toContain("\u25b2")
   })
 })
 
@@ -66,17 +65,16 @@ describe("child count on subitems", () => {
     // Create a card with a subitem that itself has children.
     // The subitem "Parent" has 3 children rendered as FoldedChildRow.
     // Child count is hidden when children are visible — overflow indicator replaces it.
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("Card1", item("Parent", item("child-a"), item("child-b"), item("child-c"))))),
     )
 
     // The card should render "Parent" as a subitem inside Card1
-    board.expectScreen("Parent")
+    app.expectScreen("Parent")
     // Children are visible as FoldedChildRow entries
-    board.expectScreen("child-a")
+    app.expectScreen("child-a")
     // Child count should NOT appear on the Parent line (children are visible)
-    const screenshot = board.screenshot()
-    const lines = screenshot.split("\n")
+    const lines = app.text.split("\n")
     const parentLine = lines.find((l) => l.includes("Parent"))
     expect(parentLine).toBeDefined()
     expect(parentLine).not.toMatch(/\b3\b/)
@@ -84,105 +82,100 @@ describe("child count on subitems", () => {
 
   test("virtual body cards preserve child count", () => {
     // Body nodes (non-oi before first oi) in a virtual body column should show child counts.
-    // Use testEnvWithRepo to create li (task) nodes with children directly.
-    const { board } = testEnv(
-      () => {
-        // Build: board > col1 > [bodyTask(li, 3 children), sectionA(oi, 1 card)]
-        // bodyTask is li type so it's body content before sectionA (oi).
-        // After rendering, bodyTask should be in a virtual body column with childCount=3.
-        const nodes = [...item("board", item("col1"))]
-        // bodyTask as li (body content, not oi) with children
-        const bodyTask: KNode = {
-          id: "bodyTask",
-          type: "p",
-          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
-          content: "bodyTask",
-          data: {},
-          parent_id: "col1",
-          parent_idx: 0,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        // bodyTask children
-        const btChild1: KNode = {
-          id: "bt-child-1",
-          type: "p",
-          item: { list: "-" },
-          content: "bt-child-1",
-          data: {},
-          parent_id: "bodyTask",
-          parent_idx: 0,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        const btChild2: KNode = {
-          id: "bt-child-2",
-          type: "p",
-          item: { list: "-" },
-          content: "bt-child-2",
-          data: {},
-          parent_id: "bodyTask",
-          parent_idx: 1,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        const btChild3: KNode = {
-          id: "bt-child-3",
-          type: "p",
-          item: { list: "-" },
-          content: "bt-child-3",
-          data: {},
-          parent_id: "bodyTask",
-          parent_idx: 2,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        // sectionA as oi (structural)
-        const sectionA: KNode = {
-          id: "sectionA",
-          type: "h",
-          item: {},
-          fstype: "folder",
-          content: undefined,
-          data: { name: "sectionA" },
-          parent_id: "col1",
-          parent_idx: 1,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        const card1: KNode = {
-          id: "card1",
-          type: "p",
-          item: { list: "-" },
-          content: "card1",
-          data: {},
-          parent_id: "sectionA",
-          parent_idx: 0,
-          symlink_to: null,
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        }
-        return [...nodes, bodyTask, btChild1, btChild2, btChild3, sectionA, card1]
-      },
-      { checkIncremental: false },
-    )
+    // Build: board > col1 > [bodyTask(li, 3 children), sectionA(oi, 1 card)]
+    // bodyTask is li type so it's body content before sectionA (oi).
+    // After rendering, bodyTask should be in a virtual body column with childCount=3.
+    const nodes = [...item("board", item("col1"))]
+    // bodyTask as li (body content, not oi) with children
+    const bodyTask: KNode = {
+      id: "bodyTask",
+      type: "p",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
+      content: "bodyTask",
+      data: {},
+      parent_id: "col1",
+      parent_idx: 0,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    // bodyTask children
+    const btChild1: KNode = {
+      id: "bt-child-1",
+      type: "p",
+      item: { list: "-" },
+      content: "bt-child-1",
+      data: {},
+      parent_id: "bodyTask",
+      parent_idx: 0,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const btChild2: KNode = {
+      id: "bt-child-2",
+      type: "p",
+      item: { list: "-" },
+      content: "bt-child-2",
+      data: {},
+      parent_id: "bodyTask",
+      parent_idx: 1,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const btChild3: KNode = {
+      id: "bt-child-3",
+      type: "p",
+      item: { list: "-" },
+      content: "bt-child-3",
+      data: {},
+      parent_id: "bodyTask",
+      parent_idx: 2,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    // sectionA as oi (structural)
+    const sectionA: KNode = {
+      id: "sectionA",
+      type: "h",
+      item: {},
+      fstype: "folder",
+      content: undefined,
+      data: { name: "sectionA" },
+      parent_id: "col1",
+      parent_idx: 1,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const card1: KNode = {
+      id: "card1",
+      type: "p",
+      item: { list: "-" },
+      content: "card1",
+      data: {},
+      parent_id: "sectionA",
+      parent_idx: 0,
+      symlink_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const allNodes = [...nodes, bodyTask, btChild1, btChild2, btChild3, sectionA, card1]
 
-    const screenshot = board.screenshot()
+    using app = createTestApp(allNodes, { checkIncremental: false })
+
     // bodyTask should be visible in the virtual body column
-    expect(screenshot).toContain("bodyTask")
+    expect(app.text).toContain("bodyTask")
     // bodyTask children are visible, so child count is hidden (overflow indicator replaces it)
-    const lines = screenshot.split("\n")
+    const lines = app.text.split("\n")
     const bodyLine = lines.find((l) => l.includes("bodyTask"))
     expect(bodyLine).toBeDefined()
     expect(bodyLine).not.toMatch(/\b3\b/)
@@ -196,7 +189,7 @@ describe("child count on subitems", () => {
 describe("overflow indicator on cards", () => {
   test("card with more children than maxContentLines shows overflow count", () => {
     // maxContentLines defaults to 3, so a card with 5 children should show "+2"
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("Card1", item("sub-1"), item("sub-2"), item("sub-3"), item("sub-4"), item("sub-5"))),
@@ -204,43 +197,41 @@ describe("overflow indicator on cards", () => {
     )
 
     // First 3 children should be visible
-    board.expectScreen("sub-1")
-    board.expectScreen("sub-2")
-    board.expectScreen("sub-3")
+    app.expectScreen("sub-1")
+    app.expectScreen("sub-2")
+    app.expectScreen("sub-3")
     // Overflow indicator should show +2
-    board.expectScreen("+2")
+    app.expectScreen("+2")
   })
 
   test("after zoom, cards with many children show overflow indicator", () => {
     // Structure: board > col1 > zoomTarget > sectionA > card1(5 kids)
     // After zoom (e) into zoomTarget: sectionA is column, card1 is a card with 5 children.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "col1",
           item(
-            "col1",
-            item(
-              "zoomTarget",
-              item("sectionA", item("card1", item("a1"), item("a2"), item("a3"), item("a4"), item("a5"))),
-            ),
+            "zoomTarget",
+            item("sectionA", item("card1", item("a1"), item("a2"), item("a3"), item("a4"), item("a5"))),
           ),
         ),
+      ),
       { checkIncremental: false }, // zoom causes incremental mismatch (separate issue)
     )
 
     // Zoom inwards toward zoomTarget: first z → root=col1, second z → root=zoomTarget
-    board.command("zoom_inwards")
-    board.command("zoom_inwards")
+    app.command("zoom_inwards")
+    app.command("zoom_inwards")
 
-    const screenshot = board.screenshot()
     // After zoom into zoomTarget: sectionA is column, card1 is a card
     // card1 has 5 children, maxContentLines=3 => should show +2 overflow
-    expect(screenshot).toContain("card1")
-    expect(screenshot).toContain("a1")
-    expect(screenshot).toContain("a2")
-    expect(screenshot).toContain("a3")
-    expect(screenshot).toContain("+2")
+    expect(app.text).toContain("card1")
+    expect(app.text).toContain("a1")
+    expect(app.text).toContain("a2")
+    expect(app.text).toContain("a3")
+    expect(app.text).toContain("+2")
   })
 })
 
@@ -253,21 +244,20 @@ describe("edit mode expansion cap", () => {
     // Card with 50 children. When cursor is on a descendant (shouldExpand=true),
     // children should be capped at MAX_EXPANDED_CHILDREN (20), not Infinity.
     const children = Array.from({ length: 50 }, (_, i) => item(`child-${i}`))
-    const { board } = testEnv(() => item("board", item("col1", item("BigCard", ...children))), {
+    using app = createTestApp(item("board", item("col1", item("BigCard", ...children))), {
       rows: 30,
-      columns: 80,
+      cols: 80,
       checkIncremental: false,
     })
 
     // Navigate into child-0 (shouldExpand triggers at card level)
-    board.command("block_nav_down") // BigCard → child-0
-    board.expect("#child-0[data-cursor]").toExist()
+    app.command("block_nav_down") // BigCard → child-0
+    app.expect("#child-0[data-cursor]").toExist()
 
-    const screenshot = board.screenshot()
     // First children visible
-    expect(screenshot).toContain("child-0")
+    expect(app.text).toContain("child-0")
     // child-49 should NOT be visible — capped at 20
-    expect(screenshot).not.toContain("child-49")
+    expect(app.text).not.toContain("child-49")
   })
 })
 
@@ -278,12 +268,12 @@ describe("edit mode expansion cap", () => {
 describe("overflow indicator position in board columns", () => {
   test("▼ indicator is adjacent to last card, dump for debugging", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+    using app = createTestApp(item("board", item("col1", ...cards)), {
       rows: 20,
-      columns: 50,
+      cols: 50,
     })
 
-    const text = board.screenshot()
+    const text = app.text
     const lines = text.split("\n")
 
     // Dump all lines with row numbers for analysis

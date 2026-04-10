@@ -226,21 +226,20 @@ describe("HR display", () => {
     expect(app.text).toContain("___")
   })
 
-  // Uses board.bell — stays on testEnv
   test("pressing Enter on HR enters edit mode showing raw content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
-      columns: 60,
+    using app = createTestApp(item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      cols: 60,
       rows: 20,
     })
 
-    board.expect("#my-hr[data-cursor]").toExist()
-    expect(board.screenshot()).toContain("─")
+    app.expect("#my-hr[data-cursor]").toExist()
+    expect(app.text).toContain("─")
 
-    board.press("Enter")
-    expect(board.bell).toBe(false)
+    app.press("Enter")
+    expect(app.bell).toBe(false)
 
-    board.press("Escape")
-    expect(board.screenshot()).toContain("─")
+    app.press("Escape")
+    expect(app.text).toContain("─")
   })
 
   test("HR edit mode: Escape returns to line rendering", () => {
@@ -265,24 +264,23 @@ describe("HR display", () => {
 // ---------------------------------------------------------------------------
 
 describe("HR editing", () => {
-  // Uses board.bell — stays on testEnv
   test("Enter on HR node enters edit mode and accepts keyboard input", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
-      columns: 60,
+    using app = createTestApp(item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      cols: 60,
       rows: 20,
     })
 
-    board.expect("#my-hr[data-cursor]").toExist()
-    board.press("Enter")
-    expect(board.bell).toBe(false)
+    app.expect("#my-hr[data-cursor]").toExist()
+    app.press("Enter")
+    expect(app.bell).toBe(false)
 
-    board.press("h")
-    board.press("e")
-    board.press("l")
-    board.press("l")
-    board.press("o")
+    app.press("h")
+    app.press("e")
+    app.press("l")
+    app.press("l")
+    app.press("o")
 
-    expect(board.screenshot()).toContain("hello")
+    expect(app.text).toContain("hello")
   })
 
   test("Enter on HR opens edit with '---' as initial content", () => {

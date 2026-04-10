@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Cursoring", () => {
@@ -683,37 +683,34 @@ describe("Boundaries and Edge Cases", () => {
 })
 
 describe("Boundary Feedback (Bell + Status)", () => {
-  // These tests use board.bell, board.hasStatus, board.getStatus(), and
-  // board.q("[data-bell-flash]") which are not exposed by createTestApp.
-  // They remain on testEnv until the bell/status API is added to TestApp.
   test("k at top boundary triggers bell/status, clears on next keypress", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to board (cursor starts at 1a)
-    board.command("cursor_up") // 1a → col1 header
-    board.command("cursor_up") // col1 → board
-    board.expect("#board[data-cursor]").toExist()
+    app.command("cursor_up") // 1a → col1 header
+    app.command("cursor_up") // col1 → board
+    app.expect("#board[data-cursor]").toExist()
 
     // Hit top boundary - should ring bell and show status
-    board.command("cursor_up")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-    const status = board.getStatus()
+    app.command("cursor_up")
+    expect(app.bell).toBe(true)
+    expect(app.hasStatus).toBe(true)
+    const status = app.getStatus()
     expect(status?.level).toBe("warning")
     expect(status?.message).toContain("Can't move")
 
     // Next keypress clears status
-    board.command("cursor_down")
-    expect(board.hasStatus).toBe(false)
+    app.command("cursor_down")
+    expect(app.hasStatus).toBe(false)
 
     // Hit another boundary (different direction)
-    board.command("cursor_left") // hit left boundary from board level
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
+    app.command("cursor_left") // hit left boundary from board level
+    expect(app.bell).toBe(true)
+    expect(app.hasStatus).toBe(true)
 
     // Non-boundary key clears status
-    board.command("cursor_down") // board → col1 (valid move)
-    expect(board.hasStatus).toBe(false)
+    app.command("cursor_down") // board → col1 (valid move)
+    expect(app.hasStatus).toBe(false)
   })
 
   test.each([
@@ -721,90 +718,90 @@ describe("Boundary Feedback (Bell + Status)", () => {
     { key: "l", setup: ["l"], finalId: "#2a", desc: "l at right boundary" },
     { key: "j", setup: ["j"], finalId: "#1b", desc: "j at bottom boundary" },
   ])("$desc shows feedback", ({ key, setup, finalId }) => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to boundary position
-    for (const k of setup) board.press(k)
-    board.expect(`${finalId}[data-cursor]`).toExist()
+    for (const k of setup) app.press(k)
+    app.expect(`${finalId}[data-cursor]`).toExist()
 
     // Hit boundary - should ring bell and show status
-    board.press(key)
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
+    app.press(key)
+    expect(app.bell).toBe(true)
+    expect(app.hasStatus).toBe(true)
   })
 
   test("boundary bell sets data-bell-flash attribute", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
     // No flash initially
-    expect(board.q("[data-bell-flash]").count()).toBe(0)
+    expect(app.q("[data-bell-flash]").count()).toBe(0)
 
     // h at leftmost card goes to column header, then h again hits boundary
-    board.command("cursor_left") // 1a → col1 (column header)
-    board.command("cursor_left") // col1 → boundary
-    expect(board.bell).toBe(true)
-    expect(board.q("[data-bell-flash]").count()).toBe(1)
+    app.command("cursor_left") // 1a → col1 (column header)
+    app.command("cursor_left") // col1 → boundary
+    expect(app.bell).toBe(true)
+    expect(app.q("[data-bell-flash]").count()).toBe(1)
 
     // Next keypress clears bell and restores
-    board.command("cursor_down")
-    expect(board.q("[data-bell-flash]").count()).toBe(0)
+    app.command("cursor_down")
+    expect(app.q("[data-bell-flash]").count()).toBe(0)
   })
 
   test("unhandled key triggers visual bell flash", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    using app = createTestApp(item("board", item("col1", item("1a"))))
     // Press an unbound key (; has no command binding)
-    board.press(";")
-    expect(board.bell).toBe(true)
-    expect(board.q("[data-bell-flash]").count()).toBe(1)
+    app.press(";")
+    expect(app.bell).toBe(true)
+    expect(app.q("[data-bell-flash]").count()).toBe(1)
   })
 
   test("unhandled key bell clears on next valid key", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
-    board.press(";") // unhandled
-    expect(board.bell).toBe(true)
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    app.press(";") // unhandled
+    expect(app.bell).toBe(true)
 
-    board.command("cursor_down") // valid key
-    expect(board.bell).toBe(false)
-    expect(board.q("[data-bell-flash]").count()).toBe(0)
+    app.command("cursor_down") // valid key
+    expect(app.bell).toBe(false)
+    expect(app.q("[data-bell-flash]").count()).toBe(0)
   })
 
   test("boundary bell fires on every boundary press", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
     // Navigate to bottom card
-    board.command("cursor_down") // 1a → 1b
-    board.expect("#1b[data-cursor]").toExist()
+    app.command("cursor_down") // 1a → 1b
+    app.expect("#1b[data-cursor]").toExist()
 
     // Every boundary hit fires bell
     for (let i = 0; i < 5; i++) {
-      board.command("cursor_down")
-      expect(board.bell).toBe(true)
-      expect(board.hasStatus).toBe(true)
+      app.command("cursor_down")
+      expect(app.bell).toBe(true)
+      expect(app.hasStatus).toBe(true)
     }
     // Cursor stayed at 1b through all boundary hits
-    board.expect("#1b[data-cursor]").toExist()
+    app.expect("#1b[data-cursor]").toExist()
   })
 
   test("bell fires for each horizontal boundary direction", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    using app = createTestApp(item("board", item("col1", item("1a"))))
     // Single card, single column — h goes to col header first, then boundary
 
-    board.command("cursor_left") // 1a → col1 (column header)
-    expect(board.bell).toBe(false) // not a boundary yet
-    board.command("cursor_left") // col1 → boundary
-    expect(board.bell).toBe(true)
+    app.command("cursor_left") // 1a → col1 (column header)
+    expect(app.bell).toBe(false) // not a boundary yet
+    app.command("cursor_left") // col1 → boundary
+    expect(app.bell).toBe(true)
 
-    board.command("cursor_down") // clear bell, go to 1a
-    board.command("cursor_right") // right boundary
-    expect(board.bell).toBe(true)
+    app.command("cursor_down") // clear bell, go to 1a
+    app.command("cursor_right") // right boundary
+    expect(app.bell).toBe(true)
   })
 
   test("bell fires for downward boundary", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
-    board.command("cursor_down") // 1a → 1b
-    board.command("cursor_down") // boundary
-    expect(board.bell).toBe(true)
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    app.command("cursor_down") // 1a → 1b
+    app.command("cursor_down") // boundary
+    expect(app.bell).toBe(true)
 
     // Second boundary press also fires bell (no streak suppression)
-    board.command("cursor_down")
-    expect(board.bell).toBe(true)
+    app.command("cursor_down")
+    expect(app.bell).toBe(true)
   })
 })
 
@@ -813,91 +810,89 @@ describe("Boundary Feedback (Bell + Status)", () => {
 // =============================================================================
 
 describe("Sub-block navigation", () => {
-  // These tests use board.click(x, y) which is not exposed by createTestApp.
-  // They remain on testEnv until mouse events are added to TestApp.
   test("click sub-block → j/k navigate siblings → k to parent card", () => {
-    const { board } = testEnv(
-      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { cols: 80, rows: 24 },
     )
 
     // Click child-1 to enter sub-block mode
-    const el = board.q("[id='child-1']")
+    const el = app.q("[id='child-1']")
     const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
-    board.expect("#child-1[data-cursor]").toExist()
+    app.click(box.x + 1, box.y)
+    app.expect("#child-1[data-cursor]").toExist()
 
     // j → child-2
-    board.command("cursor_down")
-    board.expect("#child-2[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#child-2[data-cursor]").toExist()
 
     // j → child-3
-    board.command("cursor_down")
-    board.expect("#child-3[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#child-3[data-cursor]").toExist()
 
     // k → child-2
-    board.command("cursor_up")
-    board.expect("#child-2[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#child-2[data-cursor]").toExist()
 
     // k → child-1
-    board.command("cursor_up")
-    board.expect("#child-1[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#child-1[data-cursor]").toExist()
 
     // k from first child → parent card title
-    board.command("cursor_up")
-    board.expect("#card[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#card[data-cursor]").toExist()
   })
 
   test("j from last sub-block jumps to next card", () => {
-    const { board } = testEnv(
-      () => item("board", item("Column", item("card-a", item("a-child-1"), item("a-child-2")), item("card-b"))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Column", item("card-a", item("a-child-1"), item("a-child-2")), item("card-b"))),
+      { cols: 80, rows: 24 },
     )
 
     // Click last child of card-a
-    const el = board.q("[id='a-child-2']")
+    const el = app.q("[id='a-child-2']")
     const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
-    board.expect("#a-child-2[data-cursor]").toExist()
+    app.click(box.x + 1, box.y)
+    app.expect("#a-child-2[data-cursor]").toExist()
 
     // j → next card (card-b)
-    board.command("cursor_down")
-    board.expect("#card-b[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#card-b[data-cursor]").toExist()
   })
 
   test("Enter on sub-block edits that block, not the card title", () => {
-    const { board } = testEnv(
-      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { cols: 80, rows: 24 },
     )
 
     // Click child-2 to select it
-    const el = board.q("[id='child-2']")
+    const el = app.q("[id='child-2']")
     const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
-    board.expect("#child-2[data-cursor]").toExist()
+    app.click(box.x + 1, box.y)
+    app.expect("#child-2[data-cursor]").toExist()
 
     // Enter to edit — should edit child-2
-    board.press("Enter")
+    app.press("Enter")
 
     // Should show INSERT mode indicator
-    expect(board.screenshot()).toContain("INSERT")
+    app.expectScreen("INSERT")
     // Screen should show child-2 content (edit mode)
-    expect(board.screenshot()).toContain("child-2")
+    app.expectScreen("child-2")
   })
 
   test("clicking each child in a card selects the correct one (hitTest)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { cols: 80, rows: 24 },
     )
 
     for (const id of ["child-1", "child-2", "child-3"]) {
-      const el = board.q(`[id='${id}']`)
+      const el = app.q(`[id='${id}']`)
       expect(el.count(), `${id} should be rendered`).toBeGreaterThan(0)
       const box = el.boundingBox()!
-      board.click(box.x + 1, box.y)
-      board.expect(`#${id}[data-cursor]`).toExist()
+      app.click(box.x + 1, box.y)
+      app.expect(`#${id}[data-cursor]`).toExist()
     }
   })
 })
@@ -907,47 +902,42 @@ describe("Sub-block navigation", () => {
 // =============================================================================
 
 describe("Outline navigation with grandchildren", () => {
-  // Uses board.click() which is not exposed by createTestApp — stays on testEnv.
   test("j/k traverse into grandchildren (depth 2+) when clicking sub-items", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Column",
-            item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b")),
-          ),
-        ),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("Column", item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b"))),
+      ),
+      { cols: 80, rows: 24 },
     )
-    board.expect("#card[data-cursor]").toExist()
+    app.expect("#card[data-cursor]").toExist()
 
     // Click section-a to enter outline mode (cursor on sub-item, not card)
-    const el = board.q("[id='section-a']")
+    const el = app.q("[id='section-a']")
     const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
-    board.expect("#section-a[data-cursor]").toExist()
+    app.click(box.x + 1, box.y)
+    app.expect("#section-a[data-cursor]").toExist()
 
     // j should navigate through grandchildren (depth 2+), not skip them
-    board.command("cursor_down")
-    board.expect("#grandchild-1[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#grandchild-1[data-cursor]").toExist()
 
-    board.command("cursor_down")
-    board.expect("#grandchild-2[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#grandchild-2[data-cursor]").toExist()
 
     // j from grandchild-2 → section-b (next sibling of section-a)
-    board.command("cursor_down")
-    board.expect("#section-b[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#section-b[data-cursor]").toExist()
 
     // k back through grandchildren
-    board.command("cursor_up")
-    board.expect("#grandchild-2[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#grandchild-2[data-cursor]").toExist()
 
-    board.command("cursor_up")
-    board.expect("#grandchild-1[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#grandchild-1[data-cursor]").toExist()
 
-    board.command("cursor_up")
-    board.expect("#section-a[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#section-a[data-cursor]").toExist()
   })
 })
 

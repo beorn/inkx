@@ -11,6 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Helpers
@@ -36,54 +37,55 @@ describe("J/K block navigation", () => {
   // column header, card1, card1-child1, card1-child2, ..., card2, ...
 
   test("J walks into children before next sibling (DFS order)", () => {
-    const { board } = testEnv(item.nestedBoard)
+    using app = createTestApp(item.nestedBoard)
 
     // Cursor starts on Parent
-    board.expect("#Parent[data-cursor]").toExist()
+    app.expect("#Parent[data-cursor]").toExist()
 
     // J moves to first visible child (DFS order), not to sibling
-    board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#child-1[data-cursor]").toExist()
 
     // J continues to next child
-    board.command("block_nav_down")
-    board.expect("#child-2[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#child-2[data-cursor]").toExist()
 
     // J moves to next sibling card after all children
-    board.command("block_nav_down")
-    board.expect("#sibling[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#sibling[data-cursor]").toExist()
   })
 
   test("K walks backward through visible blocks (strict inverse of J)", () => {
-    const { board } = testEnv(item.nestedBoard)
+    using app = createTestApp(item.nestedBoard)
 
     // Navigate to sibling via J (DFS: Parent → child-1 → child-2 → sibling)
-    board.command("block_nav_down") // → child-1
-    board.command("block_nav_down") // → child-2
-    board.command("block_nav_down") // → sibling
-    board.expect("#sibling[data-cursor]").toExist()
+    app.command("block_nav_down") // → child-1
+    app.command("block_nav_down") // → child-2
+    app.command("block_nav_down") // → sibling
+    app.expect("#sibling[data-cursor]").toExist()
 
     // K walks back in exact reverse order
-    board.command("block_nav_up")
-    board.expect("#child-2[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#child-2[data-cursor]").toExist()
 
-    board.command("block_nav_up")
-    board.expect("#child-1[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#child-1[data-cursor]").toExist()
 
-    board.command("block_nav_up")
-    board.expect("#Parent[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#Parent[data-cursor]").toExist()
   })
 
   test("J at last card rings bell (boundary)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("leaf-task"))))
+    using app = createTestApp(item("board", item("col1", item("leaf-task"))))
 
-    board.expect("#leaf-task[data-cursor]").toExist()
+    app.expect("#leaf-task[data-cursor]").toExist()
 
     // J on the only card hits boundary
-    board.command("block_nav_down")
-    expect(board.bell).toBe(true)
+    app.command("block_nav_down")
+    expect(app.bell).toBe(true)
   })
 
+  // FREEZE: needs expectCursorVisible (testEnv-only)
   test("K at column level navigates to board", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
@@ -97,54 +99,54 @@ describe("J/K block navigation", () => {
   })
 
   test("J on folded card auto-unfolds and enters first child", () => {
-    const { board } = testEnv(item.nestedBoard)
+    using app = createTestApp(item.nestedBoard)
 
     // Fold the parent
-    board.command("fold_more")
-    board.command("fold_more")
+    app.command("fold_more")
+    app.command("fold_more")
 
     // J auto-unfolds and enters the first child (DFS order)
-    board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#child-1[data-cursor]").toExist()
   })
 
   test("J then K round-trip through DFS order", () => {
-    const { board } = testEnv(item.nestedBoard)
+    using app = createTestApp(item.nestedBoard)
 
-    board.expect("#Parent[data-cursor]").toExist()
+    app.expect("#Parent[data-cursor]").toExist()
 
     // J moves through DFS order
-    board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#child-1[data-cursor]").toExist()
 
     // K returns
-    board.command("block_nav_up")
-    board.expect("#Parent[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#Parent[data-cursor]").toExist()
   })
 
   test("J navigates between cards sequentially", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))), {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))), {
       rows: 30,
       checkIncremental: false,
     })
 
-    board.expect("#task-a[data-cursor]").toExist()
+    app.expect("#task-a[data-cursor]").toExist()
 
     // J moves to next card
-    board.command("block_nav_down")
-    board.expect("#task-b[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#task-b[data-cursor]").toExist()
 
     // J moves to next card again
-    board.command("block_nav_down")
-    board.expect("#task-c[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#task-c[data-cursor]").toExist()
 
     // J at last card hits boundary
-    board.command("block_nav_down")
-    expect(board.bell).toBe(true)
+    app.command("block_nav_down")
+    expect(app.bell).toBe(true)
 
     // K navigates back
-    board.command("block_nav_up")
-    board.expect("#task-b[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#task-b[data-cursor]").toExist()
   })
 })
 
@@ -154,149 +156,146 @@ describe("J/K block navigation", () => {
 
 describe("Filter dialog", () => {
   test("V opens filter panel showing filter categories", () => {
-    const { board } = testEnv(
-      () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
+      { cols: 120, rows: 24 },
     )
 
     // Initially no filter panel
-    expect(board.screenshot()).not.toContain("View Settings")
+    app.expectScreenNot("View Settings")
 
     // Open filter panel
-    board.command("filter")
-    const screen = board.screenshot()
-    expect(screen).toContain("View Settings")
-    expect(screen).toContain("Status")
-    expect(screen).toContain("Priority")
+    app.command("filter")
+    expect(app.text).toContain("View Settings")
+    expect(app.text).toContain("Status")
+    expect(app.text).toContain("Priority")
   })
 
   test("j/k navigates between filter rows", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    app.command("filter")
 
     // Status is row 0 (first row) — cursor starts there
-    expect(board.screenshot()).toContain("Status")
+    app.expectScreen("Status")
 
     // Navigate down to Priority
-    board.command("cursor_down")
-    expect(board.screenshot()).toContain("Priority")
+    app.command("cursor_down")
+    app.expectScreen("Priority")
 
     // Navigate further down to Due
-    board.command("cursor_down")
-    expect(board.screenshot()).toContain("Due")
+    app.command("cursor_down")
+    app.expectScreen("Due")
 
     // Navigate back up
-    board.command("cursor_up")
-    expect(board.screenshot()).toContain("Priority")
+    app.command("cursor_up")
+    app.expectScreen("Priority")
 
-    board.command("cursor_up")
-    expect(board.screenshot()).toContain("Status")
+    app.command("cursor_up")
+    app.expectScreen("Status")
   })
 
   test("Space toggles filter value on/off", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
-      columns: 120,
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
 
     // Toggle todo on
-    board.command("select_toggle")
-    expect(board.screenshot()).toContain("✓ todo")
+    app.command("select_toggle")
+    app.expectScreen("✓ todo")
 
     // Toggle todo off
-    board.command("select_toggle")
-    expect(board.screenshot()).toContain("□ todo")
+    app.command("select_toggle")
+    app.expectScreen("□ todo")
   })
 
   test("h/l navigates between values within a filter row", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
 
     // Move right to wip
-    board.command("cursor_right")
-    board.command("select_toggle") // toggle wip on
-    expect(board.screenshot()).toContain("✓ wip")
+    app.command("cursor_right")
+    app.command("select_toggle") // toggle wip on
+    app.expectScreen("✓ wip")
 
     // Move left back to todo
-    board.command("cursor_left")
-    board.command("select_toggle") // toggle todo on
-    const screen = board.screenshot()
-    expect(screen).toContain("✓ todo")
-    expect(screen).toContain("✓ wip")
+    app.command("cursor_left")
+    app.command("select_toggle") // toggle todo on
+    expect(app.text).toContain("✓ todo")
+    expect(app.text).toContain("✓ wip")
   })
 
   test("X clears all active filters", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
 
     // Toggle a couple filters on
-    board.command("select_toggle") // todo on
-    board.command("cursor_right")
-    board.command("select_toggle") // wip on
-    expect(board.screenshot()).toContain("✓ todo")
-    expect(board.screenshot()).toContain("✓ wip")
+    app.command("select_toggle") // todo on
+    app.command("cursor_right")
+    app.command("select_toggle") // wip on
+    app.expectScreen("✓ todo")
+    app.expectScreen("✓ wip")
 
     // Clear all
-    board.command("cycle_task_status")
-    const screen = board.screenshot()
-    expect(screen).toContain("□ todo")
-    expect(screen).toContain("□ wip")
+    app.command("cycle_task_status")
+    expect(app.text).toContain("□ todo")
+    expect(app.text).toContain("□ wip")
   })
 
   test("Escape closes filter panel without losing toggled filters", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
-      columns: 120,
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+      cols: 120,
       rows: 24,
     })
 
     // Open filter — Status is row 0, toggle todo
-    board.command("filter")
-    board.command("select_toggle") // toggle todo on
-    expect(board.screenshot()).toContain("✓ todo")
+    app.command("filter")
+    app.command("select_toggle") // toggle todo on
+    app.expectScreen("✓ todo")
 
     // Close with Escape
-    board.press("Escape")
+    app.press("Escape")
 
     // Filter panel should be closed
-    expect(board.screenshot()).not.toContain("View Settings")
+    app.expectScreenNot("View Settings")
 
     // Filter indicator should show in top bar (filter is still active)
-    expect(board.screenshot()).toContain("[F]")
+    app.expectScreen("[F]")
   })
 
   test("V toggles filter panel (open then close)", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // Open
-    board.command("filter")
-    expect(board.screenshot()).toContain("View Settings")
+    app.command("filter")
+    app.expectScreen("View Settings")
 
     // Close with V again
-    board.command("filter")
-    expect(board.screenshot()).not.toContain("View Settings")
+    app.command("filter")
+    app.expectScreenNot("View Settings")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    app.command("filter")
     // Status is row 0 — cursor starts there
 
     // Enter toggles the current value
-    board.press("Enter")
-    expect(board.screenshot()).toContain("✓ todo")
+    app.press("Enter")
+    app.expectScreen("✓ todo")
 
     // Enter toggles it back off
-    board.press("Enter")
-    expect(board.screenshot()).toContain("□ todo")
+    app.press("Enter")
+    app.expectScreen("□ todo")
   })
 })
 
@@ -306,40 +305,39 @@ describe("Filter dialog", () => {
 
 describe("Help overlay", () => {
   test("? opens help overlay", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // Open help
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Help content should be visible on screen
-    const screen = board.screenshot()
-    // Help shows keybinding categories (uppercase section headers)
-    expect(screen).toContain("NAVIGATION")
+    app.expectScreen("NAVIGATION")
   })
 
   test("Escape closes help overlay", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
-    board.press("Escape")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
   })
 
   test("q closes help overlay", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Bare `q` is unbound in normal mode (bead km-tui.q-quits-no-confirm),
     // but inside the help overlay it still dismisses the overlay.
-    board.press("q")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.press("q")
+    expect(app.state.overlay).toBeNull()
   })
 
+  // FREEZE: needs store.getState().ui.helpScrollOffset
   test("j scrolls help content down", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
@@ -353,6 +351,7 @@ describe("Help overlay", () => {
     expect(afterOffset).toBeGreaterThan(initialOffset)
   })
 
+  // FREEZE: needs store.getState().ui.helpScrollOffset
   test("k scrolls help content up", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
@@ -370,31 +369,31 @@ describe("Help overlay", () => {
   })
 
   test("help overlay blocks normal navigation keys", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // j/k should scroll help, not navigate the board
-    board.command("cursor_down")
+    app.command("cursor_down")
     // Cursor should still be on task1 (help intercepted the key)
-    board.press("Escape")
-    expect(store.getState().ui.showHelp).toBe(false)
-    board.expect("#task1[data-cursor]").toExist()
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("? opens and closes help as toggle", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // Open
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Close with ? again
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.command("show_help")
+    expect(app.state.overlay).toBeNull()
   })
 })
 
@@ -613,43 +612,43 @@ describe("J/K block navigation edge cases", () => {
 
 describe("Filter + navigation interaction", () => {
   test("filter panel keys do not affect board navigation", () => {
-    const { board } = testEnv(
-      () => item("board", item("Tasks", item("task1"), item("task2")), item("Notes", item("note1"))),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Tasks", item("task1"), item("task2")), item("Notes", item("note1"))),
+      { cols: 120, rows: 24 },
     )
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Open filter
-    board.command("filter")
+    app.command("filter")
 
     // j/k/h/l should control filter, not board
-    board.command("cursor_down") // moves filter cursor, not board cursor
-    board.command("cursor_up") // moves filter cursor back
+    app.command("cursor_down") // moves filter cursor, not board cursor
+    app.command("cursor_up") // moves filter cursor back
 
     // Close filter
-    board.press("Escape")
+    app.press("Escape")
 
     // Board cursor should still be on task1
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("filter state persists after closing and reopening filter panel", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // Open filter — Status is row 0, toggle todo
-    board.command("filter")
-    board.command("select_toggle") // toggle todo on
-    expect(board.screenshot()).toContain("✓ todo")
+    app.command("filter")
+    app.command("select_toggle") // toggle todo on
+    app.expectScreen("✓ todo")
 
     // Close
-    board.press("Escape")
+    app.press("Escape")
 
     // Reopen and verify state persisted
-    board.command("filter")
-    expect(board.screenshot()).toContain("✓ todo")
+    app.command("filter")
+    app.expectScreen("✓ todo")
 
-    board.press("Escape")
+    app.press("Escape")
   })
 })
 
@@ -659,19 +658,20 @@ describe("Filter + navigation interaction", () => {
 
 describe("Inline edit + undo interaction", () => {
   test("enter inline edit and exit without changes preserves node content", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("original-content"))))
+    using app = createTestApp(item("board", item("col1", item("original-content"))))
 
-    board.expect("#original-content[data-cursor]").toExist()
+    app.expect("#original-content[data-cursor]").toExist()
 
     // Enter and immediately exit inline edit
-    board.press("i")
-    board.press("Escape")
+    app.press("i")
+    app.press("Escape")
 
     // Content should be unchanged
-    const node = repo.getNode("original-content")
+    const node = app.repo.getNode("original-content")
     expect(node?.content).toBe("original-content")
   })
 
+  // FREEZE: needs expectEditing/expectNotEditing/expectCursorVisible (testEnv-only)
   test("rapid i then Escape cycle does not corrupt state", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
@@ -694,49 +694,46 @@ describe("Inline edit + undo interaction", () => {
 // =============================================================================
 
 describe("selection state through cursor movement", () => {
-  test("cursor moves through j/k — sel.node.cursor() tracks current node", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
-    )
+  test("cursor moves through j/k — app.state.cursor tracks current node", () => {
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))))
 
     // Initial cursor
-    expect(store.getState().sel.node.cursor() as string | null).toBe("task1")
+    expect(app.state.cursor).toBe("task1")
 
     // Move down
-    board.command("cursor_down")
-    expect(store.getState().sel.node.cursor() as string | null).toBe("task2")
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task2")
 
     // Move down again
-    board.command("cursor_down")
-    expect(store.getState().sel.node.cursor() as string | null).toBe("task3")
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task3")
 
     // Move up
-    board.command("cursor_up")
-    expect(store.getState().sel.node.cursor() as string | null).toBe("task2")
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("task2")
 
     // Move up past start — stays at first
-    board.command("cursor_up")
-    board.command("cursor_up")
-    board.command("cursor_up") // should not go past task1
-    const cursor = store.getState().sel.node.cursor() as string | null
-    expect(cursor).not.toBeNull()
+    app.command("cursor_up")
+    app.command("cursor_up")
+    app.command("cursor_up") // should not go past task1
+    expect(app.state.cursor).not.toBeNull()
   })
 
   test("cursor position matches data-cursor attribute on screen", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // task1 has cursor
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Move to task2
-    board.command("cursor_down")
-    board.expect("#task2[data-cursor]").toExist()
-    board.expect("#task1[data-cursor]").not.toExist()
+    app.command("cursor_down")
+    app.expect("#task2[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").not.toExist()
 
     // Move to task3
-    board.command("cursor_down")
-    board.expect("#task3[data-cursor]").toExist()
-    board.expect("#task2[data-cursor]").not.toExist()
+    app.command("cursor_down")
+    app.expect("#task3[data-cursor]").toExist()
+    app.expect("#task2[data-cursor]").not.toExist()
   })
 })
 

@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: store white-box (act, setState, isLoading, backgroundParsing, watcherStatus)
 /**
  * Skeleton loading — per-column skeleton for empty columns during background parse.
  *

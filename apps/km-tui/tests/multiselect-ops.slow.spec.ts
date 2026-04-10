@@ -20,7 +20,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, unknown>): void }, ids: string[]) {
@@ -31,34 +31,34 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 
 describe("Multi-Selection Bulk Operations Journeys", () => {
   test("select multiple cards, delete them, verify screen and persistence", () => {
-    const { board, repo } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("keep-1"), item("del-A"), item("del-B"), item("del-C"), item("keep-2"))),
     )
 
     // Step 1: Navigate to del-A
-    board.command("cursor_down") // -> del-A
-    board.expect("#del-A[data-cursor]").toExist()
+    app.command("cursor_down") // -> del-A
+    app.expect("#del-A[data-cursor]").toExist()
 
     // Step 2: Extend selection down to cover del-A, del-B, del-C
-    board.press("shift+ArrowDown") // anchor=del-A, cursor->del-B
-    board.press("shift+ArrowDown") // range del-A..del-C, cursor->del-C
+    app.press("shift+ArrowDown") // anchor=del-A, cursor->del-B
+    app.press("shift+ArrowDown") // range del-A..del-C, cursor->del-C
 
     // Step 3: Status bar should show selection count
-    const status = board.getStatus()
+    const status = app.getStatus()
     expect(status?.message).toContain("selected")
 
     // Step 4: Delete selected cards
-    board.press("Backspace")
+    app.press("Backspace")
 
     // Step 5: Verify screen — deleted cards gone, kept cards remain
-    board.expect("#del-A").not.toExist()
-    board.expect("#del-B").not.toExist()
-    board.expect("#del-C").not.toExist()
-    board.expect("#keep-1").toExist()
-    board.expect("#keep-2").toExist()
+    app.expect("#del-A").not.toExist()
+    app.expect("#del-B").not.toExist()
+    app.expect("#del-C").not.toExist()
+    app.expect("#keep-1").toExist()
+    app.expect("#keep-2").toExist()
 
     // Step 6: Verify persistence — repo should only have kept cards
-    const children = repo.getChildren("col1").map((n) => n.id)
+    const children = app.repo.getChildren("col1").map((n) => n.id)
     expect(children).toContain("keep-1")
     expect(children).toContain("keep-2")
     expect(children).not.toContain("del-A")
@@ -151,30 +151,30 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
   })
 
   test("selection visual feedback appears in status bar during multi-select", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("item-1"), item("item-2"), item("item-3"), item("item-4"), item("item-5"))),
     )
 
     // Step 1: Begin selection
-    board.press("shift+ArrowDown") // 2 items selected
-    let status = board.getStatus()
+    app.press("shift+ArrowDown") // 2 items selected
+    let status = app.getStatus()
     expect(status?.message).toMatch(/2 items/)
 
     // Step 2: Extend selection
-    board.press("shift+ArrowDown") // 3 items selected
-    status = board.getStatus()
+    app.press("shift+ArrowDown") // 3 items selected
+    status = app.getStatus()
     expect(status?.message).toMatch(/3 items/)
 
     // Step 3: Extend further
-    board.press("shift+ArrowDown") // 4 items selected
-    status = board.getStatus()
+    app.press("shift+ArrowDown") // 4 items selected
+    status = app.getStatus()
     expect(status?.message).toMatch(/4 items/)
 
     // Step 4: Clear selection with Escape
-    board.press("Escape")
+    app.press("Escape")
 
     // Step 5: Cursor should still be valid, no selection feedback
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
   })
 

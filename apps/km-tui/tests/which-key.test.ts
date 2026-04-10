@@ -4,7 +4,9 @@
  */
 import { describe, test, expect } from "vitest"
 import { act } from "react"
+// Partially FREEZE: pendingChord state tests need store.getState().ui.pendingChord / __triggerChordTimeout
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { getChordSuffixes } from "@km/commands"
 
@@ -77,18 +79,18 @@ describe("which-key popup", () => {
 
 describe("which-key popup rendering", () => {
   test("popup shows chord suffixes immediately when prefix is pending", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("g")
+    app.command("cursor_down")
+    app.press("g")
 
     // Popup should show chord suffix hints
-    const text = board.screenshot()
-    expect(text).toContain("inbox")
-    expect(text).toContain("journal")
-    expect(text).toContain("home")
+    expect(app.text).toContain("inbox")
+    expect(app.text).toContain("journal")
+    expect(app.text).toContain("home")
   })
 
+  // FREEZE: needs store.getState().ui.pendingChord
   test("popup disappears when suffix key is pressed", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
@@ -103,28 +105,26 @@ describe("which-key popup rendering", () => {
   })
 
   test("popup shows different suffixes for different prefixes", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("m")
+    app.command("cursor_down")
+    app.press("m")
 
     // m-prefix should show move-related suffixes (location labels)
-    const text = board.screenshot()
-    expect(text).toContain("inbox")
-    expect(text).toContain("journal")
+    expect(app.text).toContain("inbox")
+    expect(app.text).toContain("journal")
   })
 
   test("a-prefix popup shows add-related suffixes", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("a")
+    app.command("cursor_down")
+    app.press("a")
 
     // a-prefix should show add-related suffixes
-    const text = board.screenshot()
-    expect(text).toContain("tag")
-    expect(text).toContain("home")
-    expect(text).toContain("inbox")
+    expect(app.text).toContain("tag")
+    expect(app.text).toContain("home")
+    expect(app.text).toContain("inbox")
   })
 })
 
@@ -161,8 +161,10 @@ describe("which-key popup minimum display duration", () => {
 
 describe("getChordSuffixes", () => {
   test("returns suffixes for g prefix", () => {
-    // Ensure command system is initialized by creating a test env
-    testEnv(() => item("board", item("col", item("task"))))
+    // Ensure command system is initialized by creating a test app
+    {
+      using _app = createTestApp(item("board", item("col", item("task"))))
+    }
 
     const suffixes = getChordSuffixes("g")
     expect(suffixes.length).toBeGreaterThan(0)
@@ -174,7 +176,9 @@ describe("getChordSuffixes", () => {
   })
 
   test("returns suffixes for m prefix", () => {
-    testEnv(() => item("board", item("col", item("task"))))
+    {
+      using _app = createTestApp(item("board", item("col", item("task"))))
+    }
 
     const suffixes = getChordSuffixes("m")
     expect(suffixes.length).toBeGreaterThan(0)
@@ -185,7 +189,9 @@ describe("getChordSuffixes", () => {
   })
 
   test("returns suffixes for a prefix", () => {
-    testEnv(() => item("board", item("col", item("task"))))
+    {
+      using _app = createTestApp(item("board", item("col", item("task"))))
+    }
 
     const suffixes = getChordSuffixes("a")
     expect(suffixes.length).toBe(8) // 4 pickers + 4 boards (h,i,j,a) + 0 favorites (empty by default)
@@ -202,7 +208,9 @@ describe("getChordSuffixes", () => {
   })
 
   test("returns empty for non-prefix key", () => {
-    testEnv(() => item("board", item("col", item("task"))))
+    {
+      using _app = createTestApp(item("board", item("col", item("task"))))
+    }
 
     // Use `z` because `q` is now a chord prefix (q q → quit, see km-tui.q-quits-no-confirm).
     const suffixes = getChordSuffixes("z")

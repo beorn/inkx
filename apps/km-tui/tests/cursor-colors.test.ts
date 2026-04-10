@@ -1,6 +1,9 @@
 /**
  * Cursor color tests for TreeNode
  *
+ * FREEZE: entire file uses testEnv — buffer-level assertions (board.screen.cell,
+ * board._result.ansi, board.expectNodeColor, palette color indices).
+ *
  * Bug 1 (km-tui.cursor-colors): When a node is selected (yellow bg),
  * infoSuffix and dateBadge Text elements don't set color={style.textColor},
  * so they render as white-on-yellow instead of black-on-yellow.

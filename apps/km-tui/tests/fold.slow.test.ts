@@ -115,6 +115,7 @@ describe("fold-all-corruption", () => {
 // Fold border blank (km-tui.fold-border-blank)
 // =============================================================================
 
+// FREEZE: needs store.getState() — uses board._result, board.screenshot(), VirtualTerminal for buffer-level assertions
 describe("fold border blank (km-tui.fold-border-blank)", () => {
   /** Board with nested children that will shrink when outline depth decreases */
   function nestedBoard() {
@@ -1058,6 +1059,7 @@ describe("fold overflow transition border integrity", () => {
 // Fold count color
 // =============================================================================
 
+// FREEZE: needs store.getState() — uses board.screen.row/cell for palette color assertions
 describe("fold count color", () => {
   /**
    * Find the child count cell on a given row.
@@ -1357,97 +1359,93 @@ describe("progressive fold/unfold", () => {
 
 describe("fold boundary feedback (km-tui.fold-boundary)", () => {
   test("H at depth 0 rings bell with 'already fully folded' message", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold to depth 0
-    board.command("fold_more") // fold once
+    app.command("fold_more") // fold once
 
     // Try to fold again — should hit boundary
-    board.command("fold_more")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-    const status = board.getStatus()
+    app.command("fold_more")
+    expect(app.bell).toBe(true)
+    expect(app.hasStatus).toBe(true)
+    const status = app.getStatus()
     expect(status?.level).toBe("warning")
     expect(status?.message).toContain("already fully folded")
   })
 
   test("< (fold all) progressively folds all cards to depth 0", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Initially child-1 is visible
-    expect(board.screenshot()).toContain("child-1")
+    expect(app.text).toContain("child-1")
 
     // Progressive fold: 3 presses to reach depth 0 (3→2→1→0)
-    board.command("fold_all_more").command("fold_all_more").command("fold_all_more")
-    expect(board.screenshot()).not.toContain("child-1")
-    expect(board.screenshot()).toContain("Parent") // card title always visible
+    app.command("fold_all_more").command("fold_all_more").command("fold_all_more")
+    expect(app.text).not.toContain("child-1")
+    expect(app.text).toContain("Parent") // card title always visible
 
     // Pressing < again is idempotent (FOLD_LEVEL always succeeds, no bell)
-    board.command("fold_all_more")
-    expect(board.screenshot()).not.toContain("child-1")
+    app.command("fold_all_more")
+    expect(app.text).not.toContain("child-1")
   })
 
   test("L clears bell on valid unfold after boundary", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Hit fold boundary
-    board.command("fold_more")
-    board.command("fold_more")
-    expect(board.bell).toBe(true)
+    app.command("fold_more")
+    app.command("fold_more")
+    expect(app.bell).toBe(true)
 
     // Unfold — should clear bell and succeed (status shows info "Unfolded: ...")
-    board.command("unfold_more")
-    expect(board.bell).toBe(false)
-    expect(board.screenshot()).toContain("child-1")
+    app.command("unfold_more")
+    expect(app.bell).toBe(false)
+    expect(app.text).toContain("child-1")
   })
 
   test("> (unfold all) removes all per-card fold overrides", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Fold first, then unfold all
-    board.command("fold_all_more").command("fold_all_more").command("fold_all_more") // progressive: 3→2→1→0
-    expect(board.screenshot()).not.toContain("child-1")
+    app.command("fold_all_more").command("fold_all_more").command("fold_all_more") // progressive: 3→2→1→0
+    expect(app.text).not.toContain("child-1")
 
     // Unfold all — progressive unfold back
-    board.command("unfold_all_more")
-    expect(board.screenshot()).toContain("child-1")
+    app.command("unfold_all_more")
+    expect(app.text).toContain("child-1")
 
     // Pressing > again is idempotent (UNFOLD_LEVEL always succeeds, no bell)
-    board.command("unfold_all_more")
-    expect(board.screenshot()).toContain("child-1")
+    app.command("unfold_all_more")
+    expect(app.text).toContain("child-1")
   })
 
   test("L (unfold node) caps at MAX_FOLD_DEPTH per card", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Unfold many times on the same card to reach the cap
     for (let i = 0; i < 25; i++) {
-      board.command("unfold_more")
+      app.command("unfold_more")
     }
 
-    expect(board.bell).toBe(true)
-    const status = board.getStatus()
+    expect(app.bell).toBe(true)
+    const status = app.getStatus()
     expect(status?.message).toContain("maximum depth reached")
   })
 
   test("fold depth never goes negative (H repeatedly)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Press H many times — should bottom out at 0, never go negative
     for (let i = 0; i < 10; i++) {
-      board.command("fold_more")
+      app.command("fold_more")
     }
 
     // Should ring bell (at boundary)
-    expect(board.bell).toBe(true)
+    expect(app.bell).toBe(true)
 
     // Unfold once — should work (depth goes from 0 to 1)
-    board.command("unfold_more")
-    expect(board.screenshot()).toContain("child-1")
+    app.command("unfold_more")
+    expect(app.text).toContain("child-1")
   })
 })
 
@@ -1455,6 +1453,7 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
 // Cursor reveals hidden nodes — cursor must never be invisible
 // =============================================================================
 
+// FREEZE: needs store.getState() — uses getActiveBoardPane, store.getState().dispatchBoard
 describe("cursor-reveals-hidden", () => {
   test("fold_all moves cursor out of hidden subtree to parent card", () => {
     const { board, store } = testEnv(() =>

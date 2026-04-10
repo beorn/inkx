@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: store white-box (workspace.panes, focusedPaneId, sel)
 /**
  * Detail pane toggle tests
  *

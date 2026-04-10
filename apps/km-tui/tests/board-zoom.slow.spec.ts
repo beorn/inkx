@@ -803,38 +803,36 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
     app.expect("#board[data-cursor]").toExist()
   })
 
-  // Kept on testEnv: board.bell is not supported by createTestApp
   it("rings bell at board level when at repo root (nowhere to go)", () => {
-    const { board } = testEnv(() => item.root("board", item("col1", item("task1"))))
+    using app = createTestApp(item.root("board", item("col1", item("task1"))))
 
     // Navigate up to board level
-    board.press("k") // column header
-    board.press("k") // board level
+    app.press("k") // column header
+    app.press("k") // board level
 
-    board.expect("#board[data-cursor]").toExist()
+    app.expect("#board[data-cursor]").toExist()
 
     // Press u at board level — should ring bell
-    board.press("Z")
-    expect(board.bell).toBe(true)
+    app.press("Z")
+    expect(app.bell).toBe(true)
   })
 
-  // Kept on testEnv: board.bell is not supported by createTestApp
   it("moves cursor to parent: card → column → board", () => {
-    const { board } = testEnv(() => item.root("board", item("col1", item("a"), item("b"), item("c"))))
+    using app = createTestApp(item.root("board", item("col1", item("a"), item("b"), item("c"))))
 
     // Start at first card, navigate to third card
-    board.press("j").press("j")
-    board.expect("#c[data-cursor]").toExist()
+    app.press("j").press("j")
+    app.expect("#c[data-cursor]").toExist()
 
     // u goes to PARENT (not prev sibling): c → col1 → board
-    board.press("Z")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("Z")
+    app.expect("#col1[data-cursor]").toExist()
 
-    board.press("Z") // column header → board
-    board.expect("#board[data-cursor]").toExist()
+    app.press("Z") // column header → board
+    app.expect("#board[data-cursor]").toExist()
 
-    board.press("Z") // at board level, should ring bell
-    expect(board.bell).toBe(true)
+    app.press("Z") // at board level, should ring bell
+    expect(app.bell).toBe(true)
   })
 })
 
@@ -1107,16 +1105,15 @@ describe("u key — go to parent, not previous sibling", () => {
     app.expect("#board[data-cursor]").toExist()
   })
 
-  // Kept on testEnv: board.bell is not supported by createTestApp
   test("u from board level is boundary", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A1"))), { columns: 120, rows: 24 })
+    using app = createTestApp(item("board", item("col1", item("A1"))), { cols: 120, rows: 24 })
 
-    board.press("k").press("k") // card → col → board
-    board.expect("#board[data-cursor]").toExist()
+    app.press("k").press("k") // card → col → board
+    app.expect("#board[data-cursor]").toExist()
 
-    board.press("Z")
-    board.expect("#board[data-cursor]").toExist()
-    expect(board.bell).toBe(true)
+    app.press("Z")
+    app.expect("#board[data-cursor]").toExist()
+    expect(app.bell).toBe(true)
   })
 
   test("u from column header goes to board level", () => {

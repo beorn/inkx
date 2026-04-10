@@ -11,6 +11,7 @@ import { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "../..
 import { prettifyUrl } from "../../src/text/text-pipeline.ts"
 import { stripKnownMentions } from "../../src/views/detail-pane-helpers.ts"
 import { testEnv, item } from "../helpers/board-test.ts"
+import { createTestApp } from "../helpers/test-app.ts"
 import type { InlineNode } from "../../src/text/inline-ast-types.ts"
 
 const types = (nodes: InlineNode[]) => nodes.map((n) => n.type)
@@ -65,9 +66,9 @@ describe("long bare URL prettification", () => {
   })
 
   it("long bare URL in card body renders prettified (no https://)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item(`Check ${longUrl}`))), { rows: 20, columns: 100 })
+    using app = createTestApp(item("board", item("col1", item(`Check ${longUrl}`))), { rows: 20, cols: 100 })
 
-    const screenText = board.screen.text
+    const screenText = app.text
     expect(screenText).not.toContain("https://")
     expect(screenText).toContain("example.com/very/long")
   })
@@ -101,12 +102,12 @@ describe("long markdown links", () => {
   })
 
   it("card renders link text, not raw URL", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Read [API docs](https://very-long-url.com/api/v2/reference)"))),
-      { rows: 20, columns: 60 },
+    using app = createTestApp(
+      item("board", item("col1", item("Read [API docs](https://very-long-url.com/api/v2/reference)"))),
+      { rows: 20, cols: 60 },
     )
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("API docs")
     expect(text).not.toContain("very-long-url.com")
@@ -121,26 +122,26 @@ describe("detail pane body rendering", () => {
   it("card with paragraph body child shows body indicator", () => {
     // A card (depth 0) with a paragraph child should have body content.
     // In the cards view, the card shows a body indicator (···).
-    const { board } = testEnv(
-      () => item("board", item("col1", item.file("Parent card", item.p("This is body text for the parent")))),
-      { rows: 20, columns: 80 },
+    using app = createTestApp(
+      item("board", item("col1", item.file("Parent card", item.p("This is body text for the parent")))),
+      { rows: 20, cols: 80 },
     )
 
     // The paragraph child should contribute to body detection.
     // The parent card's title should be visible.
-    const screenText = board.screen.text
+    const screenText = app.text
     expect(screenText).toContain("Parent card")
   })
 
   it("paragraph body child content is visible in card when rendered as child", () => {
     // When a card has a paragraph child, the paragraph text should
     // be rendered as a card child line (not "(empty)").
-    const { board } = testEnv(
-      () => item("board", item("col1", item.file("Task", item.p("Body paragraph content here")))),
-      { rows: 20, columns: 80 },
-    )
+    using app = createTestApp(item("board", item("col1", item.file("Task", item.p("Body paragraph content here")))), {
+      rows: 20,
+      cols: 80,
+    })
 
-    const screenText = board.screen.text
+    const screenText = app.text
     expect(screenText).toContain("Task")
     // The paragraph content should appear somewhere in the card's rendered area
     expect(screenText).toContain("Body paragraph")
@@ -156,16 +157,15 @@ describe("card body multi-line content", () => {
     // Card children (depth > 0) get height=1 and overflow="hidden".
     // Multi-line content in a paragraph child should be truncated,
     // showing only the first line.
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.file("Multi-line card", item.p("First line of content"), item.p("Second line of content"))),
-        ),
-      { rows: 20, columns: 80 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.file("Multi-line card", item.p("First line of content"), item.p("Second line of content"))),
+      ),
+      { rows: 20, cols: 80 },
     )
 
-    const screenText = board.screen.text
+    const screenText = app.text
     expect(screenText).toContain("Multi-line card")
     // First paragraph should be visible
     expect(screenText).toContain("First line")
@@ -173,12 +173,12 @@ describe("card body multi-line content", () => {
   })
 
   it("card child renders without escape sequence artifacts", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.file("Card", item.p("Content with https://example.com/link inside")))),
-      { rows: 20, columns: 50 },
+    using app = createTestApp(
+      item("board", item("col1", item.file("Card", item.p("Content with https://example.com/link inside")))),
+      { rows: 20, cols: 50 },
     )
 
-    const screenText = board.screen.text
+    const screenText = app.text
     // No raw escape sequences should leak into the rendered buffer
     expect(screenText).not.toContain("]8;;")
     expect(screenText).not.toContain("\x1b]")
@@ -205,12 +205,12 @@ describe("breadcrumb URL prettification", () => {
   it("node name with bare URL renders prettified in top bar", () => {
     // When a node's display name contains a bare URL, the top bar
     // should show the prettified version (via parseToPlainText in board-top-bar.ts).
-    const { board } = testEnv(() => item("board", item("col1", item("https://github.com/user/repo/issues/42"))), {
+    using app = createTestApp(item("board", item("col1", item("https://github.com/user/repo/issues/42"))), {
       rows: 20,
-      columns: 80,
+      cols: 80,
     })
 
-    const screenText = board.screen.text
+    const screenText = app.text
     // The card itself should show prettified URL
     expect(screenText).not.toContain("https://")
     expect(screenText).toContain("github.com/user/repo")
@@ -269,6 +269,7 @@ describe("inline rendering edge cases", () => {
 // =============================================================================
 
 describe("broken wikilink rendering", () => {
+  // FREEZE: needs board.screen.ansi (raw ANSI buffer access for SGR sequence inspection)
   it("unresolved [[target]] gets a distinct styling (red/dashed)", () => {
     // Use a target that definitely does not exist in the fake repo.
     const brokenTarget = "definitely-not-a-real-note-xyz"
@@ -376,29 +377,29 @@ describe("stripKnownMentions", () => {
 
 describe("stripKnownMentions — card title rendering", () => {
   it("#tags render in the card title (not silently stripped)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Ship feature #marketing"))), {
+    using app = createTestApp(item("board", item("col1", item("Ship feature #marketing"))), {
       rows: 20,
-      columns: 80,
+      cols: 80,
     })
-    expect(board.screen.text).toContain("#marketing")
+    expect(app.text).toContain("#marketing")
   })
 
   it("+projects render in the card title (not silently stripped)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Plan sprint +launch"))), {
+    using app = createTestApp(item("board", item("col1", item("Plan sprint +launch"))), {
       rows: 20,
-      columns: 80,
+      cols: 80,
     })
-    expect(board.screen.text).toContain("+launch")
+    expect(app.text).toContain("+launch")
   })
 
   it("URL protocol survives card title rendering", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See https://example.com/docs"))), {
+    using app = createTestApp(item("board", item("col1", item("See https://example.com/docs"))), {
       rows: 20,
-      columns: 120,
+      cols: 120,
     })
     // https:// (or the prettified form) must still lead the URL — the protocol
     // is what makes it recognizable as a link in the first place.
-    const text = board.screen.text
+    const text = app.text
     expect(text).toMatch(/example\.com\/docs/)
   })
 })

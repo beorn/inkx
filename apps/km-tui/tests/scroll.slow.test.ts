@@ -616,6 +616,7 @@ describe("scroll-incr-chord: absolute overlay after scroll", () => {
       )
   }
 
+  // FREEZE: needs board._result.lastBuffer() / freshRender() — no createTestApp equivalent
   test("G, g, h, g — chord overlay present in incremental buffer", () => {
     const { board } = testEnv(scrollingFixture(), {
       columns: 80,

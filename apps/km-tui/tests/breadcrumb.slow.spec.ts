@@ -20,7 +20,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Breadcrumb Navigation Journeys", () => {
@@ -184,36 +184,34 @@ describe("Breadcrumb Navigation Journeys", () => {
     app.expect("#Personal").toExist()
   })
 
-  // This test stays on testEnv: uses board.expectNoGhostChars() which is not exposed by createTestApp.
   test("breadcrumb has no ghost characters after rapid navigation", () => {
-    const { board } = testEnv(
-      () =>
-        item("board", item("Calendar", item("event1")), item("inbox", item("item1")), item("TaskNotes", item("note1"))),
-      { columns: 100, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Calendar", item("event1")), item("inbox", item("item1")), item("TaskNotes", item("note1"))),
+      { cols: 100, rows: 24 },
     )
 
     // Step 1: Rapid h/l navigation
-    board.command("cursor_right") // inbox
-    board.command("cursor_right") // TaskNotes
-    board.command("cursor_left") // inbox
-    board.command("cursor_left") // Calendar
-    board.command("cursor_right") // inbox
-    board.command("cursor_right") // TaskNotes
+    app.command("cursor_right") // inbox
+    app.command("cursor_right") // TaskNotes
+    app.command("cursor_left") // inbox
+    app.command("cursor_left") // Calendar
+    app.command("cursor_right") // inbox
+    app.command("cursor_right") // TaskNotes
 
     // Step 2: Top bar should cleanly show TaskNotes without ghost chars
-    const topLine = board.screenshot().split("\n")[0] ?? ""
+    const topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("TaskNotes")
     expect(topLine).not.toContain("iTaskNotes")
     expect(topLine).not.toContain("CTaskNotes")
 
     // Step 3: Navigate back and verify no ghost prefix
-    board.command("cursor_left")
-    const topLine2 = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_left")
+    const topLine2 = app.text.split("\n")[0] ?? ""
     expect(topLine2).toContain("inbox")
     expect(topLine2).not.toContain("Tinbox")
     expect(topLine2).not.toContain("Cinbox")
 
     // Step 4: Buffer-level check for ghost characters in top bar
-    board.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
+    app.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
   })
 })

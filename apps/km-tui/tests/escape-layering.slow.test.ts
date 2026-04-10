@@ -20,6 +20,7 @@ describe("Escape Layering", () => {
   // Layer 0: Move mode
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks moveState.active
   test("Escape cancels move mode", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
@@ -37,6 +38,7 @@ describe("Escape Layering", () => {
   // Layer 1: Text edit → node mode
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — uses board.expectEditing/expectNotEditing
   test("Escape exits inline edit mode (saves content, cursor stays on node)", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
     board.expect("#task1[data-cursor]").toExist()
@@ -55,6 +57,7 @@ describe("Escape Layering", () => {
   // Layer 2: Pane focused → unfocus pane (pane stays open)
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks workspace.panes, workspace.focusedPaneId
   test("Escape from detail pane: unfocus → close", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
@@ -77,6 +80,7 @@ describe("Escape Layering", () => {
   // Layer 3: Dialog open → close topmost dialog
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks ui.showHelp
   test("Escape closes help overlay", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
@@ -89,6 +93,7 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.showHelp).toBe(false)
   })
 
+  // FREEZE: needs store.getState() — checks localSearch state
   test("Escape closes local find bar", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
@@ -101,6 +106,7 @@ describe("Escape Layering", () => {
     expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
+  // FREEZE: needs store.getState() — checks ui.showNewItemDialog
   test("Escape closes new item dialog", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
@@ -117,6 +123,7 @@ describe("Escape Layering", () => {
   // Layer 4: Selection active → collapse to cursor
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks sel.node.ids()
   test("Escape collapses multi-selection to cursor", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
@@ -132,18 +139,19 @@ describe("Escape Layering", () => {
   })
 
   test("Escape absorbs when only cursor is set (no bell)", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"))))
-    board.expect("#task1[data-cursor]").toExist()
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.expect("#task1[data-cursor]").toExist()
 
     // Escape with just a cursor: collapses (no-op on already-collapsed) and absorbs
-    board.press("Escape")
-    expect(board.bell).toBe(false)
+    app.press("Escape")
+    expect(app.bell).toBe(false)
   })
 
   // ---------------------------------------------------------------------------
   // Priority ordering: higher layers take precedence
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks workspace.focusedPaneId, workspace.panes, sel.node.ids()
   test("Escape unfocuses detail pane before clearing selection", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
@@ -173,6 +181,7 @@ describe("Escape Layering", () => {
   // Full stack walkthrough
   // ---------------------------------------------------------------------------
 
+  // FREEZE: needs store.getState() — checks ui.showHelp, board.bell
   test("multiple Escapes peel layers one at a time (dialog → collapse)", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
@@ -189,6 +198,7 @@ describe("Escape Layering", () => {
     expect(board.bell).toBe(false)
   })
 
+  // FREEZE: needs store.getState() — checks workspace.focusedPaneId, workspace.panes, sel.node.ids()
   test("pane open + selection: Escape unfocuses pane, closes pane, then collapses selection", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
@@ -254,6 +264,7 @@ describe("Escape Layering", () => {
     app.expect("#1b[data-cursor]").toExist()
   })
 
+  // FREEZE: needs store.getState() — uses store.setState() to set localSearch directly
   test("Escape exits inline edit before closing local find (regression)", () => {
     // Regression: when localSearch state exists and user is in inline edit,
     // Escape should exit edit mode (text.exit_edit) before closing find results.

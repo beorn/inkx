@@ -1,6 +1,9 @@
 /**
  * Column rendering tests — scroll indicators, selected style, title truncation.
  *
+ * FREEZE: entire file uses testEnv — buffer-level assertions (board.screen.cell,
+ * board.screenshot, testEnvWithRepo, palette color indices, store.getState).
+ *
  * Consolidated from:
  * - col-scroll-indicator.test.tsx (vertical ▲/▼ and horizontal ◂/▸ indicators)
  * - col-selected-style.test.ts (yellow header/separator/border at column level)

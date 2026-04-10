@@ -211,30 +211,29 @@ describe("spatial navigation: Y-position matching", () => {
     expect(registry.stickyY).toBeNull()
   })
 
-  // NOTE: uses `board.bell` — stays on testEnv.
   test("h from first column goes to header then rings bell, l from last column rings bell", () => {
-    const { board } = testEnv(() => item("board", item("ColA", item("A1")), item("ColB", item("B1"))), {
+    using app = createTestApp(item("board", item("ColA", item("A1")), item("ColB", item("B1"))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
 
     // h from first card -> goes to column header
-    board.command("cursor_left")
-    expect(board.bell).toBe(false)
-    board.expect("#ColA[data-cursor]").toExist()
+    app.command("cursor_left")
+    expect(app.bell).toBe(false)
+    app.expect("#ColA[data-cursor]").toExist()
 
     // h at column header -> bell
-    board.command("cursor_left")
-    expect(board.bell).toBe(true)
+    app.command("cursor_left")
+    expect(app.bell).toBe(true)
 
     // Navigate to last column card
-    board.command("cursor_down") // ColA header -> A1
-    board.command("cursor_right") // A1 -> B1
-    expect(board.q("[data-cursor]").textContent()).toContain("B1")
+    app.command("cursor_down") // ColA header -> A1
+    app.command("cursor_right") // A1 -> B1
+    expect(app.q("[data-cursor]").textContent()).toContain("B1")
 
     // l from last column -> bell
-    board.command("cursor_right")
-    expect(board.bell).toBe(true)
+    app.command("cursor_right")
+    expect(app.bell).toBe(true)
   })
 })
 

@@ -10,6 +10,7 @@ import { describe, it, test, expect } from "vitest"
 import React, { act } from "react"
 import { createRenderer } from "@silvery/test"
 import { testEnv, item } from "../helpers/board-test.ts"
+import { createTestApp } from "../helpers/test-app.ts"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { StoreContext } from "@silvery/create/create-app"
 import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
@@ -439,23 +440,21 @@ describe("StatusCounters", () => {
 
 describe("Bottom bar VIEW indicator", () => {
   test("shows CARDS VIEW on startup", () => {
-    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+    using app = createTestApp(item.root("board", item("Inbox", item("Task 1"))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
-    const text = env.board.screenshot()
-    expect(text).toContain("CARDS VIEW")
+    expect(app.text).toContain("CARDS VIEW")
   })
 
   test("shows other VIEW after pressing v", () => {
-    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+    using app = createTestApp(item.root("board", item("Inbox", item("Task 1"))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
-    env.board.command("cycle_view_mode") // Switch view mode (v m chord)
-    const text = env.board.screenshot()
+    app.command("cycle_view_mode") // Switch view mode (v m chord)
     // Could be LIST, COLUMNS, or TABS
-    expect(text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)
+    expect(app.text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)
   })
 })
 
@@ -465,51 +464,49 @@ describe("Bottom bar VIEW indicator", () => {
 
 describe("bell message on unmapped key", () => {
   test("pressing unmapped printable key shows message in bottom bar", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // 'Q' is not mapped to any command in cards view
-    board.press("Q")
+    app.press("Q")
 
-    const screenshot = board.screenshot()
     // Should show the unmapped key message
-    expect(screenshot).toContain("Unmapped key: Shift+Q")
+    expect(app.text).toContain("Unmapped key: Shift+Q")
   })
 
   test("bell state is set on unmapped key", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    board.press("Q")
+    app.press("Q")
 
     // The bottom bar should have bell flash (red background)
-    board.expect("#bottom-bar").toExist()
+    app.expect("#bottom-bar").toExist()
     // Bell state triggers data-bell attribute
-    board.expect("[data-bell-flash]").toExist()
+    app.expect("[data-bell-flash]").toExist()
   })
 
   test("boundary movement shows directional message, not unmapped key", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // First 'h' from leftmost card selects the column header (valid navigation).
     // Second 'h' from column header hits the left boundary.
-    board.press("h")
-    board.press("h")
+    app.press("h")
+    app.press("h")
 
-    const screenshot = board.screenshot()
     // Should show boundary message, not "Unmapped key"
-    expect(screenshot).not.toContain("Unmapped key")
-    expect(screenshot).toContain("Can't move")
+    expect(app.text).not.toContain("Unmapped key")
+    expect(app.text).toContain("Can't move")
   })
 
   test("next keypress clears the bell message", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
     // Press unmapped key
-    board.press("Q")
-    expect(board.screenshot()).toContain("Unmapped key: Shift+Q")
+    app.press("Q")
+    expect(app.text).toContain("Unmapped key: Shift+Q")
 
     // Press mapped key (j = cursor down)
-    board.press("j")
-    expect(board.screenshot()).not.toContain("Unmapped key")
+    app.press("j")
+    expect(app.text).not.toContain("Unmapped key")
   })
 })
 
@@ -537,6 +534,7 @@ function setLoadingState(
   void board._result.press("")
 }
 
+// FREEZE: needs store.setState() + board._result.press() for loading state manipulation
 describe("StatusCounters elapsed time display", () => {
   test("loading spinner shows when isLoading is true", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))

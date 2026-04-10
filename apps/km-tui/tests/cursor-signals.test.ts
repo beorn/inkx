@@ -18,13 +18,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-
-/** Assert cursor is non-null and return it. */
-function expectCursor(store: { getState: () => any }): string {
-  const cursor = store.getState().sel.node.cursor() as string | null
-  expect(cursor, "cursor must not be null").not.toBeNull()
-  return cursor!
-}
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Navigation: cursor persists through all movement commands
@@ -32,49 +26,48 @@ function expectCursor(store: { getState: () => any }): string {
 
 describe("cursor persistence through navigation", () => {
   test("j/k vertical navigation", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
       incremental: false,
     })
     for (const key of ["j", "j", "j", "k", "k"]) {
-      board.press(key)
-      expectCursor(store)
+      app.press(key)
+      expect(app.state.cursor, "cursor must not be null").not.toBeNull()
     }
   })
 
   test("h/l horizontal navigation", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+    using app = createTestApp(
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { incremental: false },
     )
     for (const key of ["l", "l", "h", "h"]) {
-      board.press(key)
-      expectCursor(store)
+      app.press(key)
+      expect(app.state.cursor, "cursor must not be null").not.toBeNull()
     }
   })
 
   test("mixed j/k/h/l across 3 columns", () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b"), item("1c")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a")),
+      ),
       { incremental: false },
     )
     for (const key of ["j", "j", "l", "j", "l", "k", "h", "h", "k", "k", "j", "j", "j"]) {
-      board.press(key)
-      expectCursor(store)
+      app.press(key)
+      expect(app.state.cursor, "cursor must not be null").not.toBeNull()
     }
   })
 
   test("boundary navigation (press past edges)", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    using app = createTestApp(item("board", item("col1", item("1a"))), { incremental: false })
     // Try to go past boundaries — cursor must never null
     for (const key of ["j", "j", "j", "j", "k", "k", "k", "k", "h", "h", "l", "l"]) {
-      board.press(key)
-      expectCursor(store)
+      app.press(key)
+      expect(app.state.cursor, "cursor must not be null").not.toBeNull()
     }
   })
 })
@@ -85,29 +78,29 @@ describe("cursor persistence through navigation", () => {
 
 describe("cursor persistence through fold/unfold", () => {
   test("fold hides children — cursor stays visible", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a", item("sub1"), item("sub2")), item("1b"))),
-      { incremental: false },
-    )
-    board.press("j") // col1
-    board.press("j") // 1a
-    board.press("H") // fold 1a
-    const c = expectCursor(store)
+    using app = createTestApp(item("board", item("col1", item("1a", item("sub1"), item("sub2")), item("1b"))), {
+      incremental: false,
+    })
+    app.press("j") // col1
+    app.press("j") // 1a
+    app.press("H") // fold 1a
+    const c = app.state.cursor
+    expect(c, "cursor must not be null").not.toBeNull()
     expect(c).not.toBe("sub1")
     expect(c).not.toBe("sub2")
   })
 
   test("fold then navigate — cursor valid", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a", item("sub1")), item("1b"))), {
+    using app = createTestApp(item("board", item("col1", item("1a", item("sub1")), item("1b"))), {
       incremental: false,
     })
-    board.press("j") // col1
-    board.press("j") // 1a
-    board.press("H") // fold
-    board.press("j") // navigate after fold
-    expectCursor(store)
-    board.press("k")
-    expectCursor(store)
+    app.press("j") // col1
+    app.press("j") // 1a
+    app.press("H") // fold
+    app.press("j") // navigate after fold
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
+    app.press("k")
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
   })
 })
 
@@ -117,27 +110,25 @@ describe("cursor persistence through fold/unfold", () => {
 
 describe("cursor persistence through zoom", () => {
   test("zoom in + navigate", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
       incremental: false,
     })
-    board.press("j") // col1
-    board.command("zoom_inwards")
+    app.press("j") // col1
+    app.command("zoom_inwards")
     for (const key of ["j", "j", "k"]) {
-      board.press(key)
-      expectCursor(store)
+      app.press(key)
+      expect(app.state.cursor, "cursor must not be null").not.toBeNull()
     }
   })
 
   test("zoom in then out", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
-      incremental: false,
-    })
-    board.press("j") // col1
-    board.command("zoom_inwards")
-    board.press("j") // navigate inside
-    expectCursor(store)
-    board.command("zoom_outwards")
-    expectCursor(store)
+    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), { incremental: false })
+    app.press("j") // col1
+    app.command("zoom_inwards")
+    app.press("j") // navigate inside
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
+    app.command("zoom_outwards")
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
   })
 })
 
@@ -146,6 +137,7 @@ describe("cursor persistence through zoom", () => {
 // =============================================================================
 
 describe("cursor skips hidden nodes", () => {
+  // FREEZE: needs store.getState() — sets pane.signals.hiddenNodeIds() directly
   test("hidden column skipped during h/l navigation", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("1a")), item("col2-hidden", item("2a")), item("col3", item("3a"))),
@@ -154,7 +146,8 @@ describe("cursor skips hidden nodes", () => {
     const pane = store.getState().workspace.panes.get("main") as any
     if (pane?.signals) pane.signals.hiddenNodeIds(new Set(["col2-hidden"]))
     board.press("l")
-    const c = expectCursor(store)
+    const c = store.getState().sel.node.cursor() as string | null
+    expect(c, "cursor must not be null").not.toBeNull()
     expect(c).not.toBe("col2-hidden")
     expect(c).not.toBe("2a")
   })
@@ -166,77 +159,70 @@ describe("cursor skips hidden nodes", () => {
 
 describe("cursor signal invariants after move", () => {
   test("after j/k, cursor is on new node and not on old node", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
       incremental: false,
     })
     // Initial cursor on 1a
-    const c0 = expectCursor(store)
-    expect(c0).toBe("1a")
+    expect(app.state.cursor).toBe("1a")
 
     // Move down to 1b
-    board.press("j")
-    const c1 = expectCursor(store)
-    expect(c1).toBe("1b")
-    // Old cursor is no longer 1a
-    expect(c1).not.toBe("1a")
+    app.press("j")
+    expect(app.state.cursor).toBe("1b")
 
     // Move down to 1c
-    board.press("j")
-    const c2 = expectCursor(store)
-    expect(c2).toBe("1c")
+    app.press("j")
+    expect(app.state.cursor).toBe("1c")
 
     // Move back up to 1b
-    board.press("k")
-    const c3 = expectCursor(store)
-    expect(c3).toBe("1b")
+    app.press("k")
+    expect(app.state.cursor).toBe("1b")
 
     // Move back up to 1a
-    board.press("k")
-    const c4 = expectCursor(store)
-    expect(c4).toBe("1a")
+    app.press("k")
+    expect(app.state.cursor).toBe("1a")
   })
 
   test("cursorDescendant propagates — parent card visible when cursor is on child", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
+    using app = createTestApp(
+      item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { incremental: false },
     )
     // Initial cursor is on first card (Parent)
-    expectCursor(store)
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
 
     // Move down into the children (j navigates into the card's children)
-    board.press("j") // col1 or next visible item
-    board.press("j")
-    board.press("j")
+    app.press("j") // col1 or next visible item
+    app.press("j")
+    app.press("j")
 
     // Cursor should be somewhere within the tree
-    const c = expectCursor(store)
+    expect(app.state.cursor, "cursor must not be null").not.toBeNull()
 
     // Parent card title should still be visible on screen (breadcrumb)
-    board.expect("#Parent").toExist()
+    app.expect("#Parent").toExist()
     // Screen should show at least one child
-    expect(board.screenshot()).toContain("child-a")
+    expect(app.text).toContain("child-a")
   })
 
   test("cursor recovery when current node is deleted — moves to sibling", () => {
-    const { board, store, repo } = testEnv(
-      () => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))),
-      { incremental: false },
-    )
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))), {
+      incremental: false,
+    })
     // Move to task-b
-    board.press("j")
-    expect(expectCursor(store)).toBe("task-b")
+    app.press("j")
+    expect(app.state.cursor).toBe("task-b")
 
     // Delete task-b
-    board.command("delete_node")
+    app.command("delete_node")
 
     // Cursor should recover to a sibling (not null)
-    const afterDelete = expectCursor(store)
+    const afterDelete = app.state.cursor
+    expect(afterDelete, "cursor must not be null").not.toBeNull()
     expect(afterDelete).not.toBe("task-b")
     expect(["task-a", "task-c", "col1"]).toContain(afterDelete)
 
     // Verify the node is actually gone
-    const children = repo.getChildren("col1").map((n: { id: string }) => n.id)
+    const children = app.repo.getChildren("col1").map((n: { id: string }) => n.id)
     expect(children).not.toContain("task-b")
   })
 })

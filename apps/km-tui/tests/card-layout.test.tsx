@@ -12,7 +12,8 @@
  */
 import { describe, expect, test } from "vitest"
 import { writeFileSync } from "fs"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -77,87 +78,82 @@ function assertCardWidthConsistent(screenshot: string, label: string) {
 
 describe("card border overflow", () => {
   test("long text should not touch right card border", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "column1",
-            item("Short task"),
-            item("Vehicle registration and DMV-related tasks with long description"),
-            item("runnersworld.com/beginner/a2081-heart-rate-training-zones"),
-          ),
+          "column1",
+          item("Short task"),
+          item("Vehicle registration and DMV-related tasks with long description"),
+          item("runnersworld.com/beginner/a2081-heart-rate-training-zones"),
         ),
-      { columns: 80, rows: 20 },
+      ),
+      { cols: 80, rows: 20 },
     )
-    assertCardBordersClean(board.screenshot(), "80 cols long text")
+    assertCardBordersClean(app.text, "80 cols long text")
   })
 
   test("boundary-width content should not overflow", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("A".repeat(30) + " overflow test here"),
-            item("Status: Blocked by guardianship requirements"),
-            item("Static stretch 3x30s 6 days per week recommended"),
-          ),
-          item("col2", item("placeholder")),
+          "col1",
+          item("A".repeat(30) + " overflow test here"),
+          item("Status: Blocked by guardianship requirements"),
+          item("Static stretch 3x30s 6 days per week recommended"),
         ),
-      { columns: 80, rows: 20 },
+        item("col2", item("placeholder")),
+      ),
+      { cols: 80, rows: 20 },
     )
-    assertCardBordersClean(board.screenshot(), "80 cols boundary")
+    assertCardBordersClean(app.text, "80 cols boundary")
   })
 
   test("single column card stays within borders", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "only-column",
-            item("This is a task with quite a long title that might wrap around or overflow the card border"),
-            item("Another task with a URL like example.com/very/long/path/to/resource"),
-          ),
+          "only-column",
+          item("This is a task with quite a long title that might wrap around or overflow the card border"),
+          item("Another task with a URL like example.com/very/long/path/to/resource"),
         ),
-      { columns: 60, rows: 20 },
+      ),
+      { cols: 60, rows: 20 },
     )
-    assertCardBordersClean(board.screenshot(), "60 cols single col")
+    assertCardBordersClean(app.text, "60 cols single col")
   })
 
   test("narrow terminal cards stay within borders", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A moderate length task title here"), item("Status: Not started depends on other")),
-          item("col2", item("filler")),
-        ),
-      { columns: 50, rows: 15 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("A moderate length task title here"), item("Status: Not started depends on other")),
+        item("col2", item("filler")),
+      ),
+      { cols: 50, rows: 15 },
     )
-    assertCardBordersClean(board.screenshot(), "50 cols narrow")
+    assertCardBordersClean(app.text, "50 cols narrow")
   })
 
   test("card with children: body text stays within borders", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "tasks",
           item(
-            "tasks",
-            item(
-              "T009 BMW DMV Issues",
-              item("Status: Not started - Low priority"),
-              item("Context: Found in inbox old DMV notices from 2019"),
-              item("Attachments: PDF documents"),
-            ),
+            "T009 BMW DMV Issues",
+            item("Status: Not started - Low priority"),
+            item("Context: Found in inbox old DMV notices from 2019"),
+            item("Attachments: PDF documents"),
           ),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
-    assertCardBordersClean(board.screenshot(), "card with children")
+    assertCardBordersClean(app.text, "card with children")
   })
 })
 
@@ -167,20 +163,19 @@ describe("card layout across terminal widths", () => {
   // Sweep terminal widths to catch off-by-one errors at various sizes
   for (const cols of [40, 50, 60, 70, 80, 100, 120]) {
     test(`${cols}-col terminal: cards respect borders`, () => {
-      const { board } = testEnv(
-        () =>
+      using app = createTestApp(
+        item(
+          "board",
           item(
-            "board",
-            item(
-              "col1",
-              item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
-              item("example.com/path/to/some/resource/that/is/quite/long"),
-            ),
-            item("col2", item("short")),
+            "col1",
+            item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
+            item("example.com/path/to/some/resource/that/is/quite/long"),
           ),
-        { columns: cols, rows: 20 },
+          item("col2", item("short")),
+        ),
+        { cols: cols, rows: 20 },
       )
-      const ss = board.screenshot()
+      const ss = app.text
       writeFileSync(`/tmp/card-${cols}.txt`, ss)
       assertCardBordersClean(ss, `${cols}-col`)
     })
@@ -191,28 +186,26 @@ describe("card layout across terminal widths", () => {
 
 describe("card text truncation", () => {
   test("very long single-word content is truncated, not overflowing", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            // A single word that's wider than any card — must be truncated
-            item("A".repeat(200)),
-          ),
+          "col1",
+          // A single word that's wider than any card — must be truncated
+          item("A".repeat(200)),
         ),
-      { columns: 80, rows: 15 },
+      ),
+      { cols: 80, rows: 15 },
     )
-    assertCardBordersClean(board.screenshot(), "200-char word")
+    assertCardBordersClean(app.text, "200-char word")
   })
 
   test("long URL without spaces wraps within card borders", () => {
-    const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("https://very-long-domain.example.com/path/to/resource/with/many/segments"))),
-      { columns: 80, rows: 15 },
+    using app = createTestApp(
+      item("board", item("col1", item("https://very-long-domain.example.com/path/to/resource/with/many/segments"))),
+      { cols: 80, rows: 15 },
     )
-    assertCardBordersClean(board.screenshot(), "long URL")
+    assertCardBordersClean(app.text, "long URL")
   })
 
   test("card borders stay clean after cursor moves right between columns", () => {
@@ -220,39 +213,38 @@ describe("card text truncation", () => {
     // column to re-render incorrectly with card overflow. Each subsequent
     // right-move made it worse.
     for (const cols of [40, 60, 80, 100]) {
-      const { board } = testEnv(
-        () =>
+      using app = createTestApp(
+        item(
+          "board",
           item(
-            "board",
-            item(
-              "col1",
-              item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
-              item("example.com/path/to/some/resource/that/is/quite/long"),
-            ),
-            item("col2", item("Short task in col2"), item("Another task in col2 with some more text")),
-            item("col3", item("Col3 task alpha"), item("Col3 task beta with longer content here")),
+            "col1",
+            item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
+            item("example.com/path/to/some/resource/that/is/quite/long"),
           ),
-        { columns: cols, rows: 20 },
+          item("col2", item("Short task in col2"), item("Another task in col2 with some more text")),
+          item("col3", item("Col3 task alpha"), item("Col3 task beta with longer content here")),
+        ),
+        { cols: cols, rows: 20 },
       )
 
       // Initial render — should be clean
-      assertCardBordersClean(board.screenshot(), `${cols}-col initial`)
+      assertCardBordersClean(app.text, `${cols}-col initial`)
 
       // Move right to col2
-      board.command("cursor_right")
-      assertCardBordersClean(board.screenshot(), `${cols}-col after right to col2`)
+      app.command("cursor_right")
+      assertCardBordersClean(app.text, `${cols}-col after right to col2`)
 
       // Move right to col3
-      board.command("cursor_right")
-      assertCardBordersClean(board.screenshot(), `${cols}-col after right to col3`)
+      app.command("cursor_right")
+      assertCardBordersClean(app.text, `${cols}-col after right to col3`)
 
       // Move back left to col2
-      board.command("cursor_left")
-      assertCardBordersClean(board.screenshot(), `${cols}-col after left to col2`)
+      app.command("cursor_left")
+      assertCardBordersClean(app.text, `${cols}-col after left to col2`)
 
       // Move back left to col1
-      board.command("cursor_left")
-      assertCardBordersClean(board.screenshot(), `${cols}-col after left back to col1`)
+      app.command("cursor_left")
+      assertCardBordersClean(app.text, `${cols}-col after left back to col1`)
     }
   })
 
@@ -260,23 +252,22 @@ describe("card text truncation", () => {
     // Regression: "Context: Found in inbox old DMV notices from 2019" wrapped
     // and the wrapped portion "notices from 2019" appeared ON the bottom border:
     //   ╰────notices from 2019───────────────╯
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "col1",
           item(
-            "col1",
-            item(
-              "T009 - BMW DMV Issues",
-              item("Status: Not started - Low priority"),
-              item("Context: Found in inbox old DMV notices from 2019"),
-            ),
+            "T009 - BMW DMV Issues",
+            item("Status: Not started - Low priority"),
+            item("Context: Found in inbox old DMV notices from 2019"),
           ),
-          item("col2", item("placeholder")),
         ),
-      { columns: 80, rows: 24 },
+        item("col2", item("placeholder")),
+      ),
+      { cols: 80, rows: 24 },
     )
-    const screenshot = board.screenshot()
+    const screenshot = app.text
     assertCardBordersClean(screenshot, "child text bleed")
     // Verify wrapped text doesn't appear embedded in border characters
     expect(screenshot).not.toMatch(/[╰╯─].*notices from 2019.*[╰╯─]/)
@@ -290,49 +281,47 @@ describe("card text truncation", () => {
 describe("body indicator (···)", () => {
   test("does NOT show ··· when children are visible as subitems", () => {
     // Card with body children (paragraphs) — these render as subitems in cards view
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("card-with-body", item.p("Some body text"), item.p("More text"))),
-          item("col2", item("card2")),
-        ),
-      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("card-with-body", item.p("Some body text"), item.p("More text"))),
+        item("col2", item("card2")),
+      ),
+      { cols: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
     // The card should NOT show ··· because body is visible as subitems
-    const screen = board.screenshot()
+    const screen = app.text
     expect(screen).not.toContain("···")
   })
 
   test("does NOT show ··· on column headers (body content visible as cards)", () => {
     // Column with body children (paragraphs) — these are shown as cards in the column
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("col-with-body", item.p("Body paragraph"), item("regular-card")), item("col2")),
-      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+      { cols: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
     // The column header should NOT show ···
-    const screen = board.screenshot()
+    const screen = app.text
     expect(screen).not.toContain("···")
   })
 
   test("shows ··· when card is folded and has body children", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("card-with-body", item.p("Hidden body text"), item.p("More hidden text"))),
-          item("col2", item("card2")),
-        ),
-      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("card-with-body", item.p("Hidden body text"), item.p("More hidden text"))),
+        item("col2", item("card2")),
+      ),
+      { cols: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
     // Fold the card's children with zh chord (fold_node)
-    board.command("fold_more")
+    app.command("fold_more")
 
     // Now ··· should show because body children are hidden (folded)
-    const screen = board.screenshot()
+    const screen = app.text
     expect(screen).toContain("···")
   })
 })
@@ -355,12 +344,12 @@ describe("card border text wrapping", () => {
     // A 39-char title must fit on 1 line.
     const title = "[Tech] Set up chrome dev tools for node"
 
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("col1", item(title), item("another card")), item("col2", item("card in col2"))),
-      { columns: 120, rows: 24, checkIncremental: false, incremental: false },
+      { cols: 120, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    const text = board.screenshot()
+    const text = app.text
     const lines = text.split("\n")
 
     // "node" should NOT appear alone on a wrapped line inside a border
@@ -375,20 +364,19 @@ describe("card border text wrapping", () => {
     // With 5 columns at 120 chars, each column is ~23 chars. Title should wrap.
     const title = "[Tech] Set up chrome dev tools for node"
 
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("c1", item(title), item("card")),
-          item("c2", item("card")),
-          item("c3", item("card")),
-          item("c4", item("card")),
-          item("c5", item("card")),
-        ),
-      { columns: 120, rows: 24, checkIncremental: false, incremental: false },
+    using app = createTestApp(
+      item(
+        "board",
+        item("c1", item(title), item("card")),
+        item("c2", item("card")),
+        item("c3", item("card")),
+        item("c4", item("card")),
+        item("c5", item("card")),
+      ),
+      { cols: 120, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    const text = board.screenshot()
+    const text = app.text
     // With 5 columns on 120 chars, the title SHOULD wrap (cards are narrow).
     // Just verify the test runs and renders without errors.
     expect(text).toContain("chrome dev tools")
@@ -432,17 +420,16 @@ describe("card title wrap width", () => {
     const title35 = "A very long title that needs wrap!!" // exactly 35 chars
     expect(title35.length).toBe(35) // sanity check
 
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item(title35, item("child1"), item("child2"), item("child3"))),
-          item("col2", item("card")),
-        ),
-      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item(title35, item("child1"), item("child2"), item("child3"))),
+        item("col2", item("card")),
+      ),
+      { cols: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    const text = board.screenshot()
+    const text = app.text
 
     // With correct cardInnerWidth, the overflow indicator (+1) should appear
     // because the title wraps and consumes an extra visual line.
@@ -455,17 +442,16 @@ describe("card title wrap width", () => {
     const title33 = "A title that fits in the column!!" // exactly 33 chars
     expect(title33.length).toBe(33) // sanity check
 
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item(title33, item("child1"), item("child2"), item("child3"))),
-          item("col2", item("card")),
-        ),
-      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item(title33, item("child1"), item("child2"), item("child3"))),
+        item("col2", item("card")),
+      ),
+      { cols: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    const text = board.screenshot()
+    const text = app.text
     const lines = text.split("\n")
 
     // No overflow: title fits on 1 line, children fit in maxContentLines.
@@ -490,16 +476,16 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
     // Title with a long URL that would wrap to 3+ lines and leave a partial last line
     const longTitle =
       "44 most beautiful places in the world ^1209904823302245https://www.travelandleisure.com/trip-ideas/beautiful-places"
-    const { board } = testEnv(() => item("board", item("col1", item(longTitle), item("short task"))), {
+    using app = createTestApp(item("board", item("col1", item(longTitle), item("short task"))), {
       rows: 20,
-      columns: 40,
+      cols: 40,
     })
 
     // The card should be visible and selected
-    board.expect("[data-cursor]").toExist()
+    app.expect("[data-cursor]").toExist()
 
     // Get the rendered text of the first card
-    const cursorCard = board.q("[data-cursor]")
+    const cursorCard = app.q("[data-cursor]")
     const text = cursorCard.textContent()
 
     // The title should end with ellipsis if truncated, not have a partial line
@@ -518,9 +504,9 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
 
   test("card title with exactly fitting content has no ellipsis", () => {
     const shortTitle = "Short task title"
-    const { board } = testEnv(() => item("board", item("col1", item(shortTitle))), { rows: 20, columns: 40 })
+    using app = createTestApp(item("board", item("col1", item(shortTitle))), { rows: 20, cols: 40 })
 
-    const cursorCard = board.q("[data-cursor]")
+    const cursorCard = app.q("[data-cursor]")
     const text = cursorCard.textContent()
     // Short title should NOT have ellipsis
     expect(text).not.toContain("…")
@@ -531,9 +517,9 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
     // Very long title that will definitely need truncation
     const longTitle =
       "This is an extremely long card title that contains a URL https://www.example.com/very/long/path/to/resource?param=value&other=thing and more text after"
-    const { board } = testEnv(() => item("board", item("col1", item(longTitle))), { rows: 20, columns: 40 })
+    using app = createTestApp(item("board", item("col1", item(longTitle))), { rows: 20, cols: 40 })
 
-    const cursorCard = board.q("[data-cursor]")
+    const cursorCard = app.q("[data-cursor]")
     const text = cursorCard.textContent()
 
     // If truncated, should end with ellipsis
@@ -553,14 +539,14 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
       "Second card with URL ^95625296115693Coworking near the beach https://example.com/location",
       "Third card Digital nomad https://www.example.com/very/long/destination/path?country=southam",
     ]
-    const { board } = testEnv(() => item("board", item("col1", ...titles.map((t) => item(t)))), {
+    using app = createTestApp(item("board", item("col1", ...titles.map((t) => item(t)))), {
       rows: 30,
-      columns: 40,
+      cols: 40,
     })
 
     // Navigate through cards and check each one
     for (let i = 0; i < titles.length; i++) {
-      const cursorCard = board.q("[data-cursor]")
+      const cursorCard = app.q("[data-cursor]")
       const text = cursorCard.textContent()
 
       // Check no partial trailing lines
@@ -572,7 +558,7 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
         }
       }
 
-      if (i < titles.length - 1) board.command("cursor_down")
+      if (i < titles.length - 1) app.command("cursor_down")
     }
   })
 })
@@ -589,7 +575,7 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
  */
 describe("km-tui.raw-section-ids — untitled section shows label not raw ID", () => {
   test("empty mdsection shows '(untitled section)' instead of raw GID", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () => {
         const nodes = item("board", item("col1", item("task-1"), item("task-2")))
         // Mutate task-2 to be an empty mdsection with a long GID-like ID
@@ -604,10 +590,10 @@ describe("km-tui.raw-section-ids — untitled section shows label not raw ID", (
         emptySection.data = {}
         return nodes
       },
-      { columns: 80, rows: 24 },
+      { cols: 80, rows: 24 },
     )
 
-    const text = board.screen.text
+    const text = app.screen.text
     // The raw GID "(01KHW5W9)" should NOT appear
     expect(text).not.toContain("(01KHW5W9)")
     // Should show the human-readable label instead
@@ -617,24 +603,24 @@ describe("km-tui.raw-section-ids — untitled section shows label not raw ID", (
 
 describe("km-tui.trailing-hash — strip orphan # from Asana tag syntax", () => {
   test("card title strips trailing # from #@mention pattern", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Thermostat schedule #@home"))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("col1", item("Thermostat schedule #@home"))), {
+      cols: 80,
       rows: 24,
     })
 
-    const text = board.screen.text
+    const text = app.screen.text
     // Should show "Thermostat schedule" without trailing "#"
     expect(text).toContain("Thermostat schedule")
     expect(text).not.toMatch(/Thermostat schedule\s+#/)
   })
 
   test("card title strips multiple #@mention patterns", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("BVI admin #@work #@home"))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("col1", item("BVI admin #@work #@home"))), {
+      cols: 80,
       rows: 24,
     })
 
-    const text = board.screen.text
+    const text = app.screen.text
     expect(text).toContain("BVI admin")
     expect(text).not.toMatch(/BVI admin\s+#/)
   })
@@ -642,7 +628,7 @@ describe("km-tui.trailing-hash — strip orphan # from Asana tag syntax", () => 
 
 describe("km-tui.query-dsl-leaked — hide rules from detail pane", () => {
   test("section card does not show km.add:: query DSL", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () => {
         const nodes = item("board", item.section("Inbox", item("task-a"), item("task-b")))
         // Simulate a section with query DSL in content
@@ -654,10 +640,10 @@ describe("km-tui.query-dsl-leaked — hide rules from detail pane", () => {
         }
         return nodes
       },
-      { columns: 80, rows: 24 },
+      { cols: 80, rows: 24 },
     )
 
-    const text = board.screen.text
+    const text = app.screen.text
     // "km.add::" query DSL should not be visible on the card
     expect(text).not.toContain("km.add::")
     expect(text).not.toContain("km.default::")
@@ -677,12 +663,12 @@ describe("km-tui.query-dsl-leaked — hide rules from detail pane", () => {
  */
 describe("inline-refs: ^numeric-id stripped from card display", () => {
   test("inline ^ref mid-text is stripped from card title", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See previous ^1202466275397380 notes"))), {
+    using app = createTestApp(item("board", item("col1", item("See previous ^1202466275397380 notes"))), {
       rows: 20,
-      columns: 60,
+      cols: 60,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).not.toContain("^1202466275397380")
     expect(text).toContain("See previous")
@@ -690,24 +676,24 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
   })
 
   test("^ref at end of title is stripped", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Talk to Fidelity^1212075048027297"))), {
+    using app = createTestApp(item("board", item("col1", item("Talk to Fidelity^1212075048027297"))), {
       rows: 20,
-      columns: 60,
+      cols: 60,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).not.toContain("^1212075048027297")
     expect(text).toContain("Talk to Fidelity")
   })
 
   test("^ref followed by URL (no space) strips ID but keeps URL", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("col1", item("Beautiful places ^1209904823302245https://example.com"))),
-      { rows: 20, columns: 80 },
+      { rows: 20, cols: 80 },
     )
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).not.toContain("^1209904823302245")
     expect(text).toContain("Beautiful places")
@@ -716,12 +702,12 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
   })
 
   test("multiple ^refs in same title are all stripped", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("col1", item("ref ^1202466275397380 and ^1212075048027297 end"))),
-      { rows: 20, columns: 60 },
+      { rows: 20, cols: 60 },
     )
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).not.toContain("^1202466275397380")
     expect(text).not.toContain("^1212075048027297")
@@ -730,9 +716,9 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
   })
 
   test("short ^refs (not Asana IDs) are preserved", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("value ^42 is good"))), { rows: 20, columns: 60 })
+    using app = createTestApp(item("board", item("col1", item("value ^42 is good"))), { rows: 20, cols: 60 })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("^42")
     expect(text).toContain("value")

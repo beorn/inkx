@@ -325,49 +325,48 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
   })
 
   test("no ghost prefix after rapid h/l/h/l navigation (ainbox/CTaskNotes regression)", () => {
-    // Uses board.expectNoGhostChars() — stays on testEnv.
     // km-tui.breadcrumb-ghost: user saw "ainbox" instead of "inbox",
     // "CTaskNotes" instead of "TaskNotes" -- first char of previous column
     // leaks into the new breadcrumb. Test rapid h/l cycles with names that
     // start with different chars.
-    const { board } = testEnv(
-      () => item("board", item("Calendar", item("c1")), item("inbox", item("i1")), item("TaskNotes", item("t1"))),
-      { columns: 100, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Calendar", item("c1")), item("inbox", item("i1")), item("TaskNotes", item("t1"))),
+      { cols: 100, rows: 24 },
     )
 
     // Rapid navigation: Calendar -> inbox -> TaskNotes -> inbox -> Calendar
-    board.command("cursor_right") // to inbox
-    let topLine = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_right") // to inbox
+    let topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("inbox")
     expect(topLine).not.toContain("Cinbox")
     expect(topLine).not.toContain("ainbox")
 
-    board.command("cursor_right") // to TaskNotes
-    topLine = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_right") // to TaskNotes
+    topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("TaskNotes")
     expect(topLine).not.toContain("iTaskNotes")
     expect(topLine).not.toContain("CTaskNotes")
 
-    board.command("cursor_left") // back to inbox
-    topLine = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_left") // back to inbox
+    topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("inbox")
     expect(topLine).not.toContain("Tinbox")
     expect(topLine).not.toContain("ainbox")
 
-    board.command("cursor_left") // back to Calendar
-    topLine = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_left") // back to Calendar
+    topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("Calendar")
     expect(topLine).not.toContain("iCalendar")
 
     // Second round: rapid back-and-forth
-    board.command("cursor_right").command("cursor_right").command("cursor_left").command("cursor_left")
-    topLine = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_right").command("cursor_right").command("cursor_left").command("cursor_left")
+    topLine = app.text.split("\n")[0] ?? ""
     expect(topLine).toContain("Calendar")
     expect(topLine).not.toContain("iCalendar")
     expect(topLine).not.toContain("TCalendar")
 
     // Buffer-level check: no ghost chars in the top bar region
-    board.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
+    app.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
   })
 })
 
@@ -534,27 +533,26 @@ describe("Breadcrumb path when zoomed deep", () => {
   })
 
   test("breadcrumb screen buffer shows clean path without ghost chars after zoom", () => {
-    // Uses board.expectNoGhostChars() — stays on testEnv.
-    const { board } = testEnv(
-      () => item("board", item("Alpha", item("deep1", item("x1"), item("x2"))), item("Beta", item("y1"))),
-      { columns: 100, rows: 24 },
+    using app = createTestApp(
+      item("board", item("Alpha", item("deep1", item("x1"), item("x2"))), item("Beta", item("y1"))),
+      { cols: 100, rows: 24 },
     )
 
     // Navigate right to Beta column, then zoom into deep1 from Alpha
-    board.command("cursor_right") // to Beta
-    const topBarBeta = board.screenshot().split("\n")[0] ?? ""
+    app.command("cursor_right") // to Beta
+    const topBarBeta = app.text.split("\n")[0] ?? ""
     expect(topBarBeta).toContain("Beta")
 
-    board.command("cursor_left") // back to Alpha
-    board.command("cursor_down") // to deep1 card
-    board.command("zoom_inwards") // zoom into deep1
+    app.command("cursor_left") // back to Alpha
+    app.command("cursor_down") // to deep1 card
+    app.command("zoom_inwards") // zoom into deep1
 
-    const topBarZoomed = board.screenshot().split("\n")[0] ?? ""
+    const topBarZoomed = app.text.split("\n")[0] ?? ""
     // Should contain "deep1" and NOT have ghost chars from "Beta"
     expect(topBarZoomed).toContain("deep1")
     expect(topBarZoomed).not.toContain("Bdeep1")
     // Verify no ghost chars in top bar region
-    board.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
+    app.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
   })
 })
 

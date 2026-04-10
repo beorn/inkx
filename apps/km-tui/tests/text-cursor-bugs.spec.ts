@@ -11,6 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/ag-react"
+// FREEZE: all tests need board.expectEditing(), store.getState().textEditHints, board.screen.cell()
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 

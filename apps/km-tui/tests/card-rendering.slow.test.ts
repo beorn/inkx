@@ -142,9 +142,8 @@ describe("card border: structural cards (files)", () => {
 // ─── Card Border: Virtual Body Cards ─────────────────────────────────────────
 
 describe("card border: virtual body cards", () => {
+  // FREEZE: needs store.getState() — uses palette color comparison (ANSI index), createTestApp returns truecolor
   test("unselected body cards have dim gray border", () => {
-    // Uses palette color comparison — stays on testEnv.
-    // createTestApp returns truecolor RGB instead of palette indices.
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
       columns: 80,
       rows: 24,
@@ -154,8 +153,8 @@ describe("card border: virtual body cards", () => {
     expectDimBorder(board, "1c")
   })
 
+  // FREEZE: needs store.getState() — uses palette color comparison (ANSI index), createTestApp returns truecolor
   test("selected body card gets yellow border", () => {
-    // Uses board.expectNodeBorder — stays on testEnv
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
       columns: 80,
       rows: 24,
@@ -588,7 +587,7 @@ describe("card-overflow-dots", () => {
   })
 
   describe("multi-heading overflow (shared env)", () => {
-    // beforeAll-shared board — kept on testEnv
+    // FREEZE: needs store.getState() — beforeAll-shared board with board.screenshot()
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
       const env = testEnv(

@@ -38,6 +38,7 @@ import { createToastQueue } from "@km/core"
 import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
 import { StoreProvider } from "../src/state/store-context.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
+// FREEZE: visual rendering tests need createRenderer/store/ThemeProvider; state tests use store.getState() directly
 import { item, testEnv } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"
 import { createViewLens, createVisibleLens } from "@km/board"

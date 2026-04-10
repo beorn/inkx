@@ -1,3 +1,4 @@
+// testEnv FREEZE bucket — see km-all.test-system bead. Reason: store white-box (dispatchBoard, zoomAndFlush, searchReplace, act)
 /**
  * Search Tests
  *

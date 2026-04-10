@@ -476,8 +476,8 @@ describe("collapsed column width", () => {
     expect(incrementalScreenshot).toBe(freshScreenshot)
   })
 
+  // FREEZE: needs store.getState() — uses board._result.lastBuffer() / freshRender()
   it("incremental render buffer matches fresh render after collapse", () => {
-    // Uses _result.lastBuffer() / freshRender() — stays on testEnv
     const { board } = testEnv(
       () =>
         item(
@@ -548,7 +548,7 @@ describe("collapsed column width", () => {
 // =============================================================================
 
 describe("collapsed column border symmetry", () => {
-  // Shared env: Todo(1a,1b) + Done(2a), collapsed via 'c' press
+  // FREEZE: needs store.getState() — beforeAll shared env with board.screen.nodeBox/cell
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
     const env = testEnv(() => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))), {
@@ -642,7 +642,7 @@ describe("collapsed column border symmetry", () => {
 describe("collapsed column after shift", () => {
   const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰─".includes(c)
 
-  // Shared env: Todo(1a,1b) + Done(2a) + Later(3a), collapsed and shifted right
+  // FREEZE: needs store.getState() — beforeAll shared env with board.screen.nodeBox/cell
   describe("collapse + shift right (shared env)", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
@@ -706,6 +706,7 @@ describe("collapsed column after shift", () => {
     })
   })
 
+  // FREEZE: needs store.getState() — uses board._result.lastBuffer() / freshRender()
   test("incremental render matches fresh after collapse + shift", () => {
     const { board } = testEnv(
       () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a")), item("Later", item("3a"))),
@@ -801,8 +802,7 @@ describe("collapsed column after shift", () => {
 // =============================================================================
 
 describe("uncollapse header rendering", () => {
-  // Shared env: Alpha(a1,a2) + Beta(b1), collapse then uncollapse
-  // beforeAll + shared board — kept on testEnv
+  // FREEZE: needs store.getState() — beforeAll shared env with board.expectScreen
   describe("Alpha column round-trip (shared env)", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {

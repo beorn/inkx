@@ -275,8 +275,7 @@ describe("Detail pane toggle (D key)", () => {
     expect(app.text).not.toContain("Empty pane")
   })
 
-  // NOTE: uses splitFocusedPane() directly on store — requires white-box access.
-  // Kept on testEnv for store manipulation.
+  // FREEZE: needs store.getState() — uses store.getState().splitFocusedPane()
   test("D with split panes does not create extra empty pane", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
       columns: 120,
@@ -362,6 +361,7 @@ function checkBorders(board: ReturnType<typeof testEnv>["board"], nodeIds: strin
   return result
 }
 
+// FREEZE: needs store.getState() — uses board.screen.nodeBox/cell for border checks
 describe("border rendering after detail pane close", () => {
   // Suppress [EXCESS] silvery layout warnings — detail pane resize triggers
   // transient layout overflow that is unrelated to border rendering correctness
@@ -673,9 +673,8 @@ describe("incremental rendering after detail pane toggle", () => {
 
 // --- Detail pane empty state fallback ---
 
+// FREEZE: needs store.getState() — uses store white-box access for deselect/cursor manipulation
 describe("detail pane empty state fallback", () => {
-  // NOTE: uses dispatchBoard/sel.deselect() directly — requires white-box store access
-  // to simulate an invalid cursor / deselected state. Kept on testEnv.
   test("shows empty board when cursor points to non-existent node", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
       checkIncremental: false,
@@ -998,6 +997,7 @@ function getColIndex(store: StoreApi<BoardAppStore>): number {
   return cursor.colIndex
 }
 
+// FREEZE: needs store.getState() — uses getColIndex/store for column navigation checks
 describe("detail pane + column navigation (regression: infinite render loop)", () => {
   test("l navigates right while detail pane is open", { timeout: 5000 }, () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {

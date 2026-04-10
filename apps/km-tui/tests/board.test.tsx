@@ -8,6 +8,7 @@ import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName } from "../src/state.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { createViewLens, createVisibleLens } from "@km/board"
 
 /** Helper: create lens from repo + rootId */
@@ -97,17 +98,15 @@ describe("Lens-based column derivation", () => {
 
 describe("Render", () => {
   test("Board renders columns and cards", () => {
-    const { board } = testEnv(() => item("board", item("Todo", item.task("Task 1")), item("Done")))
-    const text = board.screenshot()
-    expect(text).toContain("Todo")
-    expect(text).toContain("Done")
-    expect(text).toContain("Task 1")
+    using app = createTestApp(item("board", item("Todo", item.task("Task 1")), item("Done")))
+    expect(app.text).toContain("Todo")
+    expect(app.text).toContain("Done")
+    expect(app.text).toContain("Task 1")
   })
 
   test("Board handles empty board", () => {
-    const { board } = testEnv(() => item("board"))
-    const text = board.screenshot()
-    expect(text).toContain("Empty board")
+    using app = createTestApp(item("board"))
+    expect(app.text).toContain("Empty board")
   })
 })
 
@@ -115,6 +114,7 @@ describe("Render", () => {
 // Console toggle (Bug: backtick doesn't work due to stale pause/resume refs)
 // =============================================================================
 
+// FREEZE: needs store.getState().ui.showConsole
 describe("Console toggle", () => {
   test("backtick sets showConsole to true", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
