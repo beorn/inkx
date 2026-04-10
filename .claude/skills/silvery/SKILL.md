@@ -134,9 +134,9 @@ Common mistakes:
 
 ### Step 6: Text Background Inheritance
 
-Text nodes inherit bg from nearest ancestor with `backgroundColor` via explicit `inheritedBg` parameter (computed by `findInheritedBg()`). The old `getCellBg` buffer-read approach was replaced to decouple text rendering from buffer state.
+Text nodes inherit bg from nearest ancestor with `backgroundColor` via `nodeState.inheritedBg` (threaded top-down, O(1) per node). The old `getCellBg` buffer-read approach was replaced to decouple text rendering from buffer state.
 
-**Check**: Is `inheritedBg` correct at the time Text renders? Does region clearing use the same bg that `findInheritedBg()` would return?
+**Check**: Is `inheritedBg` correct at the time Text renders? Does region clearing use the same inherited bg?
 
 Common violations:
 - Clearing viewport to inherited bg instead of `null` (fresh starts with null)
