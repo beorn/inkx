@@ -23,7 +23,7 @@ import { useRepo } from "../repo-context.tsx"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
-import { useNodeStore } from "../state/reactive.ts"
+import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
@@ -32,6 +32,7 @@ import { resolveSymlink } from "./symlink-display.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
+import { TitleEditor } from "./tree-node-edit.tsx"
 
 // =============================================================================
 // DetailView Component
@@ -63,7 +64,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const repo = useRepo()
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
-  const { undoHandle } = useTreeRenderContext()
+  const { undoHandle, setUI, sel, jobRunner } = useTreeRenderContext()
+
+  // Root title edit state
+  const rootN = useTreeNode(rootId ?? "")
+  const rootEditState = useSignal(rootN.edit)
+  const isRootEditing = rootEditState?.blockIndex === 0
 
   const rawNode = rootId ? repo.getNode(rootId) : null
   const { displayNode } = rawNode ? resolveSymlink(repo, rawNode) : { displayNode: null }
@@ -127,7 +133,20 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
                     <Text> </Text>
                   </>
                 )}
-                <InlineText text={title} />
+                {isRootEditing ? (
+                  <TitleEditor
+                    displayNode={rootNode}
+                    editState={rootEditState as NodeEditState}
+                    nodeIsTask={rootIsTask}
+                    repo={repo}
+                    setUI={setUI}
+                    sel={sel}
+                    jobRunner={jobRunner}
+                    undoHandle={undoHandle}
+                  />
+                ) : (
+                  <InlineText text={title} />
+                )}
               </H1>
             </Box>
             <NodeBadge node={rootNode} />
@@ -251,6 +270,13 @@ function DocNode({
   const isCursor = node.id === cursor
   const shouldExpand = depth < (maxExpandDepth ?? MAX_EXPAND_DEPTH)
 
+  // Per-node edit state — enables inline editing in the detail pane.
+  // When editState is non-null (blockIndex === 0), TitleEditor replaces InlineText.
+  const n = useTreeNode(node.id)
+  const editState = useSignal(n.edit)
+  const isEditing = editState?.blockIndex === 0
+  const { setUI, sel, jobRunner, undoHandle: ctxUndoHandle } = useTreeRenderContext()
+
   // Only fetch children if we'll render them (avoid N+1 queries on deep/large trees)
   const children = useMemo(
     () => (isItem || isHeading ? repo.getChildren(node.id) : []),
@@ -262,6 +288,20 @@ function DocNode({
   const cursorProps = isCursor ? { "data-cursor": true } : {}
   // Strip inline colors on cursor row — blue links on gold bg are unreadable
   const cursorCtx = isCursor ? { colorOverride: null as null } : undefined
+
+  // Editing content: when editing, render TitleEditor instead of InlineText
+  const editableContent = isEditing ? (
+    <TitleEditor
+      displayNode={node}
+      editState={editState as NodeEditState}
+      nodeIsTask={isTask}
+      repo={repo as import("../repo-context.tsx").Repo}
+      setUI={setUI}
+      sel={sel}
+      jobRunner={jobRunner}
+      undoHandle={ctxUndoHandle}
+    />
+  ) : null
 
   // Collapsed children indicator
   function CollapsedIndicator() {
@@ -305,7 +345,7 @@ function DocNode({
                   <Text> </Text>
                 </>
               )}
-              <InlineText text={content} context={cursorCtx} />
+              {editableContent ?? <InlineText text={content} context={cursorCtx} />}
             </Heading>
           ) : (
             <Text bold color={headingColor ?? "$muted"} wrap="wrap">
@@ -324,7 +364,7 @@ function DocNode({
                   <Text> </Text>
                 </>
               )}
-              <InlineText text={content} context={cursorCtx} />
+              {editableContent ?? <InlineText text={content} context={cursorCtx} />}
             </Text>
           )}
         </Box>
@@ -367,7 +407,7 @@ function DocNode({
           />
           <Text> </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
-            <InlineText text={content} context={cursorCtx} />
+            {editableContent ?? <InlineText text={content} context={cursorCtx} />}
           </Text>
         </Box>
         {shouldExpand ? (
@@ -395,7 +435,7 @@ function DocNode({
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.item?.list ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
-            <InlineText text={content} context={cursorCtx} />
+            {editableContent ?? <InlineText text={content} context={cursorCtx} />}
           </Text>
         </Box>
         {shouldExpand ? (
@@ -428,25 +468,21 @@ function DocNode({
   if (node.type === "quote") {
     return (
       <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-        <Blockquote>
-          <InlineText text={content} context={cursorCtx} />
-        </Blockquote>
+        <Blockquote>{editableContent ?? <InlineText text={content} context={cursorCtx} />}</Blockquote>
       </Box>
     )
   }
   if (node.type === "code") {
     return (
       <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-        <CodeBlock>{content}</CodeBlock>
+        {editableContent ? editableContent : <CodeBlock>{content}</CodeBlock>}
       </Box>
     )
   }
   // Paragraph
   return (
     <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-      <Text wrap="wrap">
-        <InlineText text={content} context={cursorCtx} />
-      </Text>
+      <Text wrap="wrap">{editableContent ?? <InlineText text={content} context={cursorCtx} />}</Text>
     </Box>
   )
 }

@@ -51,6 +51,39 @@ describe("Escape Layering", () => {
     app.expect("#task1[data-cursor]").toExist()
   })
 
+  test("Escape exits inline edit mode after typing text (single press)", () => {
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.expect("#task1[data-cursor]").toExist()
+
+    // Enter inline edit mode
+    app.press("i")
+    app.expectEditing("task1")
+
+    // Type some text
+    app.type(" hello")
+
+    // Single Escape should exit edit mode — not require two presses
+    app.press("Escape")
+    app.expectNotEditing()
+    app.expect("#task1[data-cursor]").toExist()
+  })
+
+  test("Escape exits edit mode on node with wikilink content (single press)", () => {
+    using app = createTestApp.fromMarkdown("# Todo\n- Task with [[some link]] inside")
+
+    // Cursor starts on the first card (the wikilink node)
+    // Enter edit mode
+    app.press("i")
+    app.expectEditing()
+
+    // Type to modify content (triggers save on exit)
+    app.type(" edit")
+
+    // Single Escape should exit — wikilink content must not interfere
+    app.press("Escape")
+    app.expectNotEditing()
+  })
+
   // ---------------------------------------------------------------------------
   // Layer 2: Pane focused → unfocus pane (pane stays open)
   // ---------------------------------------------------------------------------

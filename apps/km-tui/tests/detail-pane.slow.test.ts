@@ -1641,11 +1641,7 @@ describe("Detail Pane Journeys", () => {
     app.expect("#child-a[data-cursor]").toExist()
   })
 
-  // Inline edit on detail pane children: the detail view renders DocNode boxes,
-  // not InlineEditField — typing into a text-selected child is not captured
-  // because no edit field is mounted in the detail pane. Feature gap, not a
-  // test bug. Re-enable when the detail pane grows inline edit support.
-  test.skip("Enter on structural child triggers inline edit and typing saves", () => {
+  test("Enter on structural child triggers inline edit and typing saves", () => {
     using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
       checkIncremental: false,
       incremental: false,
@@ -1673,7 +1669,7 @@ describe("Detail Pane Journeys", () => {
     expect(updated?.content).toContain("-ok")
   })
 
-  test.skip("Escape during inline edit saves and exits (no stray sibling)", () => {
+  test("Escape during inline edit saves and exits (no stray sibling)", () => {
     using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
       checkIncremental: false,
       incremental: false,
@@ -1693,7 +1689,7 @@ describe("Detail Pane Journeys", () => {
     expect(app.repo.getNode("child-a")?.content).toContain("-ok") // saved
   })
 
-  test.skip("i on structural child in detail pane also triggers inline edit", () => {
+  test("i on structural child in detail pane also triggers inline edit", () => {
     using app = createTestApp(item("board", item("col1", item("parent", item("child-a"), item("child-b")))), {
       checkIncremental: false,
       incremental: false,
@@ -1705,9 +1701,9 @@ describe("Detail Pane Journeys", () => {
 
     // i = inline edit on detail cursor node — verify edit started by typing
     app.press("i")
-    // Type to verify we're in edit mode
+    // Type to verify we're in edit mode (cursor starts at end, so ! appends)
     app.press("!")
-    app.expectScreen("!child-a")
+    app.expectScreen("child-a!")
     app.press("Escape")
   })
 
