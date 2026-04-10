@@ -292,7 +292,7 @@ The AutoLocator is the semantic screen model. It supports CSS-style selectors on
 
 ### Showcase Reference
 
-**`apps/km-tui/tests/showcase.slow.spec.ts`** is the canonical example of the recommended test style. It demonstrates every feature above in specification-style tests: CSS selectors, typed handles, declarative state, custom matchers, TestApp matchers, snapshots, fromMarkdown fixtures, action history, and journey patterns.
+**`apps/km-tui/tests/showcase.spec.ts`** is the canonical example of the recommended test style. It demonstrates every feature above in specification-style tests: CSS selectors, typed handles, declarative state, custom matchers, TestApp matchers, snapshots, fromMarkdown fixtures, action history, and journey patterns.
 
 ### Other Helpers
 

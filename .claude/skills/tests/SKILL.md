@@ -47,7 +47,7 @@ app.press("j")  // rendering, cursor, selection, cursorVisible auto-checked
 app.check(...allInvariants)
 ```
 
-`SILVERY_STRICT=1` (enabled globally in vitest setup) verifies incremental rendering matches fresh on every frame. Run `bun run test:strict` for full strict coverage.
+`SILVERY_STRICT=1` (enabled globally in vitest setup) verifies incremental rendering matches fresh on every frame. Use `bun run test:strictest` for STRICT=2 (every-action invariants + border integrity).
 
 ### 2. Typed assertions (intent) -- app.card(), app.state, custom matchers
 
@@ -78,7 +78,7 @@ app.command("cursor_down")
 app.expectSnapshot("after-cursor-down") // layout should be stable
 ```
 
-**Canonical example**: `apps/km-tui/tests/showcase.slow.spec.ts` -- demonstrates all three tiers in specification-style tests.
+**Canonical example**: `apps/km-tui/tests/showcase.spec.ts` -- demonstrates all three tiers in specification-style tests.
 
 ---
 
