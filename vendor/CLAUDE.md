@@ -50,14 +50,13 @@ For any vendor package to be "standalone-ready":
 | **flexily**          | `@flexily/*`           | Yoga-compatible flexbox layout engine                     |
 | **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals) |
 | **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                            |
-| **mdtest**           | `@beorn/mdtest`        | Markdown-driven test runner                               |
 | **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor     |
 | **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                          |
 | **loggily**          | `loggily`              | Structured logging                                        |
-| **accountly**        | `accountly`            | LLM API accounting/cost tracking                          |
-| **tap**              | `@silvery/tap`         | Terminal app protocol                                     |
+| **accountly**        | `@beorn/accountly`     | LLM API accounting/cost tracking                          |
+| **tap**              | `@beorn/tap`           | Terminal app protocol                                     |
 | **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern            |
-| **watcher-chaos**    | —                      | File watcher chaos testing                                |
+| **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                |
 | **silvery-internal** | —                      | Internal design docs (not published)                      |
 
 ## Internal vs Public (`vendor/internal/` vs `vendor/*/`)
