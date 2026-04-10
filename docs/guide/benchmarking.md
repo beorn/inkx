@@ -88,6 +88,25 @@ bun bench --compare benchmarks/baseline.json  # vitest compare mode
 
 Benchmarks are **not run in CI**. Shared runners have variable load, noisy neighbors, and inconsistent hardware. Results are unreliable. All benchmarks run locally on the developer's machine.
 
+## CPU Silence Protocol
+
+**For publishable benchmarks** (numbers that will appear in docs, README, or vs-ink comparisons), request CPU silence from all tribe sessions before running:
+
+```bash
+# 1. Request silence
+tribe_broadcast("CPU silence requested — running benchmarks (~10-20 min). Please pause heavy work.")
+
+# 2. Wait for acknowledgment (or objection — another session may need to finish first)
+
+# 3. Run bench
+SILVERY_STRICT=0 bun vitest bench vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts
+
+# 4. All-clear
+tribe_broadcast("Benchmarks complete. Resume normal work.")
+```
+
+Other sessions running builds, tests, or sub-agents will skew results. Laptop sleep during a bench run also invalidates numbers (process suspends, CPU thermals reset). If the bench takes >2x expected time or shows 0% CPU, kill and restart.
+
 ## Live Diagnostics
 
 For production-representative timing without running benches:
