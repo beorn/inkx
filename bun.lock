@@ -375,10 +375,12 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@chenglou/pretext": "^0.0.3",
-        "@silvery/commander": "workspace:*",
+        "@silvery/commander": "0.8.1",
+        "css-select": "^7.0.0",
+        "css-what": "^8.0.0",
         "loggily": "github:beorn/loggily",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^8.0.0",
@@ -422,9 +424,9 @@
       "name": "@silvery/ag-react",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag": "workspace:*",
-        "@silvery/headless": "workspace:*",
-        "@silvery/theme": "workspace:*",
+        "@silvery/ag": "0.5.0",
+        "@silvery/headless": "0.5.0",
+        "@silvery/theme": "0.5.0",
       },
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
@@ -434,13 +436,13 @@
       "name": "@silvery/ag-term",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag": "workspace:*",
-        "@silvery/ag-react": "workspace:*",
-        "@silvery/ansi": "workspace:*",
-        "@silvery/create": "workspace:*",
-        "@silvery/headless": "workspace:*",
-        "@silvery/test": "workspace:*",
-        "@silvery/theme": "workspace:*",
+        "@silvery/ag": "0.5.0",
+        "@silvery/ag-react": "0.5.0",
+        "@silvery/ansi": "0.3.1",
+        "@silvery/create": "0.5.0",
+        "@silvery/headless": "0.5.0",
+        "@silvery/test": "0.5.0",
+        "@silvery/theme": "0.5.0",
         "flexily": "github:beorn/flexily",
       },
     },
@@ -478,26 +480,26 @@
       "name": "@silvery/create",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag": "workspace:*",
-        "@silvery/ag-react": "workspace:*",
-        "@silvery/ag-term": "workspace:*",
-        "@silvery/commands": "workspace:*",
-        "@silvery/headless": "workspace:*",
-        "@silvery/ink": "workspace:*",
-        "@silvery/test": "workspace:*",
+        "@silvery/ag": "0.5.0",
+        "@silvery/ag-react": "0.5.0",
+        "@silvery/ag-term": "0.5.0",
+        "@silvery/commands": "0.5.0",
+        "@silvery/headless": "0.5.0",
+        "@silvery/ink": "0.5.0",
+        "@silvery/test": "0.5.0",
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/examples": {
       "name": "@silvery/examples",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "bin": {
         "silvery-examples": "./bin/cli.ts",
       },
       "dependencies": {
-        "@silvery/ag-term": "workspace:*",
-        "@silvery/create": "workspace:*",
-        "silvery": "workspace:*",
+        "@silvery/ag-term": "0.5.0",
+        "@silvery/create": "0.5.0",
+        "silvery": "0.11.1",
       },
     },
     "vendor/silvery/packages/headless": {
@@ -516,9 +518,9 @@
       "name": "@silvery/ink",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag-react": "workspace:*",
-        "@silvery/ag-term": "workspace:*",
-        "@silvery/ansi": "workspace:*",
+        "@silvery/ag-react": "0.5.0",
+        "@silvery/ag-term": "0.5.0",
+        "@silvery/ansi": "0.3.1",
       },
     },
     "vendor/silvery/packages/model": {
@@ -540,18 +542,18 @@
       "name": "@silvery/test",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag": "workspace:*",
-        "@silvery/ag-react": "workspace:*",
-        "@silvery/ag-term": "workspace:*",
-        "@silvery/create": "workspace:*",
+        "@silvery/ag": "0.5.0",
+        "@silvery/ag-react": "0.5.0",
+        "@silvery/ag-term": "0.5.0",
+        "@silvery/create": "0.5.0",
       },
     },
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ansi": "workspace:*",
-        "@silvery/color": "workspace:*",
+        "@silvery/ansi": "0.3.1",
+        "@silvery/color": "0.1.0",
       },
     },
     "vendor/tap": {
@@ -1699,6 +1701,8 @@
 
     "body-parser": ["body-parser@2.2.2", "", { "dependencies": { "bytes": "^3.1.2", "content-type": "^1.0.5", "debug": "^4.4.3", "http-errors": "^2.0.0", "iconv-lite": "^0.7.0", "on-finished": "^2.4.1", "qs": "^6.14.1", "raw-body": "^3.0.1", "type-is": "^2.0.1" } }, "sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA=="],
 
+    "boolbase": ["boolbase@2.0.0", "", {}, "sha512-DkVaaQHymRhpYEYo9x1oo7Q7B0Y6KJUsjm3c9eTyFDby4MHLBTwZ6ZDWBel5zrYxj1WsZgC5oLpiz+93MluXeA=="],
+
     "boxen": ["boxen@8.0.1", "", { "dependencies": { "ansi-align": "^3.0.1", "camelcase": "^8.0.0", "chalk": "^5.3.0", "cli-boxes": "^3.0.0", "string-width": "^7.2.0", "type-fest": "^4.21.0", "widest-line": "^5.0.0", "wrap-ansi": "^9.0.0" } }, "sha512-F3PH5k5juxom4xktynS7MoFY+NUWH5LC4CnH11YB8NPew+HLpmBLCybSAEyb2F+4pRXhuhWqFesoQd6DAyc2hw=="],
 
     "brace-expansion": ["brace-expansion@5.0.5", "", { "dependencies": { "balanced-match": "^4.0.2" } }, "sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ=="],
@@ -1797,6 +1801,10 @@
 
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 
+    "css-select": ["css-select@7.0.0", "", { "dependencies": { "boolbase": "^2.0.0", "css-what": "^8.0.0", "domhandler": "^6.0.1", "domutils": "^4.0.2", "nth-check": "^3.0.1" } }, "sha512-snmjEVXy+1LnwXdxhYvTMj1d9tOh4HxkA1YmoayVBeeyR2C14Pum7fcxJIm4SswYspVy866eYNwlH6xC3/VH5g=="],
+
+    "css-what": ["css-what@8.0.0", "", {}, "sha512-DH0Bqq3DNp5tdOReuNyAA+Ev4Y2GS5FMbZpeTLP6C4CDi0h5nL0BmUPChXw3o/qbHLDWHl49sbNqQVY7bMSDdw=="],
+
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
     "cytoscape": ["cytoscape@3.33.1", "", {}, "sha512-iJc4TwyANnOGR1OmWhsS9ayRS3s+XQ185FmuHObThD+5AeJCakAAbWv8KimMTt08xCCLNgneQwFp+JRJOr9qGQ=="],
@@ -1887,7 +1895,15 @@
 
     "devlop": ["devlop@1.1.0", "", { "dependencies": { "dequal": "^2.0.0" } }, "sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA=="],
 
+    "dom-serializer": ["dom-serializer@3.0.0", "", { "dependencies": { "domelementtype": "^3.0.0", "domhandler": "^6.0.0", "entities": "^8.0.0" } }, "sha512-x+9D6nkC8tdXOQUS32egtZpZFLP90+HBZmWjuT920srbJvD/zPgFB9t4k3pEhlw5BQrXStQtRc1Y1zuriXk+Nw=="],
+
+    "domelementtype": ["domelementtype@3.0.0", "", {}, "sha512-umCQid3jKbDmVjx8jGaW7uUykm4DEUeyV21hPxNMo2nV955DhUThwqyOIDtreepP31hl84X7G5U9ZfsWvIB3Pg=="],
+
+    "domhandler": ["domhandler@6.0.1", "", { "dependencies": { "domelementtype": "^3.0.0" } }, "sha512-gYzvtM72ZtxQO0T048kd6HWSbbGCNOUwcnfQ01cqIJ4X2IYKFFHZ5mKvrQETcFXxsRObZulDaKmy//R7TPtsBg=="],
+
     "dompurify": ["dompurify@3.3.3", "", { "optionalDependencies": { "@types/trusted-types": "^2.0.7" } }, "sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA=="],
+
+    "domutils": ["domutils@4.0.2", "", { "dependencies": { "dom-serializer": "^3.0.0", "domelementtype": "^3.0.0", "domhandler": "^6.0.0" } }, "sha512-qI4JLRKnSzqFqr7hAlS5xQDusBCjKSEG4t4+7aNrIQMHBcsC2TGEhuyABJdYkgSewL57PNLYEiibY2iPKhKpaA=="],
 
     "dunder-proto": ["dunder-proto@1.0.1", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.1", "es-errors": "^1.3.0", "gopd": "^1.2.0" } }, "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A=="],
 
@@ -2296,6 +2312,8 @@
     "non-layered-tidy-tree-layout": ["non-layered-tidy-tree-layout@2.0.2", "", {}, "sha512-gkXMxRzUH+PB0ax9dUN0yYF0S25BqeAYqhgMaLUFmpXLEk7Fcu8f4emJuOAY0V8kjDICxROIKsTAKsV/v355xw=="],
 
     "normalize-path": ["normalize-path@3.0.0", "", {}, "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
+
+    "nth-check": ["nth-check@3.0.1", "", { "dependencies": { "boolbase": "^2.0.0" } }, "sha512-GX0gsdbGVCgnRgbeGaubfjpBXyYRWOOCVeYh08bSQvDZqxz5ndXs1OTfAt/h36G1xvI94YIspsI0sVFqAV9+RQ=="],
 
     "object-assign": ["object-assign@4.1.1", "", {}, "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg=="],
 
