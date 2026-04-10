@@ -19,6 +19,9 @@
 [submodule "vendor/terminfo.dev"]
 	path = vendor/terminfo.dev
 	url = git@github.com:beorn/terminfo.dev.git
+[submodule "vendor/vt100"]
+	path = vendor/vt100
+	url = git@github.com:beorn/vterm.git
 [submodule "vendor/internal/silvery"]
 	path = vendor/internal/silvery
 	url = git@github.com:beorn/silvery-internal.git
