@@ -13,7 +13,8 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 describe("vd (toggle_hide_done)", () => {
   test("vd hides done tasks in a regular column", () => {
@@ -21,19 +22,17 @@ describe("vd (toggle_hide_done)", () => {
     const doneNode = nodes.find((n) => n.id === "doneTask")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Both tasks visible initially
-    let screen = board.screenshot()
-    expect(screen).toContain("todoTask")
-    expect(screen).toContain("doneTask")
+    app.expectScreen("todoTask")
+    app.expectScreen("doneTask")
 
     // Press vd to hide done tasks
-    board.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
-    screen = board.screenshot()
-    expect(screen).toContain("todoTask")
-    expect(screen).not.toContain("doneTask")
+    app.expectScreen("todoTask")
+    app.expectScreenNot("doneTask")
   })
 
   test("vd hides done embed cards (tag/assignee view — card-level filter)", () => {
@@ -142,21 +141,19 @@ describe("vd (toggle_hide_done)", () => {
 
     const allNodes = [board_node, tagCol, todoEmbed, doneEmbed, srcParent, todoSrc, doneSrc]
 
-    const { board } = testEnv(() => allNodes, {
-      columns: 80,
+    using app = createTestApp(allNodes, {
+      cols: 80,
       rows: 24,
       checkIncremental: false,
     })
 
-    let screen = board.screenshot()
-    expect(screen).toContain("Todo source task")
-    expect(screen).toContain("Done source task")
+    app.expectScreen("Todo source task")
+    app.expectScreen("Done source task")
 
-    board.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
-    screen = board.screenshot()
-    expect(screen).toContain("Todo source task")
-    expect(screen).not.toContain("Done source task")
+    app.expectScreen("Todo source task")
+    app.expectScreenNot("Done source task")
   })
 
   test("vd hides done embed children within a card (tree-node-level filter)", () => {
@@ -280,24 +277,22 @@ describe("vd (toggle_hide_done)", () => {
 
     const allNodes = [board_node, col, cardNode, todoEmbedChild, doneEmbedChild, srcHolder, todoSrc, doneSrc]
 
-    const { board } = testEnv(() => allNodes, {
-      columns: 80,
+    using app = createTestApp(allNodes, {
+      cols: 80,
       rows: 24,
       checkIncremental: false,
     })
 
     // Both children visible initially
-    let screen = board.screenshot()
-    expect(screen).toContain("Todo child task")
-    expect(screen).toContain("Done child task")
+    app.expectScreen("Todo child task")
+    app.expectScreen("Done child task")
 
-    board.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
-    screen = board.screenshot()
     // Todo embed child should remain
-    expect(screen).toContain("Todo child task")
+    app.expectScreen("Todo child task")
     // Done embed child should be hidden (its source is done)
-    expect(screen).not.toContain("Done child task")
+    app.expectScreenNot("Done child task")
   })
 
   test("vd toggles back to show all tasks", () => {
@@ -305,15 +300,13 @@ describe("vd (toggle_hide_done)", () => {
     const doneNode = nodes.find((n) => n.id === "doneTask")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    board.command("toggle_hide_done")
-    let screen = board.screenshot()
-    expect(screen).not.toContain("doneTask")
+    app.command("toggle_hide_done")
+    app.expectScreenNot("doneTask")
 
-    board.command("toggle_hide_done")
-    screen = board.screenshot()
-    expect(screen).toContain("todoTask")
-    expect(screen).toContain("doneTask")
+    app.command("toggle_hide_done")
+    app.expectScreen("todoTask")
+    app.expectScreen("doneTask")
   })
 })

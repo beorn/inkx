@@ -11,6 +11,9 @@ import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
+// NOTE: The "Enter before debounce" test below uses testEnv because it needs
+// white-box store.setUI() manipulation to simulate the debounce race condition.
+
 describe("Local Find", () => {
   // ---------------------------------------------------------------------------
   // Opening and Closing
@@ -262,7 +265,7 @@ describe("Local Find", () => {
   // Debounce race — Enter before debounce fires (km-tui.search-debounce-race)
   // ---------------------------------------------------------------------------
 
-  // NOTE: this regression test needs to poke store.setUI() directly to
+  // FREEZE: needs white-box API — this regression test needs to poke store.setUI() directly to
   // simulate stale pre-debounce state — that signal has no screen proxy.
   // Kept on testEnv for the white-box store manipulation.
   test("Enter before debounce flushes pending query and finds matches", () => {

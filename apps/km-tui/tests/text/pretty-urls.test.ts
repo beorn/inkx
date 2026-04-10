@@ -8,7 +8,8 @@
 import { describe, it, expect } from "vitest"
 import { prettifyUrl } from "../../src/text/text-pipeline.ts"
 import { parseToPlainText } from "../../src/text/inline-parser.ts"
-import { testEnv, item } from "../helpers/board-test.ts"
+import { item } from "../helpers/board-test.ts"
+import { createTestApp } from "../helpers/test-app.ts"
 
 // =============================================================================
 // prettifyUrl (unit) — basic display cleanup
@@ -253,12 +254,12 @@ describe("parseToPlainText: bare URLs", () => {
 
 describe("board: URL prettification in cards", () => {
   it("card shows prettified URL (no protocol)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Check https://www.example.com/docs"))), {
+    using app = createTestApp(item("board", item("col1", item("Check https://www.example.com/docs"))), {
       rows: 20,
-      columns: 60,
+      cols: 60,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("example.com/docs")
     expect(text).not.toContain("https://")
@@ -266,12 +267,12 @@ describe("board: URL prettification in cards", () => {
   })
 
   it("card with multiple URLs shows all prettified", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See https://a.com and http://b.com/path"))), {
+    using app = createTestApp(item("board", item("col1", item("See https://a.com and http://b.com/path"))), {
       rows: 20,
-      columns: 80,
+      cols: 80,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("a.com")
     expect(text).toContain("b.com/path")
@@ -280,25 +281,24 @@ describe("board: URL prettification in cards", () => {
   })
 
   it("markdown link in card still shows link text only", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Click [Google](https://google.com)"))), {
+    using app = createTestApp(item("board", item("col1", item("Click [Google](https://google.com)"))), {
       rows: 20,
-      columns: 60,
+      cols: 60,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("Google")
     expect(text).not.toContain("google.com")
   })
 
   it("card shows URL with tracking params stripped", () => {
-    const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("Read https://blog.example.com/post?utm_source=twitter&utm_medium=social"))),
-      { rows: 20, columns: 80 },
+    using app = createTestApp(
+      item("board", item("col1", item("Read https://blog.example.com/post?utm_source=twitter&utm_medium=social"))),
+      { rows: 20, cols: 80 },
     )
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("blog.example.com/post")
     expect(text).not.toContain("utm_")
@@ -307,14 +307,13 @@ describe("board: URL prettification in cards", () => {
 
   it("card body with URL does not show raw escape sequences when truncated", () => {
     // Use a narrow terminal so the URL text gets truncated by wrap="truncate"
-    const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("Task with https://www.example.com/very/long/path/that/will/be/truncated"))),
-      { rows: 20, columns: 40 },
+    using app = createTestApp(
+      item("board", item("col1", item("Task with https://www.example.com/very/long/path/that/will/be/truncated"))),
+      { rows: 20, cols: 40 },
     )
 
     // Check the rendered buffer for escape sequence artifacts
-    const screenText = board.screen.text
+    const screenText = app.screen.text
     // OSC 8 escape sequences should never appear as visible text in the buffer.
     expect(screenText).not.toContain("]8;;")
     expect(screenText).not.toContain("\x1b]")
@@ -326,16 +325,15 @@ describe("board: URL prettification in cards", () => {
 
   it("card body with URL in child node does not show escape sequences", () => {
     // A card with a child that has a URL — child gets wrap="truncate" as isCardChild
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.file("Parent", item("Child text with https://www.example.com/some/very/long/path/here"))),
-        ),
-      { rows: 20, columns: 40 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.file("Parent", item("Child text with https://www.example.com/some/very/long/path/here"))),
+      ),
+      { rows: 20, cols: 40 },
     )
 
-    const screenText = board.screen.text
+    const screenText = app.screen.text
     expect(screenText).not.toContain("]8;;")
     expect(screenText).not.toContain("\x1b]")
     expect(screenText).not.toContain("\x1b\\")

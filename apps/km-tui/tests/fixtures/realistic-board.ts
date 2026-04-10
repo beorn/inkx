@@ -13,7 +13,7 @@
  *     bun apps/km-tui/tests/fixtures/realistic-board.ts --write
  *
  * Loader: `loadRealisticBoardFixture()` builds a FakeRepo from the JSON and
- * returns `{ repo, rootId }` ready to pass to `testEnvWithRepo`.
+ * returns `{ repo, rootId }` ready to use with `createTestApp`.
  */
 
 import { readFileSync, writeFileSync } from "node:fs"

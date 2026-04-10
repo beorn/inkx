@@ -8,7 +8,8 @@
  * - Unresolved wikilinks show target text dimmed
  */
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { stripAnsi } from "@silvery/test"
 import type { KNode } from "@km/core"
 import { parseInlineText } from "../src/text/inline-parser.ts"
@@ -47,16 +48,11 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: bare ^ID is not rendered (block identifier is metadata)", () => {
-    const { board } = testEnv(
-      () => {
-        const nodes = item("board", item("col1", item("See ^1210156063601370")))
-        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
-        return nodes
-      },
-      { rows: 20, columns: 80 },
-    )
+    const nodes = item("board", item("col1", item("See ^1210156063601370")))
+    nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
+    using app = createTestApp(nodes, { rows: 20, cols: 80 })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     // Bare ^ID is metadata — stripped, NOT resolved as a link
     expect(text).toContain("See")
@@ -77,16 +73,11 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: [[^nodeId]] resolves to target title", () => {
-    const { board } = testEnv(
-      () => {
-        const nodes = item("board", item("col1", item("See [[^1210156063601370]]")))
-        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
-        return nodes
-      },
-      { rows: 20, columns: 80 },
-    )
+    const nodes = item("board", item("col1", item("See [[^1210156063601370]]")))
+    nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
+    using app = createTestApp(nodes, { rows: 20, cols: 80 })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("Review quarterly budget")
     // Strip OSC 8 hyperlink sequences — the ID legitimately appears in the
@@ -95,12 +86,12 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: unresolved [[^ID]] shows target dimmed (not hidden)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See [[^9999999999999999]]"))), {
+    using app = createTestApp(item("board", item("col1", item("See [[^9999999999999999]]"))), {
       rows: 20,
-      columns: 80,
+      cols: 80,
     })
 
-    const card = board.q("[data-cursor]")
+    const card = app.q("[data-cursor]")
     const text = card.textContent()
     // Unresolved wikilink still shows target text (dimmed, not green/underlined)
     expect(text).toContain("^9999999999999999")

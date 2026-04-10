@@ -12,7 +12,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "../helpers/board-test.ts"
+import { item } from "../helpers/board-test.ts"
+import { createTestApp } from "../helpers/test-app.ts"
 
 // =============================================================================
 // Helpers
@@ -22,20 +23,20 @@ import { item, testEnv } from "../helpers/board-test.ts"
 const COLUMNS_OPTS = { viewMode: "columns" as const }
 
 /**
- * Create a columns view board with standard structure.
+ * Create a columns view test app with standard structure.
  * Reduces boilerplate for common column layouts.
  */
-function columnsBoard(treeBuilder: () => ReturnType<typeof item>, opts?: { columns?: number; rows?: number }) {
-  return testEnv(treeBuilder, { viewMode: "columns", ...opts })
+function columnsApp(treeBuilder: () => ReturnType<typeof item>, opts?: { columns?: number; rows?: number }) {
+  return createTestApp(treeBuilder, { viewMode: "columns", cols: opts?.columns, rows: opts?.rows })
 }
 
 /**
  * Assert boundary behavior - pressing key multiple times stays at same position.
  */
-function assertBoundary(board: ReturnType<typeof testEnv>["board"], key: string, expectedCursor: string, times = 2) {
+function assertBoundary(app: ReturnType<typeof createTestApp>, key: string, expectedCursor: string, times = 2) {
   for (let i = 0; i < times; i++) {
-    board.press(key)
-    board.expect(`#${expectedCursor}[data-cursor]`).toExist()
+    app.press(key)
+    app.expect(`#${expectedCursor}[data-cursor]`).toExist()
   }
 }
 
@@ -46,14 +47,14 @@ function assertBoundary(board: ReturnType<typeof testEnv>["board"], key: string,
 describe("Columns View", () => {
   describe("Basic Rendering", () => {
     test("displays board in columns view mode", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
-      board.expect("#1a").toExist()
-      board.expect("#1b").toExist()
+      using app = columnsApp(() => item("board", item("col1", item("1a"), item("1b"))))
+      app.expect("#1a").toExist()
+      app.expect("#1b").toExist()
     })
 
     test("column header hides count without WIP limit", () => {
-      const { board } = columnsBoard(item.simpleBoard)
-      const output = board.screenshot()
+      using app = columnsApp(item.simpleBoard)
+      const output = app.text
       expect(output).toContain("col1")
       // Count is hidden when no WIP limit — +N overflow indicator is sufficient
       const lines = output.split("\n")
@@ -63,88 +64,88 @@ describe("Columns View", () => {
     })
 
     test("column header shows count/wip with WIP limit", () => {
-      const { board } = columnsBoard(() => item("board", item("col1 km.limit:: 5", item("1a"), item("1b"), item("1c"))))
-      const output = board.screenshot()
+      using app = columnsApp(() => item("board", item("col1 km.limit:: 5", item("1a"), item("1b"), item("1c"))))
+      const output = app.text
       expect(output).toContain("col1")
       expect(output).toContain("3/5")
     })
 
     test("displays multiple columns side by side", () => {
-      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
-      board.expect("#col1").toExist()
-      board.expect("#col2").toExist()
-      board.expect("#col3").toExist()
+      using app = columnsApp(item.multiColBoard, { columns: 120 })
+      app.expect("#col1").toExist()
+      app.expect("#col2").toExist()
+      app.expect("#col3").toExist()
     })
 
     test("empty column shows placeholder", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("task")), item("col2")))
-      const output = board.screenshot()
+      using app = columnsApp(() => item("board", item("col1", item("task")), item("col2")))
+      const output = app.text
       expect(output).toContain("col2")
       // Count is hidden without WIP limit — no "0" shown
     })
 
     test("empty board shows helpful message", () => {
-      const { board } = testEnv(() => item("board"), COLUMNS_OPTS)
-      expect(board.screenshot()).toContain("Empty board")
+      using app = createTestApp(item("board"), COLUMNS_OPTS)
+      app.expectScreen("Empty board")
     })
   })
 
   describe("Navigation", () => {
     test("vertical (j/k): navigate through cards in column", () => {
-      const { board } = columnsBoard(item.simpleBoard)
-      board.expect("#1a[data-cursor]").toExist()
+      using app = columnsApp(item.simpleBoard)
+      app.expect("#1a[data-cursor]").toExist()
 
       // j down through cards
-      board.command("cursor_down")
-      board.expect("#1b[data-cursor]").toExist()
-      board.command("cursor_down")
-      board.expect("#1c[data-cursor]").toExist()
+      app.command("cursor_down")
+      app.expect("#1b[data-cursor]").toExist()
+      app.command("cursor_down")
+      app.expect("#1c[data-cursor]").toExist()
 
       // k up through cards
-      board.command("cursor_up")
-      board.expect("#1b[data-cursor]").toExist()
-      board.command("cursor_up")
-      board.expect("#1a[data-cursor]").toExist()
+      app.command("cursor_up")
+      app.expect("#1b[data-cursor]").toExist()
+      app.command("cursor_up")
+      app.expect("#1a[data-cursor]").toExist()
     })
 
     test("horizontal (h/l): navigate between columns", () => {
-      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
-      board.expect("#1a[data-cursor]").toExist()
+      using app = columnsApp(item.multiColBoard, { columns: 120 })
+      app.expect("#1a[data-cursor]").toExist()
 
       // l right through columns
-      board.command("cursor_right")
-      board.expect("#2a[data-cursor]").toExist()
-      board.command("cursor_right")
-      board.expect("#3a[data-cursor]").toExist()
+      app.command("cursor_right")
+      app.expect("#2a[data-cursor]").toExist()
+      app.command("cursor_right")
+      app.expect("#3a[data-cursor]").toExist()
 
       // h left through columns
-      board.command("cursor_left")
-      board.expect("#2a[data-cursor]").toExist()
-      board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      app.command("cursor_left")
+      app.expect("#2a[data-cursor]").toExist()
+      app.command("cursor_left")
+      app.expect("#1a[data-cursor]").toExist()
     })
 
     test("g/G: jump to first/last card in column", () => {
-      const { board } = columnsBoard(item.simpleBoard)
-      board.command("cursor_down")
-      board.expect("#1b[data-cursor]").toExist()
+      using app = columnsApp(item.simpleBoard)
+      app.command("cursor_down")
+      app.expect("#1b[data-cursor]").toExist()
 
-      board.command("cursor_last")
-      board.expect("#1c[data-cursor]").toExist()
+      app.command("cursor_last")
+      app.expect("#1c[data-cursor]").toExist()
 
-      board.command("cursor_first")
-      board.expect("#1a[data-cursor]").toExist()
+      app.command("cursor_first")
+      app.expect("#1a[data-cursor]").toExist()
     })
 
     test("navigate to column headers with k", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
-      board.expect("#1a[data-cursor]").toExist()
+      using app = columnsApp(() => item("board", item("col1", item("1a"), item("1b"))))
+      app.expect("#1a[data-cursor]").toExist()
 
-      board.command("cursor_up")
-      board.expect("#col1[data-cursor]").toExist()
+      app.command("cursor_up")
+      app.expect("#col1[data-cursor]").toExist()
 
-      board.command("cursor_up")
-      board.expect("#board[data-cursor]").toExist()
+      app.command("cursor_up")
+      app.expect("#board[data-cursor]").toExist()
     })
   })
 
@@ -163,59 +164,59 @@ describe("Columns View", () => {
         expected: "board",
       },
     ])("$name boundary", ({ setup, key, expected }) => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
-      for (const k of setup) board.press(k)
-      assertBoundary(board, key, expected)
+      using app = columnsApp(() => item("board", item("col1", item("1a"), item("1b"))))
+      for (const k of setup) app.press(k)
+      assertBoundary(app, key, expected)
     })
 
     test("h stops at left boundary (after column header)", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      using app = columnsApp(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         columns: 120,
       })
-      board.expect("#1a[data-cursor]").toExist()
+      app.expect("#1a[data-cursor]").toExist()
       // h at leftmost card goes to column header first
-      board.press("h")
-      board.expect("#col1[data-cursor]").toExist()
+      app.press("h")
+      app.expect("#col1[data-cursor]").toExist()
       // h at column header is boundary
-      assertBoundary(board, "h", "col1")
+      assertBoundary(app, "h", "col1")
     })
 
     test("l stops at right boundary", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      using app = columnsApp(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         columns: 120,
       })
-      board.command("cursor_right")
-      board.expect("#2a[data-cursor]").toExist()
-      assertBoundary(board, "l", "2a")
+      app.command("cursor_right")
+      app.expect("#2a[data-cursor]").toExist()
+      assertBoundary(app, "l", "2a")
     })
   })
 
   describe("Hierarchical Display", () => {
     test("displays nested cards in tree format", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
-      board.expect("#parent").toExist()
-      board.expect("#child1").toExist()
-      board.expect("#child2").toExist()
+      using app = columnsApp(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
+      app.expect("#parent").toExist()
+      app.expect("#child1").toExist()
+      app.expect("#child2").toExist()
     })
 
     test("folding works in columns view", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
-      board.expect("#child1").toExist()
-      board.expect("#child2").toExist()
+      using app = columnsApp(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
+      app.expect("#child1").toExist()
+      app.expect("#child2").toExist()
 
       // Progressive fold: depth 3→2→1→0. Need multiple presses to fully fold.
-      board.command("fold_all_more")
-      board.command("fold_all_more")
-      board.command("fold_all_more")
-      board.expect("#child1").not.toExist()
-      board.expect("#child2").not.toExist()
-      expect(board.screenshot()).toContain(" 2")
+      app.command("fold_all_more")
+      app.command("fold_all_more")
+      app.command("fold_all_more")
+      app.expect("#child1").not.toExist()
+      app.expect("#child2").not.toExist()
+      expect(app.text).toContain(" 2")
     })
   })
 
   describe("Cursor Position Memory", () => {
     test("preserves Y position when moving between columns", () => {
-      const { board } = columnsBoard(
+      using app = columnsApp(
         () =>
           item(
             "board",
@@ -224,78 +225,78 @@ describe("Columns View", () => {
           ),
         { columns: 120 },
       )
-      board.command("cursor_down")
-      board.expect("#1b[data-cursor]").toExist()
-      const card1bBox = board.q("#1b").boundingBox()
+      app.command("cursor_down")
+      app.expect("#1b[data-cursor]").toExist()
+      const card1bBox = app.q("#1b").boundingBox()
 
-      board.command("cursor_right")
-      const card2Box = board.q("[data-cursor]").boundingBox()
+      app.command("cursor_right")
+      const card2Box = app.q("[data-cursor]").boundingBox()
 
       expect(Math.abs(card2Box!.y - card1bBox!.y)).toBeLessThanOrEqual(15)
     })
 
     test("preserves X position when moving up/down", () => {
-      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
-      board.command("cursor_right")
-      board.command("cursor_right")
-      const col3Box = board.q("#3a").boundingBox()
+      using app = columnsApp(item.multiColBoard, { columns: 120 })
+      app.command("cursor_right")
+      app.command("cursor_right")
+      const col3Box = app.q("#3a").boundingBox()
 
-      board.command("cursor_up")
-      board.command("cursor_down")
+      app.command("cursor_up")
+      app.command("cursor_down")
 
-      board.expect("#3a[data-cursor]").toExist()
-      const returnedBox = board.q("#3a[data-cursor]").boundingBox()
+      app.expect("#3a[data-cursor]").toExist()
+      const returnedBox = app.q("#3a[data-cursor]").boundingBox()
       expect(returnedBox!.x).toBe(col3Box!.x)
     })
   })
 
   describe("View Mode Switching", () => {
     test("view mode indicator shows COLUMNS VIEW", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("task"))))
-      expect(board.screenshot()).toContain("COLUMNS")
+      using app = columnsApp(() => item("board", item("col1", item("task"))))
+      expect(app.text).toContain("COLUMNS")
     })
   })
 
   describe("Virtualization", () => {
     test("handles large number of cards efficiently", () => {
       const cards = Array.from({ length: 100 }, (_, i) => item(`card${i}`))
-      const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
+      using app = columnsApp(() => item("board", item("col1", ...cards)), { rows: 24 })
 
-      board.expect("#card0[data-cursor]").toExist()
-      board.command("cursor_last")
-      board.expect("#card99[data-cursor]").toExist()
-      board.command("cursor_first")
-      board.expect("#card0[data-cursor]").toExist()
+      app.expect("#card0[data-cursor]").toExist()
+      app.command("cursor_last")
+      app.expect("#card99[data-cursor]").toExist()
+      app.command("cursor_first")
+      app.expect("#card0[data-cursor]").toExist()
     })
 
     test("scrolling works smoothly with many cards", () => {
       const cards = Array.from({ length: 50 }, (_, i) => item(`card${i}`))
-      const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
+      using app = columnsApp(() => item("board", item("col1", ...cards)), { rows: 24 })
 
-      for (let i = 0; i < 3; i++) board.command("cursor_down")
-      board.expect("#card3[data-cursor]").toExist()
+      for (let i = 0; i < 3; i++) app.command("cursor_down")
+      app.expect("#card3[data-cursor]").toExist()
 
-      for (let i = 0; i < 10; i++) board.command("cursor_down")
-      board.expect("#card13[data-cursor]").toExist()
+      for (let i = 0; i < 10; i++) app.command("cursor_down")
+      app.expect("#card13[data-cursor]").toExist()
     })
   })
 
   describe("Layout", () => {
     test("columns are positioned side by side", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      using app = columnsApp(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         columns: 120,
       })
-      const col1Box = board.q("#col1").boundingBox()
-      const col2Box = board.q("#col2").boundingBox()
+      const col1Box = app.q("#col1").boundingBox()
+      const col2Box = app.q("#col2").boundingBox()
 
       expect(col2Box!.x).toBeGreaterThan(col1Box!.x)
       expect(col2Box!.y).toBe(col1Box!.y)
     })
 
     test("cards stack vertically within columns", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
-      const aBox = board.q("#1a").boundingBox()
-      const bBox = board.q("#1b").boundingBox()
+      using app = columnsApp(() => item("board", item("col1", item("1a"), item("1b"))))
+      const aBox = app.q("#1a").boundingBox()
+      const bBox = app.q("#1b").boundingBox()
 
       expect(bBox!.y).toBeGreaterThan(aBox!.y)
       expect(bBox!.x).toBe(aBox!.x)
@@ -305,7 +306,7 @@ describe("Columns View", () => {
       { width: 80, desc: "narrow terminal shows fewer columns" },
       { width: 200, desc: "wide terminal shows more columns" },
     ])("$desc", ({ width }) => {
-      const { board } = columnsBoard(
+      using app = columnsApp(
         () =>
           item(
             "board",
@@ -317,39 +318,39 @@ describe("Columns View", () => {
         { columns: width },
       )
       // First column always visible
-      board.expect("#col1").toExist()
+      app.expect("#col1").toExist()
       // More columns visible at wider widths (don't assert exact count)
     })
   })
 
   describe("Zooming", () => {
     test("e zooms into card with children", () => {
-      const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
-      board.expect("#card[data-cursor]").toExist()
-      board.command("zoom_inwards")
-      board.expect("#subcard").toExist()
+      using app = columnsApp(() => item("board", item("col", item("card", item("subcard")))))
+      app.expect("#card[data-cursor]").toExist()
+      app.command("zoom_inwards")
+      app.expect("#subcard").toExist()
     })
 
     test("zoom into column shows column as board", () => {
-      const { board } = columnsBoard(
+      using app = columnsApp(
         () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
         { columns: 120 },
       )
-      board.command("cursor_up")
-      board.expect("#col1[data-cursor]").toExist()
-      board.command("zoom_inwards")
+      app.command("cursor_up")
+      app.expect("#col1[data-cursor]").toExist()
+      app.command("zoom_inwards")
 
-      board.expect("#task1").toExist()
-      board.expect("#task2").toExist()
-      board.expect("#col2").not.toExist()
+      app.expect("#task1").toExist()
+      app.expect("#task2").toExist()
+      app.expect("#col2").not.toExist()
     })
 
     test("nav back after zoom returns to parent", () => {
-      const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
-      board.command("zoom_inwards")
-      board.expect("#subcard").toExist()
-      board.press("{") // nav_back restores cursor to pre-zoom position
-      board.expect("#card[data-cursor]").toExist()
+      using app = columnsApp(() => item("board", item("col", item("card", item("subcard")))))
+      app.command("zoom_inwards")
+      app.expect("#subcard").toExist()
+      app.press("{") // nav_back restores cursor to pre-zoom position
+      app.expect("#card[data-cursor]").toExist()
     })
   })
 })

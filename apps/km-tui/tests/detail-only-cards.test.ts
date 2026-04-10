@@ -12,7 +12,8 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
@@ -50,69 +51,67 @@ describe("detailOnly nodes hidden from card view", () => {
     // Simulate a column with tasks and a detailOnly "Comments" node.
     // The column has two regular tasks plus a "Comments" section that
     // should be hidden from card view.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col",
-            item("task-1"),
-            item("task-2"),
-            detailOnlyItem("comments-group", "Comments", item("comment-1"), item("comment-2")),
-          ),
+          "col",
+          item("task-1"),
+          item("task-2"),
+          detailOnlyItem("comments-group", "Comments", item("comment-1"), item("comment-2")),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
 
     // Regular tasks should be visible as cards
-    board.expect("#task-1").toExist()
-    board.expect("#task-2").toExist()
+    app.expect("#task-1").toExist()
+    app.expect("#task-2").toExist()
 
     // Comments group and individual comments should NOT appear as cards
-    board.expect("#comments-group").not.toExist()
-    board.expect("#comment-1").not.toExist()
-    board.expect("#comment-2").not.toExist()
+    app.expect("#comments-group").not.toExist()
+    app.expect("#comment-1").not.toExist()
+    app.expect("#comment-2").not.toExist()
   })
 
   test("detailOnly nodes excluded from virtual body column at root level", () => {
     // When zoomed into a task, body children become cards in a virtual body column.
     // detailOnly nodes (comments, attachments) should be excluded.
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          // Regular body content
-          item.p("Some description"),
-          // detailOnly sections
-          detailOnlyItem("comments", "Comments", item("c1"), item("c2")),
-          detailOnlyItem("attachments", "Attachments", item("att1")),
-          // Structural children (columns)
-          item("subtask-col", item("sub-1")),
-        ),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        // Regular body content
+        item.p("Some description"),
+        // detailOnly sections
+        detailOnlyItem("comments", "Comments", item("c1"), item("c2")),
+        detailOnlyItem("attachments", "Attachments", item("att1")),
+        // Structural children (columns)
+        item("subtask-col", item("sub-1")),
+      ),
+      { cols: 80, rows: 24 },
     )
 
     // Subtask column and its child should render
-    board.expect("#sub-1").toExist()
+    app.expect("#sub-1").toExist()
 
     // detailOnly nodes should NOT render as cards
-    board.expect("#comments").not.toExist()
-    board.expect("#attachments").not.toExist()
-    board.expect("#c1").not.toExist()
-    board.expect("#c2").not.toExist()
-    board.expect("#att1").not.toExist()
+    app.expect("#comments").not.toExist()
+    app.expect("#attachments").not.toExist()
+    app.expect("#c1").not.toExist()
+    app.expect("#c2").not.toExist()
+    app.expect("#att1").not.toExist()
   })
 
   test("regular li nodes still appear as cards (no false filtering)", () => {
     // Ensure that li nodes WITHOUT detailOnly still appear normally
-    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"), item("regular-li"))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("col", item("task-a"), item("task-b"), item("regular-li"))), {
+      cols: 80,
       rows: 24,
     })
 
-    board.expect("#task-a").toExist()
-    board.expect("#task-b").toExist()
-    board.expect("#regular-li").toExist()
+    app.expect("#task-a").toExist()
+    app.expect("#task-b").toExist()
+    app.expect("#regular-li").toExist()
   })
 })
 
@@ -162,47 +161,45 @@ describe("structural children with km.collapse:: true hidden from card view", ()
   })
 
   test("structural child with km.collapse:: true does not render as a card", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col",
-            item("task-1"),
-            item("task-2"),
-            // Structural child with collapse rule — should be hidden from card view
-            item("Activity km.collapse:: true", item("log-1"), item("log-2")),
-          ),
+          "col",
+          item("task-1"),
+          item("task-2"),
+          // Structural child with collapse rule — should be hidden from card view
+          item("Activity km.collapse:: true", item("log-1"), item("log-2")),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
 
     // Regular tasks should be visible as cards
-    board.expect("#task-1").toExist()
-    board.expect("#task-2").toExist()
+    app.expect("#task-1").toExist()
+    app.expect("#task-2").toExist()
 
     // log-1/log-2 should not appear (children of hidden node)
-    board.expect("#log-1").not.toExist()
-    board.expect("#log-2").not.toExist()
+    app.expect("#log-1").not.toExist()
+    app.expect("#log-2").not.toExist()
 
-    // Verify via screenshot that "Activity" text doesn't appear anywhere
-    const screenshot = board.screenshot()
-    expect(screenshot).not.toContain("Activity")
-    expect(screenshot).not.toContain("···")
+    // Verify via screen text that "Activity" text doesn't appear anywhere
+    expect(app.text).not.toContain("Activity")
+    expect(app.text).not.toContain("···")
   })
 
   test("structural child without collapse rule still appears as a card", () => {
     // Ensure structural children without km.collapse:: true are not filtered
-    const { board } = testEnv(
-      () => item("board", item("col", item("task-1"), item("Subsection", item("sub-1"), item("sub-2")))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item("board", item("col", item("task-1"), item("Subsection", item("sub-1"), item("sub-2")))),
+      { cols: 80, rows: 24 },
     )
 
     // Regular task should be visible
-    board.expect("#task-1").toExist()
+    app.expect("#task-1").toExist()
 
     // Non-collapsed structural child should appear as a card
-    board.expect("#Subsection").toExist()
+    app.expect("#Subsection").toExist()
   })
 
   test("mix of detailOnly and km.collapse:: true children both filtered", () => {
@@ -730,113 +727,101 @@ describe("collapsed children hidden inside cards (sub-items)", () => {
     // Even though collapsed sections are filtered from column-level cards,
     // they still appear as sub-items WITHIN a card's children rendering.
     // e.g., a task card shows "§ Activity" and "§ Comments" inside it.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "col",
           item(
-            "col",
-            item(
-              "task-with-activity",
-              item("sub-task-1"),
-              item("sub-task-2"),
-              item("Activity km.collapse:: true", item("log-1"), item("log-2")),
-              item("Comments km.collapse:: true", item("c1")),
-            ),
+            "task-with-activity",
+            item("sub-task-1"),
+            item("sub-task-2"),
+            item("Activity km.collapse:: true", item("log-1"), item("log-2")),
+            item("Comments km.collapse:: true", item("c1")),
           ),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
 
     // The card itself should render
-    board.expect("#task-with-activity").toExist()
+    app.expect("#task-with-activity").toExist()
     // Regular sub-tasks should be visible inside the card
-    board.expect("#sub-task-1").toExist()
-    board.expect("#sub-task-2").toExist()
+    app.expect("#sub-task-1").toExist()
+    app.expect("#sub-task-2").toExist()
 
     // Collapsed sections should NOT appear inside the card
-    board.expect("#Activity km.collapse:: true").not.toExist()
-    board.expect("#Comments km.collapse:: true").not.toExist()
-    board.expect("#log-1").not.toExist()
-    board.expect("#log-2").not.toExist()
-    board.expect("#c1").not.toExist()
+    app.expect("#Activity km.collapse:: true").not.toExist()
+    app.expect("#Comments km.collapse:: true").not.toExist()
+    app.expect("#log-1").not.toExist()
+    app.expect("#log-2").not.toExist()
+    app.expect("#c1").not.toExist()
 
-    // Verify via screenshot that "Activity" and "Comments" text don't appear
-    const screenshot = board.screenshot()
-    expect(screenshot).not.toContain("Activity")
-    expect(screenshot).not.toContain("Comments")
+    // Verify via screen text that "Activity" and "Comments" text don't appear
+    expect(app.text).not.toContain("Activity")
+    expect(app.text).not.toContain("Comments")
   })
 
   test("detailOnly sub-items do not render inside cards", () => {
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col",
-            item("task-with-comments", item("real-child"), detailOnlyItem("inline-comments", "Comments", item("ic1"))),
-          ),
+          "col",
+          item("task-with-comments", item("real-child"), detailOnlyItem("inline-comments", "Comments", item("ic1"))),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
 
-    board.expect("#task-with-comments").toExist()
-    board.expect("#real-child").toExist()
+    app.expect("#task-with-comments").toExist()
+    app.expect("#real-child").toExist()
 
     // detailOnly sub-items should not appear inside the card
-    board.expect("#inline-comments").not.toExist()
-    board.expect("#ic1").not.toExist()
+    app.expect("#inline-comments").not.toExist()
+    app.expect("#ic1").not.toExist()
   })
 
   test("well-known metadata sections hidden by title alone (no name, no collapse rule)", () => {
     // Bug: Attachments/Comments/Activity sections showing as "§ Attachments ···" cards
     // when node has title="Attachments" but no name field and no km.collapse:: rule.
     // isCollapsedChild should match well-known names via title (case-insensitive).
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("task-1"),
-            item.section("Attachments", item("att-1")),
-            item.section("Comments", item("c-1")),
-          ),
-        ),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col", item("task-1"), item.section("Attachments", item("att-1")), item.section("Comments", item("c-1"))),
+      ),
+      { cols: 80, rows: 24 },
     )
 
-    board.expect("#task-1").toExist()
+    app.expect("#task-1").toExist()
     // These should be hidden — well-known metadata sections
-    const screenshot = board.screenshot()
-    expect(screenshot).not.toContain("Attachments")
-    expect(screenshot).not.toContain("Comments")
+    expect(app.text).not.toContain("Attachments")
+    expect(app.text).not.toContain("Comments")
   })
 
   test("overflow count excludes collapsed children inside cards", () => {
     // When a card has collapsed children, the overflow count should NOT include them.
     // Only real visible children should be counted for overflow.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "col",
           item(
-            "col",
-            item(
-              "card-with-hidden",
-              item("visible-1"),
-              item("visible-2"),
-              item("Activity km.collapse:: true", item("a1"), item("a2"), item("a3")),
-            ),
+            "card-with-hidden",
+            item("visible-1"),
+            item("visible-2"),
+            item("Activity km.collapse:: true", item("a1"), item("a2"), item("a3")),
           ),
         ),
-      { columns: 80, rows: 24 },
+      ),
+      { cols: 80, rows: 24 },
     )
 
     // The card should not show any overflow indicator from the collapsed children
-    const screenshot = board.screenshot()
     // Activity section has 3 children + itself = 4 hidden nodes that should NOT inflate overflow
-    expect(screenshot).not.toContain("Activity")
+    expect(app.text).not.toContain("Activity")
   })
 })
 

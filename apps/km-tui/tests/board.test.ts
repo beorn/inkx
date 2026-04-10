@@ -10,7 +10,8 @@ import { describe, expect, test, vi } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { checkInvariants, InvariantViolationError } from "../src/invariants.ts"
 import { type BoardApp, board } from "./helpers/board-app.ts"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { createSelection, type ID } from "@silvery/selection"
 
 /** Create a mock SelectionStore for test contexts that don't use createApp. */
@@ -110,12 +111,12 @@ describe("board.app() API", () => {
 
 describe("Runtime invariants", () => {
   test("clean state passes all invariants", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
-    board.expect("#1a[data-cursor]").toExist()
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    app.expect("#1a[data-cursor]").toExist()
 
     // Verify no violations by navigating with invariants enabled
-    board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#1b[data-cursor]").toExist()
     // If invariants were violated, the press would have thrown
   })
 

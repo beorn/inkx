@@ -1,6 +1,10 @@
 /**
  * Toast rendering tests - acceptance level UI tests
  *
+ * FREEZE: needs white-box API (toastQueue) — all tests push toasts programmatically
+ * via the toastQueue object, which is not exposed on the createTestApp interface.
+ * These tests require the legacy testEnv API until toastQueue is added to TestApp.
+ *
  * incremental: false — toast overlays (position=absolute) cause incremental
  * rendering mismatches because the silvery incremental renderer doesn't fully
  * track absolute-positioned overlay appearance/disappearance. This is a
@@ -10,6 +14,7 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Toast rendering", () => {
+  // FREEZE: needs white-box API (toastQueue)
   test.each([
     { level: "info", icon: "ℹ" },
     { level: "success", icon: "✓" },
@@ -32,6 +37,7 @@ describe("Toast rendering", () => {
     expect(text).toContain(message)
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("Escape dismisses toast", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
@@ -49,6 +55,7 @@ describe("Toast rendering", () => {
     expect(board.q("#toast").count()).toBe(0)
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("toast with description shows description on second line", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
@@ -66,6 +73,7 @@ describe("Toast rendering", () => {
     expect(text).toContain("Network connection lost")
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("toast with action shows action label and trigger", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
@@ -83,6 +91,7 @@ describe("Toast rendering", () => {
     expect(text).toContain("Undo")
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("batched toasts show combined count", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
@@ -101,6 +110,7 @@ describe("Toast rendering", () => {
     expect(text).toContain("3 item archived")
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("multiple toasts are stacked (shadcn/ui style)", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
@@ -117,6 +127,7 @@ describe("Toast rendering", () => {
     expect(toastEls.count()).toBe(3)
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("toast does not overlap the bottom bar", () => {
     const rows = 24
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows, incremental: false })
@@ -137,6 +148,7 @@ describe("Toast rendering", () => {
     expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(bottomBarBox!.y)
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("board content remains visible when toast appears (km-9zu9f)", () => {
     // Regression: toast appearance triggered incremental render that blanked
     // the board content. Only the toast was visible, rest of screen was blank.
@@ -175,6 +187,7 @@ describe("Toast rendering", () => {
     expect(textAfter).toContain("col1")
   })
 
+  // FREEZE: needs white-box API (toastQueue)
   test("toast with items does not overlap the bottom bar", () => {
     const rows = 24
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows, incremental: false })

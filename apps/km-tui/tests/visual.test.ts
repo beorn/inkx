@@ -13,7 +13,8 @@ import { createRenderer } from "@silvery/test"
 import { createGridNavigator } from "@km/board"
 import { createFakeRepo } from "@km/storage"
 import { createTestBoard } from "@km/tui/test"
-import { testEnv, item, renderBoardWithStore } from "./helpers/board-test.ts"
+import { item, renderBoardWithStore } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Visual toolbelt: screen access
@@ -21,45 +22,44 @@ import { testEnv, item, renderBoardWithStore } from "./helpers/board-test.ts"
 
 describe("visual toolbelt: screen access", () => {
   test("screen.text returns rendered content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
-    expect(board.screen.text).toContain("task1")
-    expect(board.screen.text).toContain("task2")
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
+    expect(app.screen.text).toContain("task1")
+    expect(app.screen.text).toContain("task2")
   })
 
   test("screen.rows returns array of lines", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    expect(board.screen.rows.length).toBeGreaterThan(0)
-    expect(board.screen.rows.some((r) => r.includes("task1"))).toBe(true)
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    expect(app.screen.rows.length).toBeGreaterThan(0)
+    expect(app.screen.rows.some((r) => r.includes("task1"))).toBe(true)
   })
 
   test("screen.row(n) returns specific row", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const taskRow = board.screen.findRow("task1")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const taskRow = app.screen.findRow("task1")
     expect(taskRow).toBeGreaterThan(-1)
-    expect(board.screen.row(taskRow)).toContain("task1")
+    expect(app.screen.row(taskRow)).toContain("task1")
   })
 
   test("screen.cell returns char/fg/bg", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
     // Cell at (0,0) should have some character
-    const cell = board.screen.cell(0, 0)
+    const cell = app.screen.cell(0, 0)
     expect(cell).toHaveProperty("char")
     expect(cell).toHaveProperty("fg")
     expect(cell).toHaveProperty("bg")
-    expect(cell).toHaveProperty("attrs")
   })
 
   test("screen.nodePos finds node position", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const pos = board.screen.nodePos("task1")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const pos = app.screen.nodePos("task1")
     expect(pos).not.toBeNull()
     expect(pos!.x).toBeGreaterThanOrEqual(0)
     expect(pos!.y).toBeGreaterThanOrEqual(0)
   })
 
   test("screen.nodeBox finds node bounding box", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const box = board.screen.nodeBox("task1")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const box = app.screen.nodeBox("task1")
     expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThan(0)
     expect(box!.height).toBeGreaterThan(0)
@@ -72,36 +72,36 @@ describe("visual toolbelt: screen access", () => {
 
 describe("visual toolbelt: assertions", () => {
   test("expectScreen/expectScreenNot check content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    board.expectScreen("task1")
-    board.expectScreenNot("nonexistent")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    app.expectScreen("task1")
+    app.expectScreenNot("nonexistent")
   })
 
   test("expectRow checks row content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const taskRow = board.screen.findRow("task1")
-    board.expectRow(taskRow, "task1")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const taskRow = app.screen.findRow("task1")
+    app.expectRow(taskRow, "task1")
   })
 
   test("expectRow with regex", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const taskRow = board.screen.findRow("task1")
-    board.expectRow(taskRow, /task\d+/)
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const taskRow = app.screen.findRow("task1")
+    app.expectRow(taskRow, /task\d+/)
   })
 
   test("expectCellChar checks character", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
-    const pos = board.screen.nodePos("task1")
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    const pos = app.screen.nodePos("task1")
     expect(pos).not.toBeNull()
     // The cell at the node position should have a character
-    const cell = board.screen.cell(pos!.x, pos!.y)
-    board.expectCellChar(pos!.x, pos!.y, cell.char)
+    const cell = app.screen.cell(pos!.x, pos!.y)
+    app.expectCellChar(pos!.x, pos!.y, cell.char)
   })
 
-  test("chaining works — all visual assertions return board", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+  test("chaining works — all visual assertions return app", () => {
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
     // All assertions should be chainable
-    board
+    app
       .expectScreen("task1")
       .expectScreen("task2")
       .expectScreenNot("nonexistent")
@@ -116,16 +116,16 @@ describe("visual toolbelt: assertions", () => {
 
 describe("visual toolbelt: node color", () => {
   test("selected card has non-null background", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
     // task1 should be selected (first card) — check it has some bg color
-    const pos = board.screen.nodePos("task1")
+    const pos = app.screen.nodePos("task1")
     expect(pos).not.toBeNull()
     // Look for a content cell (skip border)
     let found = false
     for (let x = pos!.x; x < pos!.x + 20; x++) {
-      const cell = board.screen.cell(x, pos!.y)
+      const cell = app.screen.cell(x, pos!.y)
       if (cell.char.trim() !== "" && !"│┌┐└┘├┤─".includes(cell.char)) {
-        // Selected card should have a background color (yellow = 3)
+        // Selected card should have a background color
         expect(cell.bg).not.toBeNull()
         found = true
         break
@@ -141,13 +141,13 @@ describe("visual toolbelt: node color", () => {
 
 describe("visual toolbelt: border assertions", () => {
   test("screen.nodeBox returns position for border inspection", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
     // nodeBox lets you manually check border characters
-    const box = board.screen.nodeBox("task1")
+    const box = app.screen.nodeBox("task1")
     expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThan(0)
     // Can inspect individual cells
-    const cell = board.screen.cell(box!.x, box!.y)
+    const cell = app.screen.cell(box!.x, box!.y)
     expect(cell.char).toBeDefined()
   })
 })
@@ -305,24 +305,23 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     parent.item = { ...parent.item, task: { status: "done", marker: "[x]" } }
     parent.item = { ...parent.item, list: "-" }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Use Tab to expand the card outline so children are visible
-    board.command("indent_node")
+    app.command("indent_node")
 
-    const shot = board.screenshot()
-    expect(shot, "screenshot should contain child1").toContain("child1")
+    app.expectScreen("child1")
 
-    const childBox = board.screen.nodeBox("child1")
+    const childBox = app.screen.nodeBox("child1")
     expect(childBox, "child1 should have a nodeBox").not.toBeNull()
     if (!childBox) return
 
-    const row = board.screen.row(childBox.y)
+    const row = app.screen.row(childBox.y)
     const childIdx = row.indexOf("child1")
     expect(childIdx, "child1 text should be in the row").toBeGreaterThan(-1)
 
-    const cell = board.screen.cell(childIdx, childBox.y)
-    expect(cell.attrs.dim, "child of done task should be dimmed").toBe(true)
+    const cell = app.screen.cell(childIdx, childBox.y)
+    expect(cell.dim, "child of done task should be dimmed").toBe(true)
   })
 
   test("dropped task's sub-items are dimmed", () => {
@@ -331,39 +330,39 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     parent.item = { ...parent.item, task: { status: "dropped", marker: "[-]" } }
     parent.item = { ...parent.item, list: "-" }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    board.command("indent_node")
+    app.command("indent_node")
 
-    const childBox = board.screen.nodeBox("child1")
+    const childBox = app.screen.nodeBox("child1")
     expect(childBox, "child1 should be visible").not.toBeNull()
     if (!childBox) return
 
-    const row = board.screen.row(childBox.y)
+    const row = app.screen.row(childBox.y)
     const childIdx = row.indexOf("child1")
     expect(childIdx).toBeGreaterThan(-1)
 
-    const cell = board.screen.cell(childIdx, childBox.y)
-    expect(cell.attrs.dim, "child of dropped task should be dimmed").toBe(true)
+    const cell = app.screen.cell(childIdx, childBox.y)
+    expect(cell.dim, "child of dropped task should be dimmed").toBe(true)
   })
 
   test("open task's sub-items are NOT dimmed when parent is selected", () => {
     const nodes = item("board", item("col1", item("openParent", item("child1"))))
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    board.command("indent_node")
+    app.command("indent_node")
 
-    const childBox = board.screen.nodeBox("child1")
+    const childBox = app.screen.nodeBox("child1")
     expect(childBox, "child1 should be visible").not.toBeNull()
     if (!childBox) return
 
-    const row = board.screen.row(childBox.y)
+    const row = app.screen.row(childBox.y)
     const childIdx = row.indexOf("child1")
     expect(childIdx).toBeGreaterThan(-1)
 
-    const cell = board.screen.cell(childIdx, childBox.y)
-    expect(cell.attrs.dim, "child of open task should not be dimmed").toBeFalsy()
+    const cell = app.screen.cell(childIdx, childBox.y)
+    expect(cell.dim, "child of open task should not be dimmed").toBeFalsy()
   })
 
   test("done task's title itself is dimmed (non-selected)", () => {
@@ -372,20 +371,20 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     parent.item = { ...parent.item, task: { status: "done", marker: "[x]" } }
     parent.item = { ...parent.item, list: "-" }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Move cursor to otherTask so doneParent is not selected
-    board.command("cursor_down")
+    app.command("cursor_down")
 
-    const nodeBox = board.screen.nodeBox("doneParent")
+    const nodeBox = app.screen.nodeBox("doneParent")
     expect(nodeBox, "doneParent should be visible").not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     const titleIdx = row.indexOf("doneParent")
     expect(titleIdx).toBeGreaterThan(-1)
 
-    const cell = board.screen.cell(titleIdx, nodeBox.y)
-    expect(cell.attrs.dim, "done task title should be dimmed").toBe(true)
+    const cell = app.screen.cell(titleIdx, nodeBox.y)
+    expect(cell.dim, "done task title should be dimmed").toBe(true)
   })
 })

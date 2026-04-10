@@ -80,6 +80,7 @@ describe("stickyY reliability", () => {
     expect(cursor).toMatch(/B[34]/)
   })
 
+  // FREEZE: needs white-box API (registry.unregister to simulate race condition)
   test("stickyY falls back when registry has no headY for current card", () => {
     // With lazy capture on h/l, if getItemMidY returns 0 (no position data),
     // the code gracefully skips stickyY capture and falls back to first card in target column.
@@ -107,6 +108,7 @@ describe("stickyY reliability", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("B1")
   })
 
+  // FREEZE: needs white-box API (registry.unregister to simulate race condition)
   test("stickyY throws when registry has no entry for current card", () => {
     // With lazy capture on h/l, the focused card must always be measured.
     // If the card is completely unregistered, it's a programming error.
@@ -163,6 +165,7 @@ describe("stickyY reliability", () => {
  * managed so subsequent h/l navigation works as expected.
  */
 describe("sticky out-of-bounds behavior", () => {
+  // FREEZE: needs white-box API (registry.stickyY assertions)
   test("move from deep card in tall col to short col, then back", () => {
     const { board, registry } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")), item("col2", item("2a"))),
@@ -183,6 +186,7 @@ describe("sticky out-of-bounds behavior", () => {
     board.expect("#1e[data-cursor]").toExist()
   })
 
+  // FREEZE: needs white-box API (registry.stickyY assertions)
   test("move from deep card in tall col to short col, navigate vertically, then back", () => {
     const { board, registry } = testEnv(() =>
       item(
@@ -213,6 +217,7 @@ describe("sticky out-of-bounds behavior", () => {
     expect(cursorLoc.count()).toBe(1)
   })
 
+  // FREEZE: needs white-box API (registry.stickyX assertions)
   test("stickyX round-trip: board -> deep col -> board -> different col", () => {
     const { board, registry } = testEnv(() =>
       item("board", item("col0", item("a0")), item("col1", item("b0")), item("col2", item("c0"))),
@@ -248,6 +253,7 @@ describe("sticky out-of-bounds behavior", () => {
  * stickyX clearing happens in the action layer, not the ViewNavigation layer.
  */
 describe("stickyX reset", () => {
+  // FREEZE: needs white-box API (registry.stickyX assertions)
   it("h/l clears stickyX so j from board uses default column", () => {
     // Board with 3 columns
     const { board, registry } = testEnv(() =>
@@ -291,6 +297,7 @@ describe("stickyX reset", () => {
     board.expect("#col0[data-cursor]").toExist()
   })
 
+  // FREEZE: needs white-box API (registry.stickyX assertions)
   it("stickyX persists through j/k within columns (not cleared by vertical nav)", () => {
     const { board, registry } = testEnv(() =>
       item("board", item("col0", item("a0"), item("a1")), item("col1", item("b0"))),
@@ -332,6 +339,7 @@ describe("stickyX reset", () => {
  * Fix: clear stickyY when h/l navigation returns boundary.
  */
 describe("stickyY reset on boundary actions", () => {
+  // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("l boundary at rightmost column clears stickyY", () => {
     const { board, registry } = testEnv(() =>
       item(
@@ -364,6 +372,7 @@ describe("stickyY reset on boundary actions", () => {
     expect(registry.stickyY, "stickyY cleared after boundary l").toBeNull()
   })
 
+  // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("h boundary at leftmost column clears stickyY", () => {
     const { board, registry } = testEnv(() =>
       item(
@@ -394,6 +403,7 @@ describe("stickyY reset on boundary actions", () => {
     expect(registry.stickyY, "stickyY cleared after boundary h").toBeNull()
   })
 
+  // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("3-column cross-column navigation with boundary and invariants", () => {
     const { board, registry } = testEnv(
       () =>
@@ -455,6 +465,7 @@ describe("stickyY reset on boundary actions", () => {
     board.expect("#col2[data-cursor]").toExist()
   })
 
+  // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("boundary h then immediate l fresh-captures from current position", () => {
     const { board, registry } = testEnv(() =>
       item(
@@ -497,6 +508,7 @@ describe("stickyY reset on boundary actions", () => {
     expect(screenshot, "col2 header visible").toContain("col2")
   })
 
+  // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("vertical nav after boundary h/l clears stickyY independently", () => {
     // Verify that j/k after boundary still clears stickyY (no double-clear issue)
     const { board, registry } = testEnv(() =>

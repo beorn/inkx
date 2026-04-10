@@ -10,7 +10,7 @@
 
 import { describe, test, expect } from "vitest"
 import { act } from "react"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -169,115 +169,111 @@ describe("cursor prefetch on horizontal navigation", () => {
 
 describe("rapid repo.touch() coalescing", () => {
   test("5 rapid touch() calls don't crash the board", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
-      { columns: 80, rows: 20 },
-    )
-
-    // Board renders correctly initially
-    board.expect("#1a[data-cursor]").toExist()
-    expect(board.screenshot()).toContain("1a")
-
-    // Fire 5 rapid touch() calls (simulating background link resolution)
-    act(() => {
-      repo.touch()
-      repo.touch()
-      repo.touch()
-      repo.touch()
-      repo.touch()
-    })
-
-    // Flush React updates
-    board.press("")
-
-    // Board should still render correctly after rapid touches
-    expect(board.screenshot()).toContain("1a")
-    expect(board.screenshot()).toContain("1b")
-    expect(board.screenshot()).toContain("2a")
-  })
-
-  test("touch() between navigation steps doesn't break cursor", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
-      { columns: 80, rows: 20 },
-    )
-
-    board.expect("#1a[data-cursor]").toExist()
-
-    // Navigate down
-    board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
-
-    // Simulate background mutation
-    act(() => {
-      repo.touch()
-    })
-    board.press("")
-
-    // Cursor should still be on 1b
-    board.expect("#1b[data-cursor]").toExist()
-
-    // Navigate right to col2
-    board.command("cursor_right")
-
-    // Simulate another background mutation
-    act(() => {
-      repo.touch()
-    })
-    board.press("")
-
-    // Board should still render correctly
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("col1")
-    expect(screenshot).toContain("col2")
-  })
-
-  test("rapid touch() with no actual data changes preserves rendering", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))), {
-      columns: 60,
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))), {
+      cols: 80,
       rows: 20,
     })
 
-    const before = board.screenshot()
-    expect(before).toContain("task-1")
-    expect(before).toContain("task-2")
-    expect(before).toContain("task-3")
+    // Board renders correctly initially
+    app.expect("#1a[data-cursor]").toExist()
+    app.expectScreen("1a")
+
+    // Fire 5 rapid touch() calls (simulating background link resolution)
+    act(() => {
+      app.repo.touch()
+      app.repo.touch()
+      app.repo.touch()
+      app.repo.touch()
+      app.repo.touch()
+    })
+
+    // Flush React updates
+    app.press("")
+
+    // Board should still render correctly after rapid touches
+    app.expectScreen("1a")
+    app.expectScreen("1b")
+    app.expectScreen("2a")
+  })
+
+  test("touch() between navigation steps doesn't break cursor", () => {
+    using app = createTestApp(
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
+      { cols: 80, rows: 20 },
+    )
+
+    app.expect("#1a[data-cursor]").toExist()
+
+    // Navigate down
+    app.command("cursor_down")
+    app.expect("#1b[data-cursor]").toExist()
+
+    // Simulate background mutation
+    act(() => {
+      app.repo.touch()
+    })
+    app.press("")
+
+    // Cursor should still be on 1b
+    app.expect("#1b[data-cursor]").toExist()
+
+    // Navigate right to col2
+    app.command("cursor_right")
+
+    // Simulate another background mutation
+    act(() => {
+      app.repo.touch()
+    })
+    app.press("")
+
+    // Board should still render correctly
+    app.expectScreen("col1")
+    app.expectScreen("col2")
+  })
+
+  test("rapid touch() with no actual data changes preserves rendering", () => {
+    using app = createTestApp(item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))), {
+      cols: 60,
+      rows: 20,
+    })
+
+    app.expectScreen("task-1")
+    app.expectScreen("task-2")
+    app.expectScreen("task-3")
 
     // Rapid touches without data changes
     act(() => {
       for (let i = 0; i < 10; i++) {
-        repo.touch()
+        app.repo.touch()
       }
     })
-    board.press("")
+    app.press("")
 
-    const after = board.screenshot()
-    expect(after).toContain("task-1")
-    expect(after).toContain("task-2")
-    expect(after).toContain("task-3")
+    app.expectScreen("task-1")
+    app.expectScreen("task-2")
+    app.expectScreen("task-3")
   })
 
   test("touch() during horizontal navigation doesn't cause rendering issues", () => {
-    const { board, repo } = testEnv(item.multiColBoard, { columns: 120, rows: 20 })
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
 
     // Navigate right
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
+    app.command("cursor_right")
+    app.expect("#2a[data-cursor]").toExist()
 
     // Simulate rapid background mutations during navigation
     act(() => {
-      repo.touch()
-      repo.touch()
-      repo.touch()
+      app.repo.touch()
+      app.repo.touch()
+      app.repo.touch()
     })
 
     // Navigate right again
-    board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    app.command("cursor_right")
+    app.expect("#3a[data-cursor]").toExist()
 
     // Cursor is on col3 — col2 and col3 should be visible
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("col2")
-    expect(screenshot).toContain("col3")
+    app.expectScreen("col2")
+    app.expectScreen("col3")
   })
 })

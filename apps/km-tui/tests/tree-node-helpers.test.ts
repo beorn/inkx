@@ -7,7 +7,8 @@
  * - formatInfoSuffix: info suffix with board pills, assignee codes
  */
 import { describe, it, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import {
   formatDateBadge,
   formatInfoSuffix,
@@ -162,9 +163,9 @@ describe("implicit task rendering", () => {
     // Remove explicit task status/marker that item() sets by default
     taskNode.item = { ...taskNode.item, task: undefined }
 
-    const { board } = testEnv(() => nodes)
+    using app = createTestApp(nodes)
     // Date badge should show "Aug 15" (far future date avoids relative display)
-    board.expectScreen("Aug 15")
+    app.expectScreen("Aug 15")
   })
 
   it("node with priority shows priority badge", () => {
@@ -173,8 +174,8 @@ describe("implicit task rendering", () => {
     taskNode.priority = "P2"
     taskNode.item = { ...taskNode.item, task: undefined }
 
-    const { board } = testEnv(() => nodes)
-    board.expectScreen("P2")
+    using app = createTestApp(nodes)
+    app.expectScreen("P2")
   })
 
   it("node with only due_at does NOT show task icon (not a task)", () => {
@@ -183,16 +184,16 @@ describe("implicit task rendering", () => {
     taskNode.due_at = "2026-03-20"
     taskNode.item = { ...taskNode.item, task: undefined }
 
-    const { board } = testEnv(() => nodes)
+    using app = createTestApp(nodes)
     // No task icon — due_at alone doesn't make it a task
-    board.expectScreenNot("\u25A1")
+    app.expectScreenNot("\u25A1")
   })
 
   it("plain node without task properties has no task icon", () => {
     const nodes = item("board", item("col", item.p("plain text")))
-    const { board } = testEnv(() => nodes)
+    using app = createTestApp(nodes)
     // Should NOT have the \u25A1 task icon
-    board.expectScreenNot("\u25A1")
+    app.expectScreenNot("\u25A1")
   })
 
   it("node with assigned_to shows assignee in columns view", () => {
@@ -203,8 +204,8 @@ describe("implicit task rendering", () => {
 
     // Use columns view where assignee is shown inline (cards view only shows board pill dots)
     // shortName("beorn") → "B", so displays as "@B"
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
-    board.expectScreen("@B")
+    using app = createTestApp(nodes, { viewMode: "columns" })
+    app.expectScreen("@B")
   })
 })
 
@@ -218,9 +219,9 @@ describe("short-names integration", () => {
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.assigned_to = "bjorn-stabell"
 
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
-    board.expectScreen("@BS")
-    board.expectScreenNot("bjorn-stabell")
+    using app = createTestApp(nodes, { viewMode: "columns" })
+    app.expectScreen("@BS")
+    app.expectScreenNot("bjorn-stabell")
   })
 
   it("single-word assignee shows first letter", () => {
@@ -228,8 +229,8 @@ describe("short-names integration", () => {
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.assigned_to = "alice"
 
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
-    board.expectScreen("@A")
+    using app = createTestApp(nodes, { viewMode: "columns" })
+    app.expectScreen("@A")
   })
 })
 
@@ -306,8 +307,8 @@ describe("body paragraph rendering", () => {
   it("body paragraphs render without bullet prefix", () => {
     // A card with body paragraphs (type=p, item=false) and a structural sub-item
     const nodes = item("board", item("Column", item("card-1", item.p("body text here"), item("sub-item"))))
-    const { board } = testEnv(() => nodes)
-    const screenshot = board.screenshot()
+    using app = createTestApp(nodes)
+    const screenshot = app.text
 
     // Body paragraph should appear without a bullet marker
     // Sub-item should still have a bullet marker (· or similar)
@@ -335,9 +336,9 @@ describe("body paragraph rendering", () => {
 
   it("body paragraphs render dimmed", () => {
     const nodes = item("board", item("Column", item("card-1", item.p("dimmed body"), item("normal-item"))))
-    const { board } = testEnv(() => nodes)
+    using app = createTestApp(nodes)
     // Both should be visible
-    board.expectScreen("dimmed body")
-    board.expectScreen("normal-item")
+    app.expectScreen("dimmed body")
+    app.expectScreen("normal-item")
   })
 })

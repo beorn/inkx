@@ -26,6 +26,9 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
+// NOTE: "Indent/Outdent during inline edit mode" tests below use testEnv
+// because they need board.expectEditing() which is not exposed by createTestApp.
+
 // Helper: get child IDs of a parent from repo
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
   return repo.getChildren(parentId).map((n) => n.id)
@@ -735,8 +738,8 @@ describe("Indent visibility (regression: tab-disappear)", () => {
 // Indent/Outdent during inline edit mode
 // =============================================================================
 
-// NOTE: these tests use `board.expectEditing()` which is not exposed by createTestApp —
-// entire describe block stays on testEnv.
+// FREEZE: needs white-box API — these tests use `board.expectEditing()` which is not exposed by createTestApp.
+// Entire describe block stays on testEnv.
 describe("Indent/Outdent during inline edit mode", () => {
   test("Tab indents node while in inline edit mode", () => {
     const { board, repo } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
