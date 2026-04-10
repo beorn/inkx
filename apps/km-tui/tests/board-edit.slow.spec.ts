@@ -1270,3 +1270,12 @@ describe("Degradation stays in edit mode", () => {
     expect(app.repo.getNode("alpha")?.content).toBe("alpha!")
   })
 })
+
+// =============================================================================
+// Empty node deletion stays in edit mode on neighbor
+// =============================================================================
+
+// TODO(km-tui.edit-after-delete): Empty card deletion should stay in edit mode
+// on the neighbor node. See bead km-tui.edit-after-delete for details.
+// Blocked by: text.edit() signal doesn't persist through render cycle after
+// executeDelete's sel.transform + clearSelection.

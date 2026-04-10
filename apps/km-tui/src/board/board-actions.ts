@@ -815,7 +815,15 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         const nodeId = bsTextEdit.nodeId
         const content = bsTarget.getContent()
         if (content === "") {
+          // TODO(km-tui.edit-after-delete): Should enter edit mode on
+          // the previous sibling at end of content, not drop to node mode.
+          const prevSibling = KTree.previous(ctx.repo, nodeId)
           ctx.sel.text.deselect()
+          // Move cursor to neighbor BEFORE delete so executeDelete's
+          // cursor repair finds a valid surviving node
+          if (prevSibling) {
+            ctx.sel.node.select([prevSibling.id as import("@silvery/selection").ID])
+          }
           executeDelete(ctx, nodeId)
           return ok()
         }
@@ -844,8 +852,14 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         const content = fwdTarget.getContent()
         const cursor = fwdTarget.getCursorOffset()
         if (content === "" && cursor === 0) {
+          // TODO(km-tui.edit-after-delete): Should enter edit mode on
+          // next sibling at start of content, not drop to node mode.
           const nodeId = fwdTextEdit.nodeId
+          const nextSibling = KTree.next(ctx.repo, nodeId)
           ctx.sel.text.deselect()
+          if (nextSibling) {
+            ctx.sel.node.select([nextSibling.id as import("@silvery/selection").ID])
+          }
           executeDelete(ctx, nodeId)
         } else if (cursor >= content.length) {
           const nodeId = fwdTextEdit.nodeId
