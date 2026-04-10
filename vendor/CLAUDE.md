@@ -44,20 +44,20 @@ For any vendor package to be "standalone-ready":
 
 ## Packages
 
-| Package              | npm Scope              | Description                                               |
-| -------------------- | ---------------------- | --------------------------------------------------------- |
-| **silvery**          | `@silvery/*`           | React TUI framework — reconciler, components, theme       |
-| **flexily**          | `@flexily/*`           | Yoga-compatible flexbox layout engine                     |
-| **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals) |
-| **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                            |
-| **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor     |
-| **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                          |
-| **loggily**          | `loggily`              | Structured logging                                        |
+| Package              | npm Scope              | Description                                                                   |
+| -------------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| **silvery**          | `@silvery/*`           | React TUI framework — reconciler, components, theme                           |
+| **flexily**          | `@flexily/*`           | Yoga-compatible flexbox layout engine                                         |
+| **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals)                     |
+| **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                                                |
+| **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor                         |
+| **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                                              |
+| **loggily**          | `loggily`              | Structured logging                                                            |
 | **accountly**        | `@beorn/accountly`     | Multi-account manager — credential switching, quota monitoring, auto-rotation |
-| **tap**              | `@beorn/tap`           | Terminal app protocol                                     |
-| **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern            |
-| **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                |
-| **silvery-internal** | —                      | Internal design docs (not published)                      |
+| **tap**              | `@beorn/tap`           | Terminal app protocol                                                         |
+| **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern                                |
+| **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                                    |
+| **silvery-internal** | —                      | Internal design docs (not published)                                          |
 
 ## Internal vs Public (`vendor/internal/` vs `vendor/*/`)
 
