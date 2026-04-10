@@ -281,7 +281,7 @@ Do NOT report: style preferences, missing JSDoc, import ordering, or linter-hand
 Focus on findings that could cause WRONG TERMINAL OUTPUT or RENDERING CORRUPTION."
 ```
 
-**Execution**: Run in background (`run_in_background=true`). The `--no-recover` flag prevents picking up stale responses from prior runs. The `-y` flag auto-confirms the cost prompt.
+**Execution**: Run normally (fire-and-forget — exits in ~5s after printing the response ID). Recover the result later with `bun llm recover <id>`. The `--no-recover` flag prevents picking up stale responses from prior runs. The `-y` flag auto-confirms the cost prompt.
 
 ## Step 4: Collect Results
 

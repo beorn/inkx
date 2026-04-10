@@ -173,17 +173,19 @@ cat vendor/silvery/src/pipeline/layout-phase.ts >> /tmp/fresh-context.md
 # ... etc — include ALL relevant files
 ```
 
-```
-# ALWAYS background — foreground blocks Claude Code for 15 minutes
-Bash(command='bun llm --deep -y --no-recover --context-file /tmp/fresh-context.md "problem description"', run_in_background=true)
+```bash
+# Fire-and-forget — exits in ~5s after printing response ID
+bun llm --deep -y --no-recover --context-file /tmp/fresh-context.md "problem description"
+# → Response ID: resp_...
+# Recover later (15-30 min): bun llm recover resp_...
 ```
 
 **IMPORTANT**: Always use `--no-recover` to avoid getting stale recovered responses from prior
 unrelated deep research calls. Always use `--context-file` (not `--context "$(cat ...)"`) when
 context includes source code — shell quoting breaks on backticks and `$(...)` in code.
 
-If the process is interrupted, don't restart — use `bun llm recover` to retrieve the response
-when it completes server-side. See `/deep` for recovery details.
+The command exits immediately after printing the response ID. Deep research runs server-side
+at OpenAI — recover the result later with `bun llm recover <id>`. See `/deep` for details.
 
 ### Phase 5: Present and Decide
 

@@ -18,7 +18,7 @@ bun llm --deep -y --with-history "<topic>"
 **Pro model**: Use `--model gpt-5.4-pro` for thorough analysis. The `pro` keyword does NOT
 work with `--deep` (gets absorbed into topic text). Always use `--model gpt-5.4-pro`.
 
-See `/llm` for output format, flags, and background execution.
+See `/llm` for output format, flags, and fire-and-forget pattern.
 
 **Note**: This is OpenAI's deep research (NOT DeepSeek). Takes 2-15 minutes; interrupted calls auto-recover.
 
@@ -26,30 +26,27 @@ See `/llm` for output format, flags, and background execution.
 
 ## Execution Pattern
 
-**IMPORTANT**: Deep research takes 2-15 minutes. **ALWAYS run in background** — foreground blocks Claude Code and makes you unresponsive to the user for the entire duration.
+Deep research is fire-and-forget — the command prints the response ID and exits in ~5s.
+Research runs server-side at OpenAI (2-15 minutes). Recover the result later.
 
-### Launch in background
+### Launch and recover
 
-```
-# Step 1: Launch (ALWAYS background)
-Bash(command='bun llm --deep -y "topic"', run_in_background=true)
-# Returns task_id — tell the user you launched it
+```bash
+# Step 1: Run normally — exits in ~5s after printing response ID
+bun llm --deep -y "topic"
+# → Response ID: resp_abc123...
 
-# Step 2: Do other work while waiting...
+# Step 2: Do other work while research runs server-side...
 
-# Step 3: Check for completion
-TaskOutput(task_id=<id>, block=true, timeout=600000)
+# Step 3: Recover result (15-30 min later)
+bun llm recover resp_abc123...
+# → writes output to /tmp/llm-*.txt
 
-# Step 4: Find the output file
-ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
-
-# Step 5: Read the OUTPUT FILE (NOT the task output — that's just streaming tokens)
+# Step 4: Read the output file
 Read(file_path="/tmp/llm-<session>-<timestamp>-<rand>.txt")
 ```
 
-**WARNING**: Deep research streams thousands of tokens to stderr. Background task output
-captures stderr+stdout combined, which can exceed 30KB and get truncated by Claude Code.
-The actual response is in the OUTPUT FILE, not in the task output. Always read the file.
+If you forgot the response ID: `bun llm recover` lists all partial responses.
 
 ### Recovery (interrupted/killed processes)
 
@@ -70,8 +67,8 @@ Recovery writes the output file just like a normal completion. If the response i
 ### Anti-patterns (NEVER do these)
 
 ```
-# BAD: Foreground — blocks Claude Code for 15 minutes, user can't interact
-Bash(command='bun llm --deep -y "topic"', timeout=600000)
+# BAD: run_in_background — output pipe truncates and you lose the response ID
+Bash(command='bun llm --deep -y "topic"', run_in_background=true)
 
 # BAD: Restarting after interruption — wastes $$ and time, response is still completing
 # Just use: bun llm recover
@@ -82,9 +79,6 @@ Bash("sleep 30 && wc -c output.txt")
 # BAD: Subagent without skill context
 Task(subagent_type="general-purpose", prompt="run deep research on X")
 ```
-
-**If running from a subagent/Task**: Use foreground with `timeout=600000` as a last resort
-(subagents don't block the user). But prefer background when possible.
 
 ## Pro Reviews: Do Your Own Review First
 
@@ -184,8 +178,10 @@ echo '```' >> /tmp/deep-context.md
 
 # ... append ALL relevant files
 
-# Then launch (ALWAYS background)
+# Then launch — fire-and-forget, exits in ~5s
 bun llm --deep -y --no-recover --context-file /tmp/deep-context.md "Review this rendering bug"
+# → Response ID: resp_...
+# Recover later: bun llm recover resp_...
 ```
 
 **IMPORTANT**: Always use `--context-file` when context includes source code. The heredoc

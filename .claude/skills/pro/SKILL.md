@@ -73,8 +73,8 @@ bd update km-all.pro-review-<N> --claim
 For each selected package, load [review.md](review.md) and execute:
 1. Gather context (shared header + package source + prior findings)
 2. Build context file at `/tmp/pro-review-<package>.md`
-3. Launch `bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-<pkg>.md "GPT 5.4 Pro code review: <package>"`
-4. Run in background — launch up to 3 concurrently
+3. Launch `bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-<pkg>.md "GPT 5.4 Pro code review: <package>"` (fire-and-forget, exits in ~5s)
+4. Launch up to 3 concurrently — recover results later with `bun llm recover`
 
 ### Step 5: Triage
 
