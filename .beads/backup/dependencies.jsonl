@@ -1376,6 +1376,7 @@
 {"created_at":"2026-03-09T11:28:31Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.split","issue_id":"km-silvery.km-migrate","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-30T17:20:57Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.ag-canvas","issue_id":"km-silvery.km-on-canvas","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-30T13:28:01Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.engine.text","issue_id":"km-silvery.km-on-canvas","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-10T13:09:19Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.perf","issue_id":"km-silvery.large-terminal-perf","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-09T20:07:56Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.launch-blog","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-29T22:48:10Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery","issue_id":"km-silvery.layer-violations","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:48Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.line-has-content","metadata":"{}","type":"parent-child"}
@@ -1446,6 +1447,7 @@
 {"created_at":"2026-04-09T07:39:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.positioning","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-10T11:53:40Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.perf","issue_id":"km-silvery.pretext-cumwidths","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-10T12:29:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.pretext-cumwidths","issue_id":"km-silvery.pretext-demos","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-10T13:21:14Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.pretext-cumwidths","issue_id":"km-silvery.pretext-pluggable-measure","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-10T12:18:17Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.pretext-cumwidths","issue_id":"km-silvery.pretext-upstream","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:37Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.prevlayout-overload","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T08:22:24Z","created_by":"claude:e4e70c9a","depends_on_id":"km-all.pro-review-5","issue_id":"km-silvery.pro-review-0316","metadata":"{}","type":"parent-child"}
