@@ -135,28 +135,42 @@ expect(col).toBeVisible()
 
 ### Custom Matchers (helpers/matchers.ts)
 
-Import: automatic via vitest setup. 11 matchers on AutoLocator values.
+Import: automatic via vitest setup. Two categories: AutoLocator matchers (11) and TestApp matchers (6).
 
 ```typescript
-// Spatial assertions — pass AutoLocator values from app.q() or app.locator()
+// --- AutoLocator matchers (on app.q() results) ---
+
+// Spatial assertions
 expect(app.q("#col1")).toBeLeftOf(app.q("#col2"))
 expect(app.q("#col1")).toBeRightOf(app.q("#col0"))
 expect(app.q("#task1")).toBeAbove(app.q("#task2"))
 expect(app.q("#task2")).toBeBelow(app.q("#task1"))
 expect(app.q("#task1")).toBeContainedIn(app.q("#col1"))
 
-// Content assertions — exact or substring match on node text
+// Content assertions
 expect(app.q("#task1")).toHaveText("Buy milk")
 expect(app.q("#task1")).toContainText("milk")
 
-// Visibility — checks bounding box presence and non-zero dimensions
+// Visibility
 expect(app.q("#task1")).toBeVisible()
 expect(app.q("#hidden")).toBeHidden()
 
-// Size — exact width/height in columns/rows
+// Size
 expect(app.q("#col1")).toHaveWidth(40)
 expect(app.q("#col1")).toHaveHeight(10)
+
+// --- TestApp matchers (on the app object) ---
+
+expect(app).toHaveCursorOn("task1") // cursor is on this node
+expect(app).toHaveSelection(["task1"]) // exact selection set (includes cursor)
+expect(app).toHaveView("cards") // current view mode
+expect(app).toHaveOverlay(null) // no overlay open
+expect(app).toHaveOverlay("search") // search overlay open
+expect(app).toHaveBell() // bell fired at least once
+expect(app).toHaveNodeCount(5) // number of visible nodes
 ```
+
+**Note**: `toHaveCursorOn` (not `toHaveCursor`) to avoid collision with `@termless/test/matchers` which defines `toHaveCursor` for terminal cursor position. Selection includes the cursor node by default.
 
 ### Typed Node Handles (app.card, app.node, app.column)
 
@@ -188,7 +202,7 @@ Snapshot of board state — cursor, selection, view mode, overlay, bell, visible
 ```typescript
 expect(app.state).toMatchObject({
   cursor: "task1",
-  selection: [],
+  selection: ["task1"], // selection includes cursor node
   view: "cards",
   overlay: null,
   bell: 0,
@@ -230,9 +244,51 @@ app.expectSnapshot("after-fold") // named — multiple snapshots per test
 app.expectScreenMatches("initial-view") // alias for expectSnapshot with required name
 ```
 
+### Action History (app.actionHistory)
+
+Every user action is recorded for failure diagnostics. When a test fails, the last actions are included in the error message.
+
+```typescript
+app.press("j")
+app.command("cursor_down")
+app.type("hello")
+
+expect(app.actionHistory).toContain("press(j)")
+expect(app.actionHistory).toContain("command(cursor_down)")
+```
+
+### resize / paste / tick
+
+```typescript
+app.resize(40, 10) // Resize terminal to 40×10
+app.paste("multi\nline") // Paste text (newlines become Enter)
+app.tick(1000) // Advance fake timers by 1000ms (requires vi.useFakeTimers())
+```
+
+### Dispose Invariants (SILVERY_STRICT)
+
+`createTestApp` auto-checks invariants when disposed via `[Symbol.dispose]`. Controlled by `SILVERY_STRICT` env:
+
+- `0`: No invariant checks (benchmarks)
+- `1` (default): End-of-test invariant check (cursor exists, selection valid, no duplicate columns)
+- `2`: Every-action invariants (via board-app.ts) + end-of-test check
+
+```typescript
+// Invariants run automatically — no test code needed
+using app = createTestApp(...)
+app.press("j")
+// [Symbol.dispose] runs invariant checks when `app` goes out of scope
+```
+
+### Semantic Tree Queries (AutoLocator)
+
+The AutoLocator is the semantic screen model. It supports CSS-style selectors on the AgNode tree. If a useful query pattern isn't supported, implement it in `vendor/silvery/packages/test/src/auto-locator.ts` — extend on-demand. See bead `km-silvery.css-select` for planned adoption of a full CSS selector engine.
+
+**Note**: Child combinator (`>`) and adjacent sibling (`+`) operate on the AgNode tree, which has React wrapper nodes between data-model nodes. Use **descendant** (space) for data-model relationships.
+
 ### Showcase Reference
 
-**`apps/km-tui/tests/showcase.slow.spec.ts`** is the canonical example of the recommended test style. It demonstrates every feature above in specification-style tests: CSS selectors, typed handles, declarative state, custom matchers, snapshots, fromMarkdown fixtures, and journey patterns.
+**`apps/km-tui/tests/showcase.slow.spec.ts`** is the canonical example of the recommended test style. It demonstrates every feature above in specification-style tests: CSS selectors, typed handles, declarative state, custom matchers, TestApp matchers, snapshots, fromMarkdown fixtures, action history, and journey patterns.
 
 ### Other Helpers
 

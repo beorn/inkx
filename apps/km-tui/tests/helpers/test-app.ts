@@ -21,7 +21,7 @@
  */
 
 import React from "react"
-import { expect } from "vitest"
+import { expect, vi } from "vitest"
 // Register termless matchers (toMatchTerminalSnapshot, toMatchSvgSnapshot, etc.)
 // so tests using createTestApp().expectSnapshot() get them without extra imports.
 import "@termless/test/matchers"
@@ -274,6 +274,14 @@ export interface TestApp {
   cell(col: number, row: number): CellInfo
   /** Screen inspection object */
   readonly screen: ScreenAccess
+  /** Resize the terminal. Chainable. */
+  resize(cols: number, rows: number): TestApp
+  /** Paste text (each char as keypress, newlines as Enter). Chainable. */
+  paste(text: string): TestApp
+  /** Advance fake timers by ms. Tests must call vi.useFakeTimers() first. Chainable. */
+  tick(ms: number): TestApp
+  /** History of all actions (press, type, command, dispatch, resize, paste, tick). */
+  readonly actionHistory: readonly string[]
   /** Access to the repo for persistence assertions */
   readonly repo: Repo
   /** Access the underlying BoardDriver (headless only — throws on termless) */
@@ -591,6 +599,69 @@ function getHeadlessNodeHandleByTitle(driver: BoardDriver, title: string): NodeH
 }
 
 // =============================================================================
+// Dispose invariants (shared by both backends)
+// =============================================================================
+
+/**
+ * Run lightweight invariant checks at test dispose time.
+ * Uses expect() so failures appear as vitest test failures, not thrown errors.
+ * Wrapped in try/catch so dispose always completes cleanup.
+ *
+ * SILVERY_STRICT levels:
+ * - 0: Skip all checks (benchmarks)
+ * - 1 (default): Run checks at dispose
+ * - 2: Checks run after every action AND at dispose
+ */
+function runDisposeInvariants(getStoreState: () => BoardAppStore, actionHistory: readonly string[]): void {
+  const strictLevel = Number(process.env.SILVERY_STRICT ?? "1")
+  if (strictLevel === 0) return
+
+  try {
+    const s = getStoreState()
+    const board = Workspace.getActiveBoardPane(s)
+    if (!board) return
+
+    const repo = s.repo
+    const cursorId = (board.sel.node.cursor() as string | null) ?? null
+    const selectedIds = Array.from(board.sel.node.ids()) as string[]
+    const historyStr =
+      actionHistory.length > 0 ? ` (after ${actionHistory.length} actions: ${actionHistory.slice(-5).join(", ")})` : ""
+
+    // Check cursor points to an existing node
+    if (cursorId) {
+      expect(
+        repo.getNode(cursorId),
+        `Dispose invariant: cursor "${cursorId}" should exist in repo${historyStr}`,
+      ).not.toBeNull()
+    }
+
+    // Check all selected nodes exist
+    for (const nodeId of selectedIds) {
+      expect(
+        repo.getNode(nodeId),
+        `Dispose invariant: selected node "${nodeId}" should exist in repo${historyStr}`,
+      ).not.toBeNull()
+    }
+
+    // Check no duplicate columns
+    if (board.signals) {
+      const lens = board.signals.visibleLens()
+      const rootId = board.rootId
+      if (rootId) {
+        const colIds = lens.children(rootId)
+        const colIdSet = new Set(colIds)
+        expect(
+          colIdSet.size,
+          `Dispose invariant: no duplicate columns (found ${colIds.length} columns, ${colIdSet.size} unique)${historyStr}`,
+        ).toBe(colIds.length)
+      }
+    }
+  } catch {
+    // Swallow — dispose must always complete cleanup
+  }
+}
+
+// =============================================================================
 // Headless Backend
 // =============================================================================
 
@@ -623,18 +694,23 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     void driver.press(key) // fire-and-forget the microtask promise
   }
 
+  const _actionHistory: string[] = []
+
   const app: TestApp = {
     press(key: string): TestApp {
+      _actionHistory.push(`press(${key})`)
       pressKey(key)
       return app
     },
 
     type(text: string): TestApp {
+      _actionHistory.push(`type(${JSON.stringify(text)})`)
       for (const ch of text) pressKey(ch)
       return app
     },
 
     command(commandId: string): TestApp {
+      _actionHistory.push(`command(${commandId})`)
       const keys = COMMAND_TO_KEYS[commandId]
       if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
       for (const key of keys) pressKey(key)
@@ -642,6 +718,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
 
     dispatch(commandId: string): TestApp {
+      _actionHistory.push(`dispatch(${commandId})`)
       act(() => {
         dispatchCommandById(commandId, driver.store.getState as () => BoardAppStore)
         driver.store.setState((s) => s)
@@ -651,12 +728,39 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
 
     navigateTo(target: string): TestApp {
+      _actionHistory.push(`navigateTo(${target})`)
       for (let i = 0; i < 50; i++) {
         const loc = driver.locator(`#${target}[data-cursor]`)
         if (loc.count() > 0) return app
         pressKey("j")
       }
       throw new Error(`navigateTo: could not reach "${target}" in 50 steps`)
+    },
+
+    resize(newCols: number, newRows: number): TestApp {
+      _actionHistory.push(`resize(${newCols},${newRows})`)
+      const d = driver as unknown as { resize?: (c: number, r: number) => void }
+      if (typeof d.resize === "function") d.resize(newCols, newRows)
+      return app
+    },
+
+    paste(text: string): TestApp {
+      _actionHistory.push(`paste(${JSON.stringify(text)})`)
+      for (const ch of text) {
+        if (ch === "\n") pressKey("Enter")
+        else pressKey(ch)
+      }
+      return app
+    },
+
+    tick(ms: number): TestApp {
+      _actionHistory.push(`tick(${ms})`)
+      vi.advanceTimersByTime(ms)
+      return app
+    },
+
+    get actionHistory(): readonly string[] {
+      return _actionHistory
     },
 
     get text(): string {
@@ -835,6 +939,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
 
     [Symbol.dispose](): void {
+      runDisposeInvariants(() => driver.store.getState(), _actionHistory)
       if ("unmount" in driver && typeof driver.unmount === "function") {
         driver.unmount()
       }
@@ -1141,18 +1246,23 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     }
   }
 
+  const _actionHistory: string[] = []
+
   const app: TestApp = {
     press(key: string): TestApp {
+      _actionHistory.push(`press(${key})`)
       pressKey(key)
       return app
     },
 
     type(text: string): TestApp {
+      _actionHistory.push(`type(${JSON.stringify(text)})`)
       for (const ch of text) pressKey(ch)
       return app
     },
 
     command(commandId: string): TestApp {
+      _actionHistory.push(`command(${commandId})`)
       const keys = COMMAND_TO_KEYS[commandId]
       if (!keys) throw new Error(`command("${commandId}"): no key mapping found`)
       for (const key of keys) pressKey(key)
@@ -1160,6 +1270,7 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     },
 
     dispatch(commandId: string): TestApp {
+      _actionHistory.push(`dispatch(${commandId})`)
       if (!handle) throw new Error("dispatch() called before handle is ready")
       act(() => {
         dispatchCommandById(commandId, handle!.store.getState as () => BoardAppStore)
@@ -1170,12 +1281,40 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     },
 
     navigateTo(target: string): TestApp {
+      _actionHistory.push(`navigateTo(${target})`)
       for (let i = 0; i < 50; i++) {
         const loc = getLocator(`#${target}[data-cursor]`)
         if (loc.count() > 0) return app
         pressKey("j")
       }
       throw new Error(`navigateTo: could not reach "${target}" in 50 steps`)
+    },
+
+    resize(newCols: number, newRows: number): TestApp {
+      _actionHistory.push(`resize(${newCols},${newRows})`)
+      // Termless: resize the terminal emulator
+      const t = term as unknown as { resize?: (c: number, r: number) => void }
+      if (typeof t.resize === "function") t.resize(newCols, newRows)
+      return app
+    },
+
+    paste(text: string): TestApp {
+      _actionHistory.push(`paste(${JSON.stringify(text)})`)
+      for (const ch of text) {
+        if (ch === "\n") pressKey("Enter")
+        else pressKey(ch)
+      }
+      return app
+    },
+
+    tick(ms: number): TestApp {
+      _actionHistory.push(`tick(${ms})`)
+      vi.advanceTimersByTime(ms)
+      return app
+    },
+
+    get actionHistory(): readonly string[] {
+      return _actionHistory
     },
 
     get text(): string {
@@ -1362,7 +1501,10 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     },
 
     [Symbol.dispose](): void {
-      if (handle) handle.unmount()
+      if (handle) {
+        runDisposeInvariants(() => handle!.store.getState(), _actionHistory)
+        handle.unmount()
+      }
       term[Symbol.dispose]()
       reactiveStore[Symbol.dispose]()
       toastQueue[Symbol.dispose]()

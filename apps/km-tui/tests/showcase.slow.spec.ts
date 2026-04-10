@@ -5,13 +5,17 @@
  * seen the code should understand what the app does by reading these tests.
  *
  * Demonstrates:
- * - CSS selector queries: #id, [attr], #parent > #child, descendant, sibling
+ * - CSS selector queries: #id, [attr], #parent > #child, descendant, sibling, ~, :pseudo
  * - Typed node handles: app.card(), app.column(), app.node()
  * - Declarative state: app.state (cursor, selection, view, overlay, visible)
  * - Custom matchers: toHaveText, toContainText, toBeVisible, toBeLeftOf, toBeContainedIn
+ * - TestApp matchers: toHaveCursorOn, toHaveView, toHaveOverlay, toHaveBell, toHaveNodeCount
  * - Snapshot assertions: app.expectSnapshot()
  * - Journey patterns: multi-step user workflows
  * - fromMarkdown inline fixture: createTestApp.fromMarkdown()
+ * - Action history: app.actionHistory tracks every user action
+ * - resize/paste/tick: terminal resize, paste simulation, fake timer advance
+ * - Dispose invariants: auto-checked via [Symbol.dispose] (SILVERY_STRICT controlled)
  */
 
 import { describe, test, expect } from "vitest"
@@ -229,4 +233,64 @@ describe("Node Handles", () => {
     const ghost = app.node("does-not-exist")
     expect(ghost.exists).toBe(false)
   })
+})
+
+describe("TestApp Matchers", () => {
+  test("semantic board state matchers express intent clearly", () => {
+    using app = createTestApp(item("board", item("col1", item("task-x"), item("task-y")), item("col2", item("task-z"))))
+
+    // Board state matchers — readable, intent-revealing assertions
+    expect(app).toHaveCursorOn("task-x")
+    expect(app).toHaveView("cards")
+    expect(app).toHaveOverlay(null)
+
+    // Navigate and re-assert
+    app.command("cursor_down")
+    expect(app).toHaveCursorOn("task-y")
+
+    // Visible node count: board + 2 cols + 3 tasks = 6
+    expect(app).toHaveNodeCount(6)
+  })
+})
+
+describe("Action History", () => {
+  test("actionHistory tracks every user interaction for failure diagnostics", () => {
+    using app = createTestApp(item("board", item("col1", item("ah-task"))))
+
+    app.press("j")
+    app.command("cursor_up")
+    app.type("hello")
+
+    // Action history records every interaction — format: action(arg)
+    expect(app.actionHistory).toContain("press(j)")
+    expect(app.actionHistory).toContain("command(cursor_up)")
+    expect(app.actionHistory.some((a) => a.startsWith("type("))).toBe(true)
+  })
+})
+
+describe("Semantic Tree Queries", () => {
+  test("descendant selectors find nested nodes in the rendered tree", () => {
+    using app = createTestApp(item("board", item("deep-col", item("parent-card", item("child-1"), item("child-2")))))
+
+    // Direct ID selectors find rendered nodes
+    app.expect("#deep-col").toExist()
+    app.expect("#parent-card").toExist()
+    app.expect("#child-1").toExist()
+
+    // Descendant combinator (space) — traverses the full rendered tree.
+    // Note: child combinator (>) requires direct parent-child in the AgNode tree,
+    // which has React wrapper nodes between data-model nodes. Use descendant (space)
+    // for data-model relationships.
+    app.expect("#deep-col #parent-card").toExist()
+    app.expect("#deep-col #child-1").toExist()
+
+    // Attribute selectors — find cursor, data attributes
+    app.expect("[data-cursor]").toExist()
+    app.expect("#parent-card[data-cursor]").toExist()
+  })
+
+  // The semantic tree is built on-demand: if a useful query pattern isn't supported
+  // by AutoLocator yet (e.g. a new pseudo-selector, combinator, or structural query),
+  // it SHOULD be implemented in vendor/silvery/packages/test/src/auto-locator.ts.
+  // The AutoLocator IS the semantic screen model — extend it as needed.
 })

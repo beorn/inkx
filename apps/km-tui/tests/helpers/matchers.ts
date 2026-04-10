@@ -17,6 +17,7 @@
 
 import { expect } from "vitest"
 import type { AutoLocator, Rect } from "@silvery/test"
+import type { TestAppState } from "./test-app.ts"
 
 // =============================================================================
 // Type Guard
@@ -43,6 +44,30 @@ function assertAutoLocator(value: unknown, matcherName: string): asserts value i
 }
 
 // =============================================================================
+// TestApp Type Guard
+// =============================================================================
+
+function isTestApp(value: unknown): value is { state: TestAppState } {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "state" in value &&
+    typeof (value as Record<string, unknown>).state === "object" &&
+    (value as Record<string, unknown>).state !== null &&
+    "cursor" in ((value as Record<string, unknown>).state as Record<string, unknown>)
+  )
+}
+
+function assertTestApp(value: unknown, matcherName: string): asserts value is { state: TestAppState } {
+  if (!isTestApp(value)) {
+    throw new Error(
+      `${matcherName} expects a TestApp (with .state property), got ${typeof value}. ` +
+        `Use createTestApp() to create a TestApp.`,
+    )
+  }
+}
+
+// =============================================================================
 // Matcher Type Declarations
 // =============================================================================
 
@@ -64,6 +89,14 @@ declare module "vitest" {
     toBeContainedIn(container: AutoLocator): void
     toHaveWidth(expected: number): void
     toHaveHeight(expected: number): void
+
+    // TestApp matchers — board state assertions
+    toHaveCursorOn(nodeId: string): void
+    toHaveSelection(nodeIds: string[]): void
+    toHaveView(mode: string): void
+    toHaveOverlay(name: string | null): void
+    toHaveBell(): void
+    toHaveNodeCount(count: number): void
   }
 }
 
@@ -370,6 +403,131 @@ expect.extend({
       pass,
       message: () =>
         pass ? `Expected height not to be ${expected}` : `Expected height to be ${expected}, got ${rect.height}`,
+    }
+  },
+})
+
+// =============================================================================
+// TestApp Matchers — Board State Assertions
+// =============================================================================
+
+expect.extend({
+  /**
+   * Assert cursor is on a specific node.
+   *
+   * @example
+   * expect(app).toHaveCursorOn("task1")
+   */
+  toHaveCursorOn(received: unknown, nodeId: string) {
+    assertTestApp(received, "toHaveCursorOn")
+    const actual = received.state.cursor
+    const pass = actual === nodeId
+
+    return {
+      pass,
+      message: () =>
+        pass ? `Expected cursor not to be on "${nodeId}"` : `Expected cursor on "${nodeId}", got "${actual}"`,
+    }
+  },
+
+  /**
+   * Assert exact selection set (order-independent).
+   *
+   * @example
+   * expect(app).toHaveSelection(["task1", "task2"])
+   * expect(app).toHaveSelection([])  // nothing selected
+   */
+  toHaveSelection(received: unknown, nodeIds: string[]) {
+    assertTestApp(received, "toHaveSelection")
+    const actual = [...received.state.selection].sort()
+    const expected = [...nodeIds].sort()
+    const pass = actual.length === expected.length && actual.every((id, i) => id === expected[i])
+
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `Expected selection not to be [${nodeIds.join(", ")}]`
+          : `Expected selection [${nodeIds.join(", ")}], got [${received.state.selection.join(", ")}]`,
+    }
+  },
+
+  /**
+   * Assert current view mode.
+   *
+   * @example
+   * expect(app).toHaveView("cards")
+   * expect(app).toHaveView("columns")
+   */
+  toHaveView(received: unknown, mode: string) {
+    assertTestApp(received, "toHaveView")
+    const actual = received.state.view
+    const pass = actual === mode
+
+    return {
+      pass,
+      message: () => (pass ? `Expected view not to be "${mode}"` : `Expected view to be "${mode}", got "${actual}"`),
+    }
+  },
+
+  /**
+   * Assert overlay state (null = no overlay open).
+   *
+   * @example
+   * expect(app).toHaveOverlay(null)     // no overlay
+   * expect(app).toHaveOverlay("search") // search overlay open
+   */
+  toHaveOverlay(received: unknown, name: string | null) {
+    assertTestApp(received, "toHaveOverlay")
+    const actual = received.state.overlay
+    const pass = actual === name
+
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `Expected overlay not to be ${name === null ? "null" : `"${name}"`}`
+          : `Expected overlay ${name === null ? "null" : `"${name}"`}, got ${actual === null ? "null" : `"${actual}"`}`,
+    }
+  },
+
+  /**
+   * Assert bell fired at least once.
+   *
+   * @example
+   * expect(app).toHaveBell()
+   */
+  toHaveBell(received: unknown) {
+    assertTestApp(received, "toHaveBell")
+    const bellCount = received.state.bell
+    const pass = bellCount > 0
+
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `Expected bell not to have fired (fired ${bellCount} times)`
+          : `Expected bell to have fired, but it didn't`,
+    }
+  },
+
+  /**
+   * Assert number of visible nodes.
+   *
+   * @example
+   * expect(app).toHaveNodeCount(5)
+   */
+  toHaveNodeCount(received: unknown, count: number) {
+    assertTestApp(received, "toHaveNodeCount")
+    const actual = received.state.visible.length
+    const pass = actual === count
+
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `Expected node count not to be ${count}`
+          : `Expected ${count} visible nodes, got ${actual} [${received.state.visible.join(", ")}]`,
     }
   },
 })
