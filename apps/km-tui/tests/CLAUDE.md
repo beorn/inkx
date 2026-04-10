@@ -245,7 +245,7 @@ Capture the full screen and compare against a golden file. Backend-aware: termle
 ```typescript
 app.expectSnapshot() // anonymous — auto-named by vitest
 app.expectSnapshot("after-fold") // named — multiple snapshots per test
-app.expectScreenMatches("initial-view") // alias for expectSnapshot with required name
+app.expectSnapshot("initial-view") // alias for expectSnapshot with required name
 ```
 
 ### Action History (app.actionHistory)
