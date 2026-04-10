@@ -22,7 +22,7 @@ accountly auto             # Auto-switch to account with most remaining quota
 | Command                              | Description                                        |
 | ------------------------------------ | -------------------------------------------------- |
 | `accountly`                          | Show discovered accounts with quota status         |
-| `accountly status`                   | Show all accounts with quota usage                 |
+| `accountly status`                   | Show all accounts with quota usage (`--json` for machine output) |
 | `accountly import`                   | Import Claude Code credentials from macOS Keychain |
 | `accountly switch <name>`            | Switch active Claude Code account                  |
 | `accountly auto`                     | Auto-switch to account with lowest utilization     |
