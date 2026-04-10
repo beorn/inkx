@@ -9,9 +9,20 @@
  * then press Z twice in Ghostty.
  */
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
-import { createTestApp } from "./helpers/test-app.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
+
+/** Deep-compare cell bg/fg (RGB objects) to a TC constant */
+function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }): boolean {
+  if (a === null || a === undefined || typeof a === "number") return false
+  return (
+    typeof a === "object" &&
+    (a as { r: number; g: number; b: number }).r === b.r &&
+    (a as { r: number; g: number; b: number }).g === b.g &&
+    (a as { r: number; g: number; b: number }).b === b.b
+  )
+}
 
 // Build a tree deep enough for zoom: root > child-board > grandchild columns with cards
 function deepTree() {
@@ -124,27 +135,22 @@ describe("Zoom-out rendering at wide terminal", () => {
     ).toHaveLength(0)
   })
 
-  // NOTE: This test stays on testEnv because it relies on theme tokens resolving
-  // to 16-color ANSI indices (TC["$selection-bg"] === 3). createTestApp's driver
-  // does not wrap the app in a ThemeProvider with defaultKmTheme, so background
-  // colors are returned as truecolor {r,g,b} objects instead of palette indices,
-  // and the TC[...] comparisons fail.
   test("selection background stays within selected card bounds after zoom out at 200 cols", () => {
     const cols = 200
     const rows = 50
-    const { board } = testEnv(deepTree, { columns: cols, rows })
+    using app = createTestApp(deepTree(), { cols, rows })
 
     // Zoom into child-board, then zoom back out
-    board.press("z")
-    board.expect("#gc-col-A").toExist()
-    board.press("Z")
-    board.expect("#child-board").toExist()
+    app.press("z")
+    app.expect("#gc-col-A").toExist()
+    app.press("Z")
+    app.expect("#child-board").toExist()
 
     // Move cursor down to select a different card (j moves to next card)
-    board.press("j")
+    app.press("j")
 
     // Find the bounding box of the currently selected card via [data-cursor]
-    const cursorLoc = board.q("[data-cursor]")
+    const cursorLoc = app.q("[data-cursor]")
     expect(cursorLoc.count(), "cursor element should exist after pressing j").toBeGreaterThan(0)
     const selectedNodeId = cursorLoc.getAttribute("id")
     expect(selectedNodeId, "cursor element should have an id attribute").toBeTruthy()
@@ -158,15 +164,15 @@ describe("Zoom-out rendering at wide terminal", () => {
     const selectionBg = TC["$selection-bg"]
     let foundSelectionBg = false
     for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
-      const cell = board.screen.cell(x, selectedBox.y)
-      if (cell.bg === selectionBg) {
+      const cell = app.screen.cell(x, selectedBox.y)
+      if (colorEquals(cell.bg, selectionBg)) {
         foundSelectionBg = true
         break
       }
     }
     expect(
       foundSelectionBg,
-      `selected card "${selectedNodeId}" should have $selection-bg (${selectionBg}) somewhere in its row`,
+      `selected card "${selectedNodeId}" should have $selection-bg (${JSON.stringify(selectionBg)}) somewhere in its row`,
     ).toBe(true)
 
     // Check cells ABOVE the selected card -- they should NOT have $selection-bg.
@@ -174,15 +180,15 @@ describe("Zoom-out rendering at wide terminal", () => {
     const rowsAbove: { x: number; y: number }[] = []
     for (let y = Math.max(1, selectedBox.y - 3); y < selectedBox.y; y++) {
       for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
-        const cell = board.screen.cell(x, y)
-        if (cell.bg === selectionBg) {
+        const cell = app.screen.cell(x, y)
+        if (colorEquals(cell.bg, selectionBg)) {
           rowsAbove.push({ x, y })
         }
       }
     }
     expect(
       rowsAbove,
-      `selection bg (${selectionBg}) bleeds above selected card at: ${rowsAbove
+      `selection bg bleeds above selected card at: ${rowsAbove
         .slice(0, 5)
         .map((p) => `(${p.x},${p.y})`)
         .join(", ")}`,
@@ -192,15 +198,15 @@ describe("Zoom-out rendering at wide terminal", () => {
     const rowsBelow: { x: number; y: number }[] = []
     for (let y = selectedBox.y + selectedBox.height; y < Math.min(rows, selectedBox.y + selectedBox.height + 3); y++) {
       for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
-        const cell = board.screen.cell(x, y)
-        if (cell.bg === selectionBg) {
+        const cell = app.screen.cell(x, y)
+        if (colorEquals(cell.bg, selectionBg)) {
           rowsBelow.push({ x, y })
         }
       }
     }
     expect(
       rowsBelow,
-      `selection bg (${selectionBg}) bleeds below selected card at: ${rowsBelow
+      `selection bg bleeds below selected card at: ${rowsBelow
         .slice(0, 5)
         .map((p) => `(${p.x},${p.y})`)
         .join(", ")}`,
@@ -211,15 +217,15 @@ describe("Zoom-out rendering at wide terminal", () => {
       const leftBleed: { x: number; y: number }[] = []
       for (let y = selectedBox.y; y < selectedBox.y + selectedBox.height; y++) {
         for (let x = 0; x < selectedBox.x; x++) {
-          const cell = board.screen.cell(x, y)
-          if (cell.bg === selectionBg) {
+          const cell = app.screen.cell(x, y)
+          if (colorEquals(cell.bg, selectionBg)) {
             leftBleed.push({ x, y })
           }
         }
       }
       expect(
         leftBleed,
-        `selection bg (${selectionBg}) bleeds left of selected card at: ${leftBleed
+        `selection bg bleeds left of selected card at: ${leftBleed
           .slice(0, 5)
           .map((p) => `(${p.x},${p.y})`)
           .join(", ")}`,

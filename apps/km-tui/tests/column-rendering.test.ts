@@ -21,9 +21,21 @@ import { mkdirSync, writeFileSync } from "fs"
 import { createTerminalFixture } from "@termless/test"
 import "@termless/test/matchers"
 import { testEnv, testEnvWithRepo, item } from "./helpers/board-test.ts"
+import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
+
+/** Deep-compare cell bg/fg (RGB objects) to a TC constant */
+function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }): boolean {
+  if (a === null || a === undefined || typeof a === "number") return false
+  return (
+    typeof a === "object" &&
+    (a as { r: number; g: number; b: number }).r === b.r &&
+    (a as { r: number; g: number; b: number }).g === b.g &&
+    (a as { r: number; g: number; b: number }).b === b.b
+  )
+}
 
 // =============================================================================
 // Scroll indicators in COLUMNS view (km-tui.col-scroll)
@@ -93,22 +105,22 @@ describe("col-scroll-indicator", () => {
 
 describe("km-tui.col-selected-style: column selected style at column level", () => {
   it("column header has yellow fg when cursor is at column level", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
-      { columns: 100, rows: 20 },
-    )
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
+      cols: 100,
+      rows: 20,
+    })
 
     // Initially cursor is at card level on first card
-    board.expect('[id="task1"][data-cursor]').toExist()
+    app.expect('[id="task1"][data-cursor]').toExist()
 
     // Press k to go up from first card to column header
-    board.command("cursor_up")
+    app.command("cursor_up")
 
     // Now cursor should be at column level
-    board.expect('[data-cursor][data-card-index="-1"]').toExist()
+    app.expect('[data-cursor][data-card-index="-1"]').toExist()
 
     // Find col1's column element to get its bounding box
-    const colLoc = board.q('[id="col1"][data-view="column"]')
+    const colLoc = app.q('[id="col1"][data-view="column"]')
     expect(colLoc.count()).toBeGreaterThan(0)
     const colBox = colLoc.boundingBox()
     expect(colBox).not.toBeNull()
@@ -117,27 +129,27 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     // The first row of the column bounding box is the header.
     // Find the "col1" text within that row.
     const headerY = colBox.y
-    const row = board.screen.row(headerY)
+    const row = app.screen.row(headerY)
     const colTextX = row.indexOf("col1")
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
     // When cursor is at column level, header has inverse yellow (like selected card title)
-    const cell = board.screen.cell(colTextX, headerY)
+    const cell = app.screen.cell(colTextX, headerY)
     expect(cell.fg, "column header fg should be $selectedfg when at column level").toEqual(TC.$selectedfg)
     expect(cell.bg, "column header bg should be $selected when at column level").toEqual(TC.$selected)
   })
 
   it("separator line is yellow when cursor is at column level", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
-      { columns: 100, rows: 20 },
-    )
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
+      cols: 100,
+      rows: 20,
+    })
 
     // Go to column level
-    board.command("cursor_up")
+    app.command("cursor_up")
 
     // Find col1's column element
-    const colLoc = board.q('[id="col1"][data-view="column"]')
+    const colLoc = app.q('[id="col1"][data-view="column"]')
     const colBox = colLoc.boundingBox()
     expect(colBox).not.toBeNull()
     if (!colBox) return
@@ -148,29 +160,29 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     // Find the first line-drawing char in the separator row within the column's x range
     let sepX = -1
     for (let x = colBox.x; x < colBox.x + colBox.width; x++) {
-      if (board.screen.cell(x, separatorY).char === "\u2500") {
+      if (app.screen.cell(x, separatorY).char === "\u2500") {
         sepX = x
         break
       }
     }
     expect(sepX, "separator char should be found").toBeGreaterThanOrEqual(0)
 
-    const sepCell = board.screen.cell(sepX, separatorY)
+    const sepCell = app.screen.cell(sepX, separatorY)
     expect(sepCell.fg, "separator fg should be $selected when column selected").toEqual(TC.$selected)
-    expect(sepCell.attrs.dim, "separator should NOT be dim when column selected").toBeFalsy()
+    expect(sepCell.dim, "separator should NOT be dim when column selected").toBeFalsy()
   })
 
   it("column card area has visible yellow left border when cursor is at column level", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
-      { columns: 100, rows: 20 },
-    )
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
+      cols: 100,
+      rows: 20,
+    })
 
     // Go to column level
-    board.command("cursor_up")
+    app.command("cursor_up")
 
     // Find col1's column element
-    const colLoc = board.q('[id="col1"][data-view="column"]')
+    const colLoc = app.q('[id="col1"][data-view="column"]')
     const colBox = colLoc.boundingBox()
     expect(colBox).not.toBeNull()
     if (!colBox) return
@@ -187,30 +199,30 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
       if (y >= colBox.y + colBox.height) break
 
       // The leftmost cell of the column should be yellow (border or indicator)
-      const leftCell = board.screen.cell(colBox.x, y)
+      const leftCell = app.screen.cell(colBox.x, y)
       // Accept either a border character with $selected color, or a space with $selected bg
-      const isYellowBorder = leftCell.fg === TC.$selected // $selected foreground for border chars
-      const isYellowBg = leftCell.bg === TC.$selected // $selected background
+      const isYellowBorder = colorEquals(leftCell.fg, TC.$selected) // $selected foreground for border chars
+      const isYellowBg = colorEquals(leftCell.bg, TC.$selected) // $selected background
 
       expect(
         isYellowBorder || isYellowBg,
         `column left edge at (${colBox.x}, ${y}) should have yellow styling ` +
-          `(fg=${leftCell.fg}, bg=${leftCell.bg}, char="${leftCell.char}")`,
+          `(fg=${JSON.stringify(leftCell.fg)}, bg=${JSON.stringify(leftCell.bg)}, char="${leftCell.char}")`,
       ).toBe(true)
     }
   })
 
   it("non-selected column does NOT have yellow header styling", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1")), item("col2", item("task3"))), {
-      columns: 100,
+    using app = createTestApp(item("board", item("col1", item("task1")), item("col2", item("task3"))), {
+      cols: 100,
       rows: 20,
     })
 
     // Go to column level on col1
-    board.command("cursor_up")
+    app.command("cursor_up")
 
     // Find col2's column element
-    const col2Loc = board.q('[id="col2"][data-view="column"]')
+    const col2Loc = app.q('[id="col2"][data-view="column"]')
     expect(col2Loc.count()).toBeGreaterThan(0)
     const col2Box = col2Loc.boundingBox()
     expect(col2Box).not.toBeNull()
@@ -218,30 +230,30 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
 
     // col2 header should NOT have $selected bg
     const headerY = col2Box.y
-    const row = board.screen.row(headerY)
+    const row = app.screen.row(headerY)
     const col2Idx = row.indexOf("col2")
     expect(col2Idx).toBeGreaterThan(-1)
 
-    const cell = board.screen.cell(col2Idx, headerY)
+    const cell = app.screen.cell(col2Idx, headerY)
     expect(cell.bg, "non-selected column header should NOT have $selected bg").not.toEqual(TC.$selected)
   })
 
   it("returning to card level removes column-level yellow border", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
-      { columns: 100, rows: 20 },
-    )
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
+      cols: 100,
+      rows: 20,
+    })
 
     // Go to column level
-    board.command("cursor_up")
-    board.expect('[data-cursor][data-card-index="-1"]').toExist()
+    app.command("cursor_up")
+    app.expect('[data-cursor][data-card-index="-1"]').toExist()
 
     // Go back to card level
-    board.command("cursor_down")
-    board.expect('[id="task1"][data-cursor]').toExist()
+    app.command("cursor_down")
+    app.expect('[id="task1"][data-cursor]').toExist()
 
     // Find col1's column element
-    const colLoc = board.q('[id="col1"][data-view="column"]')
+    const colLoc = app.q('[id="col1"][data-view="column"]')
     const colBox = colLoc.boundingBox()
     expect(colBox).not.toBeNull()
     if (!colBox) return
@@ -250,16 +262,16 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     const separatorY = colBox.y + 1
     let sepX = -1
     for (let x = colBox.x; x < colBox.x + colBox.width; x++) {
-      if (board.screen.cell(x, separatorY).char === "\u2500") {
+      if (app.screen.cell(x, separatorY).char === "\u2500") {
         sepX = x
         break
       }
     }
     expect(sepX).toBeGreaterThanOrEqual(0)
 
-    const sepCell = board.screen.cell(sepX, separatorY)
+    const sepCell = app.screen.cell(sepX, separatorY)
     // When back at card level, separator should use muted color ($text3), not selection color
-    expect(sepCell.fg, "separator should use $text3 when back at card level").toBe(TC.$text3)
+    expect(sepCell.fg, "separator should use $text3 when back at card level").toEqual(TC.$text3)
   })
 })
 
@@ -779,13 +791,13 @@ describe("section card rendering", () => {
   })
 
   test("section card selection uses yellow background (like other cards)", () => {
-    const { board } = testEnv(() => item("board", item("col", item.section("My Section", item("task-1")))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("col", item.section("My Section", item("task-1")))), {
+      cols: 80,
       rows: 24,
     })
 
     // First card should be the section, and it should be selected
-    board.expectNodeColor("My Section", { bg: TC.$selected })
+    app.expectNodeColor("My Section", { bg: TC.$selected })
   })
 
   test("section cards with children show fold marker and child count", () => {

@@ -1,1 +1,1 @@
-2 vendor/silvery/benchmarks/output-bytes.ts
+1 vendor/silvery/bin/silvery.ts

@@ -1164,3 +1164,172 @@ describe("filter hidden count indicator", () => {
     expect(screen).not.toContain("+5 filtered")
   })
 })
+
+// =============================================================================
+// Merged from filter.slow.spec.ts — Filter/View Journey Tests
+// =============================================================================
+
+describe("Filter/View Journeys", () => {
+  test("vd hides done tasks, navigate among remaining, vd restores all", async () => {
+    const nodes = item("board", item("col1", item("todoA"), item("doneA"), item("todoB"), item("doneB")))
+    // Mark some tasks as done
+    for (const n of nodes) {
+      if (n.id === "doneA" || n.id === "doneB") {
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
+      }
+    }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    // Step 1: All tasks visible initially
+    let screen = app.text
+    expect(screen).toContain("todoA")
+    expect(screen).toContain("doneA")
+    expect(screen).toContain("todoB")
+    expect(screen).toContain("doneB")
+
+    // Step 2: vd hides done tasks
+    app.command("toggle_hide_done")
+    screen = app.text
+    expect(screen).toContain("todoA")
+    expect(screen).not.toContain("doneA")
+    expect(screen).toContain("todoB")
+    expect(screen).not.toContain("doneB")
+
+    // Step 3: Cursor should still be on a visible card (todoA)
+    app.expect("#todoA[data-cursor]").toExist()
+
+    // Step 4: vd again restores done tasks — all should reappear
+    app.command("toggle_hide_done")
+    screen = app.text
+    expect(screen).toContain("todoA")
+    expect(screen).toContain("doneA")
+    expect(screen).toContain("todoB")
+    expect(screen).toContain("doneB")
+  })
+
+  test("filter via V panel, navigate filtered results, close panel, unfilter", async () => {
+    using app = createTestApp(
+      item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
+      { cols: 120, rows: 24 },
+    )
+
+    // Step 1: All items visible initially
+    let screen = app.text
+    expect(screen).toContain("Buy groceries")
+    expect(screen).toContain("Fix bug")
+    expect(screen).toContain("Write docs")
+
+    // Step 2: Open filter panel and toggle 'todo' status
+    app.command("filter")
+    screen = app.text
+    expect(screen).toContain("View Settings")
+
+    app.command("select_toggle") // toggle todo on (Status row, first value)
+
+    // Step 3: Close filter panel
+    app.press("Escape")
+    screen = app.text
+    // Filter indicator should show
+    expect(screen).toContain("[F]")
+
+    // Step 4: Navigate among filtered results
+    app.command("cursor_down")
+
+    // Step 5: Open panel again and clear filters
+    app.command("filter")
+    app.command("cycle_task_status") // clear all
+    app.press("Escape")
+
+    screen = app.text
+    // All items should be visible again
+    expect(screen).toContain("Buy groceries")
+    expect(screen).toContain("Fix bug")
+    expect(screen).toContain("Write docs")
+    expect(screen).not.toContain("[F]")
+  })
+
+  test("vd preserves cursor on visible card when done card above is hidden", () => {
+    const nodes = item("board", item("col1", item("done-top"), item("my-task"), item("done-bottom")))
+    for (const n of nodes) {
+      if (n.id === "done-top" || n.id === "done-bottom") {
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
+      }
+    }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    // Step 1: Navigate to my-task
+    app.command("cursor_down")
+    app.expect("#my-task[data-cursor]").toExist()
+
+    // Step 2: vd hides done tasks — cursor should stay on my-task
+    app.command("toggle_hide_done")
+    app.expect("#my-task[data-cursor]").toExist()
+    const screen = app.text
+    expect(screen).not.toContain("done-top")
+    expect(screen).not.toContain("done-bottom")
+    expect(screen).toContain("my-task")
+  })
+
+  test("filter then navigate across columns, unfilter preserves column position", async () => {
+    const nodes = item(
+      "board",
+      item("Todo", item("todo-a"), item("done-a")),
+      item("Notes", item("note-1"), item("done-note")),
+    )
+    for (const n of nodes) {
+      if (n.id === "done-a" || n.id === "done-note") {
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
+      }
+    }
+
+    using app = createTestApp(nodes, { cols: 120, rows: 24 })
+
+    // Step 1: Hide done tasks
+    app.command("toggle_hide_done")
+    let screen = app.text
+    expect(screen).not.toContain("done-a")
+    expect(screen).not.toContain("done-note")
+
+    // Step 2: Navigate to second column
+    app.command("cursor_right")
+    app.expect("#note-1[data-cursor]").toExist()
+
+    // Step 3: Unfilter — done tasks should reappear in both columns
+    app.command("toggle_hide_done")
+    screen = app.text
+    expect(screen).toContain("done-a")
+    expect(screen).toContain("done-note")
+    expect(screen).toContain("todo-a")
+    expect(screen).toContain("note-1")
+  })
+
+  test("hidden count indicator updates as filter changes", () => {
+    const nodes = item(
+      "board",
+      item("Tasks", item("todo-1"), item("todo-2"), item("done-1"), item("done-2"), item("done-3")),
+    )
+    for (const n of nodes) {
+      if (n.id?.startsWith("done-")) {
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
+      }
+    }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    // Step 1: No hidden indicator initially
+    let screen = app.text
+    expect(screen).not.toContain("filtered")
+
+    // Step 2: vd hides 3 done tasks
+    app.command("toggle_hide_done")
+    screen = app.text
+    expect(screen).toContain("+3 filtered")
+
+    // Step 3: vd again shows all tasks — no hidden indicator
+    app.command("toggle_hide_done")
+    screen = app.text
+    expect(screen).not.toContain("filtered")
+  })
+})

@@ -374,14 +374,21 @@ export interface TestApp {
    * the public API genuinely doesn't cover what you need (e.g., checking internal
    * UI state like undoStack, pane layout, text edit hints).
    *
+   * @param reason - Optional label describing why store access is needed (for readability)
+   * @param fn - Callback receiving the current store state
+   *
    * @example
    * ```typescript
    * app.withStore(s => {
    *   expect(s.workspace.panes.size).toBe(2)
    * })
+   * app.withStore("assert pane layout", s => {
+   *   expect(s.workspace.panes.size).toBe(2)
+   * })
    * ```
    */
   withStore<T>(fn: (store: BoardAppStore) => T): T
+  withStore<T>(reason: string, fn: (store: BoardAppStore) => T): T
   /** Dispose the test app */
   [Symbol.dispose](): void
 }
@@ -715,7 +722,19 @@ function getHeadlessNodeHandleByTitle(driver: BoardDriver, title: string): NodeH
  * - 1 (default): Run checks at dispose
  * - 2: Checks run after every action AND at dispose
  */
-function runDisposeInvariants(getStoreState: () => BoardAppStore, actionHistory: readonly string[]): void {
+interface CellAccessorForInvariants {
+  cell(col: number, row: number): CellInfo | null
+  locator(selector: string): {
+    count(): number
+    boundingBox(): { x: number; y: number; width: number; height: number } | null
+  }
+}
+
+function runDisposeInvariants(
+  getStoreState: () => BoardAppStore,
+  actionHistory: readonly string[],
+  cellAccessor?: CellAccessorForInvariants,
+): void {
   const strictLevel = Number(process.env.SILVERY_STRICT ?? "1")
   if (strictLevel === 0) return
 
@@ -757,6 +776,90 @@ function runDisposeInvariants(getStoreState: () => BoardAppStore, actionHistory:
           colIdSet.size,
           `Dispose invariant: no duplicate columns (found ${colIds.length} columns, ${colIdSet.size} unique)${historyStr}`,
         ).toBe(colIds.length)
+      }
+    }
+
+    // Check cursor is visible (not hidden by fold/filter)
+    if (cursorId && board.signals) {
+      const lens = board.signals.visibleLens()
+      const rootId = board.rootId
+      if (rootId) {
+        const visible: string[] = []
+        collectVisibleIds(lens, rootId, visible)
+        // Only check if cursor is expected to be visible (not during zoom transitions)
+        if (visible.length > 0) {
+          expect(
+            visible.includes(cursorId),
+            `Dispose invariant: cursor "${cursorId}" should be visible in the tree (visible: ${visible.slice(0, 5).join(", ")}...)${historyStr}`,
+          ).toBe(true)
+        }
+      }
+    }
+
+    // Border integrity — strict-2 only (expensive, ~5ms)
+    if (strictLevel >= 2 && cellAccessor) {
+      // Check visible cards have continuous vertical borders on left and right edges.
+      // Uses the cell accessor callback to read rendered characters without
+      // needing a direct driver reference.
+      if (board.signals) {
+        const lens = board.signals.visibleLens()
+        const rootId = board.rootId
+        if (rootId) {
+          const colIds = lens.children(rootId)
+          for (const colId of colIds) {
+            const cardIds = lens.children(colId)
+            for (const cardId of cardIds) {
+              // Find the card's rendered location via locator
+              const loc = cellAccessor.locator(`#${cardId}`)
+              if (loc.count() === 0) continue
+              const box = loc.boundingBox()
+              if (!box || box.width < 2 || box.height < 1) continue
+
+              // Check left and right border columns for border characters
+              const borderChars = new Set([
+                "│",
+                "┃",
+                "║",
+                "┌",
+                "┐",
+                "└",
+                "┘",
+                "├",
+                "┤",
+                "╭",
+                "╮",
+                "╰",
+                "╯",
+                "█",
+                "▏",
+                "▎",
+                "▍",
+                "▌",
+                "▋",
+                "▊",
+                "▉",
+              ])
+              for (let row = box.y; row < box.y + box.height; row++) {
+                const leftCell = cellAccessor.cell(box.x, row)
+                const rightCell = cellAccessor.cell(box.x + box.width - 1, row)
+                if (leftCell && borderChars.has(leftCell.char)) continue
+                if (rightCell && borderChars.has(rightCell.char)) continue
+                // At least one edge should have a border char on each row
+                const hasLeftBorder = leftCell != null && borderChars.has(leftCell.char)
+                const hasRightBorder = rightCell != null && borderChars.has(rightCell.char)
+                if (!hasLeftBorder && !hasRightBorder) {
+                  expect
+                    .soft(
+                      false,
+                      `Dispose invariant (strict-2): card "${cardId}" row ${row - box.y} missing border chars (left="${leftCell?.char ?? "?"}", right="${rightCell?.char ?? "?"}")${historyStr}`,
+                    )
+                    .toBe(true)
+                  break // one failure per card is enough
+                }
+              }
+            }
+          }
+        }
       }
     }
   } catch {
@@ -1256,12 +1359,26 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return driver
     },
 
-    withStore<T>(fn: (store: BoardAppStore) => T): T {
+    withStore<T>(reasonOrFn: string | ((store: BoardAppStore) => T), maybeFn?: (store: BoardAppStore) => T): T {
+      const fn = typeof reasonOrFn === "function" ? reasonOrFn : maybeFn!
       return fn(driver.store.getState() as BoardAppStore)
     },
 
     [Symbol.dispose](): void {
-      runDisposeInvariants(() => driver.store.getState(), _actionHistory)
+      runDisposeInvariants(() => driver.store.getState(), _actionHistory, {
+        cell(col: number, row: number): CellInfo | null {
+          try {
+            const fc: FrameCell = driver.cell(col, row)
+            return { char: fc.char, fg: fc.fg, bg: fc.bg, bold: fc.bold, dim: fc.dim, italic: fc.italic }
+          } catch {
+            return null
+          }
+        },
+        locator(selector: string) {
+          const loc = driver.locator(selector)
+          return { count: () => loc.count(), boundingBox: () => loc.boundingBox() }
+        },
+      })
       if ("unmount" in driver && typeof driver.unmount === "function") {
         driver.unmount()
       }
@@ -2013,8 +2130,9 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       throw new Error("driver is not available on termless backend — use headless backend for driver access")
     },
 
-    withStore<T>(fn: (store: BoardAppStore) => T): T {
+    withStore<T>(reasonOrFn: string | ((store: BoardAppStore) => T), maybeFn?: (store: BoardAppStore) => T): T {
       if (!handle) throw new Error("withStore: termless handle not ready")
+      const fn = typeof reasonOrFn === "function" ? reasonOrFn : maybeFn!
       return fn(handle.store.getState() as BoardAppStore)
     },
 

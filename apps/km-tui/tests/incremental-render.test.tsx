@@ -1,10 +1,6 @@
 /**
  * Incremental Rendering Tests
  *
- * FREEZE: entire file uses testEnv — all tests access board._result.term.cell()
- * and board._result.locator() for buffer-level incremental rendering assertions.
- * Also uses palette color indices (TC.$selected) which resolve to truecolor in createTestApp.
- *
  * Verifies that buffer clone + subtree skip (incremental renderPhase)
  * doesn't leave stale pixels when cursor moves between cards.
  *
@@ -14,117 +10,121 @@ import { describe, expect, test } from "vitest"
 import React, { useState } from "react"
 import { Box, Text, useInput, type Key } from "@silvery/ag-react"
 import { createRenderer } from "@silvery/test"
-import { item, testEnv } from "./helpers/board-test"
+import { item } from "./helpers/board-test"
+import { createTestApp, type CellInfo } from "./helpers/test-app"
 import { TC } from "./helpers/theme"
+
+/** Deep-compare cell bg/fg (RGB objects) to a TC constant */
+function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }): boolean {
+  if (a === null || a === undefined || typeof a === "number") return false
+  return (
+    typeof a === "object" &&
+    (a as { r: number; g: number; b: number }).r === b.r &&
+    (a as { r: number; g: number; b: number }).g === b.g &&
+    (a as { r: number; g: number; b: number }).b === b.b
+  )
+}
 
 describe("incremental rendering", () => {
   test("cursor movement clears old highlight background", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
+    using app = createTestApp(
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
       { incremental: true },
     )
-    const app = board._result
 
     // Initial render: cursor should be on "1a"
-    const cursor1 = app.locator("[data-cursor]")
-    expect(cursor1.textContent()).toContain("1a")
-    const box1 = cursor1.boundingBox()
+    app.expect("#1a[data-cursor]").toExist()
+    const box1 = app.q("#1a[data-cursor]").boundingBox()
     expect(box1).not.toBeNull()
 
     // Check initial cell bg at cursor position
-    // The data-cursor Box has backgroundColor="$selected"
-    const cell1 = app.term.cell(box1!.x, box1!.y)
-    expect(cell1.bg).toBe(TC.$selected)
+    const cell1 = app.screen.cell(box1!.x, box1!.y)
+    expect(colorEquals(cell1.bg, TC.$selected), "initial cursor bg should be $selected").toBe(true)
 
     // Move cursor down to "1b"
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Cursor should now be on "1b"
-    const cursor2 = app.locator("[data-cursor]")
-    expect(cursor2.textContent()).toContain("1b")
-    const box2 = cursor2.boundingBox()
+    app.expect("#1b[data-cursor]").toExist()
+    const box2 = app.q("#1b[data-cursor]").boundingBox()
     expect(box2).not.toBeNull()
 
     // New cursor should have $selected bg
-    const cell2 = app.term.cell(box2!.x, box2!.y)
-    expect(cell2.bg).toBe(TC.$selected)
+    const cell2 = app.screen.cell(box2!.x, box2!.y)
+    expect(colorEquals(cell2.bg, TC.$selected), "new cursor bg should be $selected").toBe(true)
 
     // OLD cursor position should NOT have $selected bg (stale pixel check)
-    const oldCell = app.term.cell(box1!.x, box1!.y)
-    expect(oldCell.bg).not.toBe(TC.$selected)
+    const oldCell = app.screen.cell(box1!.x, box1!.y)
+    expect(colorEquals(oldCell.bg, TC.$selected), "old cursor position should be cleared").toBe(false)
   })
 
   test("multiple cursor movements don't accumulate stale pixels", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("a"), item("b"), item("c"), item("d"))), {
+    using app = createTestApp(item("board", item("col1", item("a"), item("b"), item("c"), item("d"))), {
       incremental: true,
     })
-    const app = board._result
 
     // Collect positions as we move through items
     const positions: Array<{ x: number; y: number }> = []
 
     // Record initial cursor position
-    const box0 = app.locator("[data-cursor]").boundingBox()!
+    const box0 = app.q("[data-cursor]").boundingBox()!
     positions.push({ x: box0.x, y: box0.y })
 
     // Move down 3 times, recording each position
     for (let i = 0; i < 3; i++) {
-      board.command("cursor_down")
-      const box = app.locator("[data-cursor]").boundingBox()!
+      app.command("cursor_down")
+      const box = app.q("[data-cursor]").boundingBox()!
       positions.push({ x: box.x, y: box.y })
     }
 
     // Current cursor (on "d") should have $selected bg
-    const currentCell = app.term.cell(positions[3]!.x, positions[3]!.y)
-    expect(currentCell.bg).toBe(TC.$selected)
+    const currentCell = app.screen.cell(positions[3]!.x, positions[3]!.y)
+    expect(colorEquals(currentCell.bg, TC.$selected), "current cursor should have $selected bg").toBe(true)
 
     // ALL previous positions should NOT have $selected bg
     for (let i = 0; i < 3; i++) {
-      const cell = app.term.cell(positions[i]!.x, positions[i]!.y)
-      expect(cell.bg).not.toBe(TC.$selected)
+      const cell = app.screen.cell(positions[i]!.x, positions[i]!.y)
+      expect(colorEquals(cell.bg, TC.$selected), `position ${i} should not have stale $selected bg`).toBe(false)
     }
   })
 
   test("cross-column cursor movement clears highlight", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
+    using app = createTestApp(
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
       { incremental: true },
     )
-    const app = board._result
 
     // Cursor on col1/1a
-    const box1 = app.locator("[data-cursor]").boundingBox()!
-    expect(app.term.cell(box1.x, box1.y).bg).toBe(TC.$selected)
+    const box1 = app.q("[data-cursor]").boundingBox()!
+    expect(colorEquals(app.screen.cell(box1.x, box1.y).bg, TC.$selected)).toBe(true)
 
     // Move right to col2
-    board.command("cursor_right")
-    const box2 = app.locator("[data-cursor]").boundingBox()!
+    app.command("cursor_right")
+    const box2 = app.q("[data-cursor]").boundingBox()!
 
     // col2 cursor highlighted, col1 old position cleared
-    expect(app.term.cell(box2.x, box2.y).bg).toBe(TC.$selected)
-    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(TC.$selected)
+    expect(colorEquals(app.screen.cell(box2.x, box2.y).bg, TC.$selected)).toBe(true)
+    expect(colorEquals(app.screen.cell(box1.x, box1.y).bg, TC.$selected)).toBe(false)
   })
 
   test("scrolling within column clears stale highlights", () => {
     // Many items to force scrolling in a small viewport
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("a"), item("b"), item("c"), item("d"), item("e"), item("f"), item("g"), item("h")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("a"), item("b"), item("c"), item("d"), item("e"), item("f"), item("g"), item("h")),
+      ),
       { incremental: true, rows: 16 },
     )
-    const app = board._result
 
     // Navigate down through all items, checking for stale yellow pixels
     for (let i = 0; i < 7; i++) {
-      const cursorText = app.locator("[data-cursor]").textContent()
+      const cursorText = app.q("[data-cursor]").textContent()
 
-      board.command("cursor_down")
+      app.command("cursor_down")
 
-      const afterCursorText = app.locator("[data-cursor]").textContent()
-      const afterBox = app.locator("[data-cursor]").boundingBox()!
+      const afterCursorText = app.q("[data-cursor]").textContent()
+      const afterBox = app.q("[data-cursor]").boundingBox()!
 
       // Cursor element should exist and have moved
       expect(afterBox).not.toBeNull()
@@ -133,8 +133,8 @@ describe("incremental rendering", () => {
       // Only cells within the current cursor's bounds should have $selected bg.
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 80; x++) {
-          const cell = app.term.cell(x, y)
-          if (cell.bg === TC.$selected) {
+          const cell = app.screen.cell(x, y)
+          if (colorEquals(cell.bg, TC.$selected)) {
             // This cell has $selected bg - it should be within the cursor bounds
             const inCursorArea =
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
@@ -153,22 +153,21 @@ describe("incremental rendering", () => {
   test("scrolling in small viewport clears stale highlights", () => {
     // Force scrolling: many items in a tiny viewport
     // Cards are ~4 rows each, rows=12 fits ~2 cards
-    const { board } = testEnv(
-      () => item("board", item("col1", item("a"), item("b"), item("c"), item("d"), item("e"))),
-      { incremental: true, rows: 12 },
-    )
-    const app = board._result
+    using app = createTestApp(item("board", item("col1", item("a"), item("b"), item("c"), item("d"), item("e"))), {
+      incremental: true,
+      rows: 12,
+    })
 
     for (let i = 0; i < 4; i++) {
-      board.command("cursor_down")
+      app.command("cursor_down")
 
-      const afterBox = app.locator("[data-cursor]").boundingBox()!
+      const afterBox = app.q("[data-cursor]").boundingBox()!
 
       // Full scan: no $selected bg outside current cursor bounds
       for (let y = 0; y < 12; y++) {
         for (let x = 0; x < 80; x++) {
-          const cell = app.term.cell(x, y)
-          if (cell.bg === TC.$selected) {
+          const cell = app.screen.cell(x, y)
+          if (colorEquals(cell.bg, TC.$selected)) {
             const inCursor =
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursor) {
@@ -183,35 +182,37 @@ describe("incremental rendering", () => {
   })
 
   test("cursor up also clears highlight", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))), {
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))), {
       incremental: true,
     })
-    const app = board._result
 
     // Record initial position
-    const box1 = app.locator("[data-cursor]").boundingBox()!
+    const box1 = app.q("[data-cursor]").boundingBox()!
 
     // Move down
-    board.command("cursor_down")
-    const box2 = app.locator("[data-cursor]").boundingBox()!
+    app.command("cursor_down")
+    const box2 = app.q("[data-cursor]").boundingBox()!
 
     // 1b is now selected (data-cursor on 1b)
-    expect(app.locator("[data-cursor]").textContent()).toContain("1b")
+    expect(app.q("[data-cursor]").textContent()).toContain("1b")
     // Old position (1a) should NOT have $selected bg
-    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(TC.$selected)
+    expect(colorEquals(app.screen.cell(box1.x, box1.y).bg, TC.$selected)).toBe(false)
 
     // Move back up
-    board.command("cursor_up")
+    app.command("cursor_up")
 
     // 1a is now selected again (data-cursor on 1a)
-    expect(app.locator("[data-cursor]").textContent()).toContain("1a")
+    expect(app.q("[data-cursor]").textContent()).toContain("1a")
     // Old position (1b) should NOT have $selected bg
-    expect(app.term.cell(box2.x, box2.y).bg).not.toBe(TC.$selected)
+    expect(colorEquals(app.screen.cell(box2.x, box2.y).bg, TC.$selected)).toBe(false)
   })
 })
 
 describe("incremental rendering: Text node backgroundColor", () => {
   const render = createRenderer({ cols: 40, rows: 10 })
+
+  // ANSI 16-color palette index for yellow (createRenderer returns palette indices, not RGB)
+  const YELLOW_INDEX = 3
 
   test("column-header-style Text bg clears when selection changes", () => {
     // Mimics column headers: <Text backgroundColor={selected ? "yellow" : undefined}>
@@ -241,30 +242,30 @@ describe("incremental rendering: Text node backgroundColor", () => {
     const doingBox = app.getByText("Doing").boundingBox()!
     const doneBox = app.getByText("Done").boundingBox()!
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(TC.$selected)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(YELLOW_INDEX)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(YELLOW_INDEX)
 
     // Move selection to "Doing"
     app.press("l")
 
-    // "Todo" $selected should be cleared, "Doing" should be $selected
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(TC.$selected)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).toBe(TC.$selected)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(TC.$selected)
+    // "Todo" should be cleared, "Doing" should be yellow
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(YELLOW_INDEX)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).toBe(YELLOW_INDEX)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(YELLOW_INDEX)
 
     // Move selection to "Done"
     app.press("l")
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(TC.$selected)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).toBe(TC.$selected)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(YELLOW_INDEX)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(YELLOW_INDEX)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).toBe(YELLOW_INDEX)
 
     // Move back to "Todo"
     app.press("h")
     app.press("h")
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(TC.$selected)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(YELLOW_INDEX)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(YELLOW_INDEX)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(YELLOW_INDEX)
   })
 })

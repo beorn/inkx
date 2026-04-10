@@ -10,9 +10,20 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { createTestApp } from "./helpers/test-app.ts"
+import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
+
+/** Deep-compare cell bg/fg (RGB objects) to a TC constant */
+function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }): boolean {
+  if (a === null || a === undefined || typeof a === "number") return false
+  return (
+    typeof a === "object" &&
+    (a as { r: number; g: number; b: number }).r === b.r &&
+    (a as { r: number; g: number; b: number }).g === b.g &&
+    (a as { r: number; g: number; b: number }).b === b.b
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -65,23 +76,22 @@ describe("HR borderless rendering", () => {
     }
   })
 
-  // FREEZE: needs ANSI color index comparison (TC.$selected) — createTestApp returns RGB
   test("selected HR is yellow", () => {
-    const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
-    const hrBox = board.screen.nodeBox("my-hr")
+    using app = createTestApp(item("board", item("col", item.hr("my-hr"))))
+    const hrBox = app.screen.nodeBox("my-hr")
     expect(hrBox, "HR node should be visible").not.toBeNull()
     if (hrBox) {
       let dashX = -1
       for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
-        if (board.screen.cell(x, hrBox.y).char === "-") {
+        if (app.screen.cell(x, hrBox.y).char === "-") {
           dashX = x
           break
         }
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
-      const cell = board.screen.cell(dashX, hrBox.y)
-      expect(cell.fg, "selected HR should be $selected").toBe(TC.$selected)
-      expect(cell.attrs.dim, "selected HR should not be dim").toBeFalsy()
+      const cell = app.screen.cell(dashX, hrBox.y)
+      expect(colorEquals(cell.fg, TC.$selected), "selected HR should be $selected").toBe(true)
+      expect(cell.dim, "selected HR should not be dim").toBeFalsy()
     }
   })
 
@@ -179,26 +189,25 @@ describe("HR display", () => {
     expect(app.text).toContain("---")
   })
 
-  // FREEZE: needs ANSI color index comparison (TC.$selected) — createTestApp returns RGB
   test("HR line is muted when cursor is NOT on it", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))),
-      { columns: 60, rows: 20 },
-    )
+    using app = createTestApp(item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))), {
+      cols: 60,
+      rows: 20,
+    })
 
-    const hrBox = board.screen.nodeBox("hr-node")
+    const hrBox = app.screen.nodeBox("hr-node")
     expect(hrBox, "HR node should be visible").not.toBeNull()
     if (hrBox) {
       let dashX = -1
       for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
-        if (board.screen.cell(x, hrBox.y).char === "-") {
+        if (app.screen.cell(x, hrBox.y).char === "-") {
           dashX = x
           break
         }
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
-      const cell = board.screen.cell(dashX, hrBox.y)
-      expect(cell.fg, "non-selected HR should not be $selected").not.toBe(TC.$selected)
+      const cell = app.screen.cell(dashX, hrBox.y)
+      expect(colorEquals(cell.fg, TC.$selected), "non-selected HR should not be $selected").toBe(false)
     }
   })
 
