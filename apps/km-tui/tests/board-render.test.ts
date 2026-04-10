@@ -68,7 +68,7 @@ describe("useChildren", () => {
   // test renderer caching the ChildrenDisplay output.
   //
   // Reactivity for this exact pattern IS verified end-to-end by the board
-  // integration tests in testEnv() — if addNode didn't update screen output
+  // integration tests in createDriverTest() — if addNode didn't update screen output
   // in the real app, those would fail. So the bug is in this micro-test's
   // wiring, not the production hook.
   //

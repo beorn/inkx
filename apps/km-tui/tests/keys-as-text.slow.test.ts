@@ -12,7 +12,7 @@
 
 import { act } from "react"
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
+import { item, createDriverTest } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
@@ -25,7 +25,7 @@ import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
  * Open the search dialog via the "search" command.
  * After dispatching, press Backspace to flush the silvery render pipeline.
  */
-function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof createDriverTest>["board"]) {
   act(() => {
     dispatchCommandById("search", store.getState as () => BoardAppStore)
     store.setState((s) => s)
@@ -238,7 +238,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // P1 Bug: km-tui.keys-as-text — After selecting a search result with Enter,
     // the Enter propagates and triggers inline edit mode on the target card.
     // Subsequent j/k/h/l keys then insert into the title instead of navigating.
-    const { board, repo, store } = testEnv(
+    const { board, repo, store } = createDriverTest(
       () =>
         item(
           "board",
@@ -307,7 +307,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // P1 Bug: If Enter propagates or user double-taps Enter, the second Enter
     // would trigger ENTER_INLINE_EDIT on the card selected by search.
     // The dialog confirm grace period should suppress this.
-    const { board, repo, store } = testEnv(
+    const { board, repo, store } = createDriverTest(
       () =>
         item(
           "board",

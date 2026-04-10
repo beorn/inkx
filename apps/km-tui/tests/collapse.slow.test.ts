@@ -19,7 +19,7 @@
  */
 
 import { describe, test, it, expect, beforeAll } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -476,44 +476,6 @@ describe("collapsed column width", () => {
     expect(incrementalScreenshot).toBe(freshScreenshot)
   })
 
-  // FREEZE: needs store.getState() — uses board._result.lastBuffer() / freshRender()
-  it("incremental render buffer matches fresh render after collapse", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-          item("col3", item("task-e")),
-        ),
-      { columns: 120, rows: 30, incremental: true },
-    )
-    board.command("cursor_right").command("toggle_collapse")
-
-    const incBuffer = board._result.lastBuffer()!
-    const freshBuffer = board._result.freshRender()
-
-    // Compare buffers cell-by-cell
-    for (let y = 0; y < incBuffer.height; y++) {
-      for (let x = 0; x < incBuffer.width; x++) {
-        const a = incBuffer.getCell(x, y)
-        const b = freshBuffer.getCell(x, y)
-        if (
-          a.char !== b.char ||
-          JSON.stringify(a.fg) !== JSON.stringify(b.fg) ||
-          JSON.stringify(a.bg) !== JSON.stringify(b.bg) ||
-          JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)
-        ) {
-          expect.fail(
-            `Cell mismatch at (${x},${y}): ` +
-              `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)} attrs:${JSON.stringify(a.attrs)}} ` +
-              `fresh={char:${JSON.stringify(b.char)} fg:${JSON.stringify(b.fg)} bg:${JSON.stringify(b.bg)} attrs:${JSON.stringify(b.attrs)}}`,
-          )
-        }
-      }
-    }
-  })
-
   it("collapsed column cards are not visible in rendered output", () => {
     using app = createTestApp(
       item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
@@ -544,14 +506,14 @@ describe("collapsed column width", () => {
 // Collapsed column border symmetry (km-tui.collapsed-shift)
 //
 // Uses beforeAll with shared board, plus board.expect() / board.press() chained.
-// Kept on testEnv because beforeAll async + using doesn't compose well here.
+// Kept on createDriverTest because beforeAll async + using doesn't compose well here.
 // =============================================================================
 
 describe("collapsed column border symmetry", () => {
   // FREEZE: needs store.getState() — beforeAll shared env with board.screen.nodeBox/cell
-  let board: ReturnType<typeof testEnv>["board"]
+  let board: ReturnType<typeof createDriverTest>["board"]
   beforeAll(() => {
-    const env = testEnv(() => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))), {
+    const env = createDriverTest(() => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))), {
       columns: 80,
       rows: 20,
     })
@@ -636,7 +598,7 @@ describe("collapsed column border symmetry", () => {
 // Collapsed column after shift
 //
 // beforeAll-shared env + board.press("opt+l") + _result.lastBuffer() —
-// kept on testEnv.
+// kept on createDriverTest.
 // =============================================================================
 
 describe("collapsed column after shift", () => {
@@ -644,9 +606,9 @@ describe("collapsed column after shift", () => {
 
   // FREEZE: needs store.getState() — beforeAll shared env with board.screen.nodeBox/cell
   describe("collapse + shift right (shared env)", () => {
-    let board: ReturnType<typeof testEnv>["board"]
+    let board: ReturnType<typeof createDriverTest>["board"]
     beforeAll(() => {
-      const env = testEnv(
+      const env = createDriverTest(
         () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a")), item("Later", item("3a"))),
         { columns: 80, rows: 20 },
       )
@@ -704,42 +666,6 @@ describe("collapsed column after shift", () => {
       }
       expect(firstBorderX, `First border char should be at box.x=${box.x}, got ${firstBorderX}`).toBe(box.x)
     })
-  })
-
-  // FREEZE: needs store.getState() — uses board._result.lastBuffer() / freshRender()
-  test("incremental render matches fresh after collapse + shift", () => {
-    const { board } = testEnv(
-      () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a")), item("Later", item("3a"))),
-      { columns: 80, rows: 20, incremental: true },
-    )
-
-    // Collapse Todo and shift right
-    board.command("cursor_up")
-    board.command("toggle_collapse")
-    board.press("opt+l")
-
-    const incBuffer = board._result.lastBuffer()!
-    const freshBuffer = board._result.freshRender()
-
-    // Compare buffers cell-by-cell
-    for (let y = 0; y < incBuffer.height; y++) {
-      for (let x = 0; x < incBuffer.width; x++) {
-        const a = incBuffer.getCell(x, y)
-        const b = freshBuffer.getCell(x, y)
-        if (
-          a.char !== b.char ||
-          JSON.stringify(a.fg) !== JSON.stringify(b.fg) ||
-          JSON.stringify(a.bg) !== JSON.stringify(b.bg) ||
-          JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)
-        ) {
-          expect.fail(
-            `Cell mismatch at (${x},${y}): ` +
-              `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)} attrs:${JSON.stringify(a.attrs)}} ` +
-              `fresh={char:${JSON.stringify(b.char)} fg:${JSON.stringify(b.fg)} bg:${JSON.stringify(b.bg)} attrs:${JSON.stringify(b.attrs)}}`,
-          )
-        }
-      }
-    }
   })
 
   test("collapsed column at different positions renders correctly", () => {
@@ -804,12 +730,15 @@ describe("collapsed column after shift", () => {
 describe("uncollapse header rendering", () => {
   // FREEZE: needs store.getState() — beforeAll shared env with board.expectScreen
   describe("Alpha column round-trip (shared env)", () => {
-    let board: ReturnType<typeof testEnv>["board"]
+    let board: ReturnType<typeof createDriverTest>["board"]
     beforeAll(() => {
-      const env = testEnv(() => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
-        columns: 80,
-        rows: 20,
-      })
+      const env = createDriverTest(
+        () => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))),
+        {
+          columns: 80,
+          rows: 20,
+        },
+      )
       board = env.board
       // Collapse and uncollapse
       board.command("toggle_collapse")

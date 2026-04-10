@@ -1,4 +1,4 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: createRepo with loadFiles
+// createDriverTest FREEZE bucket — see km-all.test-system bead. Reason: createRepo with loadFiles
 /**
  * Real vault diagnostic tests
  *

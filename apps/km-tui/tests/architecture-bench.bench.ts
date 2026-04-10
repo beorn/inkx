@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 
 // =============================================================================
 // Fixture: Large board (8 cols × 60 cards × 3 sub-items = 1440+ nodes)
@@ -36,7 +36,7 @@ function largeBoardFixture(): ReturnType<typeof item> {
 
 describe("Architecture Correctness", { timeout: 30000 }, () => {
   test("cursor correctness after rapid mixed navigation", () => {
-    const { board } = testEnv(() => largeBoardFixture(), {
+    const { board } = createDriverTest(() => largeBoardFixture(), {
       columns: 200,
       rows: 60,
     })
@@ -58,7 +58,7 @@ describe("Architecture Correctness", { timeout: 30000 }, () => {
   })
 
   test("subscription baseline: visible items × 10 subs", () => {
-    const { board } = testEnv(() => largeBoardFixture(), {
+    const { board } = createDriverTest(() => largeBoardFixture(), {
       columns: 200,
       rows: 60,
     })
@@ -71,7 +71,7 @@ describe("Architecture Correctness", { timeout: 30000 }, () => {
   })
 
   test("screen diff: j-press changes <= 5 lines", () => {
-    const { board } = testEnv(() => largeBoardFixture(), {
+    const { board } = createDriverTest(() => largeBoardFixture(), {
       columns: 200,
       rows: 60,
     })

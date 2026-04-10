@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
@@ -269,7 +269,7 @@ describe("Escape Layering", () => {
     // Regression: when localSearch state exists and user is in inline edit,
     // Escape should exit edit mode (text.exit_edit) before closing find results.
     // The fix was: find_close requires not(isInlineEditing).
-    const { board, repo, store } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+    const { board, repo, store } = createDriverTest(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     // Set localSearch state directly (simulating confirmed find results visible)
     store.setState((s) => {

@@ -1,9 +1,9 @@
 /**
  * Column rendering tests — scroll indicators, selected style, title truncation.
  *
- * FREEZE: entire file uses testEnv — palette color indices (TC.$selected, TC.$selectedfg,
- * TC.$text3) resolve to ANSI 16-color numbers in testEnv but to truecolor {r,g,b}
- * objects in createTestApp. Also uses testEnvWithRepo, board.screen.cell with palette
+ * FREEZE: entire file uses createDriverTest — palette color indices (TC.$selected, TC.$selectedfg,
+ * TC.$text3) resolve to ANSI 16-color numbers in createDriverTest but to truecolor {r,g,b}
+ * objects in createTestApp. Also uses createDriverTestWithRepo, board.screen.cell with palette
  * color comparisons, and board.screenshot().
  *
  * Consolidated from:
@@ -20,7 +20,7 @@ import { describe, test, it, expect } from "vitest"
 import { mkdirSync, writeFileSync } from "fs"
 import { createTerminalFixture } from "@termless/test"
 import "@termless/test/matchers"
-import { testEnv, testEnvWithRepo, item } from "./helpers/board-test.ts"
+import { createDriverTest, createDriverTestWithRepo, item } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
@@ -48,7 +48,7 @@ describe("col-scroll-indicator", () => {
 
   test("▼ shows in columns view when cards exceed viewport", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+    const { board } = createDriverTest(() => item("board", item("col1", ...cards)), {
       rows: 20,
       columns: 80,
       viewMode: "columns",
@@ -60,7 +60,7 @@ describe("col-scroll-indicator", () => {
 
   test("▲ shows in columns view after scrolling down", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+    const { board } = createDriverTest(() => item("board", item("col1", ...cards)), {
       rows: 20,
       columns: 80,
       viewMode: "columns",
@@ -79,7 +79,7 @@ describe("col-scroll-indicator", () => {
   test("▸ shows in columns view when more columns exist to the right", () => {
     // maxCols = floor(80/35) = 2 columns fit. With 4 columns, right indicator should show.
     const cols = Array.from({ length: 4 }, (_, i) => item(`col${i}`, item(`task${i}`)))
-    const { board } = testEnv(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
+    const { board } = createDriverTest(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
 
     const text = board.screenshot()
     // Right indicator (▸) should show since columns 2,3 are off-screen
@@ -88,7 +88,7 @@ describe("col-scroll-indicator", () => {
 
   test("◂ shows in columns view after scrolling right", () => {
     const cols = Array.from({ length: 4 }, (_, i) => item(`col${i}`, item(`task${i}`)))
-    const { board } = testEnv(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
+    const { board } = createDriverTest(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
 
     // Move right to next column to trigger horizontal scroll
     board.command("cursor_right").command("cursor_right")
@@ -377,10 +377,13 @@ describe("col-title-truncate", () => {
     // Title is 90 chars — longer than the 80-col terminal, so it MUST be
     // truncated everywhere (breadcrumb header AND column header).
     const longTitle = "This Is A Very Long Column Name That Should Definitely Be Truncated Because It Is Way Too Long"
-    const { board } = testEnv(() => item.root("board", item(longTitle, item("task-a")), item("col2", item("task-b"))), {
-      columns: 80,
-      rows: 20,
-    })
+    const { board } = createDriverTest(
+      () => item.root("board", item(longTitle, item("task-a")), item("col2", item("task-b"))),
+      {
+        columns: 80,
+        rows: 20,
+      },
+    )
 
     const text = board.screenshot()
     // Full title should NOT appear — it's 95 chars, wider than the 80-col terminal
@@ -391,7 +394,7 @@ describe("col-title-truncate", () => {
   })
 
   test("single column with very long name truncates properly", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item.root(
           "board",
@@ -406,7 +409,7 @@ describe("col-title-truncate", () => {
   test("header row respects column width with large count display", () => {
     // 10 cards produce a 2-digit count display that reduces available name space
     const cards = Array.from({ length: 10 }, (_, i) => item(`card${i}`))
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item.root("board", item("A Somewhat Long Column Name Here", ...cards), item("Short", item("x"))),
       { columns: 60, rows: 20 },
     )
@@ -428,7 +431,7 @@ describe("col-title-truncate", () => {
     })
 
     const repo = createFakeRepo({ nodes })
-    const { board } = testEnvWithRepo(repo, "root", { columns: 60, rows: 20 })
+    const { board } = createDriverTestWithRepo(repo, "root", { columns: 60, rows: 20 })
 
     const text = board.screenshot()
     expectLinesWithinWidth(text, 60)
@@ -448,7 +451,7 @@ describe("col-title-truncate", () => {
     })
 
     const repo = createFakeRepo({ nodes })
-    const { board } = testEnvWithRepo(repo, "root", { columns: 80, rows: 15 })
+    const { board } = createDriverTestWithRepo(repo, "root", { columns: 80, rows: 15 })
 
     const text = board.screenshot()
     // The sigil suffix should NOT appear since it's slug-equivalent to the title
@@ -466,7 +469,7 @@ describe("col-title-truncate", () => {
     })
 
     const repo = createFakeRepo({ nodes })
-    const { board } = testEnvWithRepo(repo, "root", { columns: 80, rows: 15 })
+    const { board } = createDriverTestWithRepo(repo, "root", { columns: 80, rows: 15 })
 
     const text = board.screenshot()
     expect(text).toContain("@next")
@@ -482,7 +485,7 @@ describe("col-title-truncate", () => {
     })
 
     const repo = createFakeRepo({ nodes })
-    const { board } = testEnvWithRepo(repo, "root", { columns: 30, rows: 15 })
+    const { board } = createDriverTestWithRepo(repo, "root", { columns: 30, rows: 15 })
 
     expectLinesWithinWidth(board.screenshot(), 30)
   })
@@ -498,7 +501,7 @@ describe("col-title-truncate", () => {
     })
 
     const repo = createFakeRepo({ nodes })
-    const { board } = testEnvWithRepo(repo, "root", {
+    const { board } = createDriverTestWithRepo(repo, "root", {
       columns: 60,
       rows: 20,
       viewMode: "columns",
@@ -539,10 +542,13 @@ function findColumnHeaderRow(screenText: string, columnName: string): number {
 
 describe("column header count", () => {
   test("column header hides count when no WIP limit", () => {
-    const { board } = testEnv(() => item("board", item("nocap", item("task-a"), item("task-b"), item("task-c"))), {
-      columns: 60,
-      rows: 24,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("nocap", item("task-a"), item("task-b"), item("task-c"))),
+      {
+        columns: 60,
+        rows: 24,
+      },
+    )
 
     const headerRow = findColumnHeaderRow(board.screen.text, "nocap")
     expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
@@ -555,7 +561,7 @@ describe("column header count", () => {
   })
 
   test("column header shows count/wip when WIP limit configured", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("capped km.limit:: 5", item("task-a"), item("task-b"), item("task-c"))),
       { columns: 60, rows: 24 },
     )
@@ -570,7 +576,7 @@ describe("column header count", () => {
   })
 
   test("column header shows warning when WIP limit exceeded", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("overflow km.limit:: 2", item("task-a"), item("task-b"), item("task-c"))),
       { columns: 60, rows: 24 },
     )
@@ -591,7 +597,7 @@ describe("column header count", () => {
 
 describe("card title subtask progress badge", () => {
   test("subtask badge hidden in cards view (overflow indicators replace it)", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col", item("parent", item("child-a"), item("child-b"), item("child-c")))),
       { columns: 60, rows: 24 },
     )
@@ -606,7 +612,7 @@ describe("card title subtask progress badge", () => {
   })
 
   test("subtask badge hidden for cards with many children", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -634,11 +640,14 @@ describe("card title subtask progress badge", () => {
 
 describe("columns view column header count", () => {
   test("columns view hides count when no WIP limit", () => {
-    const { board } = testEnv(() => item("board", item("nocol", item("parent", item("child-a"), item("child-b")))), {
-      columns: 60,
-      rows: 24,
-      viewMode: "columns",
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("nocol", item("parent", item("child-a"), item("child-b")))),
+      {
+        columns: 60,
+        rows: 24,
+        viewMode: "columns",
+      },
+    )
 
     const headerRow = findColumnHeaderRow(board.screen.text, "nocol")
     expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
@@ -650,7 +659,7 @@ describe("columns view column header count", () => {
   })
 
   test("columns view shows count/wip when WIP limit configured", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("limited km.limit:: 5", item("parent", item("child-a"), item("child-b")))),
       { columns: 60, rows: 24, viewMode: "columns" },
     )
@@ -693,7 +702,7 @@ describe("section card rendering", () => {
     // Sections come from Asana-style section headers in markdown (## Section Name).
     // All cards have borders regardless of fstype — section cards are visually
     // distinct via bold text and separator lines, not by removing borders.
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -725,10 +734,13 @@ describe("section card rendering", () => {
   })
 
   test("section cards display text as bold", () => {
-    const { board } = testEnv(() => item("board", item("col", item.section("Finance & Taxes", item("Pay rent")))), {
-      columns: 80,
-      rows: 24,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col", item.section("Finance & Taxes", item("Pay rent")))),
+      {
+        columns: 80,
+        rows: 24,
+      },
+    )
 
     // The section text (not the § icon prefix) should be bold.
     // The § icon is at the first non-space position; the actual text starts after "§ ".
@@ -752,7 +764,7 @@ describe("section card rendering", () => {
   })
 
   test("section cards are visually distinct from adjacent task cards", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -801,7 +813,7 @@ describe("section card rendering", () => {
   })
 
   test("section cards with children show fold marker and child count", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col", item.section("Has Children", item("child-a"), item("child-b"), item("child-c")))),
       { columns: 80, rows: 24 },
     )
@@ -835,7 +847,7 @@ describe("body block spacing in columns view", () => {
       ),
     )
 
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+    const { board } = createDriverTest(() => nodes, { viewMode: "columns" })
 
     const bodyOneBox = board.screen.nodeBox("body-para-one")
     const bodyTwoBox = board.screen.nodeBox("body-para-two")
@@ -859,7 +871,7 @@ describe("body block spacing in columns view", () => {
     // When ALL children are body (no oi), all are compact
     const nodes = item("board", item("col1", item.p("para-one"), item.p("para-two"), item.p("para-three")))
 
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+    const { board } = createDriverTest(() => nodes, { viewMode: "columns" })
 
     const paraOneBox = board.screen.nodeBox("para-one")
     const paraTwoBox = board.screen.nodeBox("para-two")
@@ -886,7 +898,7 @@ describe("body block spacing in columns view", () => {
       ),
     )
 
-    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+    const { board } = createDriverTest(() => nodes, { viewMode: "columns" })
 
     const secOneBox = board.screen.nodeBox("sec-one")
     const secTwoBox = board.screen.nodeBox("sec-two")
@@ -1013,7 +1025,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
 
   test("j from column header lands on first visible card, not invisible index file", () => {
     const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
-    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+    const { board } = createDriverTestWithRepo(repo, "board", { columns: 80, rows: 20 })
 
     // Initial cursor is on first visible card (task-a).
     board.expect('[id="task-a"][data-cursor]').toExist()
@@ -1031,7 +1043,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
 
   test("k from first visible card goes to column header, not invisible index file", () => {
     const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
-    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+    const { board } = createDriverTestWithRepo(repo, "board", { columns: 80, rows: 20 })
 
     // Initial cursor is on first visible card (task-a).
     board.expect('[id="task-a"][data-cursor]').toExist()
@@ -1045,7 +1057,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
 
   test("index file is not rendered as a card in the column", () => {
     const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
-    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+    const { board } = createDriverTestWithRepo(repo, "board", { columns: 80, rows: 20 })
 
     // The index file node should not appear on screen
     const indexFileNode = board.q('[id="project-md"][data-view="item"]')
@@ -1115,7 +1127,7 @@ describe("md file columns (termless)", { timeout: 30000 }, () => {
 
 describe("km-tui.title-as-card: column title interaction", () => {
   test("k from first card navigates to column level", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 80, rows: 20 },
     )
@@ -1133,7 +1145,7 @@ describe("km-tui.title-as-card: column title interaction", () => {
   })
 
   test("Enter on column opens inline edit for column title", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 80, rows: 20 },
     )
@@ -1153,7 +1165,7 @@ describe("km-tui.title-as-card: column title interaction", () => {
   })
 
   test("click on column header selects the column", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 80, rows: 20 },
     )
@@ -1180,7 +1192,7 @@ describe("km-tui.title-as-card: column title interaction", () => {
   })
 
   test("double-click on column header enters inline edit", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 80, rows: 20 },
     )

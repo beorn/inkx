@@ -14,9 +14,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
-import { createTestApp, type TestApp } from "./helpers/test-app.ts"
-import { VirtualTerminal, outputPhase } from "@silvery/ag-term/toolbelt"
+import { createDriverTest, item } from "./helpers/board-test.ts"
+import { createTestApp, type TestApp, type CellInfo } from "./helpers/test-app.ts"
+import { TC } from "./helpers/theme.ts"
+
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 // =============================================================================
@@ -108,347 +109,6 @@ describe("fold-all-corruption", () => {
     expect(after).toContain("sub-a")
     expect(after).toContain("sub-b")
     expect(after).toContain("sub-c")
-  })
-})
-
-// =============================================================================
-// Fold border blank (km-tui.fold-border-blank)
-// =============================================================================
-
-// FREEZE: needs store.getState() — uses board._result, board.screenshot(), VirtualTerminal for buffer-level assertions
-describe("fold border blank (km-tui.fold-border-blank)", () => {
-  /** Board with nested children that will shrink when outline depth decreases */
-  function nestedBoard() {
-    return testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item("card-a", item("a-child1"), item("a-child2"), item("a-child3")),
-            item("card-b", item("b-child1")),
-            item("card-c"),
-          ),
-        ),
-      { columns: 50, rows: 30, incremental: true },
-    )
-  }
-
-  /** Verify border structure: top/bottom count match AND dashes are continuous */
-  function checkBorderIntegrity(text: string, label: string) {
-    const rows = text.split("\n")
-    // Count top and bottom borders (round style: ╭╮ for top, ╰╯ for bottom)
-    const topBorders = rows.filter((r) => r.includes("\u256d") && r.includes("\u256e"))
-    const bottomBorders = rows.filter((r) => r.includes("\u2570") && r.includes("\u256f"))
-    expect(bottomBorders.length, `${label}: bottom borders should match top borders`).toBe(topBorders.length)
-
-    // Check that each bottom border has continuous horizontal dashes (not spaces).
-    // Overflow cards have a custom bottom border with a "+N" label, e.g.:
-    //   ╰───────── +1 ──────────╯
-    // The "+N" label is allowed; stale blank spaces are not.
-    for (const row of bottomBorders) {
-      const leftIdx = row.indexOf("\u2570")
-      const rightIdx = row.lastIndexOf("\u256f")
-      if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
-        const between = row.slice(leftIdx + 1, rightIdx)
-        // Allow overflow label pattern: dashes + " +N " or " +N more " + dashes
-        const isOverflowBorder = /^\u2500*\s\+\d+(?:\smore)?\s\u2500*$/.test(between)
-        if (!isOverflowBorder) {
-          for (let i = 0; i < between.length; i++) {
-            expect(
-              between[i],
-              `${label}: bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
-            ).toBe("\u2500")
-          }
-        }
-      }
-    }
-  }
-
-  test("decrease outline depth preserves border integrity", () => {
-    const { board } = nestedBoard()
-
-    // Initial: children visible
-    const before = board.screenshot()
-    expect(before).toContain("a-child1")
-    checkBorderIntegrity(before, "before fold")
-
-    // Progressive fold: each press decreases depth by 1 (starts at 3)
-    board.command("fold_all_more") // 3→2
-    const mid1 = board.screenshot()
-    checkBorderIntegrity(mid1, "after first <")
-
-    board.command("fold_all_more") // 2→1
-    const mid2 = board.screenshot()
-    checkBorderIntegrity(mid2, "after second <")
-
-    // Decrease to depth 0 (no children visible)
-    board.command("fold_all_more") // 1→0
-    const after = board.screenshot()
-    expect(after).not.toContain("a-child1")
-    checkBorderIntegrity(after, "after third <")
-  })
-
-  test("increase outline depth after decrease preserves borders", () => {
-    const { board } = nestedBoard()
-
-    // Decrease then increase
-    board.command("fold_all_more").command("fold_all_more").command("fold_all_more") // progressive: 3→2→1→0
-    board.command("unfold_all_more").command("unfold_all_more").command("unfold_all_more") // progressive: 0→1→2→3 (fully unfolded)
-
-    const text = board.screenshot()
-    expect(text).toContain("a-child1")
-    checkBorderIntegrity(text, "after round-trip")
-  })
-
-  test("fold all (<) preserves border integrity", () => {
-    const { board } = nestedBoard()
-
-    // < = fold_all: folds all cards in column
-    board.command("fold_all_more")
-
-    const text = board.screenshot()
-    checkBorderIntegrity(text, "after fold all")
-  })
-
-  test("toggle fold (gc) preserves border integrity", () => {
-    const { board } = nestedBoard()
-
-    // gc = toggle_collapse on current card (card-a)
-    board.command("toggle_collapse")
-
-    const text = board.screenshot()
-    // Collapsed column renders vertically with top border (╭─╮) but bottom (╰─╯)
-    // may be off-screen. Status toast also has borders. Allow ≤1 mismatch for
-    // viewport clipping of the collapsed column.
-    const rows = text.split("\n")
-    const topBorders = rows.filter((r) => r.includes("\u256d") && r.includes("\u256e"))
-    const bottomBorders = rows.filter((r) => r.includes("\u2570") && r.includes("\u256f"))
-    expect(
-      Math.abs(topBorders.length - bottomBorders.length),
-      `after toggle fold: top=${topBorders.length} bottom=${bottomBorders.length}`,
-    ).toBeLessThanOrEqual(1)
-  })
-
-  test("no stale border lines below shrunken cards", () => {
-    const { board } = nestedBoard()
-
-    const before = board.screenshot()
-    // card-a should be multiline (has children)
-    const beforeRows = before.split("\n")
-    const cardATopRow = beforeRows.findIndex((r) => r.includes("card-a"))
-
-    // Decrease depth to hide children
-    board.command("fold_all_more").command("fold_all_more")
-    const after = board.screenshot()
-    const afterRows = after.split("\n")
-
-    // Find card-a in after state — it should be shorter
-    const cardATopRowAfter = afterRows.findIndex((r) => r.includes("card-a"))
-    expect(cardATopRowAfter).toBeGreaterThanOrEqual(0)
-
-    // After the card's bottom border, the next content should be another card or empty space
-    // There should be no orphaned border characters (─ without ╰/╯)
-    const cardABottom = afterRows.findIndex(
-      (r, i) => i > cardATopRowAfter && r.includes("\u2570") && r.includes("\u256f"),
-    )
-    expect(cardABottom).toBeGreaterThan(cardATopRowAfter)
-
-    // Check that rows between card-a bottom and card-b top have no stale border chars
-    const cardBTop = afterRows.findIndex((r, i) => i > cardABottom && r.includes("\u256d") && r.includes("\u256e"))
-    if (cardBTop > cardABottom + 1) {
-      // Rows between cards should not have border characters
-      for (let i = cardABottom + 1; i < cardBTop; i++) {
-        const row = afterRows[i] ?? ""
-        expect(row, `Row ${i} between cards should not have stale borders`).not.toMatch(
-          /[\u2500\u2502\u256d\u256e\u256f\u2570]/,
-        )
-      }
-    }
-  })
-
-  /** Convert VirtualTerminal grid to text string (row per line) */
-  function vtermToText(vterm: VirtualTerminal): string {
-    const lines: string[] = []
-    for (let y = 0; y < vterm.height; y++) {
-      let line = ""
-      for (let x = 0; x < vterm.width; x++) {
-        line += vterm.getChar(x, y)
-      }
-      lines.push(line)
-    }
-    return lines.join("\n")
-  }
-
-  /** Verify ANSI diff replay produces correct terminal output */
-  function verifyDiffReplay(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    prevBuffer: any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    nextBuffer: any,
-    label: string,
-  ) {
-    if (!prevBuffer || !nextBuffer) throw new Error(`${label}: No buffer`)
-
-    // Render initial state to a virtual terminal
-    const vterm = new VirtualTerminal(prevBuffer.width, prevBuffer.height)
-    const fullAnsi = outputPhase(null, prevBuffer)
-    vterm.applyAnsi(fullAnsi)
-
-    // Apply the incremental diff
-    const diffAnsi = outputPhase(prevBuffer, nextBuffer)
-    vterm.applyAnsi(diffAnsi)
-
-    // Compare virtual terminal content with expected buffer
-    const mismatches = vterm.compareToBuffer(nextBuffer)
-    if (mismatches.length > 0) {
-      const details = mismatches
-        .slice(0, 20)
-        .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
-        .join("\n")
-      throw new Error(`${label}: ANSI diff replay mismatch: ${mismatches.length} cells differ:\n${details}`)
-    }
-  }
-
-  test("ANSI diff replay correct after decrease outline depth", () => {
-    const { board } = nestedBoard()
-
-    // Capture buffer before first <
-    const prevBuf1 = board._result.lastBuffer()!.clone()
-    board.command("fold_all_more")
-    const afterBuf1 = board._result.lastBuffer()!
-    verifyDiffReplay(prevBuf1, afterBuf1, "after first <")
-
-    // Capture buffer before second <
-    const prevBuf2 = afterBuf1.clone()
-    board.command("fold_all_more")
-    const afterBuf2 = board._result.lastBuffer()!
-    verifyDiffReplay(prevBuf2, afterBuf2, "after second <")
-  })
-
-  test("ANSI diff replay terminal borders correct after fold", () => {
-    const { board } = nestedBoard()
-
-    // Simulate what a real terminal sees: full render, then each diff in sequence
-    const buf0 = board._result.lastBuffer()!.clone()
-    const vterm = new VirtualTerminal(buf0.width, buf0.height)
-    vterm.applyAnsi(outputPhase(null, buf0))
-
-    // First < press
-    board.command("fold_all_more")
-    const buf1 = board._result.lastBuffer()!
-    const diff1 = outputPhase(buf0, buf1)
-    vterm.applyAnsi(diff1)
-
-    // Verify first diff is correct
-    const mismatches1 = vterm.compareToBuffer(buf1)
-    expect(mismatches1.length, "vterm should match buf1 after first diff").toBe(0)
-
-    // Check after first diff
-    let terminalText = vtermToText(vterm)
-    checkBorderIntegrity(terminalText, "terminal after first <")
-
-    // Second < press
-    const buf1Clone = buf1.clone()
-    board.command("fold_all_more")
-    const buf2 = board._result.lastBuffer()!
-    const diff2 = outputPhase(buf1Clone, buf2)
-    vterm.applyAnsi(diff2)
-
-    // Verify second diff cell-by-cell
-    const mismatches2 = vterm.compareToBuffer(buf2)
-    if (mismatches2.length > 0) {
-      const details = mismatches2
-        .slice(0, 30)
-        .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
-        .join("\n")
-      throw new Error(`vterm should match buf2 after second diff: ${mismatches2.length} cells differ:\n${details}`)
-    }
-
-    // Check after second diff
-    terminalText = vtermToText(vterm)
-    checkBorderIntegrity(terminalText, "terminal after second <")
-
-    // Check bottom border dash integrity (the specific bug symptom)
-    const rows = terminalText.split("\n")
-    for (const row of rows) {
-      const leftIdx = row.indexOf("\u2570")
-      const rightIdx = row.lastIndexOf("\u256f")
-      if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
-        const between = row.slice(leftIdx + 1, rightIdx)
-        for (let i = 0; i < between.length; i++) {
-          expect(between[i], `bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`).toBe(
-            "\u2500",
-          )
-        }
-      }
-    }
-  })
-
-  test("incremental vs fresh buffer comparison after fold", () => {
-    // Run with incremental=true
-    const { board: incBoard } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item("card-a", item("a-child1"), item("a-child2"), item("a-child3")),
-            item("card-b", item("b-child1")),
-            item("card-c"),
-          ),
-        ),
-      { columns: 50, rows: 30, incremental: true },
-    )
-    incBoard.command("fold_all_more").command("fold_all_more").command("fold_all_more")
-    const incText = incBoard.screenshot()
-
-    // Run with incremental=false
-    const { board: freshBoard } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item("card-a", item("a-child1"), item("a-child2"), item("a-child3")),
-            item("card-b", item("b-child1")),
-            item("card-c"),
-          ),
-        ),
-      { columns: 50, rows: 30, incremental: false },
-    )
-    freshBoard.command("fold_all_more").command("fold_all_more").command("fold_all_more")
-    const freshText = freshBoard.screenshot()
-
-    // Compare line by line — collect all differences
-    const incRows = incText.split("\n")
-    const freshRows = freshText.split("\n")
-    const diffs: string[] = []
-    for (let i = 0; i < Math.max(incRows.length, freshRows.length); i++) {
-      if (incRows[i] !== freshRows[i]) {
-        diffs.push(`Row ${i}:\n  inc:   "${incRows[i]}"\n  fresh: "${freshRows[i]}"`)
-      }
-    }
-    if (diffs.length > 0) {
-      expect.fail(`${diffs.length} rows differ:\n${diffs.join("\n")}`)
-    }
-  })
-
-  test("ANSI diff replay correct after decrease content lines", () => {
-    const { board } = nestedBoard()
-
-    // Decrease content lines (- key) instead of outline depth
-    const prevBuf1 = board._result.lastBuffer()!.clone()
-    board.command("decrease_content_lines")
-    const afterBuf1 = board._result.lastBuffer()!
-    verifyDiffReplay(prevBuf1, afterBuf1, "after first -")
-    checkBorderIntegrity(board.screenshot(), "buffer after first -")
-
-    const prevBuf2 = afterBuf1.clone()
-    board.command("decrease_content_lines")
-    const afterBuf2 = board._result.lastBuffer()!
-    verifyDiffReplay(prevBuf2, afterBuf2, "after second -")
-    checkBorderIntegrity(board.screenshot(), "buffer after second -")
   })
 })
 
@@ -1059,93 +719,82 @@ describe("fold overflow transition border integrity", () => {
 // Fold count color
 // =============================================================================
 
-// FREEZE: needs store.getState() — uses board.screen.row/cell for palette color assertions
 describe("fold count color", () => {
   /**
    * Find the child count cell on a given row.
    * Looks for a number preceded by whitespace near the end of the row.
    */
-  function findCountCell(
-    board: ReturnType<typeof testEnv>["board"],
-    row: number,
-  ): { x: number; y: number; char: string; fg: unknown; bg: unknown; attrs: Record<string, unknown> } | null {
-    const rowText = board.screen.row(row)
+  function findCountCell(app: TestApp, row: number): (CellInfo & { x: number; y: number }) | null {
+    const rowText = app.screen.row(row)
     // The count is at the right end of content area, before any border char
     const match = rowText.match(/\s(\d+)\s*[│]?\s*$/)
     if (match?.index === undefined) return null
     const countX = match.index + 1 // skip leading space
-    const cell = board.screen.cell(countX, row)
-    return {
-      x: countX,
-      y: row,
-      char: cell.char,
-      fg: cell.fg,
-      bg: cell.bg,
-      attrs: cell.attrs as Record<string, unknown>,
-    }
+    const cell = app.screen.cell(countX, row)
+    return { x: countX, y: row, ...cell }
   }
 
   describe("card with children in columns view", () => {
     // Child count is only shown in columns (oneliner) view, not cards view.
     // Use two cards so the cursor card has a unique name not in the breadcrumb.
     function createBoard() {
-      return testEnv(
-        () => item("board", item("col1", item("Alpha", item("cmd1"), item("cmd2"), item("cmd3")), item("Beta"))),
-        { columns: 80, rows: 24, viewMode: "columns" },
+      return createTestApp(
+        item("board", item("col1", item("Alpha", item("cmd1"), item("cmd2"), item("cmd3")), item("Beta"))),
+        { cols: 80, rows: 24, viewMode: "columns" },
       )
     }
 
     /** Find the row for a card by looking in the content area (skip breadcrumb at row 0) */
-    function findCardRow(board: ReturnType<typeof testEnv>["board"], name: string): number {
+    function findCardRow(app: TestApp, name: string): number {
       for (let r = 2; r < 24; r++) {
-        const text = board.screen.row(r)
+        const text = app.screen.row(r)
         if (text.includes(name)) return r
       }
       return -1
     }
 
     test("count is not dim when children visible", () => {
-      const { board } = createBoard()
+      using app = createBoard()
 
-      const pcRow = findCardRow(board, "Alpha")
+      const pcRow = findCardRow(app, "Alpha")
       expect(pcRow, "Alpha row").toBeGreaterThanOrEqual(2)
 
-      const countCell = findCountCell(board, pcRow)
+      const countCell = findCountCell(app, pcRow)
       expect(countCell, "count cell found").not.toBeNull()
       expect(countCell!.char).toBe("3")
 
       // Count should NOT be dim
-      expect(countCell!.attrs.dim, "not dim").toBeFalsy()
+      expect(countCell!.dim, "not dim").toBeFalsy()
     })
 
     test("count is not bold when children hidden (folded)", () => {
-      const { board } = createBoard()
+      using app = createBoard()
 
       // Fold Alpha with H
-      board.command("fold_more")
+      app.command("fold_more")
 
-      const pcRow = findCardRow(board, "Alpha")
+      const pcRow = findCardRow(app, "Alpha")
       expect(pcRow, "Alpha row").toBeGreaterThanOrEqual(2)
 
       // The count should appear on Alpha showing folded children count
-      const countCell = findCountCell(board, pcRow)
+      const countCell = findCountCell(app, pcRow)
       if (countCell) {
-        expect(countCell.attrs.dim, "not dim").toBeFalsy()
-        expect(countCell.attrs.bold, "not bold").toBeFalsy()
+        expect(countCell.dim, "not dim").toBeFalsy()
+        expect(countCell.bold, "not bold").toBeFalsy()
       }
     })
 
     test("count is never dimmed regardless of fold state", () => {
-      const { board } = createBoard()
+      using app = createBoard()
 
-      const pcRow = findCardRow(board, "Alpha")
+      const pcRow = findCardRow(app, "Alpha")
       expect(pcRow, "Alpha row (unfolded)").toBeGreaterThanOrEqual(2)
-      const cell2 = findCountCell(board, pcRow)
+      const cell2 = findCountCell(app, pcRow)
       expect(cell2).not.toBeNull()
 
       // cell2 should not be dimmed
-      expect(cell2!.attrs.dim, "not dim when unfolded").toBeFalsy()
-      expect(cell2!.attrs.bold, "not bold when unfolded").toBeFalsy()
+      expect(cell2!.dim, "not dim when unfolded").toBeFalsy()
+      expect(cell2!.bold, "not bold when unfolded").toBeFalsy()
     })
   })
 
@@ -1161,34 +810,34 @@ describe("fold count color", () => {
       )
       // Set color on the column node
       nodes.find((n) => n.id === "col-colored km.limit:: 5")!.rules = { color: "cyan", limit: 5 } as any
-      return testEnv(() => nodes, { columns: 80, rows: 24 })
+      return createTestApp(nodes, { cols: 80, rows: 24 })
     }
 
     test("column header count is $text2, not ownColor, when column unselected", () => {
-      const { board } = createColorBoard()
+      using app = createColorBoard()
 
       // Move cursor to col-other so col-colored is unselected
-      board.command("cursor_right")
+      app.command("cursor_right")
 
       // Find the header row containing "col-colored"
-      const headerRow = board.screen.findRow("col-colored")
+      const headerRow = app.screen.findRow("col-colored")
       expect(headerRow, "header row found").toBeGreaterThanOrEqual(0)
 
       // Find the "3/5" count in the first column (left half of screen).
       // With 80 cols and 2 columns, col-colored is in the first ~40 chars.
-      const rowText = board.screen.row(headerRow)
+      const rowText = app.screen.row(headerRow)
       const halfWidth = Math.floor(80 / 2)
       const leftHalf = rowText.slice(0, halfWidth)
       const countMatch = leftHalf.match(/(\d+\/\d+)\s*$/)
       expect(countMatch, "count/wip found in col-colored header").not.toBeNull()
       const countX = countMatch!.index!
 
-      const cell = board.screen.cell(countX, headerRow)
+      const cell = app.screen.cell(countX, headerRow)
       expect(cell.char).toBe("3")
 
-      // Count should be white (fg=7, $text2), not cyan (ownColor)
-      expect(cell.fg, "fg=7 (white/$text2), not ownColor").toBe(7)
-      expect(cell.attrs.dim, "not dim").toBeFalsy()
+      // Count should be $text2 (white), not cyan (ownColor)
+      expect(cell.fg, "$text2 (white), not ownColor").toEqual(TC.$text2)
+      expect(cell.dim, "not dim").toBeFalsy()
     })
   })
 })
@@ -1456,7 +1105,7 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
 // FREEZE: needs store.getState() — uses getActiveBoardPane, store.getState().dispatchBoard
 describe("cursor-reveals-hidden", () => {
   test("fold_all moves cursor out of hidden subtree to parent card", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
@@ -1478,7 +1127,7 @@ describe("cursor-reveals-hidden", () => {
   })
 
   test("TOGGLE_FOLD on card with cursor on child moves cursor to card", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
@@ -1505,7 +1154,7 @@ describe("cursor-reveals-hidden", () => {
     // Deep tree: card → item1a (depth 1) → 5 children at depth 2 (FoldedChildRow)
     // CARD_REMAINING_DEPTH = 2: item1a visible, children rendered as FoldedChildRow
     // When ctrl-n navigates past children, all siblings should be visible
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () =>
         item(
           "board",
@@ -1549,7 +1198,7 @@ describe("cursor-reveals-hidden", () => {
     const anotherDone = nodes.find((n) => n.id === "another-done")!
     anotherDone.item = { ...anotherDone.item, task: { status: "done", marker: "[x]" } }
 
-    const { board, store } = testEnv(() => nodes, { rows: 24, checkIncremental: false })
+    const { board, store } = createDriverTest(() => nodes, { rows: 24, checkIncremental: false })
 
     // Enable task filter: only show "todo" status
     board.setUI({
@@ -1585,7 +1234,7 @@ describe("cursor-reveals-hidden", () => {
     const doneNode = nodes.find((n) => n.id === "done-parent")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board, store } = testEnv(() => nodes, { rows: 24, checkIncremental: false })
+    const { board, store } = createDriverTest(() => nodes, { rows: 24, checkIncremental: false })
 
     board.setUI({
       filterProperties: {
@@ -1609,7 +1258,7 @@ describe("cursor-reveals-hidden", () => {
 
   test("block_nav_down auto-unfolds deeply nested nodes", () => {
     // 4-level deep: card → section → task → subtask (depth 3, invisible without unfold)
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card", item("section-a", item("task-a", item("subtask-x")))))),
       { rows: 30, checkIncremental: false },
     )
@@ -1629,7 +1278,7 @@ describe("cursor-reveals-hidden", () => {
 
 describe("sticky folds", () => {
   test("vs on an unfolded card pins it — fold_all_more leaves it unfolded", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item(
         "board",
         item(
@@ -1673,7 +1322,7 @@ describe("sticky folds", () => {
   })
 
   test("vs on a folded card pins it — unfold_all_more leaves it folded", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item(
         "board",
         item(
@@ -1716,7 +1365,7 @@ describe("sticky folds", () => {
   })
 
   test("vs three times cycles sticky-unfolded → sticky-folded → off", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
@@ -1747,7 +1396,7 @@ describe("sticky folds", () => {
 
 describe("fold depth preservation across zoom", () => {
   test("zoom out resets fold depths — folded children become visible again", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
@@ -1797,7 +1446,7 @@ describe("fold depth preservation across zoom", () => {
   })
 
   test("sticky fold survives navigation away and back", () => {
-    const { board, store } = testEnv(() =>
+    const { board, store } = createDriverTest(() =>
       item("board", item("col1", item.folder("Pinned", item("child-1"), item("child-2"))), item("col2", item("other"))),
     )
 

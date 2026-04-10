@@ -129,7 +129,7 @@ After plan approval, continue to step 3.
 
 ```typescript
 test("feature: <description>", () => {
-  const { board } = testEnv(() => item("root", item("col1", item("item1"))))
+  const { board } = createDriverTest(() => item("root", item("col1", item("item1"))))
 
   board.press("<key>")
   board.expect("#item1[data-state=selected]").toExist()

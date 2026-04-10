@@ -43,17 +43,17 @@ I see a visual glitch
 
 **Before ANY other investigation**, verify the test has `checkIncremental` enabled.
 
-Board tests using `testEnv()` or `testEnvWithRepo()` compare incremental vs fresh render **on every press()** by default. If a test was created with `checkIncremental: false`, it won't catch rendering bugs. Check:
+Board tests using `createDriverTest()` or `createDriverTestWithRepo()` compare incremental vs fresh render **on every press()** by default. If a test was created with `checkIncremental: false`, it won't catch rendering bugs. Check:
 
 ```typescript
 // GOOD: checkIncremental defaults to true — no opt-out needed
-const { board } = testEnv(() => item("board", ...))
+const { board } = createDriverTest(() => item("board", ...))
 
 // BAD: test opted out of incremental checking
-const { board } = testEnv(() => item("board", ...), { checkIncremental: false })
+const { board } = createDriverTest(() => item("board", ...), { checkIncremental: false })
 ```
 
-For non-testEnv tests, use `withDiagnostics({ checkIncremental: true })` on the board driver.
+For non-createDriverTest tests, use `withDiagnostics({ checkIncremental: true })` on the board driver.
 
 If a test exercises dialog open/close, toast show/hide, or any component mount/unmount and does NOT have incremental checking, **add it before investigating**.
 
@@ -65,12 +65,12 @@ Run with SILVERY_STRICT to catch incremental vs fresh render divergence at the r
 # In the app (catches production createApp path issues)
 SILVERY_STRICT=1 bun km view /path/to/vault
 
-# In tests (testEnv checks incremental by default since 2026-02-17)
+# In tests (createDriverTest checks incremental by default since 2026-02-17)
 bun vitest run vendor/silvery/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
-**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `SILVERY_STRICT=1` with the real app for those.
+**Note**: createDriverTest's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `SILVERY_STRICT=1` with the real app for those.
 
 If SILVERY_STRICT throws `IncrementalRenderMismatchError`, the error output automatically includes:
 - **Cell values** (incremental vs fresh) — shows exactly what diverged

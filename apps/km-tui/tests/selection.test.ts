@@ -1,7 +1,7 @@
 /**
  * Board selection helper unit tests.
  *
- * Uses mock context — no testEnv/repo needed.
+ * Uses mock context — no createDriverTest/repo needed.
  */
 
 import { describe, expect, test, vi } from "vitest"

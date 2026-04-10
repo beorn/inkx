@@ -3,7 +3,7 @@
  *
  * Verifies the board-test helper works correctly. The legacy
  * renderBoard(BoardStateResult)/board()/column()/SIMPLE_BOARD DSL has been
- * removed — new tests should use testEnv() + item() or the @km/tui/test API.
+ * removed — new tests should use createDriverTest() + item() or the @km/tui/test API.
  */
 
 import { describe, test, expect } from "vitest"

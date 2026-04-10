@@ -6,12 +6,12 @@
  */
 
 import { describe, test, expect, beforeAll } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 
 // Wider terminal for multi-column tests
 const WIDE = { cols: 120, rows: 30 }
-// FREEZE tests below still use testEnv which needs `columns` not `cols`
+// FREEZE tests below still use createDriverTest which needs `columns` not `cols`
 const WIDE_ENV = { columns: 120, rows: 30 }
 
 // =============================================================================
@@ -576,25 +576,28 @@ describe("alignment: cross-cutting", () => {
 // =============================================================================
 
 describe("visual invariant assertions", () => {
-  // FREEZE: needs expectColumnsAligned (testEnv-only)
+  // FREEZE: needs expectColumnsAligned (createDriverTest-only)
   test.skip("expectColumnsAligned verifies column order and non-overlap", () => {
-    const { board } = testEnv(item.multiColBoard, WIDE_ENV)
+    const { board } = createDriverTest(item.multiColBoard, WIDE_ENV)
     board.expectColumnsAligned(["col1", "col2", "col3"])
   })
 
-  // FREEZE: needs expectNoBlankLine (testEnv-only)
+  // FREEZE: needs expectNoBlankLine (createDriverTest-only)
   test.skip("expectNoBlankLine detects no blank rows in content area", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))), {
-      columns: 80,
-      rows: 24,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+      {
+        columns: 80,
+        rows: 24,
+      },
+    )
     // Skip row 0 (breadcrumb) and row 1 (spacer); check rows 2-9 (column content)
     board.expectNoBlankLine(2, 10)
   })
 
-  // FREEZE: needs expectCursorVisible (testEnv-only)
+  // FREEZE: needs expectCursorVisible (createDriverTest-only)
   test.skip("expectCursorVisible confirms cursor is on screen", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expectCursorVisible()
     board.command("cursor_down").expectCursorVisible()
   })
@@ -604,21 +607,21 @@ describe("visual invariant assertions", () => {
     app.expectNoGhostChars()
   })
 
-  // FREEZE: needs expectTextNotOverflowing (testEnv-only)
+  // FREEZE: needs expectTextNotOverflowing (createDriverTest-only)
   test.skip("expectTextNotOverflowing passes for normal cards", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"))))
     board.expectTextNotOverflowing("1a")
   })
 
-  // FREEZE: needs expectBorderContinuous (testEnv-only)
+  // FREEZE: needs expectBorderContinuous (createDriverTest-only)
   test.skip("expectBorderContinuous verifies card border integrity", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"))))
     board.expectBorderContinuous("1a")
   })
 
-  // FREEZE: needs expectAdjacentBorders (testEnv-only)
+  // FREEZE: needs expectAdjacentBorders (createDriverTest-only)
   test.skip("expectAdjacentBorders verifies neighboring borders after navigation", () => {
-    const { board } = testEnv(item.simpleBoard)
+    const { board } = createDriverTest(item.simpleBoard)
     board.command("cursor_down").expectAdjacentBorders("1b")
   })
 })

@@ -1,7 +1,7 @@
 /**
  * Board-spec keypress tests for all commands and dialogs.
  *
- * Comprehensive board-level tests using testEnv/board.press() for:
+ * Comprehensive board-level tests using createDriverTest/board.press() for:
  * 1. Visual mode (v to enter, j/k extend, d cut, y copy, Esc cancel)
  * 2. J/K block navigation (drill in/out)
  * 3. Filter dialog (G open, j/k navigate, Space toggle, Esc cancel)
@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -85,9 +85,9 @@ describe("J/K block navigation", () => {
     expect(app.bell).toBe(true)
   })
 
-  // FREEZE: needs expectCursorVisible (testEnv-only)
+  // FREEZE: needs expectCursorVisible (createDriverTest-only)
   test("K at column level navigates to board", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("task1"))))
 
     // Move cursor up to column header
     board.command("cursor_up")
@@ -475,7 +475,7 @@ describe("Inline edit lifecycle", () => {
   })
 
   test("i on column header has no effect (no inline edit for headers)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("task1"))))
 
     // Move to column header
     board.command("cursor_up")
@@ -578,9 +578,9 @@ describe("J/K block navigation edge cases", () => {
     app.expect("#Parent[data-cursor]").toExist()
   })
 
-  // FREEZE: needs expectCursorVisible (testEnv-only)
+  // FREEZE: needs expectCursorVisible (createDriverTest-only)
   test("multiple J/K in sequence maintains cursor visibility", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item("board", item("col1", item.folder("A", item("a1"), item("a2")), item.folder("B", item("b1")), item("C"))),
       { rows: 30, checkIncremental: false },
@@ -670,9 +670,9 @@ describe("Inline edit + undo interaction", () => {
     expect(node?.content).toBe("original-content")
   })
 
-  // FREEZE: needs expectEditing/expectNotEditing/expectCursorVisible (testEnv-only)
+  // FREEZE: needs expectEditing/expectNotEditing/expectCursorVisible (createDriverTest-only)
   test("rapid i then Escape cycle does not corrupt state", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Rapidly enter and exit inline edit multiple times
     for (let i = 0; i < 5; i++) {

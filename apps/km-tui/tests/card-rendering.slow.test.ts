@@ -20,14 +20,14 @@ import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest
 import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 import { stripAnsi } from "@silvery/test"
 import { displayWidth, graphemeWidth } from "@silvery/ag-react"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
 
-/** Minimal board-like interface shared between testEnv board and TestApp. */
+/** Minimal board-like interface shared between createDriverTest board and TestApp. */
 interface BoardLike {
   screen: {
     nodeBox(nodeId: string): { x: number; y: number; width: number; height: number } | null
@@ -142,10 +142,10 @@ describe("card border: structural cards (files)", () => {
 // ─── Card Border: Virtual Body Cards ─────────────────────────────────────────
 
 describe("card border: virtual body cards", () => {
-  // FREEZE: needs testEnv — palette color comparison (ANSI_BLACK/ANSI_WHITE/ANSI_BRIGHT_BLACK indices),
+  // FREEZE: needs createDriverTest — palette color comparison (ANSI_BLACK/ANSI_WHITE/ANSI_BRIGHT_BLACK indices),
   // createTestApp returns truecolor {r,g,b} objects instead of palette indices
   test("unselected body cards have dim gray border", () => {
-    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+    const { board } = createDriverTest(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
       columns: 80,
       rows: 24,
     })
@@ -154,10 +154,10 @@ describe("card border: virtual body cards", () => {
     expectDimBorder(board, "1c")
   })
 
-  // FREEZE: needs testEnv — palette color comparison (ANSI_YELLOW index via expectNodeBorder/expectDimBorder),
+  // FREEZE: needs createDriverTest — palette color comparison (ANSI_YELLOW index via expectNodeBorder/expectDimBorder),
   // createTestApp returns truecolor {r,g,b} objects instead of palette indices
   test("selected body card gets yellow border", () => {
-    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+    const { board } = createDriverTest(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
       columns: 80,
       rows: 24,
     })
@@ -589,10 +589,10 @@ describe("card-overflow-dots", () => {
   })
 
   describe("multi-heading overflow (shared env)", () => {
-    // FREEZE: needs testEnv — beforeAll-shared board with board.screenshot()
-    let board: ReturnType<typeof testEnv>["board"]
+    // FREEZE: needs createDriverTest — beforeAll-shared board with board.screenshot()
+    let board: ReturnType<typeof createDriverTest>["board"]
     beforeAll(() => {
-      const env = testEnv(
+      const env = createDriverTest(
         () =>
           item(
             "board",
@@ -856,7 +856,7 @@ describe("card body list markers (not italics)", () => {
  * A blanket PUA=2 fix was attempted but reverted because it broke ALL borders
  * and alignment (most terminals render PUA nerdfont icons as 1-cell).
  *
- * The test fixtures here don't contain PUA icons (testEnv doesn't inject them),
+ * The test fixtures here don't contain PUA icons (createDriverTest doesn't inject them),
  * so these tests verify that column layout itself doesn't truncate names.
  * The terminal-specific mismatch is tracked separately in km-tui.col-trunc2.
  *
@@ -1074,8 +1074,8 @@ describe("col-header-dup: column header style transition", () => {
     }
   })
 
-  test("card↔column transitions with incremental check (testEnv)", () => {
-    // testEnv enables checkIncremental by default, which compares
+  test("card↔column transitions with incremental check (createDriverTest)", () => {
+    // createDriverTest enables checkIncremental by default, which compares
     // incremental buffer against fresh render after every press()
     using app = createTestApp(
       item.root(

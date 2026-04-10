@@ -30,16 +30,16 @@ Match the bug to the cheapest tool that can reproduce it:
 
 | What the user described | Tool | Speed | When |
 |---|---|---|---|
-| "X doesn't work" (logic/state) | `testEnv()` + `board.press()` | ~1000/s | State bugs, navigation, commands |
+| "X doesn't work" (logic/state) | `createDriverTest()` + `board.press()` | ~1000/s | State bugs, navigation, commands |
 | "I see X on screen" (visual) | **`createTermless()`** + `run()` | ~30ms | ANSI, colors, alt screen, cursor, modes |
 | "It looks wrong" (rendering) | `withDiagnostics()` | ~100ms | Ghost pixels, stale regions, incremental bugs |
 | "It works in tests but not the app" | TTY MCP (`mcp__tty__start`) | ~1/s | createApp-specific, output guard, protocol |
 | "It only happens with my data" | `TEST_VAULT=<path>` real-vault test | ~1s | Large nodes, encoding, structure-dependent |
 | "It only happens in Ghostty/Terminal.app" | Peekaboo MCP | Manual | Font rendering, terminal-specific |
 
-**Visual/terminal bugs MUST use termless** — not testEnv. If the user described what they *saw*, you need a real terminal emulator. See the 3-layer verification pattern below.
+**Visual/terminal bugs MUST use termless** — not createDriverTest. If the user described what they *saw*, you need a real terminal emulator. See the 3-layer verification pattern below.
 
-**If testEnv passes but the bug is real** — escalate to termless, then TTY MCP. The bug is in the ANSI output path, not the state.
+**If createDriverTest passes but the bug is real** — escalate to termless, then TTY MCP. The bug is in the ANSI output path, not the state.
 
 ## Step 2: Write the Failing Test
 
@@ -53,13 +53,13 @@ Write it in `/tmp/` first. Keep it minimal — reproduce the exact user scenario
 
 Only drop to state assertions (`repo.getNode()`, store selectors) when the rendered output can't distinguish the bug. A test that checks `repo.getNode("x")?.parent_id` passes even if the screen shows the wrong thing.
 
-### Pattern A: User-visible bug (testEnv — screen assertions)
+### Pattern A: User-visible bug (createDriverTest — screen assertions)
 ```typescript
 // /tmp/repro-indent-edit.test.ts
-import { item, testEnvWithRepo } from "apps/km-tui/tests/helpers/board-test.ts"
+import { item, createDriverTestWithRepo } from "apps/km-tui/tests/helpers/board-test.ts"
 
 test("repro: Tab indents during inline edit", () => {
-  const { board, repo } = testEnvWithRepo(() =>
+  const { board, repo } = createDriverTestWithRepo(() =>
     item("board", item("col", item("task1"), item("task2")))
   )
   board.navigateTo("task2")
@@ -133,7 +133,7 @@ If the test passes, either the bug doesn't reproduce at this layer (escalate to 
 
 Don't give up after one tool. Walk up the stack:
 
-1. **testEnv passes** → try `createTermless()` (ANSI bug, not state bug)
+1. **createDriverTest passes** → try `createTermless()` (ANSI bug, not state bug)
 2. **termless passes** → try TTY MCP with real `createApp` path (output guard, protocol setup)
 3. **TTY passes** → try `TEST_VAULT=<user's vault>` (data-dependent)
 4. **All pass** → ask the user for exact steps, terminal, and OS version. Create bead as "unreproducible" with what you tried.
@@ -144,7 +144,7 @@ Same discipline. Write the test that describes the desired behavior:
 
 ```typescript
 test("Tab indents node during inline edit", () => {
-  const { board, repo } = testEnvWithRepo(...)
+  const { board, repo } = createDriverTestWithRepo(...)
   board.navigateTo("task2")
   board.press("Enter") // edit mode
   board.press("Tab")   // NEW: should indent while editing
@@ -181,11 +181,11 @@ bun run test:fast                     # No regressions
 | Console/modes | silvery `run-writable.test.tsx` |
 | Rendering | `card-rendering.slow.test.ts` |
 
-### When to Use Termless vs testEnv (Decision Rule)
+### When to Use Termless vs createDriverTest (Decision Rule)
 
 If the user describes what they **saw on screen** or the bug involves **terminal features** (alt screen, scrollback, cursor style, colors, escape sequences) → **termless**.
 
-If they describe **behavior** (undo, navigation logic, command dispatch, data not saving) → **testEnv**.
+If they describe **behavior** (undo, navigation logic, command dispatch, data not saving) → **createDriverTest**.
 
 ## Anti-Patterns
 

@@ -15,7 +15,7 @@
 
 import { afterAll, bench, describe } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { dumpBenchPhases, withBenchPhases } from "./helpers/bench-phases.ts"
 import type { KNode } from "@km/core"
 
@@ -99,7 +99,7 @@ describe("Full pipeline: j-press on large column (200x60)", () => {
       `${n} cards — 20 j-presses`,
       () => {
         phases.measure(() => {
-          const { board } = testEnv(() => largeColumnFixture(n), {
+          const { board } = createDriverTest(() => largeColumnFixture(n), {
             columns: 200,
             rows: 60,
           })
@@ -121,7 +121,7 @@ describe("Full pipeline: j-press on large column (400x200)", () => {
       `${n} cards — 20 j-presses`,
       () => {
         phases.measure(() => {
-          const { board } = testEnv(() => largeColumnFixture(n), {
+          const { board } = createDriverTest(() => largeColumnFixture(n), {
             columns: 400,
             rows: 200,
           })
@@ -140,7 +140,7 @@ describe("Full pipeline: h/l on multi-column (3 cols × 1000)", () => {
     "navigate right across columns",
     () => {
       phases.measure(() => {
-        const { board } = testEnv(() => multiColumnFixture(3, 1000), {
+        const { board } = createDriverTest(() => multiColumnFixture(3, 1000), {
           columns: 200,
           rows: 60,
         })

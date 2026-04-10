@@ -12,7 +12,7 @@
 import { describe, test, expect } from "vitest"
 import { bufferToText } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/test"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { parseRepeats, deriveSeeds } from "vimonkey/fuzz"
 
 // =============================================================================
@@ -165,7 +165,7 @@ describe("render fuzz: incremental vs fresh", () => {
         for (const seed of SEEDS) {
           test(`seed=${seed}`, { timeout: 30_000 }, () => {
             const rand = createPRNG(seed)
-            const { board } = testEnv(fixture.builder(), {
+            const { board } = createDriverTest(fixture.builder(), {
               columns: fixture.cols,
               rows: fixture.rows,
               viewMode,
@@ -214,7 +214,7 @@ describe("render fuzz: extended fixtures", () => {
         for (const seed of EXTENDED_SEEDS) {
           test(`seed=${seed}`, { timeout: 30_000 }, () => {
             const rand = createPRNG(seed)
-            const { board } = testEnv(fixture.builder(), {
+            const { board } = createDriverTest(fixture.builder(), {
               columns: fixture.cols,
               rows: fixture.rows,
               viewMode,
@@ -264,7 +264,7 @@ describe("render fuzz: mutation keys", () => {
       for (const seed of EXTENDED_SEEDS) {
         test(`seed=${seed}`, { timeout: 30_000 }, () => {
           const rand = createPRNG(seed)
-          const { board } = testEnv(fixture.builder(), {
+          const { board } = createDriverTest(fixture.builder(), {
             columns: fixture.cols,
             rows: fixture.rows,
             viewMode: "cards",
@@ -313,7 +313,7 @@ describe("render fuzz: mutation keys + extended fixtures", () => {
       for (const seed of EXTENDED_SEEDS) {
         test(`seed=${seed}`, { timeout: 30_000 }, () => {
           const rand = createPRNG(seed)
-          const { board } = testEnv(fixture.builder(), {
+          const { board } = createDriverTest(fixture.builder(), {
             columns: fixture.cols,
             rows: fixture.rows,
             viewMode: "cards",

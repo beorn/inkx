@@ -129,14 +129,14 @@ await expect(app.press("H")).resolves.not.toThrow()
 
 **Cleanup**: `using` declaration handles disposal automatically. No `unmount()` needed.
 
-### Migration from testEnv
+### Migration from createDriverTest
 
 ```typescript
-// BEFORE (testEnv)
-import { item, testEnv } from "./helpers/board-test.ts"
+// BEFORE (createDriverTest)
+import { item, createDriverTest } from "./helpers/board-test.ts"
 
 test("foo", () => {
-  const { board, repo } = testEnv(() => item("board", item("col1")))
+  const { board, repo } = createDriverTest(() => item("board", item("col1")))
   board.command("cursor_down")
   expect(repo.getNode("col1")).toBeDefined()
 })
@@ -153,13 +153,13 @@ test("foo", async () => {
 ```
 
 Key differences:
-- `testEnv(() => item(...))` → `createTestApp(item(...))` — strip `() =>` wrapper
-- `const { board, repo } = testEnv(...)` → `using app = await createTestApp(...)` — `using` for auto-cleanup
+- `createDriverTest(() => item(...))` → `createTestApp(item(...))` — strip `() =>` wrapper
+- `const { board, repo } = createDriverTest(...)` → `using app = await createTestApp(...)` — `using` for auto-cleanup
 - `board.command(...)` → `await app.command(...)` — async
 - `repo.getNode(...)` → `app.repo.getNode(...)`
 - `{ columns: 80 }` → `{ cols: 80 }` — option name change
 
-### When to leave on testEnv
+### When to leave on createDriverTest
 
 `createTestApp` does NOT yet support:
 - `store` (Zustand store) — for tests that read internal `workspace.panes`, `ui.*` state
@@ -169,7 +169,7 @@ Key differences:
 - `board.expectNoGhostChars()`, `board.expectNoBlankCards()` — visual integrity
 - `board.screen.ansi` — raw ANSI output
 
-For tests using these, keep `testEnv()` (you can mix both in the same file).
+For tests using these, keep `createDriverTest()` (you can mix both in the same file).
 
 ---
 
@@ -214,12 +214,12 @@ expect(cursor.textContent()).toBe("item2")  // Same locator, fresh result
 
 ---
 
-## testEnv() -- km Board Tests
+## createDriverTest() -- km Board Tests
 
 ```typescript
-import { testEnv, item } from "./helpers"
+import { createDriverTest, item } from "./helpers"
 
-const { board, repo } = testEnv(() =>
+const { board, repo } = createDriverTest(() =>
   item("board",
     item("col1", item("1a"), item("1b")),
     item("col2", item("2a")),
@@ -463,7 +463,7 @@ const driver = withDiagnostics(createBoardDriver(repo, rootId), {
 })
 ```
 
-**In testEnv()**: `checkIncremental` is ON by default. Never add `checkIncremental: false` unless deliberately testing a known-broken path.
+**In createDriverTest()**: `checkIncremental` is ON by default. Never add `checkIncremental: false` unless deliberately testing a known-broken path.
 
 ---
 
@@ -617,7 +617,7 @@ grep -rn "console\.\(log\|info\|warn\|debug\)" packages/*/tests/*.test.ts apps/*
 | Operation | Time |
 |---|---|
 | `createRenderer()` | ~5ms |
-| `testEnv()` setup | ~200ms |
+| `createDriverTest()` setup | ~200ms |
 | `createTermless()` | ~5ms |
 | `createTerminalFixture()` | ~5ms |
 | `term.feed()` (small) | <1ms |

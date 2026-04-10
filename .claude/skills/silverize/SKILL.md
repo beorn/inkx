@@ -145,14 +145,14 @@ expect(app.card("task1").isCursor).toBe(true)
 ```
 Why: breaks on every internal refactor; 523 calls broke in one session.
 
-**6. `testEnv` instead of `createTestApp`**
+**6. `createDriverTest` instead of `createTestApp`**
 ```typescript
 // Tarnished
-const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+const { board, store } = createDriverTest(() => item("board", item("col", item("task"))))
 // Shiny
 using app = createTestApp(item("board", item("col", item("task"))))
 ```
-Why: testEnv exposes store internals; createTestApp enforces screen-first testing.
+Why: createDriverTest exposes store internals; createTestApp enforces screen-first testing.
 
 **7. Snapshots without correctness assertions**
 ```typescript

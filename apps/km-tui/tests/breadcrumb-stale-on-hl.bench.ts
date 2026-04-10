@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { bufferToText, compareBuffers, formatMismatch } from "@silvery/test"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 
 // Seeded PRNG (from render-fuzz.fuzz.ts)
 function createPRNG(seed: number) {
@@ -56,7 +56,7 @@ describe("breadcrumb stale after h/l navigation", () => {
   for (const seed of [42, 1337, 2024, 9999, 31415]) {
     test(`incremental render matches fresh after h/l nav (seed=${seed})`, { timeout: 15000 }, () => {
       const rand = createPRNG(seed)
-      const { board } = testEnv(
+      const { board } = createDriverTest(
         () =>
           item(
             "board",
@@ -98,7 +98,7 @@ describe("breadcrumb stale after h/l navigation", () => {
   for (const seed of [42, 1337, 2024]) {
     test(`medium fixture incremental match (seed=${seed})`, { timeout: 15000 }, () => {
       const rand = createPRNG(seed)
-      const { board } = testEnv(
+      const { board } = createDriverTest(
         () =>
           item(
             "board",

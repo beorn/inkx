@@ -123,7 +123,7 @@ Follow the [test-first protocol](../../tests/SKILL.md#test-first-protocol). The 
 
 ```typescript
 test("reproduces <bug>", () => {
-  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  const { board } = createDriverTest(() => item("board", item("col", item("task"))))
   board.press("j")
   board.expect("#task[data-cursor]").toExist()  // State assertion
 })
@@ -133,20 +133,20 @@ test("reproduces <bug>", () => {
 
 ```typescript
 test("selected card renders black-on-yellow", () => {
-  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  const { board } = createDriverTest(() => item("board", item("col", item("task"))))
   // Buffer assertion — checks render buffer colors
   board.expectNodeColor("task", { fg: 0, bg: 3 })  // 0=black, 3=yellow
 })
 
 test("HR renders as line without border", () => {
-  const { board } = testEnv(() => item("board", item("col", item.hr())))
+  const { board } = createDriverTest(() => item("board", item("col", item.hr())))
   const hrRow = board.screen.findRow("─")
   expect(hrRow).toBeGreaterThan(-1)
   board.expectRow(hrRow, "─")
 })
 
 test("card has left/right borders", () => {
-  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  const { board } = createDriverTest(() => item("board", item("col", item("task"))))
   board.expectNodeBorder("task")  // Checks │ on left/right edges
 })
 ```

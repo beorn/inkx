@@ -1,5 +1,5 @@
 /* oxlint-disable complexity/complexity -- Test file with nested assertions */
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: MemoryStore + createBareRepo + act for time mocking
+// createDriverTest FREEZE bucket — see km-all.test-system bead. Reason: MemoryStore + createBareRepo + act for time mocking
 /**
  * Date, priority, and recurrence tests: badge display, date prompt dialog,
  * priority cycling, due date filtering for @next board.
@@ -15,7 +15,7 @@
 
 import { describe, test, it, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { createBoardDriver } from "../src/driver.ts"
@@ -643,7 +643,7 @@ describe("date prompt (td)", () => {
     // In v2, 't' standalone is noop (chord prefix only).
     // When chord timeout fires, 't' resolves to noop.
     // Then 'd' arriving afterward should be handled as clipboard_cut (its v2 binding).
-    const { board, store } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    const { board, store } = createDriverTest(() => item("board", item("col1", item.task("Buy groceries"))))
 
     board.press("j")
     board.press("t")

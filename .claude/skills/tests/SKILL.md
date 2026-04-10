@@ -164,7 +164,7 @@ TTY MCP:  ______________________________________________________________/  (real
 
 - **createTestApp()** (km-tui helpers): Backend-agnostic km board tests. Default headless (`~5ms/op`), switch to termless (`~50ms/op`) via env var. Same test code runs on either.
 - **createRenderer()** (`@silvery/test`): Generic silvery component tests. Tests virtual buffer. Use for non-km components.
-- **testEnv()** (km-tui helpers): Legacy km board API. Still used by ~50 existing tests. New tests should prefer `createTestApp()`.
+- **createDriverTest()** (km-tui helpers): Legacy km board API. Still used by ~50 existing tests. New tests should prefer `createTestApp()`.
 - **createTermless()** (`@silvery/test`): Generic terminal emulator tests. Use for testing ANSI output of silvery components without km board state.
 
 ### 2. Exploratory (TTY screenshots) -- adaptive, judgment-based
@@ -182,7 +182,7 @@ Randomized inputs with invariant assertions after every action. Auto-shrinks on 
 ```
 I want to test...
 +-- Component rendering / state / navigation
-|   +-- km board behavior --> testEnv() + item()
+|   +-- km board behavior --> createDriverTest() + item()
 |   +-- Silvery component --> createRenderer()
 |
 +-- ANSI output correctness (colors, cursor, escape sequences)
@@ -204,7 +204,7 @@ I want to test...
 | Tool | Import | Speed | Tests what | Use for |
 |---|---|---|---|---|
 | `createRenderer()` | `@silvery/test` | ~5ms | Virtual buffer (no ANSI) | Component logic, layout, text |
-| `testEnv()` | km-tui helpers | ~200ms | Board state + virtual buffer | km navigation, board features |
+| `createDriverTest()` | km-tui helpers | ~200ms | Board state + virtual buffer | km navigation, board features |
 | `createTermless()` | `@silvery/test` | ~10ms | Real xterm.js emulator | ANSI correctness, colors, cursor |
 | `createTerminalFixture()` | `@termless/test` | ~5ms+ | xterm.js + auto-cleanup | Termless tests in vitest |
 | `.spawn()` | Terminal method | 1-15s | Real PTY process | Integration / E2E |
@@ -229,7 +229,7 @@ For new km tests, always use `createTestApp()`. The question is which backend (`
 
 ---
 
-## Headless Testing (createRenderer / testEnv)
+## Headless Testing (createRenderer / createDriverTest)
 
 ### createRenderer() -- Silvery component tests
 
@@ -259,14 +259,14 @@ await app.press("j")
 expect(cursor.textContent()).toBe("item2")  // Same locator, fresh result
 ```
 
-### testEnv() -- km board tests
+### createDriverTest() -- km board tests
 
 Wraps createRenderer with board state + repo.
 
 ```typescript
-import { testEnv, item } from "./helpers"
+import { createDriverTest, item } from "./helpers"
 
-const { board } = testEnv(() =>
+const { board } = createDriverTest(() =>
   item("board",
     item("col1", item("1a"), item("1b")),
     item("col2", item("2a")),
@@ -439,7 +439,7 @@ FUZZ_SEED=12345 FUZZ=1 bun vitest run           # Reproducible run
 import { test, gen, take } from "vimonkey"
 
 test.fuzz("navigation never crashes", async () => {
-  const { board } = testEnv(() => item("board", item("col", item("a"), item("b"))))
+  const { board } = createDriverTest(() => item("board", item("col", item("a"), item("b"))))
   for await (const key of take(gen(["j", "k", "h", "l", "Enter", "Escape"]), 200)) {
     board.press(key)
     board.expectNoGhostChars()  // Invariant checked after every action
@@ -683,10 +683,10 @@ Include the actual node type being tested in fixtures:
 
 ```typescript
 // BAD: generic items
-const { board } = testEnv(() => item("board", item("col", item("card"))))
+const { board } = createDriverTest(() => item("board", item("col", item("card"))))
 
 // GOOD: include the actual node type
-const { board } = testEnv(() =>
+const { board } = createDriverTest(() =>
   item("board", item("col",
     item("card above"),
     item.hr(),           // actual HR node
@@ -702,7 +702,7 @@ const { board } = testEnv(() =>
 - **Multi-pass layout**: Some components trigger layout feedback loops. Test with components that change height based on measured width.
 - **Fixtures must match production complexity**: Real vault data triggers mismatches that synthetic fixtures miss. Use large fixtures (50+ items) for suspected real-data bugs.
 - **Init-sequence bugs**: Startup timing bugs need `createTermless` tests that verify ANSI sequence order.
-- **checkIncremental must be ON**: Default in `testEnv()`. Never create tests with `checkIncremental: false` unless deliberately testing a known-broken path.
+- **checkIncremental must be ON**: Default in `createDriverTest()`. Never create tests with `checkIncremental: false` unless deliberately testing a known-broken path.
 
 ---
 

@@ -39,7 +39,7 @@ test("repro: <symptom>", async () => {
 
 | Layer | Tool | Speed | Best for |
 |-------|------|-------|----------|
-| TUI test | `testEnv()` / `board.press()` | ~1000/s | Logic, state, incremental rendering |
+| TUI test | `createDriverTest()` / `board.press()` | ~1000/s | Logic, state, incremental rendering |
 | TTY headless | `mcp__tty__start` + `mcp__tty__press` + `mcp__tty__screenshot` | ~1/s | Visual rendering, ANSI output, createApp-specific bugs |
 | GUI (Ghostty) | Peekaboo MCP / user terminal | Manual | Terminal-specific rendering, font issues |
 

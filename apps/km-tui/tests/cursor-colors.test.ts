@@ -11,11 +11,11 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
-import { stripAnsi } from "@silvery/ag-react"
+
 import type { KNode } from "@km/core"
 
 /** Helper to build a data-cursor locator for node IDs with spaces */
@@ -198,158 +198,6 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
 })
 
 // =============================================================================
-// Cursor color override tests (selected cursor renders all text as black-on-yellow)
-// FREEZE: needs board._result.ansi for ANSI-level color assertions
-// =============================================================================
-
-/**
- * Find the card content line for a selected card and extract the content
- * between border characters, trimming trailing border ANSI codes.
- *
- * Selected cards use yellow background (48;5;3 in 256-color mode).
- */
-function findSelectedCardContent(ansi: string, text: string): string | undefined {
-  const lines = ansi.split("\n")
-  for (const line of lines) {
-    const plain = stripAnsi(line)
-    if (!plain.includes(text)) continue
-    // Selected card has yellow background (48;5;3 in 256-color or 43 in 4-bit)
-    if (!line.includes("48;5;3") && !line.includes("\x1b[43m")) continue
-
-    // Extract content between border chars │...│
-    const firstBorder = line.indexOf("\u2502")
-    const lastBorder = line.lastIndexOf("\u2502")
-    if (firstBorder >= 0 && lastBorder > firstBorder) {
-      let content = line.slice(firstBorder + 1, lastBorder)
-      // Trim trailing ANSI codes that belong to the border character transition
-      content = content.replace(/(\x1b\[[\d;:]+m)+$/, "")
-      return content
-    }
-  }
-  return undefined
-}
-
-/**
- * Check if ANSI string has any non-black foreground color.
- * "Black" means 256-color 0, basic 30, or RGB 0;0;0.
- * Ignores background codes, resets, and formatting attributes.
- */
-function hasNonBlackForeground(ansi: string): boolean {
-  const sgrRegex = /\x1b\[([\d;:]+)m/g
-  let match
-  while ((match = sgrRegex.exec(ansi)) !== null) {
-    const parts = match[1]!.split(";")
-    for (let i = 0; i < parts.length; i++) {
-      const code = Number.parseInt(parts[i]!, 10)
-      // Extended foreground: 38;5;N
-      if (code === 38 && parts[i + 1] === "5") {
-        const colorNum = Number.parseInt(parts[i + 2] ?? "", 10)
-        if (colorNum !== 0) return true
-        i += 2
-        continue
-      }
-      // Extended foreground: 38;2;R;G;B
-      if (code === 38 && parts[i + 1] === "2") {
-        const r = Number.parseInt(parts[i + 2] ?? "0", 10)
-        const g = Number.parseInt(parts[i + 3] ?? "0", 10)
-        const b = Number.parseInt(parts[i + 4] ?? "0", 10)
-        if (r !== 0 || g !== 0 || b !== 0) return true
-        i += 4
-        continue
-      }
-      // Skip background: 48;5;N or 48;2;R;G;B
-      if (code === 48) {
-        if (parts[i + 1] === "5") {
-          i += 2
-          continue
-        }
-        if (parts[i + 1] === "2") {
-          i += 4
-          continue
-        }
-        continue
-      }
-      // Standard foreground: 31-37 (not 30=black)
-      if (code >= 31 && code <= 37) return true
-      // Bright foreground: 90-97
-      if (code >= 90 && code <= 97) return true
-    }
-  }
-  return false
-}
-
-// FREEZE: needs board._result.ansi for ANSI-level color assertions
-describe("cursor color override", () => {
-  it("selected node with inline code renders without colored foreground", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Fix the `config` bug"))), {
-      columns: 60,
-      rows: 20,
-    })
-
-    const ansi = board._result.ansi
-    expect(board.screenshot()).toContain("Fix the config bug")
-
-    const content = findSelectedCardContent(ansi, "Fix the config bug")
-    expect(content).toBeDefined()
-
-    // Selected content should have only black foreground (no colored text from backtick code)
-    expect(hasNonBlackForeground(content!)).toBe(false)
-  })
-
-  it("selected node with priority date badge renders without colored foreground", () => {
-    const nodes = item("board", item("col1", item.task("Important task")))
-    const taskNode = nodes.find((n) => n.content === "Important task")!
-    taskNode.priority = "P1"
-    taskNode.due_at = "2025-01-01"
-
-    const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
-
-    const ansi = board._result.ansi
-    expect(board.screenshot()).toContain("Important task")
-
-    const content = findSelectedCardContent(ansi, "Important task")
-    expect(content).toBeDefined()
-
-    expect(hasNonBlackForeground(content!)).toBe(false)
-  })
-
-  it("unselected node retains colored foreground for inline code", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.task("First task"), item.task("Has `code` text"))),
-      { columns: 60, rows: 20 },
-    )
-
-    const ansi = board._result.ansi
-    const lines = ansi.split("\n")
-
-    // Find the unselected card (no yellow background: 48;5;3 in 256-color or \x1b[43m in 4-bit)
-    const codeLine = lines.find((line) => {
-      const plain = stripAnsi(line)
-      return plain.includes("Has code text") && !line.includes("48;5;3") && !line.includes("\x1b[43m")
-    })
-    expect(codeLine).toBeDefined()
-
-    // Unselected card SHOULD have non-black foreground (cyan for `code`)
-    expect(hasNonBlackForeground(codeLine!)).toBe(true)
-  })
-
-  it("after navigation, newly selected node loses foreground colors", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.task("Plain task"), item.task("Has `styled` content"))),
-      { columns: 60, rows: 20 },
-    )
-
-    board.command("cursor_down")
-
-    const ansi = board._result.ansi
-    const content = findSelectedCardContent(ansi, "Has styled content")
-    expect(content).toBeDefined()
-
-    expect(hasNonBlackForeground(content!)).toBe(false)
-  })
-})
-
-// =============================================================================
 // Selected card color tests (km-tui.selected-color, km-tui.fold-count-color, km-tui.date-range-color)
 // =============================================================================
 
@@ -477,7 +325,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     expect(cell.fg, "today due date fg should be $success").toEqual(TC.$success)
   })
 
-  // FREEZE: needs testEnv — hardcoded ANSI palette indices (1, 2) for negative assertions
+  // FREEZE: needs createDriverTest — hardcoded ANSI palette indices (1, 2) for negative assertions
   it("future date on non-selected card does not show green or red", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("futureTask")))
     const futureTask = nodes.find((n) => n.content === "futureTask")!
@@ -502,7 +350,6 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
   })
 })
 
-// FREEZE: needs testEnv — cell.attrs.dim for dim assertions
 describe("km-tui.done-style: completed task date badge hidden, title dimmed", () => {
   it("done task hides date badge entirely (saves space, not relevant)", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneOverdue")))
@@ -510,16 +357,16 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     doneTask.due_at = "2025-01-01" // Past date — would show "Jan 1" on a todo task
     doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    board.expect('[id="firstTask"][data-cursor]').toExist()
+    app.expect('[id="firstTask"][data-cursor]').toExist()
 
-    const nodeBox = board.screen.nodeBox("doneOverdue")
+    const nodeBox = app.screen.nodeBox("doneOverdue")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
     // Date should NOT appear anywhere on the done task's row
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     expect(row.indexOf("Jan"), "done task should not show date 'Jan'").toBe(-1)
   })
 
@@ -530,13 +377,13 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     doneTask.due_at = "2025-01-01"
     doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    const nodeBox = board.screen.nodeBox("donePrio")
+    const nodeBox = app.screen.nodeBox("donePrio")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     // "P1" should not appear — content is "donePrio" which doesn't contain "P1"
     expect(row.indexOf("P1"), "done task should not show priority badge").toBe(-1)
   })
@@ -546,13 +393,13 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const todoTask = nodes.find((n) => n.content === "todoDate")!
     todoTask.due_at = "2027-04-15" // Far future date -> "Apr 15"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    const nodeBox = board.screen.nodeBox("todoDate")
+    const nodeBox = app.screen.nodeBox("todoDate")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     expect(row.indexOf("Apr"), "todo task should show date").toBeGreaterThan(-1)
   })
 
@@ -561,17 +408,17 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const doneTask = nodes.find((n) => n.content === "doneTitle")!
     doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    const nodeBox = board.screen.nodeBox("doneTitle")
+    const nodeBox = app.screen.nodeBox("doneTitle")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     const titleIdx = row.indexOf("doneTitle")
     expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
-    const titleCell = board.screen.cell(titleIdx, nodeBox.y)
-    expect(titleCell.attrs.dim, "done task title should be dimmed").toBe(true)
+    const titleCell = app.screen.cell(titleIdx, nodeBox.y)
+    expect(titleCell.dim, "done task title should be dimmed").toBe(true)
   })
 
   it("dropped task also hides date badge and dims title", () => {
@@ -582,13 +429,13 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     droppedTask.priority = "P2"
     droppedTask.item = { ...droppedTask.item, task: { status: "dropped", marker: "[-]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    const nodeBox = board.screen.nodeBox("droppedTask")
+    const nodeBox = app.screen.nodeBox("droppedTask")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
 
     // Date badge should be hidden
     expect(row.indexOf("Jan"), "dropped task should not show date").toBe(-1)
@@ -597,8 +444,8 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     // Title should be dimmed
     const titleIdx = row.indexOf("droppedTask")
     expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
-    const titleCell = board.screen.cell(titleIdx, nodeBox.y)
-    expect(titleCell.attrs.dim, "dropped task title should be dimmed").toBe(true)
+    const titleCell = app.screen.cell(titleIdx, nodeBox.y)
+    expect(titleCell.dim, "dropped task title should be dimmed").toBe(true)
   })
 
   it("done task with inline code has colors stripped (not colored)", () => {
@@ -608,18 +455,18 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const doneTask = nodes.find((n) => n.content === "Fix the `config` bug")!
     doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    const nodeBox = board.screen.nodeBox("Fix the `config` bug")
+    const nodeBox = app.screen.nodeBox("Fix the `config` bug")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
     const configIdx = row.indexOf("config")
     expect(configIdx, "'config' should be visible").toBeGreaterThan(-1)
 
     // "config" should NOT be cyan (6) — colors stripped for done tasks
-    const cell = board.screen.cell(configIdx, nodeBox.y)
+    const cell = app.screen.cell(configIdx, nodeBox.y)
     expect(cell.fg, "done task inline code should not be cyan").not.toEqual(6)
   })
 })

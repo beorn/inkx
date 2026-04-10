@@ -19,7 +19,7 @@ import {
   resolveProjectDisplayNames,
 } from "../src/views/detail-pane-helpers.ts"
 import { createBoardDriver } from "../src/driver.ts"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
@@ -277,7 +277,7 @@ describe("Detail pane toggle (D key)", () => {
 
   // FREEZE: needs store.getState() — uses store.getState().splitFocusedPane()
   test("D with split panes does not create extra empty pane", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("task1"), item("task2"))), {
       columns: 120,
       rows: 24,
     })
@@ -322,7 +322,7 @@ function isRoundBorderChar(c: string): boolean {
  * Verify that a node has round border characters on its left side.
  * The nodeBox is the content area — borders are 1 cell outside it.
  */
-function expectLeftBorder(board: ReturnType<typeof testEnv>["board"], nodeId: string, label: string) {
+function expectLeftBorder(board: ReturnType<typeof createDriverTest>["board"], nodeId: string, label: string) {
   const box = board.screen.nodeBox(nodeId)
   expect(box, `${label}: node "${nodeId}" should be visible`).not.toBeNull()
   if (!box) return
@@ -342,7 +342,7 @@ function expectLeftBorder(board: ReturnType<typeof testEnv>["board"], nodeId: st
  * Collect border status for all given node IDs.
  * Returns an object mapping nodeId -> whether left border is intact.
  */
-function checkBorders(board: ReturnType<typeof testEnv>["board"], nodeIds: string[]): Record<string, boolean> {
+function checkBorders(board: ReturnType<typeof createDriverTest>["board"], nodeIds: string[]): Record<string, boolean> {
   const result: Record<string, boolean> = {}
   for (const id of nodeIds) {
     const box = board.screen.nodeBox(id)
@@ -374,7 +374,7 @@ describe("border rendering after detail pane close", () => {
   })
 
   test("all columns retain borders after closing detail pane", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -439,7 +439,7 @@ describe("border rendering after detail pane close", () => {
   })
 
   test("borders intact after multiple open/close cycles", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"), item("task4"))),
       { columns: 80, rows: 20 },
     )
@@ -462,7 +462,7 @@ describe("border rendering after detail pane close", () => {
   })
 
   test("borders survive navigation + detail pane toggle", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"), item("task4"))),
       { columns: 80, rows: 20 },
     )
@@ -676,7 +676,7 @@ describe("incremental rendering after detail pane toggle", () => {
 // FREEZE: needs store.getState() — uses store white-box access for deselect/cursor manipulation
 describe("detail pane empty state fallback", () => {
   test("shows empty board when cursor points to non-existent node", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("task1"), item("task2"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -706,7 +706,7 @@ describe("detail pane empty state fallback", () => {
 
   // NOTE: uses sel.deselect() directly — requires white-box store access.
   test("shows empty board when both card and column are null", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("task1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -730,7 +730,7 @@ describe("detail pane empty state fallback", () => {
 
   // NOTE: uses sel.deselect() directly — requires white-box store access.
   test("detail pane shows header bar in fallback state", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("task1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -755,7 +755,7 @@ describe("detail pane empty state fallback", () => {
 
 describe("detail pane cursor", () => {
   test("cursor starts on first child", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1", item("sub1"), item("sub2")), item("card2"))),
       { checkIncremental: false, incremental: false },
     )
@@ -769,7 +769,7 @@ describe("detail pane cursor", () => {
   })
 
   test("cursor resets when board cursor moves to different node", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1", item("sub1")), item("card2", item("sub2")))),
       { checkIncremental: false, incremental: false },
     )
@@ -784,10 +784,13 @@ describe("detail pane cursor", () => {
   })
 
   test("cursor resets when detail pane is toggled", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1"), item("sub2")))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item("card1", item("sub1"), item("sub2")))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("D") // open detail pane
 
@@ -807,7 +810,7 @@ describe("detail pane cursor", () => {
   })
 
   test("cursor state is independent of nav_back/nav_forward keys", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("card1"), item("card2"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -1000,10 +1003,13 @@ function getColIndex(store: StoreApi<BoardAppStore>): number {
 // FREEZE: needs store.getState() — uses getColIndex/store for column navigation checks
 describe("detail pane + column navigation (regression: infinite render loop)", () => {
   test("l navigates right while detail pane is open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item("card1")), item("col2", item("card2"))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("D") // open + focus detail pane
     board.press("h") // return to board
@@ -1015,7 +1021,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("D auto-focuses detail pane when opening", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1")))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("card1", item("sub1")))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -1030,7 +1036,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("h in detail pane returns focus to board", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1")))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item("card1", item("sub1")))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -1044,7 +1050,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("l then h round-trips between board and detail pane", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1", item("sub1"))), item("col2", item("card2"))),
       { checkIncremental: false, incremental: false },
     )
@@ -1066,10 +1072,13 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("h navigates left while detail pane is open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item("card1")), item("col2", item("card2"))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("l") // go to col2 first
     board.press("D") // open + focus detail pane
@@ -1083,7 +1092,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("j/k navigation still works with detail pane open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1"), item("card2")), item("col2", item("card3"))),
       { checkIncremental: false, incremental: false },
     )
@@ -1099,7 +1108,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("multiple l/h with detail pane open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1")), item("col2", item("card2")), item("col3", item("card3"))),
       { checkIncremental: false, incremental: false },
     )
@@ -1125,10 +1134,13 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
 
 describe("detail pane focus + navigation", () => {
   test("D opens pane and focuses detail, j navigates children", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1"), item("sub2")))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item("card1", item("sub1"), item("sub2")))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -1144,7 +1156,7 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("h from detail pane returns to board, keeps pane open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"))), {
+    const { board, store } = createDriverTest(() => item("board", item("col1", item.task("task1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -1156,10 +1168,13 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("detail pane root node follows board cursor", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"), item.task("task2"))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item.task("task1"), item.task("task2"))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -1174,10 +1189,13 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("n (pane_focus_next) cycles from detail to board", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"), item.task("task2"))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item.task("task1"), item.task("task2"))),
+      {
+        checkIncremental: false,
+        incremental: false,
+      },
+    )
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -1206,7 +1224,7 @@ describe("detail pane j/k navigation", () => {
     ((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null) ?? null
 
   test("folder children navigate sequentially", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1", item("child-a"), item("child-b"), item("child-c")))),
       { checkIncremental: false, incremental: false },
     )
@@ -1290,7 +1308,7 @@ describe("detail pane j/k navigation", () => {
         version: "v1",
       },
     ] as KNode[]
-    const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
+    const { board, store } = createDriverTest(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
     // Task nodes show metadata rows first; cursor starts on __meta__Status
     expect(dc(store)).toBe("__meta__Status")
@@ -1389,7 +1407,7 @@ describe("detail pane j/k navigation", () => {
         version: "v1",
       },
     ] as KNode[]
-    const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
+    const { board, store } = createDriverTest(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
 
     /** Get detail pane's cursor state from pane state */
@@ -1430,7 +1448,7 @@ describe("detail pane j/k navigation", () => {
   })
 
   test("j then k round-trips correctly", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("col1", item("card1", item("c-a"), item("c-b"), item("c-c")))),
       { checkIncremental: false, incremental: false },
     )
@@ -1456,7 +1474,7 @@ describe("board h/l navigation with detail pane open", () => {
   const bc = (store: any): string | null => store.getState().sel.node.cursor() ?? null
 
   test("D → navigate detail → h → l: board cursor preserved, l works", () => {
-    const { board, store } = testEnv(
+    const { board, store } = createDriverTest(
       () => item("board", item("Todo", item("task-1", item("sub-1"), item("sub-2"))), item("Doing", item("task-2"))),
       { checkIncremental: false, incremental: false },
     )

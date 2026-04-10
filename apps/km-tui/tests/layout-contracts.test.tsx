@@ -7,19 +7,21 @@
  * Why integration tests > unit tests for layout:
  * - Unit tests used hardcoded headHeight=1, missing the bug
  * - Integration tests render actual components, catching measurement issues
- * - testEnv() is fast (~50-200ms), so no performance penalty
+ * - createDriverTest() is fast (~50-200ms), so no performance penalty
  *
  * @see curswanty-regression.test.tsx - specific regression tests
  * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
  */
-// FREEZE: all tests need white-box API (registry from testEnv) — registry is not exposed by createTestApp
+// FREEZE: all tests need white-box API (registry from createDriverTest) — registry is not exposed by createTestApp
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 
 describe("Layout measurement contracts", () => {
   test("card with children: headHeight = 1 (title row), cardHeight > 1 (total)", () => {
     // This is THE critical contract that caught the curswantY bug
-    const { registry } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
+    const { registry } = createDriverTest(() =>
+      item("board", item("col", item("parent", item("child1"), item("child2")))),
+    )
 
     const pos = registry.getPosition(0, 0)
     const head = registry.getHead(0, 0)
@@ -34,7 +36,7 @@ describe("Layout measurement contracts", () => {
   })
 
   test("leaf card (no children): headHeight = 1, cardHeight small", () => {
-    const { registry } = testEnv(() => item("board", item("col", item("leaf-task"))))
+    const { registry } = createDriverTest(() => item("board", item("col", item("leaf-task"))))
 
     const pos = registry.getPosition(0, 0)
     const head = registry.getHead(0, 0)
@@ -50,7 +52,7 @@ describe("Layout measurement contracts", () => {
   test("curswantY is title midpoint, not card midpoint", () => {
     // curswantY should be near the top (title midpoint ~3-5)
     // NOT the card center (which would be much lower for tall cards)
-    const { registry } = testEnv(
+    const { registry } = createDriverTest(
       () => item("board", item("col0", item("tall", item("c1"), item("c2"), item("c3"), item("c4")))),
       { rows: 40 },
     )
@@ -68,7 +70,7 @@ describe("Layout measurement contracts", () => {
 
   test("cards in same row have similar headY", () => {
     // Multiple columns with first card in each should start at similar Y
-    const { registry } = testEnv(() =>
+    const { registry } = createDriverTest(() =>
       item("board", item("col1", item("card1a"), item("card1b")), item("col2", item("card2a"), item("card2b"))),
     )
 
@@ -84,11 +86,11 @@ describe("Layout measurement contracts", () => {
 
   test("nested children increase cardHeight but not headHeight", () => {
     // Each additional child should increase cardHeight, not headHeight
-    const { registry: reg1 } = testEnv(() => item("board", item("col", item("card", item("c1")))))
+    const { registry: reg1 } = createDriverTest(() => item("board", item("col", item("card", item("c1")))))
 
-    const { registry: reg2 } = testEnv(() => item("board", item("col", item("card", item("c1"), item("c2")))))
+    const { registry: reg2 } = createDriverTest(() => item("board", item("col", item("card", item("c1"), item("c2")))))
 
-    const { registry: reg3 } = testEnv(() =>
+    const { registry: reg3 } = createDriverTest(() =>
       item("board", item("col", item("card", item("c1"), item("c2"), item("c3")))),
     )
 
@@ -114,7 +116,7 @@ describe("Visual navigation with measured layouts", () => {
   test("h/l from first card lands on first card of target column", () => {
     // When curswantY is near the top (title midpoint of first card),
     // navigation should land on the first card of the target column
-    const { registry } = testEnv(() =>
+    const { registry } = createDriverTest(() =>
       item(
         "board",
         item("col0", item("card0a"), item("card0b")),
@@ -134,7 +136,7 @@ describe("Visual navigation with measured layouts", () => {
   test("h/l navigation uses title midpoint, not card center", () => {
     // A tall card's title is near the top, so h/l should land on
     // a card near the top of the target column
-    const { registry } = testEnv(
+    const { registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -155,7 +157,7 @@ describe("Visual navigation with measured layouts", () => {
   })
 
   test("findItemAtY returns -1 for empty columns", () => {
-    const { registry } = testEnv(
+    const { registry } = createDriverTest(
       () => item("board", item("col0", item("card")), item("col1")), // empty column
     )
 
@@ -166,7 +168,7 @@ describe("Visual navigation with measured layouts", () => {
 
 describe("Registry state after rendering", () => {
   test("all visible cards are registered", () => {
-    const { registry } = testEnv(() =>
+    const { registry } = createDriverTest(() =>
       item("board", item("col0", item("a"), item("b")), item("col1", item("c"), item("d"), item("e"))),
     )
 
@@ -187,7 +189,7 @@ describe("Registry state after rendering", () => {
   })
 
   test("headY and headHeight are populated for all cards", () => {
-    const { registry } = testEnv(() => item("board", item("col", item("parent", item("child")), item("leaf"))))
+    const { registry } = createDriverTest(() => item("board", item("col", item("parent", item("child")), item("leaf"))))
 
     const parentHead = registry.getHead(0, 0)
     const leafHead = registry.getHead(0, 1)
@@ -207,7 +209,7 @@ describe("Registry state after rendering", () => {
 
 describe("Sticky Y behavior (curswantY)", () => {
   test("stickyY is set on first h/l navigation (lazy capture)", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col0", item("a"), item("b"), item("c")), item("col1", item("x"), item("y"))),
     )
 
@@ -224,7 +226,7 @@ describe("Sticky Y behavior (curswantY)", () => {
   })
 
   test("stickyY is preserved across multiple h/l moves", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item(
         "board",
         item("col0", item("a"), item("b"), item("c")),
@@ -254,7 +256,7 @@ describe("Sticky Y behavior (curswantY)", () => {
   })
 
   test("stickyY is cleared on j/k navigation", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col0", item("a"), item("b"), item("c")), item("col1", item("x"), item("y"))),
     )
 
@@ -269,7 +271,7 @@ describe("Sticky Y behavior (curswantY)", () => {
   })
 
   test("h/l from mid-column lands on visually-aligned card", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",

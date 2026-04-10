@@ -15,7 +15,7 @@
 
 import { bench, describe, beforeAll } from "vitest"
 import { createFlexilyEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@silvery/ag-react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
 // Check for engine filter via env var
@@ -44,11 +44,11 @@ beforeAll(async () => {
 // ============================================================================
 
 /**
- * Run testEnv with a specific layout engine
+ * Run createDriverTest with a specific layout engine
  */
 function testEnvWithEngine(engine: LayoutEngine, treeBuilder: () => KNode[]) {
   setLayoutEngine(engine)
-  testEnv(treeBuilder)
+  createDriverTest(treeBuilder)
 }
 
 // ============================================================================

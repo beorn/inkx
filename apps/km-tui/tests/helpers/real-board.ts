@@ -1,7 +1,7 @@
 /**
  * Test Board Helper - Load Real Vaults for TUI Testing
  *
- * Complements testEnv() (which uses fixtures) by loading real vault paths.
+ * Complements createDriverTest() (which uses fixtures) by loading real vault paths.
  * Uses the same fluent API pattern.
  *
  * @example
@@ -198,7 +198,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     void originalPress(key)
   }
 
-  // Return fluent API matching testEnv().board
+  // Return fluent API matching createDriverTest().board
   const board: TestBoardResult = {
     get bell(): boolean {
       return result.locator("[data-bell]").count() > 0

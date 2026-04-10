@@ -13,7 +13,7 @@
 import { bench, describe, beforeAll, afterAll } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { testEnvWithRepo } from "./helpers/board-test.ts"
+import { createDriverTestWithRepo } from "./helpers/board-test.ts"
 import { loadRealisticBoardFixture } from "./fixtures/realistic-board.ts"
 import { dumpBenchPhases, withBenchPhases } from "./helpers/bench-phases.ts"
 
@@ -45,7 +45,7 @@ describe(`Realistic board cursor perf (300x120) [${VAULT_LABEL}]`, () => {
     "10 j-presses",
     () => {
       phases.measure(() => {
-        const { board } = testEnvWithRepo(repo, rootId, {
+        const { board } = createDriverTestWithRepo(repo, rootId, {
           columns: 300,
           rows: 120,
           viewMode: "columns",
@@ -71,7 +71,7 @@ describe(`Realistic board cursor perf (200x60) [${VAULT_LABEL}]`, () => {
     "10 j-presses",
     () => {
       phases.measure(() => {
-        const { board } = testEnvWithRepo(repo, rootId, {
+        const { board } = createDriverTestWithRepo(repo, rootId, {
           columns: 200,
           rows: 60,
           viewMode: "columns",
@@ -95,7 +95,7 @@ describe(`Realistic board cursor perf (80x24) [${VAULT_LABEL}]`, () => {
     "10 j-presses",
     () => {
       phases.measure(() => {
-        const { board } = testEnvWithRepo(repo, rootId, {
+        const { board } = createDriverTestWithRepo(repo, rootId, {
           columns: 80,
           rows: 24,
           viewMode: "columns",

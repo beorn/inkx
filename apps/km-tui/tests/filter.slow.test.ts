@@ -16,7 +16,7 @@ import { describe, test, expect, afterEach } from "vitest"
 import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { item, testEnvWithRepo } from "./helpers/board-test.ts"
+import { item, createDriverTestWithRepo } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
@@ -627,7 +627,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board } = testEnvWithRepo(repo, "file-1", {
+    const { board } = createDriverTestWithRepo(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
@@ -670,7 +670,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board } = testEnvWithRepo(repo, "file-1", {
+    const { board } = createDriverTestWithRepo(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
@@ -709,7 +709,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board } = testEnvWithRepo(repo, "file-1", {
+    const { board } = createDriverTestWithRepo(repo, "file-1", {
       columns: 80,
       rows: 24,
     })

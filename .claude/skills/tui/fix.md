@@ -11,7 +11,7 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 
 Follow the [test-first protocol](../tests/SKILL.md#test-first-protocol). No code analysis or theorizing until you have a failing test.
 
-0. **Verify incremental checking is ON** — `testEnv()` has `checkIncremental: true` by default. If the test uses `checkIncremental: false`, remove it first. Incremental checking catches stale-pixel bugs that are invisible to other assertions.
+0. **Verify incremental checking is ON** — `createDriverTest()` has `checkIncremental: true` by default. If the test uses `checkIncremental: false`, remove it first. Incremental checking catches stale-pixel bugs that are invisible to other assertions.
 1. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
 2. **Write to /tmp/** — diagnostics are exploratory, promote when stable
 3. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
@@ -108,7 +108,7 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 **You MUST read and use** the [buffer assertion API](../tests/SKILL.md#buffer-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
 
 ```typescript
-const { board } = testEnv(() => item("board", item("col", item("task"))))
+const { board } = createDriverTest(() => item("board", item("col", item("task"))))
 board.expectNodeColor("task", { fg: 0, bg: 3 }) // black on yellow (selected)
 board.expectNodeBorder("task")                    // has border chars on edges
 ```

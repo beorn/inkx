@@ -19,7 +19,7 @@
  *   const phases = withBenchPhases("cursor-perf-1000")
  *   bench("1000 cards", () => {
  *     phases.measure(() => {
- *       const { board } = testEnv(...)
+ *       const { board } = createDriverTest(...)
  *       for (let i = 0; i < 20; i++) board.command("cursor_down")
  *     })
  *   })

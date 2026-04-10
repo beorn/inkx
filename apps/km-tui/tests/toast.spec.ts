@@ -3,7 +3,7 @@
  *
  * FREEZE: needs white-box API (toastQueue) — all tests push toasts programmatically
  * via the toastQueue object, which is not exposed on the createTestApp interface.
- * These tests require the legacy testEnv API until toastQueue is added to TestApp.
+ * These tests require the legacy createDriverTest API until toastQueue is added to TestApp.
  *
  * incremental: false — toast overlays (position=absolute) cause incremental
  * rendering mismatches because the silvery incremental renderer doesn't fully
@@ -11,7 +11,7 @@
  * pre-existing silvery limitation, not a toast component bug.
  */
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 
 describe("Toast rendering", () => {
   // FREEZE: needs white-box API (toastQueue)
@@ -21,7 +21,9 @@ describe("Toast rendering", () => {
     { level: "warning", icon: "⚠" },
     { level: "error", icon: "✗" },
   ] as const)("$level toast renders with correct icon", ({ level, icon }) => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
     const message = `Test ${level} message`
 
     toastQueue[level](message)
@@ -39,7 +41,9 @@ describe("Toast rendering", () => {
 
   // FREEZE: needs white-box API (toastQueue)
   test("Escape dismisses toast", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
 
     toastQueue.info("Test message")
     board.command("cursor_right")
@@ -57,7 +61,9 @@ describe("Toast rendering", () => {
 
   // FREEZE: needs white-box API (toastQueue)
   test("toast with description shows description on second line", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
 
     toastQueue.error("Failed to save", {
       description: "Network connection lost",
@@ -75,7 +81,9 @@ describe("Toast rendering", () => {
 
   // FREEZE: needs white-box API (toastQueue)
   test("toast with action shows action label and trigger", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
 
     toastQueue.info("File deleted", {
       action: { label: "Undo", trigger: "z" },
@@ -93,7 +101,9 @@ describe("Toast rendering", () => {
 
   // FREEZE: needs white-box API (toastQueue)
   test("batched toasts show combined count", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
 
     // Push multiple toasts with same batch key
     toastQueue.info("item archived", { batchKey: "archive" })
@@ -112,7 +122,9 @@ describe("Toast rendering", () => {
 
   // FREEZE: needs white-box API (toastQueue)
   test("multiple toasts are stacked (shadcn/ui style)", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      incremental: false,
+    })
 
     toastQueue.info("First message")
     toastQueue.info("Second message")
@@ -130,7 +142,10 @@ describe("Toast rendering", () => {
   // FREEZE: needs white-box API (toastQueue)
   test("toast does not overlap the bottom bar", () => {
     const rows = 24
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows, incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      rows,
+      incremental: false,
+    })
 
     toastQueue.info("Hello world")
     board.command("cursor_right")
@@ -160,7 +175,7 @@ describe("Toast rendering", () => {
     // bell state change that forces WorkspaceChrome to re-render, picking up
     // the toast from the queue. (Multi-column cursor moves are silent mutations
     // that don't trigger Zustand subscriber notifications.)
-    const { board, toastQueue } = testEnv(item.simpleBoard, {
+    const { board, toastQueue } = createDriverTest(item.simpleBoard, {
       incremental: false,
     })
 
@@ -190,7 +205,10 @@ describe("Toast rendering", () => {
   // FREEZE: needs white-box API (toastQueue)
   test("toast with items does not overlap the bottom bar", () => {
     const rows = 24
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows, incremental: false })
+    const { board, toastQueue } = createDriverTest(() => item("board", item("col1", item("1a"))), {
+      rows,
+      incremental: false,
+    })
 
     // Toast with items - items add extra rows
     toastQueue.info("Files synced", {

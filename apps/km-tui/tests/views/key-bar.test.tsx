@@ -139,7 +139,7 @@ describe("KeyBar", () => {
     expect(text).toContain("sel")
   })
 
-  // TODO: TEXT mode test needs store context for useSel() — migrate to testEnv
+  // TODO: TEXT mode test needs store context for useSel() — migrate to createDriverTest
   it.skip("shows TEXT mode when inline editing", () => {})
 
   // VISUAL mode removed — sel.node handles multi-selection directly
@@ -152,7 +152,7 @@ describe("KeyBar", () => {
     expect(text).toContain("Enter")
   })
 
-  // TODO: multi-selection test needs store context for useSel() — migrate to testEnv
+  // TODO: multi-selection test needs store context for useSel() — migrate to createDriverTest
   it.skip("shows multi-selection hints when items are selected", () => {
     const app = render(<KeyBar ui={makeUI()} termWidth={80} />)
     const text = app.text
@@ -169,7 +169,7 @@ describe("KeyBar", () => {
     expect(bar.count()).toBeGreaterThan(0)
   })
 
-  // TODO: TEXT priority test needs store context for useSel() — migrate to testEnv
+  // TODO: TEXT priority test needs store context for useSel() — migrate to createDriverTest
   it.skip("TEXT mode takes priority over PANE", () => {})
 
   // VISUAL mode removed — sel.node handles multi-selection directly

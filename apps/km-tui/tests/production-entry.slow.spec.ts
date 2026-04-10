@@ -1,4 +1,4 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: entry-point smoke test, store access
+// createDriverTest FREEZE bucket — see km-all.test-system bead. Reason: entry-point smoke test, store access
 /**
  * Smoke test for the production entry point (tui.tsx → createBoardApp → Board).
  *

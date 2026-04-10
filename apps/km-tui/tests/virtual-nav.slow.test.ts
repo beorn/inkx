@@ -14,7 +14,7 @@
  * - vbody-nav.slow.test.ts (body column Y-position matching)
  */
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -24,7 +24,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 describe("spatial navigation: Y-position matching", () => {
   // FREEZE: needs white-box API (registry — not exposed by createTestApp)
   test("position registry is populated by layout notifications", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -64,7 +64,7 @@ describe("spatial navigation: Y-position matching", () => {
 
   // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("j then l: lands on Y-matched card, not first card", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -138,7 +138,7 @@ describe("spatial navigation: Y-position matching", () => {
 
   // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("h preserves stickyY across multiple column hops", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -190,7 +190,7 @@ describe("spatial navigation: Y-position matching", () => {
 
   // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("stickyY is cleared by vertical navigation (j/k)", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",

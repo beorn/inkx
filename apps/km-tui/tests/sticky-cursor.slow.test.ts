@@ -9,7 +9,7 @@
  * reset on cross-column navigation, stickyY clearing on boundary h/l, and
  * curswantY preservation across columns.
  */
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { describe, test, it, expect } from "vitest"
 
@@ -17,7 +17,7 @@ import { describe, test, it, expect } from "vitest"
 // Rendering invariants — checked after every navigation action
 // =============================================================================
 
-function assertInvariants(board: ReturnType<typeof testEnv>["board"], label: string) {
+function assertInvariants(board: ReturnType<typeof createDriverTest>["board"], label: string) {
   const screenshot = board.screenshot()
 
   // 1. Exactly one cursor element
@@ -47,7 +47,7 @@ function assertInvariants(board: ReturnType<typeof testEnv>["board"], label: str
  * Press a key and assert invariants hold after the action.
  * Returns the board for chaining.
  */
-function press(board: ReturnType<typeof testEnv>["board"], key: string, label: string) {
+function press(board: ReturnType<typeof createDriverTest>["board"], key: string, label: string) {
   board.press(key)
   assertInvariants(board, `after ${label}`)
   return board
@@ -84,7 +84,7 @@ describe("stickyY reliability", () => {
   test("stickyY falls back when registry has no headY for current card", () => {
     // With lazy capture on h/l, if getItemMidY returns 0 (no position data),
     // the code gracefully skips stickyY capture and falls back to first card in target column.
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -112,7 +112,7 @@ describe("stickyY reliability", () => {
   test("stickyY throws when registry has no entry for current card", () => {
     // With lazy capture on h/l, the focused card must always be measured.
     // If the card is completely unregistered, it's a programming error.
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -167,7 +167,7 @@ describe("stickyY reliability", () => {
 describe("sticky out-of-bounds behavior", () => {
   // FREEZE: needs white-box API (registry.stickyY assertions)
   test("move from deep card in tall col to short col, then back", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")), item("col2", item("2a"))),
     )
 
@@ -188,7 +188,7 @@ describe("sticky out-of-bounds behavior", () => {
 
   // FREEZE: needs white-box API (registry.stickyY assertions)
   test("move from deep card in tall col to short col, navigate vertically, then back", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
@@ -219,7 +219,7 @@ describe("sticky out-of-bounds behavior", () => {
 
   // FREEZE: needs white-box API (registry.stickyX assertions)
   test("stickyX round-trip: board -> deep col -> board -> different col", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col0", item("a0")), item("col1", item("b0")), item("col2", item("c0"))),
     )
 
@@ -249,14 +249,14 @@ describe("sticky out-of-bounds behavior", () => {
  * Like stickyY (cleared on j/k), stickyX should be cleared when h/l
  * navigation occurs or when vertical navigation hits a boundary.
  *
- * Tests use testEnv (full integration through handleCursorMove) because
+ * Tests use createDriverTest (full integration through handleCursorMove) because
  * stickyX clearing happens in the action layer, not the ViewNavigation layer.
  */
 describe("stickyX reset", () => {
   // FREEZE: needs white-box API (registry.stickyX assertions)
   it("h/l clears stickyX so j from board uses default column", () => {
     // Board with 3 columns
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col0", item("a0")), item("col1", item("b0")), item("col2", item("c0"))),
     )
 
@@ -299,7 +299,7 @@ describe("stickyX reset", () => {
 
   // FREEZE: needs white-box API (registry.stickyX assertions)
   it("stickyX persists through j/k within columns (not cleared by vertical nav)", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col0", item("a0"), item("a1")), item("col1", item("b0"))),
     )
 
@@ -341,7 +341,7 @@ describe("stickyX reset", () => {
 describe("stickyY reset on boundary actions", () => {
   // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("l boundary at rightmost column clears stickyY", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
@@ -374,7 +374,7 @@ describe("stickyY reset on boundary actions", () => {
 
   // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("h boundary at leftmost column clears stickyY", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
@@ -405,7 +405,7 @@ describe("stickyY reset on boundary actions", () => {
 
   // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("3-column cross-column navigation with boundary and invariants", () => {
-    const { board, registry } = testEnv(
+    const { board, registry } = createDriverTest(
       () =>
         item(
           "board",
@@ -467,7 +467,7 @@ describe("stickyY reset on boundary actions", () => {
 
   // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("boundary h then immediate l fresh-captures from current position", () => {
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item(
         "board",
         item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
@@ -511,7 +511,7 @@ describe("stickyY reset on boundary actions", () => {
   // FREEZE: needs white-box API (registry.stickyY assertions + assertInvariants/press helpers)
   test("vertical nav after boundary h/l clears stickyY independently", () => {
     // Verify that j/k after boundary still clears stickyY (no double-clear issue)
-    const { board, registry } = testEnv(() =>
+    const { board, registry } = createDriverTest(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"), item("2c"))),
     )
 

@@ -11,7 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/ag-react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 describe("text-cursor-bugs", () => {
@@ -75,7 +75,7 @@ describe("text-cursor-bugs", () => {
 
     // FREEZE: needs store.getState().textEditHints (white-box)
     test("stickyX preserved when crossing blocks vertically", () => {
-      const { board, store } = testEnv(() => item("board", item("col1", item("shortA"), item("longerB"))), {
+      const { board, store } = createDriverTest(() => item("board", item("col1", item("shortA"), item("longerB"))), {
         columns: 40,
       })
 
@@ -99,18 +99,18 @@ describe("text-cursor-bugs", () => {
   // ===========================================================================
   describe("ghost cursor", () => {
     test("only one inverse cell exists after cursor moves within edit", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("hellotext"))), { columns: 60 })
+      using app = createTestApp(item("board", item("col1", item("hellotext"))), { cols: 60 })
 
-      board.expect("#hellotext[data-cursor]").toExist()
-      board.press("Enter")
+      app.expect("#hellotext[data-cursor]").toExist()
+      app.press("Enter")
 
       // Count inverse cells in the card's content area
       function countInverseCells(): number {
         let count = 0
-        for (let y = 0; y < board.screen.height; y++) {
-          for (let x = 0; x < board.screen.width; x++) {
-            const cell = board.screen.cell(x, y)
-            if (cell.attrs.inverse && cell.char.trim() !== "") count++
+        for (let y = 0; y < app.screen.height; y++) {
+          for (let x = 0; x < app.screen.width; x++) {
+            const cell = app.screen.cell(x, y)
+            if (cell.inverse && cell.char.trim() !== "") count++
           }
         }
         return count
@@ -123,9 +123,9 @@ describe("text-cursor-bugs", () => {
       // non-space inverse cells
 
       // Now move cursor left several times
-      board.press("ArrowLeft")
-      board.press("ArrowLeft")
-      board.press("ArrowLeft")
+      app.press("ArrowLeft")
+      app.press("ArrowLeft")
+      app.press("ArrowLeft")
 
       // After moving, there should still be at most 1 inverse cell
       // (the ghost cursor bug would show 2 — one at old position, one at new)
@@ -134,21 +134,19 @@ describe("text-cursor-bugs", () => {
     })
 
     test("no ghost inverse cells after crossing blocks", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("first card"), item("second card"))), {
-        columns: 60,
-      })
+      using app = createTestApp(item("board", item("col1", item("first card"), item("second card"))), { cols: 60 })
 
-      board.press("Enter") // edit first card
+      app.press("Enter") // edit first card
 
       // Move to second card
-      board.press("ArrowDown")
+      app.press("ArrowDown")
 
       // Count total inverse cells — should be exactly 1 (cursor on second card)
       let inverseCount = 0
-      for (let y = 0; y < board.screen.height; y++) {
-        for (let x = 0; x < board.screen.width; x++) {
-          const cell = board.screen.cell(x, y)
-          if (cell.attrs.inverse) inverseCount++
+      for (let y = 0; y < app.screen.height; y++) {
+        for (let x = 0; x < app.screen.width; x++) {
+          const cell = app.screen.cell(x, y)
+          if (cell.inverse) inverseCount++
         }
       }
 
@@ -209,28 +207,26 @@ describe("text-cursor-bugs", () => {
       }
     })
 
-    // FREEZE: needs board.screen.cell().attrs.inverse (not on TestApp CellInfo)
     test("cursor row/col matches visual position in wrapped text", () => {
       // Use a narrow column to force wrapping
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("This is a long card title that should definitely wrap across multiple visual lines")),
-          ),
-        { columns: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("This is a long card title that should definitely wrap across multiple visual lines")),
+        ),
+        { cols: 40 },
       )
 
-      board.press("Enter") // enter edit mode
+      app.press("Enter") // enter edit mode
 
       // The cursor should be at the end of the text (default position)
       // Find the inverse cell (cursor) — it should be on the last visual line
       let cursorY = -1
       let cursorX = -1
-      for (let y = 0; y < board.screen.height; y++) {
-        for (let x = 0; x < board.screen.width; x++) {
-          const cell = board.screen.cell(x, y)
-          if (cell.attrs.inverse) {
+      for (let y = 0; y < app.screen.height; y++) {
+        for (let x = 0; x < app.screen.width; x++) {
+          const cell = app.screen.cell(x, y)
+          if (cell.inverse) {
             cursorY = y
             cursorX = x
           }
@@ -241,15 +237,15 @@ describe("text-cursor-bugs", () => {
       expect(cursorX).toBeGreaterThanOrEqual(0)
 
       // Now press Ctrl+A to go to start of text (Home is not bound in keybindings)
-      board.press("ctrl+a")
+      app.press("ctrl+a")
 
       // Find the cursor again — it should have moved
       let newCursorY = -1
       let newCursorX = -1
-      for (let y = 0; y < board.screen.height; y++) {
-        for (let x = 0; x < board.screen.width; x++) {
-          const cell = board.screen.cell(x, y)
-          if (cell.attrs.inverse) {
+      for (let y = 0; y < app.screen.height; y++) {
+        for (let x = 0; x < app.screen.width; x++) {
+          const cell = app.screen.cell(x, y)
+          if (cell.inverse) {
             newCursorY = y
             newCursorX = x
           }

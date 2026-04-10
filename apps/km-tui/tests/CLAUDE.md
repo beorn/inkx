@@ -6,7 +6,7 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ## Writing new tests
 
-New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The legacy `testEnv`/`testEnvWithRepo` API is `@deprecated` — it remains only for the FREEZE bucket in `km-all.test-system` bead (mouse, bell, expectNodeBorder, and a few smoke tests).
+New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The `createDriverTest`/`createDriverTestWithRepo` API is for driver-level integration tests that genuinely need low-level access (raw buffer comparison, direct driver creation, registry, cell attribute inspection). See the FREEZE bucket in `km-all.test-system` bead.
 
 ## MECE — No Gaps, No Overlaps
 
@@ -50,17 +50,17 @@ test("buy milk task", async () => {
 
 See `.claude/skills/tests/reference.md#createTestApp` for the full API.
 
-### `helpers/board-test.ts` — @deprecated — legacy testEnv (still used by ~20 tests)
+### `helpers/board-test.ts` — driver-level tests (used by ~20 tests)
 
 | Helper                                     | Purpose                                                |
 | ------------------------------------------ | ------------------------------------------------------ |
 | `item(title, ...children)`                 | Fluent tree builder for test fixtures (**still used**) |
-| `testEnv(builder)`                         | @deprecated — prefer createTestApp                     |
-| `testEnvWithRepo(builder)`                 | @deprecated — for existing Repo + custom rootId        |
+| `createDriverTest(builder)`                | Driver-level test env — raw buffer, registry, store    |
+| `createDriverTestWithRepo(repo, rootId)`   | Same, for existing Repo + custom rootId                |
 | `renderBoard(nodes, opts)`                 | Static render without interaction                      |
 | `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                       |
 
-`testEnv` remains for tests that need:
+`createDriverTest` is for tests that genuinely need:
 
 - `store` (Zustand) white-box state inspection
 - `board.click(x, y)` mouse events
@@ -73,10 +73,10 @@ See `.claude/skills/tests/reference.md#createTestApp` for the full API.
 For all other cases, use `createTestApp()`. See km-all.test-reclassify for migration plan.
 
 ```typescript
-// Legacy testEnv pattern (only for the cases above):
-const { board, store, repo } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
+// Driver-level test pattern (only for the cases above):
+const { board, store, repo } = createDriverTest(() => item("board", item("Todo", item("Buy milk"))))
 board.press("Enter")
-expect(store.getState().ui.someField).toBe(true) // white-box inspection (legacy)
+expect(store.getState().ui.someField).toBe(true) // white-box inspection
 ```
 
 ### `helpers/board-app.ts` — Driver pattern (for AI/exploration)
@@ -305,7 +305,7 @@ The AutoLocator is the semantic screen model. It supports CSS-style selectors on
 
 ## Termless Tests for Visual & Terminal Bugs
 
-**When the user reports a visual bug** (something they saw or did), use `createTermless()` — not `testEnv()`. testEnv tests the virtual buffer; termless tests what the terminal actually renders.
+**When the user reports a visual bug** (something they saw or did), use `createTermless()` — not `createDriverTest()`. createDriverTest tests the virtual buffer; termless tests what the terminal actually renders.
 
 ```typescript
 import { createTermless } from "@silvery/test"
@@ -338,9 +338,9 @@ Use shared fixture factories instead of repeating common `item()` trees:
 
 ```typescript
 // Use shared fixtures instead of repeating common item() trees:
-const { board } = testEnv(item.simpleBoard) // 1 col, 3 cards (1a, 1b, 1c)
-const { board } = testEnv(item.multiColBoard) // 3 cols, 1 card each
-const { board } = testEnv(item.nestedBoard) // 1 col, folder + sibling
+const { board } = createDriverTest(item.simpleBoard) // 1 col, 3 cards (1a, 1b, 1c)
+const { board } = createDriverTest(item.multiColBoard) // 3 cols, 1 card each
+const { board } = createDriverTest(item.nestedBoard) // 1 col, folder + sibling
 ```
 
 ### `navigateTo` Helper
@@ -363,7 +363,7 @@ app.columns() // spatial queries
 
 ### Journey Tests Over Single-Step Tests
 
-Prefer 3-5 step journey tests over many 1-step tests with identical fixtures. Each `testEnv()` costs ~1.8s — combine related assertions into a single journey that tells a coherent user story.
+Prefer 3-5 step journey tests over many 1-step tests with identical fixtures. Each `createDriverTest()` costs ~1.8s — combine related assertions into a single journey that tells a coherent user story.
 
 ### Consolidation Guidelines
 
@@ -375,7 +375,7 @@ Prefer 3-5 step journey tests over many 1-step tests with identical fixtures. Ea
 
 - **Don't repeat `item("board", item("col1", item("1a"), item("1b"), item("1c")))`** — use `item.simpleBoard`
 - **Don't create new test files for <3 tests** — add to an existing domain file
-- **Don't use 10+ separate `testEnv()` calls with identical fixtures** — combine into journey tests
+- **Don't use 10+ separate `createDriverTest()` calls with identical fixtures** — combine into journey tests
 
 ## Test File Organization
 
@@ -413,7 +413,7 @@ Journey tests are the primary guard against bugs at layer boundaries (board↔st
 
 ```typescript
 test("edit card, move column, undo restores both", () => {
-  const { board, repo } = testEnv(() => item("board", item("Todo", item("Buy milk")), item("Done")))
+  const { board, repo } = createDriverTest(() => item("board", item("Todo", item("Buy milk")), item("Done")))
   board.press("Enter") // edit mode
   board.type(" (organic)") // modify
   board.press("Escape") // save
@@ -429,7 +429,7 @@ test("edit card, move column, undo restores both", () => {
 })
 ```
 
-Prefer this over 5 separate tests each creating their own `testEnv()`.
+Prefer this over 5 separate tests each creating their own `createDriverTest()`.
 
 ## Snapshot Testing (Layout Regression)
 
@@ -438,13 +438,13 @@ For broad visual regression coverage, use **golden file snapshots** — capture 
 ```typescript
 // Capture full screen as golden file
 test("kanban board renders correctly", () => {
-  const { board } = testEnv(() => item("board", item("Todo", item("Task 1"), item("Task 2")), item("Done")))
+  const { board } = createDriverTest(() => item("board", item("Todo", item("Task 1"), item("Task 2")), item("Done")))
   expect(board.screen.toString()).toMatchSnapshot()
 })
 
 // After navigation — verify layout didn't break
 test("zoom into column preserves layout", () => {
-  const { board } = testEnv(() => kanbanFixture())
+  const { board } = createDriverTest(() => kanbanFixture())
   board.press("z") // zoom in
   expect(board.screen.toString()).toMatchSnapshot()
 })
@@ -462,7 +462,7 @@ test.each([
   { cols: 80, rows: 24, name: "standard" },
   { cols: 200, rows: 50, name: "wide" },
 ])("board renders at $name terminal ($cols x $rows)", ({ cols, rows }) => {
-  const { board } = testEnv(() => kanbanFixture(), { columns: cols, rows })
+  const { board } = createDriverTest(() => kanbanFixture(), { columns: cols, rows })
   // Verify no crash, cards visible, overflow indicators correct
   board.expect("#Todo").toExist()
   expect(board.screen.width).toBe(cols)
@@ -510,7 +510,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## Efficiency
 
-- **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. Legacy `testEnv()` is `@deprecated` and only retained for the FREEZE bucket in `km-all.test-system`.
+- **Use `createTestApp()`** — in-memory, no disk I/O, backend-agnostic. Never use `withTestEnv()` (real DB) in fast TUI tests. `createDriverTest()` is for driver-level integration tests only — see the FREEZE bucket in `km-all.test-system`.
 - **Share fixtures**: If multiple tests use the same `item()` tree, combine into a journey test with one `createTestApp()` call. Each test-app creation costs ~1.8s import overhead per file.
 - **Prefer lower layers**: If your test doesn't need screen assertions, write it in km-board (pure state) or km-storage (pipeline) instead — cheaper and faster.
 - **Tests >5s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.
@@ -529,7 +529,7 @@ import "@termless/test/matchers"
 
 test("board renders correct colors through real terminal", () => {
   // Render a board, capture ANSI output from Silvery
-  const { board } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
+  const { board } = createDriverTest(() => item("board", item("Todo", item("Buy milk"))))
   const ansiOutput = board.ansi // raw ANSI from Silvery output phase
 
   // Feed to real terminal emulator

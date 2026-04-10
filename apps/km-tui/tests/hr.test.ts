@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
@@ -53,7 +53,7 @@ function hrWithContent(id: string, content: string): KNode[] {
 describe("HR borderless rendering", () => {
   // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("HR card renders with padding (no border) when unselected", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
+    const { board } = createDriverTest(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
     board.expectNodeNoBorder("my-hr")
   })
 
@@ -124,10 +124,13 @@ describe("HR content-based detection", () => {
   // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   for (const content of hrContents) {
     test(`HR content '${content}' renders as line with no border when unselected`, () => {
-      const { board } = testEnv(() => item("board", item("Col", hrWithContent("hr-node", content), item("other"))), {
-        columns: 60,
-        rows: 20,
-      })
+      const { board } = createDriverTest(
+        () => item("board", item("Col", hrWithContent("hr-node", content), item("other"))),
+        {
+          columns: 60,
+          rows: 20,
+        },
+      )
       board.expectScreen("─")
       board.command("cursor_down")
       board.expectNodeNoBorder("hr-node")
@@ -136,7 +139,7 @@ describe("HR content-based detection", () => {
 
   // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("standard HR (type=hr, no content) renders as line with no border when unselected", () => {
-    const { board } = testEnv(() => item("board", item("Col", item.hr("my-hr"), item("other"))), {
+    const { board } = createDriverTest(() => item("board", item("Col", item.hr("my-hr"), item("other"))), {
       columns: 60,
       rows: 20,
     })
@@ -342,7 +345,7 @@ describe("HR editing", () => {
 
   // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("HR renders as bordered card during edit mode", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+    const { board } = createDriverTest(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
       columns: 60,
       rows: 20,
     })
@@ -356,17 +359,15 @@ describe("HR editing", () => {
     board.expectNodeBorder("my-hr")
   })
 
-  // FREEZE: needs cell.attrs.inverse (testEnv-specific cell format)
   test("HR edit mode: no colored background fills the row", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
-      columns: 40,
+    using app = createTestApp(item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      cols: 40,
       rows: 12,
     })
 
-    board.press("Enter")
+    app.press("Enter")
 
-    const screen = board.screen
-    const hrNode = board.q("#my-hr")
+    const hrNode = app.q("#my-hr")
     const box = hrNode.boundingBox()
     expect(box).not.toBeNull()
 
@@ -374,11 +375,11 @@ describe("HR editing", () => {
       let coloredCells = 0
       let inverseCells = 0
       for (let x = box.x; x < box.x + box.width; x++) {
-        const cell = screen.cell(x, box.y)
+        const cell = app.screen.cell(x, box.y)
         if (cell && cell.bg && cell.bg !== 0) {
           coloredCells++
         }
-        if ((cell.attrs as Record<string, unknown>)?.inverse) {
+        if (cell.inverse) {
           inverseCells++
         }
       }

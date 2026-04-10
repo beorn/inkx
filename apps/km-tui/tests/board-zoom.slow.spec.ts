@@ -7,7 +7,7 @@
 
 import { describe, test, it, expect } from "vitest"
 import { TC } from "./helpers/theme.ts"
-import { item, testEnvWithRepo } from "./helpers/board-test.ts"
+import { item, createDriverTestWithRepo } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 
 /** Deep-compare cell bg/fg (RGB objects) to a TC constant */
@@ -1023,7 +1023,7 @@ describe("u zooms out to parent", () => {
     const repo = createFakeRepo({ nodes })
 
     // Start board rooted at the file (like km view file.md)
-    const { board } = testEnvWithRepo(repo, "file")
+    const { board } = createDriverTestWithRepo(repo, "file")
 
     // Board should show file's children as columns
     board.expect("#section1").toExist()
@@ -1044,7 +1044,7 @@ describe("u zooms out to parent", () => {
     const repo = createFakeRepo({ nodes })
 
     // Start board rooted at file
-    const { board } = testEnvWithRepo(repo, "file")
+    const { board } = createDriverTestWithRepo(repo, "file")
 
     board.expect("#sec1").toExist()
     board.expect("#sec2").toExist()

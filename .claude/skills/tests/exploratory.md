@@ -111,7 +111,7 @@ When the user describes a specific issue, **write a test IMMEDIATELY**:
 
 ```typescript
 test("cursor should move down after searching for Justice", () => {
-  const { board } = testEnv(() =>
+  const { board } = createDriverTest(() =>
     item("board", item("col",
       item("Task A"), item("Justice"), item("Task C")))
   )

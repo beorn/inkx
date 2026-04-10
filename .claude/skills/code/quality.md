@@ -93,7 +93,7 @@ Anti-pattern: `node.type === "h" && node.item` (inline domain logic in consumer)
 
 Check test files in `apps/km-tui/tests/` against these rules:
 
-- **No `testEnv` in new tests** — use `createTestApp()`. `testEnv` is deprecated and couples to internal store shape.
+- **No `createDriverTest` in new tests** — use `createTestApp()`. `createDriverTest` is deprecated and couples to internal store shape.
 - **No `store.getState()` in tests** — use `app.state`, `app.card(title).isCursor`, or typed getters. White-box coupling caused 157 failures in one refactor session.
 - **No direct `createBoardDriver()` in tests** — go through `createTestApp` for backend-agnostic tests.
 - **Typed correctness assertions first** — `expect(app.card("task1").isCursor).toBe(true)` expresses intent. Snapshots detect change, not correctness. Use typed assertions for what SHOULD be true, snapshots as a bonus regression layer.

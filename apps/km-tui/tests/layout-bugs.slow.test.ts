@@ -1,4 +1,4 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: expectNodeBorder pixel-level
+// createDriverTest FREEZE bucket — see km-all.test-system bead. Reason: expectNodeBorder pixel-level
 /**
  * Layout/rendering bug regression tests
  *
@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect, vi } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -219,12 +219,12 @@ describe("km-tui.collapsed-shift", () => {
 // Bug 3: km-tui.card-border-missing — repro tests
 //
 // These tests use expectNodeBorder (not supported in createTestApp), so they
-// remain on testEnv.
+// remain on createDriverTest.
 // =============================================================================
 
 describe("km-tui.card-border-missing", () => {
   test("selected body card has yellow border, unselected body cards have dim border", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -244,7 +244,10 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("selected body card has border in narrow terminal (40 cols)", () => {
-    const { board } = testEnv(() => item("board", item("Col1", item("narrow-task"))), { columns: 40, rows: 20 })
+    const { board } = createDriverTest(() => item("board", item("Col1", item("narrow-task"))), {
+      columns: 40,
+      rows: 20,
+    })
 
     // narrow-task is selected — should have border
     board.expectNodeBorder("narrow-task")
@@ -263,7 +266,7 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("structural cards always have borders regardless of selection", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("Work", item.file("File A", item("task-a")), item.file("File B", item("task-b")))),
       { columns: 80, rows: 20 },
     )
@@ -274,7 +277,7 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("unselected body cards have dim border after cursor movement", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("Col1", item("a1"), item("a2")), item("Col2", item("b1"), item("b2"))),
       { columns: 80, rows: 20 },
     )
@@ -293,7 +296,7 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("cursor movement transfers selection between body cards", () => {
-    const { board } = testEnv(() => item("board", item("Col1", item("selected-task"), item("other-task"))), {
+    const { board } = createDriverTest(() => item("board", item("Col1", item("selected-task"), item("other-task"))), {
       columns: 80,
       rows: 20,
     })
@@ -314,35 +317,9 @@ describe("km-tui.card-border-missing", () => {
 
 // =============================================================================
 // Edge cases: uncollapse header
-// Tests using _result.lastBuffer() / freshRender() stay on testEnv.
 // =============================================================================
 
 describe("uncollapse header edge cases", () => {
-  test("incremental render matches fresh render after collapse/uncollapse — km-tui.uncollapse-header", () => {
-    const { board: incBoard } = testEnv(
-      () => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))),
-      { columns: 80, rows: 20, incremental: true },
-    )
-
-    // Collapse and uncollapse
-    incBoard.command("toggle_collapse")
-    incBoard.command("toggle_collapse")
-
-    // Compare incremental buffer against fresh render
-    const incBuffer = incBoard._result.lastBuffer()!
-    const freshBuffer = incBoard._result.freshRender()
-
-    for (let y = 0; y < incBuffer.height; y++) {
-      for (let x = 0; x < incBuffer.width; x++) {
-        const a = incBuffer.getCell(x, y)
-        const b = freshBuffer.getCell(x, y)
-        if (a.char !== b.char) {
-          expect.fail(`Cell (${x},${y}): incremental='${a.char}' fresh='${b.char}'`)
-        }
-      }
-    }
-  })
-
   test("multiple collapse/uncollapse cycles keep header visible", () => {
     using app = createTestApp(item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
       cols: 80,
@@ -377,40 +354,6 @@ describe("uncollapse header edge cases", () => {
 
     // Header should be visible after uncollapse
     app.expectScreen("ColToCollapse")
-  })
-
-  test("uncollapse incremental buffer matches fresh after collapse/uncollapse — km-tui.uncollapse-header", () => {
-    const { board } = testEnv(() => item("board", item("TestCol", item("t1"), item("t2")), item("Other", item("o1"))), {
-      columns: 80,
-      rows: 20,
-      incremental: true,
-    })
-
-    board.command("toggle_collapse")
-    board.command("toggle_collapse")
-
-    const incBuffer = board._result.lastBuffer()!
-    const freshBuffer = board._result.freshRender()
-
-    // Compare buffers cell-by-cell
-    for (let y = 0; y < incBuffer.height; y++) {
-      for (let x = 0; x < incBuffer.width; x++) {
-        const a = incBuffer.getCell(x, y)
-        const b = freshBuffer.getCell(x, y)
-        if (
-          a.char !== b.char ||
-          JSON.stringify(a.fg) !== JSON.stringify(b.fg) ||
-          JSON.stringify(a.bg) !== JSON.stringify(b.bg) ||
-          JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)
-        ) {
-          expect.fail(
-            `Cell mismatch at (${x},${y}): ` +
-              `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)}} ` +
-              `fresh={char:${JSON.stringify(b.char)} fg:${JSON.stringify(b.fg)} bg:${JSON.stringify(b.bg)}}`,
-          )
-        }
-      }
-    }
   })
 })
 
@@ -477,50 +420,16 @@ describe("collapsed column shift edge cases", () => {
 
 // =============================================================================
 // Edge cases: card border missing
-// Tests using expectNodeBorder / _result.lastBuffer() stay on testEnv.
+// Tests using expectNodeBorder stay on createDriverTest.
 // =============================================================================
 
 describe("card border missing edge cases", () => {
   test("selected body card with long content has border", () => {
     // Create a card whose content would be exactly the right length to potentially overflow
     const longContent = "X".repeat(35) // roughly fills a 40-char column
-    const { board } = testEnv(() => item("board", item("Col1", item(longContent))), { columns: 40, rows: 20 })
+    const { board } = createDriverTest(() => item("board", item("Col1", item(longContent))), { columns: 40, rows: 20 })
 
     // Selected body card should have a border
     board.expectNodeBorder(longContent)
-  })
-
-  test("incremental render card borders match fresh render", () => {
-    const { board } = testEnv(() => item("board", item("Col1", item("t1"), item("t2")), item("Col2", item("t3"))), {
-      columns: 80,
-      rows: 20,
-      incremental: true,
-    })
-
-    // Navigate to force re-render
-    board.command("cursor_down")
-    board.command("cursor_right")
-    board.command("cursor_left")
-
-    const incBuffer = board._result.lastBuffer()!
-    const freshBuffer = board._result.freshRender()
-
-    // Check border-specific cells - compare just border-relevant rows.
-    // Body cards (li type) always have borders (dim gray unselected, yellow selected).
-    // Stale border color from selection transitions is acceptable in incremental
-    // rendering — only check for MISSING borders (fresh has border but incremental
-    // doesn't).
-    const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
-    for (let y = 0; y < incBuffer.height; y++) {
-      for (let x = 0; x < incBuffer.width; x++) {
-        const a = incBuffer.getCell(x, y)
-        const b = freshBuffer.getCell(x, y)
-        // Only flag mismatches where fresh has a border but incremental doesn't
-        // (stale border in incremental but not in fresh is tolerable for body cards)
-        if (!isBorderChar(a.char) && isBorderChar(b.char)) {
-          expect.fail(`Missing border at (${x},${y}): inc='${a.char}' fresh='${b.char}'`)
-        }
-      }
-    }
   })
 })

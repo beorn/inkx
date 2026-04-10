@@ -387,8 +387,11 @@ export interface TestApp {
    * })
    * ```
    */
-  withStore<T>(fn: (store: BoardAppStore) => T): T
-  withStore<T>(reason: string, fn: (store: BoardAppStore) => T): T
+  withStore<T>(fn: (store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T): T
+  withStore<T>(
+    reason: string,
+    fn: (store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T,
+  ): T
   /** Dispose the test app */
   [Symbol.dispose](): void
 }
@@ -400,6 +403,8 @@ export interface CellInfo {
   bold: boolean
   dim: boolean
   italic: boolean
+  inverse: boolean
+  underline: boolean
 }
 
 export interface ScreenAccess {
@@ -934,7 +939,7 @@ function registerFailureArtifacts(
 // =============================================================================
 
 function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts: TestAppOptions): TestApp {
-  // Reset module-level state for isolate:false compatibility (matches testEnv behavior)
+  // Reset module-level state for isolate:false compatibility (matches createDriverTest behavior)
   ensureCommandSystemInitialized()
   getChordState().cancel()
   resetDialogGuard()
@@ -957,7 +962,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
   )
 
-  // Synchronous press — same pattern as testEnv's pressKey (board-test.ts:592)
+  // Synchronous press — same pattern as createDriverTest's pressKey (board-test.ts:592)
   const pressKey = (key: string) => {
     void driver.press(key) // fire-and-forget the microtask promise
   }
@@ -1311,7 +1316,16 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
 
     cell(col: number, row: number): CellInfo {
       const fc: FrameCell = driver.cell(col, row)
-      return { char: fc.char, fg: fc.fg, bg: fc.bg, bold: fc.bold, dim: fc.dim, italic: fc.italic }
+      return {
+        char: fc.char,
+        fg: fc.fg,
+        bg: fc.bg,
+        bold: fc.bold,
+        dim: fc.dim,
+        italic: fc.italic,
+        inverse: fc.inverse ?? false,
+        underline: !!fc.underline,
+      }
     },
 
     get screen(): ScreenAccess {
@@ -1330,7 +1344,16 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
         },
         cell(x: number, y: number): CellInfo {
           const fc: FrameCell = driver.cell(x, y)
-          return { char: fc.char, fg: fc.fg, bg: fc.bg, bold: fc.bold, dim: fc.dim, italic: fc.italic }
+          return {
+            char: fc.char,
+            fg: fc.fg,
+            bg: fc.bg,
+            bold: fc.bold,
+            dim: fc.dim,
+            italic: fc.italic,
+            inverse: fc.inverse ?? false,
+            underline: !!fc.underline,
+          }
         },
         width: cols,
         height: rows,
@@ -1359,9 +1382,17 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return driver
     },
 
-    withStore<T>(reasonOrFn: string | ((store: BoardAppStore) => T), maybeFn?: (store: BoardAppStore) => T): T {
+    withStore<T>(
+      reasonOrFn:
+        | string
+        | ((store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T),
+      maybeFn?: (store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T,
+    ): T {
       const fn = typeof reasonOrFn === "function" ? reasonOrFn : maybeFn!
-      return fn(driver.store.getState() as BoardAppStore)
+      return fn(
+        driver.store.getState() as BoardAppStore,
+        driver.store.setState as (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void,
+      )
     },
 
     [Symbol.dispose](): void {
@@ -1369,7 +1400,16 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
         cell(col: number, row: number): CellInfo | null {
           try {
             const fc: FrameCell = driver.cell(col, row)
-            return { char: fc.char, fg: fc.fg, bg: fc.bg, bold: fc.bold, dim: fc.dim, italic: fc.italic }
+            return {
+              char: fc.char,
+              fg: fc.fg,
+              bg: fc.bg,
+              bold: fc.bold,
+              dim: fc.dim,
+              italic: fc.italic,
+              inverse: fc.inverse ?? false,
+              underline: !!fc.underline,
+            }
           } catch {
             return null
           }
@@ -1681,7 +1721,7 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
   function getCellFromBuffer(x: number, y: number): CellInfo {
     if (!handle?.buffer) {
-      return { char: " ", fg: null, bg: null, bold: false, dim: false, italic: false }
+      return { char: " ", fg: null, bg: null, bold: false, dim: false, italic: false, inverse: false, underline: false }
     }
     const raw = handle.buffer.getCell(x, y)
     return {
@@ -1691,6 +1731,8 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       bold: !!(raw as { bold?: boolean }).bold,
       dim: !!(raw as { dim?: boolean }).dim,
       italic: !!(raw as { italic?: boolean }).italic,
+      inverse: !!(raw as { inverse?: boolean }).inverse,
+      underline: !!(raw as { underline?: boolean | number }).underline,
     }
   }
 
@@ -2130,10 +2172,18 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       throw new Error("driver is not available on termless backend — use headless backend for driver access")
     },
 
-    withStore<T>(reasonOrFn: string | ((store: BoardAppStore) => T), maybeFn?: (store: BoardAppStore) => T): T {
+    withStore<T>(
+      reasonOrFn:
+        | string
+        | ((store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T),
+      maybeFn?: (store: BoardAppStore, set: (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void) => T,
+    ): T {
       if (!handle) throw new Error("withStore: termless handle not ready")
       const fn = typeof reasonOrFn === "function" ? reasonOrFn : maybeFn!
-      return fn(handle.store.getState() as BoardAppStore)
+      return fn(
+        handle.store.getState() as BoardAppStore,
+        handle.store.setState as (fn: (s: BoardAppStore) => Partial<BoardAppStore>) => void,
+      )
     },
 
     [Symbol.dispose](): void {

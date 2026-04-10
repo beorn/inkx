@@ -19,7 +19,7 @@
  */
 
 import { bench, describe } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { createDriverTest, item } from "./helpers/board-test.ts"
 
 // =============================================================================
 // Fixture: Large board (8 cols × 60 cards × 3 sub-items = 1440+ nodes)
@@ -53,7 +53,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
   bench(
     "cards view",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
       })
@@ -65,7 +65,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
   bench(
     "list view",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
         viewMode: "list",
@@ -78,7 +78,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
   bench(
     "columns view",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
         viewMode: "columns",
@@ -93,7 +93,7 @@ describe("Architecture: h/l navigation (1440 nodes)", () => {
   bench(
     "l (move right)",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
       })
@@ -106,7 +106,7 @@ describe("Architecture: h/l navigation (1440 nodes)", () => {
   bench(
     "h (move left)",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
       })
@@ -122,7 +122,7 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
   bench(
     "> (zoom in)",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
       })
@@ -135,7 +135,7 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
   bench(
     "< (zoom out)",
     () => {
-      const { board } = testEnv(() => largeBoardFixture(), {
+      const { board } = createDriverTest(() => largeBoardFixture(), {
         columns: 200,
         rows: 60,
       })

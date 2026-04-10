@@ -8,7 +8,7 @@
  * - Selection cleared after operation
  * - Cursor follows to valid position
  *
- * NOTE: testEnv starts with cursor on card 0 (first card), not column header.
+ * NOTE: createDriverTest starts with cursor on card 0 (first card), not column header.
  *
  * Selection behavior:
  * - First J from card: sets anchor + adds anchor to multiSelected (1 item)

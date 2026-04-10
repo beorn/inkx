@@ -36,7 +36,7 @@ import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { withDiagnostics } from "@silvery/ag-react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 
 describe("Level navigation invariants", () => {
   test("synthetic: k k j j incremental matches fresh", async () => {
@@ -352,7 +352,7 @@ describe("Level navigation invariants", () => {
 
 describe("Structural invariants", () => {
   test("exactly one cursor element exists", () => {
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item("board", item("Col1", item("A"), item("B"), item("C")), item("Col2", item("X"), item("Y"))),
     )
 
@@ -374,7 +374,7 @@ describe("Structural invariants", () => {
   })
 
   test("cursor is within viewport bounds", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("Col1", ...Array.from({ length: 20 }, (_, i) => item(`Item ${i}`)))),
       { rows: 15 },
     )
@@ -393,7 +393,7 @@ describe("Structural invariants", () => {
   })
 
   test("no [object Object] in rendered output", () => {
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item("board", item("Col1", item("Task with special chars: <>\"'&")), item("Col2", item("Normal task"))),
     )
 
@@ -416,7 +416,7 @@ describe("Structural invariants", () => {
   test("buffer dimensions match terminal dimensions", () => {
     const cols = 100
     const rows = 30
-    const { board } = testEnv(() => item("board", item("Col", item("Task"))), {
+    const { board } = createDriverTest(() => item("board", item("Col", item("Task"))), {
       columns: cols,
       rows,
     })

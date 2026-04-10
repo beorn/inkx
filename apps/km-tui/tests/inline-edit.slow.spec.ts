@@ -1,4 +1,4 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: board.click(x,y) for cursor positioning
+// createDriverTest FREEZE bucket — see km-all.test-system bead. Reason: board.click(x,y) for cursor positioning
 /**
  * Inline Edit Acceptance Tests
  *
@@ -15,13 +15,13 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -34,7 +34,7 @@ describe("Inline Editing", () => {
   })
 
   test("Enter on column header enters inline edit", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.command("cursor_up") // card → column
     board.expect("#col1[data-cursor]").toExist()
@@ -45,7 +45,9 @@ describe("Inline Editing", () => {
   })
 
   test("typing during inline edit does NOT trigger board commands", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
+    const { board } = createDriverTest(() =>
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+    )
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -63,7 +65,7 @@ describe("Inline Editing", () => {
   })
 
   test("Escape during inline edit saves and exits", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -89,7 +91,7 @@ describe("Inline Editing", () => {
   })
 
   test("Enter confirms inline edit and saves to repo", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -115,7 +117,7 @@ describe("Inline Editing", () => {
   })
 
   test("shifted punctuation chars insert correctly during inline edit", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("task"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("task"), item("1b"))))
 
     board.expect("#task[data-cursor]").toExist()
     board.press("Enter")
@@ -133,7 +135,7 @@ describe("Inline Editing", () => {
   })
 
   test("mixed text with shifted chars saves correctly", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("item"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("item"), item("1b"))))
 
     board.expect("#item[data-cursor]").toExist()
     board.press("Enter")
@@ -151,7 +153,7 @@ describe("Inline Editing", () => {
   })
 
   test("inline edit then navigate works (Enter → Escape → j/k)", () => {
-    const { board } = testEnv(item.simpleBoard)
+    const { board } = createDriverTest(item.simpleBoard)
 
     // Edit first card then cancel
     board.press("Enter")
@@ -170,7 +172,7 @@ describe("Inline Editing", () => {
   })
 
   test("Escape exits inline edit before other close_or_quit actions", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
 
@@ -192,7 +194,7 @@ describe("Inline Edit — Readline Integration", () => {
   // Exhaustive readline testing belongs at the useEditContext hook level.
 
   test("Backspace and arrow keys work in edit mode", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // ab| → ArrowLeft → a|b → insert X → aXb
@@ -205,7 +207,7 @@ describe("Inline Edit — Readline Integration", () => {
   })
 
   test("Delete key works in edit mode (forward delete)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // ab| → Ctrl+A → |ab → Delete → |b
@@ -218,7 +220,7 @@ describe("Inline Edit — Readline Integration", () => {
   })
 
   test("Ctrl shortcuts (ctrl+A, ctrl+W) work through input layers", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("xyz"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("xyz"))))
 
     board.press("Enter")
     // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
@@ -233,7 +235,7 @@ describe("Inline Edit — Readline Integration", () => {
 
 describe("Inline Edit — Task Markers", () => {
   test("editing a task node preserves task marker on save", () => {
-    const { board, repo } = testEnv(() => {
+    const { board, repo } = createDriverTest(() => {
       const nodes = item("board", item("col1", item("task1")))
       // Make task1 a proper task with a marker
       const taskNode = nodes.find((n) => n.id === "task1")!
@@ -256,7 +258,7 @@ describe("Inline Edit — Task Markers", () => {
   })
 
   test("editing a todo task preserves todo marker", () => {
-    const { board, repo } = testEnv(() => {
+    const { board, repo } = createDriverTest(() => {
       const nodes = item("board", item("col1", item("mytodo")))
       const taskNode = nodes.find((n) => n.id === "mytodo")!
       taskNode.content = "- [ ] mytodo"
@@ -276,7 +278,7 @@ describe("Inline Edit — Task Markers", () => {
 
 describe("Inline Edit — Navigate Away Saves", () => {
   test("ArrowDown during edit saves and navigates to next card", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -296,7 +298,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("ArrowUp during edit saves and navigates to previous card", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to second card
     board.command("cursor_down")
@@ -315,7 +317,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("navigate away without changes does not save (no-op)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("orig"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("orig"), item("1b"))))
 
     board.press("Enter")
     // Don't type anything, just navigate away
@@ -328,7 +330,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("Escape during edit saves content (not cancel)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
     for (const c of "-nope") board.press(c)
@@ -346,7 +348,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   // useSyncExternalStore must drive re-renders independently of UI dispatch.
 
   test("direct repo.updateNode causes board to show updated content", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("original"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("original"), item("1b"))))
 
     expect(board.screenshot()).toContain("original")
 
@@ -363,7 +365,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   })
 
   test("multiple direct repo mutations accumulate correctly", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("aaa"), item("bbb"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("aaa"), item("bbb"))))
 
     repo.updateNode("aaa", { content: "AAA" })
     repo.updateNode("bbb", { content: "BBB" })
@@ -376,7 +378,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   })
 
   test("repo.deleteNode causes board to remove the node", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("keep"), item("remove"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("keep"), item("remove"))))
 
     expect(board.screenshot()).toContain("remove")
 
@@ -390,7 +392,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
 
 describe("Inline Edit — Edge Cases", () => {
   test("edit across different columns", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("c1")), item("col2", item("c2"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("c1")), item("col2", item("c2"))))
 
     // Edit in col1
     board.press("Enter")
@@ -411,7 +413,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("confirm with no changes preserves original", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("keep"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("keep"))))
 
     board.press("Enter")
     // Immediately confirm without typing
@@ -422,7 +424,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("backspace all then confirm saves empty content", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     board.press("Backspace")
@@ -436,7 +438,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("edit then confirm then edit same node again", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("orig"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("orig"))))
 
     // First edit: append "1"
     board.press("Enter")
@@ -473,7 +475,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   // ── No visible children ────────────────────────────────────
 
   test("end, no children → sibling after + verify navigation", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     board.press("Enter") // edit alpha, cursor at end
     board.press("Enter") // → sibling after
@@ -497,7 +499,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("start, no children → sibling before + verify navigation", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     board.press("Enter") // edit alpha, cursor at end
     board.press("ctrl+a") // cursor to start
@@ -520,7 +522,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("middle, no children → split as sibling + verify content", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("abcd"), item("zeta"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("abcd"), item("zeta"))))
 
     board.press("Enter") // edit "abcd", cursor at end
     board.press("ArrowLeft") // ab|cd → move 2 left
@@ -554,7 +556,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   // ── With visible children ──────────────────────────────────
 
   test("end, visible children → first child + verify navigation", () => {
-    const { board, repo } = testEnv(() =>
+    const { board, repo } = createDriverTest(() =>
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("sibling"))),
     )
 
@@ -578,7 +580,9 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("start, visible children → sibling before (not child)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("sibling"))))
+    const { board, repo } = createDriverTest(() =>
+      item("board", item("col1", item("parent", item("child1")), item("sibling"))),
+    )
 
     board.press("Enter") // edit parent, cursor at end
     board.press("ctrl+a") // cursor to start
@@ -599,7 +603,9 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("middle, visible children → split as first child + verify", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("abcd", item("existing")), item("sibling"))))
+    const { board, repo } = createDriverTest(() =>
+      item("board", item("col1", item("abcd", item("existing")), item("sibling"))),
+    )
 
     board.press("Enter") // edit "abcd", cursor at end
     board.press("ArrowLeft") // move to ab|cd
@@ -627,7 +633,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   // ── Edge cases ─────────────────────────────────────────────
 
   test("empty text → sibling after (cursorAtEnd wins)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("alpha"))))
 
     board.press("Enter") // edit alpha (cursor at end of "alpha")
     // Delete all text: cursor at end → ctrl+u deletes to start
@@ -656,7 +662,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
     //   sub1's ChildrenList: remainingDepth=0 → allFolded → children are FoldedChildRow
     // When cursor is on sub1 (which has children rendered as FoldedChildRow),
     // Enter at end of title should create sibling (not child at the folded level).
-    const { board, repo } = testEnv(() =>
+    const { board, repo } = createDriverTest(() =>
       item("board", item("col1", item("card", item("sub1", item("gc1"), item("gc2")), item("sub2")))),
     )
 
@@ -692,7 +698,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   test.skip("middle, folded children (depth limit) → split as sibling, not child", () => {
     // Same depth scenario: sub-item at depth 1 has children that are FoldedChildRow.
     // Split at middle should produce sibling, not child.
-    const { board, repo } = testEnv(() =>
+    const { board, repo } = createDriverTest(() =>
       item("board", item("col1", item("card", item("abcd", item("deep1")), item("sub2")))),
     )
 
@@ -729,7 +735,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("Shift+Enter always inserts child at end", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     board.press("Enter") // edit alpha
     // Note: shift+Enter is indistinguishable from Enter in ANSI (no Kitty protocol in tests).
@@ -757,7 +763,7 @@ const colItems = (col: string) => `#${col} [data-view='item']`
 
 describe("Outliner Enter — save + new sibling", () => {
   test("Enter saves content and creates new sibling", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter") // enter edit mode on 1a
     board.command("cycle_task_status") // type "X" → content should be "1aX"
@@ -770,7 +776,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Enter with no changes still creates new sibling", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect(colItems("col1")).toHaveCount(2)
 
@@ -784,7 +790,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Multiple Enters create chain of siblings", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"))))
 
     board.expect(colItems("col1")).toHaveCount(1)
 
@@ -798,7 +804,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("After Enter, user is editing new sibling (can type into it)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter") // edit 1a
     board.press("Enter") // save + create sibling in edit mode
@@ -815,7 +821,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Escape saves and exits without creating sibling", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect(colItems("col1")).toHaveCount(2)
 
@@ -835,7 +841,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling is created between existing cards", () => {
-    const { board } = testEnv(() => {
+    const { board } = createDriverTest(() => {
       return item("board", item("col1", item("1a"), item("1b")))
     })
 
@@ -854,7 +860,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling is inserted AFTER current card, not before", () => {
-    const { board } = testEnv(item.simpleBoard)
+    const { board } = createDriverTest(item.simpleBoard)
 
     // Cursor on 1a, Enter → edit, Enter → save + new sibling
     board.press("Enter")
@@ -871,7 +877,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling after LAST card is appended at end", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to last card (1b)
     board.command("cursor_down")
@@ -888,7 +894,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling after MIDDLE card goes between neighbors", () => {
-    const { board } = testEnv(item.simpleBoard)
+    const { board } = createDriverTest(item.simpleBoard)
 
     // Navigate to middle card (1b)
     board.command("cursor_down")
@@ -967,7 +973,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
   }
 
   test("Enter on symlink_to card creates new sibling and shows it", () => {
-    const { board, repo } = testEnv(linkBoard)
+    const { board, repo } = createDriverTest(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
 
@@ -979,7 +985,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
   })
 
   test("Enter on symlink_to card: new sibling is a regular node, not a link", () => {
-    const { board, repo } = testEnv(linkBoard)
+    const { board, repo } = createDriverTest(linkBoard)
 
     board.press("Enter") // edit
     board.press("Enter") // save + create sibling
@@ -997,7 +1003,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
   })
 
   test("Multiple Enters on symlink_to board create chain of siblings", () => {
-    const { board } = testEnv(linkBoard)
+    const { board } = createDriverTest(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
 
@@ -1011,7 +1017,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
   })
 
   test("keybindings work after Enter on symlink_to node", () => {
-    const { board } = testEnv(linkBoard)
+    const { board } = createDriverTest(linkBoard)
 
     board.press("Enter") // edit
     board.press("Enter") // save + create sibling (now editing new node)
@@ -1089,7 +1095,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
   }
 
   test("Enter on paragraph embed creates new sibling and shows it", () => {
-    const { board } = testEnv(paragraphLinkBoard)
+    const { board } = createDriverTest(paragraphLinkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
 
@@ -1101,7 +1107,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
   })
 
   test("Multiple Enters on paragraph embeds create chain of siblings", () => {
-    const { board } = testEnv(paragraphLinkBoard)
+    const { board } = createDriverTest(paragraphLinkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
 
@@ -1115,7 +1121,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
   })
 
   test("keybindings work after Enter on paragraph embed", () => {
-    const { board } = testEnv(paragraphLinkBoard)
+    const { board } = createDriverTest(paragraphLinkBoard)
 
     board.press("Enter") // edit
     board.press("Enter") // save + create sibling (now editing new node)
@@ -1136,7 +1142,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
  * (skipping the breadcrumb header at row 0 and column header).
  * Starts scanning from row 4 to skip breadcrumb, blank line, header, separator.
  */
-function findContentRow(board: ReturnType<typeof testEnv>["board"], text: string): number {
+function findContentRow(board: ReturnType<typeof createDriverTest>["board"], text: string): number {
   const rows = board.screen.rows
   for (let y = 4; y < rows.length; y++) {
     if (rows[y]?.includes(text)) return y
@@ -1147,7 +1153,7 @@ function findContentRow(board: ReturnType<typeof testEnv>["board"], text: string
 /**
  * Find the first cell matching "bo" pattern on a row and return its color info.
  */
-function findBoCell(board: ReturnType<typeof testEnv>["board"], row: number) {
+function findBoCell(board: ReturnType<typeof createDriverTest>["board"], row: number) {
   for (let x = 0; x < board.screen.width; x++) {
     const cell = board.screen.cell(x, row)
     if (cell.char === "b" && board.screen.cell(x + 1, row).char === "o") {
@@ -1159,7 +1165,7 @@ function findBoCell(board: ReturnType<typeof testEnv>["board"], row: number) {
 
 describe("edit focus ring", () => {
   test("inline edit mode does not fill row with blue background", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"))))
+    const { board } = createDriverTest(() => item("board", item("col", item("task1"))))
 
     // Enter inline edit mode with Enter key
     board.press("Enter")
@@ -1186,7 +1192,7 @@ describe("edit focus ring", () => {
     // TreeNode in display mode so they keep their bullets, checkboxes, and
     // indentation. They no longer use the cardBorderEditing color override —
     // the cyan card border + inverse cursor are sufficient edit indicators.
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item("board", item("col", item("task1", item.p("body line 1"), item.p("body line 2")))),
     )
 
@@ -1200,7 +1206,9 @@ describe("edit focus ring", () => {
   })
 
   test("navigating to body block does not add blue background", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1", item.p("body text"), item.p("more text")))))
+    const { board } = createDriverTest(() =>
+      item("board", item("col", item("task1", item.p("body text"), item.p("more text")))),
+    )
 
     // Enter inline edit mode on title
     board.press("Enter")
@@ -1231,7 +1239,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
    * misses the update (0-byte diff patch).
    */
   test("typing in a body block card shows typed text on screen", () => {
-    const { board, repo } = testEnv(
+    const { board, repo } = createDriverTest(
       () => item("board", item("col1", item.p("See instructions."), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
@@ -1260,7 +1268,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
   })
 
   test("typing in body block with incremental rendering matches fresh render", () => {
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () => item("board", item("col1", item.p("Hello world"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
@@ -1282,7 +1290,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
   test("typing in body block within a column (not root body) shows text", () => {
     // This tests body blocks that appear inside a column's card list,
     // not just at the root level virtual body column
-    const { board, repo } = testEnv(
+    const { board, repo } = createDriverTest(
       () => item("board", item("col1", item.p("Body content here"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
@@ -1314,10 +1322,13 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // Use long content that wraps across multiple visual lines
     const longContent =
       "This is a longer body block that should wrap across multiple visual lines for testing cursor navigation"
-    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
-      columns: 40,
-      rows: 20,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item.p(longContent), item("section1", item("task1")))),
+      {
+        columns: 40,
+        rows: 20,
+      },
+    )
 
     // Enter edit mode on the body block
     board.press("Enter")
@@ -1334,11 +1345,14 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowDown traverses all visual lines then exits to next block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ"
     // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
-    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
-      columns: 30,
-      rows: 20,
-      checkIncremental: false,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item.p(longContent), item("section1", item("task1")))),
+      {
+        columns: 30,
+        rows: 20,
+        checkIncremental: false,
+      },
+    )
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
@@ -1361,11 +1375,14 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ctrl+a clears cursor inverse attr at old position (incremental)", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     // checkIncremental: false — bottom bar format change causes stale incremental cells
-    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
-      columns: 30,
-      rows: 20,
-      checkIncremental: false,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item.p(longContent), item("section1", item("task1")))),
+      {
+        columns: 30,
+        rows: 20,
+        checkIncremental: false,
+      },
+    )
 
     // Enter edit mode (cursor at end of text)
     board.press("Enter")
@@ -1377,11 +1394,14 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowUp at first visual line exits to previous block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     // checkIncremental: false — bottom bar format change causes stale incremental cells
-    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
-      columns: 30,
-      rows: 20,
-      checkIncremental: false,
-    })
+    const { board } = createDriverTest(
+      () => item("board", item("col1", item.p(longContent), item("section1", item("task1")))),
+      {
+        columns: 30,
+        rows: 20,
+        checkIncremental: false,
+      },
+    )
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
@@ -1395,7 +1415,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   })
 
   test("INSERT mode indicator appears in command box during inline edit", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board } = createDriverTest(() => item("board", item("col1", item("1a"))))
 
     // Before editing: command box is hidden in NORMAL mode
     expect(board.screenshot()).not.toContain("INSERT")
@@ -1419,7 +1439,9 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
   describe("edit-mode node navigation", () => {
     test("ArrowDown at boundary crosses to next card, stays in edit mode", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))))
+      const { board } = createDriverTest(() =>
+        item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
+      )
 
       // Enter edit mode on task-1
       board.press("Enter")
@@ -1442,7 +1464,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("ctrl-n from card saves edit before navigating to next card", () => {
-      const { board, repo } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"))))
+      const { board, repo } = createDriverTest(() => item("board", item("col1", item("task-1"), item("task-2"))))
 
       // Edit task-1 title
       board.press("Enter")
@@ -1463,7 +1485,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // Board.tsx split / sel.transform refactor. Re-enable once sub-section
     // navigation between sub-items is restored.
     test.skip("ctrl-n from sub-section saves edit before navigating to sibling", () => {
-      const { board, repo } = testEnv(() =>
+      const { board, repo } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1494,7 +1516,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       // fails with 'no adjacent node' because findAdjacentEditNode only checks
       // extractBody().items (outline nodes), not body blocks.
       // Note: sub-a/sub-b need children to be outline headings (type "h"), not leaf tasks (type "p")
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1517,7 +1539,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       // Real vault structure: heading has body paragraphs + leaf tasks, ALL type "p".
       // None are outline items. ctrl-n should traverse them in order via parent blockIndex.
       // Body blocks resolve to parent node with blockIndex: 0=title, 1+=body blocks.
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1556,7 +1578,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     // TODO(km-tui.text-cursor-nav): same sub-section regression as ctrl-n test.
     test.skip("ArrowDown from sub-section navigates to next sibling, not first card", () => {
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1576,7 +1598,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("ArrowDown from last sub-section navigates to next card", () => {
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1595,7 +1617,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("ArrowUp from first sub-section navigates to previous card", () => {
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1617,7 +1639,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("ArrowDown from section title enters first outline child, not next sibling", () => {
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1637,7 +1659,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("ArrowUp from sibling enters previous sibling's DFS-last descendant", () => {
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1658,7 +1680,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     // TODO(km-tui.text-cursor-nav): same sub-section regression.
     test.skip("navigating between sub-sections preserves cardNodeId (card stays expanded)", () => {
-      const { board, store } = testEnv(() =>
+      const { board, store } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1687,7 +1709,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       // Card with nested sub-sections: card-1 > sub-a > deep-a > leaf-a, sub-b > deep-b > leaf-b
       // When navigating UP from card-2, should land on leaf-b (DFS-last descendant),
       // not deep-b or sub-b — walkTree finds the true bottom of the card subtree.
-      const { board } = testEnv(() =>
+      const { board } = createDriverTest(() =>
         item(
           "board",
           item(
@@ -1747,10 +1769,13 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // TODO(km-tui.text-cursor-nav): mouse click repositioning in edit mode
     // regressed; command-bridge no longer enters INSERT from a mid-card mouse click.
     test.skip("mouse click in edit mode repositions within same card", () => {
-      const { board } = testEnv(() => item("board", item("Column", item("card", item("child-1"), item("child-2")))), {
-        columns: 80,
-        rows: 24,
-      })
+      const { board } = createDriverTest(
+        () => item("board", item("Column", item("card", item("child-1"), item("child-2")))),
+        {
+          columns: 80,
+          rows: 24,
+        },
+      )
 
       // Click child-1 and enter edit mode
       const c1 = board.q("[id='child-1']")
@@ -1768,7 +1793,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("mouse click outside card exits edit mode", () => {
-      const { board } = testEnv(
+      const { board } = createDriverTest(
         () => item.root("board", item("Column", item("card-a", item("child-1"))), item("Other", item("card-b"))),
         { columns: 80, rows: 24 },
       )
@@ -1792,7 +1817,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
 describe("Inline Edit — Folder/Section Nodes", () => {
   test("editing column header via Escape updates both content and name", () => {
-    const { board, repo } = testEnv(() => item("board", item("Views", item("task1"))))
+    const { board, repo } = createDriverTest(() => item("board", item("Views", item("task1"))))
 
     // Navigate to column header
     board.command("cursor_up")
@@ -1817,7 +1842,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
   })
 
   test("folder node name is updated (not just content) after save-on-exit", () => {
-    const { board, repo } = testEnv(() => item("board", item("Col", item("task1"))))
+    const { board, repo } = createDriverTest(() => item("board", item("Col", item("task1"))))
 
     // Navigate to column header
     board.command("cursor_up")
@@ -1835,7 +1860,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
   })
 
   test("editing column header fully replaces name after clearing text", () => {
-    const { board, repo } = testEnv(() => item("board", item("Old", item("task1"))))
+    const { board, repo } = createDriverTest(() => item("board", item("Old", item("task1"))))
 
     // Navigate to column header
     board.command("cursor_up")
@@ -1875,7 +1900,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
   // `data.name` in sync with `name`/`content`.
   // ===========================================================================
   test("renaming column to sigil-prefixed name keeps cursor valid and updates display", () => {
-    const { board, repo } = testEnv(() => item("board", item("name", item("task1"))))
+    const { board, repo } = createDriverTest(() => item("board", item("name", item("task1"))))
 
     // Move to column header so the inline edit targets the column (folder) node
     board.command("cursor_up")
@@ -1908,7 +1933,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
   test("renaming column (no sigil) keeps cursor valid and updates display", () => {
     // Sanity check: a plain rename of a column header should also leave the
     // cursor selection and the rendered display name consistent.
-    const { board, repo } = testEnv(() => item("board", item("Old", item("task1"))))
+    const { board, repo } = createDriverTest(() => item("board", item("Old", item("task1"))))
 
     board.command("cursor_up")
     board.expect("#Old[data-cursor]").toExist()
@@ -1932,7 +1957,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
 
 describe("Empty Board — first child creation", () => {
   test("o creates column, Enter creates column, Escape cancels edit", () => {
-    const { board, repo } = testEnv(() => item("board"))
+    const { board, repo } = createDriverTest(() => item("board"))
     expect(board.screenshot()).toContain("Empty board")
 
     // --- o creates first column heading, enters edit ---
@@ -1950,7 +1975,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("Enter on empty board also creates first column", () => {
-    const { board, repo } = testEnv(() => item("board"))
+    const { board, repo } = createDriverTest(() => item("board"))
     expect(board.screenshot()).toContain("Empty board")
 
     board.press("Enter")
@@ -1965,7 +1990,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("Escape during first-column edit saves empty content (column persists)", () => {
-    const { board, repo } = testEnv(() => item("board"))
+    const { board, repo } = createDriverTest(() => item("board"))
 
     // Create column but immediately Escape without typing
     board.press("o")
@@ -1980,7 +2005,7 @@ describe("Empty Board — first child creation", () => {
 
   test("journey: add cards to column, edit, delete", () => {
     // Board with one column and one card — standard starting point
-    const { board, repo } = testEnv(() => item("board", item("Todo", item("First"))))
+    const { board, repo } = createDriverTest(() => item("board", item("Todo", item("First"))))
 
     expect(board.screenshot()).toContain("Todo")
     expect(board.screenshot()).toContain("First")
@@ -2023,7 +2048,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("edit existing column title via Enter, append and save", () => {
-    const { board, repo } = testEnv(() => item("board"))
+    const { board, repo } = createDriverTest(() => item("board"))
 
     // Create a column
     board.press("o")
@@ -2044,7 +2069,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("double-click on column header enters inline edit", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"))))
 
     // Find column header position and double-click
     const screenshot = board.screenshot()
@@ -2072,7 +2097,9 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("click on column header selects it (doesn't move to board root)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
+    const { board } = createDriverTest(() =>
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+    )
 
     // Simulate clicking on column header:
     // For keyboard, we can test that h/l navigation to column works
@@ -2086,7 +2113,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("column title inline edit: Escape saves and exits edit mode", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"))))
 
     // Move to column header and enter edit
     board.command("cursor_up")
@@ -2107,7 +2134,7 @@ describe("Empty Board — first child creation", () => {
   })
 
   test("column title inline edit: Enter confirms (saves to repo)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+    const { board, repo } = createDriverTest(() => item("board", item("col1", item("1a"))))
 
     // Move to column header and enter edit
     board.command("cursor_up")
@@ -2129,7 +2156,7 @@ describe("Empty Board — first child creation", () => {
 describe("Inline Edit — Card Expansion", () => {
   test("entering edit on a sub-item expands the full card to show all children", () => {
     // Card with 5 children — maxContentLines defaults to 3, so only 3 are visible normally
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item("board", item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5")))),
     )
 
@@ -2157,7 +2184,7 @@ describe("Inline Edit — Card Expansion", () => {
 
   test("card auto-expands when cursor navigates to child below maxContentLines fold", () => {
     // Card with 5 children — maxContentLines defaults to 3, so children 4+ are hidden
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item("board", item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5")))),
     )
 
@@ -2182,7 +2209,7 @@ describe("Inline Edit — Card Expansion", () => {
 
   test("editing sub-sub-item expands intermediate parent nodes", () => {
     // Nested structure: card > section > deep items (deep-d and deep-e beyond section's fold)
-    const { board } = testEnv(() =>
+    const { board } = createDriverTest(() =>
       item(
         "board",
         item(
@@ -2210,7 +2237,7 @@ describe("edit indentation parity", () => {
   test("body content indentation matches between display and edit mode", () => {
     // Card with body content (paragraph-like items before a heading)
     const nodes = item("board", item("col1", item("parent", item.p("body child"), item.section("heading"))))
-    const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
+    const { board } = createDriverTest(() => nodes, { columns: 60, rows: 20 })
 
     // Navigate to the "parent" card
     board.expect("#parent[data-cursor]").toExist()
@@ -2251,7 +2278,7 @@ describe("edit indentation parity", () => {
 
   test("editing card title preserves checkbox icons on non-active body sub-items", () => {
     // Card with body sub-items that are tasks (have checkboxes)
-    const { board } = testEnv(
+    const { board } = createDriverTest(
       () =>
         item(
           "board",
@@ -2455,7 +2482,7 @@ describe("Empty card heading: navigation keys must not corrupt data", () => {
     // When sel.text() is non-null but no InlineEditField is mounted
     // (orphaned edit state), cursor movement should clear the stale text
     // selection so subsequent keys navigate instead of being captured as text.
-    const { board, repo, store } = testEnv(() =>
+    const { board, repo, store } = createDriverTest(() =>
       item("board", item("col1", item("task1"), item("task2"), item("task3"))),
     )
 
@@ -2483,7 +2510,7 @@ describe("Empty card heading: navigation keys must not corrupt data", () => {
   test("j/k on heading card with no children navigates instead of typing", () => {
     // A heading card (type: "h") that has no children — like an empty section
     // heading in a real vault. j/k should navigate, NOT enter edit mode.
-    const { board, repo } = testEnv(() => {
+    const { board, repo } = createDriverTest(() => {
       const nodes = item("board", item("col1", item("task1"), item("task2")))
       // Replace task1 with a heading-type node (simulating an empty section heading)
       const task1 = nodes.find((n) => n.id === "task1")!

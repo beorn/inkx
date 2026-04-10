@@ -6,7 +6,7 @@
  *
  * Phases measured:
  *   1. Board setup — createFakeRepo + store + lens construction
- *   2. First render — testEnv setup + React reconciliation + silvery pipeline → first frame
+ *   2. First render — createDriverTest setup + React reconciliation + silvery pipeline → first frame
  *   3. Full startup — createBoardTest end-to-end → interactive frame
  *
  * Note: Module import time cannot be meaningfully benchmarked with vitest bench
@@ -21,7 +21,7 @@
 import { bench, describe } from "vitest"
 import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
 import { createViewLens, createVisibleLens } from "@km/board"
-import { item, testEnv } from "../apps/km-tui/tests/helpers/board-test.ts"
+import { item, createDriverTest } from "../apps/km-tui/tests/helpers/board-test.ts"
 import { createBoardTest } from "../apps/km-tui/src/testing.ts"
 
 // =============================================================================
@@ -69,14 +69,14 @@ describe("Board setup (no rendering)", () => {
 })
 
 // =============================================================================
-// Phase 2: First render (testEnv → first frame with React + silvery pipeline)
+// Phase 2: First render (createDriverTest → first frame with React + silvery pipeline)
 // =============================================================================
 
-describe("First render (testEnv → first frame)", () => {
+describe("First render (createDriverTest → first frame)", () => {
   bench(
     "80x24 — 3 cols, 7 cards",
     () => {
-      const { board } = testEnv(() => boardFixture(), { columns: 80, rows: 24 })
+      const { board } = createDriverTest(() => boardFixture(), { columns: 80, rows: 24 })
       const text = board.screenshot()
       if (!text || text.length === 0) throw new Error("no first frame")
     },
@@ -86,7 +86,7 @@ describe("First render (testEnv → first frame)", () => {
   bench(
     "200x60 — 3 cols, 7 cards",
     () => {
-      const { board } = testEnv(() => boardFixture(), { columns: 200, rows: 60 })
+      const { board } = createDriverTest(() => boardFixture(), { columns: 200, rows: 60 })
       const text = board.screenshot()
       if (!text || text.length === 0) throw new Error("no first frame")
     },

@@ -23,7 +23,7 @@
  * );
  *
  * // One-line test with fluent API
- * const { board } = testEnv(() =>
+ * const { board } = createDriverTest(() =>
  *   item("board", item("col1", item("task1"), item("task2")))
  * );
  * board.press("j").expectVisible("task2");
@@ -95,7 +95,7 @@ function createMockSel(): SelectionStore {
 
 // Board includes useReducer + useInput - use for keyboard navigation tests.
 // (Legacy board() / renderBoard / SIMPLE_BOARD DSL has been removed — tests
-//  now use testEnv() + item().)
+//  now use createDriverTest() + item().)
 
 // =============================================================================
 // Command → Key reverse lookup (for command() semantic alias)
@@ -460,7 +460,7 @@ function standardBoard() {
  * One-line fixture creation + rendering with fluent API
  *
  * @example
- * const { board } = testEnv(() =>
+ * const { board } = createDriverTest(() =>
  *   item("board",
  *     item("col1", item("1a"), item("1b"))
  *   )
@@ -468,7 +468,7 @@ function standardBoard() {
  * board.press("j").expect("#1b[data-cursor]").toExist();
  *
  * // Test with specific view mode
- * const { board: listBoard } = testEnv(() => item("board", item("col1", item("1a"))), {
+ * const { board: listBoard } = createDriverTest(() => item("board", item("col1", item("1a"))), {
  *   viewMode: "list"
  * });
  */
@@ -501,7 +501,7 @@ function buildTestEventHandlerCtx(store: StoreApi<BoardAppStore>, fm: ReturnType
 // Shared Test Render Environment (internal)
 // =============================================================================
 
-/** Options shared by testEnv and testEnvWithRepo */
+/** Options shared by createDriverTest and createDriverTestWithRepo */
 interface TestEnvOptions {
   columns?: number
   rows?: number
@@ -514,7 +514,7 @@ interface TestEnvOptions {
 
 /**
  * Internal helper that creates the shared test rendering infrastructure.
- * Both testEnv() and testEnvWithRepo() delegate to this.
+ * Both createDriverTest() and createDriverTestWithRepo() delegate to this.
  *
  * Handles: command system init, store setup, renderer creation, pressKey/sendMouse,
  * and the full fluent board API with all assertion methods.
@@ -754,14 +754,14 @@ function createFluentBoardApi(ctx: {
     },
     /** Dispatch a command by name — semantic alias for press(). Chainable. */
     command: (commandId: string) => {
-      if (!dispatchCommand) throw new Error("command() requires testEnv() — not available in renderBoard()")
+      if (!dispatchCommand) throw new Error("command() requires createDriverTest() — not available in renderBoard()")
       dispatchCommand(commandId)
       return board
     },
     /** Navigate cursor to a specific node by pressing cursor_down repeatedly (max 50 steps).
      *  Throws if target not reached. */
     navigateTo: (target: string) => {
-      if (!dispatchCommand) throw new Error("navigateTo() requires testEnv() — not available in renderBoard()")
+      if (!dispatchCommand) throw new Error("navigateTo() requires createDriverTest() — not available in renderBoard()")
       for (let i = 0; i < 50; i++) {
         const loc = result.locator(`#${target}[data-cursor]`)
         if (loc.count() > 0) return board
@@ -814,7 +814,7 @@ function createFluentBoardApi(ctx: {
      *  (e.g. silvery's CursorLine/EditContextDisplay onCursorClick).
      *  Does NOT handle board-level logic (card selection) — use click() first, then clickTree(). */
     clickTree: (x: number, y: number) => {
-      if (!sendTreeMouseEvent) throw new Error("clickTree() requires testEnv()")
+      if (!sendTreeMouseEvent) throw new Error("clickTree() requires createDriverTest()")
       sendTreeMouseEvent({
         button: 0,
         x,
@@ -1685,7 +1685,7 @@ function createFluentBoardApi(ctx: {
      * Compare current incremental render buffer against a fresh render.
      * For each mismatch, reports position, incremental cell, and fresh cell.
      *
-     * Only meaningful when `incremental: true` was passed to testEnv (which is
+     * Only meaningful when `incremental: true` was passed to createDriverTest (which is
      * the default). Delegates to silvery's `compareBuffers` + `formatMismatch`.
      *
      * @example
@@ -1733,7 +1733,7 @@ function createFluentBoardApi(ctx: {
      * ```
      */
     getAppState(): BoardAppState {
-      if (!store) throw new Error("getAppState() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("getAppState() requires createDriverTest() — not available in renderBoard()")
       return store.getState()
     },
 
@@ -1752,7 +1752,7 @@ function createFluentBoardApi(ctx: {
      * ```
      */
     editNode(nodeId: string, opts?: { block?: number; card?: string }) {
-      if (!store) throw new Error("editNode() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("editNode() requires createDriverTest() — not available in renderBoard()")
       const s = store.getState()
       s.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
       s.textEditHints = { blockIndex: opts?.block ?? 0 }
@@ -1771,7 +1771,7 @@ function createFluentBoardApi(ctx: {
      * ```
      */
     setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) {
-      if (!store) throw new Error("setUI() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("setUI() requires createDriverTest() — not available in renderBoard()")
       store.getState().setUI(partial)
       pressKey("") // flush render
       return board
@@ -1788,7 +1788,7 @@ function createFluentBoardApi(ctx: {
      * ```
      */
     expectEditing(nodeId?: string) {
-      if (!store) throw new Error("expectEditing() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("expectEditing() requires createDriverTest() — not available in renderBoard()")
       const textSel = store.getState().sel.text()
       if (nodeId) {
         expect(textSel?.nodeId).toBe(nodeId)
@@ -1807,7 +1807,7 @@ function createFluentBoardApi(ctx: {
      * ```
      */
     expectNotEditing() {
-      if (!store) throw new Error("expectNotEditing() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("expectNotEditing() requires createDriverTest() — not available in renderBoard()")
       expect(store.getState().sel.text()).toBeNull()
       return board
     },
@@ -1829,7 +1829,7 @@ function createFluentBoardApi(ctx: {
       filterText?: string
       cursor?: string
     }) {
-      if (!store) throw new Error("expectState() requires testEnv() — not available in renderBoard()")
+      if (!store) throw new Error("expectState() requires createDriverTest() — not available in renderBoard()")
       const s = store.getState()
       const pane = getActiveBoardPane(s)!
       const textSel = s.sel.text()
@@ -1853,14 +1853,17 @@ function createFluentBoardApi(ctx: {
 }
 
 /**
- * @deprecated Use createTestApp() from './test-app.ts' for new tests.
+ * Create a driver-level test environment with direct access to the BoardDriver,
+ * store, and rendering internals. Use this for tests that genuinely need:
+ * - Raw buffer comparison (_result.lastBuffer/freshRender)
+ * - Direct driver creation (createBoardDriver)
+ * - Cell attribute inspection beyond CellInfo (custom attrs)
+ * - createDriverTestWithRepo (path-backed repo scenarios)
  *
- * testEnv remains in use only for tests that genuinely require testEnv's rich
- * API surface (mouse clicks, bell, expectNodeBorder, palette colors, raw buffer
- * diff, PTY integration, createBoardDriver internals). See km-all.test-system
- * bead FREEZE bucket for the allow-list.
+ * For standard tests, prefer createTestApp() — it's backend-agnostic and
+ * includes automatic invariant checking via [Symbol.dispose].
  */
-export function testEnv(treeBuilder: () => KNode[], options?: TestEnvOptions) {
+export function createDriverTest(treeBuilder: () => KNode[], options?: TestEnvOptions) {
   const nodes = treeBuilder()
   const repo = createFakeRepo({ nodes })
   const rootNode = nodes[0]
@@ -1880,14 +1883,13 @@ export function testEnv(treeBuilder: () => KNode[], options?: TestEnvOptions) {
 }
 
 /**
- * @deprecated Use createTestApp() from './test-app.ts' for new tests.
+ * Create a driver-level test environment from an existing Repo + rootId.
+ * Same capabilities as createDriverTest but for path-backed repo scenarios.
  *
- * testEnv remains in use only for tests that genuinely require testEnv's rich
- * API surface (mouse clicks, bell, expectNodeBorder, palette colors, raw buffer
- * diff, PTY integration, createBoardDriver internals). See km-all.test-system
- * bead FREEZE bucket for the allow-list.
+ * For standard tests, prefer createTestApp() — it's backend-agnostic and
+ * includes automatic invariant checking via [Symbol.dispose].
  */
-export function testEnvWithRepo(repo: Repo, rootId: string, options?: TestEnvOptions) {
+export function createDriverTestWithRepo(repo: Repo, rootId: string, options?: TestEnvOptions) {
   const env = createTestRenderEnv(repo, rootId, options)
 
   // Wrap board with disposable pattern for automatic cleanup
@@ -1899,6 +1901,11 @@ export function testEnvWithRepo(repo: Repo, rootId: string, options?: TestEnvOpt
 
   return { board, registry: env.registry, toastQueue: env.toastQueue, store: env.store, focusManager: env.focusManager }
 }
+
+/** @deprecated Use createDriverTest instead */
+export const testEnv = createDriverTest
+/** @deprecated Use createDriverTestWithRepo instead */
+export const testEnvWithRepo = createDriverTestWithRepo
 
 // =============================================================================
 // Custom Matchers
@@ -1936,14 +1943,14 @@ expect.extend({
 
 // Legacy renderBoard(BoardStateResult) / board() / column() / SIMPLE_BOARD DSL
 // removed — they wrapped BoardStateResult which no longer exists. Tests now use
-// testEnv() + item() or renderBoardWithStore(). Historical "board-test helper"
+// createDriverTest() + item() or renderBoardWithStore(). Historical "board-test helper"
 // tests in board-test.test.ts were deleted in the same cleanup.
 
 /**
  * Render Board with a Zustand store context (for tests that render Board directly).
  *
  * Use this when you need to render Board but don't need keyboard handling.
- * For keyboard tests, use testEnv() instead.
+ * For keyboard tests, use createDriverTest() instead.
  */
 export function renderBoardWithStore(
   repo: Repo,
@@ -2011,4 +2018,4 @@ export function renderBoardWithStore(
 }
 
 // Legacy fixture-builder DSL (column/board/SIMPLE_BOARD) removed — it produced
-// BoardStateResult which no longer exists. Tests now use testEnv() + item().
+// BoardStateResult which no longer exists. Tests now use createDriverTest() + item().
