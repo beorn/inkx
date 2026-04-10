@@ -447,7 +447,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **termless** — Headless terminal testing framework (like Playwright for terminals). Runs a real terminal emulator in-process for full ANSI verification including colors, cursor positioning, and wide characters.
 
-**testEnv** — A test environment that renders the full TUI in a virtual terminal. More realistic than unit tests, faster than manual TTY testing. Uses termless internally.
+**createDriverTest** — Driver-level test environment with direct access to BoardDriver, store, and rendering internals. For tests that genuinely need raw buffer comparison, cell attribute inspection, or registry access. Prefer `createTestApp()` for standard tests.
 
 **text-drag** — A selecting kind produced by dragging within text content. Can morph into `node-area` if the pointer crosses a node boundary.
 

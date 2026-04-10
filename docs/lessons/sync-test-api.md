@@ -8,7 +8,7 @@
 
 createTestApp was built with async methods: `await app.press("j")`, `await app.command("cursor_down")`. Every test needed `async () => {}` and every action needed `await`. 2000+ await calls across 38 files.
 
-Meanwhile, testEnv — the legacy API — was fully synchronous and had worked perfectly for 2+ years.
+Meanwhile, createDriverTest — the legacy API — was fully synchronous and had worked perfectly for 2+ years.
 
 ## The Investigation
 
@@ -17,11 +17,11 @@ Tracing the code:
 - `App.press()` → `sendInput(key)` (sync) → `await Promise.resolve()` (microtask flush)
 - `createApp.press()` → `handleKey()` (sync) → `doRender()` (sync) → `while (pendingRerender) { await Promise.resolve(); doRender() }` (effect-flush loop)
 
-The ONLY async part is `await Promise.resolve()` — a microtask yield to let React passive effects run. But `act()` already flushes effects synchronously. testEnv wraps everything in `act()` and voids the promise: `void originalPress(key)`.
+The ONLY async part is `await Promise.resolve()` — a microtask yield to let React passive effects run. But `act()` already flushes effects synchronously. createDriverTest wraps everything in `act()` and voids the promise: `void originalPress(key)`.
 
 ## The Fix
 
-Made all TestApp methods synchronous. Used testEnv's exact pattern:
+Made all TestApp methods synchronous. Used createDriverTest's exact pattern:
 
 ```typescript
 const pressKey = (key: string) => {

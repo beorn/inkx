@@ -58,7 +58,7 @@ The same test works with `createRenderer` because `app.stdin.write("\x1b[57444;9
 ### Layer Map
 
 ```
-Layer 5: testEnv (km-tui)         -- wraps createRenderer, adds board fixtures
+Layer 5: createDriverTest (km-tui)         -- wraps createRenderer, adds board fixtures
 Layer 4: createRenderer (test)     -- virtual buffer, sync act() rendering
 Layer 3: createApp (production)    -- zustand store, providers, event loop
 Layer 2: run() (convenience)       -- thin wrapper over createApp
@@ -84,7 +84,7 @@ Layer 0: xterm.js / real terminal  -- actual terminal emulator
 - `term.screen` / `term.scrollback` for assertions
 - Missing: NO way to inject keyboard input into the event pipeline
 
-**testEnv** (`km-tui`):
+**createDriverTest** (`km-tui`):
 - Wraps `createRenderer` with board fixtures
 - Adds `board.press()`, `board.expect()`, `board.command()` fluent API
 - Injects fake repo, board state, theme
@@ -422,7 +422,7 @@ This is NOT a replacement for `createRenderer` (which is faster and synchronous)
 
 It works because `useInput` and `useModifierKeys` subscribe to RuntimeContext's `"input"` event, and `inputEmitter.emit("input", raw)` in `sendInput()` triggers the same `parseKey` → handler path. The missing piece is only the _outer_ event pipeline (selection, event batching, lifecycle key interception).
 
-### testEnv is fine for km-tui board tests
+### createDriverTest is fine for km-tui board tests
 
 Board tests don't need the production event pipeline. They test user journeys (keys → screen + persistence) using the createRenderer path. The command system, board-app handlers, and board state machine are all tested through `board.press()` which goes through `handleKey()` → the zustand store → React re-render.
 
@@ -466,7 +466,7 @@ No. `createRenderer` should remain fast and synchronous. Its `inputEmitter` path
 
 ### 3. Should there be a createAppRenderer test helper?
 
-Not as a replacement, but as a complement. A `createTestApp()` helper wrapping `createTermless()` + `run()` would provide the full pipeline for tests that need it. But the primary test infrastructure (`createRenderer`, `testEnv`) should stay as-is. See the `createTestApp` proposal above.
+Not as a replacement, but as a complement. A `createTestApp()` helper wrapping `createTermless()` + `run()` would provide the full pipeline for tests that need it. But the primary test infrastructure (`createRenderer`, `createDriverTest`) should stay as-is. See the `createTestApp` proposal above.
 
 ### 4. How should raw Kitty protocol injection work in tests?
 

@@ -58,14 +58,14 @@ bun bench:check                        # Check if benchmarks are stale
 
 Well under 16ms frame budget at standard terminal size.
 
-### Bench per-press (includes testEnv overhead)
+### Bench per-press (includes createDriverTest overhead)
 
 | Terminal | Cards | Per-press | Notes |
 |----------|-------|-----------|-------|
-| 200x60 | 100-3700 | 84-88ms | Includes React testEnv act() overhead |
+| 200x60 | 100-3700 | 84-88ms | Includes React createDriverTest act() overhead |
 | 400x200 | 500-3700 | 622-626ms | Large terminal — rendering bottleneck |
 
-Bench numbers are higher than production because testEnv includes additional React lifecycle overhead that doesn't exist in a running app.
+Bench numbers are higher than production because createDriverTest includes additional React lifecycle overhead that doesn't exist in a running app.
 
 ## History
 

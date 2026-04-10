@@ -861,7 +861,7 @@ test("cursor moves down", async () => {
 })
 ```
 
-**Why**: Sync APIs enable native chaining (`app.command("a").command("b")`), eliminate `async/await` noise, and match testEnv's proven 2+ year pattern.
+**Why**: Sync APIs enable native chaining (`app.command("a").command("b")`), eliminate `async/await` noise, and match createDriverTest's proven 2+ year pattern.
 
 **Corollary**: Use batch refactor editsets for surgical migrations, not per-file agents. Agents grind for 5-15 minutes per file; editsets let you review all changes at once.
 
