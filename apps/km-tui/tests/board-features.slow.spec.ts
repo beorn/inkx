@@ -1066,3 +1066,55 @@ describe("Detail Pane Navigation", () => {
     }
   })
 })
+
+describe("Goto journal (g j)", () => {
+  test("creates journal file and navigates to it in a single g j", () => {
+    using app = createTestApp(item("board", item("Inbox", item("task1"))))
+    app.expect("#task1[data-cursor]").toExist()
+
+    // g j = goto journal (date template: journals/{YYYY}/{YYYY-MM-DD}.md)
+    app.press("g").press("j")
+
+    // Should show the journal date in the breadcrumb/screen
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = String(today.getMonth() + 1).padStart(2, "0")
+    const dd = String(today.getDate()).padStart(2, "0")
+    const dateStr = `${yyyy}-${mm}-${dd}`
+
+    // Verify navigation happened — screen shows the date
+    expect(app.text).toContain(dateStr)
+
+    // Cursor should be on the journal node (not on an empty board)
+    expect(app.state.cursor).toBeDefined()
+
+    // Verify the journal file node exists in DB with correct fs_path
+    const cursorId = app.state.cursor!
+    const journalNode = app.repo.getNode(cursorId)
+    expect(journalNode).toBeDefined()
+    expect(journalNode!.fs_path).toBe(`journals/${yyyy}/${dateStr}.md`)
+    expect(journalNode!.fstype).toBe("mdfile")
+
+    // Verify parent folder hierarchy was created
+    const yearFolderId = journalNode!.parent_id!
+    const yearFolder = app.repo.getNode(yearFolderId)
+    expect(yearFolder).toBeDefined()
+    expect(yearFolder!.fstype).toBe("folder")
+    expect(yearFolder!.fs_path).toBe(`journals/${yyyy}`)
+  })
+
+  test("second g j reuses existing journal node", () => {
+    using app = createTestApp(item("board", item("Inbox", item("task1"))))
+
+    // First g j creates the node
+    app.press("g").press("j")
+    const firstCursorId = app.state.cursor!
+
+    // Navigate away
+    app.press("Escape") // back
+
+    // Second g j should reuse existing node (not create a duplicate)
+    app.press("g").press("j")
+    expect(app.state.cursor).toBe(firstCursorId)
+  })
+})

@@ -55,6 +55,21 @@ mcp__tty__list()
 
 **Use screenshots** (`mcp__tty__screenshot`) for visual verification -- never text-only tools for visual bugs. Screenshots are the evidence.
 
+**Always start with debug logging enabled.** Pass `DEBUG` and `DEBUG_LOG` env vars to see what's happening under the hood. Tail the log in parallel to correlate key presses with internal state changes:
+
+```
+mcp__tty__start({
+  command: ["bun", "km", "view", "/path"],
+  env: { DEBUG: "km:*,silvery:*", DEBUG_LOG: "/tmp/km-explore-debug.log" }
+})
+```
+
+Then in a separate Bash call: `tail -f /tmp/km-explore-debug.log | grep -E 'edit|key|cursor'` to watch relevant events. This catches state bugs that screenshots miss — e.g. edit mode entered but no visual indicator, or key events swallowed silently.
+
+If the log stays empty, check: (1) that `LOG_LEVEL=debug` is set — loggily defaults to `info`, (2) that the code path you're exercising actually has logging — board card navigation (`j`/`k` in cards view) and edit mode handlers have NO debug logging; only tree nav handlers log. Add `TRACE=1` for span output from storage/sync operations.
+
+**Tool selection**: TTY is best for visual discovery (rendering artifacts, layout glitches). TUI tests (`createTestApp`) are best for reproducing and root-causing bugs — they're 10x faster, fully automated, and `checkIncremental` diagnostics prove whether bugs are in silvery logic or terminal rendering.
+
 ---
 
 ## Session Structure

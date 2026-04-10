@@ -1216,3 +1216,57 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     expect(newNode!.data?.name).toBeUndefined()
   })
 })
+
+// =============================================================================
+// Degradation stays in edit mode (backspace/delete at node boundaries)
+// =============================================================================
+
+describe("Degradation stays in edit mode", () => {
+  test("backspace at pos 0 degrades task trait and stays in edit mode", () => {
+    using app = createTestApp(() => item("board", item("col1", item("first"), item("second"))))
+
+    app.command("cursor_down")
+    app.press("Enter")
+    app.expectEditing("second")
+    app.press("ctrl+a")
+
+    // Backspace at position 0 degrades the task trait (strips checkbox)
+    app.press("Backspace")
+
+    // After degradation, should STAY in edit mode on the same node
+    app.expectEditing("second")
+
+    // Node should still exist but no longer be a task
+    const node = app.repo.getNode("second")
+    expect(node).toBeDefined()
+    expect(node?.item?.task).toBeUndefined()
+
+    // Can still type — proving edit mode is active
+    app.press("X")
+    app.press("Escape")
+    expect(app.repo.getNode("second")?.content).toBe("Xsecond")
+  })
+
+  test("forward-delete at end degrades next sibling and stays in edit mode", () => {
+    using app = createTestApp(() => item("board", item("col1", item("alpha"), item("beta"))))
+
+    app.press("Enter")
+    app.expectEditing("alpha")
+
+    // Delete at end — degrades beta's task trait
+    app.press("Delete")
+
+    // After degradation, should STAY in edit mode on alpha
+    app.expectEditing("alpha")
+
+    // Beta should still exist but no longer be a task
+    const beta = app.repo.getNode("beta")
+    expect(beta).toBeDefined()
+    expect(beta?.item?.task).toBeUndefined()
+
+    // Can still type on alpha — proving edit mode is active
+    app.press("!")
+    app.press("Escape")
+    expect(app.repo.getNode("alpha")?.content).toBe("alpha!")
+  })
+})

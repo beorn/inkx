@@ -394,6 +394,11 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       const byId = nodes.get(query)
       if (byId) return byId
 
+      // Try fs_path match (relative path lookup, like real repo's smart-resolver)
+      for (const node of nodes.values()) {
+        if (node.fs_path === query) return node
+      }
+
       // Try block_id match (strip ^ prefix for block references)
       const blockQuery = query.startsWith("^") ? query.slice(1) : query
       if (/^\d{5,}$/.test(blockQuery)) {

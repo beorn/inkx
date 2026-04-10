@@ -57,7 +57,6 @@ import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
 
-import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import {
   applyFoldLevel as reducerApplyFoldLevel,
   applyUnfoldLevel as reducerApplyUnfoldLevel,
@@ -78,32 +77,62 @@ const log = createLogger("km:tui:board-actions")
 
 /**
  * If locationKey is a date-template (contains {YYYY} etc.), expand it and
- * create the file on disk if it doesn't exist. The file watcher will pick it
- * up and add it to the DB. Returns true if a file was created.
+ * create the file on disk + add to DB if it doesn't exist.
+ * Returns the node ID if created (or already exists), null otherwise.
  */
-function autoCreateDateTemplateFile(locationKey: string, ctx: OpCtx): boolean {
-  if (!isDateTemplate(locationKey)) return false
+function autoCreateDateTemplateFile(locationKey: string, ctx: OpCtx): string | null {
+  if (!isDateTemplate(locationKey)) return null
 
   const expanded = expandLocationTemplate(locationKey)
-  if (expanded.type !== "resolved") return false
+  if (expanded.type !== "resolved") return null
 
-  const vaultPath = ctx.repo.path
-  if (!vaultPath) return false
+  if (!ctx.repo.path) return null
 
-  const fullPath = join(vaultPath, expanded.value)
-  if (existsSync(fullPath)) return false
+  const relPath = expanded.value
 
-  // Create directory structure and markdown file with date heading
-  const dir = dirname(fullPath)
-  mkdirSync(dir, { recursive: true })
-  // Derive title from filename (e.g., "2026-03-30.md" → "# 2026-03-30\n")
-  const filename = expanded.value.split("/").pop() ?? ""
-  const title = filename.replace(/\.md$/, "")
-  writeFileSync(fullPath, `# ${title}\n`, "utf-8")
-  log.debug?.(`auto-created date-template file: ${expanded.value}`)
+  // If already in DB, just return its ID
+  const existing = ctx.repo.resolveNode(relPath)
+  if (existing) return existing.id
 
-  ctx.toastQueue.success(`Created ${expanded.value}`)
-  return true
+  // Ensure folder nodes exist in DB for parent directories
+  const parts = relPath.split("/")
+  const title = (parts.at(-1) ?? "").replace(/\.md$/, "")
+  let parentId: string | null = "." // root sentinel
+  for (let i = 0; i < parts.length - 1; i++) {
+    const folderRelPath = parts.slice(0, i + 1).join("/")
+    const existingFolder = ctx.repo.resolveNode(folderRelPath)
+    if (existingFolder) {
+      parentId = existingFolder.id
+    } else {
+      const folderName = parts[i]!
+      parentId = ctx.repo.addNode(parentId, {
+        id: folderRelPath,
+        type: "h",
+        item: {},
+        fstype: "folder",
+        fs_path: folderRelPath,
+        name: folderName,
+        content: folderName,
+        data: {},
+      })
+      ctx.repo.syncToFs(parentId)
+    }
+  }
+
+  // Add file node to DB — syncToFs materializes it to disk
+  const nodeId = ctx.repo.addNode(parentId, {
+    type: "h",
+    item: {},
+    fstype: "mdfile",
+    fs_path: relPath,
+    name: title,
+    content: title,
+    data: {},
+  })
+  ctx.repo.syncToFs(nodeId)
+
+  ctx.toastQueue.success(`Created ${relPath}`)
+  return nodeId
 }
 
 // =============================================================================
@@ -491,11 +520,16 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
       const cursorTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
       // Auto-create missing files for date-template locations (e.g., journal)
       if (!cursorTarget) {
-        const created = autoCreateDateTemplateFile(action.locationKey, ctx)
-        if (created) {
-          // File created — watcher will pick it up. Press g j again to navigate.
-          ctx.toastQueue.success("Press again to navigate")
-          ctx.setUI({})
+        const createdNodeId = autoCreateDateTemplateFile(action.locationKey, ctx)
+        if (createdNodeId) {
+          // Navigate: zoom to parent folder, select the created file
+          const node = ctx.repo.getNode(createdNodeId)
+          if (node?.parent_id) {
+            saveNavHistory(ctx)
+            ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: node.parent_id })
+            ctx.sel.node.select([createdNodeId as ID])
+            clearSelection(ctx)
+          }
           return ok()
         }
       }
@@ -792,7 +826,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
             ctx.undoHandle.setCursor(ctx.cursor)
             applyDegradation(node, degradation, content)
             runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: degradation })
-            ctx.sel.node.select([ctx.cursor as ID])
+            ctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
             return ok()
           }
           bsTarget.save()
@@ -822,7 +856,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
               ctx.undoHandle.setCursor(ctx.cursor)
               applyDegradation(nextNode, degradation, KNode.string(nextNode))
               runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: nextNode.id, updates: degradation })
-              ctx.sel.node.select([ctx.cursor as ID])
+              ctx.sel.text.edit(fwdTextEdit.nodeId as import("@silvery/selection").ID, content.length)
               return ok()
             }
           }
