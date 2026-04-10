@@ -689,7 +689,7 @@ export const Column = React.memo(function Column({
   height,
   filteredCardIds,
   totalCardCount,
-  hiddenDescendantCount: _hiddenDescendantCount,
+  hiddenDescendantCount,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const repoUpdate = useRepoEffect(repo)
@@ -779,8 +779,10 @@ export const Column = React.memo(function Column({
     return limits.get(normalizedName)
   }, [rules, colNode, isVirtual, lens, nodeId])
 
-  // "+N filtered" footer count: difference between unfiltered total and what's shown.
-  const hiddenCount = (totalCardCount ?? lensCardIds.length) - count
+  // "+N filtered" footer count: difference between unfiltered total and what's
+  // shown, plus any descendants hidden inside surviving cards (e.g., done tasks
+  // inside a heading section when the heading itself passes the filter).
+  const hiddenCount = (totalCardCount ?? lensCardIds.length) - count + (hiddenDescendantCount ?? 0)
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(

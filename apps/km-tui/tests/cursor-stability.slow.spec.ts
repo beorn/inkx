@@ -302,8 +302,11 @@ function findCardBorderProblems(text: string): string[] {
     const borderMatches = line.matchAll(/[╰╭]([^╯╮]+)[╯╮]/g)
     for (const match of borderMatches) {
       const content = match[1]!
-      // Remove scroll indicators (⋯ +N ⋯, ▲N, ▼N) before checking
-      const withoutIndicators = content.replace(/[⋯▲▼]\s*\+?\d+\s*[⋯]?/g, "").replace(/[─━═\s]/g, "")
+      // Remove scroll/overflow indicators (⋯ +N ⋯, ▲N, ▼N, +N more) before checking
+      const withoutIndicators = content
+        .replace(/[⋯▲▼]\s*\+?\d+\s*[⋯]?/g, "")
+        .replace(/\+\d+\s*more/g, "")
+        .replace(/[─━═\s]/g, "")
       if (/[a-zA-Z]/.test(withoutIndicators)) {
         problems.push(`line ${i}: text in border line: ${match[0].substring(0, 60)}`)
       }

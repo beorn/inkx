@@ -235,7 +235,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     return (
       <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
         <PopoverProvider>
-          <Box flexDirection="column" height={storeDimensions.rows}>
+          <Box flexDirection="column" height={storeDimensions.rows} id={singlePaneId} testID={singlePaneId} focusScope>
             {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
             {bottomBar}
             {chrome}

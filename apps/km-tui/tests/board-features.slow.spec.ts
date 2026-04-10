@@ -128,7 +128,10 @@ describe("Folding", () => {
   test("z toggles fold state on card with children", () => {
     using app = createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
     app.expect("#child1").toExist()
-    app.command("fold_all_more")
+    // Progressive fold: each press reduces depth by 1 (starts at 3)
+    app.command("fold_all_more") // 3→2
+    app.command("fold_all_more") // 2→1
+    app.command("fold_all_more") // 1→0
     app.expect("#child1").not.toExist()
     // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
@@ -136,7 +139,10 @@ describe("Folding", () => {
   test("folded card hides children", () => {
     using app = createTestApp(item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     app.expect("#sub1").toExist()
-    app.command("fold_all_more")
+    // Progressive fold: 3 presses to reach depth 0
+    app.command("fold_all_more") // 3→2
+    app.command("fold_all_more") // 2→1
+    app.command("fold_all_more") // 1→0
     app.expect("#sub1").not.toExist()
   })
 })
@@ -941,14 +947,28 @@ describe("Content Lines (+/-)", () => {
   })
 
   test("multiple = presses progressively reveal more children", () => {
-    // Left on testEnv: content lines behavior differs at createTestApp's default 120 cols vs testEnv's 80 cols
+    // Uses 8 children so the "+1 more takes same space" optimization (effectiveMax)
+    // doesn't interfere — that shows all N when N = maxContentLines + 1.
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
+        item(
+          "col",
+          item(
+            "parent",
+            item("c1"),
+            item("c2"),
+            item("c3"),
+            item("c4"),
+            item("c5"),
+            item("c6"),
+            item("c7"),
+            item("c8"),
+          ),
+        ),
       ),
     )
-    // Start: maxContentLines=3 (c1, c2, c3 visible)
+    // Start: maxContentLines=3 (c1, c2, c3 visible; c4+ hidden)
     expect(board.screenshot()).not.toContain("c4")
 
     board.command("increase_content_lines") // maxContentLines=4

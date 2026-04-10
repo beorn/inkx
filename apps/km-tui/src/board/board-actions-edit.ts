@@ -33,26 +33,34 @@ import { runRepoEffect } from "./board-effect-runner.ts"
 import { captureTree } from "../state/capture-tree.ts"
 
 /**
- * Find the nearest surviving node to `target` in the new tree,
- * using the previous walk order for proximity.
+ * Find the nearest surviving node to `target` in the new tree.
+ *
+ * Strategy: scan forward in nextOrder from the target's approximate position,
+ * then backward. Skips structural ancestors (parent/column) in favor of
+ * siblings at a comparable walk-order position. This matches user expectation
+ * after delete: cursor goes to next sibling, then previous, then parent.
  */
 function findNearestSurvivor(target: ID, prevOrder: readonly ID[], nextOrder: readonly ID[]): ID | null {
   if (nextOrder.length === 0) return null
   const targetIdx = prevOrder.indexOf(target)
   if (targetIdx === -1) return nextOrder[0] ?? null
 
-  // Scan outward from target position in prev order to find nearest survivor
-  let best: ID | null = null
-  let bestDist = Infinity
-  for (const id of nextOrder) {
-    const idx = prevOrder.indexOf(id)
-    const dist = idx === -1 ? Infinity : Math.abs(idx - targetIdx)
-    if (dist < bestDist) {
-      bestDist = dist
-      best = id
-    }
+  // Build a mapping from nextOrder IDs to their position in prevOrder
+  // so we can find the insertion point of 'target' in nextOrder.
+  const prevIdxOf = new Map<ID, number>()
+  for (let i = 0; i < prevOrder.length; i++) prevIdxOf.set(prevOrder[i]!, i)
+
+  // Find where target would sit in nextOrder (by prev walk position)
+  let insertionPoint = 0
+  for (let i = 0; i < nextOrder.length; i++) {
+    const pi = prevIdxOf.get(nextOrder[i]!)
+    if (pi !== undefined && pi < targetIdx) insertionPoint = i + 1
   }
-  return best
+
+  // Scan forward from insertion point, then backward
+  if (insertionPoint < nextOrder.length) return nextOrder[insertionPoint]!
+  if (insertionPoint > 0) return nextOrder[insertionPoint - 1]!
+  return nextOrder[0] ?? null
 }
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField

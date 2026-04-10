@@ -11,7 +11,6 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 // =============================================================================
 // Helpers
@@ -21,156 +20,12 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
-function childContents(
-  repo: { getChildren(id: string): { id: string; content?: string | null }[] },
-  parentId: string,
-): (string | null | undefined)[] {
-  return repo.getChildren(parentId).map((n) => n.content)
-}
-
 // =============================================================================
-// 1. Visual Mode
+// 1. Visual Mode — REMOVED
 // =============================================================================
-
-describe("Visual mode", () => {
-  test("v+space enters visual mode and selects current card", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    board.expect("#task1[data-cursor]").toExist()
-
-    // Enter visual mode with v + space (chord)
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-    // Current card should be selected
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
-  })
-
-  test("j extends visual selection downward", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    // Enter visual mode
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-
-    // Move down to extend selection
-    board.command("cursor_down")
-    // Should have task1 and task2 selected (visual mode extends range)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThanOrEqual(2)
-  })
-
-  test("k contracts visual selection upward", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    // Enter visual mode
-    board.command("visual_mode_enter").command("select_toggle")
-
-    // Extend down twice
-    board.command("cursor_down")
-    board.command("cursor_down")
-    const selectedAfterDown = store.getState().sel.node.ids().length
-
-    // Contract up
-    board.command("cursor_up")
-    const selectedAfterUp = store.getState().sel.node.ids().length
-    expect(selectedAfterUp).toBeLessThan(selectedAfterDown)
-  })
-
-  test("Escape exits visual mode and clears selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    // Enter visual mode and extend selection
-    board.command("visual_mode_enter").command("select_toggle")
-    board.command("cursor_down")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
-
-    // Escape exits visual mode
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length > 0).toBe(false)
-  })
-
-  test("d (cut) in visual mode stages selected cards to clipboard", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
-      { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
-    )
-
-    // Enter visual mode and extend selection to include task1 + task2
-    board.command("visual_mode_enter").command("select_toggle")
-    board.command("cursor_down")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-
-    // Cut selected cards (stages to clipboard, doesn't remove yet)
-    board.press("d")
-
-    // Clipboard should have the selected nodes in cut mode
-    const clipboard = store.getState().ui.clipboard
-    expect(clipboard).not.toBeNull()
-    expect(clipboard?.mode).toBe("cut")
-    expect(clipboard?.nodeIds.length).toBeGreaterThanOrEqual(2)
-  })
-
-  test("y (copy) in visual mode stages selected cards to clipboard for paste", () => {
-    const { board, repo, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-      { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
-    )
-
-    expect(childIds(repo, "col1")).toEqual(["task1", "task2", "task3"])
-
-    // Enter visual mode and select task1
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-
-    // Copy stages to clipboard
-    board.press("y")
-
-    // Clipboard should have the node in copy mode
-    const clipboard = store.getState().ui.clipboard
-    expect(clipboard).not.toBeNull()
-    expect(clipboard?.mode).toBe("copy")
-    expect(clipboard?.nodeIds.length).toBeGreaterThanOrEqual(1)
-
-    // All cards should still be present (copy doesn't remove)
-    expect(childIds(repo, "col1")).toEqual(["task1", "task2", "task3"])
-
-    // Exit visual mode first, then paste to verify clipboard works
-    board.press("Escape")
-    board.press("p")
-    const afterPaste = repo.getChildren("col1")
-    expect(afterPaste.length).toBe(4) // original 3 + 1 paste
-  })
-
-  test("v+space mode preserves cursor position on exit", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    // Move to task2
-    board.command("cursor_down")
-    board.expect("#task2[data-cursor]").toExist()
-
-    // Enter and exit visual mode
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length > 0).toBe(false)
-
-    // Cursor should still be on task2
-    board.expect("#task2[data-cursor]").toExist()
-  })
-
-  test("visual mode renders VISUAL indicator and selection on screen", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-
-    // Enter visual mode
-    board.command("visual_mode_enter").command("select_toggle")
-
-    // Screen should show VISUAL mode indicator in status bar
-    const screen = board.screenshot()
-    expect(screen).toContain("VISUAL")
-    // The selected cards should have visual differentiation (data-selected attribute)
-    board.expect("[data-selected]").toExist()
-  })
-})
+// Visual mode was removed. Multi-selection is handled by sel directly
+// (shift+arrow for extend, ctrl+a for select-all).
+// See board-selection.slow.spec.ts for the current selection tests.
 
 // =============================================================================
 // 2. J/K Block Navigation
@@ -241,17 +96,16 @@ describe("J/K block navigation", () => {
     board.expectCursorVisible()
   })
 
-  test("J on folded card skips hidden children and moves to next sibling", () => {
+  test("J on folded card auto-unfolds and enters first child", () => {
     const { board } = testEnv(item.nestedBoard)
 
     // Fold the parent
     board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-1")
+    board.command("fold_more")
 
-    // J skips hidden children, moves to next sibling card
+    // J auto-unfolds and enters the first child (DFS order)
     board.command("block_nav_down")
-    expect(board.screenshot()).not.toContain("child-1")
-    board.expect("#sibling[data-cursor]").toExist()
+    board.expect("#child-1[data-cursor]").toExist()
   })
 
   test("J then K round-trip through DFS order", () => {
@@ -641,96 +495,16 @@ describe("Inline edit lifecycle", () => {
 })
 
 // =============================================================================
-// Cross-feature: Visual mode + clipboard integration
+// Cross-feature: Visual mode + clipboard integration — REMOVED
 // =============================================================================
-
-describe("Visual mode + clipboard integration", () => {
-  test("visual mode copy then paste duplicates all selected cards", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-      { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
-    )
-
-    // Enter visual mode on A, extend to B
-    board.command("visual_mode_enter").command("select_toggle")
-    board.command("cursor_down")
-
-    // Copy
-    board.press("y")
-
-    // Move to D and paste
-    board.command("cursor_down") // C
-    board.command("cursor_down") // D
-    board.press("p")
-
-    // Should have A, B, C, D, copy-of-A, copy-of-B
-    const children = repo.getChildren("col1")
-    expect(children.length).toBeGreaterThanOrEqual(5)
-  })
-
-  test("visual mode cut stages nodes, paste moves them to new position", () => {
-    const { board, repo, store } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-      { incremental: false }, // toast overlay causes STRICT style mismatch (pre-existing)
-    )
-
-    expect(childContents(repo, "col1")).toEqual(["A", "B", "C", "D"])
-
-    // Enter visual mode on A, extend to B
-    board.command("visual_mode_enter").command("select_toggle")
-    board.command("cursor_down")
-
-    // Cut stages A and B to clipboard
-    board.press("d")
-
-    // Clipboard should be in cut mode
-    const clipboard = store.getState().ui.clipboard
-    expect(clipboard).not.toBeNull()
-    expect(clipboard?.mode).toBe("cut")
-    expect(clipboard?.nodeIds.length).toBeGreaterThanOrEqual(2)
-
-    // Exit visual mode, navigate to D and paste
-    board.press("Escape")
-    board.command("cursor_down") // move down
-    board.command("cursor_down") // move to D
-    board.press("p")
-
-    // A and B should have been moved (paste from cut)
-    const afterPaste = childContents(repo, "col1")
-    expect(afterPaste).toContain("A")
-    expect(afterPaste).toContain("B")
-    expect(afterPaste).toContain("C")
-    expect(afterPaste).toContain("D")
-  })
-})
+// Visual mode was removed. Clipboard operations use shift+arrow selection
+// (see multiselect-ops.slow.spec.ts and multiselect-ops.slow.test.ts).
 
 // =============================================================================
 // Cross-feature: Escape priority layering
 // =============================================================================
 
 describe("Escape priority layering", () => {
-  test("Escape exits visual mode before closing detail pane", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
-
-    // Open detail pane (auto-focuses detail), return to board
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.command("cursor_left") // return to board
-
-    // Enter visual mode via v+space chord
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-
-    // First Escape: exits visual mode (detail pane stays)
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length > 0).toBe(false)
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-
-    // Second Escape: closes detail pane
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-  })
-
   test("Escape exits inline edit before clearing selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
@@ -769,7 +543,7 @@ describe("Escape priority layering", () => {
 describe("J/K block navigation edge cases", () => {
   // J/K do DFS block traversal — walk all visible blocks in column order.
 
-  test("J on folded card skips hidden children, moves to next sibling", () => {
+  test("J on folded card auto-unfolds and enters first child", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { checkIncremental: false },
@@ -777,12 +551,11 @@ describe("J/K block navigation edge cases", () => {
 
     // Fold Parent
     board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-a")
+    board.command("fold_more")
 
-    // J skips hidden children, moves to next sibling
+    // J auto-unfolds and enters the first child (DFS order with auto-unfold)
     board.command("block_nav_down")
-    expect(board.screenshot()).not.toContain("child-a")
-    board.expect("#sibling[data-cursor]").toExist()
+    board.expect("#child-a[data-cursor]").toExist()
   })
 
   test("K from last block walks back through DFS order", () => {

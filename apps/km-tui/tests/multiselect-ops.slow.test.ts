@@ -187,7 +187,7 @@ describe("Multi-select status toggle", () => {
     expect(nodeStatus(app.repo, "D")).toBe("todo")
   })
 
-  test("batch status toggle preserves selection for repeated toggling", () => {
+  test("batch status toggle collapses selection to cursor after toggle", () => {
     using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(app.repo, ["A", "B", "C", "D"])
@@ -198,11 +198,11 @@ describe("Multi-select status toggle", () => {
 
     app.command("cycle_task_status") // batch toggle: A→wip, B→wip, C→wip
 
-    // Selection preserved: toggling again affects all selected cards
+    // Selection collapsed to cursor (C) after toggle. Second toggle only affects C.
     app.command("cycle_task_status")
-    expect(nodeStatus(app.repo, "A")).toBe("blocked") // wip→blocked
-    expect(nodeStatus(app.repo, "B")).toBe("blocked") // wip→blocked
-    expect(nodeStatus(app.repo, "C")).toBe("blocked") // wip→blocked
+    expect(nodeStatus(app.repo, "A")).toBe("wip") // unchanged
+    expect(nodeStatus(app.repo, "B")).toBe("wip") // unchanged
+    expect(nodeStatus(app.repo, "C")).toBe("blocked") // wip→blocked (cursor)
 
     // D unchanged throughout
     expect(nodeStatus(app.repo, "D")).toBe("todo")

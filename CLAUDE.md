@@ -55,9 +55,15 @@ bun vitest run <dir> # Tests in directory (excludes .slow. and vendor automatica
 bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
 
-**`test:ci`** is the full suite — run it periodically (pre-push hook reminds you if >24h since last run). It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
+**`test:ci`** is the full suite -- run it periodically (pre-push hook reminds you if >24h since last run). It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
+
+`bun run test:strict` runs all projects with `SILVERY_STRICT=1` -- verifies incremental rendering matches fresh on every frame.
 
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
+
+**Canonical test example**: `apps/km-tui/tests/showcase.slow.spec.ts` -- demonstrates the full test API (CSS selectors, typed handles, declarative state, custom matchers, snapshots, fromMarkdown). Read it before writing new tests.
+
+**Assertion hierarchy** (strictest first): (1) invariants -- auto-checked backbone, `SILVERY_STRICT` controlled; (2) typed assertions -- `app.card().isCursor`, `app.state`, custom matchers; (3) snapshots -- `app.expectSnapshot()` for drift detection. Full docs in [apps/km-tui/tests/CLAUDE.md](apps/km-tui/tests/CLAUDE.md).
 
 ### Debug Logging
 

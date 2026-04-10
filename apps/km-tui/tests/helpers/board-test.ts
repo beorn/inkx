@@ -568,28 +568,73 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     toastQueue,
     navigator: registry,
   })
-  const result = render(
-    h(
-      ThemeProvider,
-      { theme: defaultKmTheme },
+  // SILVERY_STRICT throws IncrementalRenderMismatchError synchronously during
+  // the initial render. The km-infra vitest setup catches those via
+  // unhandledRejection (async path), but can't see sync throws. Re-emit any
+  // such error via Promise.reject so setup.ts's afterEach handler can decide
+  // whether to suppress it (known-mismatch patterns) or fail the test.
+  let result: ReturnType<typeof render>
+  try {
+    result = render(
       h(
-        StoreContext.Provider,
-        { value: store as StoreApi<unknown> },
+        ThemeProvider,
+        { theme: defaultKmTheme },
         h(
-          FocusManagerContext.Provider,
-          { value: focusManager },
-          h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+          StoreContext.Provider,
+          { value: store as StoreApi<unknown> },
+          h(
+            FocusManagerContext.Provider,
+            { value: focusManager },
+            h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+          ),
         ),
       ),
-    ),
-    { incremental: options?.incremental ?? true },
-  )
+      { incremental: options?.incremental ?? true },
+    )
+  } catch (err) {
+    if (err instanceof Error && err.name === "IncrementalRenderMismatchError") {
+      // Route through the async path so the known-mismatch filter in
+      // km-infra/vitest/setup.ts can see it.
+      void Promise.reject(err)
+      // Re-attempt the render with incremental disabled so the test can
+      // continue running (known-mismatch tests still need a valid renderer).
+      result = render(
+        h(
+          ThemeProvider,
+          { theme: defaultKmTheme },
+          h(
+            StoreContext.Provider,
+            { value: store as StoreApi<unknown> },
+            h(
+              FocusManagerContext.Provider,
+              { value: focusManager },
+              h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+            ),
+          ),
+        ),
+        { incremental: false },
+      )
+    } else {
+      throw err
+    }
+  }
 
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const doCheckIncremental = options?.checkIncremental !== false
   const eventCtx = buildTestEventHandlerCtx(store, focusManager, result)
   const pressKey = (key: string) => {
+    // Empty key is used by helpers (editNode, setUI, sendMouseEvent) to flush
+    // a render cycle without routing through the command system. Skipping
+    // handleKey here avoids emitting a spurious "Unmapped key" status bell
+    // that would contaminate the subsequent screenshot assertions.
+    if (key === "") {
+      act(() => {
+        store.setState((s) => s)
+      })
+      void originalPress(key)
+      return
+    }
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {

@@ -771,6 +771,15 @@ export function createBoardAppStoreState(
               set({ workspace: { ...s.workspace, panes: newPanes } })
               // Sync detail pane's PaneSignals with new rootId
               if (detailPane.signals) detailPane.signals.rootId(newCardId)
+              // Sync sel root with the new rootId so getWalkOrder() is scoped
+              // to the new card's subtree. Without this, sel.node.select() below
+              // walks the OLD root's subtree and can't find the new cursor node.
+              detailPane.sel.root.set((newCardId as import("@silvery/selection").ID) ?? null)
+              // Update selTreeSource with the new visible lens so the sel adapter
+              // sees the new rootId before select() reads the walk order.
+              if (detailPane.signals) {
+                detailPane.selTreeSource.update(detailPane.signals.visibleLens())
+              }
               // Sync the detail pane's sel with the new cursor
               if (newFirstItemId) {
                 detailPane.sel.node.select([newFirstItemId as import("@silvery/selection").ID])

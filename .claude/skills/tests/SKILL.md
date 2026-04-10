@@ -30,6 +30,58 @@ For rendering bugs, use **buffer assertions** (not just state assertions):
 
 ---
 
+## Assertion Hierarchy (Strictest First)
+
+Three tiers, from strictest to most lenient. Use the strictest tier that fits your need.
+
+### 1. Invariants (backbone) -- auto-checked, SILVERY_STRICT controlled
+
+Structural correctness verified after every action. Catches bugs that no individual assertion would.
+
+```typescript
+// board.app() checks defaultInvariants automatically after every press/type/search
+const app = board.app(["Inbox > Task 1", "Projects > Alpha"])
+app.press("j")  // rendering, cursor, selection, cursorVisible auto-checked
+
+// Explicit invariant check with all invariants
+app.check(...allInvariants)
+```
+
+`SILVERY_STRICT=1` (enabled globally in vitest setup) verifies incremental rendering matches fresh on every frame. Run `bun run test:strict` for full strict coverage.
+
+### 2. Typed assertions (intent) -- app.card(), app.state, custom matchers
+
+Express what the test is checking in domain terms. See [apps/km-tui/tests/CLAUDE.md](../../../apps/km-tui/tests/CLAUDE.md) for the full API.
+
+```typescript
+// Typed node handles
+expect(app.card("Buy groceries").isCursor).toBe(true)
+expect(app.column("Todo").visible).toBe(true)
+expect(app.node("task1").exists).toBe(true)
+
+// Declarative state snapshot
+expect(app.state).toMatchObject({ cursor: "task1", view: "cards", overlay: null })
+
+// Custom matchers (spatial, content, visibility)
+expect(app.q("#col1")).toBeLeftOf(app.q("#col2"))
+expect(app.q("#task1")).toHaveText("Buy milk")
+expect(app.q("#task1")).toBeVisible()
+```
+
+### 3. Snapshots (drift detection) -- app.expectSnapshot()
+
+Broad visual regression coverage. Best for stable layouts, not dynamic content.
+
+```typescript
+app.expectSnapshot("initial-kanban")    // golden file comparison
+app.command("cursor_down")
+app.expectSnapshot("after-cursor-down") // layout should be stable
+```
+
+**Canonical example**: `apps/km-tui/tests/showcase.slow.spec.ts` -- demonstrates all three tiers in specification-style tests.
+
+---
+
 ## Commands
 
 ### Coding Iteration (every change)

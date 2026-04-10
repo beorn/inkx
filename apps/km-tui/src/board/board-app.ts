@@ -599,14 +599,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (result.ops) {
       const opList = Array.isArray(result.ops) ? result.ops : [result.ops]
 
-      // When a dialog is open, only process dialog, filter, and text commands
+      // When a dialog is open, only process dialog, filter, text, and find commands
       if (dialogOpen && result.commandId) {
         const isDialogOrTextCommand =
           result.commandId.startsWith("dialog.") ||
           result.commandId.startsWith("text.") ||
           result.commandId === "filter" ||
           result.commandId.startsWith("filter.") ||
-          result.commandId.startsWith("favorites.")
+          result.commandId.startsWith("favorites.") ||
+          result.commandId.startsWith("find_") ||
+          result.commandId.startsWith("search_replace.") ||
+          result.commandId === "focus_next" ||
+          result.commandId === "focus_prev"
         if (!isDialogOrTextCommand) {
           parentSpan.spanData.outcome = "dialog-filtered"
           return
@@ -808,8 +812,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const now = Date.now()
       const dx = Math.abs(mouse.x - locals.lastClick.x)
       const dy = Math.abs(mouse.y - locals.lastClick.y)
+      // Double-click requires landing within the fuzz radius AND on the same
+      // target node. Without the node match, two quick clicks on adjacent
+      // sub-block rows (dy=1) get misidentified as a double-click and trigger
+      // inline edit on the second row.
+      const sameTarget = locals.lastClick.nodeId !== null && locals.lastClick.nodeId === selectId
       const isDoubleClick =
-        now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
+        now - locals.lastClick.time < DOUBLE_CLICK_MS &&
+        dx <= DOUBLE_CLICK_DISTANCE &&
+        dy <= DOUBLE_CLICK_DISTANCE &&
+        sameTarget
 
       // Click outside an open dialog → close the topmost dialog.
       // Dialog overlays carry `data-dialog="..."`. If any dialog is open and
@@ -820,59 +832,59 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         const { ui } = opctx
         if (ui.showHelp) {
           opctx.setUI({ showHelp: false })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.showOmnibox) {
           popDialogMode()
           opctx.setUI({ showOmnibox: false })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.searchReplace) {
           opctx.setUI({ searchReplace: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.showSearchDialog) {
           popDialogMode()
           dialogTargetRef.current?.cancel()
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.showFilterDialog) {
           popDialogMode()
           opctx.setUI({ showFilterDialog: false })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.activePicker) {
           popDialogMode()
           opctx.setUI({ activePicker: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.showNewItemDialog) {
           popDialogMode()
           opctx.setUI({ showNewItemDialog: false })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.deleteConfirm) {
           opctx.setUI({ deleteConfirm: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.datePrompt) {
           popDialogMode()
           opctx.setUI({ datePrompt: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         if (ui.showFavoritesDialog) {
           popDialogMode()
           opctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
       }
@@ -895,7 +907,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           opctx.sel.text.deselect()
         }
         handleKmOp(opctx, { type: "SHOW_FILTER_DIALOG" })
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
       if (clickedTopBar) {
@@ -910,7 +922,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         if (opctx.rootId) {
           opctx.sel.node.select([opctx.rootId as ID])
         }
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
 
@@ -946,7 +958,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             opctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
             opctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
           }
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
         // Different card → exit edit mode, fall through to normal click
@@ -967,7 +979,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // board (selection-style.ts rule 4). Empty-space clicks should
         // clear all selection and all highlighting.
         opctx.sel.node.select([])
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
 
@@ -977,14 +989,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // Double-click → select and enter inline edit on the clicked node
         opctx.sel.node.select([selectId as ID])
         handleKmOp(opctx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
-        locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
+        locals.lastClick = { time: 0, x: 0, y: 0, nodeId: null } // Reset to prevent triple-click triggering
         return
       }
 
       if (isColumnNode) {
         // Column header single click → select the column (not board root)
         opctx.sel.node.select([selectId as ID])
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
 
@@ -992,18 +1004,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // DOM event system. Cmd+click on a Link should open it, not select the card.
       // Uses lastModifierState because SGR mouse protocol has no Super/Cmd bit.
       if (hasClickHandler && lastModifierState.super) {
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
 
       if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
         opctx.sel.node.select([selectId as ID], true)
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
       } else {
         // Single click → select the card (not sub-block)
         opctx.sel.node.select([selectId as ID])
-        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
       }
       return
     }
@@ -1035,7 +1047,7 @@ export interface BoardAppLocals {
   pendingChordShownAt: number
   chordDismissTimer: ReturnType<typeof setTimeout> | null
   chordTimeoutFiredAt: number
-  lastClick: { time: number; x: number; y: number }
+  lastClick: { time: number; x: number; y: number; nodeId: string | null }
   dragState: {
     splitNode: LayoutNode & { type: "split" }
     containerStart: number
@@ -1056,7 +1068,7 @@ export function createBoardAppLocals(): BoardAppLocals {
     pendingChordShownAt: 0,
     chordDismissTimer: null,
     chordTimeoutFiredAt: 0,
-    lastClick: { time: 0, x: 0, y: 0 },
+    lastClick: { time: 0, x: 0, y: 0, nodeId: null },
     dragState: null,
     emptyTree: null,
   }

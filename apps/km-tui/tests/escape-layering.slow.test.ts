@@ -3,12 +3,11 @@
  *
  * Verifies the escape key pops one layer at a time from the focus stack:
  *
- * 0. Visual/move mode → exit mode
+ * 0. Move mode → exit mode
  * 1. Text edit mode → exit to node mode (save edit, cursor stays on node)
  * 2. Pane focused → unfocus pane, return focus to board (pane stays open)
  * 3. Dialog open → close topmost dialog
- * 4. Selection active → clear selection
- * 5. Nothing to do → no-op (visual bell)
+ * 4. Selection active → collapse to cursor (repeatable, absorbs Escape)
  */
 
 import { describe, test, expect } from "vitest"
@@ -18,21 +17,8 @@ import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Escape Layering", () => {
   // ---------------------------------------------------------------------------
-  // Layer 0: Visual mode / Move mode
+  // Layer 0: Move mode
   // ---------------------------------------------------------------------------
-
-  test("Escape exits visual mode", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
-    board.expect("#1a[data-cursor]").toExist()
-
-    // Enter visual mode with 'v v' chord + space to select
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-
-    // Escape exits visual mode
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length > 0).toBe(false)
-  })
 
   test("Escape cancels move mode", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
@@ -69,7 +55,7 @@ describe("Escape Layering", () => {
   // Layer 2: Pane focused → unfocus pane (pane stays open)
   // ---------------------------------------------------------------------------
 
-  test("Escape from detail pane: unfocus → close → bell", () => {
+  test("Escape from detail pane: unfocus → close", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // D opens + auto-focuses detail pane
@@ -85,10 +71,6 @@ describe("Escape Layering", () => {
     // Escape 2: close pane
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-
-    // Escape 3: nothing left → bell
-    board.press("Escape")
-    expect(board.bell).toBe(true)
   })
 
   // ---------------------------------------------------------------------------
@@ -132,60 +114,42 @@ describe("Escape Layering", () => {
   })
 
   // ---------------------------------------------------------------------------
-  // Layer 4: Selection active → clear selection
+  // Layer 4: Selection active → collapse to cursor
   // ---------------------------------------------------------------------------
 
-  test("Escape clears multi-selection", () => {
+  test("Escape collapses multi-selection to cursor", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Select multiple items with Shift+ArrowDown
     board.press("shift+ArrowDown")
     board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
 
-    // Escape clears selection
+    // Escape collapses multi-selection to single cursor
     board.press("Escape")
-    expect(store.getState().sel.node.ids().length).toBe(0)
+    expect(store.getState().sel.node.ids().length).toBeLessThanOrEqual(1)
   })
 
-  // ---------------------------------------------------------------------------
-  // Layer 5: Nothing to do → no-op (boundary/bell)
-  // ---------------------------------------------------------------------------
-
-  test("Escape with nothing active triggers boundary (bell)", () => {
+  test("Escape absorbs when only cursor is set (no bell)", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"))))
     board.expect("#task1[data-cursor]").toExist()
 
-    // Escape with no dialogs, no pane, no selection → bell
+    // Escape with just a cursor: collapses (no-op on already-collapsed) and absorbs
     board.press("Escape")
-    expect(board.bell).toBe(true)
+    expect(board.bell).toBe(false)
   })
 
   // ---------------------------------------------------------------------------
   // Priority ordering: higher layers take precedence
   // ---------------------------------------------------------------------------
 
-  test("Escape exits visual mode before clearing selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
-    board.expect("#1a[data-cursor]").toExist()
-
-    // Enter visual mode (which also creates a selection)
-    board.command("visual_mode_enter").command("select_toggle")
-    expect(store.getState().sel.node.ids().length > 0).toBe(true)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
-
-    // First Escape: exits visual mode (but selection may also be cleared since visual_mode_exit clears it)
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length > 0).toBe(false)
-  })
-
   test("Escape unfocuses detail pane before clearing selection", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Select items
     board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
 
     // D opens + auto-focuses detail pane
     board.command("toggle_detail_pane")
@@ -197,19 +161,19 @@ describe("Escape Layering", () => {
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Selection is still there
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
 
     // Escape 2: close pane (selection still there)
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
   })
 
   // ---------------------------------------------------------------------------
   // Full stack walkthrough
   // ---------------------------------------------------------------------------
 
-  test("multiple Escapes peel layers one at a time (dialog → bell)", () => {
+  test("multiple Escapes peel layers one at a time (dialog → collapse)", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
     // Open help dialog (layer 3)
@@ -220,17 +184,17 @@ describe("Escape Layering", () => {
     board.press("Escape")
     expect(store.getState().ui.showHelp).toBe(false)
 
-    // Escape 2: nothing left → bell
+    // Escape 2+: collapses selection (absorbs — no bell)
     board.press("Escape")
-    expect(board.bell).toBe(true)
+    expect(board.bell).toBe(false)
   })
 
-  test("pane open + selection: Escape unfocuses pane, closes pane, clears selection, then bells", () => {
+  test("pane open + selection: Escape unfocuses pane, closes pane, then collapses selection", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Create selection
     board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
 
     // D opens + auto-focuses detail pane
     board.command("toggle_detail_pane")
@@ -244,15 +208,11 @@ describe("Escape Layering", () => {
     // Escape 2: close pane (selection still active)
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
 
-    // Escape 3: clear selection
+    // Escape 3: collapse multi-selection to cursor
     board.press("Escape")
-    expect(store.getState().sel.node.ids().length).toBe(0)
-
-    // Escape 3: nothing left → bell
-    board.press("Escape")
-    expect(board.bell).toBe(true)
+    expect(store.getState().sel.node.ids().length).toBeLessThanOrEqual(1)
   })
 
   // ---------------------------------------------------------------------------
@@ -294,30 +254,43 @@ describe("Escape Layering", () => {
     app.expect("#1b[data-cursor]").toExist()
   })
 
-  test("Escape exits edit mode even with local find results visible (regression)", () => {
-    using app = createTestApp(item("board", item("col1", item("alpha"), item("beta"))))
+  test("Escape exits inline edit before closing local find (regression)", () => {
+    // Regression: when localSearch state exists and user is in inline edit,
+    // Escape should exit edit mode (text.exit_edit) before closing find results.
+    // The fix was: find_close requires not(isInlineEditing).
+    const { board, repo, store } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 
-    // Do a local find (/) to set localSearch state
-    app.command("local_find") // open find bar
+    // Set localSearch state directly (simulating confirmed find results visible)
+    store.setState((s) => {
+      const pane = getActiveBoardPane(s)
+      if (pane) {
+        pane.localSearch = {
+          query: "a",
+          isInputActive: false,
+          matchIndex: 0,
+          matchCount: 1,
+          matchNodeIds: ["alpha"],
+        }
+      }
+      return s
+    })
 
-    // Type a search term and confirm to keep results visible
-    app.press("a")
-    app.press("Enter") // confirm find — keeps matches, closes input
-
-    // Now enter edit mode on the card
-    app.press("Enter") // edit card "alpha"
+    // Enter edit mode on the card
+    board.press("Enter") // edit card "alpha"
+    board.expectEditing("alpha")
 
     // Type something
-    app.press("!")
+    board.press("z")
 
     // Single Escape should exit edit mode (not close find results)
-    app.press("Escape")
+    board.press("Escape")
+    board.expectNotEditing()
 
-    // Content should be saved
-    expect(app.repo.getNode("alpha")?.content).toBe("alpha!")
+    // Content should be saved (alpha + z)
+    expect(repo.getNode("alpha")?.content).toBe("alphaz")
 
     // Should be in normal mode — j navigates
-    app.command("cursor_down")
-    app.expect("#beta[data-cursor]").toExist()
+    board.command("cursor_down")
+    board.expect("#beta[data-cursor]").toExist()
   })
 })

@@ -267,6 +267,9 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   // Derive column IDs from ViewTree (per-node signals via lens).
   // useSignal(ps.visibleLens) ensures re-derivation on tree changes.
   const visibleLensValue = useSignal(ps.visibleLens)
+  // viewLensValue — unfiltered by taskStatusFilter, used to compute the
+  // pre-filter total card count for "+N filtered" footer math.
+  const viewLensValue = useSignal(ps.viewLens)
   const columnIds = useMemo((): readonly string[] => {
     if (ui.viewMode === "detail") {
       // Detail mode: no column derivation needed. DetailView renders metadata rows
@@ -326,11 +329,21 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   // trigger the useSignal subscriptions within act().
   useEffect(() => {
     nodeStore.setCursor(cursor)
-    const ancestors = classifyCursorFromLens(visibleLensValue, cursor)
-    nodeStore.cursorCardNodeId(ancestors.cursorCardNodeId)
-    nodeStore.cursorColumnNodeId(ancestors.cursorColumnNodeId)
-    nodeStore.cursorDepth(ancestors.cursorDepth)
-  }, [nodeStore, cursor, visibleLensValue])
+    if (ui.viewMode === "detail") {
+      // Detail mode uses a flat cursor: cursor IS the cursorCardNodeId. Every
+      // focusable entry (metadata rows, doc nodes, title) is addressed directly.
+      // Walking ancestors via classifyCursorFromLens would incorrectly resolve
+      // cursor back to the detail root (the board card being shown).
+      nodeStore.cursorCardNodeId(cursor)
+      nodeStore.cursorColumnNodeId(null)
+      nodeStore.cursorDepth(cursor ? "card" : "board")
+    } else {
+      const ancestors = classifyCursorFromLens(visibleLensValue, cursor)
+      nodeStore.cursorCardNodeId(ancestors.cursorCardNodeId)
+      nodeStore.cursorColumnNodeId(ancestors.cursorColumnNodeId)
+      nodeStore.cursorDepth(ancestors.cursorDepth)
+    }
+  }, [nodeStore, cursor, visibleLensValue, ui.viewMode])
 
   // Hidden column filtering is centralized in the view lens — the computed
   // lens excludes hidden nodes at build time. When showHidden is toggled,
@@ -348,6 +361,9 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
     if (!hasTextFilter && !hasPropertyFilter) return map
     const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
     for (const colId of columnIds) {
+      // viewLens: ignores taskStatusFilter so we can count pre-filter totals.
+      // visibleLens: post-filter, used as the starting list.
+      const rawCardIds = viewLensValue.children(colId)
       const cardIds = visibleLensValue.children(colId)
       const filteredCardIds = [...cardIds].filter((cardId) => {
         const card = repo.getNode(cardId)
@@ -375,12 +391,15 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
       }
       map.set(colId, {
         filteredCardIds,
-        totalCardCount: cardIds.length,
+        // Pre-filter total: use viewLens (ignores taskStatusFilter) so the
+        // "+N filtered" footer reflects how many cards were hidden by the
+        // active property filters.
+        totalCardCount: rawCardIds.length,
         hiddenDescendantCount: hiddenDescendantCount > 0 ? hiddenDescendantCount : undefined,
       })
     }
     return map
-  }, [columnIds, visibleLensValue, ui.filterText, ui.filterProperties, repo])
+  }, [columnIds, visibleLensValue, viewLensValue, ui.filterText, ui.filterProperties, repo])
 
   // boardColumnIds = columnIds (already string IDs from the tree)
   const boardColumnIds = columnIds

@@ -92,6 +92,148 @@ app.columns() // spatial query: what's on screen
 app.cards() // all visible cards with positions
 ```
 
+### Fixture Tiers (Three Modes)
+
+```typescript
+// 1. Builder: stable IDs, precise tree control
+using app = createTestApp(item("board", item("col1", item("task1"))))
+
+// 2. Markdown: readable, inline — headings become columns, list items become cards
+using app = createTestApp.fromMarkdown("# Todo\n- [ ] Buy milk\n- [ ] Fix plumbing")
+
+// 3. Vault: realistic, file-based — loads all .md files from a directory
+using app = createTestApp.fromVault("tests/fixtures/kanban-simple")
+```
+
+### CSS Selector Queries (AutoLocator)
+
+AutoLocator supports CSS-style combinators for querying the AgNode tree. Selectors re-evaluate on every access (no stale locators).
+
+```typescript
+// ID selector — find by node ID (item("task1") sets id="task1")
+app.expect("#task1").toExist()
+
+// Attribute selector — find by data attribute presence
+app.expect("[data-cursor]").toExist()
+
+// Combined ID + attribute — cursor on a specific node
+app.expect("#task1[data-cursor]").toExist()
+
+// Child combinator (>) — direct parent-child relationship
+app.expect("#col1 > #task1").toExist()
+
+// Adjacent sibling (+) — task1 immediately before task2
+app.expect("#task1 + #task2").toExist()
+
+// Descendant (space) — task1 anywhere under board
+app.expect("#board #task1").toExist()
+
+// Locator for layout matchers (returns AutoLocator for use with expect())
+const col = app.q("#col1")
+expect(col).toBeVisible()
+```
+
+### Custom Matchers (helpers/matchers.ts)
+
+Import: automatic via vitest setup. 11 matchers on AutoLocator values.
+
+```typescript
+// Spatial assertions — pass AutoLocator values from app.q() or app.locator()
+expect(app.q("#col1")).toBeLeftOf(app.q("#col2"))
+expect(app.q("#col1")).toBeRightOf(app.q("#col0"))
+expect(app.q("#task1")).toBeAbove(app.q("#task2"))
+expect(app.q("#task2")).toBeBelow(app.q("#task1"))
+expect(app.q("#task1")).toBeContainedIn(app.q("#col1"))
+
+// Content assertions — exact or substring match on node text
+expect(app.q("#task1")).toHaveText("Buy milk")
+expect(app.q("#task1")).toContainText("milk")
+
+// Visibility — checks bounding box presence and non-zero dimensions
+expect(app.q("#task1")).toBeVisible()
+expect(app.q("#hidden")).toBeHidden()
+
+// Size — exact width/height in columns/rows
+expect(app.q("#col1")).toHaveWidth(40)
+expect(app.q("#col1")).toHaveHeight(10)
+```
+
+### Typed Node Handles (app.card, app.node, app.column)
+
+Query board elements by title text or ID. Never throw — `.exists` returns false for missing nodes.
+
+```typescript
+// Card handle — find by title text
+expect(app.card("Buy groceries").isCursor).toBe(true)
+expect(app.card("Buy groceries").isSelected).toBe(false)
+expect(app.card("Buy groceries").visible).toBe(true)
+expect(app.card("Buy groceries").exists).toBe(true)
+
+// Column handle — find by column title
+expect(app.column("Todo").visible).toBe(true)
+expect(app.column("Todo").exists).toBe(true)
+
+// Node handle — find by ID (same as item() first argument)
+expect(app.node("task1").isCursor).toBe(true)
+expect(app.node("task1").exists).toBe(true)
+
+// Non-existent node — never throws
+expect(app.node("does-not-exist").exists).toBe(false)
+```
+
+### Declarative State (app.state)
+
+Snapshot of board state — cursor, selection, view mode, overlay, bell, visible nodes.
+
+```typescript
+expect(app.state).toMatchObject({
+  cursor: "task1",
+  selection: [],
+  view: "cards",
+  overlay: null,
+  bell: 0,
+})
+
+// Individual fields
+expect(app.state.cursor).toBe("task1")
+expect(app.state.visible).toContain("task1")
+expect(app.state.view).toBe("cards")
+expect(app.state.bell).toBeGreaterThan(0) // bell fired
+```
+
+### Invariants (helpers/board-app.ts)
+
+Auto-checked functions that throw if a condition fails. Used by `board.app()` (checked after every action) and available for manual use.
+
+```
+defaultInvariants (4): rendering, cursor, selection, cursorVisible
+allInvariants (7):     + parentLinks, nodeLinks, layout
+```
+
+| Invariant       | What it checks                                   |
+| --------------- | ------------------------------------------------ |
+| `rendering`     | Screen non-empty, no `[object Object]` or errors |
+| `cursor`        | Cursor exists and has valid column index         |
+| `selection`     | Selected node exists in repo                     |
+| `cursorVisible` | Cursor node's text is visible on screen          |
+| `parentLinks`   | Every node's parent_id points to a real node     |
+| `nodeLinks`     | Every symlink_to reference is valid              |
+| `layout`        | Column index within bounds                       |
+
+### Snapshot Assertions (app.expectSnapshot)
+
+Capture the full screen and compare against a golden file. Backend-aware: termless uses `toMatchTerminalSnapshot` (includes cursor + mode header), headless uses normalized stripped text.
+
+```typescript
+app.expectSnapshot() // anonymous — auto-named by vitest
+app.expectSnapshot("after-fold") // named — multiple snapshots per test
+app.expectScreenMatches("initial-view") // alias for expectSnapshot with required name
+```
+
+### Showcase Reference
+
+**`apps/km-tui/tests/showcase.slow.spec.ts`** is the canonical example of the recommended test style. It demonstrates every feature above in specification-style tests: CSS selectors, typed handles, declarative state, custom matchers, snapshots, fromMarkdown fixtures, and journey patterns.
+
 ### Other Helpers
 
 | File                         | Purpose                                    |
@@ -99,7 +241,7 @@ app.cards() // all visible cards with positions
 | `fixtures/board-fixtures.ts` | Pure data factories                        |
 | `helpers/real-board.ts`      | Load real vaults (async, for .slow. tests) |
 | `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos          |
-| `helpers/matchers.ts`        | Custom vitest matchers                     |
+| `helpers/matchers.ts`        | Custom vitest matchers (see above)         |
 
 ## Termless Tests for Visual & Terminal Bugs
 

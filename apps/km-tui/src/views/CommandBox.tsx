@@ -16,6 +16,7 @@ import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { PaneUI } from "../state/ui-reducer.ts"
 import { useSel } from "../state/ui-context.tsx"
+import { useSignal } from "../hooks/use-signal.ts"
 import type { UIState, LocalSearchState } from "../state/ui-reducer.ts"
 import { useFlashOnChange, useLogToast, useSpinnerFrame } from "../hooks/use-status-animations.ts"
 
@@ -201,7 +202,11 @@ export function CommandBox({
   onQueryChange,
 }: CommandBoxProps): React.ReactElement | null {
   const sel = useSel()
-  const isTextEditing = sel.text() !== null
+  // Subscribe reactively to sel.text so mode label updates on enter/exit edit mode.
+  // Without useSignal, React wouldn't re-render when the underlying alien-signals
+  // computed changes (same sel ref, no zustand update).
+  const textEdit = useSignal(sel.text)
+  const isTextEditing = textEdit !== null
 
   // Toast when first console log arrives
   const logTotal = consoleStats?.total ?? 0
@@ -272,7 +277,17 @@ export function CommandBox({
           </Text>
           <Text dimColor> </Text>
           {localSearch ? (
-            <Box id="find-bar" flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
+            <Box
+              id="find-bar"
+              flexGrow={1}
+              flexShrink={1}
+              flexDirection="row"
+              overflow="hidden"
+              data-query={localSearch.query}
+              data-match-count={localSearch.matchCount}
+              data-match-index={localSearch.matchIndex}
+              data-input-active={localSearch.isInputActive || undefined}
+            >
               <Text color={localSearch.isInputActive ? undefined : "$primary"}>/</Text>
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 {localSearch.isInputActive && onQueryChange ? (

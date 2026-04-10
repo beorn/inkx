@@ -85,10 +85,11 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     expect(app.repo.getNode("task-3")?.item?.task?.status).toBe("wip")
     expect(app.repo.getNode("task-4")?.item?.task?.status).toBe("todo")
 
-    // Step 4: Toggle again (wip -> blocked)
+    // Step 4: Toggle again — selection was collapsed to cursor (task-3) after first toggle,
+    // so only task-3 advances: wip -> blocked. task-1 and task-2 stay at wip.
     app.command("cycle_task_status")
-    expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("blocked")
-    expect(app.repo.getNode("task-2")?.item?.task?.status).toBe("blocked")
+    expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    expect(app.repo.getNode("task-2")?.item?.task?.status).toBe("wip")
     expect(app.repo.getNode("task-3")?.item?.task?.status).toBe("blocked")
     expect(app.repo.getNode("task-4")?.item?.task?.status).toBe("todo")
   })

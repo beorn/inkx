@@ -32,15 +32,36 @@ function buildSyncableRepo(db: Database, repoPath: string, existingEmitter?: Emi
   }
 }
 
+// Map from Sync instance to its "ready" promise. createTestSync captures the
+// onReady callback here so waitForReady(sync) can await the real watcher ready
+// event (instead of resolving instantly on the next tick).
+const readyPromises = new WeakMap<Sync, Promise<void>>()
+
 /** Create Sync with test defaults */
 export function createTestSync(
   db: Database,
   repoPath: string,
   overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks; emitter?: Emitter },
 ): Sync {
-  const { emitter, ...syncOverrides } = overrides ?? {}
+  const { emitter, callbacks: userCallbacks, ...syncOverrides } = overrides ?? {}
   const repo = buildSyncableRepo(db, repoPath, emitter)
-  const decorated = withSync({ ...TEST_DEFAULTS, ...syncOverrides })(repo)
+
+  // Wire onReady into a promise that waitForReady() can await. Chain the
+  // user-provided onReady so the test can still observe it if needed.
+  let resolveReady!: () => void
+  const readyPromise = new Promise<void>((r) => {
+    resolveReady = r
+  })
+  const callbacks: SyncCallbacks = {
+    ...userCallbacks,
+    onReady: () => {
+      userCallbacks?.onReady?.()
+      resolveReady()
+    },
+  }
+
+  const decorated = withSync({ ...TEST_DEFAULTS, ...syncOverrides, callbacks })(repo)
+  readyPromises.set(decorated, readyPromise)
   return decorated
 }
 
@@ -49,22 +70,21 @@ export function setupSync(stack: AsyncDisposableStack, sync: Sync): void {
   stack.defer(async () => await sync.stop())
 }
 
-/** Wait for a sync callback-based "ready" event via a one-shot promise */
+/**
+ * Wait for the watcher's real "ready" event.
+ *
+ * Resolves when chokidar finishes its initial scan. This is essential for
+ * delete/rename tests — without it, the watcher may miss events fired right
+ * after start() returns.
+ */
 export function waitForReady(sync: Sync): Promise<void> {
-  // For callback-based Sync, callers should wire up onReady in the callbacks config.
-  // This helper is kept for backwards compat with tests that pass a Sync object.
-  // It works by polling getState — "ready" is fired after watcher starts.
-  return new Promise((resolve) => {
-    // Ready typically fires right after start() when the watcher is initialized.
-    // Poll briefly to detect it. In tests with no worker, this resolves almost instantly.
-    const check = () => {
-      // The sync is "ready" once start() has been called and the watcher is active.
-      // In tests, onReady fires synchronously. Use a microtask to let it fire.
-      resolve()
-    }
-    // Let the event loop turn once so any synchronous onReady fires
-    setTimeout(check, 0)
-  })
+  const promise = readyPromises.get(sync)
+  if (!promise) {
+    // Backwards-compat fallback for any callers that didn't go through
+    // createTestSync — resolve on the next tick.
+    return new Promise((resolve) => setTimeout(resolve, 0))
+  }
+  return promise
 }
 
 /**

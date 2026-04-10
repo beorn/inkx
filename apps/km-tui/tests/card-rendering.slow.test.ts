@@ -569,10 +569,8 @@ describe("card-overflow-dots", () => {
     )
 
     const text = app.text
-    // Should show a border-based overflow indicator like "╰─── +2 ───╯"
-    expect(text).toMatch(/╰─+ \+2 ─+╯/)
-    // Should NOT show "+N more" (suppressed in cards mode)
-    expect(text).not.toContain("more")
+    // Should show a border-based overflow indicator like "╰─── +2 more ───╯"
+    expect(text).toMatch(/╰─+ \+2 more ─+╯/)
   })
 
   test("card without overflow does not show overflow border", () => {
@@ -611,12 +609,14 @@ describe("card-overflow-dots", () => {
       board = env.board
     })
 
-    test("multiple headings with overflow show only one border indicator", () => {
+    test("multiple headings with overflow show one border indicator plus per-heading counts", () => {
       const text = board.screenshot()
-      // Should show a single overflow border line (one per card, not per heading)
-      const overflowBorders = text.match(/\+\d+/g) ?? []
-      expect(overflowBorders).toHaveLength(1)
-      expect(text).not.toContain("more")
+      // Card border shows total hidden count, each heading shows its own +N more
+      // heading-A: +2 more, heading-B: +2 more, card border: +4 more
+      const overflowMatches = text.match(/\+\d+/g) ?? []
+      expect(overflowMatches.length).toBeGreaterThanOrEqual(1)
+      // Card border indicator should include "more"
+      expect(text).toMatch(/╰─+ \+4 more ─+╯/)
     })
 
     test("overflow count reflects hidden children across levels", () => {

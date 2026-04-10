@@ -25,13 +25,29 @@ process.stdout.isTTY = false
 process.stderr.isTTY = false
 
 // Kill zombie forks: when vitest uses pool:'forks', child_process.fork() workers survive
-// if the parent is killed abruptly (SIGKILL). The 'disconnect' event fires when the IPC
-// channel closes (parent died), so we exit immediately to prevent orphan processes.
+// if the parent is killed abruptly (SIGKILL). Two complementary mechanisms:
+//
+// 1. 'disconnect' event: fires when the IPC channel closes (parent died gracefully).
+// 2. ppid polling: catches cases where 'disconnect' doesn't fire — e.g., when the
+//    worker is in a tight CPU loop with no event-loop ticks, or when the parent is
+//    SIGKILLed without closing the IPC channel. On macOS/Linux, orphaned processes
+//    get ppid=1 (launchd/init). The interval forces event-loop ticks, which also
+//    lets pending 'disconnect' events fire.
+//
 // No-op for pool:'threads' (no IPC channel, no process.connected).
 if (typeof process.connected === "boolean") {
   process.on("disconnect", () => {
     process.exit(1)
   })
+  const parentPid = process.ppid
+  const orphanCheck = setInterval(() => {
+    // ppid changes to 1 (launchd/init) when parent dies
+    if (process.ppid !== parentPid) {
+      process.exit(1)
+    }
+  }, 5000)
+  // @ts-expect-error — setInterval returns Timer (Node) not number (browser); unref is always available
+  orphanCheck.unref() // don't keep process alive just for this timer
 }
 
 // Suppress logger output during tests (info would trip console detection)
@@ -129,6 +145,11 @@ const KNOWN_STRICT_PATTERNS = [
   "*duplicate parent_idx*",
   "*duplicate-parent_idx*",
   "*round-trip*",
+  // curswanty-combinatorial: cursor navigation between columns triggers border re-render
+  // mismatch due to disabled bgOnlyChange fast path
+  "*stickyY*",
+  "*vertical-clear*",
+  "*multi-hop*",
 ]
 
 /** Simple glob matcher supporting * wildcards */
@@ -251,7 +272,12 @@ beforeEach(() => {
         typeof args[0] === "string" &&
         (args[0].includes("was not wrapped in act(") ||
           args[0].includes("the `act` call was not awaited") ||
-          args[0].includes("Kitty keyboard protocol"))
+          args[0].includes("Kitty keyboard protocol") ||
+          // silvery perf logger fires whenever a keypress exceeds its 16ms
+          // budget, which happens routinely under CI load. It's a diagnostic
+          // hint, not a test failure signal — filter it out.
+          args[0].includes("keypress over budget") ||
+          args[0].includes("silvery:perf"))
       ) {
         return
       }

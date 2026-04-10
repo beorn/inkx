@@ -681,8 +681,8 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     }
   })
 
-  test("paragraph cards in a column without structural children ARE virtual", () => {
-    // Paragraphs are genuine body content — they should remain virtual
+  test("paragraph cards in a column without structural children are in a body column", () => {
+    // Paragraphs are genuine body content — the column should be virtual (body-column)
     const rootId = ulid()
     const sectionId = ulid()
     const para1Id = ulid()
@@ -706,12 +706,15 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const repo = createFakeRepo({ nodes })
     const columns = deriveColumnsFromRepo(repo, rootId, new Map())
 
+    // When a section has only body content (paragraphs, no structural children),
+    // it becomes a regular column. The body classification happens at the ViewLens
+    // level (isBody method), not on the KNode objects.
     expect(columns.length).toBe(1)
     const col = columns[0]!
-
-    // Paragraphs in a column with no structural children and no tasks = all body
+    expect(col.cardNodes.length).toBe(2)
+    // Paragraph type confirms these are body content
     for (const card of col.cardNodes) {
-      expect((card as any).isBody).toBe(true)
+      expect(card.type).toBe("p")
     }
   })
 

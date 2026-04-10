@@ -86,7 +86,9 @@ describe("Fold/Unfold Journeys", () => {
     app.expect("#nodeA-ch").toExist()
     app.expect("#nodeB-ch").toExist()
 
-    // Step 1: Fold all — hides children everywhere
+    // Step 1: Fold all — progressive: 3 presses to reach depth 0 (3→2→1→0)
+    app.command("fold_all_more")
+    app.command("fold_all_more")
     app.command("fold_all_more")
 
     app.expect("#nodeA-ch").not.toExist()
@@ -107,7 +109,9 @@ describe("Fold/Unfold Journeys", () => {
     app.expect("#p1-ch").toExist()
     app.expect("#p2-ch").toExist()
 
-    // Step 1: Fold all
+    // Step 1: Fold all — progressive: 3 presses to reach depth 0
+    app.command("fold_all_more")
+    app.command("fold_all_more")
     app.command("fold_all_more")
     app.expect("#p1-ch").not.toExist()
     app.expect("#p2-ch").not.toExist()

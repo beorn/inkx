@@ -169,6 +169,7 @@ function LayoutNodeView({
         flexDirection="column"
         color={isFocused ? undefined : "$fg"}
         focusScope
+        id={node.paneId}
         testID={node.paneId}
         data-focused={isFocused || undefined}
         theme={paneTheme}

@@ -19,12 +19,12 @@
  */
 
 import { describe, it, test, expect, afterEach, vi } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardDriver } from "../src/driver.ts"
 import { createCardsViewNavigation, type NavState } from "../src/navigation/view-navigation.ts"
 import { createGridNavigator, createViewTree, createViewLens, type ViewTreeProjection } from "@km/board"
-import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
@@ -45,68 +45,63 @@ function cursor(nodeId: string): string {
   return `[id="${nodeId}"][data-cursor]`
 }
 
-/** CSS selector for node with spaces in ID: use attribute selector */
-function id(nodeId: string): string {
-  return `[id="${nodeId}"]`
-}
-
 // =============================================================================
 // Body content within a column: j/k navigation
 // =============================================================================
 
 describe("body content within a column: j/k navigation", () => {
   it("j from column header enters first body card", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item.p("body-p1"), item.p("body-p2"), item("sub-section", item("task1")))),
     )
 
     // Initial cursor on first card in col1 (should be body-p1)
-    board.expect(cursor("body-p1")).toExist()
+    app.expect(cursor("body-p1")).toExist()
 
     // j should move to second body card
-    board.press("j")
-    board.expect(cursor("body-p2")).toExist()
+    app.press("j")
+    app.expect(cursor("body-p2")).toExist()
   })
 
   it("j navigates through body cards then to structural cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item.p("body-p1"), item.p("body-p2"), item("sub-section", item("task1")))),
     )
 
-    board.expect(cursor("body-p1")).toExist()
+    app.expect(cursor("body-p1")).toExist()
 
-    board.press("j")
-    board.expect(cursor("body-p2")).toExist()
+    app.press("j")
+    app.expect(cursor("body-p2")).toExist()
 
     // j from last body card should go to first structural card (sub-section)
-    board.press("j")
-    board.expect(cursor("sub-section")).toExist()
+    app.press("j")
+    app.expect(cursor("sub-section")).toExist()
   })
 
   it("k navigates back through body cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item.p("body-p1"), item.p("body-p2"), item("sub-section", item("task1")))),
     )
 
     // Navigate to sub-section
-    board.press("j").press("j")
-    board.expect(cursor("sub-section")).toExist()
+    app.press("j").press("j")
+    app.expect(cursor("sub-section")).toExist()
 
     // k should go back to body-p2
-    board.press("k")
-    board.expect(cursor("body-p2")).toExist()
+    app.press("k")
+    app.expect(cursor("body-p2")).toExist()
 
     // k should go to body-p1
-    board.press("k")
-    board.expect(cursor("body-p1")).toExist()
+    app.press("k")
+    app.expect(cursor("body-p1")).toExist()
 
     // k should go to column header
-    board.press("k")
-    board.expect(cursor("col1")).toExist()
+    app.press("k")
+    app.expect(cursor("col1")).toExist()
   })
 
   it("j/k works with multiple columns where one has body content", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col-with-body", item.p("intro"), item.p("details"), item("child1"), item("child2")),
@@ -115,29 +110,29 @@ describe("body content within a column: j/k navigation", () => {
     )
 
     // Start on first body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // j through body content
-    board.press("j")
-    board.expect(cursor("details")).toExist()
+    app.press("j")
+    app.expect(cursor("details")).toExist()
 
     // j to structural cards
-    board.press("j")
-    board.expect(cursor("child1")).toExist()
+    app.press("j")
+    app.expect(cursor("child1")).toExist()
 
-    board.press("j")
-    board.expect(cursor("child2")).toExist()
+    app.press("j")
+    app.expect(cursor("child2")).toExist()
 
     // k back
-    board.press("k")
-    board.expect(cursor("child1")).toExist()
+    app.press("k")
+    app.expect(cursor("child1")).toExist()
 
-    board.press("k")
-    board.expect(cursor("details")).toExist()
+    app.press("k")
+    app.expect(cursor("details")).toExist()
   })
 
   it("body-only column: j/k through only body cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("body-col", item.p("para1"), item.p("para2"), item.p("para3")),
@@ -146,21 +141,21 @@ describe("body content within a column: j/k navigation", () => {
     )
 
     // Start on first body card
-    board.expect(cursor("para1")).toExist()
+    app.expect(cursor("para1")).toExist()
 
-    board.press("j")
-    board.expect(cursor("para2")).toExist()
+    app.press("j")
+    app.expect(cursor("para2")).toExist()
 
-    board.press("j")
-    board.expect(cursor("para3")).toExist()
+    app.press("j")
+    app.expect(cursor("para3")).toExist()
 
     // j at last body card — should hit boundary
-    board.press("j")
-    expect(board.bell).toBe(true)
+    app.press("j")
+    expect(app.bell).toBe(true)
 
     // k back to para2
-    board.press("k")
-    board.expect(cursor("para2")).toExist()
+    app.press("k")
+    app.expect(cursor("para2")).toExist()
   })
 })
 
@@ -170,66 +165,66 @@ describe("body content within a column: j/k navigation", () => {
 
 describe("body content navigation", () => {
   it("j moves down through body cards", () => {
-    const { board } = testEnv(() => item("board", item.p("para1"), item.p("para2"), item("col1", item("task1"))))
+    using app = createTestApp(item("board", item.p("para1"), item.p("para2"), item("col1", item("task1"))))
 
     // Cursor should start on first body paragraph
-    board.expect("#para1[data-cursor]").toExist()
+    app.expect("#para1[data-cursor]").toExist()
 
     // j should move to second body paragraph
-    board.press("j")
-    board.expect("#para2[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#para2[data-cursor]").toExist()
   })
 
   it("k moves up through body cards", () => {
-    const { board } = testEnv(() => item("board", item.p("para1"), item.p("para2"), item("col1", item("task1"))))
+    using app = createTestApp(item("board", item.p("para1"), item.p("para2"), item("col1", item("task1"))))
 
     // Move to second paragraph first
-    board.press("j")
-    board.expect("#para2[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#para2[data-cursor]").toExist()
 
     // k should go back to first
-    board.press("k")
-    board.expect("#para1[data-cursor]").toExist()
+    app.press("k")
+    app.expect("#para1[data-cursor]").toExist()
   })
 
   it("k from first body card goes to body column header, then board level", () => {
-    const { board } = testEnv(() => item("board", item.p("para1"), item("col1", item("task1"))))
+    using app = createTestApp(item("board", item.p("para1"), item("col1", item("task1"))))
 
     // Start on para1
-    board.expect("#para1[data-cursor]").toExist()
+    app.expect("#para1[data-cursor]").toExist()
 
     // k should go to body column header (__body__board)
-    board.press("k")
-    board.expect('[id="__body__board"][data-cursor]').toExist()
+    app.press("k")
+    app.expect('[id="__body__board"][data-cursor]').toExist()
 
     // k again should go to board level
-    board.press("k")
-    board.expect("#board[data-cursor]").toExist()
+    app.press("k")
+    app.expect("#board[data-cursor]").toExist()
   })
 
   it("j from last body card hits boundary", () => {
-    const { board } = testEnv(() => item("board", item.p("para1"), item("col1", item("task1"))))
+    using app = createTestApp(item("board", item.p("para1"), item("col1", item("task1"))))
 
     // Start on para1 (last/only body card)
-    board.expect("#para1[data-cursor]").toExist()
+    app.expect("#para1[data-cursor]").toExist()
 
     // j should hit boundary (body cards are in their own visual column)
-    board.press("j")
+    app.press("j")
     // Cursor should still be on para1 (boundary hit)
-    board.expect("#para1[data-cursor]").toExist()
+    app.expect("#para1[data-cursor]").toExist()
   })
 
   it("l from body card navigates to structural column", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item.p("body text"), item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Start on body card
-    board.expect("[id='body text'][data-cursor]").toExist()
+    app.expect("[id='body text'][data-cursor]").toExist()
 
     // l should navigate to first structural column
-    board.press("l")
-    board.expect("#task1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   it("navigation layer correctly classifies body nodes", () => {
@@ -280,43 +275,43 @@ describe("body content navigation", () => {
 
 describe("body column navigation after zoom", () => {
   it("l from body column header after zoom goes to structural column", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("root-section", item.p("body-text"), item("sub1", item("t1")), item("sub2", item("t2")))),
     )
 
     // Navigate to column header and zoom in to root-section
-    board.press("k") // body-text → root-section column header
-    board.press("z") // zoom into root-section
+    app.press("k") // body-text → root-section column header
+    app.press("z") // zoom into root-section
 
     // After zoom, cursor on first body card
-    board.expect("#body-text[data-cursor]").toExist()
+    app.expect("#body-text[data-cursor]").toExist()
 
     // k to body column header
-    board.press("k")
-    board.expect('[id="__body__root-section"][data-cursor]').toExist()
+    app.press("k")
+    app.expect('[id="__body__root-section"][data-cursor]').toExist()
 
     // l should go to sub1 column (first structural column)
-    board.press("l")
+    app.press("l")
 
-    const cursorId = board.q("[data-cursor]").getAttribute("id")
+    const cursorId = app.q("[data-cursor]").getAttribute("id")
     expect(cursorId).toBe("sub1")
   })
 
   it("l from body card after zoom goes to structural column", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("root4", item.p("body-p"), item("sec-x", item("tx1")), item("sec-y", item("ty1")))),
     )
 
     // Navigate to column header and zoom
-    board.press("k") // body-p → root4 column header
-    board.press("z") // zoom into root4
+    app.press("k") // body-p → root4 column header
+    app.press("z") // zoom into root4
 
-    board.expect("#body-p[data-cursor]").toExist()
+    app.expect("#body-p[data-cursor]").toExist()
 
     // l directly from body card — should go to sec-x's first card
-    board.press("l")
+    app.press("l")
 
-    const cursorId = board.q("[data-cursor]").getAttribute("id")
+    const cursorId = app.q("[data-cursor]").getAttribute("id")
     expect(cursorId).not.toBe("body-p")
     expect(cursorId).not.toBe("root4")
   })
@@ -380,7 +375,7 @@ describe("zoom into node with body content: cursor placement", () => {
   })
 
   it("j/k works after zoom into node with body content", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -391,19 +386,19 @@ describe("zoom into node with body content: cursor placement", () => {
     )
 
     // Zoom inwards: board → col1 → target (one level per press)
-    board.press("z")
-    board.press("z")
+    app.press("z")
+    app.press("z")
 
     // After zoom, cursor should be on first body card
-    board.expect(cursor("body1")).toExist()
+    app.expect(cursor("body1")).toExist()
 
     // j should navigate to body2
-    board.press("j")
-    board.expect(cursor("body2")).toExist()
+    app.press("j")
+    app.expect(cursor("body2")).toExist()
 
     // j should hit boundary (body column boundary)
-    board.press("j")
-    expect(board.bell).toBe(true)
+    app.press("j")
+    expect(app.bell).toBe(true)
   })
 
   it("j from board level with body nodes skips to first column if body filtered", () => {
@@ -524,7 +519,7 @@ describe("real vault scenario: zoom into section with mixed columns", () => {
     //   |- Someday/Maybe (oi) → columns with cards
     //   |- Agent Instructions (oi) → has body paragraphs + structural sub-sections
     //   +- CLAUDE.md (oi) → has body paragraphs + structural sub-sections
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "root",
         item(
@@ -550,28 +545,28 @@ describe("real vault scenario: zoom into section with mixed columns", () => {
     )
 
     // Zoom inwards: root → col1 → landing (one level per press)
-    board.press("z")
-    board.press("z")
+    app.press("z")
+    app.press("z")
 
     // Now at column level or card level in the zoomed view
     // Navigate to agent-instructions column's body card
-    board.press("l") // move to agent-instructions column area
-    board.expect(cursor("bd-beads-text")).toExist()
+    app.press("l") // move to agent-instructions column area
+    app.expect(cursor("bd-beads-text")).toExist()
 
     // j should move to next card in agent-instructions column
-    board.press("j")
-    board.expect(cursor("quick-ref")).toExist()
+    app.press("j")
+    app.expect(cursor("quick-ref")).toExist()
 
     // j again
-    board.press("j")
-    board.expect(cursor("landing-sub")).toExist()
+    app.press("j")
+    app.expect(cursor("landing-sub")).toExist()
 
     // k back
-    board.press("k")
-    board.expect(cursor("quick-ref")).toExist()
+    app.press("k")
+    app.expect(cursor("quick-ref")).toExist()
 
-    board.press("k")
-    board.expect(cursor("bd-beads-text")).toExist()
+    app.press("k")
+    app.expect(cursor("bd-beads-text")).toExist()
   })
 })
 
@@ -583,12 +578,12 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
   test("pressing c on body column should not produce console.error about __body__ not in repo", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-    const { board } = testEnv(() => item("board", item.p("body text here"), item("col1", item("A"))))
+    using app = createTestApp(item("board", item.p("body text here"), item("col1", item("A"))))
 
     // Cursor starts on body column (first non-collapsed column).
     // Press g.c to toggle collapse on body column — this triggers the bug:
     // "ERROR km:nav cursor node not in repo: __body__board, falling back to root"
-    board.press("v").press("c")
+    app.press("v").press("c")
 
     // Check no error was logged about __body__
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
@@ -600,24 +595,24 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
   })
 
   test("pressing c on body column should produce a boundary bell (body is not collapsible)", () => {
-    const { board } = testEnv(() => item("board", item.p("body text here"), item("col1", item("A"))))
+    using app = createTestApp(item("board", item.p("body text here"), item("col1", item("A"))))
 
     // Body column is virtual/synthetic — collapse should be a boundary error (bell)
-    board.press("v").press("c")
-    expect(board.bell, "body column collapse should ring bell").toBe(true)
+    app.press("v").press("c")
+    expect(app.bell, "body column collapse should ring bell").toBe(true)
   })
 
   test("navigate to body column then collapse — key sequence c, l, c", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-    const { board } = testEnv(() => item("board", item.p("body text here"), item("col1", item("A"))))
+    using app = createTestApp(item("board", item.p("body text here"), item("col1", item("A"))))
 
     // g.c on body column (should be noop/boundary)
-    board.press("v").press("c")
+    app.press("v").press("c")
     // l to navigate to col1
-    board.press("l")
+    app.press("l")
     // g.c to collapse col1 (this should work fine)
-    board.press("v").press("c")
+    app.press("v").press("c")
 
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
       args.some((arg) => typeof arg === "string" && arg.includes("__body__")),
@@ -743,171 +738,159 @@ describe("Body Content Visual Tests", () => {
 
 describe("body h/l navigation Y-position matching", () => {
   test("l from 3rd body card goes to Y-matched card in structural column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("body-1"),
-          item.p("body-2"),
-          item.p("body-3"),
-          item.p("body-4"),
-          item.p("body-5"),
-          item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("body-1"),
+        item.p("body-2"),
+        item.p("body-3"),
+        item.p("body-4"),
+        item.p("body-5"),
+        item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
+      ),
       { rows: 40 },
     )
 
-    board.expect("#body-1[data-cursor]").toExist()
-    board.press("j") // → body-2
-    board.press("j") // → body-3
-    board.expect("#body-3[data-cursor]").toExist()
+    app.expect("#body-1[data-cursor]").toExist()
+    app.press("j") // → body-2
+    app.press("j") // → body-3
+    app.expect("#body-3[data-cursor]").toExist()
 
     // l should land on task-c (same Y as body-3), not task-a (first)
-    board.press("l")
-    board.expect("#task-c[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#task-c[data-cursor]").toExist()
   })
 
   test("l from body-1 goes to task-a (both at top)", () => {
-    const { board } = testEnv(
-      () => item("board", item.p("body-1"), item("col1", item("task-a"), item("task-b"), item("task-c"))),
+    using app = createTestApp(
+      item("board", item.p("body-1"), item("col1", item("task-a"), item("task-b"), item("task-c"))),
       { rows: 40 },
     )
 
-    board.expect("#body-1[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#task-a[data-cursor]").toExist()
+    app.expect("#body-1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#task-a[data-cursor]").toExist()
   })
 
   test("l from body card then h back preserves Y position", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("bp-1"),
-          item.p("bp-2"),
-          item.p("bp-3"),
-          item("s1", item("t-1"), item("t-2"), item("t-3")),
-        ),
+    using app = createTestApp(
+      item("board", item.p("bp-1"), item.p("bp-2"), item.p("bp-3"), item("s1", item("t-1"), item("t-2"), item("t-3"))),
       { rows: 40 },
     )
 
-    board.press("j") // → bp-2
-    board.press("j") // → bp-3
-    board.expect("#bp-3[data-cursor]").toExist()
+    app.press("j") // → bp-2
+    app.press("j") // → bp-3
+    app.expect("#bp-3[data-cursor]").toExist()
 
-    board.press("l")
-    const rightTarget = board.q("[data-cursor]").getAttribute("id")
+    app.press("l")
+    const rightTarget = app.q("[data-cursor]").getAttribute("id")
     expect(rightTarget).not.toBe("bp-1") // Should not jump to top
 
-    board.press("h")
-    const backTarget = board.q("[data-cursor]").getAttribute("id")
+    app.press("h")
+    const backTarget = app.q("[data-cursor]").getAttribute("id")
     expect(backTarget).toMatch(/^bp-/)
   })
 
   test("l from structural column card goes to next column at same Y", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("a1"), item("a2"), item("a3"), item("a4"), item("a5")),
-          item("col2", item("b1"), item("b2"), item("b3"), item("b4"), item("b5")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("a1"), item("a2"), item("a3"), item("a4"), item("a5")),
+        item("col2", item("b1"), item("b2"), item("b3"), item("b4"), item("b5")),
+      ),
       { rows: 40 },
     )
 
     // Cursor starts on first card (a1), navigate to a3
-    board.expect("#a1[data-cursor]").toExist()
-    board.press("j") // → a2
-    board.press("j") // → a3
-    board.expect("#a3[data-cursor]").toExist()
+    app.expect("#a1[data-cursor]").toExist()
+    app.press("j") // → a2
+    app.press("j") // → a3
+    app.expect("#a3[data-cursor]").toExist()
 
     // l to col2 — should go to b3 (same Y), not b1
-    board.press("l")
-    board.expect("#b3[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#b3[data-cursor]").toExist()
   })
 
   test("h from structural column card into body column matches Y-position (km-tui.vbody-nav)", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("body-1"),
-          item.p("body-2"),
-          item.p("body-3"),
-          item.p("body-4"),
-          item.p("body-5"),
-          item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("body-1"),
+        item.p("body-2"),
+        item.p("body-3"),
+        item.p("body-4"),
+        item.p("body-5"),
+        item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
+      ),
       { rows: 40 },
     )
 
     // Navigate right to structural column
-    board.press("l")
-    board.expect("#task-a[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#task-a[data-cursor]").toExist()
 
     // Navigate down to task-c (3rd card)
-    board.press("j").press("j")
-    board.expect("#task-c[data-cursor]").toExist()
+    app.press("j").press("j")
+    app.expect("#task-c[data-cursor]").toExist()
 
     // h should land on body-3 (same Y as task-c), not body-1 (first)
-    board.press("h")
-    board.expect("#body-3[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#body-3[data-cursor]").toExist()
   })
 
   test("h from structural column to body preserves Y across multiple hops (km-tui.vbody-nav)", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("bp-1"),
-          item.p("bp-2"),
-          item.p("bp-3"),
-          item.p("bp-4"),
-          item.p("bp-5"),
-          item("s1", item("t-1"), item("t-2"), item("t-3"), item("t-4"), item("t-5")),
-          item("s2", item("u-1"), item("u-2"), item("u-3"), item("u-4"), item("u-5")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("bp-1"),
+        item.p("bp-2"),
+        item.p("bp-3"),
+        item.p("bp-4"),
+        item.p("bp-5"),
+        item("s1", item("t-1"), item("t-2"), item("t-3"), item("t-4"), item("t-5")),
+        item("s2", item("u-1"), item("u-2"), item("u-3"), item("u-4"), item("u-5")),
+      ),
       { rows: 40 },
     )
 
     // Navigate to s2, go down to u-4
-    board.press("l").press("l")
-    board.expect("#u-1[data-cursor]").toExist()
-    board.press("j").press("j").press("j")
-    board.expect("#u-4[data-cursor]").toExist()
+    app.press("l").press("l")
+    app.expect("#u-1[data-cursor]").toExist()
+    app.press("j").press("j").press("j")
+    app.expect("#u-4[data-cursor]").toExist()
 
     // h to s1 → should Y-match to t-4
-    board.press("h")
-    board.expect("#t-4[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#t-4[data-cursor]").toExist()
 
     // h to body → should Y-match to bp-4
-    board.press("h")
-    board.expect("#bp-4[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#bp-4[data-cursor]").toExist()
   })
 
   test("h from deep structural card clamps to last body card (km-tui.vbody-nav)", () => {
     // Body has only 2 cards, structural column has 8. Navigating h from
     // a card far down should clamp to last body card (body-2), not overshoot.
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("body-1"),
-          item.p("body-2"),
-          item("col1", item("t1"), item("t2"), item("t3"), item("t4"), item("t5"), item("t6"), item("t7"), item("t8")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("body-1"),
+        item.p("body-2"),
+        item("col1", item("t1"), item("t2"), item("t3"), item("t4"), item("t5"), item("t6"), item("t7"), item("t8")),
+      ),
       { rows: 40 },
     )
 
     // Navigate right to structural column, then deep down
-    board.press("l")
-    board.expect("#t1[data-cursor]").toExist()
-    for (let i = 0; i < 7; i++) board.press("j")
-    board.expect("#t8[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#t1[data-cursor]").toExist()
+    for (let i = 0; i < 7; i++) app.press("j")
+    app.expect("#t8[data-cursor]").toExist()
 
     // h should clamp to last body card (body-2), not crash or go to body-1
-    board.press("h")
-    board.expect("#body-2[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#body-2[data-cursor]").toExist()
   })
 })
 
@@ -936,15 +919,15 @@ describe("Body block spacing", () => {
     test("body blocks have compact content (blank lines collapsed)", () => {
       // Create a body card with internal blank lines
       const nodes = item("board", item("col1", item.p("line one\n\nline two\n\n\nline three"), item("task-a")))
-      const { board } = testEnv(() => nodes)
+      using app = createTestApp(nodes)
 
-      const screenshot = board.screenshot()
-      expect(screenshot).toContain("line one")
-      expect(screenshot).toContain("line two")
-      expect(screenshot).toContain("line three")
+      const text = app.text
+      expect(text).toContain("line one")
+      expect(text).toContain("line two")
+      expect(text).toContain("line three")
 
       // Find the lines inside the card (after the column header separator)
-      const lines = screenshot.split("\n")
+      const lines = text.split("\n")
       const sepIdx = lines.findIndex((l) => l.includes("───"))
       const contentLines = lines.slice(sepIdx + 1)
 
@@ -959,27 +942,27 @@ describe("Body block spacing", () => {
     })
 
     test("body blocks render with borders in cards view", () => {
-      const { board } = testEnv(boardWithBodyContent)
+      using app = createTestApp(boardWithBodyContent())
 
-      const screenshot = board.screenshot()
-      expect(screenshot).toContain("body paragraph one")
-      expect(screenshot).toContain("body paragraph two")
+      const text = app.text
+      expect(text).toContain("body paragraph one")
+      expect(text).toContain("body paragraph two")
 
       // Body cards should have round border characters (╭ or ╰)
-      expect(screenshot).toMatch(/[╭╰]/)
+      expect(text).toMatch(/[╭╰]/)
     })
   })
 
   describe("columns view", () => {
     test("body blocks have no blank line between them", () => {
-      const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
+      using app = createTestApp(boardWithBodyContent(), { viewMode: "columns" })
 
-      const screenshot = board.screenshot()
-      expect(screenshot).toContain("body paragraph one")
-      expect(screenshot).toContain("body paragraph two")
+      const text = app.text
+      expect(text).toContain("body paragraph one")
+      expect(text).toContain("body paragraph two")
 
       // Find the lines after the column header separator
-      const lines = screenshot.split("\n")
+      const lines = text.split("\n")
       const sepIdx = lines.findIndex((l) => l.includes("───"))
       const contentLines = lines.slice(sepIdx + 1)
 
@@ -991,12 +974,12 @@ describe("Body block spacing", () => {
     })
 
     test("body blocks have no borders in columns view", () => {
-      const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
+      using app = createTestApp(boardWithBodyContent(), { viewMode: "columns" })
 
-      const screenshot = board.screenshot()
+      const text = app.text
 
       // Find the lines after the column header separator
-      const lines = screenshot.split("\n")
+      const lines = text.split("\n")
       const sepIdx = lines.findIndex((l) => l.includes("───"))
       const contentLines = lines.slice(sepIdx + 1)
 
@@ -1014,10 +997,10 @@ describe("Body block spacing", () => {
     })
 
     test("body blocks have same spacing as structural items", () => {
-      const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
+      using app = createTestApp(boardWithBodyContent(), { viewMode: "columns" })
 
-      const screenshot = board.screenshot()
-      const lines = screenshot.split("\n")
+      const text = app.text
+      const lines = text.split("\n")
       const sepIdx = lines.findIndex((l) => l.includes("───"))
       const contentLines = lines.slice(sepIdx + 1)
 
@@ -1042,67 +1025,67 @@ describe("Body block spacing", () => {
 
 describe("Body content: vertical navigation (j/k)", () => {
   test("j navigates down through body cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("intro-p"), item.p("second-p"), item.section("sec1", item("task1"), item("task2"))),
     )
 
     // Initial cursor should be on first body card
-    board.expect(cursor("intro-p")).toExist()
+    app.expect(cursor("intro-p")).toExist()
 
     // j moves to next body card
-    board.press("j")
-    board.expect(cursor("second-p")).toExist()
+    app.press("j")
+    app.expect(cursor("second-p")).toExist()
   })
 
   test("j at last body card hits boundary (cannot cross to structural column)", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // j at last (only) body card — boundary
-    board.press("j")
-    expect(board.bell).toBe(true)
+    app.press("j")
+    expect(app.bell).toBe(true)
   })
 
   test("k at first body card moves to body column header, then board level", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // k moves to body column header
-    board.press("k")
-    board.expect('[id="__body__doc"][data-cursor]').toExist()
+    app.press("k")
+    app.expect('[id="__body__doc"][data-cursor]').toExist()
 
     // k again moves to board (root)
-    board.press("k")
-    board.expect(cursor("doc")).toExist()
+    app.press("k")
+    app.expect(cursor("doc")).toExist()
   })
 
   test("k navigates up through body cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("p1"), item.p("p2"), item.p("p3"), item.section("sec1", item("task1"))),
     )
 
     // Navigate to third body card
-    board.press("j").press("j")
-    board.expect(cursor("p3")).toExist()
+    app.press("j").press("j")
+    app.expect(cursor("p3")).toExist()
 
     // k moves back up
-    board.press("k")
-    board.expect(cursor("p2")).toExist()
+    app.press("k")
+    app.expect(cursor("p2")).toExist()
 
-    board.press("k")
-    board.expect(cursor("p1")).toExist()
+    app.press("k")
+    app.expect(cursor("p1")).toExist()
 
     // k from first body card to body column header
-    board.press("k")
-    board.expect('[id="__body__doc"][data-cursor]').toExist()
+    app.press("k")
+    app.expect('[id="__body__doc"][data-cursor]').toExist()
 
     // k from body column header to board
-    board.press("k")
-    board.expect(cursor("doc")).toExist()
+    app.press("k")
+    app.expect(cursor("doc")).toExist()
   })
 })
 
@@ -1112,63 +1095,61 @@ describe("Body content: vertical navigation (j/k)", () => {
 
 describe("Body content: horizontal navigation (h/l)", () => {
   test("l from body card navigates to first structural column card", () => {
-    const { board } = testEnv(() =>
-      item.file("doc", item.p("intro"), item.section("sec1", item("task1"), item("task2"))),
-    )
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"), item("task2"))))
 
     // Start at body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // l navigates from body column to first structural column
-    board.press("l")
-    board.expect(cursor("task1")).toExist()
+    app.press("l")
+    app.expect(cursor("task1")).toExist()
   })
 
   test("h from structural column card navigates back to body", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Navigate to structural column
-    board.press("l")
-    board.expect(cursor("task1")).toExist()
+    app.press("l")
+    app.expect(cursor("task1")).toExist()
 
     // h navigates back to body
-    board.press("h")
-    board.expect(cursor("intro")).toExist()
+    app.press("h")
+    app.expect(cursor("intro")).toExist()
   })
 
   test("h at body card goes to body column header, then boundary", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // h at leftmost card goes to column header first
-    board.press("h")
+    app.press("h")
     // Then h again is boundary
-    board.press("h")
-    expect(board.bell).toBe(true)
+    app.press("h")
+    expect(app.bell).toBe(true)
   })
 
   test("l between structural columns works with body present", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("intro"), item.section("sec1", item("task1")), item.section("sec2", item("task2"))),
     )
 
     // Navigate to first structural column
-    board.press("l")
-    board.expect(cursor("task1")).toExist()
+    app.press("l")
+    app.expect(cursor("task1")).toExist()
 
     // l to second structural column
-    board.press("l")
-    board.expect(cursor("task2")).toExist()
+    app.press("l")
+    app.expect(cursor("task2")).toExist()
 
     // h back to first structural column
-    board.press("h")
-    board.expect(cursor("task1")).toExist()
+    app.press("h")
+    app.expect(cursor("task1")).toExist()
 
     // h back to body
-    board.press("h")
-    board.expect(cursor("intro")).toExist()
+    app.press("h")
+    app.expect(cursor("intro")).toExist()
   })
 })
 
@@ -1178,39 +1159,39 @@ describe("Body content: horizontal navigation (h/l)", () => {
 
 describe("Body content: deep nesting", () => {
   test("j/k works in structural column when body column exists", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("intro"), item.section("sec1", item("task1"), item("task2"), item("task3"))),
     )
 
     // Navigate to structural column
-    board.press("l")
-    board.expect(cursor("task1")).toExist()
+    app.press("l")
+    app.expect(cursor("task1")).toExist()
 
     // j/k within structural column
-    board.press("j")
-    board.expect(cursor("task2")).toExist()
+    app.press("j")
+    app.expect(cursor("task2")).toExist()
 
-    board.press("j")
-    board.expect(cursor("task3")).toExist()
+    app.press("j")
+    app.expect(cursor("task3")).toExist()
 
-    board.press("k")
-    board.expect(cursor("task2")).toExist()
+    app.press("k")
+    app.expect(cursor("task2")).toExist()
   })
 
   test("k from structural card to column header to board", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
+    using app = createTestApp(item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Navigate to structural column card
-    board.press("l")
-    board.expect(cursor("task1")).toExist()
+    app.press("l")
+    app.expect(cursor("task1")).toExist()
 
     // k to column header
-    board.press("k")
-    board.expect(cursor("sec1")).toExist()
+    app.press("k")
+    app.expect(cursor("sec1")).toExist()
 
     // k to board
-    board.press("k")
-    board.expect(cursor("doc")).toExist()
+    app.press("k")
+    app.expect(cursor("doc")).toExist()
   })
 })
 
@@ -1220,41 +1201,41 @@ describe("Body content: deep nesting", () => {
 
 describe("Body content only (no sections)", () => {
   test("j/k through body-only file", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("p1"), item.p("p2"), item.p("p3")))
+    using app = createTestApp(item.file("doc", item.p("p1"), item.p("p2"), item.p("p3")))
 
     // Should start on first body card
-    board.expect(cursor("p1")).toExist()
+    app.expect(cursor("p1")).toExist()
 
-    board.press("j")
-    board.expect(cursor("p2")).toExist()
+    app.press("j")
+    app.expect(cursor("p2")).toExist()
 
-    board.press("j")
-    board.expect(cursor("p3")).toExist()
+    app.press("j")
+    app.expect(cursor("p3")).toExist()
 
     // j at last body card — boundary
-    board.press("j")
-    expect(board.bell).toBe(true)
+    app.press("j")
+    expect(app.bell).toBe(true)
 
-    board.press("k")
-    board.expect(cursor("p2")).toExist()
+    app.press("k")
+    app.expect(cursor("p2")).toExist()
   })
 
   test("h/l at body-only file hits boundary after column header", () => {
-    const { board } = testEnv(() => item.file("doc", item.p("p1"), item.p("p2")))
+    using app = createTestApp(item.file("doc", item.p("p1"), item.p("p2")))
 
-    board.expect(cursor("p1")).toExist()
+    app.expect(cursor("p1")).toExist()
 
     // h at leftmost card goes to column header first
-    board.press("h")
+    app.press("h")
     // h at column header — boundary
-    board.press("h")
-    expect(board.bell).toBe(true)
+    app.press("h")
+    expect(app.bell).toBe(true)
 
     // Navigate back to card
-    board.press("j")
+    app.press("j")
     // l — boundary (no structural columns to the right)
-    board.press("l")
-    expect(board.bell).toBe(true)
+    app.press("l")
+    expect(app.bell).toBe(true)
   })
 })
 
@@ -1264,66 +1245,64 @@ describe("Body content only (no sections)", () => {
 
 describe("Board-level j/k with body content", () => {
   test("j from board level goes to first body card", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("intro"), item.section("sec1", item("task1")), item.section("sec2", item("task2"))),
     )
 
     // Navigate to board level (k → body column header, k → board)
-    board.press("k") // first body card -> body column header
-    board.press("k") // body column header -> board
-    board.expect(cursor("doc")).toExist()
+    app.press("k") // first body card -> body column header
+    app.press("k") // body column header -> board
+    app.expect(cursor("doc")).toExist()
 
     // j from board level — stickyX not set, defaults to index 0
     // repo.getChildren returns [intro, sec1, sec2]
     // index 0 = intro (paragraph, body content)
-    board.press("j")
-    board.expect(cursor("intro")).toExist()
+    app.press("j")
+    app.expect(cursor("intro")).toExist()
   })
 
   test("j from board level goes to structural column when stickyX remembers it", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.file("doc", item.p("intro"), item.section("sec1", item("task1")), item.section("sec2", item("task2"))),
     )
 
     // Navigate right to structural column, then up to column header, then up to board
-    board.press("l") // body -> sec1 card
-    board.expect(cursor("task1")).toExist()
+    app.press("l") // body -> sec1 card
+    app.expect(cursor("task1")).toExist()
 
-    board.press("k") // card -> column header
-    board.expect(cursor("sec1")).toExist()
+    app.press("k") // card -> column header
+    app.expect(cursor("sec1")).toExist()
 
-    board.press("k") // column header -> board (saves stickyX)
-    board.expect(cursor("doc")).toExist()
+    app.press("k") // column header -> board (saves stickyX)
+    app.expect(cursor("doc")).toExist()
 
     // j from board with stickyX set
     // stickyX was set by indexOfChild(columns, "sec1") where columns = repo.getChildren(rootId)
     // repo.getChildren = [intro, sec1, sec2], sec1 is at index 1
     // So stickyX = 1, and columns[1] = sec1
-    board.press("j")
-    board.expect(cursor("sec1")).toExist()
+    app.press("j")
+    app.expect(cursor("sec1")).toExist()
   })
 
   test("j from board after navigating from body card up goes back to body", () => {
-    const { board } = testEnv(() =>
-      item.file("doc", item.p("intro"), item.p("detail"), item.section("sec1", item("task1"))),
-    )
+    using app = createTestApp(item.file("doc", item.p("intro"), item.p("detail"), item.section("sec1", item("task1"))))
 
     // Start at body card
-    board.expect(cursor("intro")).toExist()
+    app.expect(cursor("intro")).toExist()
 
     // Go down to second body card
-    board.press("j")
-    board.expect(cursor("detail")).toExist()
+    app.press("j")
+    app.expect(cursor("detail")).toExist()
 
     // k three times: second body card → first body card → body column header → board
-    board.press("k")
-    board.expect(cursor("intro")).toExist()
-    board.press("k") // body column header
-    board.press("k") // board
-    board.expect(cursor("doc")).toExist()
+    app.press("k")
+    app.expect(cursor("intro")).toExist()
+    app.press("k") // body column header
+    app.press("k") // board
+    app.expect(cursor("doc")).toExist()
 
     // j from board — stickyX not set (body cards don't save stickyX)
-    board.press("j")
-    board.expect(cursor("intro")).toExist()
+    app.press("j")
+    app.expect(cursor("intro")).toExist()
   })
 })

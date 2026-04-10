@@ -704,12 +704,17 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "Enter", commandId: "text.linebreak_split", when: editingBody },
         // Detail pane → save and exit
         { key: "Enter", commandId: "text.confirm", when: (ctx) => ctx.isInlineEditing && ctx.isInDetailPane },
-        // Dialog/search text input → confirm
-        { key: "Enter", commandId: "text.confirm", when: (ctx) => ctx.textInputFocused && !ctx.isInlineEditing },
+        // Dialog/search text input → confirm via dialog.confirm so the dialog's
+        // dialogTargetRef.current.confirm() fires. text.confirm only saves via
+        // activeEditTargetRef and clears sel.text — it's a no-op for dialog
+        // components that use useDialogInput (dialogTargetRef is the real target).
+        { key: "Enter", commandId: "dialog.confirm", when: (ctx) => ctx.textInputFocused && !ctx.isInlineEditing },
         // Shift+Enter — always insert child
         { key: "shift-Enter", commandId: "text.child_block", when: (ctx) => ctx.isInlineEditing },
 
-        { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
+        // Escape — inline editing exits edit mode; dialog text inputs cancel the dialog
+        { key: "Escape", commandId: "text.exit_edit", when: (ctx) => ctx.isInlineEditing },
+        { key: "Escape", commandId: "dialog.cancel", when: (ctx) => ctx.textInputFocused && !ctx.isInlineEditing },
       ],
     },
 

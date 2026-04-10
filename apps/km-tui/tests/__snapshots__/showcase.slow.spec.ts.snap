@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Visual Regression > kanban board layout is stable across renders > after-cursor-down 1`] = `
+" 📁 board > Todo > Call dentist                                 CARDS VIEW CL:3
+
+   Todo                                  Done
+ ────────────────────────────────────── ──────────────────────────────────────
+ ╭────────────────────────────────────╮ ╭────────────────────────────────────╮
+ │□Buy groceries                      │ │□File taxes                         │
+ ╰────────────────────────────────────╯ ╰────────────────────────────────────╯
+ ╭────────────────────────────────────╮
+ │□Call dentist                       │
+ ╰────────────────────────────────────╯
+
+
+
+
+                                                             MEM /fake/repo 📋6"
+`;
+
+exports[`Visual Regression > kanban board layout is stable across renders > initial-kanban 1`] = `
+" 📁 board > Todo > Buy groceries                                CARDS VIEW CL:3
+
+   Todo                                  Done
+ ────────────────────────────────────── ──────────────────────────────────────
+ ╭────────────────────────────────────╮ ╭────────────────────────────────────╮
+ │□Buy groceries                      │ │□File taxes                         │
+ ╰────────────────────────────────────╯ ╰────────────────────────────────────╯
+ ╭────────────────────────────────────╮
+ │□Call dentist                       │
+ ╰────────────────────────────────────╯
+
+
+
+
+                                                             MEM /fake/repo 📋6"
+`;

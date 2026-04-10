@@ -16,6 +16,7 @@
 import { describe, test, it, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
@@ -192,34 +193,32 @@ describe("date badge display", () => {
     expect(text).toContain("Jun 1")
   })
 
-  it("card renders overdue date text in card (testEnv)", () => {
+  it("card renders overdue date text in card", () => {
     const nodes = item("board", item("col1", item.task("Overdue task")))
     const taskNode = nodes.find((n) => n.content === "Overdue task")!
     taskNode.due_at = daysFromNow(-5)
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
     // Overdue date text should appear in the card
-    expect(screen).toContain("Overdue task")
+    expect(app.text).toContain("Overdue task")
     // The date should be rendered (some short date format)
     const badge = formatDateBadge(taskNode as KNode)
     const badgeText = stripAnsi(badge)
     // The date text from the badge should appear in the rendered card
-    expect(screen).toContain(badgeText)
+    expect(app.text).toContain(badgeText)
   })
 
-  it("card renders future date text in card (testEnv)", () => {
+  it("card renders future date text in card", () => {
     const nodes = item("board", item("col1", item.task("Future task")))
     const taskNode = nodes.find((n) => n.content === "Future task")!
     taskNode.due_at = daysFromNow(30)
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
     // Future date text should appear in the card
-    expect(screen).toContain("Future task")
+    expect(app.text).toContain("Future task")
     const badge = formatDateBadge(taskNode as KNode)
     const badgeText = stripAnsi(badge)
-    expect(screen).toContain(badgeText)
+    expect(app.text).toContain(badgeText)
   })
 
   it("date badge appears in card after repo.updateNode", async () => {
@@ -271,7 +270,7 @@ describe("date badge display", () => {
     expect(clean).toContain("Mar 15")
   })
 
-  it("date badge visible in cards view with initial due_at (testEnv)", () => {
+  it("date badge visible in cards view with initial due_at", () => {
     // Create nodes, then set due_at before rendering
     const nodes = item("board", item("col1", item.task("Task with date")))
     // Manually set due_at on the task node before creating repo
@@ -279,14 +278,13 @@ describe("date badge display", () => {
     taskNode.due_at = "2026-03-15"
     taskNode.priority = "P1"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
     // Check the date badge appears
-    expect(screen).toContain("Mar 15")
-    expect(screen).toContain("P1")
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("P1")
   })
 
-  it("date badge visible in cards view with multiple columns (testEnv)", () => {
+  it("date badge visible in cards view with multiple columns", () => {
     const nodes = item(
       "board",
       item("col1", item.task("Task A"), item.task("Task B")),
@@ -300,11 +298,10 @@ describe("date badge display", () => {
     const taskC = nodes.find((n) => n.content === "Task C")!
     taskC.priority = "P3"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
-    expect(screen).toContain("P2")
-    expect(screen).toContain("P3")
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("P2")
+    expect(app.text).toContain("P3")
   })
 
   it("date badge visible with many columns (narrow width per column)", () => {
@@ -320,10 +317,9 @@ describe("date badge display", () => {
     taskA.due_at = "2026-03-15"
 
     // 80 columns / 4 columns = 20 chars per column -- very narrow
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
     // With only ~20 chars per column, badge may be truncated but should still appear
-    expect(screen).toContain("Mar 15")
+    expect(app.text).toContain("Mar 15")
   })
 
   it("card border intact with date badge in cards view", () => {
@@ -338,8 +334,8 @@ describe("date badge display", () => {
     const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
     taskNode.due_at = "2025-09-30" // Overdue date -> red badge
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    const screen = app.text
 
     // Find the card with the date badge
     expect(screen).toContain("Sep 30")
@@ -376,7 +372,7 @@ describe("date badge display", () => {
               ).toBe("│")
 
               // Also check via cell API (buffer level)
-              const cellRight = board.screen.cell(rightBorderCol, yy)
+              const cellRight = app.screen.cell(rightBorderCol, yy)
               expect(
                 cellRight.char,
                 `Card at (${x},${y}), row ${yy}: buffer cell at (${rightBorderCol},${yy}) is "${cellRight.char}" instead of "│"`,
@@ -397,8 +393,8 @@ describe("date badge display", () => {
     const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
     taskNode.due_at = "2025-09-30"
 
-    const { board } = testEnv(() => nodes, { columns: cols, rows: 24 })
-    const screen = board.screenshot()
+    using app = createTestApp(nodes, { cols, rows: 24 })
+    const screen = app.text
 
     // Verify Sep 30 appears (unless too narrow to fit)
     if (cols >= 80) {
@@ -448,18 +444,18 @@ describe("date badge display", () => {
     const taskNode = nodes.find((n) => n.content === "Task with due date")!
     taskNode.due_at = "2025-09-30"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Navigate down (incremental render)
-    board.press("j")
-    board.press("j")
+    app.press("j")
+    app.press("j")
 
     // Navigate back up
-    board.press("k")
-    board.press("k")
+    app.press("k")
+    app.press("k")
 
     // Check borders after navigation
-    const screen = board.screenshot()
+    const screen = app.text
     const lines = screen.split("\n")
     for (let y = 0; y < lines.length; y++) {
       const line = lines[y]!
@@ -490,16 +486,15 @@ describe("date badge display", () => {
     }
   })
 
-  it("date badge visible in columns view (testEnv)", () => {
+  it("date badge visible in columns view", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2026-03-15"
     taskNode.priority = "P2"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24, viewMode: "columns" })
-    const screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
-    expect(screen).toContain("P2")
+    using app = createTestApp(nodes, { cols: 80, rows: 24, viewMode: "columns" })
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("P2")
   })
 
   it("child count appears before date badge in columns view (km-tui.oneliner-order)", () => {
@@ -510,14 +505,14 @@ describe("date badge display", () => {
     const parentNode = nodes.find((n) => n.data?.name === "Parent task")!
     parentNode.due_at = "2026-09-15"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24, viewMode: "columns" })
+    using app = createTestApp(nodes, { cols: 80, rows: 24, viewMode: "columns" })
 
     // Find the row containing "Parent task"
-    const nodeBox = board.screen.nodeBox("Parent task")
+    const nodeBox = app.screen.nodeBox("Parent task")
     expect(nodeBox, "Parent task node should exist").not.toBeNull()
     if (!nodeBox) return
 
-    const row = board.screen.row(nodeBox.y)
+    const row = app.screen.row(nodeBox.y)
 
     // Both child count (3) and date (Sep 15) should appear
     const countIdx = row.indexOf(" 3")
@@ -535,85 +530,79 @@ describe("date badge display", () => {
   it("date badge appears after 'td' key simulation (full workflow)", async () => {
     // Simulate the full workflow: user presses 'td', types a date, presses Enter
     const nodes = item("board", item("col1", item.task("My task")))
-    const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Before: no date badge
-    let screen = board.screenshot()
-    expect(screen).not.toContain("Mar 15")
+    expect(app.text).not.toContain("Mar 15")
 
     // User presses 'td' to open the date prompt
-    board.press("t").press("d")
+    app.press("t").press("d")
 
     // Simulate what DatePromptDialog.onConfirm does:
     // (In the test, we can't actually type in the dialog, so we use repo.updateNode)
-    const col = repo.getChildren("board")[0]!
-    const taskNode = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const taskNode = app.repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
+      app.repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Press Escape to close the date prompt
-    board.press("escape")
+    app.press("escape")
 
     // The date badge should now be visible in the card
-    screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
+    expect(app.text).toContain("Mar 15")
   })
 
   it("structural sharing preserves date badge after unrelated mutation", () => {
     // Regression: date/priority changes must be reflected after unrelated mutations
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
-    const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Set due_at on Task A
-    const col = repo.getChildren("board")[0]!
-    const taskA = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const taskA = app.repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: "P1" })
+      app.repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: "P1" })
     })
-    board.press("j") // flush
-    let screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
-    expect(screen).toContain("P1")
+    app.press("j") // flush
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("P1")
 
     // Now mutate Task B (unrelated) — Task A's badge should persist
-    const taskB = repo.getChildren(col.id)[1]!
+    const taskB = app.repo.getChildren(col.id)[1]!
     act(() => {
-      repo.updateNode(taskB.id, { content: "Task B updated" })
+      app.repo.updateNode(taskB.id, { content: "Task B updated" })
     })
-    board.press("j") // flush
-    screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
-    expect(screen).toContain("P1")
-    expect(screen).toContain("Task B updated")
+    app.press("j") // flush
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("P1")
+    expect(app.text).toContain("Task B updated")
   })
 
-  it("priority badge visible in cards view (testEnv)", () => {
+  it("priority badge visible in cards view", () => {
     const nodes = item("board", item("col1", item.task("Priority task")))
     const taskNode = nodes.find((n) => n.content === "Priority task")!
     taskNode.priority = "P2"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screen = board.screenshot()
-    expect(screen).toContain("P2")
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    expect(app.text).toContain("P2")
   })
 
   it("date badge visible after setting via 'td' key sequence", () => {
     const nodes = item("board", item("col1", item.task("Todo task")))
-    const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Simulate what 'td' does: update the node's due_at
-    const col = repo.getChildren("board")[0]!
-    const taskNode = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const taskNode = app.repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
+      app.repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Flush by pressing a no-op key
-    board.press("j")
+    app.press("j")
 
-    const screen = board.screenshot()
-    expect(screen).toContain("Mar 15")
+    expect(app.text).toContain("Mar 15")
   })
 })
 
@@ -623,33 +612,31 @@ describe("date badge display", () => {
 
 describe("date prompt (td)", () => {
   test("td chord opens due date dialog", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
 
     // Navigate to card level
-    board.press("j")
+    app.press("j")
 
     // Press t (chord prefix) then d (due date)
-    board.press("t")
-    board.press("d")
+    app.press("t")
+    app.press("d")
 
     // Dialog should be open — check for "Set Due Date" text
-    const text = board.screenshot()
-    expect(text).toContain("Set Due Date")
+    expect(app.text).toContain("Set Due Date")
   })
 
   test("td chord does not leak 'd' into text input", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
-    board.press("t")
-    board.press("d")
+    app.press("j")
+    app.press("t")
+    app.press("d")
 
     // The dialog input should be empty (no leaked 'd')
-    const text = board.screenshot()
     // The prompt shows "> " followed by a cursor — no 'd' character
-    expect(text).not.toMatch(/> d[^a-z]/)
+    expect(app.text).not.toMatch(/> d[^a-z]/)
     // Should show empty state hint
-    expect(text).toContain("Empty = clear value")
+    expect(app.text).toContain("Empty = clear value")
   })
 
   test("td chord timeout resolves t standalone to noop in v2", () => {
@@ -679,157 +666,155 @@ describe("date prompt (td)", () => {
 
   test("ts chord cycles task status (not start date dialog)", () => {
     // ts was remapped from set_start_date to cycle_task_status
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
+    app.press("j")
 
     // Task starts as "todo" (item.task creates with task_status)
-    const col = repo.getChildren("board")[0]!
-    const task = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.item?.task?.status).toBe("todo")
 
-    board.press("t")
-    board.press("s")
+    app.press("t")
+    app.press("s")
 
     // Should NOT open start date dialog
-    const text = board.screenshot()
-    expect(text).not.toContain("Set Start Date")
+    expect(app.text).not.toContain("Set Start Date")
 
     // Should have cycled task status
-    const updatedTask = repo.getChildren(col.id)[0]!
+    const updatedTask = app.repo.getChildren(col.id)[0]!
     expect(updatedTask.item?.task?.status).not.toBe("todo")
   })
 
   test("tr chord opens recurrence dialog", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
-    board.press("t")
-    board.press("r")
+    app.press("j")
+    app.press("t")
+    app.press("r")
 
-    const text = board.screenshot()
-    expect(text).toContain("Set Recurrence")
+    expect(app.text).toContain("Set Recurrence")
   })
 
   test("Escape cancels date dialog", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
-    board.press("t")
-    board.press("d")
+    app.press("j")
+    app.press("t")
+    app.press("d")
 
     // Verify dialog open
-    expect(board.screenshot()).toContain("Set Due Date")
+    expect(app.text).toContain("Set Due Date")
 
     // Cancel
-    board.press("Escape")
+    app.press("Escape")
 
     // Dialog should be closed
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    expect(app.text).not.toContain("Set Due Date")
   })
 
   test("Enter in date dialog does NOT create new nodes", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
+    app.press("j")
 
     // Count nodes before
-    const nodesBefore = repo.getChildren(repo.getChildren("board")[0]!.id).length
+    const nodesBefore = app.repo.getChildren(app.repo.getChildren("board")[0]!.id).length
 
     // Open date dialog
-    board.press("t")
-    board.press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
+    app.press("t")
+    app.press("d")
+    expect(app.text).toContain("Set Due Date")
 
     // Press Enter — should confirm dialog, NOT create a new node
-    board.press("Enter")
+    app.press("Enter")
 
     // Dialog should be closed
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Node count should be unchanged (no new nodes created)
-    const nodesAfter = repo.getChildren(repo.getChildren("board")[0]!.id).length
+    const nodesAfter = app.repo.getChildren(app.repo.getChildren("board")[0]!.id).length
     expect(nodesAfter).toBe(nodesBefore)
   })
 
   test("typing in date dialog reaches the text input", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
-    board.press("t")
-    board.press("d")
+    app.press("j")
+    app.press("t")
+    app.press("d")
 
     // Type a date
-    board.press("f")
-    board.press("r")
-    board.press("i")
+    app.press("f")
+    app.press("r")
+    app.press("i")
 
     // The input should show "fri" and the preview should resolve it
-    const screen = board.screenshot()
-    expect(screen).toContain("fri")
+    expect(app.text).toContain("fri")
   })
 
   test("navigation keys are filtered when date dialog is open", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
 
-    board.press("j") // Navigate to card level
+    app.press("j") // Navigate to card level
 
     // Open date dialog
-    board.press("t")
-    board.press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
+    app.press("t")
+    app.press("d")
+    expect(app.text).toContain("Set Due Date")
 
     // Press 'j' (normally moves cursor down) — should be filtered, not move cursor
-    board.press("j")
+    app.press("j")
 
     // Dialog should still be open (j was consumed as text input or filtered)
-    expect(board.screenshot()).toContain("Set Due Date")
+    expect(app.text).toContain("Set Due Date")
     // 'j' should appear in the dialog input, not cause navigation
-    expect(board.screenshot()).toContain("j")
+    expect(app.text).toContain("j")
   })
 
   test("Enter confirms date and updates node field", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
-    board.press("t")
-    board.press("d")
+    app.press("j")
+    app.press("t")
+    app.press("d")
 
     // Type "tomorrow"
-    for (const ch of "tomorrow") board.press(ch)
+    for (const ch of "tomorrow") app.press(ch)
 
     // Press Enter to confirm
-    board.press("Enter")
+    app.press("Enter")
 
     // Dialog should be closed
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Node should have a due_at field set
-    const col = repo.getChildren("board")[0]!
-    const task = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeTruthy()
   })
 
   test("Enter in date dialog does NOT start inline editing (km-qaco9)", () => {
     // Regression: Enter while date dialog is open must NOT trigger
     // enter_inline_edit on the background card.
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
 
-    board.press("j") // Navigate to card level
+    app.press("j") // Navigate to card level
 
     // Record the cursor position node before opening dialog
-    const screenBefore = board.screenshot()
+    const screenBefore = app.text
+    void screenBefore
 
     // Open date dialog
-    board.press("t")
-    board.press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
+    app.press("t")
+    app.press("d")
+    expect(app.text).toContain("Set Due Date")
 
     // Press Enter with empty input — should close dialog, NOT enter inline edit
-    board.press("Enter")
+    app.press("Enter")
 
     // Dialog should be closed
-    const screenAfter = board.screenshot()
+    const screenAfter = app.text
     expect(screenAfter).not.toContain("Set Due Date")
 
     // Should NOT be in inline edit mode — no cursor blinking indicator or edit border.
@@ -843,24 +828,25 @@ describe("date prompt (td)", () => {
   test("Escape in date dialog does NOT affect background board state (km-qaco9)", () => {
     // Regression: Escape while date dialog is open must NOT trigger
     // close_or_quit or text.exit_edit on the background.
-    const { board } = testEnv(() => item("board", item("col1", item.task("Task A")), item("col2", item.task("Task B"))))
+    using app = createTestApp(item("board", item("col1", item.task("Task A")), item("col2", item.task("Task B"))))
 
     // Navigate into column 2
-    board.press("l")
-    board.press("j")
+    app.press("l")
+    app.press("j")
 
-    const screenBefore = board.screenshot()
+    const screenBefore = app.text
+    void screenBefore
 
     // Open date dialog
-    board.press("t")
-    board.press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
+    app.press("t")
+    app.press("d")
+    expect(app.text).toContain("Set Due Date")
 
     // Press Escape — should close dialog, NOT zoom out or navigate back
-    board.press("Escape")
+    app.press("Escape")
 
     // Dialog should be closed
-    const screenAfter = board.screenshot()
+    const screenAfter = app.text
     expect(screenAfter).not.toContain("Set Due Date")
 
     // Board state should be unchanged — both columns still visible,
@@ -871,38 +857,38 @@ describe("date prompt (td)", () => {
 
   test("multiple Enter/Escape cycles don't corrupt state (km-qaco9)", () => {
     // Regression: repeated open/close cycles should not leak state
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("My task"))))
+    using app = createTestApp(item("board", item("col1", item.task("My task"))))
 
-    board.press("j")
+    app.press("j")
 
-    const col = repo.getChildren("board")[0]!
-    const nodesBefore = repo.getChildren(col.id).length
+    const col = app.repo.getChildren("board")[0]!
+    const nodesBefore = app.repo.getChildren(col.id).length
 
     // Cycle 1: open, Escape
-    board.press("t").press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
-    board.press("Escape")
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    app.press("t").press("d")
+    expect(app.text).toContain("Set Due Date")
+    app.press("Escape")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Cycle 2: open, Enter (empty = clear)
-    board.press("t").press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
-    board.press("Enter")
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    app.press("t").press("d")
+    expect(app.text).toContain("Set Due Date")
+    app.press("Enter")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Cycle 3: open, type, Enter
-    board.press("t").press("d")
-    expect(board.screenshot()).toContain("Set Due Date")
-    for (const ch of "fri") board.press(ch)
-    board.press("Enter")
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    app.press("t").press("d")
+    expect(app.text).toContain("Set Due Date")
+    for (const ch of "fri") app.press(ch)
+    app.press("Enter")
+    expect(app.text).not.toContain("Set Due Date")
 
     // No extra nodes created
-    const nodesAfter = repo.getChildren(col.id).length
+    const nodesAfter = app.repo.getChildren(col.id).length
     expect(nodesAfter).toBe(nodesBefore)
 
     // The task should have a due_at set from the last cycle
-    const task = repo.getChildren(col.id)[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeTruthy()
   })
 })
@@ -913,47 +899,46 @@ describe("date prompt (td)", () => {
 
 describe("priority (sp)", () => {
   test("sp sets P0 on card", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))))
 
-    board.press("j")
+    app.press("j")
 
     // Initially no priority in full screenshot
-    expect(board.screenshot()).not.toMatch(/P[0-4]/)
+    expect(app.text).not.toMatch(/P[0-4]/)
 
     // t! → P0 (first in cycle)
-    board.press("t")
-    board.press("!")
+    app.press("t")
+    app.press("!")
 
     // Should show P0 somewhere (toast or card)
-    const text = board.screenshot()
-    expect(text).toContain("P0")
+    expect(app.text).toContain("P0")
   })
 
   test("sp cycles through priorities", () => {
     // incremental: false — pre-existing silvery toast rendering mismatch at (41,21)
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))), { incremental: false })
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"))), { incremental: false })
 
-    board.press("j")
+    app.press("j")
 
     // Cycle: none → P0 → P1 → P2 → P3 → P4 → none
     // Each sp should show the next priority in a toast
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: P0")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: P0")
 
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: P1")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: P1")
 
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: P2")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: P2")
 
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: P3")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: P3")
 
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: P4")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: P4")
 
-    board.press("t").press("!")
-    expect(board.screenshot()).toContain("Priority: None")
+    app.press("t").press("!")
+    expect(app.text).toContain("Priority: None")
   })
 })
 

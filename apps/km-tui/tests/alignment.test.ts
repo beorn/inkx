@@ -7,9 +7,11 @@
 
 import { describe, test, expect, beforeAll } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 
 // Wider terminal for multi-column tests
-const WIDE = { columns: 120, rows: 30 }
+const WIDE = { cols: 120, rows: 30 }
+const WIDE_ENV = { columns: 120, rows: 30 }
 
 // =============================================================================
 // Helpers
@@ -25,12 +27,12 @@ function isBorderChar(c: string): boolean {
  * Returns the X offset relative to box.x, or -1 if not found.
  */
 function findContentXOffset(
-  board: ReturnType<typeof testEnv>["board"],
+  screen: TestApp["screen"],
   box: { x: number; y: number; width: number },
   row: number,
 ): number {
   for (let x = box.x; x < box.x + box.width; x++) {
-    const cell = board.screen.cell(x, row)
+    const cell = screen.cell(x, row)
     if (cell.char.trim() !== "" && !isBorderChar(cell.char)) {
       return x - box.x
     }
@@ -43,11 +45,11 @@ function findContentXOffset(
  * (non-space, non-border, non-alphanumeric) in the first row of a node's box.
  * Returns absolute X position, or -1 if not found.
  */
-function findBulletX(board: ReturnType<typeof testEnv>["board"], nodeId: string): number {
-  const box = board.screen.nodeBox(nodeId)
+function findBulletX(screen: TestApp["screen"], nodeId: string): number {
+  const box = screen.nodeBox(nodeId)
   if (!box) return -1
   for (let x = box.x; x < box.x + box.width; x++) {
-    const cell = board.screen.cell(x, box.y)
+    const cell = screen.cell(x, box.y)
     if (cell.char.trim() !== "" && !isBorderChar(cell.char)) {
       return x
     }
@@ -59,8 +61,8 @@ function findBulletX(board: ReturnType<typeof testEnv>["board"], nodeId: string)
  * Find the X position where title text starts (after the 2-char prefix: marker + space).
  * Returns absolute X position, or -1 if not found.
  */
-function findTitleStartX(board: ReturnType<typeof testEnv>["board"], nodeId: string): number {
-  const bulletX = findBulletX(board, nodeId)
+function findTitleStartX(screen: TestApp["screen"], nodeId: string): number {
+  const bulletX = findBulletX(screen, nodeId)
   if (bulletX < 0) return -1
   // Title starts 2 chars after bullet (marker + space)
   return bulletX + 2
@@ -71,27 +73,26 @@ function findTitleStartX(board: ReturnType<typeof testEnv>["board"], nodeId: str
 // =============================================================================
 
 describe("alignment: single column 80x24", () => {
-  let board: ReturnType<typeof testEnv>["board"]
+  let app: TestApp
   beforeAll(() => {
-    const env = testEnv(() => item("board", item("col1", item("1a"))), { columns: 80, rows: 24 })
-    board = env.board
+    app = createTestApp(item("board", item("col1", item("1a"))), { cols: 80, rows: 24 })
   })
 
   test("column separator line spans the column width", () => {
-    const colBox = board.screen.nodeBox("col1")
+    const colBox = app.screen.nodeBox("col1")
     expect(colBox).not.toBeNull()
     // Separator is the second row of the column (row after header)
     const sepY = colBox!.y + 1
-    const sepRow = board.screen.row(sepY)
+    const sepRow = app.screen.row(sepY)
     const dashCount = [...sepRow].filter((c) => c === "\u2500").length
     // The separator should span most of the column width (minus 1 for column padding)
     expect(dashCount).toBeGreaterThanOrEqual(colBox!.width - 2)
   })
 
   test("bullet offset from card border is consistent (2-char prefix)", () => {
-    const box = board.screen.nodeBox("1a")
+    const box = app.screen.nodeBox("1a")
     expect(box).not.toBeNull()
-    const bulletX = findBulletX(board, "1a")
+    const bulletX = findBulletX(app.screen, "1a")
     expect(bulletX).toBeGreaterThan(0)
     // The bullet should be at a small, fixed offset from the TreeNode content area start
     const offset = bulletX - box!.x
@@ -100,8 +101,8 @@ describe("alignment: single column 80x24", () => {
   })
 
   test("no blank row between separator and first card", () => {
-    const colBox = board.screen.nodeBox("col1")
-    const cardBox = board.screen.nodeBox("1a")
+    const colBox = app.screen.nodeBox("col1")
+    const cardBox = app.screen.nodeBox("1a")
     expect(colBox).not.toBeNull()
     expect(cardBox).not.toBeNull()
     // Column structure: header (row 0), separator (row 1), first card starts (row 2+)
@@ -115,21 +116,21 @@ describe("alignment: single column 80x24", () => {
   })
 
   test("card content starts immediately after prefix (no extra indent)", () => {
-    const box = board.screen.nodeBox("1a")
+    const box = app.screen.nodeBox("1a")
     expect(box).not.toBeNull()
     // Find the bullet and verify title follows immediately (2-char prefix)
-    const bulletX = findBulletX(board, "1a")
+    const bulletX = findBulletX(app.screen, "1a")
     expect(bulletX).toBeGreaterThan(-1)
 
     // The character 2 positions after the bullet should be the start of the title
     // (bullet char + space = 2 chars)
-    const titleChar = board.screen.cell(bulletX + 2, box!.y)
+    const titleChar = app.screen.cell(bulletX + 2, box!.y)
     // It should be a non-space character (the first letter of the title)
     expect(titleChar.char.trim()).not.toBe("")
   })
 
   test("single-column board fills available width", () => {
-    const colBox = board.screen.nodeBox("col1")
+    const colBox = app.screen.nodeBox("col1")
     expect(colBox).not.toBeNull()
     // Single column should use nearly all the terminal width
     expect(colBox!.width).toBeGreaterThanOrEqual(78)
@@ -141,17 +142,13 @@ describe("alignment: single column 80x24", () => {
 // =============================================================================
 
 describe("alignment: 3 cards in single column 80x24", () => {
-  let board: ReturnType<typeof testEnv>["board"]
+  let app: TestApp
   beforeAll(() => {
-    const env = testEnv(item.simpleBoard, {
-      columns: 80,
-      rows: 24,
-    })
-    board = env.board
+    app = createTestApp(item.simpleBoard, { cols: 80, rows: 24 })
   })
 
   test("all card left borders align in the same column", () => {
-    const boxes = ["1a", "1b", "1c"].map((id) => board.screen.nodeBox(id))
+    const boxes = ["1a", "1b", "1c"].map((id) => app.screen.nodeBox(id))
     for (const box of boxes) expect(box).not.toBeNull()
     // All left edges should be at the same X
     expect(boxes[0]!.x).toBe(boxes[1]!.x)
@@ -160,7 +157,7 @@ describe("alignment: 3 cards in single column 80x24", () => {
 
   test("unselected body cards have consistent widths", () => {
     // 1a is selected (yellow border), 1b and 1c are unselected (dim gray border)
-    const boxes = ["1b", "1c"].map((id) => board.screen.nodeBox(id))
+    const boxes = ["1b", "1c"].map((id) => app.screen.nodeBox(id))
     for (const box of boxes) expect(box).not.toBeNull()
     // Unselected body cards should have matching widths
     expect(boxes[0]!.width).toBe(boxes[1]!.width)
@@ -171,9 +168,9 @@ describe("alignment: 3 cards in single column 80x24", () => {
   })
 
   test("all card bullets within a column are at the same X position", () => {
-    const x1 = findBulletX(board, "1a")
-    const x2 = findBulletX(board, "1b")
-    const x3 = findBulletX(board, "1c")
+    const x1 = findBulletX(app.screen, "1a")
+    const x2 = findBulletX(app.screen, "1b")
+    const x3 = findBulletX(app.screen, "1c")
     expect(x1).toBeGreaterThan(0)
     expect(x2).toBeGreaterThan(0)
     expect(x3).toBeGreaterThan(0)
@@ -182,9 +179,9 @@ describe("alignment: 3 cards in single column 80x24", () => {
   })
 
   test("all card titles start at the same X offset (after 2-char prefix)", () => {
-    const t1 = findTitleStartX(board, "1a")
-    const t2 = findTitleStartX(board, "1b")
-    const t3 = findTitleStartX(board, "1c")
+    const t1 = findTitleStartX(app.screen, "1a")
+    const t2 = findTitleStartX(app.screen, "1b")
+    const t3 = findTitleStartX(app.screen, "1c")
     expect(t1).toBeGreaterThan(0)
     expect(t2).toBeGreaterThan(0)
     expect(t3).toBeGreaterThan(0)
@@ -199,13 +196,10 @@ describe("alignment: 3 cards in single column 80x24", () => {
 
 describe("alignment: card vertical stacking", () => {
   test("card vertical stacking has no overlap", () => {
-    const { board } = testEnv(item.simpleBoard, {
-      columns: 80,
-      rows: 30,
-    })
-    const boxA = board.screen.nodeBox("1a")
-    const boxB = board.screen.nodeBox("1b")
-    const boxC = board.screen.nodeBox("1c")
+    using app = createTestApp(item.simpleBoard, { cols: 80, rows: 30 })
+    const boxA = app.screen.nodeBox("1a")
+    const boxB = app.screen.nodeBox("1b")
+    const boxC = app.screen.nodeBox("1c")
     expect(boxA).not.toBeNull()
     expect(boxB).not.toBeNull()
     expect(boxC).not.toBeNull()
@@ -235,15 +229,14 @@ describe("alignment: selected vs unselected border", () => {
 // =============================================================================
 
 describe("alignment: 2 columns WIDE", () => {
-  let board: ReturnType<typeof testEnv>["board"]
+  let app: TestApp
   beforeAll(() => {
-    const env = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
-    board = env.board
+    app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
   })
 
   test("multiple columns are horizontally adjacent with no gaps", () => {
-    const box1 = board.screen.nodeBox("col1")
-    const box2 = board.screen.nodeBox("col2")
+    const box1 = app.screen.nodeBox("col1")
+    const box2 = app.screen.nodeBox("col2")
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
     // col2 should start right after col1 (at most 1 char separator gap)
@@ -252,19 +245,19 @@ describe("alignment: 2 columns WIDE", () => {
   })
 
   test("title start X is consistent across columns", () => {
-    const box1 = board.screen.nodeBox("1a")
-    const box2 = board.screen.nodeBox("2a")
+    const box1 = app.screen.nodeBox("1a")
+    const box2 = app.screen.nodeBox("2a")
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
-    const t1 = findTitleStartX(board, "1a")
-    const t2 = findTitleStartX(board, "2a")
+    const t1 = findTitleStartX(app.screen, "1a")
+    const t2 = findTitleStartX(app.screen, "2a")
     // Offset relative to card left edge should be same
     expect(t1 - box1!.x).toBe(t2 - box2!.x)
   })
 
   test("columns are horizontally adjacent (no blank column gap)", () => {
-    const box1 = board.screen.nodeBox("col1")
-    const box2 = board.screen.nodeBox("col2")
+    const box1 = app.screen.nodeBox("col1")
+    const box2 = app.screen.nodeBox("col2")
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
     // Gap between columns (may include 1-char separator)
@@ -273,17 +266,17 @@ describe("alignment: 2 columns WIDE", () => {
   })
 
   test("no trailing blank columns after the last column", () => {
-    const box2 = board.screen.nodeBox("col2")
+    const box2 = app.screen.nodeBox("col2")
     expect(box2).not.toBeNull()
     // The last column should extend close to the terminal right edge
     const rightEdge = box2!.x + box2!.width
     // Allow some slack for scroll indicator (1 char) and rounding
-    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.columns - 2)
+    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.cols - 2)
   })
 
   test("columns have equal height (full board height minus bars)", () => {
-    const box1 = board.screen.nodeBox("col1")
-    const box2 = board.screen.nodeBox("col2")
+    const box1 = app.screen.nodeBox("col1")
+    const box2 = app.screen.nodeBox("col2")
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
     expect(box1!.height).toBe(box2!.height)
@@ -295,16 +288,15 @@ describe("alignment: 2 columns WIDE", () => {
 // =============================================================================
 
 describe("alignment: 3 columns WIDE", () => {
-  let board: ReturnType<typeof testEnv>["board"]
+  let app: TestApp
   beforeAll(() => {
-    const env = testEnv(item.multiColBoard, WIDE)
-    board = env.board
+    app = createTestApp(item.multiColBoard, WIDE)
   })
 
   test("all column headers start at the same Y position", () => {
-    const box1 = board.screen.nodeBox("col1")
-    const box2 = board.screen.nodeBox("col2")
-    const box3 = board.screen.nodeBox("col3")
+    const box1 = app.screen.nodeBox("col1")
+    const box2 = app.screen.nodeBox("col2")
+    const box3 = app.screen.nodeBox("col3")
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
     expect(box3).not.toBeNull()
@@ -313,15 +305,15 @@ describe("alignment: 3 columns WIDE", () => {
   })
 
   test("three columns span the full terminal width", () => {
-    const box1 = board.screen.nodeBox("col1")
-    const box3 = board.screen.nodeBox("col3")
+    const box1 = app.screen.nodeBox("col1")
+    const box3 = app.screen.nodeBox("col3")
     expect(box1).not.toBeNull()
     expect(box3).not.toBeNull()
     // First column should start near X=0 (allowing for overflow indicators: 1 char each side)
     expect(box1!.x).toBeLessThanOrEqual(2)
     // Last column should extend to near the terminal width (minus overflow indicators)
     const rightEdge = box3!.x + box3!.width
-    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.columns - 4)
+    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.cols - 4)
   })
 })
 
@@ -330,19 +322,15 @@ describe("alignment: 3 columns WIDE", () => {
 // =============================================================================
 
 describe("alignment: 2 columns WIDE with multiple cards", () => {
-  let board: ReturnType<typeof testEnv>["board"]
+  let app: TestApp
   beforeAll(() => {
-    const env = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
-      WIDE,
-    )
-    board = env.board
+    app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))), WIDE)
   })
 
   test("cards across different columns have consistent unselected card widths", () => {
     // 1a is selected (yellow border), 1b/2a/2b are unselected (dim gray border)
-    const box1b = board.screen.nodeBox("1b")
-    const box2b = board.screen.nodeBox("2b")
+    const box1b = app.screen.nodeBox("1b")
+    const box2b = app.screen.nodeBox("2b")
     expect(box1b).not.toBeNull()
     expect(box2b).not.toBeNull()
     // Cross-column unselected cards should have similar widths (columns may differ slightly)
@@ -351,16 +339,16 @@ describe("alignment: 2 columns WIDE with multiple cards", () => {
 
   test("bullets align across columns", () => {
     // Bullets within col1
-    const x1a = findBulletX(board, "1a")
-    const x1b = findBulletX(board, "1b")
+    const x1a = findBulletX(app.screen, "1a")
+    const x1b = findBulletX(app.screen, "1b")
     expect(x1a).toBe(x1b)
     // Bullets within col2
-    const x2a = findBulletX(board, "2a")
-    const x2b = findBulletX(board, "2b")
+    const x2a = findBulletX(app.screen, "2a")
+    const x2b = findBulletX(app.screen, "2b")
     expect(x2a).toBe(x2b)
     // Bullet offset relative to card start should be same across columns
-    const box1a = board.screen.nodeBox("1a")
-    const box2a = board.screen.nodeBox("2a")
+    const box1a = app.screen.nodeBox("1a")
+    const box2a = app.screen.nodeBox("2a")
     expect(box1a).not.toBeNull()
     expect(box2a).not.toBeNull()
     const offset1 = x1a - box1a!.x
@@ -375,12 +363,12 @@ describe("alignment: 2 columns WIDE with multiple cards", () => {
 
 describe("alignment: title text", () => {
   test("titles are left-aligned (not centered or right-aligned)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("Short"), item("A longer title here"))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("col1", item("Short"), item("A longer title here"))), {
+      cols: 80,
       rows: 24,
     })
-    const tShort = findTitleStartX(board, "Short")
-    const tLong = findTitleStartX(board, "A longer title here")
+    const tShort = findTitleStartX(app.screen, "Short")
+    const tLong = findTitleStartX(app.screen, "A longer title here")
     expect(tShort).toBeGreaterThan(0)
     expect(tLong).toBeGreaterThan(0)
     // Both titles should start at the same X (left-aligned, not centered)
@@ -389,7 +377,7 @@ describe("alignment: title text", () => {
 })
 
 // =============================================================================
-// 5. Date badge alignment (unique fixtures — node mutation before testEnv)
+// 5. Date badge alignment (unique fixtures — node mutation before createTestApp)
 // =============================================================================
 
 describe("alignment: date badges", () => {
@@ -399,14 +387,13 @@ describe("alignment: date badges", () => {
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2027-03-15"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("Mar 15")
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    expect(app.text).toContain("Mar 15")
 
     // Find the row containing "Mar 15" and verify it's right-aligned
-    const badgeRow = board.screen.findRow("Mar 15")
+    const badgeRow = app.screen.findRow("Mar 15")
     expect(badgeRow).toBeGreaterThan(-1)
-    const rowText = board.screen.row(badgeRow)
+    const rowText = app.screen.row(badgeRow)
     const badgeIndex = rowText.indexOf("Mar 15")
     const titleIndex = rowText.indexOf("Task with date")
     // Badge should appear to the right of the title
@@ -422,20 +409,19 @@ describe("alignment: date badges", () => {
     taskA.due_at = "2027-03-15"
     taskB.due_at = "2027-04-20"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("Mar 15")
-    expect(screenshot).toContain("Apr 20")
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    expect(app.text).toContain("Mar 15")
+    expect(app.text).toContain("Apr 20")
 
     // Find both badge rows
-    const rowA = board.screen.findRow("Mar 15")
-    const rowB = board.screen.findRow("Apr 20")
+    const rowA = app.screen.findRow("Mar 15")
+    const rowB = app.screen.findRow("Apr 20")
     expect(rowA).toBeGreaterThan(-1)
     expect(rowB).toBeGreaterThan(-1)
 
     // Both badges should end at approximately the same X position (right-aligned)
-    const textA = board.screen.row(rowA)
-    const textB = board.screen.row(rowB)
+    const textA = app.screen.row(rowA)
+    const textB = app.screen.row(rowB)
     const endA = textA.indexOf("Mar 15") + "Mar 15".length
     const endB = textB.indexOf("Apr 20") + "Apr 20".length
     // Allow 2 char tolerance for different badge content lengths
@@ -450,17 +436,16 @@ describe("alignment: date badges", () => {
 describe("alignment: collapsed columns", () => {
   // Shared fixture: left-collapsed col1 + col2, WIDE (collapsed via keypress)
   describe("left-collapsed column with normal column", () => {
-    let board: ReturnType<typeof testEnv>["board"]
+    let app: TestApp
     beforeAll(() => {
-      const env = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
-      board = env.board
+      app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
       // Collapse col1 via keypress (cursor starts on 1a in col1)
-      board.command("toggle_collapse")
+      app.command("toggle_collapse")
     })
 
     test("collapsed column has border characters on both sides", () => {
       // Find the collapsed column
-      const collapsed = board.q("[data-collapsed]")
+      const collapsed = app.q("[data-collapsed]")
       expect(collapsed.count()).toBeGreaterThan(0)
       const box = collapsed.boundingBox()
       expect(box).not.toBeNull()
@@ -469,8 +454,8 @@ describe("alignment: collapsed columns", () => {
       let leftBorderCount = 0
       let rightBorderCount = 0
       for (let y = box!.y; y < box!.y + box!.height; y++) {
-        const leftCell = board.screen.cell(box!.x, y)
-        const rightCell = board.screen.cell(box!.x + box!.width - 1, y)
+        const leftCell = app.screen.cell(box!.x, y)
+        const rightCell = app.screen.cell(box!.x + box!.width - 1, y)
         if (isBorderChar(leftCell.char)) leftBorderCount++
         if (isBorderChar(rightCell.char)) rightBorderCount++
       }
@@ -480,10 +465,10 @@ describe("alignment: collapsed columns", () => {
     })
 
     test("collapsed column is adjacent to normal column (no gap)", () => {
-      const collapsed = board.q("[data-collapsed]")
+      const collapsed = app.q("[data-collapsed]")
       expect(collapsed.count()).toBeGreaterThan(0)
       const collapsedBox = collapsed.boundingBox()
-      const col2Box = board.screen.nodeBox("col2")
+      const col2Box = app.screen.nodeBox("col2")
       expect(collapsedBox).not.toBeNull()
       expect(col2Box).not.toBeNull()
 
@@ -494,7 +479,7 @@ describe("alignment: collapsed columns", () => {
     })
 
     test("collapsed column is narrow (<=5 chars)", () => {
-      const collapsed = board.q("[data-collapsed]")
+      const collapsed = app.q("[data-collapsed]")
       expect(collapsed.count()).toBeGreaterThan(0)
       const box = collapsed.boundingBox()
       expect(box).not.toBeNull()
@@ -503,12 +488,12 @@ describe("alignment: collapsed columns", () => {
   })
 
   test("collapsed column on the right is also adjacent", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
+    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
     // Navigate to col2 and collapse it
-    board.command("cursor_right").command("toggle_collapse")
+    app.command("cursor_right").command("toggle_collapse")
 
-    const col1Box = board.screen.nodeBox("col1")
-    const collapsed = board.q("[data-collapsed]")
+    const col1Box = app.screen.nodeBox("col1")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBeGreaterThan(0)
     const collapsedBox = collapsed.boundingBox()
     expect(col1Box).not.toBeNull()
@@ -519,39 +504,38 @@ describe("alignment: collapsed columns", () => {
   })
 
   test("multiple collapsed columns via keypress", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-          item("col4", item("4a")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+        item("col4", item("4a")),
+      ),
       // Use extra-wide terminal to ensure all 4 columns fit
-      { columns: 160, rows: 30 },
+      { cols: 160, rows: 30 },
     )
     // Collapse col2: navigate right to col2, then collapse
-    board.command("cursor_right").command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(1)
+    app.command("cursor_right").command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(1)
 
     // Move to col3 and collapse it
-    board.command("cursor_right").command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(2)
+    app.command("cursor_right").command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(2)
 
     // Verify col1 is visible
-    const col1Box = board.screen.nodeBox("col1")
+    const col1Box = app.screen.nodeBox("col1")
     expect(col1Box).not.toBeNull()
     expect(col1Box!.x).toBeLessThanOrEqual(2)
 
     // Verify all 4 data-column elements exist (2 collapsed + 2 expanded)
-    const allColumns = board.q("[data-column]")
+    const allColumns = app.q("[data-column]")
     expect(allColumns.count()).toBe(4)
 
     // Verify the rightmost column extends to near terminal width
     let maxRight = 0
     for (let i = 0; i < 4; i++) {
-      const colLoc = board.q(`[data-col-index="${i}"]`)
+      const colLoc = app.q(`[data-col-index="${i}"]`)
       if (colLoc.count() > 0) {
         const box = colLoc.boundingBox()
         if (box) {
@@ -570,30 +554,29 @@ describe("alignment: collapsed columns", () => {
 
 describe("alignment: cross-cutting", () => {
   test("all rendered lines fit within terminal width", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a")),
-          item("col3", item("3a"), item("3b"), item("3c")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+        item("col3", item("3a"), item("3b"), item("3c")),
+      ),
       WIDE,
     )
-    const rows = board.screen.rows
+    const rows = app.screen.rows
     for (const row of rows) {
-      expect(row.length).toBeLessThanOrEqual(WIDE.columns)
+      expect(row.length).toBeLessThanOrEqual(WIDE.cols)
     }
   })
 })
 
 // =============================================================================
-// Visual invariant assertions
+// Visual invariant assertions (remain on testEnv — need expectNodeBorder etc.)
 // =============================================================================
 
 describe("visual invariant assertions", () => {
   test("expectColumnsAligned verifies column order and non-overlap", () => {
-    const { board } = testEnv(item.multiColBoard, WIDE)
+    const { board } = testEnv(item.multiColBoard, WIDE_ENV)
     board.expectColumnsAligned(["col1", "col2", "col3"])
   })
 

@@ -31,148 +31,140 @@ describe("Scroll Follow", () => {
   }
 
   test("list view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, {
+    using app = createTestApp(createLargeBoard(), {
       rows: 24,
-      columns: 80,
+      cols: 80,
       viewMode: "list",
     })
 
     // Navigate down past visible area (12 presses to force scroll)
     for (let i = 0; i < 12; i++) {
-      board.press("j")
+      app.press("j")
     }
 
-    const screenshot = board.screenshot()
-
     // Should see Task 10-14 range (scroll followed cursor)
-    expect(screenshot).toMatch(/Task (1[0-4])/)
+    expect(app.text).toMatch(/Task (1[0-4])/)
   })
 
   test("cards view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, {
+    using app = createTestApp(createLargeBoard(), {
       rows: 24,
-      columns: 80,
+      cols: 80,
       viewMode: "cards",
     })
 
     // Navigate into first column then down
-    board.press("j") // to column header
-    board.press("j") // to first card
+    app.press("j") // to column header
+    app.press("j") // to first card
 
     // Navigate down past visible area (12 presses to force scroll)
     for (let i = 0; i < 12; i++) {
-      board.press("j")
+      app.press("j")
     }
 
-    const screenshot = board.screenshot()
-
     // Should see higher numbered tasks (scroll followed)
-    expect(screenshot).toMatch(/Task (1[0-4])/)
+    expect(app.text).toMatch(/Task (1[0-4])/)
   })
 
   test("columns view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, {
+    using app = createTestApp(createLargeBoard(), {
       rows: 24,
-      columns: 80,
+      cols: 80,
       viewMode: "columns",
     })
 
     // Navigate into first column
-    board.press("j") // to column header
-    board.press("j") // to first card
+    app.press("j") // to column header
+    app.press("j") // to first card
 
     // Navigate down past visible area (12 presses to force scroll)
     for (let i = 0; i < 12; i++) {
-      board.press("j")
+      app.press("j")
     }
-
-    const screenshot = board.screenshot()
 
     // Should see higher numbered tasks (scroll followed)
     // The breadcrumb should show the current item
-    expect(screenshot).toMatch(/Task (1[0-4])/)
+    expect(app.text).toMatch(/Task (1[0-4])/)
   })
 })
 
 describe("km-qlib7: asymmetric horizontal scroll", () => {
   test("navigating left restores viewport symmetrically", () => {
     // 4 columns in 80-wide terminal: only 2 columns visible at once
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-          item("col2", item("B1")),
-          item("col3", item("C1")),
-          item("col4", item("D1")),
-        ),
-      { columns: 80, rows: 20 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("A1")),
+        item("col2", item("B1")),
+        item("col3", item("C1")),
+        item("col4", item("D1")),
+      ),
+      { cols: 80, rows: 20 },
     )
 
     // Start at col1's first card (A1)
-    board.expect("#A1[data-cursor]").toExist()
+    app.expect("#A1[data-cursor]").toExist()
 
     // col1 and col2 should be visible initially
-    const col1Initial = board.q("#col1").boundingBox()
-    const col2Initial = board.q("#col2").boundingBox()
+    const col1Initial = app.q("#col1").boundingBox()
+    const col2Initial = app.q("#col2").boundingBox()
     expect(col1Initial).not.toBeNull()
     expect(col2Initial).not.toBeNull()
 
     // Press l -> col2
-    board.press("l")
-    board.expect("#B1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#B1[data-cursor]").toExist()
     // col1 and col2 still visible (no scroll needed)
-    expect(board.q("#col1").boundingBox()).not.toBeNull()
-    expect(board.q("#col2").boundingBox()).not.toBeNull()
+    expect(app.q("#col1").boundingBox()).not.toBeNull()
+    expect(app.q("#col2").boundingBox()).not.toBeNull()
 
     // Press l -> col3 (scrolls right, viewport shows col2+col3)
-    board.press("l")
-    board.expect("#C1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#C1[data-cursor]").toExist()
     // col3 should be visible now
-    expect(board.q("#col3").boundingBox()).not.toBeNull()
+    expect(app.q("#col3").boundingBox()).not.toBeNull()
 
     // Press h -> col2 (BUG: viewport stays at col2+col3 instead of scrolling back to col1+col2)
-    board.press("h")
-    board.expect("#B1[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#B1[data-cursor]").toExist()
 
     // col1 should be visible again after scrolling back
     // This is the assertion that fails — viewport doesn't scroll back
-    const col1After = board.q("#col1").boundingBox()
+    const col1After = app.q("#col1").boundingBox()
     expect(col1After, "col1 should be visible after navigating back to col2").not.toBeNull()
   })
 
   test("back-and-forth navigation maintains symmetric scroll positions", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-          item("col2", item("B1")),
-          item("col3", item("C1")),
-          item("col4", item("D1")),
-        ),
-      { columns: 80, rows: 20 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("A1")),
+        item("col2", item("B1")),
+        item("col3", item("C1")),
+        item("col4", item("D1")),
+      ),
+      { cols: 80, rows: 20 },
     )
 
     // Navigate right: col1 -> col2 -> col3
-    board.press("l").press("l")
-    board.expect("#C1[data-cursor]").toExist()
+    app.press("l").press("l")
+    app.expect("#C1[data-cursor]").toExist()
 
     // Navigate left: col3 -> col2 -> col1
-    board.press("h").press("h")
-    board.expect("#A1[data-cursor]").toExist()
+    app.press("h").press("h")
+    app.expect("#A1[data-cursor]").toExist()
 
     // col1 must be visible (we're on it!)
-    const col1Box = board.q("#col1").boundingBox()
+    const col1Box = app.q("#col1").boundingBox()
     expect(col1Box, "col1 must be visible when cursor is on col1").not.toBeNull()
 
     // Navigate right again: col1 -> col2
-    board.press("l")
-    board.expect("#B1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#B1[data-cursor]").toExist()
 
     // Both col1 and col2 should be visible (same as initial state)
-    expect(board.q("#col1").boundingBox(), "col1 visible with cursor on col2").not.toBeNull()
-    expect(board.q("#col2").boundingBox(), "col2 visible with cursor on col2").not.toBeNull()
+    expect(app.q("#col1").boundingBox(), "col1 visible with cursor on col2").not.toBeNull()
+    expect(app.q("#col2").boundingBox(), "col2 visible with cursor on col2").not.toBeNull()
   })
 })
 
@@ -180,25 +172,25 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
   // Test at widths where maxCols >= 2 (columns narrower than viewport).
   // Widths 60, 65 have maxCols=1 and column width > viewport — a separate issue.
   test.each([73, 75, 77, 85])("width=%d: cursor column is fully visible after navigating right", (width) => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
-      { columns: width, rows: 20 },
+    using app = createTestApp(
+      item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
+      { cols: width, rows: 20 },
     )
 
     // Start at col1's first card
-    board.expect("#A1[data-cursor]").toExist()
+    app.expect("#A1[data-cursor]").toExist()
 
     // Navigate right to col2
-    board.press("l")
-    board.expect("#B1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#B1[data-cursor]").toExist()
 
     // Navigate right to col3
-    board.press("l")
-    board.expect("#C1[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#C1[data-cursor]").toExist()
 
     // col3 must be fully visible — its bounding box right edge must be
     // within the terminal viewport width
-    const col3Box = board.q("#col3").boundingBox()
+    const col3Box = app.q("#col3").boundingBox()
     expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
     if (col3Box) {
       expect(
@@ -210,28 +202,28 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
 
   test("navigating to last column and back preserves full visibility", () => {
     // Use width=73 (a known failing width before the fix)
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
-      { columns: 73, rows: 20 },
+    using app = createTestApp(
+      item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
+      { cols: 73, rows: 20 },
     )
 
     // Navigate right twice to col3
-    board.press("l").press("l")
-    board.expect("#C1[data-cursor]").toExist()
+    app.press("l").press("l")
+    app.expect("#C1[data-cursor]").toExist()
 
     // col3 must be fully visible
-    const col3Box = board.q("#col3").boundingBox()
+    const col3Box = app.q("#col3").boundingBox()
     expect(col3Box).not.toBeNull()
     if (col3Box) {
       expect(col3Box.x + col3Box.width).toBeLessThanOrEqual(73)
     }
 
     // Navigate back to col2
-    board.press("h")
-    board.expect("#B1[data-cursor]").toExist()
+    app.press("h")
+    app.expect("#B1[data-cursor]").toExist()
 
     // col2 must be fully visible
-    const col2Box = board.q("#col2").boundingBox()
+    const col2Box = app.q("#col2").boundingBox()
     expect(col2Box).not.toBeNull()
     if (col2Box) {
       expect(col2Box.x + col2Box.width).toBeLessThanOrEqual(73)
@@ -239,15 +231,15 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
   })
 
   test.each([70, 80, 100, 120])("scroll ensures full visibility at width=%d", (width) => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
-      { columns: width, rows: 20 },
+    using app = createTestApp(
+      item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
+      { cols: width, rows: 20 },
     )
 
-    board.press("l").press("l")
-    board.expect("#C1[data-cursor]").toExist()
+    app.press("l").press("l")
+    app.expect("#C1[data-cursor]").toExist()
 
-    const col3Box = board.q("#col3").boundingBox()
+    const col3Box = app.q("#col3").boundingBox()
     expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
     if (col3Box) {
       expect(col3Box.x + col3Box.width, `col3 right edge at width=${width}`).toBeLessThanOrEqual(width)
@@ -330,33 +322,33 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
   }
 
   test("j from board header scrolls to remembered off-screen column", () => {
-    const { board } = testEnv(createWideBoard, {
-      columns: 80,
+    using app = createTestApp(createWideBoard(), {
+      cols: 80,
       rows: 24,
     })
 
     // Initial state: cursor on first card in first column
-    board.expect("#a1[data-cursor]").toExist()
+    app.expect("#a1[data-cursor]").toExist()
 
     // Navigate right to col-e (off-screen column)
-    board.press("l").press("l").press("l").press("l")
+    app.press("l").press("l").press("l").press("l")
     // Should now be on e1
-    board.expect("#e1[data-cursor]").toExist()
+    app.expect("#e1[data-cursor]").toExist()
     // col-e should be visible
-    board.expectScreen("e1")
+    app.expectScreen("e1")
 
     // Navigate up to column header
-    board.press("k")
+    app.press("k")
     // Navigate up to board header
-    board.press("k")
+    app.press("k")
     // Verify we're at board level
-    board.expect("[data-board][data-cursor]").toExist()
+    app.expect("[data-board][data-cursor]").toExist()
 
     // Now press j — should return to col-e (via stickyX) and scroll to it
-    board.press("j")
+    app.press("j")
 
     // The cursor should be on col-e's header
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     // stickyX should have returned us to col-e
     expect(cursor.textContent()).toContain("col-e")
@@ -364,47 +356,45 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
     // AND the column should be visible on screen (this is the bug —
     // the cursor enters col-e but the viewport doesn't scroll to show it)
     // Check that col-e's cards are visible in the rendered output
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("e1")
-    expect(screenshot).toContain("e2")
+    expect(app.text).toContain("e1")
+    expect(app.text).toContain("e2")
   })
 
   test("j from board header to first column does not need scrolling", () => {
-    const { board } = testEnv(createWideBoard, {
-      columns: 80,
+    using app = createTestApp(createWideBoard(), {
+      cols: 80,
       rows: 24,
     })
 
     // Navigate up to board header from first column
-    board.press("k").press("k")
+    app.press("k").press("k")
 
     // j should enter first column (no stickyX set)
-    board.press("j")
+    app.press("j")
 
     // First column should be visible (it already was)
-    board.expectScreen("a1")
-    board.expectScreen("a2")
+    app.expectScreen("a1")
+    app.expectScreen("a2")
   })
 
   test("j from board header after visiting far column via h/l", () => {
-    const { board } = testEnv(createWideBoard, {
-      columns: 80,
+    using app = createTestApp(createWideBoard(), {
+      cols: 80,
       rows: 24,
     })
 
     // Navigate to col-d column header
-    board.press("k") // to col-a header
-    board.press("l").press("l").press("l") // to col-d header
+    app.press("k") // to col-a header
+    app.press("l").press("l").press("l") // to col-d header
 
     // Go up to board
-    board.press("k")
+    app.press("k")
 
     // j should return to col-d and scroll to show it
-    board.press("j")
+    app.press("j")
 
     // col-d should be visible
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("d1")
+    expect(app.text).toContain("d1")
   })
 })
 
@@ -414,104 +404,95 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
 
 describe("column shift with body column", () => {
   test("opt+l shifts column right when body column exists — cursor follows", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("some description text"),
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
-      { columns: 160, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("some description text"),
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+      { cols: 160, rows: 24 },
     )
 
     // Navigate to col1 header: l -> col1 card, k -> col1 header
-    board.press("l")
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("l")
+    app.press("k")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("opt+l")
+    app.press("opt+l")
 
     // Cursor should stay on col1
-    board.expect("#col1[data-cursor]").toExist()
+    app.expect("#col1[data-cursor]").toExist()
 
     // Navigate down into the column — should enter col1's cards
-    board.press("j")
-    board.expect("#1a[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#1a[data-cursor]").toExist()
   })
 
   test("opt+h shifts column left when body column exists — cursor follows", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("some description text"),
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
-      { columns: 160, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("some description text"),
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+      { cols: 160, rows: 24 },
     )
 
     // Navigate to col2 header: l -> col1 card, l -> col2 card, k -> col2 header
-    board.press("l").press("l").press("k")
-    board.expect("#col2[data-cursor]").toExist()
+    app.press("l").press("l").press("k")
+    app.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    board.press("opt+h")
+    app.press("opt+h")
 
     // Cursor should stay on col2
-    board.expect("#col2[data-cursor]").toExist()
+    app.expect("#col2[data-cursor]").toExist()
 
     // Navigate down — should enter col2's cards
-    board.press("j")
-    board.expect("#2a[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#2a[data-cursor]").toExist()
   })
 
   test("shifting towards body column — should swap with body column or boundary", () => {
-    const { board } = testEnv(
-      () => item("board", item.p("some description text"), item("col1", item("1a")), item("col2", item("2a"))),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item("board", item.p("some description text"), item("col1", item("1a")), item("col2", item("2a"))),
+      { cols: 120, rows: 24 },
     )
 
     // Navigate to col1 header (adjacent to Description)
-    board.press("l").press("k")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("l").press("k")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 left — target is body column (virtual, not in repo)
     // This should either boundary or handle gracefully
-    board.press("opt+h")
+    app.press("opt+h")
 
     // Cursor should still be on col1 (not crash, not move to wrong place)
-    board.expect("#col1[data-cursor]").toExist()
+    app.expect("#col1[data-cursor]").toExist()
   })
 
   test("visual order correct after shift with body column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("desc text"),
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
-      { columns: 200, rows: 24 },
+    using app = createTestApp(
+      item("board", item.p("desc text"), item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      { cols: 200, rows: 24 },
     )
 
     // Navigate to col1 header: l -> col1 card, k -> col1 header
-    board.press("l").press("k")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("l").press("k")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("opt+l")
+    app.press("opt+l")
 
     // After shift: visual order should be Description, col2, col1, col3
-    const col1Box = board.q("#col1").boundingBox()
-    const col2Box = board.q("#col2").boundingBox()
-    const col3Box = board.q("#col3").boundingBox()
+    const col1Box = app.q("#col1").boundingBox()
+    const col2Box = app.q("#col2").boundingBox()
+    const col3Box = app.q("#col3").boundingBox()
     expect(col1Box).not.toBeNull()
     expect(col2Box).not.toBeNull()
     expect(col3Box).not.toBeNull()
@@ -520,97 +501,96 @@ describe("column shift with body column", () => {
   })
 
   test("shift right then navigate — enters correct column cards", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.p("desc text"),
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
-      { columns: 160, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item.p("desc text"),
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+      { cols: 160, rows: 24 },
     )
 
     // Navigate to col1 header: l -> col1 card, k -> col1 header
-    board.press("l").press("k")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("l").press("k")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("opt+l")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("opt+l")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Navigate down — should be in col1's cards, not col2's
-    board.press("j")
-    board.expect("#1a[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#1a[data-cursor]").toExist()
 
     // Navigate right — should go to col3 (now the right neighbor)
-    board.press("l")
-    board.expect("#3a[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#3a[data-cursor]").toExist()
   })
 })
 
 describe("column shift with collapsed columns", () => {
   test("shift collapsed column right — cursor follows", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")), item("col3", item("3a"))),
+      { cols: 120, rows: 24 },
     )
 
     // Navigate to col1 header and collapse it
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
-    board.press("c")
+    app.press("k")
+    app.expect("#col1[data-cursor]").toExist()
+    app.press("c")
 
     // Shift collapsed col1 right
-    board.press("opt+l")
+    app.press("opt+l")
 
     // Cursor should still be on col1
-    board.expect("#col1[data-cursor]").toExist()
+    app.expect("#col1[data-cursor]").toExist()
   })
 
   test("shift column right past collapsed column — cursor follows", () => {
-    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
 
     // Start on col1 card, go to header, collapse col2 from col1 side is complex.
     // Instead: go to col1 header first
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("k")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right (swaps with col2)
-    board.press("opt+l")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("opt+l")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right again (swaps with col3, col1 now at end)
-    board.press("opt+l")
-    board.expect("#col1[data-cursor]").toExist()
+    app.press("opt+l")
+    app.expect("#col1[data-cursor]").toExist()
 
     // Navigate down into col1 should show col1's cards
-    board.press("j")
-    board.expect("#1a[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#1a[data-cursor]").toExist()
   })
 
   test("shift non-collapsed column when some columns are collapsed", () => {
-    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
 
     // Navigate to col1 header and collapse it
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
-    board.press("c")
+    app.press("k")
+    app.expect("#col1[data-cursor]").toExist()
+    app.press("c")
 
     // Navigate to col2 header
-    board.press("l")
-    board.expect("#col2[data-cursor]").toExist()
+    app.press("l")
+    app.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 right
-    board.press("opt+l")
+    app.press("opt+l")
 
     // Cursor should stay on col2
-    board.expect("#col2[data-cursor]").toExist()
+    app.expect("#col2[data-cursor]").toExist()
 
     // Navigate down into col2
-    board.press("j")
-    board.expect("#2a[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#2a[data-cursor]").toExist()
   })
 })
 

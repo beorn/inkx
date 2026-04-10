@@ -89,7 +89,28 @@ Check: Is code in the right layer? UI logic in storage? Domain logic in UI?
 Correct: `KNode.isOutline(node)` (namespace type guard)
 Anti-pattern: `node.type === "h" && node.item` (inline domain logic in consumer)
 
-### 1c. Automated Patterns
+### 1c. Test Ergonomics
+
+Check test files in `apps/km-tui/tests/` against these rules:
+
+- **No `testEnv` in new tests** — use `createTestApp()`. `testEnv` is deprecated and couples to internal store shape.
+- **No `store.getState()` in tests** — use `app.state`, `app.card(title).isCursor`, or typed getters. White-box coupling caused 157 failures in one refactor session.
+- **No direct `createBoardDriver()` in tests** — go through `createTestApp` for backend-agnostic tests.
+- **Typed correctness assertions first** — `expect(app.card("task1").isCursor).toBe(true)` expresses intent. Snapshots detect change, not correctness. Use typed assertions for what SHOULD be true, snapshots as a bonus regression layer.
+- **Prefer `app.state` for batch checks** — `expect(app.state).toMatchObject({ cursor: "task1", view: "cards" })` over individual getter calls.
+- **Prefer vault/markdown fixtures** — `createTestApp.fromVault("fixtures/kanban")` or `createTestApp.fromMarkdown("# col\n- [ ] task")` over verbose `item()` trees for complex boards.
+- **Journey tests over single-step** — 3-5 step sequences sharing one `createTestApp`. Combine related assertions; each setup has overhead.
+
+### 1d. Silvery Patterns
+
+Check code against silvery canonical patterns (see [The Silvery Way](../../../vendor/silvery/docs/guide/the-silvery-way.md)):
+
+- **Semantic theme tokens** — `$primary`, `$muted`, `$error`, `$success`. Never raw colors.
+- **Canonical components** — `SelectList` for lists, `TextInput` for text entry. Don't reimplement keyboard navigation.
+- **`backgroundColor` directly** — never `Box theme={{}}` for bg-only changes (re-resolves ALL tokens).
+- **`useInput` for key handling** — never `process.stdin.on("data")`.
+
+### 1e. Automated Patterns
 
 Run if reviewing a directory or `--all`:
 

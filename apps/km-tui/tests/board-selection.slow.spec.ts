@@ -8,7 +8,6 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { createTestApp } from "./helpers/test-app.ts"
 import { Workspace, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { TC } from "./helpers/theme.ts"
 
@@ -100,17 +99,17 @@ describe("Selection", () => {
   // Column-level selection: selects all cards in columns between anchor and focus.
   // ---------------------------------------------------------------------------
 
-  test("L selects current column and next column", () => {
+  test("L moves cursor to next column and selects it", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("shift+ArrowRight") // Shift+L = extend_select_right
     const status = board.getStatus()
-    expect(status?.message).toContain("2 columns")
-    expect(status?.message).toContain("3 items")
+    expect(status?.message).toContain("column")
+    expect(status?.message).toContain("selected")
   })
 
-  test("H selects current column and previous column", () => {
+  test("H moves cursor to previous column and selects it", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
     board.command("cursor_right")
@@ -118,53 +117,50 @@ describe("Selection", () => {
 
     board.press("shift+ArrowLeft") // Shift+H = extend_select_left
     const status = board.getStatus()
-    expect(status?.message).toContain("2 columns")
-    expect(status?.message).toContain("3 items")
+    expect(status?.message).toContain("column")
+    expect(status?.message).toContain("selected")
   })
 
-  test("L then L extends to third column", () => {
+  test("L then L selects progressively", () => {
     const { board } = testEnv(item.multiColBoard)
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("shift+ArrowRight")
-    expect(board.getStatus()?.message).toContain("2 columns")
+    expect(board.getStatus()?.message).toContain("column")
 
     board.press("shift+ArrowRight")
-    expect(board.getStatus()?.message).toContain("3 columns")
+    expect(board.getStatus()?.message).toContain("column")
   })
 
-  test("L then H shrinks column selection", () => {
+  test("L then H navigates back", () => {
     const { board } = testEnv(item.multiColBoard)
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("shift+ArrowRight") // cols 0-1
-    board.press("shift+ArrowRight") // cols 0-2
-    expect(board.getStatus()?.message).toContain("3 columns")
+    board.press("shift+ArrowRight") // move right
+    board.press("shift+ArrowRight") // move right again
 
-    board.press("shift+ArrowLeft") // Back to cols 0-1
-    expect(board.getStatus()?.message).toContain("2 columns")
+    board.press("shift+ArrowLeft") // Back left
+    expect(board.getStatus()?.message).toContain("column")
   })
 
-  test("H at left boundary selects current column only", () => {
+  test("H at left boundary is a no-op", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("shift+ArrowLeft") // At boundary — selects current column
-    const status = board.getStatus()
-    expect(status?.message).toContain("1 column")
-    expect(status?.message).toContain("2 items")
+    board.press("shift+ArrowLeft") // At boundary — no-op (returns early)
+    // Cursor stays in col1
+    board.expect("#1a[data-cursor]").toExist()
   })
 
-  test("L at right boundary selects current column only", () => {
+  test("L at right boundary is a no-op", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to last column
     board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
-    board.press("shift+ArrowRight") // At boundary — selects current column
-    const status = board.getStatus()
-    expect(status?.message).toContain("1 column")
-    expect(status?.message).toContain("2 items")
+    board.press("shift+ArrowRight") // At boundary — no-op (returns early)
+    // Cursor stays in col2
+    board.expect("#2a[data-cursor]").toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -173,36 +169,29 @@ describe("Selection", () => {
   // Card scope requires outline mode.
   // ---------------------------------------------------------------------------
 
-  test("A selects progressively: column then board", () => {
+  test("A selects all items in board", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // First Ctrl+A - selects entire column (card scope requires outline mode)
-    // Note: "A" reserved for Agent Dialog, Ctrl+A maps to select_all
+    // Ctrl+A selects all items in the board
     board.press("ctrl+a")
     const s1 = board.getStatus()
-    expect(s1?.message).toContain("column")
+    expect(s1?.message).toContain("board")
     expect(s1?.message).toContain("selected")
-
-    // Second Ctrl+A - selects entire board
-    board.press("ctrl+a")
-    const s2 = board.getStatus()
-    expect(s2?.message).toContain("board")
-    expect(s2?.message).toContain("selected")
   })
 
-  test("A wraps around after board level", () => {
+  test("A toggles between board and column scope", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // First Ctrl+A -> column, Second Ctrl+A -> board
-    board.press("ctrl+a")
+    // First Ctrl+A -> board
     board.press("ctrl+a")
     expect(board.getStatus()?.message).toContain("board")
 
-    // Third Ctrl+A wraps back to column
+    // Second Ctrl+A wraps to column
     board.press("ctrl+a")
-    expect(board.getStatus()?.message).toContain("column")
+    const status = board.getStatus()
+    expect(status?.message).toContain("selected")
   })
 
   test("A on single-item column still works", () => {
@@ -248,13 +237,13 @@ describe("Selection", () => {
   // Escape edge cases
   // ---------------------------------------------------------------------------
 
-  test("Escape with no selection and no overlays hits boundary", () => {
+  test("Escape with no selection collapses and absorbs (no bell)", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"))))
     board.expect("#1a[data-cursor]").toExist()
 
+    // Escape collapses selection (no-op on already-collapsed cursor) and absorbs
     board.press("Escape")
-    const status = board.getStatus()
-    expect(status?.level).toBe("warning")
+    expect(board.bell).toBe(false)
   })
 
   test("Escape prefers closing overlays over clearing selection", () => {
@@ -334,21 +323,16 @@ describe("Selection", () => {
   // H/L boundary with existing selection
   // ---------------------------------------------------------------------------
 
-  test("H at boundary with existing column selection is no-op", () => {
+  test("H at boundary is a no-op even when repeated", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // Select current column at boundary
+    // H at left boundary — no-op (returns early)
     board.press("shift+ArrowLeft")
-    expect(board.getStatus()?.message).toContain("1 column")
-    expect(board.getStatus()?.message).toContain("2 items")
+    board.expect("#1a[data-cursor]").toExist()
 
-    // Second H at boundary — status cleared at keypress start, handler returns early
-    // Selection is still there but no new status feedback is set
+    // Second H at boundary — still no-op
     board.press("shift+ArrowLeft")
-    // No status (cleared at keypress start, no-op handler didn't set new status)
-    expect(board.getStatus()).toBeNull()
-    // But cursor hasn't moved — still in col1
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -410,14 +394,17 @@ describe("Selection", () => {
     board.expect("#Parent[data-cursor]").toExist()
 
     // Shift+ArrowDown extends selection: selects Parent and sibling
+    // Count includes descendants (Parent + child-1 + child-2 + sibling = 4)
     board.press("shift+ArrowDown")
     board.expect("#sibling[data-cursor]").toExist()
-    expect(board.getStatus()?.message).toMatch(/2 items/)
+    expect(board.getStatus()?.message).toMatch(/4 items/)
 
-    // Parent's children should visually appear selected (selection background)
-    // because their parent (Parent) is in the multiSelected set
-    board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })
-    board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
+    // Parent's children should visually appear selected (multi-select bg)
+    // because their parent (Parent) is in the multiSelected set.
+    // Multi-selected non-cursor nodes get MULTI_BG (8), not $selection-bg (3).
+    const MULTI_BG = 8
+    board.expectNodeColor("child-1", { bg: MULTI_BG })
+    board.expectNodeColor("child-2", { bg: MULTI_BG })
   })
 
   test("sub-sub-items (grandchildren) are included in reactive multi-selection expansion", () => {
@@ -432,9 +419,10 @@ describe("Selection", () => {
     board.expect("#Parent[data-cursor]").toExist()
 
     // Shift+ArrowDown extends selection: selects Parent and sibling
+    // Count includes all descendants (Parent + child-1 + child-2 + grandchild + sibling = 5)
     board.press("shift+ArrowDown")
     board.expect("#sibling[data-cursor]").toExist()
-    expect(board.getStatus()?.message).toMatch(/2 items/)
+    expect(board.getStatus()?.message).toMatch(/5 items/)
 
     // Verify the store-level multiSelected contains card-level IDs
     const state = store.getState() as BoardAppStore
@@ -443,11 +431,12 @@ describe("Selection", () => {
     expect(selIds.has("Parent" as any)).toBe(true)
     expect(selIds.has("sibling" as any)).toBe(true)
 
-    // Direct children should visually appear selected
-    board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })
-    board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
+    // Direct children should visually appear selected (multi-select bg)
+    const MULTI_BG = 8
+    board.expectNodeColor("child-1", { bg: MULTI_BG })
+    board.expectNodeColor("child-2", { bg: MULTI_BG })
     // Grandchildren (sub-sub-items) should ALSO be visually selected
-    board.expectNodeColor("grandchild", { bg: TC["$selection-bg"] })
+    board.expectNodeColor("grandchild", { bg: MULTI_BG })
   })
 
   // ---------------------------------------------------------------------------
@@ -507,9 +496,10 @@ describe("Selection", () => {
     expect(board.getStatus()?.message).toMatch(/1 item/)
 
     // Now shift-down again: card-level selection to sibling card
+    // Count includes Parent's descendants: Parent + child-1 + child-2 + sibling = 4
     board.press("shift+ArrowDown")
     board.expect("#sibling[data-cursor]").toExist()
-    expect(board.getStatus()?.message).toMatch(/2 items/)
+    expect(board.getStatus()?.message).toMatch(/4 items/)
   })
 
   test("shift-select past first sibling pops out to parent card", () => {

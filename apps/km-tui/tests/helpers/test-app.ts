@@ -22,6 +22,9 @@
 
 import React from "react"
 import { expect } from "vitest"
+// Register termless matchers (toMatchTerminalSnapshot, toMatchSvgSnapshot, etc.)
+// so tests using createTestApp().expectSnapshot() get them without extra imports.
+import "@termless/test/matchers"
 import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver, type BoardDriver } from "../../src/driver.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
@@ -34,11 +37,10 @@ import type { Term } from "@silvery/ag-term"
 import type { AgNode } from "@silvery/ag/types"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { createBoardApp, resetBoardAppState, dispatchCommandById } from "../../src/board/board-app.ts"
-import type { BoardAppStore } from "../../src/state/board-app-store.ts"
+import { Workspace, type BoardAppStore, type CreateBoardAppStoreParams } from "../../src/state/board-app-store.ts"
 import type { SignalStoreApi } from "../../src/state/signal-store.ts"
 import { act } from "react"
 import { createBoardState } from "../../src/board/board-types.ts"
-import { type CreateBoardAppStoreParams } from "../../src/state/board-app-store.ts"
 import { createInitialUIState } from "../../src/state/ui-reducer.ts"
 import { BoardApp } from "../../src/views/Board.tsx"
 import { RepoProvider } from "../../src/repo-context.tsx"
@@ -46,7 +48,9 @@ import { StoreProvider } from "../../src/state/store-context.tsx"
 import { setLogLevel, getLogLevel } from "loggily"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { resetDialogGuard } from "../../src/dialog-guard.ts"
-import { getChordState } from "@km/commands"
+import { getChordState, type ViewMode } from "@km/commands"
+import { parseMarkdownToNodes } from "@km/markdown"
+import { hasDetailPaneFor } from "../../src/board/board-types.ts"
 import { item } from "./board-test.ts"
 
 // =============================================================================
@@ -134,6 +138,40 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
 // Types
 // =============================================================================
 
+/**
+ * Declarative snapshot of board state — cursor, selection, view, overlay, bell, visible nodes.
+ */
+export interface TestAppState {
+  /** Current cursor node ID, or null if no cursor */
+  cursor: string | null
+  /** Selected node IDs */
+  selection: string[]
+  /** Current view mode */
+  view: ViewMode
+  /** Top overlay/dialog name, or null */
+  overlay: string | null
+  /** Bell count (number of times bell was triggered) */
+  bell: number
+  /** Visible node IDs (from the tree) */
+  visible: string[]
+}
+
+/**
+ * Handle for a specific node — query its state without selectors.
+ */
+export interface NodeHandle {
+  /** Whether the node exists in the tree */
+  readonly exists: boolean
+  /** Whether the node is visible on screen */
+  readonly visible: boolean
+  /** The node's text content */
+  readonly text: string
+  /** Whether this node is the cursor */
+  readonly isCursor: boolean
+  /** Whether this node is selected */
+  readonly isSelected: boolean
+}
+
 export interface TestApp {
   /** Send a keypress. Chainable: `app.press("j").press("l")` */
   press(key: string): TestApp
@@ -156,6 +194,45 @@ export interface TestApp {
   readonly hasStatus: boolean
   /** Get current status message if visible, or null */
   getStatus(): { level: string; message: string } | null
+  /**
+   * Declarative state snapshot — cursor, selection, view, overlay, bell, visible nodes.
+   *
+   * @example
+   * ```typescript
+   * expect(app.state.cursor).toBe("task1")
+   * expect(app.state.view).toBe("cards")
+   * expect(app.state.visible).toContain("task1")
+   * ```
+   */
+  readonly state: TestAppState
+  /**
+   * Get a handle for a node by ID.
+   *
+   * @example
+   * ```typescript
+   * expect(app.node("task1").isCursor).toBe(true)
+   * expect(app.node("task1").exists).toBe(true)
+   * ```
+   */
+  node(id: string): NodeHandle
+  /**
+   * Get a handle for a card by title text (searches visible nodes for matching text).
+   *
+   * @example
+   * ```typescript
+   * expect(app.card("Buy groceries").isCursor).toBe(true)
+   * ```
+   */
+  card(title: string): NodeHandle
+  /**
+   * Get a handle for a column by title text.
+   *
+   * @example
+   * ```typescript
+   * expect(app.column("Todo").visible).toBe(true)
+   * ```
+   */
+  column(title: string): NodeHandle
   /** Assert that the screen contains the given text. Chainable. */
   expectScreen(text: string): TestApp
   /** Assert that the screen does NOT contain the given text. Chainable. */
@@ -166,6 +243,19 @@ export interface TestApp {
   expectCellChar(x: number, y: number, char: string): TestApp
   /** Assert cell fg/bg color at screen position. Chainable. */
   expectCellColor(x: number, y: number, opts: { fg?: number | null; bg?: number | null }): TestApp
+  /**
+   * Capture the full screen and match against a golden snapshot file.
+   *
+   * Snapshots land in `<test-dir>/__snapshots__/<test-file>.snap` (Vitest default).
+   * - On **termless**, uses `toMatchTerminalSnapshot` (includes cursor + mode header).
+   * - On **headless**, uses `toMatchSnapshot` on normalized stripped text
+   *   (trailing whitespace removed per line, line endings normalized).
+   *
+   * @param name - Optional snapshot name (multiple snapshots per test).
+   */
+  expectSnapshot(name?: string): TestApp
+  /** Alias for expectSnapshot(name) with an explicit required name. */
+  expectScreenMatches(name: string): TestApp
   /** Locator-based assertions: app.expect("#id").toExist() */
   expect(selector: string): {
     toExist(): void
@@ -226,6 +316,26 @@ export interface TestAppOptions {
   incremental?: boolean
   /** Initial view mode (default: "cards") */
   viewMode?: "cards" | "columns" | "list" | "tabs"
+}
+
+// =============================================================================
+// Snapshot normalization
+// =============================================================================
+
+/**
+ * Normalize text for stable snapshot diffs:
+ * - Convert CRLF → LF
+ * - Strip trailing whitespace per line (blank cells padded by the renderer
+ *   otherwise blow up the snapshot with invisible differences)
+ * - Trim trailing blank lines (stable regardless of terminal height padding)
+ */
+function normalizeScreenText(text: string): string {
+  const lines = text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+$/, ""))
+  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
+  return lines.join("\n")
 }
 
 // =============================================================================
@@ -291,6 +401,193 @@ export function createTestApp(nodes: KNode[] | (() => KNode[]), opts: TestAppOpt
   }
 
   return createHeadlessTestApp(resolvedNodes, cols, rows, opts)
+}
+
+/**
+ * Create a test app from inline markdown.
+ *
+ * @example
+ * ```typescript
+ * using app = createTestApp.fromMarkdown("# col1\n- [ ] task1\n- [ ] task2")
+ * app.expectScreen("task1")
+ * ```
+ */
+createTestApp.fromMarkdown = function fromMarkdown(md: string, opts: TestAppOptions = {}): TestApp {
+  const nodes = parseMarkdownToNodes(md, "/fake/vault/board.md")
+  return createTestApp(nodes, opts)
+}
+
+/**
+ * Create a test app from a real vault directory.
+ *
+ * @example
+ * ```typescript
+ * using app = createTestApp.fromVault("tests/fixtures/kanban-simple")
+ * app.expectScreen("task1")
+ * ```
+ */
+createTestApp.fromVault = function fromVault(vaultPath: string, opts: TestAppOptions = {}): TestApp {
+  // Resolve relative paths from the project root
+  const path = vaultPath.startsWith("/") ? vaultPath : `${import.meta.dir}/../../${vaultPath}`
+  const nodes = loadVaultNodes(path)
+  return createTestApp(nodes, opts)
+}
+
+/** Load nodes from a vault directory by parsing all .md files */
+function loadVaultNodes(vaultPath: string): KNode[] {
+  const { readdirSync, readFileSync } = require("node:fs") as typeof import("node:fs")
+  const { join } = require("node:path") as typeof import("node:path")
+  const allNodes: KNode[] = []
+  for (const entry of readdirSync(vaultPath)) {
+    if (entry.endsWith(".md")) {
+      const content = readFileSync(join(vaultPath, entry), "utf-8")
+      const nodes = parseMarkdownToNodes(content, join(vaultPath, entry))
+      allNodes.push(...nodes)
+    }
+  }
+  if (allNodes.length === 0) {
+    throw new Error(`No .md files found in vault: ${vaultPath}`)
+  }
+  return allNodes
+}
+
+// =============================================================================
+// Shared state helpers (used by both backends)
+// =============================================================================
+
+/** Get TestAppState from a headless BoardDriver */
+function getHeadlessState(driver: BoardDriver): TestAppState {
+  const ds = driver.getState()
+  const s = driver.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selection = board ? Array.from(board.sel.node.ids()) : []
+
+  // Determine active overlay/dialog
+  let overlay: string | null = null
+  if (ds.dialogs.search) overlay = "search"
+  else if (ds.dialogs.help) overlay = "help"
+  else if (ds.dialogs.newItem) overlay = "newItem"
+  else if (ds.dialogs.itemPicker) overlay = "itemPicker"
+  else if (ds.detailPaneOpen) overlay = "detail"
+
+  // Collect visible node IDs from tree
+  const visible: string[] = []
+  if (board?.signals) {
+    const lens = board.signals.visibleLens()
+    const rootId = board.rootId
+    if (rootId) {
+      collectVisibleIds(lens, rootId, visible)
+    }
+  }
+
+  const bellCount = driver.locator("[data-bell]").count()
+
+  return {
+    cursor: cursorId,
+    selection,
+    view: (ds.viewMode ?? "cards") as ViewMode,
+    overlay,
+    bell: bellCount,
+    visible,
+  }
+}
+
+/** Recursively collect visible node IDs from the tree lens */
+function collectVisibleIds(lens: ReturnType<typeof createVisibleLens>, nodeId: string, result: string[]): void {
+  result.push(nodeId)
+  for (const childId of lens.children(nodeId)) {
+    collectVisibleIds(lens, childId, result)
+  }
+}
+
+/** Create a NodeHandle for a node by ID (headless) */
+function getHeadlessNodeHandle(driver: BoardDriver, id: string): NodeHandle {
+  const s = driver.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+  const node = s.repo.getNode(id)
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
+
+  const loc = driver.locator(`#${id}`)
+  const isVisible = loc.count() > 0
+
+  return {
+    get exists() {
+      return node != null
+    },
+    get visible() {
+      return isVisible
+    },
+    get text() {
+      if (isVisible) return loc.textContent()
+      return String(node?.content ?? node?.data?.name ?? "")
+    },
+    get isCursor() {
+      return cursorId === id
+    },
+    get isSelected() {
+      return selectedIds.has(id)
+    },
+  }
+}
+
+/** Find a node by title text in the repo tree */
+function findNodeByTitle(repo: Repo, title: string): KNode | null {
+  // Search by trying the title as an ID first (item() uses content as ID)
+  const direct = repo.getNode(title)
+  if (direct) return direct
+
+  // Search the subtree from root
+  const root = repo.getChildren(null)
+  for (const rootNode of root) {
+    const match = findInSubtree(repo, rootNode, title)
+    if (match) return match
+  }
+  return null
+}
+
+function findInSubtree(repo: Repo, node: KNode, title: string): KNode | null {
+  if (node.content === title || node.data?.name === title) return node
+  for (const child of repo.getChildren(node.id)) {
+    const match = findInSubtree(repo, child, title)
+    if (match) return match
+  }
+  return null
+}
+
+/** Create a NodeHandle for a node by title text (headless) */
+function getHeadlessNodeHandleByTitle(driver: BoardDriver, title: string): NodeHandle {
+  const s = driver.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
+
+  const matchedNode = findNodeByTitle(s.repo, title)
+
+  const id = matchedNode?.id
+  const loc = id ? driver.locator(`#${id}`) : null
+  const isVisible = loc ? loc.count() > 0 : false
+
+  return {
+    get exists() {
+      return matchedNode != null
+    },
+    get visible() {
+      return isVisible
+    },
+    get text() {
+      if (isVisible && loc) return loc.textContent()
+      return String(matchedNode?.content ?? matchedNode?.data?.name ?? "")
+    },
+    get isCursor() {
+      return id != null && cursorId === id
+    },
+    get isSelected() {
+      return id != null && selectedIds.has(id)
+    },
+  }
 }
 
 // =============================================================================
@@ -393,6 +690,22 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return level && message ? { level, message } : null
     },
 
+    get state(): TestAppState {
+      return getHeadlessState(driver)
+    },
+
+    node(id: string): NodeHandle {
+      return getHeadlessNodeHandle(driver, id)
+    },
+
+    card(title: string): NodeHandle {
+      return getHeadlessNodeHandleByTitle(driver, title)
+    },
+
+    column(title: string): NodeHandle {
+      return getHeadlessNodeHandleByTitle(driver, title)
+    },
+
     expectScreen(text: string): TestApp {
       expect(driver.containsText(text)).toBe(true)
       return app
@@ -423,6 +736,19 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       const c = driver.cell(x, y)
       if (colorOpts.fg !== undefined) expect(c.fg, `cell(${x},${y}).fg`).toEqual(colorOpts.fg)
       if (colorOpts.bg !== undefined) expect(c.bg, `cell(${x},${y}).bg`).toEqual(colorOpts.bg)
+      return app
+    },
+
+    expectSnapshot(name?: string): TestApp {
+      const snapshot = normalizeScreenText(driver.text)
+      if (name !== undefined) expect(snapshot).toMatchSnapshot(name)
+      else expect(snapshot).toMatchSnapshot()
+      return app
+    },
+
+    expectScreenMatches(name: string): TestApp {
+      const snapshot = normalizeScreenText(driver.text)
+      expect(snapshot).toMatchSnapshot(name)
       return app
     },
 
@@ -516,6 +842,150 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
   }
 
   return app
+}
+
+// =============================================================================
+// Termless state helpers
+// =============================================================================
+
+/** Null node handle for when termless handle isn't ready */
+const nullNodeHandle: NodeHandle = {
+  get exists() {
+    return false
+  },
+  get visible() {
+    return false
+  },
+  get text() {
+    return ""
+  },
+  get isCursor() {
+    return false
+  },
+  get isSelected() {
+    return false
+  },
+}
+
+type TermlessHandle = {
+  store: SignalStoreApi<BoardAppStore>
+}
+
+/** Get TestAppState from a termless boardApp */
+function getTermlessState(
+  handle: TermlessHandle,
+  boardApp: ReturnType<typeof createBoardApp>,
+  fallbackViewMode: ViewMode,
+  getLocator: (sel: string) => AutoLocator,
+): TestAppState {
+  const s = handle.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selection = board ? Array.from(board.sel.node.ids()) : []
+
+  // Determine overlay
+  let overlay: string | null = null
+  if (s.ui.showSearchDialog) overlay = "search"
+  else if (s.ui.showHelp) overlay = "help"
+  else if (s.ui.showNewItemDialog) overlay = "newItem"
+  else if (s.ui.activePicker) overlay = "itemPicker"
+  else if (hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId)) overlay = "detail"
+
+  // Visible nodes
+  const visible: string[] = []
+  if (board?.signals) {
+    const lens = board.signals.visibleLens()
+    const rootId = board.rootId
+    if (rootId) {
+      collectVisibleIds(lens, rootId, visible)
+    }
+  }
+
+  const bellCount = getLocator("[data-bell]").count()
+
+  return {
+    cursor: cursorId,
+    selection,
+    view: (board?.viewMode ?? fallbackViewMode) as ViewMode,
+    overlay,
+    bell: bellCount,
+    visible,
+  }
+}
+
+/** Create a NodeHandle for a node by ID (termless) */
+function getTermlessNodeHandle(
+  handle: TermlessHandle,
+  _boardApp: ReturnType<typeof createBoardApp>,
+  id: string,
+  getLocator: (sel: string) => AutoLocator,
+): NodeHandle {
+  const s = handle.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+  const node = s.repo.getNode(id)
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
+
+  const loc = getLocator(`#${id}`)
+  const isVisible = loc.count() > 0
+
+  return {
+    get exists() {
+      return node != null
+    },
+    get visible() {
+      return isVisible
+    },
+    get text() {
+      if (isVisible) return loc.textContent()
+      return String(node?.content ?? node?.data?.name ?? "")
+    },
+    get isCursor() {
+      return cursorId === id
+    },
+    get isSelected() {
+      return selectedIds.has(id)
+    },
+  }
+}
+
+/** Create a NodeHandle for a node by title text (termless) */
+function getTermlessNodeHandleByTitle(
+  handle: TermlessHandle,
+  _boardApp: ReturnType<typeof createBoardApp>,
+  title: string,
+  repo: Repo,
+  getLocator: (sel: string) => AutoLocator,
+): NodeHandle {
+  const s = handle.store.getState()
+  const board = Workspace.getActiveBoardPane(s)
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+  const selectedIds = board ? new Set(board.sel.node.ids()) : new Set<string>()
+
+  const matchedNode = findNodeByTitle(repo, title)
+
+  const id = matchedNode?.id
+  const loc = id ? getLocator(`#${id}`) : null
+  const isVisible = loc ? loc.count() > 0 : false
+
+  return {
+    get exists() {
+      return matchedNode != null
+    },
+    get visible() {
+      return isVisible
+    },
+    get text() {
+      if (isVisible && loc) return loc.textContent()
+      return String(matchedNode?.content ?? matchedNode?.data?.name ?? "")
+    },
+    get isCursor() {
+      return id != null && cursorId === id
+    },
+    get isSelected() {
+      return id != null && selectedIds.has(id)
+    },
+  }
 }
 
 // =============================================================================
@@ -739,6 +1209,28 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       return level && message ? { level, message } : null
     },
 
+    get state(): TestAppState {
+      if (!handle) {
+        return { cursor: null, selection: [], view: viewMode as ViewMode, overlay: null, bell: 0, visible: [] }
+      }
+      return getTermlessState(handle, boardApp, viewMode as ViewMode, getLocator)
+    },
+
+    node(id: string): NodeHandle {
+      if (!handle) return nullNodeHandle
+      return getTermlessNodeHandle(handle, boardApp, id, getLocator)
+    },
+
+    card(title: string): NodeHandle {
+      if (!handle) return nullNodeHandle
+      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator)
+    },
+
+    column(title: string): NodeHandle {
+      if (!handle) return nullNodeHandle
+      return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator)
+    },
+
     expectScreen(text: string): TestApp {
       expect(handle?.text ?? "").toContain(text)
       return app
@@ -769,6 +1261,25 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       const c = getCellFromBuffer(x, y)
       if (colorOpts.fg !== undefined) expect(c.fg, `cell(${x},${y}).fg`).toEqual(colorOpts.fg)
       if (colorOpts.bg !== undefined) expect(c.bg, `cell(${x},${y}).bg`).toEqual(colorOpts.bg)
+      return app
+    },
+
+    expectSnapshot(name?: string): TestApp {
+      // Termless: delegate to @termless/test toMatchTerminalSnapshot, which
+      // renders a human-readable grid (header + cursor + altScreen + numbered lines)
+      // from the actual xterm.js emulator state.
+      if (name !== undefined) {
+        ;(expect(term) as unknown as { toMatchTerminalSnapshot(o: { name: string }): void }).toMatchTerminalSnapshot({
+          name,
+        })
+      } else (expect(term) as unknown as { toMatchTerminalSnapshot(): void }).toMatchTerminalSnapshot()
+      return app
+    },
+
+    expectScreenMatches(name: string): TestApp {
+      ;(expect(term) as unknown as { toMatchTerminalSnapshot(o: { name: string }): void }).toMatchTerminalSnapshot({
+        name,
+      })
       return app
     },
 

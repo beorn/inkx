@@ -96,6 +96,78 @@ grep -rn "ref\.current\.\|\.scrollTo\|\.focus()" $TARGET
 
 For each hit, classify severity and note the silvery replacement (see The Silvery Way for the canonical fix).
 
+### Anti-Patterns Quick Reference
+
+For each finding, here's the tarnished pattern, why it's bad, and the shiny replacement:
+
+**1. Manual key handlers instead of components**
+```typescript
+// Tarnished
+useInput((input) => { if (input === "j") setIndex(i => i + 1) })
+// Shiny — SelectList handles j/k, mouse, scroll, theming
+<SelectList items={items} onSelect={handleSelect} />
+```
+Why: reimplements solved problems (scroll bounds, mouse, wrap-around, accessibility).
+
+**2. Hardcoded ANSI codes**
+```typescript
+// Tarnished
+process.stdout.write("\x1b[31mError\x1b[0m")
+// Shiny
+<Text color="$error">Error</Text>
+```
+Why: breaks in non-truecolor terminals, ignores NO_COLOR, loses theme adaptivity.
+
+**3. `Box theme={{}}` for bg-only changes**
+```typescript
+// Tarnished — re-resolves ALL $tokens in the subtree
+<Box theme={{ backgroundColor: "blue" }}>
+// Shiny — direct prop, no cascade penalty
+<Box backgroundColor="blue">
+```
+Why: `theme={{}}` triggers full token resolution on every child; `backgroundColor` is a simple prop.
+
+**4. Raw color values instead of semantic tokens**
+```typescript
+// Tarnished
+<Text color="#ff0000">Error</Text>
+// Shiny
+<Text color="$error">Error</Text>
+```
+Why: raw colors don't adapt to terminal themes or color schemes.
+
+**5. `store.getState()` in tests**
+```typescript
+// Tarnished — couples to internal store shape
+expect(store.getState().sel.node.cursor()).toBe("task1")
+// Shiny — screen-observable assertion
+expect(app.card("task1").isCursor).toBe(true)
+```
+Why: breaks on every internal refactor; 523 calls broke in one session.
+
+**6. `testEnv` instead of `createTestApp`**
+```typescript
+// Tarnished
+const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+// Shiny
+using app = createTestApp(item("board", item("col", item("task"))))
+```
+Why: testEnv exposes store internals; createTestApp enforces screen-first testing.
+
+**7. Snapshots without correctness assertions**
+```typescript
+// Tarnished — snapshot alone (detects change, not correctness)
+app.press("jjH")
+app.expectSnapshot()
+
+// Shiny — typed assertions for correctness, snapshot for regression
+app.press("jjH")
+expect(app.card("task1b").isCursor).toBe(true)  // correctness: intent
+expect(app.state.bell).toBe(1)                   // correctness: non-visible
+app.expectSnapshot()                              // bonus: catch unintended drift
+```
+Why: snapshots detect *changes*, not *correctness*. A wrong snapshot stays wrong forever. Typed assertions express intent — they fail when behavior is wrong, even if the screen looks plausible.
+
 ## Phase 3: Check Technical Patterns
 
 Beyond The Silvery Way (which covers principles), check these concrete patterns:

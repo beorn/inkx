@@ -33,11 +33,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").toExist()
+    app.expectScreen("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").not.toExist()
+    app.expectScreenNot("DETAIL VIEW")
 
     // Navigate — this should NOT throw or show error
     app.command("cursor_down")
@@ -68,11 +68,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").toExist()
+    app.expectScreen("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").not.toExist()
+    app.expectScreenNot("DETAIL VIEW")
 
     // Navigate — should not crash
     app.command("cursor_down")
@@ -125,11 +125,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").toExist()
+    app.expectScreen("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expect("#main-detail").not.toExist()
+    app.expectScreenNot("DETAIL VIEW")
 
     // Navigate extensively — stress the ErrorBoundary recovery
     app.command("cursor_down")

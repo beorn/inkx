@@ -203,6 +203,9 @@ describe("Columns View", () => {
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
+      // Progressive fold: depth 3→2→1→0. Need multiple presses to fully fold.
+      board.command("fold_all_more")
+      board.command("fold_all_more")
       board.command("fold_all_more")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
