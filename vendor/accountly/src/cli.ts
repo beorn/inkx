@@ -60,10 +60,15 @@ program.action(async () => {
 program
   .command("status")
   .description("Show all accounts with quota usage")
-  .action(async () => {
+  .option("--json", "Output raw JSON for automation")
+  .action(async (opts: { json?: boolean }) => {
     const discovered = discoverAccounts()
     const active = getActiveAccount()
     const quotas = await checkAllQuotas(discovered)
+    if (opts.json) {
+      console.log(JSON.stringify({ active, quotas }))
+      return
+    }
     const accounts = discovered.map((d) => d.config)
     console.log(await formatStatus(quotas, active, accounts))
   })
