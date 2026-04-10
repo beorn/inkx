@@ -384,13 +384,11 @@ O4 (Plugin Composition) is premature:
 
 - Verdict: Refactor when pain is real, not preemptively
 
-O5 (Explicit Node/Text Mode) depends on a feature we don't have:
+O5 (Explicit Node/Text Mode) is now implemented:
 
-- KM TUI doesn't have inline text editing (uses detail pane)
+- KM TUI has inline text editing in both board view and detail pane (Enter/i to edit, Escape to exit)
 
-- Adding explicit mode without the feature adds complexity for no benefit
-
-- Verdict: Implement alongside actual text editing feature, not before
+- Node mode vs text edit mode is the core interaction model (see docs/keybindings-v2.md)
 
 ### Patterns NOT to Adopt
 
