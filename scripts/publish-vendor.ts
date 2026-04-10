@@ -17,13 +17,13 @@
  * Usage:
  *   bun scripts/publish-vendor.ts vendor/bearly/packages/vitepress-enrich patch
  *   bun scripts/publish-vendor.ts vendor/loggily minor
- *   bun scripts/publish-vendor.ts vendor/vt100/packages/vt220 patch
+ *   bun scripts/publish-vendor.ts vendor/vterm/packages/vt220 patch
  *   bun scripts/publish-vendor.ts vendor/flexily --dry
  *
  * Works with any package layout:
  *   - Simple vendor packages:  vendor/loggily/package.json
  *   - Monorepo sub-packages:   vendor/bearly/packages/vitepress-enrich/package.json
- *   - Multi-package repos:     vendor/vt100/packages/vt220/package.json
+ *   - Multi-package repos:     vendor/vterm/packages/vt220/package.json
  */
 import { $ } from "bun"
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, copyFileSync } from "node:fs"
@@ -154,7 +154,7 @@ Usage: bun scripts/publish-vendor.ts <package-path> [patch|minor|major] [--dry]
 Examples:
   bun scripts/publish-vendor.ts vendor/bearly/packages/vitepress-enrich patch
   bun scripts/publish-vendor.ts vendor/loggily minor
-  bun scripts/publish-vendor.ts vendor/vt100/packages/vt220 patch --dry
+  bun scripts/publish-vendor.ts vendor/vterm/packages/vt220 patch --dry
 `)
   process.exit(1)
 }

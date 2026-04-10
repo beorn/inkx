@@ -78,7 +78,7 @@ For any vendor package to be "standalone-ready":
 
 Publish raw TypeScript source — no build step. Node.js 23.6+ strips types natively; Bun always could.
 
-**Reference implementation**: vt100.js (`vendor/vt100/packages/vt100/`)
+**Reference implementation**: vt100.js (`vendor/vterm/packages/vt100/`)
 
 ### package.json
 

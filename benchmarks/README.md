@@ -137,7 +137,7 @@ The script:
 
 1. Creates a detached worktree at `/tmp/km-bench-<short-sha>` for the ref.
 2. Runs `git submodule update --init` for the standard vendor packages.
-3. Copies `vendor/vt100/` from the parent if the ref doesn't have it as a submodule.
+3. Copies `vendor/vterm/` from the parent if the ref doesn't have it as a submodule.
 4. Runs `bun install` in the worktree.
 5. Runs the bench in BOTH the worktree and the current repo.
 6. Diffs per-bench mean ms and per-phase wall time.
