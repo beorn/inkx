@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
@@ -244,46 +244,49 @@ describe("mouse click targeting", () => {
   })
 
   test("pressing Enter on a sub-block enters inline edit for that block", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
-      { columns: 80, rows: 24 },
+    using app = createTestApp(
+      item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { cols: 80, rows: 24, checkIncremental: false },
     )
 
     // Click on child-2 to select it
-    const el = board.q("[id='child-2']")
+    const el = app.q("[id='child-2']")
     expect(el.count()).toBeGreaterThan(0)
     const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
-    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("child-2")
+    app.click(box.x + 1, box.y)
+    expect(app.state.cursor).toBe("child-2")
 
     // Press Enter to enter inline edit
-    board.command("enter_inline_edit")
+    app.command("enter_inline_edit")
 
     // Should be editing child-2, not the parent card
-    board.expectEditing("child-2")
+    app.expectEditing("child-2")
   })
 
   test("arrow up/down in edit mode navigates to adjacent node and stays in edit mode", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("Column", item("task-1"), item("task-2"), item("task-3"))),
-      { columns: 80, rows: 24 },
-    )
+    using app = createTestApp(item.root("board", item("Column", item("task-1"), item("task-2"), item("task-3"))), {
+      cols: 80,
+      rows: 24,
+    })
 
     // Enter edit mode on task-1
-    board.command("enter_inline_edit")
-    board.expectEditing("task-1")
+    app.command("enter_inline_edit")
+    app.expectEditing("task-1")
 
     // Arrow down → task-2, still in edit mode
-    board.press("ArrowDown")
-    board.expectState({ cursor: "task-2", editing: "task-2" })
+    app.press("ArrowDown")
+    expect(app.state.cursor).toBe("task-2")
+    app.expectEditing("task-2")
 
     // Arrow down → task-3, still in edit mode
-    board.press("ArrowDown")
-    board.expectState({ cursor: "task-3", editing: "task-3" })
+    app.press("ArrowDown")
+    expect(app.state.cursor).toBe("task-3")
+    app.expectEditing("task-3")
 
     // Arrow up → task-2, still in edit mode
-    board.press("ArrowUp")
-    board.expectState({ cursor: "task-2", editing: "task-2" })
+    app.press("ArrowUp")
+    expect(app.state.cursor).toBe("task-2")
+    app.expectEditing("task-2")
   })
 
   test("clicking column header selects the column (not board root)", () => {
@@ -378,23 +381,23 @@ describe("mouse click targeting", () => {
     // The 'CARDS VIEW CL:3' text in the top bar (data-view='view-mode-button')
     // is a clickable control that opens the filter/view dialog — providing a
     // mouse path to the same action as the 'filter' keyboard command.
-    const { board, store } = testEnv(() => item.root("board", item("Inbox", item("task-1"), item("task-2"))), {
-      columns: 80,
+    using app = createTestApp(item.root("board", item("Inbox", item("task-1"), item("task-2"))), {
+      cols: 80,
       rows: 24,
     })
 
-    expect(getActiveBoardPane(store.getState())!.showFilterDialog).toBe(false)
+    app.withStore((s) => expect(getActiveBoardPane(s)!.showFilterDialog).toBe(false))
 
-    const viewModeBtn = board.q("[data-view='view-mode-button']")
+    const viewModeBtn = app.q("[data-view='view-mode-button']")
     expect(viewModeBtn.count(), "view-mode-button should be rendered").toBeGreaterThan(0)
     const btnBox = viewModeBtn.boundingBox()
     expect(btnBox).not.toBeNull()
 
     // Click on the view-mode button
-    board.click(btnBox!.x + 1, btnBox!.y)
+    app.click(btnBox!.x + 1, btnBox!.y)
 
     // Dialog should now be open
-    expect(getActiveBoardPane(store.getState())!.showFilterDialog).toBe(true)
+    app.withStore((s) => expect(getActiveBoardPane(s)!.showFilterDialog).toBe(true))
   })
 
   test("board-level commands still work when cursor is null (no invariant error)", () => {

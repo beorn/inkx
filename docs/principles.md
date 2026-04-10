@@ -40,6 +40,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
   - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
+  - [Principle: MECE — No Gaps, No Overlaps](#principle-mece)
   - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
@@ -705,6 +706,40 @@ const db = new Database("/tmp/test.db")
 - [ ] In-memory tests — `withTestEnv()` / not `new Database('/tmp/test.db')`
 - [ ] Fast suite — `test:fast` < 15s / not minutes
 - [ ] Benchmarks measure production — `bun bench` disables test-only overhead (SILVERY_STRICT, checkIncremental). Bench numbers must represent what users experience, not what tests verify. If a bench includes verification overhead, its numbers are useless for optimization decisions.
+
+---
+
+### Principle: MECE — No Gaps, No Overlaps
+
+**The insight**: Every system — tests, types, modules, state — should be Mutually Exclusive, Collectively Exhaustive. Each piece covers one concern, and together they cover everything.
+
+**The pattern**: Before adding a new test file, type, or module, ask: "Does this overlap with something that already exists? Is there a gap this should fill?" If it overlaps, merge. If there's a gap, fill it intentionally.
+
+This applies everywhere:
+
+- **Tests**: Each behavior is tested at exactly one layer. Navigation is tested in *one* navigation spec, not scattered across 8 files. Properties that hold universally (cursor validity, border integrity) become invariants, not individual test cases.
+- **Types**: Each concept has one canonical type. If two types describe the same thing at different layers, one is wrong.
+- **Modules**: Each module owns one domain. If two modules handle "selection," merge or draw a clear boundary.
+- **State**: Each piece of state has one owner. If the same information is derived in three places, compute it once and share.
+
+```typescript
+// ❌ BAD - same behavior tested in 3 files
+// cursor-stability.slow.spec.ts: "cursor movement preserves content"
+// board-nav.slow.spec.ts: "j moves cursor down, content unchanged"
+// navigation-fuzz.fuzz.ts: "random actions don't corrupt content"
+
+// ✅ GOOD - property covers the class, one file tests the domain
+// invariant: contentStability (auto-checked after every action)
+// navigation.slow.spec.ts: cursor movement journeys (unique per-scenario)
+```
+
+**Why**: Systems that grow bug-by-bug accumulate overlapping tests, redundant types, and competing modules. MECE prevents drift. When each thing has exactly one home, changes require updating one place, not hunting through duplicates.
+
+**Guidelines:**
+- [ ] One test file per domain — merge by domain / not by bug or symptom
+- [ ] Universal properties become invariants — auto-check / not manual assertions in 50 tests
+- [ ] Each type has one canonical definition — single source of truth / not parallel definitions across layers
+- [ ] Each piece of state has one owner — derived once / not computed independently in multiple places
 
 ---
 

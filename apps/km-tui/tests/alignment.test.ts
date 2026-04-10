@@ -11,6 +11,7 @@ import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 
 // Wider terminal for multi-column tests
 const WIDE = { cols: 120, rows: 30 }
+// FREEZE tests below still use testEnv which needs `columns` not `cols`
 const WIDE_ENV = { columns: 120, rows: 30 }
 
 // =============================================================================

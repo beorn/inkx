@@ -22,8 +22,7 @@ import { createTestApp } from "./helpers/test-app.ts"
 // =============================================================================
 
 describe("spatial navigation: Y-position matching", () => {
-  // NOTE: uses `registry` (position registry) which is not exposed by createTestApp —
-  // stays on testEnv.
+  // FREEZE: needs white-box API (registry — not exposed by createTestApp)
   test("position registry is populated by layout notifications", () => {
     const { board, registry } = testEnv(
       () =>
@@ -63,7 +62,7 @@ describe("spatial navigation: Y-position matching", () => {
     void board
   })
 
-  // NOTE: uses `registry.stickyY` which is not exposed by createTestApp — stays on testEnv.
+  // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("j then l: lands on Y-matched card, not first card", () => {
     const { board, registry } = testEnv(
       () =>
@@ -137,7 +136,7 @@ describe("spatial navigation: Y-position matching", () => {
     expect(cursor).toContain("C3")
   })
 
-  // NOTE: uses `registry.stickyY` — stays on testEnv.
+  // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("h preserves stickyY across multiple column hops", () => {
     const { board, registry } = testEnv(
       () =>
@@ -189,7 +188,7 @@ describe("spatial navigation: Y-position matching", () => {
     expect(cursor).toContain("B3")
   })
 
-  // NOTE: uses `registry.stickyY` — stays on testEnv.
+  // FREEZE: needs white-box API (registry.stickyY — not exposed by createTestApp)
   test("stickyY is cleared by vertical navigation (j/k)", () => {
     const { board, registry } = testEnv(
       () =>

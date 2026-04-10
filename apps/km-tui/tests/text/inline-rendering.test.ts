@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest"
 import { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "../../src/text/inline-parser.ts"
 import { prettifyUrl } from "../../src/text/text-pipeline.ts"
 import { stripKnownMentions } from "../../src/views/detail-pane-helpers.ts"
-import { testEnv, item } from "../helpers/board-test.ts"
+import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
 import type { InlineNode } from "../../src/text/inline-ast-types.ts"
 
@@ -269,17 +269,16 @@ describe("inline rendering edge cases", () => {
 // =============================================================================
 
 describe("broken wikilink rendering", () => {
-  // FREEZE: needs board.screen.ansi (raw ANSI buffer access for SGR sequence inspection)
   it("unresolved [[target]] gets a distinct styling (red/dashed)", () => {
     // Use a target that definitely does not exist in the fake repo.
     const brokenTarget = "definitely-not-a-real-note-xyz"
-    const { board } = testEnv(() => item("board", item("col1", item(`pre [[${brokenTarget}]] post`))), {
+    using app = createTestApp(item("board", item("col1", item(`pre [[${brokenTarget}]] post`))), {
       rows: 20,
-      columns: 100,
+      cols: 100,
     })
 
     // The broken target name is still visible (user needs to see what's broken)
-    expect(board.screen.text).toContain(brokenTarget)
+    expect(app.screen.text).toContain(brokenTarget)
 
     // A broken wikilink should have distinct styling, which shows up in the
     // ANSI buffer as an SGR escape sequence immediately preceding the target.
@@ -287,7 +286,7 @@ describe("broken wikilink rendering", () => {
     // escape preceding it. We locate the last occurrence in the ANSI stream
     // (the actual rendered card text, not an earlier OSC8/hyperlink URL) and
     // verify an SGR introducer appears within a few chars before it.
-    const ansi = board.screen.ansi
+    const ansi = app.screen.ansi
     const targetIdx = ansi.lastIndexOf(brokenTarget)
     expect(targetIdx).toBeGreaterThanOrEqual(0)
 

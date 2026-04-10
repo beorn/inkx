@@ -11,9 +11,8 @@
 
 import { describe, test, expect } from "vitest"
 import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/ag-react"
-// FREEZE: all tests need board.expectEditing(), store.getState().textEditHints, board.screen.cell()
 import { item, testEnv } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/state/board-app-store.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 describe("text-cursor-bugs", () => {
   // ===========================================================================
@@ -21,59 +20,60 @@ describe("text-cursor-bugs", () => {
   // ===========================================================================
   describe("block crossing preserves edit mode", () => {
     test("arrow down at end of first card enters edit on next card", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
+      using app = createTestApp(item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
 
       // Start on card-a, enter edit mode
-      board.expect("#card-a[data-cursor]").toExist()
-      board.press("Enter")
+      app.expect("#card-a[data-cursor]").toExist()
+      app.press("Enter")
 
       // Verify we're in edit mode on card-a
-      board.expectEditing("card-a")
+      app.expectEditing("card-a")
 
       // Press down arrow — should cross to card-b while staying in edit mode
-      board.press("ArrowDown")
+      app.press("ArrowDown")
 
       // Should now be editing card-b, NOT exited edit mode
-      board.expectEditing("card-b")
+      app.expectEditing("card-b")
     })
 
     test("arrow up at start of second card enters edit on first card", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
+      using app = createTestApp(item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
 
       // Navigate to card-b and enter edit
-      board.command("cursor_down") // move to card-b
-      board.expect("#card-b[data-cursor]").toExist()
-      board.press("Enter")
+      app.command("cursor_down") // move to card-b
+      app.expect("#card-b[data-cursor]").toExist()
+      app.press("Enter")
 
-      board.expectEditing("card-b")
+      app.expectEditing("card-b")
 
       // Press up arrow — should cross to card-a in edit mode
-      board.press("ArrowUp")
+      app.press("ArrowUp")
 
-      board.expectEditing("card-a")
+      app.expectEditing("card-a")
     })
 
     test("block crossing saves content of previous block", () => {
-      const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
+      using app = createTestApp(item("board", item("col1", item("card-a"), item("card-b"))))
 
-      board.expect("#card-a[data-cursor]").toExist()
-      board.press("Enter")
+      app.expect("#card-a[data-cursor]").toExist()
+      app.press("Enter")
 
       // Type some text
-      board.press("x")
-      board.press("y")
-      board.press("z")
+      app.press("x")
+      app.press("y")
+      app.press("z")
 
       // Cross to next block
-      board.press("ArrowDown")
+      app.press("ArrowDown")
 
       // The content of card-a should be saved (not lost)
-      expect(repo.getNode("card-a")?.content).toBe("card-axyz")
+      expect(app.repo.getNode("card-a")?.content).toBe("card-axyz")
 
       // Should now be editing card-b
-      board.expectEditing("card-b")
+      app.expectEditing("card-b")
     })
 
+    // FREEZE: needs store.getState().textEditHints (white-box)
     test("stickyX preserved when crossing blocks vertically", () => {
       const { board, store } = testEnv(() => item("board", item("col1", item("shortA"), item("longerB"))), {
         columns: 40,
@@ -209,6 +209,7 @@ describe("text-cursor-bugs", () => {
       }
     })
 
+    // FREEZE: needs board.screen.cell().attrs.inverse (not on TestApp CellInfo)
     test("cursor row/col matches visual position in wrapped text", () => {
       // Use a narrow column to force wrapping
       const { board } = testEnv(
@@ -266,49 +267,49 @@ describe("text-cursor-bugs", () => {
     test("arrow up/down on wrapped text navigates visual lines correctly", () => {
       // Force text to wrap by using a narrow terminal
       // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
-      const { board } = testEnv(
-        () => item("board", item("col1", item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm"))),
-        { columns: 30, checkIncremental: false },
+      using app = createTestApp(
+        item("board", item("col1", item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm"))),
+        { cols: 30, checkIncremental: false },
       )
 
-      board.press("Enter") // enter edit mode
+      app.press("Enter") // enter edit mode
 
       // Cursor should be at the end of wrapped text
-      board.expectEditing()
+      app.expectEditing()
 
       // Press up arrow — should move to previous visual line (NOT exit edit mode)
-      board.press("ArrowUp")
+      app.press("ArrowUp")
 
       // Should still be in edit mode on the same node
-      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
+      app.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
 
       // Press down arrow — should move back to last visual line
-      board.press("ArrowDown")
+      app.press("ArrowDown")
 
-      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
+      app.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
     })
 
     test("arrow up at first visual line of wrapped text crosses to previous card", () => {
       // checkIncremental: false — bottom bar format change causes stale incremental cells
-      const { board } = testEnv(
-        () => item("board", item("col1", item("prev-card"), item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll"))),
-        { columns: 30, checkIncremental: false },
+      using app = createTestApp(
+        item("board", item("col1", item("prev-card"), item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll"))),
+        { cols: 30, checkIncremental: false },
       )
 
       // Navigate to the second card and enter edit at start
-      board.command("cursor_down")
-      board.press("Enter")
+      app.command("cursor_down")
+      app.press("Enter")
 
       // Move cursor to start with Ctrl+A (Home is not bound in keybindings)
-      board.press("ctrl+a")
+      app.press("ctrl+a")
 
       // Verify cursor is at start (offset 0)
-      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll")
+      app.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll")
 
       // Now press up — we're on the first visual line (row 0), so should cross to prev card
-      board.press("ArrowUp")
+      app.press("ArrowUp")
 
-      board.expectEditing("prev-card")
+      app.expectEditing("prev-card")
     })
   })
 })

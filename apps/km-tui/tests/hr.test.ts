@@ -40,16 +40,16 @@ function hrWithContent(id: string, content: string): KNode[] {
 // ---------------------------------------------------------------------------
 
 describe("HR borderless rendering", () => {
-  // These tests need expectNodeBorder/NoBorder — stay on testEnv
+  // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("HR card renders with padding (no border) when unselected", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
     board.expectNodeNoBorder("my-hr")
   })
 
   test("selected body card has border, unselected neighbor has dim border", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
-    board.expectNodeBorder("task1")
-    board.expectNodeBorder("task2")
+    using app = createTestApp(item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
+    app.expectNodeBorder("task1")
+    app.expectNodeBorder("task2")
   })
 
   test("HR renders centered content (---) within card width", () => {
@@ -65,7 +65,7 @@ describe("HR borderless rendering", () => {
     }
   })
 
-  // Color comparison against TC.$selected — stays on testEnv
+  // FREEZE: needs ANSI color index comparison (TC.$selected) — createTestApp returns RGB
   test("selected HR is yellow", () => {
     const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
     const hrBox = board.screen.nodeBox("my-hr")
@@ -105,12 +105,13 @@ describe("HR borderless rendering", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Content-based detection (stay on testEnv — need expectNodeNoBorder/Border)
+// Content-based detection
 // ---------------------------------------------------------------------------
 
 describe("HR content-based detection", () => {
   const hrContents = ["---", "***", "___", "-----"] as const
 
+  // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   for (const content of hrContents) {
     test(`HR content '${content}' renders as line with no border when unselected`, () => {
       const { board } = testEnv(() => item("board", item("Col", hrWithContent("hr-node", content), item("other"))), {
@@ -123,6 +124,7 @@ describe("HR content-based detection", () => {
     })
   }
 
+  // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("standard HR (type=hr, no content) renders as line with no border when unselected", () => {
     const { board } = testEnv(() => item("board", item("Col", item.hr("my-hr"), item("other"))), {
       columns: 60,
@@ -140,12 +142,12 @@ describe("HR content-based detection", () => {
 
   for (const { content, label } of nonHrContents) {
     test(`${label} '${content}' does not render as HR line`, () => {
-      const { board } = testEnv(() => item("board", item("Col", hrWithContent("edited-hr", content), item("other"))), {
-        columns: 60,
+      using app = createTestApp(item("board", item("Col", hrWithContent("edited-hr", content), item("other"))), {
+        cols: 60,
         rows: 20,
       })
-      expect(board.screenshot()).toContain(content)
-      board.expectNodeBorder("edited-hr")
+      expect(app.text).toContain(content)
+      app.expectNodeBorder("edited-hr")
     })
   }
 })
@@ -177,7 +179,7 @@ describe("HR display", () => {
     expect(app.text).toContain("---")
   })
 
-  // Color comparison against TC.$selected — stays on testEnv
+  // FREEZE: needs ANSI color index comparison (TC.$selected) — createTestApp returns RGB
   test("HR line is muted when cursor is NOT on it", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))),
@@ -329,7 +331,7 @@ describe("HR editing", () => {
     app.expect("#task-below[data-cursor]").toExist()
   })
 
-  // Uses expectNodeNoBorder/Border — stays on testEnv
+  // FREEZE: needs expectNodeNoBorder (not on createTestApp)
   test("HR renders as bordered card during edit mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
       columns: 60,
@@ -345,7 +347,7 @@ describe("HR editing", () => {
     board.expectNodeBorder("my-hr")
   })
 
-  // Uses cell.attrs (inverse) — stays on testEnv
+  // FREEZE: needs cell.attrs.inverse (testEnv-specific cell format)
   test("HR edit mode: no colored background fills the row", () => {
     const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
       columns: 40,

@@ -8,6 +8,10 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The legacy `testEnv`/`testEnvWithRepo` API is `@deprecated` — it remains only for the FREEZE bucket in `km-all.test-system` bead (mouse, bell, expectNodeBorder, and a few smoke tests).
 
+## MECE — No Gaps, No Overlaps
+
+Tests must be **Mutually Exclusive, Collectively Exhaustive** (see [docs/principles.md](../../../docs/principles.md#principle-mece)). Each behavior is tested at exactly one layer. Before creating a new test file, check if the domain already has one — merge into it. Universal properties (cursor validity, border integrity, content stability) become invariants, not individual test cases repeated across files.
+
 ## What to Test Here
 
 - User journeys: multi-step sequences of keypresses → verify screen output AND persisted data

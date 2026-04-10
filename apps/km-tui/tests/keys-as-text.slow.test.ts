@@ -343,45 +343,44 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // P1 Bug: km-tui.empty-card-key-capture
     // Empty heading sections (## Empty Section with no children) auto-enter
     // edit mode, causing j/k navigation keys to be inserted as text.
-    const { board, repo } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("Task Above"),
-            item("Empty Section"), // heading with NO children — the problematic case
-            item("Task Below"),
-          ),
-          item("col2", item("Other task")),
+          "col1",
+          item("Task Above"),
+          item("Empty Section"), // heading with NO children — the problematic case
+          item("Task Below"),
         ),
-      { columns: 120, rows: 40 },
+        item("col2", item("Other task")),
+      ),
+      { cols: 120, rows: 40 },
     )
 
     // Navigate down to "Empty Section"
-    board.press("j") // move to Empty Section
+    app.press("j") // move to Empty Section
 
     // CRITICAL: Must NOT be in edit mode — empty cards should not auto-enter edit
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Press k — should navigate UP, not insert "k" into heading
-    board.press("k")
-    board.expectNotEditing()
-    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+    app.press("k")
+    app.expectNotEditing()
+    expect(app.repo.getNode("Empty Section")?.content).toBe("Empty Section")
 
     // Navigate back to Empty Section
-    board.press("j")
+    app.press("j")
 
     // Press j — should navigate DOWN, not insert "j" into heading
-    board.press("j")
-    board.expectNotEditing()
-    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+    app.press("j")
+    app.expectNotEditing()
+    expect(app.repo.getNode("Empty Section")?.content).toBe("Empty Section")
 
     // Navigate to Empty Section again and try h/l
-    board.press("k") // back to Empty Section
-    board.press("l") // should navigate to col2, not insert "l"
-    board.expectNotEditing()
-    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+    app.press("k") // back to Empty Section
+    app.press("l") // should navigate to col2, not insert "l"
+    app.expectNotEditing()
+    expect(app.repo.getNode("Empty Section")?.content).toBe("Empty Section")
   })
 
   test("Enter to edit then Escape preserves content on navigation", () => {
@@ -389,32 +388,32 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // then navigate. The concern is that after exiting edit mode, inlineEditBlock
     // might not be properly cleared, leaving textInputFocused=true.
     // Uses leaf items (no children) to match real li card data where content is set.
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("Editable task"), item("Second task")), item("col2", item("Other task"))),
-      { columns: 120, rows: 40 },
+    using app = createTestApp(
+      item("board", item("col1", item("Editable task"), item("Second task")), item("col2", item("Other task"))),
+      { cols: 120, rows: 40 },
     )
 
     // Verify we start in normal mode (no inline edit)
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Enter inline edit on the first card title
-    board.press("Enter") // start editing "Editable task"
+    app.press("Enter") // start editing "Editable task"
 
     // Verify inline edit is now active
-    board.expectEditing()
+    app.expectEditing()
 
     // Cancel edit
-    board.press("Escape") // should exit inline edit
+    app.press("Escape") // should exit inline edit
 
     // Verify inline edit state is fully cleared
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Now navigate — if inlineEditBlock leaked, these keys would insert as text
-    board.press("j").press("l").press("k").press("h")
+    app.press("j").press("l").press("k").press("h")
 
     // Content must be unchanged — no stray 'j', 'l', 'k', 'h' chars
-    expect(repo.getNode("Editable task")?.content).toBe("Editable task")
-    expect(repo.getNode("Second task")?.content).toBe("Second task")
-    expect(repo.getNode("Other task")?.content).toBe("Other task")
+    expect(app.repo.getNode("Editable task")?.content).toBe("Editable task")
+    expect(app.repo.getNode("Second task")?.content).toBe("Second task")
+    expect(app.repo.getNode("Other task")?.content).toBe("Other task")
   })
 })

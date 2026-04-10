@@ -1,8 +1,9 @@
 /**
  * Cursor color tests for TreeNode
  *
- * FREEZE: entire file uses testEnv — buffer-level assertions (board.screen.cell,
- * board._result.ansi, board.expectNodeColor, palette color indices).
+ * FREEZE: entire file uses testEnv — palette color indices (TC.$selected, TC.$error, etc.)
+ * resolve to ANSI 16-color numbers in testEnv but to truecolor {r,g,b} objects in
+ * createTestApp. board._result.ansi also requires testEnv.
  *
  * Bug 1 (km-tui.cursor-colors): When a node is selected (yellow bg),
  * infoSuffix and dateBadge Text elements don't set color={style.textColor},
@@ -25,6 +26,7 @@ function cursor(nodeId: string): string {
   return `[id="${nodeId}"][data-cursor]`
 }
 
+// FREEZE: needs testEnv — palette color index comparisons (TC.$selectedfg, TC.$selected)
 describe("cursor colors (km-tui.cursor-colors)", () => {
   it("selected node date badge has black text on yellow background", () => {
     // Create a task with a due date far enough in the future to show as a short date
@@ -190,6 +192,7 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
 
 // =============================================================================
 // Cursor color override tests (selected cursor renders all text as black-on-yellow)
+// FREEZE: needs board._result.ansi for ANSI-level color assertions
 // =============================================================================
 
 /**
@@ -268,6 +271,7 @@ function hasNonBlackForeground(ansi: string): boolean {
   return false
 }
 
+// FREEZE: needs board._result.ansi for ANSI-level color assertions
 describe("cursor color override", () => {
   it("selected node with inline code renders without colored foreground", () => {
     const { board } = testEnv(() => item("board", item("col1", item.task("Fix the `config` bug"))), {
@@ -341,10 +345,7 @@ describe("cursor color override", () => {
 // =============================================================================
 // Selected card color tests (km-tui.selected-color, km-tui.fold-count-color, km-tui.date-range-color)
 //
-// All content on a selected card should be black-on-yellow (fg=0, bg=3).
-// This includes: title, date badges, fold counts, info suffixes.
-//
-// Date ranges on non-selected cards should use green for future/today, red for overdue.
+// FREEZE: palette color index comparisons (TC.$selected, TC.$selectedfg, TC.$error, etc.)
 // =============================================================================
 
 /** Helper: find first occurrence of text in a given row, return x position */
@@ -374,6 +375,7 @@ function expectCellRangeColor(
   }
 }
 
+// FREEZE: needs testEnv — palette color index comparisons
 describe("km-tui.selected-color: all selected card content is black-on-yellow", () => {
   it("date badge on selected card is $selectedfg on $selected", () => {
     const nodes = item("board", item("col1", item.task("taskWithDate")))
@@ -446,6 +448,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
 // Child count is hidden in cards (hideChildCount) — fold-count-color tests
 // only apply in outline/list mode where count is visible.
 
+// FREEZE: needs testEnv — palette color index comparisons
 describe("km-tui.date-range-color: date uses green/red when not selected", () => {
   it("overdue date on non-selected card shows $error fg", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("overdueTask")))
@@ -517,6 +520,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
   })
 })
 
+// FREEZE: needs testEnv — palette color index comparisons + cell.attrs.dim
 describe("km-tui.done-style: completed task date badge hidden, title dimmed", () => {
   it("done task hides date badge entirely (saves space, not relevant)", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneOverdue")))

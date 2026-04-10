@@ -1,6 +1,9 @@
 /**
  * Regression: List view incremental render mismatch after navigation.
  *
+ * FREEZE: entire file uses testEnv — all tests access board._result.lastBuffer()
+ * and board._result.freshRender() for incremental vs fresh buffer comparison.
+ *
  * After navigating with j/k/h/l in list view mode, the incremental render
  * diverges from a fresh render. All seeds fail for medium and scrolling
  * fixtures in list view, while cards and columns views work correctly.

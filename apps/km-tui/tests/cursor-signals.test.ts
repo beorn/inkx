@@ -17,7 +17,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
@@ -137,19 +137,22 @@ describe("cursor persistence through zoom", () => {
 // =============================================================================
 
 describe("cursor skips hidden nodes", () => {
-  // FREEZE: needs store.getState() — sets pane.signals.hiddenNodeIds() directly
   test("hidden column skipped during h/l navigation", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2-hidden", item("2a")), item("col3", item("3a"))),
+    using app = createTestApp(
+      item("board", item("col1", item("1a")), item("col2-hidden", item("2a")), item("col3", item("3a"))),
       { incremental: false },
     )
-    const pane = store.getState().workspace.panes.get("main") as any
-    if (pane?.signals) pane.signals.hiddenNodeIds(new Set(["col2-hidden"]))
-    board.press("l")
-    const c = store.getState().sel.node.cursor() as string | null
-    expect(c, "cursor must not be null").not.toBeNull()
-    expect(c).not.toBe("col2-hidden")
-    expect(c).not.toBe("2a")
+    app.withStore((s) => {
+      const pane = s.workspace.panes.get("main") as any
+      if (pane?.signals) pane.signals.hiddenNodeIds(new Set(["col2-hidden"]))
+    })
+    app.press("l")
+    app.withStore((s) => {
+      const c = s.sel.node.cursor() as string | null
+      expect(c, "cursor must not be null").not.toBeNull()
+      expect(c).not.toBe("col2-hidden")
+      expect(c).not.toBe("2a")
+    })
   })
 })
 

@@ -12,6 +12,7 @@
  * @see curswanty-regression.test.tsx - specific regression tests
  * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
  */
+// FREEZE: all tests need white-box API (registry from testEnv) — registry is not exposed by createTestApp
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 

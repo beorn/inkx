@@ -7,7 +7,7 @@ import { describe, test, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName } from "../src/state.ts"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { createViewLens, createVisibleLens } from "@km/board"
 
@@ -114,22 +114,21 @@ describe("Render", () => {
 // Console toggle (Bug: backtick doesn't work due to stale pause/resume refs)
 // =============================================================================
 
-// FREEZE: needs store.getState().ui.showConsole
 describe("Console toggle", () => {
   test("backtick sets showConsole to true", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // Initially console is hidden
-    expect(store.getState().ui.showConsole).toBe(false)
+    app.withStore((s) => expect(s.ui.showConsole).toBe(false))
 
     // Press backtick to toggle console
-    board.press("`")
+    app.press("`")
 
     // showConsole should be true
-    expect(store.getState().ui.showConsole).toBe(true)
+    app.withStore((s) => expect(s.ui.showConsole).toBe(true))
 
     // Press backtick again to toggle back
-    board.press("`")
-    expect(store.getState().ui.showConsole).toBe(false)
+    app.press("`")
+    app.withStore((s) => expect(s.ui.showConsole).toBe(false))
   })
 })

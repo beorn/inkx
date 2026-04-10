@@ -23,11 +23,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
-
-// NOTE: "Indent/Outdent during inline edit mode" tests below use testEnv
-// because they need board.expectEditing() which is not exposed by createTestApp.
 
 // Helper: get child IDs of a parent from repo
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
@@ -738,24 +735,22 @@ describe("Indent visibility (regression: tab-disappear)", () => {
 // Indent/Outdent during inline edit mode
 // =============================================================================
 
-// FREEZE: needs white-box API — these tests use `board.expectEditing()` which is not exposed by createTestApp.
-// Entire describe block stays on testEnv.
 describe("Indent/Outdent during inline edit mode", () => {
   test("Tab indents node while in inline edit mode", () => {
-    const { board, repo } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
-    board.command("cursor_down") // → task2
-    board.press("Enter") // enter inline edit mode
-    board.expectEditing("task2")
+    app.command("cursor_down") // → task2
+    app.press("Enter") // enter inline edit mode
+    app.expectEditing("task2")
 
-    board.press("Tab") // indent task2 under task1
+    app.press("Tab") // indent task2 under task1
 
     // task2 should now be a child of task1
-    expect(childIds(repo, "task1")).toContain("task2")
-    expect(childIds(repo, "col")).toEqual(["task1", "task3"])
+    expect(childIds(app.repo, "task1")).toContain("task2")
+    expect(childIds(app.repo, "col")).toEqual(["task1", "task3"])
 
     // Should still be in inline edit mode
-    board.expectEditing()
+    app.expectEditing()
   })
 
   test("Tab on first child in inline edit is no-op (no previous sibling)", () => {
@@ -767,55 +762,53 @@ describe("Indent/Outdent during inline edit mode", () => {
     // lands on sub1. Enter inline edit on sub1, then press Tab. Sub1 is the
     // first child so indent should be a no-op — but it was indenting card1
     // (which had card0 as previous sibling).
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("card0"), item("card1", item("sub1"), item("sub2")))),
-    )
+    using app = createTestApp(item("board", item("col", item("card0"), item("card1", item("sub1"), item("sub2")))))
 
-    board.command("cursor_down") // → card1
-    board.command("block_nav_down") // J: enter card1's children → sub1 (outline mode)
-    board.press("Enter") // enter inline edit on sub1
+    app.command("cursor_down") // → card1
+    app.command("block_nav_down") // J: enter card1's children → sub1 (outline mode)
+    app.press("Enter") // enter inline edit on sub1
 
-    board.expectEditing("sub1")
+    app.expectEditing("sub1")
 
-    const parentBefore = repo.getNode("sub1")?.parent_id
+    const parentBefore = app.repo.getNode("sub1")?.parent_id
     expect(parentBefore).toBe("card1")
 
-    board.press("Tab") // should be no-op — sub1 is first child
+    app.press("Tab") // should be no-op — sub1 is first child
 
     // sub1 should NOT have moved — still a child of card1
-    expect(repo.getNode("sub1")?.parent_id).toBe(parentBefore)
+    expect(app.repo.getNode("sub1")?.parent_id).toBe(parentBefore)
     // card1 should NOT have been indented under card0
-    expect(childIds(repo, "col")).toContain("card1")
-    expect(childIds(repo, "card1")).toEqual(["sub1", "sub2"])
+    expect(childIds(app.repo, "col")).toContain("card1")
+    expect(childIds(app.repo, "card1")).toEqual(["sub1", "sub2"])
   })
 
   test("Tab on second child in inline edit indents under first child", () => {
     // When editing sub2 (which has sub1 as prev sibling),
     // Tab should indent sub2 under sub1 — not move the parent card.
-    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1"), item("sub2")))))
+    using app = createTestApp(item("board", item("col", item("card1", item("sub1"), item("sub2")))))
 
-    board.command("block_nav_down") // J: enter card1's children → sub1
-    board.command("cursor_down") // → sub2
-    board.press("Enter") // enter inline edit on sub2
-    board.expectEditing("sub2")
+    app.command("block_nav_down") // J: enter card1's children → sub1
+    app.command("cursor_down") // → sub2
+    app.press("Enter") // enter inline edit on sub2
+    app.expectEditing("sub2")
 
-    board.press("Tab") // indent sub2 under sub1
+    app.press("Tab") // indent sub2 under sub1
 
-    expect(repo.getNode("sub2")?.parent_id).toBe("sub1")
+    expect(app.repo.getNode("sub2")?.parent_id).toBe("sub1")
   })
 
   test("Shift+Tab outdents sub-item in inline edit mode", () => {
     // In inline edit mode on a nested child, Shift+Tab should outdent the
     // sub-item, not the card.
-    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1", item("nested"))))))
+    using app = createTestApp(item("board", item("col", item("card1", item("sub1", item("nested"))))))
 
-    board.command("block_nav_down") // J: enter card1 → sub1
-    board.command("block_nav_down") // J: enter sub1 → nested
-    board.press("Enter") // enter inline edit on nested
-    board.expectEditing("nested")
+    app.command("block_nav_down") // J: enter card1 → sub1
+    app.command("block_nav_down") // J: enter sub1 → nested
+    app.press("Enter") // enter inline edit on nested
+    app.expectEditing("nested")
 
-    board.press("shift+Tab") // outdent nested to sibling of sub1
+    app.press("shift+Tab") // outdent nested to sibling of sub1
 
-    expect(repo.getNode("nested")?.parent_id).toBe("card1")
+    expect(app.repo.getNode("nested")?.parent_id).toBe("card1")
   })
 })

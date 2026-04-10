@@ -1,4 +1,3 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: bell + act for feature-level integration tests
 /**
  * Board Feature Tests - Display, Search, Content, Folding, etc.
  *
@@ -7,30 +6,14 @@
  */
 
 import { describe, test, expect, vi } from "vitest"
-import { act } from "react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
-import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
-import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
-import { dispatchCommandById } from "../src/board/board-app.ts"
-
-/**
- * Open the search dialog via the "search" command.
- * After dispatching, press Backspace to flush the silvery render pipeline.
- * The dialog text input is empty at this point, so Backspace is a no-op.
- */
-function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
-  act(() => {
-    dispatchCommandById("search", store.getState as () => BoardAppStore)
-    store.setState((s) => s)
-  })
-  board.press("Backspace") // flush silvery render pipeline
-}
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Display", () => {
   test("board shows header path on first render", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
-    const output = board.screenshot()
+    using app = createTestApp(item("board", item("col", item("task"))))
+    const output = app.text
     expect(output).toContain("board")
     expect(output).toContain("task")
     const lines = output.split("\n").filter((l) => l.trim().length > 0)
@@ -38,8 +21,8 @@ describe("Display", () => {
   })
 
   test("card content does not overflow into borders", () => {
-    const { board } = testEnv(() => item("board", item("col", item("Stretching exercises for morning routine"))))
-    const output = board.screenshot()
+    using app = createTestApp(item("board", item("col", item("Stretching exercises for morning routine"))))
+    const output = app.text
     const lines = output.split("\n")
     for (const line of lines) {
       const hasOverflow = /[a-zA-Z]\u2500|\u2500[a-zA-Z]/.test(line)
@@ -50,11 +33,10 @@ describe("Display", () => {
   test("columns show side by side", () => {
     // Use wider terminal (120 columns) so 3 columns fit side by side
     // Use item.section() to create oi-type column nodes (leaf item() creates li, not columns)
-    const { board } = testEnv(
-      () => item("board", item.section("Todo"), item.section("InProgress"), item.section("Done")),
-      { columns: 120 },
-    )
-    const output = board.screenshot()
+    using app = createTestApp(item("board", item.section("Todo"), item.section("InProgress"), item.section("Done")), {
+      cols: 120,
+    })
+    const output = app.text
     expect(output).toContain("Todo")
     expect(output).toContain("InProgress")
     expect(output).toContain("Done")
@@ -64,8 +46,8 @@ describe("Display", () => {
   })
 
   test("column headers hide card count without WIP limit", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
-    const output = board.screenshot()
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
+    const output = app.text
     // Count is hidden when no WIP limit is set — the +N overflow indicator is sufficient
     // Check that the column header "col" does not show the count "3"
     const lines = output.split("\n")
@@ -75,50 +57,42 @@ describe("Display", () => {
   })
 
   test("column headers show count/wip with WIP limit", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col km.limit:: 5", item("task1"), item("task2"), item("task3"))),
-    )
-    const output = board.screenshot()
+    using app = createTestApp(item("board", item("col km.limit:: 5", item("task1"), item("task2"), item("task3"))))
+    const output = app.text
     expect(output).toContain("3/5")
   })
 })
 
 describe("Content", () => {
   test("wiki links render without brackets", () => {
-    const { board } = testEnv(() => item("board", item("col", item("Check out [[my note]] for details"))))
-    const output = board.screenshot()
-    expect(output).toContain("my note")
-    expect(output).not.toContain("[[")
-    expect(output).not.toContain("]]")
+    using app = createTestApp(item("board", item("col", item("Check out [[my note]] for details"))))
+    expect(app.text).toContain("my note")
+    expect(app.text).not.toContain("[[")
+    expect(app.text).not.toContain("]]")
   })
 
   test("aliased wiki links show only the alias", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("See [[MDTasks/tasks-system|task-system]] for info"))),
-    )
-    const output = board.screenshot()
-    expect(output).toContain("task-system")
-    expect(output).not.toContain("MDTasks")
-    expect(output).not.toContain("[[")
-    expect(output).not.toContain("]]")
+    using app = createTestApp(item("board", item("col", item("See [[MDTasks/tasks-system|task-system]] for info"))))
+    expect(app.text).toContain("task-system")
+    expect(app.text).not.toContain("MDTasks")
+    expect(app.text).not.toContain("[[")
+    expect(app.text).not.toContain("]]")
   })
 })
 
 describe("Dialogs", () => {
   test("new item dialog shows on cmd+shift+Enter and closes on Escape", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
     // cmd+shift+Enter opens new item dialog
-    board.press("cmd+shift+Enter")
-    let output = board.screenshot()
-    expect(output).toContain("New")
-    expect(output).toContain("Enter create")
-    expect(output).toContain("Esc cancel")
+    app.press("cmd+shift+Enter")
+    expect(app.text).toContain("New")
+    expect(app.text).toContain("Enter create")
+    expect(app.text).toContain("Esc cancel")
 
     // Escape closes dialog
-    board.press("\x1b")
-    output = board.screenshot()
-    expect(output).not.toContain("Enter create")
+    app.press("Escape")
+    expect(app.text).not.toContain("Enter create")
   })
 })
 
@@ -153,7 +127,7 @@ describe("Folding", () => {
 
 describe("Text Rendering", () => {
   test("long card content wraps within card bounds", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -161,9 +135,9 @@ describe("Text Rendering", () => {
           item("This is a very long task description that should wrap within the card boundaries and not overflow"),
         ),
       ),
+      { cols: 80 },
     )
-    const output = board.screenshot()
-    const lines = output.split("\n")
+    const lines = app.text.split("\n")
     // No line should be wider than terminal width
     for (const line of lines) {
       expect(line.length).toBeLessThanOrEqual(80)
@@ -172,23 +146,20 @@ describe("Text Rendering", () => {
 
   test("truncation shows ellipsis for very long titles", () => {
     const longTitle = "A".repeat(200)
-    const { board } = testEnv(() => item("board", item("col", item(longTitle))))
-    const output = board.screenshot()
-    expect(output).toContain("\u2026") // U+2026 horizontal ellipsis (from silvery truncateText)
+    using app = createTestApp(item("board", item("col", item(longTitle))))
+    expect(app.text).toContain("\u2026") // U+2026 horizontal ellipsis (from silvery truncateText)
   })
 
   test("special characters render correctly", () => {
-    const { board } = testEnv(() => item("board", item("col", item("Task with émojis 🎉 and àccents"))))
-    const output = board.screenshot()
-    expect(output).toContain("🎉")
-    expect(output).toContain("à")
+    using app = createTestApp(item("board", item("col", item("Task with émojis 🎉 and àccents"))))
+    expect(app.text).toContain("🎉")
+    expect(app.text).toContain("à")
   })
 
   test("markdown formatting is stripped in card view", () => {
-    const { board } = testEnv(() => item("board", item("col", item("**bold** and *italic* text"))))
-    const output = board.screenshot()
-    expect(output).not.toContain("**")
-    expect(output).not.toContain("*")
+    using app = createTestApp(item("board", item("col", item("**bold** and *italic* text"))))
+    expect(app.text).not.toContain("**")
+    expect(app.text).not.toContain("*")
   })
 })
 
@@ -537,117 +508,115 @@ describe("Terminal Sizes", () => {
 
 describe("Search and Filter", () => {
   test("search command opens search dialog with title and footer", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    openSearchDialog(store, board)
-    const output = board.screenshot()
-    expect(output).toContain("Search")
-    expect(output).toContain("All")
-    expect(output).toContain("Enter go")
-    expect(output).toContain("Esc cancel")
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.dispatch("search")
+    app.press("Backspace") // flush silvery render pipeline
+    expect(app.text).toContain("Search")
+    expect(app.text).toContain("All")
+    expect(app.text).toContain("Enter go")
+    expect(app.text).toContain("Esc cancel")
   })
 
   test("search shows multiple results on consecutive lines", () => {
-    // Create items with long titles that will be truncated
-    const { board, store } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col", item("Task Alpha with long title"), item("Task Beta with long title"), item("Task Gamma short")),
       ),
     )
-    openSearchDialog(store, board)
+    app.dispatch("search")
+    app.press("Backspace") // flush silvery render pipeline
     // Type query to trigger results (min 2 chars required)
-    board.command("task_dialog")
-    board.press("a")
-    const output = board.screenshot()
+    app.command("task_dialog")
+    app.press("a")
     // Results should all appear in the output
-    expect(output).toContain("Task Alpha")
-    expect(output).toContain("Task Beta")
-    expect(output).toContain("Task Gamma")
+    expect(app.text).toContain("Task Alpha")
+    expect(app.text).toContain("Task Beta")
+    expect(app.text).toContain("Task Gamma")
   })
 
   test("Escape closes search dialog", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
-    openSearchDialog(store, board)
-    expect(board.screenshot()).toContain("Search")
-    board.press("\x1b")
-    expect(board.screenshot()).not.toContain("Enter go")
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    expect(app.text).toContain("Search")
+    app.press("Escape")
+    expect(app.text).not.toContain("Enter go")
   })
 
   test("typing immediately after search open captures all characters", () => {
     // Bug repro: keypresses are eaten while search dialog opens
     // The lazy loading via useEffect + startTransition should not block input
-    const { board, store } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
+    using app = createTestApp(item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
 
     // Type "/" followed immediately by a query - all characters should be captured
-    openSearchDialog(store, board)
-    board.press("a")
-    board.command("cursor_right")
-    board.press("p")
-    board.command("cursor_left")
-    board.press("a")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    app.press("a")
+    app.command("cursor_right")
+    app.press("p")
+    app.command("cursor_left")
+    app.press("a")
 
-    const output = board.screenshot()
     // The input field should contain "alpha" - no characters lost
-    expect(output).toContain("alpha")
+    expect(app.text).toContain("alpha")
     // And alpha should be the selected result (filtered to just that match)
-    expect(output).toContain("▸") // Selection indicator on a result
+    expect(app.text).toContain("▸") // Selection indicator on a result
   })
 
   test("search scrolling renders results without artifacts", () => {
     // Create many items to trigger scrolling (>13 visible in default 24-row terminal)
-    const { board, store } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col",
-            item("Task 01"),
-            item("Task 02"),
-            item("Task 03"),
-            item("Task 04"),
-            item("Task 05"),
-            item("Task 06"),
-            item("Task 07"),
-            item("Task 08"),
-            item("Task 09"),
-            item("Task 10"),
-            item("Task 11"),
-            item("Task 12"),
-            item("Task 13"),
-            item("Task 14"),
-            item("Task 15"),
-            item("Task 16"),
-            item("Task 17"),
-            item("Task 18"),
-            item("Task 19"),
-            item("Task 20"),
-          ),
+          "col",
+          item("Task 01"),
+          item("Task 02"),
+          item("Task 03"),
+          item("Task 04"),
+          item("Task 05"),
+          item("Task 06"),
+          item("Task 07"),
+          item("Task 08"),
+          item("Task 09"),
+          item("Task 10"),
+          item("Task 11"),
+          item("Task 12"),
+          item("Task 13"),
+          item("Task 14"),
+          item("Task 15"),
+          item("Task 16"),
+          item("Task 17"),
+          item("Task 18"),
+          item("Task 19"),
+          item("Task 20"),
         ),
-      {},
+      ),
+      { rows: 24 },
     )
-    openSearchDialog(store, board)
+    app.dispatch("search")
+    app.press("Backspace") // flush
     // Type query to trigger results (min 2 chars required)
-    board.command("task_dialog")
-    board.press("a")
+    app.command("task_dialog")
+    app.press("a")
 
     // Get initial state - first few tasks should be visible
-    let output = board.screenshot()
-    expect(output).toContain("Task 01")
-    expect(output).toContain("Task 02")
+    expect(app.text).toContain("Task 01")
+    expect(app.text).toContain("Task 02")
 
     // Navigate down to trigger scrolling (j or ArrowDown moves selection)
     for (let i = 0; i < 15; i++) {
-      board.press("ArrowDown")
+      app.press("ArrowDown")
     }
 
     // After scrolling, tasks 15-16 should be visible, earlier tasks may scroll out
-    output = board.screenshot()
-    expect(output).toContain("Task 15")
-    expect(output).toContain("Task 16")
+    expect(app.text).toContain("Task 15")
+    expect(app.text).toContain("Task 16")
 
     // Key check: Each result line should appear only ONCE (no duplicates/overlap)
     // Count occurrences of "Task" - should be roughly equal to maxVisible (~13)
-    const taskMatches = output.match(/Task \d+/g) || []
+    const taskMatches = app.text.match(/Task \d+/g) || []
     // Should have ~13 matches (one per visible row), not more (no duplicates)
     expect(taskMatches.length).toBeLessThanOrEqual(15) // Allow small buffer
     // And definitely not 20+ (which would indicate duplicate rendering)
@@ -656,7 +625,7 @@ describe("Search and Filter", () => {
 
   test("Enter navigates to visible node (same view)", () => {
     // Create a board with multiple columns and tasks
-    const { board, store } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("Col1", item("Task Alpha"), item("Task Beta")),
@@ -665,15 +634,15 @@ describe("Search and Filter", () => {
     )
 
     // Open search and type to filter
-    openSearchDialog(store, board)
-    for (const c of "Gamma") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "Gamma") app.press(c)
+    app.press("Enter")
 
     // Dialog should close and navigate to Task Gamma
-    const output = board.screenshot()
-    expect(output).not.toContain("Enter go") // Dialog closed
+    expect(app.text).not.toContain("Enter go") // Dialog closed
     // The navigation should show Task Gamma in the path (zoomed or selected)
-    expect(output).toContain("Task Gamma")
+    expect(app.text).toContain("Task Gamma")
   })
 
   test("Enter navigates to nested node (zooms to grandparent)", () => {
@@ -681,73 +650,71 @@ describe("Search and Filter", () => {
     // board > Projects > Active (column) > Task Deep (card)
     // When viewing board, only Projects is visible as column header
     // Task Deep is 3 levels down (card of Active, which is card of Projects)
-    const { board, store } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("Projects", item("Active", item("Task Deep")), item("Archive", item("Old Task")))),
     )
 
     // Board shows columns at top level - zoom out first to test
-    board.command("zoom_outwards") // Zoom out
-    let output = board.screenshot()
+    app.command("zoom_outwards") // Zoom out
 
     // Open search and select a deeply nested item
-    openSearchDialog(store, board)
-    for (const c of "Task Deep") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "Task Deep") app.press(c)
+    app.press("Enter")
 
     // Dialog should close
-    output = board.screenshot()
-    expect(output).not.toContain("Enter go") // Dialog closed
+    expect(app.text).not.toContain("Enter go") // Dialog closed
     // The view should show Task Deep (zoomed in to show it)
-    expect(output).toContain("Task Deep")
+    expect(app.text).toContain("Task Deep")
   })
 
   test("Enter navigates to section within file (deeply nested)", () => {
     // Simulate file > section structure
     // Vault > Notes > Doc1 > Section A
-    const { board, store } = testEnv(() =>
+    using app = createTestApp(
       item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")), item("Doc2", item("Section X")))),
     )
 
     // Zoom out to vault level first
-    board.command("zoom_outwards")
-    let output = board.screenshot()
+    app.command("zoom_outwards")
 
     // Search for a deeply nested section
-    openSearchDialog(store, board)
-    for (const c of "Section A") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "Section A") app.press(c)
+    app.press("Enter")
 
     // Dialog should close and section should be visible after zoom
-    output = board.screenshot()
-    expect(output).not.toContain("Enter go") // Dialog closed
-    expect(output).toContain("Section A")
+    expect(app.text).not.toContain("Enter go") // Dialog closed
+    expect(app.text).toContain("Section A")
   })
 
   test("Enter on search result puts cursor on the selected item", () => {
     // Bug repro: search Enter on non-file items doesn't set cursor
     // Vault > Notes > Doc1 > Section A, Section B
-    const { board, store } = testEnv(() =>
-      item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")))),
-    )
+    using app = createTestApp(item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")))))
 
     // Zoom out to vault level
-    board.press("Escape")
+    app.press("Escape")
 
     // Search for Section A and select it
-    openSearchDialog(store, board)
-    for (const c of "Section A") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "Section A") app.press(c)
+    app.press("Enter")
 
     // Zoom should navigate to Notes (grandparent) making Doc1 a column
     // and Section A a card with the cursor on it
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("Notes")
-    expect(pane.sel.node.cursor() as string | null).toBe("Section A")
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("Notes")
+      expect(pane.sel.node.cursor() as string | null).toBe("Section A")
+    })
 
     // Section A should be visible and have cursor
-    const output = board.screenshot()
-    expect(output).toContain("Section A")
-    expect(board.q('[id="Section A"][data-cursor]').count()).toBeGreaterThan(0)
+    expect(app.text).toContain("Section A")
+    expect(app.q('[id="Section A"][data-cursor]').count()).toBeGreaterThan(0)
   })
 
   test("search navigation: cursor lands on target, not parent (depth 3)", () => {
@@ -755,84 +722,92 @@ describe("Search and Filter", () => {
     // Tree: board > col > card > leaf-target
     // From board root, searching for leaf-target should zoom to col
     // and place cursor on leaf-target itself (as a card under col)
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("card-parent", item("leaf-target"), item("other-leaf")))),
-    )
+    using app = createTestApp(item("board", item("col", item("card-parent", item("leaf-target"), item("other-leaf")))))
 
     // Board root = "board", columns = [col], cards = [card-parent]
     // leaf-target is a grandchild of col, not directly visible as a card
-    openSearchDialog(store, board)
-    for (const c of "leaf-target") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "leaf-target") app.press(c)
+    app.press("Enter")
 
     // After navigation: root should be "col" (grandparent of leaf-target)
     // making card-parent a column and leaf-target a card
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("col")
-    expect(pane.sel.node.cursor() as string | null).toBe("leaf-target")
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("col")
+      expect(pane.sel.node.cursor() as string | null).toBe("leaf-target")
+    })
 
     // Cursor should be on the target node itself
-    board.expect("#leaf-target[data-cursor]").toExist()
+    app.expect("#leaf-target[data-cursor]").toExist()
   })
 
   test("search navigation: depth-2 target selected in place (no zoom needed)", () => {
     // Target is already a card in the current view (grandchild of root)
-    const { board, store } = testEnv(() => item("board", item("col", item("visible-card"), item("another-card"))))
+    using app = createTestApp(item("board", item("col", item("visible-card"), item("another-card"))))
 
-    openSearchDialog(store, board)
-    for (const c of "another-card") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "another-card") app.press(c)
+    app.press("Enter")
 
     // Should NOT zoom — just select the card in place
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("board")
-    expect(pane.sel.node.cursor() as string | null).toBe("another-card")
-    board.expect("#another-card[data-cursor]").toExist()
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("board")
+      expect(pane.sel.node.cursor() as string | null).toBe("another-card")
+    })
+    app.expect("#another-card[data-cursor]").toExist()
   })
 
   test("search navigation: depth-4 target becomes card after zoom", () => {
     // Tree: root > A > B > C > target
     // Target at depth 4 from root. Should zoom to C's grandparent (B)
     // making C a column and target a card.
-    const { board, store } = testEnv(() => item("root", item("A", item("B", item("C", item("deep-target"))))))
+    using app = createTestApp(item("root", item("A", item("B", item("C", item("deep-target"))))))
 
-    openSearchDialog(store, board)
-    for (const c of "deep-target") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "deep-target") app.press(c)
+    app.press("Enter")
 
     // ancestors = [deep-target, C, B, A, root]
     // grandparent = B → zoom to B, making C a column and deep-target a card
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("B")
-    expect(pane.sel.node.cursor() as string | null).toBe("deep-target")
-    board.expect("#deep-target[data-cursor]").toExist()
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("B")
+      expect(pane.sel.node.cursor() as string | null).toBe("deep-target")
+    })
+    app.expect("#deep-target[data-cursor]").toExist()
   })
 
   test("search navigation: depth-5 target lands on actual matched node, not parent", () => {
     // km-tui.search-nav regression: deeply nested nodes must zoom to grandparent
     // and cursor must land on target itself, not its parent section.
     // Tree: root > A > B > C > D > very-deep-target
-    const { board, store } = testEnv(() =>
-      item("root", item("A", item("B", item("C", item("D", item("very-deep-target")))))),
-    )
+    using app = createTestApp(item("root", item("A", item("B", item("C", item("D", item("very-deep-target")))))))
 
-    openSearchDialog(store, board)
-    for (const c of "very-deep-target") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "very-deep-target") app.press(c)
+    app.press("Enter")
 
     // ancestors = [very-deep-target, D, C, B, A, root]
     // grandparent (index 2) = C → zoom to C, D becomes column, very-deep-target becomes card
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("C")
-    expect(pane.sel.node.cursor() as string | null).toBe("very-deep-target")
-    board.expect("#very-deep-target[data-cursor]").toExist()
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("C")
+      expect(pane.sel.node.cursor() as string | null).toBe("very-deep-target")
+    })
+    app.expect("#very-deep-target[data-cursor]").toExist()
   })
 
   test("Enter on paragraph search result navigates correctly", () => {
     // Bug repro: search Enter on paragraph/section types doesn't work
     // Use real node types: file > section > paragraph
     // Tree: Vault > Notes > MyDoc > Intro > China..., Another...
-    const { board, store } = testEnv(() =>
+    using app = createTestApp(
       item.root(
         "Vault",
         item.folder(
@@ -843,29 +818,31 @@ describe("Search and Filter", () => {
     )
 
     // Zoom out to vault level
-    board.press("Escape")
+    app.press("Escape")
 
     // Search for a paragraph inside a section inside a file
-    openSearchDialog(store, board)
-    for (const c of "China") board.press(c)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush
+    for (const c of "China") app.press(c)
+    app.press("Enter")
 
     // Dialog should close
-    const output = board.screenshot()
-    expect(output).not.toContain("Enter go") // Dialog closed
+    expect(app.text).not.toContain("Enter go") // Dialog closed
 
     // Zoom should navigate to MyDoc (grandparent of target paragraph)
     // making Intro a column and China... a card
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("MyDoc")
-    expect(pane.sel.node.cursor() as string | null).toBe("China domicile information")
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("MyDoc")
+      expect(pane.sel.node.cursor() as string | null).toBe("China domicile information")
+    })
 
     // The section header "Intro" should be visible (it's a column)
-    expect(output).toContain("Intro")
+    expect(app.text).toContain("Intro")
 
     // Cursor should be on the China paragraph
     expect(
-      board.q('[id="China domicile information"][data-cursor]').count(),
+      app.q('[id="China domicile information"][data-cursor]').count(),
       "Cursor should be on the searched paragraph",
     ).toBeGreaterThan(0)
   })
@@ -949,7 +926,7 @@ describe("Content Lines (+/-)", () => {
   test("multiple = presses progressively reveal more children", () => {
     // Uses 8 children so the "+1 more takes same space" optimization (effectiveMax)
     // doesn't interfere — that shows all N when N = maxContentLines + 1.
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item(
@@ -969,18 +946,18 @@ describe("Content Lines (+/-)", () => {
       ),
     )
     // Start: maxContentLines=3 (c1, c2, c3 visible; c4+ hidden)
-    expect(board.screenshot()).not.toContain("c4")
+    expect(app.text).not.toContain("c4")
 
-    board.command("increase_content_lines") // maxContentLines=4
-    expect(board.screenshot()).toContain("c4")
-    expect(board.screenshot()).not.toContain("c5")
+    app.command("increase_content_lines") // maxContentLines=4
+    expect(app.text).toContain("c4")
+    expect(app.text).not.toContain("c5")
 
-    board.command("increase_content_lines") // maxContentLines=5
-    expect(board.screenshot()).toContain("c5")
-    expect(board.screenshot()).not.toContain("c6")
+    app.command("increase_content_lines") // maxContentLines=5
+    expect(app.text).toContain("c5")
+    expect(app.text).not.toContain("c6")
 
-    board.command("increase_content_lines") // maxContentLines=6
-    expect(board.screenshot()).toContain("c6")
+    app.command("increase_content_lines") // maxContentLines=6
+    expect(app.text).toContain("c6")
   })
 
   test("=/- shows status feedback in bottom bar", () => {
@@ -996,66 +973,68 @@ describe("Content Lines (+/-)", () => {
 
 describe("Detail Pane Navigation", () => {
   test("detail pane stays open when navigating with j/k", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
+    using app = createTestApp(item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("toggle_detail_pane")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
 
     // Navigate down with j — detail pane should stay open
-    board.command("cursor_down")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("cursor_down")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
 
     // Navigate up with k — detail pane should stay open
-    board.command("cursor_up")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("cursor_up")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
   })
 
   test("detail pane updates to show new card when navigating with j/k", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+    using app = createTestApp(item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("toggle_detail_pane")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
     // Detail pane should contain card1 content
-    const screen1 = board.screenshot()
-    expect(screen1).toContain("card1")
+    expect(app.text).toContain("card1")
 
     // Navigate down to card2 — detail pane should update
-    board.command("cursor_down")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    const screen2 = board.screenshot()
-    expect(screen2).toContain("card2")
+    app.command("cursor_down")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
+    expect(app.text).toContain("card2")
   })
 
   test("Space closes detail pane", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+    using app = createTestApp(item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("toggle_detail_pane")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
 
     // Space again should close it
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.command("toggle_detail_pane")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(false))
   })
 
   test("Escape from detail: unfocus → close", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+    using app = createTestApp(item("board", item("col", item("card1"), item("card2"))))
 
     // D opens + auto-focuses detail pane
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    app.command("toggle_detail_pane")
+    app.withStore((s) => {
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+      expect(s.workspace.focusedPaneId).toBe("main-detail")
+    })
 
     // Escape 1: unfocus detail → return to board (pane stays open)
-    board.press("Escape")
-    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("Escape")
+    app.withStore((s) => {
+      expect(s.workspace.focusedPaneId).not.toBe("main-detail")
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+    })
 
     // Escape 2: close pane
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.press("Escape")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(false))
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
@@ -1065,23 +1044,23 @@ describe("Detail Pane Navigation", () => {
     try {
       // Detail pane takes 40% of width; need both columns visible alongside it.
       // At 120 cols: boardWidth = 72, which fits 2 × 35-char columns.
-      const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
-        columns: 120,
+      using app = createTestApp(item("board", item("col1", item("card1")), item("col2", item("card2"))), {
+        cols: 120,
       })
 
       // D opens + auto-focuses detail pane, h returns to board
-      board.command("toggle_detail_pane")
-      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-      board.command("cursor_left") // return to board
+      app.command("toggle_detail_pane")
+      app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
+      app.command("cursor_left") // return to board
 
       // h/l should navigate columns — detail pane stays open
-      board.command("cursor_right")
-      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-      board.expect("#card2[data-cursor]").toExist()
+      app.command("cursor_right")
+      app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
+      app.expect("#card2[data-cursor]").toExist()
 
-      board.command("cursor_left")
-      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-      board.expect("#card1[data-cursor]").toExist()
+      app.command("cursor_left")
+      app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(true))
+      app.expect("#card1[data-cursor]").toExist()
     } finally {
       errorSpy.mockRestore()
     }

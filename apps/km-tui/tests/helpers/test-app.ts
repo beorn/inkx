@@ -155,6 +155,8 @@ export interface TestAppState {
   overlay: string | null
   /** Bell count (number of times bell was triggered) */
   bell: number
+  /** Node ID being edited (inline text edit), or null */
+  editing: string | null
   /** Visible node IDs (from the tree) */
   visible: string[]
 }
@@ -236,6 +238,26 @@ export interface TestApp {
    * ```
    */
   column(title: string): NodeHandle
+  /**
+   * Assert inline edit mode is active. If nodeId given, asserts that specific node is being edited.
+   * Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.press("i").expectEditing("task1")
+   * app.press("i").expectEditing() // any node
+   * ```
+   */
+  expectEditing(nodeId?: string): TestApp
+  /**
+   * Assert inline edit mode is NOT active. Chainable.
+   *
+   * @example
+   * ```typescript
+   * app.press("Escape").expectNotEditing()
+   * ```
+   */
+  expectNotEditing(): TestApp
   /** Assert that the screen contains the given text. Chainable. */
   expectScreen(text: string): TestApp
   /** Assert that the screen does NOT contain the given text. Chainable. */
@@ -245,7 +267,14 @@ export interface TestApp {
   /** Assert cell character at screen position. Chainable. */
   expectCellChar(x: number, y: number, char: string): TestApp
   /** Assert cell fg/bg color at screen position. Chainable. */
-  expectCellColor(x: number, y: number, opts: { fg?: number | null; bg?: number | null }): TestApp
+  expectCellColor(
+    x: number,
+    y: number,
+    opts: {
+      fg?: { r: number; g: number; b: number } | number | null
+      bg?: { r: number; g: number; b: number } | number | null
+    },
+  ): TestApp
   /**
    * Simulate a left mouse click at terminal coordinates (x, y). Chainable.
    *
@@ -279,7 +308,11 @@ export interface TestApp {
    */
   expectNodeColor(
     nodeId: string,
-    opts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+    opts: {
+      fg?: { r: number; g: number; b: number } | number | null
+      bg?: { r: number; g: number; b: number } | number | null
+      attrs?: Record<string, boolean>
+    },
   ): TestApp
   /**
    * Assert no ghost/leftover characters on screen: NUL bytes, stray control
@@ -557,12 +590,17 @@ function getHeadlessState(driver: BoardDriver): TestAppState {
 
   const bellCount = driver.locator("[data-bell]").count()
 
+  // Check inline edit state
+  const textSel = board?.sel.text()
+  const editing = (textSel?.nodeId as string | undefined) ?? null
+
   return {
     cursor: cursorId,
     selection,
     view: (ds.viewMode ?? "cards") as ViewMode,
     overlay,
     bell: bellCount,
+    editing,
     visible,
   }
 }
@@ -966,6 +1004,22 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       return getHeadlessNodeHandleByTitle(driver, title)
     },
 
+    expectEditing(nodeId?: string): TestApp {
+      const textSel = driver.store.getState().sel?.text()
+      if (nodeId) {
+        expect(textSel?.nodeId, `expected editing "${nodeId}"`).toBe(nodeId)
+      } else {
+        expect(textSel, "expected to be in edit mode").not.toBeNull()
+      }
+      return app
+    },
+
+    expectNotEditing(): TestApp {
+      const textSel = driver.store.getState().sel?.text()
+      expect(textSel, "expected NOT to be in edit mode").toBeNull()
+      return app
+    },
+
     expectScreen(text: string): TestApp {
       expect(driver.containsText(text)).toBe(true)
       return app
@@ -1044,7 +1098,11 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
 
     expectNodeColor(
       nodeId: string,
-      colorOpts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+      colorOpts: {
+        fg?: { r: number; g: number; b: number } | number | null
+        bg?: { r: number; g: number; b: number } | number | null
+        attrs?: Record<string, boolean>
+      },
     ): TestApp {
       const loc = driver.locator(`[id="${nodeId}"]`)
       expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
@@ -1290,12 +1348,17 @@ function getTermlessState(
 
   const bellCount = getLocator("[data-bell]").count()
 
+  // Check inline edit state
+  const textSel = board?.sel.text()
+  const editing = (textSel?.nodeId as string | undefined) ?? null
+
   return {
     cursor: cursorId,
     selection,
     view: (board?.viewMode ?? fallbackViewMode) as ViewMode,
     overlay,
     bell: bellCount,
+    editing,
     visible,
   }
 }
@@ -1665,7 +1728,15 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
     get state(): TestAppState {
       if (!handle) {
-        return { cursor: null, selection: [], view: viewMode as ViewMode, overlay: null, bell: 0, visible: [] }
+        return {
+          cursor: null,
+          selection: [],
+          view: viewMode as ViewMode,
+          overlay: null,
+          bell: 0,
+          editing: null,
+          visible: [],
+        }
       }
       return getTermlessState(handle, boardApp, viewMode as ViewMode, getLocator)
     },
@@ -1683,6 +1754,24 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     column(title: string): NodeHandle {
       if (!handle) return nullNodeHandle
       return getTermlessNodeHandleByTitle(handle, boardApp, title, repo, getLocator)
+    },
+
+    expectEditing(nodeId?: string): TestApp {
+      if (!handle) throw new Error("expectEditing() called before handle is ready")
+      const textSel = handle.store.getState().sel?.text()
+      if (nodeId) {
+        expect(textSel?.nodeId, `expected editing "${nodeId}"`).toBe(nodeId)
+      } else {
+        expect(textSel, "expected to be in edit mode").not.toBeNull()
+      }
+      return app
+    },
+
+    expectNotEditing(): TestApp {
+      if (!handle) throw new Error("expectNotEditing() called before handle is ready")
+      const textSel = handle.store.getState().sel?.text()
+      expect(textSel, "expected NOT to be in edit mode").toBeNull()
+      return app
     },
 
     expectScreen(text: string): TestApp {
@@ -1763,7 +1852,11 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
 
     expectNodeColor(
       nodeId: string,
-      colorOpts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> },
+      colorOpts: {
+        fg?: { r: number; g: number; b: number } | number | null
+        bg?: { r: number; g: number; b: number } | number | null
+        attrs?: Record<string, boolean>
+      },
     ): TestApp {
       const loc = getLocator(`[id="${nodeId}"]`)
       expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)

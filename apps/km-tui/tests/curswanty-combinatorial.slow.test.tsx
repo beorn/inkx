@@ -9,7 +9,8 @@
  * Fixtures mimic real vault characteristics: asymmetric columns (9 vs 2 vs 8),
  * cards with varying child counts (tall vs short), mixed empty/populated columns.
  */
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 import { describe, test, expect } from "vitest"
 
 // =============================================================================
@@ -28,19 +29,19 @@ function tallCard(name: string, childCount: number): ReturnType<typeof item> {
 }
 
 /** Extract column prefix + card number from cursor text (e.g., "B03" → {prefix:"B", num:3}) */
-function cursorCardNum(board: ReturnType<typeof testEnv>["board"]): {
+function cursorCardNum(app: TestApp): {
   prefix: string
   num: number
 } {
-  const text = board.q("[data-cursor]").textContent()
+  const text = app.q("[data-cursor]").textContent()
   const match = text.match(/([A-Z])(\d+)/)
   if (!match) throw new Error(`Cannot parse cursor text: "${text}"`)
   return { prefix: match[1]!, num: parseInt(match[2]!, 10) }
 }
 
 /** Get cursor text content */
-function cursorText(board: ReturnType<typeof testEnv>["board"]): string {
-  return board.q("[data-cursor]").textContent()
+function cursorText(app: TestApp): string {
+  return app.q("[data-cursor]").textContent()
 }
 
 // =============================================================================
@@ -220,7 +221,7 @@ interface Sequence {
   /** Keypresses to execute */
   keys: string[]
   /** Assertion to run after sequence */
-  assert: (board: ReturnType<typeof testEnv>["board"], fixture: Fixture) => void
+  assert: (app: TestApp, fixture: Fixture) => void
   /** Compatibility filter */
   requires?: {
     minCards?: number
@@ -238,9 +239,9 @@ const sequences: Sequence[] = [
   {
     name: "round-trip j4→l→h",
     keys: ["j", "j", "j", "j", "l", "h"],
-    assert: (board) => {
+    assert: (app) => {
       // Should return to a card in first column, not first card
-      const cursor = cursorCardNum(board)
+      const cursor = cursorCardNum(app)
       expect(cursor.prefix).toBe("A")
       // Went down 4 (to card 5), should be near there (within ±3 of target)
       expect(cursor.num).toBeGreaterThanOrEqual(2)
@@ -252,9 +253,9 @@ const sequences: Sequence[] = [
   {
     name: "multi-hop j3→l→l→h→h",
     keys: ["j", "j", "j", "l", "l", "h", "h"],
-    assert: (board) => {
+    assert: (app) => {
       // Should return to first column near original position
-      const cursor = cursorCardNum(board)
+      const cursor = cursorCardNum(app)
       expect(cursor.prefix).toBe("A")
       expect(cursor.num).toBeGreaterThanOrEqual(2)
       expect(cursor.num).toBeLessThanOrEqual(6)
@@ -265,10 +266,10 @@ const sequences: Sequence[] = [
   {
     name: "single j→l: basic stickyY",
     keys: ["j", "l"],
-    assert: (board) => {
+    assert: (app) => {
       // After one j and one l, should land on a card in column B.
       // For fixtures with tall first cards, B01 may absorb the stickyY — that's correct.
-      const text = cursorText(board)
+      const text = cursorText(app)
       expect(text).toMatch(/B\d+/)
     },
     // Skip empty-column fixtures (l into empty column lands on header, not a card)
@@ -277,9 +278,9 @@ const sequences: Sequence[] = [
   {
     name: "single j→l: not first card (equal heights)",
     keys: ["j", "l"],
-    assert: (board) => {
+    assert: (app) => {
       // With equal-height cards, after 1 j we're at A02, so should match B02
-      const text = cursorText(board)
+      const text = cursorText(app)
       expect(text).not.toContain("B01")
     },
     // Only valid for fixtures without tall first cards
@@ -288,9 +289,9 @@ const sequences: Sequence[] = [
   {
     name: "deep-scroll j25→l→h",
     keys: [...Array.from({ length: 25 }, () => "j"), "l", "h"],
-    assert: (board) => {
+    assert: (app) => {
       // Should return to a deeply scrolled card, not card 1
-      const cursor = cursorCardNum(board)
+      const cursor = cursorCardNum(app)
       expect(cursor.prefix).toBe("A")
       expect(cursor.num).toBeGreaterThanOrEqual(20)
     },
@@ -299,10 +300,10 @@ const sequences: Sequence[] = [
   {
     name: "vertical-clear j3→l→j3→l",
     keys: ["j", "j", "j", "l", "j", "j", "j", "l"],
-    assert: (board, fixture) => {
+    assert: (app, _fixture) => {
       // After l, j resets stickyY. Second l should use the new position.
       // We end up in the third column (if available) or stay in second.
-      const text = cursorText(board)
+      const text = cursorText(app)
       const match = text.match(/([A-Z])(\d+)/)
       if (match) {
         const num = parseInt(match[2]!, 10)
@@ -315,9 +316,9 @@ const sequences: Sequence[] = [
   {
     name: "horizontal-scroll j3→l×4→h×4",
     keys: ["j", "j", "j", "l", "l", "l", "l", "h", "h", "h", "h"],
-    assert: (board) => {
+    assert: (app) => {
       // Should return to first column near original position
-      const cursor = cursorCardNum(board)
+      const cursor = cursorCardNum(app)
       expect(cursor.prefix).toBe("A")
       expect(cursor.num).toBeGreaterThanOrEqual(2)
       expect(cursor.num).toBeLessThanOrEqual(6)
@@ -354,23 +355,22 @@ describe("curswantY combinatorial", () => {
         if (!isCompatible(fixture, env, seq)) continue
 
         test(`[${fixture.name}] [${env.name}] ${seq.name}`, () => {
-          const { board } = testEnv(fixture.build, {
+          using app = createTestApp(fixture.build(), {
             rows: env.rows,
-            columns: env.cols,
-            checkIncremental: false, // curswantY tests cursor position, not rendering
+            cols: env.cols,
           })
 
           // Verify we start at first card
-          const startText = cursorText(board)
+          const startText = cursorText(app)
           expect(startText).toBeTruthy()
 
           // Execute sequence
           for (const key of seq.keys) {
-            board.press(key)
+            app.press(key)
           }
 
           // Run assertion
-          seq.assert(board, fixture)
+          seq.assert(app, fixture)
         }, 30_000) // Culling-stress + deep-scroll (25 presses) at large terminal can take >5s
       }
     }
@@ -383,63 +383,67 @@ describe("curswantY combinatorial", () => {
 
 describe("curswantY boundaries", () => {
   test("h at leftmost column: goes to column header, no crash", () => {
-    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+    using app = createTestApp(item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
 
-    board.command("cursor_down").command("cursor_down") // go to A03
-    board.command("cursor_left") // goes to column header (not boundary)
-    board.expect("#ColA[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.command("cursor_down") // go to A03
+    app.command("cursor_left") // goes to column header (not boundary)
+    app.expect("#ColA[data-cursor]").toExist()
     // h again is boundary — stays at column header
-    board.command("cursor_left")
-    board.expect("#ColA[data-cursor]").toExist()
+    app.command("cursor_left")
+    app.expect("#ColA[data-cursor]").toExist()
   })
 
   test("l at rightmost column: no crash, cursor stays", () => {
-    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+    using app = createTestApp(item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
 
-    board.command("cursor_down").command("cursor_down") // go to A03
-    board.command("cursor_right") // go to ColB
-    board.command("cursor_right") // already at rightmost
-    const cursor = cursorCardNum(board)
+    app.command("cursor_down")
+    app.command("cursor_down") // go to A03
+    app.command("cursor_right") // go to ColB
+    app.command("cursor_right") // already at rightmost
+    const cursor = cursorCardNum(app)
     expect(cursor.prefix).toBe("B")
   })
 
   test("h/l at board level: no movement", () => {
-    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 3)), item("ColB", ...items("B", 3))), {
+    using app = createTestApp(item("board", item("ColA", ...items("A", 3)), item("ColB", ...items("B", 3))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
 
     // Go up to board level
-    board.command("cursor_up").command("cursor_up")
-    const boardCursor = board.q("[data-cursor]")
+    app.command("cursor_up")
+    app.command("cursor_up")
+    const boardCursor = app.q("[data-cursor]")
     expect(boardCursor.textContent()).toContain("board")
 
     // l at board level → cursor stays on board
-    board.command("cursor_right")
-    expect(board.q("[data-cursor]").textContent()).toContain("board")
+    app.command("cursor_right")
+    expect(app.q("[data-cursor]").textContent()).toContain("board")
 
     // h at board level → cursor stays on board
-    board.command("cursor_left")
-    expect(board.q("[data-cursor]").textContent()).toContain("board")
+    app.command("cursor_left")
+    expect(app.q("[data-cursor]").textContent()).toContain("board")
   })
 
   test("l into empty column lands on header, l again continues", () => {
-    const { board } = testEnv(
-      () => item("board", item("ColA", ...items("A", 5)), item("Empty"), item("ColC", ...items("C", 5))),
-      { rows: 24, columns: 120 },
+    using app = createTestApp(
+      item("board", item("ColA", ...items("A", 5)), item("Empty"), item("ColC", ...items("C", 5))),
+      { rows: 24, cols: 120 },
     )
 
-    board.command("cursor_down").command("cursor_down") // A03
-    board.command("cursor_right") // → Empty column header
-    expect(cursorText(board)).toContain("Empty")
-    board.command("cursor_right") // → ColC, should use stickyY from A03
-    const cursor = cursorText(board)
+    app.command("cursor_down")
+    app.command("cursor_down") // A03
+    app.command("cursor_right") // → Empty column header
+    expect(cursorText(app)).toContain("Empty")
+    app.command("cursor_right") // → ColC, should use stickyY from A03
+    const cursor = cursorText(app)
     expect(cursor).not.toContain("Empty")
     expect(cursor).not.toContain("ColC")
     // Should land near C03 (matching A03's position)
@@ -447,18 +451,18 @@ describe("curswantY boundaries", () => {
   })
 
   test("target column shorter than source: clamp to last card", () => {
-    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 10)), item("ColB", ...items("B", 3))), {
+    using app = createTestApp(item("board", item("ColA", ...items("A", 10)), item("ColB", ...items("B", 3))), {
       rows: 24,
-      columns: 80,
+      cols: 80,
     })
 
     // Navigate to A08 (near bottom of long column)
-    for (let i = 0; i < 7; i++) board.command("cursor_down")
-    expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 8 })
+    for (let i = 0; i < 7; i++) app.command("cursor_down")
+    expect(cursorCardNum(app)).toEqual({ prefix: "A", num: 8 })
 
     // l → ColB which only has 3 cards — should clamp to last card
-    board.command("cursor_right")
-    const cursor = cursorCardNum(board)
+    app.command("cursor_right")
+    const cursor = cursorCardNum(app)
     expect(cursor.prefix).toBe("B")
     expect(cursor.num).toBeLessThanOrEqual(3)
   })
@@ -470,43 +474,45 @@ describe("curswantY boundaries", () => {
 
 describe("curswantY with mutations", () => {
   test("insert card in target column after navigation: no crash", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))),
-      { rows: 24, columns: 80 },
-    )
+    using app = createTestApp(item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+      rows: 24,
+      cols: 80,
+    })
 
     // Navigate to A03
-    board.command("cursor_down").command("cursor_down")
-    expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 3 })
+    app.command("cursor_down")
+    app.command("cursor_down")
+    expect(cursorCardNum(app)).toEqual({ prefix: "A", num: 3 })
 
     // Insert a card in ColB via repo API
-    repo.addNode("ColB", { type: "p", item: {}, content: "B-new" })
+    app.repo.addNode("ColB", { type: "p", item: {}, content: "B-new" })
 
     // l should still work — no crash
-    board.command("cursor_right")
-    const text = cursorText(board)
+    app.command("cursor_right")
+    const text = cursorText(app)
     expect(text).toBeTruthy()
   })
 
   test("delete card in source column then navigate: no crash", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))),
-      { rows: 24, columns: 80 },
-    )
+    using app = createTestApp(item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+      rows: 24,
+      cols: 80,
+    })
 
     // Navigate to A03
-    board.command("cursor_down").command("cursor_down")
-    expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 3 })
+    app.command("cursor_down")
+    app.command("cursor_down")
+    expect(cursorCardNum(app)).toEqual({ prefix: "A", num: 3 })
 
     // Move right
-    board.command("cursor_right")
+    app.command("cursor_right")
 
     // Delete a card from source column (not the one we came from)
-    repo.deleteNode("A05")
+    app.repo.deleteNode("A05")
 
     // Navigate back — should not crash
-    board.command("cursor_left")
-    const text = cursorText(board)
+    app.command("cursor_left")
+    const text = cursorText(app)
     expect(text).toBeTruthy()
   })
 })

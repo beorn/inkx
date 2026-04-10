@@ -1,8 +1,10 @@
 /**
  * Column rendering tests — scroll indicators, selected style, title truncation.
  *
- * FREEZE: entire file uses testEnv — buffer-level assertions (board.screen.cell,
- * board.screenshot, testEnvWithRepo, palette color indices, store.getState).
+ * FREEZE: entire file uses testEnv — palette color indices (TC.$selected, TC.$selectedfg,
+ * TC.$text3) resolve to ANSI 16-color numbers in testEnv but to truecolor {r,g,b}
+ * objects in createTestApp. Also uses testEnvWithRepo, board.screen.cell with palette
+ * color comparisons, and board.screenshot().
  *
  * Consolidated from:
  * - col-scroll-indicator.test.tsx (vertical ▲/▼ and horizontal ◂/▸ indicators)

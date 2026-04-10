@@ -20,122 +20,119 @@ describe("Escape Layering", () => {
   // Layer 0: Move mode
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks moveState.active
   test("Escape cancels move mode", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
-    board.expect("#1a[data-cursor]").toExist()
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"))))
+    app.expect("#1a[data-cursor]").toExist()
 
     // Enter move mode with 'mm'
-    board.command("enter_move_mode")
-    expect(getActiveBoardPane(store.getState())!.moveState.active).toBe(true)
+    app.command("enter_move_mode")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.moveState.active).toBe(true))
 
     // Escape cancels move mode
-    board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.moveState.active).toBe(false)
+    app.press("Escape")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.moveState.active).toBe(false))
   })
 
   // ---------------------------------------------------------------------------
   // Layer 1: Text edit → node mode
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — uses board.expectEditing/expectNotEditing
   test("Escape exits inline edit mode (saves content, cursor stays on node)", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.expect("#task1[data-cursor]").toExist()
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit mode with 'i'
-    board.press("i")
-    board.expectEditing("task1")
+    app.press("i")
+    app.expectEditing("task1")
 
     // Escape exits edit mode — cursor stays on same node
-    board.press("Escape")
-    board.expectNotEditing()
-    board.expect("#task1[data-cursor]").toExist()
+    app.press("Escape")
+    app.expectNotEditing()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   // ---------------------------------------------------------------------------
   // Layer 2: Pane focused → unfocus pane (pane stays open)
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks workspace.panes, workspace.focusedPaneId
   test("Escape from detail pane: unfocus → close", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+    using app = createTestApp(item("board", item("col", item("card1"), item("card2"))))
 
     // D opens + auto-focuses detail pane
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    app.command("toggle_detail_pane")
+    app.withStore((s) => {
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+      expect(s.workspace.focusedPaneId).toBe("main-detail")
+    })
 
     // Escape 1: unfocus detail → return to board (pane stays open)
-    board.press("Escape")
-    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("Escape")
+    app.withStore((s) => {
+      expect(s.workspace.focusedPaneId).not.toBe("main-detail")
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+    })
 
     // Escape 2: close pane
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.press("Escape")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(false))
   })
 
   // ---------------------------------------------------------------------------
   // Layer 3: Dialog open → close topmost dialog
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks ui.showHelp
   test("Escape closes help overlay", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
+    using app = createTestApp(item("board", item("col", item("task1"))))
 
     // Open help with ?
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Escape closes help
-    board.press("Escape")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
   })
 
-  // FREEZE: needs store.getState() — checks localSearch state
   test("Escape closes local find bar", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
+    using app = createTestApp(item("board", item("col", item("task1"))))
 
     // Open local find with /
-    board.command("local_find")
-    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
+    app.command("local_find")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.localSearch).not.toBeNull())
 
     // Escape closes find bar
-    board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
+    app.press("Escape")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.localSearch).toBeNull())
   })
 
-  // FREEZE: needs store.getState() — checks ui.showNewItemDialog
   test("Escape closes new item dialog", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
+    using app = createTestApp(item("board", item("col", item("task1"))))
 
     // Open new item dialog with Cmd+shift+Enter
-    board.press("cmd+shift+Enter")
-    expect(store.getState().ui.showNewItemDialog).toBe(true)
+    app.press("cmd+shift+Enter")
+    app.withStore((s) => expect(s.ui.showNewItemDialog).toBe(true))
 
     // Escape closes dialog
-    board.press("Escape")
-    expect(store.getState().ui.showNewItemDialog).toBe(false)
+    app.press("Escape")
+    app.withStore((s) => expect(s.ui.showNewItemDialog).toBe(false))
   })
 
   // ---------------------------------------------------------------------------
   // Layer 4: Selection active → collapse to cursor
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks sel.node.ids()
   test("Escape collapses multi-selection to cursor", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
-    board.expect("#1a[data-cursor]").toExist()
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    app.expect("#1a[data-cursor]").toExist()
 
     // Select multiple items with Shift+ArrowDown
-    board.press("shift+ArrowDown")
-    board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    app.press("shift+ArrowDown")
+    app.press("shift+ArrowDown")
+    expect(app.state.selection.length).toBeGreaterThan(1)
 
     // Escape collapses multi-selection to single cursor
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length).toBeLessThanOrEqual(1)
+    app.press("Escape")
+    expect(app.state.selection.length).toBeLessThanOrEqual(1)
   })
 
   test("Escape absorbs when only cursor is set (no bell)", () => {
@@ -151,78 +148,81 @@ describe("Escape Layering", () => {
   // Priority ordering: higher layers take precedence
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks workspace.focusedPaneId, workspace.panes, sel.node.ids()
   test("Escape unfocuses detail pane before clearing selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Select items
-    board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    app.press("shift+ArrowDown")
+    expect(app.state.selection.length).toBeGreaterThan(1)
 
     // D opens + auto-focuses detail pane
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.command("toggle_detail_pane")
+    app.withStore((s) => {
+      expect(s.workspace.focusedPaneId).toBe("main-detail")
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+    })
 
     // Escape 1: unfocus detail → return to board (pane stays open)
-    board.press("Escape")
-    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("Escape")
+    app.withStore((s) => {
+      expect(s.workspace.focusedPaneId).not.toBe("main-detail")
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+    })
     // Selection is still there
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    expect(app.state.selection.length).toBeGreaterThan(1)
 
     // Escape 2: close pane (selection still there)
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    app.press("Escape")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(false))
+    expect(app.state.selection.length).toBeGreaterThan(1)
   })
 
   // ---------------------------------------------------------------------------
   // Full stack walkthrough
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs store.getState() — checks ui.showHelp, board.bell
   test("multiple Escapes peel layers one at a time (dialog → collapse)", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
+    using app = createTestApp(item("board", item("col", item("task1"))))
 
     // Open help dialog (layer 3)
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Escape 1: close help
-    board.press("Escape")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
 
     // Escape 2+: collapses selection (absorbs — no bell)
-    board.press("Escape")
-    expect(board.bell).toBe(false)
+    app.press("Escape")
+    expect(app.bell).toBe(false)
   })
 
-  // FREEZE: needs store.getState() — checks workspace.focusedPaneId, workspace.panes, sel.node.ids()
   test("pane open + selection: Escape unfocuses pane, closes pane, then collapses selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Create selection
-    board.press("shift+ArrowDown")
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    app.press("shift+ArrowDown")
+    expect(app.state.selection.length).toBeGreaterThan(1)
 
     // D opens + auto-focuses detail pane
-    board.command("toggle_detail_pane")
-    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    app.command("toggle_detail_pane")
+    app.withStore((s) => expect(s.workspace.focusedPaneId).toBe("main-detail"))
 
     // Escape 1: unfocus detail → return to board
-    board.press("Escape")
-    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("Escape")
+    app.withStore((s) => {
+      expect(s.workspace.focusedPaneId).not.toBe("main-detail")
+      expect(s.workspace.panes.has("main-detail")).toBe(true)
+    })
 
     // Escape 2: close pane (selection still active)
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(store.getState().sel.node.ids().length).toBeGreaterThan(1)
+    app.press("Escape")
+    app.withStore((s) => expect(s.workspace.panes.has("main-detail")).toBe(false))
+    expect(app.state.selection.length).toBeGreaterThan(1)
 
     // Escape 3: collapse multi-selection to cursor
-    board.press("Escape")
-    expect(store.getState().sel.node.ids().length).toBeLessThanOrEqual(1)
+    app.press("Escape")
+    expect(app.state.selection.length).toBeLessThanOrEqual(1)
   })
 
   // ---------------------------------------------------------------------------

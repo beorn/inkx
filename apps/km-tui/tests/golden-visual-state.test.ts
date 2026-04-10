@@ -1,6 +1,10 @@
 /**
  * Golden Visual State Tests — freeze visual treatment before refactoring.
  *
+ * FREEZE: all tests compare cell colors to TC (ANSI 16 color indices).
+ * createTestApp resolves colors to RGB triples, breaking these assertions.
+ * These tests must stay on testEnv until createTestApp supports ANSI color comparison.
+ *
  * These tests capture the current visual behavior for the node state × role
  * matrix from docs/design/node-visual-spec.md. They serve as the acceptance
  * gate for km-tui.hierarchical-node-state: if any test here breaks, the

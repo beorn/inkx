@@ -267,6 +267,7 @@
 {"issue_id":"km-silvery.prompt-bridge","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.publish-1.0","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.re-review-post-fixes","label":"pro"}
+{"issue_id":"km-silvery.reactive-pipeline","label":"horizon:v1.5"}
 {"issue_id":"km-silvery.render-text-review-0313","label":"pro"}
 {"issue_id":"km-silvery.screen-rect-sticky","label":"pro"}
 {"issue_id":"km-silvery.showcase-interaction-bugs","label":"horizon:v1.0"}
@@ -287,7 +288,6 @@
 {"issue_id":"km-silvery.virtual-terminal","label":"horizon:v1.5"}
 {"issue_id":"km-silvery.visual-regression","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.wrap-transform-classify","label":"pro"}
-{"issue_id":"km-silvery.zero-alloc","label":"horizon:v1.5"}
 {"issue_id":"km-storage.pro-review-0313","label":"pro"}
 {"issue_id":"km-test-failures-0130","label":"cli"}
 {"issue_id":"km-test-failures-0130","label":"tui"}

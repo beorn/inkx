@@ -8,11 +8,8 @@
 
 import { describe, test, expect } from "vitest"
 import { act } from "react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
-
-// NOTE: The "Enter before debounce" test below uses testEnv because it needs
-// white-box store.setUI() manipulation to simulate the debounce race condition.
 
 describe("Local Find", () => {
   // ---------------------------------------------------------------------------
@@ -265,9 +262,6 @@ describe("Local Find", () => {
   // Debounce race — Enter before debounce fires (km-tui.search-debounce-race)
   // ---------------------------------------------------------------------------
 
-  // FREEZE: needs white-box API — this regression test needs to poke store.setUI() directly to
-  // simulate stale pre-debounce state — that signal has no screen proxy.
-  // Kept on testEnv for the white-box store manipulation.
   test("Enter before debounce flushes pending query and finds matches", () => {
     // Regression for km-tui.search-debounce-race (P1):
     //
@@ -287,40 +281,41 @@ describe("Local Find", () => {
     //
     // Then press Enter — the fix must flush the pending query (read the
     // live edit target) and commit real matches.
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"), item("box"))))
+    app.command("local_find")
 
     // Step 1: type "ox" via real commands (insert_below='o', toggle_task_done='x').
     // This populates both the edit context AND ui.localSearch (act bypass).
-    board.command("insert_below")
-    board.command("toggle_task_done")
+    app.command("insert_below")
+    app.command("toggle_task_done")
 
     // Step 2: force ui.localSearch back to the stale pre-debounce state —
     // empty query, no matches, input still active. The edit context is
     // untouched so it still holds "ox" (the real user input).
-    const storeApi = store as unknown as { getState(): { setUI: (p: unknown) => void } }
-    act(() => {
-      storeApi.getState().setUI({
-        localSearch: {
-          query: "",
-          isInputActive: true,
-          matchIndex: 0,
-          matchCount: 0,
-          matchNodeIds: [],
-        },
+    app.withStore((s) => {
+      act(() => {
+        s.setUI({
+          localSearch: {
+            query: "",
+            isInputActive: true,
+            matchIndex: 0,
+            matchCount: 0,
+            matchNodeIds: [],
+          },
+        })
       })
     })
 
     // Step 3: user presses Enter. LOCAL_FIND_CONFIRM must flush the pending
     // search — read the live value from the edit target, recompute matches,
     // and commit them before flipping isInputActive → false.
-    board.press("Enter")
+    app.press("Enter")
 
     // After the flush, #find-bar should report the real query + 2 matches,
     // and input is no longer active.
-    board.expect("#find-bar[data-query='ox']").toExist()
-    board.expect("#find-bar[data-match-count='2']").toExist()
-    board.expect("#find-bar[data-input-active]").not.toExist()
+    app.expect("#find-bar[data-query='ox']").toExist()
+    app.expect("#find-bar[data-match-count='2']").toExist()
+    app.expect("#find-bar[data-input-active]").not.toExist()
   })
 
   test("finds parent cards AND their sub-items for a matching query", () => {

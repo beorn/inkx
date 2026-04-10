@@ -16,6 +16,7 @@
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Inline Editing", () => {
@@ -1721,7 +1722,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       //   sub-b (heading — has children)
       //     child-b1 (leaf — body block of sub-b)  ← DFS-last
       // card-2  ← start here, press ctrl-p
-      const { board } = testEnv(() =>
+      using app = createTestApp(
         item(
           "board",
           item(
@@ -1733,14 +1734,14 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       )
 
       // Navigate to card-2 and enter edit mode
-      board.navigateTo("card-2")
-      board.press("Enter")
-      expect(board.screenshot()).toContain("INSERT")
+      app.navigateTo("card-2")
+      app.press("Enter")
+      expect(app.text).toContain("INSERT")
 
       // ctrl-p should land on child-b1 (DFS-last descendant of card-1),
       // NOT sub-b (which is what the old items-only traversal would pick)
-      board.press("ArrowUp")
-      board.expectEditing("child-b1")
+      app.press("ArrowUp")
+      app.expectEditing("child-b1")
     })
 
     // TODO(km-tui.text-cursor-nav): mouse click repositioning in edit mode
@@ -2286,17 +2287,17 @@ describe("edit indentation parity", () => {
 
 describe("edit block navigate: Ctrl+N from last card should not jump to column header", () => {
   test("Ctrl+N from last card in col1 navigates to first card of col2, not col2 header", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("card-a"), item("card-b")), item("col2", item("card-c"), item("card-d"))),
     )
 
     // Navigate to last card in col1
-    board.navigateTo("card-b")
-    board.press("Enter") // enter edit mode
+    app.navigateTo("card-b")
+    app.press("Enter") // enter edit mode
 
     // Ctrl+N past last card should go to first card of next column, not the column header
-    board.press("ctrl+n")
-    board.expectEditing("card-c") // should be first card of col2, NOT "col2"
+    app.press("ctrl+n")
+    app.expectEditing("card-c") // should be first card of col2, NOT "col2"
   })
 })
 
@@ -2306,60 +2307,60 @@ describe("edit block navigate: Ctrl+N from last card should not jump to column h
 
 describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
   test("Ctrl+Z in edit mode cleanly exits edit without crash", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
+    using app = createTestApp(item("board", item("col1", item("card-a"), item("card-b"))))
 
-    board.expect("#card-a[data-cursor]").toExist()
+    app.expect("#card-a[data-cursor]").toExist()
 
     // Enter edit mode
-    board.press("Enter")
-    board.expectEditing("card-a")
+    app.press("Enter")
+    app.expectEditing("card-a")
 
     // Ctrl+Z during edit mode should exit edit cleanly (no crash)
-    board.press("ctrl+z")
+    app.press("ctrl+z")
 
     // Should no longer be editing
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Board should still be functional — cursor navigation works
-    board.command("cursor_down")
-    board.expect("#card-b[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#card-b[data-cursor]").toExist()
   })
 
   test("Ctrl+Z during active typing in edit mode discards unsaved changes", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"))))
+    using app = createTestApp(item("board", item("col1", item("card-a"))))
 
-    board.expect("#card-a[data-cursor]").toExist()
+    app.expect("#card-a[data-cursor]").toExist()
 
     // Enter edit mode and start typing (changes are in-flight, not saved)
-    board.press("Enter")
-    for (const c of "-new") board.press(c)
+    app.press("Enter")
+    for (const c of "-new") app.press(c)
 
     // Ctrl+Z during active edit — should exit edit mode without crash
     // and discard unsaved changes (cancel, not confirm)
-    board.press("ctrl+z")
+    app.press("ctrl+z")
 
     // Should exit edit mode cleanly
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Content should be unchanged (the typing was never saved via confirm/Escape)
-    expect(repo.getNode("card-a")?.content).toBe("card-a")
+    expect(app.repo.getNode("card-a")?.content).toBe("card-a")
   })
 
   test("undo after structural operation works when triggered from edit mode", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
+    using app = createTestApp(item("board", item("col1", item("card-a"), item("card-b"))))
 
     // Make a structural change (priority) that creates an undo entry
-    board.expect("#card-a[data-cursor]").toExist()
-    board.command("set_priority") // creates undo entry via undoable repo
+    app.expect("#card-a[data-cursor]").toExist()
+    app.command("set_priority") // creates undo entry via undoable repo
 
     // Enter edit mode
-    board.press("Enter")
-    board.expectEditing("card-a")
+    app.press("Enter")
+    app.expectEditing("card-a")
 
     // Ctrl+Z during edit should exit edit and undo the priority change
-    board.press("ctrl+z")
+    app.press("ctrl+z")
 
-    board.expectNotEditing()
+    app.expectNotEditing()
   })
 })
 
@@ -2369,21 +2370,21 @@ describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
 
 describe("edit outdent: Shift+Tab should not promote subitem beyond card", () => {
   test("Shift+Tab on direct card child during edit does not promote to column level", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("card", item("sub1"), item("sub2")))))
+    using app = createTestApp(item("board", item("col1", item("card", item("sub1"), item("sub2")))))
 
     // Navigate to the card, then block-nav into sub1
-    board.expect("#card[data-cursor]").toExist()
-    board.command("block_nav_down") // → sub1
-    board.expect("#sub1[data-cursor]").toExist()
+    app.expect("#card[data-cursor]").toExist()
+    app.command("block_nav_down") // → sub1
+    app.expect("#sub1[data-cursor]").toExist()
 
-    board.press("Enter") // enter edit mode on sub1
-    board.expectEditing("sub1")
+    app.press("Enter") // enter edit mode on sub1
+    app.expectEditing("sub1")
 
     // sub1 is a direct child of card. Shift+Tab should NOT promote it to column level.
-    board.press("shift+Tab")
+    app.press("shift+Tab")
 
     // sub1 should still be a child of card, NOT promoted to col1
-    const sub1 = repo.getNode("sub1")
+    const sub1 = app.repo.getNode("sub1")
     expect(sub1?.parent_id, "sub1 should stay inside card during edit").toBe("card")
   })
 })
@@ -2401,52 +2402,48 @@ describe("Enter on heading card with children zooms instead of editing (km-tui.e
     // A heading card (type "h") with children — pressing Enter should zoom in,
     // not enter inline edit mode. Edit mode hides checkbox indicators and is
     // unexpected behavior on a section heading.
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))),
-    )
+    using app = createTestApp(item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))))
 
     // Cursor starts on "Tasks" — the first card in col1
-    board.expect("#Tasks[data-cursor]").toExist()
+    app.expect("#Tasks[data-cursor]").toExist()
 
     // Press Enter — should zoom in, not enter edit mode
-    board.press("Enter")
+    app.press("Enter")
 
     // Should NOT be in edit mode (INSERT)
-    board.expectNotEditing()
-    expect(board.screenshot()).not.toContain("INSERT")
+    app.expectNotEditing()
+    expect(app.text).not.toContain("INSERT")
 
     // The heading's children should now be visible as columns (zoomed in)
     // After zoom, "Tasks" becomes the root and task1/task2 become the visible items
-    board.expect("#task1").toExist()
-    board.expect("#task2").toExist()
+    app.expect("#task1").toExist()
+    app.expect("#task2").toExist()
   })
 
   test("Enter on leaf card (no children) still enters inline edit", () => {
     // Leaf cards should retain the existing Enter=edit behavior
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))),
-    )
+    using app = createTestApp(item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))))
 
     // Navigate to the leaf card
-    board.navigateTo("leaf")
-    board.expect("#leaf[data-cursor]").toExist()
+    app.navigateTo("leaf")
+    app.expect("#leaf[data-cursor]").toExist()
 
     // Press Enter — should enter inline edit
-    board.press("Enter")
-    board.expectEditing("leaf")
+    app.press("Enter")
+    app.expectEditing("leaf")
   })
 
   test("i on heading card with children still enters inline edit (rename)", () => {
     // 'i' is the explicit edit key — it should always enter edit mode,
     // even on heading cards. Only Enter changes behavior.
-    const { board } = testEnv(() => item("board", item("col1", item("Tasks", item("task1"), item("task2")))))
+    using app = createTestApp(item("board", item("col1", item("Tasks", item("task1"), item("task2")))))
 
-    board.press("j")
-    board.expect("#Tasks[data-cursor]").toExist()
+    app.press("j")
+    app.expect("#Tasks[data-cursor]").toExist()
 
     // 'i' should enter inline edit (rename) even on heading cards
-    board.press("i")
-    board.expectEditing("Tasks")
+    app.press("i")
+    app.expectEditing("Tasks")
   })
 })
 

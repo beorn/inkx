@@ -1,4 +1,3 @@
-// testEnv FREEZE bucket — see km-all.test-system bead. Reason: store white-box (dispatchBoard, zoomAndFlush, searchReplace, act)
 /**
  * Search Tests
  *
@@ -16,7 +15,7 @@
 import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/search-utils.ts"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
@@ -30,19 +29,6 @@ import { dispatchCommandById } from "../src/board/board-app.ts"
 // =============================================================================
 // Shared helpers
 // =============================================================================
-
-/**
- * Open the search dialog via the "search" command.
- * After dispatching, press Backspace to flush the silvery render pipeline.
- * The dialog text input is empty at this point, so Backspace is a no-op.
- */
-function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
-  act(() => {
-    dispatchCommandById("search", store.getState as () => BoardAppStore)
-    store.setState((s) => s)
-  })
-  board.press("Backspace") // flush silvery render pipeline
-}
 
 // Helper to create li nodes with li children (item() converts parents to oi)
 function makeLiNode(id: string, parentId: string | null, parentIdx: number, children?: string[]): KNode[] {
@@ -718,69 +704,71 @@ describe("findZoomTarget", () => {
 
 describe("ZOOM_IN to body-only board: cursor + navigation", () => {
   test("cursor lands on card level after zoom to body-only board", () => {
-    const { store } = testEnv(
-      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
+    using app = createTestApp(
+      item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
-    zoomAndFlush(store, "flatNode", "task2")
+    zoomAndFlush(app.driver.store, "flatNode", "task2")
 
-    const pane = getActiveBoardPane(store.getState())!
-    expect(pane.rootId).toBe("flatNode")
-    expect(pane.sel.node.cursor() as string | null).toBe("task2")
-    expect(derivedState(store).cursorDepth).toBe("card")
+    app.withStore((s) => {
+      const pane = getActiveBoardPane(s)!
+      expect(pane.rootId).toBe("flatNode")
+      expect(pane.sel.node.cursor() as string | null).toBe("task2")
+    })
+    expect(derivedState(app.driver.store).cursorDepth).toBe("card")
   })
 
   test("j/k navigation works after zoom to body-only board", () => {
-    const { board, store } = testEnv(
-      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
+    using app = createTestApp(
+      item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
-    zoomAndFlush(store, "flatNode", "task1")
+    zoomAndFlush(app.driver.store, "flatNode", "task1")
 
-    board.expectState({ cursor: "task1" })
+    expect(app.state.cursor).toBe("task1")
 
-    board.command("cursor_down")
-    board.expectState({ cursor: "task2" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task2")
 
-    board.command("cursor_down")
-    board.expectState({ cursor: "task3" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task3")
 
-    board.command("cursor_up")
-    board.expectState({ cursor: "task2" })
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("task2")
   })
 
   test("cursor + DOM visible after zoom to body-only board", () => {
-    const { board, store } = testEnv(
-      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
+    using app = createTestApp(
+      item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
-    zoomAndFlush(store, "flatNode", "task2")
+    zoomAndFlush(app.driver.store, "flatNode", "task2")
 
-    board.expect("#task2[data-cursor]").toExist()
-    board.expectScreen("task2")
+    app.expect("#task2[data-cursor]").toExist()
+    expect(app.text).toContain("task2")
   })
 
   test("j/k with DOM assertions after zoom to body-only board", () => {
-    const { board, store } = testEnv(
-      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
+    using app = createTestApp(
+      item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
-    zoomAndFlush(store, "flatNode", "task1")
+    zoomAndFlush(app.driver.store, "flatNode", "task1")
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
-    board.command("cursor_down")
-    board.expect("#task2[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#task2[data-cursor]").toExist()
 
-    board.command("cursor_down")
-    board.expect("#task3[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#task3[data-cursor]").toExist()
 
-    board.command("cursor_up")
-    board.expect("#task2[data-cursor]").toExist()
+    app.command("cursor_up")
+    app.expect("#task2[data-cursor]").toExist()
   })
 })
 
@@ -799,28 +787,29 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
     const task3Nodes = makeLiNode("task3", "flatList", 2)
     const allNodes: KNode[] = [flatListNode, ...task1Nodes, ...task2Nodes, ...task3Nodes]
 
-    const repo = createFakeRepo({ nodes: allNodes })
-    const { board, store } = testEnv(() => allNodes, { checkIncremental: false })
+    using app = createTestApp(allNodes, { checkIncremental: false })
 
     // ZOOM_IN to flatList with cursor on subtask1 (a descendant of body card task1)
-    zoomAndFlush(store, "flatList", "subtask1")
+    zoomAndFlush(app.driver.store, "flatList", "subtask1")
 
-    const paneAfterZoom = getActiveBoardPane(store.getState())!
-    expect(paneAfterZoom.rootId).toBe("flatList")
+    app.withStore((s) => {
+      const paneAfterZoom = getActiveBoardPane(s)!
+      expect(paneAfterZoom.rootId).toBe("flatList")
+    })
 
     // j moves to next subtask within the same body card
-    board.command("cursor_down")
-    board.expectState({ cursor: "subtask2" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("subtask2")
 
     // j from last subtask moves to next body card
-    board.command("cursor_down")
-    board.expectState({ cursor: "task2" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task2")
 
-    board.command("cursor_down")
-    board.expectState({ cursor: "task3" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task3")
 
-    board.command("cursor_up")
-    board.expectState({ cursor: "task2" })
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("task2")
   })
 })
 
@@ -830,25 +819,25 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
 
 describe("paragraph-only board: cursor + navigation", () => {
   test("cursor + j/k work on paragraph body board", () => {
-    const { board, store } = testEnv(
-      () => item("root", item("docs", item("readme", item.p("intro"), item.p("setup"), item.p("usage")))),
+    using app = createTestApp(
+      item("root", item("docs", item("readme", item.p("intro"), item.p("setup"), item.p("usage")))),
       { checkIncremental: false },
     )
 
-    zoomAndFlush(store, "readme", "setup")
+    zoomAndFlush(app.driver.store, "readme", "setup")
 
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("readme")
-    board.expectState({ cursor: "setup" })
-    expect(derivedState(store).cursorDepth).toBe("card")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.rootId).toBe("readme"))
+    expect(app.state.cursor).toBe("setup")
+    expect(derivedState(app.driver.store).cursorDepth).toBe("card")
 
-    board.command("cursor_down")
-    board.expectState({ cursor: "usage" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("usage")
 
-    board.command("cursor_up")
-    board.expectState({ cursor: "setup" })
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("setup")
 
-    board.command("cursor_up")
-    board.expectState({ cursor: "intro" })
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("intro")
   })
 })
 
@@ -858,51 +847,48 @@ describe("paragraph-only board: cursor + navigation", () => {
 
 describe("full search flow integration", () => {
   test("search in deep tree: zoom + cursor + j/k navigation", () => {
-    const { board, store } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "root",
         item(
-          "root",
-          item(
-            "projects",
-            item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
-            item("project-b", item("taskB1")),
-          ),
+          "projects",
+          item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
+          item("project-b", item("taskB1")),
         ),
+      ),
       { checkIncremental: false },
     )
 
-    const repo = store.getState().repo
-    const taskA2 = repo.getNode("taskA2")!
-    const { zoomTarget, cursorTarget } = findZoomTarget(taskA2, repo)
+    const taskA2 = app.repo.getNode("taskA2")!
+    const { zoomTarget, cursorTarget } = findZoomTarget(taskA2, app.repo)
 
     expect(zoomTarget.id).toBe("projects")
     expect(cursorTarget.id).toBe("taskA2")
 
-    zoomAndFlush(store, zoomTarget.id, cursorTarget.id)
+    zoomAndFlush(app.driver.store, zoomTarget.id, cursorTarget.id)
 
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
-    board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).cursorDepth).toBe("card")
+    app.withStore((s) => expect(getActiveBoardPane(s)!.rootId).toBe("projects"))
+    expect(app.state.cursor).toBe("taskA2")
+    expect(derivedState(app.driver.store).cursorDepth).toBe("card")
 
-    board.expect("#taskA2[data-cursor]").toExist()
+    app.expect("#taskA2[data-cursor]").toExist()
 
-    board.command("cursor_down")
-    board.expectState({ cursor: "taskA3" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("taskA3")
 
-    board.command("cursor_up")
-    board.expectState({ cursor: "taskA2" })
+    app.command("cursor_up")
+    expect(app.state.cursor).toBe("taskA2")
   })
 
   test("SELECT on already-visible card", () => {
-    const { board, store } = testEnv(
-      () => item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))),
-      { checkIncremental: false },
-    )
+    using app = createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
+      checkIncremental: false,
+    })
 
-    dispatchAndFlush(store, { type: "SELECT", nodeId: "taskB" })
+    dispatchAndFlush(app.driver.store, { type: "SELECT", nodeId: "taskB" })
 
-    board.expectState({ cursor: "taskB" })
-    board.expect("#taskB[data-cursor]").toExist()
+    expect(app.state.cursor).toBe("taskB")
+    app.expect("#taskB[data-cursor]").toExist()
   })
 })
 
@@ -916,100 +902,99 @@ describe("scroll to selection after zoom", () => {
     // on a small terminal (rows=15). With header + breadcrumb + separator,
     // only ~3 cards are visible (card height=4). Card at index 12 is off-screen.
     const tasks = Array.from({ length: 15 }, (_, i) => item(`task${i}`))
-    const { board, store } = testEnv(() => item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
+    using app = createTestApp(item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
       rows: 15,
       checkIncremental: false,
     })
 
     // Zoom to root with cursor on task12 (deep in the list, off-screen)
-    zoomAndFlush(store, "root", "task12")
+    zoomAndFlush(app.driver.store, "root", "task12")
 
-    board.expectState({ cursor: "task12" })
+    expect(app.state.cursor).toBe("task12")
 
     // Press j to trigger a render cycle (dispatchAndFlush doesn't run doRender).
     // j moves cursor to task13, which should also be in the scrolled view.
-    board.command("cursor_down")
-    board.expectState({ cursor: "task13" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("task13")
 
     // After navigating from task12 to task13, both should be in the scrolled view
-    board.expectScreen("task13")
+    expect(app.text).toContain("task13")
   })
 
   test("search navigate to off-screen card scrolls it into view", () => {
     // Simulate the search flow: deep tree where target is a grandchild of root,
     // but far enough down the column to be off-screen
     const tasks = Array.from({ length: 20 }, (_, i) => item(`deep${i}`))
-    const { board, store } = testEnv(() => item("root", item("section", ...tasks)), {
+    using app = createTestApp(item("root", item("section", ...tasks)), {
       rows: 15,
       checkIncremental: false,
     })
 
-    const repo = store.getState().repo
-    const deep15 = repo.getNode("deep15")!
-    const { zoomTarget, cursorTarget } = findZoomTarget(deep15, repo)
+    const deep15 = app.repo.getNode("deep15")!
+    const { zoomTarget, cursorTarget } = findZoomTarget(deep15, app.repo)
 
-    zoomAndFlush(store, zoomTarget.id, cursorTarget.id)
+    zoomAndFlush(app.driver.store, zoomTarget.id, cursorTarget.id)
 
     // Press j to trigger render and move cursor
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // deep15 or its neighbor should be visible
-    board.expectScreen("deep16")
+    expect(app.text).toContain("deep16")
   })
 
   test("SELECT on off-screen card in current view scrolls it into view", () => {
     // Target is already a grandchild of root (visible in layout model),
     // but far enough down the column to be off-screen. SELECT should scroll.
     const tasks = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board, store } = testEnv(() => item("root", item("col1", ...tasks), item("col2", item("x"))), {
+    using app = createTestApp(item("root", item("col1", ...tasks), item("col2", item("x"))), {
       rows: 15,
       checkIncremental: false,
     })
 
     // SELECT a card deep in col1 -- should scroll to make it visible
-    dispatchAndFlush(store, { type: "SELECT", nodeId: "card15" })
+    dispatchAndFlush(app.driver.store, { type: "SELECT", nodeId: "card15" })
 
     // Press j to trigger render and move cursor
-    board.command("cursor_down")
-    board.expectState({ cursor: "card16" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("card16")
 
-    board.expectScreen("card16")
+    expect(app.text).toContain("card16")
   })
 
   test("ZOOM_IN scrolls to cursor in columns view", () => {
     // Columns view uses single-row items, so more items fit. Still need to scroll
     // when target is deep enough. 30 items in a column with 15-row terminal.
     const tasks = Array.from({ length: 30 }, (_, i) => item(`ctask${i}`))
-    const { board, store } = testEnv(() => item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
+    using app = createTestApp(item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
       rows: 15,
       viewMode: "columns",
       checkIncremental: false,
     })
 
     // Zoom with cursor on ctask25 (far off-screen in columns view)
-    zoomAndFlush(store, "root", "ctask25")
+    zoomAndFlush(app.driver.store, "root", "ctask25")
 
-    board.expectState({ cursor: "ctask25" })
+    expect(app.state.cursor).toBe("ctask25")
 
     // Press j to trigger render and move cursor
-    board.command("cursor_down")
-    board.expectState({ cursor: "ctask26" })
+    app.command("cursor_down")
+    expect(app.state.cursor).toBe("ctask26")
 
-    board.expectScreen("ctask26")
+    expect(app.text).toContain("ctask26")
   })
 
   test("cursor state is correct in DOM after ZOOM_IN (no render needed)", () => {
     // Verify that the cursor DOM element is correct after ZOOM_IN,
     // even before a render cycle runs (DOM is updated by React, not silvery pipeline)
     const tasks = Array.from({ length: 15 }, (_, i) => item(`dtask${i}`))
-    const { board, store } = testEnv(() => item("root", item("col", ...tasks)), { rows: 15, checkIncremental: false })
+    using app = createTestApp(item("root", item("col", ...tasks)), { rows: 15, checkIncremental: false })
 
-    zoomAndFlush(store, "root", "dtask12")
+    zoomAndFlush(app.driver.store, "root", "dtask12")
 
     // DOM should have cursor on dtask12
-    board.expect("#dtask12[data-cursor]").toExist()
-    board.expectState({ cursor: "dtask12" })
-    expect(derivedState(store).cardIndex).toBe(12)
+    app.expect("#dtask12[data-cursor]").toExist()
+    expect(app.state.cursor).toBe("dtask12")
+    expect(derivedState(app.driver.store).cardIndex).toBe(12)
   })
 })
 
@@ -1445,8 +1430,6 @@ describe("search flow via key presses", () => {
 
 // =============================================================================
 // search flow integration tests requiring zoom + internal state inspection
-// (kept on testEnv — these test internal action transitions like ZOOM_IN
-// dispatched directly, where the testable signal is white-box state)
 // =============================================================================
 
 describe("search flow via key presses (zoom + internal state)", () => {
@@ -1455,30 +1438,30 @@ describe("search flow via key presses (zoom + internal state)", () => {
     // Structure: root > projects > project-a > taskA1, taskA2
     //                             > project-b > taskB1
     // User zooms to "projects" first, then searches for "taskA2".
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("projects", item("project-a", item("taskA1"), item("taskA2")), item("project-b", item("taskB1"))),
-        ),
+    using app = createTestApp(
+      item(
+        "root",
+        item("projects", item("project-a", item("taskA1"), item("taskA2")), item("project-b", item("taskB1"))),
+      ),
       { checkIncremental: false },
     )
 
     // Zoom into "projects" first via direct dispatch (no key binding for ZOOM_IN to specific node)
-    dispatchAndFlush(store, { type: "ZOOM_IN", nodeId: "projects" })
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
+    dispatchAndFlush(app.driver.store, { type: "ZOOM_IN", nodeId: "projects" })
+    app.withStore((s) => expect(getActiveBoardPane(s)!.rootId).toBe("projects"))
 
     // Now search for taskA2
-    openSearchDialog(store, board)
-    for (const ch of "taskA2") board.press(ch)
-    board.press("Enter")
+    app.dispatch("search")
+    app.press("Backspace") // flush silvery render pipeline
+    for (const ch of "taskA2") app.press(ch)
+    app.press("Enter")
 
     // Should select taskA2 in the current view (it's a grandchild of "projects")
-    board.expect("[data-dialog='search']").not.toExist()
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects") // No zoom needed
-    board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#taskA2[data-cursor]").toExist()
+    app.expect("[data-dialog='search']").not.toExist()
+    app.withStore((s) => expect(getActiveBoardPane(s)!.rootId).toBe("projects")) // No zoom needed
+    expect(app.state.cursor).toBe("taskA2")
+    expect(derivedState(app.driver.store).cursorDepth).toBe("card")
+    app.expect("#taskA2[data-cursor]").toExist()
   })
 })
 
@@ -1489,24 +1472,28 @@ describe("search flow via key presses (zoom + internal state)", () => {
 describe("Search & Replace", () => {
   /** Helper to create a standard board with searchable content */
   function searchBoard() {
-    return testEnv(
-      () =>
-        item(
-          "board",
-          item("Todo", item("Buy milk"), item("Buy eggs"), item("Read book")),
-          item("Done", item("Cook dinner"), item("Buy bread")),
-        ),
-      { columns: 100, checkIncremental: false },
+    return createTestApp(
+      item(
+        "board",
+        item("Todo", item("Buy milk"), item("Buy eggs"), item("Read book")),
+        item("Done", item("Cook dinner"), item("Buy bread")),
+      ),
+      { cols: 100, checkIncremental: false },
     )
   }
 
+  /** Helper to get searchReplace state from a TestApp */
+  function getSR(app: ReturnType<typeof createTestApp>) {
+    return app.withStore((s) => getActiveBoardPane(s)!.searchReplace)
+  }
+
   test("S opens the search/replace dialog", () => {
-    const { board, store } = searchBoard()
-    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
+    using app = searchBoard()
+    expect(getSR(app)).toBeNull()
 
-    board.command("search_replace")
+    app.command("search_replace")
 
-    const sr = getActiveBoardPane(store.getState())!.searchReplace
+    const sr = getSR(app)
     expect(sr).not.toBeNull()
     expect(sr!.searchQuery).toBe("")
     expect(sr!.replaceQuery).toBe("")
@@ -1515,23 +1502,23 @@ describe("Search & Replace", () => {
   })
 
   test("Escape closes the search/replace dialog", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    expect(getActiveBoardPane(store.getState())!.searchReplace).not.toBeNull()
+    app.command("search_replace")
+    expect(getSR(app)).not.toBeNull()
 
-    board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
+    app.press("Escape")
+    expect(getSR(app)).toBeNull()
   })
 
   test("typing updates the search query and shows matches", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
+    app.command("search_replace")
     // Type "Buy" into the search field
-    board.press("B").command("undo").press("y")
+    app.press("B").command("undo").press("y")
 
-    const sr = getActiveBoardPane(store.getState())!.searchReplace
+    const sr = getSR(app)
     expect(sr).not.toBeNull()
     expect(sr!.searchQuery).toBe("Buy")
     expect(sr!.matchCount).toBe(3) // "Buy milk", "Buy eggs", "Buy bread"
@@ -1539,73 +1526,69 @@ describe("Search & Replace", () => {
   })
 
   test("Tab switches between search and replace fields", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
+    app.command("search_replace")
+    expect(getSR(app)!.focusedField).toBe("search")
 
-    board.command("indent_node")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("replace")
+    app.command("indent_node")
+    expect(getSR(app)!.focusedField).toBe("replace")
 
-    board.command("indent_node")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
+    app.command("indent_node")
+    expect(getSR(app)!.focusedField).toBe("search")
   })
 
   test("Enter navigates to next match", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    board.press("B").command("undo").press("y")
+    app.command("search_replace")
+    app.press("B").command("undo").press("y")
 
-    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr1.matchIndex).toBe(0)
-    expect(sr1.matchCount).toBe(3)
+    expect(getSR(app)!.matchIndex).toBe(0)
+    expect(getSR(app)!.matchCount).toBe(3)
 
-    board.press("Enter")
-    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr2.matchIndex).toBe(1)
+    app.press("Enter")
+    expect(getSR(app)!.matchIndex).toBe(1)
 
-    board.press("Enter")
-    const sr3 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr3.matchIndex).toBe(2)
+    app.press("Enter")
+    expect(getSR(app)!.matchIndex).toBe(2)
 
     // Wraps around
-    board.press("Enter")
-    const sr4 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr4.matchIndex).toBe(0)
+    app.press("Enter")
+    expect(getSR(app)!.matchIndex).toBe(0)
   })
 
   test("match count displays correctly with no matches", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    board.command("zoom_inwards").command("zoom_inwards").command("zoom_inwards")
+    app.command("search_replace")
+    app.command("zoom_inwards").command("zoom_inwards").command("zoom_inwards")
 
-    const sr = getActiveBoardPane(store.getState())!.searchReplace!
+    const sr = getSR(app)!
     expect(sr.matchCount).toBe(0)
     expect(sr.matchNodeIds).toHaveLength(0)
   })
 
   test("Ctrl+R replaces the current match", () => {
-    const { board, store, repo } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
+    app.command("search_replace")
     // Search for "Buy"
-    board.press("B").command("undo").press("y")
+    app.press("B").command("undo").press("y")
 
-    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
+    const sr1 = getSR(app)!
     expect(sr1.matchCount).toBe(3)
 
     // Switch to replace field and type replacement
-    board.command("indent_node")
-    board.command("cursor_last").press("e").press("t")
+    app.command("indent_node")
+    app.command("cursor_last").press("e").press("t")
 
     // Replace current match (first one: "Buy milk" -> "Get milk")
-    board.press("ctrl+r")
+    app.press("ctrl+r")
 
     // Verify the replacement happened
     const firstMatchId = sr1.matchNodeIds[0]!
-    const node = repo.getNode(firstMatchId)
+    const node = app.repo.getNode(firstMatchId)
     expect(node).toBeDefined()
     // The node should now have "Get" replacing "Buy"
     const text = node!.content ?? node!.name ?? ""
@@ -1613,31 +1596,30 @@ describe("Search & Replace", () => {
     expect(text).not.toMatch(/^Buy/)
 
     // Match count should decrease
-    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr2.matchCount).toBe(2) // "Buy eggs" and "Buy bread" remain
+    expect(getSR(app)!.matchCount).toBe(2) // "Buy eggs" and "Buy bread" remain
   })
 
   test("replace all matches via command dispatch", () => {
-    const { board, store, repo } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    board.press("B").command("undo").press("y")
+    app.command("search_replace")
+    app.press("B").command("undo").press("y")
 
-    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
+    const sr1 = getSR(app)!
     expect(sr1.matchCount).toBe(3)
     const matchIds = [...sr1.matchNodeIds]
 
     // Switch to replace field and type replacement
-    board.command("indent_node")
-    board.command("cursor_last").press("e").press("t")
+    app.command("indent_node")
+    app.command("cursor_last").press("e").press("t")
 
     // Replace all -- use dispatchCommandById since ctrl+shift+r
     // can't be represented in standard ANSI terminal encoding
-    dispatchCommandById("search_replace.replace_all", store.getState)
+    dispatchCommandById("search_replace.replace_all", app.driver.store.getState as () => BoardAppStore)
 
     // Verify all replacements happened
     for (const nodeId of matchIds) {
-      const node = repo.getNode(nodeId)
+      const node = app.repo.getNode(nodeId)
       expect(node).toBeDefined()
       const text = node!.content ?? node!.name ?? ""
       expect(text).toContain("Get")
@@ -1645,65 +1627,62 @@ describe("Search & Replace", () => {
     }
 
     // Match count should be 0
-    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr2.matchCount).toBe(0)
+    expect(getSR(app)!.matchCount).toBe(0)
   })
 
   test("Ctrl+X toggles regex mode", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
+    app.command("search_replace")
+    expect(getSR(app)!.useRegex).toBe(false)
 
-    board.press("ctrl+x")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
+    app.press("ctrl+x")
+    expect(getSR(app)!.useRegex).toBe(true)
 
-    board.press("ctrl+x")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
+    app.press("ctrl+x")
+    expect(getSR(app)!.useRegex).toBe(false)
   })
 
   test("regex search matches correctly", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
+    app.command("search_replace")
 
     // Enable regex
-    board.press("ctrl+x")
-    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
+    app.press("ctrl+x")
+    expect(getSR(app)!.useRegex).toBe(true)
 
     // Search for "Buy.*k" (matches "Buy milk" -- k in milk)
-    board.press("B").command("undo").press("y")
-    board.command("increase_content_lines").press("*").command("cursor_up")
+    app.press("B").command("undo").press("y")
+    app.command("increase_content_lines").press("*").command("cursor_up")
 
-    const sr = getActiveBoardPane(store.getState())!.searchReplace!
+    const sr = getSR(app)!
     // "Buy milk" matches Buy.*k (the k in milk)
     expect(sr.matchCount).toBeGreaterThanOrEqual(1)
   })
 
   test("dialog renders in the board output", () => {
-    const { board } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
+    app.command("search_replace")
 
-    const output = board.screenshot()
-    expect(output).toContain("[F]ind & Replace")
-    expect(output).toContain("Find:")
-    expect(output).toContain("Repl:")
+    expect(app.text).toContain("[F]ind & Replace")
+    expect(app.text).toContain("Find:")
+    expect(app.text).toContain("Repl:")
   })
 
   test("invalid regex shows no matches instead of crashing", () => {
-    const { board, store } = searchBoard()
+    using app = searchBoard()
 
-    board.command("search_replace")
+    app.command("search_replace")
 
     // Enable regex
-    board.press("ctrl+x")
+    app.press("ctrl+x")
 
     // Type an invalid regex
-    board.press("[")
+    app.press("[")
 
-    const sr = getActiveBoardPane(store.getState())!.searchReplace!
-    expect(sr.matchCount).toBe(0)
+    expect(getSR(app)!.matchCount).toBe(0)
     // Should not crash
   })
 })

@@ -337,34 +337,32 @@ describe("Help overlay", () => {
     expect(app.state.overlay).toBeNull()
   })
 
-  // FREEZE: needs store.getState().ui.helpScrollOffset
   test("j scrolls help content down", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
-    const initialOffset = store.getState().ui.helpScrollOffset ?? 0
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
+    const initialOffset = app.withStore((s) => s.ui.helpScrollOffset ?? 0)
 
     // j should scroll down
-    board.command("cursor_down")
-    const afterOffset = store.getState().ui.helpScrollOffset ?? 0
+    app.command("cursor_down")
+    const afterOffset = app.withStore((s) => s.ui.helpScrollOffset ?? 0)
     expect(afterOffset).toBeGreaterThan(initialOffset)
   })
 
-  // FREEZE: needs store.getState().ui.helpScrollOffset
   test("k scrolls help content up", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    board.command("show_help")
+    app.command("show_help")
     // Scroll down first
-    board.command("cursor_down")
-    board.command("cursor_down")
-    const midOffset = store.getState().ui.helpScrollOffset ?? 0
+    app.command("cursor_down")
+    app.command("cursor_down")
+    const midOffset = app.withStore((s) => s.ui.helpScrollOffset ?? 0)
     expect(midOffset).toBeGreaterThan(0)
 
     // k should scroll back up
-    board.command("cursor_up")
-    const afterOffset = store.getState().ui.helpScrollOffset ?? 0
+    app.command("cursor_up")
+    const afterOffset = app.withStore((s) => s.ui.helpScrollOffset ?? 0)
     expect(afterOffset).toBeLessThan(midOffset)
   })
 
@@ -403,77 +401,77 @@ describe("Help overlay", () => {
 
 describe("Inline edit lifecycle", () => {
   test("i enters inline edit mode on current card", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit
-    board.press("i")
-    board.expectEditing("task1")
+    app.press("i")
+    app.expectEditing("task1")
   })
 
   test("Enter enters inline edit mode on current card", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit via Enter key
-    board.press("Enter")
-    board.expectEditing("task1")
+    app.press("Enter")
+    app.expectEditing("task1")
   })
 
   test("Escape exits inline edit mode, cursor stays on same node", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Enter and exit inline edit
-    board.press("i")
-    board.expectEditing()
+    app.press("i")
+    app.expectEditing()
 
-    board.press("Escape")
-    board.expectNotEditing()
+    app.press("Escape")
+    app.expectNotEditing()
 
     // Cursor stays on task1
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("inline edit on different cards maintains correct nodeId", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Edit task1
-    board.press("i")
-    board.expectEditing("task1")
-    board.press("Escape")
+    app.press("i")
+    app.expectEditing("task1")
+    app.press("Escape")
 
     // Move to task2 and edit
-    board.command("cursor_down")
-    board.expect("#task2[data-cursor]").toExist()
-    board.press("i")
-    board.expectEditing("task2")
-    board.press("Escape")
+    app.command("cursor_down")
+    app.expect("#task2[data-cursor]").toExist()
+    app.press("i")
+    app.expectEditing("task2")
+    app.press("Escape")
 
     // Move to task3 and edit
-    board.command("cursor_down")
-    board.expect("#task3[data-cursor]").toExist()
-    board.press("i")
-    board.expectEditing("task3")
-    board.press("Escape")
+    app.command("cursor_down")
+    app.expect("#task3[data-cursor]").toExist()
+    app.press("i")
+    app.expectEditing("task3")
+    app.press("Escape")
   })
 
   test("inline edit mode blocks normal navigation keys", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit
-    board.press("i")
-    board.expectEditing()
+    app.press("i")
+    app.expectEditing()
 
     // Keys like j/k/l/h should be captured by the text input, not navigate the board
     // After Escape, cursor should still be on task1
-    board.press("Escape")
-    board.expect("#task1[data-cursor]").toExist()
+    app.press("Escape")
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("i on column header has no effect (no inline edit for headers)", () => {
@@ -505,33 +503,33 @@ describe("Inline edit lifecycle", () => {
 
 describe("Escape priority layering", () => {
   test("Escape exits inline edit before clearing selection", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
     // Enter inline edit
-    board.press("i")
-    board.expectEditing()
+    app.press("i")
+    app.expectEditing()
 
     // Escape exits inline edit
-    board.press("Escape")
-    board.expectNotEditing()
+    app.press("Escape")
+    app.expectNotEditing()
 
     // Cursor should still be on the node
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("Escape closes help overlay before doing anything else", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
     // Open help
-    board.command("show_help")
-    expect(store.getState().ui.showHelp).toBe(true)
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
 
     // Escape closes help
-    board.press("Escape")
-    expect(store.getState().ui.showHelp).toBe(false)
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
 
     // Cursor should still be on task1
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
   })
 })
 
@@ -543,43 +541,44 @@ describe("J/K block navigation edge cases", () => {
   // J/K do DFS block traversal — walk all visible blocks in column order.
 
   test("J on folded card auto-unfolds and enters first child", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
+    using app = createTestApp(
+      item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { checkIncremental: false },
     )
 
     // Fold Parent
-    board.command("fold_more")
-    board.command("fold_more")
+    app.command("fold_more")
+    app.command("fold_more")
 
     // J auto-unfolds and enters the first child (DFS order with auto-unfold)
-    board.command("block_nav_down")
-    board.expect("#child-a[data-cursor]").toExist()
+    app.command("block_nav_down")
+    app.expect("#child-a[data-cursor]").toExist()
   })
 
   test("K from last block walks back through DFS order", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")), item("sibling"))),
+    using app = createTestApp(
+      item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")), item("sibling"))),
       { rows: 30, checkIncremental: false },
     )
 
     // Walk forward to sibling via J (DFS: Parent → child-x → child-y → sibling)
-    board.command("block_nav_down") // → child-x
-    board.command("block_nav_down") // → child-y
-    board.command("block_nav_down") // → sibling
-    board.expect("#sibling[data-cursor]").toExist()
+    app.command("block_nav_down") // → child-x
+    app.command("block_nav_down") // → child-y
+    app.command("block_nav_down") // → sibling
+    app.expect("#sibling[data-cursor]").toExist()
 
     // K walks back: sibling → child-y
-    board.command("block_nav_up")
-    board.expect("#child-y[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#child-y[data-cursor]").toExist()
 
     // K continues: child-y → child-x → Parent
-    board.command("block_nav_up")
-    board.expect("#child-x[data-cursor]").toExist()
-    board.command("block_nav_up")
-    board.expect("#Parent[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#child-x[data-cursor]").toExist()
+    app.command("block_nav_up")
+    app.expect("#Parent[data-cursor]").toExist()
   })
 
+  // FREEZE: needs expectCursorVisible (testEnv-only)
   test("multiple J/K in sequence maintains cursor visibility", () => {
     const { board } = testEnv(
       () =>
@@ -743,66 +742,64 @@ describe("selection state through cursor movement", () => {
 
 describe("edit signal propagation", () => {
   test("enter edit mode sets editing, exit clears it", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
 
     // Initially not editing
-    board.expectNotEditing()
+    app.expectNotEditing()
 
     // Enter edit mode via i
-    board.press("i")
-    board.expectEditing("task1")
+    app.press("i")
+    app.expectEditing("task1")
 
     // Exit edit mode via Escape
-    board.press("Escape")
-    board.expectNotEditing()
+    app.press("Escape")
+    app.expectNotEditing()
 
     // Cursor should remain on task1
-    board.expect("#task1[data-cursor]").toExist()
+    app.expect("#task1[data-cursor]").toExist()
   })
 
   test("edit on different cards tracks correct nodeId", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Edit task1
-    board.press("i")
-    board.expectEditing("task1")
-    board.press("Escape")
+    app.press("i")
+    app.expectEditing("task1")
+    app.press("Escape")
 
     // Move to task2 and edit
-    board.command("cursor_down")
-    board.press("i")
-    board.expectEditing("task2")
-    board.press("Escape")
+    app.command("cursor_down")
+    app.press("i")
+    app.expectEditing("task2")
+    app.press("Escape")
 
     // Move to task3 and edit
-    board.command("cursor_down")
-    board.press("i")
-    board.expectEditing("task3")
-    board.press("Escape")
+    app.command("cursor_down")
+    app.press("i")
+    app.expectEditing("task3")
+    app.press("Escape")
 
     // All cleared
-    board.expectNotEditing()
+    app.expectNotEditing()
   })
 
   test("edit sub-item in nested card works and cleans up", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")))),
-    )
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")))))
 
     // Navigate into children via j keys
-    board.press("j") // move to next visible item
-    board.press("j")
-    board.press("j")
+    app.press("j") // move to next visible item
+    app.press("j")
+    app.press("j")
 
     // Enter edit on current node
-    board.press("i")
-    board.expectEditing()
+    app.press("i")
+    app.expectEditing()
 
     // Parent card should still be visible on screen
-    board.expect("#Parent").toExist()
+    app.expect("#Parent").toExist()
 
     // Exit edit cleanly
-    board.press("Escape")
-    board.expectNotEditing()
+    app.press("Escape")
+    app.expectNotEditing()
   })
 })

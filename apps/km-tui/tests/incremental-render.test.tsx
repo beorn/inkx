@@ -1,6 +1,10 @@
 /**
  * Incremental Rendering Tests
  *
+ * FREEZE: entire file uses testEnv — all tests access board._result.term.cell()
+ * and board._result.locator() for buffer-level incremental rendering assertions.
+ * Also uses palette color indices (TC.$selected) which resolve to truecolor in createTestApp.
+ *
  * Verifies that buffer clone + subtree skip (incremental renderPhase)
  * doesn't leave stale pixels when cursor moves between cards.
  *

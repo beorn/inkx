@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 import { classifyCursorFromLens } from "@km/board"
@@ -147,7 +147,6 @@ describe("symlink create depth", () => {
 // =============================================================================
 
 describe("clicking an embed sub-item", () => {
-  // FREEZE: needs store.getState() + getActiveBoardPane for lens inspection
   test("dispatchBoard SELECT with click hint routes cursor to the embed's column, not the target's column", () => {
     // Bug: when a card embeds another node (![[target]]), clicking a sub-item
     // rendered inside the embed used to put the cursor in the TARGET node's
@@ -155,81 +154,79 @@ describe("clicking an embed sub-item", () => {
     // not the embed's column. The click handler must pass cardNodeId (the
     // visual card it dispatched from) so dispatchBoard can route correctly
     // via the lens.
-    const { board, store } = testEnv(
-      () => {
-        // col1 has an embed pointing to target-x in col2.
-        // col2 has target-x as a card with sub-items sub-a, sub-b.
-        const nodes = item("board", item("col1", item("anchor")), item("col2"))
+    const embedNodes = (() => {
+      // col1 has an embed pointing to target-x in col2.
+      // col2 has target-x as a card with sub-items sub-a, sub-b.
+      const nodes = item("board", item("col1", item("anchor")), item("col2"))
 
-        nodes.push({
-          id: "target-x",
-          type: "h" as const,
-          item: {},
-          parent_id: "col2",
-          parent_idx: 0,
-          symlink_to: null,
-          content: "Target X",
-          data: { name: "Target X" },
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        } as unknown as KNode)
-        nodes.push({
-          id: "sub-a",
-          type: "p" as const,
-          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
-          parent_id: "target-x",
-          parent_idx: 0,
-          symlink_to: null,
-          content: "sub-a",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        } as unknown as KNode)
-        nodes.push({
-          id: "sub-b",
-          type: "p" as const,
-          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
-          parent_id: "target-x",
-          parent_idx: 1,
-          symlink_to: null,
-          content: "sub-b",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        } as unknown as KNode)
+      nodes.push({
+        id: "target-x",
+        type: "h" as const,
+        item: {},
+        parent_id: "col2",
+        parent_idx: 0,
+        symlink_to: null,
+        content: "Target X",
+        data: { name: "Target X" },
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      } as unknown as KNode)
+      nodes.push({
+        id: "sub-a",
+        type: "p" as const,
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
+        parent_id: "target-x",
+        parent_idx: 0,
+        symlink_to: null,
+        content: "sub-a",
+        data: {},
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      } as unknown as KNode)
+      nodes.push({
+        id: "sub-b",
+        type: "p" as const,
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
+        parent_id: "target-x",
+        parent_idx: 1,
+        symlink_to: null,
+        content: "sub-b",
+        data: {},
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      } as unknown as KNode)
 
-        // Embed in col1 pointing to target-x
-        nodes.push({
-          id: "embed-x",
-          type: "h" as const,
-          item: {},
-          parent_id: "col1",
-          parent_idx: 1,
-          symlink_to: "target-x",
-          content: "![[target-x]]",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        } as unknown as KNode)
+      // Embed in col1 pointing to target-x
+      nodes.push({
+        id: "embed-x",
+        type: "h" as const,
+        item: {},
+        parent_id: "col1",
+        parent_idx: 1,
+        symlink_to: "target-x",
+        content: "![[target-x]]",
+        data: {},
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      } as unknown as KNode)
 
-        return nodes
-      },
-      { columns: 100, rows: 30 },
-    )
+      return nodes
+    })()
+    using app = createTestApp(embedNodes, { cols: 100, rows: 30 })
 
     // Sanity: both columns rendered.
-    board.expect("#col1").toExist()
-    board.expect("#col2").toExist()
-    board.expect("#embed-x").toExist()
+    app.expect("#col1").toExist()
+    app.expect("#col2").toExist()
+    app.expect("#embed-x").toExist()
 
     // Verify the dispatchBoard SELECT click-hint mechanism. The hint forces
     // classification of `cardNodeId` (the visual card) and overrides whatever
     // the data-model parent walk would have produced.
-    const pane = getActiveBoardPane(store.getState())!
+    const pane = app.withStore((s) => getActiveBoardPane(s))!
     expect(pane.signals).toBeTruthy()
     const lens = pane.signals!.visibleLens()
 
@@ -1951,49 +1948,41 @@ describe("symlink transparency in detail pane", () => {
     return nodes
   }
 
-  // FREEZE: needs store.getState().workspace for detail pane inspection
   test("detail pane for symlink card shows target's children", () => {
-    const { board, store } = testEnv(buildSymlinkDetailBoard, {
-      columns: 120,
-      rows: 24,
-    })
+    using app = createTestApp(buildSymlinkDetailBoard(), { cols: 120, rows: 24 })
 
     // Navigate to the symlink card (second card in col1)
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Open detail pane
-    board.press("D")
+    app.press("D")
 
     // Verify detail pane is open
-    const ws = store.getState().workspace
-    expect(ws.panes.has("main-detail")).toBe(true)
+    app.withStore((s) => {
+      const ws = s.workspace
+      expect(ws.panes.has("main-detail")).toBe(true)
 
-    // The detail pane's rootId should be the symlink card's ID
-    const detailPane = ws.panes.get("main-detail")!
-    expect((detailPane as any).rootId).toBe("embed-card")
-
-    // But the rendered detail should show the TARGET's children
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("Target Child Alpha")
-    expect(screenshot).toContain("Target Child Beta")
-  })
-
-  // FREEZE: needs store.getState().workspace for detail pane inspection
-  test("detail pane metadata shows target properties for symlink card", () => {
-    const { board, store } = testEnv(buildSymlinkDetailBoard, {
-      columns: 120,
-      rows: 24,
+      // The detail pane's rootId should be the symlink card's ID
+      const detailPane = ws.panes.get("main-detail")!
+      expect((detailPane as any).rootId).toBe("embed-card")
     })
 
+    // But the rendered detail should show the TARGET's children
+    expect(app.text).toContain("Target Child Alpha")
+    expect(app.text).toContain("Target Child Beta")
+  })
+
+  test("detail pane metadata shows target properties for symlink card", () => {
+    using app = createTestApp(buildSymlinkDetailBoard(), { cols: 120, rows: 24 })
+
     // Navigate to the symlink card
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Open detail pane
-    board.press("D")
+    app.press("D")
 
     // The rendered detail should show the target's metadata (task status, due date)
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("wip")
+    expect(app.text).toContain("wip")
     // The symlink card itself has no item.task — this proves the target's metadata is shown
   })
 })

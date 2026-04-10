@@ -4,76 +4,75 @@
  */
 import { describe, test, expect } from "vitest"
 import { act } from "react"
-// Partially FREEZE: pendingChord state tests need store.getState().ui.pendingChord / __triggerChordTimeout
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { getChordSuffixes } from "@km/commands"
 
 describe("which-key popup", () => {
   test("pressing chord prefix sets pendingChord in UI state", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
     // Move to a card first
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Press 'g' (chord prefix)
-    board.press("g")
+    app.press("g")
 
     // pendingChord should be set
-    expect(store.getState().ui.pendingChord).toBe("g")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("g"))
   })
 
   test("pressing suffix key clears pendingChord", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Start chord
-    board.press("g")
-    expect(store.getState().ui.pendingChord).toBe("g")
+    app.press("g")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("g"))
 
     // Complete chord with suffix
-    board.press("g") // gg = cursor_first
-    expect(store.getState().ui.pendingChord).toBeNull()
+    app.press("g") // gg = cursor_first
+    app.withStore((s) => expect(s.ui.pendingChord).toBeNull())
   })
 
   test("Escape clears pendingChord", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
+    app.command("cursor_down")
 
     // Start chord
-    board.press("g")
-    expect(store.getState().ui.pendingChord).toBe("g")
+    app.press("g")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("g"))
 
     // Cancel with Escape
-    board.press("Escape")
-    expect(store.getState().ui.pendingChord).toBeNull()
+    app.press("Escape")
+    app.withStore((s) => expect(s.ui.pendingChord).toBeNull())
   })
 
   test("m chord prefix sets pendingChord", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("m")
-    expect(store.getState().ui.pendingChord).toBe("m")
+    app.command("cursor_down")
+    app.press("m")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("m"))
   })
 
   test("t chord prefix sets pendingChord", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item.task("task"))))
+    using app = createTestApp(item("board", item("col", item.task("task"))))
 
-    board.command("cursor_down")
-    board.press("t")
-    expect(store.getState().ui.pendingChord).toBe("t")
+    app.command("cursor_down")
+    app.press("t")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("t"))
   })
 
   test("a chord prefix sets pendingChord", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("a")
-    expect(store.getState().ui.pendingChord).toBe("a")
+    app.command("cursor_down")
+    app.press("a")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("a"))
   })
 })
 
@@ -90,18 +89,17 @@ describe("which-key popup rendering", () => {
     expect(app.text).toContain("home")
   })
 
-  // FREEZE: needs store.getState().ui.pendingChord
   test("popup disappears when suffix key is pressed", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("g")
-    expect(board.screenshot()).toContain("inbox")
+    app.command("cursor_down")
+    app.press("g")
+    expect(app.text).toContain("inbox")
 
     // Press suffix — clears pendingChord, popup unmounts
-    board.press("g") // gg = cursor_first
-    expect(store.getState().ui.pendingChord).toBeNull()
-    expect(board.screenshot()).not.toContain("inbox")
+    app.press("g") // gg = cursor_first
+    app.withStore((s) => expect(s.ui.pendingChord).toBeNull())
+    expect(app.text).not.toContain("inbox")
   })
 
   test("popup shows different suffixes for different prefixes", () => {
@@ -130,32 +128,32 @@ describe("which-key popup rendering", () => {
 
 describe("which-key popup minimum display duration", () => {
   test("popup stays visible after chord timeout fires", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item.task("task"))))
+    using app = createTestApp(item("board", item("col", item.task("task"))))
 
-    board.command("cursor_down")
-    board.press("t")
-    expect(store.getState().ui.pendingChord).toBe("t")
+    app.command("cursor_down")
+    app.press("t")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("t"))
 
     // Trigger chord timeout (fires standalone command, e.g., noop for 't')
     act(() => {
-      __triggerChordTimeout(store.getState)
+      __triggerChordTimeout(app.driver.store.getState as () => any)
     })
 
     // pendingChord should STILL be set — popup stays visible
-    expect(store.getState().ui.pendingChord).toBe("t")
-    expect(board.screenshot()).toContain("due date")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("t"))
+    expect(app.text).toContain("due date")
   })
 
   test("popup stays visible when non-suffix key pressed within min display time", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+    using app = createTestApp(item("board", item("col", item("task"))))
 
-    board.command("cursor_down")
-    board.press("g")
-    expect(store.getState().ui.pendingChord).toBe("g")
+    app.command("cursor_down")
+    app.press("g")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("g"))
 
     // Press a random key (not a chord suffix) — popup should stay because min display time hasn't elapsed
-    board.command("toggle_task_done")
-    expect(store.getState().ui.pendingChord).toBe("g")
+    app.command("toggle_task_done")
+    app.withStore((s) => expect(s.ui.pendingChord).toBe("g"))
   })
 })
 
