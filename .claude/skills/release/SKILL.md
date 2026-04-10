@@ -325,3 +325,4 @@ With `--dry-run`, run phases 1-2 only:
 - Changelogs use [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
 - Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Conventional commits map to changelog sections: feat→Added, fix→Fixed, refactor→Changed
+- **For repos with release.yml CI workflow**: only bump version + tag + push. Do NOT run `npm publish` manually — CI handles it. This prevents race conditions.
