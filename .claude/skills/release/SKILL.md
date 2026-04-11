@@ -16,7 +16,6 @@ Release any package in the km monorepo — single packages, the silvery monorepo
 |---------|---------|
 | `/release --status` | Dashboard: versions, tags, npm, unpublished changes |
 | `/release --audit` | Run publishing readiness audit |
-| `/release --fix-tags` | Create missing tags for already-published versions |
 | `/release vendor/loggily` | Release loggily (single package) |
 | `/release vendor/loggily patch` | Release loggily as patch |
 | `/release silvery` | Release all silvery packages (coordinated) |
@@ -106,70 +105,6 @@ for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
 done
 ```
 
-## `/release --fix-tags` — Create Missing Tags
-
-When `--status` shows NOTAG for packages whose version matches npm, the tag was lost or never created. This retroactively creates tags at the correct commits.
-
-For each repo, find the commit that bumped each package to its current version and tag it:
-
-```bash
-cd /Users/beorn/Code/pim/km
-
-for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
-  repo_name=$(basename "$repo_dir")
-  cd "/Users/beorn/Code/pim/km/$repo_dir"
-  
-  echo "[$repo_name]"
-  
-  setopt nullglob 2>/dev/null
-  for pkg_json in package.json packages/*/package.json examples/package.json; do
-    [ ! -f "$pkg_json" ] && continue
-    name=$(python3 -c "import json; print(json.load(open('$pkg_json'))['name'])")
-    version=$(python3 -c "import json; print(json.load(open('$pkg_json'))['version'])")
-    private=$(python3 -c "import json; print(json.load(open('$pkg_json')).get('private', False))")
-    [ "$private" = "True" ] && continue
-    
-    tag="v${version}"
-    if git rev-parse "$tag" >/dev/null 2>&1; then
-      echo "  $name: $tag exists"
-      continue
-    fi
-    
-    npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
-    if [ "$version" != "$npm_ver" ]; then
-      echo "  $name: v$version not on npm (npm=$npm_ver) — skip"
-      continue
-    fi
-    
-    # Find the commit that set this version (search package.json changes)
-    pkg_dir=$(dirname "$pkg_json")
-    version_commit=$(git log --all --oneline -n1 --grep="v${version}" -- "$pkg_json" 2>/dev/null | awk '{print $1}')
-    if [ -z "$version_commit" ]; then
-      # Fallback: find commit that last changed the version field
-      version_commit=$(git log --all --oneline -- "$pkg_json" | head -1 | awk '{print $1}')
-    fi
-    
-    if [ -n "$version_commit" ]; then
-      echo "  $name: creating $tag at $version_commit"
-      git tag "$tag" "$version_commit"
-    else
-      echo "  $name: could not find commit for $tag — manual tag needed"
-    fi
-  done
-  unsetopt nullglob 2>/dev/null
-  
-  # Push tags
-  echo "  pushing tags..."
-  git push --tags 2>&1 | grep -v 'Everything up-to-date' | sed 's/^/  /'
-  echo ""
-  cd /Users/beorn/Code/pim/km
-done
-```
-
-For coordinated silvery releases, only one tag per version is needed (the barrel version tag covers all packages).
-
-**IMPORTANT**: Review the tag targets before pushing. The script finds the best-guess commit, but verify it's correct.
-
 ## `/release --audit` — Publishing Readiness
 
 ```bash
@@ -177,6 +112,36 @@ cd /Users/beorn/Code/pim/km && bun infra/audit-packages.ts
 ```
 
 All errors must be zero before releasing.
+
+## Dispatch Logic
+
+When `/release` is invoked (without `--status` or `--audit`):
+
+1. **Run the dashboard** (same as `--status`) to assess all repos
+2. **Fix missing tags** — for any package where local version == npm version but `v<version>` tag doesn't exist, create the tag at the commit that set that version, then push tags. This is silent housekeeping, not a release.
+3. **Identify releasable packages** — packages with new commits since last tag
+4. **If target is specific** (`/release vendor/loggily`, `/release silvery`): release that target only
+5. **If target is `all`**: release every package with new commits
+6. **If no target and no new commits anywhere**: report "nothing to release" and stop
+7. **If no target but new commits exist**: show what's releasable and ask what to release
+
+For each package being released, run Phases 1-9 below.
+
+### Fixing missing tags (automatic)
+
+For each repo, check all public packages. If `v<version>` tag is missing but the version matches npm:
+
+```bash
+# Find the commit that bumped to this version
+version_commit=$(git log --all --oneline -n1 --grep="v${version}" -- "$pkg_json" 2>/dev/null | awk '{print $1}')
+# Fallback: last commit that touched the package.json
+[ -z "$version_commit" ] && version_commit=$(git log --all --oneline -- "$pkg_json" | head -1 | awk '{print $1}')
+# Create tag
+git tag "v${version}" "$version_commit"
+git push --tags
+```
+
+This runs silently as part of pre-flight. Report what was tagged but don't prompt for confirmation.
 
 ## Phase 1: Pre-flight
 
