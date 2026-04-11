@@ -14,8 +14,9 @@ Release any package in the km monorepo — single packages, the silvery monorepo
 
 | Command | Purpose |
 |---------|---------|
-| `/release --status` | Dashboard: all packages, versions, changes, CI status |
+| `/release --status` | Dashboard: versions, tags, npm, unpublished changes |
 | `/release --audit` | Run publishing readiness audit |
+| `/release --fix-tags` | Create missing tags for already-published versions |
 | `/release vendor/loggily` | Release loggily (single package) |
 | `/release vendor/loggily patch` | Release loggily as patch |
 | `/release silvery` | Release all silvery packages (coordinated) |
@@ -28,7 +29,10 @@ Release any package in the km monorepo — single packages, the silvery monorepo
 
 ## `/release --status` — Package Dashboard
 
-Show all publishable packages grouped by repo, with version drift, changes, and CI status:
+Show all publishable packages grouped by repo. Reports three dimensions:
+- **Version match**: local version vs npm version (DRIFT = mismatch, UNPUBLISHED = not on npm)
+- **Tag match**: whether `v<version>` tag exists (NOTAG = version was bumped/published but never tagged)
+- **Code delta**: commits since last git tag touching this package (what would go into next release)
 
 ```bash
 cd /Users/beorn/Code/pim/km
@@ -39,15 +43,17 @@ echo ""
 for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
   repo_name=$(basename "$repo_dir")
   
-  # Repo-level info
   cd "/Users/beorn/Code/pim/km/$repo_dir"
   branch=$(git branch --show-current)
   last_push=$(git log -1 --format="%ar" origin/main 2>/dev/null || echo "?")
-  ci_status=$(gh run list --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "?")
+  ci_result=$(gh run list --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "?")
   
-  echo "[$repo_name] branch=$branch  last push=$last_push  CI=$ci_status"
+  # Find last tag in this repo
+  repo_last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
   
-  # Package-level info
+  echo "[$repo_name] branch=$branch  last push=$last_push  CI=$ci_result  tag=$repo_last_tag"
+  
+  setopt nullglob 2>/dev/null
   for pkg_json in package.json packages/*/package.json examples/package.json; do
     [ ! -f "$pkg_json" ] && continue
     name=$(python3 -c "import json; print(json.load(open('$pkg_json'))['name'])")
@@ -57,25 +63,112 @@ for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
     
     npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
     
-    # Count commits since version tag
-    pkg_dir=$(dirname "$pkg_json")
-    if [ "$pkg_dir" = "." ]; then
-      commits=$(git log "v${version}"..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
-    else
-      commits=$(git log "v${version}"..HEAD --oneline -- "$pkg_dir" 2>/dev/null | wc -l | tr -d ' ')
+    # 1. Version match
+    ver_flag=""
+    if [ "$npm_ver" = "—" ]; then
+      ver_flag="UNPUBLISHED"
+    elif [ "$version" != "$npm_ver" ]; then
+      ver_flag="DRIFT(npm=$npm_ver)"
     fi
     
-    status=""
-    [ "$version" != "$npm_ver" ] && status="DRIFT"
-    [ "$commits" -gt 0 ] 2>/dev/null && status="${commits} commits"
-    [ -z "$status" ] && status="up to date"
+    # 2. Tag match — check if v<version> tag exists
+    tag_flag=""
+    if ! git rev-parse "v${version}" >/dev/null 2>&1; then
+      tag_flag="NOTAG"
+    fi
     
-    printf "  %-30s  local=%-8s  npm=%-8s  %s\n" "$name" "$version" "$npm_ver" "$status"
+    # 3. Code delta — commits since last repo tag touching this package
+    delta=""
+    if [ -n "$repo_last_tag" ]; then
+      pkg_dir=$(dirname "$pkg_json")
+      if [ "$pkg_dir" = "." ]; then
+        delta_count=$(git log "$repo_last_tag"..HEAD --oneline -- . ':!packages' ':!examples' ':!node_modules' ':!dist' 2>/dev/null | wc -l | tr -d ' ')
+      else
+        delta_count=$(git log "$repo_last_tag"..HEAD --oneline -- "$pkg_dir" 2>/dev/null | wc -l | tr -d ' ')
+      fi
+      [ "$delta_count" -gt 0 ] 2>/dev/null && delta="${delta_count} new commits"
+    else
+      delta="no tags"
+    fi
+    
+    # Combine flags
+    pkg_info=""
+    [ -n "$ver_flag" ] && pkg_info="$ver_flag"
+    [ -n "$tag_flag" ] && pkg_info="${pkg_info:+$pkg_info  }$tag_flag"
+    [ -n "$delta" ] && pkg_info="${pkg_info:+$pkg_info  }$delta"
+    [ -z "$pkg_info" ] && pkg_info="up to date"
+    
+    printf "  %-30s  v%-8s  npm=%-8s  %s\n" "$name" "$version" "$npm_ver" "$pkg_info"
   done
+  unsetopt nullglob 2>/dev/null
   echo ""
   cd /Users/beorn/Code/pim/km
 done
 ```
+
+## `/release --fix-tags` — Create Missing Tags
+
+When `--status` shows NOTAG for packages whose version matches npm, the tag was lost or never created. This retroactively creates tags at the correct commits.
+
+For each repo, find the commit that bumped each package to its current version and tag it:
+
+```bash
+cd /Users/beorn/Code/pim/km
+
+for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
+  repo_name=$(basename "$repo_dir")
+  cd "/Users/beorn/Code/pim/km/$repo_dir"
+  
+  echo "[$repo_name]"
+  
+  setopt nullglob 2>/dev/null
+  for pkg_json in package.json packages/*/package.json examples/package.json; do
+    [ ! -f "$pkg_json" ] && continue
+    name=$(python3 -c "import json; print(json.load(open('$pkg_json'))['name'])")
+    version=$(python3 -c "import json; print(json.load(open('$pkg_json'))['version'])")
+    private=$(python3 -c "import json; print(json.load(open('$pkg_json')).get('private', False))")
+    [ "$private" = "True" ] && continue
+    
+    tag="v${version}"
+    if git rev-parse "$tag" >/dev/null 2>&1; then
+      echo "  $name: $tag exists"
+      continue
+    fi
+    
+    npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
+    if [ "$version" != "$npm_ver" ]; then
+      echo "  $name: v$version not on npm (npm=$npm_ver) — skip"
+      continue
+    fi
+    
+    # Find the commit that set this version (search package.json changes)
+    pkg_dir=$(dirname "$pkg_json")
+    version_commit=$(git log --all --oneline -n1 --grep="v${version}" -- "$pkg_json" 2>/dev/null | awk '{print $1}')
+    if [ -z "$version_commit" ]; then
+      # Fallback: find commit that last changed the version field
+      version_commit=$(git log --all --oneline -- "$pkg_json" | head -1 | awk '{print $1}')
+    fi
+    
+    if [ -n "$version_commit" ]; then
+      echo "  $name: creating $tag at $version_commit"
+      git tag "$tag" "$version_commit"
+    else
+      echo "  $name: could not find commit for $tag — manual tag needed"
+    fi
+  done
+  unsetopt nullglob 2>/dev/null
+  
+  # Push tags
+  echo "  pushing tags..."
+  git push --tags 2>&1 | grep -v 'Everything up-to-date' | sed 's/^/  /'
+  echo ""
+  cd /Users/beorn/Code/pim/km
+done
+```
+
+For coordinated silvery releases, only one tag per version is needed (the barrel version tag covers all packages).
+
+**IMPORTANT**: Review the tag targets before pushing. The script finds the best-guess commit, but verify it's correct.
 
 ## `/release --audit` — Publishing Readiness
 
@@ -220,6 +313,8 @@ Prepend new entry to CHANGELOG.md. Create if missing.
 
 `pnpm publish` is required — it applies `publishConfig.exports` overrides.
 
+**Tagging is mandatory.** Every published version MUST have a matching `v<version>` git tag. Without it, `--status` can't detect unpublished changes.
+
 ```bash
 # Single package
 cd <package-dir>
@@ -239,6 +334,9 @@ git commit -m "chore(vendor): <name> v$NEW_VERSION"
 ### Coordinated silvery release (publish in dependency order)
 
 ```bash
+# Tag first (one tag covers all @silvery/* packages)
+git tag "v$NEW_VERSION"
+
 # Tier 0: no @silvery deps
 for pkg in color headless; do cd packages/$pkg && pnpm publish --no-git-checks --access public && cd ../..; done
 
@@ -253,6 +351,9 @@ pnpm publish --no-git-checks --access public
 
 # Tier 4: examples
 cd examples && pnpm publish --no-git-checks --access public
+
+# Push everything
+git push && git push --tags
 ```
 
 ## Phase 7: Smoke Test
