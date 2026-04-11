@@ -1,190 +1,161 @@
 ---
-description: "Release packages — version bump, changelog from git+beads, npm publish, GitHub release. Works for km root and vendor submodules."
-argument-hint: "[<package-path>] [--status|--dry-run|patch|minor|major]"
+description: "Release packages — audit, build, version bump, changelog, npm publish, smoke test. Handles single packages and coordinated monorepo releases."
+argument-hint: "[--status|--audit|<package-path>|silvery|all] [--dry-run|patch|minor|major]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
 ---
 
 # Release
 
-**Keywords**: release, publish, version, changelog, npm, tag, vendor release
+**Keywords**: release, publish, version, changelog, npm, tag, vendor release, status
 
-Release any package in the km monorepo — the root `km` package or any `vendor/*` submodule.
+Release any package in the km monorepo — single packages, the silvery monorepo (coordinated), or all packages at once.
 
 ## Quick Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/release --status` | Show all packages with unpublished changes |
-| `/release vendor/silvery` | Release silvery (interactive — picks version) |
-| `/release vendor/silvery patch` | Release silvery as patch |
-| `/release` | Release km root |
-| `/release --dry-run vendor/loggily` | Preview what would happen |
+| `/release --status` | Dashboard: all packages, versions, changes, CI status |
+| `/release --audit` | Run publishing readiness audit |
+| `/release vendor/loggily` | Release loggily (single package) |
+| `/release vendor/loggily patch` | Release loggily as patch |
+| `/release silvery` | Release all silvery packages (coordinated) |
+| `/release all` | Release all packages with changes |
+| `/release --dry-run vendor/silvery` | Preview what would happen |
 
 ## Target
 
 **Argument**: $ARGUMENTS
 
-Default: km root. If a vendor path is given, release that package.
+## `/release --status` — Package Dashboard
 
-## Phase 1: Status Check
-
-### For `--status` (no release, just report)
-
-Check ALL publishable packages for unpublished changes:
+Show all publishable packages grouped by repo, with version drift, changes, and CI status:
 
 ```bash
 cd /Users/beorn/Code/pim/km
 
-for dir in . vendor/flexily vendor/loggily vendor/mdtest vendor/silvery vendor/termless vendor/vimonkey vendor/bearly vendor/watcher-chaos; do
-  pkg="$dir/package.json"
-  [ ! -f "$pkg" ] && continue
+echo "=== Package Dashboard ==="
+echo ""
 
-  name=$(python3 -c "import json; print(json.load(open('$pkg')).get('name','?'))")
-  local_ver=$(python3 -c "import json; print(json.load(open('$pkg')).get('version','?'))")
-  private=$(python3 -c "import json; print(json.load(open('$pkg')).get('private', False))")
-  npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
-
-  # Count commits since last tag
-  if [ "$dir" = "." ]; then
-    last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-    commits=$([ -n "$last_tag" ] && git rev-list "$last_tag"..HEAD --count || echo "?")
-  else
-    last_tag=$(cd "$dir" && git describe --tags --abbrev=0 2>/dev/null || echo "")
-    commits=$([ -n "$last_tag" ] && (cd "$dir" && git rev-list "$last_tag"..HEAD --count) || echo "?")
-  fi
-
-  # Determine status
-  if [ "$private" = "True" ]; then
-    status="private"
-  elif [ "$local_ver" != "$npm_ver" ]; then
-    status="VERSION DRIFT"
-  elif [ "$commits" != "0" ] && [ "$commits" != "?" ]; then
-    status="$commits commits"
-  else
-    status="up to date"
-  fi
-
-  printf "%-30s %-15s local=%-8s npm=%-8s %s\n" "$dir" "$name" "$local_ver" "$npm_ver" "$status"
+for repo_dir in vendor/silvery vendor/loggily vendor/flexily vendor/bearly; do
+  repo_name=$(basename "$repo_dir")
+  
+  # Repo-level info
+  cd "/Users/beorn/Code/pim/km/$repo_dir"
+  branch=$(git branch --show-current)
+  last_push=$(git log -1 --format="%ar" origin/main 2>/dev/null || echo "?")
+  ci_status=$(gh run list --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "?")
+  
+  echo "[$repo_name] branch=$branch  last push=$last_push  CI=$ci_status"
+  
+  # Package-level info
+  for pkg_json in package.json packages/*/package.json examples/package.json; do
+    [ ! -f "$pkg_json" ] && continue
+    name=$(python3 -c "import json; print(json.load(open('$pkg_json'))['name'])")
+    version=$(python3 -c "import json; print(json.load(open('$pkg_json'))['version'])")
+    private=$(python3 -c "import json; print(json.load(open('$pkg_json')).get('private', False))")
+    [ "$private" = "True" ] && continue
+    
+    npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
+    
+    # Count commits since version tag
+    pkg_dir=$(dirname "$pkg_json")
+    if [ "$pkg_dir" = "." ]; then
+      commits=$(git log "v${version}"..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
+    else
+      commits=$(git log "v${version}"..HEAD --oneline -- "$pkg_dir" 2>/dev/null | wc -l | tr -d ' ')
+    fi
+    
+    status=""
+    [ "$version" != "$npm_ver" ] && status="DRIFT"
+    [ "$commits" -gt 0 ] 2>/dev/null && status="${commits} commits"
+    [ -z "$status" ] && status="up to date"
+    
+    printf "  %-30s  local=%-8s  npm=%-8s  %s\n" "$name" "$version" "$npm_ver" "$status"
+  done
+  echo ""
+  cd /Users/beorn/Code/pim/km
 done
 ```
 
-### For a specific package release
-
-Run pre-flight checks:
+## `/release --audit` — Publishing Readiness
 
 ```bash
-# In the package directory:
-{
-  echo "=== Package ==="
-  name=$(python3 -c "import json; print(json.load(open('package.json')).get('name','?'))")
-  version=$(python3 -c "import json; print(json.load(open('package.json')).get('version','?'))")
-  echo "$name@$version"
-
-  echo -e "\n=== Working Directory ==="
-  git status --short | head -10
-  [ -z "$(git status --porcelain)" ] && echo "✓ Clean" || echo "⚠️ Has uncommitted changes"
-
-  echo -e "\n=== Commits Since Last Tag ==="
-  last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-  if [ -n "$last_tag" ]; then
-    git log "$last_tag"..HEAD --oneline --no-decorate | head -15
-  else
-    echo "No previous tags"
-    git log --oneline -10
-  fi
-
-  echo -e "\n=== npm Status ==="
-  npm_ver=$(npm view "$name" version 2>/dev/null || echo "not published")
-  echo "npm: $npm_ver"
-}
+cd /Users/beorn/Code/pim/km && bun infra/audit-packages.ts
 ```
 
-**Decision points:**
-- Uncommitted changes? → Ask to commit first (invoke `/commit`)
-- No commits since last tag? → Nothing to release, abort
-- Version drift (local ≠ npm but no tag)? → Warn, confirm
+All errors must be zero before releasing.
 
-### Pre-flight: workspace:* dependency check (BLOCKING)
+## Phase 1: Pre-flight
 
-Before publishing, verify no `workspace:*` dependencies remain. These break npm consumers since Bun treats them as local workspace references that don't exist outside the monorepo.
+### For single package release
 
 ```bash
-# Check this package and all workspace packages for workspace:* deps
-has_ws=0
-for pkg in package.json packages/*/package.json; do
-  [ ! -f "$pkg" ] && continue
-  ws=$(python3 -c "
-import json
-d = json.load(open('$pkg'))
-deps = {**d.get('dependencies',{}), **d.get('peerDependencies',{})}
-bad = [f'  {k}: {v}' for k,v in deps.items() if 'workspace:' in str(v)]
-print('\n'.join(bad))
-" 2>/dev/null)
-  if [ -n "$ws" ]; then
-    echo "⚠️  $pkg has workspace:* deps:"
-    echo "$ws"
-    has_ws=1
-  fi
+cd <package-dir>
+
+# Clean working directory?
+[ -z "$(git status --porcelain)" ] && echo "✓ Clean" || echo "⚠ Uncommitted changes — commit first"
+
+# Commits since last tag
+last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+[ -n "$last_tag" ] && git log "$last_tag"..HEAD --oneline | head -15
+
+# Publishing audit
+cd /Users/beorn/Code/pim/km && bun infra/audit-packages.ts 2>&1 | grep -E "ERROR|$name"
+```
+
+### For coordinated silvery release
+
+All @silvery/* public packages + silvery barrel share the same version. Check:
+1. All packages build: `cd vendor/silvery && npx tsdown && for pkg in packages/*/; do cd "$pkg" && npx tsdown; cd ../..; done`
+2. No cross-dep mismatches: `bun infra/audit-packages.ts`
+3. Clean working tree in silvery submodule
+
+## Phase 2: Build
+
+**All packages use tsdown** with config in the `"tsdown"` field of package.json.
+
+```bash
+# Single package
+cd <package-dir> && npx tsdown
+
+# Silvery monorepo (all packages)
+cd vendor/silvery
+npx tsdown                           # barrel
+for pkg in packages/*/; do
+  [ -f "$pkg/package.json" ] && grep -q '"tsdown"' "$pkg/package.json" && (cd "$pkg" && npx tsdown)
 done
-[ "$has_ws" = "0" ] && echo "✓ No workspace:* dependencies"
+cd examples && npx tsdown && cd ..
+
+# All vendor packages
+cd /Users/beorn/Code/pim/km
+for dir in vendor/loggily vendor/flexily vendor/silvery vendor/silvery/packages/* vendor/silvery/examples vendor/bearly/packages/*; do
+  [ -f "$dir/package.json" ] && grep -q '"tsdown"' "$dir/package.json" && (cd "$dir" && npx tsdown 2>&1 | grep -E "✔|ERROR")
+done
 ```
 
-If any `workspace:*` dependencies are found: **STOP**. Replace them with real npm version numbers before publishing. Bun workspaces will still resolve them locally when the version matches. See `vendor/CLAUDE.md` for the policy.
+## Phase 3: Generate Changelog
 
-### Pre-flight: link check (soft warning, vendor packages with public sites only)
+Build changelog entries from **git log** and **closed beads**.
 
-For vendor packages that ship a public docs site (silvery, termless, terminfo.dev, flexily, loggily, mdspec), run the cross-site link checker against the affected site as a final sanity check before publish:
-
-```bash
-scripts/check-site-links.sh https://<site>
-```
-
-This is a **soft warning** — broken links do NOT block the release. Surface the SUMMARY.md path and ask the user whether to proceed. The point is to catch dead third-party citations and stale cross-site references before they hit announce traffic, not to gate the release on issues that may pre-date this change.
-
-If the package being released does not have a public site (e.g. internal libs), skip this step.
-
-## Phase 2: Generate Changelog
-
-Build changelog entries from two sources: **git log** and **closed beads**.
-
-### Step 2a: Gather commits
+### Gather commits
 
 ```bash
 last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-if [ -n "$last_tag" ]; then
-  git log "$last_tag"..HEAD --format="%H %s" --no-decorate
-else
-  git log --format="%H %s" --no-decorate
-fi
+[ -n "$last_tag" ] && git log "$last_tag"..HEAD --format="%H %s" --no-decorate
 ```
 
-Parse conventional commits into categories:
-- `feat:` → **Added**
-- `fix:` → **Fixed**
-- `perf:` → **Performance**
-- `refactor:` → **Changed**
-- `docs:` → **Documentation**
-- `chore:` / `ci:` / `test:` → omit from changelog (internal)
+Parse conventional commits: `feat:` → Added, `fix:` → Fixed, `perf:` → Performance, `refactor:` → Changed, `docs:` → Documentation. Omit `chore:`/`ci:`/`test:`.
 
-### Step 2b: Gather closed beads (km packages only)
-
-For packages within the km repo (not standalone vendor repos):
+### Gather closed beads
 
 ```bash
-# Find beads closed since last tag date
 last_tag_date=$(git log -1 --format=%aI "$last_tag" 2>/dev/null)
 bd list --status=closed | grep -i "$package_scope"
 ```
 
-Match beads to the package by scope prefix (e.g., `km-silvery.*` for silvery, `km-tui.*` for km-tui).
+Beads take priority over commits describing the same change.
 
-### Step 2c: Merge and deduplicate
-
-Beads take priority — if a bead and commit describe the same change, use the bead title (it's more user-facing). Commits without a matching bead are included as-is.
-
-### Step 2d: Format changelog entry
-
-Use Keep a Changelog format:
+### Format (Keep a Changelog)
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
@@ -193,112 +164,134 @@ Use Keep a Changelog format:
 - **Feature title** — description (bead: km-xyz.feat-name)
 
 ### Fixed
-- **Bug title** — description (bead: km-xyz.bug-name)
-- Fix from commit message without bead
-
-### Changed
-- Refactoring description
+- **Bug title** — description
 ```
 
-Present the draft to the user for review before writing.
+Present draft for user review.
 
-## Phase 3: Version Bump
+## Phase 4: Version Bump
 
-### Determine version
+### Single package
 
-If the user specified `patch`/`minor`/`major`, use that. Otherwise, infer from changes:
-
-| Changes include | Suggested bump |
-|----------------|---------------|
-| Only fixes/chores | patch |
-| Any `feat:` or feature bead | minor |
-| Any `BREAKING CHANGE:` or `!:` | major |
-
-Ask the user to confirm:
-
-```
-AskUserQuestion:
-  question: "Version bump?"
-  options:
-    - "Patch (X.Y.Z → X.Y.Z+1) — bug fixes only"
-    - "Minor (X.Y.0 → X.Y+1.0) — new features"
-    - "Major (X.0.0 → X+1.0.0) — breaking changes"
-    - "Cancel"
-```
-
-### Apply version bump
+If user specified `patch`/`minor`/`major`, use that. Otherwise infer:
+- Only fixes/chores → patch
+- Any `feat:` → minor
+- Any `BREAKING CHANGE:` → major
 
 ```bash
-# Update package.json version
 npm version <patch|minor|major> --no-git-tag-version
 ```
 
-## Phase 4: Write Changelog
+### Coordinated silvery release
 
-Prepend the new entry to CHANGELOG.md (create if it doesn't exist).
-
-If the file has an `[Unreleased]` section, replace it with the versioned section and add a fresh empty `[Unreleased]`.
-
-## Phase 5: Commit, Tag, Publish
-
-The same flow for all packages (km root and vendor submodules).
-
-### For vendor submodules
+All @silvery/* public packages bump to the SAME version:
 
 ```bash
-# In the vendor directory:
-git add CHANGELOG.md package.json
-git commit -m "chore(release): v$NEW_VERSION"
-git tag "v$NEW_VERSION"
-git push && git push --tags
-
-# Publish to npm (if not private)
-npm publish
-
-# Back in km root — update the submodule ref:
 cd /Users/beorn/Code/pim/km
-git add vendor/<name>
-git commit -m "chore(vendor): update <name> to v$NEW_VERSION"
+NEW_VERSION="X.Y.Z"  # determined from bump type
+
+python3 << PYEOF
+import json, glob
+for path in glob.glob("vendor/silvery/packages/*/package.json") + ["vendor/silvery/package.json", "vendor/silvery/examples/package.json"]:
+    with open(path) as f:
+        pkg = json.load(f)
+    if pkg.get("private"): continue
+    pkg["version"] = "$NEW_VERSION"
+    # Update cross-deps
+    for dep_key in ["dependencies", "peerDependencies"]:
+        for dep, ver in pkg.get(dep_key, {}).items():
+            if dep.startswith("@silvery/") or dep == "silvery":
+                pkg[dep_key][dep] = "$NEW_VERSION"
+    with open(path, "w") as f:
+        json.dump(pkg, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+PYEOF
 ```
 
-### For km root
+**IMPORTANT**: Version bump requires user approval for minor/major bumps.
+
+## Phase 5: Write Changelog
+
+Prepend new entry to CHANGELOG.md. Create if missing.
+
+## Phase 6: Commit, Tag, Publish
+
+### Publish with pnpm (NOT npm)
+
+`pnpm publish` is required — it applies `publishConfig.exports` overrides.
 
 ```bash
+# Single package
+cd <package-dir>
 git add CHANGELOG.md package.json
 git commit -m "chore(release): v$NEW_VERSION"
 git tag "v$NEW_VERSION"
+npx tsdown  # rebuild with new version
+pnpm publish --no-git-checks --access public
 git push && git push --tags
 
-# Create GitHub release
+# Back in km root
+cd /Users/beorn/Code/pim/km
+git add vendor/<name>
+git commit -m "chore(vendor): <name> v$NEW_VERSION"
+```
+
+### Coordinated silvery release (publish in dependency order)
+
+```bash
+# Tier 0: no @silvery deps
+for pkg in color headless; do cd packages/$pkg && pnpm publish --no-git-checks --access public && cd ../..; done
+
+# Tier 1
+for pkg in ansi theme commander; do cd packages/$pkg && pnpm publish --no-git-checks --access public && cd ../..; done
+
+# Tier 2
+for pkg in create test; do cd packages/$pkg && pnpm publish --no-git-checks --access public && cd ../..; done
+
+# Tier 3: barrel
+pnpm publish --no-git-checks --access public
+
+# Tier 4: examples
+cd examples && pnpm publish --no-git-checks --access public
+```
+
+## Phase 7: Smoke Test
+
+After publishing, verify packages work from npm:
+
+```bash
+mkdir -p /tmp/smoke-release && cd /tmp/smoke-release
+npm init -y --quiet 2>/dev/null
+
+# Test import
+npm install <package>@<version>
+node -e "import('<package>').then(m => console.log('OK:', Object.keys(m).slice(0,5).join(', ')))"
+
+# Test CLI (if applicable)
+npx <package>@<version> --help
+
+# Test in Bun
+bun -e "import '<package>'; console.log('bun OK')"
+```
+
+For silvery coordinated release, test at minimum:
+- `node -e "import('silvery')"`
+- `npx @silvery/examples --help`
+- `node -e "import('loggily')"`
+
+## Phase 8: GitHub Release
+
+```bash
 gh release create "v$NEW_VERSION" --title "v$NEW_VERSION" --notes-file /tmp/release-notes.md
 ```
 
-Write the changelog entry for this version to `/tmp/release-notes.md` before creating the GitHub release.
+## Phase 9: Update Beads
 
-## Phase 6: Verify
-
-```bash
-{
-  echo "=== Release Complete ==="
-  echo "Package: $name"
-  echo "Version: $NEW_VERSION"
-  echo "Tag: v$NEW_VERSION"
-
-  # Verify npm (if published)
-  npm_ver=$(npm view "$name" version 2>/dev/null)
-  if [ -n "$npm_ver" ]; then
-    echo "npm: $npm_ver"
-    [ "$npm_ver" = "$NEW_VERSION" ] && echo "✓ npm in sync" || echo "⚠️ npm version mismatch"
-  fi
-}
-```
-
-## Phase 7: Update beads
-
-Close any remaining open beads that were included in this release. Add a note to each:
+Close remaining open beads included in this release:
 
 ```bash
 bd update <bead-id> --notes "Released in $name@$NEW_VERSION"
+bd close <bead-id> --reason "Released in v$NEW_VERSION"
 ```
 
 ## Error Recovery
@@ -306,23 +299,23 @@ bd update <bead-id> --notes "Released in $name@$NEW_VERSION"
 | Error | Fix |
 |-------|-----|
 | npm publish fails (auth) | `npm login` or check `.npmrc` |
-| npm publish fails (version exists) | Version already published — bump again |
+| Version exists on npm | Bump again |
 | Tag already exists | `git tag -d vX.Y.Z` and retry |
 | Submodule push rejected | `cd vendor/<name> && git pull --rebase && git push` |
+| publishConfig not applied | Use `pnpm publish`, NOT `npm publish` |
+| Cross-dep version mismatch | Run coordinated bump script (Phase 4) |
 
 ## Dry Run
 
-With `--dry-run`, run phases 1-2 only:
-- Show status + commits
-- Generate changelog preview
-- Show suggested version bump
-- Do NOT write files, commit, tag, or publish
+With `--dry-run`: run phases 1-3 only (status, build, changelog preview). Do NOT write files, commit, tag, or publish.
 
 ## Notes
 
-- Vendor packages must NOT use `workspace:*` dependencies — they are standalone repos
-- The km root `overrides` in package.json maps vendor deps to workspace copies for local dev
-- Changelogs use [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
-- Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-- Conventional commits map to changelog sections: feat→Added, fix→Fixed, refactor→Changed
-- **For repos with release.yml CI workflow**: only bump version + tag + push. Do NOT run `npm publish` manually — CI handles it. This prevents race conditions.
+- **pnpm publish** required — npm doesn't support `publishConfig.exports` override
+- **tsdown** builds from `"tsdown"` field in package.json (no config files)
+- All @silvery/* + silvery share the same version number
+- Private packages (`"private": true`) are skipped during publish
+- Changelogs use [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+- Versions follow [SemVer](https://semver.org/)
+- Conventional commits map to changelog sections
+- Run `bun infra/audit-packages.ts` before any release
