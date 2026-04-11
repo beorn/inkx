@@ -46,8 +46,10 @@ export function boardMergeBackward(ctx: OpCtx, nodeId: string): MergeResult | nu
   const result = mergeBackward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()
   if (result) {
-    ctx.sel.text.deselect()
+    // Stay in edit mode on the survivor at the merge point
     ctx.sel.node.select([result.survivorId as ID])
+    ctx.sel.text.edit(result.survivorId as import("@silvery/selection").ID, result.cursorOffset)
+    ctx.textEditHints = { blockIndex: 0 }
   }
   return result
 }
@@ -66,8 +68,10 @@ export function boardMergeForward(ctx: OpCtx, nodeId: string): MergeResult | nul
   const result = mergeForward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()
   if (result) {
-    ctx.sel.text.deselect()
+    // Stay in edit mode on the survivor at the merge point
     ctx.sel.node.select([result.survivorId as ID])
+    ctx.sel.text.edit(result.survivorId as import("@silvery/selection").ID, result.cursorOffset)
+    ctx.textEditHints = { blockIndex: 0 }
   }
   return result
 }
