@@ -8,18 +8,31 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skil
 
 **Keywords**: release, publish, version, changelog, npm, tag, vendor release, status
 
+## CLI Tool
+
+The release tool lives at `.claude/skills/release/release.ts`. Run via `bun release` (script in root package.json).
+
+```bash
+bun release                  # Default: show status
+bun release status           # Release status table
+bun release plan             # Status + plan (what would happen)
+bun release plan silvery     # Plan filtered to silvery packages
+bun release fix-tags         # Create missing tags for published versions
+bun release execute          # Fix tags + prepare releases
+bun release execute silvery  # Execute filtered to silvery
+```
+
 ## Usage
 
 | Command | What happens |
 |---------|-------------|
-| `/release` | Full flow: assess, fix tags, plan, confirm, execute |
-| `/release --status` | Release Status only (read-only, no changes) |
+| `/release` | Run `bun release plan`, present results, confirm, execute |
+| `/release --status` | Run `bun release status` (read-only) |
 | `/release --audit` | Run `bun infra/audit-packages.ts` |
-| `/release silvery` | Coordinated release of all public @silvery/* packages |
+| `/release silvery` | Run `bun release plan silvery`, confirm, execute |
 | `/release vendor/loggily` | Release a single package |
-| `/release vendor/loggily patch` | Release with explicit bump type |
 | `/release all` | Release every package with unreleased changes |
-| `/release --dry-run silvery` | Steps 1-3 only (status + plan, no execution) |
+| `/release --dry-run silvery` | Run `bun release plan silvery` only (no execution) |
 
 ## Target
 

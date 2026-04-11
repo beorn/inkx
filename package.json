@@ -103,7 +103,7 @@
     "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
-    "release": "echo 'Use /release skill instead'",
+    "release": "bun .claude/skills/release/release.ts",
     "test:flexily:yoga": "cd vendor/flexily && bun test:yoga"
   },
   "devDependencies": {
