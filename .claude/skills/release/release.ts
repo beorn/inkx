@@ -245,7 +245,7 @@ function buildPlan(packages: PkgStatus[], repos: Repo[], filter?: string): Plan 
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
-function printStatus(packages: PkgStatus[], repos: Repo[]): void {
+function printStatus(packages: PkgStatus[], repos: Repo[], verbose = false): void {
   console.log(`\n${style.bold("Release Status")}\n`)
 
   const byRepo = new Map<string, PkgStatus[]>()
@@ -280,6 +280,19 @@ function printStatus(packages: PkgStatus[], repos: Repo[]): void {
 
       const status = flags.length > 0 ? flags.join("  ") : style.dim("up to date")
       console.log(`  ${pkg.name.padEnd(30)}  v${pkg.version.padEnd(8)}  npm=${(pkg.npmVersion || "—").padEnd(8)}  ${status}`)
+
+      // Verbose: show commit messages for packages with changes
+      if (verbose && pkg.delta > 0 && pkg.deltaCommits.length > 0) {
+        const msgs = pkg.deltaCommits
+          .map(c => c.replace(/^[a-f0-9]+ /, ""))
+          .slice(0, 8)
+        for (const msg of msgs) {
+          console.log(`    ${style.dim("- " + msg)}`)
+        }
+        if (pkg.deltaCommits.length > 8) {
+          console.log(`    ${style.dim(`... and ${pkg.deltaCommits.length - 8} more`)}`)
+        }
+      }
     }
     console.log()
   }
@@ -335,16 +348,16 @@ function printPlan(plan: Plan): void {
 
 // ─── Commands ───────────────────────────────────────────────────────────────
 
-async function statusCmd(): Promise<void> {
+async function statusCmd(opts: { verbose?: boolean }): Promise<void> {
   const repos = discoverRepos()
   const packages = discoverPackages(repos)
-  printStatus(packages, repos)
+  printStatus(packages, repos, opts.verbose)
 }
 
-async function planCmd(opts: { filter?: string }): Promise<void> {
+async function planCmd(opts: { filter?: string; verbose?: boolean }): Promise<void> {
   const repos = discoverRepos()
   const packages = discoverPackages(repos)
-  printStatus(packages, repos)
+  printStatus(packages, repos, opts.verbose)
 
   const plan = buildPlan(packages, repos, opts.filter)
   printPlan(plan)
@@ -433,13 +446,15 @@ const program = new Command()
 program
   .command("status")
   .description("Show release status for all publishable packages")
-  .action(statusCmd)
+  .option("-v, --verbose", "Show commit messages for packages with changes")
+  .action((opts: { verbose?: boolean }) => statusCmd(opts))
 
 program
   .command("plan")
   .description("Show status + plan (what would happen)")
   .argument("[filter]", "Filter by repo or package name (e.g., silvery, loggily)")
-  .action((filter?: string) => planCmd({ filter }))
+  .option("-v, --verbose", "Show commit messages for packages with changes")
+  .action((filter: string | undefined, opts: { verbose?: boolean }) => planCmd({ filter, verbose: opts.verbose }))
 
 program
   .command("fix-tags")

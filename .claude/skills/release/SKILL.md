@@ -15,12 +15,16 @@ The release tool lives at `.claude/skills/release/release.ts`. Run via `bun rele
 ```bash
 bun release                  # Default: show status
 bun release status           # Release status table
+bun release status -v        # Status with commit messages (what changed)
 bun release plan             # Status + plan (what would happen)
+bun release plan -v          # Plan with commit details
 bun release plan silvery     # Plan filtered to silvery packages
 bun release fix-tags         # Create missing tags for published versions
 bun release execute          # Fix tags + prepare releases
 bun release execute silvery  # Execute filtered to silvery
 ```
+
+**When running as `/release`**, always use `-v` so the user sees what changed, not just "N new".
 
 ## Usage
 
