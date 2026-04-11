@@ -74,67 +74,75 @@ For any vendor package to be "standalone-ready":
 
 **Reference rule:** Public docs must never reference `vendor/internal/` content. Internal docs can reference anything.
 
-## ESM Publishing
+## npm Publishing
 
-Publish raw TypeScript source — no build step. Node.js 23.6+ strips types natively; Bun always could.
+Build with **tsdown**, publish with **pnpm publish**. Local dev uses raw `.ts` with zero build step.
 
-**Reference implementation**: vt100.js (`vendor/vterm/packages/vt100/`)
+**Reference implementation**: loggily (`vendor/loggily/`)
 
-### package.json
+### Pattern: tsdown + publishConfig
 
 ```json
 {
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "exports": { ".": "./src/index.ts" },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" }
+    }
   },
-  "files": ["src"],
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": { "build": "tsdown" },
   "engines": { "node": ">=23.6.0" }
 }
 ```
 
-### tsconfig.json (dev only — typecheck, not build)
+### How it works
 
-```json
-{
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true
-  },
-  "include": ["src", "tests"]
-}
-```
+- **Local dev**: `exports` → `./src/index.ts`. Bun workspace resolution reads this. No build needed.
+- **Build**: `tsdown` reads config from `"tsdown"` field in package.json. Outputs `dist/*.mjs` + `dist/*.d.mts`.
+- **Publish**: `pnpm publish` applies `publishConfig` overrides. npm consumers see `dist/` exports. `src/` is not shipped (`files: ["dist"]`).
 
 ### Rules
 
-- **Publish `.ts` source** — no `dist/`, no build step, no `.js` output
-- **`exports` → `./src/index.ts`** — direct TypeScript
-- **`files` → `["src"]`** — ship source only
+- **`exports` → `./src/index.ts`** for local dev (Bun resolves directly)
+- **`publishConfig.exports`** → `dist/` for npm consumers (pnpm applies overrides)
+- **`files` → `["dist"]`** — only ship built artifacts
+- **No `bun` condition** — not needed with workspace resolution
+- **No `src/` shipped** — only `dist/`
+- **`bin` → `publishConfig.bin`** for CLI packages (source bin → dist bin)
+- **`pnpm publish`**, not `npm publish` — npm doesn't support `publishConfig.exports`
 - **Import with `.ts` extensions** — `import { foo } from "./bar.ts"`
-- **`engines.node` → `">=23.6.0"`** — requires native type stripping
-- **No `require()`** — ESM only, use `import`
-- **No silent `catch {}`** — fail fast, fail loudly
-- **No `dist/` directory** — nothing to build, nothing to forget
 
-### Why not compiled `.js`?
+### Workspace builds (silvery monorepo)
 
-- Node.js 23.6+ handles `.ts` natively (type stripping, no transpilation)
-- Bun handles `.ts` natively
-- Bundlers (Vite, esbuild, webpack) handle `.ts` natively
-- No build step = no stale artifacts, no version skew, no "forgot to build"
-- Source IS the artifact
+```bash
+tsdown              # Build the current package
+tsdown -W           # Build all workspace packages
+tsdown -W -F "pkg"  # Build specific workspace package
+```
 
-### When to add a build step
+Config lives in each package's `"tsdown"` field — no config files needed.
 
-- **Minification** for large packages (reduce npm install size)
-- **Backwards compat** with Node.js < 23.6
-- **Pre-built for performance** (skip type stripping on every import)
+### Audit
 
-Use `bun build src/index.ts --outdir dist --target node` when needed.
+```bash
+bun infra/audit-packages.ts          # Full publishing readiness audit
+bun infra/audit-packages.ts --json   # JSON output
+```
+
+### Public vs Private packages
+
+Public packages are published to npm. Private packages (`"private": true`) are workspace-only — used internally but never published. The `silvery` barrel bundles all private packages into its `dist/`.
+
+Run `bun infra/audit-packages.ts` to see the full list with status.
 
 ## Fixing Violations
 
