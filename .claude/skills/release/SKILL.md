@@ -12,206 +12,196 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skil
 
 | Command | What happens |
 |---------|-------------|
-| `/release` | Assess all repos, fix issues, propose releases, ask to proceed |
-| `/release --status` | Show release status only (read-only) |
-| `/release --audit` | Run `bun infra/audit-packages.ts` (publishing readiness) |
-| `/release silvery` | Release all @silvery/* packages (coordinated) |
-| `/release vendor/loggily` | Release loggily |
-| `/release vendor/loggily patch` | Release loggily as patch bump |
+| `/release` | Full flow: assess, fix tags, plan, confirm, execute |
+| `/release --status` | Release Status only (read-only, no changes) |
+| `/release --audit` | Run `bun infra/audit-packages.ts` |
+| `/release silvery` | Coordinated release of all public @silvery/* packages |
+| `/release vendor/loggily` | Release a single package |
+| `/release vendor/loggily patch` | Release with explicit bump type |
 | `/release all` | Release every package with unreleased changes |
-| `/release --dry-run silvery` | Preview only — don't publish |
+| `/release --dry-run silvery` | Steps 1-3 only (status + plan, no execution) |
 
 ## Target
 
 **Argument**: $ARGUMENTS
 
+## Repos
+
+Scan all vendor repos that contain publishable packages:
+
+| Repo | Packages | Tag scheme |
+|------|----------|------------|
+| `vendor/silvery` | silvery, @silvery/ansi, @silvery/color, @silvery/commander, @silvery/examples | `v<version>` (coordinated) |
+| `vendor/loggily` | loggily | `v<version>` |
+| `vendor/flexily` | flexily | `v<version>` |
+| `vendor/bearly` | @bearly/tribe, @bearly/github, alien-projections, alien-resources, vitepress-enrich, vitest-silvery-dots | `<name>-v<version>` (per-package) |
+| `vendor/termless` | @termless/core, @termless/cli, @termless/test, + backends | `v<version>` |
+| `vendor/vterm` | vt100.js, vt220.js, vterm.js | `v<version>` |
+| `vendor/vimonkey` | vimonkey | `v<version>` |
+| `vendor/watcher-chaos` | @beorn/watcher-chaos | `v<version>` |
+
+Discovery: for each `vendor/*/package.json`, check `private !== true`. Also check `packages/*/package.json` and `examples/package.json` inside monorepos.
+
 ## The Flow
 
-Every `/release` invocation (except `--status` and `--audit`) follows this flow. One assessment, one confirmation, one execution.
+Every `/release` (except `--status`, `--audit`) follows five steps. One assessment, one confirmation, one execution.
 
 ### Step 1: Release Status
 
-Gather data for every publishable package across all repos. For each package, determine:
+For every publishable package across all repos, gather:
+- **npm version**: `npm view <name> version`
+- **local version**: from package.json
+- **tag exists**: `git rev-parse "v<version>"` (or `<name>-v<version>` for bearly)
+- **delta**: commits since the version tag that touch this package
 
-- **npm version** — what's published (`npm view <name> version`)
-- **local version** — what's in package.json
-- **tag** — whether `v<version>` git tag exists
-- **delta** — commits since last tag that touch this package
-
-Present the full Release Status table to the user. Use this format:
+Present the full table:
 
 ```
 Release Status
 
-[silvery] CI=success  last tag=v0.17.0
-  silvery                  v0.17.2   npm=0.17.2   NOTAG  3 new
-  @silvery/examples        v0.5.6    npm=0.5.6    5 new
-  ...
+[silvery] CI=success  last tag=v0.17.2
+  silvery                  v0.17.2   npm=0.17.2   2 new
+  @silvery/ansi            v0.3.4    npm=0.3.4    up to date
+  @silvery/color           v0.1.2    npm=0.1.2    up to date
+  @silvery/commander       v0.8.2    npm=0.8.2    up to date
+  @silvery/examples        v0.5.6    npm=0.5.6    3 new
 
-[loggily] CI=success  last tag=v0.6.0
-  loggily                  v0.6.1    npm=0.6.1    NOTAG  6 new
+[loggily] CI=success  last tag=v0.6.1
+  loggily                  v0.6.1    npm=0.6.1    4 new
+
+[flexily] CI=success  last tag=v0.5.2
+  flexily                  v0.5.2    npm=0.5.2    up to date
 ```
 
-Flag meanings:
-- **(no flags)** — up to date, nothing to do
-- **NOTAG** — published version has no git tag (will be auto-fixed)
-- **DRIFT** — local version differs from npm (usually means a publish is in progress)
-- **UNPUBLISHED** — never published to npm
-- **N new** — N commits since last tag touch this package
+Flags: **NOTAG** (published but no git tag), **DRIFT** (local != npm), **UNPUBLISHED** (not on npm), **N new** (N commits since tag).
 
-#### How to gather this data
+**Shell notes**: `setopt nullglob` in zsh; never use variable name `status` (reserved in zsh); for root packages in monorepos exclude subdirs with `-- . ':!packages' ':!examples'`.
 
-For each repo in `vendor/silvery vendor/loggily vendor/flexily vendor/bearly`:
+### Step 2: Fix Tag Hygiene
 
-```bash
-cd <repo>
-repo_last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-```
+Before planning, silently fix missing tags. For any package where version matches npm but tag is missing:
 
-For each non-private package.json in the repo:
+1. Find the commit that set this version: `git log --all --oneline -n1 --grep="v<version>" -- <pkg_json>`
+2. Fallback: last commit touching that package.json
+3. Create tag: `git tag "v<version>" <commit>`
+4. Push tags: `git push --tags`
 
-```bash
-name=$(python3 -c "import json; print(json.load(open('$pkg_json'))['name'])")
-version=$(python3 -c "import json; print(json.load(open('$pkg_json'))['version'])")
-npm_ver=$(npm view "$name" version 2>/dev/null || echo "—")
-```
+Report what was tagged but don't ask for confirmation — this is housekeeping, not a release.
 
-Tag check: `git rev-parse "v${version}" >/dev/null 2>&1`
+Then **re-gather deltas** using the new tags. The "N new" counts will now reflect only truly unreleased changes.
 
-Delta count (commits since last tag touching this package's directory):
-```bash
-pkg_dir=$(dirname "$pkg_json")
-git log "$repo_last_tag"..HEAD --oneline -- "$pkg_dir" | wc -l
-```
+### Step 3: Plan
 
-For root packages, exclude sub-directories: `-- . ':!packages' ':!examples'`
+With accurate tag-based deltas, build the plan:
 
-**Shell notes**: use `setopt nullglob` in zsh; avoid variable name `status` (reserved); use `ci_result` not `ci_status`.
+**Releases** — packages with new commits since their version tag:
+- For each: inferred bump type, one-line changelog summary
+- Coordinated silvery releases group all @silvery/* together
+- Show the commit list for each package so the user can judge
 
-### Step 2: Plan
+**No changes** — packages where everything is tagged and up to date.
 
-Based on the status, build a plan. The plan has up to three sections:
-
-**Housekeeping** (automatic, no approval needed):
-- Missing tags — create `v<version>` tags for packages where version matches npm but tag is missing
-- Find the right commit: `git log --all --oneline -n1 --grep="v${version}" -- "$pkg_json"`, fallback to last commit touching that package.json
-
-**Releases** (needs approval):
-- Packages with new commits since their version tag
-- For each: inferred bump type (patch/minor/major from conventional commits), changelog preview
-- Coordinated silvery releases group all @silvery/* packages together
-
-**Nothing to do**:
-- If no missing tags AND no new commits → "Everything is up to date." Stop.
-
-Present the plan with specific details:
 ```
 Plan:
-  Housekeeping:
-    - Create tag v0.17.2 in silvery at <commit>
-    - Create tag v0.6.1 in loggily at <commit>
+  Release:
+    silvery 0.17.2 → 0.17.3 (patch)
+      - feat(examples): switch from spawn to dynamic import+main()
+      - docs: add READMEs for @silvery/color and @silvery/ansi
 
-  Releases:
-    - silvery 0.17.2 → 0.17.3 (patch): 3 commits — examples import, READMEs
-    - loggily 0.6.1 → 0.6.2 (patch): 4 commits — README rewrite, async context docs
+    loggily 0.6.1 → 0.6.2 (patch)
+      - docs: README rewrite, async context propagation
 
-  No changes:
-    - flexily, alien-projections, alien-resources
+  Up to date:
+    flexily, @silvery/commander, alien-projections, alien-resources
 ```
 
-### Step 3: Confirm
+If nothing to release: **"Everything is up to date."** Stop.
 
-Ask once: "Proceed with this plan?"
+With `--dry-run`: show the plan and stop. Don't execute.
 
-If user says yes, execute everything. If user says to skip something, adjust.
+### Step 4: Confirm
 
-### Step 4: Execute
+Ask once: **"Proceed?"**
 
-Run in this order:
+The user can approve all, skip specific packages, or abort.
 
-1. **Fix tags** — create missing tags, push tags to each repo
-2. **For each release** (in dependency order):
-   a. Pre-flight: clean working tree, audit passes
-   b. Build: `npx tsdown`
-   c. Changelog: generate from commits + closed beads, prepend to CHANGELOG.md
-   d. Version bump: `npm version <type> --no-git-tag-version`
-   e. Coordinated bump (silvery only): update all @silvery/* versions + cross-deps
-   f. Commit: `git commit -m "chore(release): v<version>"`
-   g. Tag: `git tag "v<version>"`
-   h. Rebuild: `npx tsdown` (with new version embedded)
-   i. Publish: `pnpm publish --no-git-checks --access public`
-   j. Push: `git push && git push --tags`
-   k. Update km root: `git add vendor/<name> && git commit`
-3. **Smoke test** each published package
-4. **Close beads** included in the release
-5. **Push km root**
+### Step 5: Execute
 
-### Step 5: Report
+For each release, in dependency order:
 
-Show the Release Status again. Everything should now show "up to date".
+1. **Pre-flight**: clean working tree, `bun infra/audit-packages.ts` passes
+2. **Changelog**: generate from commits + closed beads, prepend to CHANGELOG.md, show draft
+3. **Version bump**: `npm version <type> --no-git-tag-version` (coordinated bump for silvery)
+4. **Build**: `npx tsdown` (rebuilds with new version)
+5. **Commit + tag**: `git commit -m "chore(release): v<version>"` then `git tag "v<version>"`
+6. **Publish**: `pnpm publish --no-git-checks --access public` (dependency order for silvery)
+7. **Push**: `git push && git push --tags`
+8. **Smoke test**: verify import works from npm in a clean /tmp directory
+9. **GitHub Release**: `gh release create "v<version>"` with changelog as notes
+10. **Update km root**: `git add vendor/<name> && git commit -m "chore(vendor): <name> v<version>"`
+11. **Close beads**: any beads included in this release
+
+After all releases: push km root, show final Release Status (should be all "up to date").
 
 ## Coordinated Silvery Release
 
-All public @silvery/* packages + the silvery barrel share one version number. When releasing silvery:
+All public @silvery/* packages share one version. Currently published:
 
-1. Bump ALL public packages to the same new version
-2. Update cross-dependencies (`@silvery/ansi: "0.3.5"` etc.)
-3. Build all packages
-4. Publish in dependency order:
-   - Tier 0: color, headless (no @silvery deps)
-   - Tier 1: ansi, theme, commander
-   - Tier 2: create, test
-   - Tier 3: silvery barrel
-   - Tier 4: examples
-5. One tag, one commit, one push
+| Tier | Packages | Why this order |
+|------|----------|---------------|
+| 0 | @silvery/color | Zero @silvery deps |
+| 1 | @silvery/ansi, @silvery/commander | Depends on color |
+| 2 | silvery (barrel) | Re-exports everything |
+| 3 | @silvery/examples | Depends on silvery |
 
-Version bump script for coordinated release:
+Private packages (@silvery/ag, ag-react, ag-term, create, headless, test, theme, etc.) are bundled into the silvery barrel — they don't publish separately but their versions and cross-deps are still bumped for internal consistency.
+
+Coordinated version bump script:
 ```bash
-python3 << PYEOF
+python3 << 'PYEOF'
 import json, glob
-for path in glob.glob("vendor/silvery/packages/*/package.json") + ["vendor/silvery/package.json", "vendor/silvery/examples/package.json"]:
+NEW_VERSION = "$NEW_VERSION"
+for path in glob.glob("vendor/silvery/packages/*/package.json") + \
+            ["vendor/silvery/package.json", "vendor/silvery/examples/package.json"]:
     with open(path) as f:
         pkg = json.load(f)
-    if pkg.get("private"): continue
-    pkg["version"] = "$NEW_VERSION"
+    pkg["version"] = NEW_VERSION
     for dep_key in ["dependencies", "peerDependencies"]:
-        for dep, ver in pkg.get(dep_key, {}).items():
+        for dep in list(pkg.get(dep_key, {})):
             if dep.startswith("@silvery/") or dep == "silvery":
-                pkg[dep_key][dep] = "$NEW_VERSION"
+                pkg[dep_key][dep] = NEW_VERSION
     with open(path, "w") as f:
         json.dump(pkg, f, indent=2, ensure_ascii=False)
         f.write("\n")
 PYEOF
 ```
 
-## Version Bump Rules
+This bumps ALL packages (public + private) so cross-deps stay consistent.
 
-If user specified `patch`/`minor`/`major`, use that. Otherwise infer from commits:
+## Reference
+
+### Version Bump Rules
+
+User-specified `patch`/`minor`/`major` takes precedence. Otherwise infer:
 - Only `fix:`/`chore:`/`docs:` → **patch**
 - Any `feat:` → **minor**
 - Any `BREAKING CHANGE:` → **major**
 
-Minor and major bumps always require explicit user approval.
+Minor and major bumps require explicit user approval.
 
-## Changelog Format
+### Changelog
 
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/):
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Source: conventional commits (`feat:` → Added, `fix:` → Fixed, `perf:` → Performance, `refactor:` → Changed, `docs:` → Documentation). Omit `chore:`/`ci:`/`test:`. Beads take priority over commits for the same change.
 
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
+### Publishing Rules
 
-### Added
-- **Feature title** — description
+- **pnpm publish** required — npm doesn't support `publishConfig.exports`
+- **tsdown** builds from `"tsdown"` field in package.json
+- **Every publish gets a tag** — pushed immediately
+- All @silvery/* share the same version number
+- [SemVer](https://semver.org/) versioning
 
-### Fixed
-- **Bug title** — description
-```
-
-Source: conventional commits (`feat:` → Added, `fix:` → Fixed, `perf:` → Performance, `refactor:` → Changed, `docs:` → Documentation). Omit `chore:`/`ci:`/`test:`. Beads take priority over commits describing the same change.
-
-## Smoke Test
-
-After publishing, verify from a clean directory:
+### Smoke Test
 
 ```bash
 mkdir -p /tmp/smoke-release && cd /tmp/smoke-release && npm init -y --quiet 2>/dev/null
@@ -219,22 +209,10 @@ npm install <package>@<version>
 node -e "import('<package>').then(m => console.log('OK:', Object.keys(m).slice(0,5).join(', ')))"
 ```
 
-For CLI packages: `npx <package>@<version> --help`
+For CLIs: `npx <package>@<version> --help`
+For silvery: also test `npx @silvery/examples --help`
 
-For silvery coordinated release, test at minimum:
-- `node -e "import('silvery')"`
-- `npx @silvery/examples --help`
-
-## Publishing Rules
-
-- **pnpm publish** — npm doesn't support `publishConfig.exports` overrides
-- **tsdown** builds — config lives in `"tsdown"` field of package.json
-- **Every publish gets a tag** — `v<version>`, pushed immediately
-- **Private packages** (`"private": true`) are never published
-- All @silvery/* + silvery share the same version number
-- Versions follow [SemVer](https://semver.org/)
-
-## Error Recovery
+### Error Recovery
 
 | Error | Fix |
 |-------|-----|
