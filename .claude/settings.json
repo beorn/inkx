@@ -2,5 +2,28 @@
   "env": {
     "ENABLE_TOOL_SEARCH": "auto:2"
   },
-  "hooks": {}
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
 }

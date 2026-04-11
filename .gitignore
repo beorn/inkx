@@ -77,3 +77,8 @@ benchmarks/results/.last-phases.json
 editset.json
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
