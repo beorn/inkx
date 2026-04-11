@@ -97,7 +97,7 @@ bun vitest run apps/km-tui/tests/
 ## Architecture
 
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
-UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md). For terminology, see [docs/glossary.md](docs/glossary.md).
+UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md). For terminology, see [docs/glossary.md](docs/glossary.md). For the full package inventory (every package, CLI subcommand, npm scope, public/private status), see [docs/packages.md](docs/packages.md).
 
 **State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea-state-machines.md](docs/design/tea-state-machines.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
 
