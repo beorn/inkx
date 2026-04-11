@@ -21,7 +21,7 @@ Commit changes and manage worktrees. For releases, use `/release`.
 ## Commit Rules
 
 - **Atomic**: One logical commit (even across packages)
-- **Beads first**: `bd sync` runs automatically before commit
+- **Beads first**: `bd dolt push` after commit to sync beads
 - **Conventional commits**: `type(scope): message`
 
 ## Sub-Skills

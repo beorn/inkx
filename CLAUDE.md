@@ -161,9 +161,21 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 **Reproduce with the user's actual data** (real vault, not synthetic fixtures) before coding a fix. Bead descriptions are hypotheses, not diagnoses — verify with real data before trusting them. See [docs/lessons/reproduce-first.md](docs/lessons/reproduce-first.md).
 
-## Issue Tracking
+## Issue Tracking (bd / beads)
 
-Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.
+This project uses **bd** (beads v1.0.0, Homebrew) for issue tracking with an embedded Dolt database in `.beads/`. `bd prime` injects workflow context on session start via hooks.
+
+```bash
+bd ready                    # Find available work
+bd show <id>                # View issue details
+bd create "title" -p 2      # Create a bead (P0–P4)
+bd update <id> --claim      # Claim before starting
+bd close <id>               # Complete work
+bd list --status open       # List open beads
+bd dolt push                # Push beads to remote (before git push)
+```
+
+Use `/pm` for the full workflow (create, claim, close, triage). Claim before coding.
 Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
 **When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — create the bead, then immediately reproduce with a failing test before fixing. See [.claude/skills/pm/] and [.claude/skills/tdd/].
 
@@ -177,7 +189,7 @@ Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org
 
 ## Session Completion
 
-Before ending: `bun fix && bun run test:all && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
+Before ending: `bun fix && bun run test:all && bd dolt push && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
 Sub-agents skip this — only the top-level session runs verification.
 
 ## Maintaining These Docs
@@ -249,48 +261,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
-## Beads Issue Tracker
-
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
-
-### Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
-
-### Rules
-
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+<!-- Beads integration managed by `bd setup claude`. Do not remove markers. -->
 <!-- END BEADS INTEGRATION -->

@@ -1,7 +1,7 @@
 ---
 description: "Commit changes to git. Use when ready to commit staged or unstaged changes."
 argument-hint: "[message]"
-allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd sync:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
+allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd dolt push:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
 ---
 
 # Commit
@@ -32,12 +32,12 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git p
 
 ```bash
 set -e
-bd sync 2>/dev/null || true
+bd dolt push 2>/dev/null || true
 git add file1.ts file2.ts && \
-  git diff --cached --quiet && echo "Already committed by bd sync" || \
+  git diff --cached --quiet && echo "Nothing to commit" || \
   git commit -m "fix(scope): description
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+Co-Authored-By: Claude <noreply@anthropic.com>"
 git push
 ```
 
@@ -47,14 +47,14 @@ git push
 set -e
 (cd vendor/silvery && bun run lint --fix && git add -A && git commit -m "fix(silvery): msg
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
+Co-Authored-By: Claude <noreply@anthropic.com>")
 
-bd sync 2>/dev/null || true
+bd dolt push 2>/dev/null || true
 git add vendor/silvery file1.ts && \
-  git diff --cached --quiet && echo "Already committed by bd sync" || \
+  git diff --cached --quiet && echo "Nothing to commit" || \
   git commit -m "fix(tui): msg
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+Co-Authored-By: Claude <noreply@anthropic.com>"
 (cd vendor/silvery && git push)
 git push
 ```
@@ -65,9 +65,9 @@ Group by scope from the diff stats above. One commit per scope, executed sequent
 
 ## Rules
 - `set -e`, `bun run lint --fix` on vendor before commit
-- `git diff --cached --quiet` guard after `git add` (bd sync may pre-commit)
+- `git diff --cached --quiet` guard after `git add`
 - Conventional commit: `type(scope): message`
-- Co-author line: `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+- Co-author line: `Co-Authored-By: Claude <noreply@anthropic.com>`
 
 ## When to Ask User
 
