@@ -1623,7 +1623,7 @@ export function createBoardAppStoreState(
           // Read textEditHints from store (not reactive — but updated synchronously before edit signals)
           const hints = _get().textEditHints
           if (textEdit) {
-            nodeStore.beginEdit(textEdit.nodeId, hints?.blockIndex ?? 0)
+            nodeStore.beginEdit(textEdit.nodeId, hints?.blockIndex ?? 0, hints ?? undefined)
           } else {
             nodeStore.endEdit()
           }

@@ -1275,7 +1275,40 @@ describe("Degradation stays in edit mode", () => {
 // Empty node deletion stays in edit mode on neighbor
 // =============================================================================
 
-// TODO(km-tui.edit-after-delete): Empty card deletion should stay in edit mode
-// on the neighbor node. See bead km-tui.edit-after-delete for details.
-// Blocked by: text.edit() signal doesn't persist through render cycle after
-// executeDelete's sel.transform + clearSelection.
+describe("Edit-after-delete", () => {
+  test("backspace on empty card stays in edit mode on previous sibling", () => {
+    using app = createTestApp(() => item("board", item("col1", item("prev"), item("x"), item("next"))))
+    app.command("cursor_down") // cursor → x
+    app.press("Enter") // edit "x"
+    app.expectEditing("x")
+    app.press("Backspace") // "x" → ""
+    app.press("Backspace") // delete empty → edit prev at end
+
+    // x should be deleted
+    expect(app.repo.getNode("x")).toBeNull()
+    // Should be editing "prev" now
+    app.expectEditing("prev")
+    // Verify we can type into prev
+    app.press("!")
+    app.press("Escape")
+    expect(app.repo.getNode("prev")?.content).toBe("prev!")
+  })
+
+  test("forward-delete on empty card stays in edit mode on next sibling", () => {
+    using app = createTestApp(() => item("board", item("col1", item("prev"), item("x"), item("next"))))
+    app.command("cursor_down") // cursor → x
+    app.press("Enter") // edit "x", cursor at end
+    app.expectEditing("x")
+    app.press("Backspace") // "x" → "", cursor at 0
+    app.press("Delete") // delete empty → edit next at start
+
+    // x should be deleted
+    expect(app.repo.getNode("x")).toBeNull()
+    // Should be editing "next" now
+    app.expectEditing("next")
+    // Verify we can type into next at start
+    app.press("!")
+    app.press("Escape")
+    expect(app.repo.getNode("next")?.content).toBe("!next")
+  })
+})

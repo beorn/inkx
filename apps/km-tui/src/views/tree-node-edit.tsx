@@ -113,6 +113,10 @@ export function TitleEditor({
   // restores them as structured fields on the node.
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
+      // If the node was deleted (e.g. edit-after-delete), bail out — no repo
+      // ops to run and another node's edit may already be in progress.
+      if (!repo.getNode(displayNode.id)) return
+
       // Content is always clean text — task markers belong in item.task, not content.
       const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
@@ -121,7 +125,9 @@ export function TitleEditor({
 
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && !hasMetaUpdates) {
-        sel.text.deselect()
+        // Only deselect if we're still editing THIS node — another node's
+        // edit may already be in progress (e.g. edit-after-delete).
+        if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
         return
       }
 
@@ -175,13 +181,17 @@ export function TitleEditor({
         repo.updateNode(displayNode.id, { type: "p" })
       }
 
-      sel.text.deselect()
+      // Only deselect if we're still editing THIS node — another node's
+      // edit may already be in progress (e.g. edit-after-delete).
+      if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
     },
     [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    sel.text.deselect()
+    // Only deselect if we're still editing THIS node — another node's
+    // edit may already be in progress (e.g. edit-after-delete).
+    if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
   }, [setUI])
 
   // Split at boundary: Enter in title creates a new sibling node
@@ -314,7 +324,9 @@ export function BodyBlockEditor({
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    sel.text.deselect()
+    // Only deselect if we're still editing THIS node — another node's
+    // edit may already be in progress (e.g. edit-after-delete).
+    if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
   }, [setUI])
 
   // Cap visible body children to prevent cards with hundreds of items from
@@ -350,7 +362,8 @@ export function BodyBlockEditor({
                 initialValue={child.content ?? ""}
                 onConfirm={(v) => {
                   handleBlockSave(child.id, v)
-                  sel.text.deselect()
+                  // Only deselect if we're still editing THIS node
+                  if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
                 }}
                 onCancel={handleInlineEditCancel}
                 onSave={(v) => handleBlockSave(child.id, v)}

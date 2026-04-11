@@ -207,13 +207,13 @@ export function createNodeStore() {
   }
 
   /** Begin editing a node — sets edit + editing signals, clears any previous edit. */
-  function beginEdit(nodeId: string, blockIndex = 0): void {
+  function beginEdit(nodeId: string, blockIndex = 0, hints?: Partial<NodeEditState>): void {
     const prev = prevEditNodeId
     if (prev && prev !== nodeId) {
       reduced.get(prev).edit(null)
       reduced.get(prev).editing(false)
     }
-    reduced.get(nodeId).edit({ blockIndex })
+    reduced.get(nodeId).edit({ blockIndex, ...hints })
     reduced.get(nodeId).editing(true)
     prevEditNodeId = nodeId
   }

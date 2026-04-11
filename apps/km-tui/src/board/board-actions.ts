@@ -815,8 +815,6 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         const nodeId = bsTextEdit.nodeId
         const content = bsTarget.getContent()
         if (content === "") {
-          // TODO(km-tui.edit-after-delete): Should enter edit mode on
-          // the previous sibling at end of content, not drop to node mode.
           const prevSibling = KTree.previous(ctx.repo, nodeId)
           ctx.sel.text.deselect()
           // Move cursor to neighbor BEFORE delete so executeDelete's
@@ -825,6 +823,14 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
             ctx.sel.node.select([prevSibling.id as import("@silvery/selection").ID])
           }
           executeDelete(ctx, nodeId)
+          // Re-enter edit mode on previous sibling at end of content.
+          // text.edit() handles node.select() internally via selectableAncestor.
+          if (prevSibling) {
+            const prevContent = KNode.string(prevSibling)
+            ctx.sel.text.edit(prevSibling.id as import("@silvery/selection").ID, prevContent.length)
+            ctx.textEditHints = { blockIndex: 0 }
+            requestRenderFlush()
+          }
           return ok()
         }
         const node = ctx.repo.getNode(nodeId)
@@ -852,8 +858,6 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         const content = fwdTarget.getContent()
         const cursor = fwdTarget.getCursorOffset()
         if (content === "" && cursor === 0) {
-          // TODO(km-tui.edit-after-delete): Should enter edit mode on
-          // next sibling at start of content, not drop to node mode.
           const nodeId = fwdTextEdit.nodeId
           const nextSibling = KTree.next(ctx.repo, nodeId)
           ctx.sel.text.deselect()
@@ -861,6 +865,13 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
             ctx.sel.node.select([nextSibling.id as import("@silvery/selection").ID])
           }
           executeDelete(ctx, nodeId)
+          // Re-enter edit mode on next sibling at start of content.
+          // text.edit() handles node.select() internally via selectableAncestor.
+          if (nextSibling) {
+            ctx.sel.text.edit(nextSibling.id as import("@silvery/selection").ID, 0)
+            ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
+            requestRenderFlush()
+          }
         } else if (cursor >= content.length) {
           const nodeId = fwdTextEdit.nodeId
           const nextNode = KTree.next(ctx.repo, nodeId)
