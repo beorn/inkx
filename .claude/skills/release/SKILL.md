@@ -24,7 +24,7 @@ bun release execute          # Fix tags + prepare releases
 bun release execute silvery  # Execute filtered to silvery
 ```
 
-**When running as `/release`**, always use `-v` so the user sees what changed, not just "N new".
+**When running as `/release`**: always use `-v` to get commit details, then **summarize** for the user. Don't paste raw commit messages — synthesize into a one-line description per package (e.g., "examples refactor + README additions" not "feat(examples): switch from spawn to dynamic import+main(), docs: add READMEs for @silvery/color and @silvery/ansi").
 
 ## Usage
 
