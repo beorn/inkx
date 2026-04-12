@@ -34,7 +34,7 @@ ALL_SITES=(
   "https://beorn.codes"
   "https://beorn.codes/flexily"
   "https://loggily.dev"
-  "https://beorn.codes/mdspec"
+  "https://mdspec.org"
   "https://github.com/beorn"
 )
 

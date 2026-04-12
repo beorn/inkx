@@ -51,7 +51,7 @@ Aligned with `marketing/SKILL.md` Sites table:
 - beorn.codes (umbrella + portfolio)
 - beorn.codes/flexily
 - loggily.dev
-- beorn.codes/mdspec
+- mdspec.org
 
 If you launch a new public site, add it to the `ALL_SITES` array in
 `scripts/check-site-links.sh`.

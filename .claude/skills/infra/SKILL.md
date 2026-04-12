@@ -142,7 +142,7 @@ done
 | beorn.codes | GitHub Pages | auto | ~/Code/beorn.github.io/CNAME |
 | beorn.codes/flexily | GitHub Pages | docs.yml (base: /flexily/) | via beorn.codes |
 | loggily.dev | GitHub Pages | docs.yml (base: /) | vendor/loggily/docs/public/CNAME |
-| beorn.codes/mdspec | GitHub Pages | deploy-docs.yml (base: /mdspec/) | via beorn.codes |
+| mdspec.org | GitHub Pages | deploy-docs.yml (base: /) | docs/public/CNAME |
 
 ## Phase 4: Databases (`/infra db`)
 
