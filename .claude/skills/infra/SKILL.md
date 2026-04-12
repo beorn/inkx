@@ -29,7 +29,7 @@ Comprehensive infrastructure audit across the km ecosystem. Checks everything th
 | `/infra logs` | Logs | Log file sizes, rotation needs (daemon.log, dolt, etc.) |
 | `/infra all` | Everything | All checks, parallel where possible |
 
-`/ci` is an alias for `/infra ci`.
+`/ci` redirects here. Use `/infra ci` or `/sop infra`.
 
 ## Phase 1: CI/CD Pipelines (`/infra ci`)
 

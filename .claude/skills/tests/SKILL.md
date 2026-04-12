@@ -708,6 +708,124 @@ const { board } = createDriverTest(() =>
 
 ---
 
+## Debugging / Troubleshoot
+
+Systematic troubleshooting protocol for bugs, crashes, errors, and regressions. **Reproduce, instrument, bisect, escalate.**
+
+### Reproduce as a Test (ALWAYS FIRST)
+
+**Before ANY theorizing**, write a failing test that demonstrates the bug. No exceptions.
+
+```bash
+# For rendering bugs
+withDiagnostics(createBoardDriver(...), { checkIncremental: true, checkReplay: true })
+
+# For pipeline bugs
+SILVERY_STRICT=1 bun vitest run <test-file>
+
+# For behavior bugs
+test("repro: <symptom>", async () => {
+  // Minimal setup that triggers the bug
+  // Assert expected vs actual
+})
+```
+
+**If you can't reproduce in a test**, that's diagnostic information. Ask:
+- Does it only happen in production (createApp) vs tests (createRenderer)?
+- Does it need real data (vault) vs synthetic fixtures?
+- Is it timing-dependent (async, event ordering)?
+- Does it need terminal interaction (stdin/stdout)?
+
+**Reproduction layers** (try in order, stop when it reproduces):
+
+| Layer | Tool | Speed | Best for |
+|-------|------|-------|----------|
+| TUI test | `createDriverTest()` / `board.press()` | ~1000/s | Logic, state, incremental rendering |
+| TTY headless | `mcp__tty__start` + `mcp__tty__press` + `mcp__tty__screenshot` | ~1/s | Visual rendering, ANSI output, createApp-specific bugs |
+| GUI (Ghostty) | Peekaboo MCP / user terminal | Manual | Terminal-specific rendering, font issues |
+
+**TTY headless** is the key tool when TUI tests pass but the app is visually broken. It uses a real xterm emulator with createApp, so it catches output-phase bugs, ANSI diff errors, and scroll state corruption that createRenderer tests miss.
+
+Write the test to `/tmp/` first, promote to `apps/km-tui/tests/` when stable.
+
+### Instrument -- Don't Guess, Trace
+
+**Never hypothesize without data.** Use the instrumentation that exists:
+
+For rendering bugs, see **[debugging.md](vendor/silvery/docs/guide/debugging.md)** -- canonical reference for STRICT modes, what each catches/misses, and diagnostic workflow.
+
+| Bug type | Instrumentation | What it shows |
+|----------|----------------|---------------|
+| Rendering | `SILVERY_STRICT=1` (always on in tests) | Exact cell mismatch, node trace, cascade decisions |
+| Performance | `SILVERY_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
+| Behavior (state) | `DEBUG=<namespace> DEBUG_LOG=/tmp/debug.log` | Runtime traces |
+| Event loop blocks | Built-in block detection | Timing + stack |
+
+**Read the instrumentation output BEFORE reading code.** 5 minutes of tracing beats 1 hour of code reading.
+
+### If It Worked Before -- Bisect
+
+**Use git bisect.** This is the fastest path to root cause for regressions.
+
+```bash
+# Create a worktree (don't mess up working tree)
+bun worktree create bisect-<name>
+cd <worktree>
+
+# For submodule bisect (e.g., silvery)
+cd vendor/silvery
+git bisect start
+git bisect bad HEAD
+git bisect good <known-good-commit>
+
+# Automated bisect with test script
+git bisect run <test-script.sh>
+
+# Clean up
+cd /path/to/km
+bun worktree remove bisect-<name>
+```
+
+**Test script requirements for bisect:**
+- Exit 0 = good (no bug), exit 1 = bad (bug present), exit 125 = skip
+- Must be self-contained and deterministic
+
+### Narrow Down -- Divide and Conquer
+
+**For rendering pipeline bugs:**
+1. Is it the render phase cascade? (check `childrenNeedFreshRender`, `skipBgFill`, `childHasPrev`)
+2. Is it dirty flag propagation? (check which flags are set/cleared when)
+3. Is it the output phase? (compare buffer content vs ANSI output)
+4. Is it scroll-specific? (check scroll tier selection, sticky children)
+
+**For state bugs:**
+1. Which state update triggers it?
+2. What's the state before vs after?
+3. Is it a timing issue?
+
+**Isolation technique:** Simplify the reproduction until it's minimal -- remove components, reduce data, disable features until it stops reproducing.
+
+### If Stuck -- Escalate
+
+After 20+ minutes on the same problem with 2+ failed approaches:
+
+1. **`/fresh`** -- Deep research for architectural advice
+2. **Ask the user** -- Describe what you've tried and what you don't understand
+3. **Create a bead** -- Log everything you know for the next session
+
+### Troubleshoot Anti-Patterns
+
+| Don't | Do Instead |
+|-------|------------|
+| Read code first | Instrument first, read code to explain what you saw |
+| Theorize without a test | Write the test -- it either confirms or refutes |
+| Skip bisect for regressions | Bisect takes 5 minutes and gives certainty |
+| Fix without understanding | Understand the mechanism, then fix |
+| Assume terminal bug | `SILVERY_STRICT=1` proves it |
+| Skip the worktree | Always use `bun worktree create` for bisect |
+
+---
+
 ## Sub-Skills
 
 | Need                              | Load                                  |

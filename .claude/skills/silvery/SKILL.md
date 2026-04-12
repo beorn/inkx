@@ -224,7 +224,7 @@ These tests surface pre-existing incremental rendering bugs and run only with `F
 
 - `vendor/silvery/src/pipeline/CLAUDE.md` — Dirty flags, cascade, scroll tiers, lessons learned
 - `.claude/skills/tui/fix.md` — TUI-level debugging (board driver, diagnostics)
-- `.claude/skills/explore/random.md` — Fuzz testing workflow
+- `.claude/skills/tests/exploratory.md` — Fuzz/exploratory testing workflow
 - `docs/lessons/debugging-rendering.md` — Anti-patterns when debugging rendering
 - `docs/lessons/incremental-rendering.md` — Incremental rendering concepts
 - `docs/lessons/sticky-children-rendering.md` — Sticky children fix session

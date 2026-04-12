@@ -184,4 +184,116 @@ done | sort -u
 | Create side-by-side boxes | Use a markdown table |
 | Use boxes for simple key-value data | Use a markdown table |
 | Skip validation after creating a box | Always run the `awk` check |
-| Trust that it "looks right" in the editor | Monospace width varies by font — verify numerically |
+| Trust that it "looks right" in the editor | Monospace width varies by font -- verify numerically |
+
+---
+
+## HTML/CSS Diagrams
+
+Create publication-ready diagrams for blog posts and docs. **HTML/CSS is the primary tool** -- it gives full control over styling, layout, dark mode, and embeddability. D2 is useful for quick sketches and starting points, but doesn't produce blog-ready output on its own.
+
+**The iteration is where the quality comes from.** Expect 5-10 rounds of refinement. The first version is never publishable.
+
+### When to Use HTML/CSS
+
+| What you're showing | Why HTML/CSS |
+|---|---|
+| Terminal zones, scrollback layers | Needs opacity, window chrome, realistic content |
+| Terminal mockup (one screen) | Window chrome, monospace content, syntax colors |
+| Pipeline / data flow comparison | Needs aligned grid layout, subtitles, consistent sizing |
+| Side-by-side comparison | Bottom-aligned panels, matched heights |
+| Multi-backend fan-out | Terminal-style screen buffer, code assertions |
+| Screen grid / cell visualization | Colored cells, legends, summary stats |
+
+For quick sketches / brainstorming, use **D2** first (`d2 --sketch --theme 0 --dark-theme 200 input.d2 output.svg`).
+
+### Design System
+
+**Colors (Okabe-Ito palette -- colorblind-safe):**
+
+| Color | Hex | Typical use |
+|---|---|---|
+| Orange | `#E69F00` | Zone A / warning |
+| Sky blue | `#56B4E9` | Zone B / active / focus |
+| Bluish green | `#009E73` | Zone C / app-managed |
+| Vermillion | `#D55E00` | Danger / terminal-owned |
+| Blue | `#0072B2` | Zone D / primary |
+| Reddish purple | `#CC79A7` | Zone E |
+| Yellow | `#F0E442` | Highlight (low contrast on white -- use sparingly) |
+
+Never use color alone to convey meaning (WCAG 2.1). Blue+orange is the safest 2-color combo. Avoid red+green together.
+
+**Typography:**
+- Terminal content: `'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Menlo', monospace` at 13px, line-height 1.85
+- Labels/annotations: `'Inter', -apple-system, sans-serif` -- title 12.5px bold, details 11px, badges 10px
+
+**Terminal syntax colors (Dracula-adjacent):** `.prompt` green, `.cmd` bright white, `.comment` gray, `.success` light green, `.keyword` purple, `.func` blue, `.string` yellow, `.bullet` cyan, `.dimmed` dim gray.
+
+**Window chrome dots:** close `#ff5f57`, minimize `#febc2e`, maximize `#28c840`.
+
+**Always include dark mode:**
+```css
+@media (prefers-color-scheme: dark) {
+  body { background: #1a1a2e; }
+  .annotation-card { background: #2a2a3a; }
+}
+```
+
+### Building the Diagram
+
+1. **Structure** -- HTML skeleton (zones, annotations, arrows), no styling yet
+2. **Terminal content** -- realistic content from one continuous session, ghost zones with reduced opacity
+3. **Annotation cards** -- floating white cards with numbered badge, title, bullet list, colored border
+4. **Connectors** -- lines from zone edges to annotation cards (JS-computed widths)
+5. **Transition arrows** -- vertical arrows between zones with text labels
+6. **Boundary labels** (design docs only) -- technical markers
+
+### Embedding in VitePress
+
+Diagrams are embedded as **HTML fragments** (not full documents) via the `HtmlDiagram` Vue component in a **Shadow DOM** for CSS isolation.
+
+- No `<!DOCTYPE>`, `<html>`, `<head>`, or `<body>` -- just `<style>` + `<div>`
+- Scope all CSS with a unique class prefix (e.g. `.diagram-01-buffers`)
+- Use responsive widths: `max-width: 660px; width: 100%`
+
+```vue
+<script setup>
+import myDiagram from '../public/blog/diagrams/my-diagram.html?raw'
+</script>
+<HtmlDiagram :html="myDiagram" />
+```
+
+### Playwright Visual Verification (REQUIRED)
+
+After embedding, verify with Playwright. Check: `box.width <= 688`, `scrollWidth == clientWidth`, `hasShadow == true`, `ulPadLeft == "0px"`, `termFontSize != "16px"`, `paddingLeft <= "10px"`. Read each screenshot with the Read tool for visual confirmation.
+
+### Checklist Before Done
+
+- Content tells one continuous story across zones
+- Opacity creates clear visual hierarchy (ghost -> medium -> solid)
+- Dark mode works
+- No red+green as status indicators
+- Width fits container (max-width + width:100%, no fixed px)
+- Playwright visual verification passes
+
+### Reference Implementations
+
+| Diagram | Path |
+|---|---|
+| Three-Zone Scrollback | `~vault/terminal-scrollback-zones.html` |
+| Buffer Comparison | `docs/public/blog/diagrams/01-buffers.html` |
+| Pipeline Comparison | `docs/public/blog/diagrams/02-pipelines-compared.html` |
+| Termless Fan-out | `docs/public/blog/diagrams/05-termless.html` |
+| Clear-Redraw Cycle | `docs/public/blog/diagrams/06-clear-reprint.html` |
+| Dirty Tracking Grid | `docs/public/blog/diagrams/07-dirty-tracking.html` |
+
+### HTML/CSS Anti-Patterns
+
+| Don't | Do Instead |
+|---|---|
+| Expect the first version to be good | Plan for 5-10 iteration rounds |
+| Use D2/Mermaid as final output | Use as starting point, rebuild in HTML |
+| Hardcode pixel positions for annotations | Use JS positioning that adapts to content |
+| Skip dark mode | Always include `@media (prefers-color-scheme: dark)` |
+| Use jargon in diagram labels | Simple words a non-expert can read in 3 seconds |
+| Make diagrams too wide (920px) | 640-700px for most diagrams |

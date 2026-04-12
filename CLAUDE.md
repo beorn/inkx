@@ -206,7 +206,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | km-tui visual bug (card layout, column rendering, board components) | [tui/](.claude/skills/tui/) |
 | Flexily layout bug (wrong sizes, caching, fingerprinting) | [flexily/](.claude/skills/flexily/) |
 | Performance (slow, jank, stutter, event loop blocks) | [perf/](.claude/skills/perf/) |
-| Bug hunting / fuzz testing                   | [explore/](.claude/skills/explore/) |
+| Bug hunting / fuzz testing                   | [tests/exploratory.md](.claude/skills/tests/exploratory.md) |
 
 ### External LLMs (choose the right one!)
 

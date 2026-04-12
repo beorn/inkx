@@ -364,7 +364,7 @@ curl -s "https://api.cloudflare.com/client/v4/zones?name=beorn.codes" \
 - [ ] `license-report` — generate dep license report, flag unknown/forbidden
 - [ ] `dep-compliance` — no GPL in MIT-licensed packages?
 **Triggers**: new dependencies added (→ packages)
-**Delegates to**: `/legal`
+**Delegates to**: `/marketing legal`
 **Note**: Nuanced attribution deferred until tooled.
 
 ### 8. security — is the supply chain safe?
