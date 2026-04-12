@@ -1,14 +1,71 @@
 ---
-description: "Check npm package and org scope availability. Use when exploring package names, reserving npm names, or checking if a scope/package exists."
-argument-hint: "<names...>"
-allowed-tools: Bash
+description: "npm registry — name availability, package status, audit, deprecate. Use when exploring package names, reserving npm names, checking package status, auditing the package registry, or deprecating renamed/superseded packages."
+argument-hint: "[list|status|audit|placeholders|renamed|deprecate|undeprecate] [args...]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
-# npm — Package Name Availability
+# npm — Registry Management & Name Availability
 
-**Keywords**: npm, package name, availability, scope, org, registry, reserve, check name, naming
+**Keywords**: npm, package name, availability, scope, org, registry, reserve, check name, naming, audit, deprecate, status, list, maintainer, beorno
 
-Check whether npm package names, scoped packages, and org scopes are available.
+Two related jobs:
+
+1. **Registry management** — query/audit/deprecate the 60+ packages we publish under maintainer `beorno` (this skill is the central place for any `https://registry.npmjs.org/...` interaction; the release skill defers to it).
+2. **Name availability** — check whether a package name, scoped package, or org scope is available before publishing something new.
+
+## Registry Management (`bun npm-registry`)
+
+Tool: `.claude/skills/npm/registry.ts`. Run via `bun npm-registry <cmd>`. All registry calls are cached for 5 minutes in `/tmp/.npm-registry-cache.json` so subsequent commands are cheap. Delete the cache to force-refresh.
+
+Canonical registry file: [`.claude/skills/release/npm-packages.md`](../release/npm-packages.md). The audit subcommand cross-checks this file against the live registry.
+
+| Command | What it does |
+|---------|--------------|
+| `bun npm-registry list` | All packages by maintainer `beorno` (paginated v1/search). Name, version, weekly downloads, deprecation status. |
+| `bun npm-registry status <pkg>` | Detail for one package: latest version, dist-tags, publish date, weekly downloads, maintainers, deprecation. |
+| `bun npm-registry audit` | Cross-check `npm-packages.md` against the live registry. Reports: missing-from-md, missing-from-registry, version drift, newly-deprecated. Suggests edits but does NOT auto-write. |
+| `bun npm-registry placeholders` | List known stale placeholder packages and whether each is already deprecated. |
+| `bun npm-registry renamed` | List known renamed/superseded packages and whether each is deprecated with the correct redirect message. |
+| `bun npm-registry deprecate <pkg> "<msg>"` | Wrap `npm deprecate "<pkg>@*" "<msg>"`. Asks confirmation interactively, or set `DEPRECATE_CONFIRM=1` non-interactively. |
+| `bun npm-registry undeprecate <pkg>` | Clear deprecation: `npm deprecate "<pkg>@*" ""`. Same confirmation flow. |
+
+Slash command mapping (treat these as aliases when the user says them):
+
+- `/npm list` → `bun npm-registry list`
+- `/npm status <pkg>` → `bun npm-registry status <pkg>`
+- `/npm audit` → `bun npm-registry audit`
+- `/npm placeholders` → `bun npm-registry placeholders`
+- `/npm renamed` → `bun npm-registry renamed`
+- `/npm deprecate <pkg> <msg>` → `bun npm-registry deprecate <pkg> "<msg>"`
+- `/npm undeprecate <pkg>` → `bun npm-registry undeprecate <pkg>`
+
+### When to use it
+
+- **Release prep**: run `audit` to spot drift between `npm-packages.md` and reality before bumping.
+- **Post-publish housekeeping**: run `audit` after a release to confirm new versions landed and update the canonical md file.
+- **Package audits**: run `placeholders` and `renamed` periodically — anything still ACTIVE needs deprecation.
+- **Quick lookup**: `status <pkg>` is faster than typing the curl by hand and shows everything you usually want in one shot.
+- **Adding a new package**: after first publish, add it to `npm-packages.md` in the right section, then re-run `audit` to confirm it's in sync.
+
+### Updating `npm-packages.md`
+
+The audit tool intentionally does NOT auto-rewrite `npm-packages.md`. The structure (sections, columns, notes) is hand-curated. When `audit` reports drift:
+
+1. For **version drift**: bump the version cell in the existing row.
+2. For **missing-from-md**: add a new row in the appropriate section. If you don't know which section, the package is probably a placeholder (Name Reservations) or a private/local package (Not Published).
+3. For **missing-from-registry**: either remove the row (the package was unpublished) or move it to the "Not Published" section.
+4. For **newly-deprecated**: move the row to the "Deprecated" or "Renamed/Superseded" section.
+
+The HTML comment block at the top of `npm-packages.md` lists the most recent audit findings. Refresh it whenever you update the file.
+
+### Maintainer / auth
+
+- npm username: **beorno**
+- Local auth is set up (`~/.npmrc`)
+- CI uses `NPM_TOKEN` GitHub Actions secrets for silvery/loggily/flexily
+- Deprecation needs publish auth for the package — `npm whoami` first if a deprecate fails
+
+## Name Availability
 
 ## Quick Check
 
