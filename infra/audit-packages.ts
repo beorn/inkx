@@ -58,8 +58,8 @@ function discoverPackages(): PkgInfo[] {
   const dirs = [
     // Silvery monorepo packages
     ...readdirSync(join(ROOT, "vendor/silvery/packages"), { withFileTypes: true })
-      .filter(d => d.isDirectory() && existsSync(join(ROOT, "vendor/silvery/packages", d.name, "package.json")))
-      .map(d => join(ROOT, "vendor/silvery/packages", d.name)),
+      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "vendor/silvery/packages", d.name, "package.json")))
+      .map((d) => join(ROOT, "vendor/silvery/packages", d.name)),
     // Silvery barrel
     join(ROOT, "vendor/silvery"),
     // Silvery examples
@@ -69,8 +69,8 @@ function discoverPackages(): PkgInfo[] {
     join(ROOT, "vendor/flexily"),
     // Bearly packages
     ...readdirSync(join(ROOT, "vendor/bearly/packages"), { withFileTypes: true })
-      .filter(d => d.isDirectory() && existsSync(join(ROOT, "vendor/bearly/packages", d.name, "package.json")))
-      .map(d => join(ROOT, "vendor/bearly/packages", d.name)),
+      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "vendor/bearly/packages", d.name, "package.json")))
+      .map((d) => join(ROOT, "vendor/bearly/packages", d.name)),
   ]
 
   for (const dir of dirs) {
@@ -94,7 +94,7 @@ function discoverPackages(): PkgInfo[] {
         npmVersion = execSync(`npm view ${pkg.name} version 2>/dev/null`, { encoding: "utf8" }).trim()
       } catch {}
 
-      const binValues = typeof bin === "string" ? [bin] : Object.values(bin) as string[]
+      const binValues = typeof bin === "string" ? [bin] : (Object.values(bin) as string[])
       const binPointsToDist = binValues.length === 0 || binValues.every((b: string) => b.includes("/dist/"))
 
       packages.push({
@@ -147,25 +147,55 @@ function audit(packages: PkgInfo[]): Issue[] {
       issues.push({ pkg: pkg.name, severity: "error", check: "license-file", message: "Missing LICENSE file" })
     }
     if (!pkg.license) {
-      issues.push({ pkg: pkg.name, severity: "error", check: "license-field", message: "Missing license field in package.json" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "error",
+        check: "license-field",
+        message: "Missing license field in package.json",
+      })
     }
 
     // Publishing readiness
     if (!pkg.hasTsdown) {
-      issues.push({ pkg: pkg.name, severity: "error", check: "tsdown-config", message: "Missing tsdown config in package.json" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "error",
+        check: "tsdown-config",
+        message: "Missing tsdown config in package.json",
+      })
     }
     if (!pkg.hasPublishConfig) {
-      issues.push({ pkg: pkg.name, severity: "error", check: "publish-config", message: "Missing publishConfig.exports (pnpm publish won't override exports)" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "error",
+        check: "publish-config",
+        message: "Missing publishConfig.exports (pnpm publish won't override exports)",
+      })
     }
     if (!pkg.filesIncludesDist) {
-      issues.push({ pkg: pkg.name, severity: "error", check: "files-dist", message: "files field doesn't include 'dist'" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "error",
+        check: "files-dist",
+        message: "files field doesn't include 'dist'",
+      })
     }
     if (pkg.filesIncludesSrc) {
-      issues.push({ pkg: pkg.name, severity: "warn", check: "files-src", message: "files field includes 'src' — should only ship dist/" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "warn",
+        check: "files-src",
+        message: "files field includes 'src' — should only ship dist/",
+      })
     }
     if (pkg.hasBin && !pkg.binPointsToDist) {
       // Check if publishConfig.bin overrides it
-      issues.push({ pkg: pkg.name, severity: "warn", check: "bin-dist", message: "bin points to source (.ts) — ensure publishConfig.bin overrides to dist/*.js for npx" })
+      issues.push({
+        pkg: pkg.name,
+        severity: "warn",
+        check: "bin-dist",
+        message: "bin points to source (.ts) — ensure publishConfig.bin overrides to dist/*.js for npx",
+      })
     }
 
     // Metadata
@@ -176,13 +206,23 @@ function audit(packages: PkgInfo[]): Issue[] {
       issues.push({ pkg: pkg.name, severity: "warn", check: "description", message: "Missing description" })
     }
     if (pkg.author === "Beorn" || pkg.author === "beorn" || pkg.author === "") {
-      issues.push({ pkg: pkg.name, severity: "warn", check: "author", message: `Author should be "Bjørn Stabell <bjorn@stabell.org>", got "${pkg.author || 'empty'}"` })
+      issues.push({
+        pkg: pkg.name,
+        severity: "warn",
+        check: "author",
+        message: `Author should be "Bjørn Stabell <bjorn@stabell.org>", got "${pkg.author || "empty"}"`,
+      })
     }
 
     // Cross-dependency versions
     for (const [dep, ver] of Object.entries(pkg.silveryCrossDeps)) {
       if (ver.startsWith("github:") || ver.startsWith("workspace:") || ver.startsWith("$")) {
-        issues.push({ pkg: pkg.name, severity: "error", check: "dep-version", message: `${dep} uses non-npm version: ${ver}` })
+        issues.push({
+          pkg: pkg.name,
+          severity: "error",
+          check: "dep-version",
+          message: `${dep} uses non-npm version: ${ver}`,
+        })
       }
     }
   }
@@ -197,11 +237,11 @@ const issues = audit(packages)
 
 if (jsonMode) {
   console.log(JSON.stringify({ packages, issues }, null, 2))
-  process.exit(issues.some(i => i.severity === "error") ? 1 : 0)
+  process.exit(issues.some((i) => i.severity === "error") ? 1 : 0)
 }
 
-const publicPkgs = packages.filter(p => !p.private)
-const privatePkgs = packages.filter(p => p.private)
+const publicPkgs = packages.filter((p) => !p.private)
+const privatePkgs = packages.filter((p) => p.private)
 
 console.log(`\n📦 Vendor Package Audit`)
 console.log(`   ${publicPkgs.length} public, ${privatePkgs.length} private, ${packages.length} total\n`)
@@ -217,12 +257,14 @@ for (const pkg of packages) {
   const f = pkg.filesIncludesDist && !pkg.filesIncludesSrc ? "  ✓  " : "  ✗  "
   const priv = pkg.private ? " (private)" : ""
   const npm = pkg.npmVersion || "—"
-  console.log(`${(pkg.name + priv).padEnd(32)} ${pkg.version.padEnd(10)} ${npm.padEnd(10)} ${r}  ${l}  ${t}  ${pc}  ${f}`)
+  console.log(
+    `${(pkg.name + priv).padEnd(32)} ${pkg.version.padEnd(10)} ${npm.padEnd(10)} ${r}  ${l}  ${t}  ${pc}  ${f}`,
+  )
 }
 
 // Issues
-const errors = issues.filter(i => i.severity === "error")
-const warnings = issues.filter(i => i.severity === "warn")
+const errors = issues.filter((i) => i.severity === "error")
+const warnings = issues.filter((i) => i.severity === "warn")
 
 if (errors.length > 0) {
   console.log(`\n❌ Errors (${errors.length}):`)

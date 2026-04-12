@@ -42,12 +42,6 @@
       }
     }
   },
-  "tsdown": {
-    "entry": "src/index.ts",
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
   "scripts": {
     "build": "tsdown",
     "test": "bun test",
@@ -56,6 +50,12 @@
   "devDependencies": {
     "tsdown": "^0.21.7",
     "typescript": "^5.7.3"
+  },
+  "tsdown": {
+    "clean": true,
+    "dts": true,
+    "entry": "src/index.ts",
+    "format": "esm"
   },
   "engines": {
     "node": ">=23.6.0"
