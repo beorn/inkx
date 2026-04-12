@@ -598,6 +598,54 @@ async function verifyPackage(pkgDir: string): Promise<VerifyResult> {
 
     const installedPkg = JSON.parse(readFileSync(pjoin(installedDir, "package.json"), "utf8"))
 
+    // 3a. publint — catches manifest/exports/files issues that publishConfig
+    // and tarball testing miss. Use bunx (doesn't need fresh cache) since
+    // the temp dir's npm cache doesn't have the binary installed.
+    try {
+      const publintOutput = execSync(`bunx publint@latest "${installedDir}" 2>&1 || true`, {
+        encoding: "utf8",
+        timeout: 120000,
+      })
+      const hasErrors = /\bError\b/i.test(publintOutput) && !publintOutput.includes("0 errors")
+      const hasWarnings = /\bWarning\b/i.test(publintOutput)
+      if (hasErrors) {
+        result.ok = false
+        const errLine = publintOutput.split("\n").find(l => /error/i.test(l))?.trim() ?? "has errors"
+        result.errors.push(`publint: ${errLine}`)
+        console.log(`  ${style.red("✗")} publint has errors`)
+      } else if (hasWarnings) {
+        console.log(`  ${style.yellow("⚠")} publint warnings (not blocking)`)
+        result.warnings.push("publint has warnings — run `bunx publint <pkg>` to review")
+      } else {
+        console.log(`  ${style.green("✓")} publint`)
+      }
+    } catch (e) {
+      console.log(`  ${style.dim("⊘")} publint skipped: ${(e as Error).message.slice(0, 60)}`)
+    }
+
+    // 3b. arethetypeswrong — catches TypeScript consumer breakage (CJS/ESM dual,
+    // missing types, wrong conditional exports). Only for packages with types.
+    const hasTypes = installedPkg.types || installedPkg.typings ||
+      (installedPkg.exports && JSON.stringify(installedPkg.exports).includes('"types"'))
+    if (hasTypes) {
+      try {
+        const attwOutput = execSync(`bunx @arethetypeswrong/cli@latest --pack "${installedDir}" 2>&1 || true`, {
+          encoding: "utf8",
+          timeout: 180000,
+        })
+        if (attwOutput.includes("No problems found")) {
+          console.log(`  ${style.green("✓")} arethetypeswrong`)
+        } else if (/\d+ problems? found/i.test(attwOutput) || attwOutput.includes("Problems:")) {
+          console.log(`  ${style.yellow("⚠")} arethetypeswrong found issues (not blocking)`)
+          result.warnings.push("arethetypeswrong found issues — run `bunx attw --pack <pkg>` to review")
+        } else {
+          console.log(`  ${style.green("✓")} arethetypeswrong`)
+        }
+      } catch (e) {
+        console.log(`  ${style.dim("⊘")} arethetypeswrong skipped: ${(e as Error).message.slice(0, 60)}`)
+      }
+    }
+
     // 4. Test imports — try if package declares any importable entry point.
     // Supports: object exports (`exports["."]`), string exports, main field.
     // Skip for CLI-only packages (bin only, no library entry).
