@@ -1,5 +1,34 @@
+import { resolve } from "node:path"
 import { mdspec as mdspecPlugin } from "mdspec/vitest-plugin"
 import { defineConfig } from "vitest/config"
+
+// v0.17.3 coordinated silvery release narrowed every @silvery/* package.json exports
+// field to just "." — but the internal source still does deep subpath imports like
+// @silvery/ag-term/pipeline/pretext. These aliases bypass the broken exports map so
+// vendor tests can run. Remove once the exports maps are fully restored.
+const silveryPackages = [
+	"ag",
+	"ag-react",
+	"ag-term",
+	"ansi",
+	"color",
+	"commander",
+	"commands",
+	"create",
+	"headless",
+	"ink",
+	"model",
+	"scope",
+	"signals",
+	"test",
+	"theme",
+]
+const silveryAliases = silveryPackages.flatMap((pkg) => [
+	{
+		find: new RegExp(`^@silvery/${pkg}/(.+)$`),
+		replacement: resolve(__dirname, `vendor/silvery/packages/${pkg}/src/$1`),
+	},
+])
 
 // mdspec's vite Plugin type may resolve to a different vite copy than vitest/config,
 // causing TS2769. Cast to bridge the duplicate type resolution.
@@ -67,6 +96,7 @@ const projects = hasProjectFlag
 			},
 			{
 				plugins: [mdspec()],
+				resolve: { alias: silveryAliases },
 				test: {
 					name: "vendor",
 					...sharedTest,
