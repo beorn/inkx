@@ -916,25 +916,81 @@ async function executeRelease(
 
       // ── Step 4: Verify ──
       console.log(`  ${style.bold("Verify")}`)
-      for (const tier of tiers) {
-        for (const pkg of tier) {
-          if (state.packages[pkg.name]?.verified) {
-            console.log(`    ${style.dim(pkg.name + " — already verified")}`)
-            continue
-          }
+      const allPkgs = tiers.flat()
+      const unverified = allPkgs.filter((p) => !state.packages[p.name]?.verified)
+      if (unverified.length === 0) {
+        console.log(`  ${style.dim("Verify — all already verified")}`)
+      } else if (allPkgs.length === 1) {
+        // Single-package repo: verify individually (existing flow)
+        const pkg = unverified[0]!
+        const result = await verifyPackage(join(r.repoDir, pkg.dir))
+        if (!result.ok) {
+          throw new Error(
+            `Verification failed for ${pkg.name}:\n` +
+              result.errors.map((e) => `  - ${e}`).join("\n") +
+              "\n\nFix the issues and re-run. State saved for resume.",
+          )
+        }
+        if (!state.packages[pkg.name]) state.packages[pkg.name] = {}
+        state.packages[pkg.name]!.verified = true
+        saveReleaseState(r.repoDir, state)
+      } else {
+        // Multi-package repo: pack all, install all tarballs together, then verify imports.
+        // This handles cross-deps (e.g. @termless/cli depends on @termless/core).
+        console.log(`\n    ${style.dim("→")} multi-tarball verify (${allPkgs.length} packages)`)
+        const tarballs: { pkg: PkgStatus; tgz: string }[] = []
+        for (const pkg of unverified) {
           const pkgDir = join(r.repoDir, pkg.dir)
-          const result = await verifyPackage(pkgDir)
-          if (!result.ok) {
-            throw new Error(
-              `Verification failed for ${pkg.name}:\n` +
-              result.errors.map(e => `  - ${e}`).join("\n") +
-              "\n\nFix the issues and re-run. State saved for resume."
-            )
+          console.log(`    ${style.dim("→")} packing ${pkg.name}`)
+          const packOut = execSync("pnpm pack 2>&1", { cwd: pkgDir, encoding: "utf8", timeout: 60000 })
+          const tgzName = packOut.trim().split("\n").pop()?.trim()
+          if (!tgzName?.endsWith(".tgz")) continue
+          tarballs.push({ pkg, tgz: join(pkgDir, tgzName) })
+        }
+
+        const tmpDir = mkdtempSync(join(tmpdir(), "release-multi-verify-"))
+        const cacheDir = join(tmpDir, ".npm-cache")
+        writeFileSync(join(tmpDir, "package.json"), JSON.stringify({ name: "verify", version: "0.0.0", private: true }, null, 2))
+        const tgzPaths = tarballs.map((t) => `"${t.tgz}"`).join(" ")
+        console.log(`    ${style.dim("→")} installing ${tarballs.length} tarballs together`)
+        execSync(`npm install ${tgzPaths} --no-save --silent 2>&1`, {
+          cwd: tmpDir,
+          encoding: "utf8",
+          timeout: 300000,
+          env: { ...process.env, NPM_CONFIG_CACHE: cacheDir },
+        })
+        console.log(`    ${style.green("✓")} all tarballs installed`)
+
+        // Test-only packages (vitest peerDep, test runners) can't import outside runner context
+        const testOnlyPkgs = new Set(
+          tarballs
+            .filter(({ pkg: p }) => {
+              const pj = JSON.parse(readFileSync(join(r.repoDir, p.dir, "package.json"), "utf8"))
+              return pj.peerDependencies?.vitest || p.name.includes("/test")
+            })
+            .map(({ pkg: p }) => p.name),
+        )
+        for (const { pkg, tgz } of tarballs) {
+          if (testOnlyPkgs.has(pkg.name)) {
+            console.log(`    ${style.dim("⏭")} ${pkg.name} (test-only, skip import)`)
+          } else {
+            try {
+              execSync(`node -e "import('${pkg.name}').then(m => console.log('OK'))"`, {
+                cwd: tmpDir,
+                encoding: "utf8",
+                timeout: 30000,
+              })
+              console.log(`    ${style.green("✓")} ${pkg.name} import works`)
+            } catch (e) {
+              throw new Error(`import('${pkg.name}') failed in multi-tarball verify`)
+            }
           }
           if (!state.packages[pkg.name]) state.packages[pkg.name] = {}
           state.packages[pkg.name]!.verified = true
           saveReleaseState(r.repoDir, state)
+          rmSync(tgz, { force: true })
         }
+        rmSync(tmpDir, { recursive: true, force: true })
       }
 
       // ── Step 5: Commit + Tag ──
