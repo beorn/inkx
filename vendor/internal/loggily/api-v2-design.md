@@ -37,8 +37,8 @@ log.info?.("server started", { port: 3000 })
 In the config array, each element is classified by type:
 
 1. **Array** → branch (fanout with own config scope)
-2. **Function** → custom stage `(event) => event | null | void`
-3. **`console`** → console sink (special-cased)
+2. **`console` literal or `"console"` string** → console sink (special-cased)
+3. **Function** → custom stage `(event) => event | null | void`
 4. **Node writable / FileHandle / `{ write }` (non-POJO)** → writable sink
 5. **POJO** → scope config OR output descriptor (see below)
 6. **Anything else** → error (descriptive message)
@@ -49,7 +49,7 @@ In the config array, each element is classified by type:
 
 - Has `file` key → **output descriptor** (creates file sink with local config)
 - Has `otel` key → **output descriptor** (creates OTEL sink, Phase 4)
-- Has ONLY config keys (`level`, `ns`, `format`) → **scope config** (applies to subsequent siblings)
+- Has ONLY config keys (`level`, `ns`, `format`, `spans`) → **scope config** (applies to subsequent siblings)
 - Has both config keys AND sink key → **output descriptor** with local overrides
 - Has unknown keys → **error** (fail early with descriptive message)
 
@@ -105,6 +105,7 @@ type Stage = (event: Event) => Event | null | void
 | `level`  | `LogLevel`           | min level for scope             | min level for this output        |
 | `ns`     | `string \| string[]` | namespace filter (DEBUG syntax) | namespace filter for this output |
 | `format` | `LogFormat`          | default format for outputs      | format for this output           |
+| `spans`  | `boolean`            | enable/disable span output      | —                                |
 | `file`   | `string`             | —                               | creates file sink                |
 | `otel`   | `OtelConfig`         | —                               | creates OTEL sink (Phase 4)      |
 
@@ -163,8 +164,10 @@ interface ConditionalLogger {
     (error: Error, msg: string, data?: Record<string, unknown>): void
   }
 
+  /** @deprecated Use .child() */
   logger(namespace?: string, props?: Record<string, unknown>): ConditionalLogger
   span(namespace?: string, props?: LazyProps): SpanLogger
+  child(namespace: string, props?: Record<string, unknown>): ConditionalLogger
   child(context: Record<string, unknown>): ConditionalLogger
   end(): void
 }
@@ -179,9 +182,16 @@ Children share the parent's pipeline:
 
 ```ts
 const root = createLogger("myapp", [console])
-const child = root.logger("auth") // namespace: "myapp:auth"
-const grand = child.logger("login") // namespace: "myapp:auth:login"
+const child = root.child("auth") // namespace: "myapp:auth"
+const grand = child.child("login") // namespace: "myapp:auth:login"
 ```
+
+`.child()` is the unified method:
+- `.child("auth")` — extend namespace
+- `.child({ requestId: "abc" })` — add context fields
+- `.child("auth", { sso: true })` — both
+
+`.logger()` still works but is deprecated.
 
 ### Shared config across modules
 
@@ -195,7 +205,7 @@ export const log = createLogger("myapp", [
 
 // app/auth.ts
 import { log } from "./logger.ts"
-const authLog = log.logger("auth")
+const authLog = log.child("auth")
 authLog.info?.("login attempted", { user: "alice" })
 ```
 
@@ -212,19 +222,40 @@ When `createLogger("name")` is called with no config array:
 | `NO_COLOR`   | disable ANSI colors                                     |
 | `TRACE`      | `1`, `true`, or namespace prefixes — enable span output |
 
-## Logger composition (Phase 2)
+## Logger composition
 
 ```ts
-import { baseLogger, compose } from "loggily"
-import withSpans from "loggily/spans"
-import withMetrics from "loggily/metrics"
+import { createLogger, pipe, withEnvDefaults } from "loggily"
 
-const createLogger = compose(baseLogger, withSpans, withMetrics())
+// createLogger already includes withEnvDefaults()
+// Pipe with custom plugins:
+const myCreateLogger = pipe(createLogger, withSentry({ dsn: "..." }))
 ```
 
-Default `createLogger` is pre-composed with all standard plugins. Power users build minimal loggers for tree-shaking.
+`pipe(base, ...plugins)` chains `LoggerPlugin` functions left-to-right. Each plugin wraps the factory:
 
-Each plugin adds: Logger methods AND config object fields (via TypeScript intersection).
+```ts
+type LoggerFactory = (name: string, configOrProps?: unknown[] | Record<string, unknown>) => ConditionalLogger
+type LoggerPlugin = (factory: LoggerFactory) => LoggerFactory
+```
+
+`withEnvDefaults()` is the built-in plugin that reads `LOG_LEVEL`, `DEBUG`, `LOG_FORMAT`, `TRACE`, `LOG_FILE` from env vars. It's included by default in `createLogger`. The internal `baseCreateLogger` (not exported) requires an explicit config array.
+
+### createTestLogger
+
+```ts
+import { createTestLogger } from "loggily"
+const log = createTestLogger("test") // all levels enabled, console output
+```
+
+### createLogger backwards compat
+
+`createLogger(name, props)` accepts a non-array object as the second argument for backwards compatibility. It's treated as props (context fields), not a config array:
+
+```ts
+const log = createLogger("myapp", { service: "api" })
+// equivalent to: createLogger("myapp").child({ service: "api" })
+```
 
 ## Compatibility
 
@@ -254,7 +285,7 @@ Each plugin adds: Logger methods AND config object fields (via TypeScript inters
 - `ns` for namespace filters (not `name` — avoids ambiguity with logger name)
 - No `filter()`, `byLevel()`, `byNamespace()`, `toFile()` imports for common cases — config objects replace them
 - `pipe()` is internal only — arrays replace it for users
-- `compose()` is separate from pipeline (different job: logger capabilities vs data routing)
+- `pipe()` is separate from pipeline (different job: logger capabilities vs data routing)
 - Config loading NOT in loggily — future `@silvery/config`
 - CLI integration NOT in loggily — future `@silvery/commander`
 - Positioning: state what loggily does and what it's compatible with, don't compare against others
@@ -270,9 +301,9 @@ Each plugin adds: Logger methods AND config object fields (via TypeScript inters
 - Remove global setters from public API
 - Update tests
 
-### Phase 2: Logger decomposition + compose() (P2)
+### Phase 2: Logger decomposition + pipe() (P2)
 
-- compose() function for logger plugin composition
+- pipe() function for logger plugin composition
 - Extract withSpans, withMetrics, withContext as plugins
 - Default export = pre-composed with all standard plugins
 - TypeScript intersection types for plugin config fields
