@@ -2,10 +2,11 @@ import { resolve } from "node:path"
 import { mdspec as mdspecPlugin } from "mdspec/vitest-plugin"
 import { defineConfig } from "vitest/config"
 
-// v0.17.3 coordinated silvery release narrowed every @silvery/* package.json exports
-// field to just "." — but the internal source still does deep subpath imports like
-// @silvery/ag-term/pipeline/pretext. These aliases bypass the broken exports map so
-// vendor tests can run. Remove once the exports maps are fully restored.
+// v0.17.3 coordinated silvery/loggily release narrowed every @silvery/* and loggily
+// package.json exports field to just "." — but the internal source still does deep
+// subpath imports like @silvery/ag-term/pipeline/pretext and loggily/worker. These
+// aliases bypass the broken exports maps so vendor tests AND km-storage/km-tui tests
+// can run. Remove once the exports maps are fully restored.
 const silveryPackages = [
 	"ag",
 	"ag-react",
@@ -23,12 +24,18 @@ const silveryPackages = [
 	"test",
 	"theme",
 ]
-const silveryAliases = silveryPackages.flatMap((pkg) => [
+const vendorAliases = [
+	...silveryPackages.flatMap((pkg) => [
+		{
+			find: new RegExp(`^@silvery/${pkg}/(.+)$`),
+			replacement: resolve(__dirname, `vendor/silvery/packages/${pkg}/src/$1`),
+		},
+	]),
 	{
-		find: new RegExp(`^@silvery/${pkg}/(.+)$`),
-		replacement: resolve(__dirname, `vendor/silvery/packages/${pkg}/src/$1`),
+		find: /^loggily\/(.+)$/,
+		replacement: resolve(__dirname, "vendor/loggily/src/$1"),
 	},
-])
+]
 
 // mdspec's vite Plugin type may resolve to a different vite copy than vitest/config,
 // causing TS2769. Cast to bridge the duplicate type resolution.
@@ -78,6 +85,7 @@ const projects = hasProjectFlag
 	? [
 			{
 				plugins: [mdspec()],
+				resolve: { alias: vendorAliases },
 				test: {
 					name: "default",
 					...sharedTest,
@@ -87,6 +95,7 @@ const projects = hasProjectFlag
 			},
 			{
 				plugins: [mdspec()],
+				resolve: { alias: vendorAliases },
 				test: {
 					name: "slow",
 					...sharedTest,
@@ -96,7 +105,7 @@ const projects = hasProjectFlag
 			},
 			{
 				plugins: [mdspec()],
-				resolve: { alias: silveryAliases },
+				resolve: { alias: vendorAliases },
 				test: {
 					name: "vendor",
 					...sharedTest,
@@ -118,6 +127,7 @@ const projects = hasProjectFlag
 export default defineConfig({
 	cacheDir: "node_modules/.vitest",
 	plugins: [mdspec()],
+	resolve: { alias: vendorAliases },
 	test: {
 		reporters: ["dot"],
 		includeTaskLocation: true,
