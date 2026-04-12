@@ -51,16 +51,39 @@ interface Plan {
 
 // ─── Repo Discovery ─────────────────────────────────────────────────────────
 
-const REPO_CONFIGS: { dir: string; monorepo: boolean }[] = [
-  { dir: "vendor/silvery", monorepo: true },
-  { dir: "vendor/loggily", monorepo: false },
-  { dir: "vendor/flexily", monorepo: false },
-  { dir: "vendor/bearly", monorepo: true },
-  { dir: "vendor/termless", monorepo: true },
-  { dir: "vendor/vterm", monorepo: true },
-  { dir: "vendor/vimonkey", monorepo: false },
-  { dir: "vendor/watcher-chaos", monorepo: false },
+// Tag schemes:
+//   "shared": one tag per coordinated release covers all packages (e.g., v0.17.3)
+//   "per-package": each package has its own tag (e.g., tribe-v0.8.1, vitepress-enrich-v0.4.1)
+type TagScheme = "shared" | "per-package"
+
+interface RepoConfig {
+  dir: string
+  monorepo: boolean
+  tagScheme: TagScheme
+}
+
+const REPO_CONFIGS: RepoConfig[] = [
+  { dir: "vendor/silvery", monorepo: true, tagScheme: "shared" },
+  { dir: "vendor/loggily", monorepo: false, tagScheme: "shared" },
+  { dir: "vendor/flexily", monorepo: false, tagScheme: "shared" },
+  { dir: "vendor/bearly", monorepo: true, tagScheme: "per-package" },
+  { dir: "vendor/termless", monorepo: true, tagScheme: "shared" },
+  { dir: "vendor/vterm", monorepo: true, tagScheme: "shared" },
+  { dir: "vendor/vimonkey", monorepo: false, tagScheme: "shared" },
+  { dir: "vendor/watcher-chaos", monorepo: false, tagScheme: "shared" },
 ]
+
+/**
+ * Compute the git tag name for a package given its repo's tag scheme.
+ * - "shared": v<version> (e.g., v0.17.3)
+ * - "per-package": <shortName>-v<version> (e.g., tribe-v0.8.1)
+ *   shortName strips scope: @bearly/tribe → tribe, @bearly/vitepress-enrich → vitepress-enrich
+ */
+function tagNameFor(pkgName: string, version: string, scheme: TagScheme): string {
+  if (scheme === "shared") return `v${version}`
+  const shortName = pkgName.includes("/") ? pkgName.split("/").pop()! : pkgName
+  return `${shortName}-v${version}`
+}
 
 function git(cmd: string, cwd: string): string {
   try {
@@ -134,16 +157,25 @@ function discoverPackages(repos: Repo[]): PkgStatus[] {
 
         const pkgDir = dirname(pkgPath)
         const relDir = relative(repo.absDir, pkgDir) || "."
-        const tagName = `v${pkg.version}`
+        const tagName = tagNameFor(pkg.name, pkg.version, cfg.tagScheme)
         const hasTag = git(`rev-parse ${tagName}`, repo.absDir) !== ""
 
-        // Delta: commits since last tag touching this package
+        // Delta: commits since this package's *own* tag (per-package) or repo's last tag (shared)
+        // For per-package schemes, use this package's most recent tag, not the repo's latest tag.
+        let baseTag = repo.lastTag
+        if (cfg.tagScheme === "per-package") {
+          const shortName = pkg.name.includes("/") ? pkg.name.split("/").pop()! : pkg.name
+          // Find the most recent <shortName>-v* tag
+          const ownTag = git(`describe --tags --abbrev=0 --match "${shortName}-v*"`, repo.absDir)
+          if (ownTag) baseTag = ownTag
+        }
+
         let delta = 0
         let deltaCommits: string[] = []
-        if (repo.lastTag) {
+        if (baseTag) {
           const logCmd = relDir === "."
-            ? `log ${repo.lastTag}..HEAD --oneline -- . ":!packages" ":!examples" ":!node_modules" ":!dist"`
-            : `log ${repo.lastTag}..HEAD --oneline -- "${relDir}"`
+            ? `log ${baseTag}..HEAD --oneline -- . ":!packages" ":!plugins" ":!examples" ":!node_modules" ":!dist"`
+            : `log ${baseTag}..HEAD --oneline -- "${relDir}"`
           const log = git(logCmd, repo.absDir)
           if (log) {
             deltaCommits = log.split("\n").filter(Boolean)
@@ -173,22 +205,41 @@ function discoverPackages(repos: Repo[]): PkgStatus[] {
 
 // ─── Analysis ───────────────────────────────────────────────────────────────
 
-function buildPlan(packages: PkgStatus[], repos: Repo[], filter?: string): Plan {
+function matchesFilter(pkg: PkgStatus, filter?: string): boolean {
+  if (!filter) return true
+  const f = filter.toLowerCase()
+  // "silvery" filter matches the silvery repo (not packages with silvery in the name)
+  if (f === "silvery") return pkg.repoName === "silvery"
+  return pkg.name.toLowerCase().includes(f) || pkg.repoName.toLowerCase().includes(f)
+}
+
+function buildPlan(packages: PkgStatus[], _repos: Repo[], filter?: string): Plan {
   const tagsToCreate: Plan["tagsToCreate"] = []
   const releasesByRepo = new Map<string, PkgStatus[]>()
   const upToDate: string[] = []
 
   for (const pkg of packages) {
+    // Apply filter early — affects BOTH tags and releases (filter must scope housekeeping too)
+    if (!matchesFilter(pkg, filter)) continue
+
     // Missing tag: version matches npm but no git tag
     if (!pkg.hasTag && pkg.npmVersion && pkg.version === pkg.npmVersion) {
-      // Find commit that set this version
-      const grepCmd = `log --all --oneline -n1 --grep="v${pkg.version}" -- "${pkg.dir === "." ? "package.json" : pkg.dir + "/package.json"}"`
-      let commit = git(grepCmd, pkg.repoDir).split(" ")[0]
+      // Find commit that set this version. Search by short name for per-package schemes
+      // to disambiguate when multiple packages share a version number.
+      const shortName = pkg.name.includes("/") ? pkg.name.split("/").pop()! : pkg.name
+      const grepPatterns = [`${shortName}.*v${pkg.version}`, `v${pkg.version}`]
+      let commit = ""
+      for (const pattern of grepPatterns) {
+        const grepCmd = `log --all --oneline -n1 --grep="${pattern}" -- "${pkg.dir === "." ? "package.json" : pkg.dir + "/package.json"}"`
+        commit = git(grepCmd, pkg.repoDir).split(" ")[0] ?? ""
+        if (commit) break
+      }
       if (!commit) {
+        // Fallback: last commit touching this package's package.json
         const fallbackCmd = pkg.dir === "."
           ? "log --all --oneline -1 -- package.json"
           : `log --all --oneline -1 -- "${pkg.dir}/package.json"`
-        commit = git(fallbackCmd, pkg.repoDir).split(" ")[0]
+        commit = git(fallbackCmd, pkg.repoDir).split(" ")[0] ?? ""
       }
       if (commit) {
         tagsToCreate.push({
@@ -201,14 +252,15 @@ function buildPlan(packages: PkgStatus[], repos: Repo[], filter?: string): Plan 
       }
     }
 
-    // Releasable: has commits since tag
-    if (pkg.delta > 0) {
-      // Apply filter
-      if (filter) {
-        const f = filter.toLowerCase()
-        if (f === "silvery" && pkg.repoName !== "silvery") continue
-        if (f !== "silvery" && !pkg.name.includes(f) && !pkg.repoName.includes(f)) continue
-      }
+    // Releasable states (Pro feedback: not just delta > 0):
+    // - delta > 0: has new commits since tag
+    // - local > npm: bumped but not published yet
+    // - unpublished: never on npm
+    const localGtNpm = pkg.npmVersion && pkg.version !== pkg.npmVersion && !pkg.hasTag
+    const unpublished = !pkg.npmVersion
+    const needsRelease = pkg.delta > 0 || localGtNpm || unpublished
+
+    if (needsRelease) {
       const key = pkg.repoName
       if (!releasesByRepo.has(key)) releasesByRepo.set(key, [])
       releasesByRepo.get(key)!.push(pkg)
@@ -219,13 +271,23 @@ function buildPlan(packages: PkgStatus[], repos: Repo[], filter?: string): Plan 
 
   const releases: Plan["releases"] = []
   for (const [repoName, pkgs] of releasesByRepo) {
-    // Infer bump type from commits
-    const allCommits = pkgs.flatMap(p => p.deltaCommits)
-    const hasBreaking = allCommits.some(c => c.includes("BREAKING"))
-    const hasFeat = allCommits.some(c => /\bfeat[:(]/.test(c))
+    // Dedup commits across packages (one commit touching N pkgs = one entry)
+    const seen = new Set<string>()
+    const dedupedCommits: string[] = []
+    for (const c of pkgs.flatMap(p => p.deltaCommits)) {
+      const hash = c.split(" ")[0] ?? ""
+      if (hash && !seen.has(hash)) {
+        seen.add(hash)
+        dedupedCommits.push(c)
+      }
+    }
+
+    // Infer bump type from conventional commit subjects (Pro: handle ! suffix)
+    const hasBreaking = dedupedCommits.some(c => c.includes("BREAKING") || /\b(feat|fix|refactor|perf)!:/.test(c))
+    const hasFeat = dedupedCommits.some(c => /\bfeat[:(]/.test(c))
     const bumpType = hasBreaking ? "major" : hasFeat ? "minor" : "patch"
 
-    const commitSummary = allCommits
+    const commitSummary = dedupedCommits
       .map(c => c.replace(/^[a-f0-9]+ /, ""))
       .filter(c => !c.startsWith("chore") && !c.startsWith("ci:") && !c.startsWith("test:"))
       .slice(0, 5)
@@ -373,11 +435,22 @@ async function fixTagsCmd(): Promise<void> {
     return
   }
 
-  console.log(`\nCreating ${plan.tagsToCreate.length} missing tags:\n`)
-  const reposToPush = new Set<string>()
+  applyTagFixes(plan.tagsToCreate)
+}
 
-  for (const t of plan.tagsToCreate) {
-    // Skip if tag already exists (multiple packages can share a version tag)
+/**
+ * Apply tag fixes idempotently. Skips tags that already exist (shared version tags
+ * are common in coordinated repos). Pushes only the tags we created, not all tags.
+ */
+function applyTagFixes(tagsToCreate: Plan["tagsToCreate"]): void {
+  if (tagsToCreate.length === 0) return
+  console.log(`\nCreating ${tagsToCreate.length} missing tags:\n`)
+
+  // Track tags we created per repo (NOT the existing ones, NOT all repo tags)
+  const createdByRepo = new Map<string, string[]>()
+
+  for (const t of tagsToCreate) {
+    // Skip if tag already exists (coordinated repos share tag names across packages)
     if (git(`rev-parse ${t.tag}`, t.repoDir)) {
       console.log(`  ${t.pkg}: ${style.dim(t.tag + " already exists, skipping")}`)
       continue
@@ -385,16 +458,19 @@ async function fixTagsCmd(): Promise<void> {
     console.log(`  ${t.pkg}: ${style.cyan(t.tag)} at ${style.dim(t.commit)}`)
     try {
       execSync(`git tag "${t.tag}" "${t.commit}"`, { cwd: t.repoDir })
-      reposToPush.add(t.repoDir)
+      if (!createdByRepo.has(t.repoDir)) createdByRepo.set(t.repoDir, [])
+      createdByRepo.get(t.repoDir)!.push(t.tag)
     } catch (e) {
       console.log(`  ${style.red("failed")}: ${e instanceof Error ? e.message : e}`)
     }
   }
 
-  for (const repoDir of reposToPush) {
-    console.log(`\n  pushing tags in ${relative(ROOT, repoDir)}...`)
+  // Push ONLY the tags we created (avoid leaking unrelated local tags)
+  for (const [repoDir, tags] of createdByRepo) {
+    console.log(`\n  pushing ${tags.length} tags in ${relative(ROOT, repoDir)}...`)
     try {
-      execSync("git push --tags", { cwd: repoDir, encoding: "utf8", timeout: 30000 })
+      const refspecs = tags.map(t => `refs/tags/${t}`).join(" ")
+      execSync(`git push origin ${refspecs}`, { cwd: repoDir, encoding: "utf8", timeout: 30000 })
       console.log(`  ${style.green("done")}`)
     } catch (e) {
       console.error(`  ${style.red("failed")}: ${e}`)
@@ -405,29 +481,32 @@ async function fixTagsCmd(): Promise<void> {
 
 async function executeCmd(opts: { filter?: string }): Promise<void> {
   const repos = discoverRepos()
-  const packages = discoverPackages(repos)
+  let packages = discoverPackages(repos)
   printStatus(packages, repos)
 
-  const plan = buildPlan(packages, repos, opts.filter)
+  let plan = buildPlan(packages, repos, opts.filter)
   printPlan(plan)
 
   if (plan.tagsToCreate.length === 0 && plan.releases.length === 0) {
     return
   }
 
-  // Fix tags first
+  // Phase 1: Fix tags (housekeeping). Uses idempotent helper that skips
+  // existing tags and only pushes the tags we created.
   if (plan.tagsToCreate.length > 0) {
-    console.log(style.bold("Fixing tags..."))
-    const reposToPush = new Set<string>()
-    for (const t of plan.tagsToCreate) {
-      execSync(`git tag "${t.tag}" "${t.commit}"`, { cwd: t.repoDir })
-      reposToPush.add(t.repoDir)
-      console.log(`  ${style.green("+")} ${t.tag} at ${t.commit}`)
+    applyTagFixes(plan.tagsToCreate)
+
+    // Re-gather state after tag changes — deltas computed against new tags
+    // may differ significantly. Without this, the release plan is stale.
+    console.log(style.dim("Recomputing state after tag fixes..."))
+    packages = discoverPackages(repos)
+    plan = buildPlan(packages, repos, opts.filter)
+    printPlan(plan)
+
+    if (plan.releases.length === 0) {
+      console.log(style.green("Nothing left to release after tag housekeeping."))
+      return
     }
-    for (const repoDir of reposToPush) {
-      execSync("git push --tags", { cwd: repoDir, encoding: "utf8", timeout: 30000 })
-    }
-    console.log()
   }
 
   // Releases
@@ -519,39 +598,66 @@ async function verifyPackage(pkgDir: string): Promise<VerifyResult> {
 
     const installedPkg = JSON.parse(readFileSync(pjoin(installedDir, "package.json"), "utf8"))
 
-    // 4. Test imports — use the published exports
-    // Skip for CLI-only packages (bin but no library exports, or empty exports)
+    // 4. Test imports — try if package declares any importable entry point.
+    // Supports: object exports (`exports["."]`), string exports, main field.
+    // Skip for CLI-only packages (bin only, no library entry).
     const exports = installedPkg.exports
-    const isCLIOnly = installedPkg.bin && !exports
-    if (exports && typeof exports === "object" && !Array.isArray(exports) && !isCLIOnly) {
-      const mainExport = exports["."]
-      if (mainExport) {
-        try {
-          execSync(
-            `node -e "import('${pkgJson.name}').then(m => { const k = Object.keys(m); console.log('OK:', k.length, 'exports') }).catch(e => { console.error(e.message); process.exit(1) })"`,
-            { cwd: tempDir, encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] },
-          )
-          console.log(`  ${style.green("✓")} import works`)
-        } catch (e) {
-          const stderr = (e as { stderr?: string }).stderr || String(e)
-          result.ok = false
-          result.errors.push(`import failed: ${stderr.split("\n").slice(0, 3).join(" ")}`)
-          console.log(`  ${style.red("✗")} import failed`)
+    const main = installedPkg.main
+    const hasObjectExportsRoot = exports && typeof exports === "object" && !Array.isArray(exports) && exports["."]
+    const hasStringExports = typeof exports === "string"
+    const hasMain = !!main
+    const importable = hasObjectExportsRoot || hasStringExports || hasMain
+
+    if (importable) {
+      try {
+        execSync(
+          `node -e "import('${pkgJson.name}').then(m => { const k = Object.keys(m); console.log('OK:', k.length, 'exports') }).catch(e => { console.error(e.message); process.exit(1) })"`,
+          { cwd: tempDir, encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] },
+        )
+        console.log(`  ${style.green("✓")} import works`)
+      } catch (e) {
+        const stderr = (e as { stderr?: string }).stderr || String(e)
+        result.ok = false
+        result.errors.push(`import failed: ${stderr.split("\n").slice(0, 3).join(" ")}`)
+        console.log(`  ${style.red("✗")} import failed`)
+      }
+
+      // Also test subpath exports if they exist
+      if (exports && typeof exports === "object" && !Array.isArray(exports)) {
+        const subpaths = Object.keys(exports).filter(k => k !== "." && !k.includes("*"))
+        for (const subpath of subpaths.slice(0, 5)) {
+          try {
+            execSync(
+              `node -e "import('${pkgJson.name}${subpath.slice(1)}').then(m => console.log('OK')).catch(e => { console.error(e.message); process.exit(1) })"`,
+              { cwd: tempDir, encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] },
+            )
+            console.log(`  ${style.green("✓")} subpath ${subpath}`)
+          } catch (e) {
+            const stderr = (e as { stderr?: string }).stderr || String(e)
+            result.ok = false
+            result.errors.push(`subpath ${subpath}: ${stderr.split("\n").slice(0, 2).join(" ")}`)
+            console.log(`  ${style.red("✗")} subpath ${subpath}`)
+          }
         }
       }
     }
 
     // 5. Test bin (CLI) — run --help, expect exit code 0
+    // For string bin, npm uses the unscoped package name (@termless/cli → cli)
     const bin = installedPkg.bin
     if (bin) {
+      const unscopedName = pkgJson.name.includes("/") ? pkgJson.name.split("/").pop()! : pkgJson.name
       const binEntries: Array<[string, string]> = typeof bin === "string"
-        ? [[pkgJson.name, bin]]
+        ? [[unscopedName, bin]]
         : Object.entries(bin) as Array<[string, string]>
 
       for (const [binName] of binEntries) {
         const binPath = pjoin(tempDir, "node_modules", ".bin", binName)
         if (!existsSync(binPath)) {
-          result.warnings.push(`bin ${binName} not symlinked`)
+          // Missing .bin symlink for a published CLI is a real failure, not a warning
+          result.ok = false
+          result.errors.push(`bin ${binName} not symlinked at ${binPath}`)
+          console.log(`  ${style.red("✗")} ${binName} not symlinked`)
           continue
         }
         try {
