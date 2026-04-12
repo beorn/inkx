@@ -72,11 +72,24 @@ interface DomainTiming {
   durationMs: number
 }
 
+interface Trigger {
+  source: { domain: string; check: string; status: Status }
+  target: { domain: string; check?: string }  // check optional = run all domain checks
+  label: string
+}
+
+interface FiredTrigger {
+  trigger: Trigger
+  sourceCheck: string
+  sourceDomain: string
+}
+
 interface State {
   lastRun: Record<string, string>
   lastFindings: Record<string, Finding[]>
   lastDomainTimings?: Record<string, DomainTiming>
   lastScanDurationMs?: number
+  lastFiredTriggers?: FiredTrigger[]
 }
 
 // ─── State persistence ──────────────────────────────────────────────────────
@@ -1023,6 +1036,36 @@ export const DOMAINS: DomainDef[] = [
 
 const DOMAIN_MAP = new Map(DOMAINS.map((d) => [d.id, d]))
 
+// ─── Cross-domain triggers ─────────────────────────────────────────────────
+
+const TRIGGERS: Trigger[] = [
+  { source: { domain: "code", check: "typecheck", status: "error" }, target: { domain: "packages", check: "publishability" }, label: "type errors may affect publishability" },
+  { source: { domain: "code", check: "test-fast", status: "error" }, target: { domain: "backlog" }, label: "test failures may need beads" },
+  { source: { domain: "packages", check: "unreleased", status: "warn" }, target: { domain: "sites", check: "freshness" }, label: "unreleased changes may make docs stale" },
+  { source: { domain: "security", check: "cve-scan", status: "error" }, target: { domain: "packages" }, label: "CVEs may need patch releases" },
+  { source: { domain: "backlog", check: "priority-drift", status: "error" }, target: { domain: "inbound" }, label: "P0/P1 drift may indicate untriaged issues" },
+]
+
+function evaluateTriggers(allFindings: Finding[]): FiredTrigger[] {
+  const fired: FiredTrigger[] = []
+  for (const trigger of TRIGGERS) {
+    const match = allFindings.find(
+      (f) =>
+        f.domain === trigger.source.domain &&
+        f.check === trigger.source.check &&
+        f.status === trigger.source.status,
+    )
+    if (match) {
+      fired.push({
+        trigger,
+        sourceCheck: match.check,
+        sourceDomain: match.domain,
+      })
+    }
+  }
+  return fired
+}
+
 // ─── Run a check ────────────────────────────────────────────────────────────
 
 async function runCheck(check: Check): Promise<Finding> {
@@ -1158,6 +1201,20 @@ function renderDashboard(state: State): void {
 
   if (state.lastScanDurationMs != null) {
     console.log(`  Total scan time: ${formatDuration(state.lastScanDurationMs)}`)
+  }
+
+  // Triggered cross-domain checks
+  if (state.lastFiredTriggers && state.lastFiredTriggers.length > 0) {
+    console.log()
+    console.log("  Triggers fired:")
+    for (const ft of state.lastFiredTriggers) {
+      const targetStr = ft.trigger.target.check
+        ? `${ft.trigger.target.domain}.${ft.trigger.target.check}`
+        : ft.trigger.target.domain
+      console.log(
+        `    ${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetStr} (${ft.trigger.label})`,
+      )
+    }
   }
 
   // Next due
@@ -1302,6 +1359,65 @@ Examples:
         state.lastDomainTimings[domain.id] = { durationMs }
       }
 
+      // ── Cross-domain triggers (depth = 1, no cascading) ──
+      const scannedDomains = new Set(domainsToRun.map((d) => d.id))
+      const allFindings = domainsToRun.flatMap((d) => state.lastFindings[d.id] ?? [])
+      const firedTriggers = evaluateTriggers(allFindings)
+
+      if (firedTriggers.length > 0) {
+        console.error()
+        console.error("Cross-domain triggers:")
+
+        for (const ft of firedTriggers) {
+          const targetDomainId = ft.trigger.target.domain
+          const targetCheck = ft.trigger.target.check
+          const tag = targetCheck
+            ? `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}.${targetCheck}`
+            : `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}`
+          console.error(`  [triggered: ${tag}] ${ft.trigger.label}`)
+
+          if (scannedDomains.has(targetDomainId)) continue // already scanned, skip
+
+          const targetDomain = DOMAIN_MAP.get(targetDomainId)
+          if (!targetDomain) continue
+
+          scannedDomains.add(targetDomainId)
+
+          if (targetCheck) {
+            // Run only the specific triggered check
+            const check = targetDomain.checks.find((c) => c.id === targetCheck)
+            if (check) {
+              console.error(`[${targetDomainId} (triggered)]`)
+              process.stderr.write(`  running ${targetDomainId}.${check.id}...`)
+              const checkStart = performance.now()
+              const finding = await runCheck(check)
+              const icon =
+                finding.status === "pass"
+                  ? " ok"
+                  : finding.status === "warn"
+                    ? " warn"
+                    : " FAIL"
+              process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
+              const durationMs = performance.now() - checkStart
+              state.lastRun[targetDomainId] = new Date().toISOString()
+              state.lastFindings[targetDomainId] = [
+                ...(state.lastFindings[targetDomainId] ?? []).filter((f) => f.check !== targetCheck),
+                finding,
+              ]
+              state.lastDomainTimings[targetDomainId] = { durationMs }
+            }
+          } else {
+            // Run all checks in the target domain
+            console.error(`[${targetDomainId} (triggered)]`)
+            const { findings, durationMs } = await runDomain(targetDomain)
+            state.lastRun[targetDomainId] = new Date().toISOString()
+            state.lastFindings[targetDomainId] = findings
+            state.lastDomainTimings[targetDomainId] = { durationMs }
+          }
+        }
+      }
+
+      state.lastFiredTriggers = firedTriggers.length > 0 ? firedTriggers : undefined
       state.lastScanDurationMs = performance.now() - scanStart
       saveState(state)
       renderDashboard(state)
