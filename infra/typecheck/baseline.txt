@@ -49,7 +49,6 @@
 5 vendor/silvery/packages/ag-term/src/dom/index.ts
 2 vendor/silvery/packages/ag-term/src/xterm/index.ts
 4 vendor/silvery/packages/ag-term/src/xterm/xterm-provider.ts
-13 vendor/silvery/packages/ag/package/src/index.ts
 3 vendor/silvery/scripts/generate-screenshots.ts
 1 vendor/silvery/tests/compat/ink/helpers/mock-timer-calls.ts
 2 vendor/silvery/tests/site-smoke.test.ts
