@@ -100,13 +100,13 @@ type Stage = (event: Event) => Event | null | void
 
 ## Config object fields
 
-| Field | Type | Scope config | Output descriptor |
-|-------|------|-------------|-------------------|
-| `level` | `LogLevel` | min level for scope | min level for this output |
-| `ns` | `string \| string[]` | namespace filter (DEBUG syntax) | namespace filter for this output |
-| `format` | `LogFormat` | default format for outputs | format for this output |
-| `file` | `string` | — | creates file sink |
-| `otel` | `OtelConfig` | — | creates OTEL sink (Phase 4) |
+| Field    | Type                 | Scope config                    | Output descriptor                |
+| -------- | -------------------- | ------------------------------- | -------------------------------- |
+| `level`  | `LogLevel`           | min level for scope             | min level for this output        |
+| `ns`     | `string \| string[]` | namespace filter (DEBUG syntax) | namespace filter for this output |
+| `format` | `LogFormat`          | default format for outputs      | format for this output           |
+| `file`   | `string`             | —                               | creates file sink                |
+| `otel`   | `OtelConfig`         | —                               | creates OTEL sink (Phase 4)      |
 
 `format` is a compile-time output option, not a runtime stage.
 
@@ -116,9 +116,9 @@ type Stage = (event: Event) => Event | null | void
 
 ```ts
 createLogger("myapp", [
-  { level: "debug", ns: "-sql" },  // scope: applies to everything below
-  console,                          // uses scope level=debug, ns=-sql
-  { file: "/tmp/app.log", level: "info", format: "json" },  // overrides level to info
+  { level: "debug", ns: "-sql" }, // scope: applies to everything below
+  console, // uses scope level=debug, ns=-sql
+  { file: "/tmp/app.log", level: "info", format: "json" }, // overrides level to info
 ])
 ```
 
@@ -129,7 +129,7 @@ Each branch gets its own config scope:
 ```ts
 createLogger("myapp", [
   { level: "debug" },
-  console,                                        // gets everything at debug+
+  console, // gets everything at debug+
   [{ level: "error" }, { file: "/tmp/err.log" }], // branch: only errors
 ])
 ```
@@ -140,8 +140,8 @@ Functions are synchronous transforms/filters:
 
 ```ts
 createLogger("myapp", [
-  (e) => ({ ...e, props: { ...e.props, host: hostname() } }),  // enrich
-  (e) => e.props?.audit ? e : null,                            // filter (null = drop)
+  (e) => ({ ...e, props: { ...e.props, host: hostname() } }), // enrich
+  (e) => (e.props?.audit ? e : null), // filter (null = drop)
   console,
 ])
 ```
@@ -179,8 +179,8 @@ Children share the parent's pipeline:
 
 ```ts
 const root = createLogger("myapp", [console])
-const child = root.logger("auth")      // namespace: "myapp:auth"
-const grand = child.logger("login")    // namespace: "myapp:auth:login"
+const child = root.logger("auth") // namespace: "myapp:auth"
+const grand = child.logger("login") // namespace: "myapp:auth:login"
 ```
 
 ### Shared config across modules
@@ -203,14 +203,14 @@ authLog.info?.("login attempted", { user: "alice" })
 
 When `createLogger("name")` is called with no config array:
 
-| Variable | Effect |
-|----------|--------|
-| `LOG_LEVEL` | minimum level (default: `info`) |
-| `DEBUG` | namespace filter (DEBUG package syntax) |
-| `LOG_FORMAT` | `console` or `json` (default: auto-detect) |
-| `NODE_ENV` | `production` → JSON format |
-| `NO_COLOR` | disable ANSI colors |
-| `TRACE` | `1`, `true`, or namespace prefixes — enable span output |
+| Variable     | Effect                                                  |
+| ------------ | ------------------------------------------------------- |
+| `LOG_LEVEL`  | minimum level (default: `info`)                         |
+| `DEBUG`      | namespace filter (DEBUG package syntax)                 |
+| `LOG_FORMAT` | `console` or `json` (default: auto-detect)              |
+| `NODE_ENV`   | `production` → JSON format                              |
+| `NO_COLOR`   | disable ANSI colors                                     |
+| `TRACE`      | `1`, `true`, or namespace prefixes — enable span output |
 
 ## Logger composition (Phase 2)
 
@@ -235,16 +235,16 @@ Each plugin adds: Logger methods AND config object fields (via TypeScript inters
 
 ## Migration from v1
 
-| v1 (global setter) | v2 (config array) |
-|---|---|
-| `setLogLevel("debug")` | `createLogger("x", [{ level: "debug" }, console])` |
-| `setDebugFilter(["myapp"])` | `createLogger("x", [{ ns: "myapp" }, console])` |
-| `setLogFormat("json")` | `createLogger("x", [{ format: "json" }, console])` |
-| `enableSpans()` | `TRACE=1` env var (unchanged) |
-| `addWriter(w)` | `createLogger("x", [console, w])` |
-| `createFileWriter(path)` | `createLogger("x", [{ file: path }])` |
-| `setSuppressConsole(true)` | `createLogger("x", [{ file: path }])` (omit console) |
-| `setOutputMode("stderr")` | pass `process.stderr` in config array |
+| v1 (global setter)          | v2 (config array)                                    |
+| --------------------------- | ---------------------------------------------------- |
+| `setLogLevel("debug")`      | `createLogger("x", [{ level: "debug" }, console])`   |
+| `setDebugFilter(["myapp"])` | `createLogger("x", [{ ns: "myapp" }, console])`      |
+| `setLogFormat("json")`      | `createLogger("x", [{ format: "json" }, console])`   |
+| `enableSpans()`             | `TRACE=1` env var (unchanged)                        |
+| `addWriter(w)`              | `createLogger("x", [console, w])`                    |
+| `createFileWriter(path)`    | `createLogger("x", [{ file: path }])`                |
+| `setSuppressConsole(true)`  | `createLogger("x", [{ file: path }])` (omit console) |
+| `setOutputMode("stderr")`   | pass `process.stderr` in config array                |
 
 ## Decisions
 
@@ -262,6 +262,7 @@ Each plugin adds: Logger methods AND config object fields (via TypeScript inters
 ## Ship plan
 
 ### Phase 1: Core pipeline + createLogger (P1)
+
 - New types: LogEvent, SpanEvent, Stage
 - Pipeline builder (discrimination, config parsing, dispatch)
 - createLogger(name, config?) with array support
@@ -270,17 +271,20 @@ Each plugin adds: Logger methods AND config object fields (via TypeScript inters
 - Update tests
 
 ### Phase 2: Logger decomposition + compose() (P2)
+
 - compose() function for logger plugin composition
 - Extract withSpans, withMetrics, withContext as plugins
 - Default export = pre-composed with all standard plugins
 - TypeScript intersection types for plugin config fields
 
 ### Phase 3: Deprecate v1 globals + migrate km (P2)
+
 - Delete all global setter exports
 - Migrate all km consumers
 - Update all km tests
 
 ### Phase 4: Advanced features + docs (P3)
+
 - OTEL bridge (loggily/otel)
 - Worker forwarding v2 (loggily/worker)
 - File rotation (loggily/rotation)
