@@ -103,7 +103,9 @@ program
     const existing = getAccount(accountName)
     writeCredential(accountName, credential)
     upsertAccount({ name: accountName, provider: "claude-oauth", metadata })
-    if (!getActiveAccount()) setActiveAccount(accountName)
+    // Always activate the imported account — principle of least surprise:
+    // the user just imported it, they almost certainly want to use it.
+    setActiveAccount(accountName)
 
     if (existing) {
       console.log(pc.green(`Refreshed credentials for ${accountName}`))
