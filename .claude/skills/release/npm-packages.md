@@ -51,9 +51,9 @@ Last updated: 2026-04-11 (63 packages)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `flexily` | 0.5.2 | 167 | Pure JS flexbox layout engine |
-| `loggily` | 0.6.2 | 359 | Structured logging — debug/log/span |
-| `vimonkey` | 0.2.3 | 108 | Fuzz testing with auto-shrinking for Vitest |
+| `flexily` | 0.6.0 | 167 | Pure JS flexbox layout engine |
+| `loggily` | 0.7.0 | 359 | Structured logging — debug/log/span (v2 pipeline API) |
+| `vimonkey` | 0.2.4 | 108 | Fuzz testing with auto-shrinking for Vitest |
 
 ### Termless
 
