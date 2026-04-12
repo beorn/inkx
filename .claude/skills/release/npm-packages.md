@@ -37,11 +37,11 @@ Last updated: 2026-04-11 (63 packages)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `silvery` | 0.17.2 | 844 | Main barrel — components, hooks, runtime, theme |
-| `@silvery/ansi` | 0.3.4 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
-| `@silvery/color` | 0.1.2 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
-| `@silvery/commander` | 0.8.2 | 250 | Colorized Commander.js help |
-| `@silvery/examples` | 0.5.6 | 194 | Interactive demos — `npx @silvery/examples` |
+| `silvery` | 0.17.4 | 844 | Main barrel — components, hooks, runtime, theme |
+| `@silvery/ansi` | 0.17.3 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
+| `@silvery/color` | 0.17.3 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
+| `@silvery/commander` | 0.17.5 | 250 | Colorized Commander.js help |
+| `@silvery/examples` | 0.17.7 | 194 | Interactive demos — `npx @silvery/examples` |
 | `@silvery/create` | 0.5.3 | 253 | App composition — createApp, pipe() (will be deprecated — bundled in silvery) |
 | `@silvery/headless` | 0.5.1 | 14 | Pure state machines (will be deprecated — bundled in silvery) |
 | `@silvery/test` | 0.5.3 | 252 | Testing utilities (will be deprecated — bundled in silvery) |
@@ -52,8 +52,8 @@ Last updated: 2026-04-11 (63 packages)
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
 | `flexily` | 0.5.2 | 167 | Pure JS flexbox layout engine |
-| `loggily` | 0.6.1 | 359 | Structured logging — debug/log/span |
-| `vimonkey` | 0.2.1 | 108 | Fuzz testing with auto-shrinking for Vitest |
+| `loggily` | 0.6.2 | 359 | Structured logging — debug/log/span |
+| `vimonkey` | 0.2.3 | 108 | Fuzz testing with auto-shrinking for Vitest |
 
 ### Termless
 
