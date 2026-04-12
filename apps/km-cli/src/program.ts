@@ -16,7 +16,8 @@ import { findKmRootFromPath } from "@km/storage"
 
 const term = createTerm(process)
 
-import { type LogLevel, setLogLevel } from "@km/core"
+import { type LogLevel } from "@km/core"
+import { setLogLevel } from "loggily"
 
 /** Global options available on the root program */
 interface GlobalOptions extends OptionValues {
