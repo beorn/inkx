@@ -187,6 +187,7 @@ const grand = child.child("login") // namespace: "myapp:auth:login"
 ```
 
 `.child()` is the unified method:
+
 - `.child("auth")` — extend namespace
 - `.child({ requestId: "abc" })` — add context fields
 - `.child("auth", { sso: true })` — both

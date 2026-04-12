@@ -72,7 +72,14 @@
       "Bash(cp /Users/beorn/Code/pim/km/.claude/skills/release/release.ts /tmp/pro-context-release.ts)",
       "Bash(cp /Users/beorn/Code/pim/km/.claude/skills/release/SKILL.md /tmp/pro-context-skill.md)",
       "Bash(cat /tmp/pro-context-release.ts /tmp/pro-context-skill.md)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(rm -r .claude/skills/llm)",
+      "Bash(git -c commit.gpgsign=false commit -m 'refactor\\(skills\\): rename /llm → /ask — user-facing name, not implementation detail:*)",
+      "Bash(git push:*)",
+      "Bash(mv .claude/agents/expert/release.md .claude/agents/expert/npm.md)",
+      "Bash(sed -i '' 's/name: release/name: npm/' .claude/agents/expert/npm.md)",
+      "Bash(sed -i '' 's/Release — Packaging Expert/npm — Packaging Expert/' .claude/agents/expert/npm.md)",
+      "Bash(sed -i '' 's/release-knowledge/npm-knowledge/' .claude/agents/expert/npm.md)"
     ],
     "deny": [],
     "ask": []
