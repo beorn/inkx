@@ -1,3 +1,4 @@
+1 apps/km-tui/src/views/TreeNode.tsx
 38 apps/km-tui/web/km-canvas.tsx
 16 infra/audit-packages.ts
 2 vendor/bearly/tools/lib/tribe/github-plugin.ts
@@ -38,6 +39,8 @@
 5 vendor/internal/silvery/examples-wip/web/showcases/index.tsx
 37 vendor/internal/silvery/examples-wip/web/viewer-app.tsx
 5 vendor/internal/silvery/examples-wip/web/xterm-app.tsx
+3 vendor/loggily/tests/features.test.ts
+15 vendor/loggily/tests/logger.test.ts
 2 vendor/silvery/bin/silvery.ts
 7 vendor/silvery/packages/ag-react/src/ui/canvas/dom-measurer.ts
 17 vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
