@@ -231,6 +231,22 @@ Start here. These are automatable and already have skill implementations.
 **Execute**: update growth dashboard, propose content for high-performing areas
 **Note**: Deferred until reliable data source commands exist.
 
+## Tribe Integration
+
+`/sop` broadcasts to tribe at every phase transition so other sessions stay informed and can flag gotchas.
+
+**Start**: `tribe_broadcast("SOP starting — scanning [domains]. Reply with gotchas or blocks if any.")`
+
+**Per-domain scan complete**: `tribe_broadcast("SOP [domain]: [summary]. N findings, M actions proposed.")`
+
+**Before execute**: `tribe_broadcast("SOP executing [N actions]. Last call for objections (30s).")`
+- Wait for responses. Any session can reply with "block: [reason]" to halt a specific action.
+- This catches things only active sessions know: "don't publish silvery, I have uncommitted layoutDirty changes" or "termless CI is broken, skip verify"
+
+**After execute**: `tribe_broadcast("SOP complete: [dashboard summary]")`
+
+**Domain agents** can also `tribe_send(to="*", type="query", ...)` to ask active sessions about their domain before proposing actions. Example: packaging agent asks "any known bundle regressions?" before flagging size growth.
+
 ## Cross-Domain Triggers
 
 ```
