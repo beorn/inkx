@@ -142,12 +142,13 @@ Last measured: 2026-03-25
 
 ## Google Search Console
 
-All properties submitted (2026-04-01):
+6 verified properties, all with sitemaps submitted (API access via `~/.config/gcloud/gsc-credentials.json`):
 - **terminfo.dev** — own domain, verified
 - **silvery.dev** — own domain, verified
 - **termless.dev** — own domain, verified
-- **beorn.codes** — covers /flexily, /mdspec via sitemap index
-- **loggily.dev** — own domain (needs GSC property)
+- **beorn.codes** — covers /flexily via sitemap index
+- **loggily.dev** — own domain, verified (2026-04-12)
+- **mdspec.org** — own domain, verified (2026-04-12)
 
 All sites have: robots.txt with sitemap reference, `sitemap.hostname` in VitePress config, canonical URLs, JSON-LD structured data (BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo).
 

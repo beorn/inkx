@@ -2,6 +2,7 @@
 description: "SOP / ops — scan→propose→execute across 11 maintenance domains. The one skill that grooms everything. Alias: /ops"
 argument-hint: "[domain|all|due] [--scan-only] [--fix] [--weekly|--monthly|--quarterly]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, AskUserQuestion
+benefits-from: [recall, pm, infra]
 ---
 
 # SOP — Standard Operating Procedure
@@ -25,6 +26,24 @@ One skill to groom everything. Each domain owns assets, runs checks (scan→prop
 /sop --quarterly  # All domains (quarterly = everything)
 /sop update       # Meta: update SOP itself from current context
 ```
+
+### CLI Tool (`tools/sop.ts`)
+
+Mechanical check runner — runs shell commands, parses output, tracks cadence, renders dashboard.
+
+```bash
+bun tools/sop.ts scan              # Run due domains
+bun tools/sop.ts scan --all        # Run all regardless of cadence
+bun tools/sop.ts scan code         # Just code domain
+bun tools/sop.ts scan code backlog # Multiple domains
+bun tools/sop.ts status            # What's due, last run times
+bun tools/sop.ts dashboard         # Last results
+bun tools/sop.ts help              # Show usage
+```
+
+State persisted to `.claude/skills/sop/state.json` (last run times + findings per domain).
+
+Domain definitions and check parsers are exported from `tools/sop.ts` as `DOMAINS` for programmatic access.
 
 ### `/sop update` — self-improvement
 
@@ -170,16 +189,49 @@ Start here. These are automatable and already have skill implementations.
 
 ### 5. sites — are docs current?
 
-**Assets**: silvery.dev/*, termless.dev/*, terminfo.dev/*, loggily docs/*, flexily docs/*, all READMEs
+**Assets**: silvery.dev, termless.dev, terminfo.dev, loggily.dev, mdspec.org, beorn.codes/flexily, all READMEs
 **Cadence**: per-release
 **Checks**:
 - [ ] `link-check` — `scripts/check-site-links.sh` (broken links)
 - [ ] `freshness` — package version changed since docs last touched?
 - [ ] `readme-versions` — do READMEs reference current versions?
 - [ ] `changelog-gap` — unreleased changes without CHANGELOG entries?
-**Triggers**: packages.publish, code.api-change
+- [ ] `gsc-properties` — all sites have GSC properties with sitemaps submitted
+- [ ] `gsc-coverage` — no indexing errors or drops (GSC API)
+**Triggers**: packages.publish, code.api-change, new domain setup
 **Delegates to**: `/docs`, `/project-audit`
-**Note**: SEO deferred to v2 — keep v1 checks narrow and automatable.
+
+#### Google Search Console
+
+OAuth2 credentials at `~/.config/gcloud/gsc-credentials.json` (refresh token, auto-renews). Covers all properties owned by the Google account.
+
+**6 verified properties** (all with sitemaps submitted):
+- `sc-domain:silvery.dev`, `sc-domain:termless.dev`, `sc-domain:terminfo.dev`
+- `sc-domain:beorn.codes`, `sc-domain:loggily.dev`, `sc-domain:mdspec.org`
+
+```python
+# Get access token
+import json, urllib.request, urllib.parse
+creds = json.load(open('~/.config/gcloud/gsc-credentials.json'))
+data = urllib.parse.urlencode({
+    'client_id': creds['client_id'], 'client_secret': creds['client_secret'],
+    'refresh_token': creds['refresh_token'], 'grant_type': 'refresh_token'
+}).encode()
+resp = json.load(urllib.request.urlopen(urllib.request.Request(
+    'https://oauth2.googleapis.com/token', data=data)))
+token = resp['access_token']
+
+# List properties
+# GET https://www.googleapis.com/webmasters/v3/sites
+
+# Submit sitemap
+# PUT https://www.googleapis.com/webmasters/v3/sites/{site}/sitemaps/{sitemap}
+
+# Check indexing coverage
+# GET https://www.googleapis.com/webmasters/v3/sites/{site}/searchAnalytics/query
+```
+
+**New domain workflow**: add DNS (Cloudflare API) → add GSC property (PUT) → get verification token → add TXT record (Cloudflare) → verify (POST siteVerification) → submit sitemap.
 
 ### v2 scope (add when v1 is stable)
 
