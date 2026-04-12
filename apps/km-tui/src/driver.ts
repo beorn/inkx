@@ -45,7 +45,7 @@ import { createSignalStore, type SignalStoreApi as StoreApi } from "./state/sign
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/create/plugins"
-import { StoreContext, type EventHandlerContext } from "@silvery/create/create-app"
+import { StoreContext, type EventHandlerContext } from "@silvery/create"
 import { parseKey } from "@silvery/ag-term/runtime"
 import {
   createCommandRegistry,

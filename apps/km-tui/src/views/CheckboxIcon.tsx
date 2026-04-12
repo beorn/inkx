@@ -20,7 +20,7 @@
 
 import React, { useCallback, useState } from "react"
 import { Text, useMouseCursor } from "@silvery/ag-react"
-import { StoreContext } from "@silvery/create/create-app"
+import { StoreContext } from "@silvery/create"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import type { StatusIcon } from "../text/index.ts"

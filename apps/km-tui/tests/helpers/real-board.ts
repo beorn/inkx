@@ -25,7 +25,7 @@
 import React, { act } from "react"
 import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
-import { StoreContext } from "@silvery/create/create-app"
+import { StoreContext } from "@silvery/create"
 import { parseKey } from "@silvery/ag-term/runtime"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { installDialogGuard } from "../../src/dialog-guard.ts"

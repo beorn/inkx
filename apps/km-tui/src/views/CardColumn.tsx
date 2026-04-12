@@ -9,7 +9,7 @@
  * are derived from ViewTree signals (useNode/useViewTree).
  */
 import React, { useCallback, useEffect, useMemo } from "react"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { useApp as useAppStore } from "@silvery/create"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"

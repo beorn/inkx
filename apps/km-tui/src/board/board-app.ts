@@ -6,7 +6,7 @@
  * See the "Internals" section at the bottom for the handler factory, helpers, and types.
  */
 
-import { createApp, type EventHandlerContext } from "@silvery/create/create-app"
+import { createApp, type EventHandlerContext } from "@silvery/create"
 import type { Key, ParsedMouse, FocusManager, AgNode } from "@silvery/ag-react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
 import { createLogger } from "loggily"

@@ -12,7 +12,7 @@
  */
 import React, { useCallback, useEffect, useState } from "react"
 import { Box, useApp, type PatchedConsole } from "@silvery/ag-react"
-import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
+import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import type { ViewMode } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
 import { ServicesProvider } from "../services-context.tsx"

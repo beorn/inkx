@@ -16,7 +16,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { createSignalStore, useSignalStore } from "../state/signal-store.ts"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { useApp as useAppStore } from "@silvery/create"
 import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 

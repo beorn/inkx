@@ -18,7 +18,7 @@ import { createLogger } from "loggily"
 const log = createLogger("km:tui:columns")
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../state/ui-context.tsx"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { useApp as useAppStore } from "@silvery/create"
 import { type BoardAppStore } from "../state/board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"

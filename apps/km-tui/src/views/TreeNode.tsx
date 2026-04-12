@@ -45,7 +45,7 @@ import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { selectedBg, multiSelectedBg } from "../theme.ts"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { useApp as useAppStore } from "@silvery/create"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { ErrorInfo } from "react"
 

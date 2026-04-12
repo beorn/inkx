@@ -43,7 +43,7 @@ const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
   )
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
-import { StoreContext } from "@silvery/create/create-app"
+import { StoreContext } from "@silvery/create"
 import { parseKey } from "@silvery/ag-term/runtime"
 import {
   createFocusManager,

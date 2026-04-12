@@ -20,7 +20,7 @@ import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { useApp as useAppStore } from "@silvery/create"
 import { type BoardAppStore } from "../state/board-app-store.ts"
 
 // Virtualization constants

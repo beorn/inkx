@@ -15,7 +15,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import { useRuntime, useBoxRect, setWindowTitle, useFocusManager, type PatchedConsole } from "@silvery/ag-react"
-import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
+import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import { createNodeStore, type NodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { KNode } from "@km/core"

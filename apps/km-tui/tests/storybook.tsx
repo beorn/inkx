@@ -81,7 +81,7 @@ interface TUIBoardState {
   helpMode: boolean
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/state/ui-context.tsx"
-import { StoreContext } from "@silvery/create/create-app"
+import { StoreContext } from "@silvery/create"
 import { createSignalStore } from "../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
 import { createNodeStore, NodeStoreProvider } from "../src/state/reactive.ts"

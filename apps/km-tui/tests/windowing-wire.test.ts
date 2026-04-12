@@ -17,7 +17,7 @@ import React from "react"
 import { createSignalStore, type SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "@silvery/ag-react"
-import { StoreContext } from "@silvery/create/create-app"
+import { StoreContext } from "@silvery/create"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,

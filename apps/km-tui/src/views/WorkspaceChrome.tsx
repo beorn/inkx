@@ -9,7 +9,7 @@
 
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
-import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
+import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { useFocusedPaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { PaneSignals } from "../state/pane-signals.ts"
