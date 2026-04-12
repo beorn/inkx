@@ -20,11 +20,19 @@ bun release plan             # Status + plan (what would happen)
 bun release plan -v          # Plan with commit details
 bun release plan silvery     # Plan filtered to silvery packages
 bun release fix-tags         # Create missing tags for published versions
+bun release verify <pkg>     # pnpm pack + install + run CLI/import (catches publish-time bugs)
 bun release execute          # Fix tags + prepare releases
 bun release execute silvery  # Execute filtered to silvery
 ```
 
 **When running as `/release`**: always use `-v` to get commit details, then **summarize** for the user. Don't paste raw commit messages — synthesize into a one-line description per package (e.g., "examples refactor + README additions" not "feat(examples): switch from spawn to dynamic import+main(), docs: add READMEs for @silvery/color and @silvery/ansi").
+
+**Verification is mandatory after every publish.** The `bun release verify <pkg>` command runs `pnpm pack` (which applies publishConfig, unlike `npm pack`), installs the tarball in a temp dir with an isolated npm cache, and runs the actual CLI / import path. This catches bugs that workspace resolution hides:
+- Missing dependencies (workspace has them, published doesn't)
+- Wrong bin/exports paths
+- Files included that shouldn't be (e.g., raw .ts when only dist should ship)
+
+Run `bun release verify <pkg>` after every publish, before declaring done.
 
 ## Usage
 
@@ -153,7 +161,7 @@ For each release, in dependency order:
 5. **Commit + tag**: `git commit -m "chore(release): v<version>"` then `git tag "v<version>"`
 6. **Publish**: `pnpm publish --no-git-checks --access public` (dependency order for silvery)
 7. **Push**: `git push && git push --tags`
-8. **Smoke test**: verify import works from npm in a clean /tmp directory
+8. **Verify**: `bun release verify <pkg>` — pnpm pack + temp install + run CLI. **Mandatory.** If this fails, the package is broken on npm and must be hotfixed before continuing.
 9. **GitHub Release**: `gh release create "v<version>"` with changelog as notes
 10. **Update km root**: `git add vendor/<name> && git commit -m "chore(vendor): <name> v<version>"`
 11. **Close beads**: any beads included in this release
