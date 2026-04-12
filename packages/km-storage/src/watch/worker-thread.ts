@@ -54,7 +54,7 @@ export interface WatcherStatus {
 }
 
 // Message types from worker → main thread
-import type { WorkerMessage as LoggerWorkerMessage } from "loggily/worker"
+import type { Event as LoggerEvent } from "loggily"
 
 export type WorkerMessage =
   | { type: "ready"; watchedPaths?: number }
@@ -62,7 +62,7 @@ export type WorkerMessage =
   | { type: "error"; message: string; stack?: string }
   | { type: "stopped" }
   | { type: "status"; status: WatcherStatus }
-  | LoggerWorkerMessage
+  | LoggerEvent
 
 // Worker state
 let watcher: FSWatcher | null = null

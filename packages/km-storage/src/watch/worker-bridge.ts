@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from "loggily"
-import { createWorkerLogHandler } from "loggily/worker"
+import { createWorkerLogHandler, isWorkerMessage } from "loggily/worker"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts"
@@ -111,7 +111,7 @@ export class WorkerWatcher extends EventEmitter {
 
       // Listen for stopped message
       worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-        if (event.data.type === "stopped") {
+        if ("type" in event.data && event.data.type === "stopped") {
           log.debug?.("worker stopped gracefully")
           clearTimeout(timeout)
           // Don't call terminate() after graceful stop - causes Bun segfault (km-a4l5)
@@ -188,6 +188,13 @@ export class WorkerWatcher extends EventEmitter {
    * Handle messages from the worker
    */
   private handleWorkerMessage(message: WorkerMessage): void {
+    // Forward worker logger events (LogEvent/SpanEvent/WorkerConsoleMessage) first --
+    // they use `kind` not `type`, so they don't participate in the switch discriminant
+    if (isWorkerMessage(message)) {
+      handleWorkerLog(message)
+      return
+    }
+
     switch (message.type) {
       case "ready":
         log.debug?.("worker ready")
@@ -217,13 +224,6 @@ export class WorkerWatcher extends EventEmitter {
         log.debug?.(`worker status state=${message.status.state} pending=${message.status.pendingPaths}`)
         this.currentStatus = message.status
         this.emit("status", message.status)
-        break
-
-      case "log":
-      case "span":
-      case "console":
-        // Forward worker logger messages through main thread's logger
-        handleWorkerLog(message)
         break
     }
   }
