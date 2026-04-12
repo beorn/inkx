@@ -46,13 +46,6 @@
 5 vendor/internal/silvery/examples-wip/web/showcases/index.tsx
 37 vendor/internal/silvery/examples-wip/web/viewer-app.tsx
 5 vendor/internal/silvery/examples-wip/web/xterm-app.tsx
-9 vendor/loggily/bench/logging.bench.ts
-2 vendor/loggily/benchmarks/overhead.ts
-44 vendor/loggily/tests/bugfixes.test.ts
-19 vendor/loggily/tests/features.test.ts
-72 vendor/loggily/tests/logger.test.ts
-15 vendor/loggily/tests/pino-compat.test.ts
-68 vendor/loggily/tests/tracing.test.ts
 2 vendor/silvery/bin/silvery.ts
 7 vendor/silvery/packages/ag-react/src/ui/canvas/dom-measurer.ts
 17 vendor/silvery/packages/ag-react/src/ui/canvas/index.ts

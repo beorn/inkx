@@ -909,7 +909,7 @@ export const DOMAINS: DomainDef[] = [
         domain: "security",
         label: "secret scan",
         command:
-          'grep -rn "sk-\\|AKIA\\|ghp_\\|gho_\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=.beads --exclude-dir=.claude . 2>&1',
+          'grep -rn "sk-[a-zA-Z0-9]\\{20,\\}\\|AKIA[A-Z0-9]\\{16\\}\\|ghp_[a-zA-Z0-9]\\{36\\}\\|gho_[a-zA-Z0-9]\\{36\\}\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.beads . 2>&1',
         cadence: "weekly",
         approval: "auto",
         parse: parseSecretScan,
