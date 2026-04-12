@@ -141,7 +141,7 @@ done
 | termless.dev | GitHub Pages | docs.yml | vendor/termless/docs/CNAME |
 | beorn.codes | GitHub Pages | auto | ~/Code/beorn.github.io/CNAME |
 | beorn.codes/flexily | GitHub Pages | docs.yml (base: /flexily/) | via beorn.codes |
-| beorn.codes/loggily | GitHub Pages | docs.yml (base: /loggily/) | via beorn.codes |
+| loggily.dev | GitHub Pages | docs.yml (base: /) | vendor/loggily/docs/public/CNAME |
 | beorn.codes/mdspec | GitHub Pages | deploy-docs.yml (base: /mdspec/) | via beorn.codes |
 
 ## Phase 4: Databases (`/infra db`)

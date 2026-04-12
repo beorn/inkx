@@ -138,7 +138,7 @@ Last measured: 2026-03-25
 | **termless.dev** | VitePress + GitHub Pages | Submitted 2026-04-01 | ~15 docs pages |
 | **beorn.codes** | GitHub Pages (portfolio) | Submitted 2026-04-01 | Covers /flexily, /loggily, /mdspec via sitemap index |
 | **beorn.codes/flexily** | VitePress | Via beorn.codes | ~20 docs pages |
-| **beorn.codes/loggily** | VitePress | Via beorn.codes | ~10 docs pages |
+| **loggily.dev** | VitePress + GitHub Pages | Own domain | ~10 docs pages |
 
 ## Google Search Console
 
@@ -146,7 +146,8 @@ All properties submitted (2026-04-01):
 - **terminfo.dev** — own domain, verified
 - **silvery.dev** — own domain, verified
 - **termless.dev** — own domain, verified
-- **beorn.codes** — covers /flexily, /loggily, /mdspec via sitemap index
+- **beorn.codes** — covers /flexily, /mdspec via sitemap index
+- **loggily.dev** — own domain (needs GSC property)
 
 All sites have: robots.txt with sitemap reference, `sitemap.hostname` in VitePress config, canonical URLs, JSON-LD structured data (BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo).
 

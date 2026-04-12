@@ -1,12 +1,12 @@
 ---
-description: "SOP — scan→propose→execute across 11 maintenance domains. The one skill that grooms everything."
+description: "SOP / ops — scan→propose→execute across 11 maintenance domains. The one skill that grooms everything. Alias: /ops"
 argument-hint: "[domain|all|due] [--scan-only] [--fix] [--weekly|--monthly|--quarterly]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, AskUserQuestion
 ---
 
 # SOP — Standard Operating Procedure
 
-**Keywords**: sop, maintain, groom, audit, review, health check, periodic, refresh
+**Keywords**: sop, ops, maintain, groom, audit, review, health check, periodic, refresh, cloudflare, domain
 
 One skill to groom everything. Each domain owns assets, runs checks (scan→propose→execute), and triggers other domains reactively.
 
@@ -14,9 +14,11 @@ One skill to groom everything. Each domain owns assets, runs checks (scan→prop
 
 ```
 /sop              # Run all due domains (cadence-based)
+/ops              # Alias for /sop
 /sop all          # Run everything regardless of cadence
 /sop code         # Just one domain
 /sop code,packages,sites  # Multiple domains
+/sop infra cloudflare     # Cloudflare operations (domains, DNS, redirects)
 /sop --scan-only  # Scan all, report, don't propose/execute
 /sop --weekly     # Only domains with weekly+ cadence
 /sop --monthly    # Only domains with monthly+ cadence
@@ -40,6 +42,27 @@ Reads: recent git log, open beads, tribe history, session recall. Proposes edits
 This is how `/sop` learns — every session that does maintenance work feeds back into the SOP definition.
 
 **MECE invariant**: every proposed change must preserve mutual exclusivity and collective exhaustiveness across the 11 domains. If a new check doesn't clearly belong to exactly one domain, that's a signal the domain boundaries need adjusting — don't just shove it somewhere. If a gap is found (something that doesn't belong anywhere), propose a new domain or expand an existing one's boundary. The domain structure is the load-bearing abstraction — protect it.
+
+### Organizing principles
+
+**Function-first**: organize by function (release, quality, reference, lessons) not by project (silvery, km, termless). Products standardize to fit functions; functions become comprehensive across all projects. Only break out project-specific knowledge when a function genuinely can't hold it (e.g., pipeline debugging is too deep for a general quality function). Function-first reduces coordination cost and keeps expertise concentrated.
+
+When both function and project knowledge exist for the same area, the carveout must be explicit: "release owns the process, silvery owns silvery-specific release knowledge. If it applies to all packages, it's release's. If it only matters for silvery, it's silvery's."
+
+**7±5 grouping**: when any level reaches 10+ items, consider sub-grouping. Homogeneous lists (all postmortems, all lookup tables) can be longer. Mixed lists (different types/purposes) should stay under 7-12.
+
+**Information architecture**: every piece of information lives in exactly one canonical home. Docs organized by purpose (design, lessons, ref, guide, future). Agent knowledge files contain reference index + canonical cross-cutting sections + staging area. See `.claude/agents/expert/INFO-ARCHITECTURE.md`.
+
+**Each domain = context + procedures + expert**: a domain bundles what you need to know (context/docs), how to do things (procedures/skills), and who maintains it (expert agent). Load a domain and you have everything.
+
+**Skill frontmatter conventions** (from gstack):
+- `benefits-from: [skill1, skill2]` — upstream context that makes this skill work better. If the upstream hasn't run, offer to run it first.
+- `escalate-to: {agent: "condition"}` — when to delegate to a specialist agent instead of handling in-session.
+- These enable context continuity between skills and clear agent handoff rules.
+
+**Behavioral triggers** (from gbrain): use Always/Before/When/Never format for agent disciplines. See `.claude/agents/expert/INFO-ARCHITECTURE.md#behavioral-triggers`.
+
+**RESOLVER.md**: mechanical MECE enforcement via decision tree. Walk it before writing any documentation. See `RESOLVER.md` at repo root.
 
 ## Architecture
 
@@ -162,9 +185,9 @@ Start here. These are automatable and already have skill implementations.
 
 ### 6. infra — is the machinery working?
 
-**Assets**: CI workflows, git hooks, .claude/skills/*, MCP configs, tool versions, accountly
+**Assets**: CI workflows, git hooks, .claude/skills/*, MCP configs, tool versions, accountly, Cloudflare zones/domains/workers
 **Cadence**: monthly
-**Boundary**: owns tooling/automation/credentials — not product correctness, not package content
+**Boundary**: owns tooling/automation/credentials/hosting — not product correctness, not package content
 **Checks**:
 - [ ] `ci-health` — `/infra ci` (GitHub Actions status across repos)
 - [ ] `hook-integrity` — are hooks registered and functional?
@@ -173,8 +196,70 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `account-health` — `bun accountly status` (credentials, quotas)
 - [ ] `secret-scan` — no tokens/keys in committed code
 - [ ] `branch-protection` — workflow permissions, push rules
-**Triggers**: tool version updates, new repos
+- [ ] `cf-domain-expiry` — domains expiring within 60 days (Cloudflare Registrar API)
+- [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
+- [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
+**Triggers**: tool version updates, new repos, domain expiry approaching
 **Delegates to**: `/infra`, `/claude`, `/systematize`
+
+#### Cloudflare Operations
+
+Cloudflare manages all owned domains, DNS, Workers, and Pages. All operations use `$CLOUDFLARE_API_TOKEN` (account `3fea5563acad414fa36c40d5c440368f`).
+
+**Domains** (69 registered):
+```bash
+# List all domains with expiry
+curl -s "https://api.cloudflare.com/client/v4/accounts/3fea5563acad414fa36c40d5c440368f/registrar/domains" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+# Check domain availability (for purchase)
+# Note: use zones API to add, registrar API to manage
+```
+
+**DNS**:
+```bash
+# List records for a zone
+curl -s "https://api.cloudflare.com/client/v4/zones/<zone_id>/dns_records" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+# Create record
+curl -s -X POST "https://api.cloudflare.com/client/v4/zones/<zone_id>/dns_records" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"CNAME","name":"sub","content":"target.example.com","proxied":true}'
+```
+
+**Redirects** (URL rewrites):
+```bash
+# Page rules (legacy, 3 free per zone)
+curl -s "https://api.cloudflare.com/client/v4/zones/<zone_id>/pagerules" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+# Bulk redirects (modern, unlimited)
+curl -s "https://api.cloudflare.com/client/v4/accounts/3fea5563acad414fa36c40d5c440368f/rules/lists" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+```
+
+**Workers & Pages**:
+```bash
+# List Workers
+curl -s "https://api.cloudflare.com/client/v4/accounts/3fea5563acad414fa36c40d5c440368f/workers/scripts" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+# List Pages projects
+curl -s "https://api.cloudflare.com/client/v4/accounts/3fea5563acad414fa36c40d5c440368f/pages/projects" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+```
+
+**Zone lookup** (name → zone_id):
+```bash
+curl -s "https://api.cloudflare.com/client/v4/zones?name=beorn.codes" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])"
+```
+
+**Known zones** (partial): beorn.codes (`a8b254064b15eefaa85271603c4a192b`), terminfo.dev, silvery.dev, etc. — 50+ total.
+
+**Token permissions**: zones read/write, registrar read/write, Workers/Pages read. Missing: analytics (add if growth domain needs it).
 
 ### 7. legal — are we compliant?
 

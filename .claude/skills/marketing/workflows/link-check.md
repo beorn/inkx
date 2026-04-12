@@ -50,7 +50,7 @@ Aligned with `marketing/SKILL.md` Sites table:
 - termless.dev
 - beorn.codes (umbrella + portfolio)
 - beorn.codes/flexily
-- beorn.codes/loggily
+- loggily.dev
 - beorn.codes/mdspec
 
 If you launch a new public site, add it to the `ALL_SITES` array in

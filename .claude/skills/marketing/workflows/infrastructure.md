@@ -44,7 +44,7 @@ For each site (terminfo.dev, silvery.dev, termless.dev, beorn.codes):
 | termless.dev | Done | Done | Submitted | Done (vitepress-enrich) | Done (180 terms) |
 | beorn.codes | Done | Needs root index | Submitted | Partial | — |
 | beorn.codes/flexily | Done | Done | Via beorn.codes | Partial | — |
-| beorn.codes/loggily | Done | Done | Via beorn.codes | Partial | — |
+| loggily.dev | Done | Done | Own domain | Partial | — |
 
 ### Auto-Linking Infrastructure (all sites)
 

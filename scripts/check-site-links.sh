@@ -33,7 +33,7 @@ ALL_SITES=(
   "https://termless.dev"
   "https://beorn.codes"
   "https://beorn.codes/flexily"
-  "https://beorn.codes/loggily"
+  "https://loggily.dev"
   "https://beorn.codes/mdspec"
   "https://github.com/beorn"
 )
