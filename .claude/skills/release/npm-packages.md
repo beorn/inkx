@@ -91,7 +91,7 @@ Last updated: 2026-04-11 (63 packages)
 | Package | Version | Replaced by |
 |---------|---------|------------|
 | `@bearly/vitepress-enrich` | 0.3.7 | `vitepress-enrich` (unscoped) |
-| `@bearly/mdtest` | 0.3.0 | `mdspec`? |
+| `@bearly/mdtest` | 0.3.0 | `mdspec` (renamed — `mdtest` was taken on npm) |
 | `@silvery/react` | 0.3.0 | `silvery` |
 | `@silvery/tea` | 0.4.2 | `silvery` |
 | `@silvery/term` | 0.3.0 | `silvery` |
