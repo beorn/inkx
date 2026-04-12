@@ -235,7 +235,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
-| [review-all/](.claude/skills/review-all/)                           | Consolidated mega-review — quarterly health check across all domains  |
+| [sop/](.claude/skills/sop/)                                         | **SOP framework** — scan/propose/execute across 11 maintenance domains. Absorbs /audit, /review-all, /project-audit, /project-cleanup, /repo-health |
 
 ### Silvery Development
 
@@ -251,9 +251,9 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
 | [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit                    |
-| [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
-| [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |
-| [repo-health/](.claude/skills/repo-health/)                         | Package health audit (license, metadata, gitignore, docs, CI)        |
+| ~~project-audit/~~ | Absorbed into `/sop code,sites` |
+| ~~project-cleanup/~~ | Absorbed into `/sop infra` |
+| ~~repo-health/~~ | Absorbed into `/sop packages` |
 | [npm/](.claude/skills/npm/)                                         | Check npm availability. **Package registry**: [npm-packages.md](.claude/skills/release/npm-packages.md) |
 | [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
 | [diagram/](.claude/skills/diagram/)                                 | ASCII diagrams — aligned boxes, trees, flow. Prevents misalignment   |

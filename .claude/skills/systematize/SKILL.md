@@ -163,7 +163,7 @@ Audit all existing skills against quality criteria. Produces a scorecard + actio
 
 ### MECE Violations
 1. **/big vs /fresh** — overlap on "stuck on a problem". Boundary: /big = proactive reframe, /fresh = reactive unstuck. OK (documented in /big).
-2. **/audit vs /review-all** — both claim "comprehensive health check". MERGE recommended.
+2. **/audit vs /review-all** — both absorbed into `/sop`. RESOLVED.
 
 ### Gaps
 1. "Architectural deep-dive → design doc" has no skill. Today's signals analysis was ad-hoc. → Create /arch-eval or extend /big.
@@ -172,7 +172,7 @@ Audit all existing skills against quality criteria. Produces a scorecard + actio
 1. **/foo** — last modified 4 months ago, no invocations in recall. → Archive or refresh.
 
 ### Actions
-- [ ] Merge /audit into /review-all (or vice versa)
+- [x] Merge /audit into /review-all (or vice versa) — both absorbed into /sop
 - [ ] Add keywords to /bar
 - [ ] Archive /baz
 - [ ] Create skill for gap: ...
@@ -180,4 +180,4 @@ Audit all existing skills against quality criteria. Produces a scorecard + actio
 
 ### Schedule
 
-Run quarterly, or after creating 5+ new skills in a short period. Add to `/review-all` checklist if it exists.
+Run quarterly, or after creating 5+ new skills in a short period. Add to `/sop` checklist if it exists.

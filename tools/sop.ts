@@ -568,6 +568,377 @@ function parseFreshness(
   }
 }
 
+// ─── V2 check parsers ──────────────────────────────────────────────────────
+
+function parseCveScan(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode === 0) {
+    return {
+      check: "cve-scan",
+      domain: "security",
+      status: "pass",
+      summary: "0 vulnerabilities",
+    }
+  }
+  try {
+    const audit = JSON.parse(stdout) as {
+      metadata?: { vulnerabilities?: Record<string, number> }
+    }
+    const vulns = audit.metadata?.vulnerabilities
+    if (!vulns) {
+      return {
+        check: "cve-scan",
+        domain: "security",
+        status: "pass",
+        summary: "0 vulnerabilities",
+      }
+    }
+    const critical = vulns["critical"] ?? 0
+    const high = vulns["high"] ?? 0
+    const moderate = vulns["moderate"] ?? 0
+    const total = Object.values(vulns).reduce((a, b) => a + b, 0)
+    if (total === 0) {
+      return {
+        check: "cve-scan",
+        domain: "security",
+        status: "pass",
+        summary: "0 vulnerabilities",
+      }
+    }
+    if (critical > 0 || high > 0) {
+      return {
+        check: "cve-scan",
+        domain: "security",
+        status: "error",
+        summary: `${critical} critical, ${high} high, ${moderate} moderate`,
+        details: Object.entries(vulns)
+          .filter(([, v]) => v > 0)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", "),
+      }
+    }
+    return {
+      check: "cve-scan",
+      domain: "security",
+      status: moderate > 0 ? "warn" : "pass",
+      summary: `${moderate} moderate vulnerability(ies)`,
+      details: Object.entries(vulns)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(", "),
+    }
+  } catch {
+    return {
+      check: "cve-scan",
+      domain: "security",
+      status: "warn",
+      summary: "npm audit produced non-JSON output",
+      details: stdout.slice(-300),
+    }
+  }
+}
+
+function parseSecretScan(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (exitCode !== 0 || lines.length === 0 || stdout.trim() === "") {
+    return {
+      check: "secret-scan",
+      domain: "security",
+      status: "pass",
+      summary: "no secrets detected",
+    }
+  }
+  return {
+    check: "secret-scan",
+    domain: "security",
+    status: "error",
+    summary: `${lines.length} potential secret(s) found`,
+    details: lines.slice(0, 10).join("\n"),
+  }
+}
+
+function parseLockfileIntegrity(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode === 0) {
+    return {
+      check: "lockfile-integrity",
+      domain: "security",
+      status: "pass",
+      summary: "lockfile in sync",
+    }
+  }
+  return {
+    check: "lockfile-integrity",
+    domain: "security",
+    status: "error",
+    summary: "lockfile out of sync with package.json",
+    details: stdout.slice(-300),
+  }
+}
+
+function parseBundleSizes(
+  stdout: string,
+  _stderr: string,
+  _exitCode: number,
+): Finding {
+  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (lines.length === 0) {
+    return {
+      check: "bundle-sizes",
+      domain: "packaging",
+      status: "pass",
+      summary: "no dist/ directories found",
+    }
+  }
+  // Check if any line shows > 500K
+  const large = lines.filter((l) => {
+    const match = l.match(/^([\d.]+)([KMGT]?)/)
+    if (!match) return false
+    const size = parseFloat(match[1]!)
+    const unit = match[2] ?? ""
+    if (unit === "M" || unit === "G" || unit === "T") return true
+    if (unit === "K" && size > 500) return true
+    return false
+  })
+  return {
+    check: "bundle-sizes",
+    domain: "packaging",
+    status: large.length > 0 ? "warn" : "pass",
+    summary: large.length > 0
+      ? `${large.length} bundle(s) > 500KB`
+      : `${lines.length} bundle(s), all under 500KB`,
+    details: lines.join("\n"),
+  }
+}
+
+function parseZeroDepCheck(
+  stdout: string,
+  _stderr: string,
+  _exitCode: number,
+): Finding {
+  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (lines.length === 0) {
+    return {
+      check: "zero-dep-check",
+      domain: "packaging",
+      status: "pass",
+      summary: "no vendor packages with dependencies",
+    }
+  }
+  return {
+    check: "zero-dep-check",
+    domain: "packaging",
+    status: "pass",
+    summary: `${lines.length} vendor package(s) with dependencies`,
+    details: lines.join("\n"),
+  }
+}
+
+function parseCjsEsmCompat(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!"))) {
+    return {
+      check: "cjs-esm-compat",
+      domain: "packaging",
+      status: "warn",
+      summary: "attw tool not available",
+      details: stdout.slice(-300),
+    }
+  }
+  const hasProblems = stdout.includes("✗") || stdout.includes("problem") || stdout.includes("error")
+  return {
+    check: "cjs-esm-compat",
+    domain: "packaging",
+    status: hasProblems ? "warn" : "pass",
+    summary: hasProblems ? "CJS/ESM compat issues found" : "CJS/ESM compat OK",
+    details: stdout.slice(-500),
+  }
+}
+
+function parseCiHealth(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode !== 0) {
+    return {
+      check: "ci-health",
+      domain: "infra",
+      status: "warn",
+      summary: "could not fetch CI runs",
+      details: stdout.slice(-300),
+    }
+  }
+  try {
+    const runs = JSON.parse(stdout) as Array<{
+      status: string
+      conclusion: string | null
+      name: string
+    }>
+    if (runs.length === 0) {
+      return {
+        check: "ci-health",
+        domain: "infra",
+        status: "pass",
+        summary: "no recent CI runs",
+      }
+    }
+    const failed = runs.filter((r) => r.conclusion === "failure")
+    const inProgress = runs.filter((r) => r.status === "in_progress")
+    if (failed.length > 0) {
+      return {
+        check: "ci-health",
+        domain: "infra",
+        status: "error",
+        summary: `${failed.length} failed CI run(s)`,
+        details: failed.map((r) => `FAIL: ${r.name}`).join("\n"),
+      }
+    }
+    if (inProgress.length > 0) {
+      return {
+        check: "ci-health",
+        domain: "infra",
+        status: "warn",
+        summary: `${inProgress.length} CI run(s) in progress`,
+        details: inProgress.map((r) => `IN_PROGRESS: ${r.name}`).join("\n"),
+      }
+    }
+    return {
+      check: "ci-health",
+      domain: "infra",
+      status: "pass",
+      summary: `${runs.length} recent run(s) succeeded`,
+    }
+  } catch {
+    return {
+      check: "ci-health",
+      domain: "infra",
+      status: "warn",
+      summary: "could not parse CI runs response",
+      details: stdout.slice(-300),
+    }
+  }
+}
+
+function parseHookIntegrity(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode !== 0) {
+    return {
+      check: "hook-integrity",
+      domain: "infra",
+      status: "warn",
+      summary: "could not list hooks directory",
+      details: stdout.slice(-300),
+    }
+  }
+  const hasRunHook = stdout.includes("run-hook.sh")
+  if (!hasRunHook) {
+    return {
+      check: "hook-integrity",
+      domain: "infra",
+      status: "warn",
+      summary: "missing expected hook: run-hook.sh",
+      details: stdout,
+    }
+  }
+  const files = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  return {
+    check: "hook-integrity",
+    domain: "infra",
+    status: "pass",
+    summary: `${files.length} hook file(s) present`,
+    details: stdout.trim(),
+  }
+}
+
+function parseToolVersions(
+  stdout: string,
+  _stderr: string,
+  _exitCode: number,
+): Finding {
+  return {
+    check: "tool-versions",
+    domain: "infra",
+    status: "pass",
+    summary: "tool versions collected",
+    details: stdout.trim().slice(-500),
+  }
+}
+
+function parseLicenseFiles(
+  stdout: string,
+  _stderr: string,
+  _exitCode: number,
+): Finding {
+  const lines = stdout.trim().split("\n").filter((l) => l.includes("MISSING"))
+  if (lines.length === 0) {
+    return {
+      check: "license-files",
+      domain: "legal",
+      status: "pass",
+      summary: "all vendor packages have LICENSE files",
+    }
+  }
+  return {
+    check: "license-files",
+    domain: "legal",
+    status: "warn",
+    summary: `${lines.length} vendor package(s) missing LICENSE`,
+    details: lines.join("\n"),
+  }
+}
+
+function parseDepLicenses(
+  stdout: string,
+  _stderr: string,
+  exitCode: number,
+): Finding {
+  if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!") || stdout.includes("Cannot find"))) {
+    return {
+      check: "dep-licenses",
+      domain: "legal",
+      status: "warn",
+      summary: "license-checker not installed",
+      details: "install with: npx license-checker",
+    }
+  }
+  const hasGpl = /\bGPL\b/i.test(stdout) && !/LGPL/i.test(stdout.replace(/GPL/g, ""))
+  // More careful: check for standalone GPL (not LGPL)
+  const gplLines = stdout.split("\n").filter((l) => /\bGPL(?!.*LGPL)\b/i.test(l) && !/LGPL/i.test(l))
+  if (gplLines.length > 0) {
+    return {
+      check: "dep-licenses",
+      domain: "legal",
+      status: "warn",
+      summary: `GPL license found in ${gplLines.length} production dep(s)`,
+      details: stdout.slice(-500),
+    }
+  }
+  return {
+    check: "dep-licenses",
+    domain: "legal",
+    status: "pass",
+    summary: "license distribution OK",
+    details: stdout.slice(-500),
+  }
+}
+
 // ─── Domain definitions ─────────────────────────────────────────────────────
 
 export const DOMAINS: DomainDef[] = [
@@ -735,6 +1106,135 @@ export const DOMAINS: DomainDef[] = [
         cadence: "monthly",
         approval: "auto",
         parse: parseFreshness,
+      },
+    ],
+  },
+  {
+    id: "security",
+    label: "security",
+    cadence: "weekly",
+    checks: [
+      {
+        id: "cve-scan",
+        domain: "security",
+        label: "CVE scan",
+        command: "npm audit --json 2>&1",
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseCveScan,
+      },
+      {
+        id: "secret-scan",
+        domain: "security",
+        label: "secret scan",
+        command:
+          'grep -rn "sk-\\|AKIA\\|ghp_\\|gho_\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git . 2>&1',
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseSecretScan,
+      },
+      {
+        id: "lockfile-integrity",
+        domain: "security",
+        label: "lockfile integrity",
+        command: "bun install --frozen-lockfile --dry-run 2>&1",
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseLockfileIntegrity,
+      },
+    ],
+  },
+  {
+    id: "packaging",
+    label: "packaging",
+    cadence: "monthly",
+    checks: [
+      {
+        id: "bundle-sizes",
+        domain: "packaging",
+        label: "bundle sizes",
+        command: "du -sh vendor/*/dist/ 2>/dev/null | sort -rh",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseBundleSizes,
+      },
+      {
+        id: "zero-dep-check",
+        domain: "packaging",
+        label: "zero-dep check",
+        command: 'grep -l \'"dependencies"\' vendor/*/package.json 2>/dev/null',
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseZeroDepCheck,
+      },
+      {
+        id: "cjs-esm-compat",
+        domain: "packaging",
+        label: "CJS/ESM compat",
+        command: "bunx --bun @arethetypeswrong/cli --pack vendor/silvery 2>&1 | tail -20",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseCjsEsmCompat,
+      },
+    ],
+  },
+  {
+    id: "infra",
+    label: "infra",
+    cadence: "monthly",
+    checks: [
+      {
+        id: "ci-health",
+        domain: "infra",
+        label: "CI health",
+        command: "gh run list --repo beorn/km --limit 5 --json status,conclusion,name 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseCiHealth,
+      },
+      {
+        id: "hook-integrity",
+        domain: "infra",
+        label: "hook integrity",
+        command: "ls .claude/hooks/ 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseHookIntegrity,
+      },
+      {
+        id: "tool-versions",
+        domain: "infra",
+        label: "tool versions",
+        command: "echo '--- tsdown ---' && bunx tsdown --version 2>&1; echo '--- oxlint ---' && bunx oxlint --version 2>&1; echo '--- bun ---' && bun --version 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseToolVersions,
+      },
+    ],
+  },
+  {
+    id: "legal",
+    label: "legal",
+    cadence: "quarterly",
+    checks: [
+      {
+        id: "license-files",
+        domain: "legal",
+        label: "LICENSE files",
+        command:
+          'for d in vendor/*/; do [ -f "$d/LICENSE" ] || echo "MISSING: $d"; done 2>&1',
+        cadence: "quarterly",
+        approval: "auto",
+        parse: parseLicenseFiles,
+      },
+      {
+        id: "dep-licenses",
+        domain: "legal",
+        label: "dep licenses",
+        command: "npx license-checker --production --summary 2>&1 | head -30",
+        cadence: "quarterly",
+        approval: "auto",
+        parse: parseDepLicenses,
       },
     ],
   },

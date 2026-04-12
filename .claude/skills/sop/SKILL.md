@@ -11,6 +11,43 @@ benefits-from: [recall, pm, infra]
 
 One skill to groom everything. Each domain owns assets, runs checks (scan→propose→execute), and triggers other domains reactively.
 
+## Execution Protocol (MANDATORY)
+
+When `/sop` is invoked, follow this sequence exactly:
+
+### Step 1: Run the tool
+```bash
+# Parse user arguments and map to tool command:
+# /sop           → bun tools/sop.ts scan          (due domains only)
+# /sop all       → bun tools/sop.ts scan --all    (all domains)
+# /sop code      → bun tools/sop.ts scan code     (specific domain)
+# /sop --scan-only → same as above, but skip Step 3
+bun tools/sop.ts scan [args...]
+```
+
+### Step 2: Tribe broadcast (if tribe is connected)
+After the scan completes, broadcast findings summary to tribe:
+```
+tribe_broadcast("SOP scan complete: [domain summary]. N findings (X warn, Y error).")
+```
+
+### Step 3: Propose actions for warn/error findings
+For each finding with status warn or error:
+- **auto-approval checks** (lint, format): execute the fix immediately
+- **ask-approval checks** (publish, close beads, delete): present to user and wait
+
+### Step 4: Session promotion check
+If backlog domain ran, also run:
+```bash
+bun tools/session-promote.ts scan
+```
+Report any promotable knowledge found.
+
+### Step 5: Update bead
+If any actions were executed, update the tracking bead with results.
+
+---
+
 ## Usage
 
 ```
