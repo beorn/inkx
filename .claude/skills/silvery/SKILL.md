@@ -1,6 +1,8 @@
 ---
 description: Debug and fix silvery rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when silvery renders incorrectly or has visual artifacts.
 argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven workflow)
+benefits-from: [recall, tests]
+escalate-to: {arch: "new rendering primitive or pipeline stage needed", km: "bug is in km component usage, not silvery pipeline"}
 ---
 
 # silvery Diagnostic Workflow

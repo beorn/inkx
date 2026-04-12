@@ -2,6 +2,20 @@
 
 Every asset is owned by exactly one agent. If it's not listed, it's unowned (arch should claim or assign it).
 
+## Information Architecture (DRY layers)
+
+See `INFO-ARCHITECTURE.md` for the full design. Summary:
+
+| Layer | Contains | Example |
+|---|---|---|
+| **Canonical docs** | Design truth (what + why) | `docs/design/data-model.md` |
+| **CLAUDE.md** | Session entry points (summaries + pointers) | Root `CLAUDE.md` |
+| **Skill files** | Procedural workflows (how to execute) | `.claude/skills/release/SKILL.md` |
+| **Knowledge files** | Operational delta (state, gotchas, failures) | `*-knowledge.md` |
+| **Memory files** | User prefs + feedback | `memory/MEMORY.md` |
+
+**Rule**: every piece of information lives in exactly one layer. Knowledge files reference canonical docs, never duplicate them.
+
 ## arch
 
 ### Files

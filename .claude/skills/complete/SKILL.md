@@ -2,6 +2,7 @@
 description: "Session-end completeness audit. Use when finishing a refactor, migration, or feature to verify nothing was left behind."
 argument-hint: "[<what-was-changed>]"
 allowed-tools: Bash, Read, Glob, Grep, Skill, AskUserQuestion
+benefits-from: [pm, recall, tests]
 ---
 
 # Completeness Audit

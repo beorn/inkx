@@ -2,6 +2,8 @@
 description: "Release packages — status, verify, and execute releases across km vendor submodules. AI-native changelog/bump from diffs, real pre-publish verification."
 argument-hint: "[status|verify|<repo>|all] [--dry-run]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
+benefits-from: [npm, recall]
+escalate-to: {npm: "package naming, deprecation, or registry conflict"}
 ---
 
 # Release

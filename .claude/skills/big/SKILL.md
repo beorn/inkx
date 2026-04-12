@@ -1,6 +1,8 @@
 ---
 description: "Think big — reframe the problem, explore 10-20 hypotheses, find the solution that makes the problem unnecessary. Use when stuck, when the fix feels like a patch, or when you suspect the real problem is upstream."
 argument-hint: [problem or area]
+benefits-from: [recall, pm, gbrain]
+escalate-to: {arch: "reframing reveals missing abstraction or layer", render: "root cause is in silvery pipeline design"}
 ---
 
 # Think Big — What If This Problem Didn't Need to Exist?

@@ -1,6 +1,7 @@
 ---
 description: "Fresh perspective when stuck on a problem for 20+ minutes. Stops coding, gathers what was tried, and asks an external LLM for architectural advice. NOT for general questions — use /llm for that. NOT for standalone deep research — use /deep for that."
 argument-hint: [<topic>]
+benefits-from: [recall, pm, gbrain]
 ---
 
 # /fresh — Fresh Perspective on a Stuck Problem

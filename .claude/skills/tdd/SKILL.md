@@ -1,6 +1,8 @@
 ---
 description: "TDD mode — reproduce first, fix second. Use PROACTIVELY when the user reports a bug, requests a feature, or says 'fix'. Also use when you catch yourself reading source code before writing a test."
 argument-hint: [bug or feature description]
+benefits-from: [pm, recall]
+escalate-to: {render: "dirty flag or incremental rendering issue", arch: "layer boundary or invariant question"}
 ---
 
 # TDD — Reproduce First, Fix Second

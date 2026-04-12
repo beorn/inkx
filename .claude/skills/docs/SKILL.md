@@ -1,3 +1,8 @@
+---
+benefits-from: [recall, gbrain]
+escalate-to: {arch: "doc describes architecture that needs redesign"}
+---
+
 # Docs — Documentation Management
 
 **Keywords**: docs, glossary, review docs, update docs, documentation audit

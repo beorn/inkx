@@ -2,6 +2,8 @@
 description: TUI development - design system, km-specific rendering bugs, performance. Use when building silvery components for km, fixing km-tui visual bugs, or optimizing TUI performance. For silvery pipeline bugs (dirty flags, incremental rendering, scroll tiers), use /silvery instead.
 argument-hint: [fix|design|perf]
 allowed-tools: Task, Read, Glob, Grep, Bash
+benefits-from: [recall, tests]
+escalate-to: {render: "silvery pipeline bug, not km component issue", arch: "new component pattern or state management design", npm: "silvery package exports or API surface"}
 ---
 
 # TUI Development

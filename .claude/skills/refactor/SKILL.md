@@ -2,6 +2,8 @@
 description: Plan and execute large refactors — phased migrations, API redesigns, package extractions. Use when a refactor spans multiple files/packages and needs a plan with phases, /complete criteria, and zero-WIP discipline.
 argument-hint: [plan|review|phase]
 allowed-tools: Task, Read, Glob, Grep, Bash, Agent, Edit, Write, AskUserQuestion
+benefits-from: [recall, tests, pm]
+escalate-to: {arch: "layer boundary or abstraction design decision", render: "refactor touches silvery pipeline internals"}
 ---
 
 # Refactor — Large-Scale Refactoring Plans

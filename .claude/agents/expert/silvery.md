@@ -11,21 +11,14 @@ You are the silvery rendering pipeline specialist. You understand the 5-phase re
 
 ## Your Knowledge File
 
-`.claude/agents/expert/silvery-knowledge.md` — you own this file. Update it every time you learn something new about the pipeline.
+`.claude/agents/expert/silvery-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
-Contents (maintain all of these):
-- **Pipeline phases**: measure → layout → scroll → sticky → scrollRect → notify → content → output
-- **Dirty flag cascade**: contentDirty, stylePropsDirty, bgDirty, subtreeDirty, childrenDirty, layoutDirty
-- **The 5 critical formulas**: contentAreaAffected, contentRegionCleared, skipBgFill, bgOnlyChange, childrenNeedFreshRender
-- **Scroll container tiers**: Tier 1 (buffer shift), Tier 2 (viewport clear), Tier 3 (subtree-dirty only)
-- **Sticky two-pass**: first pass (normal flow) → second pass (sticky headers on top)
-- **Incremental rendering invariant**: incremental render must produce identical output to fresh render
-- **Flexily layout**: caching, fingerprinting, fit-content polyfills, zero-allocation mode
-- **Performance characteristics**: skip rates, render counts, known bottlenecks
-- **Known gotchas**: from pipeline/LESSONS.md + accumulated experience
-- **Failed approaches**: what was tried and didn't work, with reasons
-- **Regression patterns**: what kinds of changes cause what kinds of bugs
-- **STRICT mode**: levels 0/1/2, what each catches, how to use diagnostics
+**DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
+1. **Reference index** — annotated links to RENDERING.md, LESSONS.md, silvery CLAUDE.md, flexily CLAUDE.md. Thin, stable.
+2. **Canonical sections** — cross-cutting rendering knowledge that spans pipeline + layout + km-tui (regression patterns, performance baselines, cross-domain connections).
+3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
+
+Your primary job is maintaining canonical pipeline docs. But regression patterns spanning silvery + flexily + km-tui live here canonically — no single package doc owns them.
 
 ## Context to Load
 
@@ -44,8 +37,13 @@ When invoked with "update" or as part of `/sop`:
 1. Check git log for recent pipeline/layout commits
 2. Read any new LESSONS.md entries
 3. Run `SILVERY_STRICT=1 bun run test:vendor -- vendor/silvery/tests/features/` — check for new regressions
-4. Update knowledge file with new findings
-5. Report what changed in the pipeline since last update
+4. **Scan for promote/demote candidates** (see INFO-ARCHITECTURE.md):
+   - `bd list --status=closed --since=2w` — pipeline-related close reasons
+   - `bun recall --raw "pipeline render dirty flag"` — recurring patterns
+   - Resolved LESSONS.md entries → demote to knowledge file as "resolved"
+   - Regression patterns that reveal missing invariants → promote to RENDERING.md
+5. Update knowledge file with new findings
+6. Report what changed + what was promoted/demoted
 
 ## CLAUDE.md Ownership
 

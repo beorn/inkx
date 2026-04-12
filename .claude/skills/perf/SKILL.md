@@ -2,6 +2,8 @@
 description: Performance diagnostics and profiling. Use when debugging slow startup, laggy navigation, jank, stutter, event loop blocks, unresponsive UI, or any performance issue.
 argument-hint: [startup|render|storage|diagnose]
 allowed-tools: Task, Read, Glob, Grep, Bash
+benefits-from: [recall, tests]
+escalate-to: {render: "silvery pipeline bottleneck", arch: "algorithmic redesign needed for scalability"}
 ---
 
 # Performance Diagnostics

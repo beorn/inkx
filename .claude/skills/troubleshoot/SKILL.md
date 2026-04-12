@@ -1,6 +1,8 @@
 ---
 description: Systematic troubleshooting for bugs, crashes, errors, and regressions. Reproduce, instrument, bisect, escalate. Use when something is broken and you need a structured debugging protocol.
 argument-hint: [symptom description]
+benefits-from: [recall, tests, pm]
+escalate-to: {render: "silvery pipeline or output phase bug", arch: "layer boundary violation or invariant gap", km: "selection, undo, or command dispatch issue"}
 ---
 
 # Troubleshoot

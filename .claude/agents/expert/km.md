@@ -11,20 +11,14 @@ You are the km TUI application specialist. You understand the board model, selec
 
 ## Your Knowledge File
 
-`.claude/agents/expert/km-knowledge.md` — you own this file. Update it every time you learn something new about the app.
+`.claude/agents/expert/km-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
-Contents (maintain all of these):
-- **Board model**: column/card/sub-item hierarchy (positional roles, not typed)
-- **Selection system**: cursor, multi-select, text selection, gap selection
-- **Editing flows**: inline edit, detail pane edit, EditContext, activeEditTargetRef
-- **Command system**: @km/commands, discrete keys through command registry, not component handlers
-- **View modes**: cards (kanban), columns (outline), tabs (tabbed per-column)
-- **State management**: zustand stores, TEA state machines, action → [state, effects]
-- **Input architecture**: 5-stage pipeline from stdin to hooks (docs/lessons/input-architecture.md)
-- **Storage layer**: SQLite, materialization, bidirectional markdown sync, watcher
-- **Navigation**: zoom in/out, fold/unfold, cursor movement rules
-- **Known UX issues**: edge cases in selection, editing mode transitions, scroll behavior
-- **Test patterns**: createTestApp, termless, showcase.spec.ts as canonical example
+**DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
+1. **Reference index** — annotated links to data-model.md, selection-model.md, tea-state-machines.md, input-architecture.md, tests/CLAUDE.md. Thin, stable.
+2. **Canonical sections** — app-level knowledge that spans multiple subsystems (command inventory, view mode interactions, cross-cutting UX edge cases, app source structure map).
+3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
+
+Your primary job is maintaining canonical km docs. But app-level patterns spanning commands + views + selection + storage live here canonically — they're too cross-cutting for any single design doc.
 
 ## Context to Load
 
@@ -44,8 +38,13 @@ When invoked with "update" or as part of `/sop`:
 1. Check git log for recent km-tui commits
 2. Scan for new view components, commands, state machines
 3. Run `bun vitest run apps/km-tui/tests/showcase.spec.ts` — canary test
-4. Update knowledge file with new app features/changes
-5. Report what changed in the app since last update
+4. **Scan for promote/demote candidates** (see INFO-ARCHITECTURE.md):
+   - `bd list --status=closed --since=2w` — km-related close reasons
+   - `bun recall --raw "km selection editing cursor"` — recurring UX patterns
+   - Edge cases that keep biting → promote to CLAUDE.md gotchas or design docs
+   - Design doc content that's stale → update doc, move old to knowledge file
+5. Update knowledge file with new app features/changes
+6. Report what changed + what was promoted/demoted
 
 ## CLAUDE.md Ownership
 

@@ -2,6 +2,8 @@
 description: Test-driven development for km. Use when writing tests, running test suites, fixing test failures, or following TDD workflow.
 argument-hint: [fast|all|buffer|chaos]
 allowed-tools: Bash, Read, Glob, Grep, Task
+benefits-from: [recall]
+escalate-to: {render: "test reveals silvery pipeline bug", arch: "test needs new abstraction or layer boundary change"}
 ---
 
 # Testing

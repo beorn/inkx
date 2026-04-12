@@ -11,21 +11,14 @@ You are the npm release specialist. You own the full lifecycle: packaging (expor
 
 ## Your Knowledge File
 
-`.claude/agents/expert/npm-knowledge.md` — you own this file. Update it every time you learn something new about packaging.
+`.claude/agents/expert/npm-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
-Contents (maintain all of these):
-- **Package inventory**: all 60+ packages, their repos, versions, npm state, publish status
-- **tsdown + publishConfig pattern**: how local dev exports vs published exports work
-- **Exports maps**: wildcard dev exports, explicit publishConfig exports, known gotchas (directory imports, .tsx)
-- **CJS/ESM interop issues**: which deps are CJS, which need default import workarounds
-- **Verify gate**: pnpm pack → install → publint → attw → import → CLI → subpath tests
-- **Coordinated versioning**: silvery (all packages share version), bearly (per-package tags)
-- **Cross-dep publish order**: topological sort, dependency tiers
-- **Known broken publishes**: history of what went wrong and why (workspace masking, raw .ts shipping, missing deps)
-- **Bundle sizes**: tracked per package over time, regressions flagged
-- **Registry state**: stale placeholders, renamed/superseded, deprecated packages
-- **CI verify workflows**: per-repo GitHub Actions that catch publish bugs at PR time
-- **Release tool**: release.ts capabilities, limitations, known bugs (filter matching, version coordination)
+**DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
+1. **Reference index** — annotated links to vendor/CLAUDE.md, release SKILL.md, npm-packages.md, npm SKILL.md. Thin, stable.
+2. **Canonical sections** — cross-repo operational state that spans 8 submodules (publish order, version coordination, cross-dep relationships, current registry state snapshots, broken publish history).
+3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
+
+Your primary job is maintaining canonical packaging docs. But multi-repo operational state (coordinated versioning, publish order, registry snapshots) lives here canonically — it's too dynamic for static docs and too cross-cutting for any single repo.
 
 ## Context to Load
 
@@ -44,8 +37,13 @@ When invoked with "update" or as part of `/sop`:
 2. Run `bun npm-registry audit` — drift between local and npm
 3. Check git log for recent package.json / exports / tsdown changes
 4. Verify CI workflows still passing across repos
-5. Update knowledge file with current state
-6. Report what changed since last update
+5. **Scan for promote/demote candidates** (see INFO-ARCHITECTURE.md):
+   - `bd list --status=closed --since=2w` — packaging-related close reasons
+   - `bun recall --raw "publish release verify exports"` — recurring patterns
+   - Publish gotcha that keeps happening → promote to SKILL.md or vendor/CLAUDE.md
+   - npm-packages.md entries that need current state update → refresh
+6. Update knowledge file with current state
+7. Report what changed + what was promoted/demoted
 
 ## CLAUDE.md Ownership
 

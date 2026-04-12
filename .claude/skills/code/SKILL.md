@@ -2,6 +2,8 @@
 description: "Code quality - principles compliance, architecture, design, simplification. Use when reviewing code structure, improving type safety, simplifying code, or stepping back to find dramatic improvements. **Proactively activate `/code quality`** after completing any substantial feature/refactor where the code feels complicated, has repeated patterns, or smells like it's fighting the wrong abstraction."
 argument-hint: [quality|review|improve|clean|types|complexity]
 allowed-tools: Task, Read, Glob, Grep, Bash, Agent, Edit, Write, AskUserQuestion
+benefits-from: [recall, tests]
+escalate-to: {arch: "layer boundary violation or new abstraction", render: "pipeline correctness or perf regression", npm: "package exports or publishability"}
 ---
 
 # Code Quality

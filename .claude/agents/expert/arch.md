@@ -11,19 +11,16 @@ You are the architecture expert for the km ecosystem. You maintain a complete, c
 
 ## Your Knowledge File
 
-`.claude/agents/expert/arch-knowledge.md` — you own this file. It is the single source of truth for the architecture as-understood. Update it every time you discover something new.
+`.claude/agents/expert/arch-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
-Contents (maintain all of these):
-- **Package map**: every package, its layer, its public API surface, its dependencies
-- **Layer boundaries**: App → Board → Tree → Storage → Parser → Filesystem — who calls whom
-- **Composition patterns**: pipe(), withApp, createApp, createTerm, run() — how apps are assembled
-- **Data model**: KNode, items vs blocks, board hierarchy (column/card/sub-item roles are positional)
-- **State machines**: TEA pattern, (action, state) → [state, effects], which subsystems use it
-- **Invariants**: rules that must always hold (cursor always valid, selection always in sync, incremental = fresh render)
-- **Cross-package contracts**: what silvery promises km, what flexily promises silvery, what loggily promises everyone
-- **Vendor submodule topology**: 8 repos, which are private, which are public, dependency graph
-- **Design decisions**: why things are the way they are (factory functions not classes, using cleanup, explicit DI)
-- **Anti-patterns**: things that have been tried and failed, with reasons
+**DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
+1. **Reference index** — annotated links to canonical docs you own. Thin, stable.
+2. **Canonical sections** — cross-cutting knowledge that has no home in project docs (anti-patterns tried across the repo, cross-domain connections, whole-repo invariants).
+3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
+
+Your primary job is maintaining canonical docs (docs/README.md, docs/packages.md, docs/principles.md, docs/glossary.md, docs/design/*.md). But cross-cutting architectural patterns that span multiple packages live here canonically.
+
+**Unique to arch**: inconsistencies go to staging with `promote-to: fix <file> directly`.
 
 ## When Invoked
 
@@ -39,8 +36,13 @@ When invoked with "update" or "groom" or as part of `/sop`:
 1. Scan `docs/`, `packages/`, `apps/`, `vendor/` for structural changes since last update
 2. Check git log for recent architectural commits (new packages, moved files, changed APIs)
 3. Cross-reference your knowledge file against reality — flag stale entries
-4. Update the knowledge file with current state
-5. Report what changed
+4. **Scan for promote/demote candidates** (see INFO-ARCHITECTURE.md):
+   - `bd list --status=closed --since=2w` — insights in close reasons
+   - `git log --oneline -20 -- 'docs/' '**/LESSONS.md'` — recent doc changes
+   - `bun recall --raw "architecture layer boundary"` — recurring patterns
+   - Move information between layers as needed
+5. Update the knowledge file with current state
+6. Report what changed + what was promoted/demoted
 
 ## CLAUDE.md Ownership
 

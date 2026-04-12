@@ -2,6 +2,7 @@
 description: Issue tracking with beads. Use when creating, claiming, closing issues or coordinating work across sessions.
 argument-hint: [ready|review|work|do|show|close|sync|my|create|list] [id]
 allowed-tools: Bash, Read, TodoWrite, Task, EnterPlanMode, AskUserQuestion
+benefits-from: [recall, gbrain]
 ---
 
 # Project Management

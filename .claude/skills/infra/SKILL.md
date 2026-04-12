@@ -1,6 +1,8 @@
 ---
 description: "Infrastructure health check — CI/CD, plugins, databases, deployments, hooks. Diagnoses and fixes broken infrastructure across the km ecosystem."
 argument-hint: [ci|plugins|deploy|db|hooks|tribe|recall|sites|all]
+benefits-from: [recall]
+escalate-to: {npm: "published version drift or registry issue"}
 ---
 
 # Infrastructure Health Check

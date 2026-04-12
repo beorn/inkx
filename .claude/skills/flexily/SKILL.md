@@ -1,6 +1,8 @@
 ---
 description: Debug and fix Flexily layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexily layout is broken or performance degrades.
 argument-hint: [symptom] (describe the layout bug, or "bench" for performance workflow)
+benefits-from: [recall, tests]
+escalate-to: {render: "layout correct but rendering wrong — silvery pipeline issue", arch: "new layout primitive or measure function design"}
 ---
 
 # Flexily Diagnostic Workflow

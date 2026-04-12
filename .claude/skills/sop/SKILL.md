@@ -183,9 +183,10 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `unclosed-sessions` — session beads still in_progress
 - [ ] `priority-drift` — P0/P1 beads older than 1 week
 - [ ] `roadmap-alignment` — epic completion % (`bd epic status`)
+- [ ] `session-promote` — `bun tools/session-promote.ts scan` (extract durable knowledge from recall → gbrain)
 **Triggers**: bead closures, session ends
-**Delegates to**: `/pm review`, `bd doctor`
-**Execute**: close stale, defer low-priority, archive completed epics
+**Delegates to**: `/pm review`, `bd doctor`, `bun tools/session-promote.ts promote`
+**Execute**: close stale, defer low-priority, archive completed epics, promote session knowledge
 
 ### 5. sites — are docs current?
 

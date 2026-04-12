@@ -2,6 +2,7 @@
 description: "npm registry — name availability, package status, audit, deprecate. Use when exploring package names, reserving npm names, checking package status, auditing the package registry, or deprecating renamed/superseded packages."
 argument-hint: "[list|status|audit|placeholders|renamed|deprecate|undeprecate] [args...]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+benefits-from: [release, recall]
 ---
 
 # npm — Registry Management & Name Availability
