@@ -1272,6 +1272,366 @@ function renderStatus(state: State): void {
   console.log()
 }
 
+// ─── Update analysis ───────────────────────────────────────────────────────
+
+interface UpdateProposal {
+  file: string
+  description: string
+}
+
+/**
+ * Gather context from git log, beads, state, and _sop-rules.md,
+ * then heuristically analyze for improvement opportunities.
+ */
+async function runUpdate(state: State, _apply: boolean): Promise<void> {
+  const dateStr = new Date().toISOString().split("T")[0]
+
+  // 1. Gather context in parallel
+  const [gitLogResult, beadsResult, rulesContent] = await Promise.all([
+    runShell("git log --oneline -20"),
+    runShell("bd list --status=open --limit 20 2>&1"),
+    Promise.resolve(readFileSafe(join(REPO_ROOT, ".claude", "skills", "sop", "_sop-rules.md"))),
+  ])
+
+  // 2. Analyze git log for maintenance patterns
+  const commitPatterns = analyzeCommitPatterns(gitLogResult.stdout)
+
+  // 3. Analyze state.json findings for false positives, always-pass, always-fail
+  const stateInsights = analyzeStateFindings(state)
+
+  // 4. Analyze anti-pattern table coverage
+  const antiPatternCandidates = analyzeAntiPatterns(
+    gitLogResult.stdout,
+    beadsResult.stdout,
+    rulesContent,
+  )
+
+  // 5. Analyze for missing checks
+  const missingChecks = analyzeMissingChecks(gitLogResult.stdout, state)
+
+  // 6. Produce structured report
+  console.log()
+  console.log(`SOP Update Analysis \u2014 ${dateStr}`)
+
+  if (commitPatterns.length > 0) {
+    console.log()
+    console.log("  Recent maintenance patterns:")
+    for (const p of commitPatterns) {
+      console.log(`    - ${p}`)
+    }
+  }
+
+  if (antiPatternCandidates.length > 0) {
+    console.log()
+    console.log("  Anti-pattern candidates:")
+    for (const a of antiPatternCandidates) {
+      console.log(`    - ${a}`)
+    }
+  }
+
+  if (stateInsights.length > 0) {
+    console.log()
+    console.log("  State insights:")
+    for (const s of stateInsights) {
+      console.log(`    - ${s}`)
+    }
+  }
+
+  if (missingChecks.length > 0) {
+    console.log()
+    console.log("  Missing checks:")
+    for (const m of missingChecks) {
+      console.log(`    - ${m}`)
+    }
+  }
+
+  // Collect all proposals
+  const proposals: UpdateProposal[] = []
+
+  for (const a of antiPatternCandidates) {
+    proposals.push({ file: "_sop-rules.md", description: `Add anti-pattern: ${a}` })
+  }
+  for (const m of missingChecks) {
+    proposals.push({ file: "tools/sop.ts", description: `Add check: ${m}` })
+  }
+  for (const s of stateInsights) {
+    if (s.includes("always fail") || s.includes("always error")) {
+      proposals.push({ file: "tools/sop.ts", description: `Review: ${s}` })
+    }
+  }
+
+  if (proposals.length > 0) {
+    console.log()
+    console.log("  Proposed changes:")
+    for (let i = 0; i < proposals.length; i++) {
+      console.log(`    ${i + 1}. [${proposals[i]!.file}] ${proposals[i]!.description}`)
+    }
+  }
+
+  if (
+    commitPatterns.length === 0 &&
+    antiPatternCandidates.length === 0 &&
+    stateInsights.length === 0 &&
+    missingChecks.length === 0
+  ) {
+    console.log()
+    console.log("  No improvements identified. SOP checks look healthy.")
+  }
+
+  if (_apply) {
+    console.log()
+    console.log("  --apply is reserved for future use (auto-writing proposed changes).")
+    console.log("  For now, apply proposed changes manually.")
+  }
+
+  console.log()
+}
+
+/** Run a shell command and capture output */
+async function runShell(cmd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  try {
+    const proc = Bun.spawn(["bash", "-c", cmd], {
+      cwd: REPO_ROOT,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, FORCE_COLOR: "0" },
+    })
+    const stdout = await new Response(proc.stdout).text()
+    const stderr = await new Response(proc.stderr).text()
+    const exitCode = await proc.exited
+    return { stdout, stderr, exitCode }
+  } catch {
+    return { stdout: "", stderr: "", exitCode: 1 }
+  }
+}
+
+/** Read a file, return empty string if missing */
+function readFileSafe(path: string): string {
+  try {
+    return readFileSync(path, "utf-8")
+  } catch {
+    return ""
+  }
+}
+
+/** Analyze git log for repeated maintenance patterns */
+function analyzeCommitPatterns(gitLog: string): string[] {
+  const patterns: string[] = []
+  const lines = gitLog.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (lines.length === 0) return patterns
+
+  // Extract commit messages (strip leading hash)
+  const messages = lines.map((l) => l.replace(/^[a-f0-9]+\s+/, ""))
+
+  // Count keyword frequencies
+  const keywordCounts = new Map<string, number>()
+  const keywordPatterns: Array<{ regex: RegExp; label: string; suggestion: string }> = [
+    { regex: /\btypecheck\s*baseline\b/i, label: "typecheck baseline", suggestion: "auto-baseline check in code domain" },
+    { regex: /\bnpm\s+publish\b/i, label: "npm publish", suggestion: "unreleased packages check (packages domain)" },
+    { regex: /\bbaseline\b/i, label: "baseline update", suggestion: "baseline-reset anti-pattern detection" },
+    { regex: /\bbun\.lock\b/i, label: "bun.lock update", suggestion: "lockfile consistency check" },
+    { regex: /\bvendor\b/i, label: "vendor update", suggestion: "submodule state tracking" },
+    { regex: /\bfix\(.*\):/i, label: "bug fix", suggestion: "regression detection for repeated fixes in same scope" },
+    { regex: /\bhotfix\b/i, label: "hotfix", suggestion: "hot-fix frequency tracking" },
+    { regex: /\brevert\b/i, label: "revert", suggestion: "revert frequency tracking" },
+    { regex: /\bskip\b/i, label: "skip", suggestion: "skipped check tracking" },
+  ]
+
+  for (const msg of messages) {
+    for (const kp of keywordPatterns) {
+      if (kp.regex.test(msg)) {
+        keywordCounts.set(kp.label, (keywordCounts.get(kp.label) ?? 0) + 1)
+      }
+    }
+  }
+
+  // Report patterns appearing 2+ times
+  for (const kp of keywordPatterns) {
+    const count = keywordCounts.get(kp.label) ?? 0
+    if (count >= 2) {
+      patterns.push(
+        `"${kp.label}" appeared in ${count} of last ${messages.length} commits \u2192 Consider: ${kp.suggestion}`,
+      )
+    }
+  }
+
+  // Check for npm commands in a bun project
+  const npmUsage = messages.filter((m) => /\bnpm\s+(install|audit|run|test)\b/i.test(m))
+  if (npmUsage.length > 0) {
+    patterns.push(
+      `npm commands found in ${npmUsage.length} commit message(s) \u2192 This is a bun project; ensure bun equivalents are used`,
+    )
+  }
+
+  // Check for repeated scopes in fix() commits
+  const fixScopes = new Map<string, number>()
+  for (const msg of messages) {
+    const match = msg.match(/^fix\(([^)]+)\):/)
+    if (match) {
+      const scope = match[1]!
+      fixScopes.set(scope, (fixScopes.get(scope) ?? 0) + 1)
+    }
+  }
+  for (const [scope, count] of fixScopes) {
+    if (count >= 2) {
+      patterns.push(
+        `fix(${scope}) committed ${count}x \u2192 Repeated fixes in same scope suggest underlying issue`,
+      )
+    }
+  }
+
+  return patterns
+}
+
+/** Analyze state.json findings for issues */
+function analyzeStateFindings(state: State): string[] {
+  const insights: string[] = []
+
+  // Check for checks that always pass across all domains
+  const allFindings = Object.values(state.lastFindings).flat()
+  if (allFindings.length === 0) {
+    insights.push("No scan results in state.json \u2014 run `bun sop scan --all` first")
+    return insights
+  }
+
+  // Group findings by check id
+  const byCheck = new Map<string, Finding[]>()
+  for (const f of allFindings) {
+    const key = `${f.domain}.${f.check}`
+    const list = byCheck.get(key) ?? []
+    list.push(f)
+    byCheck.set(key, list)
+  }
+
+  // Look for checks that always error (may be misconfigured)
+  for (const [key, findings] of byCheck) {
+    if (findings.every((f) => f.status === "error")) {
+      const summary = findings[0]?.summary ?? ""
+      insights.push(
+        `${key} always fails ("${summary}") \u2192 May be misconfigured or permanently broken`,
+      )
+    }
+  }
+
+  // Look for findings with "skipped" or "not found" in summary (false pass)
+  for (const f of allFindings) {
+    if (
+      f.status === "pass" &&
+      (/\bskip/i.test(f.summary) || /\bnot found\b/i.test(f.summary) || /\bnot available\b/i.test(f.summary))
+    ) {
+      insights.push(
+        `${f.domain}.${f.check} reported pass but summary says "${f.summary}" \u2192 Distinguish skipped from passed`,
+      )
+    }
+  }
+
+  // Look for checks with "failed to run" in summary
+  for (const f of allFindings) {
+    if (/failed to run/i.test(f.summary)) {
+      insights.push(
+        `${f.domain}.${f.check}: "${f.summary}" \u2192 Check command may need updating`,
+      )
+    }
+  }
+
+  return insights
+}
+
+/** Analyze for potential new anti-patterns */
+function analyzeAntiPatterns(
+  gitLog: string,
+  beadsOutput: string,
+  rulesContent: string,
+): string[] {
+  const candidates: string[] = []
+
+  // Check if npm audit is being used in a bun project without noting it
+  if (
+    gitLog.includes("npm audit") &&
+    !rulesContent.includes("npm audit in non-npm project") &&
+    !rulesContent.includes("npm audit in bun")
+  ) {
+    candidates.push(
+      'npm audit used in bun project \u2192 Add to _sop-rules.md anti-pattern table',
+    )
+  }
+
+  // Check if "baseline" appears heavily in git log (baseline-reset pattern)
+  const baselineCount = (gitLog.match(/baseline/gi) ?? []).length
+  if (baselineCount >= 3) {
+    const alreadyDocumented = rulesContent.includes("Baseline reset as")
+    if (!alreadyDocumented) {
+      candidates.push(
+        `Baseline reset appeared ${baselineCount}x in recent commits \u2192 Document the baseline-reset anti-pattern`,
+      )
+    }
+  }
+
+  // Check if beads output shows stale claimed beads (claimed but no activity)
+  if (beadsOutput.includes("claimed") || beadsOutput.includes("in_progress")) {
+    const claimedLines = beadsOutput
+      .split("\n")
+      .filter((l) => /claimed|in.progress/i.test(l))
+    if (claimedLines.length > 5) {
+      candidates.push(
+        `${claimedLines.length} beads in claimed/in-progress state \u2192 Consider stale-claim detection`,
+      )
+    }
+  }
+
+  return candidates
+}
+
+/** Analyze for missing checks */
+function analyzeMissingChecks(gitLog: string, state: State): string[] {
+  const missing: string[] = []
+
+  // Check if we have submodule checks
+  const hasSubmoduleCheck = DOMAINS.some((d) =>
+    d.checks.some((c) => c.id.includes("submodule") || c.command.includes("submodule")),
+  )
+  if (!hasSubmoduleCheck && gitLog.includes("vendor")) {
+    missing.push(
+      "No check for submodule state (vendor/* clean/dirty)",
+    )
+  }
+
+  // Check if we track bun.lock consistency beyond lockfile-integrity
+  const hasLockConsistency = DOMAINS.some((d) =>
+    d.checks.some((c) => c.command.includes("bun.lock") || c.id === "lockfile-integrity"),
+  )
+  if (!hasLockConsistency) {
+    missing.push(
+      "No check for bun.lock consistency (lockfile matches package.json)",
+    )
+  }
+
+  // Check for git worktree state check
+  const hasWorktreeCheck = DOMAINS.some((d) =>
+    d.checks.some((c) => c.id.includes("worktree") || c.command.includes("worktree")),
+  )
+  if (!hasWorktreeCheck) {
+    missing.push(
+      "No check for leftover git worktrees",
+    )
+  }
+
+  // Check if any domain in state had findings with "non-JSON output" (suggests wrong tool)
+  const allFindings = Object.values(state.lastFindings).flat()
+  const jsonParseFailures = allFindings.filter((f) =>
+    /non-JSON/i.test(f.summary) || /could not parse/i.test(f.summary),
+  )
+  if (jsonParseFailures.length > 0) {
+    for (const f of jsonParseFailures) {
+      missing.push(
+        `${f.domain}.${f.check} produces unparseable output \u2192 Fix parser or switch to structured output`,
+      )
+    }
+  }
+
+  return missing
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -1279,6 +1639,7 @@ async function main(): Promise<void> {
     args: process.argv.slice(2),
     options: {
       all: { type: "boolean", default: false },
+      apply: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
     allowPositionals: true,
@@ -1296,6 +1657,8 @@ Commands:
   scan --all         Run all domains regardless of cadence
   status             Show what's due, last run times
   dashboard          Render last scan results
+  update             Analyze session context and propose SOP improvements
+  update --apply     (future) Auto-write proposed changes
   help               Show this help
 
 Domains: ${DOMAINS.map((d) => d.id).join(", ")}
@@ -1306,7 +1669,8 @@ Examples:
   bun sop scan code         # Just code domain
   bun sop scan code backlog # Multiple domains
   bun sop status            # What's due
-  bun sop dashboard         # Last results`)
+  bun sop dashboard         # Last results
+  bun sop update            # Propose SOP improvements`)
     return
   }
 
@@ -1435,6 +1799,11 @@ Examples:
         return
       }
       renderDashboard(state)
+      break
+    }
+
+    case "update": {
+      await runUpdate(state, values.apply ?? false)
       break
     }
 
