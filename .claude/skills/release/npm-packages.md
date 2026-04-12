@@ -4,6 +4,33 @@ All packages published under maintainer `beorno`. Source of truth: `registry.npm
 
 Last updated: 2026-04-11 (63 packages)
 
+<!--
+  AUDIT NOTES (run `bun npm-registry audit` for live diff)
+
+  As of 2026-04-11 the live registry has 60 packages by maintainer beorno.
+  Drift detected vs this file:
+
+  Version drift (live > md — bump these rows after the next sync):
+    silvery              md=0.17.2  live=0.17.4
+    @silvery/ansi        md=0.3.4   live=0.17.3   (renumbered to silvery scheme)
+    @silvery/color       md=0.1.2   live=0.17.3
+    @silvery/commander   md=0.8.2   live=0.17.4
+    @silvery/examples    md=0.5.6   live=0.17.5
+    loggily              md=0.6.1   live=0.6.2
+    vimonkey             md=0.2.1   live=0.2.3
+
+  In md but missing from registry (mostly correct — these are local-only or
+  unpublished/deprecated packages, but worth a periodic re-check):
+    @silvery/ag, @silvery/ag-react, @silvery/ag-term, @silvery/commands,
+    @silvery/create, @silvery/headless, @silvery/ink, @silvery/model,
+    @silvery/scope, @silvery/selection, @silvery/signals, @silvery/test,
+    @silvery/theme, @beorn/accountly, @beorn/tap, @beorn/watcher-chaos,
+    claude-tty-mcp
+
+  To regenerate this audit: `bun npm-registry audit`
+-->
+
+
 ## Active Packages
 
 ### Silvery ecosystem

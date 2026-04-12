@@ -138,7 +138,21 @@ Final status table. Close beads referenced in the proposal.
 - `release.ts` — status, verify, execute (thin orchestration)
 - `diffs.ts` — dumps unreleased commits + diffs for Claude to read
 - `release.legacy.ts` — pre-upgrade version kept for comparison (delete once new version stable)
-- `npm-packages.md` — canonical registry of all 50+ published packages
+- `npm-packages.md` — canonical registry of all 60+ published packages
+
+### Querying the npm registry
+
+Don't curl `https://registry.npmjs.org/...` from inside the release skill. All registry interaction lives in the [`/npm` skill](../npm/SKILL.md), backed by `bun npm-registry`:
+
+```bash
+bun npm-registry list             # all packages by maintainer beorno
+bun npm-registry status <pkg>     # version, downloads, deprecation, dist-tags
+bun npm-registry audit            # cross-check npm-packages.md vs live registry
+bun npm-registry placeholders     # stale placeholder packages
+bun npm-registry renamed          # renamed/superseded packages
+```
+
+Run `bun npm-registry audit` before and after a release to keep `npm-packages.md` honest. Results are cached for 5 minutes in `/tmp/.npm-registry-cache.json`.
 
 ### Verify command details
 
