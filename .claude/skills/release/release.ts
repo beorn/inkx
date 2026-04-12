@@ -445,6 +445,207 @@ async function executeCmd(opts: { filter?: string }): Promise<void> {
   }
 }
 
+// ─── Verify (npm pack + install + run) ─────────────────────────────────────
+
+interface VerifyResult {
+  pkg: string
+  version: string
+  ok: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+async function verifyPackage(pkgDir: string): Promise<VerifyResult> {
+  const { mkdtempSync, rmSync, writeFileSync } = await import("node:fs")
+  const { tmpdir } = await import("node:os")
+  const { join: pjoin } = await import("node:path")
+
+  const pkgJson = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"))
+  const result: VerifyResult = {
+    pkg: pkgJson.name,
+    version: pkgJson.version,
+    ok: true,
+    errors: [],
+    warnings: [],
+  }
+
+  console.log(`\n${style.bold(`verifying ${pkgJson.name}@${pkgJson.version}`)}`)
+
+  let tempDir: string | null = null
+  try {
+    // 1. pnpm pack — create a real tarball with publishConfig applied
+    // (npm pack does NOT apply publishConfig — only npm publish does. pnpm pack does.)
+    console.log(`  ${style.dim("→")} pnpm pack`)
+    const packOutput = execSync("pnpm pack 2>&1", { cwd: pkgDir, encoding: "utf8", timeout: 60000 })
+    // pnpm pack prints the tarball filename on the last line
+    const lines = packOutput.trim().split("\n")
+    const tarballName = lines[lines.length - 1]?.trim()
+    if (!tarballName || !tarballName.endsWith(".tgz")) {
+      result.ok = false
+      result.errors.push(`pnpm pack did not produce a tarball: ${packOutput}`)
+      return result
+    }
+    const tarballPath = join(pkgDir, tarballName)
+    if (!existsSync(tarballPath)) {
+      result.ok = false
+      result.errors.push(`tarball not found: ${tarballPath}`)
+      return result
+    }
+
+    // 2. Create temp dir, init, install tarball with fresh npm cache
+    // Fresh cache is critical: stale ~/.npm cache may serve old tarballs
+    tempDir = mkdtempSync(pjoin(tmpdir(), "release-verify-"))
+    const cacheDir = pjoin(tempDir, ".npm-cache")
+    console.log(`  ${style.dim("→")} install in ${tempDir}`)
+    writeFileSync(pjoin(tempDir, "package.json"), JSON.stringify({ name: "verify", version: "0.0.0", private: true }, null, 2))
+    execSync(`npm install "${tarballPath}" --no-save --silent`, {
+      cwd: tempDir,
+      encoding: "utf8",
+      timeout: 120000,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, NPM_CONFIG_CACHE: cacheDir },
+    })
+
+    // Cleanup tarball
+    rmSync(tarballPath, { force: true })
+
+    // 3. Verify installed package
+    const installedDir = pjoin(tempDir, "node_modules", pkgJson.name)
+    if (!existsSync(installedDir)) {
+      result.ok = false
+      result.errors.push(`installed package not found at ${installedDir}`)
+      return result
+    }
+
+    const installedPkg = JSON.parse(readFileSync(pjoin(installedDir, "package.json"), "utf8"))
+
+    // 4. Test imports — use the published exports
+    // Skip for CLI-only packages (bin but no library exports, or empty exports)
+    const exports = installedPkg.exports
+    const isCLIOnly = installedPkg.bin && !exports
+    if (exports && typeof exports === "object" && !Array.isArray(exports) && !isCLIOnly) {
+      const mainExport = exports["."]
+      if (mainExport) {
+        try {
+          execSync(
+            `node -e "import('${pkgJson.name}').then(m => { const k = Object.keys(m); console.log('OK:', k.length, 'exports') }).catch(e => { console.error(e.message); process.exit(1) })"`,
+            { cwd: tempDir, encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] },
+          )
+          console.log(`  ${style.green("✓")} import works`)
+        } catch (e) {
+          const stderr = (e as { stderr?: string }).stderr || String(e)
+          result.ok = false
+          result.errors.push(`import failed: ${stderr.split("\n").slice(0, 3).join(" ")}`)
+          console.log(`  ${style.red("✗")} import failed`)
+        }
+      }
+    }
+
+    // 5. Test bin (CLI) — run --help, expect exit code 0
+    const bin = installedPkg.bin
+    if (bin) {
+      const binEntries: Array<[string, string]> = typeof bin === "string"
+        ? [[pkgJson.name, bin]]
+        : Object.entries(bin) as Array<[string, string]>
+
+      for (const [binName] of binEntries) {
+        const binPath = pjoin(tempDir, "node_modules", ".bin", binName)
+        if (!existsSync(binPath)) {
+          result.warnings.push(`bin ${binName} not symlinked`)
+          continue
+        }
+        try {
+          execSync(`"${binPath}" --help`, {
+            cwd: tempDir,
+            encoding: "utf8",
+            timeout: 30000,
+            stdio: ["ignore", "pipe", "pipe"],
+          })
+          console.log(`  ${style.green("✓")} ${binName} --help`)
+        } catch (e) {
+          const err = e as { stderr?: string; status?: number }
+          // --help unknown? try --version
+          try {
+            execSync(`"${binPath}" --version`, {
+              cwd: tempDir,
+              encoding: "utf8",
+              timeout: 30000,
+              stdio: ["ignore", "pipe", "pipe"],
+            })
+            console.log(`  ${style.green("✓")} ${binName} --version`)
+          } catch {
+            result.ok = false
+            const stderr = err.stderr || String(e)
+            result.errors.push(`${binName}: ${stderr.split("\n").slice(0, 3).join(" ")}`)
+            console.log(`  ${style.red("✗")} ${binName} crashed`)
+          }
+        }
+      }
+    }
+
+    if (result.ok) {
+      console.log(`  ${style.green("✓ verified")}`)
+    } else {
+      console.log(`  ${style.red("✗ verification failed")}`)
+      for (const err of result.errors) console.log(`    ${style.red(err)}`)
+    }
+  } catch (e) {
+    result.ok = false
+    result.errors.push(`verify crashed: ${e instanceof Error ? e.message : e}`)
+    console.log(`  ${style.red("✗ crashed")}: ${e}`)
+  } finally {
+    if (tempDir) {
+      try {
+        rmSync(tempDir, { recursive: true, force: true })
+      } catch {}
+    }
+  }
+
+  return result
+}
+
+async function verifyCmd(opts: { filter?: string }): Promise<void> {
+  const repos = discoverRepos()
+  const packages = discoverPackages(repos)
+
+  const targets = opts.filter
+    ? packages.filter(p => {
+        const f = opts.filter!.toLowerCase()
+        return p.name.toLowerCase().includes(f) || p.repoName.toLowerCase().includes(f)
+      })
+    : packages
+
+  if (targets.length === 0) {
+    console.log(style.yellow("No packages match filter."))
+    return
+  }
+
+  console.log(`Verifying ${targets.length} packages from npm pack tarballs...\n`)
+
+  const results: VerifyResult[] = []
+  for (const pkg of targets) {
+    const pkgDir = join(pkg.repoDir, pkg.dir)
+    const result = await verifyPackage(pkgDir)
+    results.push(result)
+  }
+
+  // Summary
+  const passed = results.filter(r => r.ok).length
+  const failed = results.filter(r => !r.ok)
+
+  console.log(`\n${style.bold("Verify Summary")}`)
+  console.log(`  ${style.green(`${passed}/${results.length} passed`)}`)
+
+  if (failed.length > 0) {
+    console.log(`\n${style.red("Failed:")}`)
+    for (const r of failed) {
+      console.log(`  ${style.red(r.pkg)}@${r.version}`)
+      for (const err of r.errors) console.log(`    ${err}`)
+    }
+    process.exit(1)
+  }
+}
+
 // ─── CLI ────────────────────────────────────────────────────────────────────
 
 const program = new Command()
@@ -469,6 +670,12 @@ program
   .command("fix-tags")
   .description("Create missing git tags for already-published versions")
   .action(fixTagsCmd)
+
+program
+  .command("verify")
+  .description("Verify packages by npm pack + install in temp dir + run CLI/import")
+  .argument("[filter]", "Filter by repo or package name")
+  .action((filter: string | undefined) => verifyCmd({ filter }))
 
 program
   .command("execute")
