@@ -31,7 +31,7 @@ const REPOS = [
   "vendor/termless",
   "vendor/vterm",
   "vendor/vimonkey",
-  "vendor/watcher-chaos",
+  // watcher-chaos: intentionally NOT released — internal package, no GitHub repo
 ]
 
 interface Commit {

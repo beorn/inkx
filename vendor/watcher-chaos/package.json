@@ -1,61 +1,20 @@
 {
   "name": "@beorn/watcher-chaos",
   "version": "0.2.0",
-  "description": "Drop-in chaos file watcher for testing — simulates dropped events, reordering, coalescing, atomic writes, and event storms with deterministic replay",
-  "keywords": [
-    "chaos",
-    "chaos-engineering",
-    "chokidar",
-    "deterministic",
-    "file-watching",
-    "fsevents",
-    "fuzz",
-    "inotify",
-    "seeded-random",
-    "simulation",
-    "testing",
-    "watcher"
-  ],
-  "homepage": "https://github.com/beorn/watcher-chaos#readme",
-  "bugs": {
-    "url": "https://github.com/beorn/watcher-chaos/issues"
-  },
+  "private": true,
+  "description": "Internal: chaos file watcher for testing — not published",
   "license": "MIT",
   "author": "beorn",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/beorn/watcher-chaos.git"
-  },
-  "files": [
-    "dist"
-  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
-  "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.mts",
-        "import": "./dist/index.mjs"
-      }
-    }
-  },
   "scripts": {
-    "build": "tsdown",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "tsdown": "^0.21.7",
     "typescript": "^5.7.3"
-  },
-  "tsdown": {
-    "clean": true,
-    "dts": true,
-    "entry": "src/index.ts",
-    "format": "esm"
   },
   "engines": {
     "node": ">=23.6.0"

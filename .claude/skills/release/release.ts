@@ -110,7 +110,7 @@ const REPO_CONFIGS: RepoConfig[] = [
   { dir: "vendor/termless", monorepo: true, tagScheme: "shared" },
   { dir: "vendor/vterm", monorepo: true, tagScheme: "shared" },
   { dir: "vendor/vimonkey", monorepo: false, tagScheme: "shared" },
-  { dir: "vendor/watcher-chaos", monorepo: false, tagScheme: "shared" },
+  // watcher-chaos: intentionally NOT released — internal package, no GitHub repo
 ]
 
 /**
@@ -248,9 +248,13 @@ function discoverPackages(repos: Repo[]): PkgStatus[] {
 function matchesFilter(pkg: PkgStatus, filter?: string): boolean {
   if (!filter) return true
   const f = filter.toLowerCase()
-  // "silvery" filter matches the silvery repo (not packages with silvery in the name)
-  if (f === "silvery") return pkg.repoName === "silvery"
-  return pkg.name.toLowerCase().includes(f) || pkg.repoName.toLowerCase().includes(f)
+  // Exact repo-name match wins: "vterm" matches the vterm repo, not @termless/vterm.
+  // Fall back to substring match on repo name only (not package name) so filters
+  // like "bearly" match the bearly repo without catching unrelated packages.
+  if (pkg.repoName.toLowerCase() === f) return true
+  // If any repo exactly matches the filter, don't fall through to substring.
+  // (Caller-side concern, but keep the substring fallback for partial matches.)
+  return pkg.repoName.toLowerCase().includes(f)
 }
 
 function buildPlan(packages: PkgStatus[], _repos: Repo[], filter?: string): Plan {
@@ -639,9 +643,28 @@ function coordinatedBump(repoDir: string, newVersion: string): string[] {
  * Build a package using tsdown. Runs in the package directory.
  * Returns true on success.
  */
-function buildPackage(pkgDir: string): void {
+function buildPackage(pkgDir: string, repoDir: string): void {
   console.log(`    ${style.dim("→")} building (tsdown)`)
-  exec("npx tsdown", pkgDir, { timeout: 120000 })
+  // Prefer locally-installed tsdown so rolldown-plugin-dts can find the
+  // submodule's typescript via upward node_modules resolution. Fall back to
+  // bunx if not installed. npx is avoided: it triggers npm resolution which
+  // hits km root's $@silvery/* workspace overrides and fails outside km root.
+  const localTsdown = join(pkgDir, "node_modules/.bin/tsdown")
+  const repoTsdown = join(repoDir, "node_modules/.bin/tsdown")
+  if (existsSync(localTsdown)) {
+    exec(localTsdown, pkgDir, { timeout: 120000 })
+  } else if (existsSync(repoTsdown)) {
+    exec(repoTsdown, pkgDir, { timeout: 120000 })
+  } else {
+    // No tsdown in tree — install submodule deps first, then retry.
+    console.log(`    ${style.dim("→")} installing repo deps (for tsdown + typescript)`)
+    exec("bun install", repoDir, { timeout: 300000 })
+    if (existsSync(repoTsdown)) {
+      exec(repoTsdown, pkgDir, { timeout: 120000 })
+    } else {
+      exec("bunx --bun tsdown", pkgDir, { timeout: 120000 })
+    }
+  }
 }
 
 /**
@@ -815,7 +838,11 @@ async function executeRelease(
       // ── Step 1: Pre-flight checks ──
       console.log(`  ${style.bold("Pre-flight checks")}`)
 
+      // Ignore .release-state.json (our own resume marker, always untracked)
       const porcelain = git("status --porcelain", r.repoDir)
+        .split("\n")
+        .filter((line) => line.trim() && !line.endsWith(".release-state.json"))
+        .join("\n")
       if (porcelain) {
         throw new Error(`Dirty tree in ${r.repoName}:\n${porcelain}\nCommit or stash changes first.`)
       }
@@ -876,7 +903,7 @@ async function executeRelease(
           // Only build if tsdown config exists
           const pkgJson = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"))
           if (pkgJson.tsdown || existsSync(join(pkgDir, "tsdown.config.ts"))) {
-            buildPackage(pkgDir)
+            buildPackage(pkgDir, r.repoDir)
             console.log(`    ${style.green("✓")} built ${pkg.name}`)
           } else {
             console.log(`    ${style.dim(pkg.name + " — no tsdown config, skipping build")}`)
@@ -1317,7 +1344,9 @@ async function verifyCmd(opts: { filter?: string }): Promise<void> {
   const targets = opts.filter
     ? packages.filter(p => {
         const f = opts.filter!.toLowerCase()
-        return p.name.toLowerCase().includes(f) || p.repoName.toLowerCase().includes(f)
+        // Prefer exact repo-name match (e.g. "vterm" should NOT match @termless/vterm).
+        // Only fall back to package-name substring if the filter doesn't match any repo exactly.
+        return p.repoName.toLowerCase() === f
       })
     : packages
 

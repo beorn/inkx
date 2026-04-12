@@ -157,5 +157,5 @@ Last updated: 2026-04-11 (63 packages)
 | `@silvery/selection` | packages/silvery-selection/ | Pure selection state machine |
 | `@beorn/accountly` | vendor/accountly/ | Multi-account credential manager (private) |
 | `@beorn/tap` | vendor/tap/ | TAP stream orchestration (private) |
-| `@beorn/watcher-chaos` | vendor/watcher-chaos/ | Chaos file watcher (private) |
+| ~~`@beorn/watcher-chaos`~~ | vendor/watcher-chaos/ | Internal only — NOT released, no GitHub repo |
 | `claude-tty-mcp` | vendor/bearly/plugins/tty/ | TTY testing MCP server |
