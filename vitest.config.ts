@@ -31,10 +31,6 @@ const vendorAliases = [
 			replacement: resolve(__dirname, `vendor/silvery/packages/${pkg}/src/$1`),
 		},
 	]),
-	{
-		find: /^loggily\/(.+)$/,
-		replacement: resolve(__dirname, "vendor/loggily/src/$1"),
-	},
 ]
 
 // mdspec's vite Plugin type may resolve to a different vite copy than vitest/config,
