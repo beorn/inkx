@@ -229,6 +229,31 @@ node -e "import('<package>').then(m => console.log('OK:', Object.keys(m).slice(0
 For CLIs: `npx <package>@<version> --help`
 For silvery: also test `npx @silvery/examples --help`
 
+### npm Registry API
+
+Query the public npm registry directly — no auth needed for reads.
+
+**All packages by maintainer** (weekly downloads, versions):
+```bash
+curl -s "https://registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for p in sorted(data['objects'], key=lambda x: x['package']['name']):
+    pkg = p['package']
+    dl = p.get('downloads',{}).get('weekly',0)
+    print(f\"  {pkg['name']:30s}  {pkg.get('version','?'):10s}  {dl:>6}/wk\")
+"
+```
+
+**Single package info**: `curl -s https://registry.npmjs.org/<name> | python3 -m json.tool`
+
+**Deprecate a package**:
+```bash
+npm deprecate "<name>@*" "Message — use X instead"
+```
+
+**Local auth**: logged in as `beorno`. CI uses `NPM_TOKEN` secret in GitHub Actions (configured for silvery, loggily, flexily).
+
 ### Error Recovery
 
 | Error | Fix |
