@@ -21,7 +21,23 @@ One skill to groom everything. Each domain owns assets, runs checks (scan→prop
 /sop --weekly     # Only domains with weekly+ cadence
 /sop --monthly    # Only domains with monthly+ cadence
 /sop --quarterly  # All domains (quarterly = everything)
+/sop update       # Meta: update SOP itself from current context
 ```
+
+### `/sop update` — self-improvement
+
+Looks at the current session's context (recent commits, beads closed, tribe messages, bugs hit, workarounds applied) and proposes updates to the SOP:
+
+- **New checks**: "you manually ran `npm audit` — should that be a check in the security domain?"
+- **Missing assets**: "release.ts was modified but isn't tracked as an infra asset"
+- **New triggers**: "silvery exports broke tests — add code.change → packages.check(exports) trigger?"
+- **Cadence drift**: "you ran legal checks twice this week but it's set to quarterly — adjust?"
+- **Domain gaps**: "you spent 30 min on bundle size analysis — should packaging domain have a bundle-size check?"
+- **Workflow capture**: "this session's pattern (fix → verify → release → update docs) is a repeatable workflow — codify as a check sequence?"
+
+Reads: recent git log, open beads, tribe history, session recall. Proposes edits to SKILL.md. User approves before writing.
+
+This is how `/sop` learns — every session that does maintenance work feeds back into the SOP definition.
 
 ## Architecture
 
