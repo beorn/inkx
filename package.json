@@ -64,6 +64,7 @@
     "tribe-retro": "bun vendor/bearly/tools/tribe-retro.ts",
     "llm": "bun vendor/bearly/tools/llm.ts",
     "refactor": "bun vendor/bearly/tools/refactor.ts",
+    "sop": "bun tools/sop.ts",
     "tap": "bun ./vendor/tap/src/cli/runner.ts",
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "lint": "bash infra/lint.sh",

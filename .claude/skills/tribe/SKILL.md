@@ -12,10 +12,11 @@ Cross-session coordination. Parse the subcommand from ARGUMENTS.
 
 | User Says | Action |
 |-----------|--------|
-| `/tribe` | `tribe_sessions()` — show who's online |
+| `/tribe` | Consult the tribe — broadcast the current question/topic to all members for input |
+| `/tribe sessions` or `/tribe who` | `tribe_sessions()` — show who's online |
 | `/tribe status` | `tribe_sessions()` + `tribe_health()` — full dashboard |
 | `/tribe health` | `tribe_health()` — warnings, silent members, unread counts |
-| `/tribe sessions` | `tribe_sessions()` — list active sessions |
+| `/tribe sessions` | (same as above) |
 | `/tribe sessions --all` | `tribe_sessions(all=true)` — include dead sessions |
 | `/tribe send <to> <message>` | `tribe_send(to, message)` — send notify message |
 | `/tribe assign <to> <message>` | `tribe_send(to, message, type="assign")` — assign work |

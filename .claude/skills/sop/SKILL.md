@@ -11,6 +11,8 @@ benefits-from: [recall, pm, infra]
 
 One skill to groom everything. Each domain owns assets, runs checks (scan→propose→execute), and triggers other domains reactively.
 
+**MANDATORY**: Before running any checks, load [_sop-rules.md](_sop-rules.md). It contains approval rules, anti-pattern table, finding quality standards, and the self-improvement protocol. Every domain agent must follow it.
+
 ## Execution Protocol (MANDATORY)
 
 When `/sop` is invoked, follow this sequence exactly:
@@ -31,10 +33,12 @@ After the scan completes, broadcast findings summary to tribe:
 tribe_broadcast("SOP scan complete: [domain summary]. N findings (X warn, Y error).")
 ```
 
-### Step 3: Propose actions for warn/error findings
+### Step 3: Fix findings (--fix mode)
 For each finding with status warn or error:
-- **auto-approval checks** (lint, format): execute the fix immediately
+- **auto-approval checks** (lint, format, type errors): spawn a background Agent to fix, continue scanning
 - **ask-approval checks** (publish, close beads, delete): present to user and wait
+- **NEVER update baselines to hide errors** — fix the actual code. Baselines are for upstream issues we can't control, not for our own bugs.
+- Use background agents for independent fixes so the user isn't blocked
 
 ### Step 4: Session promotion check
 If backlog domain ran, also run:

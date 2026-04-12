@@ -5,17 +5,25 @@
  * Runs maintenance checks across domains, tracks cadence, renders dashboard.
  *
  * Usage:
- *   bun tools/sop.ts scan              # Run due domains
- *   bun tools/sop.ts scan --all        # Run all regardless of cadence
- *   bun tools/sop.ts scan code         # Just one domain
- *   bun tools/sop.ts scan code backlog # Multiple domains
- *   bun tools/sop.ts status            # What's due, last run times
- *   bun tools/sop.ts dashboard         # Render last scan results
+ *   bun sop scan              # Run due domains
+ *   bun sop scan --all        # Run all regardless of cadence
+ *   bun sop scan code         # Just one domain
+ *   bun sop scan code backlog # Multiple domains
+ *   bun sop status            # What's due, last run times
+ *   bun sop dashboard         # Render last scan results
  */
 
 import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
+import { createLogger } from "loggily"
+
+// ─── Logging ────────────────────────────────────────────────────────────────
+
+const log = createLogger("sop", [
+  { level: "debug" },
+  { file: "/tmp/sop.log", format: "json" },
+])
 
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +48,7 @@ interface Finding {
   status: Status
   summary: string
   details?: string
+  durationMs: number
 }
 
 interface Check {
@@ -59,9 +68,15 @@ interface DomainDef {
   checks: Check[]
 }
 
+interface DomainTiming {
+  durationMs: number
+}
+
 interface State {
   lastRun: Record<string, string>
   lastFindings: Record<string, Finding[]>
+  lastDomainTimings?: Record<string, DomainTiming>
+  lastScanDurationMs?: number
 }
 
 // ─── State persistence ──────────────────────────────────────────────────────
@@ -111,13 +126,60 @@ function nextDueDate(domain: DomainDef, state: State): string | null {
   return dueAt.toISOString().split("T")[0]!
 }
 
+// ─── Formatting helpers ─────────────────────────────────────────────────────
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+// ─── Common parse helper ────────────────────────────────────────────────────
+
+/**
+ * Factory for parsers that follow the common pattern:
+ * check exitCode, count matching lines, return pass/warn/error.
+ */
+function parseByCounting(opts: {
+  check: string
+  domain: string
+  lineFilter: (line: string) => boolean
+  passMessage: string
+  warnTemplate: (count: number) => string
+  errorThreshold?: number
+  failMessage?: string
+  skipPatterns?: string[]
+}): (stdout: string, _: string, exitCode: number) => Finding {
+  return (stdout, _, exitCode) => {
+    // If exitCode indicates failure and no skip pattern matched, count lines
+    if (exitCode !== 0) {
+      const skipped = opts.skipPatterns?.some((p) => stdout.includes(p))
+      if (skipped) {
+        return { check: opts.check, domain: opts.domain, status: "pass", summary: opts.passMessage, durationMs: 0 }
+      }
+      if (opts.failMessage) {
+        return { check: opts.check, domain: opts.domain, status: "warn", summary: opts.failMessage, details: stdout.slice(-300), durationMs: 0 }
+      }
+    }
+
+    const lines = stdout.trim().split("\n").filter(opts.lineFilter)
+    if (lines.length === 0) {
+      return { check: opts.check, domain: opts.domain, status: "pass", summary: opts.passMessage, durationMs: 0 }
+    }
+    const threshold = opts.errorThreshold ?? Infinity
+    return {
+      check: opts.check,
+      domain: opts.domain,
+      status: lines.length >= threshold ? "error" : "warn",
+      summary: opts.warnTemplate(lines.length),
+      details: lines.slice(0, 10).join("\n"),
+      durationMs: 0,
+    }
+  }
+}
+
 // ─── Check parsers ──────────────────────────────────────────────────────────
 
-function parseTypecheck(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseTypecheck(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
     const match = stdout.match(/OK \((\d+) errors/)
     const count = match?.[1] ?? "0"
@@ -126,6 +188,7 @@ function parseTypecheck(
       domain: "code",
       status: "pass",
       summary: `baseline clean (${count} known)`,
+      durationMs: 0,
     }
   }
   const match = stdout.match(/(\d+) new type error/)
@@ -136,36 +199,25 @@ function parseTypecheck(
     status: "error",
     summary: `${count} new type error(s) beyond baseline`,
     details: stdout.slice(-500),
+    durationMs: 0,
   }
 }
 
-function parseLint(
-  _stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseLint(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
-    return {
-      check: "lint",
-      domain: "code",
-      status: "pass",
-      summary: "0 lint errors",
-    }
+    return { check: "lint", domain: "code", status: "pass", summary: "0 lint errors", durationMs: 0 }
   }
   return {
     check: "lint",
     domain: "code",
     status: "error",
     summary: "lint/format errors found",
-    details: _stdout.slice(-500),
+    details: stdout.slice(-500),
+    durationMs: 0,
   }
 }
 
-function parseTestFast(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseTestFast(stdout: string, _: string, exitCode: number): Finding {
   // Vitest output: "Tests  N passed" or "Tests  N failed | M passed"
   const passMatch = stdout.match(/Tests\s+(\d+)\s+passed/)
   const failMatch = stdout.match(/(\d+)\s+failed/)
@@ -173,12 +225,7 @@ function parseTestFast(
   const failed = failMatch?.[1]
 
   if (exitCode === 0 && !failed) {
-    return {
-      check: "test-fast",
-      domain: "code",
-      status: "pass",
-      summary: `${passed} tests pass`,
-    }
+    return { check: "test-fast", domain: "code", status: "pass", summary: `${passed} tests pass`, durationMs: 0 }
   }
   return {
     check: "test-fast",
@@ -186,14 +233,11 @@ function parseTestFast(
     status: "error",
     summary: `${failed ?? "?"} tests failed (${passed} passed)`,
     details: stdout.slice(-500),
+    durationMs: 0,
   }
 }
 
-function parseVersionDrift(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseVersionDrift(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0) {
     return {
       check: "version-drift",
@@ -201,19 +245,14 @@ function parseVersionDrift(
       status: "warn",
       summary: "version drift check failed to run",
       details: stdout.slice(-500),
+      durationMs: 0,
     }
   }
-  // Look for drift indicators
   const driftLines = stdout
     .split("\n")
     .filter((l) => l.includes("behind") || l.includes("ahead") || l.includes("drift"))
   if (driftLines.length === 0) {
-    return {
-      check: "version-drift",
-      domain: "packages",
-      status: "pass",
-      summary: "no version drift detected",
-    }
+    return { check: "version-drift", domain: "packages", status: "pass", summary: "no version drift detected", durationMs: 0 }
   }
   return {
     check: "version-drift",
@@ -221,56 +260,22 @@ function parseVersionDrift(
     status: "warn",
     summary: `${driftLines.length} package(s) with version drift`,
     details: driftLines.join("\n"),
+    durationMs: 0,
   }
 }
 
-function parseUnreleased(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "unreleased",
-      domain: "packages",
-      status: "warn",
-      summary: "release status check failed to run",
-      details: stdout.slice(-500),
-    }
-  }
-  // Look for packages with unreleased commits
-  const unreleasedLines = stdout
-    .split("\n")
-    .filter((l) => /\+\d+/.test(l) || l.includes("unreleased"))
-  if (unreleasedLines.length === 0) {
-    return {
-      check: "unreleased",
-      domain: "packages",
-      status: "pass",
-      summary: "all packages released",
-    }
-  }
-  return {
-    check: "unreleased",
-    domain: "packages",
-    status: "warn",
-    summary: `${unreleasedLines.length} package(s) with unreleased changes`,
-    details: unreleasedLines.join("\n"),
-  }
-}
+const parseUnreleased = parseByCounting({
+  check: "unreleased",
+  domain: "packages",
+  lineFilter: (l) => /\+\d+/.test(l) || l.includes("unreleased"),
+  passMessage: "all packages released",
+  warnTemplate: (n) => `${n} package(s) with unreleased changes`,
+  failMessage: "release status check failed to run",
+})
 
-function parsePublishability(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parsePublishability(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
-    return {
-      check: "publishability",
-      domain: "packages",
-      status: "pass",
-      summary: "all packages publishable",
-    }
+    return { check: "publishability", domain: "packages", status: "pass", summary: "all packages publishable", durationMs: 0 }
   }
   const errorLines = stdout
     .split("\n")
@@ -283,14 +288,11 @@ function parsePublishability(
       : "warn",
     summary: `${errorLines.length} publishability issue(s)`,
     details: errorLines.join("\n"),
+    durationMs: 0,
   }
 }
 
-function parseUntriagedIssues(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseUntriagedIssues(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0) {
     return {
       check: "untriaged-issues",
@@ -298,6 +300,7 @@ function parseUntriagedIssues(
       status: "warn",
       summary: "could not fetch GitHub issues",
       details: stdout.slice(-500),
+      durationMs: 0,
     }
   }
   try {
@@ -306,36 +309,23 @@ function parseUntriagedIssues(
       title: string
       labels: Array<{ name: string }>
     }>
-    // Untriaged = no labels (or no "triaged" label)
     const untriaged = issues.filter(
       (i) => !i.labels.some((l) => l.name === "triaged"),
     )
     if (untriaged.length === 0) {
-      return {
-        check: "untriaged-issues",
-        domain: "inbound",
-        status: "pass",
-        summary: "0 untriaged issues",
-      }
+      return { check: "untriaged-issues", domain: "inbound", status: "pass", summary: "0 untriaged issues", durationMs: 0 }
     }
     return {
       check: "untriaged-issues",
       domain: "inbound",
       status: "warn",
       summary: `${untriaged.length} untriaged issue(s)`,
-      details: untriaged
-        .map((i) => `#${i.number} ${i.title}`)
-        .join("\n"),
+      details: untriaged.map((i) => `#${i.number} ${i.title}`).join("\n"),
+      durationMs: 0,
     }
   } catch {
-    // If no issues, gh returns []
     if (stdout.trim() === "[]" || stdout.trim() === "") {
-      return {
-        check: "untriaged-issues",
-        domain: "inbound",
-        status: "pass",
-        summary: "0 untriaged issues",
-      }
+      return { check: "untriaged-issues", domain: "inbound", status: "pass", summary: "0 untriaged issues", durationMs: 0 }
     }
     return {
       check: "untriaged-issues",
@@ -343,22 +333,14 @@ function parseUntriagedIssues(
       status: "warn",
       summary: "could not parse GitHub issues response",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
 }
 
-function parseNpmAudit(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseNpmAudit(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
-    return {
-      check: "unpatched-cves",
-      domain: "inbound",
-      status: "pass",
-      summary: "0 CVEs",
-    }
+    return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
   }
   try {
     const audit = JSON.parse(stdout) as {
@@ -366,21 +348,11 @@ function parseNpmAudit(
     }
     const vulns = audit.metadata?.vulnerabilities
     if (!vulns) {
-      return {
-        check: "unpatched-cves",
-        domain: "inbound",
-        status: "pass",
-        summary: "0 CVEs",
-      }
+      return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
     }
     const total = Object.values(vulns).reduce((a, b) => a + b, 0)
     if (total === 0) {
-      return {
-        check: "unpatched-cves",
-        domain: "inbound",
-        status: "pass",
-        summary: "0 CVEs",
-      }
+      return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
     }
     const critHigh = (vulns["critical"] ?? 0) + (vulns["high"] ?? 0)
     return {
@@ -392,6 +364,7 @@ function parseNpmAudit(
         .filter(([, v]) => v > 0)
         .map(([k, v]) => `${k}: ${v}`)
         .join(", "),
+      durationMs: 0,
     }
   } catch {
     return {
@@ -400,79 +373,30 @@ function parseNpmAudit(
       status: "warn",
       summary: "npm audit produced non-JSON output",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
 }
 
-function parseStaleBeads(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "stale-beads",
-      domain: "backlog",
-      status: "warn",
-      summary: "bd stale failed to run",
-      details: stdout.slice(-300),
-    }
-  }
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0 || stdout.includes("No stale")) {
-    return {
-      check: "stale-beads",
-      domain: "backlog",
-      status: "pass",
-      summary: "0 stale beads",
-    }
-  }
-  return {
-    check: "stale-beads",
-    domain: "backlog",
-    status: "warn",
-    summary: `${lines.length} stale bead(s)`,
-    details: lines.slice(0, 10).join("\n"),
-  }
-}
+const parseStaleBeads = parseByCounting({
+  check: "stale-beads",
+  domain: "backlog",
+  lineFilter: (l) => l.trim().length > 0 && !l.includes("No stale"),
+  passMessage: "0 stale beads",
+  warnTemplate: (n) => `${n} stale bead(s)`,
+  failMessage: "bd stale failed to run",
+})
 
-function parseOrphanDeps(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "orphan-deps",
-      domain: "backlog",
-      status: "warn",
-      summary: "bd orphans failed to run",
-      details: stdout.slice(-300),
-    }
-  }
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0 || stdout.includes("No orphan")) {
-    return {
-      check: "orphan-deps",
-      domain: "backlog",
-      status: "pass",
-      summary: "0 orphan deps",
-    }
-  }
-  return {
-    check: "orphan-deps",
-    domain: "backlog",
-    status: "warn",
-    summary: `${lines.length} orphan dep(s)`,
-    details: lines.slice(0, 10).join("\n"),
-  }
-}
+const parseOrphanDeps = parseByCounting({
+  check: "orphan-deps",
+  domain: "backlog",
+  lineFilter: (l) => l.trim().length > 0 && !l.includes("No orphan"),
+  passMessage: "0 orphan deps",
+  warnTemplate: (n) => `${n} orphan dep(s)`,
+  failMessage: "bd orphans failed to run",
+})
 
-function parsePriorityDrift(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parsePriorityDrift(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0) {
     return {
       check: "priority-drift",
@@ -480,16 +404,12 @@ function parsePriorityDrift(
       status: "warn",
       summary: "bd list failed to run",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
   const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
   if (lines.length === 0) {
-    return {
-      check: "priority-drift",
-      domain: "backlog",
-      status: "pass",
-      summary: "0 P0/P1 beads",
-    }
+    return { check: "priority-drift", domain: "backlog", status: "pass", summary: "0 P0/P1 beads", durationMs: 0 }
   }
   return {
     check: "priority-drift",
@@ -497,91 +417,33 @@ function parsePriorityDrift(
     status: lines.length > 5 ? "error" : "warn",
     summary: `${lines.length} open P0/P1 bead(s)`,
     details: lines.slice(0, 10).join("\n"),
+    durationMs: 0,
   }
 }
 
-function parseLinkCheck(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  if (exitCode !== 0 && !stdout.includes("not found") && !stdout.includes("No such")) {
-    const brokenCount = stdout
-      .split("\n")
-      .filter((l) => l.includes("broken") || l.includes("404") || l.includes("FAIL"))
-      .length
-    return {
-      check: "link-check",
-      domain: "sites",
-      status: brokenCount > 0 ? "warn" : "pass",
-      summary: brokenCount > 0 ? `${brokenCount} broken link(s)` : "links OK",
-      details: brokenCount > 0 ? stdout.slice(-500) : undefined,
-    }
-  }
-  if (stdout.includes("not found") || stdout.includes("No such")) {
-    return {
-      check: "link-check",
-      domain: "sites",
-      status: "pass",
-      summary: "no link check scripts found (skipped)",
-    }
-  }
-  return {
-    check: "link-check",
-    domain: "sites",
-    status: "pass",
-    summary: "links OK",
-  }
-}
+const parseLinkCheck = parseByCounting({
+  check: "link-check",
+  domain: "sites",
+  lineFilter: (l) => l.includes("broken") || l.includes("404") || l.includes("FAIL"),
+  passMessage: "links OK",
+  warnTemplate: (n) => `${n} broken link(s)`,
+  skipPatterns: ["not found", "No such"],
+})
 
-function parseFreshness(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "freshness",
-      domain: "sites",
-      status: "warn",
-      summary: "freshness check failed to run",
-      details: stdout.slice(-300),
-    }
-  }
-  const staleLines = stdout
-    .split("\n")
-    .filter((l) => l.includes("stale") || l.includes("outdated"))
-  if (staleLines.length === 0) {
-    return {
-      check: "freshness",
-      domain: "sites",
-      status: "pass",
-      summary: "docs appear fresh",
-    }
-  }
-  return {
-    check: "freshness",
-    domain: "sites",
-    status: "warn",
-    summary: `${staleLines.length} stale doc(s)`,
-    details: staleLines.join("\n"),
-  }
-}
+const parseFreshness = parseByCounting({
+  check: "freshness",
+  domain: "sites",
+  lineFilter: (l) => l.includes("stale") || l.includes("outdated"),
+  passMessage: "docs appear fresh",
+  warnTemplate: (n) => `${n} stale doc(s)`,
+  failMessage: "freshness check failed to run",
+})
 
 // ─── V2 check parsers ──────────────────────────────────────────────────────
 
-function parseCveScan(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseCveScan(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
-    return {
-      check: "cve-scan",
-      domain: "security",
-      status: "pass",
-      summary: "0 vulnerabilities",
-    }
+    return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
   }
   try {
     const audit = JSON.parse(stdout) as {
@@ -589,24 +451,14 @@ function parseCveScan(
     }
     const vulns = audit.metadata?.vulnerabilities
     if (!vulns) {
-      return {
-        check: "cve-scan",
-        domain: "security",
-        status: "pass",
-        summary: "0 vulnerabilities",
-      }
+      return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
     }
     const critical = vulns["critical"] ?? 0
     const high = vulns["high"] ?? 0
     const moderate = vulns["moderate"] ?? 0
     const total = Object.values(vulns).reduce((a, b) => a + b, 0)
     if (total === 0) {
-      return {
-        check: "cve-scan",
-        domain: "security",
-        status: "pass",
-        summary: "0 vulnerabilities",
-      }
+      return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
     }
     if (critical > 0 || high > 0) {
       return {
@@ -618,6 +470,7 @@ function parseCveScan(
           .filter(([, v]) => v > 0)
           .map(([k, v]) => `${k}: ${v}`)
           .join(", "),
+        durationMs: 0,
       }
     }
     return {
@@ -629,6 +482,7 @@ function parseCveScan(
         .filter(([, v]) => v > 0)
         .map(([k, v]) => `${k}: ${v}`)
         .join(", "),
+      durationMs: 0,
     }
   } catch {
     return {
@@ -637,45 +491,23 @@ function parseCveScan(
       status: "warn",
       summary: "npm audit produced non-JSON output",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
 }
 
-function parseSecretScan(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (exitCode !== 0 || lines.length === 0 || stdout.trim() === "") {
-    return {
-      check: "secret-scan",
-      domain: "security",
-      status: "pass",
-      summary: "no secrets detected",
-    }
-  }
-  return {
-    check: "secret-scan",
-    domain: "security",
-    status: "error",
-    summary: `${lines.length} potential secret(s) found`,
-    details: lines.slice(0, 10).join("\n"),
-  }
-}
+const parseSecretScan = parseByCounting({
+  check: "secret-scan",
+  domain: "security",
+  lineFilter: (l) => l.trim().length > 0,
+  passMessage: "no secrets detected",
+  warnTemplate: (n) => `${n} potential secret(s) found`,
+  errorThreshold: 1,
+})
 
-function parseLockfileIntegrity(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseLockfileIntegrity(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode === 0) {
-    return {
-      check: "lockfile-integrity",
-      domain: "security",
-      status: "pass",
-      summary: "lockfile in sync",
-    }
+    return { check: "lockfile-integrity", domain: "security", status: "pass", summary: "lockfile in sync", durationMs: 0 }
   }
   return {
     check: "lockfile-integrity",
@@ -683,24 +515,15 @@ function parseLockfileIntegrity(
     status: "error",
     summary: "lockfile out of sync with package.json",
     details: stdout.slice(-300),
+    durationMs: 0,
   }
 }
 
-function parseBundleSizes(
-  stdout: string,
-  _stderr: string,
-  _exitCode: number,
-): Finding {
+function parseBundleSizes(stdout: string, _: string): Finding {
   const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
   if (lines.length === 0) {
-    return {
-      check: "bundle-sizes",
-      domain: "packaging",
-      status: "pass",
-      summary: "no dist/ directories found",
-    }
+    return { check: "bundle-sizes", domain: "packaging", status: "pass", summary: "no dist/ directories found", durationMs: 0 }
   }
-  // Check if any line shows > 500K
   const large = lines.filter((l) => {
     const match = l.match(/^([\d.]+)([KMGT]?)/)
     if (!match) return false
@@ -718,22 +541,14 @@ function parseBundleSizes(
       ? `${large.length} bundle(s) > 500KB`
       : `${lines.length} bundle(s), all under 500KB`,
     details: lines.join("\n"),
+    durationMs: 0,
   }
 }
 
-function parseZeroDepCheck(
-  stdout: string,
-  _stderr: string,
-  _exitCode: number,
-): Finding {
+function parseZeroDepCheck(stdout: string): Finding {
   const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
   if (lines.length === 0) {
-    return {
-      check: "zero-dep-check",
-      domain: "packaging",
-      status: "pass",
-      summary: "no vendor packages with dependencies",
-    }
+    return { check: "zero-dep-check", domain: "packaging", status: "pass", summary: "no vendor packages with dependencies", durationMs: 0 }
   }
   return {
     check: "zero-dep-check",
@@ -741,14 +556,11 @@ function parseZeroDepCheck(
     status: "pass",
     summary: `${lines.length} vendor package(s) with dependencies`,
     details: lines.join("\n"),
+    durationMs: 0,
   }
 }
 
-function parseCjsEsmCompat(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseCjsEsmCompat(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!"))) {
     return {
       check: "cjs-esm-compat",
@@ -756,23 +568,21 @@ function parseCjsEsmCompat(
       status: "warn",
       summary: "attw tool not available",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
-  const hasProblems = stdout.includes("✗") || stdout.includes("problem") || stdout.includes("error")
+  const hasProblems = stdout.includes("\u2717") || stdout.includes("problem") || stdout.includes("error")
   return {
     check: "cjs-esm-compat",
     domain: "packaging",
     status: hasProblems ? "warn" : "pass",
     summary: hasProblems ? "CJS/ESM compat issues found" : "CJS/ESM compat OK",
     details: stdout.slice(-500),
+    durationMs: 0,
   }
 }
 
-function parseCiHealth(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseCiHealth(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0) {
     return {
       check: "ci-health",
@@ -780,6 +590,7 @@ function parseCiHealth(
       status: "warn",
       summary: "could not fetch CI runs",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
   try {
@@ -789,12 +600,7 @@ function parseCiHealth(
       name: string
     }>
     if (runs.length === 0) {
-      return {
-        check: "ci-health",
-        domain: "infra",
-        status: "pass",
-        summary: "no recent CI runs",
-      }
+      return { check: "ci-health", domain: "infra", status: "pass", summary: "no recent CI runs", durationMs: 0 }
     }
     const failed = runs.filter((r) => r.conclusion === "failure")
     const inProgress = runs.filter((r) => r.status === "in_progress")
@@ -805,6 +611,7 @@ function parseCiHealth(
         status: "error",
         summary: `${failed.length} failed CI run(s)`,
         details: failed.map((r) => `FAIL: ${r.name}`).join("\n"),
+        durationMs: 0,
       }
     }
     if (inProgress.length > 0) {
@@ -814,14 +621,10 @@ function parseCiHealth(
         status: "warn",
         summary: `${inProgress.length} CI run(s) in progress`,
         details: inProgress.map((r) => `IN_PROGRESS: ${r.name}`).join("\n"),
+        durationMs: 0,
       }
     }
-    return {
-      check: "ci-health",
-      domain: "infra",
-      status: "pass",
-      summary: `${runs.length} recent run(s) succeeded`,
-    }
+    return { check: "ci-health", domain: "infra", status: "pass", summary: `${runs.length} recent run(s) succeeded`, durationMs: 0 }
   } catch {
     return {
       check: "ci-health",
@@ -829,15 +632,12 @@ function parseCiHealth(
       status: "warn",
       summary: "could not parse CI runs response",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
 }
 
-function parseHookIntegrity(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseHookIntegrity(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0) {
     return {
       check: "hook-integrity",
@@ -845,6 +645,7 @@ function parseHookIntegrity(
       status: "warn",
       summary: "could not list hooks directory",
       details: stdout.slice(-300),
+      durationMs: 0,
     }
   }
   const hasRunHook = stdout.includes("run-hook.sh")
@@ -855,6 +656,7 @@ function parseHookIntegrity(
       status: "warn",
       summary: "missing expected hook: run-hook.sh",
       details: stdout,
+      durationMs: 0,
     }
   }
   const files = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
@@ -864,51 +666,30 @@ function parseHookIntegrity(
     status: "pass",
     summary: `${files.length} hook file(s) present`,
     details: stdout.trim(),
+    durationMs: 0,
   }
 }
 
-function parseToolVersions(
-  stdout: string,
-  _stderr: string,
-  _exitCode: number,
-): Finding {
+function parseToolVersions(stdout: string): Finding {
   return {
     check: "tool-versions",
     domain: "infra",
     status: "pass",
     summary: "tool versions collected",
     details: stdout.trim().slice(-500),
+    durationMs: 0,
   }
 }
 
-function parseLicenseFiles(
-  stdout: string,
-  _stderr: string,
-  _exitCode: number,
-): Finding {
-  const lines = stdout.trim().split("\n").filter((l) => l.includes("MISSING"))
-  if (lines.length === 0) {
-    return {
-      check: "license-files",
-      domain: "legal",
-      status: "pass",
-      summary: "all vendor packages have LICENSE files",
-    }
-  }
-  return {
-    check: "license-files",
-    domain: "legal",
-    status: "warn",
-    summary: `${lines.length} vendor package(s) missing LICENSE`,
-    details: lines.join("\n"),
-  }
-}
+const parseLicenseFiles = parseByCounting({
+  check: "license-files",
+  domain: "legal",
+  lineFilter: (l) => l.includes("MISSING"),
+  passMessage: "all vendor packages have LICENSE files",
+  warnTemplate: (n) => `${n} vendor package(s) missing LICENSE`,
+})
 
-function parseDepLicenses(
-  stdout: string,
-  _stderr: string,
-  exitCode: number,
-): Finding {
+function parseDepLicenses(stdout: string, _: string, exitCode: number): Finding {
   if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!") || stdout.includes("Cannot find"))) {
     return {
       check: "dep-licenses",
@@ -916,10 +697,9 @@ function parseDepLicenses(
       status: "warn",
       summary: "license-checker not installed",
       details: "install with: npx license-checker",
+      durationMs: 0,
     }
   }
-  const hasGpl = /\bGPL\b/i.test(stdout) && !/LGPL/i.test(stdout.replace(/GPL/g, ""))
-  // More careful: check for standalone GPL (not LGPL)
   const gplLines = stdout.split("\n").filter((l) => /\bGPL(?!.*LGPL)\b/i.test(l) && !/LGPL/i.test(l))
   if (gplLines.length > 0) {
     return {
@@ -928,6 +708,7 @@ function parseDepLicenses(
       status: "warn",
       summary: `GPL license found in ${gplLines.length} production dep(s)`,
       details: stdout.slice(-500),
+      durationMs: 0,
     }
   }
   return {
@@ -936,6 +717,7 @@ function parseDepLicenses(
     status: "pass",
     summary: "license distribution OK",
     details: stdout.slice(-500),
+    durationMs: 0,
   }
 }
 
@@ -1029,7 +811,7 @@ export const DOMAINS: DomainDef[] = [
         id: "unpatched-cves",
         domain: "inbound",
         label: "unpatched CVEs",
-        command: "npm audit --json 2>&1",
+        command: "bun pm audit --json 2>&1 || echo '{}'",
         cadence: "weekly",
         approval: "auto",
         parse: parseNpmAudit,
@@ -1090,7 +872,6 @@ export const DOMAINS: DomainDef[] = [
         domain: "sites",
         label: "doc freshness",
         command: [
-          // Compare last doc commit vs last package version tag for each vendor package
           "for pkg in vendor/silvery vendor/flexily vendor/vterm vendor/ansi vendor/mdspec; do",
           "  if [ -d \"$pkg\" ]; then",
           "    name=$(basename $pkg)",
@@ -1118,7 +899,7 @@ export const DOMAINS: DomainDef[] = [
         id: "cve-scan",
         domain: "security",
         label: "CVE scan",
-        command: "npm audit --json 2>&1",
+        command: "bun pm audit --json 2>&1 || echo '{}'",
         cadence: "weekly",
         approval: "auto",
         parse: parseCveScan,
@@ -1128,7 +909,7 @@ export const DOMAINS: DomainDef[] = [
         domain: "security",
         label: "secret scan",
         command:
-          'grep -rn "sk-\\|AKIA\\|ghp_\\|gho_\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git . 2>&1',
+          'grep -rn "sk-\\|AKIA\\|ghp_\\|gho_\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=.beads --exclude-dir=.claude . 2>&1',
         cadence: "weekly",
         approval: "auto",
         parse: parseSecretScan,
@@ -1153,7 +934,7 @@ export const DOMAINS: DomainDef[] = [
         id: "bundle-sizes",
         domain: "packaging",
         label: "bundle sizes",
-        command: "du -sh vendor/*/dist/ 2>/dev/null | sort -rh",
+        command: "for d in vendor/*/; do [ -f \"$d/package.json\" ] && grep -q '\"private\"' \"$d/package.json\" 2>/dev/null && continue; name=$(basename \"$d\"); js=$(find \"$d/dist\" -name '*.mjs' -o -name '*.js' 2>/dev/null | xargs cat 2>/dev/null | wc -c); echo \"$((js/1024))K\\t$name\"; done | sort -rn",
         cadence: "monthly",
         approval: "auto",
         parse: parseBundleSizes,
@@ -1245,7 +1026,10 @@ const DOMAIN_MAP = new Map(DOMAINS.map((d) => [d.id, d]))
 // ─── Run a check ────────────────────────────────────────────────────────────
 
 async function runCheck(check: Check): Promise<Finding> {
+  const start = performance.now()
   try {
+    using checkSpan = log.span!("check", { id: check.id })
+
     const proc = Bun.spawn(["bash", "-c", check.command], {
       cwd: REPO_ROOT,
       stdout: "pipe",
@@ -1257,20 +1041,32 @@ async function runCheck(check: Check): Promise<Finding> {
     const stderr = await new Response(proc.stderr).text()
     const exitCode = await proc.exited
 
-    return check.parse(stdout, stderr, exitCode)
+    const durationMs = performance.now() - start
+    const finding = { ...check.parse(stdout, stderr, exitCode), durationMs }
+
+    log.debug?.("check complete", { check: check.id, status: finding.status, summary: finding.summary })
+    checkSpan.spanData.status = finding.status
+
+    return finding
   } catch (err) {
+    const durationMs = performance.now() - start
+    log.error?.(err instanceof Error ? err : new Error(String(err)), "check execution failed", { check: check.id })
     return {
       check: check.id,
       domain: check.domain,
       status: "error",
       summary: `failed to execute: ${err instanceof Error ? err.message : String(err)}`,
+      durationMs,
     }
   }
 }
 
 // ─── Run a domain ───────────────────────────────────────────────────────────
 
-async function runDomain(domain: DomainDef): Promise<Finding[]> {
+async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; durationMs: number }> {
+  const domainStart = performance.now()
+  using domainSpan = log.span!("domain", { id: domain.id })
+
   const findings: Finding[] = []
   for (const check of domain.checks) {
     process.stderr.write(`  running ${domain.id}.${check.id}...`)
@@ -1281,10 +1077,14 @@ async function runDomain(domain: DomainDef): Promise<Finding[]> {
         : finding.status === "warn"
           ? " warn"
           : " FAIL"
-    process.stderr.write(`${icon}\n`)
+    process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
     findings.push(finding)
   }
-  return findings
+
+  const domainDurationMs = performance.now() - domainStart
+  domainSpan.spanData.checkCount = findings.length
+
+  return { findings, durationMs: domainDurationMs }
 }
 
 // ─── Dashboard rendering ────────────────────────────────────────────────────
@@ -1300,7 +1100,7 @@ function statusIcon(status: Status): string {
   }
 }
 
-function domainSummary(domainId: string, findings: Finding[]): string {
+function domainSummary(domainId: string, findings: Finding[], domainTiming?: DomainTiming): string {
   if (findings.length === 0) return "\u2014 no results"
 
   const worst: Status = findings.some((f) => f.status === "error")
@@ -1310,8 +1110,14 @@ function domainSummary(domainId: string, findings: Finding[]): string {
       : "pass"
 
   const icon = statusIcon(worst)
-  const summaries = findings.map((f) => f.summary).join(", ")
-  return `${icon} ${summaries}`
+  const summaries = findings
+    .map((f) => {
+      const dur = f.durationMs > 0 ? ` (${formatDuration(f.durationMs)})` : ""
+      return `${f.summary}${dur}`
+    })
+    .join(", ")
+  const domainDur = domainTiming ? `  [${formatDuration(domainTiming.durationMs)}]` : ""
+  return `${icon} ${summaries}${domainDur}`
 }
 
 function renderDashboard(state: State): void {
@@ -1336,7 +1142,8 @@ function renderDashboard(state: State): void {
         console.log(`  ${padded}    \u2014 never run`)
       }
     } else {
-      const summary = domainSummary(domain.id, findings)
+      const domainTiming = state.lastDomainTimings?.[domain.id]
+      const summary = domainSummary(domain.id, findings, domainTiming)
       console.log(`  ${padded}    ${summary}`)
     }
   }
@@ -1348,6 +1155,10 @@ function renderDashboard(state: State): void {
 
   console.log()
   console.log(`  Findings: ${warns} warn, ${errors} error`)
+
+  if (state.lastScanDurationMs != null) {
+    console.log(`  Total scan time: ${formatDuration(state.lastScanDurationMs)}`)
+  }
 
   // Next due
   const dueDomains = DOMAINS.filter((d) => !isDue(d, state))
@@ -1421,7 +1232,7 @@ async function main(): Promise<void> {
   const domainArgs = positionals.slice(1)
 
   if (values.help || command === "help") {
-    console.log(`Usage: bun tools/sop.ts <command> [domains...] [options]
+    console.log(`Usage: bun sop <command> [domains...] [options]
 
 Commands:
   scan [domain...]   Run checks for specified domains (or all due)
@@ -1433,12 +1244,12 @@ Commands:
 Domains: ${DOMAINS.map((d) => d.id).join(", ")}
 
 Examples:
-  bun tools/sop.ts scan              # Run due domains
-  bun tools/sop.ts scan --all        # Run all
-  bun tools/sop.ts scan code         # Just code domain
-  bun tools/sop.ts scan code backlog # Multiple domains
-  bun tools/sop.ts status            # What's due
-  bun tools/sop.ts dashboard         # Last results`)
+  bun sop scan              # Run due domains
+  bun sop scan --all        # Run all
+  bun sop scan code         # Just code domain
+  bun sop scan code backlog # Multiple domains
+  bun sop status            # What's due
+  bun sop dashboard         # Last results`)
     return
   }
 
@@ -1480,13 +1291,18 @@ Examples:
       )
       console.error()
 
+      const scanStart = performance.now()
+      state.lastDomainTimings ??= {}
+
       for (const domain of domainsToRun) {
         console.error(`[${domain.id}]`)
-        const findings = await runDomain(domain)
+        const { findings, durationMs } = await runDomain(domain)
         state.lastRun[domain.id] = new Date().toISOString()
         state.lastFindings[domain.id] = findings
+        state.lastDomainTimings[domain.id] = { durationMs }
       }
 
+      state.lastScanDurationMs = performance.now() - scanStart
       saveState(state)
       renderDashboard(state)
       break
@@ -1499,7 +1315,7 @@ Examples:
 
     case "dashboard": {
       if (Object.keys(state.lastFindings).length === 0) {
-        console.log("No scan results yet. Run: bun tools/sop.ts scan")
+        console.log("No scan results yet. Run: bun sop scan")
         return
       }
       renderDashboard(state)
@@ -1508,7 +1324,7 @@ Examples:
 
     default: {
       console.error(`Unknown command: ${command}`)
-      console.error("Run: bun tools/sop.ts help")
+      console.error("Run: bun sop help")
       process.exit(1)
     }
   }
