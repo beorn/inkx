@@ -300,19 +300,18 @@ State stored in `.claude/skills/sop/state.json`:
 
 ## Relation to Existing Skills
 
-`/sop` is the orchestrator. Existing skills become check implementations:
+`/sop` absorbs the organizational/audit layer. These skills get deleted once `/sop` is wired:
+- `/audit` — replaced by `/sop` (its check registry becomes domain entries)
+- `/review-all` — replaced by `/sop --scan-only` (its sections map to domains)
+- `/project-audit` — absorbed into `sop.code` + `sop.sites`
+- `/project-cleanup` — absorbed into `sop.infra`
+- `/repo-health` — absorbed into `sop.packages`
+- `/complete` — absorbed into `sop.code` + `sop.backlog`
 
-| Old entry point | Now callable via |
-|---|---|
-| `/audit` | `/sop all` (or specific domains) |
-| `/review-all` | `/sop all --scan-only` |
-| `/release` | `/sop packages` (or standalone) |
-| `/code quality` | `/sop code` (or standalone) |
-| `/legal` | `/sop legal` (or standalone) |
-| `/infra` | `/sop infra` (or standalone) |
-| `/pm review` | `/sop backlog` (or standalone) |
+Domain-specific skills stay as standalone entry points (useful for focused work):
+- `/release`, `/code`, `/tests`, `/legal`, `/infra`, `/pm`, `/npm`, `/docs`
 
-All leaf skills remain usable standalone. `/sop` adds: unified dashboard, cadence tracking, cross-domain triggers, MECE coverage guarantee.
+`/sop` delegates to these. They don't know about `/sop` — they just do their job and return findings.
 
 ## Implementation Roadmap
 
