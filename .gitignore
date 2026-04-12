@@ -82,3 +82,4 @@ editset.json
 .dolt/
 *.db
 .beads-credential-key
+.changeset/
