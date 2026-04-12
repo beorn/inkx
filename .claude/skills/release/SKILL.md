@@ -233,26 +233,25 @@ For silvery: also test `npx @silvery/examples --help`
 
 Query the public npm registry directly — no auth needed for reads.
 
-**All packages by maintainer** (weekly downloads, versions):
+**All packages by maintainer** (one call, no pagination needed for <250 packages):
 ```bash
-curl -s "https://registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for p in sorted(data['objects'], key=lambda x: x['package']['name']):
-    pkg = p['package']
-    dl = p.get('downloads',{}).get('weekly',0)
-    print(f\"  {pkg['name']:30s}  {pkg.get('version','?'):10s}  {dl:>6}/wk\")
-"
+curl -s "https://registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250"
 ```
+Returns JSON with `total`, `objects[]` containing `package.name`, `package.version`, `downloads.weekly`. Pagination: add `&from=N` if total > 250.
 
-**Single package info**: `curl -s https://registry.npmjs.org/<name> | python3 -m json.tool`
+**Single package detail**: `curl -s https://registry.npmjs.org/<name>`
 
-**Deprecate a package**:
-```bash
-npm deprecate "<name>@*" "Message — use X instead"
-```
+**Deprecate**: `npm deprecate "<name>@*" "Message — use X instead"`
+
+**Undeprecate**: `npm deprecate "<name>@*" ""`
 
 **Local auth**: logged in as `beorno`. CI uses `NPM_TOKEN` secret in GitHub Actions (configured for silvery, loggily, flexily).
+
+**Known stale placeholders** (0.0.1, name reservations — can be deprecated or left):
+aicentral, corecmd, corecommand, silverai, silvercode, silvercommand, silvertea, termily, textily, @visory/visory, mostlydb, hottest, strictest, @finetea/*, @termless/term
+
+**Renamed/superseded** (should be deprecated if not already):
+@bearly/vitepress-enrich → vitepress-enrich, @silvery/react → silvery, @silvery/tea → silvery, @silvery/term → silvery, @silvery/cli → silvery, @termless/monorepo → @termless/core, termless → @termless/core
 
 ### Error Recovery
 
