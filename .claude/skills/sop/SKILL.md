@@ -109,7 +109,7 @@ Check {
 **Triggers**: new dependencies added (→ packages)
 **Delegates to**: `/legal`
 
-### 6. ecosystem — what changed in the world?
+### 6. market — what changed in the world?
 
 **Assets**: comparison docs, terminfo.dev probes, upstream version pins
 **Cadence**: monthly
@@ -122,7 +122,7 @@ Check {
 **Delegates to**: `/ink-compat`, `/terminfo-update`, `/deep` (research)
 **Execute**: update comparisons, run probes, regenerate terminfo.dev
 
-### 7. reach — how are we doing?
+### 7. growth — how are we doing?
 
 **Assets**: analytics dashboards, download trends, star counts, social profiles
 **Cadence**: monthly
@@ -167,8 +167,8 @@ Check {
 
 ```
 code.change(API)         → sites.check(freshness) + packages.check(unreleased)
-packages.publish(v0.18)  → sites.update(READMEs) + reach.check(downloads) + backlog.close(beads)
-ecosystem.detect(Ink 8)  → sites.update(comparison) + reach.check(losing downloads?)
+packages.publish(v0.18)  → sites.update(READMEs) + growth.check(downloads) + backlog.close(beads)
+market.detect(Ink 8)  → sites.update(comparison) + growth.check(losing downloads?)
 inbound.triage(CVE)      → code.fix(patch) + packages.release(security bump)
 inbound.triage(issue)    → backlog.create(bead)
 ```
@@ -183,8 +183,8 @@ SOP Report — 2026-04-12
   sites       ⚠ silvery.dev API docs stale (last updated v0.17.4, current v0.17.4+14 commits)
   infra       ✓ 5/7 CI green, 2 workflows need fix (termless, watcher-chaos)
   legal       ✓ all licenses compatible (last checked 2026-03-15)
-  ecosystem   ⚠ Ink 7.0 comparison page references Ink 6.x
-  reach       ✓ silvery 844 dl/wk (+12%), loggily 359 dl/wk (+8%)
+  market   ⚠ Ink 7.0 comparison page references Ink 6.x
+  growth       ✓ silvery 844 dl/wk (+12%), loggily 359 dl/wk (+8%)
   inbound     ✓ 0 untriaged issues, 0 CVEs
   backlog     ⚠ 3 stale P2 beads, 2 orphan deps
 
@@ -231,4 +231,4 @@ All leaf skills remain usable standalone. `/sop` adds: unified dashboard, cadenc
 2. Add cadence tracking (state.json)
 3. Add dashboard renderer
 4. Add cross-domain triggers
-5. Fill in missing checks (reach, ecosystem probes)
+5. Fill in missing checks (growth, market probes)
