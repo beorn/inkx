@@ -1,273 +1,151 @@
 ---
-description: "Release packages — audit, build, version bump, changelog, npm publish, smoke test. Handles single packages and coordinated monorepo releases."
-argument-hint: "[--status|--audit|<package-path>|silvery|all] [--dry-run|patch|minor|major]"
+description: "Release packages — AI-native coordinated release across vendor submodules. Claude reads diffs, proposes changesets, executes with verify."
+argument-hint: "[status|propose|verify|execute|<repo>|all] [--dry-run]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
 ---
 
 # Release
 
-**Keywords**: release, publish, version, changelog, npm, tag, vendor release, status
+**Keywords**: release, publish, version, changelog, npm, tag, vendor release, status, propose, changeset
 
-## CLI Tool
+## Shape
 
-The release tool lives at `.claude/skills/release/release.ts`. Run via `bun release` (script in root package.json).
+**AI-native coordinated release across 8 vendor submodules.**
 
-```bash
-bun release                  # Default: show status
-bun release status           # Release status table
-bun release status -v        # Status with commit messages (what changed)
-bun release plan             # Status + plan (what would happen)
-bun release plan -v          # Plan with commit details
-bun release plan silvery     # Plan filtered to silvery packages
-bun release fix-tags         # Create missing tags for published versions
-bun release verify <pkg>     # pnpm pack + install + run CLI/import (catches publish-time bugs)
-bun release execute          # Fix tags + prepare releases
-bun release execute silvery  # Execute filtered to silvery
-```
+The intelligence is in Claude reading diffs and writing changesets. The tools are thin:
 
-**When running as `/release`**: always use `-v` to get commit details, then **summarize** for the user. Don't paste raw commit messages — synthesize into a one-line description per package (e.g., "examples refactor + README additions" not "feat(examples): switch from spawn to dynamic import+main(), docs: add READMEs for @silvery/color and @silvery/ansi").
+| Piece | What | Who/what does it |
+|-------|------|------------------|
+| `bun release status` | Gather versions, tags, npm state, unreleased commit counts | TS tool |
+| `bun .claude/skills/release/diffs.ts [repo]` | Dump unreleased commits with full diffs | TS tool |
+| `/release propose` | Read diffs, group logical changes, write `.changeset/*.md` proposals | **Claude** |
+| (user reviews/edits changeset files) | Human approval | User |
+| `bun release verify <pkg>` | pnpm pack + install + run in temp dir | TS tool |
+| `/release` (execute) | For each repo in dep order: `changeset version` → build → verify → `changeset publish` → push | TS tool + Claude orchestration |
 
-**Verification is mandatory after every publish.** The `bun release verify <pkg>` command runs `pnpm pack` (which applies publishConfig, unlike `npm pack`), installs the tarball in a temp dir with an isolated npm cache, and runs the actual CLI / import path. This catches bugs that workspace resolution hides:
-- Missing dependencies (workspace has them, published doesn't)
-- Wrong bin/exports paths
-- Files included that shouldn't be (e.g., raw .ts when only dist should ship)
-
-Run `bun release verify <pkg>` after every publish, before declaring done.
-
-## Usage
-
-| Command | What happens |
-|---------|-------------|
-| `/release` | Run `bun release plan`, present results, confirm, execute |
-| `/release --status` | Run `bun release status` (read-only) |
-| `/release --audit` | Run `bun infra/audit-packages.ts` |
-| `/release silvery` | Run `bun release plan silvery`, confirm, execute |
-| `/release vendor/loggily` | Release a single package |
-| `/release all` | Release every package with unreleased changes |
-| `/release --dry-run silvery` | Run `bun release plan silvery` only (no execution) |
-
-## Target
-
-**Argument**: $ARGUMENTS
+**Changesets** (github.com/changesets/changesets) handles the mechanics: version bumps, cross-dep updates, changelog generation, topological publish order, git tags. We never hand-author changeset files — **Claude generates them from diffs**, user reviews.
 
 ## Repos
 
-Scan all vendor repos that contain publishable packages:
+| Repo | Versioning | `linked` config |
+|------|-----------|-----------------|
+| `vendor/silvery` | coordinated | `[["silvery", "@silvery/*"]]` (9 public packages share one version) |
+| `vendor/loggily` | single | none |
+| `vendor/flexily` | single | none |
+| `vendor/bearly` | per-package | none |
+| `vendor/termless` | coordinated | `[["@termless/*"]]` |
+| `vendor/vterm` | coordinated | `[["vt100.js", "vt220.js", "vterm.js"]]` |
+| `vendor/vimonkey` | single | none |
+| `vendor/watcher-chaos` | single | none |
 
-| Repo | Packages | Tag scheme |
-|------|----------|------------|
-| `vendor/silvery` | silvery, @silvery/ansi, @silvery/color, @silvery/commander, @silvery/examples | `v<version>` (coordinated) |
-| `vendor/loggily` | loggily | `v<version>` |
-| `vendor/flexily` | flexily | `v<version>` |
-| `vendor/bearly` | @bearly/tribe, @bearly/github, alien-projections, alien-resources, vitepress-enrich, vitest-silvery-dots | `<name>-v<version>` (per-package) |
-| `vendor/termless` | @termless/core, @termless/cli, @termless/test, + backends | `v<version>` |
-| `vendor/vterm` | vt100.js, vt220.js, vterm.js | `v<version>` |
-| `vendor/vimonkey` | vimonkey | `v<version>` |
-| `vendor/watcher-chaos` | @beorn/watcher-chaos | `v<version>` |
-
-Discovery: for each `vendor/*/package.json`, check `private !== true`. Also check `packages/*/package.json` and `examples/package.json` inside monorepos.
+Each repo has its own `.changeset/` directory.
 
 ## The Flow
 
-Every `/release` (except `--status`, `--audit`) follows five steps. One assessment, one confirmation, one execution.
+### Step 1: `bun release status` — assess
 
-### Step 1: Release Status
+Read-only dashboard across all 8 repos. Shows: version match (local ↔ npm), tag presence, unreleased commit count. First use this to see what's pending.
 
-For every publishable package across all repos, gather:
-- **npm version**: `npm view <name> version`
-- **local version**: from package.json
-- **tag exists**: `git rev-parse "v<version>"` (or `<name>-v<version>` for bearly)
-- **delta**: commits since the version tag that touch this package
+### Step 2: `/release propose` — AI generates changesets
 
-Present the full table:
+Claude reads the raw data and writes changeset proposals:
 
-```
-Release Status
+1. Run `bun .claude/skills/release/diffs.ts` to get a markdown dump with unreleased commits + full diffs across all repos
+2. For each repo with commits, read the diffs carefully
+3. Group related commits into logical changes (not one changeset per commit — one per *intent*)
+4. For each logical change, determine:
+   - **Which packages are affected** (via which files changed)
+   - **Bump type**: `major` if API/removal/breaking, `minor` if new feature/export, `patch` for fixes/docs/chores
+   - **Human-quality description** — explain the *why*, not just "updated X"
+5. Write `.changeset/<slug>.md` files in each repo:
+   ```markdown
+   ---
+   "package-a": minor
+   "package-b": patch
+   ---
+   
+   Added new layout engine option (closes #123)
+   
+   Details about the change, impact, migration notes if any.
+   ```
+6. Print a summary to the user: "Proposed N changesets across M repos"
 
-[silvery] CI=success  last tag=v0.17.2
-  silvery                  v0.17.2   npm=0.17.2   2 new
-  @silvery/ansi            v0.3.4    npm=0.3.4    up to date
-  @silvery/color           v0.1.2    npm=0.1.2    up to date
-  @silvery/commander       v0.8.2    npm=0.8.2    up to date
-  @silvery/examples        v0.5.6    npm=0.5.6    3 new
+**Writing quality**: these are the CHANGELOG entries users will read. Write like a release engineer, not like a commit message. Explain what and why. Mention breaking changes prominently.
 
-[loggily] CI=success  last tag=v0.6.1
-  loggily                  v0.6.1    npm=0.6.1    4 new
+### Step 3: Review
 
-[flexily] CI=success  last tag=v0.5.2
-  flexily                  v0.5.2    npm=0.5.2    up to date
-```
+User reviews the `.changeset/*.md` files across repos. They can:
+- Edit any file directly (it's just markdown)
+- Delete files they don't want in this release
+- Add their own changeset files for changes not yet captured
 
-Flags: **NOTAG** (published but no git tag), **DRIFT** (local != npm), **UNPUBLISHED** (not on npm), **N new** (N commits since tag).
+### Step 4: `/release` — execute
 
-**Shell notes**: `setopt nullglob` in zsh; never use variable name `status` (reserved in zsh); for root packages in monorepos exclude subdirs with `-- . ':!packages' ':!examples'`.
+For each repo with pending changesets, in **topological dep order** (packages with no @silvery/loggily/flexily deps first, consumers later):
 
-### Step 2: Fix Tag Hygiene
+1. `cd <repo>`
+2. `pnpm changeset version` — bumps versions, updates cross-deps, prepends CHANGELOG, deletes consumed changesets
+3. `pnpm install` — refreshes lockfile with new versions
+4. `npx tsdown` (or the repo's build) — builds dist
+5. `bun release verify` — pnpm pack + temp install + run CLI/import (aborts on failure)
+6. `pnpm changeset publish` — publishes in dep order, creates tags
+7. `git push --follow-tags`
+8. Update km root submodule pointer
 
-Before planning, silently fix missing tags. For any package where version matches npm but tag is missing:
+After all repos: `cd km && git commit vendor/<repos>`, push.
 
-1. Find the commit that set this version: `git log --all --oneline -n1 --grep="v<version>" -- <pkg_json>`
-2. Fallback: last commit touching that package.json
-3. Create tag: `git tag "v<version>" <commit>`
-4. Push tags: `git push --tags`
+**Verification cascades**: since releases happen in dep order, when silvery's verify runs, it sees the already-published new loggily/flexily from earlier in this execution. Consumer breakage is caught immediately.
 
-Report what was tagged but don't ask for confirmation — this is housekeeping, not a release.
+### Step 5: Report
 
-Then **re-gather deltas** using the new tags. The "N new" counts will now reflect only truly unreleased changes.
+Final status table showing what was released and at what versions. Close any beads referenced in the changesets.
 
-### Step 3: Plan
+## Setup (one-time per repo)
 
-With accurate tag-based deltas, build the plan:
-
-**Releases** — packages with new commits since their version tag:
-- For each: inferred bump type, one-line changelog summary
-- Coordinated silvery releases group all @silvery/* together
-- Show the commit list for each package so the user can judge
-
-**No changes** — packages where everything is tagged and up to date.
-
-```
-Plan:
-  Release:
-    silvery 0.17.2 → 0.17.3 (patch)
-      - feat(examples): switch from spawn to dynamic import+main()
-      - docs: add READMEs for @silvery/color and @silvery/ansi
-
-    loggily 0.6.1 → 0.6.2 (patch)
-      - docs: README rewrite, async context propagation
-
-  Up to date:
-    flexily, @silvery/commander, alien-projections, alien-resources
-```
-
-If nothing to release: **"Everything is up to date."** Stop.
-
-With `--dry-run`: show the plan and stop. Don't execute.
-
-### Step 4: Confirm
-
-Ask once: **"Proceed?"**
-
-The user can approve all, skip specific packages, or abort.
-
-### Step 5: Execute
-
-For each release, in dependency order:
-
-1. **Pre-flight**: clean working tree, `bun infra/audit-packages.ts` passes
-2. **Changelog**: generate from commits + closed beads, prepend to CHANGELOG.md, show draft
-3. **Version bump**: `npm version <type> --no-git-tag-version` (coordinated bump for silvery)
-4. **Build**: `npx tsdown` (rebuilds with new version)
-5. **Commit + tag**: `git commit -m "chore(release): v<version>"` then `git tag "v<version>"`
-6. **Publish**: `pnpm publish --no-git-checks --access public` (dependency order for silvery)
-7. **Push**: `git push && git push --tags`
-8. **Verify**: `bun release verify <pkg>` — pnpm pack + temp install + run CLI. **Mandatory.** If this fails, the package is broken on npm and must be hotfixed before continuing.
-9. **GitHub Release**: `gh release create "v<version>"` with changelog as notes
-10. **Update km root**: `git add vendor/<name> && git commit -m "chore(vendor): <name> v<version>"`
-11. **Close beads**: any beads included in this release
-
-After all releases: push km root, show final Release Status (should be all "up to date").
-
-## Coordinated Silvery Release
-
-All public @silvery/* packages share one version. Currently published:
-
-| Tier | Packages | Why this order |
-|------|----------|---------------|
-| 0 | @silvery/color | Zero @silvery deps |
-| 1 | @silvery/ansi, @silvery/commander | Depends on color |
-| 2 | silvery (barrel) | Re-exports everything |
-| 3 | @silvery/examples | Depends on silvery |
-
-Private packages (@silvery/ag, ag-react, ag-term, create, headless, test, theme, etc.) are bundled into the silvery barrel — they don't publish separately but their versions and cross-deps are still bumped for internal consistency.
-
-Coordinated version bump script:
 ```bash
-python3 << 'PYEOF'
-import json, glob
-NEW_VERSION = "$NEW_VERSION"
-for path in glob.glob("vendor/silvery/packages/*/package.json") + \
-            ["vendor/silvery/package.json", "vendor/silvery/examples/package.json"]:
-    with open(path) as f:
-        pkg = json.load(f)
-    pkg["version"] = NEW_VERSION
-    for dep_key in ["dependencies", "peerDependencies"]:
-        for dep in list(pkg.get(dep_key, {})):
-            if dep.startswith("@silvery/") or dep == "silvery":
-                pkg[dep_key][dep] = NEW_VERSION
-    with open(path, "w") as f:
-        json.dump(pkg, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-PYEOF
+cd vendor/<repo>
+pnpm add -D @changesets/cli
+pnpm changeset init
+# Edit .changeset/config.json to set `linked` for coordinated repos
 ```
 
-This bumps ALL packages (public + private) so cross-deps stay consistent.
+Config example for silvery:
+```json
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "changelog": "@changesets/changelog-github",
+  "commit": false,
+  "linked": [["silvery", "@silvery/ansi", "@silvery/color", "@silvery/commander", "@silvery/examples"]],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}
+```
 
 ## Reference
 
-### Version Bump Rules
+### Tooling
 
-User-specified `patch`/`minor`/`major` takes precedence. Otherwise infer:
-- Only `fix:`/`chore:`/`docs:` → **patch**
-- Any `feat:` → **minor**
-- Any `BREAKING CHANGE:` → **major**
-
-Minor and major bumps require explicit user approval.
-
-### Changelog
-
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Source: conventional commits (`feat:` → Added, `fix:` → Fixed, `perf:` → Performance, `refactor:` → Changed, `docs:` → Documentation). Omit `chore:`/`ci:`/`test:`. Beads take priority over commits for the same change.
-
-### Publishing Rules
-
-- **pnpm publish** required — npm doesn't support `publishConfig.exports`
-- **tsdown** builds from `"tsdown"` field in package.json
-- **Every publish gets a tag** — pushed immediately
-- All @silvery/* share the same version number
-- [SemVer](https://semver.org/) versioning
-
-### Smoke Test
-
-```bash
-mkdir -p /tmp/smoke-release && cd /tmp/smoke-release && npm init -y --quiet 2>/dev/null
-npm install <package>@<version>
-node -e "import('<package>').then(m => console.log('OK:', Object.keys(m).slice(0,5).join(', ')))"
-```
-
-For CLIs: `npx <package>@<version> --help`
-For silvery: also test `npx @silvery/examples --help`
-
-### npm Registry API
-
-Query the public npm registry directly — no auth needed for reads.
-
-**All packages by maintainer** (one call, no pagination needed for <250 packages):
-```bash
-curl -s "https://registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250"
-```
-Returns JSON with `total`, `objects[]` containing `package.name`, `package.version`, `downloads.weekly`. Pagination: add `&from=N` if total > 250.
-
-**Single package detail**: `curl -s https://registry.npmjs.org/<name>`
-
-**Deprecate**: `npm deprecate "<name>@*" "Message — use X instead"`
-
-**Undeprecate**: `npm deprecate "<name>@*" ""`
-
-**Local auth**: logged in as `beorno`. CI uses `NPM_TOKEN` secret in GitHub Actions (configured for silvery, loggily, flexily).
-
-**Known stale placeholders** (0.0.1, name reservations — can be deprecated or left):
-aicentral, corecmd, corecommand, silverai, silvercode, silvercommand, silvertea, termily, textily, @visory/visory, mostlydb, hottest, strictest, @finetea/*, @termless/term
-
-**Renamed/superseded** (should be deprecated if not already):
-@bearly/vitepress-enrich → vitepress-enrich, @silvery/react → silvery, @silvery/tea → silvery, @silvery/term → silvery, @silvery/cli → silvery, @termless/monorepo → @termless/core, termless → @termless/core
+- `release.ts` — status, verify, execute orchestration (thin wrapper)
+- `diffs.ts` — gathers unreleased commits + full diffs for Claude to read
+- `npm-packages.md` — canonical registry of all published packages
+- `release.legacy.ts` — previous iteration (for comparison, to be deleted)
 
 ### Error Recovery
 
 | Error | Fix |
 |-------|-----|
 | npm publish fails (auth) | `npm login` or check `.npmrc` |
-| Version exists on npm | Bump again |
-| Tag already exists | `git tag -d vX.Y.Z` and retry |
-| Submodule push rejected | `cd vendor/<name> && git pull --rebase && git push` |
-| publishConfig not applied | Use `pnpm publish`, NOT `npm publish` |
-| Cross-dep version mismatch | Run coordinated bump script |
+| Version exists on npm | Changeset status will show it; either skip or bump again |
+| Tag already exists | `git tag -d vX.Y.Z` and retry (changesets tag automatically) |
+| verify fails | Fix the bug, rebuild, re-run verify before publishing |
+| Partial publish failure | Changesets publishes what it can; re-run to finish |
+
+### Why AI-native?
+
+The thing a human brings to a release is *understanding what the changes mean*. Conventional-commit parsers mechanically map `feat:` → minor, but miss subtle breaking changes. Changeset files are a review artifact — they should read like release notes, not commit messages. Claude reading diffs produces that quality directly.
+
+The thing changesets brings is *the mechanics*: version bumping, cross-dep propagation, topological publish, git tags, changelog formatting. Those are solved problems — no reason to rebuild them.
+
+The combination: Claude writes the changesets (the intelligence), changesets executes (the mechanics), verify is the gate (the safety net).
