@@ -243,6 +243,8 @@ Start here. These are automatable and already have skill implementations.
 - Wait for responses. Any session can reply with "block: [reason]" to halt a specific action.
 - This catches things only active sessions know: "don't publish silvery, I have uncommitted layoutDirty changes" or "termless CI is broken, skip verify"
 
+**Non-minor findings**: `tribe_broadcast("SOP [domain] ⚠ [finding summary]")` — any warn/error finding broadcast immediately so other sessions can react or avoid conflicting work.
+
 **After execute**: `tribe_broadcast("SOP complete: [dashboard summary]")`
 
 **Domain agents** can also `tribe_send(to="*", type="query", ...)` to ask active sessions about their domain before proposing actions. Example: packaging agent asks "any known bundle regressions?" before flagging size growth.
