@@ -377,9 +377,18 @@ async function fixTagsCmd(): Promise<void> {
   const reposToPush = new Set<string>()
 
   for (const t of plan.tagsToCreate) {
+    // Skip if tag already exists (multiple packages can share a version tag)
+    if (git(`rev-parse ${t.tag}`, t.repoDir)) {
+      console.log(`  ${t.pkg}: ${style.dim(t.tag + " already exists, skipping")}`)
+      continue
+    }
     console.log(`  ${t.pkg}: ${style.cyan(t.tag)} at ${style.dim(t.commit)}`)
-    execSync(`git tag "${t.tag}" "${t.commit}"`, { cwd: t.repoDir })
-    reposToPush.add(t.repoDir)
+    try {
+      execSync(`git tag "${t.tag}" "${t.commit}"`, { cwd: t.repoDir })
+      reposToPush.add(t.repoDir)
+    } catch (e) {
+      console.log(`  ${style.red("failed")}: ${e instanceof Error ? e.message : e}`)
+    }
   }
 
   for (const repoDir of reposToPush) {
