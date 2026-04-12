@@ -1,9 +1,9 @@
 ---
-description: Queries other LLMs for second opinions and research. Use when user mentions GPT, ChatGPT, OpenAI, Gemini, Grok, or wants deep research (NOT DeepSeek), thinkdeep, or a second opinion.
-argument-hint: [deep|opinion|debate] <prompt>
+description: "Ask other LLMs — questions, pro reviews, deep research, second opinions. Entry points: /ask, /pro, /deep."
+argument-hint: "[question]"
 ---
 
-# LLM - Multi-Model Queries
+# Ask — Multi-Model Queries
 
 ## Model Freshness
 
