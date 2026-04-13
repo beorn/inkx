@@ -261,7 +261,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
-| [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit                    |
+| [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit, README/landing page writing |
 | ~~project-audit/~~ | Absorbed into `/sop code,sites` |
 | ~~project-cleanup/~~ | Absorbed into `/sop infra` |
 | ~~repo-health/~~ | Absorbed into `/sop packages` |

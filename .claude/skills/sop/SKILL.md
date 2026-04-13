@@ -257,6 +257,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `link-check` — `scripts/check-site-links.sh` (broken links)
 - [ ] `freshness` — package version changed since docs last touched?
 - [ ] `readme-versions` — do READMEs reference current versions?
+- [ ] `readme-quality` — do READMEs follow [readme-style.md](../docs/readme-style.md)? (progressive disclosure, showcase example, no clutter)
 - [ ] `changelog-gap` — unreleased changes without CHANGELOG entries?
 - [ ] `gsc-properties` — all sites have GSC properties with sitemaps submitted
 - [ ] `gsc-coverage` — no indexing errors or drops (GSC API)
