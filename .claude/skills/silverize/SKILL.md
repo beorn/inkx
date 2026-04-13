@@ -288,39 +288,51 @@ program.addHelpSection("Examples:", [
 ])
 ```
 
-### CLI Output Typography (createStyle)
+### CLI Output — Use Silvery Inline Rendering
 
-For CLI tools that output to stdout/stderr (not fullscreen TUI), apply the same typography hierarchy from the Styling Guide using `createStyle`:
+**Don't use `createStyle()` for CLI output.** That's chalk-level thinking with extra steps — you're still manually picking ANSI colors and losing theme tokens, typography presets, and layout.
+
+Instead, render CLI output through silvery's inline mode with real React components:
 
 ```typescript
+// Tarnished — createStyle for CLI output
 import { createStyle } from "@silvery/ansi"
 const s = createStyle()
+console.log(s.bold.cyan("SOP Report"))        // hardcoded color, no theme
+console.log(s.dim("[12.6s]"))                  // manual dim, not semantic
+console.log(s.red("✗"), "3 errors")           // hardcoded red
 
-// H1 — major titles (cyan + bold = $primary equivalent)
-console.log(s.bold.cyan("SOP Report — 2026-04-13"))
+// Shiny — silvery inline rendering with real typography
+import { run, H1, H2, Muted, Text, Box } from "silvery"
 
-// H2 — section headers (magenta + bold = $accent equivalent)
-console.error(s.bold.magenta("[code]"))
-console.log(s.bold.magenta("Details:"))
+function Dashboard() {
+  return (
+    <Box flexDirection="column">
+      <H1>SOP Report — 2026-04-13</H1>
+      <H2>Code</H2>
+      <Text><Text color="$error">✗</Text> 3 errors</Text>
+      <Muted>[12.6s]</Muted>
+    </Box>
+  )
+}
 
-// H3 — bold alone (only for sub-items)
-console.log(s.bold("check-name"))
-
-// Body — plain text
-console.log("6227 tests pass")
-
-// Muted — timings, metadata, dates
-console.log(s.dim("[12.6s]"))
-
-// Status colors
-console.log(s.green("✓"), "pass")
-console.log(s.yellow("⚠"), "warn")
-console.log(s.red("✗"), "error")
+await run(<Dashboard />, { mode: "inline" })
 ```
 
-**CRITICAL: Always set a color with bold.** Using `s.bold(text)` alone inherits the previous ANSI color state — if the last output was red (e.g., FAIL status), the bold text will also be red. Always pair bold with an explicit color: `s.bold.cyan(...)`, `s.bold.magenta(...)`, etc.
+**Why this matters:**
+- `$primary`, `$accent`, `$error`, `$muted` resolve from the user's theme — not hardcoded ANSI
+- `<H1>`, `<H2>`, `<Muted>` are semantic — they adapt if typography changes
+- Flexbox layout via `<Box>` — no `padEnd`/`padStart` manual alignment
+- Respects `NO_COLOR`, terminal capabilities, dark/light mode automatically
+- `createStyle()` is for ONE thing: string helpers in non-React contexts (log messages, error formatting). NOT for user-facing output.
 
-**No manual padding.** Don't use `padEnd()`, `padStart()`, or `' '.repeat()` for column alignment in CLI output. That's the same anti-pattern as manual layout in TUI components. Let text flow naturally, or use tab characters for simple alignment.
+**When to use inline mode vs fullscreen:**
+- `{ mode: "inline" }` — CLI tools that print and exit (dashboards, reports, prompts)
+- `{ mode: "fullscreen" }` (default) — interactive TUI apps that own the screen
+
+**Exception:** `@silvery/commander` handles `--help` output. Log messages via loggily. Piped JSON/CSV data via raw `console.log`. Only structured user-facing output needs inline rendering.
+
+**No manual padding.** Don't use `padEnd()`, `padStart()`, or `' '.repeat()` for column alignment. Use `<Box>` with flexbox properties instead.
 
 **Use program name, not `bun <tool>`.** In `addHelpSection("Examples:", ...)`, use the `.name()` you set on the program (e.g., `$ sop scan`), not `$ bun sop scan` or `$ bun tools/sop.ts scan`.
 
