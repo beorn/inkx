@@ -51,6 +51,16 @@ The reader should be able to stop at any point having gotten value.
 - Em-dash for asides, not double-hyphen
 - One-line compatibility lists with bold label and dot separators: **Works with:** A . B . C . [See all ->](link)
 
+## Keywords & Discoverability
+
+Name competitors and compatible products explicitly — someone searching "pino alternative typescript" or "debug replacement structured logging" should find your package.
+
+- **In the intro**: name what you replace by product name, not category. "Replace `debug` + `pino`/`winston`" not "Replace your debug library + JSON logger"
+- **In compatibility lines**: name every product you integrate with
+- **GitHub topics**: add competitor names, category names, and technology names (e.g., `logging`, `typescript`, `structured-logging`, `pino`, `winston`, `opentelemetry`, `observability`)
+- **In "When not to use"**: naming competitors here is both honest and keyword-rich
+- **Comparison page**: the docs site comparison page is the keyword magnet — link to it from the README where the reader is comparing
+
 ## GitHub Repo Description
 
 Different from the README tagline — optimized for scanning in search results. Include: language, key differentiator, what it replaces. End with the punchline.
