@@ -1179,7 +1179,7 @@ function renderDashboard(state: State): void {
   const dateStr = now.toISOString().split("T")[0]
 
   console.log()
-  console.log(s.bold.cyan(`SOP Report \u2014 ${dateStr}`))
+  console.log(s.bold.yellow(`SOP Report \u2014 ${dateStr}`))
   console.log()
 
   for (const domain of DOMAINS) {
@@ -1219,7 +1219,7 @@ function renderDashboard(state: State): void {
   // Triggered cross-domain checks (before "Next due:")
   if (state.lastFiredTriggers && state.lastFiredTriggers.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  Triggers fired:"))
+    console.log(s.bold.blueBright("  Triggers fired:"))
     for (const ft of state.lastFiredTriggers) {
       const targetStr = ft.trigger.target.check
         ? `${ft.trigger.target.domain}.${ft.trigger.target.check}`
@@ -1244,7 +1244,7 @@ function renderDashboard(state: State): void {
       .slice(0, 3)
       .map((d) => `${d.id} ${s.dim(`(${d.next})`)}`)
       .join(", ")
-    console.log(`  ${s.bold.magenta("Next due:")} ${nextStr}`)
+    console.log(`  ${s.bold.blueBright("Next due:")} ${nextStr}`)
   }
 
   console.log()
@@ -1252,7 +1252,7 @@ function renderDashboard(state: State): void {
   // Details for non-pass findings (truncated, dim)
   const nonPass = allFindings.filter((f) => f.status !== "pass" && f.details)
   if (nonPass.length > 0) {
-    console.log(s.bold.magenta("  Details:"))
+    console.log(s.bold.blueBright("  Details:"))
     for (const f of nonPass) {
       const truncated = f.details!.split("\n").slice(0, 3).join("\n        ")
       console.log(`    ${s.dim(`${f.domain}.${f.check}:`)} ${s.dim(truncated)}`)
@@ -1265,7 +1265,7 @@ function renderDashboard(state: State): void {
 
 function renderStatus(state: State): void {
   console.log()
-  console.log(s.bold.cyan("SOP Domain Status"))
+  console.log(s.bold.yellow("SOP Domain Status"))
   console.log()
 
   for (const domain of DOMAINS) {
@@ -1322,11 +1322,11 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   // 6. Produce structured report
   console.log()
-  console.log(s.bold.cyan(`SOP Update Analysis \u2014 ${dateStr}`))
+  console.log(s.bold.yellow(`SOP Update Analysis \u2014 ${dateStr}`))
 
   if (commitPatterns.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  Recent maintenance patterns:"))
+    console.log(s.bold.blueBright("  Recent maintenance patterns:"))
     for (const p of commitPatterns) {
       console.log(`    - ${p}`)
     }
@@ -1334,7 +1334,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (antiPatternCandidates.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  Anti-pattern candidates:"))
+    console.log(s.bold.blueBright("  Anti-pattern candidates:"))
     for (const a of antiPatternCandidates) {
       console.log(`    - ${s.red(a)}`)
     }
@@ -1342,7 +1342,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (stateInsights.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  State insights:"))
+    console.log(s.bold.blueBright("  State insights:"))
     for (const si of stateInsights) {
       console.log(`    - ${si}`)
     }
@@ -1350,7 +1350,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (missingChecks.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  Missing checks:"))
+    console.log(s.bold.blueBright("  Missing checks:"))
     for (const m of missingChecks) {
       console.log(`    - ${m}`)
     }
@@ -1373,7 +1373,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (proposals.length > 0) {
     console.log()
-    console.log(s.bold.magenta("  Proposed changes:"))
+    console.log(s.bold.blueBright("  Proposed changes:"))
     for (let i = 0; i < proposals.length; i++) {
       console.log(`    ${s.yellow(`${i + 1}.`)} [${proposals[i]!.file}] ${proposals[i]!.description}`)
     }
@@ -1671,7 +1671,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   }
 
   console.error(
-    s.bold.magenta(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
+    s.bold.blueBright(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
   )
   console.error()
 
@@ -1679,7 +1679,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   state.lastDomainTimings ??= {}
 
   for (const domain of domainsToRun) {
-    console.error(s.bold.magenta(`[${domain.id}]`))
+    console.error(s.bold.blueBright(`[${domain.id}]`))
     const { findings, durationMs } = await runDomain(domain)
     state.lastRun[domain.id] = new Date().toISOString()
     state.lastFindings[domain.id] = findings
@@ -1693,7 +1693,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
 
   if (firedTriggers.length > 0) {
     console.error()
-    console.error(s.bold.magenta("Cross-domain triggers:"))
+    console.error(s.bold.blueBright("Cross-domain triggers:"))
 
     for (const ft of firedTriggers) {
       const targetDomainId = ft.trigger.target.domain
@@ -1714,7 +1714,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         // Run only the specific triggered check
         const check = targetDomain.checks.find((c) => c.id === targetCheck)
         if (check) {
-          console.error(s.bold.magenta(`[${targetDomainId} ${s.dim("(triggered)")}]`))
+          console.error(s.bold.blueBright(`[${targetDomainId} ${s.dim("(triggered)")}]`))
           process.stderr.write(`  running ${s.dim(`${targetDomainId}.${check.id}`)}...`)
           const checkStart = performance.now()
           const finding = await runCheck(check)
@@ -1730,7 +1730,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         }
       } else {
         // Run all checks in the target domain
-        console.error(s.bold.magenta(`[${targetDomainId} ${s.dim("(triggered)")}]`))
+        console.error(s.bold.blueBright(`[${targetDomainId} ${s.dim("(triggered)")}]`))
         const { findings, durationMs } = await runDomain(targetDomain)
         state.lastRun[targetDomainId] = new Date().toISOString()
         state.lastFindings[targetDomainId] = findings
