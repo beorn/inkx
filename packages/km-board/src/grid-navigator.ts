@@ -1,10 +1,16 @@
-import type { PositionRegistry, ScrollRect } from "@silvery/ag-react"
-import { createPositionRegistry } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:grid-navigator")
 
 // === Types ===
+
+/** Axis-aligned rectangle in screen coordinates. */
+export interface GridRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 export interface CrossAxisResult {
   itemIndex: number
@@ -12,10 +18,10 @@ export interface CrossAxisResult {
 }
 
 export interface GridNavigator {
-  // === Delegated position queries (facade) ===
-  register(section: number, item: number, rect: ScrollRect): void
+  // === Position tracking ===
+  register(section: number, item: number, rect: GridRect): void
   unregister(section: number, item: number): void
-  getPosition(section: number, item: number): ScrollRect | undefined
+  getPosition(section: number, item: number): GridRect | undefined
   hasSection(section: number): boolean
   getItemCount(section: number): number
   findItemAtY(section: number, targetY: number): number
@@ -23,11 +29,11 @@ export interface GridNavigator {
 
   // === Column bounds (for mouse click targeting) ===
   /** Register a column's bounding box (x, y, width, height) for mouse hit testing. */
-  registerColumnBounds(section: number, rect: ScrollRect): void
+  registerColumnBounds(section: number, rect: GridRect): void
   /** Unregister a column's bounding box. */
   unregisterColumnBounds(section: number): void
   /** Get a column's bounding box, or undefined if not registered. */
-  getColumnBounds(section: number): ScrollRect | undefined
+  getColumnBounds(section: number): GridRect | undefined
   /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
   findColumnAtX(mouseX: number): number
 
@@ -51,9 +57,6 @@ export interface GridNavigator {
   getItemMidY(section: number, item: number): number
   findCrossAxisTarget(fromSection: number, fromItem: number, toSection: number): CrossAxisResult
 
-  // === Advanced access ===
-  readonly positions: PositionRegistry
-
   // === Lifecycle ===
   clear(): void
   dump(): string
@@ -61,14 +64,15 @@ export interface GridNavigator {
 
 // === Factory ===
 
-export function createGridNavigator(positions?: PositionRegistry): GridNavigator {
-  const pos = positions ?? createPositionRegistry()
+export function createGridNavigator(): GridNavigator {
+  // Position storage: sectionIndex -> Map<itemIndex, GridRect>
+  const sections = new Map<number, Map<number, GridRect>>()
 
   // Head data: Map keyed by `${section}:${item}`
   const heads = new Map<string, { y: number; height: number }>()
 
   // Column bounds: Map keyed by section index → bounding rect of the whole column
-  const columnBounds = new Map<number, ScrollRect>()
+  const columnBounds = new Map<number, GridRect>()
 
   let stickyY: number | null = null
   let stickyX: number | null = null
@@ -81,19 +85,97 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
     return `${section}:${item}`
   }
 
-  const navigator: GridNavigator = {
-    // === Facade: delegated position queries ===
+  // --- Position queries (inlined from PositionRegistry) ---
 
-    register(section: number, item: number, rect: ScrollRect): void {
-      pos.register(section, item, rect)
+  function posGetPosition(sectionIndex: number, itemIndex: number): GridRect | undefined {
+    return sections.get(sectionIndex)?.get(itemIndex)
+  }
+
+  function posHasSection(sectionIndex: number): boolean {
+    const sectionMap = sections.get(sectionIndex)
+    return sectionMap !== undefined && sectionMap.size > 0
+  }
+
+  function posGetItemCount(sectionIndex: number): number {
+    return sections.get(sectionIndex)?.size ?? 0
+  }
+
+  function posFindItemAtY(sectionIndex: number, targetY: number): number {
+    const sectionMap = sections.get(sectionIndex)
+    if (!sectionMap || sectionMap.size === 0) return -1
+
+    // First pass: intersection with item bounding box
+    for (const [idx, rect] of sectionMap) {
+      const top = rect.y
+      const bottom = top + rect.height
+      if (targetY >= top && targetY < bottom) return idx
+    }
+
+    // Second pass: closest midpoint
+    let closestIdx = -1
+    let closestDist = Infinity
+    for (const [idx, rect] of sectionMap) {
+      const mid = rect.y + rect.height / 2
+      const dist = Math.abs(mid - targetY)
+      if (dist < closestDist) {
+        closestDist = dist
+        closestIdx = idx
+      }
+    }
+
+    // If above all items, return -1 (section header)
+    const firstEntry = sectionMap.get(0)
+    if (firstEntry && targetY < firstEntry.y) return -1
+
+    return closestIdx
+  }
+
+  function posFindInsertionSlot(sectionIndex: number, targetY: number): number {
+    const sectionMap = sections.get(sectionIndex)
+    if (!sectionMap || sectionMap.size === 0) return 0
+
+    const sorted = Array.from(sectionMap.entries()).sort((a, b) => a[0] - b[0])
+
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = sorted[i]!
+      if (targetY < entry[1].y) return i
+    }
+
+    return sorted.length
+  }
+
+  function posDump(): string {
+    const lines: string[] = []
+    if (sections.size === 0) {
+      lines.push("(no items registered)")
+    } else {
+      for (const [secIdx, sectionMap] of sections) {
+        const entries = Array.from(sectionMap.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([idx, rect]) => `${idx}:y${rect.y}:h${rect.height}`)
+          .join(", ")
+        lines.push(`sec[${secIdx}]: ${entries}`)
+      }
+    }
+    return lines.join("\n")
+  }
+
+  const navigator: GridNavigator = {
+    // === Position tracking ===
+
+    register(section: number, item: number, rect: GridRect): void {
+      let sectionMap = sections.get(section)
+      if (!sectionMap) {
+        sectionMap = new Map()
+        sections.set(section, sectionMap)
+      }
+      sectionMap.set(item, rect)
+
+      log.debug?.(`register sec=${section} item=${item} y=${rect.y} h=${rect.height}`)
 
       // Resolve deferred navigation when target section's items are registered.
-      // We resolve on EVERY register for the target section — each call sees
-      // more registered items, producing progressively better Y-matching. React
-      // batches all dispatches within the same synchronous pass; the last wins.
-      // We track resolvedItemIndex to skip duplicate dispatches.
       if (deferredNav && deferredResolve && deferredNav.targetSection === section) {
-        const targetItemIdx = pos.findItemAtY(section, deferredNav.stickyY)
+        const targetItemIdx = posFindItemAtY(section, deferredNav.stickyY)
         if (targetItemIdx >= 0 && targetItemIdx !== deferredNav.resolvedItemIndex) {
           deferredNav.resolvedItemIndex = targetItemIdx
           deferredResolve(targetItemIdx)
@@ -102,33 +184,39 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
     },
 
     unregister(section: number, item: number): void {
-      pos.unregister(section, item)
+      const sectionMap = sections.get(section)
+      if (sectionMap) {
+        sectionMap.delete(item)
+        if (sectionMap.size === 0) {
+          sections.delete(section)
+        }
+      }
       heads.delete(headKey(section, item))
     },
 
-    getPosition(section: number, item: number): ScrollRect | undefined {
-      return pos.getPosition(section, item)
+    getPosition(section: number, item: number): GridRect | undefined {
+      return posGetPosition(section, item)
     },
 
     hasSection(section: number): boolean {
-      return pos.hasSection(section)
+      return posHasSection(section)
     },
 
     getItemCount(section: number): number {
-      return pos.getItemCount(section)
+      return posGetItemCount(section)
     },
 
     findItemAtY(section: number, targetY: number): number {
-      return pos.findItemAtY(section, targetY)
+      return posFindItemAtY(section, targetY)
     },
 
     findInsertionSlot(section: number, targetY: number): number {
-      return pos.findInsertionSlot(section, targetY)
+      return posFindInsertionSlot(section, targetY)
     },
 
     // === Column bounds (for mouse click targeting) ===
 
-    registerColumnBounds(section: number, rect: ScrollRect): void {
+    registerColumnBounds(section: number, rect: GridRect): void {
       columnBounds.set(section, rect)
       log.debug?.(`registerColumnBounds sec=${section} x=${rect.x} w=${rect.width}`)
     },
@@ -138,7 +226,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
       log.debug?.(`unregisterColumnBounds sec=${section}`)
     },
 
-    getColumnBounds(section: number): ScrollRect | undefined {
+    getColumnBounds(section: number): GridRect | undefined {
       return columnBounds.get(section)
     },
 
@@ -220,7 +308,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
     // === Cross-axis navigation (methods) ===
 
     getItemMidY(section: number, item: number): number {
-      const rect = pos.getPosition(section, item)
+      const rect = posGetPosition(section, item)
       if (!rect) return 0
 
       const head = heads.get(headKey(section, item))
@@ -243,20 +331,14 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
         navigator.setStickyY(targetY)
       }
 
-      const itemIndex = pos.findItemAtY(toSection, targetY)
+      const itemIndex = posFindItemAtY(toSection, targetY)
       return { itemIndex, usedStickyY }
-    },
-
-    // === Advanced access ===
-
-    get positions(): PositionRegistry {
-      return pos
     },
 
     // === Lifecycle ===
 
     clear(): void {
-      pos.clear()
+      sections.clear()
       heads.clear()
       columnBounds.clear()
       stickyY = null
@@ -268,7 +350,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
 
     dump(): string {
       const lines: string[] = [`stickyX=${stickyX}, stickyY=${stickyY}`]
-      lines.push(pos.dump())
+      lines.push(posDump())
       if (heads.size > 0) {
         lines.push(
           `heads: ${Array.from(heads.entries())

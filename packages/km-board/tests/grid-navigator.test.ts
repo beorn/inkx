@@ -1,18 +1,17 @@
 import { describe, it, expect, vi } from "vitest"
-import { createGridNavigator } from "../src/grid-navigator.ts"
-import type { ScrollRect } from "@silvery/ag-react"
+import { createGridNavigator, type GridRect } from "../src/grid-navigator.ts"
 
-function rect(y: number, height: number, x = 0, width = 100): ScrollRect {
+function rect(y: number, height: number, x = 0, width = 100): GridRect {
   return { x, y, width, height }
 }
 
 describe("GridNavigator", () => {
   // =========================================================================
-  // Facade delegation
+  // Position tracking
   // =========================================================================
 
-  describe("facade delegation", () => {
-    it("register + getPosition delegates to inner PositionRegistry", () => {
+  describe("position tracking", () => {
+    it("register + getPosition tracks item positions", () => {
       const nav = createGridNavigator()
       nav.register(0, 0, rect(0, 20))
       nav.register(0, 1, rect(20, 20))
@@ -40,7 +39,7 @@ describe("GridNavigator", () => {
       expect(nav.getItemCount(0)).toBe(2)
     })
 
-    it("unregister removes item from inner registry", () => {
+    it("unregister removes item", () => {
       const nav = createGridNavigator()
       nav.register(0, 0, rect(0, 20))
       nav.register(0, 1, rect(20, 20))
@@ -50,7 +49,7 @@ describe("GridNavigator", () => {
       expect(nav.getItemCount(0)).toBe(1)
     })
 
-    it("findItemAtY delegates to inner registry", () => {
+    it("findItemAtY finds item at Y coordinate", () => {
       const nav = createGridNavigator()
       nav.register(0, 0, rect(0, 20))
       nav.register(0, 1, rect(20, 20))
@@ -61,7 +60,7 @@ describe("GridNavigator", () => {
       expect(nav.findItemAtY(0, 50)).toBe(2) // inside item 2
     })
 
-    it("findInsertionSlot delegates to inner registry", () => {
+    it("findInsertionSlot finds slot at Y coordinate", () => {
       const nav = createGridNavigator()
       nav.register(0, 0, rect(10, 20))
       nav.register(0, 1, rect(30, 20))
@@ -69,14 +68,6 @@ describe("GridNavigator", () => {
       expect(nav.findInsertionSlot(0, 5)).toBe(0) // before first
       expect(nav.findInsertionSlot(0, 15)).toBe(1) // between
       expect(nav.findInsertionSlot(0, 55)).toBe(2) // after last
-    })
-
-    it("positions property exposes inner PositionRegistry", () => {
-      const nav = createGridNavigator()
-      nav.register(0, 0, rect(0, 20))
-
-      // Should be the same underlying registry
-      expect(nav.positions.getPosition(0, 0)).toEqual(rect(0, 20))
     })
   })
 
