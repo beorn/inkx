@@ -11,13 +11,26 @@
  *   status   — show what's been promoted vs pending
  */
 
-import { parseArgs } from "util"
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs"
-import { join } from "path"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { Command } from "@silvery/commander"
+import { createLogger } from "loggily"
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+// ─── Logging ────────────────────────────────────────────────────────────────
+
+const log = createLogger("session-promote", [
+  { level: "debug" },
+  { file: "/tmp/session-promote.log", format: "json" },
+])
+
+// ─── Paths ──────────────────────────────────────────────────────────────────
+
+const REPO_ROOT = join(import.meta.dir, "..")
+const STATE_DIR = join(REPO_ROOT, ".claude/skills/sop")
+const STATE_PATH = join(STATE_DIR, "promote-state.json")
+const DEFAULT_DAYS = 7
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 type KnowledgeType = "fact" | "instruction" | "event"
 
@@ -43,18 +56,7 @@ interface PromoteState {
   promoted: PromotionRecord[]
 }
 
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-
-const REPO_ROOT = import.meta.dirname ? join(import.meta.dirname, "..") : process.cwd()
-const STATE_DIR = join(REPO_ROOT, ".claude/skills/sop")
-const STATE_PATH = join(STATE_DIR, "promote-state.json")
-const DEFAULT_DAYS = 7
-
-// ---------------------------------------------------------------------------
-// State management
-// ---------------------------------------------------------------------------
+// ─── State management ───────────────────────────────────────────────────────
 
 function loadState(): PromoteState {
   if (existsSync(STATE_PATH)) {
@@ -68,9 +70,7 @@ function saveState(state: PromoteState): void {
   writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + "\n")
 }
 
-// ---------------------------------------------------------------------------
-// Shell helpers
-// ---------------------------------------------------------------------------
+// ─── Shell helpers ──────────────────────────────────────────────────────────
 
 function run(cmd: string[]): { stdout: string; stderr: string; exitCode: number } {
   const result = Bun.spawnSync(cmd, {
@@ -100,15 +100,13 @@ function gbrainSearch(query: string): string {
 function gbrainPut(slug: string, content: string): boolean {
   const r = run(["gbrain", "put", slug, "--content", content])
   if (r.exitCode !== 0) {
-    console.error(`  gbrain put failed for ${slug}: ${r.stderr.trim()}`)
+    log.error?.(new Error(r.stderr.trim()), "gbrain put failed", { slug })
     return false
   }
   return true
 }
 
-// ---------------------------------------------------------------------------
-// Date helpers
-// ---------------------------------------------------------------------------
+// ─── Date helpers ───────────────────────────────────────────────────────────
 
 function recentDates(days: number): string[] {
   const dates: string[] = []
@@ -121,9 +119,7 @@ function recentDates(days: number): string[] {
   return dates
 }
 
-// ---------------------------------------------------------------------------
-// Extraction — pattern-based knowledge mining from recall summaries
-// ---------------------------------------------------------------------------
+// ─── Extraction — pattern-based knowledge mining from recall summaries ──────
 
 function parseSections(summary: string): Map<string, string[]> {
   const sections = new Map<string, string[]>()
@@ -159,11 +155,8 @@ function isNoneEntry(line: string): boolean {
 
 /** Filter out low-quality extractions (too short, generic, etc.) */
 function isSubstantive(ext: Extraction): boolean {
-  // Titles under 10 chars are too vague
   if (ext.title.length < 10) return false
-  // Content must have some substance
   if (ext.content.length < 20) return false
-  // Skip entries that are just "none" in various forms
   const lower = ext.content.toLowerCase()
   if (lower === "none" || lower === "none." || lower.startsWith("none ")) return false
   return true
@@ -202,74 +195,63 @@ function inferTags(text: string): string[] {
   return [...tags]
 }
 
+/** Clean markdown refs from extraction text */
+function cleanRefs(text: string): string {
+  return text.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim()
+}
+
+/** Create an extraction from a summary section item */
+function createExtraction(
+  item: string,
+  date: string,
+  section: string,
+  type: KnowledgeType,
+  confidence: number,
+  extraTags: string[] = [],
+): Extraction {
+  return {
+    title: summarizeTitle(item, 60),
+    type,
+    content: cleanRefs(item),
+    tags: [...inferTags(item), ...extraTags],
+    confidence,
+    sourceDate: date,
+    sourceSection: section,
+  }
+}
+
 function extractFromSummary(date: string, summary: string): Extraction[] {
   const sections = parseSections(summary)
   const extractions: Extraction[] = []
 
   // Key Decisions → event (dated decisions)
   for (const item of sections.get("Key Decisions") ?? []) {
-    extractions.push({
-      title: summarizeTitle(item, 60),
-      type: "event",
-      content: item.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim(),
-      tags: inferTags(item),
-      confidence: 0.8,
-      sourceDate: date,
-      sourceSection: "Key Decisions",
-    })
+    extractions.push(createExtraction(item, date, "Key Decisions", "event", 0.8))
   }
 
   // Lessons Learned → instruction (standing procedures)
   for (const item of sections.get("Lessons Learned") ?? []) {
-    extractions.push({
-      title: summarizeTitle(item, 60),
-      type: "instruction",
-      content: item.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim(),
-      tags: inferTags(item),
-      confidence: 0.85,
-      sourceDate: date,
-      sourceSection: "Lessons Learned",
-    })
+    extractions.push(createExtraction(item, date, "Lessons Learned", "instruction", 0.85))
   }
 
   // Architecture Changes → fact (stable knowledge about the system)
   for (const item of sections.get("Architecture Changes") ?? []) {
-    extractions.push({
-      title: summarizeTitle(item, 60),
-      type: "fact",
-      content: item.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim(),
-      tags: inferTags(item),
-      confidence: 0.9,
-      sourceDate: date,
-      sourceSection: "Architecture Changes",
-    })
+    extractions.push(createExtraction(item, date, "Architecture Changes", "fact", 0.9))
   }
 
   // Bugs Found → event
   for (const item of sections.get("Bugs Found") ?? []) {
-    extractions.push({
-      title: summarizeTitle(item, 60),
-      type: "event",
-      content: item.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim(),
-      tags: [...inferTags(item), "bug"],
-      confidence: 0.75,
-      sourceDate: date,
-      sourceSection: "Bugs Found",
-    })
+    extractions.push(createExtraction(item, date, "Bugs Found", "event", 0.75, ["bug"]))
   }
 
   // Memory Updates → instruction or fact
   for (const item of sections.get("Memory Updates") ?? []) {
     const isNew = item.startsWith("NEW:")
+    const cleaned = item.replace(/^NEW:\s*/, "")
     extractions.push({
-      title: summarizeTitle(item.replace(/^NEW:\s*/, ""), 60),
+      title: summarizeTitle(cleaned, 60),
       type: isNew ? "instruction" : "fact",
-      content: item
-        .replace(/^NEW:\s*/, "")
-        .replace(/\[session-ref:\w+\]/g, "")
-        .replace(/\[\w+\]/g, "")
-        .replace(/\(.*?\)/g, "")
-        .trim(),
+      content: cleanRefs(cleaned).replace(/\(.*?\)/g, "").trim(),
       tags: inferTags(item),
       confidence: 0.9,
       sourceDate: date,
@@ -282,9 +264,7 @@ function extractFromSummary(date: string, summary: string): Extraction[] {
 
 /** Generate a short title from content — first sentence, capped at maxLen chars */
 function summarizeTitle(text: string, maxLen: number): string {
-  // Strip markdown refs
-  let clean = text.replace(/\[session-ref:\w+\]/g, "").replace(/\[\w+\]/g, "").trim()
-  // Take first sentence
+  let clean = cleanRefs(text)
   const sentenceEnd = clean.search(/[.;!?]/)
   if (sentenceEnd > 0 && sentenceEnd < maxLen) {
     clean = clean.slice(0, sentenceEnd + 1)
@@ -307,9 +287,7 @@ function slugify(title: string, date: string): string {
   return `sessions/${date}/${base}`
 }
 
-// ---------------------------------------------------------------------------
-// Dedup — check gbrain for existing similar content
-// ---------------------------------------------------------------------------
+// ─── Dedup — check gbrain for existing similar content ──────────────────────
 
 function isDuplicate(extraction: Extraction, state: PromoteState): boolean {
   // Check local state first
@@ -329,9 +307,7 @@ function isDuplicate(extraction: Extraction, state: PromoteState): boolean {
   return false
 }
 
-// ---------------------------------------------------------------------------
-// Format — build gbrain page content
-// ---------------------------------------------------------------------------
+// ─── Format — build gbrain page content ─────────────────────────────────────
 
 function formatGbrainPage(ext: Extraction): string {
   const tags = ext.tags.map((t) => `"${t}"`).join(", ")
@@ -356,15 +332,20 @@ ${ext.content}
 `
 }
 
-// ---------------------------------------------------------------------------
-// Commands
-// ---------------------------------------------------------------------------
+// ─── Commands ───────────────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<KnowledgeType, string> = {
+  fact: "FACT",
+  instruction: "INSTR",
+  event: "EVENT",
+}
 
 async function cmdScan(days: number): Promise<Extraction[]> {
+  using _span = log.span!("scan", { days })
   const dates = recentDates(days)
   const allExtractions: Extraction[] = []
 
-  console.log(`Scanning ${days} days of session history...\n`)
+  console.error(`Scanning ${days} days of session history...\n`)
 
   for (const date of dates) {
     const summary = recallShow(date)
@@ -372,7 +353,7 @@ async function cmdScan(days: number): Promise<Extraction[]> {
 
     const extractions = extractFromSummary(date, summary)
     if (extractions.length > 0) {
-      console.log(`  ${date}: ${extractions.length} item(s) found`)
+      console.error(`  ${date}: ${extractions.length} item(s) found`)
       allExtractions.push(...extractions)
     }
   }
@@ -383,17 +364,18 @@ async function cmdScan(days: number): Promise<Extraction[]> {
     return []
   }
 
-  console.log(`\nFound ${allExtractions.length} total extraction(s):\n`)
+  console.log(`Found ${allExtractions.length} total extraction(s):\n`)
   for (const ext of allExtractions) {
-    const typeLabel = { fact: "FACT", instruction: "INSTR", event: "EVENT" }[ext.type]
-    console.log(`  [${typeLabel}] ${ext.title}`)
+    console.log(`  [${TYPE_LABELS[ext.type]}] ${ext.title}`)
     console.log(`         date=${ext.sourceDate}  tags=[${ext.tags.join(", ")}]  confidence=${ext.confidence}`)
   }
 
+  log.debug?.("scan complete", { days, count: allExtractions.length })
   return allExtractions
 }
 
 async function cmdPromote(days: number, dryRun: boolean): Promise<void> {
+  using _span = log.span!("promote", { days, dryRun })
   const extractions = await cmdScan(days)
   if (extractions.length === 0) return
 
@@ -439,6 +421,7 @@ async function cmdPromote(days: number, dryRun: boolean): Promise<void> {
     saveState(state)
   }
 
+  log.debug?.("promote complete", { promoted, skipped, dryRun })
   console.log(`\nDone: ${promoted} promoted, ${skipped} skipped (duplicates).`)
 }
 
@@ -453,8 +436,7 @@ async function cmdStatus(): Promise<void> {
     console.log(`\n  Recent promotions:`)
     const recent = state.promoted.slice(-10)
     for (const p of recent) {
-      const typeLabel = { fact: "FACT", instruction: "INSTR", event: "EVENT" }[p.type]
-      console.log(`    [${typeLabel}] ${p.date} — ${p.title}`)
+      console.log(`    [${TYPE_LABELS[p.type]}] ${p.date} — ${p.title}`)
       console.log(`           slug: ${p.slug}`)
     }
     if (state.promoted.length > 10) {
@@ -472,57 +454,38 @@ async function cmdStatus(): Promise<void> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+// ─── CLI ────────────────────────────────────────────────────────────────────
 
-const { values, positionals } = parseArgs({
-  args: Bun.argv.slice(2),
-  options: {
-    "dry-run": { type: "boolean", default: false },
-    days: { type: "string", default: String(DEFAULT_DAYS) },
-    help: { type: "boolean", short: "h", default: false },
-  },
-  allowPositionals: true,
-  strict: false,
-})
+const program = new Command()
+program
+  .name("session-promote")
+  .description("Session promotion pipeline — extract knowledge from sessions into gbrain")
 
-const command = positionals[0]
-const days = parseInt(values.days as string, 10) || DEFAULT_DAYS
+program
+  .command("scan")
+  .description("Scan recent sessions for promotable knowledge")
+  .option("--days <n>", "Days to scan", String(DEFAULT_DAYS))
+  .action(async (opts: { days?: string }) => {
+    await cmdScan(parseInt(opts.days ?? String(DEFAULT_DAYS), 10) || DEFAULT_DAYS)
+  })
 
-if (values.help || !command) {
-  console.log(`Usage: bun tools/session-promote.ts <command> [options]
+program
+  .command("promote")
+  .description("Extract and write gbrain pages")
+  .option("--days <n>", "Days to scan", String(DEFAULT_DAYS))
+  .option("--dry-run", "Preview what would be promoted without writing")
+  .action(async (opts: { days?: string; dryRun?: boolean }) => {
+    await cmdPromote(parseInt(opts.days ?? String(DEFAULT_DAYS), 10) || DEFAULT_DAYS, opts.dryRun ?? false)
+  })
 
-Commands:
-  scan      Scan recent sessions for promotable knowledge
-  promote   Extract and write gbrain pages
-  status    Show promotion pipeline state
-
-Options:
-  --days N      Number of days to scan (default: ${DEFAULT_DAYS})
-  --dry-run     Preview what would be promoted without writing
-  -h, --help    Show this help
-
-Examples:
-  bun tools/session-promote.ts scan
-  bun tools/session-promote.ts scan --days 14
-  bun tools/session-promote.ts promote --dry-run
-  bun tools/session-promote.ts promote
-  bun tools/session-promote.ts status`)
-  process.exit(command ? 0 : 1)
-}
-
-switch (command) {
-  case "scan":
-    await cmdScan(days)
-    break
-  case "promote":
-    await cmdPromote(days, values["dry-run"] as boolean)
-    break
-  case "status":
+program
+  .command("status")
+  .description("Show promotion pipeline state")
+  .action(async () => {
     await cmdStatus()
-    break
-  default:
-    console.error(`Unknown command: ${command}. Use --help for usage.`)
-    process.exit(1)
-}
+  })
+
+program.parseAsync().catch((err: unknown) => {
+  log.error?.(err instanceof Error ? err : new Error(String(err)), "fatal error")
+  process.exitCode = 1
+})
