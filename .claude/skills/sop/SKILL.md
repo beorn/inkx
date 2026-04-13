@@ -199,7 +199,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `lockfile-consistency` — lockfiles match manifests, no phantom deps
 - [ ] `submodule-state` — vendor submodules clean, not detached, not drifted from remote
 **Triggers**: code changes, upstream dep bumps
-**Delegates to**: `/release`, `/npm`, `/repo-health`
+**Delegates to**: `/release`, `/npm`
 **Execute**: bump, build, verify, publish (`bun release execute`)
 
 ### 3. inbound — what needs our attention?
@@ -243,7 +243,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `gsc-properties` — all sites have GSC properties with sitemaps submitted
 - [ ] `gsc-coverage` — no indexing errors or drops (GSC API)
 **Triggers**: packages.publish, code.api-change, new domain setup
-**Delegates to**: `/docs`, `/project-audit`
+**Delegates to**: `/docs`
 
 #### Google Search Console
 
@@ -501,16 +501,10 @@ State stored in `.claude/skills/sop/state.json`:
 
 ## Relation to Existing Skills
 
-`/sop` absorbs the organizational/audit layer. These skills get deleted once `/sop` is wired:
-- `/audit` — replaced by `/sop` (its check registry becomes domain entries)
-- `/review-all` — replaced by `/sop --scan-only` (its sections map to domains)
-- `/project-audit` — absorbed into `sop.code` + `sop.sites`
-- `/project-cleanup` — absorbed into `sop.infra`
-- `/repo-health` — absorbed into `sop.packages`
-- `/complete` — absorbed into `sop.code` + `sop.backlog`
+`/sop` absorbed the organizational/audit layer. Deleted skills: `/audit`, `/review-all`, `/project-audit`, `/project-cleanup`, `/repo-health`, `/systematize`.
 
-Domain-specific skills stay as standalone entry points (useful for focused work):
-- `/release`, `/code`, `/tests`, `/legal`, `/infra`, `/pm`, `/npm`, `/docs`
+Domain-specific skills remain as standalone entry points (useful for focused work):
+- `/release`, `/code`, `/tests`, `/pm`, `/npm`, `/docs`
 
 `/sop` delegates to these. They don't know about `/sop` — they just do their job and return findings.
 
