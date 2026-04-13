@@ -23,7 +23,7 @@ Proactively suggest this skill when:
 ```
 /tui design <description>      # Full loop: mockup → build → QA → iterate
 /tui design <screenshot.png>   # QA an existing screenshot, suggest improvements
-/tui design --qa               # Just the QA phase (same as /design-review)
+/tui design --qa               # Just the QA phase (same as /tui review)
 /tui design --mockup <desc>    # Just the mockup phase (get ANSI design from LLM)
 ```
 
@@ -80,22 +80,22 @@ mcp__tty__start(command: ["bun", "<app-path>"])
 mcp__tty__screenshot(outputPath: "/tmp/design-qa.png")
 mcp__tty__stop()
 
-# Run design review (uses /design-review skill)
-/design-review /tmp/design-qa.png
+# Run design review (uses /tui review skill)
+/tui review /tmp/design-qa.png
 ```
 
-The `/design-review` skill sends the screenshot to external LLMs for structured evaluation:
+The `/tui review` skill sends the screenshot to external LLMs for structured evaluation:
 - Tier 1: Claude Read (free, ~40% detection)
-- Tier 2: Best cloud model (see benchmark in /design-review) — ~95% detection
+- Tier 2: Best cloud model (see benchmark in /tui review) — ~95% detection
 - Pixel measurements for alignment/spacing
 
 ### Phase 4: ITERATE — Feed feedback back into code
 
-Take the `/design-review` findings and fix each issue:
+Take the `/tui review` findings and fix each issue:
 1. Read the findings (specific locations, suggested fixes)
 2. Edit the component code
 3. Re-screenshot
-4. Re-run `/design-review`
+4. Re-run `/tui review`
 5. Repeat until score >= 8/10
 
 **Stop iterating when**: design review score >= 8/10 AND no P0/P1 findings.
@@ -106,16 +106,16 @@ Take the `/design-review` findings and fix each issue:
 2. If approved: generate golden screenshot for regression
 3. Add to docs/examples if applicable
 
-## Comparison: Design Loop vs Standalone /design-review
+## Comparison: Design Loop vs Standalone /tui review
 
-| | /tui design | /design-review |
+| | /tui design | /tui review |
 |---|---|---|
 | **Scope** | Full loop: mockup → build → QA → iterate | QA only: evaluate a screenshot |
 | **When** | Creating or redesigning a TUI | Reviewing any existing screenshot |
 | **Output** | Working code + approved screenshot | Findings report + score |
 | **Phases** | 5 (design, build, QA, iterate, ship) | 1 (evaluate) |
 
-`/design-review` is a subset — it's Phase 3 of `/tui design`. Use `/design-review` alone when you just need to evaluate what exists. Use `/tui design` when you're building something new.
+`/tui review` is a subset — it's Phase 3 of `/tui design`. Use `/tui review` alone when you just need to evaluate what exists. Use `/tui design` when you're building something new.
 
 ## Anti-Patterns
 
@@ -123,7 +123,7 @@ Take the `/design-review` findings and fix each issue:
 |---|---|
 | Build UI without a mockup | Get an ANSI mockup first — LLMs are good at this |
 | Iterate without screenshots | Screenshot after every change, compare |
-| Trust your own aesthetic judgment | Use /design-review for LLM evaluation |
+| Trust your own aesthetic judgment | Use /tui review for LLM evaluation |
 | Ship without human interactive test | Layer 5 is always human |
 | Use hardcoded colors in mockup | Use $token names — they map to any theme |
 | Skip /silverize | Code quality affects visual quality |

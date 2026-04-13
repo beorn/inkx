@@ -206,7 +206,7 @@ SILVERY_STRICT=1 bun km view /path
 | km-tui component bug (card/column/board) | `/tui` — km-specific TUI development |
 | Flexily layout bug (wrong sizes/positions) | `/flexily` — layout engine caching, fingerprinting |
 | Performance issue (slow render, jank) | `/perf` — profiling and diagnostics |
-| Need a failing test first | `/troubleshoot` — structured debugging protocol |
+| Need a failing test first | `/tests debug` — structured debugging protocol |
 
 ## Fuzz Tests
 

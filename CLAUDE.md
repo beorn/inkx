@@ -181,7 +181,7 @@ Any significant work (features, bug fixes, refactors) should have a bead — con
 
 ## Commits
 
-Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org): `type(scope): message`
+Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `type(scope): message`
 
 **Never parallelize git commands** - run them sequentially with `&&`. Parallel git operations cause `.git/index.lock` conflicts.
 
@@ -228,8 +228,8 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [tdd/](.claude/skills/tdd/)                                         | **Reproduce first, fix second** — tool picker, test patterns, cleanup  |
 | [big/](.claude/skills/big/)                                         | **Think big** — reframe problems, 10-20 hypotheses, find the design where the bug can't happen |
 | [why/](.claude/skills/why/)                                         | **5 Whys** — trace symptom to root cause, fix at the right level |
-| [troubleshoot/](.claude/skills/troubleshoot/)                       | Something broken — systematic debugging (reproduce, instrument, bisect) |
-| [git/](.claude/skills/git/)                                         | Commits                                                               |
+| ~~troubleshoot/~~ | Absorbed into `/tests debug` |
+| [commit/](.claude/skills/commit/)                                   | Commits, worktrees                                                    |
 | [release/](.claude/skills/release/)                                 | Release packages (version, changelog, npm publish, GitHub release)    |
 | [refactor/](.claude/skills/refactor/)                                | Large-scale phased refactoring (plan, review, execute phases)         |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
@@ -254,9 +254,13 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | ~~project-audit/~~ | Absorbed into `/sop code,sites` |
 | ~~project-cleanup/~~ | Absorbed into `/sop infra` |
 | ~~repo-health/~~ | Absorbed into `/sop packages` |
+| ~~infra/~~ | Absorbed into `/sop infra` |
+| ~~design-review/~~ | Absorbed into `/tui review` |
+| ~~diagram-design/~~ | Absorbed into `/diagram html` |
+| ~~git/~~ | Absorbed into `/commit` |
 | [npm/](.claude/skills/npm/)                                         | Check npm availability. **Package registry**: [npm-packages.md](.claude/skills/release/npm-packages.md) |
 | [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
-| [diagram/](.claude/skills/diagram/)                                 | ASCII diagrams — aligned boxes, trees, flow. Prevents misalignment   |
+| [diagram/](.claude/skills/diagram/)                                 | ASCII + HTML/CSS diagrams — aligned boxes, trees, flow, blog-ready HTML |
 | [batch-refactor](vendor/bearly/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
 
 

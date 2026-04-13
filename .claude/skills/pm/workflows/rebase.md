@@ -53,7 +53,7 @@ Output summary table:
 ### 2a. Git State
 
 If uncommitted changes exist:
-- **Auto-commit** using `/git commit` workflow (don't ask, just do it)
+- **Auto-commit** using `/commit` workflow (don't ask, just do it)
 - If commit fails (e.g., lint errors), warn and continue
 
 ### 2b. In-Progress Beads

@@ -16,7 +16,7 @@ A military/executive decision protocol: don't just describe the problem — pres
 - Product/process decisions with multiple viable paths
 - Any question where "it depends" isn't good enough — enumerate what it depends ON
 
-**Not for**: Quick questions (just answer), debugging (use /troubleshoot), getting unstuck (use /fresh).
+**Not for**: Quick questions (just answer), debugging (use /tests debug), getting unstuck (use /fresh).
 
 ## Process
 

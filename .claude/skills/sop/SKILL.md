@@ -531,6 +531,74 @@ Domain-specific skills stay as standalone entry points (useful for focused work)
 12. growth domain (npm/GitHub/Cloudflare data sources)
 13. Content generation proposals from market+growth signals
 
+## Infra Domain Details
+
+Additional infrastructure procedures beyond what the infra domain checks cover.
+
+### CI Fix Workflow
+
+When a CI failure is found:
+1. `gh run view <id> --repo beorn/<repo> --log-failed` -- read the failure
+2. Identify root cause (test failure, dependency, secret, config)
+3. Fix locally if possible, push to trigger re-run
+4. Or re-run directly: `gh run rerun <id> --repo beorn/<repo>`
+5. For flaky tests: re-run first, investigate if it fails again
+
+### CI Repos & Workflows
+
+| Repo | Workflows | Triggers |
+|------|-----------|----------|
+| silvery | release.yml, docs.yml | tag v*, push main |
+| termless | release.yml, ci.yml, docs.yml | tag v*, push main, PR |
+| terminfo.dev | deploy.yml | push main |
+| flexily | test.yml, ci.yml, release.yml | push main, PR, tag v* |
+| loggily | test.yml, docs.yml, release.yml | push main, tag v* |
+| bearly | (none -- inline in km) | -- |
+| mdtest | deploy-docs.yml, release.yml | push main, tag v* |
+| vimonkey | release.yml | tag v* |
+| vt100 | (npm publish from monorepo) | manual |
+| watcher-chaos | release.yml | tag v* |
+
+### Plugin Health Checks
+
+**Tribe**: Check daemon socket (`ls -la /tmp/km-tribe-*.sock`), health (`tribe_health`), sessions.
+
+**Recall**: Check index exists and freshness (`bun recall status`), test search works.
+
+**TTY**: Check MCP server responds (`mcp__tty__list`).
+
+**LLM tools**: Check API keys set (`$ANTHROPIC_API_KEY`, `$OPENAI_API_KEY`).
+
+### Hook Debugging
+
+Expected hooks: PreToolUse:Bash (DCG safety), UserPromptSubmit (auto-recall), PreCompact (beads context), SessionStart (BD_ACTOR, recall index), SessionEnd (kill vitests, prune tribe), SubagentCleanup, WorktreeCreate.
+
+Check hooks are executable: `for hook in .claude/hooks/*.sh; do [ -x "$hook" ] && echo "OK: $hook" || echo "NOT EXECUTABLE: $hook"; done`
+
+### Database Health Indicators
+
+- **beads.db** -- `bd doctor` should report no issues
+- **tribe.db** -- Active sessions, WAL not >50MB
+- **Dolt** -- PID file references running process
+- **state.db** -- Should exist, WAL not excessive
+- **session-index.db** -- Should be <1h old
+
+### Deployment Health
+
+Sites: terminfo.dev (Cloudflare Pages), silvery.dev (GitHub Pages), termless.dev (GitHub Pages), beorn.codes (GitHub Pages), loggily.dev (GitHub Pages), mdspec.org (GitHub Pages).
+
+Check: `curl -sI "https://$site" | head -1` for 200, verify sitemaps and robots.txt.
+
+### Auto-Fix Policy
+
+**Fix immediately without asking**: hook not executable, recall index stale, CI failure from flaky test, outdated action versions, missing robots.txt/sitemap, WAL file oversized, hook missing shebang.
+
+**Fix after reading the error**: CI failure from test/build error, plugin not responding, site returning non-200, tribe daemon not running.
+
+**Ask user first**: database corruption, deleting stale lock files, force-pushing, changing DNS/domain config, removing old workflows.
+
+---
+
 ## Agent Architecture (future)
 
 Each domain can optionally run as a separate subagent — keeps domain knowledge concentrated and context small. `/sop` orchestrator spawns domain agents in parallel (following `/max` pattern), collects findings, merges dashboard.

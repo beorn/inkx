@@ -30,7 +30,7 @@ Audit a file, package, or codebase against silvery's philosophy and technical st
 ## What This Is NOT
 
 - Not a general code review (use `/code improve` for that)
-- Not a bug hunt (use `/troubleshoot`)
+- Not a bug hunt (use `/tests debug`)
 - Not a style/lint check (use `bun fix`)
 
 This is specifically about **silvery alignment** — are you using the framework as intended, or fighting it?
