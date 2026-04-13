@@ -16,6 +16,7 @@ Workflows for maintaining project documentation: glossary updates, doc reviews, 
 | `/docs review` | Full documentation review across the project |
 | `/docs glossary` | Update the glossary with new/changed terms |
 | `/docs audit` | Check for stale, missing, or contradictory docs |
+| `/docs readme` | Write/rewrite a package README or landing page — see [readme-style.md](readme-style.md) |
 
 ## `/docs review` — Full Documentation Review
 
