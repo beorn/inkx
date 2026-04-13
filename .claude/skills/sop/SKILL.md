@@ -258,11 +258,26 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `freshness` — package version changed since docs last touched?
 - [ ] `readme-versions` — do READMEs reference current versions?
 - [ ] `readme-quality` — do READMEs follow [readme-style.md](../docs/readme-style.md)? (progressive disclosure, showcase example, no clutter)
+- [ ] `doc-sync` — are README, homepage (docs/index.md), CLAUDE.md, and GitHub description consistent? Tagline, feature list, code examples, and competitive claims should match across all four surfaces. See sync set below.
 - [ ] `changelog-gap` — unreleased changes without CHANGELOG entries?
 - [ ] `gsc-properties` — all sites have GSC properties with sitemaps submitted
 - [ ] `gsc-coverage` — no indexing errors or drops (GSC API)
-**Triggers**: packages.publish, code.api-change, new domain setup
+**Triggers**: packages.publish, code.api-change, new domain setup, sites.doc-change
 **Delegates to**: `/docs`
+
+#### Doc Sync Sets
+
+Each package has a sync set — files that must stay consistent when any one changes:
+
+| Surface | File | What must match |
+|---|---|---|
+| **GitHub description** | repo settings | Tagline, key differentiator |
+| **README** | README.md | Tagline, hero example, feature summary, compatibility list |
+| **Homepage** | docs/index.md | Tagline, feature cards, hero example, showcase example |
+| **CLAUDE.md** | CLAUDE.md | Tagline, quick start example |
+| **npm** | package.json `description` | Short description |
+
+When `doc-sync` finds drift, propose edits to bring all surfaces in line. The README is the source of truth — other surfaces adapt from it.
 
 #### Google Search Console
 
@@ -479,6 +494,7 @@ packaging.measure(sizes) → sites.update(badges) + market.update(comparisons)
 market.detect(Ink 8)     → sites.update(comparison) + growth.check(losing downloads?)
 inbound.triage(CVE)      → security.check(cve-scan) + code.fix(patch) + packages.release(security bump)
 inbound.triage(issue)    → backlog.create(bead)
+sites.doc-change(README) → sites.check(doc-sync)  # keep homepage, CLAUDE.md, GH description in sync
 ```
 
 ## Dashboard Output

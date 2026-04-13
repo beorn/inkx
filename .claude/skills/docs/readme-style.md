@@ -110,6 +110,18 @@ Expect 10-30 small edits, not one perfect draft. Each pass:
 3. Cut — does this earn its visual weight? If not, merge or delete
 4. Polish — read aloud. Does it flow? Fix awkward transitions
 
+## Sync Set
+
+Each package has multiple surfaces that must stay consistent. When you edit one, update the others:
+
+- **README** (source of truth) — tagline, hero example, feature summary, compatibility, about
+- **Homepage** (docs/index.md) — tagline, feature cards, hero example, showcase, about
+- **CLAUDE.md** — tagline, quick start example
+- **GitHub description** — tagline, key differentiator
+- **package.json description** — short description
+
+The README is canonical. Other surfaces adapt from it, not the other way around.
+
 ## Anti-Patterns
 
 - Feature bullet lists longer than 6 items (use the showcase example instead)
