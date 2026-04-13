@@ -211,6 +211,8 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 ### Rendering & Visual Bugs (choose the right one!)
 
+**Hard rule: never edit `vendor/silvery/packages/ag-term/src/pipeline/*.ts` directly.** Spawn `Agent(subagent_type: "silvery")` — the rendering expert loads pipeline docs first and writes STRICT tests before changes. Direct pipeline edits cause incremental cascade bugs.
+
 | Symptom                                      | Skill                                                          |
 | -------------------------------------------- | -------------------------------------------------------------- |
 | Silvery pipeline bug (dirty flags, incremental ≠ fresh, scroll tiers, sticky) | [silvery/](.claude/skills/silvery/) |
