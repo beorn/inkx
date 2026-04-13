@@ -248,7 +248,7 @@ gh pr create --repo <owner>/<repo> \
 3. Searched GitHub issues — no existing report
 4. Checked issue templates — found `linter_bug_report.yaml` (initially used wrong generic template, had to edit)
 5. Filed with correct format: version, command, config, what happened
-6. Applied local workaround: `infra/lint.sh` wrapper redirecting to temp file
+6. Applied local workaround: `packages/km-infra/scripts/lint.sh` wrapper redirecting to temp file
 
 **Lessons**:
 - Always check issue templates BEFORE filing. Editing after the fact is messy.

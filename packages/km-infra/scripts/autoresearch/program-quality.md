@@ -20,7 +20,7 @@ git checkout -b autoresearch/$RUN_TAG
 
 # 2. Read this file
 # 3. Run baseline
-bun infra/autoresearch/run-quality.ts --baseline
+bun packages/km-infra/scripts/autoresearch/run-quality.ts --baseline
 ```
 
 ## Experiment Loop (repeat forever)
@@ -98,7 +98,7 @@ git commit -m "quality: <one-line description>"
 ### 4. Run measurement
 
 ```bash
-bun infra/autoresearch/run-quality.ts
+bun packages/km-infra/scripts/autoresearch/run-quality.ts
 ```
 
 This measures lint warnings, complexity, LOC, test count, and produces a verdict.
@@ -155,7 +155,7 @@ An experiment is **DISCARD** when ANY of these hold:
 **Off limits**:
 
 - `vendor/` — Submodules (fix directly in their repos)
-- `infra/autoresearch/` — This tooling
+- `packages/km-infra/scripts/autoresearch/` — This tooling
 - `benchmarks/` — Benchmark files
 - `.claude/` — Skill files
 

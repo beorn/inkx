@@ -6,13 +6,13 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 THRESHOLD=${TEST_FAST_THRESHOLD:-40}
 
 cd "$REPO_ROOT"
 
 # Phase 1: Type-check baseline guard (~10s)
-bash infra/typecheck/check.sh
+bash packages/km-infra/scripts/typecheck/check.sh
 TC_EXIT=$?
 
 if [ "$TC_EXIT" -ne 0 ]; then

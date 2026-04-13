@@ -235,7 +235,7 @@ allInvariants (7):     + parentLinks, nodeLinks, layout
 | `selection`     | Selected node exists in repo                     |
 | `cursorVisible` | Cursor node's text is visible on screen          |
 | `parentLinks`   | Every node's parent_id points to a real node     |
-| `nodeLinks`     | Every symlink_to reference is valid              |
+| `nodeLinks`     | Every embed_of reference is valid                |
 | `layout`        | Column index within bounds                       |
 
 ### Snapshot Assertions (app.expectSnapshot)
@@ -518,12 +518,12 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## CI Pattern Checks
 
-`test:ci` runs `infra/check-test-patterns.sh` after lint but before test execution. It enforces:
+`test:ci` runs `packages/km-infra/scripts/check-test-patterns.sh` after lint but before test execution. It enforces:
 
 - **No `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
 - **No `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
 
-Pattern violations fail CI. To check locally: `bash infra/check-test-patterns.sh`.
+Pattern violations fail CI. To check locally: `bash packages/km-infra/scripts/check-test-patterns.sh`.
 
 ## Termless TTY Regression Tests
 

@@ -3,12 +3,12 @@
 # Uses pnpm publish for publishConfig.exports support.
 #
 # Usage:
-#   ./infra/publish-all.sh           # Dry run (default)
-#   ./infra/publish-all.sh --publish # Actually publish
+#   ./packages/km-infra/scripts/publish-all.sh           # Dry run (default)
+#   ./packages/km-infra/scripts/publish-all.sh --publish # Actually publish
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 DRY_RUN=true
 
 if [[ "$1" == "--publish" ]]; then

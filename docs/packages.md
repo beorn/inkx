@@ -305,5 +305,5 @@ Exports: `.` (main), `./plugin`, `./fuzz`, `./chaos`
 ## Publishing
 
 All packages use tsdown + publishConfig. See `vendor/CLAUDE.md` for the pattern.
-Run `bun infra/audit-packages.ts` for publishing readiness.
+Run `bun packages/km-infra/scripts/audit-packages.ts` for publishing readiness.
 Use `/release` skill for coordinated releases.

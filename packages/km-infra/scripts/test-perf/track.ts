@@ -5,7 +5,7 @@
  * Reads vitest HTML metadata, tracks test performance over time, and shows
  * performance summary including slowest files and regression warnings.
  *
- * Usage: bun infra/test-perf/track.ts
+ * Usage: bun packages/km-infra/scripts/test-perf/track.ts
  *
  * Reads from: test-results/html.meta.json.gz
  * Writes to: .test-results/test-perf-history.jsonl

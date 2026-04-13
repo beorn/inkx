@@ -4,17 +4,17 @@
  * Autoresearch runner — measures performance + quality, compares to baseline, renders verdict.
  *
  * Usage:
- *   bun infra/autoresearch/run.ts --baseline    # Establish baseline (first run)
- *   bun infra/autoresearch/run.ts               # Measure + compare + verdict
- *   bun infra/autoresearch/run.ts --dry         # Measure only, no verdict
+ *   bun packages/km-infra/scripts/autoresearch/run.ts --baseline    # Establish baseline (first run)
+ *   bun packages/km-infra/scripts/autoresearch/run.ts               # Measure + compare + verdict
+ *   bun packages/km-infra/scripts/autoresearch/run.ts --dry         # Measure only, no verdict
  */
 
 import { spawn } from "bun"
 import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync } from "fs"
 import { join } from "path"
 
-const ROOT = import.meta.dir.replace(/\/infra\/autoresearch$/, "")
-const DATA_DIR = join(ROOT, "infra/autoresearch/data")
+const ROOT = import.meta.dir.replace(/\/packages\/km-infra\/scripts\/autoresearch$/, "")
+const DATA_DIR = join(ROOT, "packages/km-infra/scripts/autoresearch/data")
 const BASELINE_FILE = join(DATA_DIR, "baseline.json")
 const RESULTS_FILE = join(DATA_DIR, "results.tsv")
 const BENCH_FILES = [
@@ -225,9 +225,12 @@ function measureQuality(isBaseline: boolean): QualityResult {
 
   if (!isBaseline) {
     // Diff this commit vs its parent — measures just the experiment's change
-    const numstatProc = Bun.spawnSync(["git", "diff", "--numstat", "HEAD~1", "--", ".", ":!infra/autoresearch"], {
-      cwd: ROOT,
-    })
+    const numstatProc = Bun.spawnSync(
+      ["git", "diff", "--numstat", "HEAD~1", "--", ".", ":!packages/km-infra/scripts/autoresearch"],
+      {
+        cwd: ROOT,
+      },
+    )
     for (const line of numstatProc.stdout.toString().trim().split("\n")) {
       const [add, del] = line.split("\t")
       if (add && del && add !== "-") {

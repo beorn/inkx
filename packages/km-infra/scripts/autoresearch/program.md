@@ -20,7 +20,7 @@ git checkout -b autoresearch/$RUN_TAG
 
 # 2. Read this file, then read results.tsv if it exists
 # 3. Run baseline
-bun infra/autoresearch/run.ts --baseline
+bun packages/km-infra/scripts/autoresearch/run.ts --baseline
 ```
 
 ## Experiment Loop (repeat forever)
@@ -56,7 +56,7 @@ git commit -m "experiment: <one-line description of what you changed>"
 ### 4. Run measurement
 
 ```bash
-bun infra/autoresearch/run.ts
+bun packages/km-infra/scripts/autoresearch/run.ts
 ```
 
 This will:
@@ -125,7 +125,7 @@ An experiment is **DISCARD** when ANY of these hold:
 
 **Off limits** (do not modify):
 
-- `infra/autoresearch/` — This tooling
+- `packages/km-infra/scripts/autoresearch/` — This tooling
 - `benchmarks/*.bench.ts` — The measurements themselves
 - `tests/` — Test files (except to fix tests you broke)
 - `package.json`, `tsconfig.json` — Config files

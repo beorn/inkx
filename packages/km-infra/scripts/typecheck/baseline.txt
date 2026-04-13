@@ -4,7 +4,6 @@
 6 apps/km-tui/src/tui.tsx
 1 apps/km-tui/src/views/TreeNode.tsx
 38 apps/km-tui/web/km-canvas.tsx
-16 infra/audit-packages.ts
 2 packages/km-storage/src/db/rules.ts
 6 packages/km-storage/src/watch/applier.ts
 6 packages/km-storage/src/watch/sync.ts

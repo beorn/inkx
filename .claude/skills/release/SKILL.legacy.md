@@ -40,7 +40,7 @@ Run `bun release verify <pkg>` after every publish, before declaring done.
 |---------|-------------|
 | `/release` | Run `bun release plan`, present results, confirm, execute |
 | `/release --status` | Run `bun release status` (read-only) |
-| `/release --audit` | Run `bun infra/audit-packages.ts` |
+| `/release --audit` | Run `bun packages/km-infra/scripts/audit-packages.ts` |
 | `/release silvery` | Run `bun release plan silvery`, confirm, execute |
 | `/release vendor/loggily` | Release a single package |
 | `/release all` | Release every package with unreleased changes |
@@ -154,7 +154,7 @@ The user can approve all, skip specific packages, or abort.
 
 For each release, in dependency order:
 
-1. **Pre-flight**: clean working tree, `bun infra/audit-packages.ts` passes
+1. **Pre-flight**: clean working tree, `bun packages/km-infra/scripts/audit-packages.ts` passes
 2. **Changelog**: generate from commits + closed beads, prepend to CHANGELOG.md, show draft
 3. **Version bump**: `npm version <type> --no-git-tag-version` (coordinated bump for silvery)
 4. **Build**: `npx tsdown` (rebuilds with new version)

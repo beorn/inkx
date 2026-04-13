@@ -206,9 +206,8 @@
         "**/tests/**/*.ts",
         "**/tests/**/*.tsx",
         "scripts/**/*.ts",
-        "infra/**/*.ts",
-        "infra/**/*.tsx",
-        "packages/km-infra/**/*.ts"
+        "packages/km-infra/**/*.ts",
+        "packages/km-infra/**/*.tsx"
       ],
       "rules": {
         "@typescript-eslint/no-require-imports": "off",

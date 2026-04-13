@@ -134,15 +134,15 @@ Config lives in each package's `"tsdown"` field — no config files needed.
 ### Audit
 
 ```bash
-bun infra/audit-packages.ts          # Full publishing readiness audit
-bun infra/audit-packages.ts --json   # JSON output
+bun packages/km-infra/scripts/audit-packages.ts          # Full publishing readiness audit
+bun packages/km-infra/scripts/audit-packages.ts --json   # JSON output
 ```
 
 ### Public vs Private packages
 
 Public packages are published to npm. Private packages (`"private": true`) are workspace-only — used internally but never published. The `silvery` barrel bundles all private packages into its `dist/`.
 
-Run `bun infra/audit-packages.ts` to see the full list with status.
+Run `bun packages/km-infra/scripts/audit-packages.ts` to see the full list with status.
 
 ## Fixing Violations
 

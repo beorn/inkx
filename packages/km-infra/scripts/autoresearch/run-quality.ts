@@ -11,17 +11,17 @@
  * - Test count
  *
  * Usage:
- *   bun infra/autoresearch/run-quality.ts --baseline   # Establish baseline
- *   bun infra/autoresearch/run-quality.ts              # Measure + compare + verdict
- *   bun infra/autoresearch/run-quality.ts --dry        # Measure only, no verdict
+ *   bun packages/km-infra/scripts/autoresearch/run-quality.ts --baseline   # Establish baseline
+ *   bun packages/km-infra/scripts/autoresearch/run-quality.ts              # Measure + compare + verdict
+ *   bun packages/km-infra/scripts/autoresearch/run-quality.ts --dry        # Measure only, no verdict
  */
 
 import { spawn } from "bun"
 import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync } from "fs"
 import { join } from "path"
 
-const ROOT = import.meta.dir.replace(/\/infra\/autoresearch$/, "")
-const DATA_DIR = join(ROOT, "infra/autoresearch/data")
+const ROOT = import.meta.dir.replace(/\/packages\/km-infra\/scripts\/autoresearch$/, "")
+const DATA_DIR = join(ROOT, "packages/km-infra/scripts/autoresearch/data")
 const BASELINE_FILE = join(DATA_DIR, "quality-baseline.json")
 const RESULTS_FILE = join(DATA_DIR, "quality-results.tsv")
 

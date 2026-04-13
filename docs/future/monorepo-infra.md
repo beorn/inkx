@@ -122,7 +122,7 @@ Shell execution:
 
 The built-in dot reporter has a bug (empty color sequences). We implement our own:
 
-**Location**: `infra/vitest-reporter.ts`
+**Location**: `packages/km-infra/scripts/vitest-reporter.ts` (proposed)
 
 **Features**:
 

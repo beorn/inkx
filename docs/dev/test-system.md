@@ -99,7 +99,7 @@ bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Performance Tracking (opt-in via :html commands)       │
-│  infra/test-perf/track.ts                               │
+│  packages/km-infra/scripts/test-perf/track.ts                               │
 │  - Reads vitest metadata from HTML report               │
 │  - Tracks performance over time                         │
 │  - Identifies slow tests and regressions                │
@@ -348,7 +348,7 @@ Performance tracking is available via the `:html` test commands (`test:fast:html
 ### How It Works
 
 1. **Tests run** - Vitest generates HTML metadata (`test-results/html.meta.json.gz`)
-2. **Track script runs** - `infra/test-perf/track.ts` reads metadata
+2. **Track script runs** - `packages/km-infra/scripts/test-perf/track.ts` reads metadata
 3. **History stored** - Performance data appended to `.test-results/test-perf-history.jsonl`
 4. **Summary displayed** - Shows slowest files, regressions, trends
 
@@ -596,8 +596,8 @@ export default defineConfig({
   "test:fast": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --exclude='**/*.slow.*'",
   "test:slow": "NO_COLOR=1 bunx --bun vitest run --reporter=dot -- '**/*.slow.{test,spec}.{ts,tsx,md}'",
   "test:all": "NO_COLOR=1 bunx --bun vitest run --reporter=dot",
-  "test:fast:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit --exclude='**/*.slow.*' && bun infra/test-perf/track.ts",
-  "test:all:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit && bun infra/test-perf/track.ts",
+  "test:fast:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit --exclude='**/*.slow.*' && bun packages/km-infra/scripts/test-perf/track.ts",
+  "test:all:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit && bun packages/km-infra/scripts/test-perf/track.ts",
   "bench": "bunx --bun vitest bench",
   "bench:baseline": "bunx --bun vitest bench --outputJson benchmarks/baseline.json",
   "bench:compare": "bunx --bun vitest bench --compare benchmarks/baseline.json"
@@ -619,7 +619,7 @@ km/
 │   ├── queries.bench.ts
 │   ├── sync.bench.ts
 │   └── baseline.json          # Baseline for comparisons
-├── infra/test-perf/           # Performance tracking tool
+├── packages/km-infra/scripts/test-perf/  # Performance tracking tool
 │   └── track.ts
 ├── test-results/              # Generated test outputs
 │   ├── vitest-report.html    # HTML UI
@@ -652,7 +652,4 @@ This ensures tests are:
 
 ## Further Reading
 
-- [Test Performance Guide](../testing/test-performance.md) - Optimizing test suite speed
-- [Benchmarking Guide](../testing/benchmarking.md) - Writing and running benchmarks
 - [Vitest Configuration](../testing/vitest-ci-integration.md) - CI integration details
-- [Markdown Tests](../../vendor/mdtest/README.md) - Writing executable markdown tests

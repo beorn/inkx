@@ -174,7 +174,7 @@ Start here. These are automatable and already have skill implementations.
 **Assets**: source files, typecheck baseline, lint config, complexity reports, test results
 **Cadence**: per-session (split by cost — fast checks default, full suite on --deep)
 **Checks**:
-- [ ] `typecheck` — `bash infra/typecheck/check.sh` (baseline drift)
+- [ ] `typecheck` — `bash packages/km-infra/scripts/typecheck/check.sh` (baseline drift)
 - [ ] `lint` — `bun fix` (oxlint + oxfmt)
 - [ ] `test-fast` — `bun run test:fast` (6000+ tests) — session default
 - [ ] `test-ci` — `bun run test:ci` (full suite) — weekly or --deep only
@@ -197,7 +197,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `dep-security` — `npm audit` across repos (CVEs in deps)
 - [ ] `dep-freshness` — outdated deps, pinned old versions, major-version candidates
 - [ ] `dep-inventory` — refresh `docs/ref/dependencies.md` (npms.io scores, CVEs, watch list)
-- [ ] `publishability` — `bun infra/audit-packages.ts` (tsdown, publishConfig, files)
+- [ ] `publishability` — `bun packages/km-infra/scripts/audit-packages.ts` (tsdown, publishConfig, files)
 - [ ] `clean-build` — all packages build from clean state, no uncommitted generated output
 - [ ] `unused-deps` — `bunx knip --include dependencies,devDependencies` (phantom deps) — monthly
 - [ ] `unlisted-deps` — `bunx knip --include unlisted` (imported but undeclared) — monthly

@@ -11,7 +11,7 @@ OXLINT_CONFIG="packages/km-infra/oxlint/config.json"
 TMPFILE=$(mktemp)
 trap 'rm -f "$TMPFILE"' EXIT
 
-find apps packages infra vendor \
+find apps packages vendor \
   -path '*/node_modules' -prune -o \
   -path '*/dist' -prune -o \
   \( -name '*.ts' -o -name '*.tsx' \) -print \

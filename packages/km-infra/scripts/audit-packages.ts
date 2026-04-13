@@ -10,9 +10,9 @@
  * - Cross-dependency version consistency
  *
  * Usage:
- *   bun infra/audit-packages.ts           # Full audit
- *   bun infra/audit-packages.ts --fix     # Auto-fix what's possible
- *   bun infra/audit-packages.ts --json    # JSON output
+ *   bun packages/km-infra/scripts/audit-packages.ts           # Full audit
+ *   bun packages/km-infra/scripts/audit-packages.ts --fix     # Auto-fix what's possible
+ *   bun packages/km-infra/scripts/audit-packages.ts --json    # JSON output
  */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs"
