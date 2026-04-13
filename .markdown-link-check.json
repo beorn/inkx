@@ -1,0 +1,8 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^https?://" },
+    { "pattern": "^mailto:" }
+  ],
+  "replacementPatterns": [],
+  "aliveStatusCodes": [200, 206]
+}

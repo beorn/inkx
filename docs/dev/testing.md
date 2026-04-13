@@ -461,9 +461,9 @@ Per-layer tests for pure logic (no database, no I/O):
 
 **Board Layer** (`@km/board`):
 
-- [selectors.test.ts](../../packages/km-board/tests/selectors.test.ts) - Derived state calculations
-- [node-map.test.ts](../../packages/km-board/tests/node-map.test.ts) - Node indexing
-- [transformers.test.ts](../../packages/km-board/tests/transformers.test.ts) - State transformations
+- `selectors.test.ts` - Derived state calculations
+- `node-map.test.ts` - Node indexing
+- `transformers.test.ts` - State transformations
 
 ### 2.4 Vendor Tests
 
@@ -479,10 +479,10 @@ Vendor packages (`vendor/*`) are git submodules - part of km's test suite.
 
 **TUI Layout** (`apps/km-tui/tests/layout/`):
 
-- [constrain.test.ts](../../apps/km-tui/tests/layout/constrain.test.ts) - Width constraint logic
-- [path.test.ts](../../apps/km-tui/tests/layout/path.test.ts) - Path formatting
-- [truncate.test.ts](../../apps/km-tui/tests/layout/truncate.test.ts) - Text truncation
-- [wrap.test.ts](../../apps/km-tui/tests/layout/wrap.test.ts) - Text wrapping
+- `constrain.test.ts` - Width constraint logic
+- `path.test.ts` - Path formatting
+- `truncate.test.ts` - Text truncation
+- `wrap.test.ts` - Text wrapping
 
 **TUI Text** (`apps/km-tui/tests/text/`):
 
@@ -740,7 +740,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 - Target: <500 lines per file for maintainability
 - Warning: Files >500 lines should be considered for splitting by logical concerns
-- Action: Files >1500 lines should be split (see [test-quality-report.md](test-quality-report.md))
+- Action: Files >1500 lines should be split
 
 **Test Syntax:**
 
@@ -846,7 +846,7 @@ Tests taking >1s MUST be marked `.slow.test.ts`:
 
 **Strict enforcement**: Tests must be completely silent on success. Any output to stdout/stderr fails the test.
 
-This is enforced by [`tests/fail-on-console.ts`](../../tests/fail-on-console.ts), a preload script that:
+This is enforced by a vitest setup preload script that:
 
 1. Intercepts `console.log`, `console.info`, `console.debug`
 2. Intercepts `process.stdout.write` and `process.stderr.write`

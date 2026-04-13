@@ -136,7 +136,7 @@ const width = displayLength(styledText)
 
 We've built constraint components to reduce boilerplate for common layout patterns.
 
-**Location:** [constraints/](../../apps/km-tui/src/constraints/)
+**Location:** `apps/km-tui/src/` (constraint components)
 
 ### ConstraintContext
 

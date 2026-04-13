@@ -586,7 +586,7 @@ Uses visual Y coordinates to maintain cursor position across columns.
 - Find the card in target column whose **card midpoint** (`y + cardHeight/2`) is closest to `curswantY`
 - May land on column header if `curswantY` is above all cards
 
-**Implementation:** See [`getCardMidY()`](../../apps/km-tui/src/card-positions.ts) and [`findCardAtYVisual()`](../../apps/km-tui/src/card-positions.ts).
+**Implementation:** See `getCardMidY()` and `findCardAtYVisual()` in `apps/km-tui/src/board/position-resolver.ts`.
 
 #### Insertion Slots for Card Shifting (Alt+h/l)
 

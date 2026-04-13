@@ -217,7 +217,7 @@ The proposal suggests "each render creates independent React reconciler root." T
 
 ### Verdict
 
-**Not recommended for implementation** without a concrete use case that can't be solved with standard React composition. The generator-based render API ([silvery-render-api.md](silvery-render-api.md)) addresses more pressing pain points and should be prioritized.
+**Not recommended for implementation** without a concrete use case that can't be solved with standard React composition. The generator-based render API ([inkx-render-api.md](inkx-render-api.md)) addresses more pressing pain points and should be prioritized.
 
 ---
 
@@ -245,6 +245,6 @@ The proposal suggests "each render creates independent React reconciler root." T
 
 ## See Also
 
-- [silvery-render-api.md](silvery-render-api.md) — Generator-based unified render API (higher priority)
+- [inkx-render-api.md](inkx-render-api.md) — Generator-based unified render API (higher priority)
 - React 18 `createRoot()` — [React docs](https://react.dev/reference/react-dom/client/createRoot)
 - Micro-frontends — [martinfowler.com](https://martinfowler.com/articles/micro-frontends.html)

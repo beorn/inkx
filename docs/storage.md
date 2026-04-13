@@ -327,7 +327,7 @@ type NodeType =
   | "embed" // Embedded reference (![[target]]) linking to another node
 ````
 
-> **Current: km-ast v2** — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (`symlink_to` on any type). See [design/km-ast/model.md](design/km-ast/model.md).
+> **Current: km-ast v2** — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (`embed_of` on any type). See [design/km-ast/model.md](design/km-ast/model.md).
 
 ### Task Status
 

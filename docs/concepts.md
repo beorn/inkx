@@ -138,11 +138,11 @@ Three ways a node can reference another:
 
 | Type | Where | What it does | Example |
 |---|---|---|---|
-| **Symlink** | `KNode.symlink_to` (structural) | Node IS the target — displays target's content and children at this position | A task card that mirrors a node from another file |
+| **Embed** (structural) | `KNode.embed_of` (structural) | Node IS the target — displays target's content and children at this position | A task card that mirrors a node from another file |
 | **Link** | `[[wikilink]]` in content (inline) | Clickable text that navigates to the target | `See [[project-alpha]]` |
 | **Embed** | `![[page]]` in content (inline, future) | Displays target's content inline within the node's body | `![[meeting-notes]]` renders notes inline |
 
-Symlinks are structural (node-level `symlink_to` field). Links and embeds are inline content (parsed from markdown). The ViewTree resolves symlinks: `viewNode.display` is always the renderable node.
+Structural embeds use the node-level `embed_of` field. Links and inline embeds are inline content (parsed from markdown). The ViewTree resolves embeds: `viewNode.display` is always the renderable node.
 
 ---
 

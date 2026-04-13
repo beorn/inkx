@@ -236,7 +236,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **km-ast** — The abstract syntax tree produced by km's markdown parser. Uses types like `oi` (outline item), `li` (list item), `p`, `h`, `code`, `quote`. Parse-time types that map to `KNode` in storage.
 
-**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `symlink_to`, `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
+**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `embed_of`, `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
 
 **KTree** — A namespace of pure tree traversal functions operating on flat node stores. The primary method is `KTree.nodes(tree, rootId, opts?)` — DFS pre-order with orthogonal `match` (what to yield) and `into` (what to descend into) predicates.
 
@@ -478,9 +478,9 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **vendor** — The `vendor/` directory containing git submodule packages. Each is a standalone repo with its own npm scope and release cycle. Packages must not reference `vendor/` paths in their source.
 
-**ViewLens** — The first lens in the visibility pipeline. `createViewLens(repo, { rootId, hiddenNodeIds, foldDepths })` returns a *TreeLens* scoped to a root node, with structural exclusions (`isCollapsedChild`, `isDetailOnly`, `km.collapse:: true`), symlink resolution, role computation, and folder-index file expansion. Returns the same KNode identities as the underlying repo — only visibility differs. Lazy: each method computes on demand and caches results, zero upfront allocation. **Use directly only from non-React code** (reducers, selectors, navigation helpers). React code should consume the *ViewTree* projection above this layer.
+**ViewLens** — The first lens in the visibility pipeline. `createViewLens(repo, { rootId, hiddenNodeIds, foldDepths })` returns a *TreeLens* scoped to a root node, with structural exclusions (`isCollapsedChild`, `isDetailOnly`, `km.collapse:: true`), embed resolution, role computation, and folder-index file expansion. Returns the same KNode identities as the underlying repo — only visibility differs. Lazy: each method computes on demand and caches results, zero upfront allocation. **Use directly only from non-React code** (reducers, selectors, navigation helpers). React code should consume the *ViewTree* projection above this layer.
 
-**ViewNode** — An enriched view of a KNode within the ViewTree. Carries `viewType` (visual role), `childIds` (visible children), `parentId` (visual parent), `display` (the KNode to render — self or symlink target), `isBody`, `isSymlink`, `rules`. The raw repo node is accessible via `.data`. React components subscribe to individual ViewNodes via `useNode(id)` — re-renders only when that specific node's view state changes.
+**ViewNode** — An enriched view of a KNode within the ViewTree. Carries `viewType` (visual role), `childIds` (visible children), `parentId` (visual parent), `display` (the KNode to render — self or embed target), `isBody`, `isEmbed`, `rules`. The raw repo node is accessible via `.data`. React components subscribe to individual ViewNodes via `useNode(id)` — re-renders only when that specific node's view state changes.
 
 **ViewType** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type. (Replaces `ViewRole`.)
 

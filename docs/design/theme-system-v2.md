@@ -22,7 +22,7 @@
 
 Components reference tokens with `$` prefix: `color="$primary"`, `borderColor="$separator"`.
 Derived from a `ThemePalette` (14 raw colors) via `deriveTheme()` -- both defined in the
-`swatch` package. See the [swatch semantic tokens reference](../../vendor/silvery/packages/theme/docs/reference/semantic-tokens.md)
+`swatch` package. See the [theme package reference](../../vendor/silvery/packages/theme/README.md)
 for the full token list and derivation rules.
 
 ### Content Palette (16)
@@ -63,14 +63,12 @@ The theme system uses a two-layer architecture defined in `swatch`:
 - **Layer 1: ThemePalette** -- 14 raw colors (6 surface ramp + 8 accent hues)
 - **Layer 2: Theme** -- 19 semantic tokens + 16 palette colors derived via `deriveTheme()`
 
-See the [swatch design philosophy](../../vendor/silvery/packages/theme/docs/guide/design-philosophy.md) for
-the full rationale, design influences, and cross-theme comparison. See the
-[derivation rules reference](../../vendor/silvery/packages/theme/docs/reference/derivation-rules.md) for
-the exact `deriveTheme()` and `generateTheme()` algorithms.
+See the [theme package reference](../../vendor/silvery/packages/theme/README.md) for
+the full rationale and derivation rules.
 
 ### Token Aliases
 
-See [swatch semantic tokens: backward-compatible aliases](../../vendor/silvery/packages/theme/docs/reference/semantic-tokens.md#backward-compatible-aliases).
+See the [theme package reference](../../vendor/silvery/packages/theme/README.md) for backward-compatible aliases.
 
 | Alias Token     | Resolves To    |
 |-----------------|--------------- |
@@ -83,7 +81,7 @@ See [swatch semantic tokens: backward-compatible aliases](../../vendor/silvery/p
 ### Cross-Platform Binding
 
 The same `ThemePalette` + `deriveTheme()` produces a `Theme` that binds to any platform.
-See [swatch web usage guide](../../vendor/silvery/packages/theme/docs/guide/web-usage.md) for CSS custom
+See the [theme package reference](../../vendor/silvery/packages/theme/README.md) for CSS custom
 properties and React context examples.
 
 ## Where Each Token Is Used in km

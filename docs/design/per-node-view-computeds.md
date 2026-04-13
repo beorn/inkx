@@ -56,7 +56,7 @@ subtrees.
 | `parent`            | Parent ViewNode           | - | - | Y  | Y | - |
 | `children`          | getChildren + filters     | - | Y (partial) | Y | Y | Y |
 | `isBody`            | extractBody classification| - | - | Y  | Y | - |
-| `resolvedEmbed`     | symlink_to + getNode    | - | - | -  | Y | - |
+| `resolvedEmbed`     | embed_of + getNode      | - | - | -  | Y | - |
 | `rules`             | parseHeadingRules(content)| - | - | -  | Y | - |
 
 **Key finding:** Cursor move (j/k) does NOT change ANY ViewNode field. The view
@@ -174,7 +174,7 @@ handles body extraction as a simple procedural step.
 
 Embeds make the visual parent differ from the data parent. Currently
 `buildCardNode` resolves this at construction time: `resolvedEmbed =
-repo.getNode(node.symlink_to)`. With per-node computeds, each card needs a
+repo.getNode(node.embed_of)`. With per-node computeds, each card needs a
 computed that resolves its embed, and its `children` computed must read from
 the resolved embed's children rather than its own.
 

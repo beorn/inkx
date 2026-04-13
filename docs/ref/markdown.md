@@ -521,5 +521,5 @@ See [design/km-ast/model.md](../design/km-ast/model.md) for the full specificati
 
 ## See Also
 
-- [storage.md](storage.md) — Node storage, sync
-- [ref/query.md](ref/query.md) — Query language
+- [storage.md](../storage.md) — Node storage, sync
+- [query.md](query.md) — Query language

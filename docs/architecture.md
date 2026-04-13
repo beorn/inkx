@@ -49,7 +49,7 @@ interface KNode {
   parent_idx: number      // sibling order
   content: string         // text content
   title: string           // display title (materialized)
-  symlink_to?: string   // points to another node (embeds)
+  embed_of?: string     // points to another node (embeds)
   fstype?: string         // "repo" | "folder" | "file" | "mdsection"
   rules?: NodeRules       // parsed km.* directives (collapse, color, limit)
 }
@@ -60,7 +60,7 @@ const KNode = {
   isOutline(node): boolean  // type === "h" && item != null — creates hierarchy
   isListItem(node): boolean // type !== "h" && item != null — bullet/task
   isTask(node): boolean     // node.item?.task != null
-  isEmbed(node): boolean    // has symlink_to
+  isEmbed(node): boolean    // has embed_of
 }
 ```
 
@@ -75,7 +75,7 @@ const Position = { of, first, last, equals }
 
 ### Repo — The Data Store
 
-Factory: `createRepo(path)`. Disposable (sync cleanup). Defined in `@km/storage` ([packages/km-storage/src/repo.ts](../packages/km-storage/src/repo.ts)).
+Factory: `createRepo(path)`. Disposable (sync cleanup). Defined in `@km/storage` ([packages/km-storage/src/repo/repo.ts](../packages/km-storage/src/repo/repo.ts)).
 
 ```typescript
 interface Repo {
@@ -313,7 +313,7 @@ This is a **rendering rule, not data**. The same KNode renders as a column when 
 
 **Body content**: Non-outline direct children of root (paragraphs, tasks, embeds before the first heading) render in a virtual "Description" column. Determined by `extractBody()` at derivation time.
 
-**Embeds**: A node with `symlink_to` displays the referenced node's content in its visual position. The visual parent (embed slot) differs from the data parent (source file). ViewNode resolves this by storing `resolvedEmbed` and using the visual parent for its `parent` pointer.
+**Embeds**: A node with `embed_of` displays the referenced node's content in its visual position. The visual parent (embed slot) differs from the data parent (source file). ViewNode resolves this by storing `resolvedEmbed` and using the visual parent for its `parent` pointer.
 
 ## Composition Model
 

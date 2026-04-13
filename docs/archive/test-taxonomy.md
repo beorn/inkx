@@ -19,8 +19,8 @@ Generated: 2026-01-23
 
 | File                                                                       | Tests | Reason                                             |
 | -------------------------------------------------------------------------- | ----- | -------------------------------------------------- |
-| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use silvery `createRenderer()` instead of browser |
-| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use silvery `createRenderer()` instead of browser |
+| tui.playwright.ts                   | 8     | Use silvery `createRenderer()` instead of browser |
+| body-content.playwright.ts | 6     | Use silvery `createRenderer()` instead of browser |
 
 ### Navigation Tests - No Overlap (Verified)
 
@@ -28,9 +28,9 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 | File                                                                           | Tests | What It Tests                                                           |
 | ------------------------------------------------------------------------------ | ----- | ----------------------------------------------------------------------- |
-| [navigation.test.ts](packages/km-board/tests/navigation.test.ts)               | 16    | Pure `visualToStructural()` function - maps (depth, direction) → action |
-| [cursor-navigation.test.ts](packages/km-board/tests/cursor-navigation.test.ts) | 44    | Board reducer - state transitions via `NAV_TO_PATH`, `CURSOR_MOVE`      |
-| [visual-navigation.test.ts](apps/km-tui/tests/visual-navigation.test.ts)       | 30    | LayoutRegistry - finds cards by screen Y coordinate (curswantY)         |
+| navigation.test.ts               | 16    | Pure `visualToStructural()` function - maps (depth, direction) → action |
+| cursor-navigation.test.ts | 44    | Board reducer - state transitions via `NAV_TO_PATH`, `CURSOR_MOVE`      |
+| visual-navigation.test.ts       | 30    | LayoutRegistry - finds cards by screen Y coordinate (curswantY)         |
 
 **Verdict**: Keep all three. They are complementary, not duplicative.
 

@@ -59,7 +59,7 @@ When you run `bun release`, release-it:
 
 ## Configuration
 
-Config is in [.release-it.json](../../.release-it.json):
+Config was previously in `.release-it.json` (now managed by the `/release` skill):
 
 ```json
 {

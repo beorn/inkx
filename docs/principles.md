@@ -40,7 +40,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
   - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
-  - [Principle: MECE — No Gaps, No Overlaps](#principle-mece)
+  - [Principle: MECE — No Gaps, No Overlaps](#principle-mece--no-gaps-no-overlaps)
   - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)

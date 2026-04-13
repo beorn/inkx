@@ -182,7 +182,7 @@ km ls --json                # Works on all views
 
 ## TUI Keybindings
 
-See [ref/ui.md](ref/ui.md#keybindings) for full TUI keybinding reference.
+See [ref/ui.md](../ref/ui.md#keybindings) for full TUI keybinding reference.
 
 ---
 
@@ -249,6 +249,6 @@ beads:
 
 ## See Also
 
-- [ref/query.md](ref/query.md) — Query language
-- [ref/ui.md](ref/ui.md) — Views, navigation, design system
-- [guides/tasks.md](guides/tasks.md) — Task management
+- [ref/query.md](../ref/query.md) — Query language
+- [ref/ui.md](../ref/ui.md) — Views, navigation, design system
+- [tasks.md](tasks.md) — Task management

@@ -527,6 +527,6 @@ expect(term.screenshot()).toContain("selected")
 
 ## See Also
 
-- [silvery-nested-mounting.md](silvery-nested-mounting.md) — Nested mounting API (speculative, lower priority)
+- [inkx-nested-mounting.md](inkx-nested-mounting.md) — Nested mounting API (speculative, lower priority)
 - [../dev/ink-patterns.md](../dev/ink-patterns.md) — Current patterns
 - [../principles.md](../principles.md) — Principle 7: Async Generator Pipelines
