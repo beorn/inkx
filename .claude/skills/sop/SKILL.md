@@ -162,6 +162,7 @@ Domains are MECE by ownership boundary:
 - **packages** owns dep freshness + release readiness. **security** owns CVEs + supply chain. **legal** owns licenses. One dep scan, three lenses.
 - **code** owns product correctness. **infra** owns the machinery that checks it. CI is infra; test results are code.
 - **packaging** owns what consumers receive (bundle analysis, exports, CJS/ESM). **packages** owns what we publish (versions, registry state). Packaging feeds market positioning.
+- **knip** runs once, feeds two domains: code owns unused exports/types/files, packages owns unused/unlisted deps. One tool, two lenses — same pattern as `bun audit`.
 - Cross-domain triggers are **check enqueuers**, not autonomous actions. They add items to the next domain's scan queue; execution still requires approval.
 
 ### v1 scope (5 domains — backed by working skills)
@@ -178,6 +179,8 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `test-fast` — `bun run test:fast` (6000+ tests) — session default
 - [ ] `test-ci` — `bun run test:ci` (full suite) — weekly or --deep only
 - [ ] `complexity` — `bun lint:complexity` (cognitive complexity hotspots)
+- [ ] `dead-code` — `bunx knip --include files,exports,types` (unused exports, types, files) — monthly
+- [ ] `layer-violations` — verify imports only go downward per `docs/architecture.md#layers` — monthly
 - [ ] `code-quality` — `/code quality --dry-run` (principles compliance)
 - [ ] `perf-regression` — benchmark drift detection (when benchmarks exist)
 **Triggers**: any source change
@@ -196,6 +199,8 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `dep-inventory` — refresh `docs/ref/dependencies.md` (npms.io scores, CVEs, watch list)
 - [ ] `publishability` — `bun infra/audit-packages.ts` (tsdown, publishConfig, files)
 - [ ] `clean-build` — all packages build from clean state, no uncommitted generated output
+- [ ] `unused-deps` — `bunx knip --include dependencies,devDependencies` (phantom deps) — monthly
+- [ ] `unlisted-deps` — `bunx knip --include unlisted` (imported but undeclared) — monthly
 - [ ] `lockfile-consistency` — lockfiles match manifests, no phantom deps
 - [ ] `submodule-state` — vendor submodules clean, not detached, not drifted from remote
 **Triggers**: code changes, upstream dep bumps
