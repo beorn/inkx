@@ -55,8 +55,9 @@ The reader should be able to stop at any point having gotten value.
 
 Name competitors and compatible products explicitly — someone searching "pino alternative typescript" or "debug replacement structured logging" should find your package.
 
-- **In the intro**: name what you replace by product name, not category. "Replace `debug` + `pino`/`winston`" not "Replace your debug library + JSON logger"
-- **In compatibility lines**: name every product you integrate with
+- **In the intro**: name categories, not competitors. "Replace `debug` + your JSON logger" not "Replace `pino`/`winston`" — the intro should invite, not provoke
+- **In compatibility and comparison**: name competitors here — this is where people expect product comparisons. "Works with: Pino transports", "See how Loggily compares", "Pino's ecosystem is deeper"
+- **In "When not to use"**: naming competitors is both honest and keyword-rich — respectful framing
 - **GitHub topics**: add competitor names, category names, and technology names (e.g., `logging`, `typescript`, `structured-logging`, `pino`, `winston`, `opentelemetry`, `observability`)
 - **In "When not to use"**: naming competitors here is both honest and keyword-rich
 - **Comparison page**: the docs site comparison page is the keyword magnet — link to it from the README where the reader is comparing
