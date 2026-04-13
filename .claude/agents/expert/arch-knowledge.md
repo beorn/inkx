@@ -622,6 +622,6 @@ Most are legitimate under the exception, but `ChangeHandlers` (km-storage) and `
 
 3. **`docs/architecture.md` BoardState**: Shows `// cursor: sel.node.cursor() -- sole authority, not stored in BoardState` but this is the target architecture -- the actual current state may still have cursor-related fields in BoardState during the ongoing selection migration.
 
-4. **Layer diagram inconsistency**: RESOLVED 2026-04-12. All three sources (CLAUDE.md, docs/architecture.md, arch-knowledge.md) now show the same 7-row diagram. `docs/design/architecture-layers.md` is a redirect to `docs/architecture.md#layers`.
+4. **Layer diagram inconsistency**: RESOLVED 2026-04-12. All three sources (CLAUDE.md, docs/architecture.md, arch-knowledge.md) now show the same 7-row diagram. `docs/design/architecture-layers.md` deleted.
 
 5. **`docs/glossary.md` mentions `@silvery/tea`**: The entry for "Zustand" says "Used by silvery's `@silvery/tea` store" but `@silvery/tea` is a stale empty package -- the TEA functionality is now in `@silvery/create`.
