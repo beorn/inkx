@@ -913,11 +913,11 @@ describe("Outliner Enter — save + new sibling", () => {
 })
 
 // =============================================================================
-// Enter on symlink_to (transclusion) nodes — mimics @next board
+// Enter on embed_of (transclusion) nodes — mimics @next board
 // =============================================================================
 
-describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
-  /** Build a board with a column containing symlink_to nodes, like @next */
+describe("Outliner Enter — embed_of nodes (transclusion)", () => {
+  /** Build a board with a column containing embed_of nodes, like @next */
   function linkBoard() {
     const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
     // Create target nodes that the links point to
@@ -928,7 +928,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -944,7 +944,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
       data: { name: "Other File" },
       parent_id: ".",
       parent_idx: 100,
-      symlink_to: null,
+      embed_of: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -953,17 +953,17 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
     // Make the card nodes into links
     for (const n of nodes) {
       if (n.id === "link-a") {
-        n.symlink_to = "target-a"
+        n.embed_of = "target-a"
         n.content = "Target task A"
         n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
       if (n.id === "link-b") {
-        n.symlink_to = "target-b"
+        n.embed_of = "target-b"
         n.content = "Target task B"
         n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
       if (n.id === "link-c") {
-        n.symlink_to = "target-c"
+        n.embed_of = "target-c"
         n.content = "Target task C"
         n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
@@ -972,7 +972,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
     return [...nodes, otherFile, targetA, targetB, targetC]
   }
 
-  test("Enter on symlink_to card creates new sibling and shows it", () => {
+  test("Enter on embed_of card creates new sibling and shows it", () => {
     const { board, repo } = createDriverTest(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
@@ -984,7 +984,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
     board.expect(colItems("col1")).toHaveCount(4)
   })
 
-  test("Enter on symlink_to card: new sibling is a regular node, not a link", () => {
+  test("Enter on embed_of card: new sibling is a regular node, not a link", () => {
     const { board, repo } = createDriverTest(linkBoard)
 
     board.press("Enter") // edit
@@ -998,11 +998,11 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
     const newNodeId = items.nth(1).getAttribute("id")!
     const newNode = repo.getNode(newNodeId)
     expect(newNode).toBeTruthy()
-    expect(newNode!.symlink_to).toBeNull()
+    expect(newNode!.embed_of).toBeNull()
     expect(newNode!.content).toBe("") // empty new node
   })
 
-  test("Multiple Enters on symlink_to board create chain of siblings", () => {
+  test("Multiple Enters on embed_of board create chain of siblings", () => {
     const { board } = createDriverTest(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
@@ -1016,7 +1016,7 @@ describe("Outliner Enter — symlink_to nodes (transclusion)", () => {
     board.expect(colItems("col1")).toHaveCount(6)
   })
 
-  test("keybindings work after Enter on symlink_to node", () => {
+  test("keybindings work after Enter on embed_of node", () => {
     const { board } = createDriverTest(linkBoard)
 
     board.press("Enter") // edit
@@ -1037,7 +1037,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
   /**
    * Build a board that mimics a real @next vault:
    * - Embed nodes have type "paragraph" (from markdown parser)
-   * - symlink_to points to resolved target
+   * - embed_of points to resolved target
    * - Content is the ![[...]] syntax
    */
   function paragraphLinkBoard() {
@@ -1050,7 +1050,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -1066,7 +1066,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
       data: { name: "Other File" },
       parent_id: ".",
       parent_idx: 100,
-      symlink_to: null,
+      embed_of: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -1076,17 +1076,17 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     for (const n of nodes) {
       if (n.id === "link-a") {
         n.type = "p"
-        n.symlink_to = "target-a"
+        n.embed_of = "target-a"
         n.content = "![[Other File#^a1]]"
       }
       if (n.id === "link-b") {
         n.type = "p"
-        n.symlink_to = "target-b"
+        n.embed_of = "target-b"
         n.content = "![[Other File#^b2]]"
       }
       if (n.id === "link-c") {
         n.type = "p"
-        n.symlink_to = "target-c"
+        n.embed_of = "target-c"
         n.content = "![[Other File#^c3]]"
       }
     }

@@ -16,6 +16,7 @@
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/core": "workspace:*",
+    "@km/markdown": "workspace:*",
     "@km/repl": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",

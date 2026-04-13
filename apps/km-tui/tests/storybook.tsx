@@ -115,7 +115,7 @@ function getChildrenFromStore(id: string): KNode[] {
 
 // Get parent context for embedded tasks (simplified for storybook)
 function getParentContextFromStore(node: KNode): string | null {
-  const embedSrc = node.symlink_to
+  const embedSrc = node.embed_of
   if (!embedSrc) return null
   const linkedNode = nodeStore.get(embedSrc)
   if (!linkedNode?.parent_id) return null
@@ -785,7 +785,7 @@ function mockNode(
     ...(type === "h" || type === "p" ? { item: {} } : {}),
     parent_id: options?.parentId ?? null,
     parent_idx: 0,
-    symlink_to: options?.linkTo ?? null,
+    embed_of: options?.linkTo ?? null,
     name: options?.linkAlias,
     content,
     ...(status
@@ -960,7 +960,7 @@ function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: stri
       type: def.type as KNode["type"],
       parent_id: id,
       parent_idx: i,
-      symlink_to: null,
+      embed_of: null,
       content: def.content,
       data: {},
       created_at: Date.now(),
@@ -980,7 +980,7 @@ function mockColumn(name: string, cardNodes: KNode[]): ColumnSnapshot {
       ...c,
       __cardView: true as const,
       isBody: false,
-      isBrokenSymlink: false,
+      isBrokenEmbed: false,
       hasBodyChildren: false,
     })),
   }
@@ -1060,7 +1060,7 @@ function createMockTUIBoardState(): TUIBoardState {
   ]
 
   // Column 2 - EMBEDDED/LINKED Tasks (shows parent context with prefix)
-  // These tasks have symlink_to set, pointing to ORIGINAL tasks in other files
+  // These tasks have embed_of set, pointing to ORIGINAL tasks in other files
   // The parent context shows the PARENT of the original task (the section)
   const embeddedCards: KNode[] = [
     // Embedded task from API project - shows "API Integration Project"

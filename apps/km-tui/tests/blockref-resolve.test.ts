@@ -24,7 +24,7 @@ function targetNode(id: string, content: string): KNode {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",

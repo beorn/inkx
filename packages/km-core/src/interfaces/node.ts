@@ -24,8 +24,8 @@ export interface KNode extends _KNodeInterface {}
 /** Minimal node shape for type guards. */
 type NodeLike = { type: string; item?: ItemData }
 
-/** Extended node shape for symlink detection. */
-type SymlinkLike = { symlink_to?: string | null }
+/** Extended node shape for embed detection. */
+type EmbedLike = { embed_of?: string | null }
 
 /** System/structural fields — never inherited on split/copy */
 const SYSTEM_KEYS: ReadonlySet<string> = new Set([
@@ -68,9 +68,9 @@ export const KNode = {
     return node.item == null
   },
 
-  /** Symlink — node that displays content from another node via symlink_to. */
-  isSymlink(node: SymlinkLike): boolean {
-    return node.symlink_to != null
+  /** Embed — node that displays content from another node via embed_of. */
+  isEmbed(node: EmbedLike): boolean {
+    return node.embed_of != null
   },
 
   /** Task — item with task data. */

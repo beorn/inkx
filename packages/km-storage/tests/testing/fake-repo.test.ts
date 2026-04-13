@@ -295,7 +295,7 @@ function createNode(overrides: Partial<KNode> & { id: string }): KNode {
     item: {},
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     content: "",
     data: {},
     created_at: now,

@@ -7,14 +7,13 @@
  * an eagerly built object tree.
  *
  * Zero upfront allocation — each method computes on demand and caches results.
- * Same KNode identity flows through; enrichments (role, isBody, resolvedSymlink) are
+ * Same KNode identity flows through; enrichments (role, isBody, resolvedEmbed) are
  * lens methods, not node properties.
  */
 
-import { KNode, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/core"
+import { KNode, extractSlotTargets, findIndexFile, namesAreSimilar, parseHeadingRules } from "@km/core"
+import type { NodeRules } from "@km/core"
 import { extractBody } from "@km/tree"
-import { parseHeadingRules } from "@km/markdown"
-import type { SectionRules } from "@km/markdown"
 import type { TreeLens, ViewRole } from "./tree-lens.ts"
 import {
   isCollapsedChild,
@@ -53,7 +52,7 @@ export interface ViewLensOptions {
  * - Body extraction: non-outline children before first heading → body column
  * - Fold filtering: collapsed columns have no children
  * - Hidden filtering: nodes in hiddenNodeIds are excluded
- * - Symlink resolution: nodes with symlink_to get target's children
+ * - Symlink resolution: nodes with embed_of get target's children
  * - Role assignment: depth-based (board/column/card/subitem/body-column)
  * - Index file expansion: folders with index files expand
  * - Detail-only exclusion: detailOnly / well-known metadata sections hidden
@@ -85,7 +84,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   const nodeCache = new Map<string, KNode>() // includes virtual body nodes
   const bodyIdSets = new Map<string, Set<string>>() // parentId → set of body card IDs
   const symlinkCache = new Map<string, KNode | undefined>()
-  const rulesCache = new Map<string, SectionRules | undefined>()
+  const rulesCache = new Map<string, NodeRules | undefined>()
   let _walkOrder: readonly string[] | null = null
 
   // =========================================================================
@@ -123,7 +122,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       parentCache.set(bodyColId, rootId ?? "__root__")
 
       // Store body card IDs
-      const bodyIdSet = new Set(filteredBody.filter((n) => !KNode.isSymlink(n)).map((n) => n.id))
+      const bodyIdSet = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
       bodyIdSets.set(bodyColId, bodyIdSet)
 
       // Children of body column are the filtered body nodes
@@ -133,7 +132,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
         roleCache.set(bNode.id, "card")
         parentCache.set(bNode.id, bodyColId)
         bodyChildIds.push(bNode.id)
-        resolveSymlink(bNode)
+        resolveEmbed(bNode)
       }
       childrenCache.set(bodyColId, bodyChildIds)
       resultIds.push(bodyColId)
@@ -169,9 +168,9 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     nodeCache.set(node.id, node)
   }
 
-  function resolveSymlink(node: KNode): void {
-    if (node.symlink_to) {
-      const target = repo.getNode(node.symlink_to) ?? undefined
+  function resolveEmbed(node: KNode): void {
+    if (node.embed_of) {
+      const target = repo.getNode(node.embed_of) ?? undefined
       symlinkCache.set(node.id, target)
     }
   }
@@ -181,7 +180,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     roleCache.set(node.id, "column")
     parentCache.set(node.id, rootId ?? "__root__")
 
-    const r: SectionRules = node.rules ?? parseHeadingRules(node.content || node.title || "").rules
+    const r: NodeRules = node.rules ?? parseHeadingRules(node.content || node.title || "").rules
     rulesCache.set(node.id, Object.keys(r).length > 0 ? r : undefined)
   }
 
@@ -217,7 +216,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       if (isCollapsedChild(child)) continue
       if (hiddenNodeIds?.has(child.id)) continue
       rawCards.push(child)
-      if (!KNode.isSymlink(child)) bodyIdSet.add(child.id)
+      if (!KNode.isEmbed(child)) bodyIdSet.add(child.id)
     }
     for (const child of structuralCards) {
       if (isCollapsedChild(child)) continue
@@ -232,7 +231,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       registerNode(card)
       roleCache.set(card.id, "card")
       parentCache.set(card.id, colId)
-      resolveSymlink(card)
+      resolveEmbed(card)
       cardIds.push(card.id)
     }
 
@@ -265,7 +264,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       registerNode(child)
       roleCache.set(child.id, "subitem")
       parentCache.set(child.id, nodeId)
-      resolveSymlink(child)
+      resolveEmbed(child)
       childIds.push(child.id)
     }
 
@@ -352,7 +351,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       roleCache.set(bodyColId, "body-column")
       parentCache.set(bodyColId, rootId ?? "__root__")
 
-      const bodyIdSet = new Set(allBodyNodes.filter((n) => !KNode.isSymlink(n)).map((n) => n.id))
+      const bodyIdSet = new Set(allBodyNodes.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
       bodyIdSets.set(bodyColId, bodyIdSet)
 
       const bodyChildIds: string[] = []
@@ -361,7 +360,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
         roleCache.set(bNode.id, "card")
         parentCache.set(bNode.id, bodyColId)
         bodyChildIds.push(bNode.id)
-        resolveSymlink(bNode)
+        resolveEmbed(bNode)
       }
       childrenCache.set(bodyColId, bodyChildIds)
       resultIds.splice(bodyInsertIdx, 0, bodyColId)
@@ -604,10 +603,10 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   }
 
   // =========================================================================
-  // TreeLens: resolvedSymlink()
+  // TreeLens: resolvedEmbed()
   // =========================================================================
 
-  function resolvedSymlink(id: string): KNode | undefined {
+  function resolvedEmbed(id: string): KNode | undefined {
     // Ensure parent chain is computed so symlink is resolved
     parent(id)
 
@@ -618,7 +617,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   // TreeLens: rules()
   // =========================================================================
 
-  function rules(id: string): SectionRules | undefined {
+  function rules(id: string): NodeRules | undefined {
     // Ensure root structure computed (rules are set during column registration)
     getRootChildIds()
 
@@ -644,7 +643,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
 
     role,
     isBody,
-    resolvedSymlink,
+    resolvedEmbed,
     rules,
   }
 }

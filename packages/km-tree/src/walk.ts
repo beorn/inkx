@@ -48,7 +48,7 @@ export const KTree = {
    *   - "lowest": yield only the deepest match per branch (leaf-most match in each path)
    *
    * Predicates fall into three layers (see docs/design/data-model.md):
-   *   - Tree (match): KNode.isOutline, isItem, isBlock, isTask, isSymlink — data model type
+   *   - Tree (match): KNode.isOutline, isItem, isBlock, isTask, isEmbed — data model type
    *   - View (into): isCollapsedChild, isHidden, foldDepths — whether to descend
    *   - Render (neither): maxContentLines, task status filter — display-only
    *

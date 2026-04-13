@@ -166,7 +166,7 @@ function makeNode(partial: Partial<KNode> & { id: string; type: NodeType }): KNo
     fstype: partial.fstype,
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
-    symlink_to: null,
+    embed_of: null,
     title: partial.title,
     content: partial.content,
     data: {},

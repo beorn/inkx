@@ -346,7 +346,7 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     parent_id: node.parent_id ?? null,
     parent_idx: node.parent_idx ?? 0,
     item: node.item,
-    symlink_to: node.symlink_to,
+    embed_of: node.embed_of,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
     priority: node.priority,

@@ -30,7 +30,7 @@ interface FsEntry {
   mtime: number
   isDirectory: boolean
   /** If true, entry is a symlink (typically skipped during scanning) */
-  isSymlink?: boolean
+  isEmbed?: boolean
 }
 
 export type DirectoryScanner = (dirPath: string, ignorePatterns?: string[] | PatternMatcher) => FsEntry[]

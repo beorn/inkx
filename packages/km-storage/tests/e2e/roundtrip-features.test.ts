@@ -5,7 +5,7 @@
  *   write file → parse → DB → serialize → write file → parse → verify
  *
  * This catches regressions where re-parsing a file loses data that was
- * originally set programmatically (e.g., symlink_to from `km add`).
+ * originally set programmatically (e.g., embed_of from `km add`).
  */
 
 import { describe, test, expect } from "vitest"
@@ -249,7 +249,7 @@ describe("E2E Round-Trip Features", () => {
       }))
   })
 
-  describe("embeddings (symlink_to)", () => {
+  describe("embeddings (embed_of)", () => {
     test("embedding nodes survive re-parse after serialize", () =>
       withTestEnv(async ({ repoDir, data }) => {
         const manager = createTestSyncHelper(data.database, repoDir)
@@ -294,7 +294,7 @@ describe("E2E Round-Trip Features", () => {
             type: "p",
             parent_id: targetFile.id,
             parent_idx: 0,
-            symlink_to: taskAlpha.id,
+            embed_of: taskAlpha.id,
             content: null,
             created_at: Date.now(),
             updated_at: Date.now(),
@@ -304,7 +304,7 @@ describe("E2E Round-Trip Features", () => {
 
         // Verify embedding exists in DB
         const embedBefore = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
-        expect(embedBefore?.symlink_to).toBe(taskAlpha.id)
+        expect(embedBefore?.embed_of).toBe(taskAlpha.id)
 
         // Step 4: Serialize to filesystem (writes ![[source]] in target.md)
         await manager.syncToFs()
@@ -316,10 +316,10 @@ describe("E2E Round-Trip Features", () => {
         // Step 5: Re-sync from filesystem (simulates reconcile after external edit)
         await manager.syncFromFs()
 
-        // Step 6: ASSERT: symlink_to is preserved
+        // Step 6: ASSERT: embed_of is preserved
         const embedAfter = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
         expect(embedAfter).toBeDefined()
-        expect(embedAfter?.symlink_to).toBe(taskAlpha.id)
+        expect(embedAfter?.embed_of).toBe(taskAlpha.id)
       }))
 
     test("embedding with alias survives re-parse", () =>
@@ -363,7 +363,7 @@ describe("E2E Round-Trip Features", () => {
             type: "p",
             parent_id: tgtFile.id,
             parent_idx: 0,
-            symlink_to: srcTask.id,
+            embed_of: srcTask.id,
             name: "My Custom Name",
             content: null,
             created_at: Date.now(),
@@ -381,9 +381,9 @@ describe("E2E Round-Trip Features", () => {
 
         await manager.syncFromFs()
 
-        // Both symlink_to and name must survive
+        // Both embed_of and name must survive
         const embed = getAllNodes(data.database).find((n) => n.id === "embed-alias")
-        expect(embed?.symlink_to).toBe(srcTask.id)
+        expect(embed?.embed_of).toBe(srcTask.id)
         expect(embed?.name).toBe("My Custom Name")
       }))
   })

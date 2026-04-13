@@ -209,7 +209,7 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
     if (source !== undefined) {
       const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
       let headingLine = `# ${markerPrefix}${source}`
-      if (node.symlink_to) headingLine = headingLine.trimEnd() + ` ![[${node.symlink_to}]]`
+      if (node.embed_of) headingLine = headingLine.trimEnd() + ` ![[${node.embed_of}]]`
       md += headingLine + "\n\n"
     } else {
       // Use || (not ??) — empty string title should fall through to content
@@ -217,8 +217,8 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
       const ruleStr = node.rules ? serializeRules(node.rules) : ""
       const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
       let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
-      if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
-      if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
+      if (node.embed_of || node.block_id) headingLine = headingLine.trimEnd()
+      if (node.embed_of) headingLine += ` ![[${node.embed_of}]]`
       if (node.block_id) headingLine += ` ^${node.block_id}`
       md += headingLine + "\n\n"
     }
@@ -245,10 +245,10 @@ function serializeNode(
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
-  // Nodes with symlink_to serialize as transclusions ![[target]].
-  // Exception: outline heading nodes with task + symlink_to serialize as
+  // Nodes with embed_of serialize as transclusions ![[target]].
+  // Exception: outline heading nodes with task + embed_of serialize as
   // headings with inline embed ref (import cross-project dedup)
-  if (node.symlink_to && !(KNode.isOutline(node) && node.item?.task)) {
+  if (node.embed_of && !(KNode.isOutline(node) && node.item?.task)) {
     return serializeEmbedding(node, ctx)
   }
 
@@ -321,7 +321,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   let headingLine: string
   if (source !== undefined) {
     headingLine = `${prefix} ${markerPrefix}${source}`
-    if (node.symlink_to) headingLine = headingLine.trimEnd() + ` ![[${node.symlink_to}]]`
+    if (node.embed_of) headingLine = headingLine.trimEnd() + ` ![[${node.embed_of}]]`
   } else {
     // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
     // Use || (not ??) — empty string title should fall through to content
@@ -330,8 +330,8 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
     headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
     // Trim trailing whitespace before appending embed/block_id to avoid double spaces
     // (e.g., when title is empty and markerPrefix ends with space)
-    if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
-    if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
+    if (node.embed_of || node.block_id) headingLine = headingLine.trimEnd()
+    if (node.embed_of) headingLine += ` ![[${node.embed_of}]]`
     if (node.block_id) headingLine += ` ^${node.block_id}`
   }
   let md = headingLine + "\n\n"
@@ -346,7 +346,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
  * Serialize an embedding node back to ![[path|alias]] syntax
  */
 function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
-  const target = node.symlink_to
+  const target = node.embed_of
   if (!target) {
     // Fallback to content if no target
     return (node.content ?? "") + "\n\n"

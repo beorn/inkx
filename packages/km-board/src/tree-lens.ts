@@ -8,15 +8,14 @@
  *   visible(view) — collapsed/filtered for rendering
  *
  * All three implement TreeLens. Same KNode identity flows through all layers.
- * Enrichments (role, isBody, resolvedSymlink) are lens METHODS, not node properties.
+ * Enrichments (role, isBody, resolvedEmbed) are lens METHODS, not node properties.
  * Zero object allocation — pure query interface over the underlying repo.
  *
  * Cursor lives in visible.walkOrder. Navigation uses visible.nextInWalk().
  * This makes "cursor on hidden node" structurally impossible.
  */
 
-import type { KNode } from "@km/core"
-import type { SectionRules } from "@km/markdown"
+import type { KNode, NodeRules } from "@km/core"
 
 // =============================================================================
 // Types
@@ -92,9 +91,9 @@ export interface TreeLens {
   /** True if this node is body content (non-outline before first heading) */
   isBody(id: string): boolean
 
-  /** Pre-resolved symlink target, if this node has symlink_to */
-  resolvedSymlink(id: string): KNode | undefined
+  /** Pre-resolved symlink target, if this node has embed_of */
+  resolvedEmbed(id: string): KNode | undefined
 
   /** Section rules (WIP limit, color, collapse) parsed from frontmatter */
-  rules(id: string): SectionRules | undefined
+  rules(id: string): NodeRules | undefined
 }

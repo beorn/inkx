@@ -76,7 +76,7 @@ import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "../
 import { deserializeFilterProperties } from "../workspace-persist.ts"
 // computeMetadataKeys/DETAIL_META_PREFIX removed — detail initial cursor
 // now skips virtual __meta__ IDs (not in sel walkOrder).
-import { resolveSymlink } from "../views/symlink-display.ts"
+import { resolveEmbed } from "../views/embed-display.ts"
 
 // =============================================================================
 // Store Types
@@ -432,7 +432,7 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
 function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string | null {
   if (!nodeId) return null
   const rawNode = repo.getNode(nodeId)
-  const { displayNode } = rawNode ? resolveSymlink(repo, rawNode) : { displayNode: null }
+  const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
   const effectiveId = displayNode?.id ?? nodeId
   // Always start on first real child — metadata rows (__meta__* IDs) are virtual
   // and not in the sel walkOrder, so selecting them normalizes to cursor null.

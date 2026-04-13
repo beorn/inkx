@@ -324,14 +324,14 @@ function itemToNodes(
   // Cross-project dedup: if already rendered in another project, emit embed reference.
   //
   // Embed data model (see docs/design/km-ast/model.md):
-  //   symlink_to  — target node ID to transclude (e.g., "^1234567890")
+  //   embed_of  — target node ID to transclude (e.g., "^1234567890")
   //   content       — optional alias override; if non-empty, displayed INSTEAD of target's title
   //                   (like ![[^GID|My custom title]]). If empty, TUI resolves title from target.
   //   name          — optional alias for markdown serialization (![[path|alias]])
   //
   // TODO(km-wk17l): content is currently stored redundantly as a copy of the target's title.
   // Once getDisplayContent respects the alias-override semantics, drop content here and let
-  // the TUI resolve it from symlink_to. Also remove embedTitle computation.
+  // the TUI resolve it from embed_of. Also remove embedTitle computation.
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
@@ -344,7 +344,7 @@ function itemToNodes(
         item: { task: { marker: marker as TaskMarker, status } },
         parent_id: parentId,
         content: embedTitle,
-        symlink_to: `^${item.sourceId}`,
+        embed_of: `^${item.sourceId}`,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
@@ -403,7 +403,7 @@ function itemToNodes(
   if (item.metadata?.parentName) nodeData.asana_parent_name = item.metadata.parentName
   if (item.metadata?.customFields) nodeData.custom_fields = item.metadata.customFields
 
-  // Resolve parentTaskGid (from → ^numericId in title) to symlink_to if target exists
+  // Resolve parentTaskGid (from → ^numericId in title) to embed_of if target exists
   const parentTaskGid = item.metadata?.parentTaskGid as string | undefined
   const linkTo = parentTaskGid && primaryMap?.has(parentTaskGid) ? `^${parentTaskGid}` : null
 
@@ -428,7 +428,7 @@ function itemToNodes(
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
     created_at: itemCreatedAt,
     updated_at: itemUpdatedAt,
-    ...(linkTo && { symlink_to: linkTo }),
+    ...(linkTo && { embed_of: linkTo }),
     data: Object.keys(nodeData).length > 0 ? nodeData : undefined,
   })
   nodes.push(taskNode)
@@ -1159,7 +1159,7 @@ function* generateTagFiles(
 
     for (const item of items) {
       if (rendered.has(item.sourceId)) {
-        // Embed reference: no content — TUI resolves display title from symlink_to target.
+        // Embed reference: no content — TUI resolves display title from embed_of target.
         // See embed data model comment in itemToNodes cross-project dedup section.
         const status = toTaskStatus(item.status)
         nodes.push(
@@ -1168,7 +1168,7 @@ function* generateTagFiles(
             type: "h",
             item: { task: { marker: getMarkerForStatus(status), status } },
             parent_id: fileId,
-            symlink_to: `^${item.sourceId}`,
+            embed_of: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -1276,7 +1276,7 @@ function* generateUserFiles(
 
     const emitUserItem = (item: ImportItem, parentId: string): void => {
       if (rendered.has(item.sourceId)) {
-        // Embed reference: no content — TUI resolves display title from symlink_to target.
+        // Embed reference: no content — TUI resolves display title from embed_of target.
         // See embed data model comment in itemToNodes cross-project dedup section.
         const status = toTaskStatus(item.status)
         nodes.push(
@@ -1285,7 +1285,7 @@ function* generateUserFiles(
             type: "h",
             item: { task: { marker: getMarkerForStatus(status), status } },
             parent_id: parentId,
-            symlink_to: `^${item.sourceId}`,
+            embed_of: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),

@@ -60,39 +60,39 @@ export function createDbOps(db: Database, emitter?: Emitter): DbOps {
 }
 
 // =============================================================================
-// Symlink Child Builder
+// Embed Child Builder
 // =============================================================================
 
 /**
- * Options for building a symlink child node.
+ * Options for building an embed child node.
  */
-export interface SymlinkChildOpts {
-  /** Source node being symlinked — its id becomes symlink_to */
+export interface EmbedChildOpts {
+  /** Source node being embedded — its id becomes embed_of */
   source: KNode
   /** Sort order within parent */
   parentIdx: number
   /** Block type: "h" for outline items (boards), "p" for list items (CLI). Default: "h" */
   type?: "h" | "p"
-  /** Stable symlink path for deduplication (stored in data.targetPath) */
+  /** Stable embed path for deduplication (stored in data.targetPath) */
   targetPath?: string
 }
 
 /**
- * Build a Partial<KNode> for a symlink child. Pure function — caller chooses
+ * Build a Partial<KNode> for an embed child. Pure function — caller chooses
  * write mechanism: createDbOps(db).addNode() (direct SQL) or repo.addNode() (with events).
  *
- * Content is left empty — the display layer resolves it from symlink_to
+ * Content is left empty — the display layer resolves it from embed_of
  * at render time via getDisplayContent(). Setting content would freeze it
  * at creation time and be treated as an alias override.
  * Task traits (marker, status) are carried from the source with marker derivation.
  */
-export function buildSymlinkChild(opts: SymlinkChildOpts): Partial<KNode> {
+export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
   const { source, parentIdx, type = "h", targetPath } = opts
 
   const node: Partial<KNode> = {
     type,
     item: type === "p" ? { list: "-", ...(source.item?.task ? { task: source.item.task } : {}) } : {},
-    symlink_to: source.id,
+    embed_of: source.id,
     parent_idx: parentIdx,
   }
 
@@ -296,7 +296,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
     item: ic.item,
-    symlink_to: node.symlink_to ?? null,
+    embed_of: node.embed_of ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
     name: node.name ?? null,
@@ -329,7 +329,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   } else {
     db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, item, symlink_to,
+        id, type, fstype, parent_id, parent_idx, item, embed_of,
         fs_path, fs_ino, name, title, md_pos, md_line,
         list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
@@ -348,7 +348,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         nodeData.parent_id,
         nodeData.parent_idx,
         nodeData.item,
-        nodeData.symlink_to,
+        nodeData.embed_of,
         nodeData.fs_path,
         nodeData.fs_ino,
         nodeData.name,

@@ -39,15 +39,16 @@ import {
   parseWikiLinks,
   extractAllRefs,
 } from "./parser.ts"
-import type { WikiLink, PropertyValue, SectionRules } from "./parser.ts"
+import type { WikiLink, PropertyValue } from "./parser.ts"
+import type { NodeRules } from "@km/core"
 
 /**
  * Interpret heading rules from propsRaw (already extracted by kmInlinePropTransform).
- * Reads km.* keys from propsRaw and builds SectionRules.
+ * Reads km.* keys from propsRaw and builds NodeRules.
  * km.add values are comma-separated in propsRaw (concatenated by the transform).
  */
-function interpretHeadingRules(propsRaw: Record<string, string>): SectionRules {
-  const rules: SectionRules = {}
+function interpretHeadingRules(propsRaw: Record<string, string>): NodeRules {
+  const rules: NodeRules = {}
   for (const [fullKey, value] of Object.entries(propsRaw)) {
     if (!fullKey.startsWith("km.")) continue
     const key = fullKey.slice(3)

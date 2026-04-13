@@ -60,7 +60,7 @@ export function getLinksTo(db: Database, nodeId: string): KNode[] {
     .query(
       `
     SELECT * FROM nodes
-    WHERE symlink_to = ?
+    WHERE embed_of = ?
     ORDER BY parent_idx ASC
   `,
     )

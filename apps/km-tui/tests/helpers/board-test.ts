@@ -57,8 +57,15 @@ import { expect } from "vitest"
 import { createFakeRepo, type Repo, createStoreFromRepo, withReactive } from "@km/storage"
 import { StoreProvider } from "../../src/state/store-context.tsx"
 import { createBoardState, createPaneState } from "../../src/board/board-types.ts"
-import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemData, type TaskStatus } from "@km/core"
-import { parseHeadingRules } from "@km/markdown"
+import {
+  createToastQueue,
+  parseHeadingRules,
+  type KNode,
+  type NodeRules,
+  type NodeType,
+  type ItemData,
+  type TaskStatus,
+} from "@km/core"
 
 import { Board, BoardApp } from "../../src/views/Board.tsx"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/state/ui-reducer.ts"
@@ -318,7 +325,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -364,7 +371,7 @@ function makeNodeWithType(
     },
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -409,7 +416,7 @@ item.hr = (id?: string): KNode[] => {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -428,7 +435,7 @@ item.task = (content: string, status?: string): KNode[] => {
 item.link = (content: string, linkTo: string): KNode[] => {
   const nodes = makeNodeWithType(content, "p", {})
   if (nodes[0]) {
-    nodes[0].symlink_to = linkTo
+    nodes[0].embed_of = linkTo
   }
   return nodes
 }

@@ -51,7 +51,7 @@ interface KNode {
   title: string           // display title (materialized)
   symlink_to?: string   // points to another node (embeds)
   fstype?: string         // "repo" | "folder" | "file" | "mdsection"
-  rules?: SectionRules    // parsed km.* directives (collapse, color, limit)
+  rules?: NodeRules       // parsed km.* directives (collapse, color, limit)
 }
 
 const KNode = {
@@ -149,7 +149,7 @@ interface TreeLens {
   role(id: string): ViewRole | undefined
   isBody(id: string): boolean
   resolvedSymlink(id: string): KNode | undefined
-  rules(id: string): SectionRules | undefined
+  rules(id: string): NodeRules | undefined
 }
 
 // ViewTree — React-side projection with per-node signal bags
@@ -169,29 +169,65 @@ interface ViewTree {
 
 See [docs/design/visibility-model.md](design/visibility-model.md) for details.
 
-## Five Layers
+## Layers
 
 ```
-APP        apps/km-tui, km-cli, km-repl         UI, state machines, commands
-BOARD      @km/board, @km/commands               cursor, selection, fold, navigation
-TREE       @km/tree                              tree mutations via TreeMutator interface
-STORAGE    @km/storage                           SQLite, events, file sync, watch
-FS         @km/markdown + filesystem             parse/serialize, source of truth
+APP        apps/km-tui, km-cli, km-repl, km-web
+COMMANDS   @km/commands
+BOARD      @km/board
+TREE       @km/tree          @km/storage
+PARSER     @km/markdown
+CORE       @km/core
+FILESYSTEM .md files (source of truth)
 ```
 
-Each layer calls only the layer below. UI never touches filesystem. All mutations emit events (enables sync, undo, multi-window).
+Dependencies flow downward. Each package imports only from packages on its row or below.
 
-### Package Map
+### Layer Responsibilities
 
-**Core** (domain -> operations -> application):
-- `@km/core` — KNode, Position, ItemData, task status, metadata extraction. Pure functions.
-- `@km/markdown` — Parser: markdown <-> KNode (stateless, no DB)
-- `@km/storage` — Repo: SQLite CRUD, file sync, watch, events. Depends on core + markdown.
-- `@km/tree` — Tree mutations via TreeMutator interface (split, merge, indent, outdent)
-- `@km/board` — BoardState + reducer, TreeLens pipeline (ViewLens → VisibleLens → ViewTreeProjection). ID-based.
-- `@km/commands` — Command registry, keybindings, context-aware dispatch
+- **CORE** (`packages/km-core`) — KNode type, Position, ItemData, task status, metadata extraction. Pure types and functions. Zero `@km/*` dependencies.
+- **PARSER** (`packages/km-markdown`) — Bidirectional markdown-to-KNode conversion. Stateless, no DB. Depends on: `@km/core`.
+- **TREE** (`packages/km-tree`) — Tree mutations via `TreeMutator` interface (split, merge, indent, outdent), atomic operations with `inverse()`, history, normalization. Depends on: `@km/core`.
+- **STORAGE** (`packages/km-storage`) — SQLite CRUD, reactive signals, file sync, watcher, Repo factory. Depends on: `@km/core`, `@km/markdown`.
+- **BOARD** (`packages/km-board`) — BoardState, TreeLens pipeline (ViewLens, VisibleLens, ViewTreeProjection), grid navigation, cursor classification. Depends on: `@km/core`, `@km/tree`, `@km/markdown`, `@silvery/ag-react`.
+- **COMMANDS** (`packages/km-commands`) — Command registry, keybindings, context-aware dispatch, KmOp types. Depends on: `@km/board`, `@km/core`.
+- **APP** (`apps/km-tui`, `apps/km-cli`, `apps/km-repl`, `apps/km-web`) — UI, state machines, command handlers. Can import from any layer.
 
-**Apps**: `@km/tui` (TUI), `@km/cli-app` (CLI commands), `@km/repl` (interactive REPL), `@km/web` (web API server)
+### Dependency Rules
+
+1. Each layer imports only from layers below it.
+2. UI never touches filesystem directly — all mutations go through Repo.
+3. All mutations emit events (enables sync, undo, multi-window).
+4. `@km/tree` and `@km/storage` are peer layers — both depend on `@km/core`, neither depends on the other. `@km/storage` depends on `@km/markdown` for file parsing; `@km/tree` does not.
+5. `@km/board`'s dependency on `@silvery/ag-react` (for `PositionRegistry`/`ScrollRect` in grid navigation) is the only direct silvery dependency in the domain packages.
+6. `NodeRules` type and `parseHeadingRules()` live in `@km/core`, consumed by both `@km/board` and `@km/markdown`.
+
+### Actual `@km/*` Dependencies (from package.json)
+
+```
+@km/core          (none)
+@km/markdown      @km/core
+@km/tree          @km/core
+@km/storage       @km/core, @km/markdown
+@km/board         @km/core, @km/tree, @silvery/ag-react
+@km/commands      @km/board, @km/core
+```
+
+### Package Inventory
+
+**Domain packages** (private, workspace-only):
+- `@km/core`, `@km/markdown`, `@km/tree`, `@km/storage`, `@km/board`, `@km/commands` — see layer responsibilities above
+- `@km/beads` — bd-compatible issue tracking on km data. Depends on: `@km/core`, `@km/storage`.
+- `@km/agent` — Claude SDK agent integration. Depends on: `@km/core`, `@km/storage`.
+- `@km/connector-caldav` — CalDAV/CardDAV sync.
+- `@km/infra` — Shared config: oxlint, oxfmt, vitest setup.
+- `@silvery/selection` — Pure selection state machine. Depends on: `alien-signals`.
+
+**Apps** (private, workspace-only):
+- `@km/tui` (`apps/km-tui`) — TUI board view
+- `@km/cli-app` (`apps/km-cli`) — CLI commands (`bun km <subcommand>`)
+- `@km/repl` (`apps/km-repl`) — Interactive REPL
+- `@km/web` (`apps/km-web`) — Web server (early stage)
 
 **Vendor** (git submodules, standalone repos):
 - `silvery` — React TUI framework ([architecture](../vendor/silvery/docs/architecture.md))
@@ -200,6 +236,8 @@ Each layer calls only the layer below. UI never touches filesystem. All mutation
 - `loggily` — Structured logging with optional chaining
 - `vimonkey` — Fuzz testing for Vitest
 - `bearly` — Claude Code tools (tribe, llm, recall, tty)
+
+For the full package inventory (versions, npm scopes, CLI commands), see [packages.md](packages.md).
 
 ## Data Flows
 
@@ -315,8 +353,8 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 ## Related Docs
 
 - [principles.md](principles.md) — Philosophy: composability, code for humans, governance
+- [packages.md](packages.md) — Full package inventory (versions, npm scopes, CLI commands)
 - [design/data-model.md](design/data-model.md) — KNode tree, items vs blocks, board hierarchy
 - [design/tea-state-machines.md](design/tea-state-machines.md) — TEA vision and phase plan
-- [design/architecture-layers.md](design/architecture-layers.md) — Domain/Operations/Application layers
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles

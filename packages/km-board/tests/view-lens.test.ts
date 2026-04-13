@@ -6,8 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import type { KNode } from "@km/core"
-import type { SectionRules } from "@km/markdown"
+import type { KNode, NodeRules } from "@km/core"
 import { createViewLens, type ViewLensRepo } from "../src/view-lens.ts"
 
 // =============================================================================
@@ -155,11 +154,11 @@ describe("createViewLens", () => {
     expect(lens.get("__body__root")!.title).toBe("Description")
   })
 
-  test("embeds: card with symlink_to has resolvedEmbed, children from target", () => {
+  test("embeds: card with embed_of has resolvedEmbed, children from target", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "Column"),
-      { ...paragraph("embed-card", "col1", 0, "Embed"), symlink_to: "target" },
+      { ...paragraph("embed-card", "col1", 0, "Embed"), embed_of: "target" },
       heading("target", null, 0, "Target Node"),
       paragraph("target-child1", "target", 0, "Target Child 1"),
       paragraph("target-child2", "target", 1, "Target Child 2"),
@@ -167,8 +166,8 @@ describe("createViewLens", () => {
     const repo = createMockRepo(nodes)
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
 
-    expect(lens.resolvedSymlink("embed-card")).toBeDefined()
-    expect(lens.resolvedSymlink("embed-card")!.id).toBe("target")
+    expect(lens.resolvedEmbed("embed-card")).toBeDefined()
+    expect(lens.resolvedEmbed("embed-card")!.id).toBe("target")
     // Children come from the resolved target
     expect(lens.children("embed-card")).toEqual(["target-child1", "target-child2"])
   })
@@ -602,7 +601,7 @@ describe("createViewLens rules", () => {
   test("column with pre-parsed rules uses them", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
-      { ...heading("col", "root", 0, "Column"), rules: { limit: 5, color: "cyan" } as SectionRules },
+      { ...heading("col", "root", 0, "Column"), rules: { limit: 5, color: "cyan" } as NodeRules },
     ]
     const repo = createMockRepo(nodes)
     const lens = createViewLens(repo, { rootId: "root", foldDepths: new Map() })

@@ -623,7 +623,7 @@ function makeNode(partial: Partial<KNode> & { id: string; type: KNode["type"] })
     ...(partial.item?.list ? { list_marker: partial.item?.list } : {}),
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
-    symlink_to: partial.symlink_to ?? null,
+    embed_of: partial.embed_of ?? null,
     title: partial.title,
     content: partial.content ?? partial.title ?? "",
     data: {},
@@ -659,7 +659,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
-        symlink_to: targetId,
+        embed_of: targetId,
       }),
       makeNode({
         id: embed2Id,
@@ -667,7 +667,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
-        symlink_to: targetId,
+        embed_of: targetId,
       }),
       // Target node for embeds
       makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Some task", parent_id: null }),
@@ -756,7 +756,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
-        symlink_to: targetId,
+        embed_of: targetId,
       }),
       makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Target", parent_id: null }),
     ]
@@ -774,7 +774,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const paraCard = col.cardNodes.find((c) => c.id === paraId)
     const embedCard = col.cardNodes.find((c) => c.id === embedId)
 
-    // Embed should not be body (symlink_to nodes get isBody: false)
+    // Embed should not be body (embed_of nodes get isBody: false)
     expect((embedCard as any)?.isBody).toBeFalsy()
   })
 })

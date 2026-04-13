@@ -16,8 +16,7 @@
  *                                              useNode(id) → ViewNode
  */
 
-import type { KNode } from "@km/core"
-import type { SectionRules } from "@km/markdown"
+import type { KNode, NodeRules } from "@km/core"
 import type { TreeLens } from "./tree-lens.ts"
 import { createProjectedMap, type ProjectedMap, type Projected } from "./projected-map.ts"
 
@@ -35,10 +34,10 @@ export interface ViewNodeState {
   parentId: string | null
   display: KNode | undefined
   isBody: boolean
-  isSymlink: boolean
-  isBrokenSymlink: boolean
+  isEmbed: boolean
+  isBrokenEmbed: boolean
   hasBody: boolean
-  rules: SectionRules | undefined
+  rules: NodeRules | undefined
   data: KNode | undefined
 }
 
@@ -50,10 +49,10 @@ export interface ViewNode {
   readonly parentId: string | null
   readonly display: KNode | undefined
   readonly isBody: boolean
-  readonly isSymlink: boolean
-  readonly isBrokenSymlink: boolean
+  readonly isEmbed: boolean
+  readonly isBrokenEmbed: boolean
   readonly hasBody: boolean
-  readonly rules: SectionRules | undefined
+  readonly rules: NodeRules | undefined
   readonly data: KNode | undefined
 }
 
@@ -105,8 +104,8 @@ const VIEW_NODE_FIELDS: readonly (keyof ViewNodeState & string)[] = [
   "parentId",
   "display",
   "isBody",
-  "isSymlink",
-  "isBrokenSymlink",
+  "isEmbed",
+  "isBrokenEmbed",
   "hasBody",
   "rules",
   "data",
@@ -132,7 +131,7 @@ export function createViewTree(): ViewTree {
     if (!knode) return undefined
 
     const role = lens.role(id)
-    const symlink = lens.resolvedSymlink(id)
+    const symlink = lens.resolvedEmbed(id)
 
     const childIds = lens.children(id)
     const displayNode = symlink ?? knode
@@ -147,8 +146,8 @@ export function createViewTree(): ViewTree {
       parentId: lens.parent(id),
       display: displayNode,
       isBody: lens.isBody(id),
-      isSymlink: symlink !== undefined,
-      isBrokenSymlink: knode.symlink_to != null && symlink === undefined,
+      isEmbed: symlink !== undefined,
+      isBrokenEmbed: knode.embed_of != null && symlink === undefined,
       hasBody,
       rules: lens.rules(id),
       data: knode,

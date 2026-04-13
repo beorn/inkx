@@ -5,8 +5,7 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import { KNode, extractMetadata, normalizeName, findIndexFile, type ItemData } from "@km/core"
-import { PROP_REGEX } from "@km/markdown"
+import { KNode, extractMetadata, normalizeName, findIndexFile, PROP_REGEX, type ItemData } from "@km/core"
 
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
 export function stripForDisplay(text: string): string {
@@ -302,7 +301,7 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
  * Get parent context for a node (for board card display)
  *
  * Walks up the parent chain to find meaningful context:
- * - For symlink nodes (transclusions), follows symlink_to to get original context
+ * - For embed nodes (transclusions), follows embed_of to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file's display name
  *
@@ -357,17 +356,17 @@ export function getParentContextEx(
  * Shared traversal logic for getParentContext and getParentContextEx.
  *
  * Walks up the parent chain to find meaningful context:
- * - For symlink nodes (transclusions), follows symlink_to to get original context
+ * - For embed nodes (transclusions), follows embed_of to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file/section node
  */
 function findParentContextNode(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): KNode | null {
   if (!getNode) return null
 
-  // For symlink nodes (transclusions), follow symlink_to to get original context
+  // For embed nodes (transclusions), follow embed_of to get original context
   let targetNode = node
-  if (node.symlink_to) {
-    const originalNode = getNode(node.symlink_to)
+  if (node.embed_of) {
+    const originalNode = getNode(node.embed_of)
     if (originalNode) {
       targetNode = originalNode
     }

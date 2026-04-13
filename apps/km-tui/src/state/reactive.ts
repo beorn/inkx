@@ -291,8 +291,8 @@ export function createNodeStore() {
       knownNodeIds.add(col.id)
       const cards = repo.getChildren(col.id)
       for (const card of cards) {
-        if (card.symlink_to && !repo.getNode(card.symlink_to)) {
-          log.debug?.(`Broken symlink: node ${card.id} → missing target ${card.symlink_to}`)
+        if (card.embed_of && !repo.getNode(card.embed_of)) {
+          log.debug?.(`Broken symlink: node ${card.id} → missing target ${card.embed_of}`)
         }
         knownNodeIds.add(card.id)
       }

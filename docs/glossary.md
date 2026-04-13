@@ -362,7 +362,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **roundtrip** — The property that parsing markdown to KNode and serializing back produces identical markdown. km strives for roundtrip fidelity to avoid data loss during bidirectional sync.
 
-**rules** — Per-section directives parsed from `km.*` frontmatter or inline directives. Controls collapse state, content line limits, color, and other visual behavior. Stored as `SectionRules` on KNode.
+**rules** — Per-section directives parsed from `km.*` frontmatter or inline directives. Controls collapse state, content line limits, color, and other visual behavior. Stored as `NodeRules` on KNode (defined in `@km/core`).
 
 **run** — The top-level function that starts a silvery app: `await run(<App />, term)`. Sets up the event loop, renders the React tree, and handles input until exit.
 
@@ -398,7 +398,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **SelectionProvider** — A React provider supplying selection context to a subtree. Receives visible node IDs as a prop so gestures can derive range walks and cursor repair. Each pane has its own provider.
 
-**SelectionStore** — The per-scope reactive store created by `Selection.with(store, nodes)`. Contains the `selected` signal, computed `selecting` and `selection`, and gesture handlers. Not to be confused with *Store* (storage contract) or Zustand stores (see *Zustand*).
+**SelectionStore** — The per-scope reactive store created by `Selection.with(store, nodes)`. Contains the `selected` signal, computed `selecting` and `selection`, and gesture handlers. Not to be confused with *Store* (storage contract).
 
 **serializer** — The component that converts KNode trees back to markdown text. Used by the DB -> FS sync path. Counterpart of *parser*.
 
@@ -422,9 +422,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **sticky** — A layout feature in flexily where a node sticks to the top or bottom of its scroll container as the user scrolls.
 
-**store** — Three meanings:
+**store** — Two meanings:
 - *Store*: the minimal storage contract for node data (`peekNode`, `peekChildIds`, `commit`). Extended by `Observable` and `Replicated`. `withReactive(store)` adds per-node signals.
-- *Zustand store*: a reactive state container used by silvery's `@silvery/tea` and km's board state. See *Zustand*.
 - *SelectionStore*: the per-scope selection state. See *SelectionStore*.
 
 **sub-item** — A visual role for a KNode at depth 3+ (child of a card). Rendered as an indented line that expands to a card-like frame when focused.
@@ -522,4 +521,4 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **zoom** — Changing the board root to drill into or out of the node tree. Enter zooms in, u/Backspace zooms out. Navigation history tracks zoom changes.
 
-**Zustand** — A minimal React state management library. Used by silvery's `@silvery/tea` store and km's board state for immutable updates and selectors. Not to be confused with *Store* (the storage contract) or *SelectionStore* (per-scope selection state).
+**Zustand** — (historical) A minimal React state management library formerly used by silvery's store layer. Replaced by alien-signals-based signal stores. Not to be confused with *Store* (the storage contract) or *SelectionStore* (per-scope selection state).

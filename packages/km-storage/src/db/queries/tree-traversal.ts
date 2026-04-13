@@ -120,10 +120,10 @@ export function getSubtree(db: Database, rootId: string): KNode[] {
 }
 
 /**
- * Get all symlink targets that exist anywhere on a board (for deduplication).
- * Returns a Set of node IDs that are already symlinked somewhere on the board.
+ * Get all embed targets that exist anywhere on a board (for deduplication).
+ * Returns a Set of node IDs that are already embedded somewhere on the board.
  */
-export function getSymlinkTargetsOnBoard(db: Database, boardRootId: string | null): Set<string> {
+export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null): Set<string> {
   if (!boardRootId) return new Set()
 
   const result = db
@@ -135,9 +135,9 @@ export function getSymlinkTargetsOnBoard(db: Database, boardRootId: string | nul
       SELECT n.id FROM nodes n
       JOIN descendants d ON n.parent_id = d.id
     )
-    SELECT symlink_to AS target FROM nodes
+    SELECT embed_of AS target FROM nodes
     WHERE id IN (SELECT id FROM descendants)
-    AND symlink_to IS NOT NULL
+    AND embed_of IS NOT NULL
   `,
     )
     .all(boardRootId) as { target: string }[]
@@ -146,11 +146,11 @@ export function getSymlinkTargetsOnBoard(db: Database, boardRootId: string | nul
 }
 
 /**
- * Get all symlink paths on a board in a single query (for deduplication).
+ * Get all embed paths on a board in a single query (for deduplication).
  * Returns both exact paths and file-level paths.
  * Replaces the N+1 pattern of getChildren(boardRoot) + getChildren(section) loops.
  */
-export function getSymlinkPathsOnBoard(
+export function getEmbedPathsOnBoard(
   db: Database,
   boardRootId: string | null,
 ): { exactPaths: Set<string>; filePaths: Set<string> } {
@@ -158,13 +158,13 @@ export function getSymlinkPathsOnBoard(
   const filePaths = new Set<string>()
   if (!boardRootId) return { exactPaths, filePaths }
 
-  // Single CTE query: get all symlink nodes under the board root (depth 2: sections + their children)
+  // Single CTE query: get all embed nodes under the board root (depth 2: sections + their children)
   const rows = db
     .query(
       `
     SELECT data, content FROM nodes
     WHERE parent_id IN (SELECT id FROM nodes WHERE parent_id = ?)
-    AND symlink_to IS NOT NULL
+    AND embed_of IS NOT NULL
   `,
     )
     .all(boardRootId) as Array<{ data: string | null; content: string | null }>

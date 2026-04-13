@@ -106,7 +106,7 @@ export function useBoardDialogs({
       }
 
       // Resolve symlink target: if this is a symlink, operate on the target
-      const nodeToMove = cursorNode.symlink_to ?? cursorNode.id
+      const nodeToMove = cursorNode.embed_of ?? cursorNode.id
 
       // Calculate sort order (add at end of target)
       const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(targetNode.id))

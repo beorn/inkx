@@ -516,9 +516,9 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   const count = forEachSelected(ctx, "Toggle status", (c) => {
-    const symlinkTarget = c.symlink_to
-    const targetId = symlinkTarget || c.id
-    const targetNode = symlinkTarget ? ctx.repo.getNode(symlinkTarget) : c
+    const embedTarget = c.embed_of
+    const targetId = embedTarget || c.id
+    const targetNode = embedTarget ? ctx.repo.getNode(embedTarget) : c
     const currentStatus = targetNode?.item?.task?.status || "todo"
     let nextStatus: TaskStatus
     if (explicitStatus !== undefined) {
@@ -593,7 +593,7 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
  */
 export function handleClearTask(ctx: OpCtx): void {
   const count = forEachSelected(ctx, "Clear task", (c) => {
-    const targetId = c.symlink_to || c.id
+    const targetId = c.embed_of || c.id
     const targetNode = ctx.repo.getNode(targetId)
     runRepoEffect(ctx, {
       type: "REPO_UPDATE_NODE",

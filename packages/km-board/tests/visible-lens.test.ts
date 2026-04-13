@@ -113,13 +113,13 @@ describe("visibleLens", () => {
     expect(v.prevInWalk("col2")).toBe("col1")
   })
 
-  test("role/isBody/resolvedSymlink delegate to parent lens", () => {
+  test("role/isBody/resolvedEmbed delegate to parent lens", () => {
     const v = lens(BASIC_NODES, "board")
     expect(v.role("col1")).toBe("column")
     expect(v.role("1a")).toBe("card")
     // 1a is type "p" (non-outline) — body extraction marks it as body content
     expect(v.isBody("1a")).toBe(true)
-    expect(v.resolvedSymlink("1a")).toBeUndefined()
+    expect(v.resolvedEmbed("1a")).toBeUndefined()
   })
 
   test("get returns KNode even for filtered-out cards", () => {
@@ -208,7 +208,7 @@ describe("visibleLens", () => {
       n("board", null),
       n("col1", "board"),
       // Embed card pointing to a done task in another column
-      n("embed-1", "col1", "p", { symlink_to: "source-done" }),
+      n("embed-1", "col1", "p", { embed_of: "source-done" }),
       n("col2", "board"),
       // Source node — in the tree (under col2), accessible via get()
       n("source-done", "col2", "p", { item: { task: { marker: "[x]", status: "done" } } }),

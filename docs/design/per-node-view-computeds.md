@@ -140,7 +140,7 @@ interface NodeViewSignals {
   readonly children: Computed<ViewNode[]>
   readonly isBody: Computed<boolean>
   readonly resolvedEmbed: Computed<KNode | undefined>
-  readonly rules: Computed<SectionRules | undefined>
+  readonly rules: Computed<NodeRules | undefined>
 
   // Lifecycle
   dispose(): void

@@ -156,7 +156,7 @@ export function* discoverFiles(
    * Check if a directory can be entered (not already visited).
    * For symlinks, also skips targets inside the repo root (already being indexed).
    */
-  function tryEnterDirectory(dirPath: string, isSymlink = false): boolean {
+  function tryEnterDirectory(dirPath: string, isEmbed = false): boolean {
     let real: string
     try {
       real = realpathSync(dirPath)
@@ -165,20 +165,20 @@ export function* discoverFiles(
       return false
     }
 
-    if (isSymlink && (real.startsWith(repoRealpath + "/") || real === repoRealpath)) {
+    if (isEmbed && (real.startsWith(repoRealpath + "/") || real === repoRealpath)) {
       log.debug?.(`symlink to repo-internal path, skipping: ${dirPath} → ${real}`)
       return false
     }
 
     if (visitedDirs.has(real)) {
-      const msg = isSymlink ? `Symlink loop: ${dirPath} → ${real}` : `Already visited: ${dirPath} → ${real}`
+      const msg = isEmbed ? `Symlink loop: ${dirPath} → ${real}` : `Already visited: ${dirPath} → ${real}`
       log.debug?.(msg)
       errors.push({ phase: "discover", path: dirPath, message: msg })
       return false
     }
 
     visitedDirs.add(real)
-    if (isSymlink) log.debug?.(`following symlink: ${dirPath} → ${real}`)
+    if (isEmbed) log.debug?.(`following symlink: ${dirPath} → ${real}`)
     return true
   }
 

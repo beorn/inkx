@@ -73,11 +73,11 @@ export function checkParentLinks(app: BoardApp) {
   }
 }
 
-/** All symlink_to references are valid */
+/** All embed_of references are valid */
 export function checkNodeLinks(app: BoardApp) {
   for (const node of app.repo.data.getAllNodes()) {
-    if (node.symlink_to) {
-      expect(app.repo.getNode(node.symlink_to), `Embed "${node.symlink_to}" missing for "${node.id}"`).toBeDefined()
+    if (node.embed_of) {
+      expect(app.repo.getNode(node.embed_of), `Embed "${node.embed_of}" missing for "${node.id}"`).toBeDefined()
     }
   }
 }

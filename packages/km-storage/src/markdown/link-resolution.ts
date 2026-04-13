@@ -91,11 +91,11 @@ function applyResolvedLinks(db: Database, result: LinkResolutionResult): void {
       )
     }
 
-    // Batch UPDATE for embedded links — set symlink_to on the source node.
-    // Node type stays as-is (p, h, etc.) — symlink_to is orthogonal to type.
+    // Batch UPDATE for embedded links — set embed_of on the source node.
+    // Node type stays as-is (p, h, etc.) — embed_of is orthogonal to type.
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE nodes SET symlink_to = ?, name = ?, updated_at = ? WHERE id = ?
+        UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?
       `)
       for (const update of embeddedUpdates) {
         updateStmt.run(update.target_id, update.alias, now, update.source_id)

@@ -76,7 +76,7 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
     item,
-    symlink_to: (row.symlink_to ?? undefined) as string | null | undefined,
+    embed_of: (row.embed_of ?? undefined) as string | null | undefined,
     fs_path: (row.fs_path ?? undefined) as string | undefined,
     fs_ino: (row.fs_ino ?? undefined) as number | undefined,
     fs_mtime: (row.fs_mtime ?? undefined) as number | undefined,

@@ -61,11 +61,11 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
     ],
   )
 
-  // For embedded links, update the source node's symlink_to
-  // Use "memory" mode - symlink_to is derived state, not user intent (no events)
+  // For embedded links, update the source node's embed_of
+  // Use "memory" mode - embed_of is derived state, not user intent (no events)
   if (link.embedded && link.target_id) {
     createDbOps(db).updateNode(link.source_id, {
-      symlink_to: link.target_id,
+      embed_of: link.target_id,
       name: link.alias ?? undefined,
     })
   }
@@ -138,11 +138,11 @@ export function resolveLinks(db: Database, targetId: string, targetName: string)
     )
     resolvedCount++
 
-    // For embedded links, update the source node's symlink_to
-    // Use "memory" mode - symlink_to is derived state, not user intent (no events)
+    // For embedded links, update the source node's embed_of
+    // Use "memory" mode - embed_of is derived state, not user intent (no events)
     if (link.embedded) {
       createDbOps(db).updateNode(link.source_id, {
-        symlink_to: actualTargetId,
+        embed_of: actualTargetId,
         name: link.alias ?? undefined,
       })
     }
@@ -221,10 +221,10 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
     )
     resolved++
 
-    // For embedded links, update the source node's symlink_to
+    // For embedded links, update the source node's embed_of
     if (link.embedded) {
       createDbOps(db).updateNode(link.source_id, {
-        symlink_to: actualTargetId,
+        embed_of: actualTargetId,
         name: link.alias ?? undefined,
       })
     }

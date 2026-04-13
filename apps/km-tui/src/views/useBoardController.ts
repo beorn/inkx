@@ -58,8 +58,8 @@ function countHiddenDescendants(
   const children = repo.getChildren(parentId)
   let count = 0
   for (const child of children) {
-    const symlinkTarget = child.symlink_to
-    const filterNode = symlinkTarget ? (repo.getNode(symlinkTarget) ?? child) : child
+    const embedTarget = child.embed_of
+    const filterNode = embedTarget ? (repo.getNode(embedTarget) ?? child) : child
     if (!matchesPropertyFilters(filterNode, filters)) {
       count++
     } else {
@@ -369,8 +369,8 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
         const card = repo.getNode(cardId)
         if (!card) return false
         // For symlinks, resolve to target node for filtering
-        const symlinkTarget = card.symlink_to
-        const filterNode = symlinkTarget ? (repo.getNode(symlinkTarget) ?? card) : card
+        const embedTarget = card.embed_of
+        const filterNode = embedTarget ? (repo.getNode(embedTarget) ?? card) : card
         // Text filter: match card content (use target node content for symlinks)
         if (hasTextFilter) {
           const name = (filterNode.content ?? "").toLowerCase()

@@ -33,6 +33,7 @@ import { createViewTree } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
+import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts"
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
@@ -63,8 +64,8 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
     "term:focus": (data, ctx) => {
       const { focused } = data as { focused: boolean }
       ctx.get().setUI({ terminalFocused: focused })
-      // Expose on globalThis for the heartbeat interval (which runs outside the store)
-      globalThis.__km_terminal_focused = focused
+      // Expose for the heartbeat interval (which runs outside the store)
+      setTerminalFocused(focused)
     },
   })
 
@@ -314,7 +315,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const { get } = ctx
 
     // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
-    globalThis.__km_last_key = lookupKeyName(key) ?? (input || "?")
+    setLastKey(lookupKeyName(key) ?? (input || "?"))
 
     // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
     if (locals.cachedFocusManager !== ctx.focusManager) {
@@ -568,7 +569,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (result.commandId) {
         parentSpan.spanData.command = result.commandId
         // Update last key label to include command (for heartbeat diagnostics)
-        globalThis.__km_last_key += ` → ${result.commandId}`
+        appendLastKey(` → ${result.commandId}`)
       }
     }
 

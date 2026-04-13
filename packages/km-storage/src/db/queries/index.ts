@@ -31,7 +31,7 @@ export {
   getSubtree,
   getSubtreeShallow,
   getAncestors,
-  getSymlinkPathsOnBoard,
+  getEmbedPathsOnBoard,
 } from "./tree-traversal.ts"
 
 // Task Queries (getTasksByStatus, getAllTasks, getLinksTo)

@@ -16,9 +16,8 @@
  * only visits nodes the user can see.
  */
 
-import type { KNode } from "@km/core"
+import type { KNode, NodeRules } from "@km/core"
 import { getStatusForMarker } from "@km/core"
-import type { SectionRules } from "@km/markdown"
 import type { TreeLens, ViewRole } from "./tree-lens.ts"
 
 // =============================================================================
@@ -41,7 +40,7 @@ export interface VisibleLensOptions {
 /**
  * Create a VisibleLens that wraps a parent lens with collapse + filter.
  *
- * The visible lens delegates all get/role/isBody/resolvedSymlink/rules to
+ * The visible lens delegates all get/role/isBody/resolvedEmbed/rules to
  * the parent lens. It only modifies children() and walkOrder to exclude
  * collapsed cards and filtered cards.
  *
@@ -64,8 +63,8 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
     if (!hasTaskFilter) return true
     const node = parent.get(childId)
     if (!node) return false
-    // For symlinks, resolve to target node for status check
-    const filterNode = node.symlink_to ? (parent.get(node.symlink_to) ?? node) : node
+    // For embeds, resolve to target node for status check
+    const filterNode = node.embed_of ? (parent.get(node.embed_of) ?? node) : node
     const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
     // Non-task nodes (no status) always pass — only tasks are filtered
     return !status || taskStatusFilter!.has(status)
@@ -206,11 +205,11 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
       return parent.isBody(id)
     },
 
-    resolvedSymlink(id: string): KNode | undefined {
-      return parent.resolvedSymlink(id)
+    resolvedEmbed(id: string): KNode | undefined {
+      return parent.resolvedEmbed(id)
     },
 
-    rules(id: string): SectionRules | undefined {
+    rules(id: string): NodeRules | undefined {
       return parent.rules(id)
     },
   }

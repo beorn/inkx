@@ -25,7 +25,7 @@ function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNod
     parent_idx: overrides.parent_idx ?? 0,
     content: overrides.content ?? `Test Node ${id.slice(0, 4)}`,
     data: overrides.data ?? {},
-    symlink_to: overrides.symlink_to ?? null,
+    embed_of: overrides.embed_of ?? null,
     created_at: overrides.created_at ?? Date.now(),
     updated_at: overrides.updated_at ?? Date.now(),
     version: overrides.version ?? "v1",

@@ -166,10 +166,10 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const symlinks = children.filter((c) => KNode.isSymlink(c))
+          const symlinks = children.filter((c) => KNode.isEmbed(c))
 
           expect(symlinks.length).toBe(2)
-          expect(symlinks.every((e) => e.symlink_to)).toBe(true)
+          expect(symlinks.every((e) => e.embed_of)).toBe(true)
         },
       ))
 
@@ -203,7 +203,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const symlinks = children.filter((c) => KNode.isSymlink(c))
+          const symlinks = children.filter((c) => KNode.isEmbed(c))
           const directTasks = children.filter((c) => c.item?.task?.status != null)
 
           expect(symlinks.length).toBe(1)
@@ -254,8 +254,8 @@ describe("Database Rules", () => {
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoSymlinks = getChildren(store.getDatabase(), todoSection!.id).filter((c) => KNode.isSymlink(c))
-          const doneSymlinks = getChildren(store.getDatabase(), doneSection!.id).filter((c) => KNode.isSymlink(c))
+          const todoSymlinks = getChildren(store.getDatabase(), todoSection!.id).filter((c) => KNode.isEmbed(c))
+          const doneSymlinks = getChildren(store.getDatabase(), doneSection!.id).filter((c) => KNode.isEmbed(c))
 
           expect(todoSymlinks.length).toBe(2)
           expect(doneSymlinks.length).toBe(1)
@@ -297,8 +297,8 @@ describe("Database Rules", () => {
           const children = getChildren(store.getDatabase(), openSection!.id)
 
           expect(children.length).toBe(2)
-          expect(children.every((c) => KNode.isSymlink(c))).toBe(true)
-          expect(children.every((c) => c.symlink_to)).toBe(true)
+          expect(children.every((c) => KNode.isEmbed(c))).toBe(true)
+          expect(children.every((c) => c.embed_of)).toBe(true)
         },
       ))
 
@@ -363,9 +363,9 @@ describe("Database Rules", () => {
 
           const children = getChildren(store.getDatabase(), inboxSection!.id)
           // The symlink from markdown + rule should not create a duplicate
-          const symlinkTargets = children.filter((c) => c.symlink_to).map((c) => c.symlink_to)
-          const uniqueTargets = new Set(symlinkTargets)
-          expect(symlinkTargets.length).toBe(uniqueTargets.size)
+          const embedTargets = children.filter((c) => c.embed_of).map((c) => c.embed_of)
+          const uniqueTargets = new Set(embedTargets)
+          expect(embedTargets.length).toBe(uniqueTargets.size)
         },
       ))
   })

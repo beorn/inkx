@@ -9,14 +9,19 @@
     "./test": "./src/test.ts"
   },
   "dependencies": {
+    "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*",
+    "@silvery/ag-term": "workspace:*",
+    "@silvery/create": "workspace:*",
     "@silvery/selection": "workspace:*",
     "@silvery/theme": "workspace:*",
+    "alien-signals": "^3.1.2",
+    "loggily": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

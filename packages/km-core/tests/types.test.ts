@@ -60,11 +60,11 @@ describe("validateNode", () => {
     })
   })
 
-  describe("symlink_to (transclusion)", () => {
-    test("symlink_to is orthogonal to type — any type can have it", () => {
-      expect(validateNode({ type: "p", symlink_to: "some-id" })).toEqual([])
-      expect(validateNode({ type: "h", item: {}, symlink_to: "some-id" })).toEqual([])
-      expect(validateNode({ type: "p", item: {}, symlink_to: null })).toEqual([])
+  describe("embed_of (transclusion)", () => {
+    test("embed_of is orthogonal to type — any type can have it", () => {
+      expect(validateNode({ type: "p", embed_of: "some-id" })).toEqual([])
+      expect(validateNode({ type: "h", item: {}, embed_of: "some-id" })).toEqual([])
+      expect(validateNode({ type: "p", item: {}, embed_of: null })).toEqual([])
     })
   })
 

@@ -2,8 +2,8 @@
 
 import type { Root } from "mdast"
 import { visit } from "unist-util-visit"
-import { extractKVProperties, parseInlineProperties } from "../parser.ts"
-import { nodeToText } from "../parser.ts"
+import { extractKVProperties } from "@km/core"
+import { parseInlineProperties, nodeToText } from "../parser.ts"
 
 export function kmInlinePropTransform(tree: Root): void {
   visit(tree, (node, _index, parent) => {

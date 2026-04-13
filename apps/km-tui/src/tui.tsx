@@ -28,6 +28,7 @@ import { createBoardApp } from "./board/board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
+import { terminalFocused, lastKey } from "./diagnostics.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
@@ -174,8 +175,7 @@ export async function runBoard(
     let lastHeartbeat = performance.now()
     let lastRenderCount = 0
     heartbeatInterval = setInterval(() => {
-      const termFocused = globalThis.__km_terminal_focused
-      if (termFocused === false) {
+      if (terminalFocused === false) {
         // Reset heartbeat baseline so we don't false-alarm on refocus
         lastHeartbeat = performance.now()
         return
@@ -186,7 +186,6 @@ export async function runBoard(
         const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
 
         // Last key that was pressed (set by board-app handleKey)
-        const lastKey = globalThis.__km_last_key
         if (lastKey) {
           parts.push(`after key='${lastKey}'`)
         } else {

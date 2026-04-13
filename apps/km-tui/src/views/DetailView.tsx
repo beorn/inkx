@@ -28,7 +28,7 @@ import { useSignal } from "../hooks/use-signal.ts"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
-import { resolveSymlink } from "./symlink-display.ts"
+import { resolveEmbed } from "./embed-display.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
@@ -72,7 +72,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const isRootEditing = rootEditState?.blockIndex === 0
 
   const rawNode = rootId ? repo.getNode(rootId) : null
-  const { displayNode } = rawNode ? resolveSymlink(repo, rawNode) : { displayNode: null }
+  const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
   const rootNode = displayNode ?? rawNode
 
   // All hooks must be called unconditionally (before any early return)

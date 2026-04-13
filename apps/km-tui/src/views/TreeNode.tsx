@@ -39,7 +39,7 @@ import {
 } from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { stripKnownMentions } from "./detail-pane-helpers.ts"
-import { resolveSymlink, getDisplayContent } from "./symlink-display.ts"
+import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { selectedBg, multiSelectedBg } from "../theme.ts"
@@ -127,7 +127,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Node content that affects display (includes implicit task properties)
   if (
     prev.node.content !== next.node.content ||
-    prev.node.symlink_to !== next.node.symlink_to ||
+    prev.node.embed_of !== next.node.embed_of ||
     prev.node.item?.task?.status !== next.node.item?.task?.status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
@@ -249,22 +249,22 @@ function TreeNodeImpl({
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   // Exception: when editing, show full content so cursor isn't hidden in truncated area
   const isCardChild = variant === "multiline" && depth > 0 && !isInlineEditing
-  // Symlink resolution via ViewTree projection when available, resolveSymlink() fallback.
-  // viewNode.isSymlink = symlink resolved successfully. isBrokenSymlink = symlink target missing.
-  // isSymlinked = either case (isSymlink OR isBrokenSymlink).
-  const { displayNode, isSymlinked, resolvedNode, isBrokenSymlink } = viewNode
+  // Embed resolution via ViewTree projection when available, resolveEmbed() fallback.
+  // viewNode.isEmbed = embed resolved successfully. isBrokenEmbed = embed target missing.
+  // isEmbedded = either case (isEmbed OR isBrokenEmbed).
+  const { displayNode, isEmbedded, resolvedNode, isBrokenEmbed } = viewNode
     ? {
         displayNode: viewNode.display ?? node,
-        isSymlinked: viewNode.isSymlink || viewNode.isBrokenSymlink,
-        resolvedNode: viewNode.isSymlink && viewNode.display !== node ? (viewNode.display ?? null) : null,
-        isBrokenSymlink: viewNode.isBrokenSymlink,
+        isEmbedded: viewNode.isEmbed || viewNode.isBrokenEmbed,
+        resolvedNode: viewNode.isEmbed && viewNode.display !== node ? (viewNode.display ?? null) : null,
+        isBrokenEmbed: viewNode.isBrokenEmbed,
       }
-    : resolveSymlink(repo, node)
+    : resolveEmbed(repo, node)
 
-  // Children: use ViewTree childIds when available (already fold/hidden/symlink resolved).
+  // Children: use ViewTree childIds when available (already fold/hidden/embed resolved).
   // Fallback to manual fetch for contexts without ViewTree (storybook, tests).
   const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
-  const childrenSourceId = isSymlinked && resolvedNode ? resolvedNode.id : node.id
+  const childrenSourceId = isEmbedded && resolvedNode ? resolvedNode.id : node.id
   const children = useMemo(() => {
     if (viewNode && !childrenProp) {
       // ViewTree provides visible child IDs — map to KNode objects.
@@ -396,7 +396,7 @@ function TreeNodeImpl({
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
-  const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isSymlinked)
+  const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   // Strip @mentions and +projects from card title display — the info suffix already shows short names
   // Fall back to original if stripping leaves nothing (e.g., user files like @shi-delei.md)
@@ -523,7 +523,7 @@ function TreeNodeImpl({
   const rawParentContext =
     parentContextProp !== undefined
       ? parentContextProp
-      : depth === 0 && nodeIsTask && isSymlinked
+      : depth === 0 && nodeIsTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null
   // Suppress parent context if it matches an excluded sigil (redundant on that board/column).
@@ -535,7 +535,7 @@ function TreeNodeImpl({
     // Direct match: display name is in excluded sigils
     if (excludedSigils.includes(rawParentContext)) return { parentContext: null, parentNodeId: null }
     // Extended check: resolve the parent context source node and compare its name/fs_path
-    if (parentContextProp === undefined && depth === 0 && nodeIsTask && isSymlinked) {
+    if (parentContextProp === undefined && depth === 0 && nodeIsTask && isEmbedded) {
       const result = getParentContextExFromState(repo, node)
       if (result) {
         // Check if the source node's name (sigil) is excluded
@@ -552,12 +552,12 @@ function TreeNodeImpl({
       }
     }
     // When parentContextProp is provided externally, resolve nodeId via getParentContextEx
-    if (parentContextProp !== undefined && depth === 0 && isSymlinked) {
+    if (parentContextProp !== undefined && depth === 0 && isEmbedded) {
       const result = getParentContextExFromState(repo, node)
       return { parentContext: rawParentContext, parentNodeId: result?.nodeId ?? null }
     }
     return { parentContext: rawParentContext, parentNodeId: null }
-  }, [rawParentContext, excludedSigils, parentContextProp, depth, nodeIsTask, isSymlinked, repo, node])
+  }, [rawParentContext, excludedSigils, parentContextProp, depth, nodeIsTask, isEmbedded, repo, node])
 
   // Context suffix (shown inline for oneliner variant only)
   const truncatedContext = isOneliner
@@ -618,7 +618,7 @@ function TreeNodeImpl({
     let totalPassing = 0
     for (const child of children) {
       // For symlinked children, resolve to source node to get task_status
-      const filterNode = child.symlink_to ? (repo.getNode(child.symlink_to) ?? child) : child
+      const filterNode = child.embed_of ? (repo.getNode(child.embed_of) ?? child) : child
       const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++
@@ -637,7 +637,7 @@ function TreeNodeImpl({
       {/* Parent context line (shown ABOVE task for symlinked items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {/* Wrapped in Link for Cmd+click navigation to the parent node */}
-      {!isOneliner && isSymlinked && parentContext && (
+      {!isOneliner && isEmbedded && parentContext && (
         <Box paddingLeft={prefix.length}>
           {parentNodeId ? (
             <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
@@ -732,7 +732,7 @@ function TreeNodeImpl({
                 // normal fg (no bold, no muted). See bead km-tui.body-vs-subitem-emphasis.
                 bold={depth === 0 && !isBody}
                 color={
-                  isBrokenSymlink && !isSelected
+                  isBrokenEmbed && !isSelected
                     ? "$error"
                     : dimUntitled
                       ? "$warning"
@@ -1060,8 +1060,8 @@ const FoldedChildRow = React.memo(
       : { markerChar: "", markerColor: undefined as string | undefined, afterMarker: " ", length: 1 }
 
     // Content — resolve symlinks
-    const { isSymlinked, resolvedNode, displayNode, isBrokenSymlink } = resolveSymlink(repo, node)
-    const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isSymlinked)
+    const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)
+    const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
     const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
     // Shared inline context and search decorations
@@ -1088,7 +1088,7 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={isBrokenSymlink && !isNodeSelected ? "$error" : (foldTc ?? style.ownColor)}
+            color={isBrokenEmbed && !isNodeSelected ? "$error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"

@@ -35,7 +35,7 @@ export interface TNode {
   parent_id: string | null
   parent_idx: number
   item?: ItemData
-  symlink_to?: string | null
+  embed_of?: string | null
   name?: string
   title: string | null
   priority?: string

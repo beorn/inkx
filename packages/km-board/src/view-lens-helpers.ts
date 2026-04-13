@@ -10,8 +10,7 @@
  *   - CARD_REMAINING_DEPTH — default recursion depth for card sub-items
  */
 
-import { KNode } from "@km/core"
-import { parseHeadingRules } from "@km/markdown"
+import { KNode, parseHeadingRules } from "@km/core"
 
 // =============================================================================
 // Constants — collapsed/detail-only detection (canonical source)

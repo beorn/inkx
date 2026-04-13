@@ -122,3 +122,7 @@ export {
 // Job runner
 export { createJobRunner } from "./job.ts"
 export type { JobSpec, JobHandle, JobRunner } from "./job.ts"
+
+// Heading rules — parse/serialize km.* inline directives (pure text processing)
+export { PROP_REGEX, extractKVProperties, parseHeadingRules } from "./heading-rules.ts"
+export type { ExtractedProp, ParsedHeading } from "./heading-rules.ts"

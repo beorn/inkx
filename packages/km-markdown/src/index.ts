@@ -9,11 +9,8 @@ export {
   extractProjects,
   extractAllRefs,
   parseTaskMetadata,
-  parseHeadingRules,
   parseInlineProperties,
   serializeRules,
-  extractKVProperties,
-  PROP_REGEX,
   nodeToText,
   listItemToText,
   slugify,
@@ -28,9 +25,6 @@ export type {
   List,
   TaskListItem,
   WikiLink,
-  SectionRules,
-  ParsedHeading,
-  ExtractedProp,
   PropertyValue,
 } from "./parser.ts"
 

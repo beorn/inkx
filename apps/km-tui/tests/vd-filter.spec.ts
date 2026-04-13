@@ -7,7 +7,7 @@
  * 1. Card level (top-level items in columns) — filtered in Board.tsx filteredColumns
  * 2. Child level (items nested inside cards) — filtered in TreeNode.tsx
  *
- * For embed nodes (tag/assignee views), the filter must resolve symlink_to
+ * For embed nodes (tag/assignee views), the filter must resolve embed_of
  * to the source node's task_status, since embed nodes don't carry task_status.
  */
 
@@ -49,7 +49,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "Sources" },
       parent_id: "board",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -62,7 +62,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "src-parent",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -75,7 +75,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "src-parent",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -90,7 +90,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "#us" },
       parent_id: "board",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -105,7 +105,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "tag-col",
       parent_idx: 0,
-      symlink_to: "todo-src",
+      embed_of: "todo-src",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -118,7 +118,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "tag-col",
       parent_idx: 1,
-      symlink_to: "done-src",
+      embed_of: "done-src",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -133,7 +133,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "board" },
       parent_id: null,
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -159,7 +159,7 @@ describe("vd (toggle_hide_done)", () => {
   test("vd hides done embed children within a card (tree-node-level filter)", () => {
     // Simulate a card with embed children: the card has a heading, and its
     // children are embed nodes referencing tasks. This is the TreeNode-level
-    // filter path, which must also resolve symlink_to for task_status.
+    // filter path, which must also resolve embed_of for task_status.
     const now = Date.now()
 
     // Source nodes
@@ -171,7 +171,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "src-holder",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -184,7 +184,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "src-holder",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -198,7 +198,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "Source Holder" },
       parent_id: "board",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -213,7 +213,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "col",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -227,7 +227,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "my-card",
       parent_idx: 0,
-      symlink_to: "todo-child-src",
+      embed_of: "todo-child-src",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -240,7 +240,7 @@ describe("vd (toggle_hide_done)", () => {
       data: {},
       parent_id: "my-card",
       parent_idx: 1,
-      symlink_to: "done-child-src",
+      embed_of: "done-child-src",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -255,7 +255,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "Tasks" },
       parent_id: "board",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -269,7 +269,7 @@ describe("vd (toggle_hide_done)", () => {
       data: { name: "board" },
       parent_id: null,
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",

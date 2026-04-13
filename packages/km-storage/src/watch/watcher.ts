@@ -240,14 +240,14 @@ export function scanDirectory(
   ino: number
   mtime: number
   isDirectory: boolean
-  isSymlink?: boolean
+  isEmbed?: boolean
 }> {
   const results: Array<{
     path: string
     ino: number
     mtime: number
     isDirectory: boolean
-    isSymlink?: boolean
+    isEmbed?: boolean
   }> = []
 
   if (!existsSync(dirPath)) {
@@ -278,7 +278,7 @@ export function scanDirectory(
           ino: stat.ino,
           mtime: stat.mtimeMs,
           isDirectory: stat.isDirectory(),
-          isSymlink: true,
+          isEmbed: true,
         })
       } catch {
         log.debug?.(`broken symlink, skipping: ${fullPath}`)
@@ -315,7 +315,7 @@ export async function scanDirectoryAsync(
     ino: number
     mtime: number
     isDirectory: boolean
-    isSymlink?: boolean
+    isEmbed?: boolean
   }>
 > {
   const results: Array<{
@@ -323,7 +323,7 @@ export async function scanDirectoryAsync(
     ino: number
     mtime: number
     isDirectory: boolean
-    isSymlink?: boolean
+    isEmbed?: boolean
   }> = []
 
   try {
@@ -353,7 +353,7 @@ export async function scanDirectoryAsync(
               ino: stat.ino,
               mtime: stat.mtimeMs,
               isDirectory: stat.isDirectory(),
-              isSymlink: true,
+              isEmbed: true,
             })
             return undefined
           })

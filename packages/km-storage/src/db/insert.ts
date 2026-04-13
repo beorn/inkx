@@ -20,7 +20,7 @@ import { decomposeItem } from "../item-helpers.ts"
  * changes.jsonl may contain changes for nodes that already exist in state.db. */
 export const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
-    id, type, fstype, parent_id, item, symlink_to, parent_idx,
+    id, type, fstype, parent_id, item, embed_of, parent_idx,
     fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
     list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,
@@ -41,7 +41,7 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
     node.fstype ?? null,
     node.parent_id ?? null,
     ic.item,
-    node.symlink_to ?? null,
+    node.embed_of ?? null,
     node.parent_idx ?? 0,
     node.fs_path ?? null,
     node.fs_ino ?? null,
@@ -75,7 +75,7 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
  * No OR IGNORE — used when we know the node does not yet exist (fresh create). */
 export const INSERT_NODE_PLAIN_SQL = `
   INSERT INTO nodes (
-    id, type, fstype, parent_id, item, symlink_to, parent_idx,
+    id, type, fstype, parent_id, item, embed_of, parent_idx,
     fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
     list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,

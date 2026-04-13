@@ -214,12 +214,12 @@ function handleMarkdownCreate(
   for (const link of resolvedLinks) {
     addLink(db, link)
 
-    // Emit symlink_to update so the in-memory store stays in sync.
-    // addLink sets symlink_to on the DB node directly (no events),
-    // but the node was already emitted via emitNodeCreated with symlink_to: null.
+    // Emit embed_of update so the in-memory store stays in sync.
+    // addLink sets embed_of on the DB node directly (no events),
+    // but the node was already emitted via emitNodeCreated with embed_of: null.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", link.source_id, {
-        symlink_to: link.target_id,
+        embed_of: link.target_id,
         name: link.alias,
       })
     }

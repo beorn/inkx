@@ -69,7 +69,7 @@ describe("scanDirectory", () => {
       expect(paths).toContain(join(repoDir, "circular-link"))
 
       // Symlink entries are flagged
-      const symlinkEntries = entries.filter((e) => e.isSymlink)
+      const symlinkEntries = entries.filter((e) => e.isEmbed)
       expect(symlinkEntries).toHaveLength(3)
     }))
 

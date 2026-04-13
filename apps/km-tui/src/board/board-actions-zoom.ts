@@ -338,10 +338,10 @@ export function handleFollowWikilink(ctx: OpCtx): OpResult {
 export function handleFollowLink(ctx: OpCtx): OpResult {
   const { dispatchBoard } = ctx
   const card = ctx.card
-  // Read symlink_to fresh from the repo — the cached layout may have stale null
+  // Read embed_of fresh from the repo — the cached layout may have stale null
   // values if background link resolution completed after layout was derived.
   const freshNode = card ? ctx.repo.getNode(card.id) : null
-  const linkTo = freshNode?.symlink_to ?? card?.symlink_to
+  const linkTo = freshNode?.embed_of ?? card?.embed_of
   if (!linkTo) return boundary("follow_link", "not a symlink")
 
   const target = ctx.repo.getNode(linkTo)

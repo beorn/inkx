@@ -21,7 +21,7 @@ Last updated: 2026-04-12
 | `@km/markdown` | `packages/km-markdown` | Parser | Parse/serialize markdown to/from KNode records (stateless, no DB) | `@km/core`, mdast, micromark, ulid, yaml |
 | `@km/storage` | `packages/km-storage` | Storage | SQLite CRUD, file sync, watcher, events, Repo factory | `@km/core`, `@km/markdown`, `alien-signals` |
 | `@km/tree` | `packages/km-tree` | Tree | Node tree structure, queries, mutations (split/merge/indent/outdent), operations, history, normalization | `@km/core` |
-| `@km/board` | `packages/km-board` | Board | BoardState, TreeLens pipeline (ViewLens, VisibleLens, ViewTreeProjection), grid navigation, cursor classification | `@km/core`, `@km/markdown`, `@km/tree`, `@silvery/ag-react` |
+| `@km/board` | `packages/km-board` | Board | BoardState, TreeLens pipeline (ViewLens, VisibleLens, ViewTreeProjection), grid navigation, cursor classification | `@km/core`, `@km/tree`, `@silvery/ag-react` |
 | `@km/commands` | `packages/km-commands` | Commands | Command registry, keybindings, context-aware dispatch, KmOp types | `@km/board`, `@km/core` |
 | `@km/beads` | `packages/km-beads` | Beads | bd-compatible issue tracking on km data | `@km/core`, `@km/storage` |
 | `@km/agent` | `packages/km-agent` | Agent | Claude SDK agent integration | `@km/core`, `@km/storage` |
@@ -75,33 +75,30 @@ Stale/empty package directories in `vendor/silvery/packages/` (no package.json, 
 
 ## Layer Boundaries
 
+Canonical diagram (matches `docs/architecture.md#layers`):
+
 ```
 APP        apps/km-tui, km-cli, km-repl, km-web
-  |
-COMMANDS   @km/commands (registry, keybindings, KmOp dispatch)
-  |
-BOARD      @km/board (cursor, selection, fold, zoom, TreeLens pipeline)
-  |
-TREE       @km/tree (queries, mutations, operations, history, normalize)
-  |
-STORAGE    @km/storage (SQLite, events, file sync, watcher, Repo)
-  |
-PARSER     @km/markdown (markdown <-> KNode, stateless)
-  |
-CORE       @km/core (types, events, config)
-  |
+COMMANDS   @km/commands
+BOARD      @km/board
+TREE       @km/tree          @km/storage
+PARSER     @km/markdown
+CORE       @km/core
 FILESYSTEM .md files (source of truth)
 ```
 
-**Calling rules:**
-- Each layer calls only layers below it. Dependencies flow downward.
+**Dependency rules:**
+- Dependencies flow downward. Each package imports only from packages on its row or below.
+- `@km/tree` and `@km/storage` are peer layers -- both depend on `@km/core`, neither on the other. `@km/storage` depends on `@km/markdown` (for file parsing); `@km/tree` does not.
 - UI never touches filesystem directly; all mutations go through Repo.
 - All mutations emit events (enables sync, undo, multi-window).
-- `@km/board` depends on `@km/tree`, `@km/markdown` (for `SectionRules` types and `parseHeadingRules`), and `@km/core`.
+- `@km/board` depends on `@km/tree`, `@km/core`, and `@silvery/ag-react`. No longer depends on `@km/markdown` (layer violation fixed: `NodeRules`/`parseHeadingRules` moved to `@km/core`).
 - `@km/commands` depends on `@km/board` and `@km/core` but NOT on `@km/storage` or `@km/markdown`.
 - `@km/storage` depends on `@km/core` and `@km/markdown` but NOT on `@km/tree` or `@km/board`.
 
 **Cross-cutting dependency on silvery:** `@km/board` depends on `@silvery/ag-react` for `PositionRegistry`/`ScrollRect` (grid navigation). This is the only direct silvery dependency in the domain packages (besides `@km/tui` which naturally depends on the full rendering stack).
+
+**Pure text utilities in @km/core:** `PROP_REGEX`, `extractKVProperties`, `parseHeadingRules`, `ParsedHeading`, `ExtractedProp` live in `@km/core/heading-rules.ts`. These are consumed by `@km/board`, `@km/tree`, and `@km/markdown`. The duplicate `SectionRules` type was unified with the existing `NodeRules` type in `@km/core/types.ts`.
 
 **Vendor dependency chain:**
 ```
@@ -204,7 +201,7 @@ interface KNode {
   name: string            // slug/identifier
   embed_of?: string       // cache: sole-content embed target id
   fstype?: string         // "repo" | "folder" | "file" | "mdsection"
-  rules?: SectionRules    // parsed km.* directives
+  rules?: NodeRules       // parsed km.* directives
 }
 
 interface ItemData {
@@ -601,7 +598,7 @@ This ensures local development uses the workspace versions while vendor packages
 
 1. **`@km/board` depends on `@silvery/ag-react`**: The `grid-navigator.ts` imports `PositionRegistry` and `ScrollRect` from `@silvery/ag-react`. This means the BOARD layer reaches into the rendering framework directly, which is unusual for a "no UI rendering" package (as its own description states). The dependency is for spatial navigation, which arguably belongs at the board level, but it creates a coupling between the board domain package and the rendering framework.
 
-2. **`@km/board` depends on `@km/markdown`**: The board layer imports `SectionRules` type and `parseHeadingRules` function from `@km/markdown`. The documented layer diagram shows Board above Tree above Storage above Parser -- board reaching down to the parser layer (two levels down) violates strict layering. The `SectionRules` type could be lifted to `@km/core` to fix this.
+2. **`@km/board` dependency on `@km/markdown` -- FIXED**: The board layer no longer depends on `@km/markdown`. `SectionRules` was unified with the identical `NodeRules` type already in `@km/core`, and `parseHeadingRules`/`extractKVProperties`/`PROP_REGEX` were moved to `@km/core/heading-rules.ts`. This also fixed `@km/tree`'s undeclared import of `PROP_REGEX` from `@km/markdown`.
 
 ### Classes in the codebase
 
@@ -625,6 +622,6 @@ Most are legitimate under the exception, but `ChangeHandlers` (km-storage) and `
 
 3. **`docs/architecture.md` BoardState**: Shows `// cursor: sel.node.cursor() -- sole authority, not stored in BoardState` but this is the target architecture -- the actual current state may still have cursor-related fields in BoardState during the ongoing selection migration.
 
-4. **CLAUDE.md five-layer diagram**: Shows `App -> Board -> Tree -> Storage -> Parser -> Filesystem` but `docs/architecture.md` shows a six-layer stack with CORE as an additional layer between Parser and Filesystem. The actual dependency graph has `@km/core` as the foundation that everything depends on.
+4. **Layer diagram inconsistency**: RESOLVED 2026-04-12. All three sources (CLAUDE.md, docs/architecture.md, arch-knowledge.md) now show the same 7-row diagram. `docs/design/architecture-layers.md` is a redirect to `docs/architecture.md#layers`.
 
 5. **`docs/glossary.md` mentions `@silvery/tea`**: The entry for "Zustand" says "Used by silvery's `@silvery/tea` store" but `@silvery/tea` is a stale empty package -- the TEA functionality is now in `@silvery/create`.

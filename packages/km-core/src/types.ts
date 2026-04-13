@@ -4,13 +4,13 @@
  * Every node IS a block (has a content type). Orthogonal traits add capabilities:
  * - Block type (8): p, h, code, quote, table, hr, html, math
  * - Item trait: item={} makes a node navigable with children; item.list for list marker, item.task for task
- * - Embed trait: symlink_to field enables transclusion (orthogonal to type)
+ * - Embed trait: embed_of field enables transclusion (orthogonal to type)
  *
  * Derivation rules:
  * - item != null && type === "h" → outline item (oi) — serializes as ## Title
  * - item != null && type !== "h" → list item (li) — serializes as - content
  * - item == null → leaf block
- * - symlink_to != null → transcludes content from target node
+ * - embed_of != null → transcludes content from target node
  *
  * See docs/design/km-ast/model.md for the full specification.
  */
@@ -189,7 +189,7 @@ export interface ValidationError {
  * - item-allowed block types: table/hr/html/math cannot be items
  * - task is inside item, so "task requires item" is structurally enforced
  */
-export function validateNode(node: Pick<KNode, "type" | "item" | "symlink_to">): ValidationError[] {
+export function validateNode(node: Pick<KNode, "type" | "item" | "embed_of">): ValidationError[] {
   const errors: ValidationError[] = []
 
   // h requires item
@@ -264,7 +264,7 @@ export interface NodeRules {
  * - `item != null && type === "h"` → outline item — serializes as `## Title`
  * - `item != null && type !== "h"` → list item — serializes as `- content`
  * - `item == null` → leaf block
- * - `symlink_to != null` → transclusion (orthogonal to type/item)
+ * - `embed_of != null` → transclusion (orthogonal to type/item)
  *
  * ## Task Definition
  *
@@ -283,7 +283,7 @@ export interface KNode {
   fstype?: FsType // For outline items (type:"h", item != null): repo, folder, file, mdfile, mdsection
 
   // Transclusion trait (orthogonal to type — any node can transclude)
-  symlink_to?: string | null // Target node ID whose content is transcluded (null = unresolved)
+  embed_of?: string | null // Target node ID whose content is transcluded (null = unresolved)
 
   // Filesystem mapping (for outline items with fstype folder/file/mdfile)
   fs_path?: string
@@ -390,7 +390,7 @@ export interface NodeCreatedData {
   parent_id?: string | null
   parent_idx?: number
   fstype?: FsType
-  symlink_to?: string | null
+  embed_of?: string | null
   fs_path?: string
   fs_ino?: number
   fs_mtime?: number

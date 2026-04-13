@@ -692,7 +692,7 @@ describe("Round-trip: Wiki Link Embeddings", () => {
     const para = parse(`![[Target]]`).find((n) => n.type === "p")
     expect(para).toBeDefined()
     expect(para!.content).toBe("![[Target]]")
-    expect(para!.symlink_to).toBeFalsy()
+    expect(para!.embed_of).toBeFalsy()
   })
 
   test("should preserve mixed-content paragraph with embedding", () => {
@@ -1344,7 +1344,7 @@ describe("Round-trip: Special Characters", () => {
 })
 
 describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
-  test("should serialize embedding from symlink_to target", () => {
+  test("should serialize embedding from embed_of target", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
@@ -1364,7 +1364,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
-      symlink_to: "target-id-123",
+      embed_of: "target-id-123",
       content: "![[projects/api]]",
     })
 
@@ -1391,7 +1391,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
-      symlink_to: "target-id-123",
+      embed_of: "target-id-123",
       name: "Auth Docs",
       content: "![[authentication|Auth Docs]]",
     })
@@ -1421,14 +1421,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
-      symlink_to: "section-id-123",
+      embed_of: "section-id-123",
       content: "![[#API Reference]]",
     })
 
     expect(nodesToMarkdown([fileNode, embeddingNode, targetSection])).toContain("![[API Reference]]")
   })
 
-  test("should fallback to content when symlink_to target not found", () => {
+  test("should fallback to content when embed_of target not found", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
@@ -1441,14 +1441,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
-      symlink_to: "nonexistent-target",
+      embed_of: "nonexistent-target",
       content: "![[missing-file]]",
     })
 
     expect(nodesToMarkdown([fileNode, embeddingNode])).toContain("![[missing-file]]")
   })
 
-  test("should serialize task with symlink_to as embed, not raw task", () => {
+  test("should serialize task with embed_of as embed, not raw task", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
@@ -1477,7 +1477,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "section-id-1",
       parent_idx: 1,
-      symlink_to: "original-task-1",
+      embed_of: "original-task-1",
       content: "Buy groceries",
     })
 
@@ -1488,7 +1488,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).toContain("![[")
   })
 
-  test("should serialize ul with symlink_to as embed", () => {
+  test("should serialize ul with embed_of as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -1507,7 +1507,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      symlink_to: "target-ul-1",
+      embed_of: "target-ul-1",
       content: "Some list item",
     })
 
@@ -1516,7 +1516,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).toContain("![[")
   })
 
-  test("should serialize ol with symlink_to as embed", () => {
+  test("should serialize ol with embed_of as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -1535,7 +1535,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      symlink_to: "target-ol-1",
+      embed_of: "target-ol-1",
       content: "Numbered item",
     })
 
@@ -1544,7 +1544,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).toContain("![[")
   })
 
-  test("should serialize section with symlink_to as embed", () => {
+  test("should serialize section with embed_of as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -1565,7 +1565,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
-      symlink_to: "target-section-1",
+      embed_of: "target-section-1",
       content: "Linked Section",
     })
 
@@ -1574,7 +1574,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).toContain("![[")
   })
 
-  test("symlink_to with target in nodeMap uses target fs_path", () => {
+  test("embed_of with target in nodeMap uses target fs_path", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -1594,7 +1594,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      symlink_to: "target-file-1",
+      embed_of: "target-file-1",
       content: "Do stuff",
     })
 
@@ -1603,7 +1603,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).not.toContain("- [ ]")
   })
 
-  test("symlink_to with missing target falls back to content", () => {
+  test("embed_of with missing target falls back to content", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -1616,7 +1616,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      symlink_to: "nonexistent-id",
+      embed_of: "nonexistent-id",
       content: "Buy groceries",
     })
 
@@ -1852,7 +1852,7 @@ describe("Bug fix A1: Duplicate embeds not dropped during serialization", () => 
         type: "p",
         parent_id: "file1",
         parent_idx: 0,
-        symlink_to: "shared-target",
+        embed_of: "shared-target",
         content: "![[shared-target]]",
       }),
       makeTestNode({
@@ -1860,7 +1860,7 @@ describe("Bug fix A1: Duplicate embeds not dropped during serialization", () => 
         type: "p",
         parent_id: "file1",
         parent_idx: 1,
-        symlink_to: "shared-target",
+        embed_of: "shared-target",
         content: "![[shared-target]]",
       }),
     ]

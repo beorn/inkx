@@ -2,7 +2,7 @@
  * Embed Depth Bug Tests
  *
  * When handleAddNodeAfter creates a section node as a sibling of embed nodes
- * (embed paragraphs with symlink_to), the section's heading depth is derived from its
+ * (embed paragraphs with embed_of), the section's heading depth is derived from its
  * position in the tree (parent chain), not from stored data. If a section is
  * incorrectly parented (sibling instead of child), serialization produces a
  * heading at the wrong level, breaking the tree structure on re-parse.
@@ -72,7 +72,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 1,
-      symlink_to: "target-1",
+      embed_of: "target-1",
       content: "![[File1#^abc]]",
     })
     const embed2 = makeTestNode({
@@ -80,7 +80,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 2,
-      symlink_to: "target-2",
+      embed_of: "target-2",
       content: "![[File2#^def]]",
     })
     // Inner section is a child of "Processing" — tree depth determines heading level
@@ -99,7 +99,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 4,
-      symlink_to: "target-3",
+      embed_of: "target-3",
       content: "![[File3#^ghi]]",
     })
 
@@ -156,7 +156,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 1,
-      symlink_to: "target-1",
+      embed_of: "target-1",
       content: "![[File1#^abc]]",
     })
     const embed2 = makeTestNode({
@@ -164,7 +164,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 2,
-      symlink_to: "target-2",
+      embed_of: "target-2",
       content: "![[File2#^def]]",
     })
     // Child of "Processing" — tree depth gives it ### (depth 3)
@@ -183,7 +183,7 @@ describe("Embed depth: section created among embeds", () => {
       type: "p",
       parent_id: "sec-processing",
       parent_idx: 4,
-      symlink_to: "target-3",
+      embed_of: "target-3",
       content: "![[File3#^ghi]]",
     })
 

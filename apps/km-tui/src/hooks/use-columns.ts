@@ -9,7 +9,7 @@
 
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
-import type { SectionRules } from "@km/markdown"
+import type { NodeRules } from "@km/core"
 import { createLogger } from "loggily"
 import { createViewLens, extractWipLimits, type ViewLensRepo } from "@km/board"
 
@@ -28,7 +28,7 @@ export interface ColumnSnapshot {
   node: KNode
   cardNodes: KNode[]
   wipLimit?: number
-  rules?: SectionRules
+  rules?: NodeRules
   /** True for virtual body column (displays leading non-section content) */
   isVirtual?: boolean
   /** Total card count before filtering (undefined = no filter active) */

@@ -257,15 +257,15 @@ describe("P2: Filter feature", () => {
 
 describe("deep filter: embedded tasks use source node properties (km-tui.filter-embedded-source)", () => {
   /**
-   * Build a board with embedded tasks. The embed nodes have symlink_to pointing
+   * Build a board with embedded tasks. The embed nodes have embed_of pointing
    * to source nodes. The source nodes have task properties (status, priority,
    * due_at). The embed nodes themselves have minimal properties.
    *
    * Board structure:
-   *   board > Tasks > [embed1(symlink_to=src1), embed2(symlink_to=src2), normalTask]
+   *   board > Tasks > [embed1(embed_of=src1), embed2(embed_of=src2), normalTask]
    *   src1: task_status=todo, priority=1
    *   src2: task_status=done, priority=2
-   *   normalTask: task_status=todo (no symlink_to)
+   *   normalTask: task_status=todo (no embed_of)
    */
   function buildEmbedBoard(): KNode[] {
     const now = Date.now()
@@ -280,7 +280,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: { name: "Sources" },
       parent_id: "board",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -294,7 +294,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: {},
       parent_id: "src-parent",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -308,7 +308,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: {},
       parent_id: "src-parent",
       parent_idx: 1,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -324,13 +324,13 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: { name: "Tasks" },
       parent_id: "board",
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
     }
 
-    // Embed nodes (point to source nodes via symlink_to)
+    // Embed nodes (point to source nodes via embed_of)
     // Embeds have no task_status/priority themselves — they inherit from source
     const embed1: KNode = {
       id: "embed1",
@@ -340,7 +340,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: {},
       parent_id: "Tasks",
       parent_idx: 0,
-      symlink_to: "src1",
+      embed_of: "src1",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -353,7 +353,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: {},
       parent_id: "Tasks",
       parent_idx: 1,
-      symlink_to: "src2",
+      embed_of: "src2",
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -367,7 +367,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: {},
       parent_id: "Tasks",
       parent_idx: 2,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -383,7 +383,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       data: { name: "board" },
       parent_id: null,
       parent_idx: 0,
-      symlink_to: null,
+      embed_of: null,
       created_at: now,
       updated_at: now,
       version: "v1",
@@ -472,7 +472,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const now = Date.now()
   const base = {
     parent_idx: 0,
-    symlink_to: null,
+    embed_of: null,
     created_at: now,
     updated_at: now,
     version: "v1",

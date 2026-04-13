@@ -14,12 +14,12 @@ import {
   extractMentions,
   extractProjects,
   extractTags,
-  parseHeadingRules,
   parseMarkdown,
   parseTaskMetadata,
   parseWikiLinks,
   slugify,
 } from "../src/parser.ts"
+import { parseHeadingRules } from "@km/core"
 import { makeTestNode } from "./helpers/test-utils.ts"
 
 // -----------------------------------------------------------------------------
