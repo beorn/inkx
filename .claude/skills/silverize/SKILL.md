@@ -276,9 +276,10 @@ Don't write custom help views — let Commander's built-in `--help` do the work.
 **MANDATORY when converting to @silvery/commander**: If the old code had custom help text with examples, domain lists, or usage patterns, those MUST be preserved as `addHelpSection()` calls. Losing examples during a silverize conversion is a regression — the help output should be strictly better, never worse.
 
 Checklist when replacing parseArgs/custom help:
-- [ ] Examples section via `addHelpSection("Examples", ...)`
-- [ ] Domain/category lists via `addHelpSection("Domains", ...)` if applicable
-- [ ] `$ ` prefix on example lines (commander auto-detects and colorizes these)
+- [ ] Examples via **tuple array**: `addHelpSection("Examples:", [["$ cmd", "description"], ...])` — NOT multiline strings (strings don't colorize)
+- [ ] Domain/category lists via `addHelpSection("Domains:", ...)` if applicable
+- [ ] Title must end with `:` (e.g., `"Examples:"` not `"Examples"`)
+- [ ] `$ ` prefix on example terms triggers auto-colorization of the command
 - [ ] Run `<tool> --help` after conversion and compare with the old output
 ```typescript
 program.addHelpSection("Examples", `

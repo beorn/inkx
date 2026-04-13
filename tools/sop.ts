@@ -1747,15 +1747,16 @@ const program = new Command()
 program
   .name("sop")
   .description("SOP — Standard Operating Procedure orchestrator")
-  .addHelpSection("Domains", DOMAIN_NAMES)
-  .addHelpSection("Examples", `
-  $ bun sop scan              Run due domains
-  $ bun sop scan --all        Run all regardless of cadence
-  $ bun sop scan code         Just one domain
-  $ bun sop scan code backlog Multiple domains
-  $ bun sop status            What's due, last run times
-  $ bun sop dashboard         Render last scan results
-  $ bun sop update            Propose SOP improvements`)
+  .addHelpSection("Domains:", DOMAIN_NAMES)
+  .addHelpSection("Examples:", [
+    ["$ bun sop scan", "Run due domains"],
+    ["$ bun sop scan --all", "Run all regardless of cadence"],
+    ["$ bun sop scan code", "Just one domain"],
+    ["$ bun sop scan code backlog", "Multiple domains"],
+    ["$ bun sop status", "What's due, last run times"],
+    ["$ bun sop dashboard", "Render last scan results"],
+    ["$ bun sop update", "Propose SOP improvements"],
+  ])
 
 program
   .command("scan")
