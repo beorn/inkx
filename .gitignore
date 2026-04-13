@@ -78,6 +78,7 @@ editset.json
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 .claude/skills/sop/state.json
+.sop-cache/
 
 # Beads / Dolt files (added by bd init)
 .dolt/

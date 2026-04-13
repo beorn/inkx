@@ -2,8 +2,8 @@
 /**
  * SOP — Standard Operating Procedure orchestrator
  *
- * Runs maintenance checks across domains, tracks cadence, renders dashboard.
- * Uses @silvery/commander for arg parsing with colorized help.
+ * Domain-aware layer over sop-runner.ts. Adds cadence, triggers, and dashboard.
+ * Tool execution and caching are handled by sop-runner.ts + sop-tools.ts.
  *
  * Usage:
  *   bun sop scan              # Run due domains
@@ -20,12 +20,12 @@ import { join, dirname } from "node:path"
 import { Command } from "@silvery/commander"
 import { createStyle } from "@silvery/ansi"
 import { createLogger } from "loggily"
+import { DOMAIN_TOOLS, TASK_MAP } from "./sop-tools.ts"
+import { readCachedMeta } from "./sop-runner.ts"
 
-// ─── Styles ────────────────────────────────────────────────────────────────
+// ─── Styles & Logging ──────────────────────────────────────────────────────
 
 const s = createStyle()
-
-// ─── Logging ────────────────────────────────────────────────────────────────
 
 const log = createLogger("sop", [
   { level: "debug" },
@@ -35,44 +35,26 @@ const log = createLogger("sop", [
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
 const REPO_ROOT = join(import.meta.dir, "..")
-const STATE_PATH = join(
-  REPO_ROOT,
-  ".claude",
-  "skills",
-  "sop",
-  "state.json",
-)
+const STATE_PATH = join(REPO_ROOT, ".claude", "skills", "sop", "state.json")
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Cadence = "session" | "weekly" | "monthly" | "quarterly"
-type Approval = "auto" | "ask"
 type Status = "pass" | "warn" | "error"
 
 interface Finding {
-  check: string
+  tool: string
   domain: string
   status: Status
-  summary: string
-  details?: string
-  durationMs: number
-}
-
-interface Check {
-  id: string
-  domain: string
   label: string
-  command: string
-  cadence: Cadence
-  approval: Approval
-  parse: (stdout: string, stderr: string, exitCode: number) => Finding
+  durationMs: number
+  cached: boolean
 }
 
 interface DomainDef {
   id: string
   label: string
   cadence: Cadence
-  checks: Check[]
 }
 
 interface DomainTiming {
@@ -80,14 +62,13 @@ interface DomainTiming {
 }
 
 interface Trigger {
-  source: { domain: string; check: string; status: Status }
-  target: { domain: string; check?: string }  // check optional = run all domain checks
+  source: { domain: string; status: Status }
+  target: { domain: string }
   label: string
 }
 
 interface FiredTrigger {
   trigger: Trigger
-  sourceCheck: string
   sourceDomain: string
 }
 
@@ -102,9 +83,7 @@ interface State {
 // ─── State persistence ──────────────────────────────────────────────────────
 
 function loadState(): State {
-  if (!existsSync(STATE_PATH)) {
-    return { lastRun: {}, lastFindings: {} }
-  }
+  if (!existsSync(STATE_PATH)) return { lastRun: {}, lastFindings: {} }
   try {
     return JSON.parse(readFileSync(STATE_PATH, "utf-8")) as State
   } catch {
@@ -114,16 +93,14 @@ function loadState(): State {
 
 function saveState(state: State): void {
   const dir = dirname(STATE_PATH)
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true })
-  }
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + "\n")
 }
 
 // ─── Cadence logic ──────────────────────────────────────────────────────────
 
 const CADENCE_MS: Record<Cadence, number> = {
-  session: 0, // always due
+  session: 0,
   weekly: 7 * 24 * 60 * 60 * 1000,
   monthly: 30 * 24 * 60 * 60 * 1000,
   quarterly: 90 * 24 * 60 * 60 * 1000,
@@ -133,17 +110,100 @@ function isDue(domain: DomainDef, state: State): boolean {
   const last = state.lastRun[domain.id]
   if (!last) return true
   if (domain.cadence === "session") return true
-  const elapsed = Date.now() - new Date(last).getTime()
-  return elapsed >= CADENCE_MS[domain.cadence]
+  return Date.now() - new Date(last).getTime() >= CADENCE_MS[domain.cadence]
 }
 
-function nextDueDate(domain: DomainDef, state: State): string | null {
+function nextDueDate(domain: DomainDef, state: State): string {
   const last = state.lastRun[domain.id]
   if (!last) return "now"
   if (domain.cadence === "session") return "every session"
   const dueAt = new Date(new Date(last).getTime() + CADENCE_MS[domain.cadence])
-  if (dueAt.getTime() <= Date.now()) return "now"
-  return dueAt.toISOString().split("T")[0]!
+  return dueAt.getTime() <= Date.now() ? "now" : dueAt.toISOString().split("T")[0]!
+}
+
+// ─── Domain definitions ─────────────────────────────────────────────────────
+
+export const DOMAINS: DomainDef[] = [
+  { id: "code", label: "code", cadence: "session" },
+  { id: "packages", label: "packages", cadence: "monthly" },
+  { id: "inbound", label: "inbound", cadence: "weekly" },
+  { id: "backlog", label: "backlog", cadence: "weekly" },
+  { id: "sites", label: "sites", cadence: "monthly" },
+  { id: "security", label: "security", cadence: "weekly" },
+  { id: "packaging", label: "packaging", cadence: "monthly" },
+  { id: "infra", label: "infra", cadence: "monthly" },
+  { id: "legal", label: "legal", cadence: "quarterly" },
+]
+
+const DOMAIN_MAP = new Map(DOMAINS.map((d) => [d.id, d]))
+
+// ─── Cross-domain triggers ─────────────────────────────────────────────────
+
+const TRIGGERS: Trigger[] = [
+  { source: { domain: "code", status: "error" }, target: { domain: "packages" }, label: "code errors may affect publishability" },
+  { source: { domain: "security", status: "error" }, target: { domain: "packages" }, label: "CVEs may need patch releases" },
+  { source: { domain: "backlog", status: "error" }, target: { domain: "inbound" }, label: "P0/P1 drift may indicate untriaged issues" },
+  { source: { domain: "packages", status: "warn" }, target: { domain: "sites" }, label: "unreleased changes may make docs stale" },
+]
+
+function evaluateTriggers(allFindings: Finding[]): FiredTrigger[] {
+  const fired: FiredTrigger[] = []
+  for (const trigger of TRIGGERS) {
+    const domainFindings = allFindings.filter((f) => f.domain === trigger.source.domain)
+    const hasStatus = domainFindings.some((f) => f.status === trigger.source.status)
+    if (hasStatus) {
+      fired.push({ trigger, sourceDomain: trigger.source.domain })
+    }
+  }
+  return fired
+}
+
+// ─── Run tools via sop-runner ───────────────────────────────────────────────
+
+async function runToolsForDomains(domainIds: string[], force: boolean): Promise<void> {
+  const args = ["bun", "tools/sop-runner.ts", "--domains", ...domainIds]
+  if (force) args.push("--force")
+
+  const proc = Bun.spawn(args, {
+    cwd: REPO_ROOT,
+    stdout: "inherit",
+    stderr: "inherit",
+  })
+  await proc.exited
+}
+
+/** Read tool results from .sop-cache/ and map to domain findings */
+function readDomainFindings(domainId: string): Finding[] {
+  const toolIds = DOMAIN_TOOLS[domainId]
+  if (!toolIds) return []
+
+  const findings: Finding[] = []
+  for (const toolId of toolIds) {
+    const meta = readCachedMeta(toolId)
+    const task = TASK_MAP.get(toolId)
+    if (!task) continue
+    if (!meta) {
+      findings.push({
+        tool: toolId,
+        domain: domainId,
+        status: "warn",
+        label: `${task.label} (not run)`,
+        durationMs: 0,
+        cached: false,
+      })
+      continue
+    }
+
+    findings.push({
+      tool: toolId,
+      domain: domainId,
+      status: meta.exitCode === 0 ? "pass" : "warn",
+      label: task.label,
+      durationMs: meta.durationMs,
+      cached: false,
+    })
+  }
+  return findings
 }
 
 // ─── Formatting helpers ─────────────────────────────────────────────────────
@@ -153,1281 +213,26 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-// ─── Common parse helper ────────────────────────────────────────────────────
-
-/**
- * Factory for parsers that follow the common pattern:
- * check exitCode, count matching lines, return pass/warn/error.
- */
-function parseByCounting(opts: {
-  check: string
-  domain: string
-  lineFilter: (line: string) => boolean
-  passMessage: string
-  warnTemplate: (count: number) => string
-  errorThreshold?: number
-  failMessage?: string
-  skipPatterns?: string[]
-}): (stdout: string, _: string, exitCode: number) => Finding {
-  return (stdout, _, exitCode) => {
-    // If exitCode indicates failure and no skip pattern matched, count lines
-    if (exitCode !== 0) {
-      const skipped = opts.skipPatterns?.some((p) => stdout.includes(p))
-      if (skipped) {
-        return { check: opts.check, domain: opts.domain, status: "pass", summary: opts.passMessage, durationMs: 0 }
-      }
-      if (opts.failMessage) {
-        return { check: opts.check, domain: opts.domain, status: "warn", summary: opts.failMessage, details: stdout.slice(-300), durationMs: 0 }
-      }
-    }
-
-    const lines = stdout.trim().split("\n").filter(opts.lineFilter)
-    if (lines.length === 0) {
-      return { check: opts.check, domain: opts.domain, status: "pass", summary: opts.passMessage, durationMs: 0 }
-    }
-    const threshold = opts.errorThreshold ?? Infinity
-    return {
-      check: opts.check,
-      domain: opts.domain,
-      status: lines.length >= threshold ? "error" : "warn",
-      summary: opts.warnTemplate(lines.length),
-      details: lines.slice(0, 10).join("\n"),
-      durationMs: 0,
-    }
+function statusIcon(status: Status): string {
+  switch (status) {
+    case "pass": return s.green("\u2713")
+    case "warn": return s.yellow("\u26A0")
+    case "error": return s.red("\u2717")
   }
 }
 
-// ─── Check parsers ──────────────────────────────────────────────────────────
-
-function parseTypecheck(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    const match = stdout.match(/OK \((\d+) errors/)
-    const count = match?.[1] ?? "0"
-    return {
-      check: "typecheck",
-      domain: "code",
-      status: "pass",
-      summary: `baseline clean (${count} known)`,
-      durationMs: 0,
-    }
+function statusLabel(status: Status): string {
+  switch (status) {
+    case "pass": return s.green(" ok")
+    case "warn": return s.yellow(" warn")
+    case "error": return s.red.bold(" FAIL")
   }
-  const match = stdout.match(/(\d+) new type error/)
-  const count = match?.[1] ?? "?"
-  return {
-    check: "typecheck",
-    domain: "code",
-    status: "error",
-    summary: `${count} new type error(s) beyond baseline`,
-    details: stdout.slice(-500),
-    durationMs: 0,
-  }
-}
-
-function parseLint(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "lint", domain: "code", status: "pass", summary: "0 lint errors", durationMs: 0 }
-  }
-  return {
-    check: "lint",
-    domain: "code",
-    status: "error",
-    summary: "lint/format errors found",
-    details: stdout.slice(-500),
-    durationMs: 0,
-  }
-}
-
-function parseTestFast(stdout: string, _: string, exitCode: number): Finding {
-  // Vitest output: "Tests  N passed" or "Tests  N failed | M passed"
-  const passMatch = stdout.match(/Tests\s+(\d+)\s+passed/)
-  const failMatch = stdout.match(/(\d+)\s+failed/)
-  const passed = passMatch?.[1] ?? "?"
-  const failed = failMatch?.[1]
-
-  if (exitCode === 0 && !failed) {
-    return { check: "test-fast", domain: "code", status: "pass", summary: `${passed} tests pass`, durationMs: 0 }
-  }
-  return {
-    check: "test-fast",
-    domain: "code",
-    status: "error",
-    summary: `${failed ?? "?"} tests failed (${passed} passed)`,
-    details: stdout.slice(-500),
-    durationMs: 0,
-  }
-}
-
-function parseVersionDrift(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "version-drift",
-      domain: "packages",
-      status: "warn",
-      summary: "version drift check failed to run",
-      details: stdout.slice(-500),
-      durationMs: 0,
-    }
-  }
-  const driftLines = stdout
-    .split("\n")
-    .filter((l) => l.includes("behind") || l.includes("ahead") || l.includes("drift"))
-  if (driftLines.length === 0) {
-    return { check: "version-drift", domain: "packages", status: "pass", summary: "no version drift detected", durationMs: 0 }
-  }
-  return {
-    check: "version-drift",
-    domain: "packages",
-    status: "warn",
-    summary: `${driftLines.length} package(s) with version drift`,
-    details: driftLines.join("\n"),
-    durationMs: 0,
-  }
-}
-
-const parseUnreleased = parseByCounting({
-  check: "unreleased",
-  domain: "packages",
-  lineFilter: (l) => /\+\d+/.test(l) || l.includes("unreleased"),
-  passMessage: "all packages released",
-  warnTemplate: (n) => `${n} package(s) with unreleased changes`,
-  failMessage: "release status check failed to run",
-})
-
-function parsePublishability(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "publishability", domain: "packages", status: "pass", summary: "all packages publishable", durationMs: 0 }
-  }
-  const errorLines = stdout
-    .split("\n")
-    .filter((l) => l.includes("FAIL") || l.includes("WARN") || l.includes("ERROR"))
-  return {
-    check: "publishability",
-    domain: "packages",
-    status: errorLines.some((l) => l.includes("FAIL") || l.includes("ERROR"))
-      ? "error"
-      : "warn",
-    summary: `${errorLines.length} publishability issue(s)`,
-    details: errorLines.join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseUntriagedIssues(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "untriaged-issues",
-      domain: "inbound",
-      status: "warn",
-      summary: "could not fetch GitHub issues",
-      details: stdout.slice(-500),
-      durationMs: 0,
-    }
-  }
-  try {
-    const issues = JSON.parse(stdout) as Array<{
-      number: number
-      title: string
-      labels: Array<{ name: string }>
-    }>
-    const untriaged = issues.filter(
-      (i) => !i.labels.some((l) => l.name === "triaged"),
-    )
-    if (untriaged.length === 0) {
-      return { check: "untriaged-issues", domain: "inbound", status: "pass", summary: "0 untriaged issues", durationMs: 0 }
-    }
-    return {
-      check: "untriaged-issues",
-      domain: "inbound",
-      status: "warn",
-      summary: `${untriaged.length} untriaged issue(s)`,
-      details: untriaged.map((i) => `#${i.number} ${i.title}`).join("\n"),
-      durationMs: 0,
-    }
-  } catch {
-    if (stdout.trim() === "[]" || stdout.trim() === "") {
-      return { check: "untriaged-issues", domain: "inbound", status: "pass", summary: "0 untriaged issues", durationMs: 0 }
-    }
-    return {
-      check: "untriaged-issues",
-      domain: "inbound",
-      status: "warn",
-      summary: "could not parse GitHub issues response",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-}
-
-/** Parse bun audit --json output: { [pkg]: [{severity, title}, ...], ... } */
-function parseBunAuditFindings(stdout: string): { total: number; critical: number; high: number; moderate: number; details: string } | null {
-  // bun audit --json prepends a header line before the JSON; extract JSON
-  const jsonStart = stdout.indexOf("{")
-  if (jsonStart === -1) return null
-  const json = stdout.slice(jsonStart)
-  const audit = JSON.parse(json) as Record<string, Array<{ severity: string; title: string }>>
-  const counts = { critical: 0, high: 0, moderate: 0, low: 0, total: 0 }
-  const lines: string[] = []
-  for (const [pkg, advisories] of Object.entries(audit)) {
-    for (const a of advisories) {
-      counts.total++
-      if (a.severity === "critical") counts.critical++
-      else if (a.severity === "high") counts.high++
-      else if (a.severity === "moderate") counts.moderate++
-      else counts.low++
-      lines.push(`${a.severity}: ${pkg} — ${a.title}`)
-    }
-  }
-  return { ...counts, details: lines.slice(0, 10).join("\n") }
-}
-
-function parseNpmAudit(stdout: string): Finding {
-  if (!stdout.includes("{")) {
-    return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
-  }
-  try {
-    const result = parseBunAuditFindings(stdout)
-    if (!result || result.total === 0) {
-      return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
-    }
-    const critHigh = result.critical + result.high
-    return {
-      check: "unpatched-cves",
-      domain: "inbound",
-      status: critHigh > 0 ? "error" : "warn",
-      summary: `${result.total} CVE(s) (${critHigh} critical/high)`,
-      details: result.details,
-      durationMs: 0,
-    }
-  } catch {
-    return {
-      check: "unpatched-cves",
-      domain: "inbound",
-      status: "warn",
-      summary: "bun audit produced non-JSON output",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-}
-
-const parseStaleBeads = parseByCounting({
-  check: "stale-beads",
-  domain: "backlog",
-  lineFilter: (l) => l.trim().length > 0 && !l.includes("No stale"),
-  passMessage: "0 stale beads",
-  warnTemplate: (n) => `${n} stale bead(s)`,
-  failMessage: "bd stale failed to run",
-})
-
-const parseOrphanDeps = parseByCounting({
-  check: "orphan-deps",
-  domain: "backlog",
-  lineFilter: (l) => l.trim().length > 0 && !l.includes("No orphan"),
-  passMessage: "0 orphan deps",
-  warnTemplate: (n) => `${n} orphan dep(s)`,
-  failMessage: "bd orphans failed to run",
-})
-
-function parsePriorityDrift(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "priority-drift",
-      domain: "backlog",
-      status: "warn",
-      summary: "bd list failed to run",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0) {
-    return { check: "priority-drift", domain: "backlog", status: "pass", summary: "0 P0/P1 beads", durationMs: 0 }
-  }
-  return {
-    check: "priority-drift",
-    domain: "backlog",
-    status: lines.length > 5 ? "error" : "warn",
-    summary: `${lines.length} open P0/P1 bead(s)`,
-    details: lines.slice(0, 10).join("\n"),
-    durationMs: 0,
-  }
-}
-
-const parseLinkCheck = parseByCounting({
-  check: "link-check",
-  domain: "sites",
-  lineFilter: (l) => l.includes("broken") || l.includes("404") || l.includes("FAIL"),
-  passMessage: "links OK",
-  warnTemplate: (n) => `${n} broken link(s)`,
-  skipPatterns: ["not found", "No such"],
-})
-
-const parseFreshness = parseByCounting({
-  check: "freshness",
-  domain: "sites",
-  lineFilter: (l) => l.includes("stale") || l.includes("outdated"),
-  passMessage: "docs appear fresh",
-  warnTemplate: (n) => `${n} stale doc(s)`,
-  failMessage: "freshness check failed to run",
-})
-
-// ─── V2 check parsers ──────────────────────────────────────────────────────
-
-function parseCveScan(stdout: string): Finding {
-  if (!stdout.includes("{")) {
-    return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
-  }
-  try {
-    const result = parseBunAuditFindings(stdout)
-    if (!result || result.total === 0) {
-      return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
-    }
-    if (result.critical > 0 || result.high > 0) {
-      return {
-        check: "cve-scan",
-        domain: "security",
-        status: "error",
-        summary: `${result.critical} critical, ${result.high} high, ${result.moderate} moderate`,
-        details: result.details,
-        durationMs: 0,
-      }
-    }
-    return {
-      check: "cve-scan",
-      domain: "security",
-      status: result.moderate > 0 ? "warn" : "pass",
-      summary: `${result.moderate} moderate vulnerability(ies)`,
-      details: result.details,
-      durationMs: 0,
-    }
-  } catch {
-    return {
-      check: "cve-scan",
-      domain: "security",
-      status: "warn",
-      summary: "bun audit produced non-JSON output",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-}
-
-const parseSecretScan = parseByCounting({
-  check: "secret-scan",
-  domain: "security",
-  lineFilter: (l) => l.trim().length > 0,
-  passMessage: "no secrets detected",
-  warnTemplate: (n) => `${n} potential secret(s) found`,
-  errorThreshold: 1,
-})
-
-function parseLockfileIntegrity(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "lockfile-integrity", domain: "security", status: "pass", summary: "lockfile in sync", durationMs: 0 }
-  }
-  return {
-    check: "lockfile-integrity",
-    domain: "security",
-    status: "error",
-    summary: "lockfile out of sync with package.json",
-    details: stdout.slice(-300),
-    durationMs: 0,
-  }
-}
-
-function parseBundleSizes(stdout: string, _: string): Finding {
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0) {
-    return { check: "bundle-sizes", domain: "packaging", status: "pass", summary: "no dist/ directories found", durationMs: 0 }
-  }
-  const large = lines.filter((l) => {
-    const match = l.match(/^([\d.]+)([KMGT]?)/)
-    if (!match) return false
-    const size = parseFloat(match[1]!)
-    const unit = match[2] ?? ""
-    if (unit === "M" || unit === "G" || unit === "T") return true
-    if (unit === "K" && size > 500) return true
-    return false
-  })
-  return {
-    check: "bundle-sizes",
-    domain: "packaging",
-    status: large.length > 0 ? "warn" : "pass",
-    summary: large.length > 0
-      ? `${large.length} bundle(s) > 500KB`
-      : `${lines.length} bundle(s), all under 500KB`,
-    details: lines.join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseZeroDepCheck(stdout: string): Finding {
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0) {
-    return { check: "zero-dep-check", domain: "packaging", status: "pass", summary: "no vendor packages with dependencies", durationMs: 0 }
-  }
-  return {
-    check: "zero-dep-check",
-    domain: "packaging",
-    status: "pass",
-    summary: `${lines.length} vendor package(s) with dependencies`,
-    details: lines.join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseCjsEsmCompat(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!"))) {
-    return {
-      check: "cjs-esm-compat",
-      domain: "packaging",
-      status: "warn",
-      summary: "attw tool not available",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-  const hasProblems = stdout.includes("\u2717") || stdout.includes("problem") || stdout.includes("error")
-  // Strip table borders and blank lines from attw output
-  const cleanDetails = stdout
-    .split("\n")
-    .filter((l) => !/^[─│┼┌┐└┘├┤┬┴╭╮╰╯╶╴\s]*$/.test(l) && l.trim().length > 0)
-    .slice(-5)
-    .join("\n")
-  return {
-    check: "cjs-esm-compat",
-    domain: "packaging",
-    status: hasProblems ? "warn" : "pass",
-    summary: hasProblems ? "CJS/ESM compat issues found" : "CJS/ESM compat OK",
-    details: cleanDetails,
-    durationMs: 0,
-  }
-}
-
-function parseCiHealth(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "ci-health",
-      domain: "infra",
-      status: "warn",
-      summary: "could not fetch CI runs",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-  try {
-    const runs = JSON.parse(stdout) as Array<{
-      status: string
-      conclusion: string | null
-      name: string
-    }>
-    if (runs.length === 0) {
-      return { check: "ci-health", domain: "infra", status: "pass", summary: "no recent CI runs", durationMs: 0 }
-    }
-    const failed = runs.filter((r) => r.conclusion === "failure")
-    const inProgress = runs.filter((r) => r.status === "in_progress")
-    if (failed.length > 0) {
-      return {
-        check: "ci-health",
-        domain: "infra",
-        status: "error",
-        summary: `${failed.length} failed CI run(s)`,
-        details: failed.map((r) => `FAIL: ${r.name}`).join("\n"),
-        durationMs: 0,
-      }
-    }
-    if (inProgress.length > 0) {
-      return {
-        check: "ci-health",
-        domain: "infra",
-        status: "warn",
-        summary: `${inProgress.length} CI run(s) in progress`,
-        details: inProgress.map((r) => `IN_PROGRESS: ${r.name}`).join("\n"),
-        durationMs: 0,
-      }
-    }
-    return { check: "ci-health", domain: "infra", status: "pass", summary: `${runs.length} recent run(s) succeeded`, durationMs: 0 }
-  } catch {
-    return {
-      check: "ci-health",
-      domain: "infra",
-      status: "warn",
-      summary: "could not parse CI runs response",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-}
-
-function parseHookIntegrity(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0) {
-    return {
-      check: "hook-integrity",
-      domain: "infra",
-      status: "warn",
-      summary: "could not list hooks directory",
-      details: stdout.slice(-300),
-      durationMs: 0,
-    }
-  }
-  const hasRunHook = stdout.includes("run-hook.sh")
-  if (!hasRunHook) {
-    return {
-      check: "hook-integrity",
-      domain: "infra",
-      status: "warn",
-      summary: "missing expected hook: run-hook.sh",
-      details: stdout,
-      durationMs: 0,
-    }
-  }
-  const files = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  return {
-    check: "hook-integrity",
-    domain: "infra",
-    status: "pass",
-    summary: `${files.length} hook file(s) present`,
-    details: stdout.trim(),
-    durationMs: 0,
-  }
-}
-
-function parseToolVersions(stdout: string): Finding {
-  return {
-    check: "tool-versions",
-    domain: "infra",
-    status: "pass",
-    summary: "tool versions collected",
-    details: stdout.trim().slice(-500),
-    durationMs: 0,
-  }
-}
-
-const parseLicenseFiles = parseByCounting({
-  check: "license-files",
-  domain: "legal",
-  lineFilter: (l) => l.includes("MISSING"),
-  passMessage: "all vendor packages have LICENSE files",
-  warnTemplate: (n) => `${n} vendor package(s) missing LICENSE`,
-})
-
-function parseDepLicenses(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0 && (stdout.includes("not found") || stdout.includes("ERR!") || stdout.includes("Cannot find"))) {
-    return {
-      check: "dep-licenses",
-      domain: "legal",
-      status: "warn",
-      summary: "license-checker not installed",
-      details: "install with: npx license-checker",
-      durationMs: 0,
-    }
-  }
-  const gplLines = stdout.split("\n").filter((l) => /\bGPL(?!.*LGPL)\b/i.test(l) && !/LGPL/i.test(l))
-  if (gplLines.length > 0) {
-    return {
-      check: "dep-licenses",
-      domain: "legal",
-      status: "warn",
-      summary: `GPL license found in ${gplLines.length} production dep(s)`,
-      details: stdout.slice(-500),
-      durationMs: 0,
-    }
-  }
-  return {
-    check: "dep-licenses",
-    domain: "legal",
-    status: "pass",
-    summary: "license distribution OK",
-    details: stdout.slice(-500),
-    durationMs: 0,
-  }
-}
-
-// ─── New automated check parsers ───────────────────────────────────────────
-
-function parseComplexity(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode !== 0 && stdout.trim().length === 0) {
-    return { check: "complexity", domain: "code", status: "warn", summary: "complexity check failed to run", details: stdout.slice(-300), durationMs: 0 }
-  }
-  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0) {
-    return { check: "complexity", domain: "code", status: "pass", summary: "no high-complexity functions", durationMs: 0 }
-  }
-  if (lines.length > 50) {
-    return { check: "complexity", domain: "code", status: "error", summary: `${lines.length} functions over complexity threshold`, details: lines.slice(0, 10).join("\n"), durationMs: 0 }
-  }
-  if (lines.length > 20) {
-    return { check: "complexity", domain: "code", status: "warn", summary: `${lines.length} functions over complexity threshold`, details: lines.slice(0, 10).join("\n"), durationMs: 0 }
-  }
-  return { check: "complexity", domain: "code", status: "pass", summary: `${lines.length} functions over complexity threshold (within limits)`, details: lines.slice(0, 5).join("\n"), durationMs: 0 }
-}
-
-function parseKnipOutput(stdout: string, checkId: string): Finding {
-  // Knip outputs headings like "Unused files (3)" or "Unused exports (12)"
-  const headingPattern = /^(Unused \w[\w\s]*?|Unlisted [\w\s]+?)\s*\((\d+)\)/gm
-  const counts: Array<{ category: string; count: number }> = []
-  let match: RegExpExecArray | null
-  while ((match = headingPattern.exec(stdout)) !== null) {
-    counts.push({ category: match[1]!, count: parseInt(match[2]!, 10) })
-  }
-  const total = counts.reduce((sum, c) => sum + c.count, 0)
-  if (total === 0) {
-    return { check: checkId, domain: checkId === "unused-deps" || checkId === "unlisted-deps" ? "packages" : "code", status: "pass", summary: "no issues found", durationMs: 0 }
-  }
-  const domain = checkId === "unused-deps" || checkId === "unlisted-deps" ? "packages" : "code"
-  const summary = counts.map((c) => `${c.category}: ${c.count}`).join(", ")
-  return {
-    check: checkId,
-    domain,
-    status: "warn",
-    summary,
-    details: stdout.split("\n").filter((l) => l.trim().length > 0).slice(0, 15).join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseDeadCode(stdout: string, _: string, _exitCode: number): Finding {
-  return parseKnipOutput(stdout, "dead-code")
-}
-
-function parseUnusedDeps(stdout: string, _: string, _exitCode: number): Finding {
-  return parseKnipOutput(stdout, "unused-deps")
-}
-
-function parseUnlistedDeps(stdout: string, _: string, _exitCode: number): Finding {
-  return parseKnipOutput(stdout, "unlisted-deps")
-}
-
-function parseLayerViolations(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "layer-violations", domain: "code", status: "pass", summary: "no dependency violations", durationMs: 0 }
-  }
-  const errorLines = stdout.split("\n").filter((l) => /error/i.test(l))
-  return {
-    check: "layer-violations",
-    domain: "code",
-    status: "error",
-    summary: `${errorLines.length || "?"} dependency violation(s)`,
-    details: stdout.split("\n").filter((l) => l.trim().length > 0).slice(0, 10).join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseTypeCoverage(stdout: string, _: string, exitCode: number): Finding {
-  // type-coverage outputs something like "98.23% (494484/503380)"
-  const match = stdout.match(/([\d.]+)%/)
-  if (match) {
-    const pct = parseFloat(match[1]!)
-    return {
-      check: "type-coverage",
-      domain: "code",
-      status: pct >= 85 ? "pass" : "warn",
-      summary: `type coverage: ${pct}%`,
-      details: stdout.trim().split("\n").slice(0, 5).join("\n"),
-      durationMs: 0,
-    }
-  }
-  if (exitCode !== 0) {
-    return { check: "type-coverage", domain: "code", status: "warn", summary: "type-coverage check failed to run", details: stdout.slice(-300), durationMs: 0 }
-  }
-  return { check: "type-coverage", domain: "code", status: "pass", summary: "type coverage OK", durationMs: 0 }
-}
-
-function parseWorkspaceConsistency(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "workspace-consistency", domain: "packages", status: "pass", summary: "workspace consistent", durationMs: 0 }
-  }
-  const issueLines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
-  return {
-    check: "workspace-consistency",
-    domain: "packages",
-    status: "warn",
-    summary: `${issueLines.length} workspace consistency issue(s)`,
-    details: issueLines.slice(0, 10).join("\n"),
-    durationMs: 0,
-  }
-}
-
-function parseNixFreshness(stdout: string, _: string, exitCode: number): Finding {
-  // Output is like "ok: nixpkgs rev=abc123 age=5d" or "STALE: nixpkgs rev=abc123 age=45d"
-  const ageMatch = stdout.match(/age=([\d.]+)d/)
-  const revMatch = stdout.match(/rev=([a-f0-9]+)/)
-  const age = ageMatch ? Math.round(parseFloat(ageMatch[1]!)) : null
-  const rev = revMatch?.[1] ?? "?"
-
-  if (exitCode === 0 && age !== null) {
-    return { check: "nix-freshness", domain: "security", status: "pass", summary: `nixpkgs rev=${rev} age=${age}d`, durationMs: 0 }
-  }
-  if (age !== null && age > 30) {
-    return {
-      check: "nix-freshness",
-      domain: "security",
-      status: "warn",
-      summary: `nixpkgs stale: rev=${rev} age=${age}d (>30d)`,
-      details: `Run 'nix flake update' to refresh`,
-      durationMs: 0,
-    }
-  }
-  if (stdout.includes("No such file") || stdout.includes("FileNotFoundError")) {
-    return { check: "nix-freshness", domain: "security", status: "pass", summary: "no flake.lock found (not a flake project)", durationMs: 0 }
-  }
-  return {
-    check: "nix-freshness",
-    domain: "security",
-    status: "warn",
-    summary: "nix freshness check failed",
-    details: stdout.slice(-300),
-    durationMs: 0,
-  }
-}
-
-function parseDocLinks(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
-    return { check: "doc-links", domain: "sites", status: "pass", summary: "doc links OK", durationMs: 0 }
-  }
-  const errorLines = stdout.split("\n").filter((l) => /ERROR|✖|broken|dead/i.test(l))
-  if (errorLines.length === 0 && stdout.trim().length === 0) {
-    return { check: "doc-links", domain: "sites", status: "pass", summary: "doc links OK (no output)", durationMs: 0 }
-  }
-  return {
-    check: "doc-links",
-    domain: "sites",
-    status: errorLines.length > 0 ? "warn" : "pass",
-    summary: errorLines.length > 0 ? `${errorLines.length} broken doc link(s)` : "doc links OK",
-    details: errorLines.slice(0, 10).join("\n") || stdout.slice(-300),
-    durationMs: 0,
-  }
-}
-
-// ─── Domain definitions ─────────────────────────────────────────────────────
-
-export const DOMAINS: DomainDef[] = [
-  {
-    id: "code",
-    label: "code",
-    cadence: "session",
-    checks: [
-      {
-        id: "typecheck",
-        domain: "code",
-        label: "typecheck",
-        command: "bash packages/km-infra/scripts/typecheck/check.sh",
-        cadence: "session",
-        approval: "auto",
-        parse: parseTypecheck,
-      },
-      {
-        id: "lint",
-        domain: "code",
-        label: "lint",
-        command: "bun fix 2>&1",
-        cadence: "session",
-        approval: "auto",
-        parse: parseLint,
-      },
-      {
-        id: "test-fast",
-        domain: "code",
-        label: "test-fast",
-        command: "bun run test:fast 2>&1 | tail -30",
-        cadence: "session",
-        approval: "auto",
-        parse: parseTestFast,
-      },
-      {
-        id: "complexity",
-        domain: "code",
-        label: "complexity",
-        command: "bun lint:complexity --brief 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseComplexity,
-      },
-      {
-        id: "dead-code",
-        domain: "code",
-        label: "dead code",
-        command: "bunx knip --include files,exports,types --no-progress 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseDeadCode,
-      },
-      {
-        id: "layer-violations",
-        domain: "code",
-        label: "layer violations",
-        command: "bun run lint:deps 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseLayerViolations,
-      },
-      {
-        id: "type-coverage",
-        domain: "code",
-        label: "type coverage",
-        command: "bun run lint:types 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseTypeCoverage,
-      },
-    ],
-  },
-  {
-    id: "packages",
-    label: "packages",
-    cadence: "monthly",
-    checks: [
-      {
-        id: "version-drift",
-        domain: "packages",
-        label: "version drift",
-        command: "bun npm-registry audit 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseVersionDrift,
-      },
-      {
-        id: "unreleased",
-        domain: "packages",
-        label: "unreleased",
-        command: "bun release status 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseUnreleased,
-      },
-      {
-        id: "publishability",
-        domain: "packages",
-        label: "publishability",
-        command: "bun packages/km-infra/scripts/audit-packages.ts 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parsePublishability,
-      },
-      {
-        id: "unused-deps",
-        domain: "packages",
-        label: "unused deps",
-        command: "bunx knip --include dependencies,devDependencies --no-progress 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseUnusedDeps,
-      },
-      {
-        id: "unlisted-deps",
-        domain: "packages",
-        label: "unlisted deps",
-        command: "bunx knip --include unlisted --no-progress 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseUnlistedDeps,
-      },
-      {
-        id: "workspace-consistency",
-        domain: "packages",
-        label: "workspace consistency",
-        command: "bun run lint:workspace 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseWorkspaceConsistency,
-      },
-    ],
-  },
-  {
-    id: "inbound",
-    label: "inbound",
-    cadence: "weekly",
-    checks: [
-      {
-        id: "untriaged-issues",
-        domain: "inbound",
-        label: "untriaged issues",
-        command:
-          "gh issue list --repo beorn/km --state open --json number,title,labels --limit 50 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseUntriagedIssues,
-      },
-      {
-        id: "unpatched-cves",
-        domain: "inbound",
-        label: "unpatched CVEs",
-        command: "bun audit --json 2>/dev/null || true",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseNpmAudit,
-      },
-    ],
-  },
-  {
-    id: "backlog",
-    label: "backlog",
-    cadence: "weekly",
-    checks: [
-      {
-        id: "stale-beads",
-        domain: "backlog",
-        label: "stale beads",
-        command: "bd stale 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseStaleBeads,
-      },
-      {
-        id: "orphan-deps",
-        domain: "backlog",
-        label: "orphan deps",
-        command: "bd orphans 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseOrphanDeps,
-      },
-      {
-        id: "priority-drift",
-        domain: "backlog",
-        label: "P0/P1 drift",
-        command: "bd list --status=open --priority=0 --priority=1 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parsePriorityDrift,
-      },
-    ],
-  },
-  {
-    id: "sites",
-    label: "sites",
-    cadence: "monthly",
-    checks: [
-      {
-        id: "link-check",
-        domain: "sites",
-        label: "link check",
-        command:
-          "ls scripts/check-site-links.sh 2>&1 && bash scripts/check-site-links.sh 2>&1 || echo 'not found'",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseLinkCheck,
-      },
-      {
-        id: "doc-links",
-        domain: "sites",
-        label: "doc links",
-        command: "bun run lint:links 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseDocLinks,
-      },
-      {
-        id: "freshness",
-        domain: "sites",
-        label: "doc freshness",
-        command: [
-          "for pkg in vendor/silvery vendor/flexily vendor/vterm vendor/ansi vendor/mdspec; do",
-          "  if [ -d \"$pkg\" ]; then",
-          "    name=$(basename $pkg)",
-          "    doc_date=$(git log -1 --format=%ci -- \"$pkg/docs\" \"$pkg/README.md\" 2>/dev/null || echo 'never')",
-          "    pkg_date=$(git log -1 --format=%ci -- \"$pkg/package.json\" 2>/dev/null || echo 'never')",
-          "    echo \"$name docs=$doc_date pkg=$pkg_date\"",
-          "    if [ \"$pkg_date\" \\> \"$doc_date\" ] 2>/dev/null; then",
-          "      echo \"  stale: $name docs older than package changes\"",
-          "    fi",
-          "  fi",
-          "done",
-        ].join("\n"),
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseFreshness,
-      },
-    ],
-  },
-  {
-    id: "security",
-    label: "security",
-    cadence: "weekly",
-    checks: [
-      {
-        id: "cve-scan",
-        domain: "security",
-        label: "CVE scan",
-        command: "bun audit --json 2>/dev/null || true",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseCveScan,
-      },
-      {
-        id: "secret-scan",
-        domain: "security",
-        label: "secret scan",
-        command:
-          'grep -rn "sk-[a-zA-Z0-9]\\{20,\\}\\|AKIA[A-Z0-9]\\{16\\}\\|ghp_[a-zA-Z0-9]\\{36\\}\\|gho_[a-zA-Z0-9]\\{36\\}\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.beads --exclude-dir=dist --exclude-dir=.km --exclude-dir=.claude --exclude=sop.ts --exclude="*.lock" --exclude="*.jsonl" . 2>&1',
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseSecretScan,
-      },
-      {
-        id: "lockfile-integrity",
-        domain: "security",
-        label: "lockfile integrity",
-        command: "bun install --frozen-lockfile --dry-run 2>&1",
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseLockfileIntegrity,
-      },
-      {
-        id: "nix-freshness",
-        domain: "security",
-        label: "nix freshness",
-        command: [
-          'python3 -c "',
-          "import json, datetime, sys",
-          "with open('flake.lock') as f:",
-          "    lock = json.load(f)",
-          "nixpkgs = lock['nodes'].get('nixpkgs', {}).get('locked', {})",
-          "ts = nixpkgs.get('lastModified', 0)",
-          "age = (datetime.datetime.now().timestamp() - ts) / 86400",
-          "rev = nixpkgs.get('rev', '?')[:12]",
-          "status = 'STALE' if age > 30 else 'ok'",
-          "print(f'{status}: nixpkgs rev={rev} age={age:.0f}d')",
-          "sys.exit(1 if age > 30 else 0)",
-          '"',
-        ].join("\n"),
-        cadence: "weekly",
-        approval: "auto",
-        parse: parseNixFreshness,
-      },
-    ],
-  },
-  {
-    id: "packaging",
-    label: "packaging",
-    cadence: "monthly",
-    checks: [
-      {
-        id: "bundle-sizes",
-        domain: "packaging",
-        label: "bundle sizes",
-        command: "for d in vendor/*/; do [ -f \"$d/package.json\" ] && grep -q '\"private\"' \"$d/package.json\" 2>/dev/null && continue; name=$(basename \"$d\"); js=$(find \"$d/dist\" -name '*.mjs' -o -name '*.js' 2>/dev/null | xargs cat 2>/dev/null | wc -c); echo \"$((js/1024))K\\t$name\"; done | sort -rn",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseBundleSizes,
-      },
-      {
-        id: "zero-dep-check",
-        domain: "packaging",
-        label: "zero-dep check",
-        command: 'grep -l \'"dependencies"\' vendor/*/package.json 2>/dev/null',
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseZeroDepCheck,
-      },
-      {
-        id: "cjs-esm-compat",
-        domain: "packaging",
-        label: "CJS/ESM compat",
-        command: "bunx --bun @arethetypeswrong/cli --pack vendor/silvery 2>&1 | tail -20",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseCjsEsmCompat,
-      },
-    ],
-  },
-  {
-    id: "infra",
-    label: "infra",
-    cadence: "monthly",
-    checks: [
-      {
-        id: "ci-health",
-        domain: "infra",
-        label: "CI health",
-        command: "gh run list --repo beorn/km --limit 5 --json status,conclusion,name 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseCiHealth,
-      },
-      {
-        id: "hook-integrity",
-        domain: "infra",
-        label: "hook integrity",
-        command: "ls .claude/hooks/ 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseHookIntegrity,
-      },
-      {
-        id: "tool-versions",
-        domain: "infra",
-        label: "tool versions",
-        command: "echo '--- tsdown ---' && bunx tsdown --version 2>&1; echo '--- oxlint ---' && bunx oxlint --version 2>&1; echo '--- bun ---' && bun --version 2>&1",
-        cadence: "monthly",
-        approval: "auto",
-        parse: parseToolVersions,
-      },
-    ],
-  },
-  {
-    id: "legal",
-    label: "legal",
-    cadence: "quarterly",
-    checks: [
-      {
-        id: "license-files",
-        domain: "legal",
-        label: "LICENSE files",
-        command:
-          'for d in vendor/*/; do [ -f "$d/LICENSE" ] || echo "MISSING: $d"; done 2>&1',
-        cadence: "quarterly",
-        approval: "auto",
-        parse: parseLicenseFiles,
-      },
-      {
-        id: "dep-licenses",
-        domain: "legal",
-        label: "dep licenses",
-        command: "npx license-checker --production --summary 2>&1 | head -30",
-        cadence: "quarterly",
-        approval: "auto",
-        parse: parseDepLicenses,
-      },
-    ],
-  },
-]
-
-const DOMAIN_MAP = new Map(DOMAINS.map((d) => [d.id, d]))
-
-// ─── Cross-domain triggers ─────────────────────────────────────────────────
-
-const TRIGGERS: Trigger[] = [
-  { source: { domain: "code", check: "typecheck", status: "error" }, target: { domain: "packages", check: "publishability" }, label: "type errors may affect publishability" },
-  { source: { domain: "code", check: "test-fast", status: "error" }, target: { domain: "backlog" }, label: "test failures may need beads" },
-  { source: { domain: "packages", check: "unreleased", status: "warn" }, target: { domain: "sites", check: "freshness" }, label: "unreleased changes may make docs stale" },
-  { source: { domain: "security", check: "cve-scan", status: "error" }, target: { domain: "packages" }, label: "CVEs may need patch releases" },
-  { source: { domain: "backlog", check: "priority-drift", status: "error" }, target: { domain: "inbound" }, label: "P0/P1 drift may indicate untriaged issues" },
-]
-
-function evaluateTriggers(allFindings: Finding[]): FiredTrigger[] {
-  const fired: FiredTrigger[] = []
-  for (const trigger of TRIGGERS) {
-    const match = allFindings.find(
-      (f) =>
-        f.domain === trigger.source.domain &&
-        f.check === trigger.source.check &&
-        f.status === trigger.source.status,
-    )
-    if (match) {
-      fired.push({
-        trigger,
-        sourceCheck: match.check,
-        sourceDomain: match.domain,
-      })
-    }
-  }
-  return fired
-}
-
-// ─── Run a check ────────────────────────────────────────────────────────────
-
-async function runCheck(check: Check): Promise<Finding> {
-  const start = performance.now()
-  try {
-    using checkSpan = log.span!("check", { id: check.id })
-
-    const proc = Bun.spawn(["bash", "-c", check.command], {
-      cwd: REPO_ROOT,
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, FORCE_COLOR: "0" },
-    })
-
-    const stdout = await new Response(proc.stdout).text()
-    const stderr = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
-
-    const durationMs = performance.now() - start
-    const finding = { ...check.parse(stdout, stderr, exitCode), durationMs }
-
-    log.debug?.("check complete", { check: check.id, status: finding.status, summary: finding.summary })
-    checkSpan.spanData.status = finding.status
-
-    return finding
-  } catch (err) {
-    const durationMs = performance.now() - start
-    log.error?.(err instanceof Error ? err : new Error(String(err)), "check execution failed", { check: check.id })
-    return {
-      check: check.id,
-      domain: check.domain,
-      status: "error",
-      summary: `failed to execute: ${err instanceof Error ? err.message : String(err)}`,
-      durationMs,
-    }
-  }
-}
-
-// ─── Run a domain ───────────────────────────────────────────────────────────
-
-async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; durationMs: number }> {
-  const domainStart = performance.now()
-  using domainSpan = log.span!("domain", { id: domain.id })
-
-  const findings: Finding[] = []
-  for (const check of domain.checks) {
-    process.stderr.write(`  running ${s.dim(`${domain.id}.${check.id}`)}...`)
-    const finding = await runCheck(check)
-    process.stderr.write(`${statusLabel(finding.status)} ${s.dim(`(${formatDuration(finding.durationMs)})`)}\n`)
-    findings.push(finding)
-  }
-
-  const domainDurationMs = performance.now() - domainStart
-  domainSpan.spanData.checkCount = findings.length
-
-  return { findings, durationMs: domainDurationMs }
 }
 
 // ─── Dashboard rendering ────────────────────────────────────────────────────
 
-/** Colored Unicode icon for dashboard output */
-function statusIcon(status: Status): string {
-  switch (status) {
-    case "pass":
-      return s.green("\u2713")
-    case "warn":
-      return s.yellow("\u26A0")
-    case "error":
-      return s.red("\u2717")
-  }
-}
-
-/** Colored label for progress output (stderr) */
-function statusLabel(status: Status): string {
-  switch (status) {
-    case "pass":
-      return s.green(" ok")
-    case "warn":
-      return s.yellow(" warn")
-    case "error":
-      return s.red.bold(" FAIL")
-  }
-}
-
-function domainSummary(domainId: string, findings: Finding[], domainTiming?: DomainTiming): string {
-  if (findings.length === 0) return "\u2014 no results"
-
-  const worst: Status = findings.some((f) => f.status === "error")
-    ? "error"
-    : findings.some((f) => f.status === "warn")
-      ? "warn"
-      : "pass"
-
-  const icon = statusIcon(worst)
-  const summaries = findings.map((f) => f.summary).join(", ")
-  const domainDur = domainTiming ? s.dim(`  [${formatDuration(domainTiming.durationMs)}]`) : ""
-  return `${icon} ${summaries}${domainDur}`
-}
-
 function renderDashboard(state: State): void {
-  const now = new Date()
-  const dateStr = now.toISOString().split("T")[0]
-
+  const dateStr = new Date().toISOString().split("T")[0]
   console.log()
   console.log(s.bold.yellow(`SOP Report \u2014 ${dateStr}`))
   console.log()
@@ -1440,16 +245,25 @@ function renderDashboard(state: State): void {
 
     if (!hasFindings) {
       const lastRun = state.lastRun[domain.id]
-      if (lastRun) {
-        console.log(`  ${domainLabel} \u2014 ${s.dim(`last run ${lastRun.split("T")[0]}`)}`)
-      } else {
-        console.log(`  ${domainLabel} \u2014 ${s.dim("never run")}`)
-      }
-    } else {
-      const domainTiming = state.lastDomainTimings?.[domain.id]
-      const summary = domainSummary(domain.id, findings, domainTiming)
-      console.log(`  ${domainLabel} ${summary}`)
+      const label = lastRun ? s.dim(`last run ${lastRun.split("T")[0]}`) : s.dim("never run")
+      console.log(`  ${domainLabel} \u2014 ${label}`)
+      continue
     }
+
+    const worst: Status = findings.some((f) => f.status === "error")
+      ? "error"
+      : findings.some((f) => f.status === "warn")
+        ? "warn"
+        : "pass"
+
+    const icon = statusIcon(worst)
+    const taskLabels = findings.map((f) => {
+      return f.status === "pass" ? s.dim(f.label) : s.yellow(f.label)
+    }).join(", ")
+
+    const timing = state.lastDomainTimings?.[domain.id]
+    const dur = timing ? s.dim(`  [${formatDuration(timing.durationMs)}]`) : ""
+    console.log(`  ${domainLabel} ${icon} ${taskLabels}${dur}`)
   }
 
   // Totals
@@ -1466,28 +280,22 @@ function renderDashboard(state: State): void {
     console.log(s.dim(`  Total scan time: ${formatDuration(state.lastScanDurationMs)}`))
   }
 
-  // Triggered cross-domain checks (before "Next due:")
+  // Triggered cross-domain checks
   if (state.lastFiredTriggers && state.lastFiredTriggers.length > 0) {
     console.log()
     console.log(s.bold.blueBright("  Triggers fired:"))
     for (const ft of state.lastFiredTriggers) {
-      const targetStr = ft.trigger.target.check
-        ? `${ft.trigger.target.domain}.${ft.trigger.target.check}`
-        : ft.trigger.target.domain
       console.log(
-        `    ${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetStr} ${s.dim(`(${ft.trigger.label})`)}`,
+        `    ${s.dim(ft.sourceDomain)} ${statusLabel(ft.trigger.source.status).trim()} -> ${ft.trigger.target.domain} ${s.dim(`(${ft.trigger.label})`)}`,
       )
     }
   }
 
   // Next due
   const dueDomains = DOMAINS.filter((d) => !isDue(d, state))
-    .map((d) => {
-      const next = nextDueDate(d, state)
-      return { id: d.id, next }
-    })
-    .filter((d) => d.next && d.next !== "now" && d.next !== "every session")
-    .sort((a, b) => (a.next! < b.next! ? -1 : 1))
+    .map((d) => ({ id: d.id, next: nextDueDate(d, state) }))
+    .filter((d) => d.next !== "now" && d.next !== "every session")
+    .sort((a, b) => (a.next < b.next ? -1 : 1))
 
   if (dueDomains.length > 0) {
     const nextStr = dueDomains
@@ -1498,17 +306,6 @@ function renderDashboard(state: State): void {
   }
 
   console.log()
-
-  // Details for non-pass findings (truncated, dim)
-  const nonPass = allFindings.filter((f) => f.status !== "pass" && f.details)
-  if (nonPass.length > 0) {
-    console.log(s.bold.blueBright("  Details:"))
-    for (const f of nonPass) {
-      const truncated = f.details!.split("\n").slice(0, 3).join("\n        ")
-      console.log(`    ${s.dim(`${f.domain}.${f.check}:`)} ${s.dim(truncated)}`)
-    }
-    console.log()
-  }
 }
 
 // ─── Status command ─────────────────────────────────────────────────────────
@@ -1524,376 +321,17 @@ function renderStatus(state: State): void {
     const lastStr = lastRun ? lastRun.split("T")[0]! : s.dim("never")
     const next = nextDueDate(domain, state)
     const dueTag = due ? s.yellow.bold(" [DUE]") : ""
+    const toolCount = DOMAIN_TOOLS[domain.id]?.length ?? 0
 
     console.log(
-      `  ${domain.id} ${s.dim(domain.cadence)} last=${lastStr} next=${next!}${dueTag}`,
+      `  ${domain.id} ${s.dim(domain.cadence)} last=${lastStr} next=${next}${dueTag} ${s.dim(`(${toolCount} tools)`)}`,
     )
   }
 
   console.log()
 }
 
-// ─── Update analysis ───────────────────────────────────────────────────────
-
-interface UpdateProposal {
-  file: string
-  description: string
-}
-
-/**
- * Gather context from git log, beads, state, and _sop-rules.md,
- * then heuristically analyze for improvement opportunities.
- */
-async function runUpdate(state: State, _apply: boolean): Promise<void> {
-  const dateStr = new Date().toISOString().split("T")[0]
-
-  // 1. Gather context in parallel
-  const [gitLogResult, beadsResult, rulesContent] = await Promise.all([
-    runShell("git log --oneline -20"),
-    runShell("bd list --status=open --limit 20 2>&1"),
-    Promise.resolve(readFileSafe(join(REPO_ROOT, ".claude", "skills", "sop", "_sop-rules.md"))),
-  ])
-
-  // 2. Analyze git log for maintenance patterns
-  const commitPatterns = analyzeCommitPatterns(gitLogResult.stdout)
-
-  // 3. Analyze state.json findings for false positives, always-pass, always-fail
-  const stateInsights = analyzeStateFindings(state)
-
-  // 4. Analyze anti-pattern table coverage
-  const antiPatternCandidates = analyzeAntiPatterns(
-    gitLogResult.stdout,
-    beadsResult.stdout,
-    rulesContent,
-  )
-
-  // 5. Analyze for missing checks
-  const missingChecks = analyzeMissingChecks(gitLogResult.stdout, state)
-
-  // 6. Produce structured report
-  console.log()
-  console.log(s.bold.yellow(`SOP Update Analysis \u2014 ${dateStr}`))
-
-  if (commitPatterns.length > 0) {
-    console.log()
-    console.log(s.bold.blueBright("  Recent maintenance patterns:"))
-    for (const p of commitPatterns) {
-      console.log(`    - ${p}`)
-    }
-  }
-
-  if (antiPatternCandidates.length > 0) {
-    console.log()
-    console.log(s.bold.blueBright("  Anti-pattern candidates:"))
-    for (const a of antiPatternCandidates) {
-      console.log(`    - ${s.red(a)}`)
-    }
-  }
-
-  if (stateInsights.length > 0) {
-    console.log()
-    console.log(s.bold.blueBright("  State insights:"))
-    for (const si of stateInsights) {
-      console.log(`    - ${si}`)
-    }
-  }
-
-  if (missingChecks.length > 0) {
-    console.log()
-    console.log(s.bold.blueBright("  Missing checks:"))
-    for (const m of missingChecks) {
-      console.log(`    - ${m}`)
-    }
-  }
-
-  // Collect all proposals
-  const proposals: UpdateProposal[] = []
-
-  for (const a of antiPatternCandidates) {
-    proposals.push({ file: "_sop-rules.md", description: `Add anti-pattern: ${a}` })
-  }
-  for (const m of missingChecks) {
-    proposals.push({ file: "tools/sop.ts", description: `Add check: ${m}` })
-  }
-  for (const si of stateInsights) {
-    if (si.includes("always fail") || si.includes("always error")) {
-      proposals.push({ file: "tools/sop.ts", description: `Review: ${si}` })
-    }
-  }
-
-  if (proposals.length > 0) {
-    console.log()
-    console.log(s.bold.blueBright("  Proposed changes:"))
-    for (let i = 0; i < proposals.length; i++) {
-      console.log(`    ${s.yellow(`${i + 1}.`)} [${proposals[i]!.file}] ${proposals[i]!.description}`)
-    }
-  }
-
-  if (
-    commitPatterns.length === 0 &&
-    antiPatternCandidates.length === 0 &&
-    stateInsights.length === 0 &&
-    missingChecks.length === 0
-  ) {
-    console.log()
-    console.log(s.green("  No improvements identified. SOP checks look healthy."))
-  }
-
-  if (_apply) {
-    console.log()
-    console.log(s.dim("  --apply is reserved for future use (auto-writing proposed changes)."))
-    console.log(s.dim("  For now, apply proposed changes manually."))
-  }
-
-  console.log()
-}
-
-/** Run a shell command and capture output */
-async function runShell(cmd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  try {
-    const proc = Bun.spawn(["bash", "-c", cmd], {
-      cwd: REPO_ROOT,
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, FORCE_COLOR: "0" },
-    })
-    const stdout = await new Response(proc.stdout).text()
-    const stderr = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
-    return { stdout, stderr, exitCode }
-  } catch {
-    return { stdout: "", stderr: "", exitCode: 1 }
-  }
-}
-
-/** Read a file, return empty string if missing */
-function readFileSafe(path: string): string {
-  try {
-    return readFileSync(path, "utf-8")
-  } catch {
-    return ""
-  }
-}
-
-/** Analyze git log for repeated maintenance patterns */
-function analyzeCommitPatterns(gitLog: string): string[] {
-  const patterns: string[] = []
-  const lines = gitLog.trim().split("\n").filter((l) => l.trim().length > 0)
-  if (lines.length === 0) return patterns
-
-  // Extract commit messages (strip leading hash)
-  const messages = lines.map((l) => l.replace(/^[a-f0-9]+\s+/, ""))
-
-  // Count keyword frequencies
-  const keywordCounts = new Map<string, number>()
-  const keywordPatterns: Array<{ regex: RegExp; label: string; suggestion: string }> = [
-    { regex: /\btypecheck\s*baseline\b/i, label: "typecheck baseline", suggestion: "auto-baseline check in code domain" },
-    { regex: /\bnpm\s+publish\b/i, label: "npm publish", suggestion: "unreleased packages check (packages domain)" },
-    { regex: /\bbaseline\b/i, label: "baseline update", suggestion: "baseline-reset anti-pattern detection" },
-    { regex: /\bbun\.lock\b/i, label: "bun.lock update", suggestion: "lockfile consistency check" },
-    { regex: /\bvendor\b/i, label: "vendor update", suggestion: "submodule state tracking" },
-    { regex: /\bfix\(.*\):/i, label: "bug fix", suggestion: "regression detection for repeated fixes in same scope" },
-    { regex: /\bhotfix\b/i, label: "hotfix", suggestion: "hot-fix frequency tracking" },
-    { regex: /\brevert\b/i, label: "revert", suggestion: "revert frequency tracking" },
-    { regex: /\bskip\b/i, label: "skip", suggestion: "skipped check tracking" },
-  ]
-
-  for (const msg of messages) {
-    for (const kp of keywordPatterns) {
-      if (kp.regex.test(msg)) {
-        keywordCounts.set(kp.label, (keywordCounts.get(kp.label) ?? 0) + 1)
-      }
-    }
-  }
-
-  // Report patterns appearing 2+ times
-  for (const kp of keywordPatterns) {
-    const count = keywordCounts.get(kp.label) ?? 0
-    if (count >= 2) {
-      patterns.push(
-        `"${kp.label}" appeared in ${count} of last ${messages.length} commits \u2192 Consider: ${kp.suggestion}`,
-      )
-    }
-  }
-
-  // Check for npm commands in a bun project
-  const npmUsage = messages.filter((m) => /\bnpm\s+(install|audit|run|test)\b/i.test(m))
-  if (npmUsage.length > 0) {
-    patterns.push(
-      `npm commands found in ${npmUsage.length} commit message(s) \u2192 This is a bun project; ensure bun equivalents are used`,
-    )
-  }
-
-  // Check for repeated scopes in fix() commits
-  const fixScopes = new Map<string, number>()
-  for (const msg of messages) {
-    const match = msg.match(/^fix\(([^)]+)\):/)
-    if (match) {
-      const scope = match[1]!
-      fixScopes.set(scope, (fixScopes.get(scope) ?? 0) + 1)
-    }
-  }
-  for (const [scope, count] of fixScopes) {
-    if (count >= 2) {
-      patterns.push(
-        `fix(${scope}) committed ${count}x \u2192 Repeated fixes in same scope suggest underlying issue`,
-      )
-    }
-  }
-
-  return patterns
-}
-
-/** Analyze state.json findings for issues */
-function analyzeStateFindings(state: State): string[] {
-  const insights: string[] = []
-
-  // Check for checks that always pass across all domains
-  const allFindings = Object.values(state.lastFindings).flat()
-  if (allFindings.length === 0) {
-    insights.push("No scan results in state.json \u2014 run `bun sop scan --all` first")
-    return insights
-  }
-
-  // Group findings by check id
-  const byCheck = new Map<string, Finding[]>()
-  for (const f of allFindings) {
-    const key = `${f.domain}.${f.check}`
-    const list = byCheck.get(key) ?? []
-    list.push(f)
-    byCheck.set(key, list)
-  }
-
-  // Look for checks that always error (may be misconfigured)
-  for (const [key, findings] of byCheck) {
-    if (findings.every((f) => f.status === "error")) {
-      const summary = findings[0]?.summary ?? ""
-      insights.push(
-        `${key} always fails ("${summary}") \u2192 May be misconfigured or permanently broken`,
-      )
-    }
-  }
-
-  // Look for findings with "skipped" or "not found" in summary (false pass)
-  for (const f of allFindings) {
-    if (
-      f.status === "pass" &&
-      (/\bskip/i.test(f.summary) || /\bnot found\b/i.test(f.summary) || /\bnot available\b/i.test(f.summary))
-    ) {
-      insights.push(
-        `${f.domain}.${f.check} reported pass but summary says "${f.summary}" \u2192 Distinguish skipped from passed`,
-      )
-    }
-  }
-
-  // Look for checks with "failed to run" in summary
-  for (const f of allFindings) {
-    if (/failed to run/i.test(f.summary)) {
-      insights.push(
-        `${f.domain}.${f.check}: "${f.summary}" \u2192 Check command may need updating`,
-      )
-    }
-  }
-
-  return insights
-}
-
-/** Analyze for potential new anti-patterns */
-function analyzeAntiPatterns(
-  gitLog: string,
-  beadsOutput: string,
-  rulesContent: string,
-): string[] {
-  const candidates: string[] = []
-
-  // Check if npm audit is being used in a bun project without noting it
-  if (
-    gitLog.includes("npm audit") &&
-    !rulesContent.includes("npm audit in non-npm project") &&
-    !rulesContent.includes("npm audit in bun")
-  ) {
-    candidates.push(
-      'npm audit used in bun project \u2192 Add to _sop-rules.md anti-pattern table',
-    )
-  }
-
-  // Check if "baseline" appears heavily in git log (baseline-reset pattern)
-  const baselineCount = (gitLog.match(/baseline/gi) ?? []).length
-  if (baselineCount >= 3) {
-    const alreadyDocumented = rulesContent.includes("Baseline reset as")
-    if (!alreadyDocumented) {
-      candidates.push(
-        `Baseline reset appeared ${baselineCount}x in recent commits \u2192 Document the baseline-reset anti-pattern`,
-      )
-    }
-  }
-
-  // Check if beads output shows stale claimed beads (claimed but no activity)
-  if (beadsOutput.includes("claimed") || beadsOutput.includes("in_progress")) {
-    const claimedLines = beadsOutput
-      .split("\n")
-      .filter((l) => /claimed|in.progress/i.test(l))
-    if (claimedLines.length > 5) {
-      candidates.push(
-        `${claimedLines.length} beads in claimed/in-progress state \u2192 Consider stale-claim detection`,
-      )
-    }
-  }
-
-  return candidates
-}
-
-/** Analyze for missing checks */
-function analyzeMissingChecks(gitLog: string, state: State): string[] {
-  const missing: string[] = []
-
-  // Check if we have submodule checks
-  const hasSubmoduleCheck = DOMAINS.some((d) =>
-    d.checks.some((c) => c.id.includes("submodule") || c.command.includes("submodule")),
-  )
-  if (!hasSubmoduleCheck && gitLog.includes("vendor")) {
-    missing.push(
-      "No check for submodule state (vendor/* clean/dirty)",
-    )
-  }
-
-  // Check if we track bun.lock consistency beyond lockfile-integrity
-  const hasLockConsistency = DOMAINS.some((d) =>
-    d.checks.some((c) => c.command.includes("bun.lock") || c.id === "lockfile-integrity"),
-  )
-  if (!hasLockConsistency) {
-    missing.push(
-      "No check for bun.lock consistency (lockfile matches package.json)",
-    )
-  }
-
-  // Check for git worktree state check
-  const hasWorktreeCheck = DOMAINS.some((d) =>
-    d.checks.some((c) => c.id.includes("worktree") || c.command.includes("worktree")),
-  )
-  if (!hasWorktreeCheck) {
-    missing.push(
-      "No check for leftover git worktrees",
-    )
-  }
-
-  // Check if any domain in state had findings with "non-JSON output" (suggests wrong tool)
-  const allFindings = Object.values(state.lastFindings).flat()
-  const jsonParseFailures = allFindings.filter((f) =>
-    /non-JSON/i.test(f.summary) || /could not parse/i.test(f.summary),
-  )
-  if (jsonParseFailures.length > 0) {
-    for (const f of jsonParseFailures) {
-      missing.push(
-        `${f.domain}.${f.check} produces unparseable output \u2192 Fix parser or switch to structured output`,
-      )
-    }
-  }
-
-  return missing
-}
-
-// ─── CLI ────────────────────────────────────────────────────────────────────
+// ─── Domain resolution ──────────────────────────────────────────────────────
 
 const DOMAIN_NAMES = DOMAINS.map((d) => d.id).join(", ")
 
@@ -1913,94 +351,211 @@ function resolveDomains(args: string[], all: boolean, state: State): DomainDef[]
   return DOMAINS.filter((d) => isDue(d, state))
 }
 
-async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
+// ─── Scan command ───────────────────────────────────────────────────────────
+
+async function runScan(domainsToRun: DomainDef[], state: State, force: boolean): Promise<void> {
   if (domainsToRun.length === 0) {
     console.log(s.green("No domains due for scanning."))
     renderStatus(state)
     return
   }
 
-  console.error(
-    s.bold.blueBright(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
-  )
-  console.error()
-
   const scanStart = performance.now()
-  state.lastDomainTimings ??= {}
+  const domainIds = domainsToRun.map((d) => d.id)
 
+  // Run tools via sop-runner
+  await runToolsForDomains(domainIds, force)
+
+  // Read results from cache
+  state.lastDomainTimings ??= {}
   for (const domain of domainsToRun) {
-    console.error(s.bold.blueBright(`[${domain.id}]`))
-    const { findings, durationMs } = await runDomain(domain)
+    const domainStart = performance.now()
+    const findings = readDomainFindings(domain.id)
     state.lastRun[domain.id] = new Date().toISOString()
     state.lastFindings[domain.id] = findings
-    state.lastDomainTimings[domain.id] = { durationMs }
+    state.lastDomainTimings[domain.id] = { durationMs: performance.now() - domainStart }
   }
 
-  // ── Cross-domain triggers (depth = 1, no cascading) ──
-  const scannedDomains = new Set(domainsToRun.map((d) => d.id))
+  // Cross-domain triggers (depth = 1, no cascading)
+  const scannedDomains = new Set(domainIds)
   const allFindings = domainsToRun.flatMap((d) => state.lastFindings[d.id] ?? [])
   const firedTriggers = evaluateTriggers(allFindings)
 
   if (firedTriggers.length > 0) {
-    console.error()
-    console.error(s.bold.blueBright("Cross-domain triggers:"))
-
     for (const ft of firedTriggers) {
-      const targetDomainId = ft.trigger.target.domain
-      const targetCheck = ft.trigger.target.check
-      const tag = targetCheck
-        ? `${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetDomainId}.${targetCheck}`
-        : `${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetDomainId}`
-      console.error(`  [triggered: ${tag}] ${s.dim(ft.trigger.label)}`)
+      const targetId = ft.trigger.target.domain
+      if (scannedDomains.has(targetId)) continue
 
-      if (scannedDomains.has(targetDomainId)) continue // already scanned, skip
+      scannedDomains.add(targetId)
+      console.error(s.dim(`  [triggered: ${ft.sourceDomain} -> ${targetId}] ${ft.trigger.label}`))
 
-      const targetDomain = DOMAIN_MAP.get(targetDomainId)
-      if (!targetDomain) continue
-
-      scannedDomains.add(targetDomainId)
-
-      if (targetCheck) {
-        // Run only the specific triggered check
-        const check = targetDomain.checks.find((c) => c.id === targetCheck)
-        if (check) {
-          console.error(s.bold.blueBright(`[${targetDomainId} ${s.dim("(triggered)")}]`))
-          process.stderr.write(`  running ${s.dim(`${targetDomainId}.${check.id}`)}...`)
-          const checkStart = performance.now()
-          const finding = await runCheck(check)
-          const icon = statusLabel(finding.status)
-          process.stderr.write(`${icon} ${s.dim(`(${formatDuration(finding.durationMs)})`)}\n`)
-          const durationMs = performance.now() - checkStart
-          state.lastRun[targetDomainId] = new Date().toISOString()
-          state.lastFindings[targetDomainId] = [
-            ...(state.lastFindings[targetDomainId] ?? []).filter((f) => f.check !== targetCheck),
-            finding,
-          ]
-          state.lastDomainTimings[targetDomainId] = { durationMs }
-        }
-      } else {
-        // Run all checks in the target domain
-        console.error(s.bold.blueBright(`[${targetDomainId} ${s.dim("(triggered)")}]`))
-        const { findings, durationMs } = await runDomain(targetDomain)
-        state.lastRun[targetDomainId] = new Date().toISOString()
-        state.lastFindings[targetDomainId] = findings
-        state.lastDomainTimings[targetDomainId] = { durationMs }
-      }
+      // Run tools for triggered domain
+      await runToolsForDomains([targetId], force)
+      const findings = readDomainFindings(targetId)
+      state.lastRun[targetId] = new Date().toISOString()
+      state.lastFindings[targetId] = findings
     }
   }
 
   state.lastFiredTriggers = firedTriggers.length > 0 ? firedTriggers : undefined
   state.lastScanDurationMs = performance.now() - scanStart
   saveState(state)
-  console.error() // blank line between progress and dashboard
   renderDashboard(state)
 }
+
+// ─── Update analysis ───────────────────────────────────────────────────────
+
+async function runUpdate(state: State): Promise<void> {
+  const dateStr = new Date().toISOString().split("T")[0]
+
+  const [gitLogResult, beadsResult, rulesContent] = await Promise.all([
+    runShell("git log --oneline -20"),
+    runShell("bd list --status=open --limit 20 2>&1"),
+    Promise.resolve(readFileSafe(join(REPO_ROOT, ".claude", "skills", "sop", "_sop-rules.md"))),
+  ])
+
+  const commitPatterns = analyzeCommitPatterns(gitLogResult.stdout)
+  const stateInsights = analyzeStateFindings(state)
+  const antiPatternCandidates = analyzeAntiPatterns(gitLogResult.stdout, beadsResult.stdout, rulesContent)
+
+  console.log()
+  console.log(s.bold.yellow(`SOP Update Analysis \u2014 ${dateStr}`))
+
+  if (commitPatterns.length > 0) {
+    console.log()
+    console.log(s.bold.blueBright("  Recent maintenance patterns:"))
+    for (const p of commitPatterns) console.log(`    - ${p}`)
+  }
+
+  if (antiPatternCandidates.length > 0) {
+    console.log()
+    console.log(s.bold.blueBright("  Anti-pattern candidates:"))
+    for (const a of antiPatternCandidates) console.log(`    - ${s.red(a)}`)
+  }
+
+  if (stateInsights.length > 0) {
+    console.log()
+    console.log(s.bold.blueBright("  State insights:"))
+    for (const si of stateInsights) console.log(`    - ${si}`)
+  }
+
+  if (commitPatterns.length === 0 && antiPatternCandidates.length === 0 && stateInsights.length === 0) {
+    console.log()
+    console.log(s.green("  No improvements identified. SOP checks look healthy."))
+  }
+
+  console.log()
+}
+
+async function runShell(cmd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  try {
+    const proc = Bun.spawn(["bash", "-c", cmd], {
+      cwd: REPO_ROOT,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, FORCE_COLOR: "0" },
+    })
+    const stdout = await new Response(proc.stdout).text()
+    const stderr = await new Response(proc.stderr).text()
+    const exitCode = await proc.exited
+    return { stdout, stderr, exitCode }
+  } catch {
+    return { stdout: "", stderr: "", exitCode: 1 }
+  }
+}
+
+function readFileSafe(path: string): string {
+  try { return readFileSync(path, "utf-8") } catch { return "" }
+}
+
+function analyzeCommitPatterns(gitLog: string): string[] {
+  const patterns: string[] = []
+  const lines = gitLog.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (lines.length === 0) return patterns
+  const messages = lines.map((l) => l.replace(/^[a-f0-9]+\s+/, ""))
+
+  const keywordPatterns: Array<{ regex: RegExp; label: string; suggestion: string }> = [
+    { regex: /\btypecheck\s*baseline\b/i, label: "typecheck baseline", suggestion: "auto-baseline check in code domain" },
+    { regex: /\bbaseline\b/i, label: "baseline update", suggestion: "baseline-reset anti-pattern detection" },
+    { regex: /\bfix\(.*\):/i, label: "bug fix", suggestion: "regression detection for repeated fixes in same scope" },
+    { regex: /\brevert\b/i, label: "revert", suggestion: "revert frequency tracking" },
+  ]
+
+  const keywordCounts = new Map<string, number>()
+  for (const msg of messages) {
+    for (const kp of keywordPatterns) {
+      if (kp.regex.test(msg)) keywordCounts.set(kp.label, (keywordCounts.get(kp.label) ?? 0) + 1)
+    }
+  }
+  for (const kp of keywordPatterns) {
+    const count = keywordCounts.get(kp.label) ?? 0
+    if (count >= 2) patterns.push(`"${kp.label}" appeared in ${count} of last ${messages.length} commits \u2192 Consider: ${kp.suggestion}`)
+  }
+
+  const fixScopes = new Map<string, number>()
+  for (const msg of messages) {
+    const match = msg.match(/^fix\(([^)]+)\):/)
+    if (match) fixScopes.set(match[1]!, (fixScopes.get(match[1]!) ?? 0) + 1)
+  }
+  for (const [scope, count] of fixScopes) {
+    if (count >= 2) patterns.push(`fix(${scope}) committed ${count}x \u2192 Repeated fixes in same scope suggest underlying issue`)
+  }
+
+  return patterns
+}
+
+function analyzeStateFindings(state: State): string[] {
+  const insights: string[] = []
+  const allFindings = Object.values(state.lastFindings).flat()
+  if (allFindings.length === 0) {
+    insights.push("No scan results in state.json \u2014 run `bun sop scan --all` first")
+    return insights
+  }
+
+  // Group by tool, check for always-failing
+  const byTool = new Map<string, Finding[]>()
+  for (const f of allFindings) {
+    const key = `${f.domain}.${f.tool}`
+    const list = byTool.get(key) ?? []
+    list.push(f)
+    byTool.set(key, list)
+  }
+
+  for (const [key, findings] of byTool) {
+    if (findings.every((f) => f.status === "warn" || f.status === "error")) {
+      insights.push(`${key} always fails \u2192 May be misconfigured or permanently broken`)
+    }
+  }
+
+  return insights
+}
+
+function analyzeAntiPatterns(gitLog: string, beadsOutput: string, rulesContent: string): string[] {
+  const candidates: string[] = []
+
+  const baselineCount = (gitLog.match(/baseline/gi) ?? []).length
+  if (baselineCount >= 3 && !rulesContent.includes("Baseline reset as")) {
+    candidates.push(`Baseline reset appeared ${baselineCount}x in recent commits \u2192 Document the baseline-reset anti-pattern`)
+  }
+
+  if (beadsOutput.includes("claimed") || beadsOutput.includes("in_progress")) {
+    const claimedLines = beadsOutput.split("\n").filter((l) => /claimed|in.progress/i.test(l))
+    if (claimedLines.length > 5) {
+      candidates.push(`${claimedLines.length} beads in claimed/in-progress state \u2192 Consider stale-claim detection`)
+    }
+  }
+
+  return candidates
+}
+
+// ─── CLI ────────────────────────────────────────────────────────────────────
 
 const program = new Command()
 program
   .name("sop")
-  .description("SOP — Standard Operating Procedure orchestrator")
+  .description("SOP \u2014 Standard Operating Procedure orchestrator")
   .addHelpSection("Domains:", DOMAIN_NAMES)
+  .addHelpSection("Tools:", `Run 'bun tools/sop-runner.ts --help' for tool list`)
   .addHelpSection("Examples:", [
     ["$ sop scan", "Run due domains"],
     ["$ sop scan --all", "Run all regardless of cadence"],
@@ -2016,10 +571,11 @@ program
   .description("Run checks for specified domains (or all due)")
   .argument("[domains...]", `Domain(s) to scan (${DOMAIN_NAMES})`)
   .option("--all", "Run all domains regardless of cadence")
-  .action(async (domains: string[], opts: { all?: boolean }) => {
+  .option("--force", "Bypass tool cache")
+  .action(async (domains: string[], opts: { all?: boolean; force?: boolean }) => {
     const state = loadState()
     const domainsToRun = resolveDomains(domains, opts.all ?? false, state)
-    await runScan(domainsToRun, state)
+    await runScan(domainsToRun, state, opts.force ?? false)
   })
 
 program
@@ -2044,13 +600,21 @@ program
 program
   .command("update")
   .description("Analyze session context and propose SOP improvements")
-  .option("--apply", "(future) Auto-write proposed changes")
-  .action(async (opts: { apply?: boolean }) => {
+  .action(async () => {
     const state = loadState()
-    await runUpdate(state, opts.apply ?? false)
+    await runUpdate(state)
   })
 
-program.parseAsync().catch((err: unknown) => {
-  log.error?.(err instanceof Error ? err : new Error(String(err)), "fatal error")
-  process.exitCode = 1
-})
+program
+  .command("help")
+  .description("Show help")
+  .action(() => {
+    program.outputHelp()
+  })
+
+if (import.meta.main) {
+  program.parseAsync().catch((err: unknown) => {
+    log.error?.(err instanceof Error ? err : new Error(String(err)), "fatal error")
+    process.exitCode = 1
+  })
+}

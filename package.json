@@ -65,6 +65,7 @@
     "llm": "bun vendor/bearly/tools/llm.ts",
     "refactor": "bun vendor/bearly/tools/refactor.ts",
     "sop": "bun tools/sop.ts",
+    "sop-runner": "bun tools/sop-runner.ts",
     "tap": "bun ./vendor/tap/src/cli/runner.ts",
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "lint": "bash packages/km-infra/scripts/lint.sh",

@@ -69,9 +69,22 @@ If any actions were executed, update the tracking bead with results.
 /sop update       # Meta: update SOP itself from current context
 ```
 
-### CLI Tool (`tools/sop.ts`)
+### Two-layer architecture
 
-Mechanical check runner — runs shell commands, parses output, tracks cadence, renders dashboard.
+**Layer 1 — Tool Runner** (`tools/sop-runner.ts`): Cached DAG executor using Bun builtins. Runs shell commands, caches outputs in `.sop-cache/`, skips unchanged. Zero library deps.
+
+```bash
+bun tools/sop-runner.ts              # Run all tools
+bun tools/sop-runner.ts tsc lint     # Run specific tools
+bun tools/sop-runner.ts --domains code packages  # Run tools for domains
+bun tools/sop-runner.ts --force      # Bypass cache
+bun tools/sop-runner.ts --json       # Machine-readable output
+bun tools/sop-runner.ts --status     # Show cache state
+```
+
+Task definitions live in `tools/sop-tools.ts` — the **single source of truth** for what commands run. Each task has: id, label, command, cache strategy (git/TTL/none), and optional dependencies. One tool can serve multiple domains (e.g., `knip` serves both code and packages; `bun-audit` serves security and inbound).
+
+**Layer 2 — Domain Orchestrator** (`tools/sop.ts`): Domain-aware layer. Adds cadence, triggers, dashboard. Delegates tool execution to sop-runner.
 
 ```bash
 bun tools/sop.ts scan              # Run due domains
@@ -80,12 +93,12 @@ bun tools/sop.ts scan code         # Just code domain
 bun tools/sop.ts scan code backlog # Multiple domains
 bun tools/sop.ts status            # What's due, last run times
 bun tools/sop.ts dashboard         # Last results
-bun tools/sop.ts help              # Show usage
 ```
 
 State persisted to `.claude/skills/sop/state.json` (last run times + findings per domain).
+Tool outputs cached in `.sop-cache/<task-id>.out` + `.sop-cache/<task-id>.meta`.
 
-Domain definitions and check parsers are exported from `tools/sop.ts` as `DOMAINS` for programmatic access.
+Domain definitions exported from `tools/sop.ts` as `DOMAINS`. Tool definitions from `tools/sop-tools.ts` as `TASKS`.
 
 ### `/sop update` — self-improvement
 
