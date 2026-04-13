@@ -282,11 +282,47 @@ Checklist when replacing parseArgs/custom help:
 - [ ] `$ ` prefix on example terms triggers auto-colorization of the command
 - [ ] Run `<tool> --help` after conversion and compare with the old output
 ```typescript
-program.addHelpSection("Examples", `
-  $ npx terminfo.dev test          Test this terminal
-  $ npx terminfo.dev submit        Test + submit results
-`)
+program.addHelpSection("Examples:", [
+  ["$ terminfo test", "Test this terminal"],
+  ["$ terminfo submit", "Test + submit results"],
+])
 ```
+
+### CLI Output Typography (createStyle)
+
+For CLI tools that output to stdout/stderr (not fullscreen TUI), apply the same typography hierarchy from the Styling Guide using `createStyle`:
+
+```typescript
+import { createStyle } from "@silvery/ansi"
+const s = createStyle()
+
+// H1 — major titles (cyan + bold = $primary equivalent)
+console.log(s.bold.cyan("SOP Report — 2026-04-13"))
+
+// H2 — section headers (magenta + bold = $accent equivalent)
+console.error(s.bold.magenta("[code]"))
+console.log(s.bold.magenta("Details:"))
+
+// H3 — bold alone (only for sub-items)
+console.log(s.bold("check-name"))
+
+// Body — plain text
+console.log("6227 tests pass")
+
+// Muted — timings, metadata, dates
+console.log(s.dim("[12.6s]"))
+
+// Status colors
+console.log(s.green("✓"), "pass")
+console.log(s.yellow("⚠"), "warn")
+console.log(s.red("✗"), "error")
+```
+
+**CRITICAL: Always set a color with bold.** Using `s.bold(text)` alone inherits the previous ANSI color state — if the last output was red (e.g., FAIL status), the bold text will also be red. Always pair bold with an explicit color: `s.bold.cyan(...)`, `s.bold.magenta(...)`, etc.
+
+**No manual padding.** Don't use `padEnd()`, `padStart()`, or `' '.repeat()` for column alignment in CLI output. That's the same anti-pattern as manual layout in TUI components. Let text flow naturally, or use tab characters for simple alignment.
+
+**Use program name, not `bun <tool>`.** In `addHelpSection("Examples:", ...)`, use the `.name()` you set on the program (e.g., `$ sop scan`), not `$ bun sop scan` or `$ bun tools/sop.ts scan`.
 
 ### Hyperlinks
 ```typescript
