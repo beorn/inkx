@@ -358,32 +358,44 @@ function parseUntriagedIssues(stdout: string, _: string, exitCode: number): Find
   }
 }
 
-function parseNpmAudit(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
+/** Parse bun audit --json output: { [pkg]: [{severity, title}, ...], ... } */
+function parseBunAuditFindings(stdout: string): { total: number; critical: number; high: number; moderate: number; details: string } | null {
+  // bun audit --json prepends a header line before the JSON; extract JSON
+  const jsonStart = stdout.indexOf("{")
+  if (jsonStart === -1) return null
+  const json = stdout.slice(jsonStart)
+  const audit = JSON.parse(json) as Record<string, Array<{ severity: string; title: string }>>
+  const counts = { critical: 0, high: 0, moderate: 0, low: 0, total: 0 }
+  const lines: string[] = []
+  for (const [pkg, advisories] of Object.entries(audit)) {
+    for (const a of advisories) {
+      counts.total++
+      if (a.severity === "critical") counts.critical++
+      else if (a.severity === "high") counts.high++
+      else if (a.severity === "moderate") counts.moderate++
+      else counts.low++
+      lines.push(`${a.severity}: ${pkg} — ${a.title}`)
+    }
+  }
+  return { ...counts, details: lines.slice(0, 10).join("\n") }
+}
+
+function parseNpmAudit(stdout: string): Finding {
+  if (!stdout.includes("{")) {
     return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
   }
   try {
-    const audit = JSON.parse(stdout) as {
-      metadata?: { vulnerabilities?: Record<string, number> }
-    }
-    const vulns = audit.metadata?.vulnerabilities
-    if (!vulns) {
+    const result = parseBunAuditFindings(stdout)
+    if (!result || result.total === 0) {
       return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
     }
-    const total = Object.values(vulns).reduce((a, b) => a + b, 0)
-    if (total === 0) {
-      return { check: "unpatched-cves", domain: "inbound", status: "pass", summary: "0 CVEs", durationMs: 0 }
-    }
-    const critHigh = (vulns["critical"] ?? 0) + (vulns["high"] ?? 0)
+    const critHigh = result.critical + result.high
     return {
       check: "unpatched-cves",
       domain: "inbound",
       status: critHigh > 0 ? "error" : "warn",
-      summary: `${total} CVE(s) (${critHigh} critical/high)`,
-      details: Object.entries(vulns)
-        .filter(([, v]) => v > 0)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(", "),
+      summary: `${result.total} CVE(s) (${critHigh} critical/high)`,
+      details: result.details,
       durationMs: 0,
     }
   } catch {
@@ -391,7 +403,7 @@ function parseNpmAudit(stdout: string, _: string, exitCode: number): Finding {
       check: "unpatched-cves",
       domain: "inbound",
       status: "warn",
-      summary: "npm audit produced non-JSON output",
+      summary: "bun audit produced non-JSON output",
       details: stdout.slice(-300),
       durationMs: 0,
     }
@@ -461,47 +473,31 @@ const parseFreshness = parseByCounting({
 
 // ─── V2 check parsers ──────────────────────────────────────────────────────
 
-function parseCveScan(stdout: string, _: string, exitCode: number): Finding {
-  if (exitCode === 0) {
+function parseCveScan(stdout: string): Finding {
+  if (!stdout.includes("{")) {
     return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
   }
   try {
-    const audit = JSON.parse(stdout) as {
-      metadata?: { vulnerabilities?: Record<string, number> }
-    }
-    const vulns = audit.metadata?.vulnerabilities
-    if (!vulns) {
+    const result = parseBunAuditFindings(stdout)
+    if (!result || result.total === 0) {
       return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
     }
-    const critical = vulns["critical"] ?? 0
-    const high = vulns["high"] ?? 0
-    const moderate = vulns["moderate"] ?? 0
-    const total = Object.values(vulns).reduce((a, b) => a + b, 0)
-    if (total === 0) {
-      return { check: "cve-scan", domain: "security", status: "pass", summary: "0 vulnerabilities", durationMs: 0 }
-    }
-    if (critical > 0 || high > 0) {
+    if (result.critical > 0 || result.high > 0) {
       return {
         check: "cve-scan",
         domain: "security",
         status: "error",
-        summary: `${critical} critical, ${high} high, ${moderate} moderate`,
-        details: Object.entries(vulns)
-          .filter(([, v]) => v > 0)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(", "),
+        summary: `${result.critical} critical, ${result.high} high, ${result.moderate} moderate`,
+        details: result.details,
         durationMs: 0,
       }
     }
     return {
       check: "cve-scan",
       domain: "security",
-      status: moderate > 0 ? "warn" : "pass",
-      summary: `${moderate} moderate vulnerability(ies)`,
-      details: Object.entries(vulns)
-        .filter(([, v]) => v > 0)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(", "),
+      status: result.moderate > 0 ? "warn" : "pass",
+      summary: `${result.moderate} moderate vulnerability(ies)`,
+      details: result.details,
       durationMs: 0,
     }
   } catch {
@@ -509,7 +505,7 @@ function parseCveScan(stdout: string, _: string, exitCode: number): Finding {
       check: "cve-scan",
       domain: "security",
       status: "warn",
-      summary: "npm audit produced non-JSON output",
+      summary: "bun audit produced non-JSON output",
       details: stdout.slice(-300),
       durationMs: 0,
     }
@@ -592,12 +588,18 @@ function parseCjsEsmCompat(stdout: string, _: string, exitCode: number): Finding
     }
   }
   const hasProblems = stdout.includes("\u2717") || stdout.includes("problem") || stdout.includes("error")
+  // Strip table borders and blank lines from attw output
+  const cleanDetails = stdout
+    .split("\n")
+    .filter((l) => !/^[─│┼┌┐└┘├┤┬┴╭╮╰╯╶╴\s]*$/.test(l) && l.trim().length > 0)
+    .slice(-5)
+    .join("\n")
   return {
     check: "cjs-esm-compat",
     domain: "packaging",
     status: hasProblems ? "warn" : "pass",
     summary: hasProblems ? "CJS/ESM compat issues found" : "CJS/ESM compat OK",
-    details: stdout.slice(-500),
+    details: cleanDetails,
     durationMs: 0,
   }
 }
@@ -831,7 +833,7 @@ export const DOMAINS: DomainDef[] = [
         id: "unpatched-cves",
         domain: "inbound",
         label: "unpatched CVEs",
-        command: "bun pm audit --json 2>&1 || echo '{}'",
+        command: "bun audit --json 2>/dev/null || true",
         cadence: "weekly",
         approval: "auto",
         parse: parseNpmAudit,
@@ -919,7 +921,7 @@ export const DOMAINS: DomainDef[] = [
         id: "cve-scan",
         domain: "security",
         label: "CVE scan",
-        command: "bun pm audit --json 2>&1 || echo '{}'",
+        command: "bun audit --json 2>/dev/null || true",
         cadence: "weekly",
         approval: "auto",
         parse: parseCveScan,
@@ -929,7 +931,7 @@ export const DOMAINS: DomainDef[] = [
         domain: "security",
         label: "secret scan",
         command:
-          'grep -rn "sk-[a-zA-Z0-9]\\{20,\\}\\|AKIA[A-Z0-9]\\{16\\}\\|ghp_[a-zA-Z0-9]\\{36\\}\\|gho_[a-zA-Z0-9]\\{36\\}\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.beads . 2>&1',
+          'grep -rn "sk-[a-zA-Z0-9]\\{20,\\}\\|AKIA[A-Z0-9]\\{16\\}\\|ghp_[a-zA-Z0-9]\\{36\\}\\|gho_[a-zA-Z0-9]\\{36\\}\\|-----BEGIN.*PRIVATE KEY" --include="*.ts" --include="*.js" --include="*.json" --include="*.env" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.beads --exclude-dir=dist --exclude-dir=.km --exclude-dir=.claude --exclude=sop.ts --exclude="*.lock" --exclude="*.jsonl" . 2>&1',
         cadence: "weekly",
         approval: "auto",
         parse: parseSecretScan,
@@ -1177,30 +1179,26 @@ function renderDashboard(state: State): void {
   const dateStr = now.toISOString().split("T")[0]
 
   console.log()
-  console.log(s.bold(`SOP Report \u2014 ${dateStr}`))
+  console.log(s.bold.cyan(`SOP Report \u2014 ${dateStr}`))
   console.log()
-
-  // Determine column width for domain names
-  const maxLen = Math.max(...DOMAINS.map((d) => d.id.length))
 
   for (const domain of DOMAINS) {
     const findings = state.lastFindings[domain.id]
     const hasFindings = findings && findings.length > 0
     const hasIssues = hasFindings && findings.some((f) => f.status !== "pass")
-    const padded = domain.id.padEnd(maxLen)
-    const domainLabel = hasIssues ? s.bold(padded) : hasFindings ? padded : s.dim(padded)
+    const domainLabel = hasIssues ? s.bold(domain.id) : hasFindings ? domain.id : s.dim(domain.id)
 
     if (!hasFindings) {
       const lastRun = state.lastRun[domain.id]
       if (lastRun) {
-        console.log(`  ${domainLabel}    \u2014 ${s.dim(`last run ${lastRun.split("T")[0]}`)}`)
+        console.log(`  ${domainLabel} \u2014 ${s.dim(`last run ${lastRun.split("T")[0]}`)}`)
       } else {
-        console.log(`  ${domainLabel}    \u2014 ${s.dim("never run")}`)
+        console.log(`  ${domainLabel} \u2014 ${s.dim("never run")}`)
       }
     } else {
       const domainTiming = state.lastDomainTimings?.[domain.id]
       const summary = domainSummary(domain.id, findings, domainTiming)
-      console.log(`  ${domainLabel}    ${summary}`)
+      console.log(`  ${domainLabel} ${summary}`)
     }
   }
 
@@ -1221,7 +1219,7 @@ function renderDashboard(state: State): void {
   // Triggered cross-domain checks (before "Next due:")
   if (state.lastFiredTriggers && state.lastFiredTriggers.length > 0) {
     console.log()
-    console.log(s.bold("  Triggers fired:"))
+    console.log(s.bold.magenta("  Triggers fired:"))
     for (const ft of state.lastFiredTriggers) {
       const targetStr = ft.trigger.target.check
         ? `${ft.trigger.target.domain}.${ft.trigger.target.check}`
@@ -1246,7 +1244,7 @@ function renderDashboard(state: State): void {
       .slice(0, 3)
       .map((d) => `${d.id} ${s.dim(`(${d.next})`)}`)
       .join(", ")
-    console.log(`  Next due: ${nextStr}`)
+    console.log(`  ${s.bold.magenta("Next due:")} ${nextStr}`)
   }
 
   console.log()
@@ -1254,7 +1252,7 @@ function renderDashboard(state: State): void {
   // Details for non-pass findings (truncated, dim)
   const nonPass = allFindings.filter((f) => f.status !== "pass" && f.details)
   if (nonPass.length > 0) {
-    console.log(s.bold("  Details:"))
+    console.log(s.bold.magenta("  Details:"))
     for (const f of nonPass) {
       const truncated = f.details!.split("\n").slice(0, 3).join("\n        ")
       console.log(`    ${s.dim(`${f.domain}.${f.check}:`)} ${s.dim(truncated)}`)
@@ -1267,13 +1265,10 @@ function renderDashboard(state: State): void {
 
 function renderStatus(state: State): void {
   console.log()
-  console.log(s.bold("SOP Domain Status"))
+  console.log(s.bold.cyan("SOP Domain Status"))
   console.log()
 
-  const maxLen = Math.max(...DOMAINS.map((d) => d.id.length))
-
   for (const domain of DOMAINS) {
-    const padded = domain.id.padEnd(maxLen)
     const due = isDue(domain, state)
     const lastRun = state.lastRun[domain.id]
     const lastStr = lastRun ? lastRun.split("T")[0]! : s.dim("never")
@@ -1281,7 +1276,7 @@ function renderStatus(state: State): void {
     const dueTag = due ? s.yellow.bold(" [DUE]") : ""
 
     console.log(
-      `  ${padded}    cadence=${domain.cadence.padEnd(9)}  last=${lastStr}  next=${next!}${dueTag}`,
+      `  ${domain.id} ${s.dim(domain.cadence)} last=${lastStr} next=${next!}${dueTag}`,
     )
   }
 
@@ -1327,11 +1322,11 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   // 6. Produce structured report
   console.log()
-  console.log(s.bold(`SOP Update Analysis \u2014 ${dateStr}`))
+  console.log(s.bold.cyan(`SOP Update Analysis \u2014 ${dateStr}`))
 
   if (commitPatterns.length > 0) {
     console.log()
-    console.log(s.bold("  Recent maintenance patterns:"))
+    console.log(s.bold.magenta("  Recent maintenance patterns:"))
     for (const p of commitPatterns) {
       console.log(`    - ${p}`)
     }
@@ -1339,7 +1334,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (antiPatternCandidates.length > 0) {
     console.log()
-    console.log(s.bold("  Anti-pattern candidates:"))
+    console.log(s.bold.magenta("  Anti-pattern candidates:"))
     for (const a of antiPatternCandidates) {
       console.log(`    - ${s.red(a)}`)
     }
@@ -1347,7 +1342,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (stateInsights.length > 0) {
     console.log()
-    console.log(s.bold("  State insights:"))
+    console.log(s.bold.magenta("  State insights:"))
     for (const si of stateInsights) {
       console.log(`    - ${si}`)
     }
@@ -1355,7 +1350,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (missingChecks.length > 0) {
     console.log()
-    console.log(s.bold("  Missing checks:"))
+    console.log(s.bold.magenta("  Missing checks:"))
     for (const m of missingChecks) {
       console.log(`    - ${m}`)
     }
@@ -1378,7 +1373,7 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (proposals.length > 0) {
     console.log()
-    console.log(s.bold("  Proposed changes:"))
+    console.log(s.bold.magenta("  Proposed changes:"))
     for (let i = 0; i < proposals.length; i++) {
       console.log(`    ${s.yellow(`${i + 1}.`)} [${proposals[i]!.file}] ${proposals[i]!.description}`)
     }
@@ -1676,7 +1671,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   }
 
   console.error(
-    s.bold(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
+    s.bold.magenta(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
   )
   console.error()
 
@@ -1684,7 +1679,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   state.lastDomainTimings ??= {}
 
   for (const domain of domainsToRun) {
-    console.error(s.bold(`[${domain.id}]`))
+    console.error(s.bold.magenta(`[${domain.id}]`))
     const { findings, durationMs } = await runDomain(domain)
     state.lastRun[domain.id] = new Date().toISOString()
     state.lastFindings[domain.id] = findings
@@ -1698,7 +1693,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
 
   if (firedTriggers.length > 0) {
     console.error()
-    console.error(s.bold("Cross-domain triggers:"))
+    console.error(s.bold.magenta("Cross-domain triggers:"))
 
     for (const ft of firedTriggers) {
       const targetDomainId = ft.trigger.target.domain
@@ -1719,7 +1714,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         // Run only the specific triggered check
         const check = targetDomain.checks.find((c) => c.id === targetCheck)
         if (check) {
-          console.error(s.bold(`[${targetDomainId} ${s.dim("(triggered)")}]`))
+          console.error(s.bold.magenta(`[${targetDomainId} ${s.dim("(triggered)")}]`))
           process.stderr.write(`  running ${s.dim(`${targetDomainId}.${check.id}`)}...`)
           const checkStart = performance.now()
           const finding = await runCheck(check)
@@ -1735,7 +1730,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         }
       } else {
         // Run all checks in the target domain
-        console.error(s.bold(`[${targetDomainId} ${s.dim("(triggered)")}]`))
+        console.error(s.bold.magenta(`[${targetDomainId} ${s.dim("(triggered)")}]`))
         const { findings, durationMs } = await runDomain(targetDomain)
         state.lastRun[targetDomainId] = new Date().toISOString()
         state.lastFindings[targetDomainId] = findings
