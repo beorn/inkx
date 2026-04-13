@@ -41,6 +41,7 @@
         "@playwright/test": "^1.58.2",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
+        "@silvery/ansi": "workspace:*",
         "@silvery/commander": "workspace:*",
         "@silvery/commands": "workspace:*",
         "@silvery/create": "workspace:*",

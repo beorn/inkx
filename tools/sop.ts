@@ -18,7 +18,12 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { Command } from "@silvery/commander"
+import { createStyle } from "@silvery/ansi"
 import { createLogger } from "loggily"
+
+// ─── Styles ────────────────────────────────────────────────────────────────
+
+const s = createStyle()
 
 // ─── Logging ────────────────────────────────────────────────────────────────
 
@@ -1114,9 +1119,9 @@ async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; dura
 
   const findings: Finding[] = []
   for (const check of domain.checks) {
-    process.stderr.write(`  running ${domain.id}.${check.id}...`)
+    process.stderr.write(`  running ${s.dim(`${domain.id}.${check.id}`)}...`)
     const finding = await runCheck(check)
-    process.stderr.write(`${statusLabel(finding.status)} (${formatDuration(finding.durationMs)})\n`)
+    process.stderr.write(`${statusLabel(finding.status)} ${s.dim(`(${formatDuration(finding.durationMs)})`)}\n`)
     findings.push(finding)
   }
 
@@ -1128,27 +1133,27 @@ async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; dura
 
 // ─── Dashboard rendering ────────────────────────────────────────────────────
 
-/** Unicode icon for dashboard output */
+/** Colored Unicode icon for dashboard output */
 function statusIcon(status: Status): string {
   switch (status) {
     case "pass":
-      return "\u2713"
+      return s.green("\u2713")
     case "warn":
-      return "\u26A0"
+      return s.yellow("\u26A0")
     case "error":
-      return "\u2717"
+      return s.red("\u2717")
   }
 }
 
-/** Plain-text label for progress output (stderr) */
+/** Colored label for progress output (stderr) */
 function statusLabel(status: Status): string {
   switch (status) {
     case "pass":
-      return " ok"
+      return s.green(" ok")
     case "warn":
-      return " warn"
+      return s.yellow(" warn")
     case "error":
-      return " FAIL"
+      return s.red.bold(" FAIL")
   }
 }
 
@@ -1162,13 +1167,8 @@ function domainSummary(domainId: string, findings: Finding[], domainTiming?: Dom
       : "pass"
 
   const icon = statusIcon(worst)
-  const summaries = findings
-    .map((f) => {
-      const dur = f.durationMs > 0 ? ` (${formatDuration(f.durationMs)})` : ""
-      return `${f.summary}${dur}`
-    })
-    .join(", ")
-  const domainDur = domainTiming ? `  [${formatDuration(domainTiming.durationMs)}]` : ""
+  const summaries = findings.map((f) => f.summary).join(", ")
+  const domainDur = domainTiming ? s.dim(`  [${formatDuration(domainTiming.durationMs)}]`) : ""
   return `${icon} ${summaries}${domainDur}`
 }
 
@@ -1177,26 +1177,30 @@ function renderDashboard(state: State): void {
   const dateStr = now.toISOString().split("T")[0]
 
   console.log()
-  console.log(`SOP Report \u2014 ${dateStr}`)
+  console.log(s.bold(`SOP Report \u2014 ${dateStr}`))
   console.log()
 
   // Determine column width for domain names
   const maxLen = Math.max(...DOMAINS.map((d) => d.id.length))
 
   for (const domain of DOMAINS) {
-    const padded = domain.id.padEnd(maxLen)
     const findings = state.lastFindings[domain.id]
-    if (!findings || findings.length === 0) {
+    const hasFindings = findings && findings.length > 0
+    const hasIssues = hasFindings && findings.some((f) => f.status !== "pass")
+    const padded = domain.id.padEnd(maxLen)
+    const domainLabel = hasIssues ? s.bold(padded) : hasFindings ? padded : s.dim(padded)
+
+    if (!hasFindings) {
       const lastRun = state.lastRun[domain.id]
       if (lastRun) {
-        console.log(`  ${padded}    \u2014 last run ${lastRun.split("T")[0]}`)
+        console.log(`  ${domainLabel}    \u2014 ${s.dim(`last run ${lastRun.split("T")[0]}`)}`)
       } else {
-        console.log(`  ${padded}    \u2014 never run`)
+        console.log(`  ${domainLabel}    \u2014 ${s.dim("never run")}`)
       }
     } else {
       const domainTiming = state.lastDomainTimings?.[domain.id]
       const summary = domainSummary(domain.id, findings, domainTiming)
-      console.log(`  ${padded}    ${summary}`)
+      console.log(`  ${domainLabel}    ${summary}`)
     }
   }
 
@@ -1206,22 +1210,24 @@ function renderDashboard(state: State): void {
   const errors = allFindings.filter((f) => f.status === "error").length
 
   console.log()
-  console.log(`  Findings: ${warns} warn, ${errors} error`)
+  const warnStr = warns > 0 ? s.yellow(`${warns} warn`) : `${warns} warn`
+  const errorStr = errors > 0 ? s.red(`${errors} error`) : `${errors} error`
+  console.log(`  Findings: ${warnStr}, ${errorStr}`)
 
   if (state.lastScanDurationMs != null) {
-    console.log(`  Total scan time: ${formatDuration(state.lastScanDurationMs)}`)
+    console.log(s.dim(`  Total scan time: ${formatDuration(state.lastScanDurationMs)}`))
   }
 
-  // Triggered cross-domain checks
+  // Triggered cross-domain checks (before "Next due:")
   if (state.lastFiredTriggers && state.lastFiredTriggers.length > 0) {
     console.log()
-    console.log("  Triggers fired:")
+    console.log(s.bold("  Triggers fired:"))
     for (const ft of state.lastFiredTriggers) {
       const targetStr = ft.trigger.target.check
         ? `${ft.trigger.target.domain}.${ft.trigger.target.check}`
         : ft.trigger.target.domain
       console.log(
-        `    ${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetStr} (${ft.trigger.label})`,
+        `    ${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetStr} ${s.dim(`(${ft.trigger.label})`)}`,
       )
     }
   }
@@ -1238,19 +1244,20 @@ function renderDashboard(state: State): void {
   if (dueDomains.length > 0) {
     const nextStr = dueDomains
       .slice(0, 3)
-      .map((d) => `${d.id} (${d.next})`)
+      .map((d) => `${d.id} ${s.dim(`(${d.next})`)}`)
       .join(", ")
     console.log(`  Next due: ${nextStr}`)
   }
 
   console.log()
 
-  // Details for non-pass findings
+  // Details for non-pass findings (truncated, dim)
   const nonPass = allFindings.filter((f) => f.status !== "pass" && f.details)
   if (nonPass.length > 0) {
-    console.log("  Details:")
+    console.log(s.bold("  Details:"))
     for (const f of nonPass) {
-      console.log(`    ${f.domain}.${f.check}: ${f.details?.split("\n").slice(0, 3).join("\n      ")}`)
+      const truncated = f.details!.split("\n").slice(0, 3).join("\n        ")
+      console.log(`    ${s.dim(`${f.domain}.${f.check}:`)} ${s.dim(truncated)}`)
     }
     console.log()
   }
@@ -1260,7 +1267,7 @@ function renderDashboard(state: State): void {
 
 function renderStatus(state: State): void {
   console.log()
-  console.log("SOP Domain Status")
+  console.log(s.bold("SOP Domain Status"))
   console.log()
 
   const maxLen = Math.max(...DOMAINS.map((d) => d.id.length))
@@ -1269,12 +1276,12 @@ function renderStatus(state: State): void {
     const padded = domain.id.padEnd(maxLen)
     const due = isDue(domain, state)
     const lastRun = state.lastRun[domain.id]
-    const lastStr = lastRun ? lastRun.split("T")[0] : "never"
+    const lastStr = lastRun ? lastRun.split("T")[0]! : s.dim("never")
     const next = nextDueDate(domain, state)
-    const dueTag = due ? " [DUE]" : ""
+    const dueTag = due ? s.yellow.bold(" [DUE]") : ""
 
     console.log(
-      `  ${padded}    cadence=${domain.cadence.padEnd(9)}  last=${lastStr!}  next=${next!}${dueTag}`,
+      `  ${padded}    cadence=${domain.cadence.padEnd(9)}  last=${lastStr}  next=${next!}${dueTag}`,
     )
   }
 
@@ -1320,11 +1327,11 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   // 6. Produce structured report
   console.log()
-  console.log(`SOP Update Analysis \u2014 ${dateStr}`)
+  console.log(s.bold(`SOP Update Analysis \u2014 ${dateStr}`))
 
   if (commitPatterns.length > 0) {
     console.log()
-    console.log("  Recent maintenance patterns:")
+    console.log(s.bold("  Recent maintenance patterns:"))
     for (const p of commitPatterns) {
       console.log(`    - ${p}`)
     }
@@ -1332,23 +1339,23 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
 
   if (antiPatternCandidates.length > 0) {
     console.log()
-    console.log("  Anti-pattern candidates:")
+    console.log(s.bold("  Anti-pattern candidates:"))
     for (const a of antiPatternCandidates) {
-      console.log(`    - ${a}`)
+      console.log(`    - ${s.red(a)}`)
     }
   }
 
   if (stateInsights.length > 0) {
     console.log()
-    console.log("  State insights:")
-    for (const s of stateInsights) {
-      console.log(`    - ${s}`)
+    console.log(s.bold("  State insights:"))
+    for (const si of stateInsights) {
+      console.log(`    - ${si}`)
     }
   }
 
   if (missingChecks.length > 0) {
     console.log()
-    console.log("  Missing checks:")
+    console.log(s.bold("  Missing checks:"))
     for (const m of missingChecks) {
       console.log(`    - ${m}`)
     }
@@ -1363,17 +1370,17 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
   for (const m of missingChecks) {
     proposals.push({ file: "tools/sop.ts", description: `Add check: ${m}` })
   }
-  for (const s of stateInsights) {
-    if (s.includes("always fail") || s.includes("always error")) {
-      proposals.push({ file: "tools/sop.ts", description: `Review: ${s}` })
+  for (const si of stateInsights) {
+    if (si.includes("always fail") || si.includes("always error")) {
+      proposals.push({ file: "tools/sop.ts", description: `Review: ${si}` })
     }
   }
 
   if (proposals.length > 0) {
     console.log()
-    console.log("  Proposed changes:")
+    console.log(s.bold("  Proposed changes:"))
     for (let i = 0; i < proposals.length; i++) {
-      console.log(`    ${i + 1}. [${proposals[i]!.file}] ${proposals[i]!.description}`)
+      console.log(`    ${s.yellow(`${i + 1}.`)} [${proposals[i]!.file}] ${proposals[i]!.description}`)
     }
   }
 
@@ -1384,13 +1391,13 @@ async function runUpdate(state: State, _apply: boolean): Promise<void> {
     missingChecks.length === 0
   ) {
     console.log()
-    console.log("  No improvements identified. SOP checks look healthy.")
+    console.log(s.green("  No improvements identified. SOP checks look healthy."))
   }
 
   if (_apply) {
     console.log()
-    console.log("  --apply is reserved for future use (auto-writing proposed changes).")
-    console.log("  For now, apply proposed changes manually.")
+    console.log(s.dim("  --apply is reserved for future use (auto-writing proposed changes)."))
+    console.log(s.dim("  For now, apply proposed changes manually."))
   }
 
   console.log()
@@ -1663,13 +1670,13 @@ function resolveDomains(args: string[], all: boolean, state: State): DomainDef[]
 
 async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   if (domainsToRun.length === 0) {
-    console.log("No domains due for scanning.")
+    console.log(s.green("No domains due for scanning."))
     renderStatus(state)
     return
   }
 
   console.error(
-    `Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`,
+    s.bold(`Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`),
   )
   console.error()
 
@@ -1677,7 +1684,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   state.lastDomainTimings ??= {}
 
   for (const domain of domainsToRun) {
-    console.error(`[${domain.id}]`)
+    console.error(s.bold(`[${domain.id}]`))
     const { findings, durationMs } = await runDomain(domain)
     state.lastRun[domain.id] = new Date().toISOString()
     state.lastFindings[domain.id] = findings
@@ -1691,15 +1698,15 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
 
   if (firedTriggers.length > 0) {
     console.error()
-    console.error("Cross-domain triggers:")
+    console.error(s.bold("Cross-domain triggers:"))
 
     for (const ft of firedTriggers) {
       const targetDomainId = ft.trigger.target.domain
       const targetCheck = ft.trigger.target.check
       const tag = targetCheck
-        ? `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}.${targetCheck}`
-        : `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}`
-      console.error(`  [triggered: ${tag}] ${ft.trigger.label}`)
+        ? `${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetDomainId}.${targetCheck}`
+        : `${s.dim(`${ft.sourceDomain}.${ft.sourceCheck}`)} ${statusLabel(ft.trigger.source.status).trim()} -> ${targetDomainId}`
+      console.error(`  [triggered: ${tag}] ${s.dim(ft.trigger.label)}`)
 
       if (scannedDomains.has(targetDomainId)) continue // already scanned, skip
 
@@ -1712,12 +1719,12 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         // Run only the specific triggered check
         const check = targetDomain.checks.find((c) => c.id === targetCheck)
         if (check) {
-          console.error(`[${targetDomainId} (triggered)]`)
-          process.stderr.write(`  running ${targetDomainId}.${check.id}...`)
+          console.error(s.bold(`[${targetDomainId} ${s.dim("(triggered)")}]`))
+          process.stderr.write(`  running ${s.dim(`${targetDomainId}.${check.id}`)}...`)
           const checkStart = performance.now()
           const finding = await runCheck(check)
           const icon = statusLabel(finding.status)
-          process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
+          process.stderr.write(`${icon} ${s.dim(`(${formatDuration(finding.durationMs)})`)}\n`)
           const durationMs = performance.now() - checkStart
           state.lastRun[targetDomainId] = new Date().toISOString()
           state.lastFindings[targetDomainId] = [
@@ -1728,7 +1735,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
         }
       } else {
         // Run all checks in the target domain
-        console.error(`[${targetDomainId} (triggered)]`)
+        console.error(s.bold(`[${targetDomainId} ${s.dim("(triggered)")}]`))
         const { findings, durationMs } = await runDomain(targetDomain)
         state.lastRun[targetDomainId] = new Date().toISOString()
         state.lastFindings[targetDomainId] = findings
@@ -1740,6 +1747,7 @@ async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
   state.lastFiredTriggers = firedTriggers.length > 0 ? firedTriggers : undefined
   state.lastScanDurationMs = performance.now() - scanStart
   saveState(state)
+  console.error() // blank line between progress and dashboard
   renderDashboard(state)
 }
 
@@ -1782,7 +1790,7 @@ program
   .action(() => {
     const state = loadState()
     if (Object.keys(state.lastFindings).length === 0) {
-      console.log("No scan results yet. Run: bun sop scan")
+      console.log(`No scan results yet. Run: ${s.bold("bun sop scan")}`)
       return
     }
     renderDashboard(state)

@@ -151,6 +151,7 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/sinonjs__fake-timers": "^15.0.1",
+    "@silvery/ansi": "workspace:*",
     "@silvery/commander": "workspace:*",
     "@vitest/ui": "^4.1.2",
     "alien-signals": "^3.1.2",
