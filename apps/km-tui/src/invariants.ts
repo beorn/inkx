@@ -222,7 +222,9 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 9. Inline edit node should be resolvable in columns (if editing)
   // Skip when edit node IS the root — board-level editing is an edge case from fuzz testing.
-  if (editText && treeColIds.length > 0 && editText.nodeId !== ctx.rootId) {
+  // Skip when detail pane is focused — edit node belongs to detail's subtree, not board columns.
+  const isDetailFocused = ctx.focusedPaneViewType() === "detail"
+  if (editText && treeColIds.length > 0 && editText.nodeId !== ctx.rootId && !isDetailFocused) {
     const editInIndex = ctx.nodeIndex.has(editText.nodeId)
     // Walk parents if not directly in index
     let foundInColumns = editInIndex

@@ -163,6 +163,7 @@ describe("Runtime invariants", () => {
       viewTree: { id: "board", role: "board", children: [] },
       tree: { rootId: "board", walkOrder: [], node: () => undefined, children: () => [], parent: () => null },
       moveState: { active: false },
+      focusedPaneViewType: () => "board",
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
@@ -205,6 +206,7 @@ describe("Runtime invariants", () => {
         parent: () => null,
       },
       moveState: { active: false },
+      focusedPaneViewType: () => "board",
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
@@ -240,6 +242,7 @@ describe("Runtime invariants", () => {
         parent: () => null,
       },
       moveState: { active: false },
+      focusedPaneViewType: () => "board",
     } as any
 
     const violations = checkInvariants(ctx)

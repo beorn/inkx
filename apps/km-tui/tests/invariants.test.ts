@@ -52,6 +52,7 @@ function validCtx(overrides: Record<string, any> = {}) {
       parent: () => null,
     },
     moveState: { active: false },
+    focusedPaneViewType: () => "board",
     ...overrides,
   } as any
 }
