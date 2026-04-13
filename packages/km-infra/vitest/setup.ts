@@ -277,7 +277,11 @@ beforeEach(() => {
           // budget, which happens routinely under CI load. It's a diagnostic
           // hint, not a test failure signal — filter it out.
           args[0].includes("keypress over budget") ||
-          args[0].includes("silvery:perf"))
+          args[0].includes("silvery:perf") ||
+          // SILVERY_STRICT=1 layout overflow warnings are diagnostic hints,
+          // not test failure signals. At STRICT=2 they throw (hard failure).
+          // Filter at STRICT=1 so they don't pollute unrelated tests.
+          args[0].includes("[SILVERY_STRICT] Layout overflow:"))
       ) {
         return
       }

@@ -628,10 +628,12 @@ function navigateToColumn(
     return visCards[0] ?? null
   }
 
-  // Index-based matching (body column cross-column navigation)
+  // Index-based matching (body column cross-column navigation).
+  // Don't set deferred navigation here — the index-based match is already
+  // correct and stickyY may reflect a scrolled source column position that
+  // would cause a Y-mismatch override in the unscrolled target column.
   if (sourceCardIdx !== undefined) {
     const clampedIdx = Math.min(sourceCardIdx, visCards.length - 1)
-    navigator.setDeferredNavigation(viewColIdx, stickyY)
     return visCards[clampedIdx] ?? null
   }
 
