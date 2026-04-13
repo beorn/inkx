@@ -1,8 +1,8 @@
 ---
-description: "SOP / ops — scan→propose→execute across 11 maintenance domains. The one skill that grooms everything. Alias: /ops"
+description: "SOP / ops — scan→propose→execute across 9 maintenance domains. The one skill that grooms everything. Alias: /ops"
 argument-hint: "[domain|all|due] [--scan-only] [--fix] [--weekly|--monthly|--quarterly]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, Skill, AskUserQuestion
-benefits-from: [recall, pm, infra]
+benefits-from: [recall, pm]
 ---
 
 # SOP — Standard Operating Procedure
@@ -101,7 +101,7 @@ Reads: recent git log, open beads, tribe history, session recall. Proposes edits
 
 This is how `/sop` learns — every session that does maintenance work feeds back into the SOP definition.
 
-**MECE invariant**: every proposed change must preserve mutual exclusivity and collective exhaustiveness across the 11 domains. If a new check doesn't clearly belong to exactly one domain, that's a signal the domain boundaries need adjusting — don't just shove it somewhere. If a gap is found (something that doesn't belong anywhere), propose a new domain or expand an existing one's boundary. The domain structure is the load-bearing abstraction — protect it.
+**MECE invariant**: every proposed change must preserve mutual exclusivity and collective exhaustiveness across the 9 domains. If a new check doesn't clearly belong to exactly one domain, that's a signal the domain boundaries need adjusting — don't just shove it somewhere. If a gap is found (something that doesn't belong anywhere), propose a new domain or expand an existing one's boundary. The domain structure is the load-bearing abstraction — protect it.
 
 ### Organizing principles
 
