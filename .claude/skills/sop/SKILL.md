@@ -287,7 +287,7 @@ token = resp['access_token']
 **Checks**:
 - [ ] `ci-health` — `/infra ci` (GitHub Actions status across repos)
 - [ ] `hook-integrity` — are hooks registered and functional?
-- [ ] `skill-health` — `/systematize review` (stale/broken skills)
+- [ ] `skill-health` — audit skills for MECE, staleness, dead stubs (see [_skill-health.md](_skill-health.md))
 - [ ] `tool-versions` — tsdown, vitest, oxlint up to date?
 - [ ] `account-health` — `bun accountly status` (credentials, quotas)
 - [ ] `secret-scan` — no tokens/keys in committed code
@@ -296,7 +296,7 @@ token = resp['access_token']
 - [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
 - [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
 **Triggers**: tool version updates, new repos, domain expiry approaching
-**Delegates to**: `/infra`, `/claude`, `/systematize`
+**Delegates to**: `/infra`, `/claude`
 
 #### Cloudflare Operations
 

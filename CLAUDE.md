@@ -235,7 +235,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
-| [sop/](.claude/skills/sop/)                                         | **SOP framework** — scan/propose/execute across 9 maintenance domains. Absorbs /audit, /review-all, /project-audit, /project-cleanup, /repo-health |
+| [sop/](.claude/skills/sop/)                                         | **SOP framework** — scan/propose/execute across 9 maintenance domains. Absorbs /audit, /review-all, /project-audit, /project-cleanup, /repo-health, /systematize |
 
 ### Silvery Development
 

@@ -26,7 +26,7 @@ Never skip steps. A finding without a proposal is noise. A proposal without appr
 
 **"Fix" means fix.** If a check offers `--fix` and the fix is "update the baseline to accept the new errors," that's not a fix — that's hiding the problem. Flag it as a proposal, not an auto-fix.
 
-## MECE Invariant (from gbrain/gstack + /systematize)
+## MECE Invariant (from gbrain/gstack)
 
 **Every check, domain, and skill must be MECE — mutually exclusive, collectively exhaustive.**
 
@@ -43,7 +43,7 @@ No overlap, no gaps. One owner per process. If a user request could reasonably t
 - Each type of work has exactly one owner skill
 - If an existing skill covers 70%+ of the work, **extend it** instead of creating a new one
 - If creating new, define the boundary clearly: "this skill handles X, /other-skill handles Y"
-- Use `/systematize review` periodically to audit for MECE violations
+- Use `/sop infra` skill-health check periodically to audit for MECE violations
 
 ### Decision protocol (from gbrain filing rules):
 1. Identify the PRIMARY SUBJECT of the check/skill
@@ -93,6 +93,7 @@ Never report a CVE as just "high: pkg — advisory title". That's the advisory's
 | Counting output lines as findings | Parser counts stdout lines to determine severity, but output format varies | **Parse structured output (JSON, exit codes) when available.** Line counting is a last resort. |
 | npm search API for version audit | `npm-registry audit` uses search API which caches stale versions; `npm view` is authoritative | **Use `npm view <pkg> version` for version checks, not search results.** Search API can lag days behind. |
 | `bun update` without typecheck | `@sinonjs/fake-timers` 15.2→15.3 renamed `InstalledClock`→`Clock`, breaking typecheck | **After `bun update`, always re-run typecheck and fix cascading type errors.** Dep updates are not just lockfile changes. |
+| Redirect stubs after skill absorption | 12 stub directories accumulated over 3 consolidation sessions, never cleaned up | **Delete absorbed skill directories immediately.** CLAUDE.md ~~strikethrough~~ is the redirect — stubs are dead weight. |
 
 ## When You Discover a New Anti-Pattern
 
