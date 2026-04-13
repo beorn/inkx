@@ -17,7 +17,7 @@ import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { EventEmitter } from "events"
-import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers"
+import FakeTimers, { type Clock } from "@sinonjs/fake-timers"
 import type { WatcherInterface, SyncData } from "../../../src/watch/types.ts"
 import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
 import { withSync, type Sync, type SyncableRepo } from "../../../src/watch/sync.ts"
@@ -135,7 +135,7 @@ function getAllTasks(ctx: ConcurrentTestCtx) {
 
 /** Run a concurrent edit test with fake timers and test environment */
 async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<void>): Promise<void> {
-  let clock: InstalledClock | null = FakeTimers.install({
+  let clock: Clock | null = FakeTimers.install({
     toFake: ["setTimeout", "setInterval", "clearTimeout", "clearInterval", "Date"],
     shouldAdvanceTime: false,
   })

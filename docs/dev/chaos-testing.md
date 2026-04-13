@@ -508,9 +508,9 @@ With fake timers:
 ### Using Fake Timers
 
 ```typescript
-import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers"
+import FakeTimers, { type Clock } from "@sinonjs/fake-timers"
 
-let clock: InstalledClock
+let clock: Clock
 
 beforeEach(() => {
   // Install BEFORE any code using setTimeout/setInterval

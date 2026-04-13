@@ -18,6 +18,7 @@ Never skip steps. A finding without a proposal is noise. A proposal without appr
 |---|---|---|
 | Read-only scan | auto | typecheck, lint, `bd stale`, `npm audit` |
 | Idempotent fix | auto | `bun fix` (format), `bd close` stale beads |
+| Dep update for CVEs | auto | `bun update` — follow dep update protocol (baseline → update → verify → bisect if broken) |
 | Baseline update | **ask** | typecheck baseline reset, lockfile regeneration |
 | Publish/release | **ask** | npm publish, git push, GitHub issue creation |
 | Delete/destructive | **ask** | remove files, close beads, deprecate packages |
@@ -66,8 +67,19 @@ A finding must be actionable or explicitly informational.
 | "62 stale beads (30+ days without activity)" | "beads exist" |
 | "GPL license found in 2 production deps: pkg-a, pkg-b" | "license check ran" |
 | "tool versions: tsdown 0.21.7, oxlint 0.16.1" (informational) | "tools installed" |
+| "hono <4.12.12 (5 mod) — NEGLIGIBLE: MCP uses stdio, not HTTP" | "12 CVEs found" |
 
 A finding with status `pass` should still have a meaningful summary ("6227 tests pass", not "ok").
+
+### CVE findings require impact analysis
+
+Never report a CVE as just "high: pkg — advisory title". That's the advisory's severity, not *ours*. Always trace the dependency chain, check whether the vulnerable code path is exercised in our code, and classify the actual exposure:
+
+| Exposure | When | Action |
+|---|---|---|
+| **HIGH** | Runtime code processes untrusted input through vulnerable path | Create bead immediately |
+| **LOW** | Runtime code uses the dep, but only with our own data | Note in report, monitor upstream |
+| **NEGLIGIBLE** | Dev-only tooling OR bundled but unreachable code path | Document once, suppress from future reports |
 
 ## Common Anti-Patterns — DO NOT DO THESE
 
@@ -79,6 +91,8 @@ A finding with status `pass` should still have a meaningful summary ("6227 tests
 | "No unprocessed days" false negative | `recall summarize` default mode reports nothing to do when nothing has ever been summarized | **Verify tool output matches reality.** If the tool says "nothing to do" but no artifacts exist, the tool is wrong. |
 | False pass on skipped checks | "no link check scripts found (skipped)" reported as pass | **Skipped ≠ passed.** Use a distinct status or clearly label as skipped. |
 | Counting output lines as findings | Parser counts stdout lines to determine severity, but output format varies | **Parse structured output (JSON, exit codes) when available.** Line counting is a last resort. |
+| npm search API for version audit | `npm-registry audit` uses search API which caches stale versions; `npm view` is authoritative | **Use `npm view <pkg> version` for version checks, not search results.** Search API can lag days behind. |
+| `bun update` without typecheck | `@sinonjs/fake-timers` 15.2→15.3 renamed `InstalledClock`→`Clock`, breaking typecheck | **After `bun update`, always re-run typecheck and fix cascading type errors.** Dep updates are not just lockfile changes. |
 
 ## When You Discover a New Anti-Pattern
 

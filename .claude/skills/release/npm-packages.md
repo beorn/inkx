@@ -2,25 +2,15 @@
 
 All packages published under maintainer `beorno`. Source of truth: `registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250`
 
-Last updated: 2026-04-11 (63 packages)
+Last updated: 2026-04-12 (63 packages)
 
 <!--
   AUDIT NOTES (run `bun npm-registry audit` for live diff)
 
-  As of 2026-04-11 the live registry has 60 packages by maintainer beorno.
-  Drift detected vs this file:
+  As of 2026-04-12 the live registry has 60 packages by maintainer beorno.
+  All versions in this file match live npm.
 
-  Version drift (live > md — bump these rows after the next sync):
-    silvery              md=0.17.2  live=0.17.4
-    @silvery/ansi        md=0.3.4   live=0.17.3   (renumbered to silvery scheme)
-    @silvery/color       md=0.1.2   live=0.17.3
-    @silvery/commander   md=0.8.2   live=0.17.4
-    @silvery/examples    md=0.5.6   live=0.17.5
-    loggily              md=0.6.1   live=0.6.2
-    vimonkey             md=0.2.1   live=0.2.3
-
-  In md but missing from registry (mostly correct — these are local-only or
-  unpublished/deprecated packages, but worth a periodic re-check):
+  In md but missing from registry (local-only / unpublished / private packages):
     @silvery/ag, @silvery/ag-react, @silvery/ag-term, @silvery/commands,
     @silvery/create, @silvery/headless, @silvery/ink, @silvery/model,
     @silvery/scope, @silvery/selection, @silvery/signals, @silvery/test,
@@ -79,8 +69,8 @@ Last updated: 2026-04-11 (63 packages)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `vt100.js` | 0.3.1 | 38 | VT100 emulator — monochrome, pure TS |
-| `vt220.js` | 0.1.1 | 29 | VT220 emulator — 8 colors, pure TS |
+| `vt100.js` | 0.1.2 | 38 | VT100 emulator — monochrome, pure TS |
+| `vt220.js` | 0.1.2 | 29 | VT220 emulator — 8 colors, pure TS |
 | `vterm.js` | 0.3.1 | 22 | Modern emulator — full VT/xterm, pure TS |
 
 ### Bearly tools

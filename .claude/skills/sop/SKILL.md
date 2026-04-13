@@ -36,6 +36,7 @@ tribe_broadcast("SOP scan complete: [domain summary]. N findings (X warn, Y erro
 ### Step 3: Fix findings (--fix mode)
 For each finding with status warn or error:
 - **auto-approval checks** (lint, format, type errors): spawn a background Agent to fix, continue scanning
+- **CVE findings**: run `bun update` automatically to patch via compatible version bumps. For remaining CVEs, perform the **CVE impact analysis** (security domain §8): trace dep chain, check if vulnerable code path is exercised, classify exposure, report with context.
 - **ask-approval checks** (publish, close beads, delete): present to user and wait
 - **NEVER update baselines to hide errors** — fix the actual code. Baselines are for upstream issues we can't control, not for our own bugs.
 - Use background agents for independent fixes so the user isn't blocked
@@ -184,7 +185,7 @@ Start here. These are automatable and already have skill implementations.
 
 ### 2. packages — are packages publishable?
 
-**Assets**: package.json files, CHANGELOG.md, npm-packages.md, npm registry state, lockfiles
+**Assets**: package.json files, CHANGELOG.md, npm-packages.md, npm registry state, lockfiles, [dependency inventory](../../docs/ref/dependencies.md)
 **Cadence**: monthly
 **Checks**:
 - [ ] `version-drift` — `bun npm-registry audit` (local vs npm)
@@ -192,6 +193,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `unreleased` — `bun release status` (commits since last tag)
 - [ ] `dep-security` — `npm audit` across repos (CVEs in deps)
 - [ ] `dep-freshness` — outdated deps, pinned old versions, major-version candidates
+- [ ] `dep-inventory` — refresh `docs/ref/dependencies.md` (npms.io scores, CVEs, watch list)
 - [ ] `publishability` — `bun infra/audit-packages.ts` (tsdown, publishConfig, files)
 - [ ] `clean-build` — all packages build from clean state, no uncommitted generated output
 - [ ] `lockfile-consistency` — lockfiles match manifests, no phantom deps
@@ -369,10 +371,11 @@ curl -s "https://api.cloudflare.com/client/v4/zones?name=beorn.codes" \
 
 ### 8. security — is the supply chain safe?
 
-**Assets**: npm audit results, secret scan results, provenance config, branch protection state
+**Assets**: npm audit results, secret scan results, provenance config, branch protection state, [dependency inventory](../../docs/ref/dependencies.md)
 **Cadence**: weekly
 **Checks**:
-- [ ] `cve-scan` — `npm audit` across all repos (known vulnerabilities)
+- [ ] `cve-scan` — `bun audit` (known vulnerabilities)
+- [ ] `nix-freshness` — flake.lock nixpkgs age <30 days (stale nixpkgs = unpatched dev tools)
 - [ ] `secret-scan` — no tokens, keys, or credentials in committed code
 - [ ] `provenance` — npm publish provenance enabled where possible
 - [ ] `permissions` — branch protection rules, workflow permissions, push rules
@@ -381,6 +384,7 @@ curl -s "https://api.cloudflare.com/client/v4/zones?name=beorn.codes" \
 **Triggers**: new dependencies added, inbound CVE alert
 **Delegates to**: (new — consolidates checks from packages + infra + inbound)
 **Boundary**: security owns CVE response + supply chain integrity. Packages owns dep freshness. Legal owns licenses. One dep graph, three lenses.
+**Auto-fix (--fix)**: follow the [dependency update protocol](_dep-security.md#dependency-update-protocol), then perform [impact analysis](_dep-security.md#cve-impact-analysis-for-unfixable-cves) for remaining CVEs. [Nix security check](_dep-security.md#nix-security-check) covers flake freshness.
 
 ### 9. packaging — what do consumers receive?
 
