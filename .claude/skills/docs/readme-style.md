@@ -53,14 +53,14 @@ The reader should be able to stop at any point having gotten value.
 
 ## Keywords & Discoverability
 
-Name competitors and compatible products explicitly — someone searching "pino alternative typescript" or "debug replacement structured logging" should find your package.
+Name competitors and compatible products — someone searching "pino alternative typescript" should find your package. But be confident without being combative. Have a strong opinion about your approach; don't sound over-eager to replace other products. Let the product speak for itself.
 
 - **In the intro**: name categories, not competitors. "Replace `debug` + your JSON logger" not "Replace `pino`/`winston`" — the intro should invite, not provoke
-- **In compatibility and comparison**: name competitors here — this is where people expect product comparisons. "Works with: Pino transports", "See how Loggily compares", "Pino's ecosystem is deeper"
-- **In "When not to use"**: naming competitors is both honest and keyword-rich — respectful framing
+- **In compatibility lines**: name every product you integrate with — respectful and keyword-rich. "Works with: Pino transports, OpenTelemetry, Sentry..."
+- **In comparison pages**: this is where people expect head-to-head evaluation. The comparison page is the keyword magnet — link to it from the README
+- **In "When not to use"**: name competitors and be honest about their strengths. "Pino's ecosystem is deeper" builds trust and captures search traffic
 - **GitHub topics**: add competitor names, category names, and technology names (e.g., `logging`, `typescript`, `structured-logging`, `pino`, `winston`, `opentelemetry`, `observability`)
-- **In "When not to use"**: naming competitors here is both honest and keyword-rich
-- **Comparison page**: the docs site comparison page is the keyword magnet — link to it from the README where the reader is comparing
+- **Tone**: confidence comes from showing what you do well, not from claiming others do it worse
 
 ## GitHub Repo Description
 
