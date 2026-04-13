@@ -3,6 +3,7 @@
  * SOP — Standard Operating Procedure orchestrator
  *
  * Runs maintenance checks across domains, tracks cadence, renders dashboard.
+ * Uses @silvery/commander for arg parsing with colorized help.
  *
  * Usage:
  *   bun sop scan              # Run due domains
@@ -11,11 +12,12 @@
  *   bun sop scan code backlog # Multiple domains
  *   bun sop status            # What's due, last run times
  *   bun sop dashboard         # Render last scan results
+ *   bun sop update            # Propose SOP improvements
  */
 
-import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
+import { Command } from "@silvery/commander"
 import { createLogger } from "loggily"
 
 // ─── Logging ────────────────────────────────────────────────────────────────
@@ -1114,13 +1116,7 @@ async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; dura
   for (const check of domain.checks) {
     process.stderr.write(`  running ${domain.id}.${check.id}...`)
     const finding = await runCheck(check)
-    const icon =
-      finding.status === "pass"
-        ? " ok"
-        : finding.status === "warn"
-          ? " warn"
-          : " FAIL"
-    process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
+    process.stderr.write(`${statusLabel(finding.status)} (${formatDuration(finding.durationMs)})\n`)
     findings.push(finding)
   }
 
@@ -1132,6 +1128,7 @@ async function runDomain(domain: DomainDef): Promise<{ findings: Finding[]; dura
 
 // ─── Dashboard rendering ────────────────────────────────────────────────────
 
+/** Unicode icon for dashboard output */
 function statusIcon(status: Status): string {
   switch (status) {
     case "pass":
@@ -1140,6 +1137,18 @@ function statusIcon(status: Status): string {
       return "\u26A0"
     case "error":
       return "\u2717"
+  }
+}
+
+/** Plain-text label for progress output (stderr) */
+function statusLabel(status: Status): string {
+  switch (status) {
+    case "pass":
+      return " ok"
+    case "warn":
+      return " warn"
+    case "error":
+      return " FAIL"
   }
 }
 
@@ -1632,190 +1641,153 @@ function analyzeMissingChecks(gitLog: string, state: State): string[] {
   return missing
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+// ─── CLI ────────────────────────────────────────────────────────────────────
 
-async function main(): Promise<void> {
-  const { positionals, values } = parseArgs({
-    args: process.argv.slice(2),
-    options: {
-      all: { type: "boolean", default: false },
-      apply: { type: "boolean", default: false },
-      help: { type: "boolean", short: "h", default: false },
-    },
-    allowPositionals: true,
-    strict: true,
-  })
+const DOMAIN_NAMES = DOMAINS.map((d) => d.id).join(", ")
 
-  const command = positionals[0] ?? "help"
-  const domainArgs = positionals.slice(1)
+function resolveDomains(args: string[], all: boolean, state: State): DomainDef[] {
+  if (args.length > 0) {
+    const resolved: DomainDef[] = []
+    for (const arg of args) {
+      const domain = DOMAIN_MAP.get(arg)
+      if (!domain) {
+        throw new Error(`Unknown domain: ${arg}\nAvailable: ${DOMAIN_NAMES}`)
+      }
+      resolved.push(domain)
+    }
+    return resolved
+  }
+  if (all) return DOMAINS
+  return DOMAINS.filter((d) => isDue(d, state))
+}
 
-  if (values.help || command === "help") {
-    console.log(`Usage: bun sop <command> [domains...] [options]
-
-Commands:
-  scan [domain...]   Run checks for specified domains (or all due)
-  scan --all         Run all domains regardless of cadence
-  status             Show what's due, last run times
-  dashboard          Render last scan results
-  update             Analyze session context and propose SOP improvements
-  update --apply     (future) Auto-write proposed changes
-  help               Show this help
-
-Domains: ${DOMAINS.map((d) => d.id).join(", ")}
-
-Examples:
-  bun sop scan              # Run due domains
-  bun sop scan --all        # Run all
-  bun sop scan code         # Just code domain
-  bun sop scan code backlog # Multiple domains
-  bun sop status            # What's due
-  bun sop dashboard         # Last results
-  bun sop update            # Propose SOP improvements`)
+async function runScan(domainsToRun: DomainDef[], state: State): Promise<void> {
+  if (domainsToRun.length === 0) {
+    console.log("No domains due for scanning.")
+    renderStatus(state)
     return
   }
 
-  const state = loadState()
+  console.error(
+    `Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`,
+  )
+  console.error()
 
-  switch (command) {
-    case "scan": {
-      let domainsToRun: DomainDef[]
+  const scanStart = performance.now()
+  state.lastDomainTimings ??= {}
 
-      if (domainArgs.length > 0) {
-        // Specific domains requested
-        domainsToRun = []
-        for (const arg of domainArgs) {
-          const domain = DOMAIN_MAP.get(arg)
-          if (!domain) {
-            console.error(`Unknown domain: ${arg}`)
-            console.error(
-              `Available: ${DOMAINS.map((d) => d.id).join(", ")}`,
-            )
-            process.exit(1)
-          }
-          domainsToRun.push(domain)
+  for (const domain of domainsToRun) {
+    console.error(`[${domain.id}]`)
+    const { findings, durationMs } = await runDomain(domain)
+    state.lastRun[domain.id] = new Date().toISOString()
+    state.lastFindings[domain.id] = findings
+    state.lastDomainTimings[domain.id] = { durationMs }
+  }
+
+  // ── Cross-domain triggers (depth = 1, no cascading) ──
+  const scannedDomains = new Set(domainsToRun.map((d) => d.id))
+  const allFindings = domainsToRun.flatMap((d) => state.lastFindings[d.id] ?? [])
+  const firedTriggers = evaluateTriggers(allFindings)
+
+  if (firedTriggers.length > 0) {
+    console.error()
+    console.error("Cross-domain triggers:")
+
+    for (const ft of firedTriggers) {
+      const targetDomainId = ft.trigger.target.domain
+      const targetCheck = ft.trigger.target.check
+      const tag = targetCheck
+        ? `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}.${targetCheck}`
+        : `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}`
+      console.error(`  [triggered: ${tag}] ${ft.trigger.label}`)
+
+      if (scannedDomains.has(targetDomainId)) continue // already scanned, skip
+
+      const targetDomain = DOMAIN_MAP.get(targetDomainId)
+      if (!targetDomain) continue
+
+      scannedDomains.add(targetDomainId)
+
+      if (targetCheck) {
+        // Run only the specific triggered check
+        const check = targetDomain.checks.find((c) => c.id === targetCheck)
+        if (check) {
+          console.error(`[${targetDomainId} (triggered)]`)
+          process.stderr.write(`  running ${targetDomainId}.${check.id}...`)
+          const checkStart = performance.now()
+          const finding = await runCheck(check)
+          const icon = statusLabel(finding.status)
+          process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
+          const durationMs = performance.now() - checkStart
+          state.lastRun[targetDomainId] = new Date().toISOString()
+          state.lastFindings[targetDomainId] = [
+            ...(state.lastFindings[targetDomainId] ?? []).filter((f) => f.check !== targetCheck),
+            finding,
+          ]
+          state.lastDomainTimings[targetDomainId] = { durationMs }
         }
-      } else if (values.all) {
-        domainsToRun = DOMAINS
       } else {
-        // Only due domains
-        domainsToRun = DOMAINS.filter((d) => isDue(d, state))
+        // Run all checks in the target domain
+        console.error(`[${targetDomainId} (triggered)]`)
+        const { findings, durationMs } = await runDomain(targetDomain)
+        state.lastRun[targetDomainId] = new Date().toISOString()
+        state.lastFindings[targetDomainId] = findings
+        state.lastDomainTimings[targetDomainId] = { durationMs }
       }
-
-      if (domainsToRun.length === 0) {
-        console.log("No domains due for scanning.")
-        renderStatus(state)
-        return
-      }
-
-      console.error(
-        `Scanning ${domainsToRun.length} domain(s): ${domainsToRun.map((d) => d.id).join(", ")}`,
-      )
-      console.error()
-
-      const scanStart = performance.now()
-      state.lastDomainTimings ??= {}
-
-      for (const domain of domainsToRun) {
-        console.error(`[${domain.id}]`)
-        const { findings, durationMs } = await runDomain(domain)
-        state.lastRun[domain.id] = new Date().toISOString()
-        state.lastFindings[domain.id] = findings
-        state.lastDomainTimings[domain.id] = { durationMs }
-      }
-
-      // ── Cross-domain triggers (depth = 1, no cascading) ──
-      const scannedDomains = new Set(domainsToRun.map((d) => d.id))
-      const allFindings = domainsToRun.flatMap((d) => state.lastFindings[d.id] ?? [])
-      const firedTriggers = evaluateTriggers(allFindings)
-
-      if (firedTriggers.length > 0) {
-        console.error()
-        console.error("Cross-domain triggers:")
-
-        for (const ft of firedTriggers) {
-          const targetDomainId = ft.trigger.target.domain
-          const targetCheck = ft.trigger.target.check
-          const tag = targetCheck
-            ? `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}.${targetCheck}`
-            : `${ft.sourceDomain}.${ft.sourceCheck} ${ft.trigger.source.status} -> ${targetDomainId}`
-          console.error(`  [triggered: ${tag}] ${ft.trigger.label}`)
-
-          if (scannedDomains.has(targetDomainId)) continue // already scanned, skip
-
-          const targetDomain = DOMAIN_MAP.get(targetDomainId)
-          if (!targetDomain) continue
-
-          scannedDomains.add(targetDomainId)
-
-          if (targetCheck) {
-            // Run only the specific triggered check
-            const check = targetDomain.checks.find((c) => c.id === targetCheck)
-            if (check) {
-              console.error(`[${targetDomainId} (triggered)]`)
-              process.stderr.write(`  running ${targetDomainId}.${check.id}...`)
-              const checkStart = performance.now()
-              const finding = await runCheck(check)
-              const icon =
-                finding.status === "pass"
-                  ? " ok"
-                  : finding.status === "warn"
-                    ? " warn"
-                    : " FAIL"
-              process.stderr.write(`${icon} (${formatDuration(finding.durationMs)})\n`)
-              const durationMs = performance.now() - checkStart
-              state.lastRun[targetDomainId] = new Date().toISOString()
-              state.lastFindings[targetDomainId] = [
-                ...(state.lastFindings[targetDomainId] ?? []).filter((f) => f.check !== targetCheck),
-                finding,
-              ]
-              state.lastDomainTimings[targetDomainId] = { durationMs }
-            }
-          } else {
-            // Run all checks in the target domain
-            console.error(`[${targetDomainId} (triggered)]`)
-            const { findings, durationMs } = await runDomain(targetDomain)
-            state.lastRun[targetDomainId] = new Date().toISOString()
-            state.lastFindings[targetDomainId] = findings
-            state.lastDomainTimings[targetDomainId] = { durationMs }
-          }
-        }
-      }
-
-      state.lastFiredTriggers = firedTriggers.length > 0 ? firedTriggers : undefined
-      state.lastScanDurationMs = performance.now() - scanStart
-      saveState(state)
-      renderDashboard(state)
-      break
-    }
-
-    case "status": {
-      renderStatus(state)
-      break
-    }
-
-    case "dashboard": {
-      if (Object.keys(state.lastFindings).length === 0) {
-        console.log("No scan results yet. Run: bun sop scan")
-        return
-      }
-      renderDashboard(state)
-      break
-    }
-
-    case "update": {
-      await runUpdate(state, values.apply ?? false)
-      break
-    }
-
-    default: {
-      console.error(`Unknown command: ${command}`)
-      console.error("Run: bun sop help")
-      process.exit(1)
     }
   }
+
+  state.lastFiredTriggers = firedTriggers.length > 0 ? firedTriggers : undefined
+  state.lastScanDurationMs = performance.now() - scanStart
+  saveState(state)
+  renderDashboard(state)
 }
 
-main().catch((err: unknown) => {
-  console.error("Fatal:", err)
-  process.exit(1)
+const program = new Command()
+program
+  .name("sop")
+  .description("SOP — Standard Operating Procedure orchestrator")
+
+program
+  .command("scan")
+  .description("Run checks for specified domains (or all due)")
+  .argument("[domains...]", `Domain(s) to scan (${DOMAIN_NAMES})`)
+  .option("--all", "Run all domains regardless of cadence")
+  .action(async (domains: string[], opts: { all?: boolean }) => {
+    const state = loadState()
+    const domainsToRun = resolveDomains(domains, opts.all ?? false, state)
+    await runScan(domainsToRun, state)
+  })
+
+program
+  .command("status")
+  .description("Show what's due, last run times")
+  .action(() => {
+    renderStatus(loadState())
+  })
+
+program
+  .command("dashboard")
+  .description("Render last scan results")
+  .action(() => {
+    const state = loadState()
+    if (Object.keys(state.lastFindings).length === 0) {
+      console.log("No scan results yet. Run: bun sop scan")
+      return
+    }
+    renderDashboard(state)
+  })
+
+program
+  .command("update")
+  .description("Analyze session context and propose SOP improvements")
+  .option("--apply", "(future) Auto-write proposed changes")
+  .action(async (opts: { apply?: boolean }) => {
+    const state = loadState()
+    await runUpdate(state, opts.apply ?? false)
+  })
+
+program.parseAsync().catch((err: unknown) => {
+  log.error?.(err instanceof Error ? err : new Error(String(err)), "fatal error")
+  process.exitCode = 1
 })

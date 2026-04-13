@@ -41,6 +41,7 @@
         "@playwright/test": "^1.58.2",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
+        "@silvery/commander": "workspace:*",
         "@silvery/commands": "workspace:*",
         "@silvery/create": "workspace:*",
         "@silvery/headless": "workspace:*",
@@ -389,6 +390,12 @@
         "vitepress-plugin-llms": "^1.12.0",
         "vitest": "^4.1.1",
       },
+      "peerDependencies": {
+        "@opentelemetry/api": ">=1.0.0",
+      },
+      "optionalPeers": [
+        "@opentelemetry/api",
+      ],
     },
     "vendor/silvery": {
       "name": "silvery",
