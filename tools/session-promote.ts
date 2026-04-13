@@ -462,11 +462,11 @@ program
   .description("Session promotion pipeline — extract knowledge from sessions into gbrain")
   .addHelpSection("Knowledge Types:", "fact (stable knowledge), instruction (standing procedures), event (dated occurrences)")
   .addHelpSection("Examples:", [
-    ["$ bun tools/session-promote.ts scan", "Scan last 7 days"],
-    ["$ bun tools/session-promote.ts scan --days 30", "Scan last 30 days"],
-    ["$ bun tools/session-promote.ts promote --dry-run", "Preview promotions"],
-    ["$ bun tools/session-promote.ts promote", "Write gbrain pages"],
-    ["$ bun tools/session-promote.ts status", "Show pipeline state"],
+    ["$ session-promote scan", "Scan last 7 days"],
+    ["$ session-promote scan --days 30", "Scan last 30 days"],
+    ["$ session-promote promote --dry-run", "Preview promotions"],
+    ["$ session-promote promote", "Write gbrain pages"],
+    ["$ session-promote status", "Show pipeline state"],
   ])
 
 program
