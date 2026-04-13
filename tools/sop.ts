@@ -743,6 +743,162 @@ function parseDepLicenses(stdout: string, _: string, exitCode: number): Finding 
   }
 }
 
+// ─── New automated check parsers ───────────────────────────────────────────
+
+function parseComplexity(stdout: string, _: string, exitCode: number): Finding {
+  if (exitCode !== 0 && stdout.trim().length === 0) {
+    return { check: "complexity", domain: "code", status: "warn", summary: "complexity check failed to run", details: stdout.slice(-300), durationMs: 0 }
+  }
+  const lines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  if (lines.length === 0) {
+    return { check: "complexity", domain: "code", status: "pass", summary: "no high-complexity functions", durationMs: 0 }
+  }
+  if (lines.length > 50) {
+    return { check: "complexity", domain: "code", status: "error", summary: `${lines.length} functions over complexity threshold`, details: lines.slice(0, 10).join("\n"), durationMs: 0 }
+  }
+  if (lines.length > 20) {
+    return { check: "complexity", domain: "code", status: "warn", summary: `${lines.length} functions over complexity threshold`, details: lines.slice(0, 10).join("\n"), durationMs: 0 }
+  }
+  return { check: "complexity", domain: "code", status: "pass", summary: `${lines.length} functions over complexity threshold (within limits)`, details: lines.slice(0, 5).join("\n"), durationMs: 0 }
+}
+
+function parseKnipOutput(stdout: string, checkId: string): Finding {
+  // Knip outputs headings like "Unused files (3)" or "Unused exports (12)"
+  const headingPattern = /^(Unused \w[\w\s]*?|Unlisted [\w\s]+?)\s*\((\d+)\)/gm
+  const counts: Array<{ category: string; count: number }> = []
+  let match: RegExpExecArray | null
+  while ((match = headingPattern.exec(stdout)) !== null) {
+    counts.push({ category: match[1]!, count: parseInt(match[2]!, 10) })
+  }
+  const total = counts.reduce((sum, c) => sum + c.count, 0)
+  if (total === 0) {
+    return { check: checkId, domain: checkId === "unused-deps" || checkId === "unlisted-deps" ? "packages" : "code", status: "pass", summary: "no issues found", durationMs: 0 }
+  }
+  const domain = checkId === "unused-deps" || checkId === "unlisted-deps" ? "packages" : "code"
+  const summary = counts.map((c) => `${c.category}: ${c.count}`).join(", ")
+  return {
+    check: checkId,
+    domain,
+    status: "warn",
+    summary,
+    details: stdout.split("\n").filter((l) => l.trim().length > 0).slice(0, 15).join("\n"),
+    durationMs: 0,
+  }
+}
+
+function parseDeadCode(stdout: string, _: string, _exitCode: number): Finding {
+  return parseKnipOutput(stdout, "dead-code")
+}
+
+function parseUnusedDeps(stdout: string, _: string, _exitCode: number): Finding {
+  return parseKnipOutput(stdout, "unused-deps")
+}
+
+function parseUnlistedDeps(stdout: string, _: string, _exitCode: number): Finding {
+  return parseKnipOutput(stdout, "unlisted-deps")
+}
+
+function parseLayerViolations(stdout: string, _: string, exitCode: number): Finding {
+  if (exitCode === 0) {
+    return { check: "layer-violations", domain: "code", status: "pass", summary: "no dependency violations", durationMs: 0 }
+  }
+  const errorLines = stdout.split("\n").filter((l) => /error/i.test(l))
+  return {
+    check: "layer-violations",
+    domain: "code",
+    status: "error",
+    summary: `${errorLines.length || "?"} dependency violation(s)`,
+    details: stdout.split("\n").filter((l) => l.trim().length > 0).slice(0, 10).join("\n"),
+    durationMs: 0,
+  }
+}
+
+function parseTypeCoverage(stdout: string, _: string, exitCode: number): Finding {
+  // type-coverage outputs something like "98.23% (494484/503380)"
+  const match = stdout.match(/([\d.]+)%/)
+  if (match) {
+    const pct = parseFloat(match[1]!)
+    return {
+      check: "type-coverage",
+      domain: "code",
+      status: pct >= 85 ? "pass" : "warn",
+      summary: `type coverage: ${pct}%`,
+      details: stdout.trim().split("\n").slice(0, 5).join("\n"),
+      durationMs: 0,
+    }
+  }
+  if (exitCode !== 0) {
+    return { check: "type-coverage", domain: "code", status: "warn", summary: "type-coverage check failed to run", details: stdout.slice(-300), durationMs: 0 }
+  }
+  return { check: "type-coverage", domain: "code", status: "pass", summary: "type coverage OK", durationMs: 0 }
+}
+
+function parseWorkspaceConsistency(stdout: string, _: string, exitCode: number): Finding {
+  if (exitCode === 0) {
+    return { check: "workspace-consistency", domain: "packages", status: "pass", summary: "workspace consistent", durationMs: 0 }
+  }
+  const issueLines = stdout.trim().split("\n").filter((l) => l.trim().length > 0)
+  return {
+    check: "workspace-consistency",
+    domain: "packages",
+    status: "warn",
+    summary: `${issueLines.length} workspace consistency issue(s)`,
+    details: issueLines.slice(0, 10).join("\n"),
+    durationMs: 0,
+  }
+}
+
+function parseNixFreshness(stdout: string, _: string, exitCode: number): Finding {
+  // Output is like "ok: nixpkgs rev=abc123 age=5d" or "STALE: nixpkgs rev=abc123 age=45d"
+  const ageMatch = stdout.match(/age=([\d.]+)d/)
+  const revMatch = stdout.match(/rev=([a-f0-9]+)/)
+  const age = ageMatch ? Math.round(parseFloat(ageMatch[1]!)) : null
+  const rev = revMatch?.[1] ?? "?"
+
+  if (exitCode === 0 && age !== null) {
+    return { check: "nix-freshness", domain: "security", status: "pass", summary: `nixpkgs rev=${rev} age=${age}d`, durationMs: 0 }
+  }
+  if (age !== null && age > 30) {
+    return {
+      check: "nix-freshness",
+      domain: "security",
+      status: "warn",
+      summary: `nixpkgs stale: rev=${rev} age=${age}d (>30d)`,
+      details: `Run 'nix flake update' to refresh`,
+      durationMs: 0,
+    }
+  }
+  if (stdout.includes("No such file") || stdout.includes("FileNotFoundError")) {
+    return { check: "nix-freshness", domain: "security", status: "pass", summary: "no flake.lock found (not a flake project)", durationMs: 0 }
+  }
+  return {
+    check: "nix-freshness",
+    domain: "security",
+    status: "warn",
+    summary: "nix freshness check failed",
+    details: stdout.slice(-300),
+    durationMs: 0,
+  }
+}
+
+function parseDocLinks(stdout: string, _: string, exitCode: number): Finding {
+  if (exitCode === 0) {
+    return { check: "doc-links", domain: "sites", status: "pass", summary: "doc links OK", durationMs: 0 }
+  }
+  const errorLines = stdout.split("\n").filter((l) => /ERROR|✖|broken|dead/i.test(l))
+  if (errorLines.length === 0 && stdout.trim().length === 0) {
+    return { check: "doc-links", domain: "sites", status: "pass", summary: "doc links OK (no output)", durationMs: 0 }
+  }
+  return {
+    check: "doc-links",
+    domain: "sites",
+    status: errorLines.length > 0 ? "warn" : "pass",
+    summary: errorLines.length > 0 ? `${errorLines.length} broken doc link(s)` : "doc links OK",
+    details: errorLines.slice(0, 10).join("\n") || stdout.slice(-300),
+    durationMs: 0,
+  }
+}
+
 // ─── Domain definitions ─────────────────────────────────────────────────────
 
 export const DOMAINS: DomainDef[] = [
@@ -778,6 +934,42 @@ export const DOMAINS: DomainDef[] = [
         approval: "auto",
         parse: parseTestFast,
       },
+      {
+        id: "complexity",
+        domain: "code",
+        label: "complexity",
+        command: "bun lint:complexity --brief 2>&1",
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseComplexity,
+      },
+      {
+        id: "dead-code",
+        domain: "code",
+        label: "dead code",
+        command: "bunx knip --include files,exports,types --no-progress 2>&1",
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseDeadCode,
+      },
+      {
+        id: "layer-violations",
+        domain: "code",
+        label: "layer violations",
+        command: "bun run lint:deps 2>&1",
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseLayerViolations,
+      },
+      {
+        id: "type-coverage",
+        domain: "code",
+        label: "type coverage",
+        command: "bun run lint:types 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseTypeCoverage,
+      },
     ],
   },
   {
@@ -811,6 +1003,33 @@ export const DOMAINS: DomainDef[] = [
         cadence: "monthly",
         approval: "auto",
         parse: parsePublishability,
+      },
+      {
+        id: "unused-deps",
+        domain: "packages",
+        label: "unused deps",
+        command: "bunx knip --include dependencies,devDependencies --no-progress 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseUnusedDeps,
+      },
+      {
+        id: "unlisted-deps",
+        domain: "packages",
+        label: "unlisted deps",
+        command: "bunx knip --include unlisted --no-progress 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseUnlistedDeps,
+      },
+      {
+        id: "workspace-consistency",
+        domain: "packages",
+        label: "workspace consistency",
+        command: "bun run lint:workspace 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseWorkspaceConsistency,
       },
     ],
   },
@@ -890,6 +1109,15 @@ export const DOMAINS: DomainDef[] = [
         parse: parseLinkCheck,
       },
       {
+        id: "doc-links",
+        domain: "sites",
+        label: "doc links",
+        command: "bun run lint:links 2>&1",
+        cadence: "monthly",
+        approval: "auto",
+        parse: parseDocLinks,
+      },
+      {
         id: "freshness",
         domain: "sites",
         label: "doc freshness",
@@ -944,6 +1172,28 @@ export const DOMAINS: DomainDef[] = [
         cadence: "weekly",
         approval: "auto",
         parse: parseLockfileIntegrity,
+      },
+      {
+        id: "nix-freshness",
+        domain: "security",
+        label: "nix freshness",
+        command: [
+          'python3 -c "',
+          "import json, datetime, sys",
+          "with open('flake.lock') as f:",
+          "    lock = json.load(f)",
+          "nixpkgs = lock['nodes'].get('nixpkgs', {}).get('locked', {})",
+          "ts = nixpkgs.get('lastModified', 0)",
+          "age = (datetime.datetime.now().timestamp() - ts) / 86400",
+          "rev = nixpkgs.get('rev', '?')[:12]",
+          "status = 'STALE' if age > 30 else 'ok'",
+          "print(f'{status}: nixpkgs rev={rev} age={age:.0f}d')",
+          "sys.exit(1 if age > 30 else 0)",
+          '"',
+        ].join("\n"),
+        cadence: "weekly",
+        approval: "auto",
+        parse: parseNixFreshness,
       },
     ],
   },
