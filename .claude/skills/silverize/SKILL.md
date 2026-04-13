@@ -271,7 +271,15 @@ import { Command } from "@silvery/commander"
 - `program.addHelpSection("title", rows)` with `$ ` console-block detection across all sections, multi-line terms with top-aligned descriptions
 - Array-as-choices detection in `.option()`: `.option("-e, --env <e>", "Env", ["dev", "staging", "prod"])`
 
-Don't write custom help views — let Commander's built-in `--help` do the work. Add extra sections with `addHelpSection()`:
+Don't write custom help views — let Commander's built-in `--help` do the work. Add extra sections with `addHelpSection()`.
+
+**MANDATORY when converting to @silvery/commander**: If the old code had custom help text with examples, domain lists, or usage patterns, those MUST be preserved as `addHelpSection()` calls. Losing examples during a silverize conversion is a regression — the help output should be strictly better, never worse.
+
+Checklist when replacing parseArgs/custom help:
+- [ ] Examples section via `addHelpSection("Examples", ...)`
+- [ ] Domain/category lists via `addHelpSection("Domains", ...)` if applicable
+- [ ] `$ ` prefix on example lines (commander auto-detects and colorizes these)
+- [ ] Run `<tool> --help` after conversion and compare with the old output
 ```typescript
 program.addHelpSection("Examples", `
   $ npx terminfo.dev test          Test this terminal

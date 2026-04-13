@@ -460,6 +460,13 @@ const program = new Command()
 program
   .name("session-promote")
   .description("Session promotion pipeline — extract knowledge from sessions into gbrain")
+  .addHelpSection("Knowledge Types", "fact (stable knowledge), instruction (standing procedures), event (dated occurrences)")
+  .addHelpSection("Examples", `
+  $ bun tools/session-promote.ts scan              Scan last 7 days
+  $ bun tools/session-promote.ts scan --days 30    Scan last 30 days
+  $ bun tools/session-promote.ts promote --dry-run Preview promotions
+  $ bun tools/session-promote.ts promote           Write gbrain pages
+  $ bun tools/session-promote.ts status            Show pipeline state`)
 
 program
   .command("scan")
