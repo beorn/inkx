@@ -26,6 +26,7 @@ import { useTreeRenderContext, deriveExcludedSigils } from "../state/ui-context.
 import {
   getNodeStyle,
   buildPrefix,
+  BODY_PREFIX,
   InfoSuffix,
   DateBadge,
   formatSubtaskBadge,
@@ -388,11 +389,7 @@ function TreeNodeImpl({
   )
 
   // Memoize prefix - body nodes get empty prefix (just indentation space)
-  const prefix = useMemo(
-    () =>
-      bulletIcon ? buildPrefix(bulletIcon) : { markerChar: "", markerColor: undefined, afterMarker: " ", length: 1 },
-    [bulletIcon],
-  )
+  const prefix = useMemo(() => (bulletIcon ? buildPrefix(bulletIcon) : BODY_PREFIX), [bulletIcon])
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
@@ -1055,9 +1052,7 @@ const FoldedChildRow = React.memo(
           iconStyle,
           stickyFold,
         )
-    const prefix = bulletIcon
-      ? buildPrefix(bulletIcon)
-      : { markerChar: "", markerColor: undefined as string | undefined, afterMarker: " ", length: 1 }
+    const prefix = bulletIcon ? buildPrefix(bulletIcon) : BODY_PREFIX
 
     // Content — resolve symlinks
     const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)

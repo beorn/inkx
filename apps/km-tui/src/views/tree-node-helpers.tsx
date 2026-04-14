@@ -160,24 +160,34 @@ export interface PrefixResult {
   length: number
 }
 
+/** Fixed prefix width: [bullet][space] = 2 cells. All nodes use this —
+ *  items show a bullet, body blocks show 2 spaces. */
+export const PREFIX_WIDTH = 2
+
 /**
  * Build the prefix portion of a tree node line.
  *
- * Layout: [bullet][space] = 2 cells total.
+ * Layout: [bullet][space] = PREFIX_WIDTH cells total.
  * The bullet is type-specific, circle, or fold marker depending on icon style.
  *
  * Note: Depth-based indentation is handled by Box paddingLeft in TreeNode,
  * not by text spaces in the prefix. This avoids wrap-ansi trimming issues.
- *
- * @param bulletIcon - The bullet icon to display
  */
 export function buildPrefix(bulletIcon: StatusIcon): PrefixResult {
   return {
     markerChar: bulletIcon.char,
     markerColor: bulletIcon.color,
     afterMarker: " ",
-    length: 2,
+    length: PREFIX_WIDTH,
   }
+}
+
+/** Prefix for body blocks (no bullet, just indentation to align with items). */
+export const BODY_PREFIX: PrefixResult = {
+  markerChar: "",
+  markerColor: undefined,
+  afterMarker: " ".repeat(PREFIX_WIDTH),
+  length: PREFIX_WIDTH,
 }
 
 // =============================================================================
