@@ -347,9 +347,20 @@ The command field starts pre-populated based on how the omnibox was opened:
 | `c` chord | `create-in` |
 | `/` (direct) | `find` |
 
-**Override = tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides anymore — the command field *is* the override surface. It's always visible as a chip/label (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. Once the user picks a different command, Tab back to the argument field and confirm.
+**Override = tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides anymore — the command field *is* the override surface. It's always visible as the top line of the modal (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. Once the user picks a different command, Tab back to the argument field and confirm.
 
 This is strictly simpler than the "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance, and the argument field continues to behave as it did.
+
+### Pass-through of global keybindings
+
+The omnibox scope **does not shadow global bindings that don't conflict with text input**. The keybinding layer treats `dialog:omnibox` as an overlay, not a replacement. The rule:
+
+- **Text-input conflicts** (single-character keys, arrow keys, Enter, Escape, Tab, Backspace) — handled by the omnibox.
+- **Non-conflicting globals** (Ctrl-/Cmd-/Alt-combinations, function keys, anything the text input wouldn't consume) — fall through to the global layer.
+
+So `Ctrl+S` still saves, `Cmd+Z` still undoes, `Ctrl+,` still opens settings, `F1` still opens help — all while the omnibox is open. The user's hands don't have to "leave" the normal app keymap just because they're searching.
+
+This resolves a tension with the current design: today's `dialog:omnibox` mode shadows everything, which forces users to Escape before they can run any global command. The fix is a clean layering rule, not a new mechanism — the keybinding layer already supports overlays (it just has to consult them in the right order).
 
 **Confirm keys:**
 
@@ -363,7 +374,41 @@ This is strictly simpler than the "default verb + modifier override" model: the 
 
 `Shift+Enter` and `Ctrl+Enter` are **shortcuts** for common overrides, not a separate "verb override" mechanism. They're equivalent to `Tab → type "create-in" → Tab → Enter` / `Tab → type "goto" → Tab → Enter` but without the round trip. Any other verb goes through Tab.
 
-**Disabled state.** If the current command requires an argument (`goto`, `move`, `create-in`, `link`, `add`) but the argument field has no selected result, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. Mockup 4 shows this case with `create-in` on an empty result list.
+**Disabled state.** If the current command requires an argument (`goto`, `move`, `create-in`, `link`, `add`) but the argument field has no selected result, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. Mockup 4 shows this case with `create-in` on an empty result list. The user's recourse is one of:
+
+1. Tab to the command field and pick a different command (e.g., `:capture` — see below).
+2. Type a different argument query.
+3. Escape.
+
+### `:capture` — the "I have nothing to act on" command
+
+`create-in` requires a target. What if the user wants to **create a new node from scratch** — a fresh task, a new note, an inbox capture — without an existing parent in mind?
+
+That's a different command: **`:capture`**. It creates a new node under a configured default parent (usually `+Inbox` or the user's `inbox/` folder). The command reads `argumentBuffer` as the new node's title:
+
+- User opens omnibox, types `new task for tomorrow`, Tab, types `cap`, Enter → creates a new node titled "new task for tomorrow" under `+Inbox`.
+- Or: user opens via `c ` chord with no argument, types a title, Enter → since `create-in` has no target, the user Tabs and picks `:capture` → same result.
+
+`:capture` is a normal command node with `when: !isEditing`, a `run()` that creates-in-inbox-with-title, and a default keybinding. It's how "quick capture" works in the omnibox without special-casing the empty-result state. The principle: **no command is ever "create a new thing with no target" by default** — that's always the explicit `:capture` command, which is explicit about where the node goes.
+
+### Space auto-promotes a command typed in the argument field
+
+A common ergonomic: the user types `:new` intending a command, but they're still in the argument field. **Pressing space after a matched command prefix promotes it to the command field and moves focus to the argument field.** Concretely:
+
+1. User starts typing in the argument field: `:new`
+2. Argument field's results are now filtered command nodes starting with `:new` (because `:` is the command sigil inside the argument field).
+3. When the user presses **space**, and there's exactly one unambiguous top-ranked command, the reducer fires a `PROMOTE` action:
+   - `commandBuffer ← "new-project"` (the top match)
+   - `argumentBuffer ← ""` (fresh for the argument)
+   - `focus ← "argument"`
+4. The user now types the argument for `:new-project` — e.g., the new project's title.
+
+This gives shell-like flow for power users (`:move<space>+km<enter>`) without sacrificing the cleaner two-field model. If the user *didn't* want promotion (they were actually searching for a node whose title starts with `:new `), backspace reverses the promotion in one step — the reducer stores a pre-promotion snapshot.
+
+Promotion fires only when:
+- The argument field starts with `:`.
+- The matched command is unambiguous (top match's score ≫ second match's score).
+- Space is pressed (not any other key).
 
 ### The omnibox's selection IS the cursor
 
@@ -495,7 +540,7 @@ Single-field `Omnibox` component (~300 lines). Replaces `Omnibox.tsx` + `ItemPic
 Make the omnibox the cursor source while open. Every command that reads `currentCursor()` now resolves to the omnibox's selected result when the omnibox is open. Tests: arrow in omnibox → board cursor follows. Shift+Enter create-in no longer special-cases "the dialog" — it just operates on "the cursor".
 
 ### Phase 7 — two searchable fields
-Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Introduce Tab semantics. Visible command chip in the center modal. `Shift+Enter` and `Ctrl+Enter` become the only "override" shortcuts; remove any `Ctrl+g/m/a/l` plumbing that was in Phase 5. Update chord table in `Opening the omnibox`.
+Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Introduce Tab semantics (Tab accepts autocomplete if present, otherwise toggles focus). Two-line center-modal layout (command above argument). Wire Silvery `TextInput`'s `autocomplete` prop for both fields. `Shift+Enter` and `Ctrl+Enter` become the only "override" shortcuts; remove any `Ctrl+g/m/a/l` plumbing that was in Phase 5. Update chord table in `Opening the omnibox`. Add the `PROMOTE` action for space-auto-promotion of commands typed in the argument field. Add the global-keybinding pass-through rule (non-text-conflicting globals fall through to the global layer while `dialog:omnibox` is open). Add `:capture` as a first-class command node under `commands/`.
 
 ### Phase 8 — cursor pre-select
 Teach the omnibox to read the board cursor on open and set `argumentPrefill` / `selectedArgumentIndex` appropriately. Feature-flag behind a config option for the first release in case it's confusing.
@@ -528,12 +573,27 @@ The following were open in earlier drafts; resolved here:
 4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
 5. **Keyboard-only override fallback** — not needed. Override is via Tab + typing in the command field, which works on every terminal. `Ctrl+Enter` / `Shift+Enter` are shortcuts, not requirements; if a terminal strips them, the user can still Tab.
 
+## More resolved questions
+
+1. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically:
+   ```
+   command field   (line 1)
+   argument field  (line 2)
+   results         (below)
+   footer          (below)
+   ```
+   Bottom-left local-find placement keeps its single-line compact form (command is locked to `find`, so there's nothing to edit).
+2. **`placement="pane"` — pane-owned state.** Each omnibox pane owns its own `OmniboxState` (like detail panes own their `rootId`). The workspace store holds an omnibox pane by id; no global singleton. Opening `cmd-k` in a non-omnibox-pane app still uses the singleton center modal — only docked omniboxes are pane-owned.
+3. **Empty command field content.** When the command field is empty and focused, show recents (recently-run commands) plus — if this omnibox pane is attached to a board — the board's current cursorId surfaced as the "cursor target" suggestion in the argument side. The empty state is "here are the things you'd most likely want to do right now", not "here is a command reference".
+4. **Tab completion — use Silvery's TextInput autocomplete.** `vendor/silvery/packages/ag-react/src/ui/input/TextInput.tsx` already exposes `autocomplete={string[]}` + `onAutocomplete` with ghost-text suggestion and first-class "accept the suggestion" semantics (the CLI helper `withTextInput` accepts on Tab). We use it directly:
+   - **Command field**: `autocomplete = filteredCommandTitles`. The ghost-text shows the top-ranked completion next to what the user typed (e.g., typed `mo`, ghost shows `ve`).
+   - **Argument field**: `autocomplete = filteredNodeTitles` when the top result has a single unambiguous prefix match — otherwise no ghost text.
+
+   **Key conflict: Tab accepts suggestion vs Tab toggles focus.** Resolved with a priority rule in the omnibox's reducer: if the focused field has an active autocomplete suggestion (ghost text visible, cursor at end of buffer), Tab accepts the suggestion. Otherwise, Tab toggles focus. This matches shell behavior — Tab completes until there's nothing left to complete, then jumps to the next word. Users can always `right-arrow` to accept the suggestion without disambiguating.
+
 ## Open questions
 
-1. **Two fields on one line vs two separate lines?** In the center modal, should the command chip and argument input be on one visual row (`[goto] @del_`) or stacked (command line, then argument line)? One-line is denser and feels like a shell prompt; two-line is clearer about which field has focus. Leaning two-line in the center placement and one-line in bottom-left.
-2. **`placement="pane"` state ownership** — does the pane own its own omnibox state, or is there one global omnibox state that the pane "attaches" to? Leaning pane-owned (like detail panes own their `rootId`).
-3. **Does the command field show recents when empty?** Yes for symmetry, but this means `cmd-k` with empty arg and Tab to command immediately shows "recently run commands" — which might be distracting. Alternative: empty command field shows *all* commands grouped by category until the user types.
-4. **Tab completion inside the command field** — if user types `mo`, should Tab complete to `move` (as in a shell) or toggle focus back to argument? Probably the latter (focus toggle) to keep Tab's semantic consistent, and let the user just press `Enter` to pick the top result.
+*(none remaining — all previously open questions have been resolved by the user's answers.)*
 
 ## Relationship to other work
 
