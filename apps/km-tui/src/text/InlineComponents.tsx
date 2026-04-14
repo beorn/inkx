@@ -10,20 +10,13 @@
  * into an AST and renders via InlineNodes.
  */
 
-import React, { useCallback, useEffect, useRef } from "react"
+import React from "react"
 import { Link, Text } from "@silvery/ag-react"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
-import {
-  usePopover,
-  urlPopoverContent,
-  richUrlPopoverContent,
-  internalLinkPopoverContent,
-  type PopoverContent,
-} from "../views/Popover.tsx"
-import { getCachedMetadata, fetchUrlMetadata } from "./url-metadata.ts"
+import { type PopoverContent } from "../views/Popover.tsx"
+import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
 import type {
   BareURLNode,
   BlockRefNode,
@@ -246,49 +239,43 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
-  return <UrlHoverBox url={node.url}>{node.text}</UrlHoverBox>
+  const ctx = useInlineRenderContext()
+  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({ kind: "url", url: node.url })
+  const props = linkTextProps("url", hovered, ctx.colorOverride)
+  return (
+    <Link
+      href={node.url}
+      color={props.color}
+      underlineStyle={props.underlineStyle}
+      underlineColor={props.underlineColor}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {node.text}
+    </Link>
+  )
 }
 
 export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
-  const popover = usePopover()
-  const [hovered, setHovered] = React.useState(false)
-  const onMouseEnter = useCallback(
-    (e: SilveryMouseEvent) => {
-      setHovered(true)
-      if (!popover) return
-      // Rich popover with DocContent (same as card hover) if available
-      const richContent = ctx.buildLinkPopover?.(node.target)
-      if (richContent) {
-        popover.show(richContent, { x: e.clientX, y: e.clientY })
-      } else {
-        const title = resolved ?? node.target
-        popover.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
-      }
-    },
-    [popover, resolved, node.target, ctx],
-  )
-  const onMouseLeave = useCallback(() => {
-    setHovered(false)
-    popover?.hide()
-  }, [popover])
+  const internalPopover = ctx.buildLinkPopover?.(node.target) ?? null
+  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({
+    kind: "wikilink",
+    internalPopover,
+    internalTitle: resolved ?? node.target,
+  })
   if (resolved) {
-    // Wikilink styling:
-    // - Default: dotted underline in $border (faint, always consistent)
-    // - Hovered: $link fg + subtle pill bg (#404050 blue-tinted gray), no underline
-    // Skip pill bg when card has custom colors (e.g. yellow heading bg) —
-    // the dark pill clashes with colored backgrounds.
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
-    const pillBg = hovered && ctx.colorOverride === undefined ? "#404050" : undefined
+    const props = linkTextProps("wikilink", hovered, ctx.colorOverride)
     return (
       <Text
         id={linkNodeId ?? undefined}
-        color={hovered ? resolveColor(ctx, "$link") : resolveColor(ctx, "")}
-        backgroundColor={pillBg}
-        underlineStyle={hovered ? false : "dotted"}
-        underlineColor="$border"
+        color={props.color}
+        backgroundColor={props.backgroundColor}
+        underlineStyle={props.underlineStyle}
+        underlineColor={props.underlineColor}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
@@ -301,14 +288,9 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   // CURSOR-SAFE BY CONSTRUCTION: we intentionally do NOT set a foreground color
   // here, because a red fg competes with cursor-inverse styling (the cell's fg
   // gets forced to $selection on the cursor line, and inline colors get
-  // stripped via colorOverride=null on the subtree). Leaving fg alone means the
-  // cursor state can set fg freely, and the dashed $error underline passes
-  // through all states unchanged because decoration attributes are not
-  // composed into the fg/bg override pipeline.
-  //
-  // Follows VS Code / Obsidian convention: broken refs are indicated by
-  // decoration, not color substitution. Hover popover still works so the user
-  // can see what the unresolved target was.
+  // stripped via colorOverride=null on the subtree). The dashed $error
+  // underline passes through all states unchanged because decoration attributes
+  // are not composed into the fg/bg override pipeline.
   return (
     <Text underlineStyle="dashed" underlineColor="$error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       {node.target}
@@ -374,24 +356,41 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
 }
 
 export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactElement {
-  return <UrlHoverBox url={node.url}>{prettifyUrl(node.url)}</UrlHoverBox>
+  const ctx = useInlineRenderContext()
+  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({ kind: "url", url: node.url })
+  const props = linkTextProps("url", hovered, ctx.colorOverride)
+  return (
+    <Link
+      href={node.url}
+      color={props.color}
+      underlineStyle={props.underlineStyle}
+      underlineColor={props.underlineColor}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {prettifyUrl(node.url)}
+    </Link>
+  )
 }
 
 export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const resolved = ctx.resolveBlockRef?.(node.id)
-  const popover = usePopover()
-  const onMouseEnter = useCallback(
-    (e: SilveryMouseEvent) => {
-      const title = resolved ?? node.id
-      popover?.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
-    },
-    [popover, resolved, node.id],
-  )
-  const onMouseLeave = useCallback(() => popover?.hide(), [popover])
+  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({
+    kind: "blockref",
+    internalTitle: resolved ?? node.id,
+  })
   if (resolved) {
+    const props = linkTextProps("blockref", hovered, ctx.colorOverride)
     return (
-      <Text bold onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <Text
+        bold={props.bold}
+        color={props.color}
+        underlineStyle={props.underlineStyle}
+        underlineColor={props.underlineColor}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         {resolved}
       </Text>
     )
@@ -490,64 +489,6 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
     return <Text>{getTermColor(color)(sigil)}</Text>
   }
   return <Text>{sigil}</Text>
-}
-
-function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode }): React.ReactElement {
-  const ctx = useInlineRenderContext()
-  const popover = usePopover()
-  const hoveredRef = useRef(false)
-  const [hovered, setHovered] = React.useState(false)
-  // Cleanup: mark as unhovered on unmount so stale fetches don't call update
-  useEffect(
-    () => () => {
-      hoveredRef.current = false
-    },
-    [],
-  )
-  const onMouseEnter = useCallback(
-    (e: SilveryMouseEvent) => {
-      hoveredRef.current = true
-      setHovered(true)
-      const anchor = { x: e.clientX, y: e.clientY }
-      const cached = getCachedMetadata(url)
-      if (cached) {
-        popover?.show(richUrlPopoverContent(url, cached), anchor)
-      } else {
-        popover?.show(urlPopoverContent(url, { loading: true }), anchor)
-        void fetchUrlMetadata(url).then((meta) => {
-          if (!hoveredRef.current) return
-          if (meta) {
-            popover?.update(richUrlPopoverContent(url, meta))
-          } else {
-            popover?.update(urlPopoverContent(url))
-          }
-        })
-      }
-    },
-    [popover, url],
-  )
-  const onMouseLeave = useCallback(() => {
-    hoveredRef.current = false
-    setHovered(false)
-    popover?.hide()
-  }, [popover])
-  // Style to match wikilinks (InlineWikiLink):
-  // - Default: dotted underline in $border — subtle but obvious signal this is interactive
-  // - Hover: solid underline in $link, no pill bg (pill would clash with prose backgrounds)
-  // Prior to this, bareurls + explicit links rendered only via `$link` color
-  // with no underline, which blended into prose and didn't read as a link.
-  return (
-    <Link
-      href={url}
-      color={resolveColor(ctx, "$link")}
-      underlineStyle={hovered ? "single" : "dotted"}
-      underlineColor={hovered ? "$link" : "$border"}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {children}
-    </Link>
-  )
 }
 
 // =============================================================================
