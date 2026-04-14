@@ -744,6 +744,47 @@ describe("createViewLens — parent/children recursion guard", () => {
     expect(tst2Children).toContain("section2")
   })
 
+  test("parent() of a descendant of an embed ancestor doesn't infinite-recurse", () => {
+    // Regression for the second crash in km-tui.zoom-stack-overflow.
+    // The first fix (chain.length - 1 loop start) helped the simple case,
+    // but pressing Z from @next still crashed: the chain walk found an
+    // ancestor in roleCache that was an EMBED (embed_of -> target), so
+    // children(ancestor) read the target's children rather than the
+    // chain-walked repo-children. The "walk back down the chain" loop
+    // then called children() on chain members whose parentCache was never
+    // populated -> children() called parent() -> recurse.
+    //
+    // Setup: card "card1" embeds target "targetCard", which has its own
+    // subitem "targetSub". The repo also contains "realChild" as a repo
+    // child of card1. Walking parent("realChild") via repo.parent_id hits
+    // card1 (in roleCache), but children(card1) uses targetCard's
+    // children (targetSub), not card1's own children (realChild). The
+    // re-entry guard must prevent the loop.
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col", "root", 0, "Column"),
+      // The embedding card — has embed_of pointing to targetCard
+      { ...paragraph("card1", "col", 0, "Embedding card"), embed_of: "targetCard" },
+      // The target of the embed — has its own sub
+      paragraph("targetCard", null, 0, "Target"),
+      paragraph("targetSub", "targetCard", 0, "Target sub"),
+      // Real repo child of card1 that is NOT reachable via the embed target
+      paragraph("realChild", "card1", 0, "Real child"),
+    ]
+    const repo = createMockRepo(nodes)
+    const lens = createViewLens(repo, { rootId: "root", foldDepths: new Map() })
+
+    // Prime the lens — resolve the column and its cards so card1 gets
+    // its embed set up.
+    lens.children("col")
+
+    // Cold call on realChild. Before the fix this would infinite-recurse.
+    // After the fix it should return null (the node isn't reachable via
+    // the lens's view of card1 — card1 shows the target's children, not
+    // its own). The important thing is no crash.
+    expect(() => lens.parent("realChild")).not.toThrow()
+  })
+
   test("children() on a grandchild before any parent walk doesn't recurse", () => {
     // Same shape, but start by asking for children of a grandchild instead
     // of calling parent() first. children() falls into the "role unknown →

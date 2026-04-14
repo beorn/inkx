@@ -52,25 +52,32 @@ const pickerConfig: Record<
     emptyLabel: string
   }
 > = {
-  project: { title: "Move to project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
-  tag: { title: "Add tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
-  assignee: { title: "Assign to", loadOptions: loadAssigneeOptions, emptyLabel: "No matching assignees" },
-  item: { title: "Pick item", loadOptions: loadItemOptions, emptyLabel: "No matching items" },
+  project: { title: "project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
+  tag: { title: "tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
+  assignee: { title: "context", loadOptions: loadAssigneeOptions, emptyLabel: "No matching contexts" },
+  item: { title: "item", loadOptions: loadItemOptions, emptyLabel: "No matching items" },
 }
 
-/** Verb-aware title for the item picker — uses the verb prefix, not the canonical action. */
-function itemPickerTitle(verb: PendingVerb | undefined): string {
+/** Verb-aware picker title for any picker type. A single dialog is
+ *  reused across pickers — the title distinguishes intent by verb prefix,
+ *  not by which sigil was typed. Matches the bare-sigil semantics where
+ *  `+` `@` `#` `[` default to "go to" and explicit chords (a +, m +, c +)
+ *  keep their original verbs. */
+function pickerTitle(type: "item" | "project" | "tag" | "assignee", verb: PendingVerb | undefined): string {
+  const noun = pickerConfig[type].title
   switch (verb) {
     case "goto":
-      return "Go to item"
+      return `Go to ${noun}`
     case "move":
-      return "Move to item"
+      return `Move to ${noun}`
     case "link":
-      return "Link to item"
+      return `Link to ${noun}`
     case "create":
-      return "Create under item"
+      return `Create under ${noun}`
     default:
-      return "Pick item"
+      // Fallback — legacy call sites without an explicit verb. Default to
+      // "go to" so the more common intent shows up in the title.
+      return `Go to ${noun}`
   }
 }
 
@@ -327,11 +334,7 @@ export function WorkspaceChrome({
           focusScope
         >
           <ItemPicker
-            title={
-              ui.activePicker.type === "item"
-                ? itemPickerTitle(ui.activePicker.pendingVerb)
-                : pickerConfig[ui.activePicker.type].title
-            }
+            title={pickerTitle(ui.activePicker.type, ui.activePicker.pendingVerb)}
             loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
             onSelect={
               ui.activePicker.type === "item"

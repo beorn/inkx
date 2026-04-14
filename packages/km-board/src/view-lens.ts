@@ -82,6 +82,15 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   const parentCache = new Map<string, string | null>()
   const roleCache = new Map<string, ViewRole>()
   const nodeCache = new Map<string, KNode>() // includes virtual body nodes
+
+  // Re-entry guard for parent(). Tracks IDs currently on the call stack so
+  // that a recursive call for the same ID returns null instead of looping.
+  // Catches pathological cases where the chain-walk hits an ancestor whose
+  // children() computation doesn't populate the expected children — most
+  // commonly when the ancestor is an embed and computeCardOrSubitemChildren
+  // reads the embed target's children, leaving the repo-parent-walked chain
+  // orphaned. See km-tui.zoom-stack-overflow.
+  const parentInFlight = new Set<string>()
   const bodyIdSets = new Map<string, Set<string>>() // parentId → set of body card IDs
   const symlinkCache = new Map<string, KNode | undefined>()
   const rulesCache = new Map<string, NodeRules | undefined>()
@@ -461,6 +470,13 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     const effectiveRootId = rootId ?? "__root__"
     if (id === effectiveRootId) return null
 
+    // Re-entry guard: if parent(id) is already on the call stack, we're in
+    // a pathological recursion (e.g. embed mismatch — see parentInFlight
+    // comment at the top of createViewLens). Bail out instead of looping.
+    // The first in-flight call will return null or the actual parent when
+    // its own walk completes; the re-entrant call just returns null here.
+    if (parentInFlight.has(id)) return null
+
     // Ensure root structure is computed
     getRootChildIds()
 
@@ -474,39 +490,54 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     const repoNode = repo.getNode(id)
     if (!repoNode) return null
 
-    // Collect ancestor chain from repo until we find a node in our lens.
-    // chain[0] = id, chain[1] = id's repo-parent, ..., chain[length-1] =
-    // the deepest ancestor that is NOT in roleCache. The loop terminates
-    // when we hit an ancestor (`cur`) that IS in roleCache.
-    const chain: string[] = [id]
-    let cur = repoNode.parent_id
-    while (cur !== null) {
-      if (roleCache.has(cur)) {
-        // Found an ancestor in the lens — trigger its children computation,
-        // which populates roleCache + parentCache for cur's direct children
-        // (including chain[length-1], since chain[length-1]'s repo-parent is
-        // cur by construction of the walk).
-        children(cur)
-        // Now walk back down the chain, triggering children() at each level
-        // so the next level's role gets populated. Must START at
-        // chain.length - 1 — NOT chain.length - 2 — because chain[length-1]
-        // is the level whose role was just set by children(cur); it's the
-        // *first* level from which we can recurse downward safely. Starting
-        // at length - 2 skips chain[length-1] and lands on a node whose role
-        // was never populated, which re-enters parent() → infinite
-        // recursion. See km-tui.zoom-stack-overflow.
-        for (let i = chain.length - 1; i >= 0; i--) {
-          children(chain[i]!)
-        }
-        return parentCache.get(id) ?? null
-      }
-      chain.push(cur)
-      const curNode = repo.getNode(cur)
-      if (!curNode) break
-      cur = curNode.parent_id
-    }
+    parentInFlight.add(id)
+    try {
+      // Collect ancestor chain from repo until we find a node in our lens.
+      // chain[0] = id, chain[1] = id's repo-parent, ..., chain[length-1] =
+      // the deepest ancestor that is NOT in roleCache. The loop terminates
+      // when we hit an ancestor (`cur`) that IS in roleCache.
+      const chain: string[] = [id]
+      let cur = repoNode.parent_id
+      while (cur !== null) {
+        if (roleCache.has(cur)) {
+          // Found an ancestor in the lens — trigger its children computation,
+          // which populates roleCache + parentCache for cur's direct children
+          // (including chain[length-1], since chain[length-1]'s repo-parent
+          // is cur by construction of the walk).
+          children(cur)
 
-    return null
+          // Walk back down the chain, triggering children() at each level
+          // so the next level's role gets populated. Must start at
+          // chain.length - 1 — chain[length-1] is the first level whose
+          // role was set by children(cur). Starting lower leaves an
+          // unpopulated level that re-enters parent() → infinite recursion.
+          //
+          // Embed safety: after each children() call, if the next chain
+          // level's parentCache is STILL not set, it means the ancestor is
+          // an embed and its children() reads the embed target's children —
+          // which don't include our chain. Abort — id isn't reachable via
+          // this walk in the lens's view. See km-tui.zoom-stack-overflow.
+          for (let i = chain.length - 1; i >= 0; i--) {
+            children(chain[i]!)
+            // If we just populated chain[i], chain[i-1] (the next one down)
+            // should now have its parentCache set. If not, the ancestor
+            // path is broken (embed mismatch).
+            if (i > 0 && !parentCache.has(chain[i - 1]!)) {
+              return null
+            }
+          }
+          return parentCache.get(id) ?? null
+        }
+        chain.push(cur)
+        const curNode = repo.getNode(cur)
+        if (!curNode) break
+        cur = curNode.parent_id
+      }
+
+      return null
+    } finally {
+      parentInFlight.delete(id)
+    }
   }
 
   // =========================================================================
