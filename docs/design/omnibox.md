@@ -61,9 +61,22 @@ This replaces the old "default verb + modifier-key override" model with somethin
 ### Why this unification is deep
 
 - **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) So the command field is a node search over the `commands/` subtree, and the argument field is a node search over the rest of the tree. Two fields, one tree, one ranker.
-- **The omnibox's selected argument row IS the cursor for command purposes.** Commands always operate on "the current cursor". When the omnibox is open, the current cursor is the omnibox's argument-field selection. When it closes, the current cursor snaps back to the board. **The omnibox is just a dynamic view of the tree** that temporarily provides the cursor.
-- **There is no "omnibox vs board" branch in any command.** `goto`, `move`, `create-in` don't ask "am I in a dialog?" — they read the current cursor and act. The cursor source is a view concern, not a command concern.
-- **A future omnibox-as-pane** (docked persistent view) falls out of this for free. It's the same component with `placement="pane"`, perpetually open, its argument-field selection continuously driving the cursor. The user gets a permanent workflow surface — like a keyboard-driven file navigator or task triager — with no new abstractions.
+- **The omnibox is a board view, not a dialog.** This is the biggest reframe. The omnibox is a **new view mode** for panes — `viewMode: "search"` (alongside the existing `cards | columns | tabs | detail`). It's not an overlay, not a modal, not a separate component hierarchy — it's a pane that happens to render a filtered, ranked, live-updated list of nodes with two linked query fields. Every board mechanism — cursor, selection, keybindings, the focus manager, pane layout — applies unchanged.
+- **The pane's cursor IS the selected argument row.** Every pane has a cursor; in a search-view pane, the cursor is whichever row is currently selected in the argument-field result list. Commands don't know or care — they read the active pane's cursor and act. `goto`, `move`, `create-in` don't ask "am I in a dialog?" — they read the current cursor and fire.
+- **Global board keybindings work inside the omnibox, because the omnibox IS a board view.** There's no `dialog:omnibox` scope to shadow anything — the omnibox just inherits the board's keybinding layer. Text-input fields (command, argument) hijack letter keys while they have focus, but everything else falls through naturally: `Ctrl+S` saves, `Cmd+Z` undoes, `vm` cycles view modes, `z`/`Z` zoom, all exactly as they do in the cards view.
+- **A future omnibox-as-pane** (docked persistent view) falls out of this for free. It's the same view mode — just with a different pane lifecycle. A centered modal is an *ephemeral overlay pane with `viewMode: "search"`*; a docked persistent omnibox is a *regular workspace pane with `viewMode: "search"`*. Same renderer, same state shape, same keybindings.
+
+**Scope tree:**
+
+| View mode | Renders | Cursor is | Example use |
+|---|---|---|---|
+| `cards` | Kanban columns, cards, subitems | Cursored card/subitem | Default work view |
+| `columns` | Outline list | Cursored row | Deep outline mode |
+| `tabs` | Tabbed per-column outline | Cursored row | Single-column focus |
+| `detail` | Pretext rendering of one node | Focused block | Reading/editing a single doc |
+| **`search`** | **Two query fields + ranked result list** | **Selected argument row** | **Omnibox, goto, command palette, all pickers, `/` local find** |
+
+Placement (center modal, bottom-left mini-bar, docked pane) is a *layout* of the search view, not a separate view mode. The search view always has the same state shape; the layout just decides where the pane renders and whether it's ephemeral or persistent.
 
 ## Mockups
 
@@ -351,16 +364,13 @@ The command field starts pre-populated based on how the omnibox was opened:
 
 This is strictly simpler than the "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance, and the argument field continues to behave as it did.
 
-### Pass-through of global keybindings
+### Global keybindings are automatic (no special scope)
 
-The omnibox scope **does not shadow global bindings that don't conflict with text input**. The keybinding layer treats `dialog:omnibox` as an overlay, not a replacement. The rule:
+Because the omnibox is a board view — not a dialog — there is **no `dialog:omnibox` scope** that needs special handling. The keybinding layer sees a pane in `viewMode: "search"` exactly like it sees a pane in `viewMode: "cards"`: as a regular pane. Every board keybinding (`Ctrl+S` save, `Cmd+Z` undo, `z`/`Z` zoom, `vm` cycle, …) applies without change.
 
-- **Text-input conflicts** (single-character keys, arrow keys, Enter, Escape, Tab, Backspace) — handled by the omnibox.
-- **Non-conflicting globals** (Ctrl-/Cmd-/Alt-combinations, function keys, anything the text input wouldn't consume) — fall through to the global layer.
+The only thing that *does* change when focus is in a text field (command or argument) is that single-character letter keys and arrow keys are consumed by the text input rather than routed to the command dispatcher. This is standard text-input behavior — it's how the current inline editor and inline title renamer already work inside `viewMode: "cards"`. The board keybinding layer already handles it.
 
-So `Ctrl+S` still saves, `Cmd+Z` still undoes, `Ctrl+,` still opens settings, `F1` still opens help — all while the omnibox is open. The user's hands don't have to "leave" the normal app keymap just because they're searching.
-
-This resolves a tension with the current design: today's `dialog:omnibox` mode shadows everything, which forces users to Escape before they can run any global command. The fix is a clean layering rule, not a new mechanism — the keybinding layer already supports overlays (it just has to consult them in the right order).
+In short: **there is no pass-through rule, because there is no separate scope**. The omnibox just inherits the board's keymap, and text fields hijack what they need. This is strictly simpler than the old "dialog overlay with pass-through exceptions" design, and it's a natural consequence of the view-mode reframe.
 
 **Confirm keys:**
 
@@ -391,41 +401,40 @@ That's a different command: **`:capture`**. It creates a new node under a config
 
 `:capture` is a normal command node with `when: !isEditing`, a `run()` that creates-in-inbox-with-title, and a default keybinding. It's how "quick capture" works in the omnibox without special-casing the empty-result state. The principle: **no command is ever "create a new thing with no target" by default** — that's always the explicit `:capture` command, which is explicit about where the node goes.
 
-### Space auto-promotes a command typed in the argument field
+### Ghost completions drive auto-promotion
 
-A common ergonomic: the user types `:new` intending a command, but they're still in the argument field. **Pressing space after a matched command prefix promotes it to the command field and moves focus to the argument field.** Concretely:
+Both fields show **ghost-text completions** from Silvery's `TextInput` autocomplete. The rule is simple and symmetric across both fields:
 
-1. User starts typing in the argument field: `:new`
-2. Argument field's results are now filtered command nodes starting with `:new` (because `:` is the command sigil inside the argument field).
-3. When the user presses **space**, and there's exactly one unambiguous top-ranked command, the reducer fires a `PROMOTE` action:
-   - `commandBuffer ← "new-project"` (the top match)
-   - `argumentBuffer ← ""` (fresh for the argument)
+**If the ghost is visible, an "accept" key commits it. If the ghost is not visible, nothing happens.** Accept keys are `Tab`, `Space`, and `Right-Arrow`. `Enter` also commits the ghost before firing confirm, so pressing Enter with a ghost visible completes the text then runs the command.
+
+"Ghost visible" means: the `TextInput` has found a single unambiguous completion for the current buffer (Silvery's built-in `getAutocompleteSuggestion` logic). There is no "unambiguous top-2 ratio" heuristic — we use the ghost's presence as the sole signal. **Only ghosted completions are ever committed.** If the user is typing something ambiguous, no ghost → space is just a space.
+
+**Promotion happens on ghost-accept, not on space generally.** Concretely:
+
+1. User types in the argument field: `:ne`
+2. The argument field's scope is command-search (the `:` sigil). Ghost text appears: `w-project`, rendered as `:ne[w-project]` with the bracketed part dim.
+3. User presses space (or Tab, or right-arrow). The reducer fires a `PROMOTE` action because the accepted ghost starts with `:`:
+   - `commandBuffer ← "new-project"`
+   - `argumentBuffer ← ""`
    - `focus ← "argument"`
-4. The user now types the argument for `:new-project` — e.g., the new project's title.
+4. The user now types the argument for `:new-project` — a title, a target node, whatever that command takes.
 
-This gives shell-like flow for power users (`:move<space>+km<enter>`) without sacrificing the cleaner two-field model. If the user *didn't* want promotion (they were actually searching for a node whose title starts with `:new `), backspace reverses the promotion in one step — the reducer stores a pre-promotion snapshot.
+If instead the user had typed `:zz` (no command matches), **there is no ghost, so space just inserts a space** and the argument buffer becomes `:zz `. No special-casing, no promotion heuristic.
 
-Promotion fires only when:
-- The argument field starts with `:`.
-- The matched command is unambiguous (top match's score ≫ second match's score).
-- Space is pressed (not any other key).
+If the ghost is an argument-field node match (not a command), accepting it just completes the text in place — no promotion, because the accepted completion doesn't start with `:`.
 
-### The omnibox's selection IS the cursor
+**Backspace undoes one promotion step.** The reducer stores a pre-promotion snapshot so backspace-after-promote restores `argumentBuffer = ":new"` and `focus = argument`.
 
-This is the deepest unification in the whole design.
+### The search-pane's cursor IS the cursor — because every pane has a cursor
 
-**While the omnibox is open, its argument-field selection is `cursorId` for every command in the system.** Commands always read "the current cursor" and act on it. The source of that cursor is a property of the active view:
+This is a consequence of the view-mode reframe, not a separate rule. Every pane has a cursor. A `cards` pane's cursor is the cursored card; a `detail` pane's cursor is the focused block; a **`search` pane's cursor is the currently-selected row in the argument-field result list**.
 
-- Board view open, no dialog → cursor is the board's cursored node.
-- Omnibox open (any placement) → cursor is whichever row is selected in the omnibox's argument-field result list.
-- Detail pane active → cursor is the detail pane's focused node.
+Commands read "the current pane's cursor" and act. They don't know or care which view mode the pane is in. This means:
 
-Commands don't know or care. They call `currentCursor()` and operate. This means:
-
-1. **There is no `omniboxConfirm()` function that special-cases the dialog.** Enter in the omnibox just fires the same command dispatch that Enter on the board fires. The command reads the cursor, runs, and the omnibox closes as a side-effect of the dispatch (unless it's a persistent pane).
-2. **The pre-selection ergonomic wins come for free.** When you open the omnibox via `cmd-k`, the first result is the current board cursor. Enter runs `goto` against it — which is a no-op "re-focus". Shift+Enter runs `create-in` against it — creating a child under the current node. These aren't special-cased; they're just consequences of "the selected argument is the cursor" + "the default selected argument is the board cursor".
-3. **Arrowing in the omnibox moves the cursor.** In `placement="pane"` (the persistent case) this is especially powerful: arrow keys in the omnibox propagate to the entire app. You're keyboard-driving a live cursor through a filtered, searchable view.
-4. **Commands that don't need an argument** (`:save`, `:zoom-out`, `:toggle-theme`) simply don't read the cursor. They're still valid with no argument-field selection. Enter runs them directly.
+1. **No omnibox-specific command dispatch.** Enter in a search pane fires the same `commandExecutor` that Enter fires everywhere else. The command reads the cursor, runs, and the ephemeral overlay pane closes as a side-effect (persistent panes stay open).
+2. **Pre-selection ergonomic wins come for free.** When `cmd-k` opens a fresh search overlay, the initial selected argument is the previous pane's cursor — so the search pane opens with "cursor points to whatever you were looking at". Enter runs `goto` against it (no-op "re-focus"). Shift+Enter runs `create-in` against it (creates a child). No special-casing; just cursor propagation during pane creation.
+3. **Arrowing in the search pane moves the cursor.** Because the selected argument row *is* the cursor. In a persistent docked search pane, this means you're keyboard-driving a live cursor through a filtered, searchable view — exactly the promise of "omnibox as a dockable workflow surface", but with zero new abstractions.
+4. **Commands that don't need an argument** (`zoom_out`, `toggle_theme`, `save`) don't read the cursor. Their `execute` function ignores `ctx.currentNodeId`. Enter runs them directly regardless of the argument field's state.
 
 ### Command arguments — selected from the list, not typed
 
@@ -437,124 +446,129 @@ This gives a clean mental model: **the argument field is always "what node are y
 
 ## Opening the omnibox
 
-Every opening path resolves to an `OPEN` action with `{ command, argumentPrefill, focus, placement }`:
+Every opening path resolves to a **create-pane action** that adds a `viewMode: "search"` pane to the workspace with the appropriate initial state. The pane lifecycle (ephemeral overlay vs persistent docked) is set by the `placement`:
 
-| Chord | command | argumentPrefill | focus | placement |
-|---|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | center |
-| `g @` | `goto` | `@` | argument | center |
-| `g #` | `goto` | `#` | argument | center |
-| `g +` | `goto` | `+` | argument | center |
-| `g [` | `goto` | `[` | argument | center |
-| `g :` | *(empty)* | *(empty)* | command | center |
-| `g g` | `goto` | *(current cursor)* | argument | center |
-| `m @` | `move` | `@` | argument | center |
-| `m +` | `move` | `+` | argument | center |
-| `a @` | `add` | `@` | argument | center |
-| `a #` | `add` | `#` | argument | center |
-| `l g` | `link` | *(current cursor)* | argument | center |
-| `c @` | `create-in` | `@` | argument | center |
-| `/` | `find` | *(empty)* | argument | bottom-left |
+| Chord | command | argumentPrefill | focus | placement | lifecycle |
+|---|---|---|---|---|---|
+| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | center | ephemeral overlay |
+| `g @` | `goto` | `@` | argument | center | ephemeral |
+| `g #` | `goto` | `#` | argument | center | ephemeral |
+| `g +` | `goto` | `+` | argument | center | ephemeral |
+| `g [` | `goto` | `[` | argument | center | ephemeral |
+| `g :` | *(empty)* | *(empty)* | command | center | ephemeral |
+| `g g` | `goto` | *(current cursor)* | argument | center | ephemeral |
+| `m @` | `move` | `@` | argument | center | ephemeral |
+| `m +` | `move` | `+` | argument | center | ephemeral |
+| `a @` | `add` | `@` | argument | center | ephemeral |
+| `a #` | `add` | `#` | argument | center | ephemeral |
+| `l g` | `add_link` | *(current cursor)* | argument | center | ephemeral |
+| `c @` | `create_at` | `@` | argument | center | ephemeral |
+| `/` | `local_find` | *(empty)* | argument | bottom-left | ephemeral |
+| *(future)* | `goto` | *(cursor)* | argument | pane | persistent |
 
-All chords converge on the same component with different opening state.
+All chords converge on the same view-mode. "Opening the omnibox" is really "creating (or focusing) a search pane".
 
-## State machine
+**Command IDs in the table above reference the existing commands** in `packages/km-commands/src/commands/` — `goto`, `move`, `add`, `add_link`, `capture_inbox`, `local_find`, etc. The omnibox is not adding new command IDs for its verbs; it's routing the existing ones through a new surface.
 
-```
-                         open(cmd, arg, focus, placement)
-         closed ──────────────────────────────────────▶ open
-           ▲                                             │
-           │        close()                              │ key events
-           │                                             ▼
-           └──────────────────────────── confirm(cmd, selectedArg)
-                                                         │
-                                                         ▼
-                                                    dispatch op
-```
+## State machine — the search-pane state
 
-States:
-
-- **closed** — no omnibox visible. Cursor source is the board.
-- **open** — omnibox mounted, dialog mode is `dialog:omnibox`. The omnibox is now the cursor source.
-
-Store shape:
+A `viewMode: "search"` pane carries a `SearchPaneState` on the pane (alongside `rootId`, which it inherits from normal panes). There is no separate omnibox reducer — the state is owned by the pane and mutated by reducer actions routed through the pane's own dispatcher:
 
 ```ts
-interface OmniboxState {
-  open: boolean
-  placement: "center" | "bottom-left" | "pane"
+interface SearchPaneState {
   commandBuffer: string           // search query for the command field
   argumentBuffer: string          // search query for the argument field
   focus: "command" | "argument"
-  commandResults: KNode[]         // filtered command nodes (only populated when focus=command)
-  argumentResults: KNode[]        // filtered target nodes  (only populated when focus=argument)
-  selectedCommandIndex: number | null   // which command the user has picked (may differ from commandBuffer)
-  selectedArgumentIndex: number | null  // which argument the user has picked
+  commandResults: KNode[]         // filtered command nodes   (only populated when focus=command)
+  argumentResults: KNode[]        // filtered target nodes    (only populated when focus=argument)
+  selectedCommandIndex: number | null   // which command the user has picked
+  selectedArgumentIndex: number | null  // which argument the user has picked — this is the pane's cursor
+  /** If true, the pane is dismissed after a successful CONFIRM. */
+  ephemeral: boolean
+  /** Layout decision — influences render but not state shape. */
+  layout: "center" | "bottom-left" | "dock"
+  /** Snapshot of the pre-promote state, if the user's last action was a PROMOTE. */
+  promoteSnapshot: { argumentBuffer: string; focus: "command" | "argument" } | null
 }
 ```
 
-Key invariant: **the committed command and argument are the most recently `selected*Index` — not whatever's currently in the buffer.** Switching focus to the command field to browse doesn't reset the argument selection, and vice versa. This is what makes mockup 3 work.
+The pane's public **cursor** accessor returns `argumentResults[selectedArgumentIndex] ?? null`. The board's `currentCursor()` just reads `activePane.cursor` — no special case for search panes.
 
-Actions:
+Actions (dispatched by the pane's key handler):
 
 ```ts
-type OmniboxOp =
-  | { type: "OPEN"; command: string; argumentPrefill: string; focus: "command" | "argument"; placement: Placement }
-  | { type: "CLOSE" }
-  | { type: "INPUT"; field: "command" | "argument"; buffer: string }
-  | { type: "NAV_UP" | "NAV_DOWN" | "NAV_HOME" | "NAV_END" }   // navigates the focused field's result list
-  | { type: "TOGGLE_FOCUS" }                                     // tab
-  | { type: "CONFIRM" }                                          // run resolved (command, argument)
-  | { type: "CANCEL" }
+type SearchPaneOp =
+  | { type: "SEARCH_INPUT"; field: "command" | "argument"; buffer: string }
+  | { type: "SEARCH_NAV_UP" | "SEARCH_NAV_DOWN" | "SEARCH_NAV_HOME" | "SEARCH_NAV_END" }
+  | { type: "SEARCH_TOGGLE_FOCUS" }        // tab with no ghost
+  | { type: "SEARCH_ACCEPT_GHOST" }        // tab / space / right-arrow with ghost visible
+  | { type: "SEARCH_PROMOTE" }             // internal — fired by SEARCH_ACCEPT_GHOST when the accepted
+                                           // argument-field ghost starts with ":"
+  | { type: "SEARCH_CONFIRM" }             // enter — runs the resolved (command, argument) via
+                                           // commandExecutor; if ephemeral, dismisses the pane
+  | { type: "SEARCH_CANCEL" }              // escape — dismisses ephemeral pane; clears buffers for persistent
 ```
 
-The reducer lives in `@km/board` or a new `packages/km-tui-omnibox/` package. React components subscribe via `useSignal`.
+All reducers live in `@km/board` alongside the existing pane reducers. The existing `commandExecutor` (from `@km/commands`) handles `SEARCH_CONFIRM` — it reads the selected command, reads the pane's cursor, and runs the command's `execute(ctx)`.
 
 **Invariants:**
-- If `open`, exactly one of `commandResults` / `argumentResults` is "active" (the focused field's results).
-- If `open`, `selected*Index` is in `[0, *Results.length)` or `null` when the corresponding list is empty.
-- Opening with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
-- `CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
-- `CLOSE` and `CANCEL` both clear all buffers and results and pop the dialog mode. `CANCEL` also restores the prior board cursor. `CLOSE` (post-successful-confirm) lets the dispatched command decide the new cursor.
+- In a `search` pane, the cursor is always `argumentResults[selectedArgumentIndex] ?? null`.
+- `selected*Index` is in `[0, *Results.length)` or `null` when the corresponding list is empty.
+- Opening a search pane with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
+- `SEARCH_CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
+- `SEARCH_CANCEL` on an ephemeral pane dismisses it and restores the previously-focused pane. On a persistent pane it clears the buffers but keeps the pane open.
+- `SEARCH_ACCEPT_GHOST` with no visible ghost is a no-op (Tab then falls through to `SEARCH_TOGGLE_FOCUS`; Space / Right-Arrow pass through as normal text-input keys).
 
 ## Migration
 
-This is a refactor-then-feature, not a rewrite. Phases:
+This is a refactor-then-feature, not a rewrite. The codebase already has most of the pieces: 172 registered commands (including `goto`, `move`, `add`, `add_link`, `local_find`, `capture_inbox`, `command_palette`, `item_picker`, `search`, `filter`, `manage_favorites`, `search_replace`), the `VerbOp` (`CURSOR_TO | REPARENT_TO | LINK_TO | CREATE_AT`) infrastructure that already dispatches to pickers, and Silvery's `TextInput` with autocomplete. The migration is mostly about collapsing 5 dialog components into one view mode and adding the command/argument two-field UX.
 
 ### Phase 1 — shared row component
-Create `OmniboxRow` (the node-based one). Migrate `ItemPicker`, `Omnibox`, `FavoritesDialog` to use it — adapter layer converts today's result shapes to `KNode`-compatible rows. No behavior change. Catches divergence bugs.
+Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx` to use it — adapter layer converts today's result shapes to `KNode`-compatible rows. No behavior change. Catches divergence bugs.
 
 ### Phase 2 — shared ranker
-Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **km-tui.picker-rank-subpath**.
+Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **km-tui.picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
 
-### Phase 3 — commands as nodes
-Introduce `CommandNode` and the synthetic `commands/` subtree. Migrate the existing command registry (`command-bridge.ts` / `@km/commands`) to register nodes into the tree. No UI changes yet — the old command palette still queries the registry, but via the node-backed adapter. Tests: every registered command appears as a `KNode` with `type: "command"`.
+### Phase 3 — commands as nodes (adapter)
+Introduce a `CommandNode` view over the existing `CommandDef` registry — no schema change to `CommandDef`, just a read-only adapter that wraps the registry as a `KNode`-returning tree source. The synthetic `commands/` subtree is computed on demand from `packages/km-commands/src/commands/index.ts`. Tests: every `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
 
-### Phase 4 — when-clauses
-Parse and evaluate `when` expressions. Migrate the current ad-hoc availability checks (dialog-mode guards, edit-mode guards) to `when` clauses on the command nodes. Keybinding layer consults `when` before dispatching. Tests: disabled commands don't appear in the omnibox list and don't trigger their key.
+### Phase 4 — `when` clauses (additive)
+Add an optional `when?: string` field to `CommandDef`. Parse and evaluate the DSL. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards). Phase out `modes` gradually in a later pass. Tests: a command with `when: "viewMode == 'detail'"` appears in the omnibox results only when a detail pane is active.
 
-### Phase 5 — unified component, one field (bridge)
-Single-field `Omnibox` component (~300 lines). Replaces `Omnibox.tsx` + `ItemPicker.tsx` + `FavoritesDialog.tsx`. Same dialog modes, one node-keyed result list. Old components become thin wrappers for one release, then delete. Supports `placement: "center"` only. This is the **bridge step** — still a single buffer internally so we don't ship the two-field model and the component rewrite at the same time.
+### Phase 5 — `viewMode: "search"` pane (new view mode)
+Add `"search"` to the board pane's view-mode enum. Build the `SearchPaneView` component: command field (Silvery `TextInput` with `autocomplete = commandTitles`), argument field (same), result list below, footer with the resolved action. Single-field behavior internally (no Tab yet, no PROMOTE) — the command chip is locked by the opening chord. Route `command_palette`, `item_picker`, `search`, `manage_favorites`, `search_replace` to open a search pane instead of their current bespoke dialogs. The old dialog components become thin adapters that delegate to `openSearchPane({ command, argumentPrefill, layout: "center" })`.
 
-### Phase 6 — cursor unification
-Make the omnibox the cursor source while open. Every command that reads `currentCursor()` now resolves to the omnibox's selected result when the omnibox is open. Tests: arrow in omnibox → board cursor follows. Shift+Enter create-in no longer special-cases "the dialog" — it just operates on "the cursor".
+### Phase 6 — cursor unification via pane cursor
+Teach the board's `currentCursor()` lookup to route through `activePane.cursor`. For cards/columns/tabs/detail panes this is already true in spirit; for search panes, implement the `.cursor` accessor to return `argumentResults[selectedArgumentIndex]`. Remove any `dialog:omnibox` scope guards from the command executor. Tests: arrow in a search pane → commands that read `currentNodeId` act on the selected argument row.
 
-### Phase 7 — two searchable fields
-Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Introduce Tab semantics (Tab accepts autocomplete if present, otherwise toggles focus). Two-line center-modal layout (command above argument). Wire Silvery `TextInput`'s `autocomplete` prop for both fields. `Shift+Enter` and `Ctrl+Enter` become the only "override" shortcuts; remove any `Ctrl+g/m/a/l` plumbing that was in Phase 5. Update chord table in `Opening the omnibox`. Add the `PROMOTE` action for space-auto-promotion of commands typed in the argument field. Add the global-keybinding pass-through rule (non-text-conflicting globals fall through to the global layer while `dialog:omnibox` is open). Add `:capture` as a first-class command node under `commands/`.
+### Phase 7 — two searchable fields + Tab + ghost accept + PROMOTE
+Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Two-line center-modal layout (command above argument). Wire Silvery `TextInput`'s `autocomplete` prop for both fields. Add the key rules:
+- Tab: accept ghost if visible, else toggle focus.
+- Space/Right-Arrow: accept ghost if visible, else pass through.
+- `SEARCH_ACCEPT_GHOST` with a `:`-starting accepted ghost fires `SEARCH_PROMOTE` (move to command field, clear argument, store snapshot).
+- Backspace after PROMOTE restores the snapshot.
+- `Shift+Enter` shortcut for `create_at`, `Ctrl+Enter` shortcut for `goto`.
+Update the Opening table chord handlers to route to the new two-field state shape. Finish wiring the `CAPTURE` op handler so `:capture` does the right thing against the configured inbox.
 
 ### Phase 8 — cursor pre-select
-Teach the omnibox to read the board cursor on open and set `argumentPrefill` / `selectedArgumentIndex` appropriately. Feature-flag behind a config option for the first release in case it's confusing.
+When opening an ephemeral search pane via `cmd-k`, propagate the previously-focused pane's cursor into the new pane's initial `selectedArgumentIndex`. Feature-flag behind a config option for the first release in case it's confusing.
 
-### Phase 9 — `/` local find, `placement="bottom-left"`
-Add the `bottom-left` placement. Wire `/` to open with `{ command: "find", focus: "argument", placement: "bottom-left" }`. Replace `apps/km-tui/src/views/FindBar.tsx` with the omnibox in local-find mode. Extract `highlightMatches()` into a shared helper used by both the row renderer and the in-place board highlighting.
+### Phase 9 — `/` local find, `layout="bottom-left"`
+Add the `bottom-left` layout. Wire `/` to open a search pane with `{ command: "local_find", focus: "argument", layout: "bottom-left" }`. Replace `apps/km-tui/src/views/FindBar.tsx` with the new surface. In-place board highlighting reads from the search pane's argument buffer and uses `highlightMatches()`.
 
 ### Phase 10 — shelves
-Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, old command-registry adapter). Update docs. Update keybindings reference. Add integration tests for each chord path.
+Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the dialog-scope plumbing that used to guard `dialog:omnibox`). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **km-tui.palette-arrow-keys** — with the view-mode reframe, the class of bug is gone because there's no dialog-scope layering for commands.
 
-### Phase 11 (post-v1) — `placement="pane"`
-Persistent docked omnibox. Same component, `persistent: true` flag, never auto-closes on Enter. Workspace-level state (like detail pane). Requires: pane-aware focus-restoration, "don't save nav history for omnibox-cursor transitions", and probably a new `vm` cycle slot.
+### Phase 11 (post-v1) — docked persistent search pane
+Allow a search pane to be spawned with `layout: "dock"` and `ephemeral: false`. Workspace pane manager treats it like any other dockable view (supports split, resize, focus cycling, etc.). Users can have a permanent "inbox triage" pane, a "search-as-you-go" pane, etc. Requires: a `cmd-k`-equivalent that toggles docking on the current ephemeral pane, and probably a new entry in the `vm` view-mode cycle.
 
-Each phase is independently shippable. Phase 1+2 can ship together (pure refactors). Phase 3+4 can ship together. Phase 5 is the single-buffer bridge. Phase 6+7+8 are the two-field migration and should ship as one release candidate. Phase 9 is pure win once Phase 7 is merged.
+**Ship sequencing:**
+- Phase 1+2 ship together (pure refactors with test support).
+- Phase 3+4 ship together (adapter + opt-in `when`).
+- Phase 5 is the pivotal change — it introduces `viewMode: "search"` and collapses the existing dialogs onto it. Ships alone.
+- Phase 6+7+8 ship as one release candidate (two-field model + cursor unification + pre-select are coherent as a unit).
+- Phase 9 is pure win once Phase 5 is merged — it can ship at any point afterward.
+- Phases 10+11 are cleanup and post-v1 work.
 
 ## Out of scope
 
@@ -565,43 +579,50 @@ Each phase is independently shippable. Phase 1+2 can ship together (pure refacto
 
 ## Resolved questions
 
-The following were open in earlier drafts; resolved here:
-
 1. **Recent handling** — recents are a recency bonus on the ranker, filtered by prefix like every other result. No separate "recents list"; the empty-buffer state just happens to be sorted by recency.
-2. **create-in with no match** — inactivatable. Creating a brand-new project/file is a separate command (`:new-project`, `:new-file`) that reads `argumentBuffer` as the title. This keeps `create-in` semantically clean (always operates on an existing target).
-3. **Commands take arguments via the argument field** — not via typed strings. `move` reads the selected argument row; `:new-project` reads the argument buffer directly. Commands decide per-command.
+2. **`create_at` with no match** — inactivatable. Users who want to create a brand-new thing with no target use `capture_inbox` (which already exists as a stub in `edit.ts:255`) or a future `:new-project` / `:new-file` command that reads `argumentBuffer` as the title. This keeps `create_at` semantically clean — always operates on an existing target.
+3. **Commands take arguments via the argument field** — not via typed strings. Commands whose argument is an existing node (`goto`, `move`, `add_link`, `create_at`, `reparent_picker`, …) read `ctx.currentNodeId` (which comes from the pane's cursor = the selected argument row). Create-new commands read `argumentBuffer` directly. Commands decide per-command; the omnibox doesn't care.
 4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
-5. **Keyboard-only override fallback** — not needed. Override is via Tab + typing in the command field, which works on every terminal. `Ctrl+Enter` / `Shift+Enter` are shortcuts, not requirements; if a terminal strips them, the user can still Tab.
-
-## More resolved questions
-
-1. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically:
-   ```
-   command field   (line 1)
-   argument field  (line 2)
-   results         (below)
-   footer          (below)
-   ```
-   Bottom-left local-find placement keeps its single-line compact form (command is locked to `find`, so there's nothing to edit).
-2. **`placement="pane"` — pane-owned state.** Each omnibox pane owns its own `OmniboxState` (like detail panes own their `rootId`). The workspace store holds an omnibox pane by id; no global singleton. Opening `cmd-k` in a non-omnibox-pane app still uses the singleton center modal — only docked omniboxes are pane-owned.
-3. **Empty command field content.** When the command field is empty and focused, show recents (recently-run commands) plus — if this omnibox pane is attached to a board — the board's current cursorId surfaced as the "cursor target" suggestion in the argument side. The empty state is "here are the things you'd most likely want to do right now", not "here is a command reference".
-4. **Tab completion — use Silvery's TextInput autocomplete.** `vendor/silvery/packages/ag-react/src/ui/input/TextInput.tsx` already exposes `autocomplete={string[]}` + `onAutocomplete` with ghost-text suggestion and first-class "accept the suggestion" semantics (the CLI helper `withTextInput` accepts on Tab). We use it directly:
-   - **Command field**: `autocomplete = filteredCommandTitles`. The ghost-text shows the top-ranked completion next to what the user typed (e.g., typed `mo`, ghost shows `ve`).
-   - **Argument field**: `autocomplete = filteredNodeTitles` when the top result has a single unambiguous prefix match — otherwise no ghost text.
-
-   **Key conflict: Tab accepts suggestion vs Tab toggles focus.** Resolved with a priority rule in the omnibox's reducer: if the focused field has an active autocomplete suggestion (ghost text visible, cursor at end of buffer), Tab accepts the suggestion. Otherwise, Tab toggles focus. This matches shell behavior — Tab completes until there's nothing left to complete, then jumps to the next word. Users can always `right-arrow` to accept the suggestion without disambiguating.
+5. **No separate override scope** — because the omnibox is a board view, not a dialog. Tab + typing in the command field is the override; `Shift+Enter` / `Ctrl+Enter` are shortcuts. Global keybindings work without any pass-through rule.
+6. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically (command line, argument line, results, footer). Bottom-left local-find keeps the compact single-line form (command is locked, so there's nothing to edit).
+7. **Search-pane state is pane-owned.** Each search pane owns its own `SearchPaneState` (like detail panes own `rootId`, like cards panes own `cursorId`). The workspace holds panes by id; no global omnibox singleton.
+8. **Empty command field content.** Recents (recently-run commands) plus — if the previously-focused pane had a cursor — that cursor surfaced as the "cursor target" suggestion in the argument side. "Here are the things you'd most likely want to do right now", not "here is a command reference".
+9. **Tab completion — Silvery's `TextInput` autocomplete.** `vendor/silvery/packages/ag-react/src/ui/input/TextInput.tsx` already has `autocomplete: string[]` + ghost text + "accept the suggestion" semantics. Wire both fields to it. Tab priority: accept ghost if visible, else toggle focus. Space / Right-Arrow also accept when ghost visible. Only ghosted completions are ever committed — no separate "unambiguous top-match" heuristic.
 
 ## Open questions
 
-*(none remaining — all previously open questions have been resolved by the user's answers.)*
+*(none remaining — all prior questions resolved.)*
+
+## Mapping to existing commands
+
+The following commands already exist in `packages/km-commands/src/commands/` and will be rerouted to open a search pane instead of their current bespoke dialog/picker:
+
+| Existing command | Current behavior | After migration |
+|---|---|---|
+| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Opens search pane with `{ focus: "command" }` |
+| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Opens search pane with `{ command: "goto", focus: "argument" }` |
+| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Opens search pane scoped to favorited nodes |
+| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Opens search pane with `{ command: "local_find", layout: "bottom-left" }` |
+| `search` (`tui.ts:66`) | Opens search dialog | Opens search pane with `{ command: "goto", focus: "argument" }` |
+| `filter` (`navigation.ts:252`) | Opens filter dialog | Opens search pane with filter-specific layout (phase 5 detail) |
+| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | Opens search pane with a replace-aware layout (out of scope for v1) |
+| `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — search pane's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
+| `move` (`edit.ts:194`) | Takes `ctx.targetId`, emits `REPARENT_TO` | Same pattern |
+| `add` (`edit.ts:209`) | Takes `ctx.targetId`, emits `LINK_TO`/`SET_LABEL`/etc | Same pattern |
+| `add_link` (`edit.ts:223`) | Emits `ADD_LINK` | Same |
+| `capture_inbox` (`edit.ts:255`) | Emits `{ type: "CAPTURE", location: "inbox" }` (stub) | Finish wiring in Phase 7 |
+
+No new command IDs are introduced for the omnibox's verbs. The new work is: (a) the search view mode, (b) the `when`-clause DSL, (c) the commands-as-nodes adapter, and (d) finishing the `CAPTURE` op handler.
 
 ## Relationship to other work
 
 - **km-tui.picker-rank-subpath** — absorbed into Phase 2.
-- **km-silvery.focus** — the omnibox is one dialog, making the focus system easier to get right.
-- **km-silvery.selection-focus-plateau** — one less component to keep in sync across selection/focus state.
-- **km-tui.tea** — the omnibox state machine is an obvious TEA machine candidate. Build the design in the shape TEA wants.
-- **km-tui.atomic-tree-ops** — verb overrides dispatch atomic ops. The omnibox is the main producer of structural ops that aren't "edit current node".
+- **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox is a board view mode with no dialog scope).
+- **km-silvery.focus** — the omnibox is a pane, not a dialog, making the focus system's job simpler.
+- **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
+- **km-tui.tea** — the `SearchPaneState` reducer is an obvious TEA machine candidate. Build the design in the shape TEA wants from day one.
+- **km-tui.atomic-tree-ops** — the search pane is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
+- **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
 
 ## References
 
