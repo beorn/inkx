@@ -68,6 +68,44 @@ export function loadProjectOptions(repo: Repo, recentIds: string[]): PickerOptio
 }
 
 // =============================================================================
+// Item loader — any structural item (outline + list items) for wiki-linking
+// =============================================================================
+
+/**
+ * Load all structural items as picker options. Used by the `[` (item/link)
+ * picker for verb chords: `g [` (goto item), `m [` (move to item),
+ * `a [` (add link), `c [` (create under item).
+ *
+ * Includes outline items (files, folders, headings) AND list items. Blocks
+ * (leaf content) are excluded.
+ */
+export function loadItemOptions(repo: Repo, recentIds: string[]): PickerOption[] {
+  const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
+  const options: PickerOption[] = []
+  const recentSet = new Set(recentIds)
+  const displayName = (node: KNode) => getNodeDisplayName(repo, node)
+
+  for (const node of allNodes) {
+    if (!KNode.isItem(node)) continue
+    // Skip embeds (link targets) — the user wants the source, not the link
+    if (node.embed_of) continue
+    const title = displayName(node)
+    if (!title) continue
+    const parentContext = getParentName(node, repo.getNode.bind(repo), displayName)
+    const path = getProjectPath(node, repo.getNode.bind(repo), displayName)
+    options.push({
+      node,
+      title,
+      parentContext,
+      path: path || title,
+      isRecent: recentSet.has(node.id),
+    })
+  }
+
+  return options
+}
+
+// =============================================================================
 // Tag loader — distinct #tags extracted from node content
 // =============================================================================
 

@@ -17,6 +17,8 @@ import { createLogger } from "loggily"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigation/navigate-to-node.ts"
 import type { PickerOption } from "./ItemPicker.tsx"
+import { popDialogMode } from "../dialog-guard.ts"
+import type { ID } from "@silvery/selection"
 
 const log = createLogger("km:tui:dialogs")
 
@@ -58,6 +60,7 @@ interface BoardDialogHandlers {
   handlePickerCancel: () => void
   handleTagSelect: (option: PickerOption) => void
   handleAssigneeSelect: (option: PickerOption) => void
+  handleItemPickerSelect: (option: PickerOption) => void
   handleNewItemCreate: (newNodeId: string) => void
   handleNewItemCancel: () => void
   handleSearchSelect: (targetNode: KNode) => void
@@ -177,6 +180,100 @@ export function useBoardDialogs({
       setUI({ activePicker: null })
     },
     [repo, cursor, setUI, undoHandle],
+  )
+
+  // Handle item picker selection — verb-aware dispatch.
+  //   goto   → navigate cursor to picked item
+  //   move   → reparent current selection (or cursor) under picked item
+  //   link   → insert [[name]] wikilink into cursor's content
+  //   create → create a new child under picked item and navigate there
+  const handleItemPickerSelect = useCallback(
+    (option: PickerOption) => {
+      const picker = repo // typing shim
+      void picker
+      const targetNode = option.node
+      const target = repo.getNode(targetNode.id)
+      if (!target) {
+        popDialogMode()
+        setUI({ activePicker: null })
+        return
+      }
+
+      // Read the pending verb off the live UI state via the setUI updater
+      // (state-snapshot style). This avoids threading pendingVerb as a ref.
+      setUI((prev) => {
+        const verb = prev.activePicker?.pendingVerb ?? "goto"
+
+        switch (verb) {
+          case "goto": {
+            // Navigate — same logic as search select.
+            const nav = navigateToNode(target.id, rootId, repo)
+            if (nav) {
+              if (nav.action === "SELECT") {
+                sel.node.select([nav.cursorTarget as ID])
+              } else if (nav.zoomTarget) {
+                dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+                if (nav.cursorTarget) sel.node.select([nav.cursorTarget as ID])
+                if (nav.action === "DETAIL_VIEW") openDetailPane()
+              }
+            }
+            break
+          }
+
+          case "move": {
+            // Reparent cursor node (or whole selection) to picked target.
+            if (!cursor) break
+            const cursorNode = repo.getNode(cursor)
+            if (!cursorNode) break
+            // Symlink: operate on the embed target, not the embed node
+            const nodeToMove = cursorNode.embed_of ?? cursorNode.id
+            if (nodeToMove === target.id) break // can't reparent into self
+            const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(target.id))
+            undoHandle.setCursor(cursor)
+            repo.moveNode(nodeToMove, target.id, newSortOrder)
+            break
+          }
+
+          case "link": {
+            // Insert a [[name]] wikilink into the cursor node's content.
+            if (!cursor) break
+            const node = repo.getNode(cursor)
+            if (!node) break
+            const label = option.title || target.name || "link"
+            const wikilink = `[[${label}]]`
+            const currentContent = node.content ?? ""
+            const newContent = currentContent ? `${currentContent} ${wikilink}` : wikilink
+            undoHandle.setCursor(cursor)
+            repoUpdate(cursor, { content: newContent })
+            break
+          }
+
+          case "create": {
+            // Create a new child under the picked item and navigate cursor to it.
+            const { sortOrder } = Tree.toSortOrder(repo, Position.last(target.id))
+            const newId = repo.addNode(target.id, {
+              type: "h",
+              content: "New item",
+              parent_id: target.id,
+              parent_idx: sortOrder,
+              item: { list: "-" },
+            })
+            undoHandle.setCursor(newId)
+            sel.node.select([newId as ID])
+            break
+          }
+        }
+
+        // Track recency for project-style lists
+        const prevRecent = prev.recentProjectIds.filter((id) => id !== target.id)
+        return {
+          activePicker: null,
+          recentProjectIds: [target.id, ...prevRecent].slice(0, 10),
+        }
+      })
+      popDialogMode()
+    },
+    [repo, cursor, rootId, setUI, sel, dispatchBoard, openDetailPane, undoHandle, repoUpdate],
   )
 
   // Handler for new item creation
@@ -320,6 +417,7 @@ export function useBoardDialogs({
     handlePickerCancel,
     handleTagSelect,
     handleAssigneeSelect,
+    handleItemPickerSelect,
     handleNewItemCreate,
     handleNewItemCancel,
     handleSearchSelect,

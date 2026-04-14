@@ -8,7 +8,7 @@
  * Any verb can be combined with any location.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, test, expect, beforeEach, afterEach } from "vitest"
 import { goTo, moveTo, addTo, createIn, getSystemLocs, PICKER_LOCS } from "@km/commands"
 import { setFavorite, clearFavorite } from "@km/commands"
 import {
@@ -19,6 +19,8 @@ import {
   type CursorContext,
 } from "../src/board/position-resolver.ts"
 import type { CommandContext } from "@km/commands"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 const emptyCtx = {} as CommandContext
 
@@ -103,17 +105,17 @@ describe("verb × position orthogonality", () => {
       }
     }
 
-    // goTo with pick: is special — returns SHOW_ITEM_PICKER
-    it("goTo with pick: returns SHOW_ITEM_PICKER", () => {
-      expect(goTo("pick:#")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-      expect(goTo("pick:@")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-    })
-
-    // Other verbs pass pick: through as locationKey
-    it("moveTo/addTo/createIn with pick: pass through as locationKey", () => {
+    // All four verbs now pass pick: through as locationKey — the op handler
+    // opens the right picker based on the sigil and records the pending verb.
+    it("goTo/moveTo/addTo/createIn with pick: pass through as locationKey", () => {
+      expect(goTo("pick:#")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:#" })
+      expect(goTo("pick:[")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:[" })
       expect(moveTo("pick:+")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "pick:+" })
+      expect(moveTo("pick:[")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "pick:[" })
       expect(addTo("pick:#")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:#" })
+      expect(addTo("pick:[")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:[" })
       expect(createIn("pick:#")(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "pick:#" })
+      expect(createIn("pick:[")(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "pick:[" })
     })
   })
 
@@ -247,4 +249,67 @@ describe("verb × position orthogonality", () => {
       expect(pos).toEqual({ parentId: "board-A", childIdx: -1 })
     })
   })
+})
+
+// =============================================================================
+// Journey: verb [ chords open the item picker with the right pendingVerb
+// =============================================================================
+//
+// These tests drive the full board app (createTestApp) to verify that the
+// chord prefix layer + verbLocationGrid + openPickerForVerb actually wire up
+// `g [`, `m [`, `a [`, `c [`, and bare `[` to the item picker — not the
+// project picker — and record the right pendingVerb so handleItemPickerSelect
+// dispatches the right follow-up action.
+
+describe("verb-[ picker journeys", () => {
+  test("g [ opens the item picker in goto mode", () => {
+    using app = createTestApp(item("board", item("Todo", item("task1")), item("Done", item("task2"))))
+    app.press("g").press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    app.withStore((s) => {
+      expect(s.ui.activePicker?.type).toBe("item")
+      expect(s.ui.activePicker?.pendingVerb).toBe("goto")
+    })
+  })
+
+  test("m [ opens the item picker in move mode", () => {
+    using app = createTestApp(item("board", item("Todo", item("task1")), item("Done", item("task2"))))
+    app.press("m").press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    app.withStore((s) => {
+      expect(s.ui.activePicker?.type).toBe("item")
+      expect(s.ui.activePicker?.pendingVerb).toBe("move")
+    })
+  })
+
+  test("a [ opens the item picker in link mode", () => {
+    using app = createTestApp(item("board", item("Todo", item("task1")), item("Done", item("task2"))))
+    app.press("a").press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    app.withStore((s) => {
+      expect(s.ui.activePicker?.type).toBe("item")
+      expect(s.ui.activePicker?.pendingVerb).toBe("link")
+    })
+  })
+
+  test("c [ opens the item picker in create mode", () => {
+    using app = createTestApp(item("board", item("Todo", item("task1")), item("Done", item("task2"))))
+    app.press("c").press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    app.withStore((s) => {
+      expect(s.ui.activePicker?.type).toBe("item")
+      expect(s.ui.activePicker?.pendingVerb).toBe("create")
+    })
+  })
+
+  test("bare [ opens the item picker in link mode (ADD_LINK)", () => {
+    using app = createTestApp(item("board", item("Todo", item("task1"))))
+    app.press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    app.withStore((s) => {
+      expect(s.ui.activePicker?.type).toBe("item")
+      expect(s.ui.activePicker?.pendingVerb).toBe("link")
+    })
+  })
+
 })

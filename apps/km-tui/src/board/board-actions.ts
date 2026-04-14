@@ -1235,11 +1235,11 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       clearSelection(ctx)
       return ok()
     case "SHOW_ITEM_PICKER":
+      // Legacy command (orphan — no keybinding). Defaults to the project picker
+      // in "move" mode so existing direct dispatches keep working. The verb x
+      // location grid is the canonical entry point for picker dialogs.
       if (ctx.card || ctx.focusedPaneViewType() === "empty") {
-        pushDialogMode("dialog:picker")
-        ctx.closeDetailPane()
-        ctx.setUI({ activePicker: { type: "project" } })
-        clearSelection(ctx)
+        return openPickerForVerb(ctx, "+", "move")
       }
       return ok()
     case "SHOW_TASK_DIALOG":

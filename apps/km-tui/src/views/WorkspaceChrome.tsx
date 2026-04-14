@@ -21,7 +21,7 @@ import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { ItemPicker } from "./ItemPicker.tsx"
-import { loadProjectOptions, loadTagOptions, loadAssigneeOptions } from "./picker-loaders.ts"
+import { loadProjectOptions, loadTagOptions, loadAssigneeOptions, loadItemOptions } from "./picker-loaders.ts"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
@@ -41,8 +41,11 @@ import type { PickerLoadOptions } from "./ItemPicker.tsx"
 // Picker configuration per type
 // =============================================================================
 
+type PickerType = "project" | "tag" | "assignee" | "item"
+type PendingVerb = "goto" | "move" | "link" | "create"
+
 const pickerConfig: Record<
-  "project" | "tag" | "assignee",
+  PickerType,
   {
     title: string
     loadOptions: PickerLoadOptions
@@ -52,6 +55,23 @@ const pickerConfig: Record<
   project: { title: "Move to project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
   tag: { title: "Add tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
   assignee: { title: "Assign to", loadOptions: loadAssigneeOptions, emptyLabel: "No matching assignees" },
+  item: { title: "Pick item", loadOptions: loadItemOptions, emptyLabel: "No matching items" },
+}
+
+/** Verb-aware title for the item picker — uses the verb prefix, not the canonical action. */
+function itemPickerTitle(verb: PendingVerb | undefined): string {
+  switch (verb) {
+    case "goto":
+      return "Go to item"
+    case "move":
+      return "Move to item"
+    case "link":
+      return "Link to item"
+    case "create":
+      return "Create under item"
+    default:
+      return "Pick item"
+  }
 }
 
 // =============================================================================
@@ -307,14 +327,20 @@ export function WorkspaceChrome({
           focusScope
         >
           <ItemPicker
-            title={pickerConfig[ui.activePicker.type].title}
+            title={
+              ui.activePicker.type === "item"
+                ? itemPickerTitle(ui.activePicker.pendingVerb)
+                : pickerConfig[ui.activePicker.type].title
+            }
             loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
             onSelect={
-              ui.activePicker.type === "project"
-                ? dialogHandlers.handlePickerSelect
-                : ui.activePicker.type === "tag"
-                  ? dialogHandlers.handleTagSelect
-                  : dialogHandlers.handleAssigneeSelect
+              ui.activePicker.type === "item"
+                ? dialogHandlers.handleItemPickerSelect
+                : ui.activePicker.type === "project"
+                  ? dialogHandlers.handlePickerSelect
+                  : ui.activePicker.type === "tag"
+                    ? dialogHandlers.handleTagSelect
+                    : dialogHandlers.handleAssigneeSelect
             }
             onCancel={dialogHandlers.handlePickerCancel}
             width={Math.min(80, Math.floor(termWidth / 2))}

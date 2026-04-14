@@ -151,10 +151,11 @@ describe("verb-locations", () => {
         expect(goTo("last")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "last" })
       })
 
-      it("returns SHOW_ITEM_PICKER for pick:*", () => {
-        expect(goTo("pick:+")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-        expect(goTo("pick:#")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-        expect(goTo("pick:@")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+      it("returns CURSOR_TO for pick:* (picker dispatch happens in handler)", () => {
+        expect(goTo("pick:+")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:+" })
+        expect(goTo("pick:#")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:#" })
+        expect(goTo("pick:@")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:@" })
+        expect(goTo("pick:[")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "pick:[" })
       })
     })
 
@@ -278,7 +279,7 @@ describe("verb-locations", () => {
       expect(cFavBindings).toHaveLength(0)
     })
 
-    it("does NOT produce c + picker locations (skip condition uses old '#' key)", () => {
+    it("produces c + picker locations only for [ (item) — c # / c @ / c + are skipped", () => {
       const cBindings = filterByChord(grid, "c")
       const pickerKeys = Object.keys(PICKER_LOCS)
       const cPickerBindings = cBindings.filter((b) => {
@@ -289,9 +290,18 @@ describe("verb-locations", () => {
         parts.push(parsed.key)
         return pickerKeys.includes(parts.join("-"))
       })
-      // The source skip condition `pKey !== "#"` always triggers since picker keys
-      // are now "shift-3" etc., so c gets 0 picker bindings
-      expect(cPickerBindings).toHaveLength(0)
+      // c [ is the only valid create-under-picker chord. # would conflict with
+      // tag-add, @ / + don't have a sensible "create under" semantic.
+      expect(cPickerBindings).toHaveLength(1)
+      expect(cPickerBindings[0]!.targetId).toBe("pick:[")
+    })
+
+    it("produces c [ (createIn pick [ = CREATE_AT pick:[)", () => {
+      const b = findBinding(grid, "c", "[")
+      expect(b).toBeDefined()
+      expect(b!.commandId).toBe("create_in")
+      const action = b!.execute!(emptyCtx)
+      expect(action).toEqual({ type: "CREATE_AT", locationKey: "pick:[" })
     })
 
     // --- Positive: expected combinations exist ---
@@ -414,10 +424,9 @@ describe("verb-locations", () => {
       // g: 7 system + 10 fav + 4 picker = 21
       // m: 7 system + 10 fav + 4 picker = 21
       // a: 4 system (skip g, shift-g, p) + 10 fav + 4 picker = 18
-      // c: 1 system (only i) + 0 fav + 0 picker = 1
-      //    (picker skip condition pKey !== "#" always true since keys are now shift-3 etc.)
-      // Total: 21 + 21 + 18 + 1 = 61
-      expect(grid.length).toBe(61)
+      // c: 1 system (only i) + 0 fav + 1 picker (only [) = 2
+      // Total: 21 + 21 + 18 + 2 = 62
+      expect(grid.length).toBe(62)
     })
   })
 

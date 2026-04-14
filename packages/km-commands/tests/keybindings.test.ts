@@ -900,12 +900,13 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
-    // 26 g + 28 v + 23 m + 18 a + 13 t + 2 c + 26 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v + 1 q
+    // 26 g + 28 v + 23 m + 18 a + 13 t + 3 c + 26 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v + 1 q
     // - g-prefix gained `f` (follow_wikilink)
     // - v-prefix gained `|` (pane_split_vertical, moved from `s` so `s` could carry the
     //   sticky-fold mnemonic) — `s` now resolves to toggle_sticky_fold
     // - q q chord added so quit has muscle-memory access without the bare-q footgun
-    expect(chordBindings.length).toBe(188)
+    // - c-prefix gained `[` (create_in pick:[) — create a new item under a picked parent
+    expect(chordBindings.length).toBe(189)
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {

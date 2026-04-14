@@ -22,10 +22,7 @@ export type Execute = (ctx: CommandContext) => KmOp | KmOp[] | null
 /** Go to a target (navigates there) */
 export const goTo =
   (locationKey: string): Execute =>
-  () => {
-    if (locationKey.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
-    return { type: "CURSOR_TO", locationKey }
-  }
+  () => ({ type: "CURSOR_TO", locationKey })
 
 /** Move selected node(s) to a target */
 export const moveTo =
@@ -123,7 +120,9 @@ export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
 
     // Picker locations — for verbs that support them
     for (const [pKey, ploc] of Object.entries(PICKER_LOCS)) {
-      if (vKey === "c" && pKey !== "#") continue // c # is useful (create + label)
+      // c # = create + label (tag); c [ = create under a picked item.
+      // c @ / c + don't have a sensible meaning yet.
+      if (vKey === "c" && pKey !== "#" && pKey !== "[") continue
       bindings.push({
         key: `${verb.prefix} ${pKey}`,
         commandId: verb.commandId,

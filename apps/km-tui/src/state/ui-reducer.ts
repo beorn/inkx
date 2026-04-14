@@ -34,7 +34,16 @@ export interface UIState {
   // Overlays/dialogs (global — single modal at a time)
   showHelp: boolean
   helpScrollOffset: number
-  activePicker: { type: "project" | "tag" | "assignee" } | null
+  /**
+   * Active picker dialog. `type` chooses the loader and UI; `pendingVerb`
+   * records which verb prefix opened it so the onSelect handler can dispatch
+   * the right follow-up action. Omitted pendingVerb defaults to the picker's
+   * canonical action (project → move, tag → add tag, assignee → assign).
+   */
+  activePicker: {
+    type: "project" | "tag" | "assignee" | "item"
+    pendingVerb?: "goto" | "move" | "link" | "create"
+  } | null
   showNewItemDialog: boolean
   showSearchDialog: boolean
   searchDialogInitialInput: string // Buffer for keypresses during dialog open transition

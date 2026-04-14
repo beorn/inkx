@@ -215,7 +215,8 @@ const goto = {
     const t = ctx.targetId
     if (!t) return null
 
-    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
+    // Pick targets now route through the unified CURSOR_TO handler — the
+    // verb op handler dispatches the right picker based on the sigil.
     return { type: "CURSOR_TO", locationKey: t }
   },
 } satisfies CommandDef
