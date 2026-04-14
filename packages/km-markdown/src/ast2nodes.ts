@@ -27,7 +27,7 @@ const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
-import { getStatusForMarker, markToMarker, parseTaskMetadataFromText } from "@km/core"
+import { extractKVProperties, getStatusForMarker, markToMarker, parseTaskMetadataFromText } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -246,6 +246,52 @@ function extractInlineSource(
   if (typeof startOffset !== "number" || typeof endOffset !== "number") return undefined
   if (startOffset < 0 || endOffset > body.length || startOffset > endOffset) return undefined
   return body.slice(startOffset, endOffset)
+}
+
+/**
+ * Strip inline props and task metadata markers from a raw markdown source
+ * slice, preserving bold/italic/link/code markers intact.
+ *
+ * Used by convertListItem to produce a `_mdSource` for tasks whose content
+ * was stripped of props/metadata. The resulting string still has `**bold**`,
+ * links, and inline code markers, but no `priority:: P0` / `due:: 2026-04-15`
+ * / `📅 2026-04-15` / `⏫` / `🔁 every week` chunks.
+ *
+ * Uses extractKVProperties to find the byte ranges of all `key:: value`
+ * patterns, then splices them out. Then strips the legacy emoji/format
+ * metadata via parseTaskMetadataFromText which emits a cleanContent field.
+ */
+function stripPropsAndMetadataFromSource(
+  source: string,
+  propsRaw: Record<string, string>,
+  metadata: { dueAt?: string; startAt?: string; priority?: string; rrule?: string },
+): string {
+  let result = source
+
+  // Strip `key:: value` chunks if any were extracted from the plain text.
+  // Re-run the extractor on the source bytes — the regex doesn't care about
+  // markdown markers around the props, so bold `**x**` stays intact.
+  if (Object.keys(propsRaw).length > 0) {
+    const { cleanText } = extractKVProperties(result)
+    // extractKVProperties normalizes whitespace — for a single-line source
+    // slice that's fine. If the slice had multi-line content the whitespace
+    // collapse could be lossy, but task content is single-line in practice.
+    result = cleanText
+  }
+
+  // Strip legacy task metadata (emoji forms, due:YYYY-MM-DD, etc.) only if
+  // any such metadata was actually parsed from the plain text. Otherwise
+  // this is a no-op and we avoid touching the source.
+  const hasLegacyMetadata =
+    metadata.dueAt !== undefined ||
+    metadata.startAt !== undefined ||
+    metadata.priority !== undefined ||
+    metadata.rrule !== undefined
+  if (hasLegacyMetadata) {
+    result = parseTaskMetadataFromText(result).cleanContent
+  }
+
+  return result.trim()
 }
 
 /**
@@ -531,10 +577,22 @@ function convertListItem(
   // Use inline created:: metadata to populate created_at if present
   const inlineCreatedAt = parseFrontmatterTimestamp(metadataFromProps.created)
 
-  // km-markdown.inline-format-loss: only preserve the raw source if nothing
-  // was stripped (no task metadata migration, no inline properties extracted).
-  // Otherwise the serializer's reconstruction path (emoji → key::, propsRaw
-  // ordering) should run as before.
+  // km-markdown.inline-format-loss: preserve the raw markdown source slice
+  // so the render path can reparse inline formatting (**bold**, links, code,
+  // etc.). Two cases:
+  //
+  // 1. Nothing was stripped (no props, no task metadata) — use rawMdSource
+  //    verbatim. Serializer emits it verbatim on unedited nodes.
+  //
+  // 2. Props or task metadata WERE stripped from content — strip the same
+  //    props out of rawMdSource so the render doesn't show `priority:: P0`
+  //    or similar inside the card. The stripped source still has bold /
+  //    link / code markers intact because listItemToText only strips
+  //    formatting markers for the PLAIN text path, not the source bytes.
+  //    Serializer's getUneditedInlineSource safely returns undefined when
+  //    propsRaw is present, so this _mdSource is only consumed by render.
+  //
+  // See km-tui.inline-format-task-with-props.
   const nothingStripped =
     displayContent === text &&
     Object.keys(parsedProps.propsRaw).length === 0 &&
@@ -542,7 +600,10 @@ function convertListItem(
     metadata.startAt === undefined &&
     metadata.priority === undefined &&
     metadata.rrule === undefined
-  const mdSource = nothingStripped ? rawMdSource : undefined
+  let mdSource: string | undefined = nothingStripped ? rawMdSource : undefined
+  if (!nothingStripped && rawMdSource !== undefined) {
+    mdSource = stripPropsAndMetadataFromSource(rawMdSource, parsedProps.propsRaw, metadata)
+  }
 
   const node: KNode = {
     id: ulid(),

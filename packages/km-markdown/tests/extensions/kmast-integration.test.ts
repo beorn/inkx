@@ -733,3 +733,80 @@ describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", (
     expect(task!.data?.projects).toContain("km")
   })
 })
+
+// ===========================================================================
+// Tasks with both inline props AND inline formatting — km-tui.inline-format-task-with-props
+//
+// `- [ ] Pay **CA FTB $2,500** via https://ftb.ca.gov/pay/ priority:: P0 due:: 2026-04-15`
+// used to lose its bold and links because the parser only preserved _mdSource
+// when "nothing was stripped". Tasks with props always fail that guard, so
+// _mdSource was undefined and render fell back to plain content text.
+//
+// Fix: strip only the props/metadata from the raw source slice, keeping the
+// markdown markers for bold/italic/link/code intact. See ast2nodes.ts
+// stripPropsAndMetadataFromSource.
+// ===========================================================================
+
+describe("tasks with both inline props and inline formatting", () => {
+  const { parseMarkdownToNodes: parseToNodes } = require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
+
+  test("bold + props → _mdSource preserves bold, strips props", () => {
+    const md = "- [ ] Pay **CA FTB $2,500** via tax system priority:: P0 due:: 2026-04-15\n"
+    const nodes = parseToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    expect(task).toBeDefined()
+    // Props extracted
+    const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
+    expect(propsRaw?.priority).toBe("P0")
+    expect(propsRaw?.due).toBe("2026-04-15")
+    // _mdSource set (was undefined before the fix)
+    const mdSource = (task!.data as { _mdSource?: string })?._mdSource
+    expect(mdSource, "_mdSource should be set even when props were stripped").toBeDefined()
+    // Bold preserved verbatim
+    expect(mdSource).toContain("**CA FTB $2,500**")
+    // Props stripped
+    expect(mdSource).not.toContain("priority::")
+    expect(mdSource).not.toContain("due::")
+  })
+
+  test("bold only (no props) still works (regression guard)", () => {
+    const md = "- [ ] Pay **CA FTB $2,500** via tax system\n"
+    const nodes = parseToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const mdSource = (task!.data as { _mdSource?: string })?._mdSource
+    expect(mdSource).toBeDefined()
+    expect(mdSource).toContain("**CA FTB $2,500**")
+  })
+
+  test("URL + props → _mdSource preserves URL", () => {
+    const md = "- [ ] Pay via https://www.ftb.ca.gov/pay/ priority:: P0\n"
+    const nodes = parseToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const mdSource = (task!.data as { _mdSource?: string })?._mdSource
+    expect(mdSource).toBeDefined()
+    expect(mdSource).toContain("https://www.ftb.ca.gov/pay/")
+    expect(mdSource).not.toContain("priority::")
+  })
+
+  test("inline code + props → _mdSource preserves backticks", () => {
+    const md = "- [ ] edit `~/Desktop/file.md` with care priority:: P1\n"
+    const nodes = parseToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const mdSource = (task!.data as { _mdSource?: string })?._mdSource
+    expect(mdSource).toBeDefined()
+    expect(mdSource).toContain("`~/Desktop/file.md`")
+    expect(mdSource).not.toContain("priority::")
+  })
+
+  test("bold + wikilink + props → _mdSource preserves both", () => {
+    const md = "- [ ] **Send reply** from [[+taxes/workstreams]] priority:: P0 due:: 2026-04-14\n"
+    const nodes = parseToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    const mdSource = (task!.data as { _mdSource?: string })?._mdSource
+    expect(mdSource).toBeDefined()
+    expect(mdSource).toContain("**Send reply**")
+    expect(mdSource).toContain("[[+taxes/workstreams]]")
+    expect(mdSource).not.toContain("priority::")
+    expect(mdSource).not.toContain("due::")
+  })
+})
