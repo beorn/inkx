@@ -262,6 +262,43 @@ describe("inline formatting in body blocks", () => {
     expect(app.text).not.toContain("**bold**")
     expect(cellHasAttr(app, "bold", "bold")).toBe(true)
   })
+
+  it("nested task list items are visually indented under their parent", () => {
+    // Regression: km-tui.task-hierarchy-flat.
+    // Nested list items used to render flat because TreeNode's
+    // paddingLeft = max(0, depth - 1) collapsed depth 0 (card title) and
+    // depth 1 (first child) onto the same column. Inside a structural card
+    // the border provides a visual offset at depth 0, but body cards are
+    // borderless — so a parent task and its child tasks rendered with
+    // identical bullet glyphs and identical indentation, looking like
+    // siblings. Fix: paddingLeft = depth, so each nesting level shifts one
+    // cell right regardless of whether the ancestor is a structural or
+    // body card.
+    using app = createTestApp.fromMarkdown(
+      "# Todo\n\n- [ ] Parent task\n  - [ ] Child 1\n  - [ ] Child 2\n\n# Done\n\n- [x] Something else\n",
+      { rows: 24, cols: 80 },
+    )
+
+    const lines = app.text.split("\n")
+    // Skip breadcrumb row — it mentions "Parent task" in the zoom header.
+    const findRow = (text: string): { row: number; col: number } | null => {
+      for (let r = 2; r < lines.length; r++) {
+        const idx = lines[r]!.indexOf(text)
+        if (idx >= 0) return { row: r, col: idx }
+      }
+      return null
+    }
+
+    const parentPos = findRow("Parent task")
+    const child1Pos = findRow("Child 1")
+    const child2Pos = findRow("Child 2")
+
+    expect(parentPos, "parent task visible").not.toBeNull()
+    expect(child1Pos, "child 1 visible").not.toBeNull()
+    expect(child2Pos, "child 2 visible").not.toBeNull()
+    expect(child1Pos!.col, "child 1 indented past parent").toBeGreaterThan(parentPos!.col)
+    expect(child2Pos!.col, "child 2 indented past parent").toBeGreaterThan(parentPos!.col)
+  })
 })
 
 // =============================================================================

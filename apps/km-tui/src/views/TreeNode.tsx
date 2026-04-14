@@ -676,8 +676,14 @@ function TreeNodeImpl({
         </Box>
       )}
 
-      {/* Main row: Box with paddingLeft for depth indentation */}
-      {/* paddingLeft={depth} makes marker flush with border at depth 0 */}
+      {/* Main row: Box with paddingLeft for depth indentation.
+           depth 0 = card title, paddingLeft 0 (flush with border interior).
+           depth ≥ 1 = nested descendant, paddingLeft = depth so each level
+           shifts one cell right. Previously this was `depth - 1`, which
+           collapsed depths 0 and 1 onto the same column — invisible for
+           body cards where there is no border to provide the visual offset
+           between a list-item parent and its child list items.
+           See km-tui.task-hierarchy-flat. */}
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
       {/* backgroundColor on Box (not Text) to fill row background properly */}
       {/* Always height={1} to keep title on single line; use constrainText() for ellipsis in cards view */}
@@ -693,7 +699,7 @@ function TreeNodeImpl({
           flexDirection="row"
           alignItems={isOneliner || isCardChild ? undefined : "flex-start"}
           overflow={isOneliner || isCardChild ? "hidden" : undefined}
-          paddingLeft={Math.max(0, depth - 1)}
+          paddingLeft={depth}
           backgroundColor={headRowBg ?? effectiveBg}
           height={isOneliner || isCardChild ? 1 : undefined}
         >
@@ -1108,7 +1114,7 @@ const FoldedChildRow = React.memo(
         data-view="item"
         flexDirection="row"
         overflow="hidden"
-        paddingLeft={Math.max(0, depth - 1)}
+        paddingLeft={depth}
         backgroundColor={effectiveBg}
         height={1}
       >
