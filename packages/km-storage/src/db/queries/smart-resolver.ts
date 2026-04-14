@@ -362,11 +362,21 @@ function resolveBareName(ctx: QueryContext): KNode | null {
 /** Strategy 3b: Block ID lookup (^numericId or bare numericId) */
 function resolveBlockId(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getOne } = ctx
-  // Strip ^ prefix if present
-  const blockId = q.startsWith("^") ? q.slice(1) : q
-  // Only try block_id for numeric strings (Asana GIDs, etc.)
-  if (!/^\d{5,}$/.test(blockId)) return null
-  return getOne(`SELECT * FROM nodes WHERE block_id = ?${filterClause}`, blockId, ...params)
+
+  // Explicit `^id` form (e.g. `^testid`, `^apr15-ca-ftb`): the caret is an
+  // unambiguous block-id marker — match the exact stripped string against
+  // the indexed block_id column, regardless of shape.
+  if (q.startsWith("^")) {
+    const blockId = q.slice(1)
+    if (!blockId) return null
+    return getOne(`SELECT * FROM nodes WHERE block_id = ?${filterClause}`, blockId, ...params)
+  }
+
+  // Bare form: only opportunistically match numeric strings (Asana GIDs,
+  // etc.) to avoid false positives when a user types a plain name. With
+  // non-numeric block ids this would swallow name-based searches.
+  if (!/^\d{5,}$/.test(q)) return null
+  return getOne(`SELECT * FROM nodes WHERE block_id = ?${filterClause}`, q, ...params)
 }
 
 /** Strategy 4: Fuzzy ID matching (prefix/suffix) */

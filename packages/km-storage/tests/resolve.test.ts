@@ -300,4 +300,67 @@ describe("resolveNode", () => {
       expect(node).not.toBeNull()
       expect(node?.fs_path).toBe("test.md")
     }))
+
+  // ===========================================================================
+  // Block-id resolution — regression for km-markdown.block-id-prod-sync
+  // ===========================================================================
+  //
+  // `km show '^testid'` → resolveNode("^testid") → resolveBlockId(). The
+  // resolver used to require a 5+ digit numeric string (Asana GID heuristic),
+  // so non-numeric block-ids (^testid, ^apr15-ca-ftb) returned null even
+  // though the DB stored them correctly. Fix: an explicit `^id` prefix is
+  // an unambiguous block-id marker — match by exact stripped string.
+
+  describe("block-id resolution", () => {
+    /** Seed a row directly via SQL — the emitter path doesn't propagate
+     *  block_id cleanly in this test harness. Direct insert keeps the test
+     *  focused on the resolver, not the event apply pipeline. */
+    function seedBlockIdNode(
+      db: ReturnType<typeof withTestEnvSync> extends (fn: (env: infer E) => infer R) => unknown ? E : never,
+      blockId: string,
+      content: string,
+    ) {
+      const id = ulid()
+      const now = Date.now()
+      ;(db as { prepare: (sql: string) => { run: (...args: unknown[]) => void } })
+        .prepare(
+          `INSERT INTO nodes (id, type, fstype, parent_id, item, parent_idx, block_id, content, data, created_at, updated_at, version)
+           VALUES (?, 'p', NULL, NULL, '{"list":"-"}', 0, ?, ?, '{}', ?, ?, '')`,
+        )
+        .run(id, blockId, content, now, now)
+      return id
+    }
+
+    test("resolves non-numeric block id via ^prefix", () =>
+      withTestEnvSync(({ db }) => {
+        seedBlockIdNode(db as never, "testid", "task one")
+        const node = resolveNode(db, "^testid")
+        expect(node, "^testid should resolve even though 'testid' is not numeric").not.toBeNull()
+        expect(node?.block_id).toBe("testid")
+      }))
+
+    test("resolves hyphenated block id via ^prefix", () =>
+      withTestEnvSync(({ db }) => {
+        seedBlockIdNode(db as never, "apr15-ca-ftb", "tax payment")
+        const node = resolveNode(db, "^apr15-ca-ftb")
+        expect(node).not.toBeNull()
+        expect(node?.block_id).toBe("apr15-ca-ftb")
+      }))
+
+    test("resolves numeric block id with ^prefix (Asana GID back-compat)", () =>
+      withTestEnvSync(({ db }) => {
+        seedBlockIdNode(db as never, "123456789", "asana task")
+        const node = resolveNode(db, "^123456789")
+        expect(node).not.toBeNull()
+        expect(node?.block_id).toBe("123456789")
+      }))
+
+    test("bare numeric string (no ^) still resolves — Asana GID fallback", () =>
+      withTestEnvSync(({ db }) => {
+        seedBlockIdNode(db as never, "987654321", "asana bare")
+        const node = resolveNode(db, "987654321")
+        expect(node).not.toBeNull()
+        expect(node?.block_id).toBe("987654321")
+      }))
+  })
 })
