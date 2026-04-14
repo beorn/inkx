@@ -7,9 +7,12 @@
  */
 
 import { describe, it, expect } from "vitest"
+import React from "react"
+import { createRenderer } from "@silvery/test"
 import { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "../../src/text/inline-parser.ts"
 import { prettifyUrl } from "../../src/text/text-pipeline.ts"
 import { stripKnownMentions } from "../../src/views/detail-pane-helpers.ts"
+import { InlineText } from "../../src/text/InlineComponents.tsx"
 import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
 import type { InlineNode } from "../../src/text/inline-ast-types.ts"
@@ -381,6 +384,36 @@ describe("inline rendering edge cases", () => {
 // =============================================================================
 // 7. Broken wikilinks — visual cue
 // =============================================================================
+
+describe("bareurl visible styling", () => {
+  it("bareurl https://... renders with underline SGR (InlineText direct)", () => {
+    // Before: UrlHoverBox had underline={false}, so bareurls read as plain
+    // text in a slightly different color — the user couldn't tell they were
+    // clickable links. Fix wraps them in a dotted underline (matching
+    // InlineWikiLink) so all link-like things share the same visual.
+    //
+    // Use createRenderer directly (not createTestApp) to isolate InlineText
+    // rendering from the board's cursor-inverse stripping. The board-level
+    // test would also work for non-cursor cards but is sensitive to card
+    // width truncation; this one just checks that the inline rendering path
+    // emits an underline SGR around the link target.
+    const render = createRenderer({ cols: 80, rows: 5 })
+    const app = render(React.createElement(InlineText, { text: "visit https://example.com/path now" }))
+    expect(app.text).toContain("example.com/path")
+
+    const ansi = app.ansi
+    const prettyIdx = ansi.lastIndexOf("example.com/path")
+    expect(prettyIdx).toBeGreaterThanOrEqual(0)
+
+    // An SGR sequence opens styling right before the rendered link text.
+    // Matches underline style (4:X) or underline color (58;X or 58:X).
+    const before = ansi.slice(Math.max(0, prettyIdx - 50), prettyIdx)
+    // eslint-disable-next-line no-control-regex
+    expect(before, `expected underline SGR before url, got: ${JSON.stringify(before)}`).toMatch(
+      /\x1b\[(?:4:|58[;:])/,
+    )
+  })
+})
 
 describe("broken wikilink rendering", () => {
   it("unresolved [[target]] gets a distinct styling (red/dashed)", () => {

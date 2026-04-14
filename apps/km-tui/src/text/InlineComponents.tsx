@@ -496,6 +496,7 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
   const ctx = useInlineRenderContext()
   const popover = usePopover()
   const hoveredRef = useRef(false)
+  const [hovered, setHovered] = React.useState(false)
   // Cleanup: mark as unhovered on unmount so stale fetches don't call update
   useEffect(
     () => () => {
@@ -506,6 +507,7 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
       hoveredRef.current = true
+      setHovered(true)
       const anchor = { x: e.clientX, y: e.clientY }
       const cached = getCachedMetadata(url)
       if (cached) {
@@ -526,13 +528,20 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
   )
   const onMouseLeave = useCallback(() => {
     hoveredRef.current = false
+    setHovered(false)
     popover?.hide()
   }, [popover])
+  // Style to match wikilinks (InlineWikiLink):
+  // - Default: dotted underline in $border — subtle but obvious signal this is interactive
+  // - Hover: solid underline in $link, no pill bg (pill would clash with prose backgrounds)
+  // Prior to this, bareurls + explicit links rendered only via `$link` color
+  // with no underline, which blended into prose and didn't read as a link.
   return (
     <Link
       href={url}
       color={resolveColor(ctx, "$link")}
-      underline={false}
+      underlineStyle={hovered ? "single" : "dotted"}
+      underlineColor={hovered ? "$link" : "$border"}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
