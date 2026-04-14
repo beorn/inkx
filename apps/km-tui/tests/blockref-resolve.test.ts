@@ -36,10 +36,9 @@ describe("blockref/wikilink resolution", () => {
 
   test("parser: bare ^ID at end of text is stripped (block identifier, not a link)", () => {
     const nodes = parseInlineText("Task ^1201889996442258")
-    // kmBlockIdTransform strips " ^ID", so only "Task" remains as plain text
-    // No blockref node should be emitted — the ^ID is metadata
-    const blockref = nodes.find((n) => n.type === "blockref")
-    expect(blockref).toBeUndefined()
+    // kmBlockIdTransform strips " ^ID", so only "Task" remains as plain text.
+    // The inline AST has no blockref type — bare ^ID is metadata only,
+    // visible cross-refs go through `[[^ID]]` wikilinks.
     const plainText = nodes
       .filter((n) => n.type === "plain")
       .map((n) => (n as { text: string }).text)
@@ -99,11 +98,12 @@ describe("blockref/wikilink resolution", () => {
 
   // --- <^ID> is NOT a valid blockref format ---
 
-  test("parser: <^ID> is not parsed as blockref (angle brackets are for URLs only)", () => {
-    // After cleanup, <^ID> is not recognized. The angle brackets + caret are plain text.
+  test("parser: <^ID> is not parsed as a blockref (angle brackets are for URLs only)", () => {
+    // After cleanup, <^ID> is not recognized. The inline AST has no blockref type
+    // at all — the angle brackets + caret stay as plain text.
     const nodes = parseInlineText("See <^1203717363310394>")
-    const blockref = nodes.find((n) => n.type === "blockref")
-    expect(blockref).toBeUndefined()
+    // No wikilink produced either — this is not a valid blockref format.
+    expect(nodes.find((n) => n.type === "wikilink")).toBeUndefined()
   })
 
   // --- Embed wikilinks ---

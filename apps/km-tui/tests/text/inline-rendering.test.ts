@@ -409,9 +409,7 @@ describe("bareurl visible styling", () => {
     // Matches underline style (4:X) or underline color (58;X or 58:X).
     const before = ansi.slice(Math.max(0, prettyIdx - 50), prettyIdx)
     // eslint-disable-next-line no-control-regex
-    expect(before, `expected underline SGR before url, got: ${JSON.stringify(before)}`).toMatch(
-      /\x1b\[(?:4:|58[;:])/,
-    )
+    expect(before, `expected underline SGR before url, got: ${JSON.stringify(before)}`).toMatch(/\x1b\[(?:4:|58[;:])/)
   })
 })
 

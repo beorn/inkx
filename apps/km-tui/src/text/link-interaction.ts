@@ -1,8 +1,8 @@
 /**
  * Link interaction — shared hover/popover/styling for all inline link kinds.
  *
- * Every inline link component (InlineLink, InlineBareURL, InlineWikiLink,
- * InlineBlockRef) shares the same interaction model:
+ * Every inline link component (InlineLink, InlineBareURL, InlineWikiLink)
+ * shares the same interaction model:
  *   - hovered state (tracked via ref for async guards)
  *   - popover on enter, hide on leave
  *   - visual signal that degrades gracefully without a popover
@@ -23,16 +23,13 @@ import {
 } from "../views/Popover.tsx"
 import { getCachedMetadata, fetchUrlMetadata } from "./url-metadata.ts"
 
-export type LinkKind = "url" | "wikilink" | "blockref"
+export type LinkKind = "url" | "wikilink"
 
 export interface UseLinkInteractionOpts {
   kind: LinkKind
   /** For kind === "url": the URL to fetch metadata for on hover. */
   url?: string
-  /**
-   * For kind === "wikilink" | "blockref":
-   * optional rich popover content. If absent, falls back to internalTitle.
-   */
+  /** For kind === "wikilink": optional rich popover content; else falls back to internalTitle. */
   internalPopover?: PopoverContent | null
   /** Fallback title when internalPopover is absent. */
   internalTitle?: string
@@ -134,12 +131,5 @@ export function linkTextProps(
         underlineColor: "$border",
       }
     }
-    case "blockref":
-      return {
-        bold: true,
-        color: honorOverride ? (colorOverride ?? undefined) : undefined,
-        underlineStyle: hovered ? "single" : "dotted",
-        underlineColor: hovered ? "$link" : "$border",
-      }
   }
 }

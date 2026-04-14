@@ -216,7 +216,6 @@ function makeFakeNode(id: string, content: string) {
 const inertInlineCtx = {
   resolveWikiLink: () => null,
   resolveWikiLinkId: () => null,
-  resolveBlockRef: () => null,
   hideFields: true,
 }
 

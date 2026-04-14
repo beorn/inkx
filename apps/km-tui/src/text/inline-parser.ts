@@ -313,8 +313,6 @@ export function inlineNodesToPlainText(nodes: InlineNode[]): string {
           return `+${node.name}`
         case "field":
           return "" // metadata, not display text
-        case "blockref":
-          return "" // metadata, not display text
         case "bareurl":
           return prettifyUrl(node.url)
       }

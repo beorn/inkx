@@ -221,22 +221,12 @@ export function useTreeInlineContext(
       wikiLinkIdCache.set(target, null)
       return null
     }
-    const resolveBlockRef = (id: string): string | null => {
-      if (!id?.trim()) return null
-      const cacheKey = `^${id}`
-      const cached = wikiLinkCache.get(cacheKey)
-      if (cached !== undefined) return cached
-      const resolved = repo.getNode(id)
-      const result = resolved ? getNodeDisplayName(repo, resolved) : null
-      wikiLinkCache.set(cacheKey, result)
-      return result
-    }
     // Rich popover for internal links — lazily imports DocContent to avoid circular deps.
     // Only called at runtime when user hovers a link, not at import time.
     const buildLinkPopover = (target: string): PopoverContent | null => {
       const node = repo.resolveByName?.(target) ?? repo.getNode(target)
       if (!node) return null
-      const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
+      const ctx = { resolveWikiLink, resolveWikiLinkId, buildLinkPopover, hideFields: true }
       return buildNodePopoverContent(node, repo, ctx)
     }
 
@@ -246,7 +236,6 @@ export function useTreeInlineContext(
       resolveSigilColor,
       resolveWikiLink,
       resolveWikiLinkId,
-      resolveBlockRef,
       buildLinkPopover,
       hideFields: true,
     }

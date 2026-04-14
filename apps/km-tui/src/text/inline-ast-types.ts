@@ -72,11 +72,6 @@ export interface InlineFieldNode {
   value: string
 }
 
-export interface BlockRefNode {
-  type: "blockref"
-  id: string
-}
-
 export interface BareURLNode {
   type: "bareurl"
   url: string
@@ -115,5 +110,4 @@ export type InlineNode =
   | TagNode
   | ProjectNode
   | InlineFieldNode
-  | BlockRefNode
   | BareURLNode

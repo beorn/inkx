@@ -19,7 +19,6 @@ import { type PopoverContent } from "../views/Popover.tsx"
 import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
 import type {
   BareURLNode,
-  BlockRefNode,
   BoldNode,
   CodeNode,
   InlineFieldNode,
@@ -61,7 +60,6 @@ export interface InlineRenderContext {
   /** Resolve wiki link targets to node IDs (for Cmd-click navigation) */
   resolveWikiLinkId?: (target: string) => string | null
   /** Resolve block ref IDs to display titles */
-  resolveBlockRef?: (id: string) => string | null
   /**
    * Color override for selected/highlighted items.
    * - `undefined`: use each component's own token color (default)
@@ -71,7 +69,7 @@ export interface InlineRenderContext {
   colorOverride?: string | null
   /** Hide inline fields from display */
   hideFields?: boolean
-  /** Build rich popover content for an internal link (wikilink/blockref) — returns render callback for DocContent */
+  /** Build rich popover content for a wikilink — returns render callback for DocContent */
   buildLinkPopover?: (target: string) => PopoverContent | null
 }
 
@@ -129,8 +127,6 @@ function getNodeTextLength(node: InlineNode): number {
       return prettifyUrl(node.url).length
     case "field":
       return 0 // metadata, not display text
-    case "blockref":
-      return 0 // resolved display varies; decorations across blockrefs are rare
     case "bold":
     case "italic":
     case "strikethrough":
@@ -373,32 +369,6 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   )
 }
 
-export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement {
-  const ctx = useInlineRenderContext()
-  const resolved = ctx.resolveBlockRef?.(node.id)
-  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({
-    kind: "blockref",
-    internalTitle: resolved ?? node.id,
-  })
-  if (resolved) {
-    const props = linkTextProps("blockref", hovered, ctx.colorOverride)
-    return (
-      <Text
-        bold={props.bold}
-        color={props.color}
-        underlineStyle={props.underlineStyle}
-        underlineColor={props.underlineColor}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
-        {resolved}
-      </Text>
-    )
-  }
-  // Unresolved block refs: show ID in red so broken refs are visible
-  return <Text color={resolveColor(ctx, "$error")}>^{node.id}</Text>
-}
-
 // =============================================================================
 // Composite Renderer
 // =============================================================================
@@ -470,8 +440,6 @@ export function InlineNodeView({
       return <InlineField node={node} />
     case "bareurl":
       return <InlineBareURL node={node} />
-    case "blockref":
-      return <InlineBlockRef node={node} />
   }
 }
 
@@ -518,7 +486,7 @@ export function InlineText({
   const inner = <InlineNodes nodes={nodes} decorations={decorations} />
   if (context) {
     // Merge with parent context so overrides (e.g. colorOverride) don't wipe
-    // resolution functions (resolveWikiLink, resolveBlockRef, buildLinkPopover)
+    // resolution functions (resolveWikiLink, buildLinkPopover)
     const merged = { ...parentCtx, ...context }
     return <InlineRenderProvider value={merged}>{inner}</InlineRenderProvider>
   }

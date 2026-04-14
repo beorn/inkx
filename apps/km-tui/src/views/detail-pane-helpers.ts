@@ -237,11 +237,11 @@ function stripKnownFromNodes(nodes: InlineNode[]): string {
       case "wikilink":
         result += node.alias ? `[[${node.target}|${node.alias}]]` : `[[${node.target}]]`
         break
-      // For code, link, bareurl, field, blockref, and plain, fall through to
+      // For code, link, bareurl, field, and plain, fall through to
       // inlineNodesToPlainText, which already does the right thing:
       //   • code/link → just the text content (URL hidden)
       //   • bareurl → prettifyUrl (protocol stripped, www removed, params cleaned)
-      //   • field/blockref → "" (metadata, not displayed in titles)
+      //   • field → "" (metadata, not displayed in titles)
       default:
         result += inlineNodesToPlainText([node])
         break

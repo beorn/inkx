@@ -169,12 +169,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
           const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
           return resolved?.id ?? null
         }
-        const resolveBlockRef = (id: string): string | null => {
-          if (!id?.trim()) return null
-          const resolved = repo.getNode(id)
-          return resolved ? getNodeDisplayName(repo, resolved) : null
-        }
-        const inlineCtx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, hideFields: true }
+        const inlineCtx = { resolveWikiLink, resolveWikiLinkId, hideFields: true }
         const anchor = {
           ...mousePos.current,
           cardRect: cardRectRef.current ?? undefined,
