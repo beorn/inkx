@@ -314,3 +314,67 @@ describe("verb-[ picker journeys", () => {
     })
   })
 })
+
+// =============================================================================
+// Picker dialog title — the RENDERED title reflects the pending verb.
+// =============================================================================
+//
+// Regression guard for the user-reported bug where bare `+` opened the
+// picker with the title "Move to project" — the store dispatched goto
+// correctly (tested above via pendingVerb) but WorkspaceChrome.pickerTitle
+// used hardcoded type-based titles. Fixed in a47ea59e6 by making
+// pickerTitle(type, verb) build the title from the verb prefix. The tests
+// below assert on `app.text` (the rendered screen) so they catch any
+// regression in the UI layer, not just the store state.
+
+describe("picker dialog title reflects pending verb", () => {
+  test("bare + → 'Go to project' (not 'Move to project')", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("shift+=") // + = shift-=
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Go to project")
+    expect(app.text).not.toContain("Move to project")
+  })
+
+  test("bare @ → 'Go to context'", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("shift+2") // @ = shift-2
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Go to context")
+  })
+
+  test("bare # → 'Go to tag'", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("shift+3") // # = shift-3
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Go to tag")
+  })
+
+  test("bare [ → 'Go to item'", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Go to item")
+  })
+
+  test("m + chord → 'Move to project' (explicit verb preserved)", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("m").press("shift+=")
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Move to project")
+  })
+
+  test("a # chord → 'Link to tag' (explicit add verb)", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("a").press("shift+3")
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Link to tag")
+  })
+
+  test("c [ chord → 'Create under item' (explicit create verb)", () => {
+    using app = createTestApp(item("board", item("col", item("task1"))))
+    app.press("c").press("[")
+    expect(app).toHaveOverlay("itemPicker")
+    expect(app.text).toContain("Create under item")
+  })
+})
