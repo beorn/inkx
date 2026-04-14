@@ -1120,28 +1120,36 @@ describe("chord keybindings", () => {
   })
 
   describe("bare symbol shortcuts (convenience aliases)", () => {
-    it("@ in node mode → add with targetId pick:@ (same as a@)", () => {
+    // Bare sigils default to "go to" (forgiving navigation). Explicit verb
+    // chords (a @, m +, c [) still work with their original semantics.
+    it("@ in node mode → goto with targetId pick:@ (context picker)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("2", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
+      expect(resolveKeybinding("2", { shift: true }, ctx)).toEqual({ commandId: "goto", targetId: "pick:@" })
+      // Explicit a@ still routes through add
       expect(resolveChord("a", "2", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
     })
 
-    it("# in node mode → add with targetId pick:# (same as a#)", () => {
+    it("# in node mode → goto with targetId pick:# (tag picker)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("3", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
+      expect(resolveKeybinding("3", { shift: true }, ctx)).toEqual({ commandId: "goto", targetId: "pick:#" })
       expect(resolveChord("a", "3", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
     })
 
-    it("+ in node mode → add with targetId pick:+ (same as a+)", () => {
+    it("+ in node mode → goto with targetId pick:+ (project picker)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("=", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
+      expect(resolveKeybinding("=", { shift: true }, ctx)).toEqual({ commandId: "goto", targetId: "pick:+" })
       expect(resolveChord("a", "=", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
     })
 
-    it("[ in node mode → add with targetId pick:[ (same as a[)", () => {
+    it("[ in node mode → goto with targetId pick:[ (item picker)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
+      expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "goto", targetId: "pick:[" })
       expect(resolveChord("a", "[", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:[" })
+    })
+
+    it("] in node mode → nav_back (history)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("]", {}, ctx)).toEqual({ commandId: "nav_back" })
     })
 
     it("bare symbols are blocked during text input", () => {
@@ -1151,6 +1159,7 @@ describe("chord keybindings", () => {
       expect(resolveKeybinding("3", { shift: true }, ctx)).toEqual({ commandId: "noop" })
       expect(resolveKeybinding("=", { shift: true }, ctx)).toEqual({ commandId: "noop" })
       expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "noop" })
+      expect(resolveKeybinding("]", {}, ctx)).toEqual({ commandId: "noop" })
     })
 
     it("bare symbols are blocked when dialog is open", () => {

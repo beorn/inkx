@@ -968,12 +968,18 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "shift-,", commandId: "fold_all_more" }, // <
         { key: "shift-.", commandId: "unfold_all_more" }, // >
 
-        // Bare symbol shortcuts (convenience aliases for common chord actions)
-        // These only fire in node mode (not text edit, not dialog)
-        { key: "shift-2", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(inDialog)) }, // @
-        { key: "shift-3", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(inDialog)) }, // #
-        { key: "shift-=", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(inDialog)) }, // +
-        { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(inDialog)) },
+        // Bare symbol shortcuts — forgiving "go to" pickers.
+        // Pressing the sigil alone opens the matching picker to navigate there.
+        // (Previously these defaulted to "add link" — but "go to" is the more
+        // common intent, so we flipped the default. Explicit verb chords
+        // still work: `a [` = add link to item, `m +` = move to project, etc.)
+        // These only fire in node mode (not text edit, not dialog).
+        { key: "shift-2", commandId: "goto", targetId: "pick:@", when: and(not(textInputFocused), not(inDialog)) }, // @ = go to context
+        { key: "shift-3", commandId: "goto", targetId: "pick:#", when: and(not(textInputFocused), not(inDialog)) }, // # = go to tag
+        { key: "shift-=", commandId: "goto", targetId: "pick:+", when: and(not(textInputFocused), not(inDialog)) }, // + = go to project
+        { key: "[", commandId: "goto", targetId: "pick:[", when: and(not(textInputFocused), not(inDialog)) }, // [ = go to item
+        // ] = navigate back in history (complements cmd-[ / { shift-[)
+        { key: "]", commandId: "nav_back", when: and(not(textInputFocused), not(inDialog)) },
 
         // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
         { key: "g", commandId: "cursor_first" },

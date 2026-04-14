@@ -302,13 +302,15 @@ describe("verb-[ picker journeys", () => {
     })
   })
 
-  test("bare [ opens the item picker in link mode (ADD_LINK)", () => {
+  test("bare [ opens the item picker in goto mode (navigate)", () => {
+    // Bare sigils flipped from 'add link' to 'go to' — the forgiving
+    // default. Explicit chords (a [, m [, c [) still preserve their verbs.
     using app = createTestApp(item("board", item("Todo", item("task1"))))
     app.press("[")
     expect(app).toHaveOverlay("itemPicker")
     app.withStore((s) => {
       expect(s.ui.activePicker?.type).toBe("item")
-      expect(s.ui.activePicker?.pendingVerb).toBe("link")
+      expect(s.ui.activePicker?.pendingVerb).toBe("goto")
     })
   })
 })
