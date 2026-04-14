@@ -160,6 +160,22 @@ export function getDisplayContent(
     if (!name) return "(untitled section)"
     return name
   }
+  // km-tui.inline-format-in-blocks: prefer the verbatim markdown source slice
+  // captured at parse time when the node is unedited. The parser runs mdast
+  // `nodeToText` which strips inline formatting markers (**/*/`/[](url)) out
+  // of `content`, so rendering `content` via InlineText shows plain prose.
+  // `data._mdSource` holds the original source with markers intact;
+  // `data._mdSourceContent` is the parse-time content baseline used to detect
+  // edits. When they still match, the node hasn't been edited and we can
+  // safely render the raw source — InlineText then reparses bold/italic/code
+  // /links and emits the correct cell attributes.
+  const data = displayNode.data as Record<string, unknown> | undefined
+  const mdSource = typeof data?._mdSource === "string" ? (data._mdSource as string) : undefined
+  const mdSourceContent = typeof data?._mdSourceContent === "string" ? (data._mdSourceContent as string) : undefined
+  if (mdSource !== undefined && mdSourceContent !== undefined && displayNode.content === mdSourceContent) {
+    return cleanContentForDisplay(mdSource)
+  }
+
   // Bare block references (e.g., "^1153379636232754" — Asana recurring task instances).
   // These are regular li nodes whose content is just a numeric block ref.
   // Show a human-readable label instead of the raw ID.

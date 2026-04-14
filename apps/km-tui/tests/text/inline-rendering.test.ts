@@ -188,6 +188,83 @@ describe("card body multi-line content", () => {
 })
 
 // =============================================================================
+// 6. Inline formatting in body blocks — bold/italic/code survive mdast→content
+// =============================================================================
+// Regression: km-tui.inline-format-in-blocks — parseMarkdownToNodes flattens
+// inline formatting out of node.content (nodeToText strips **/*/`), and
+// TreeNode rendered node.content via InlineText which then saw no markers.
+// The parser already preserves the verbatim source in data._mdSource; the
+// renderer must prefer that slice when the node is unedited so bold/italic/
+// code/links show up. Also assert that bullet list items in body content
+// still carry the list marker glyph.
+
+describe("inline formatting in body blocks", () => {
+  // Helper: scan every row for `needle` and return true if any cell in the
+  // matched run carries the given attribute (bold/dim/italic).
+  const cellHasAttr = (app: ReturnType<typeof createTestApp>, needle: string, attr: "bold"): boolean => {
+    const rows = app.text.split("\n")
+    for (let y = 0; y < rows.length; y++) {
+      const line = rows[y] ?? ""
+      const col = line.indexOf(needle)
+      if (col === -1) continue
+      for (let x = col; x < col + needle.length; x++) {
+        if (app.screen.cell(x, y)[attr]) return true
+      }
+    }
+    return false
+  }
+
+  it("bold in a body paragraph renders with bold cells", () => {
+    using app = createTestApp.fromMarkdown("# A test project\n\nSome description\n\n**Bolded**\n", {
+      rows: 24,
+      cols: 80,
+    })
+
+    // The bold word must appear in the rendered text without the asterisks
+    // leaking through as plain characters (nodeToText should strip them and
+    // the inline parser should turn them into bold cells).
+    expect(app.text).toContain("Bolded")
+    expect(app.text).not.toContain("**Bolded**")
+    expect(cellHasAttr(app, "Bolded", "bold")).toBe(true)
+  })
+
+  it("bullet list items in body content render with a list marker", () => {
+    using app = createTestApp.fromMarkdown(
+      "# A test project\n\nSome description\n\n- Bullets\n\n**Bolded**\n- bullet\n",
+      { rows: 24, cols: 80 },
+    )
+
+    expect(app.text).toContain("Bullets")
+
+    // A list marker glyph (·, •, ◦, ▸, ●, -, *, +) must appear to the left of
+    // "Bullets" on the same row. We accept any visible non-word char in the
+    // ~6 cells left of "Bullets" — anything other than pure spaces means the
+    // body list item kept its bullet marker.
+    const rows = app.text.split("\n")
+    let foundMarker = false
+    for (let y = 0; y < rows.length; y++) {
+      const line = rows[y] ?? ""
+      const col = line.indexOf("Bullets")
+      if (col === -1) continue
+      const prefix = line.slice(Math.max(0, col - 6), col)
+      if (/[^\s\w]/.test(prefix)) {
+        foundMarker = true
+        break
+      }
+    }
+    expect(foundMarker).toBe(true)
+  })
+
+  it("bold inside a body list item survives rendering", () => {
+    using app = createTestApp.fromMarkdown("# Doc\n\n- Item with **bold** text\n", { rows: 24, cols: 80 })
+
+    expect(app.text).toContain("bold")
+    expect(app.text).not.toContain("**bold**")
+    expect(cellHasAttr(app, "bold", "bold")).toBe(true)
+  })
+})
+
+// =============================================================================
 // 6. Breadcrumb / top bar URL prettification
 // =============================================================================
 

@@ -360,10 +360,14 @@ function TreeNodeImpl({
   const untitled = isNodeUntitled(repo, displayNode)
   const dimUntitled = untitled && !isSelected && !isNodeSelected
 
-  // Compute the bullet icon based on icon style (body nodes get no bullet)
+  // Compute the bullet icon based on icon style.
+  // Body classification suppresses bullets for pure prose blocks (paragraphs,
+  // code, quotes) but list items in body content must keep their marker — they
+  // are structurally list items and losing the bullet makes them look like
+  // plain paragraphs. See km-tui.inline-format-in-blocks.
   const bulletIcon = useMemo(
     () =>
-      isBody
+      isBody && !KNode.isListItem(displayNode)
         ? null
         : computeBulletIcon(
             displayNode,
@@ -380,6 +384,7 @@ function TreeNodeImpl({
       nodeIsTask,
       iconStyle,
       displayNode.type,
+      displayNode.item,
       hasChildren,
       isFolded,
       style.ownColor,
@@ -1058,21 +1063,23 @@ const FoldedChildRow = React.memo(
     const foldTc = style.textColor
     const foldSd = style.shouldDim
 
-    // Bullet icon — always folded (isFolded=true for computeBulletIcon)
-    // Body nodes get no bullet — just indentation space
+    // Bullet icon — always folded (isFolded=true for computeBulletIcon).
+    // Body classification suppresses bullets for pure prose but list items
+    // keep theirs (see km-tui.inline-format-in-blocks).
     const { iconStyle } = treeConfig
-    const bulletIcon = isBody
-      ? null
-      : computeBulletIcon(
-          node,
-          nodeIsTask,
-          style.taskStatusIcon,
-          hasChildren,
-          true,
-          style.ownColor,
-          iconStyle,
-          stickyFold,
-        )
+    const bulletIcon =
+      isBody && !KNode.isListItem(node)
+        ? null
+        : computeBulletIcon(
+            node,
+            nodeIsTask,
+            style.taskStatusIcon,
+            hasChildren,
+            true,
+            style.ownColor,
+            iconStyle,
+            stickyFold,
+          )
     const prefix = bulletIcon ? buildPrefix(bulletIcon) : BODY_PREFIX
 
     // Content — resolve symlinks
