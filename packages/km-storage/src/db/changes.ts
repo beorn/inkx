@@ -72,19 +72,23 @@ function applyNodeCreated(db: Database, change: Change): void {
   const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
 
   // INSERT OR IGNORE as safety net for duplicate path-based IDs
-  // This can happen if both discovery and watch handler create the same node
+  // This can happen if both discovery and watch handler create the same node.
+  // Must include block_id — fs-watch creates from a parsed KNode where
+  // kmBlockIdTransform already extracted ^id into node.block_id. Omitting
+  // it here drops block_id on all nodes created via the watch path.
+  // See km-markdown.block-id-prod-sync.
   const result = db.run(
     `
     INSERT OR IGNORE INTO nodes (
       id, type, fstype, parent_id, item, embed_of, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line,
+      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
       list_marker, task_marker,
       task_status, assigned_to, due_at, start_at, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?,
@@ -103,6 +107,7 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.fs_ino as number) ?? null,
       (data.fs_mtime as number) ?? null,
       (data.name as string) ?? null,
+      (data.block_id as string) ?? null,
       (data.title as string) ?? null,
       (data.md_pos as number) ?? null,
       (data.md_line as number) ?? null,

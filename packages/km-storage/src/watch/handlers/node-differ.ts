@@ -281,11 +281,26 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   return { changes, idMap }
 }
 
-/** Fields to compare for child nodes */
-const CHILD_DIFF_FIELDS = ["content", "md_pos", "due_at", "start_at", "priority", "embed_of", "name", "title"] as const
+/** Fields to compare for child nodes.
+ *
+ * block_id must be here — when a user edits an existing file to add ` ^id`
+ * to a task, kmBlockIdTransform strips the marker into node.block_id during
+ * parse, but without this field in the diff, the update event never carries
+ * the new block_id to the DB. See km-markdown.block-id-prod-sync. */
+const CHILD_DIFF_FIELDS = [
+  "content",
+  "md_pos",
+  "due_at",
+  "start_at",
+  "priority",
+  "embed_of",
+  "name",
+  "title",
+  "block_id",
+] as const
 
 /** Fields to compare for file nodes */
-const FILE_DIFF_FIELDS = ["content", "title"] as const
+const FILE_DIFF_FIELDS = ["content", "title", "block_id"] as const
 
 /**
  * Compare specific fields between two nodes and return a changes record.
