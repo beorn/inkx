@@ -346,23 +346,25 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 **Canonical test fixture**: `apps/km-tui/tests/omnibox-ranking.test.ts` — table of `(query, results)` where the expected order is hand-written. Every ranking tweak is validated against the table.
 
-### Default command, override via Tab
+### Default command, override via Tab, restore via Escape
 
-The command field starts pre-populated based on how the omnibox was opened:
+Every search pane has a **permanent default command** (`defaultCommand` on `SearchPaneState`) set at creation from the opening chord:
 
-| Open via | Initial command |
+| Open via | defaultCommand |
 |---|---|
 | `cmd-k` | `goto` |
 | `g` chord | `goto` |
 | `m` chord | `move` |
 | `a` chord | `add` |
-| `l` chord | `link` |
-| `c` chord | `create-in` |
-| `/` (direct) | `find` |
+| `l` chord | `add_link` |
+| `c` chord | `create_at` |
+| `/` (direct) | `local_find` |
 
-**Override = tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides anymore — the command field *is* the override surface. It's always visible as the top line of the modal (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. Once the user picks a different command, Tab back to the argument field and confirm.
+**Override = Tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides — the command field *is* the override surface. It's always visible as the top line of the modal (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. The `commandBuffer` diverges from `defaultCommand` while the user edits. Once the user picks a different command, Tab back to the argument field and confirm.
 
-This is strictly simpler than the "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance, and the argument field continues to behave as it did.
+**Escape on the command field restores the default.** The first Escape — with `commandBuffer !== defaultCommand` — resets `commandBuffer = defaultCommand` and switches focus back to the argument field. Only a second Escape (or Escape with the command field already matching the default) dismisses the pane. This gives a painless "I meant to search, not override" undo.
+
+This is strictly simpler than the old "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance; Escape is the universal "undo that override" affordance.
 
 ### Global keybindings are automatic (no special scope)
 
@@ -446,9 +448,9 @@ This gives a clean mental model: **the argument field is always "what node are y
 
 ## Opening the omnibox
 
-Every opening path resolves to a **create-pane action** that adds a `viewMode: "search"` pane to the workspace with the appropriate initial state. The pane lifecycle (ephemeral overlay vs persistent docked) is set by the `placement`:
+Every opening path resolves to a **create-pane action** that adds a `viewMode: "search"` pane to the workspace with `defaultCommand` + initial state. The pane lifecycle (ephemeral overlay vs persistent docked) is set by the `placement`:
 
-| Chord | command | argumentPrefill | focus | placement | lifecycle |
+| Chord | defaultCommand | argumentPrefill | focus | placement | lifecycle |
 |---|---|---|---|---|---|
 | `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | center | ephemeral overlay |
 | `g @` | `goto` | `@` | argument | center | ephemeral |
@@ -476,8 +478,14 @@ A `viewMode: "search"` pane carries a `SearchPaneState` on the pane (alongside `
 
 ```ts
 interface SearchPaneState {
-  commandBuffer: string           // search query for the command field
-  argumentBuffer: string          // search query for the argument field
+  /** Permanent default command for this pane, set at creation by the opening chord.
+   *  Never changes for the lifetime of the pane. */
+  defaultCommand: string
+  /** Working command buffer — usually equals defaultCommand, diverges when user Tabs
+   *  to the command field and edits. */
+  commandBuffer: string
+  /** Working argument buffer. */
+  argumentBuffer: string
   focus: "command" | "argument"
   commandResults: KNode[]         // filtered command nodes   (only populated when focus=command)
   argumentResults: KNode[]        // filtered target nodes    (only populated when focus=argument)
@@ -485,12 +493,19 @@ interface SearchPaneState {
   selectedArgumentIndex: number | null  // which argument the user has picked — this is the pane's cursor
   /** If true, the pane is dismissed after a successful CONFIRM. */
   ephemeral: boolean
-  /** Layout decision — influences render but not state shape. */
+  /** Layout hint — influences render but not state shape. Derived from defaultCommand
+   *  at open time (`local_find` → bottom-left, everything else → center). */
   layout: "center" | "bottom-left" | "dock"
   /** Snapshot of the pre-promote state, if the user's last action was a PROMOTE. */
   promoteSnapshot: { argumentBuffer: string; focus: "command" | "argument" } | null
 }
 ```
+
+**`defaultCommand` is the pane's identity.** Every `view=search` pane has one, set at creation from the opening chord and **never changes** for the pane's lifetime. The working `commandBuffer` / `selectedCommandIndex` are allowed to diverge temporarily when the user Tabs to the command field and types something else — but the pane remembers what it "is". `Escape` while focused on the command field restores `commandBuffer = defaultCommand` and switches focus back to the argument field (instead of dismissing the pane). Only a second `Escape` dismisses it.
+
+The footer renders the resolved action: if `commandBuffer === defaultCommand`, it shows `↵ <defaultCommand> <arg>`; if diverged, it shows `↵ <commandBuffer> <arg>  ·  esc restore <defaultCommand>`. The user always knows what the pane is, even while overriding.
+
+**This means "omnibox = view=search" is not quite complete** — the full identity is `(viewMode: "search", defaultCommand: string)`. Two search panes with different default commands are as distinct as a cards pane and a columns pane; the same way `rootId` parameterizes a cards/columns pane, `defaultCommand` parameterizes a search pane.
 
 The pane's public **cursor** accessor returns `argumentResults[selectedArgumentIndex] ?? null`. The board's `currentCursor()` just reads `activePane.cursor` — no special case for search panes.
 
@@ -529,11 +544,11 @@ Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `I
 ### Phase 2 — shared ranker
 Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **km-tui.picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
 
-### Phase 3 — commands as nodes (adapter)
-Introduce a `CommandNode` view over the existing `CommandDef` registry — no schema change to `CommandDef`, just a read-only adapter that wraps the registry as a `KNode`-returning tree source. The synthetic `commands/` subtree is computed on demand from `packages/km-commands/src/commands/index.ts`. Tests: every `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
+### Phase 3 — command-tree projection (TEA shim)
+Build a read-only projection function that returns the `@km/commands` registry as `KNode`-shaped rows. No schema change to `CommandDef` — the projection is pure adapter. The synthetic `commands/` view is computed on demand. When TEA lands, this projection retargets at `app.commands.*` without touching the row renderer. Tests: every registered `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
 
-### Phase 4 — `when` clauses (additive)
-Add an optional `when?: string` field to `CommandDef`. Parse and evaluate the DSL. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards). Phase out `modes` gradually in a later pass. Tests: a command with `when: "viewMode == 'detail'"` appears in the omnibox results only when a detail pane is active.
+### Phase 4 — predicate-function availability
+Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
 
 ### Phase 5 — `viewMode: "search"` pane (new view mode)
 Add `"search"` to the board pane's view-mode enum. Build the `SearchPaneView` component: command field (Silvery `TextInput` with `autocomplete = commandTitles`), argument field (same), result list below, footer with the resolved action. Single-field behavior internally (no Tab yet, no PROMOTE) — the command chip is locked by the opening chord. Route `command_palette`, `item_picker`, `search`, `manage_favorites`, `search_replace` to open a search pane instead of their current bespoke dialogs. The old dialog components become thin adapters that delegate to `openSearchPane({ command, argumentPrefill, layout: "center" })`.
@@ -614,15 +629,70 @@ The following commands already exist in `packages/km-commands/src/commands/` and
 
 No new command IDs are introduced for the omnibox's verbs. The new work is: (a) the search view mode, (b) the `when`-clause DSL, (c) the commands-as-nodes adapter, and (d) finishing the `CAPTURE` op handler.
 
+## TEA alignment
+
+The omnibox is effectively the first concrete consumer of the km/silvery TEA framework (km-tui.tea, km-silvery.tea). Every piece of this design maps to TEA machinery. Design in TEA-shape from day one; ship pre-TEA via a thin shim that is trivial to retarget when the framework migration lands.
+
+### Four direct mappings
+
+1. **Commands-as-nodes → projection of the TEA command tree.**
+   TEA already specifies a canonical command tree where every surface projects from `app.commands.*` ([commands.md § "One Command, Every Surface"](../../vendor/internal/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
+   - **Pre-TEA**: project the current `CommandDef` registry (`@km/commands`, 172 entries) into `KNode`-shaped rows.
+   - **Post-TEA**: retarget the projection at `app.commands.*`. Row renderer unchanged; only the source changes.
+   The omnibox row renderer doesn't see the difference.
+
+2. **`when`-clause DSL → `when()` + `resolveInvocation()` with signal predicates.**
+   TEA already has `when(signal, bindings)` for conditional keybindings and `resolveInvocation()` that rolls availability, arg defaults, and validation into one function. Don't invent a string DSL — **use predicate functions** that take a context object and return `boolean`. These map trivially to TEA's signal accessors:
+   - **Pre-TEA**: `when: (ctx: CommandContext) => ctx.viewMode === "detail"`
+   - **Post-TEA**: `when: () => viewMode() === "detail"` where `viewMode` is a signal accessor.
+   `resolveInvocation()`'s four-state result (`ready` / `prompt` / `unavailable` / `invalid`) is exactly what the omnibox's result list needs for greyed/active/with-ghost/error rendering. Drop the string DSL from Phase 4.
+
+3. **Cursor unification → TEA signal defaults on command args.**
+   TEA's command-def pattern uses `.parse()` with signal-valued defaults: `z.string().default(() => cursor())`. The search pane's `.cursor()` accessor returns its selected argument row. Every command that takes a `nodeId` declares it with a signal default that reads the active pane's cursor — and the active pane's cursor reader dispatches on view mode (cards → cursored card, detail → focused block, search → selected argument row). This is the TEA-native phrasing of "the search pane's selection IS the cursor".
+   - **Pre-TEA**: the `CommandContext` builder reads `activePane.cursor` and populates `currentNodeId` imperatively (same effect, pre-reactive).
+
+4. **Search pane = `withSearch()` domain plugin, parametrized by `defaultCommand`.**
+   Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../vendor/internal/silvery/design/v15-tea/commands.md)). The search view becomes `withSearch()`:
+   ```ts
+   pipe(createApp(), withBoard(), withSelection(), withSearch(), withUndo(), ...)
+   ```
+   `withSearch()` contributes: (a) the `viewMode: "search"` registration on `withBoard()`, (b) the `SearchPaneState` model, (c) search-specific commands (`search.open`, `search.toggle_focus`, `search.accept_ghost`, `search.confirm`, `search.cancel`, `search.restore_default`), and (d) keybindings scoped via `when(searchModel.isActive, ...)`.
+   **Pane creation takes `defaultCommand` as a parameter**, exactly like detail panes take `rootId`. `search.open({ defaultCommand: "move", argumentPrefill: "+" })` creates a search pane.
+
+### Interactions with other domain plugins
+
+- **`withSelection()`** (km-tui.tea): the search pane's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgumentIndex` field. Arrowing in the search pane updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgumentIndex` in `SearchPaneState` becomes a derived view over `sel`, not primary state.
+
+- **`withTree()`** (km-tui.tea): structural ops from the search pane (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the search pane is a normal command producer. Undo works through the shared middleware.
+
+- **`withDialogs()`** (km-tui.tea): the current plan in `bd show km-tui.tea` lists `open_omnibox` as a dialog command under `withDialogs()`. **This framing is obsolete.** The omnibox is a view mode, not a dialog. The km-tui.tea bead should be updated to:
+  - Move `open_omnibox` → `search.open` under `withSearch()`.
+  - Keep `withDialogs()` for genuinely modal affordances that aren't view modes (toast, delete-confirm, help overlay, the console palette).
+
+- **`withEditor()`** (km-tui.tea): the command and argument fields use Silvery's `TextInput` (already supports ghost-text autocomplete). Once `withEditor()` exists, both fields become consumers of `PlainText.apply()` and the ghost-text logic runs inside the shared editor model. No special case.
+
+- **`withUndo()`** (km-tui.tea): opening/closing a search pane is not itself undoable (like opening a cards view isn't). The commands the search pane dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
+
+### What this changes in the migration phases
+
+- **Phase 3**: retitle from "commands as nodes" to "**command-tree projection (TEA shim)**". Build the row renderer against a `KNode`-shaped projection of `@km/commands`. The projection function is the only thing that needs to change post-TEA.
+- **Phase 4**: retitle from "when-clauses (string DSL)" to "**predicate-function availability**". Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No parser needed. Maps 1:1 to TEA's signal `when()`.
+- **Phase 5**: the `SearchPaneView` component is the pre-TEA form of `withSearch()`'s UI contribution. Every piece of state it reads is eventually a signal; every action it dispatches is eventually a TEA op. Structure the code as if TEA were in place — factory function, explicit state shape, pure dispatch — so the framework migration is a rewiring exercise.
+- **Phases 6-8**: the two-field model + cursor unification + pre-select collapse into "wire the search pane's cursor accessor into `activePane.cursor()`, wire the command field's autocomplete into the TEA command tree". Post-TEA, most of this is one-liner plumbing; pre-TEA, it's the imperative shim.
+
+**Bottom line: the omnibox ships before TEA lands, but it's designed as a TEA plugin in advance.** When TEA migration happens, `withSearch()` becomes the canonical consumer that proves the framework works — instead of being painted into a corner, it becomes the framework's first win.
+
 ## Relationship to other work
 
 - **km-tui.picker-rank-subpath** — absorbed into Phase 2.
 - **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox is a board view mode with no dialog scope).
 - **km-silvery.focus** — the omnibox is a pane, not a dialog, making the focus system's job simpler.
 - **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
-- **km-tui.tea** — the `SearchPaneState` reducer is an obvious TEA machine candidate. Build the design in the shape TEA wants from day one.
+- **km-tui.tea** — the `SearchPaneState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` is obsolete; the correct home is `withSearch()`.
+- **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the `app.commands.*` tree. Validating the omnibox validates those primitives.
 - **km-tui.atomic-tree-ops** — the search pane is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
 - **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
+- **km-all.unified-selection** — the search pane's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
 
 ## References
 
