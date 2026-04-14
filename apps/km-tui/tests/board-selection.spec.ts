@@ -601,3 +601,40 @@ describe("Multi-select visual feedback", () => {
     app.expectNodeColor("child-3", { bg: { r: 128, g: 128, b: 0 } })
   })
 })
+
+// =============================================================================
+// Stale cursor repair (external repo mutation)
+// =============================================================================
+
+describe("stale cursor repair", () => {
+  // Regression for km-tui.cursor-exists-stale-fs: when an external fs sync
+  // replaces a file and deletes the node the cursor points at, the next key
+  // press used to crash with the cursor-exists invariant. The store now
+  // auto-clamps the cursor to a valid node on every repo mutation.
+
+  test("deleting cursor node then navigating clamps to live node", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+    app.press("j") // cursor → task-b
+    expect(app.state.cursor).toBe("task-b")
+
+    app.repo.deleteNode("task-b")
+
+    expect(() => app.press("k")).not.toThrow()
+    const cursor = app.state.cursor
+    expect(cursor).not.toBe("task-b")
+    if (cursor) expect(app.repo.getNode(cursor)).toBeDefined()
+  })
+
+  test("deleting cursor node then pressing a no-op key does not fire invariant", () => {
+    using app = createTestApp(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+    app.press("j") // cursor → task-b
+    expect(app.state.cursor).toBe("task-b")
+
+    app.repo.deleteNode("task-b")
+
+    // Escape is unrelated to navigation — repair must happen on mutation,
+    // not lazily on the next nav key.
+    expect(() => app.press("Escape")).not.toThrow()
+    expect(app.state.cursor).not.toBe("task-b")
+  })
+})

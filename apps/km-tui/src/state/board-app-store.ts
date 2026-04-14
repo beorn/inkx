@@ -469,7 +469,16 @@ export function createBoardAppStoreState(
     // The repoVersion signal is a dependency for the computed view lens —
     // when repo mutates, this signal bumps, which invalidates the computed.
     const repoVersion$ = signal(undoableRepo.getSnapshot())
-    undoableRepo.subscribe(() => repoVersion$(undoableRepo.getSnapshot()))
+    undoableRepo.subscribe(() => {
+      repoVersion$(undoableRepo.getSnapshot())
+      // Repair stale cursors: if a pane's cursor points at a node that was
+      // just deleted (e.g. external fs sync replaced a file), clamp it to
+      // the first visible node in that pane's lens. Otherwise the next key
+      // press hits the cursor-exists invariant and crashes the app.
+      for (const pane of workspace.panes.values()) {
+        if (isBoardPane(pane)) repairPaneCursor(pane)
+      }
+    })
 
     // Try to restore workspace from saved state, otherwise create default single-pane workspace.
     const initialPaneBoard: BoardState = {
@@ -559,6 +568,25 @@ export function createBoardAppStoreState(
       if (pane.nodeStore) {
         pane.nodeStore.replaceFoldOverrides(pane.foldDepths)
         pane.nodeStore.replaceStickyFolds(pane.stickyFolds)
+      }
+    }
+
+    /**
+     * Clamp a pane's cursor to a valid node if the current cursor target no
+     * longer exists in the repo (e.g. external fs replacement deleted it).
+     * Preserves the cursor when it's still valid or already null.
+     */
+    function repairPaneCursor(pane: BoardPaneState): void {
+      if (!pane.signals) return
+      const cursor = pane.sel.node.cursor()
+      if (!cursor) return
+      if (undoableRepo.getNode(cursor as string)) return
+      const lens = pane.signals.visibleLens()
+      const fallback = lens.walkOrder.find((id) => id !== lens.rootId) ?? null
+      if (fallback) {
+        pane.sel.node.select([fallback as import("@silvery/selection").ID])
+      } else {
+        pane.sel.node.select([])
       }
     }
 
