@@ -314,6 +314,14 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       const taskMark = heading.data?.taskMark as string | undefined
       const propsRaw = (heading.data?.propsRaw as Record<string, string> | undefined) ?? {}
       const cleanText = (heading.data?.cleanText as string | undefined) ?? nodeToText(heading)
+      // Refs & non-km props populated by kmRefsTransform / kmInlinePropTransform.
+      // Same shape as list items (see convertListItem): heading-level tasks
+      // need these too so structured queries (tag/assignee/priority) hit them.
+      // See km-markdown.heading-task-refs.
+      const headingTags = (heading.data?.tags as string[] | undefined) ?? []
+      const headingMentions = (heading.data?.mentions as string[] | undefined) ?? []
+      const headingProjects = (heading.data?.projects as string[] | undefined) ?? []
+      const headingProps = (heading.data?.props as Record<string, unknown> | undefined) ?? {}
 
       // Heading rules from kmast propsRaw (km.* keys extracted by kmInlinePropTransform)
       const rules = interpretHeadingRules(propsRaw)
@@ -349,6 +357,26 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       if (mdSource !== undefined) {
         headingData._mdSource = mdSource
         headingData._mdSourceContent = cleanText
+      }
+      // Attach refs & non-km props so heading-level tasks are structurally
+      // queryable (same shape as list items). km.* keys stay in `rules`;
+      // user-level keys (priority::, status::, etc.) go into propsRaw/props.
+      if (headingTags.length > 0) headingData.tags = headingTags
+      if (headingMentions.length > 0) headingData.mentions = headingMentions
+      if (headingProjects.length > 0) headingData.projects = headingProjects
+      const userPropsRaw: Record<string, string> = {}
+      for (const [k, v] of Object.entries(propsRaw)) {
+        if (!k.startsWith("km.")) userPropsRaw[k] = v
+      }
+      if (Object.keys(userPropsRaw).length > 0) {
+        headingData.propsRaw = userPropsRaw
+      }
+      const userProps: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(headingProps)) {
+        if (!k.startsWith("km.")) userProps[k] = v
+      }
+      if (Object.keys(userProps).length > 0) {
+        headingData.props = userProps
       }
       const sectionNode: KNode = {
         id: nodeId,

@@ -670,3 +670,66 @@ describe("kmast roundtrip", () => {
     expect(ship!.item?.task?.status).toBe("done")
   })
 })
+
+// ===========================================================================
+// Heading-level task refs/props — km-markdown.heading-task-refs
+//
+// Heading-level tasks (`#### [ ] title #tagA @person priority:: P1`) must
+// populate tags/mentions/projects/props/propsRaw in node.data, the same way
+// list-item tasks do. The ast2nodes heading handler was building headingData
+// only from rules + mdSource, ignoring the tags/mentions/props that
+// kmRefsTransform and kmInlinePropTransform had already extracted into
+// heading.data.*. Reported by the taxes session.
+// ===========================================================================
+
+describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", () => {
+  const { parseMarkdownToNodes } = require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
+
+  test("list-item task extracts tags/mentions/props (baseline)", () => {
+    const md = "- [ ] title #tagA @person priority:: P1 status:: reported"
+    const nodes = parseMarkdownToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    expect(task).toBeDefined()
+    expect(task!.data?.tags).toContain("tagA")
+    expect(task!.data?.mentions).toContain("person")
+    const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
+    expect(propsRaw?.priority).toBe("P1")
+    expect(propsRaw?.status).toBe("reported")
+  })
+
+  test("heading-level task extracts tags/mentions/props (regression)", () => {
+    const md = "#### [ ] title #tagA @person priority:: P1 status:: reported\n"
+    const nodes = parseMarkdownToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    expect(task, "heading-task node should exist").toBeDefined()
+    expect(task!.data?.tags).toContain("tagA")
+    expect(task!.data?.mentions).toContain("person")
+    const propsRaw = (task!.data as { propsRaw?: Record<string, string> })?.propsRaw
+    expect(propsRaw?.priority).toBe("P1")
+    expect(propsRaw?.status).toBe("reported")
+  })
+
+  test("heading with km.* rules still routes them to rules, not propsRaw", () => {
+    const md = "## Column km.collapse:: true km.add:: +project\n"
+    const nodes = parseMarkdownToNodes(md, "test.md")
+    // Skip the file-level h node (fstype mdfile) — we want the section heading
+    const heading = nodes.find(
+      (n: { type: string; fstype?: string }) => n.type === "h" && n.fstype === "mdsection",
+    )
+    expect(heading, "section heading should exist").toBeDefined()
+    // km.* rules live in node.rules
+    expect((heading as { rules?: { collapse?: boolean } }).rules?.collapse).toBe(true)
+    // And are NOT mirrored into user propsRaw
+    const propsRaw = (heading!.data as { propsRaw?: Record<string, string> })?.propsRaw
+    expect(propsRaw?.["km.collapse"]).toBeUndefined()
+    expect(propsRaw?.["km.add"]).toBeUndefined()
+  })
+
+  test("heading with +project tag populates projects[]", () => {
+    const md = "### [ ] ship release +km\n"
+    const nodes = parseMarkdownToNodes(md, "test.md")
+    const task = nodes.find((n: { item?: { task?: unknown } }) => n.item?.task !== undefined)
+    expect(task).toBeDefined()
+    expect(task!.data?.projects).toContain("km")
+  })
+})
