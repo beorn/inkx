@@ -473,6 +473,27 @@ function TreeNodeImpl({
     excludedSigils,
   )
 
+  // Per-node sigil un-exclusion: when the entire title is a single sigil that
+  // matches the current excludeSet (e.g., a card whose only content is "@work"
+  // inside the @work column), excluding it would render an EMPTY title row.
+  // Bug km-tui.folder-card-empty-title: folders without an _index.md and
+  // README files like @work/README.md (H1: "@work") had blank card titles
+  // because column-level sigil exclusion stripped the only mention. Detect
+  // single-sigil titles and provide a per-render context that keeps the sigil.
+  const titleOnlySigil = useMemo(() => {
+    const trimmed = processedContent.trim()
+    if (!trimmed.startsWith("@") && !trimmed.startsWith("#") && !trimmed.startsWith("+")) return null
+    if (!isSigilName(trimmed)) return null
+    if (!inlineContext.excludeSigils?.has(trimmed)) return null
+    return trimmed
+  }, [processedContent, inlineContext.excludeSigils])
+  const effectiveInlineContext = useMemo(() => {
+    if (!titleOnlySigil || !inlineContext.excludeSigils) return inlineContext
+    const reduced = new Set(inlineContext.excludeSigils)
+    reduced.delete(titleOnlySigil)
+    return { ...inlineContext, excludeSigils: reduced.size > 0 ? reduced : undefined }
+  }, [inlineContext, titleOnlySigil])
+
   // Search decorations — character-level highlighting of search matches
   const searchDecorations = useSearchDecorations(processedContent, searchHighlight, searchQuery, isCurrentMatch)
 
@@ -747,7 +768,7 @@ function TreeNodeImpl({
                   <InlineText
                     text={processedContent}
                     context={{
-                      ...inlineContext,
+                      ...effectiveInlineContext,
                       // Strip inline colors when selected/done or search highlighted.
                       // Links use dotted underline (no color) by default, so no heading clash.
                       colorOverride: searchHighlight || shouldStripColor ? null : undefined,
@@ -1062,6 +1083,17 @@ const FoldedChildRow = React.memo(
     // Shared inline context and search decorations
     const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor)
     const foldSearchDecorations = useSearchDecorations(displayContent, searchHighlight, searchQuery, isCurrentMatch)
+    // Per-node sigil un-exclusion: see km-tui.folder-card-empty-title above.
+    // Folded titles are even more critical to keep visible — the card is
+    // collapsed to a single line; if the only sigil is stripped, the row is blank.
+    const foldEffectiveContext = (() => {
+      const trimmed = displayContent.trim()
+      if (!inlineContext.excludeSigils?.has(trimmed)) return inlineContext
+      if (!isSigilName(trimmed)) return inlineContext
+      const reduced = new Set(inlineContext.excludeSigils)
+      reduced.delete(trimmed)
+      return { ...inlineContext, excludeSigils: reduced.size > 0 ? reduced : undefined }
+    })()
 
     return (
       <Box
@@ -1094,7 +1126,7 @@ const FoldedChildRow = React.memo(
               <InlineText
                 text={displayContent}
                 context={{
-                  ...inlineContext,
+                  ...foldEffectiveContext,
                   colorOverride: searchHighlight || isNodeSelected || style.isDoneOrDropped ? null : undefined,
                 }}
                 decorations={foldSearchDecorations}
