@@ -315,21 +315,24 @@ const Card = React.memo(
     const bodyDefaultBorder = "$surface-bg"
 
     if (isHR && !isEditing) {
-      // HR cards render borderless with padding (matching border width) for alignment.
-      // Padding on all 4 sides matches border dimensions for layout stability.
-      // When selected, they get a yellow border like other body blocks.
-      const hrLayoutProps = isSelected
-        ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
-        : isNodeSelected || isColSelected
-          ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
-          : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
+      // HR cards use the same layout primitives as body blocks: margin (not padding)
+      // for outline space, marginTop=1 only (no extra blank line below).
+      // Outline appears on cursor/selection — same decoration pattern as body blocks.
+      const hrShowOutline = isSelected || isNodeSelected || isColSelected
+      const hrLayoutProps = {
+        marginLeft: 1,
+        marginRight: 1,
+        marginTop: 1,
+        ...(hrShowOutline ? { outlineStyle: "round" as const, outlineColor: "$selection-bg" } : {}),
+      }
       return (
         <Box
           data-view="card"
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
-          width={width}
+          // width-2 leaves 1 cell on each side for the outline to draw into
+          width={width - 2}
           userSelect="none"
           {...hrLayoutProps}
           {...hoverHandlers}
@@ -366,7 +369,8 @@ const Card = React.memo(
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
-          width={width}
+          // width-2 leaves 1 cell on each side for the outline to draw into
+          width={width - 2}
           userSelect="none"
           {...bodyBlockLayoutProps(
             isSelected || isEditing,
@@ -589,13 +593,16 @@ const Card = React.memo(
 // =============================================================================
 
 /** Shared layout props for body blocks (virtual cards and HRs).
- * Always uses border for consistent sizing — borderColor varies by state.
- * Layout invariant: selecting/deselecting must NOT shift content.
+ * Body blocks render as flat prose with NO border. Padding aligns content
+ * with bordered cards (cards have 1-cell border, body blocks use paddingLeft/Right=1).
  *
- * Body blocks at column top-level default to an INVISIBLE border
- * (`$surface-bg`) so they visually read as plain prose. Hover and selection
- * light up the border like a normal card — via `hoverBorderColor` from
- * useCardInteraction and the `isNodeSelected`/`isColumnSelected` branches. */
+ * On cursor/hover/selection/edit: outside outline appears, drawing in the
+ * margin space between siblings. No layout shift — the decoration phase
+ * snapshots and restores cells outside the box rect.
+ *
+ * marginTop=1 gives 1 blank line above each body block (down from 2 cells
+ * of border overhead in the old design). The outline draws into this margin
+ * space when active. */
 function bodyBlockLayoutProps(
   showBorder: boolean,
   borderColor: string,
@@ -603,14 +610,24 @@ function bodyBlockLayoutProps(
   _isLastBodyBlock: boolean,
   isNodeSelected: boolean,
   isColumnSelected = false,
-  defaultBorderColor = "$surface-bg",
+  _defaultBorderColor = "$surface-bg",
   hoverBorderColor?: string,
   _cursorDim = false,
 ) {
-  if (showBorder) return { borderStyle: "round" as const, borderColor }
+  const showOutline = showBorder || isNodeSelected || isColumnSelected || !!hoverBorderColor
+  const outlineColor = showBorder
+    ? borderColor
+    : isNodeSelected || isColumnSelected
+      ? "$selection-bg"
+      : hoverBorderColor
+
   return {
-    borderStyle: "round" as const,
-    borderColor: isNodeSelected || isColumnSelected ? "$selection-bg" : (hoverBorderColor ?? defaultBorderColor),
+    // Margin (not padding) on horizontal so the outline has space to draw
+    // in the gap between the body block and its column edges.
+    marginLeft: 1,
+    marginRight: 1,
+    marginTop: 1,
+    ...(showOutline && outlineColor ? { outlineStyle: "round" as const, outlineColor } : {}),
   }
 }
 
