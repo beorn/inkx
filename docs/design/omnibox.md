@@ -30,90 +30,186 @@ The common cause is **dialog-per-verb instead of one dialog with verb modes**.
 
 ## Goal
 
-One modal: the *omnibox*. It handles every "find something, then do a thing with it" workflow. Sigil prefixes select the search mode. Verbs are attached after search, not before.
+One modal: the *omnibox*. It handles every "find something, then do a thing with it" workflow.
 
 One result list, one row renderer, one keybinding scope (`dialog:omnibox`), one state machine.
 
+## The core realization — the combobox is two searchable fields
+
+Every invocation of the omnibox resolves to **exactly two things**:
+
+1. **A command** — the verb to run (goto, move, add, link, create-in, run, find, …)
+2. **An argument** — a node the command operates on (or nothing, for zero-arg commands)
+
+Both are **searchable**. Both have a **result list**. Both are **pre-populated differently depending on how the omnibox was opened**. Neither is ever typed as a freeform argument string — the argument is always selected from the node tree.
+
+| Opened via | Command field | Argument field | Focus starts in |
+|---|---|---|---|
+| `cmd-k` | *(auto — default is `goto`)* | Current board cursor | Argument |
+| `g @` chord | `goto` (locked) | `@` sigil prefilled | Argument |
+| `m +` chord | `move` (locked) | `+` sigil prefilled | Argument |
+| `a #` chord | `add` (locked) | `#` sigil prefilled | Argument |
+| `l g` chord | `link` (locked) | Current cursor prefilled | Argument |
+| `c @` chord | `create-in` (locked) | `@` sigil prefilled | Argument |
+| `:` from cmd-k | Auto-focus command field | Empty | Command |
+| `/` from cmd-k | `find` (locked) | Empty | Argument (bottom-left placement) |
+
+**Tab** swaps focus between the command field and the argument field. The user can always re-pick either half of the tuple. `Ctrl+g/m/a/l + Enter` becomes a shortcut for "tab to command, type the command, tab back, confirm".
+
+This replaces the old "default verb + modifier-key override" model with something simpler: **two searchable fields, always visible, always editable**. The verb is not an invisible attribute of the session — it's a visible chip the user can click, tab to, or type over.
+
+### Why this unification is deep
+
+- **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) So the command field is a node search over the `commands/` subtree, and the argument field is a node search over the rest of the tree. Two fields, one tree, one ranker.
+- **The omnibox's selected argument row IS the cursor for command purposes.** Commands always operate on "the current cursor". When the omnibox is open, the current cursor is the omnibox's argument-field selection. When it closes, the current cursor snaps back to the board. **The omnibox is just a dynamic view of the tree** that temporarily provides the cursor.
+- **There is no "omnibox vs board" branch in any command.** `goto`, `move`, `create-in` don't ask "am I in a dialog?" — they read the current cursor and act. The cursor source is a view concern, not a command concern.
+- **A future omnibox-as-pane** (docked persistent view) falls out of this for free. It's the same component with `placement="pane"`, perpetually open, its argument-field selection continuously driving the cursor. The user gets a permanent workflow surface — like a keyboard-driven file navigator or task triager — with no new abstractions.
+
 ## Mockups
 
-All three mockups below are the **same component** with different `placement` and initial `{verb, sigil}` state. The layout is a presentation prop; the search, ranker, row renderer, and state machine are identical. These are semantic wireframes — not box-drawn ASCII — so each element is a line annotated with what it is.
+All mockups below are the **same component** with different `placement` and initial field state. The layout is a presentation prop; the search, ranker, row renderer, and state machine are identical. These are semantic wireframes — not box-drawn ASCII — each element is a line annotated with what it is. `▸` prefix marks the currently-focused field; `←` marks the selected row in the result list.
 
-### 1. Center modal — `cmd-k`, Universal search, cursor pre-selected
+### 1. `cmd-k` — Universal, cursor pre-selected
 
-Empty buffer. Cursor node is the top result, recents and suggestions follow. Footer shows the default verb and override keys.
-
-```
-placement:    center
-state:        { verb: goto, sigil: null, buffer: "" }
-
-  input       : › _                                                      (empty)
-
-  results     : ▸ @ omnibox.md                +km/docs/design    ← selected (cursor node)
-              : : zoom-out                    bound to  Z
-              : ▸ + km-tui.omnibox-unified    beads              P0
-              : @ delei                       context
-              : # urgent                      47 uses
-              : ▸ board.tsx                   +km/apps/km-tui/src
-
-  footer      : [goto]  ↵ confirm   ^m move   ^l link   ⇧↵ create-in   esc
-```
-
-Row format: `<sigil> <primary>  <secondary>  [trailing badge]`. The cursor marker `▸` and the selected marker `←` are shown on separate lines only for clarity in the mockup — in the real UI, the selected row has an inverse background and the cursor row has a `▸` prefix.
-
-### 2. Center modal — `g @` chord, Context picker, typing "del"
-
-Opens with `@` pre-filled. User types "del". The ranker resolves the `@delei` vs `@office/Finance/Accounts/Delei/SPD` bug: the short exact segment-prefix match wins.
+Empty argument buffer. The board cursor node is the top result (and therefore the argument). Enter runs the default command (`goto`) against the cursor = "re-focus". Shift+Enter runs `create-in` against the cursor = "create child under current node".
 
 ```
 placement:    center
-state:        { verb: goto, sigil: "@", buffer: "@del" }
+state:        { command: "goto", arg: "", focus: arg }
 
-  input       : › @del_
+  command     :   [ goto ]                                              (locked/default — tab to edit)
+  argument    : ▸ _                                                     (empty — argument slot has focus)
 
-  results     : @ delei                                context       ← selected
-              : @ deloitte                             work/context
-              : @ @office/Finance/Accounts/Delei/SPD   deep match
+  results     : @ omnibox.md                +km/docs/design         ←   (cursor node = selected arg)
+              : + km-tui.omnibox-unified    beads              P0
+              : @ delei                     context
+              : # urgent                    47 uses
+              : board.tsx                   +km/apps/km-tui/src
 
-  footer      : [goto]  ↵ confirm   ^m move   ^l link   ⇧↵ create-in   esc
+  footer      : ↵ goto   ⇧↵ create-in   ⇥ edit command   esc
 ```
 
-### 3. Bottom-left local find — `/` sigil
+### 2. `cmd-k`, then user typed `@del` — argument search with match highlighting
 
-Same component, `placement="bottom-left"`. Scoped to the current pane's visible tree. Renders as a narrow inline bar in the status area with a match count. Backspace through `/` promotes it back to the centered Universal omnibox. The result list is shown as **highlighted matches in-place** on the board rather than a separate dropdown — so the component still owns the query + ranker, but the "result list" is the set of match highlights + a `next/prev` cursor over them.
+Filtered to context nodes starting with "del". Match characters are **highlighted inside each row** (same treatment as `/` local find — highlights live in the row renderer, not a separate overlay). Ranker puts `@delei` first, deep subpath last.
+
+```
+placement:    center
+state:        { command: "goto", arg: "@del", focus: arg }
+
+  command     :   [ goto ]
+  argument    : ▸ @del_
+
+  results     : @ [del]ei                                context       ←
+              : @ [del]oitte                             work/context
+              : @ @office/Finance/Accounts/[Del]ei/SPD   deep match
+
+  footer      : ↵ goto   ⇧↵ create-in   ⇥ edit command   esc
+```
+
+Square brackets in the mockup stand in for the highlighted match spans.
+
+### 3. Override via Tab — user tabbed to the command field
+
+From mockup 2, user presses Tab. Focus moves to the command field; results now search commands. User types `mo` → `move` bubbles to the top. Argument field stays locked at `@del` with its selected result. Enter now runs `move` against `@delei`.
+
+```
+placement:    center
+state:        { command: "mo", arg: "@del", focus: command }
+
+  command     : ▸ mo_
+  argument    :   @del                                  @delei  ← (selected arg stays)
+
+  results     : : [mo]ve                  m (chord)        ←  (command results — filtered by "mo")
+              : : [mo]ve-up                shift-k
+              : : toggle-[mo]noscreen      (no binding)
+
+  footer      : ↵ move @delei   ⇥ edit argument   esc
+```
+
+The footer re-renders to show the resolved action: **"↵ move @delei"**. Tab again returns focus to the argument field.
+
+### 4. `create-in` has no matching argument — inactivatable
+
+User opened via `c +` chord. Typed `+newproject`. No match. `create-in` requires an existing target node, so it's **not activatable** — Enter bells, the footer greys the action out, the user can Tab to pick a different command (or type a new search).
+
+```
+placement:    center
+state:        { command: "create-in", arg: "+newproject", focus: arg }
+
+  command     :   [ create-in ]
+  argument    : ▸ +newproject_
+
+  results     :   (no matches)
+
+  footer      : ↵ create-in (disabled — no target)   ⇥ edit command   esc
+```
+
+Creating a new `+newproject` node is a different command (e.g. `:new-project <title>`) — not the default action of `create-in`. This keeps `create-in` semantically clean: it always takes a target.
+
+### 5. Bottom-left local find — `/` sigil
+
+Same component, `placement="bottom-left"`. The command is locked to `find` and the result list is **in-place highlighting on the board**, not a dropdown. The search engine is identical — only the renderer is different (no row list, just in-place highlight spans). Same row-level match-highlight logic powers both — extracted from the row renderer into a shared `highlightMatches(text, query)` helper.
 
 ```
 placement:    bottom-left
-state:        { verb: find, sigil: "/", buffer: "omnibox" }
+state:        { command: "find", arg: "omnibox", focus: arg }
 
-  [board area] Matches are highlighted in-place on the rendered tree.
-               Current match has a stronger highlight; others are subtle.
+  [board]     : Matches highlighted in-place on the rendered tree.
+              : Current match has a stronger highlight; others subtle.
 
-  bottom bar  : / omnibox          2 / 37    ↵ next   ⇧↵ prev   esc
+  bottom bar  : / omnibox_          2 / 37    ↵ next   ⇧↵ prev   esc
+```
+
+Backspace through `/` → promotes back to `placement="center"` with `command="goto"`, argument buffer preserved.
+
+### 6. Omnibox as pane — `placement="pane"` (future, post-v1)
+
+The same component, docked as a persistent pane like the detail pane. Argument-field selection continuously drives the cursor — wherever you arrow in the omnibox list, that node becomes the "current cursor" for the rest of the app. Power-user workflow surface; no new abstractions, just a third placement value.
+
+```
+placement:    pane   (sibling of board pane and detail pane)
+state:        { command: "goto", arg: "", focus: arg, persistent: true }
+
+  [the pane looks like mockups 1-4 but never dismisses on Enter — it
+   re-focuses the result list and lets the user keep navigating]
 ```
 
 ## Model
 
-### Input buffer
+### Two fields
 
-The omnibox has a single text buffer. The **first character** selects the search mode:
+The omnibox has two text fields — `commandBuffer` and `argumentBuffer` — and a single `focus: "command" | "argument"` flag. Both fields drive node searches (against `commands/` and everything else, respectively). Only the focused field's search populates the result list. The unfocused field is rendered as a chip/label showing its current state.
 
-| First char | Mode | Matches | Placement |
-|---|---|---|---|
-| `:` | **Command** | Command nodes by id and title (`:save`, `:zoom out`, `:toggle-theme`) | Center |
-| `@` | **Context** | Person / assignee / context node (`@delei`, `@bjorn`) | Center |
-| `#` | **Tag** | Tag node (`#urgent`, `#review`) | Center |
-| `+` | **Project** | Project node (`+km`, `+taxes`) | Center |
-| `[` | **Node** | Any node by title / content (fallback — non-sigil full-text search) | Center |
-| `/` | **Local find** | Find-in-current-view (current doc / board / detail pane) | Bottom-left bar |
-| `>` | *(reserved)* | Jump to heading in current doc (maybe — not in v1) | Center |
-| `?` | *(reserved)* | Help — "what does this key do?" inline docs (maybe — not in v1) | Center |
-| *(empty)* | **Universal** | Everything, ranked by type | Center |
+**Sigil routing inside the argument field.** The first character of `argumentBuffer` selects the search scope within the tree. This is identical to the old "single buffer" design — the change is that sigils now route within the argument field, not across the whole buffer.
 
-Backspace through the sigil → `''` → mode becomes **Universal**. Type a different sigil → mode switches. No separate components, no re-open. The mode is a function of the buffer's first character, recomputed on every keystroke.
+| Argument first-char | Scope | Matches |
+|---|---|---|
+| `@` | **Context** | Person / assignee nodes |
+| `#` | **Tag** | Tag nodes |
+| `+` | **Project** | Project nodes |
+| `[` | **Node** | Any node by title/content (full-text) |
+| `/` | **Local find** | Same component, but forces `placement="bottom-left"` and locks command to `find` |
+| `>` | *(reserved)* | Jump to heading in current doc |
+| `?` | *(reserved)* | Help — "what does this key do?" inline docs |
+| *(empty)* | **Universal** | Everything, ranked by type |
 
-**Local find is the same component, different layout.** `/` scopes the search to the current pane's visible tree and shows the box in the bottom-left status area (narrow, inline, match count next to it) instead of the centered modal. Backspace through `/` → component promotes back to the centered omnibox with Universal scope. The placement is a presentation prop — a single `<Omnibox placement="center" | "bottom-left" />` — not a different component. This also means we can choose to pin the whole combobox to the bottom-left if we ever want to (e.g., for "quiet" chord sessions) without touching the search engine, row renderer, or state machine.
+Backspace through the sigil → empty → mode becomes Universal. Type a different sigil → mode switches. No separate components, no re-open.
 
-**Empty-buffer behavior**: when the buffer is empty, show a *suggested* result set (recent nodes, cursor context, default project, "run command" hint). Pressing any key dispatches based on the first character.
+**Entering the command field.** Three ways:
+1. **`Tab`** — toggle focus between the two fields. Preserves both buffers.
+2. **`:` at empty argument buffer** — shortcut. Pops focus to the command field, clears the `:` so the command field starts empty.
+3. **Opening via `cmd-k` with no chord** — focus defaults to argument, but the user can immediately Tab or `:`-shortcut.
+
+**Empty-buffer behavior.** When either field is empty, its result list shows **recents filtered by prefix** (prefix being whatever has been typed so far, even if empty):
+
+- Empty argument field → recent goto targets (and the current board cursor, pre-selected first).
+- Empty command field → recently-run commands.
+- Partially-typed argument `@del` → recents that match `@del`, then other matches.
+
+Recents are just "nodes ordered by `lastVisitedAt` desc"; the ranker combines recency with match score. "Filtered by prefix like everything else in the list" means the ranker applies the same match rules — recents are not a privileged separate list.
+
+**`/` local find is the same component, different placement.** `/` sets `placement="bottom-left"` and locks the command field to `find`. The argument field owns the query. The result list becomes in-place match highlighting on the board instead of a row list. Backspace through `/` → promotes back to `placement="center"`, command returns to `goto` (or whatever the chord set).
 
 ### Result types — everything is a node
 
@@ -211,6 +307,8 @@ interface OmniboxRowProps {
 
 The renderer derives sigil color, primary label, and secondary metadata from `node.type`. The existing command palette one-liner view and the picker one-liner view **collapse into this one component** — they were already rendering nodes, just through different code paths.
 
+**Match highlighting is shared with `/` local find.** The row renderer calls a `highlightMatches(text, query)` helper that returns text spans tagged as matched vs unmatched. Matched spans render with an accent background (or the theme's search-hit color). The exact same helper powers in-place highlighting when `placement="bottom-left"` (local find on the board) — one highlighter, one look, one rule about which characters are matches.
+
 ### Ranking
 
 **Per-match score** (applies within a single result list, before final sort):
@@ -235,108 +333,144 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 **Canonical test fixture**: `apps/km-tui/tests/omnibox-ranking.test.ts` — table of `(query, results)` where the expected order is hand-written. Every ranking tweak is validated against the table.
 
-### Verbs — default, override, confirm
+### Default command, override via Tab
 
-Every selection has a **default verb** that depends on how the omnibox was opened:
+The command field starts pre-populated based on how the omnibox was opened:
 
-| Open via | Default verb |
+| Open via | Initial command |
 |---|---|
-| `cmd-k` / `ctrl-k` | `run` (for commands), `goto` (for nodes) |
+| `cmd-k` | `goto` |
 | `g` chord | `goto` |
-| `m` chord | `move` — move current selection to target |
-| `a` chord | `add` — add target (tag/project/person) to current selection |
-| `l` chord | `link` — insert link to target at cursor |
-| `c` chord | `create-in` — create new child under target |
+| `m` chord | `move` |
+| `a` chord | `add` |
+| `l` chord | `link` |
+| `c` chord | `create-in` |
+| `/` (direct) | `find` |
 
-The verb is an attribute of the omnibox session, not of the result. User can **override** at confirm time:
+**Override = tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides anymore — the command field *is* the override surface. It's always visible as a chip/label (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. Once the user picks a different command, Tab back to the argument field and confirm.
 
-| Key | Verb |
+This is strictly simpler than the "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance, and the argument field continues to behave as it did.
+
+**Confirm keys:**
+
+| Key | Action |
 |---|---|
-| `Enter` | Default verb (from chord) |
-| `Ctrl+Enter` | Force `goto` (mirrors global `Ctrl+Enter` = follow link) |
-| `Ctrl+g` + Enter | Force `goto` |
-| `Ctrl+m` + Enter | Force `move` |
-| `Ctrl+a` + Enter | Force `add` |
-| `Ctrl+l` + Enter | Force `link` |
-| `Shift+Enter` | Force `create-in` (create new child under target) |
-| `Escape` | Cancel |
+| `Enter` | Run the currently-shown command against the selected argument |
+| `Shift+Enter` | Run `create-in` against the selected argument (shortcut — no Tab needed) |
+| `Ctrl+Enter` | Run `goto` against the selected argument (shortcut — mirrors global `follow_link`) |
+| `Escape` | Cancel, restore prior cursor |
+| `Tab` | Toggle focus between command and argument fields |
 
-The verb is shown in the footer: `[goto] Enter to confirm · Ctrl+m move · Ctrl+l link · ⇧Enter create-in · Esc cancel`. Override keys update the footer live so the user sees which verb will run.
+`Shift+Enter` and `Ctrl+Enter` are **shortcuts** for common overrides, not a separate "verb override" mechanism. They're equivalent to `Tab → type "create-in" → Tab → Enter` / `Tab → type "goto" → Tab → Enter` but without the round trip. Any other verb goes through Tab.
 
-**Why Ctrl+ for overrides**: `Ctrl+g`, `Ctrl+m`, `Ctrl+l` don't conflict with text input inside the omnibox, and the parallel with the opening chord (`g` → `Ctrl+g`) is easy to remember.
+**Disabled state.** If the current command requires an argument (`goto`, `move`, `create-in`, `link`, `add`) but the argument field has no selected result, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. Mockup 4 shows this case with `create-in` on an empty result list.
 
-**Why Shift+Enter = create-in**: Inside the omnibox scope, Shift+Enter has no conflicting meaning (the board-layer bindings for `search_replace.prev`, `text.child_block`, and `enter_body_edit` are shadowed by `dialog:omnibox`). Create-in is the action a user reaches for when the result list doesn't contain what they want — Shift+Enter reads naturally as "Enter, but new". "Open in new pane" is deferred from v1; if added later, `Cmd+Enter` is the candidate.
+### The omnibox's selection IS the cursor
 
-### Cursor as default target
+This is the deepest unification in the whole design.
 
-When the omnibox opens, the currently-cursored board node becomes the **pre-selected first result** (unless the sigil filters it out). This means:
+**While the omnibox is open, its argument-field selection is `cursorId` for every command in the system.** Commands always read "the current cursor" and act on it. The source of that cursor is a property of the active view:
 
-- `g` → omnibox opens with empty buffer, cursor's parent project pre-selected → Enter goes to current cursor (effectively "re-focus"). Not that useful alone, but the pattern matters for other verbs.
-- `m` → omnibox opens, cursor-adjacent move-target suggestions pre-filled → Enter moves selection to most likely target.
-- `l` → omnibox opens, cursor's siblings pre-filled → Enter links to current cursor context.
-- `a` → opens with tag input ready, current tags filtered out.
+- Board view open, no dialog → cursor is the board's cursored node.
+- Omnibox open (any placement) → cursor is whichever row is selected in the omnibox's argument-field result list.
+- Detail pane active → cursor is the detail pane's focused node.
 
-This is the biggest ergonomic win over the current design: **the default operation is "do the verb against the most likely target"**, not "open an empty box and search from scratch".
+Commands don't know or care. They call `currentCursor()` and operate. This means:
+
+1. **There is no `omniboxConfirm()` function that special-cases the dialog.** Enter in the omnibox just fires the same command dispatch that Enter on the board fires. The command reads the cursor, runs, and the omnibox closes as a side-effect of the dispatch (unless it's a persistent pane).
+2. **The pre-selection ergonomic wins come for free.** When you open the omnibox via `cmd-k`, the first result is the current board cursor. Enter runs `goto` against it — which is a no-op "re-focus". Shift+Enter runs `create-in` against it — creating a child under the current node. These aren't special-cased; they're just consequences of "the selected argument is the cursor" + "the default selected argument is the board cursor".
+3. **Arrowing in the omnibox moves the cursor.** In `placement="pane"` (the persistent case) this is especially powerful: arrow keys in the omnibox propagate to the entire app. You're keyboard-driving a live cursor through a filtered, searchable view.
+4. **Commands that don't need an argument** (`:save`, `:zoom-out`, `:toggle-theme`) simply don't read the cursor. They're still valid with no argument-field selection. Enter runs them directly.
+
+### Command arguments — selected from the list, not typed
+
+Commands that need an argument read it from the current cursor — which, as above, is the argument-field selection. **The user doesn't type arguments.** They search the argument field and pick one.
+
+For commands whose argument is an existing node (goto, move, link, create-in, add, zoom-to, open-in-pane, …) this is the default. For commands that need a *new* name (`:new-project <title>`, `:new-file <path>`), the title is the argument buffer itself — the command reads `argumentBuffer` directly instead of looking up a selected node. That's a per-command choice expressed in the command's `run()` function. The omnibox doesn't need to know.
+
+This gives a clean mental model: **the argument field is always "what node are you talking about?"** — either selected from the results, or (rarely, for create-new commands) taken as raw text.
 
 ## Opening the omnibox
 
-| Chord | Default verb | Default sigil |
-|---|---|---|
-| `cmd-k` / `ctrl-k` | (auto — command for `:`, goto for nodes) | *(none — universal)* |
-| `g @` | goto | `@` |
-| `g #` | goto | `#` |
-| `g +` | goto | `+` |
-| `g [` | goto | `[` |
-| `g :` | run | `:` |
-| `g g` | goto | *(none — cursor pre-filled)* |
-| `m @` | move | `@` |
-| `m +` | move | `+` |
-| `a @` | add | `@` |
-| `a #` | add | `#` |
-| `l g` | link | *(none — cursor pre-filled)* |
-| `c @` | create-in | `@` |
+Every opening path resolves to an `OPEN` action with `{ command, argumentPrefill, focus, placement }`:
 
-All chords converge on the same component with different `{verb, sigil}` initial state.
+| Chord | command | argumentPrefill | focus | placement |
+|---|---|---|---|---|
+| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | center |
+| `g @` | `goto` | `@` | argument | center |
+| `g #` | `goto` | `#` | argument | center |
+| `g +` | `goto` | `+` | argument | center |
+| `g [` | `goto` | `[` | argument | center |
+| `g :` | *(empty)* | *(empty)* | command | center |
+| `g g` | `goto` | *(current cursor)* | argument | center |
+| `m @` | `move` | `@` | argument | center |
+| `m +` | `move` | `+` | argument | center |
+| `a @` | `add` | `@` | argument | center |
+| `a #` | `add` | `#` | argument | center |
+| `l g` | `link` | *(current cursor)* | argument | center |
+| `c @` | `create-in` | `@` | argument | center |
+| `/` | `find` | *(empty)* | argument | bottom-left |
+
+All chords converge on the same component with different opening state.
 
 ## State machine
 
 ```
-                     open(verb, sigil)
-       closed ─────────────────────────▶ open
-         ▲                                 │
-         │   close()                       │ key events
-         │                                 ▼
-         └──────────────────── confirm(verb, result)
-                                           │
-                                           ▼
-                                      dispatch op
+                         open(cmd, arg, focus, placement)
+         closed ──────────────────────────────────────▶ open
+           ▲                                             │
+           │        close()                              │ key events
+           │                                             ▼
+           └──────────────────────────── confirm(cmd, selectedArg)
+                                                         │
+                                                         ▼
+                                                    dispatch op
 ```
 
 States:
 
-- **closed** — no omnibox visible. All keys route to the board.
-- **open** — omnibox mounted, dialog mode is `dialog:omnibox`, input has focus.
+- **closed** — no omnibox visible. Cursor source is the board.
+- **open** — omnibox mounted, dialog mode is `dialog:omnibox`. The omnibox is now the cursor source.
+
+Store shape:
+
+```ts
+interface OmniboxState {
+  open: boolean
+  placement: "center" | "bottom-left" | "pane"
+  commandBuffer: string           // search query for the command field
+  argumentBuffer: string          // search query for the argument field
+  focus: "command" | "argument"
+  commandResults: KNode[]         // filtered command nodes (only populated when focus=command)
+  argumentResults: KNode[]        // filtered target nodes  (only populated when focus=argument)
+  selectedCommandIndex: number | null   // which command the user has picked (may differ from commandBuffer)
+  selectedArgumentIndex: number | null  // which argument the user has picked
+}
+```
+
+Key invariant: **the committed command and argument are the most recently `selected*Index` — not whatever's currently in the buffer.** Switching focus to the command field to browse doesn't reset the argument selection, and vice versa. This is what makes mockup 3 work.
 
 Actions:
 
 ```ts
 type OmniboxOp =
-  | { type: "OPEN"; verb: Verb; sigil?: string; preselect?: NodeId }
+  | { type: "OPEN"; command: string; argumentPrefill: string; focus: "command" | "argument"; placement: Placement }
   | { type: "CLOSE" }
-  | { type: "INPUT"; buffer: string }
-  | { type: "NAV_UP" | "NAV_DOWN" | "NAV_HOME" | "NAV_END" }
-  | { type: "SET_VERB"; verb: Verb }            // ctrl+g/m/l override
-  | { type: "CONFIRM" }                         // dispatches verb + selected result
+  | { type: "INPUT"; field: "command" | "argument"; buffer: string }
+  | { type: "NAV_UP" | "NAV_DOWN" | "NAV_HOME" | "NAV_END" }   // navigates the focused field's result list
+  | { type: "TOGGLE_FOCUS" }                                     // tab
+  | { type: "CONFIRM" }                                          // run resolved (command, argument)
   | { type: "CANCEL" }
 ```
 
 The reducer lives in `@km/board` or a new `packages/km-tui-omnibox/` package. React components subscribe via `useSignal`.
 
-**Invariants**:
-- If `open`, the first character of `buffer` (or `null` if empty) uniquely determines the search mode.
-- If `open`, `selectedResultIndex` is in `[0, results.length)` or `null` when `results` is empty.
-- Opening with `preselect` sets `selectedResultIndex` to the index of that result if present.
-- Closing always clears `buffer`, `results`, `selectedResultIndex`, and pops the dialog mode.
+**Invariants:**
+- If `open`, exactly one of `commandResults` / `argumentResults` is "active" (the focused field's results).
+- If `open`, `selected*Index` is in `[0, *Results.length)` or `null` when the corresponding list is empty.
+- Opening with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
+- `CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
+- `CLOSE` and `CANCEL` both clear all buffers and results and pop the dialog mode. `CANCEL` also restores the prior board cursor. `CLOSE` (post-successful-confirm) lets the dispatched command decide the new cursor.
 
 ## Migration
 
@@ -354,37 +488,52 @@ Introduce `CommandNode` and the synthetic `commands/` subtree. Migrate the exist
 ### Phase 4 — when-clauses
 Parse and evaluate `when` expressions. Migrate the current ad-hoc availability checks (dialog-mode guards, edit-mode guards) to `when` clauses on the command nodes. Keybinding layer consults `when` before dispatching. Tests: disabled commands don't appear in the omnibox list and don't trigger their key.
 
-### Phase 5 — unified component
-New `Omnibox` component (single file, ~300 lines). Replaces `Omnibox.tsx` + `ItemPicker.tsx` + `FavoritesDialog.tsx`. Same dialog modes, new internal shape: one node-keyed result list. Old components become thin wrappers that forward to the new one for one release, then get deleted. Supports `placement: "center"` only in this phase.
+### Phase 5 — unified component, one field (bridge)
+Single-field `Omnibox` component (~300 lines). Replaces `Omnibox.tsx` + `ItemPicker.tsx` + `FavoritesDialog.tsx`. Same dialog modes, one node-keyed result list. Old components become thin wrappers for one release, then delete. Supports `placement: "center"` only. This is the **bridge step** — still a single buffer internally so we don't ship the two-field model and the component rewrite at the same time.
 
-### Phase 6 — verb system
-Implement the verb override keys (`Ctrl+Enter` = goto, `Shift+Enter` = create-in, `Ctrl+g/m/a/l + Enter`, etc.). Update the chord bindings (`cmd-k`, `g`/`m`/`a`/`l`/`c` chords) to route to the unified component with the right `{verb, sigil}` initial state.
+### Phase 6 — cursor unification
+Make the omnibox the cursor source while open. Every command that reads `currentCursor()` now resolves to the omnibox's selected result when the omnibox is open. Tests: arrow in omnibox → board cursor follows. Shift+Enter create-in no longer special-cases "the dialog" — it just operates on "the cursor".
 
-### Phase 7 — cursor pre-select
-Teach the omnibox to read cursor state on open and set `preselect` appropriately. Feature-flag behind a config option for the first release in case it's confusing.
+### Phase 7 — two searchable fields
+Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Introduce Tab semantics. Visible command chip in the center modal. `Shift+Enter` and `Ctrl+Enter` become the only "override" shortcuts; remove any `Ctrl+g/m/a/l` plumbing that was in Phase 5. Update chord table in `Opening the omnibox`.
 
-### Phase 8 — `/` local find, `placement="bottom-left"`
-Add the `bottom-left` placement. Wire `/` to open the omnibox with `{ verb: "find", sigil: "/", placement: "bottom-left" }`. Replace `apps/km-tui/src/views/FindBar.tsx` with the omnibox in local-find mode. In-place match highlighting comes from the existing find-bar plumbing — only the box itself moves.
+### Phase 8 — cursor pre-select
+Teach the omnibox to read the board cursor on open and set `argumentPrefill` / `selectedArgumentIndex` appropriately. Feature-flag behind a config option for the first release in case it's confusing.
 
-### Phase 9 — shelves
+### Phase 9 — `/` local find, `placement="bottom-left"`
+Add the `bottom-left` placement. Wire `/` to open with `{ command: "find", focus: "argument", placement: "bottom-left" }`. Replace `apps/km-tui/src/views/FindBar.tsx` with the omnibox in local-find mode. Extract `highlightMatches()` into a shared helper used by both the row renderer and the in-place board highlighting.
+
+### Phase 10 — shelves
 Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, old command-registry adapter). Update docs. Update keybindings reference. Add integration tests for each chord path.
 
-Each phase is independently shippable. Phase 1+2 can ship together — they're pure refactors with test support. Phase 3+4 can ship together (they enable each other). Phase 8 is pure win once Phase 5 is merged.
+### Phase 11 (post-v1) — `placement="pane"`
+Persistent docked omnibox. Same component, `persistent: true` flag, never auto-closes on Enter. Workspace-level state (like detail pane). Requires: pane-aware focus-restoration, "don't save nav history for omnibox-cursor transitions", and probably a new `vm` cycle slot.
+
+Each phase is independently shippable. Phase 1+2 can ship together (pure refactors). Phase 3+4 can ship together. Phase 5 is the single-buffer bridge. Phase 6+7+8 are the two-field migration and should ship as one release candidate. Phase 9 is pure win once Phase 7 is merged.
 
 ## Out of scope
 
 - **Autocompletion inside card titles**. That's the inline editor, not the omnibox.
-- **Find-in-page**. `/` stays on the local-find bar for now; could be folded in later via the `/` sigil.
 - **Multi-select inside the omnibox**. Future. Today the omnibox picks one thing; multi-select for "add tag to all selected tasks" is the existing multi-selection flow before opening.
 - **Graph / tree visualizations**. The omnibox is a flat result list.
+- **Freeform argument strings**. All arguments come from the result list (or from the buffer for create-new commands that opt in). No shell-style "parse whitespace into positional args".
+
+## Resolved questions
+
+The following were open in earlier drafts; resolved here:
+
+1. **Recent handling** — recents are a recency bonus on the ranker, filtered by prefix like every other result. No separate "recents list"; the empty-buffer state just happens to be sorted by recency.
+2. **create-in with no match** — inactivatable. Creating a brand-new project/file is a separate command (`:new-project`, `:new-file`) that reads `argumentBuffer` as the title. This keeps `create-in` semantically clean (always operates on an existing target).
+3. **Commands take arguments via the argument field** — not via typed strings. `move` reads the selected argument row; `:new-project` reads the argument buffer directly. Commands decide per-command.
+4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
+5. **Keyboard-only override fallback** — not needed. Override is via Tab + typing in the command field, which works on every terminal. `Ctrl+Enter` / `Shift+Enter` are shortcuts, not requirements; if a terminal strips them, the user can still Tab.
 
 ## Open questions
 
-1. **Where does "recent" live?** Per-verb recency (recent goto targets, recent moves) or global? Leaning global — one MRU list ranked by the ranker with a recency bonus.
-2. **How does create-in work inline?** User types `+newproject` → no existing match → Enter with `create-in` verb creates a new project node. Do we need a visible "(create)" row to make it explicit? Probably yes.
-3. **Should commands take arguments?** `:move-to +km` = move with target? Could extend later — for now, `:` is for zero-arg commands, verbs handle targeted ops.
-4. **Does Universal mode show commands?** Yes, but they rank lower than nodes (type weight 0.4 for commands in Universal, 1.0 in `:` mode). Commands appear at the bottom of an unfiltered universal list.
-5. **Keyboard-only modifiers for override**: `Ctrl+g` works on most terminals with Kitty keyboard enabled. For legacy terminals (no Kitty), the override system needs a fallback — probably `Tab` cycling through verbs, or a visible verb chip the user can click/tab to.
+1. **Two fields on one line vs two separate lines?** In the center modal, should the command chip and argument input be on one visual row (`[goto] @del_`) or stacked (command line, then argument line)? One-line is denser and feels like a shell prompt; two-line is clearer about which field has focus. Leaning two-line in the center placement and one-line in bottom-left.
+2. **`placement="pane"` state ownership** — does the pane own its own omnibox state, or is there one global omnibox state that the pane "attaches" to? Leaning pane-owned (like detail panes own their `rootId`).
+3. **Does the command field show recents when empty?** Yes for symmetry, but this means `cmd-k` with empty arg and Tab to command immediately shows "recently run commands" — which might be distracting. Alternative: empty command field shows *all* commands grouped by category until the user types.
+4. **Tab completion inside the command field** — if user types `mo`, should Tab complete to `move` (as in a shell) or toggle focus back to argument? Probably the latter (focus toggle) to keep Tab's semantic consistent, and let the user just press `Enter` to pick the top result.
 
 ## Relationship to other work
 
