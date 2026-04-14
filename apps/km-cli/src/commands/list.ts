@@ -49,10 +49,13 @@ export const listCommand = new Command("list")
     let query: string | undefined
 
     if (queryOrPath && (queryOrPath.startsWith("/") || queryOrPath.startsWith(".") || queryOrPath.startsWith("~"))) {
-      // It's a path - use as repo root
+      // It's a path — resolve to repo root + optional node reference.
+      // If the path points to a file or subdirectory inside a repo, use it
+      // as the scope query (for --broken). If it points to the repo root
+      // itself, there's no scope query.
       const resolved = resolvePathArg(queryOrPath, getRootPath())
       repoRoot = resolved.repoRoot
-      query = undefined
+      query = resolved.nodeRef ?? undefined
     } else {
       // It's a query - use default root
       repoRoot = getRootPath() ?? process.cwd()
@@ -72,13 +75,18 @@ export const listCommand = new Command("list")
       let scopedLinks = allLinks
 
       if (query) {
-        // Resolve the query to a scope node. Try name-resolution first
-        // (matches filenames like "@next.md" and wikilink-style names),
-        // then fall back to fs_path substring match for anything name
-        // resolution misses.
+        // Resolve the query to a scope node. Try resolveNode first
+        // (handles absolute paths, relative paths, bare names, block ids,
+        // and id prefixes in one shot — the same resolver `km show` uses).
+        // Fall back to fs_path substring match + id-prefix if that misses.
         const scopeRoots = new Set<string>()
-        const byName = repo.resolveByName?.(query)
-        if (byName) scopeRoots.add(byName.id)
+        const byResolve = repo.resolveNode?.(query)
+        if (byResolve) scopeRoots.add(byResolve.id)
+
+        if (scopeRoots.size === 0) {
+          const byName = repo.resolveByName?.(query)
+          if (byName) scopeRoots.add(byName.id)
+        }
 
         if (scopeRoots.size === 0) {
           // fs_path / id-prefix fallback
