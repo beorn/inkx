@@ -3,9 +3,10 @@
  *
  * HR nodes (type: "hr" from markdown thematic breaks, or items with content
  * matching ---, ***, ___) render as centered content between horizontal line
- * padding. Unselected HR cards use padding (no border) for layout stability.
- * Selected HR cards get a yellow round border. HR cards in edit mode fall
- * through to normal body block rendering with a round border.
+ * padding. Body blocks (HR, prose, virtual cards) are flat — no border, no
+ * outline, no per-block bg. Selection signaling comes from the column-level
+ * tint and the cursor inverse row in TreeNode. HR edit mode also stays
+ * borderless and routes through the normal body block path.
  */
 
 import { describe, test, expect } from "vitest"
@@ -57,10 +58,13 @@ describe("HR borderless rendering", () => {
     board.expectNodeNoBorder("my-hr")
   })
 
-  test("selected body card has border, unselected neighbor has dim border", () => {
-    using app = createTestApp(item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
-    app.expectNodeBorder("task1")
-    app.expectNodeBorder("task2")
+  test("body cards around an HR render without borders", () => {
+    const { board } = createDriverTest(() =>
+      item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))),
+    )
+    // Body cards (task1/task2) are flat prose — no border, ever.
+    board.expectNodeNoBorder("task1")
+    board.expectNodeNoBorder("task2")
   })
 
   test("HR renders centered content (---) within card width", () => {
@@ -159,8 +163,9 @@ describe("HR content-based detection", () => {
         cols: 60,
         rows: 20,
       })
+      // The literal content is rendered (no HR substitution) — body card stays
+      // borderless, so we only assert the text shows up verbatim.
       expect(app.text).toContain(content)
-      app.expectNodeBorder("edited-hr")
     })
   }
 })
@@ -344,7 +349,7 @@ describe("HR editing", () => {
   })
 
   // FREEZE: needs expectNodeNoBorder (not on createTestApp)
-  test("HR renders as bordered card during edit mode", () => {
+  test("HR remains borderless in edit mode (flat body block)", () => {
     const { board } = createDriverTest(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
       columns: 60,
       rows: 20,
@@ -356,7 +361,8 @@ describe("HR editing", () => {
     board.command("cursor_up")
     board.press("Enter")
 
-    board.expectNodeBorder("my-hr")
+    // Body blocks (HR included) stay flat in edit mode — no border.
+    board.expectNodeNoBorder("my-hr")
   })
 
   test("HR edit mode: no colored background fills the row", () => {

@@ -216,43 +216,15 @@ describe("km-tui.collapsed-shift", () => {
 })
 
 // =============================================================================
-// Bug 3: km-tui.card-border-missing — repro tests
+// Card visibility / structural borders
 //
-// These tests use expectNodeBorder (not supported in createTestApp), so they
-// remain on createDriverTest.
+// Body cards are flat prose (no border, no outline, no per-block bg).
+// Selection signaling is handled by the cursor-row inverse in TreeNode plus
+// the column-level tint when the column owns the cursor — no per-card border.
+// Structural cards (file/folder/section) still have borders and are tested here.
 // =============================================================================
 
-describe("km-tui.card-border-missing", () => {
-  test("selected body card has yellow border, unselected body cards have dim border", () => {
-    const { board } = createDriverTest(
-      () =>
-        item(
-          "board",
-          item("Col1", item("task1"), item("task2"), item("task3")),
-          item("Col2", item("task4"), item("task5")),
-        ),
-      { columns: 80, rows: 24 },
-    )
-
-    // task1 is selected — should have border
-    board.expectNodeBorder("task1")
-    // All other body cards are unselected — should have dim border
-    board.expectNodeBorder("task2")
-    board.expectNodeBorder("task3")
-    board.expectNodeBorder("task4")
-    board.expectNodeBorder("task5")
-  })
-
-  test("selected body card has border in narrow terminal (40 cols)", () => {
-    const { board } = createDriverTest(() => item("board", item("Col1", item("narrow-task"))), {
-      columns: 40,
-      rows: 20,
-    })
-
-    // narrow-task is selected — should have border
-    board.expectNodeBorder("narrow-task")
-  })
-
+describe("card visibility and structural borders", () => {
   test("selected card visible after scrolling through many cards", () => {
     const items = Array.from({ length: 10 }, (_, i) => item(`card-${i}`))
     using app = createTestApp(item("board", item("BigCol", ...items)), { cols: 80, rows: 15 })
@@ -276,42 +248,21 @@ describe("km-tui.card-border-missing", () => {
     board.expectNodeBorder("File B")
   })
 
-  test("unselected body cards have dim border after cursor movement", () => {
-    const { board } = createDriverTest(
-      () => item("board", item("Col1", item("a1"), item("a2")), item("Col2", item("b1"), item("b2"))),
-      { columns: 80, rows: 20 },
-    )
-
-    // Move between columns
-    board.command("cursor_right") // to Col2
-    board.command("cursor_left") // back to Col1
-    board.command("cursor_down") // down to a2
-
-    // Cursor should be on a2
-    board.expect("#a2[data-cursor]").toExist()
-    // Unselected body cards should have dim border
-    board.expectNodeBorder("a1")
-    board.expectNodeBorder("b1")
-    board.expectNodeBorder("b2")
-  })
-
   test("cursor movement transfers selection between body cards", () => {
-    const { board } = createDriverTest(() => item("board", item("Col1", item("selected-task"), item("other-task"))), {
-      columns: 80,
+    using app = createTestApp(item("board", item("Col1", item("selected-task"), item("other-task"))), {
+      cols: 80,
       rows: 20,
     })
 
     // First card is selected
-    board.expect("#selected-task[data-cursor]").toExist()
-    // Other card is not selected — has dim border
-    board.expectNodeBorder("other-task")
+    app.expect("#selected-task[data-cursor]").toExist()
 
     // Navigate to second card
-    board.command("cursor_down")
+    app.command("cursor_down")
     // Now other-task is selected
-    board.expect("#other-task[data-cursor]").toExist()
-    // First card is now unselected — has dim border
-    board.expectNodeBorder("selected-task")
+    app.expect("#other-task[data-cursor]").toExist()
+    // selected-task is no longer the cursor
+    expect(app.node("selected-task").isCursor).toBe(false)
   })
 })
 
@@ -418,18 +369,3 @@ describe("collapsed column shift edge cases", () => {
   })
 })
 
-// =============================================================================
-// Edge cases: card border missing
-// Tests using expectNodeBorder stay on createDriverTest.
-// =============================================================================
-
-describe("card border missing edge cases", () => {
-  test("selected body card with long content has border", () => {
-    // Create a card whose content would be exactly the right length to potentially overflow
-    const longContent = "X".repeat(35) // roughly fills a 40-char column
-    const { board } = createDriverTest(() => item("board", item("Col1", item(longContent))), { columns: 40, rows: 20 })
-
-    // Selected body card should have a border
-    board.expectNodeBorder(longContent)
-  })
-})

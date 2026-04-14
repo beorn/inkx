@@ -212,20 +212,6 @@ describe("alignment: card vertical stacking", () => {
 })
 
 // =============================================================================
-// Shared fixture: 2 cards 80x24 (selected vs unselected border)
-// =============================================================================
-
-describe("alignment: selected vs unselected border", () => {
-  test("selected body card has border, unselected has dim border", () => {
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))), { cols: 80, rows: 24 })
-    // 1a is selected — should have border
-    app.expectNodeBorder("1a")
-    // 1b is unselected — should also have border (dim gray)
-    app.expectNodeBorder("1b")
-  })
-})
-
-// =============================================================================
 // Shared fixture: 2 columns WIDE (col1/1a, col2/2a)
 // =============================================================================
 

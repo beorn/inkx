@@ -117,10 +117,12 @@ describe("White-box APIs", () => {
     }
   })
 
-  test("expectNodeBorder — cards have borders", () => {
-    using app = createTestApp(item("board", item("col1", item("task1"))))
-    // Cards in default cards view should have borders
-    app.expectNodeBorder("task1")
+  test("expectNodeBorder — structural cards have borders", () => {
+    // Body cards (item("task1")) are flat — no border. Structural cards
+    // (file/folder) still render with a real round border, so we use a
+    // file card to exercise expectNodeBorder.
+    using app = createTestApp(item("board", item("col1", item.file("File A", item("task1")))))
+    app.expectNodeBorder("File A")
   })
 
   test("expectNodeColor — cursor node has non-null fg", () => {
@@ -171,8 +173,10 @@ describe("White-box APIs", () => {
   })
 
   test("expectNodeBorder, expectNodeColor, expectNoGhostChars are chainable", () => {
-    using app = createTestApp(item("board", item("col", item("task1"))))
-    const result = app.expectNodeBorder("task1").expectNodeColor("task1", {}).expectNoGhostChars()
+    // Body cards are borderless — use a structural card (file) that still
+    // renders a real round border so expectNodeBorder has something to assert.
+    using app = createTestApp(item("board", item("col", item.file("File A", item("task1")))))
+    const result = app.expectNodeBorder("File A").expectNodeColor("File A", {}).expectNoGhostChars()
     expect(result).toBe(app)
   })
 })

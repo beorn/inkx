@@ -97,38 +97,43 @@ describe("mouse click targeting", () => {
     expect(cursorText).toContain("proj-a")
   })
 
-  test("clicking on card border selects the card (not deselect to root)", () => {
-    using app = createTestApp(item.root("board", item("Inbox", item("task-1"), item("task-2"))), {
-      cols: 80,
-      rows: 24,
-    })
+  test("clicking on a structural card border selects the card (not deselect to root)", () => {
+    // Body cards are now flat (no border), so we use a structural card —
+    // file/folder cards still render with a real round border. The original
+    // bug (km-tui.card-border-click) was that clicking a card wrapper Box
+    // without an `id` prop walked up to the column and deselected to root.
+    // The data-card-id fix on the wrapper still applies to bordered cards.
+    using app = createTestApp(
+      item.root("board", item("Inbox", item.file("File A", item("task-a")), item.file("File B", item("task-b")))),
+      { cols: 80, rows: 24 },
+    )
 
     // Verify data-view="card" wrappers are present
     const cardWrappers = app.q("[data-view='card']")
     expect(cardWrappers.count(), "data-view='card' wrappers should exist").toBeGreaterThan(0)
 
-    // Navigate to task-2 first (so we know cursor is there)
+    // Navigate to File B first (so we know cursor can land there)
     app.command("cursor_down")
-    expect(app.state.cursor).toBe("task-2")
+    expect(app.state.cursor).toBe("File B")
 
     // Find the inner element's bounding box (inside the card border)
-    const task2 = app.q("[id='task-2'][data-view='item']")
-    expect(task2.count()).toBeGreaterThan(0)
-    const innerBox = task2.boundingBox()
+    const fileB = app.q("[id='File B'][data-view='item']")
+    expect(fileB.count()).toBeGreaterThan(0)
+    const innerBox = fileB.boundingBox()
     expect(innerBox).not.toBeNull()
 
-    // Navigate to task-1 (move cursor away from task-2)
+    // Move cursor away from File B
     app.command("cursor_up")
-    expect(app.state.cursor).toBe("task-1")
+    expect(app.state.cursor).toBe("File A")
 
-    // Click on the card border (1 column left of the inner content area).
+    // Click on File B's border (1 column left of the inner content area).
     // The card border is rendered by the Card wrapper Box, which has data-card-id
     // but no `id` prop. Without the data-card-id fix, this would resolve to
     // the column and deselect to board root.
     app.click(innerBox!.x - 1, innerBox!.y)
 
-    // Cursor should land on task-2, not deselect to board root
-    expect(app.state.cursor).toBe("task-2")
+    // Cursor should land on File B, not deselect to board root
+    expect(app.state.cursor).toBe("File B")
   })
 
   test("clickDom drives both DOM dispatch and app-level handleMouse (km-tui.card-border-click)", () => {
@@ -137,10 +142,10 @@ describe("mouse click targeting", () => {
     // onClick dispatch. Matches the real runtime pipeline in
     // invokeEventHandler. See unit tests in use-card-interaction.test.ts
     // for direct verification of the walk-up resolver that this bug fixed.
-    using app = createTestApp(
-      item.root("board", item("Inbox", item("task-1"), item("task-2"), item("task-3"))),
-      { cols: 80, rows: 24 },
-    )
+    using app = createTestApp(item.root("board", item("Inbox", item("task-1"), item("task-2"), item("task-3"))), {
+      cols: 80,
+      rows: 24,
+    })
 
     expect(app.state.cursor).toBe("task-1")
     const itemBox = app.q("[id='task-2'][data-view='item']")

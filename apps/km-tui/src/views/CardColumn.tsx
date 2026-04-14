@@ -315,26 +315,17 @@ const Card = React.memo(
     const bodyDefaultBorder = "$surface-bg"
 
     if (isHR && !isEditing) {
-      // HR cards use the same layout primitives as body blocks: margin (not padding)
-      // for outline space, marginTop=1 only (no extra blank line below).
-      // Outline appears on cursor/selection — same decoration pattern as body blocks.
-      const hrShowOutline = isSelected || isNodeSelected || isColSelected
-      const hrLayoutProps = {
-        marginLeft: 1,
-        marginRight: 1,
-        marginTop: 1,
-        ...(hrShowOutline ? { outlineStyle: "round" as const, outlineColor: "$selection-bg" } : {}),
-      }
+      // HR cards: flat divider, no border/outline. Selection signaling comes
+      // from the column-level tint (rule 3 in selection-style.ts) and the
+      // standard cursor inverse on the title row.
       return (
         <Box
           data-view="card"
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
-          // width-2 leaves 1 cell on each side for the outline to draw into
-          width={width - 2}
+          width={width}
           userSelect="none"
-          {...hrLayoutProps}
           {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -369,8 +360,9 @@ const Card = React.memo(
           data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
-          // width-2 leaves 1 cell on each side for the outline to draw into
-          width={width - 2}
+          // Full column width so the column's selection tint (when the column
+          // owns the cursor) reads as one continuous surface.
+          width={width}
           userSelect="none"
           {...bodyBlockLayoutProps(
             isSelected || isEditing,
@@ -593,42 +585,26 @@ const Card = React.memo(
 // =============================================================================
 
 /** Shared layout props for body blocks (virtual cards and HRs).
- * Body blocks render as flat prose with NO border. Padding aligns content
- * with bordered cards (cards have 1-cell border, body blocks use paddingLeft/Right=1).
  *
- * On cursor/hover/selection/edit: outside outline appears, drawing in the
- * margin space between siblings. No layout shift — the decoration phase
- * snapshots and restores cells outside the box rect.
- *
- * marginTop=1 gives 1 blank line above each body block (down from 2 cells
- * of border overhead in the old design). The outline draws into this margin
- * space when active. */
+ * Body blocks are flat prose: no border, no outline, no per-block bg, no
+ * margin between siblings. Selection signaling comes from the standard
+ * cursor-row inverse in TreeNode plus the column-level tint when the column
+ * owns the cursor. Any per-block fill or gap creates ragged-width rectangles
+ * separated by blank rows — the column ends up looking striped. By making
+ * each block edge-to-edge with zero margin we get one continuous surface
+ * for the column tint to fill. */
 function bodyBlockLayoutProps(
-  showBorder: boolean,
-  borderColor: string,
+  _hasCursor: boolean,
+  _borderColor: string,
   _yieldTop: boolean,
   _isLastBodyBlock: boolean,
-  isNodeSelected: boolean,
-  isColumnSelected = false,
+  _isNodeSelected: boolean,
+  _isColumnSelected = false,
   _defaultBorderColor = "$surface-bg",
-  hoverBorderColor?: string,
+  _hoverBorderColor?: string,
   _cursorDim = false,
 ) {
-  const showOutline = showBorder || isNodeSelected || isColumnSelected || !!hoverBorderColor
-  const outlineColor = showBorder
-    ? borderColor
-    : isNodeSelected || isColumnSelected
-      ? "$selection-bg"
-      : hoverBorderColor
-
-  return {
-    // Margin (not padding) on horizontal so the outline has space to draw
-    // in the gap between the body block and its column edges.
-    marginLeft: 1,
-    marginRight: 1,
-    marginTop: 1,
-    ...(showOutline && outlineColor ? { outlineStyle: "round" as const, outlineColor } : {}),
-  }
+  return {}
 }
 
 // =============================================================================

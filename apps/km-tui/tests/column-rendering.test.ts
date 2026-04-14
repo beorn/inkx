@@ -172,7 +172,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(sepCell.dim, "separator should NOT be dim when column selected").toBeFalsy()
   })
 
-  it("column card area has visible yellow left border when cursor is at column level", () => {
+  it("column card area gets a subtle bg tint when cursor is at column level", () => {
     using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
       cols: 100,
       rows: 20,
@@ -187,29 +187,22 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(colBox).not.toBeNull()
     if (!colBox) return
 
-    // The card area starts after header + separator (colBox.y + 2).
-    // Check multiple rows in the card area for a selected-color left-side indicator.
-    // With the fix, there should be a yellow (selected) vertical border/bar running
-    // down the left edge of the column body when isColumnSelected.
+    // Per selection-style.ts rule 3: the COLUMN container gets a subtle bg
+    // tint when the cursor is at column level. Body blocks are flat (no
+    // border), so the signal is the bg, not a yellow left-edge border.
+    // Sample several rows + columns in the card area; at least one cell
+    // should have a non-default bg (the tint).
     const cardAreaStartY = colBox.y + 2
-
-    // Check several rows in the card area
+    let tintedCells = 0
     for (let dy = 0; dy < 3; dy++) {
       const y = cardAreaStartY + dy
       if (y >= colBox.y + colBox.height) break
-
-      // The leftmost cell of the column should be yellow (border or indicator)
-      const leftCell = app.screen.cell(colBox.x, y)
-      // Accept either a border character with $selected color, or a space with $selected bg
-      const isYellowBorder = colorEquals(leftCell.fg, TC.$selected) // $selected foreground for border chars
-      const isYellowBg = colorEquals(leftCell.bg, TC.$selected) // $selected background
-
-      expect(
-        isYellowBorder || isYellowBg,
-        `column left edge at (${colBox.x}, ${y}) should have yellow styling ` +
-          `(fg=${JSON.stringify(leftCell.fg)}, bg=${JSON.stringify(leftCell.bg)}, char="${leftCell.char}")`,
-      ).toBe(true)
+      for (let dx = 0; dx < Math.min(colBox.width, 10); dx++) {
+        const cell = app.screen.cell(colBox.x + dx, y)
+        if (cell && cell.bg && cell.bg !== 0) tintedCells++
+      }
     }
+    expect(tintedCells, "column body should have at least one tinted cell when column-selected").toBeGreaterThan(0)
   })
 
   it("non-selected column does NOT have yellow header styling", () => {
