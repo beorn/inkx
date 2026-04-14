@@ -20,6 +20,7 @@ import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import { formatNode, formatCollapsedAncestor } from "@km/tui"
+import { getBrokenLinks, filterBrokenLinksByScope, printBrokenLinks } from "./broken-links.ts"
 
 // ============================================
 // Main Export - List Command
@@ -37,6 +38,7 @@ export const listCommand = new Command("list")
   .option("-p, --priority <value>", "Filter by priority (0-4)", intRange(0, 4))
   .option("--blocked", "Show only blocked")
   .option("--unblocked", "Show only unblocked")
+  .option("--broken", "Show broken wikilinks (replaces node list). Scoped by [query] when provided")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
   .option("-i, --id", "Show node IDs")
   .option("-f, --flat", "Flat output with path prefixes")
@@ -58,6 +60,63 @@ export const listCommand = new Command("list")
     }
 
     using repo = await loadRepo(repoRoot)
+
+    // --broken: show broken wikilinks instead of the node list, optionally
+    // scoped to the subtree rooted at [query]. `km doctor links` is a
+    // thin alias that ends up in the same code path below.
+    if (options.broken) {
+      const db = (repo as unknown as { database: import("bun:sqlite").Database }).database
+      const allLinks = getBrokenLinks(db)
+
+      let scopeLabel: string | undefined
+      let scopedLinks = allLinks
+
+      if (query) {
+        // Resolve the query to a scope node. Try name-resolution first
+        // (matches filenames like "@next.md" and wikilink-style names),
+        // then fall back to fs_path substring match for anything name
+        // resolution misses.
+        const scopeRoots = new Set<string>()
+        const byName = repo.resolveByName?.(query)
+        if (byName) scopeRoots.add(byName.id)
+
+        if (scopeRoots.size === 0) {
+          // fs_path / id-prefix fallback
+          const allNodes = repo.query("*")
+          for (const node of allNodes) {
+            const ancestors = repo.getAncestors(node.id)
+            if (matchesQuery(node, query, ancestors)) scopeRoots.add(node.id)
+          }
+        }
+
+        // Expand scope roots to include all descendants — "scoped to the
+        // subtree" means links originating anywhere under a matched node.
+        const scope = new Set<string>()
+        const stack = [...scopeRoots]
+        while (stack.length > 0) {
+          const id = stack.pop()!
+          if (scope.has(id)) continue
+          scope.add(id)
+          for (const child of repo.getChildren(id)) stack.push(child.id)
+        }
+
+        if (scope.size === 0) {
+          console.log(term.dim(`  No nodes matched "${query}"`))
+          return
+        }
+
+        scopedLinks = filterBrokenLinksByScope(allLinks, scope)
+        scopeLabel = query
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(scopedLinks, null, 2))
+        return
+      }
+
+      printBrokenLinks(scopedLinks, term, { scopeLabel })
+      return
+    }
 
     const nodes = getFilteredNodesWithQuery(repo, {
       type: options.type,
