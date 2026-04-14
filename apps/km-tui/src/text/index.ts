@@ -62,6 +62,5 @@ export {
   getBoardColorByName,
   colorize,
   themeFg,
-  themeFgBg,
   type TermColor,
 } from "./colors.ts"

@@ -59,49 +59,22 @@ const ANSI_COLORS: Record<string, (t: StyleChain) => StyleChain> = {
   whiteBright: (t) => t.whiteBright,
 }
 
-/** ANSI named bg colors supported by StyleChain (includes bright variants). */
-const ANSI_BG_COLORS: Record<string, (t: StyleChain) => StyleChain> = {
-  black: (t) => t.bgBlack,
-  red: (t) => t.bgRed,
-  green: (t) => t.bgGreen,
-  yellow: (t) => t.bgYellow,
-  blue: (t) => t.bgBlue,
-  magenta: (t) => t.bgMagenta,
-  cyan: (t) => t.bgCyan,
-  white: (t) => t.bgWhite,
-  gray: (t) => t.bgGray,
-  grey: (t) => t.bgGrey,
-  blackBright: (t) => t.bgBlackBright,
-  redBright: (t) => t.bgRedBright,
-  greenBright: (t) => t.bgGreenBright,
-  yellowBright: (t) => t.bgYellowBright,
-  blueBright: (t) => t.bgBlueBright,
-  magentaBright: (t) => t.bgMagentaBright,
-  cyanBright: (t) => t.bgCyanBright,
-  whiteBright: (t) => t.bgWhiteBright,
-}
-
 /**
  * Apply a color value as foreground to a StyleChain.
  * Handles ANSI names ("red", "blueBright"), hex ("#EBCB8B"), and empty string (passthrough).
+ *
+ * Foreground only — see km-tui.detail-view-bg-conflict. km never emits
+ * chalk-style backgrounds for inline content. Anything that wants a
+ * background should set <Text backgroundColor="$token"> on the React side
+ * so silvery's buffer-bg pipeline owns the cell, instead of letting chalk
+ * inject `\u001b[107m` into the text payload (which collides with silvery's
+ * incremental bg-conflict detection at SILVERY_STRICT=2).
  */
 function applyFg(t: StyleChain, color: string): StyleChain {
   if (!color) return t
   const ansi = ANSI_COLORS[color]
   if (ansi) return ansi(t)
   if (color.startsWith("#")) return t.hex(color)
-  return t // unknown color, passthrough
-}
-
-/**
- * Apply a color value as background to a StyleChain.
- * Handles ANSI names ("red", "blueBright"), hex ("#EBCB8B"), and empty string (passthrough).
- */
-function applyBg(t: StyleChain, color: string): StyleChain {
-  if (!color) return t
-  const ansiBg = ANSI_BG_COLORS[color]
-  if (ansiBg) return ansiBg(t)
-  if (color.startsWith("#")) return t.bgHex(color)
   return t // unknown color, passthrough
 }
 
@@ -124,17 +97,6 @@ export function themeFg(text: string, color: string, term?: StyleChain): string 
   const t = term ?? createTermStyle()
   const resolved = resolveColor(color)
   return applyFg(t, resolved)(text)
-}
-
-/**
- * Apply theme-aware foreground + background colors to text.
- * Accepts $token strings, ANSI names, or hex for both fg and bg.
- */
-export function themeFgBg(text: string, fg: string, bg: string, term?: StyleChain): string {
-  const t = term ?? createTermStyle()
-  const resolvedFg = resolveColor(fg)
-  const resolvedBg = resolveColor(bg)
-  return applyFg(applyBg(t, resolvedBg), resolvedFg)(text)
 }
 
 /**
