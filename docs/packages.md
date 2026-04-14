@@ -221,7 +221,6 @@ Exports: `.` (main), `./plugin`, `./fuzz`, `./chaos`
 | `km sh` | `commands/sh.ts` | Interactive shell |
 | `km agent` | `commands/agent.ts` | Run agent tasks |
 | `km daemon` | `commands/daemon.ts` | Background daemon |
-| `km worktree` | `commands/worktree.ts` | Git worktree management |
 | `km termtest` | `commands/termtest.ts` | Terminal capability test |
 | `km bd <subcommand>` | `commands/bd.ts` | bd-compatible issue tracking (see below) |
 

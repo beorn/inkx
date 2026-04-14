@@ -53,7 +53,6 @@ import { syncCommand } from "./commands/sync.ts"
 import { taskCommand } from "./commands/tasks.ts"
 import { viewCommand } from "./commands/view.ts"
 import { watchCommand } from "./commands/watch.ts"
-import { worktreeCommand } from "./commands/worktree.ts"
 
 // Global state for resolved root path (set in preAction, used by commands)
 let resolvedRootPath: string | undefined
@@ -268,7 +267,8 @@ export function configureProgram(): Command {
   program.addCommand(agentCommand) // km agent - AI agent management
   program.addCommand(statsCommand) // km stats [path] - repo statistics (domain object example)
   program.addCommand(screenshotCommand) // km screenshot [root] - capture TUI as text
-  program.addCommand(worktreeCommand) // km worktree {create,remove,list} - git worktree management
+  // NOTE: worktree management lives at `bun worktree` (package.json script),
+  // not under `km` — it's a km dev-setup tool, not a km-app command.
   program.addCommand(perfCommand) // km perf analyze <file> - performance trace analysis
   program.addCommand(termtestCommand) // km termtest - visual terminal capability test
   program.addCommand(importCommand) // km import asana <file> | --fetch - import from external tools
