@@ -30,9 +30,11 @@ The common cause is **dialog-per-verb instead of one dialog with verb modes**.
 
 ## Goal
 
-One modal: the *omnibox*. It handles every "find something, then do a thing with it" workflow.
+One component: the **combobox**. It handles every "find something, then do a thing with it" workflow. The v1 presentation form is a dialog overlay (floating, dismissable). A post-v1 affordance "pops it out" into a pane for persistent workflows.
 
-One result list, one row renderer, one keybinding scope (`dialog:omnibox`), one state machine.
+One result list, one row renderer, one state machine, one set of keybindings.
+
+> **Naming note:** this doc uses "combobox" for the component and "omnibox" for the overall feature (the filename and the tracking bead `km-tui.omnibox-unified` still use "omnibox"). A combobox dialog and a combobox pane are the same component in two presentation forms.
 
 ## The core realization — the combobox is two searchable fields
 
@@ -58,25 +60,39 @@ Both are **searchable**. Both have a **result list**. Both are **pre-populated d
 
 This replaces the old "default verb + modifier-key override" model with something simpler: **two searchable fields, always visible, always editable**. The verb is not an invisible attribute of the session — it's a visible chip the user can click, tab to, or type over.
 
+### Dialog or pane — two presentation forms, one component
+
+The component itself is a **combobox**: two searchable fields + result list + state machine. It has **two presentation forms**, both equally valid, that share the same state shape, reducer, row renderer, and keybindings:
+
+| Form | Ownership | Lifecycle | Example |
+|---|---|---|---|
+| **Combobox dialog** | Global overlay slot on the app shell | Ephemeral — opens on chord, closes on confirm/escape | Today's `cmd-k`, `g @`, `/`, `m +`, etc. |
+| **Combobox pane** | Regular workspace pane, `viewMode: "combobox"` | Persistent — lives as long as the pane exists | "Popped-out" dockable pane — a permanent triage / navigator surface |
+
+**V1 ships only the dialog form.** It replaces the five existing dialog components (`Omnibox`, `ItemPicker`, `FavoritesDialog`, legacy `SearchDialog`, `CommandBox`) with one unified combobox dialog. The pane form — "pop it out" — is a post-v1 affordance. Important but not as urgent.
+
+**Dialog placement is a function of the default command:**
+
+| defaultCommand | Dialog placement | Rationale |
+|---|---|---|
+| `local_find` | Bottom-left, inline status bar | Search-in-current-view feels like a status affordance, not a modal |
+| everything else | Center modal | Standard combobox UX |
+
+Backspace through the `/` sigil in the argument field — which drops the default command back to the previous `goto` — also promotes the dialog from bottom-left back to center. The user never has to think about placement; it's derived.
+
+**The pane form has no "placement" axis.** A combobox pane is just a pane — the workspace manager decides where it renders (split, docked, resized) like any other pane. The "pop it out" action takes the dialog's current state and creates a pane initialized from that state, then dismisses the dialog.
+
 ### Why this unification is deep
 
-- **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) So the command field is a node search over the `commands/` subtree, and the argument field is a node search over the rest of the tree. Two fields, one tree, one ranker.
-- **The omnibox is a board view, not a dialog.** This is the biggest reframe. The omnibox is a **new view mode** for panes — `viewMode: "search"` (alongside the existing `cards | columns | tabs | detail`). It's not an overlay, not a modal, not a separate component hierarchy — it's a pane that happens to render a filtered, ranked, live-updated list of nodes with two linked query fields. Every board mechanism — cursor, selection, keybindings, the focus manager, pane layout — applies unchanged.
-- **The pane's cursor IS the selected argument row.** Every pane has a cursor; in a search-view pane, the cursor is whichever row is currently selected in the argument-field result list. Commands don't know or care — they read the active pane's cursor and act. `goto`, `move`, `create-in` don't ask "am I in a dialog?" — they read the current cursor and fire.
-- **Global board keybindings work inside the omnibox, because the omnibox IS a board view.** There's no `dialog:omnibox` scope to shadow anything — the omnibox just inherits the board's keybinding layer. Text-input fields (command, argument) hijack letter keys while they have focus, but everything else falls through naturally: `Ctrl+S` saves, `Cmd+Z` undoes, `vm` cycles view modes, `z`/`Z` zoom, all exactly as they do in the cards view.
-- **A future omnibox-as-pane** (docked persistent view) falls out of this for free. It's the same view mode — just with a different pane lifecycle. A centered modal is an *ephemeral overlay pane with `viewMode: "search"`*; a docked persistent omnibox is a *regular workspace pane with `viewMode: "search"`*. Same renderer, same state shape, same keybindings.
-
-**Scope tree:**
-
-| View mode | Renders | Cursor is | Example use |
-|---|---|---|---|
-| `cards` | Kanban columns, cards, subitems | Cursored card/subitem | Default work view |
-| `columns` | Outline list | Cursored row | Deep outline mode |
-| `tabs` | Tabbed per-column outline | Cursored row | Single-column focus |
-| `detail` | Pretext rendering of one node | Focused block | Reading/editing a single doc |
-| **`search`** | **Two query fields + ranked result list** | **Selected argument row** | **Omnibox, goto, command palette, all pickers, `/` local find** |
-
-Placement (center modal, bottom-left mini-bar, docked pane) is a *layout* of the search view, not a separate view mode. The search view always has the same state shape; the layout just decides where the pane renders and whether it's ephemeral or persistent.
+- **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) The command field is a node search over the `commands/` subtree; the argument field is a node search over the rest of the tree. Two fields, one tree, one ranker.
+- **The combobox's selected argument row IS the cursor while it has focus.** Commands read "the current cursor" and act. The cursor source follows focus:
+  - Cards pane focused → cursor is the cursored card.
+  - Detail pane focused → cursor is the focused block.
+  - **Combobox dialog open and focused → cursor is the dialog's selected argument row.**
+  - **Combobox pane focused (post-v1) → cursor is the pane's selected argument row.**
+  Commands don't know or care which surface supplies the cursor. `goto`, `move`, `create_at` just read `currentCursor()` and fire.
+- **Global keybindings work inside the combobox with no special scope.** There's no `dialog:combobox` mode that shadows the app's keymap. The only things the combobox consumes are keys that any focused text input would consume — letters, arrows, Enter, Escape, Tab, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `vm`, `z`/`Z`) falls through to the global layer exactly as it does when an inline card title editor has focus in the cards view. The combobox's input fields are just text inputs; that's the only scoping that matters.
+- **The dialog form and the pane form share `ComboboxState`.** The difference is only *where* the state lives — a global overlay slot vs. a pane. The reducer, keybindings, row renderer, command-tree projection, everything downstream of the state is identical. "Pop it out" is a single state transition: move `ComboboxState` from overlay-slot to a new pane, dismiss the overlay.
 
 ## Mockups
 
@@ -348,7 +364,7 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 ### Default command, override via Tab, restore via Escape
 
-Every search pane has a **permanent default command** (`defaultCommand` on `SearchPaneState`) set at creation from the opening chord:
+Every combobox instance has a **permanent default command** (`defaultCommand` on `ComboboxState`) set at creation from the opening chord:
 
 | Open via | defaultCommand |
 |---|---|
@@ -368,11 +384,11 @@ This is strictly simpler than the old "default verb + modifier override" model: 
 
 ### Global keybindings are automatic (no special scope)
 
-Because the omnibox is a board view — not a dialog — there is **no `dialog:omnibox` scope** that needs special handling. The keybinding layer sees a pane in `viewMode: "search"` exactly like it sees a pane in `viewMode: "cards"`: as a regular pane. Every board keybinding (`Ctrl+S` save, `Cmd+Z` undo, `z`/`Z` zoom, `vm` cycle, …) applies without change.
+There is **no `dialog:combobox` scope** that needs special handling. When the combobox dialog is open and focused, the only keys it consumes are the ones any focused text input would consume — letters, arrow keys, Enter, Escape, Tab, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `z`/`Z`, `vm`, `[`/`]`) falls through to the global keybinding layer exactly as it does when an inline card-title editor has focus in the cards view.
 
-The only thing that *does* change when focus is in a text field (command or argument) is that single-character letter keys and arrow keys are consumed by the text input rather than routed to the command dispatcher. This is standard text-input behavior — it's how the current inline editor and inline title renamer already work inside `viewMode: "cards"`. The board keybinding layer already handles it.
+This is not a new mechanism; it's the standard text-input-consumes-its-own-keys rule that the app already implements for inline editing. The combobox's command and argument fields are just text inputs, and the keybinding layer already knows how to route keys around them.
 
-In short: **there is no pass-through rule, because there is no separate scope**. The omnibox just inherits the board's keymap, and text fields hijack what they need. This is strictly simpler than the old "dialog overlay with pass-through exceptions" design, and it's a natural consequence of the view-mode reframe.
+**No pass-through rule, no separate scope, no "dialog overlay with exceptions".** The combobox dialog inherits the app's keymap; its text fields hijack only what they need. Same pattern for the pane form: a combobox pane's text fields hijack letters/arrows/Enter; everything else passes through to the pane's parent keybinding chain.
 
 **Confirm keys:**
 
@@ -427,15 +443,20 @@ If the ghost is an argument-field node match (not a command), accepting it just 
 
 **Backspace undoes one promotion step.** The reducer stores a pre-promotion snapshot so backspace-after-promote restores `argumentBuffer = ":new"` and `focus = argument`.
 
-### The search-pane's cursor IS the cursor — because every pane has a cursor
+### The combobox's cursor IS the cursor — because focus routes the cursor
 
-This is a consequence of the view-mode reframe, not a separate rule. Every pane has a cursor. A `cards` pane's cursor is the cursored card; a `detail` pane's cursor is the focused block; a **`search` pane's cursor is the currently-selected row in the argument-field result list**.
+This is the rule that makes both forms work identically. The app's `currentCursor()` function consults whichever surface has focus:
 
-Commands read "the current pane's cursor" and act. They don't know or care which view mode the pane is in. This means:
+- Cards / columns / tabs pane focused → cursor is the pane's cursored node.
+- Detail pane focused → cursor is the focused block.
+- **Combobox dialog open and focused → cursor is the dialog's selected argument row.**
+- **Combobox pane focused (post-v1) → cursor is the pane's selected argument row.**
 
-1. **No omnibox-specific command dispatch.** Enter in a search pane fires the same `commandExecutor` that Enter fires everywhere else. The command reads the cursor, runs, and the ephemeral overlay pane closes as a side-effect (persistent panes stay open).
-2. **Pre-selection ergonomic wins come for free.** When `cmd-k` opens a fresh search overlay, the initial selected argument is the previous pane's cursor — so the search pane opens with "cursor points to whatever you were looking at". Enter runs `goto` against it (no-op "re-focus"). Shift+Enter runs `create-in` against it (creates a child). No special-casing; just cursor propagation during pane creation.
-3. **Arrowing in the search pane moves the cursor.** Because the selected argument row *is* the cursor. In a persistent docked search pane, this means you're keyboard-driving a live cursor through a filtered, searchable view — exactly the promise of "omnibox as a dockable workflow surface", but with zero new abstractions.
+Commands read "the current cursor" and act. They don't know or care which surface supplies it:
+
+1. **No combobox-specific command dispatch.** Enter in the combobox fires the same `commandExecutor` that Enter fires everywhere else. The command reads the cursor, runs, and the combobox dialog dismisses as a side-effect (the pane form stays open and clears its buffers instead).
+2. **Pre-selection ergonomic wins come for free.** When `cmd-k` opens a fresh combobox dialog, the initial selected argument is the previously-focused pane's cursor — so the dialog opens with "cursor points to whatever you were looking at". Enter runs `goto` against it (no-op "re-focus"). Shift+Enter runs `create_at` against it (creates a child). No special-casing — just cursor propagation during dialog creation.
+3. **Arrowing in the combobox moves the cursor.** Because the selected argument row *is* the cursor while the combobox has focus. In a combobox pane, this turns the whole app into a keyboard-driven filtered view.
 4. **Commands that don't need an argument** (`zoom_out`, `toggle_theme`, `save`) don't read the cursor. Their `execute` function ignores `ctx.currentNodeId`. Enter runs them directly regardless of the argument field's state.
 
 ### Command arguments — selected from the list, not typed
@@ -446,40 +467,45 @@ For commands whose argument is an existing node (goto, move, link, create-in, ad
 
 This gives a clean mental model: **the argument field is always "what node are you talking about?"** — either selected from the results, or (rarely, for create-new commands) taken as raw text.
 
-## Opening the omnibox
+## Opening the combobox
 
-Every opening path resolves to a **create-pane action** that adds a `viewMode: "search"` pane to the workspace with `defaultCommand` + initial state. The pane lifecycle (ephemeral overlay vs persistent docked) is set by the `placement`:
+Every opening path resolves to an action that puts `ComboboxState` into the appropriate slot (overlay for dialog, new pane for pop-out) with `defaultCommand` + initial buffers:
 
-| Chord | defaultCommand | argumentPrefill | focus | placement | lifecycle |
+| Chord | defaultCommand | argumentPrefill | focus | form | placement |
 |---|---|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | center | ephemeral overlay |
-| `g @` | `goto` | `@` | argument | center | ephemeral |
-| `g #` | `goto` | `#` | argument | center | ephemeral |
-| `g +` | `goto` | `+` | argument | center | ephemeral |
-| `g [` | `goto` | `[` | argument | center | ephemeral |
-| `g :` | *(empty)* | *(empty)* | command | center | ephemeral |
-| `g g` | `goto` | *(current cursor)* | argument | center | ephemeral |
-| `m @` | `move` | `@` | argument | center | ephemeral |
-| `m +` | `move` | `+` | argument | center | ephemeral |
-| `a @` | `add` | `@` | argument | center | ephemeral |
-| `a #` | `add` | `#` | argument | center | ephemeral |
-| `l g` | `add_link` | *(current cursor)* | argument | center | ephemeral |
-| `c @` | `create_at` | `@` | argument | center | ephemeral |
-| `/` | `local_find` | *(empty)* | argument | bottom-left | ephemeral |
-| *(future)* | `goto` | *(cursor)* | argument | pane | persistent |
+| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | dialog | center |
+| `g @` | `goto` | `@` | argument | dialog | center |
+| `g #` | `goto` | `#` | argument | dialog | center |
+| `g +` | `goto` | `+` | argument | dialog | center |
+| `g [` | `goto` | `[` | argument | dialog | center |
+| `g :` | *(empty)* | *(empty)* | command | dialog | center |
+| `g g` | `goto` | *(current cursor)* | argument | dialog | center |
+| `m @` | `move` | `@` | argument | dialog | center |
+| `m +` | `move` | `+` | argument | dialog | center |
+| `a @` | `add` | `@` | argument | dialog | center |
+| `a #` | `add` | `#` | argument | dialog | center |
+| `l g` | `add_link` | *(current cursor)* | argument | dialog | center |
+| `c @` | `create_at` | `@` | argument | dialog | center |
+| `/` | `local_find` | *(empty)* | argument | dialog | **bottom-left** |
+| *(post-v1)* `combobox.pop_out` | *(inherits from current dialog)* | *(inherits)* | *(inherits)* | pane | n/a |
 
-All chords converge on the same view-mode. "Opening the omnibox" is really "creating (or focusing) a search pane".
+All chords converge on the same component. The `form` column decides whether the state goes into the overlay slot or a new workspace pane; the `placement` column is a hint for the dialog layout and is derived from `defaultCommand` (`local_find` → bottom-left; everything else → center).
 
-**Command IDs in the table above reference the existing commands** in `packages/km-commands/src/commands/` — `goto`, `move`, `add`, `add_link`, `capture_inbox`, `local_find`, etc. The omnibox is not adding new command IDs for its verbs; it's routing the existing ones through a new surface.
+**Command IDs in the table above reference existing commands** in `packages/km-commands/src/commands/` — `goto`, `move`, `add`, `add_link`, `capture_inbox`, `local_find`, etc. The combobox is not adding new command IDs for its verbs; it's routing the existing ones through a new surface. The one command it DOES add is `combobox.pop_out` (post-v1), which transitions an open dialog into a pane.
 
-## State machine — the search-pane state
+## State machine — `ComboboxState`
 
-A `viewMode: "search"` pane carries a `SearchPaneState` on the pane (alongside `rootId`, which it inherits from normal panes). There is no separate omnibox reducer — the state is owned by the pane and mutated by reducer actions routed through the pane's own dispatcher:
+`ComboboxState` is the state shape for the combobox, held in one of two places depending on the presentation form:
+
+- **Dialog form (v1):** held in a singleton overlay slot on the app shell — `app.combobox: ComboboxState | null`. `null` means no dialog is open.
+- **Pane form (post-v1):** held on a workspace pane with `viewMode: "combobox"`, alongside the pane's `rootId`. Multiple combobox panes can coexist.
+
+Both forms use the same reducer. The same actions move through the same state transitions. The only difference is ownership — and that's a workspace concern, not a state-machine concern.
 
 ```ts
-interface SearchPaneState {
-  /** Permanent default command for this pane, set at creation by the opening chord.
-   *  Never changes for the lifetime of the pane. */
+interface ComboboxState {
+  /** Permanent default command for this combobox, set at creation by the opening chord.
+   *  Never changes for the lifetime of the combobox instance. */
   defaultCommand: string
   /** Working command buffer — usually equals defaultCommand, diverges when user Tabs
    *  to the command field and edits. */
@@ -490,49 +516,54 @@ interface SearchPaneState {
   commandResults: KNode[]         // filtered command nodes   (only populated when focus=command)
   argumentResults: KNode[]        // filtered target nodes    (only populated when focus=argument)
   selectedCommandIndex: number | null   // which command the user has picked
-  selectedArgumentIndex: number | null  // which argument the user has picked — this is the pane's cursor
-  /** If true, the pane is dismissed after a successful CONFIRM. */
+  selectedArgumentIndex: number | null  // which argument the user has picked — this is the active cursor
+  /** If true, dismissed after a successful CONFIRM. Dialog form is always ephemeral;
+   *  pane form is always persistent. */
   ephemeral: boolean
-  /** Layout hint — influences render but not state shape. Derived from defaultCommand
-   *  at open time (`local_find` → bottom-left, everything else → center). */
-  layout: "center" | "bottom-left" | "dock"
+  /** Layout hint for the dialog form. Derived from defaultCommand at open time
+   *  (`local_find` → bottom-left, everything else → center). Ignored by the pane form. */
+  layout: "center" | "bottom-left"
   /** Snapshot of the pre-promote state, if the user's last action was a PROMOTE. */
   promoteSnapshot: { argumentBuffer: string; focus: "command" | "argument" } | null
 }
 ```
 
-**`defaultCommand` is the pane's identity.** Every `view=search` pane has one, set at creation from the opening chord and **never changes** for the pane's lifetime. The working `commandBuffer` / `selectedCommandIndex` are allowed to diverge temporarily when the user Tabs to the command field and types something else — but the pane remembers what it "is". `Escape` while focused on the command field restores `commandBuffer = defaultCommand` and switches focus back to the argument field (instead of dismissing the pane). Only a second `Escape` dismisses it.
+**`defaultCommand` is the combobox's identity.** Every combobox instance — dialog or pane — has one, set at creation from the opening chord and **never changes** for the instance's lifetime. The working `commandBuffer` / `selectedCommandIndex` are allowed to diverge temporarily when the user Tabs to the command field and types something else — but the combobox remembers what it "is". `Escape` while focused on the command field restores `commandBuffer = defaultCommand` and switches focus back to the argument field (instead of dismissing). Only a second `Escape` dismisses (for the dialog form) or clears the buffers (for the pane form).
 
-The footer renders the resolved action: if `commandBuffer === defaultCommand`, it shows `↵ <defaultCommand> <arg>`; if diverged, it shows `↵ <commandBuffer> <arg>  ·  esc restore <defaultCommand>`. The user always knows what the pane is, even while overriding.
+The footer renders the resolved action: if `commandBuffer === defaultCommand`, it shows `↵ <defaultCommand> <arg>`; if diverged, it shows `↵ <commandBuffer> <arg>  ·  esc restore <defaultCommand>`. The user always knows what the combobox is, even while overriding.
 
-**This means "omnibox = view=search" is not quite complete** — the full identity is `(viewMode: "search", defaultCommand: string)`. Two search panes with different default commands are as distinct as a cards pane and a columns pane; the same way `rootId` parameterizes a cards/columns pane, `defaultCommand` parameterizes a search pane.
+**The full identity is `(combobox, defaultCommand)`** — a "goto combobox" and a "move combobox" are as distinct as a cards pane and a columns pane are, regardless of whether they're presented as dialogs or panes.
 
-The pane's public **cursor** accessor returns `argumentResults[selectedArgumentIndex] ?? null`. The board's `currentCursor()` just reads `activePane.cursor` — no special case for search panes.
+The combobox's public **cursor** accessor returns `argumentResults[selectedArgumentIndex] ?? null`. While the combobox has focus, the app's `currentCursor()` reads from it — same as how `currentCursor()` reads from any focused pane.
 
-Actions (dispatched by the pane's key handler):
+Actions (dispatched by the combobox's key handler):
 
 ```ts
-type SearchPaneOp =
-  | { type: "SEARCH_INPUT"; field: "command" | "argument"; buffer: string }
-  | { type: "SEARCH_NAV_UP" | "SEARCH_NAV_DOWN" | "SEARCH_NAV_HOME" | "SEARCH_NAV_END" }
-  | { type: "SEARCH_TOGGLE_FOCUS" }        // tab with no ghost
-  | { type: "SEARCH_ACCEPT_GHOST" }        // tab / space / right-arrow with ghost visible
-  | { type: "SEARCH_PROMOTE" }             // internal — fired by SEARCH_ACCEPT_GHOST when the accepted
+type ComboboxOp =
+  | { type: "COMBOBOX_INPUT"; field: "command" | "argument"; buffer: string }
+  | { type: "COMBOBOX_NAV_UP" | "COMBOBOX_NAV_DOWN" | "COMBOBOX_NAV_HOME" | "COMBOBOX_NAV_END" }
+  | { type: "COMBOBOX_TOGGLE_FOCUS" }      // tab with no ghost
+  | { type: "COMBOBOX_ACCEPT_GHOST" }      // tab / space / right-arrow with ghost visible
+  | { type: "COMBOBOX_PROMOTE" }           // internal — fired by COMBOBOX_ACCEPT_GHOST when the accepted
                                            // argument-field ghost starts with ":"
-  | { type: "SEARCH_CONFIRM" }             // enter — runs the resolved (command, argument) via
-                                           // commandExecutor; if ephemeral, dismisses the pane
-  | { type: "SEARCH_CANCEL" }              // escape — dismisses ephemeral pane; clears buffers for persistent
+  | { type: "COMBOBOX_RESTORE_DEFAULT" }   // escape on a diverged command field
+  | { type: "COMBOBOX_CONFIRM" }           // enter — runs the resolved (command, argument) via
+                                           // commandExecutor; dialog form dismisses, pane form clears
+  | { type: "COMBOBOX_CANCEL" }            // escape with command field at default — dismiss/clear
+  | { type: "COMBOBOX_POP_OUT" }           // post-v1: convert dialog to pane
 ```
 
-All reducers live in `@km/board` alongside the existing pane reducers. The existing `commandExecutor` (from `@km/commands`) handles `SEARCH_CONFIRM` — it reads the selected command, reads the pane's cursor, and runs the command's `execute(ctx)`.
+All reducers live in `@km/board` alongside the existing pane reducers. The existing `commandExecutor` (from `@km/commands`) handles `COMBOBOX_CONFIRM` — it reads the selected command, reads the combobox's cursor, and runs the command's `execute(ctx)`.
 
 **Invariants:**
-- In a `search` pane, the cursor is always `argumentResults[selectedArgumentIndex] ?? null`.
+- The combobox's cursor is always `argumentResults[selectedArgumentIndex] ?? null`.
 - `selected*Index` is in `[0, *Results.length)` or `null` when the corresponding list is empty.
-- Opening a search pane with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
-- `SEARCH_CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
-- `SEARCH_CANCEL` on an ephemeral pane dismisses it and restores the previously-focused pane. On a persistent pane it clears the buffers but keeps the pane open.
-- `SEARCH_ACCEPT_GHOST` with no visible ghost is a no-op (Tab then falls through to `SEARCH_TOGGLE_FOCUS`; Space / Right-Arrow pass through as normal text-input keys).
+- Opening with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
+- `COMBOBOX_CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
+- `COMBOBOX_CANCEL` on the dialog form dismisses it and restores the previously-focused pane. On the pane form it clears the buffers but keeps the pane open.
+- `COMBOBOX_ACCEPT_GHOST` with no visible ghost is a no-op (Tab then falls through to `COMBOBOX_TOGGLE_FOCUS`; Space / Right-Arrow pass through as normal text-input keys).
+- `COMBOBOX_RESTORE_DEFAULT` only fires when focus is on the command field AND `commandBuffer !== defaultCommand`. Otherwise Escape falls through to `COMBOBOX_CANCEL`.
+- `COMBOBOX_POP_OUT` (post-v1) creates a new pane with `viewMode: "combobox"`, copies the current `ComboboxState` into it, then dismisses the dialog.
 
 ## Migration
 
@@ -550,11 +581,11 @@ Build a read-only projection function that returns the `@km/commands` registry a
 ### Phase 4 — predicate-function availability
 Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
 
-### Phase 5 — `viewMode: "search"` pane (new view mode)
-Add `"search"` to the board pane's view-mode enum. Build the `SearchPaneView` component: command field (Silvery `TextInput` with `autocomplete = commandTitles`), argument field (same), result list below, footer with the resolved action. Single-field behavior internally (no Tab yet, no PROMOTE) — the command chip is locked by the opening chord. Route `command_palette`, `item_picker`, `search`, `manage_favorites`, `search_replace` to open a search pane instead of their current bespoke dialogs. The old dialog components become thin adapters that delegate to `openSearchPane({ command, argumentPrefill, layout: "center" })`.
+### Phase 5 — unified combobox dialog
+Build the `Combobox` component + `ComboboxState` reducer as a **global overlay dialog** — not a pane. State lives in `app.combobox: ComboboxState | null`. Component has: command field (Silvery `TextInput` with `autocomplete = commandTitles`), argument field (same), result list below, footer with the resolved action. Single-field behavior internally for this phase (no Tab yet, no PROMOTE) — the command chip is locked by the opening chord. Layout: center or bottom-left, derived from `defaultCommand`. Route `command_palette`, `item_picker`, `search`, `manage_favorites`, `search_replace` to open the combobox dialog instead of their current bespoke overlays. The old dialog components become thin adapters that delegate to `openCombobox({ defaultCommand, argumentPrefill })`. **This is the v1 ship** — it replaces five components with one.
 
-### Phase 6 — cursor unification via pane cursor
-Teach the board's `currentCursor()` lookup to route through `activePane.cursor`. For cards/columns/tabs/detail panes this is already true in spirit; for search panes, implement the `.cursor` accessor to return `argumentResults[selectedArgumentIndex]`. Remove any `dialog:omnibox` scope guards from the command executor. Tests: arrow in a search pane → commands that read `currentNodeId` act on the selected argument row.
+### Phase 6 — cursor unification via focus
+Teach the app's `currentCursor()` lookup to check the combobox overlay slot first: if a combobox has focus, its `.cursor` accessor (returning `argumentResults[selectedArgumentIndex]`) is the source; otherwise the focused pane's cursor wins. This is a one-function change in the command executor. Remove any `dialog:omnibox` scope guards. Tests: arrow in the combobox → commands that read `currentNodeId` act on the selected argument row.
 
 ### Phase 7 — two searchable fields + Tab + ghost accept + PROMOTE
 Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Two-line center-modal layout (command above argument). Wire Silvery `TextInput`'s `autocomplete` prop for both fields. Add the key rules:
@@ -566,24 +597,25 @@ Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` tog
 Update the Opening table chord handlers to route to the new two-field state shape. Finish wiring the `CAPTURE` op handler so `:capture` does the right thing against the configured inbox.
 
 ### Phase 8 — cursor pre-select
-When opening an ephemeral search pane via `cmd-k`, propagate the previously-focused pane's cursor into the new pane's initial `selectedArgumentIndex`. Feature-flag behind a config option for the first release in case it's confusing.
+When opening a combobox dialog via `cmd-k`, propagate the previously-focused pane's cursor into the combobox's initial `selectedArgumentIndex`. Feature-flag behind a config option for the first release in case it's confusing.
 
-### Phase 9 — `/` local find, `layout="bottom-left"`
-Add the `bottom-left` layout. Wire `/` to open a search pane with `{ command: "local_find", focus: "argument", layout: "bottom-left" }`. Replace `apps/km-tui/src/views/FindBar.tsx` with the new surface. In-place board highlighting reads from the search pane's argument buffer and uses `highlightMatches()`.
+### Phase 9 — `/` local find, bottom-left layout
+Wire `/` to open the combobox dialog with `{ defaultCommand: "local_find" }`. Derive `layout: "bottom-left"` from that. Replace `apps/km-tui/src/views/FindBar.tsx` with the combobox dialog in local-find mode. In-place board highlighting reads from the combobox's argument buffer and uses `highlightMatches()`.
 
 ### Phase 10 — shelves
-Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the dialog-scope plumbing that used to guard `dialog:omnibox`). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **km-tui.palette-arrow-keys** — with the view-mode reframe, the class of bug is gone because there's no dialog-scope layering for commands.
+Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the `dialog:omnibox` scope plumbing). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **km-tui.palette-arrow-keys** — with the reframe, the bug class is gone because there's no dialog-scope layering for commands.
 
-### Phase 11 (post-v1) — docked persistent search pane
-Allow a search pane to be spawned with `layout: "dock"` and `ephemeral: false`. Workspace pane manager treats it like any other dockable view (supports split, resize, focus cycling, etc.). Users can have a permanent "inbox triage" pane, a "search-as-you-go" pane, etc. Requires: a `cmd-k`-equivalent that toggles docking on the current ephemeral pane, and probably a new entry in the `vm` view-mode cycle.
+### Phase 11 (post-v1) — combobox pane ("pop it out")
+Add `viewMode: "combobox"` to the board pane view-mode enum. Add the `combobox.pop_out` command: takes the current dialog's `ComboboxState`, creates a new pane with `viewMode: "combobox"` seeded from that state, and dismisses the dialog. The pane form is persistent — `COMBOBOX_CONFIRM` clears the buffers but keeps the pane open. Workspace pane manager treats it like any other pane (split, resize, focus cycling). Users get a permanent triage / navigator surface — e.g., a docked `goto` combobox for keyboard-driven browsing or a docked `move` combobox for bulk organization. Not as urgent as v1.
 
 **Ship sequencing:**
 - Phase 1+2 ship together (pure refactors with test support).
-- Phase 3+4 ship together (adapter + opt-in `when`).
-- Phase 5 is the pivotal change — it introduces `viewMode: "search"` and collapses the existing dialogs onto it. Ships alone.
+- Phase 3+4 ship together (TEA shim + opt-in predicate `when`).
+- Phase 5 is the v1 ship — it introduces the combobox dialog and collapses the 5 existing dialog components onto it.
 - Phase 6+7+8 ship as one release candidate (two-field model + cursor unification + pre-select are coherent as a unit).
-- Phase 9 is pure win once Phase 5 is merged — it can ship at any point afterward.
-- Phases 10+11 are cleanup and post-v1 work.
+- Phase 9 is pure win once Phase 5 is merged.
+- Phase 10 is cleanup.
+- Phase 11 is post-v1 — the pane form and `combobox.pop_out`.
 
 ## Out of scope
 
@@ -598,9 +630,9 @@ Allow a search pane to be spawned with `layout: "dock"` and `ephemeral: false`. 
 2. **`create_at` with no match** — inactivatable. Users who want to create a brand-new thing with no target use `capture_inbox` (which already exists as a stub in `edit.ts:255`) or a future `:new-project` / `:new-file` command that reads `argumentBuffer` as the title. This keeps `create_at` semantically clean — always operates on an existing target.
 3. **Commands take arguments via the argument field** — not via typed strings. Commands whose argument is an existing node (`goto`, `move`, `add_link`, `create_at`, `reparent_picker`, …) read `ctx.currentNodeId` (which comes from the pane's cursor = the selected argument row). Create-new commands read `argumentBuffer` directly. Commands decide per-command; the omnibox doesn't care.
 4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
-5. **No separate override scope** — because the omnibox is a board view, not a dialog. Tab + typing in the command field is the override; `Shift+Enter` / `Ctrl+Enter` are shortcuts. Global keybindings work without any pass-through rule.
-6. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically (command line, argument line, results, footer). Bottom-left local-find keeps the compact single-line form (command is locked, so there's nothing to edit).
-7. **Search-pane state is pane-owned.** Each search pane owns its own `SearchPaneState` (like detail panes own `rootId`, like cards panes own `cursorId`). The workspace holds panes by id; no global omnibox singleton.
+5. **No separate override scope.** Tab + typing in the command field is the override; `Shift+Enter` / `Ctrl+Enter` are shortcuts. Global keybindings work with only the standard text-input-consumes-letters rule (same as any focused inline editor). No new scope.
+6. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically (command line, argument line, results, footer). Bottom-left local-find keeps the compact single-line form (command is locked to `local_find`, so there's nothing to edit).
+7. **Dialog vs pane.** The combobox has two presentation forms. The dialog form (v1) is held in a global overlay slot; the pane form (post-v1) is held on a regular workspace pane. Both share the same `ComboboxState` shape, reducer, keybindings, and row renderer. "Pop it out" is a single action that moves state from overlay to pane.
 8. **Empty command field content.** Recents (recently-run commands) plus — if the previously-focused pane had a cursor — that cursor surfaced as the "cursor target" suggestion in the argument side. "Here are the things you'd most likely want to do right now", not "here is a command reference".
 9. **Tab completion — Silvery's `TextInput` autocomplete.** `vendor/silvery/packages/ag-react/src/ui/input/TextInput.tsx` already has `autocomplete: string[]` + ghost text + "accept the suggestion" semantics. Wire both fields to it. Tab priority: accept ghost if visible, else toggle focus. Space / Right-Arrow also accept when ghost visible. Only ghosted completions are ever committed — no separate "unambiguous top-match" heuristic.
 
@@ -610,24 +642,24 @@ Allow a search pane to be spawned with `layout: "dock"` and `ephemeral: false`. 
 
 ## Mapping to existing commands
 
-The following commands already exist in `packages/km-commands/src/commands/` and will be rerouted to open a search pane instead of their current bespoke dialog/picker:
+The following commands already exist in `packages/km-commands/src/commands/` and will be rerouted to open the combobox dialog instead of their current bespoke dialog/picker:
 
 | Existing command | Current behavior | After migration |
 |---|---|---|
-| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Opens search pane with `{ focus: "command" }` |
-| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Opens search pane with `{ command: "goto", focus: "argument" }` |
-| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Opens search pane scoped to favorited nodes |
-| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Opens search pane with `{ command: "local_find", layout: "bottom-left" }` |
-| `search` (`tui.ts:66`) | Opens search dialog | Opens search pane with `{ command: "goto", focus: "argument" }` |
-| `filter` (`navigation.ts:252`) | Opens filter dialog | Opens search pane with filter-specific layout (phase 5 detail) |
-| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | Opens search pane with a replace-aware layout (out of scope for v1) |
-| `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — search pane's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
+| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Opens combobox dialog with `{ focus: "command" }` |
+| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Opens combobox dialog with `{ defaultCommand: "goto", focus: "argument" }` |
+| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Opens combobox dialog scoped to favorited nodes |
+| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Opens combobox dialog with `{ defaultCommand: "local_find" }` (derives bottom-left layout) |
+| `search` (`tui.ts:66`) | Opens search dialog | Opens combobox dialog with `{ defaultCommand: "goto", focus: "argument" }` |
+| `filter` (`navigation.ts:252`) | Opens filter dialog | Opens combobox dialog with filter-specific layout (phase 5 detail) |
+| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | Opens combobox dialog with a replace-aware layout (out of scope for v1) |
+| `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — combobox's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
 | `move` (`edit.ts:194`) | Takes `ctx.targetId`, emits `REPARENT_TO` | Same pattern |
 | `add` (`edit.ts:209`) | Takes `ctx.targetId`, emits `LINK_TO`/`SET_LABEL`/etc | Same pattern |
 | `add_link` (`edit.ts:223`) | Emits `ADD_LINK` | Same |
 | `capture_inbox` (`edit.ts:255`) | Emits `{ type: "CAPTURE", location: "inbox" }` (stub) | Finish wiring in Phase 7 |
 
-No new command IDs are introduced for the omnibox's verbs. The new work is: (a) the search view mode, (b) the `when`-clause DSL, (c) the commands-as-nodes adapter, and (d) finishing the `CAPTURE` op handler.
+No new command IDs are introduced for the combobox's verbs. The new work is: (a) the combobox dialog component (v1), (b) the `when` predicate field on `CommandDef`, (c) the command-tree projection adapter, (d) finishing the `CAPTURE` op handler, and (e) post-v1, `combobox.pop_out` and the `viewMode: "combobox"` pane form.
 
 ## TEA alignment
 
@@ -648,51 +680,57 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
    `resolveInvocation()`'s four-state result (`ready` / `prompt` / `unavailable` / `invalid`) is exactly what the omnibox's result list needs for greyed/active/with-ghost/error rendering. Drop the string DSL from Phase 4.
 
 3. **Cursor unification → TEA signal defaults on command args.**
-   TEA's command-def pattern uses `.parse()` with signal-valued defaults: `z.string().default(() => cursor())`. The search pane's `.cursor()` accessor returns its selected argument row. Every command that takes a `nodeId` declares it with a signal default that reads the active pane's cursor — and the active pane's cursor reader dispatches on view mode (cards → cursored card, detail → focused block, search → selected argument row). This is the TEA-native phrasing of "the search pane's selection IS the cursor".
+   TEA's command-def pattern uses `.parse()` with signal-valued defaults: `z.string().default(() => cursor())`. The combobox's `.cursor()` accessor returns its selected argument row. Every command that takes a `nodeId` declares it with a signal default that reads `currentCursor()` — and `currentCursor()` dispatches on focus (cards → cursored card, detail → focused block, combobox focused → selected argument row, whether dialog or pane). This is the TEA-native phrasing of "the combobox's selection IS the cursor while it has focus".
    - **Pre-TEA**: the `CommandContext` builder reads `activePane.cursor` and populates `currentNodeId` imperatively (same effect, pre-reactive).
 
-4. **Search pane = `withSearch()` domain plugin, parametrized by `defaultCommand`.**
-   Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../vendor/internal/silvery/design/v15-tea/commands.md)). The search view becomes `withSearch()`:
+4. **`withCombobox()` domain plugin, parametrized by `defaultCommand`.**
+   Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../vendor/internal/silvery/design/v15-tea/commands.md)). The combobox becomes `withCombobox()`:
    ```ts
-   pipe(createApp(), withBoard(), withSelection(), withSearch(), withUndo(), ...)
+   pipe(createApp(), withBoard(), withSelection(), withCombobox(), withUndo(), ...)
    ```
-   `withSearch()` contributes: (a) the `viewMode: "search"` registration on `withBoard()`, (b) the `SearchPaneState` model, (c) search-specific commands (`search.open`, `search.toggle_focus`, `search.accept_ghost`, `search.confirm`, `search.cancel`, `search.restore_default`), and (d) keybindings scoped via `when(searchModel.isActive, ...)`.
-   **Pane creation takes `defaultCommand` as a parameter**, exactly like detail panes take `rootId`. `search.open({ defaultCommand: "move", argumentPrefill: "+" })` creates a search pane.
+   `withCombobox()` contributes:
+   - The `ComboboxState` model and reducer.
+   - Combobox-specific commands (`combobox.open`, `combobox.toggle_focus`, `combobox.accept_ghost`, `combobox.confirm`, `combobox.cancel`, `combobox.restore_default`, `combobox.pop_out`).
+   - Keybindings scoped via `when(comboboxModel.isActive, ...)` (with text-input-conflict handling for letter keys / arrows / Enter etc).
+   - The `viewMode: "combobox"` registration on `withBoard()` — but only for the pane form. The dialog form is hosted by whatever overlay system the app shell provides (pre-TEA: the global overlay slot; post-TEA: whatever `createApp()` and related plugins provide for dialogs).
+
+   **Instance creation takes `defaultCommand` as the primary parameter**, exactly like detail panes take `rootId`. `combobox.open({ defaultCommand: "move", argumentPrefill: "+", form: "dialog" })` opens a dialog; `combobox.pop_out()` creates a pane instance from the current dialog's state.
 
 ### Interactions with other domain plugins
 
-- **`withSelection()`** (km-tui.tea): the search pane's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgumentIndex` field. Arrowing in the search pane updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgumentIndex` in `SearchPaneState` becomes a derived view over `sel`, not primary state.
+- **`withSelection()`** (km-tui.tea): the combobox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgumentIndex` field. Arrowing in the combobox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgumentIndex` in `ComboboxState` becomes a derived view over `sel`, not primary state.
 
-- **`withTree()`** (km-tui.tea): structural ops from the search pane (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the search pane is a normal command producer. Undo works through the shared middleware.
+- **`withTree()`** (km-tui.tea): structural ops from the combobox (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the combobox is a normal command producer. Undo works through the shared middleware.
 
-- **`withDialogs()`** (km-tui.tea): the current plan in `bd show km-tui.tea` lists `open_omnibox` as a dialog command under `withDialogs()`. **This framing is obsolete.** The omnibox is a view mode, not a dialog. The km-tui.tea bead should be updated to:
-  - Move `open_omnibox` → `search.open` under `withSearch()`.
-  - Keep `withDialogs()` for genuinely modal affordances that aren't view modes (toast, delete-confirm, help overlay, the console palette).
+- **`withDialogs()`** (km-tui.tea): the current plan lists `open_omnibox` as a dialog command under `withDialogs()`. **Partially right.** The v1 combobox IS a dialog, so hosting the combobox dialog under `withDialogs()` is fine. What the km-tui.tea plan should be updated to reflect:
+  - Rename `open_omnibox` → `combobox.open` (and the command owner moves from `withDialogs()` to `withCombobox()`, but `withDialogs()` still provides the overlay slot it renders into).
+  - Post-v1, `withCombobox()` also contributes a `viewMode: "combobox"` to `withBoard()` for the pop-out pane form. `withDialogs()` doesn't own the pane form at all.
+  - Keep `withDialogs()` for genuinely modal affordances (toast, delete-confirm, help overlay, console palette) in addition to hosting the combobox dialog.
 
 - **`withEditor()`** (km-tui.tea): the command and argument fields use Silvery's `TextInput` (already supports ghost-text autocomplete). Once `withEditor()` exists, both fields become consumers of `PlainText.apply()` and the ghost-text logic runs inside the shared editor model. No special case.
 
-- **`withUndo()`** (km-tui.tea): opening/closing a search pane is not itself undoable (like opening a cards view isn't). The commands the search pane dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
+- **`withUndo()`** (km-tui.tea): opening/closing the combobox is not itself undoable (like opening a cards view isn't). The commands the combobox dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
 
 ### What this changes in the migration phases
 
 - **Phase 3**: retitle from "commands as nodes" to "**command-tree projection (TEA shim)**". Build the row renderer against a `KNode`-shaped projection of `@km/commands`. The projection function is the only thing that needs to change post-TEA.
 - **Phase 4**: retitle from "when-clauses (string DSL)" to "**predicate-function availability**". Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No parser needed. Maps 1:1 to TEA's signal `when()`.
-- **Phase 5**: the `SearchPaneView` component is the pre-TEA form of `withSearch()`'s UI contribution. Every piece of state it reads is eventually a signal; every action it dispatches is eventually a TEA op. Structure the code as if TEA were in place — factory function, explicit state shape, pure dispatch — so the framework migration is a rewiring exercise.
-- **Phases 6-8**: the two-field model + cursor unification + pre-select collapse into "wire the search pane's cursor accessor into `activePane.cursor()`, wire the command field's autocomplete into the TEA command tree". Post-TEA, most of this is one-liner plumbing; pre-TEA, it's the imperative shim.
+- **Phase 5**: the `ComboboxDialog` component is the pre-TEA form of `withCombobox()`'s UI contribution. Every piece of state it reads is eventually a signal; every action it dispatches is eventually a TEA op. Structure the code as if TEA were in place — factory function, explicit state shape, pure dispatch — so the framework migration is a rewiring exercise.
+- **Phases 6-8**: the two-field model + cursor unification + pre-select collapse into "wire the combobox's cursor accessor into `currentCursor()`, wire the command field's autocomplete into the TEA command tree". Post-TEA, most of this is one-liner plumbing; pre-TEA, it's the imperative shim.
 
-**Bottom line: the omnibox ships before TEA lands, but it's designed as a TEA plugin in advance.** When TEA migration happens, `withSearch()` becomes the canonical consumer that proves the framework works — instead of being painted into a corner, it becomes the framework's first win.
+**Bottom line: the combobox ships before TEA lands, but it's designed as a TEA plugin in advance.** When TEA migration happens, `withCombobox()` becomes the canonical consumer that proves the framework works — instead of being painted into a corner, it becomes the framework's first win.
 
 ## Relationship to other work
 
 - **km-tui.picker-rank-subpath** — absorbed into Phase 2.
-- **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox is a board view mode with no dialog scope).
-- **km-silvery.focus** — the omnibox is a pane, not a dialog, making the focus system's job simpler.
+- **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the combobox uses standard text-input scoping instead of a dialog overlay with its own scope stack).
+- **km-silvery.focus** — the combobox is a single focusable component (dialog or pane), not five near-duplicate dialogs, making the focus system's job simpler.
 - **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
-- **km-tui.tea** — the `SearchPaneState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` is obsolete; the correct home is `withSearch()`.
+- **km-tui.tea** — the `ComboboxState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `combobox.open` and moved to a new `withCombobox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
 - **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the `app.commands.*` tree. Validating the omnibox validates those primitives.
-- **km-tui.atomic-tree-ops** — the search pane is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
+- **km-tui.atomic-tree-ops** — the combobox is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
 - **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
-- **km-all.unified-selection** — the search pane's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
+- **km-all.unified-selection** — the combobox's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
 
 ## References
 
