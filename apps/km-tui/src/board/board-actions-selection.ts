@@ -101,6 +101,18 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
 /**
  * Extend selection horizontally (left or right).
  * Selects entire columns between anchor and focus.
+ *
+ * Bug history: this previously wiped the selection to a single card
+ * (target column's first) before reading the anchor — which destroyed the
+ * anchor before we could read it, collapsing the "range" to just the target
+ * column. Now we resolve the anchor first, then apply the full range in a
+ * single select() call.
+ *
+ * Cursor placement: the selection store invariant is `cursor = walk-first`
+ * of the resulting selection, so after a column-range select the cursor sits
+ * on the first card of the leftmost column in the range. This is intentional
+ * — the user can still see the selection extends rightward via the status
+ * line and the highlighted card backgrounds.
  */
 export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "right"): void {
   const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
@@ -112,23 +124,16 @@ export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "ri
     direction === "right" ? Math.min(columnIds.length - 1, ctx.colIndex + 1) : Math.max(0, ctx.colIndex - 1)
 
   // At boundary with existing selection: do nothing
-  if (targetColIdx === ctx.colIndex) {
-    if (ctx.selectedIds.size > 0) return
-  }
+  if (targetColIdx === ctx.colIndex && ctx.selectedIds.size > 0) return
 
-  // Move cursor to first card in target column
-  const targetColId = columnIds[targetColIdx]
-  if (targetColId) {
-    const cardIds = ctx.tree.children(targetColId)
-    const firstCardId = cardIds[0]
-    if (firstCardId) {
-      ctx.sel.node.select([firstCardId as ID])
-    }
-  }
-
-  // Select all cards in columns between anchor column and target column
+  // Resolve the anchor BEFORE mutating selection. If no anchor exists yet
+  // (no prior selection), the current column becomes the anchor — that's the
+  // "start" of the range we're about to build.
   const anchorColIdx = resolveAnchorCol(ctx) ?? ctx.colIndex
+
+  // Compute the full range (anchor → target) and apply it in one select().
   const newSelected = selectColumnRange(ctx, anchorColIdx, targetColIdx, columnIds)
+  if (newSelected.size === 0) return
   const colCount = Math.abs(targetColIdx - anchorColIdx) + 1
 
   ctx.sel.node.select(Array.from(newSelected) as ID[])

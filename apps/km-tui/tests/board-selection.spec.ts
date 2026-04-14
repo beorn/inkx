@@ -108,6 +108,19 @@ describe("Selection", () => {
     expect(status?.message).toContain("selected")
   })
 
+  test("Shift+L extends selection from origin column through target column", () => {
+    // Bug: shift+L was wiping the origin column from the selection,
+    // leaving only the target column selected.
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))))
+    app.expect("#1a[data-cursor]").toExist()
+
+    app.press("shift+ArrowRight") // Shift+L = extend_select_right
+
+    // Selection should include cards from BOTH columns (1a, 1b, 2a, 2b),
+    // not just the target column.
+    expect(app).toHaveSelection(["1a", "1b", "2a", "2b"])
+  })
+
   test("H moves cursor to previous column and selects it", () => {
     using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
@@ -301,21 +314,24 @@ describe("Selection", () => {
   // Column selection cursor position
   // ---------------------------------------------------------------------------
 
-  test("L moves cursor to target column", () => {
+  test("Shift+L extends selection to include both columns", () => {
+    // After the column-range fix: selection includes BOTH columns. Cursor
+    // stays on walk-first (1a) — the selection store invariant. The user
+    // sees the extension via highlighted card backgrounds + status line.
     using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))))
     app.expect("#1a[data-cursor]").toExist()
 
     app.press("shift+ArrowRight")
-    app.expect("#2a[data-cursor]").toExist()
+    expect(app).toHaveSelection(["1a", "2a"])
   })
 
-  test("H moves cursor to target column", () => {
+  test("Shift+H extends selection to include both columns", () => {
     using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))))
     app.command("cursor_right") // Navigate to col2
     app.expect("#2a[data-cursor]").toExist()
 
     app.press("shift+ArrowLeft")
-    app.expect("#1a[data-cursor]").toExist()
+    expect(app).toHaveSelection(["1a", "2a"])
   })
 
   // ---------------------------------------------------------------------------
