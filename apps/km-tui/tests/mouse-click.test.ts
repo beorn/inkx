@@ -131,6 +131,29 @@ describe("mouse click targeting", () => {
     expect(app.state.cursor).toBe("task-2")
   })
 
+  test("clickDom drives both DOM dispatch and app-level handleMouse (km-tui.card-border-click)", () => {
+    // Integration sanity check for clickDom — the full pipeline version of
+    // click() that drives BOTH the app-level handleMouse AND the DOM-level
+    // onClick dispatch. Matches the real runtime pipeline in
+    // invokeEventHandler. See unit tests in use-card-interaction.test.ts
+    // for direct verification of the walk-up resolver that this bug fixed.
+    using app = createTestApp(
+      item.root("board", item("Inbox", item("task-1"), item("task-2"), item("task-3"))),
+      { cols: 80, rows: 24 },
+    )
+
+    expect(app.state.cursor).toBe("task-1")
+    const itemBox = app.q("[id='task-2'][data-view='item']")
+    expect(itemBox.count(), "task-2 item exists").toBeGreaterThan(0)
+    const ib = itemBox.boundingBox()
+    expect(ib).not.toBeNull()
+
+    // Click directly on task-2's content area. The full pipeline should
+    // land the cursor on task-2.
+    app.clickDom(ib!.x + 1, ib!.y)
+    expect(app.state.cursor).toBe("task-2")
+  })
+
   test("ctrl-click toggles multi-selection", () => {
     using app = createTestApp(item.root("board", item("Inbox", item("task-1"), item("task-2"), item("task-3"))), {
       cols: 80,

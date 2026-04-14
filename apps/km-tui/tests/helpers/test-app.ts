@@ -33,6 +33,7 @@ import type { KNode } from "@km/core"
 import { createToastQueue } from "@km/core"
 import type { FrameCell } from "@silvery/ag"
 import { createFocusManager, hitTest } from "@silvery/ag-react"
+import { createMouseEventProcessor, processMouseEvent } from "@silvery/ag-term"
 import { createTermless, createAutoLocator, type AutoLocator } from "@silvery/test"
 import type { Term } from "@silvery/ag-term"
 import type { AgNode } from "@silvery/ag/types"
@@ -285,6 +286,15 @@ export interface TestApp {
    * ```
    */
   click(x: number, y: number, opts?: { ctrl?: boolean }): TestApp
+  /**
+   * Simulate a full click at (x, y) through BOTH the DOM-level dispatch
+   * (React onClick/onMouseDown) AND the app-level handleMouse. This matches
+   * the real runtime pipeline (see invokeEventHandler) and is needed for
+   * regression tests that exercise component click handlers alongside the
+   * app mouse logic — e.g., card border clicks where Card's React onClick
+   * and board-app.ts handleMouse both run. Chainable.
+   */
+  clickDom(x: number, y: number, opts?: { ctrl?: boolean; meta?: boolean }): TestApp
   /**
    * Assert that a rendered node has a complete border (vertical border chars
    * on left and right edges for each row of its bounding box). Chainable.
@@ -984,6 +994,13 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     },
   }
 
+  // Mouse event state for DOM-level dispatch (onClick/onMouseDown on Boxes).
+  // Exposed via app.clickDom() so regression tests can exercise BOTH paths
+  // that run in the real runtime (invokeEventHandler dispatches DOM events
+  // AND calls the app-level handleMouse on the same raw event). See
+  // km-tui.card-border-click for the bug this catches.
+  const mouseEventState = createMouseEventProcessor()
+
   // Send a mouse event through handleMouse (same path as board-test.ts)
   const sendMouseEvent = (mouse: ParsedMouse) => {
     act(() => {
@@ -991,6 +1008,33 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       driver.store.setState((s) => s)
     })
     // Flush React effects via a no-op press
+    void driver.press("")
+  }
+
+  // Send a click through BOTH the DOM dispatch AND the app-level handleMouse,
+  // matching the real runtime pipeline in invokeEventHandler. Use this for
+  // tests that need to exercise React onClick handlers (e.g., Card's click
+  // handler in useCardInteraction) alongside the app-level mouse logic.
+  const sendFullClick = (x: number, y: number, opts: { ctrl?: boolean; meta?: boolean } = {}) => {
+    const base: ParsedMouse = {
+      button: 0,
+      x,
+      y,
+      action: "down",
+      delta: 0,
+      shift: false,
+      meta: opts.meta ?? false,
+      ctrl: opts.ctrl ?? false,
+    }
+    act(() => {
+      // Real pipeline order: DOM dispatch first, then app handler.
+      processMouseEvent(mouseEventState, base, driver.getContainer())
+      handleMouse(base, mouseEventCtx)
+      const upEvent: ParsedMouse = { ...base, action: "up" }
+      processMouseEvent(mouseEventState, upEvent, driver.getContainer())
+      handleMouse(upEvent, mouseEventCtx)
+      driver.store.setState((s) => s)
+    })
     void driver.press("")
   }
 
@@ -1171,6 +1215,12 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
         meta: false,
         ctrl: clickOpts?.ctrl ?? false,
       })
+      return app
+    },
+
+    clickDom(x: number, y: number, clickOpts?: { ctrl?: boolean; meta?: boolean }): TestApp {
+      _actionHistory.push(`clickDom(${x},${y}${clickOpts?.ctrl ? ",ctrl" : ""}${clickOpts?.meta ? ",meta" : ""})`)
+      sendFullClick(x, y, clickOpts)
       return app
     },
 
@@ -1971,6 +2021,14 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
         ctrl: clickOpts?.ctrl ?? false,
       })
       return app
+    },
+
+    clickDom(_x: number, _y: number, _clickOpts?: { ctrl?: boolean; meta?: boolean }): TestApp {
+      // Termless backend routes mouse events through its own pipeline which
+      // already dispatches both DOM and app handlers. For now, clickDom is a
+      // headless-only helper — termless tests can use click() which exercises
+      // the full pipeline natively.
+      throw new Error("clickDom() is headless-only — use click() on the termless backend")
     },
 
     expectNodeBorder(nodeId: string): TestApp {

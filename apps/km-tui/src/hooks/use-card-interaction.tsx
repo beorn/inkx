@@ -20,6 +20,46 @@ import { useRepo } from "../repo-context.tsx"
 import { buildNodePopoverContent } from "../views/tree-node-shared.ts"
 import { getNodeDisplayName } from "../state.ts"
 
+// Minimal AgNode-compatible shape for the walk-up resolver. Uses
+// structural typing so AgNode (which has more fields) is assignable.
+// Keeps the helper testable without pulling in the silvery test harness.
+interface ClickTargetNodeLike {
+  readonly props: unknown
+  readonly parent: ClickTargetNodeLike | null
+}
+
+/**
+ * Resolve the cursor target for a card click. Walks up the hit target's
+ * ancestor chain looking for the first node with an `id` prop — but stops at
+ * the card boundary (a node with `data-card-id` or `data-view="card"`).
+ *
+ * Without the card-boundary stop, clicks on the card's chrome (border cells
+ * ╭ ╮ ╰ ╯ │ ─ or padding) would walk past the Card's outer Box — which has
+ * `data-card-id` but no `id` — up to the Column's `id={colId}`, resulting in
+ * a SELECT on the column and clobbering the card selection that the
+ * app-level mousedown handler just set. Symptom: cursor lands on the card,
+ * then immediately jumps to the column header. See km-tui.card-border-click.
+ *
+ * Exported for direct unit testing — the full DOM dispatch path is hard to
+ * exercise in headless tests, so the walk logic is verified in isolation.
+ */
+export function resolveClickTargetId(target: ClickTargetNodeLike | null, fallbackCardId: string): string {
+  let node: ClickTargetNodeLike | null = target
+  while (node) {
+    const props = (node.props ?? {}) as Record<string, unknown>
+    const id = props.id
+    if (typeof id === "string" && id.length > 0) return id
+    // Card boundary — outer Card Box carries `data-card-id` (not `id`).
+    // Reaching it means the click landed on the card chrome (border or
+    // padding) with no deeper interactive id. Use the card's fallback id.
+    if (typeof props["data-card-id"] === "string" || props["data-view"] === "card") {
+      return fallbackCardId
+    }
+    node = node.parent
+  }
+  return fallbackCardId
+}
+
 interface CardInteraction {
   hovered: boolean
   armed: boolean
@@ -85,16 +125,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (!storeRef) return
       const state = storeRef.getState()
 
-      let targetId = nodeId
-      let node: typeof e.target | null = e.target
-      while (node) {
-        const id = (node.props as Record<string, unknown>)?.id
-        if (typeof id === "string" && id.length > 0) {
-          targetId = id
-          break
-        }
-        node = node.parent
-      }
+      const targetId = resolveClickTargetId(e.target, nodeId)
 
       if (e.metaKey || cmdHeld) {
         const boardPane = Workspace.getActiveBoardPane(state)
