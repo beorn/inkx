@@ -507,6 +507,13 @@ interface ComboboxState {
   /** Permanent default command for this combobox, set at creation by the opening chord.
    *  Never changes for the lifetime of the combobox instance. */
   defaultCommand: string
+  /** Scope constraint on the argument-field source. Replaces the old "pick a dialog
+   *  component per use case" pattern — favorites, item pickers, etc. use sourceScope
+   *  to constrain which subtree the argument search draws from. */
+  sourceScope: "all" | "favorites" | "commands" | "current-view"
+  /** Optional per-invocation predicate for further argument narrowing (e.g., "only
+   *  tag nodes that aren't already on the cursor"). Non-serializable. */
+  resultFilter: ((node: KNode) => boolean) | null
   /** Working command buffer — usually equals defaultCommand, diverges when user Tabs
    *  to the command field and edits. */
   commandBuffer: string
@@ -646,13 +653,13 @@ The following commands already exist in `packages/km-commands/src/commands/` and
 
 | Existing command | Current behavior | After migration |
 |---|---|---|
-| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Opens combobox dialog with `{ focus: "command" }` |
-| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Opens combobox dialog with `{ defaultCommand: "goto", focus: "argument" }` |
-| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Opens combobox dialog scoped to favorited nodes |
-| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Opens combobox dialog with `{ defaultCommand: "local_find" }` (derives bottom-left layout) |
-| `search` (`tui.ts:66`) | Opens search dialog | Opens combobox dialog with `{ defaultCommand: "goto", focus: "argument" }` |
-| `filter` (`navigation.ts:252`) | Opens filter dialog | Opens combobox dialog with filter-specific layout (phase 5 detail) |
-| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | Opens combobox dialog with a replace-aware layout (out of scope for v1) |
+| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Combobox dialog, `{ focus: "command", sourceScope: "all" }` |
+| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Combobox dialog, `{ defaultCommand: "goto", focus: "argument", sourceScope: "all" }` |
+| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Combobox dialog, `{ defaultCommand: "goto", sourceScope: "favorites" }` |
+| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Combobox dialog, `{ defaultCommand: "local_find", sourceScope: "current-view" }` (derives bottom-left layout) |
+| `search` (`tui.ts:66`) | Opens search dialog | Combobox dialog, `{ defaultCommand: "goto", focus: "argument", sourceScope: "all" }` |
+| `filter` (`navigation.ts:252`) | Opens filter dialog | **NOT routed in v1** — stays on current filter dialog; follow-up bead for filter-aware layout |
+| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | **NOT routed in v1** — stays on current search/replace dialog; needs replace-aware layout (follow-up) |
 | `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — combobox's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
 | `move` (`edit.ts:194`) | Takes `ctx.targetId`, emits `REPARENT_TO` | Same pattern |
 | `add` (`edit.ts:209`) | Takes `ctx.targetId`, emits `LINK_TO`/`SET_LABEL`/etc | Same pattern |
@@ -660,6 +667,8 @@ The following commands already exist in `packages/km-commands/src/commands/` and
 | `capture_inbox` (`edit.ts:255`) | Emits `{ type: "CAPTURE", location: "inbox" }` (stub) | Finish wiring in Phase 7 |
 
 No new command IDs are introduced for the combobox's verbs. The new work is: (a) the combobox dialog component (v1), (b) the `when` predicate field on `CommandDef`, (c) the command-tree projection adapter, (d) finishing the `CAPTURE` op handler, and (e) post-v1, `combobox.pop_out` and the `viewMode: "combobox"` pane form.
+
+**v1 explicitly defers** the routing of `search_replace` and `filter` into the combobox. Both need dedicated layout work (`search_replace` needs a replace-input row; `filter` needs category-grouped results). They stay on their current bespoke dialogs until follow-up beads land. Every other dialog (5 of them — `Omnibox`, `ItemPicker`, `FavoritesDialog`, legacy `SearchDialog`, `CommandBox`) is routed.
 
 ## TEA alignment
 
