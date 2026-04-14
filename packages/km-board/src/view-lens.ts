@@ -204,10 +204,19 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
       return []
     }
 
-    const allCardNodes = repo.getChildren(colId)
-    const folderIndex = colNode.fstype === "folder" ? findIndexFile(colNode, allCardNodes) : null
-    const filteredCardNodes = folderIndex ? allCardNodes.filter((c) => c.id !== folderIndex.id) : allCardNodes
-    const { body: bodyCards, items: structuralCards } = extractBody(filteredCardNodes)
+    // Folder-note expansion: when the column is a folder containing an index
+    // file (same-name.md, index.md, or .md), the folder-note's contents
+    // become the column's cards. Without this, a folder whose ONLY child is
+    // its index file renders empty (see km-tui.folder-note-same-name). The
+    // root path already does this via expandIndexFile; we replicate the
+    // essential shape here so the column-level view matches the root view
+    // when you zoom in/out.
+    const rawFolderChildren = repo.getChildren(colId)
+    const folderIndex = colNode.fstype === "folder" ? findIndexFile(colNode, rawFolderChildren) : null
+    const allCardNodes: KNode[] = folderIndex
+      ? [...repo.getChildren(folderIndex.id), ...rawFolderChildren.filter((c) => c.id !== folderIndex.id)]
+      : rawFolderChildren
+    const { body: bodyCards, items: structuralCards } = extractBody(allCardNodes)
 
     const bodyIdSet = new Set<string>()
     const rawCards: KNode[] = []
@@ -465,16 +474,28 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     const repoNode = repo.getNode(id)
     if (!repoNode) return null
 
-    // Collect ancestor chain from repo until we find a node in our lens
+    // Collect ancestor chain from repo until we find a node in our lens.
+    // chain[0] = id, chain[1] = id's repo-parent, ..., chain[length-1] =
+    // the deepest ancestor that is NOT in roleCache. The loop terminates
+    // when we hit an ancestor (`cur`) that IS in roleCache.
     const chain: string[] = [id]
     let cur = repoNode.parent_id
     while (cur !== null) {
       if (roleCache.has(cur)) {
-        // Found an ancestor in the lens — trigger its children computation
-        // which will populate parentCache for nodes down the chain
+        // Found an ancestor in the lens — trigger its children computation,
+        // which populates roleCache + parentCache for cur's direct children
+        // (including chain[length-1], since chain[length-1]'s repo-parent is
+        // cur by construction of the walk).
         children(cur)
-        // Now walk back down the chain, triggering children at each level
-        for (let i = chain.length - 2; i >= 0; i--) {
+        // Now walk back down the chain, triggering children() at each level
+        // so the next level's role gets populated. Must START at
+        // chain.length - 1 — NOT chain.length - 2 — because chain[length-1]
+        // is the level whose role was just set by children(cur); it's the
+        // *first* level from which we can recurse downward safely. Starting
+        // at length - 2 skips chain[length-1] and lands on a node whose role
+        // was never populated, which re-enters parent() → infinite
+        // recursion. See km-tui.zoom-stack-overflow.
+        for (let i = chain.length - 1; i >= 0; i--) {
           children(chain[i]!)
         }
         return parentCache.get(id) ?? null

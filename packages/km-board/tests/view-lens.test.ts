@@ -660,3 +660,105 @@ describe("createViewLens get()", () => {
     expect(lens.get("__root__")).toBeUndefined()
   })
 })
+
+// =============================================================================
+// Regression: parent/children recursion on deep grandchild lookups
+//
+// km-tui.zoom-stack-overflow: parent() walks up the repo chain, finds an
+// ancestor in roleCache, calls children(cur), then walks back down calling
+// children(chain[i]) for i from chain.length-2 down. The loop STARTED at
+// chain.length-2 instead of chain.length-1, skipping the first level below
+// the ancestor. That level's role was never populated, so the next
+// children() call on a grandchild couldn't find a role and re-entered
+// parent() → infinite recursion.
+//
+// Real-world trigger: zoom into a folder, zoom out. The new lens is asked
+// for the parent of a deeply-nested node whose chain of ancestors is longer
+// than the shortcut assumed. Stack dump confirmed the cycle via silvery's
+// new eventLoop error dump.
+// =============================================================================
+
+describe("createViewLens — parent/children recursion guard", () => {
+  test("parent() on a grandchild of an ancestor does not infinite-recurse", () => {
+    // Chain: s1 (subitem) → card (card) → col (column) → root
+    // Calling parent(s1) before any children() walk must populate the whole
+    // chain without parent↔children ping-ponging.
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col", "root", 0, "Column"),
+      paragraph("card", "col", 0, "Card"),
+      paragraph("s1", "card", 0, "Subitem"),
+    ]
+    const repo = createMockRepo(nodes)
+    const lens = createViewLens(repo, { rootId: "root", foldDepths: new Map() })
+
+    // Cold call — no prior walk. This is the crash path.
+    expect(() => lens.parent("s1")).not.toThrow()
+    expect(lens.parent("s1")).toBe("card")
+    expect(lens.parent("card")).toBe("col")
+    expect(lens.parent("col")).toBe("root")
+  })
+
+  test("parent() on a deep subitem (3+ levels below root) doesn't recurse", () => {
+    // Longer chain: deep → mid → card → col → root
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col", "root", 0, "Column"),
+      paragraph("card", "col", 0, "Card"),
+      paragraph("mid", "card", 0, "Mid"),
+      paragraph("deep", "mid", 0, "Deep"),
+    ]
+    const repo = createMockRepo(nodes)
+    const lens = createViewLens(repo, { rootId: "root", foldDepths: new Map() })
+
+    expect(() => lens.parent("deep")).not.toThrow()
+    expect(lens.parent("deep")).toBe("mid")
+    expect(lens.parent("mid")).toBe("card")
+  })
+
+  test("folder-note in column view: folder with same-name.md child expands", () => {
+    // Regression for km-tui.folder-note-same-name. When a folder is a
+    // COLUMN of the current view (not the root), its folder-note (same-
+    // name.md) was filtered out but its contents were never hoisted, so
+    // the column rendered empty. The fix unifies the column path with the
+    // root-level expandIndexFile: the folder-note's direct children become
+    // the column's cards.
+    const nodes: KNode[] = [
+      // Root folder — "projects"
+      { ...heading("projects", null, 0, "projects"), fstype: "folder" as const, name: "projects" },
+      // Child folder — "tst2" — column in the view
+      { ...heading("tst2-folder", "projects", 0, "tst2"), fstype: "folder" as const, name: "tst2" },
+      // Folder-note: tst2/tst2.md (same-name convention)
+      { ...heading("tst2-md", "tst2-folder", 0, "A test project"), fstype: "mdfile" as const, name: "tst2" },
+      // Sections inside tst2.md — these SHOULD become cards in the tst2 column
+      heading("section1", "tst2-md", 0, "Sub-section 1"),
+      heading("section2", "tst2-md", 1, "Sub-section 2"),
+    ]
+    const repo = createMockRepo(nodes)
+    const lens = createViewLens(repo, { rootId: "projects", foldDepths: new Map() })
+
+    // tst2 is a column in the projects view — its children must include
+    // section1 and section2 (lifted from the folder-note).
+    const tst2Children = lens.children("tst2-folder")
+    expect(tst2Children).toContain("section1")
+    expect(tst2Children).toContain("section2")
+  })
+
+  test("children() on a grandchild before any parent walk doesn't recurse", () => {
+    // Same shape, but start by asking for children of a grandchild instead
+    // of calling parent() first. children() falls into the "role unknown →
+    // call parent()" branch, same hazard.
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col", "root", 0, "Column"),
+      paragraph("card", "col", 0, "Card"),
+      paragraph("s1", "card", 0, "Subitem"),
+      paragraph("s2", "s1", 0, "Nested"),
+    ]
+    const repo = createMockRepo(nodes)
+    const lens = createViewLens(repo, { rootId: "root", foldDepths: new Map() })
+
+    expect(() => lens.children("s1")).not.toThrow()
+    expect(lens.children("s1")).toEqual(["s2"])
+  })
+})
