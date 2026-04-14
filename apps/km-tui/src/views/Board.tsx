@@ -11,7 +11,8 @@
  * handler in board-app.ts; nothing here owns keys.
  */
 import React, { useCallback, useEffect, useState } from "react"
-import { Box, useApp, type PatchedConsole } from "@silvery/ag-react"
+import { Box, useApp, FocusManagerContext, type PatchedConsole } from "@silvery/ag-react"
+import { installDialogGuard, resetDialogGuard } from "../dialog-guard.ts"
 import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import type { ViewMode } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
@@ -99,6 +100,21 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const storeApi = React.useContext(StoreContext) as
     | import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
     | null
+
+  // Install the focus manager as the dialog-guard backend. Without this, the
+  // production path never wires up the scope stack used by pushDialogMode /
+  // currentMode / inDialog, so arrow keys fall through to cursor_up while a
+  // picker or palette is open. The driver/test helpers install it manually,
+  // so tests pass — this effect closes the production gap.
+  // km-tui.palette-arrow-keys
+  const focusManager = React.useContext(FocusManagerContext)
+  React.useLayoutEffect(() => {
+    if (!focusManager) return
+    installDialogGuard(focusManager)
+    return () => {
+      resetDialogGuard()
+    }
+  }, [focusManager])
 
   // Handle clicks on links — opens external URLs, dispatches internal km:// links.
   // Supported schemes: km://node/{id}, km://wiki/{name}, km://block/{id}, km://zoom/{id}
