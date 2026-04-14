@@ -71,6 +71,33 @@ describe("fold-all-corruption", () => {
     expect(folded).toContain("Parent")
   })
 
+  test("H (fold_node) on column header folds all cards in column", () => {
+    // Regression: when cursor is on the column header (no card selected),
+    // pressing H should fold all cards in that column. Previously, the
+    // column itself was being added as a fold target (a no-op), so the
+    // toast showed "Folded: col1" but the card children stayed visible.
+    using app = createTestApp(
+      item("board", item("col1", item.folder("card1", item("child-1a")), item.folder("card2", item("child-2a")))),
+    )
+
+    // Move cursor to column header
+    app.press("k")
+    expect(app.state.cursor).toBe("col1")
+
+    // Children visible before fold
+    expect(app.text).toContain("child-1a")
+    expect(app.text).toContain("child-2a")
+
+    // Fold from column header
+    app.command("fold_more")
+
+    // Both cards' children should be folded; cards themselves still visible
+    expect(app.text).toContain("card1")
+    expect(app.text).toContain("card2")
+    expect(app.text).not.toContain("child-1a")
+    expect(app.text).not.toContain("child-2a")
+  })
+
   test("L (unfold node) restores children after fold", () => {
     using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 

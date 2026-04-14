@@ -395,16 +395,20 @@ function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
   return raw.length > 25 ? raw.slice(0, 22) + "…" : raw
 }
 
-/** Determine fold target node IDs from selection → card → column fallback. */
+/** Determine fold target node IDs from selection → card → column fallback.
+ *
+ * When cursor is on the column header (no card, only columnId), the user
+ * expects fold/unfold to operate on all cards in the column, not on the
+ * column header itself. Special-case this even if `selected` contains the
+ * column ID (which it will when cursor is on the column).
+ */
 function getFoldTargetRoots(ctx: OpCtx, card: KNode | null | undefined): string[] {
   const selected = getSelectedNodes(ctx)
-  return selected.length > 0
-    ? selected.map((c) => c.id)
-    : card
-      ? [card.id]
-      : ctx.columnId
-        ? [...ctx.tree.children(ctx.columnId)]
-        : []
+  // Cursor on column header (no card): fold all cards in the column
+  if (!card && ctx.columnId) {
+    return [...ctx.tree.children(ctx.columnId)]
+  }
+  return selected.length > 0 ? selected.map((c) => c.id) : card ? [card.id] : []
 }
 
 /**
@@ -508,6 +512,36 @@ export function handleKmOp(ctx: OpCtx, action: KmOp): OpResult {
 // Sub-Handlers (focused switches, each ≤25 cases)
 // =============================================================================
 
+/** Map a pick sigil to the picker UI type. Unknown sigils fall back to `project`. */
+function pickerTypeFromSigil(pick: string): "project" | "tag" | "assignee" | "item" {
+  switch (pick) {
+    case "#":
+      return "tag"
+    case "@":
+      return "assignee"
+    case "+":
+      return "project"
+    case "[":
+      return "item"
+    default:
+      return "project"
+  }
+}
+
+/**
+ * Open a picker dialog for the given sigil, recording the pending verb so
+ * the onSelect handler knows what to do with the picked target. Centralizes
+ * the dialog-mode/push/clear-selection side effects across all four verbs.
+ */
+function openPickerForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
+  const type = pickerTypeFromSigil(pick)
+  pushDialogMode("dialog:picker")
+  ctx.closeDetailPane()
+  ctx.setUI({ activePicker: { type, pendingVerb } })
+  clearSelection(ctx)
+  return ok()
+}
+
 /** VerbOp: verb x location actions (4 cases). */
 function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
   switch (action.type) {
@@ -539,11 +573,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
         return ok()
       }
       if (isPickTarget(cursorTarget)) {
-        pushDialogMode("dialog:picker")
-        ctx.closeDetailPane()
-        ctx.setUI({ activePicker: { type: "project" } })
-        clearSelection(ctx)
-        return ok()
+        return openPickerForVerb(ctx, cursorTarget.pick, "goto")
       }
       handleCursorTo(ctx, cursorTarget)
       return ok()
@@ -565,8 +595,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
         return ok()
       }
       if (isPickTarget(moveTarget)) {
-        ctx.setUI({ activePicker: { type: "project" } })
-        return ok()
+        return openPickerForVerb(ctx, moveTarget.pick, "move")
       }
       return handleReparentTo(ctx, moveTarget)
     }
@@ -724,12 +753,9 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
     case "CLIPBOARD_PASTE":
       return handleClipboardPaste(ctx)
     case "ADD_LINK":
-      ctx.toastQueue.info("Link picker not yet implemented")
-      ctx.setUI({})
-      return ok()
+      return openPickerForVerb(ctx, "[", "link")
     case "REPARENT_PICKER":
-      ctx.setUI({ activePicker: { type: "project" } })
-      return ok()
+      return openPickerForVerb(ctx, "+", "move")
     case "ARCHIVE_NODE":
       return unimplemented("ui")
     case "TASK_SET_STATUS":
@@ -2302,17 +2328,7 @@ function handleReparentTo(ctx: OpCtx, to: Position): OpResult {
 /** Handle LINK_TO with resolved target. */
 function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
-    const pickerType = to.pick === "#" ? "tag" : to.pick === "@" ? "assignee" : to.pick === "+" ? "project" : null
-    if (!pickerType) {
-      ctx.toastQueue.info("Link picker not yet implemented")
-      ctx.setUI({})
-      return ok()
-    }
-    pushDialogMode("dialog:picker")
-    ctx.closeDetailPane()
-    ctx.setUI({ activePicker: { type: pickerType } })
-    clearSelection(ctx)
-    return ok()
+    return openPickerForVerb(ctx, to.pick, "link")
   }
 
   // Position → add link (stub)
@@ -2325,9 +2341,7 @@ function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): OpResult {
 /** Handle CREATE_AT with resolved target (stub). */
 function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
-    ctx.toastQueue.info("Create with picker not yet implemented")
-    ctx.setUI({})
-    return ok()
+    return openPickerForVerb(ctx, to.pick, "create")
   }
   const targetNode = ctx.repo.getNode(to.parentId)
   ctx.toastQueue.info(`Create at "${targetNode?.name ?? to.parentId}" not yet implemented`)
