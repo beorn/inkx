@@ -59,9 +59,7 @@ describe("HR borderless rendering", () => {
   })
 
   test("body cards around an HR render without borders", () => {
-    const { board } = createDriverTest(() =>
-      item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))),
-    )
+    const { board } = createDriverTest(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
     // Body cards (task1/task2) are flat prose — no border, ever.
     board.expectNodeNoBorder("task1")
     board.expectNodeNoBorder("task2")

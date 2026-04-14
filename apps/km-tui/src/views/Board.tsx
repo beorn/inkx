@@ -23,7 +23,6 @@ import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
-import { PopoverProvider } from "./Popover.tsx"
 import { useLinkOpen } from "../hooks/use-link-open.ts"
 import type { ToastQueue } from "@km/core"
 import { navigateToNode } from "../navigation/navigate-to-node.ts"
@@ -228,19 +227,22 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Single pane (common case) — render Board directly, no wrapper overhead.
   // Use workspace.focusedPaneId instead of hardcoded "main" — after closing
   // the main pane via vw, the remaining pane may have a different ID.
+  // PopoverProvider is now mounted INSIDE BoardView (each pane) so that
+  // PopoverOverlay is a descendant of NodeStoreProvider + TreeRenderProvider
+  // and contexts cascade to popover content via the fiber tree. This
+  // eliminates the "bridge N per-pane contexts into the popover render
+  // callback" duct-tape pattern. See km-tui.popover-nodestore.
   if (workspace.panes.size <= 1) {
     const singlePaneId = workspace.focusedPaneId
     const singlePane = workspace.panes.get(singlePaneId)
     const isSinglePaneBoard = singlePane?.viewType === "board"
     return (
       <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
-        <PopoverProvider>
-          <Box flexDirection="column" height={storeDimensions.rows} id={singlePaneId} testID={singlePaneId} focusScope>
-            {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
-            {bottomBar}
-            {chrome}
-          </Box>
-        </PopoverProvider>
+        <Box flexDirection="column" height={storeDimensions.rows} id={singlePaneId} testID={singlePaneId} focusScope>
+          {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
+          {bottomBar}
+          {chrome}
+        </Box>
       </ServicesProvider>
     )
   }
@@ -248,19 +250,17 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Multiple panes — use WorkspaceView for split layout
   return (
     <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
-      <PopoverProvider>
-        <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
-          <WorkspaceView
-            layout={workspace.layout}
-            panes={workspace.panes}
-            focusedPaneId={workspace.focusedPaneId}
-            renderPane={renderPane}
-            onPaneClick={focusPaneById}
-          />
-          {bottomBar}
-          {chrome}
-        </Box>
-      </PopoverProvider>
+      <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
+        <WorkspaceView
+          layout={workspace.layout}
+          panes={workspace.panes}
+          focusedPaneId={workspace.focusedPaneId}
+          renderPane={renderPane}
+          onPaneClick={focusPaneById}
+        />
+        {bottomBar}
+        {chrome}
+      </Box>
     </ServicesProvider>
   )
 }

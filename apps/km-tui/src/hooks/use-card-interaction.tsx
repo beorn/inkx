@@ -179,10 +179,10 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
           ...mousePos.current,
           cardRect: cardRectRef.current ?? undefined,
         }
-        // Pass the pane's nodeStore so the popover overlay (which mounts
-        // outside the pane's NodeStoreProvider) can resolve useTreeNode at
-        // render time. See km-tui.popover-nodestore.
-        popover.show(buildNodePopoverContent(node, repo, inlineCtx, undefined, nodeStore), anchor)
+        // PopoverProvider lives inside the pane's NodeStore/TreeRender
+        // providers (see BoardView.tsx), so the overlay cascades contexts
+        // naturally and no bridging is needed here.
+        popover.show(buildNodePopoverContent(node, repo, inlineCtx), anchor)
       }
     } else {
       // Cmd released or mouse left → hide the popover.

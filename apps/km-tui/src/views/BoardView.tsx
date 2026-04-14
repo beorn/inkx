@@ -42,6 +42,7 @@ import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
 import { TreeRenderProvider, type TreeConfig } from "../state/ui-context.tsx"
+import { PopoverProvider } from "./Popover.tsx"
 import { getPathSegments } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/path.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
@@ -603,6 +604,11 @@ export function BoardView({
   collapsedNodes,
   hasDetailPane,
 }: BoardViewProps): React.ReactElement {
+  // PopoverProvider is nested INSIDE the per-pane NodeStoreProvider and
+  // TreeRenderProvider so that PopoverOverlay (rendered as a sibling of
+  // BoardCore by PopoverProvider) is a fiber-descendant of both. This lets
+  // contexts cascade naturally into popover content — no bridging needed.
+  // See km-tui.popover-nodestore.
   return (
     <NodeStoreProvider value={nodeStore}>
       <TreeRenderProvider
@@ -618,19 +624,21 @@ export function BoardView({
         taskStatusFilter={taskStatusFilter}
         boardFocused={boardFocused}
       >
-        <BoardCore
-          rootId={rootId}
-          cursor={cursor}
-          columnIds={columnIds}
-          columnFilters={columnFilters}
-          colIndex={colIndex}
-          cardIndex={cardIndex}
-          ui={ui}
-          cursorDepth={cursorDepth}
-          dimensions={dimensions}
-          collapsedNodes={collapsedNodes}
-          hasDetailPane={hasDetailPane}
-        />
+        <PopoverProvider>
+          <BoardCore
+            rootId={rootId}
+            cursor={cursor}
+            columnIds={columnIds}
+            columnFilters={columnFilters}
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            ui={ui}
+            cursorDepth={cursorDepth}
+            dimensions={dimensions}
+            collapsedNodes={collapsedNodes}
+            hasDetailPane={hasDetailPane}
+          />
+        </PopoverProvider>
       </TreeRenderProvider>
     </NodeStoreProvider>
   )

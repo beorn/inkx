@@ -13,7 +13,6 @@ import {
 } from "../../src/views/Popover.tsx"
 import { createFakeRepo } from "@km/storage"
 import { buildNodePopoverContent } from "../../src/views/tree-node-shared.ts"
-import { createNodeStore, NodeStoreContext } from "../../src/state/reactive.ts"
 
 // =============================================================================
 // urlPopoverContent
@@ -183,19 +182,16 @@ describe("computePointPosition", () => {
 })
 
 // =============================================================================
-// buildNodePopoverContent — render must wrap in NodeStoreProvider
+// buildNodePopoverContent — shape and laziness
 //
-// Repro for km-tui.popover-nodestore: PopoverProvider in BoardApp lives outside
-// BoardView's NodeStoreProvider, so the popover overlay renders the lazy
-// content as a sibling of the node-store context. DocContent → DocNode calls
-// useTreeNode(id) → useNodeStore() which throws "useNodeStore: not inside
-// NodeStoreProvider".
-//
-// The fix: buildNodePopoverContent accepts an optional nodeStore and wraps
-// its render() output in <NodeStoreContext.Provider value={nodeStore}>. The
-// callers (use-card-interaction, useTreeInlineContext) already run inside a
-// pane that has the provider, so they grab the store via useNodeStore() at
-// popover-show time and pass it into the builder.
+// The popover overlay is now mounted inside the pane's providers (see
+// BoardView.tsx), so all per-pane contexts cascade to the popover content
+// through the fiber tree. buildNodePopoverContent doesn't need to thread or
+// capture any context — its render() callback just creates a plain element.
+// The end-to-end cascade is verified by higher-level hover tests; these unit
+// tests cover the builder's contract: it returns a PopoverContent whose
+// render is a lazy function (so DocContent's lazy-require of DetailView
+// doesn't fire until a popover is actually shown).
 // =============================================================================
 
 function makeFakeNode(id: string, content: string) {
@@ -224,34 +220,32 @@ const inertInlineCtx = {
   hideFields: true,
 }
 
-describe("buildNodePopoverContent — NodeStoreProvider wrapping", () => {
-  test("render() output is wrapped in NodeStoreContext.Provider when a store is supplied", () => {
+describe("buildNodePopoverContent", () => {
+  test("returns a PopoverContent with a lazy render() callback", () => {
     const repo = createFakeRepo({ nodes: [makeFakeNode("h1", "My Heading") as never] })
     const node = repo.getNode("h1")!
-    const nodeStore = createNodeStore()
-
-    const content = buildNodePopoverContent(node, repo, inertInlineCtx, 55, nodeStore)
-
-    // Inspect the React tree without rendering the children — DocContent's
-    // internals (lazy require of DetailView) aren't reachable from vitest's
-    // ESM loader. Asserting on the wrapper element type proves the fix
-    // injected the provider at the right level so that DocContent → DocNode →
-    // useTreeNode → useNodeStore() resolves to the supplied store at runtime.
-    const tree = content.render!() as React.ReactElement
-    expect(tree).not.toBeNull()
-    expect(tree.type).toBe(NodeStoreContext.Provider)
-    const props = tree.props as { value: unknown; children: unknown }
-    expect(props.value).toBe(nodeStore)
-    expect(props.children).toBeDefined()
-  })
-
-  test("render() leaves tree unwrapped when no store is supplied (back-compat)", () => {
-    const repo = createFakeRepo({ nodes: [makeFakeNode("h2", "Bare") as never] })
-    const node = repo.getNode("h2")!
 
     const content = buildNodePopoverContent(node, repo, inertInlineCtx)
+
+    // Contract: lines[] is empty (no plain-text fallback — we render rich content)
+    expect(content.lines).toEqual([])
+    expect(typeof content.render).toBe("function")
+
+    // Calling render() yields a React element without throwing. The element
+    // is the PopoverNodeBody wrapper — not a context provider, because
+    // contexts cascade through the fiber tree from the popover overlay's
+    // ancestors (PopoverProvider lives inside NodeStore/TreeRender providers
+    // per BoardView.tsx).
     const tree = content.render!() as React.ReactElement
     expect(tree).not.toBeNull()
-    expect(tree.type).not.toBe(NodeStoreContext.Provider)
+    expect(typeof tree.type).toBe("function")
+  })
+
+  test("respects custom maxWidth", () => {
+    const repo = createFakeRepo({ nodes: [makeFakeNode("h2", "Wide") as never] })
+    const node = repo.getNode("h2")!
+
+    const content = buildNodePopoverContent(node, repo, inertInlineCtx, 80)
+    expect(content.maxWidth).toBe(80)
   })
 })

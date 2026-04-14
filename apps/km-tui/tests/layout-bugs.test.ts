@@ -368,4 +368,3 @@ describe("collapsed column shift edge cases", () => {
     expect(rightBox.x).toBe(midBox.x + midBox.width)
   })
 })
-

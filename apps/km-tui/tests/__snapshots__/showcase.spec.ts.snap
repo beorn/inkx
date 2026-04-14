@@ -5,10 +5,10 @@ exports[`Visual Regression > kanban board layout is stable across renders > afte
 
    Todo                                  Done
  ────────────────────────────────────── ──────────────────────────────────────
+
  □ Buy groceries                        □ File taxes
+
  □ Call dentist
-
-
 
 
 
@@ -23,10 +23,10 @@ exports[`Visual Regression > kanban board layout is stable across renders > init
 
    Todo                                  Done
  ────────────────────────────────────── ──────────────────────────────────────
+
  □ Buy groceries                        □ File taxes
+
  □ Call dentist
-
-
 
 
 

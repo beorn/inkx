@@ -12,7 +12,6 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import type { PopoverContent } from "./Popover.tsx"
 import { deriveExcludedSigils } from "../state/ui-context.tsx"
-import { NodeStoreContext, useNodeStore, type NodeStore } from "../state/reactive.ts"
 import {
   getTypeBullet,
   getCircleBullet,
@@ -141,28 +140,21 @@ function PopoverNodeBody({
 /**
  * Build popover content for a node — used by both card hover and link hover.
  *
- * The popover overlay (PopoverProvider in BoardApp) lives outside the pane's
- * NodeStoreProvider, so the lazy render output must carry its own provider
- * or DocContent → DocNode → useTreeNode → useNodeStore() will throw
- * "useNodeStore: not inside NodeStoreProvider". When `nodeStore` is supplied
- * (callers grab it via useNodeStore() at popover-show time) the render is
- * wrapped in NodeStoreContext.Provider; otherwise the bare body is returned.
- * See km-tui.popover-nodestore.
+ * The render callback closes over the node/repo/inlineCtx at build time.
+ * All per-pane contexts (NodeStore, TreeRender, etc.) cascade naturally
+ * through the fiber tree because PopoverProvider is now mounted INSIDE
+ * the pane's providers — see BoardView.tsx. That's why this builder
+ * doesn't need to capture or thread any of those contexts.
  */
 export function buildNodePopoverContent(
   node: KNode,
   repo: Repo,
   inlineCtx: InlineRenderContext,
   maxWidth = 55,
-  nodeStore?: NodeStore,
 ): PopoverContent {
   return {
     lines: [],
-    render: () => {
-      const body = React.createElement(PopoverNodeBody, { node, repo, inlineCtx })
-      if (!nodeStore) return body
-      return React.createElement(NodeStoreContext.Provider, { value: nodeStore }, body)
-    },
+    render: () => React.createElement(PopoverNodeBody, { node, repo, inlineCtx }),
     maxWidth,
   }
 }
@@ -176,13 +168,6 @@ export function useTreeInlineContext(
   resolveSigilColor: ((sigil: string) => string | undefined) | undefined,
   excludedSigilsOverride?: string[],
 ): InlineRenderContext {
-  // Capture the pane's nodeStore at hook time. The wikilink hover popover
-  // (buildLinkPopover) renders DocContent through the global PopoverOverlay
-  // which sits outside this pane's NodeStoreProvider — without threading
-  // the store the lazy popover render throws "useNodeStore: not inside
-  // NodeStoreProvider". See km-tui.popover-nodestore.
-  const nodeStore = useNodeStore()
-
   // Excluded sigils: use override if provided, otherwise derive from rootBoardId
   const excludedSigils = useMemo(() => {
     if (excludedSigilsOverride && excludedSigilsOverride.length > 0) return excludedSigilsOverride
@@ -252,10 +237,7 @@ export function useTreeInlineContext(
       const node = repo.resolveByName?.(target) ?? repo.getNode(target)
       if (!node) return null
       const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
-      // Pass the captured nodeStore so the lazy popover render can resolve
-      // useTreeNode without an ambient provider — the popover overlay mounts
-      // outside this pane's NodeStoreProvider. See km-tui.popover-nodestore.
-      return buildNodePopoverContent(node, repo, ctx, undefined, nodeStore)
+      return buildNodePopoverContent(node, repo, ctx)
     }
 
     return {
@@ -268,7 +250,7 @@ export function useTreeInlineContext(
       buildLinkPopover,
       hideFields: true,
     }
-  }, [excludedSigils, sigilColors, resolveSigilColor, repo, nodeStore])
+  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
 }
 
 /** Hook: compute search decorations for a content string. */

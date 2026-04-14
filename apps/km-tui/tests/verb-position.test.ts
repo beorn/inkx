@@ -311,5 +311,4 @@ describe("verb-[ picker journeys", () => {
       expect(s.ui.activePicker?.pendingVerb).toBe("link")
     })
   })
-
 })

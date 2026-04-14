@@ -292,32 +292,34 @@ const Card = React.memo(
       return { hasOverflow: total > 0, hiddenCount: total }
     }, [directHidden, children, effectiveMax, repo, card, treeConfig.cardInnerWidth])
 
+    // Theme is needed for body-block selection bg (padding-row fill). We
+    // read it here (before the HR/body early-returns) so both branches have
+    // access. Non-body branches also use useTheme later; React dedupes.
+    const theme = useTheme()
+    // Body block bg when this block is the cursor or part of a multi-select.
+    // Editing suppresses the bg — the focusborder on the card border is the
+    // edit indicator, and the bg would compete with it. Column-level cursor
+    // is NOT included either: the column container already has a cascaded
+    // tint, so duplicating here would double-tint.
+    const bodyBlockBg = isEditing
+      ? undefined
+      : isSelected
+        ? selectedBg(theme)
+        : isNodeSelected
+          ? multiSelectedBg(theme)
+          : undefined
+
     // HR nodes render as borderless centered content (unless being edited,
     // in which case they fall through to normal bordered card with InlineEditField).
     // Detection is content-based: editing "---" to "---f" should stop rendering as HR.
     // Nodes with type="hr" and no content default to "---".
     const hrContent = (card.content ?? (card.type === "hr" ? "---" : "")).trim()
     const isHR = isHRContent(hrContent)
-    // Body block layout props: border when focused, padding otherwise.
-    // Layout stability invariant: cursoring must NOT shift content.
-    //
-    // How it works:
-    // - Middle body blocks: paddingTop=1, paddingBottom=0 → H+1
-    // - Last body block (before structural/end): paddingTop=1, paddingBottom=1 → H+2
-    // - Selected: border top+bottom → H+2
-    //
-    // When a middle block is selected (H+1 → H+2, +1), the next block
-    // yields its paddingTop (1→0, -1). Net: 0 shift.
-    // When the last body block is selected (H+2 → H+2). Net: 0 shift.
-    const yieldTop = !!(isPrevBodyBlock && isPrevAtCursor)
-    // Body blocks at column top-level default to an invisible border
-    // (`$surface-bg`) — they read as plain prose until hovered/selected.
-    const bodyDefaultBorder = "$surface-bg"
 
     if (isHR && !isEditing) {
-      // HR cards: flat divider, no border/outline. Selection signaling comes
-      // from the column-level tint (rule 3 in selection-style.ts) and the
-      // standard cursor inverse on the title row.
+      // HR cards: flat single-row divider, no border/outline, no padding.
+      // Selection signaling comes from the column-level tint + the standard
+      // cursor inverse on the divider row.
       return (
         <Box
           data-view="card"
@@ -353,7 +355,6 @@ const Card = React.memo(
     }
 
     if (isBodyColumn || isBodyCard) {
-      const bodyBorderColor = isEditing ? "$focusborder" : "$selection-bg"
       return (
         <Box
           data-view="card"
@@ -364,16 +365,14 @@ const Card = React.memo(
           // owns the cursor) reads as one continuous surface.
           width={width}
           userSelect="none"
-          {...bodyBlockLayoutProps(
-            isSelected || isEditing,
-            bodyBorderColor,
-            yieldTop,
-            !!isLastBodyBlock,
-            isNodeSelected,
-            isColSelected,
-            bodyDefaultBorder,
-            hoverBorderColor,
-          )}
+          // paddingTop=1 gives a blank line above the content. Because it's
+          // padding (inside the Box), when the Box has a backgroundColor the
+          // gap row fills with it — creating a continuous highlight across
+          // a multi-select or cursor run instead of a striped one. For
+          // unselected blocks, backgroundColor is undefined and the padding
+          // row inherits the column's bg.
+          paddingTop={1}
+          backgroundColor={bodyBlockBg}
           {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -442,7 +441,6 @@ const Card = React.memo(
     // Multi-selected cards get the stronger multiSelectedBg tint so they stack
     // visually with the rest of the selection (rule 6). Cursor anywhere in card
     // (direct or descendant) gets the subtle selectedBg tint (rule 2).
-    const theme = useTheme()
     // No custom bg during editing — the focusborder on the card border is
     // enough to indicate edit mode. Normal selection tint applies when not editing.
     // Priority: selectedBg for cursor scope (direct or descendant) takes precedence
@@ -579,33 +577,6 @@ const Card = React.memo(
     )
   },
 )
-
-// =============================================================================
-// Body Block Layout
-// =============================================================================
-
-/** Shared layout props for body blocks (virtual cards and HRs).
- *
- * Body blocks are flat prose: no border, no outline, no per-block bg, no
- * margin between siblings. Selection signaling comes from the standard
- * cursor-row inverse in TreeNode plus the column-level tint when the column
- * owns the cursor. Any per-block fill or gap creates ragged-width rectangles
- * separated by blank rows — the column ends up looking striped. By making
- * each block edge-to-edge with zero margin we get one continuous surface
- * for the column tint to fill. */
-function bodyBlockLayoutProps(
-  _hasCursor: boolean,
-  _borderColor: string,
-  _yieldTop: boolean,
-  _isLastBodyBlock: boolean,
-  _isNodeSelected: boolean,
-  _isColumnSelected = false,
-  _defaultBorderColor = "$surface-bg",
-  _hoverBorderColor?: string,
-  _cursorDim = false,
-) {
-  return {}
-}
 
 // =============================================================================
 // Skeleton Cards — shown in empty columns during background parse
