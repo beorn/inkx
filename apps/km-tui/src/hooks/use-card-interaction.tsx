@@ -179,7 +179,10 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
           ...mousePos.current,
           cardRect: cardRectRef.current ?? undefined,
         }
-        popover.show(buildNodePopoverContent(node, repo, inlineCtx), anchor)
+        // Pass the pane's nodeStore so the popover overlay (which mounts
+        // outside the pane's NodeStoreProvider) can resolve useTreeNode at
+        // render time. See km-tui.popover-nodestore.
+        popover.show(buildNodePopoverContent(node, repo, inlineCtx, undefined, nodeStore), anchor)
       }
     } else {
       // Cmd released or mouse left → hide the popover.

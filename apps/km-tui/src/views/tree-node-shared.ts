@@ -12,6 +12,7 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import type { PopoverContent } from "./Popover.tsx"
 import { deriveExcludedSigils } from "../state/ui-context.tsx"
+import { NodeStoreContext, useNodeStore, type NodeStore } from "../state/reactive.ts"
 import {
   getTypeBullet,
   getCircleBullet,
@@ -70,70 +71,97 @@ export function computeBulletIcon(
   return getFoldMarker(hasChildren, isFolded, ownColor, sticky)
 }
 
+/** Inner body of the popover — function component so React defers the
+ *  lazy require of DetailView until render time. Keeping this as a component
+ *  (not inline JSX in `render()`) means buildNodePopoverContent's caller can
+ *  inspect the returned ReactElement (e.g. in tests) without triggering the
+ *  require — and the runtime PopoverOverlay only pays the cost when the
+ *  popover is actually mounted. */
+function PopoverNodeBody({
+  node,
+  repo,
+  inlineCtx,
+}: {
+  node: KNode
+  repo: Repo
+  inlineCtx: InlineRenderContext
+}): React.ReactElement {
+  const nodeChildren = repo.getChildren(node.id)
+  const nodeTitle = node.content ?? node.name ?? "(untitled)"
+  const badge = nodeBadgeLabel(node)
+  const nodeIsTask = KNode.isTask(node)
+  const statusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
+  const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
+  const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
+  const { CheckboxIcon } = require("../views/CheckboxIcon.tsx") as typeof import("../views/CheckboxIcon.tsx")
+  const { InlineText, InlineRenderProvider } =
+    require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
+  return React.createElement(
+    InlineRenderProvider,
+    { value: inlineCtx },
+    React.createElement(
+      Box,
+      null,
+      React.createElement(
+        Box,
+        { flexGrow: 1, flexShrink: 1 },
+        React.createElement(
+          H1,
+          { wrap: "wrap" },
+          // Interactive task checkbox before title (clickable to toggle status)
+          statusIcon &&
+            React.createElement(
+              React.Fragment,
+              null,
+              React.createElement(CheckboxIcon, {
+                nodeId: node.id,
+                icon: statusIcon,
+                textColor: undefined,
+                shouldDim: false,
+                isSelected: false,
+                isNodeSelected: false,
+                isDoneOrDropped,
+              }),
+              React.createElement(Text, null, " "),
+            ),
+          React.createElement(InlineText, { text: nodeTitle }),
+        ),
+      ),
+      React.createElement(
+        Box,
+        { flexShrink: 0, paddingLeft: 1 },
+        React.createElement(Small, { wrap: "truncate" }, badge),
+      ),
+    ),
+    nodeChildren.length > 0 &&
+      React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
+  )
+}
+
 /**
  * Build popover content for a node — used by both card hover and link hover.
- * Lazy-imports DetailView/InlineComponents to avoid circular deps.
+ *
+ * The popover overlay (PopoverProvider in BoardApp) lives outside the pane's
+ * NodeStoreProvider, so the lazy render output must carry its own provider
+ * or DocContent → DocNode → useTreeNode → useNodeStore() will throw
+ * "useNodeStore: not inside NodeStoreProvider". When `nodeStore` is supplied
+ * (callers grab it via useNodeStore() at popover-show time) the render is
+ * wrapped in NodeStoreContext.Provider; otherwise the bare body is returned.
+ * See km-tui.popover-nodestore.
  */
 export function buildNodePopoverContent(
   node: KNode,
   repo: Repo,
   inlineCtx: InlineRenderContext,
   maxWidth = 55,
+  nodeStore?: NodeStore,
 ): PopoverContent {
   return {
     lines: [],
     render: () => {
-      // Heavy work is deferred to render time — only runs when the popover is actually visible
-      const nodeChildren = repo.getChildren(node.id)
-      const nodeTitle = node.content ?? node.name ?? "(untitled)"
-      const badge = nodeBadgeLabel(node)
-      const nodeIsTask = KNode.isTask(node)
-      const statusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
-      const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-      const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
-      const { CheckboxIcon } = require("../views/CheckboxIcon.tsx") as typeof import("../views/CheckboxIcon.tsx")
-      const { InlineText, InlineRenderProvider } =
-        require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
-      return React.createElement(
-        InlineRenderProvider,
-        { value: inlineCtx },
-        React.createElement(
-          Box,
-          null,
-          React.createElement(
-            Box,
-            { flexGrow: 1, flexShrink: 1 },
-            React.createElement(
-              H1,
-              { wrap: "wrap" },
-              // Interactive task checkbox before title (clickable to toggle status)
-              statusIcon &&
-                React.createElement(
-                  React.Fragment,
-                  null,
-                  React.createElement(CheckboxIcon, {
-                    nodeId: node.id,
-                    icon: statusIcon,
-                    textColor: undefined,
-                    shouldDim: false,
-                    isSelected: false,
-                    isNodeSelected: false,
-                    isDoneOrDropped,
-                  }),
-                  React.createElement(Text, null, " "),
-                ),
-              React.createElement(InlineText, { text: nodeTitle }),
-            ),
-          ),
-          React.createElement(
-            Box,
-            { flexShrink: 0, paddingLeft: 1 },
-            React.createElement(Small, { wrap: "truncate" }, badge),
-          ),
-        ),
-        nodeChildren.length > 0 &&
-          React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
-      )
+      const body = React.createElement(PopoverNodeBody, { node, repo, inlineCtx })
+      if (!nodeStore) return body
+      return React.createElement(NodeStoreContext.Provider, { value: nodeStore }, body)
     },
     maxWidth,
   }
@@ -148,6 +176,13 @@ export function useTreeInlineContext(
   resolveSigilColor: ((sigil: string) => string | undefined) | undefined,
   excludedSigilsOverride?: string[],
 ): InlineRenderContext {
+  // Capture the pane's nodeStore at hook time. The wikilink hover popover
+  // (buildLinkPopover) renders DocContent through the global PopoverOverlay
+  // which sits outside this pane's NodeStoreProvider — without threading
+  // the store the lazy popover render throws "useNodeStore: not inside
+  // NodeStoreProvider". See km-tui.popover-nodestore.
+  const nodeStore = useNodeStore()
+
   // Excluded sigils: use override if provided, otherwise derive from rootBoardId
   const excludedSigils = useMemo(() => {
     if (excludedSigilsOverride && excludedSigilsOverride.length > 0) return excludedSigilsOverride
@@ -217,7 +252,10 @@ export function useTreeInlineContext(
       const node = repo.resolveByName?.(target) ?? repo.getNode(target)
       if (!node) return null
       const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
-      return buildNodePopoverContent(node, repo, ctx)
+      // Pass the captured nodeStore so the lazy popover render can resolve
+      // useTreeNode without an ambient provider — the popover overlay mounts
+      // outside this pane's NodeStoreProvider. See km-tui.popover-nodestore.
+      return buildNodePopoverContent(node, repo, ctx, undefined, nodeStore)
     }
 
     return {
@@ -230,7 +268,7 @@ export function useTreeInlineContext(
       buildLinkPopover,
       hideFields: true,
     }
-  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
+  }, [excludedSigils, sigilColors, resolveSigilColor, repo, nodeStore])
 }
 
 /** Hook: compute search decorations for a content string. */

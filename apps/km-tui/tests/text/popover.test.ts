@@ -3,13 +3,17 @@
  * and integration with link rendering.
  */
 
-import { describe, it, expect } from "vitest"
+import React from "react"
+import { describe, it, expect, test } from "vitest"
 import {
   urlPopoverContent,
   internalLinkPopoverContent,
   computeOverlapPosition,
   computePointPosition,
 } from "../../src/views/Popover.tsx"
+import { createFakeRepo } from "@km/storage"
+import { buildNodePopoverContent } from "../../src/views/tree-node-shared.ts"
+import { createNodeStore, NodeStoreContext } from "../../src/state/reactive.ts"
 
 // =============================================================================
 // urlPopoverContent
@@ -175,5 +179,79 @@ describe("computePointPosition", () => {
     const result = computePointPosition(anchor, 40, 10, viewport)
     // x=60, 60+40=100 > 80, so clamped: max(0, 80-40) = 40
     expect(result.left).toBe(40)
+  })
+})
+
+// =============================================================================
+// buildNodePopoverContent — render must wrap in NodeStoreProvider
+//
+// Repro for km-tui.popover-nodestore: PopoverProvider in BoardApp lives outside
+// BoardView's NodeStoreProvider, so the popover overlay renders the lazy
+// content as a sibling of the node-store context. DocContent → DocNode calls
+// useTreeNode(id) → useNodeStore() which throws "useNodeStore: not inside
+// NodeStoreProvider".
+//
+// The fix: buildNodePopoverContent accepts an optional nodeStore and wraps
+// its render() output in <NodeStoreContext.Provider value={nodeStore}>. The
+// callers (use-card-interaction, useTreeInlineContext) already run inside a
+// pane that has the provider, so they grab the store via useNodeStore() at
+// popover-show time and pass it into the builder.
+// =============================================================================
+
+function makeFakeNode(id: string, content: string) {
+  const baseTs = Date.now()
+  return {
+    id,
+    type: "h" as const,
+    item: {},
+    fstype: "mdsection" as const,
+    content,
+    title: content,
+    parent_id: null,
+    parent_idx: 0,
+    embed_of: null,
+    data: {},
+    created_at: baseTs,
+    updated_at: baseTs,
+    version: "fake",
+  }
+}
+
+const inertInlineCtx = {
+  resolveWikiLink: () => null,
+  resolveWikiLinkId: () => null,
+  resolveBlockRef: () => null,
+  hideFields: true,
+}
+
+describe("buildNodePopoverContent — NodeStoreProvider wrapping", () => {
+  test("render() output is wrapped in NodeStoreContext.Provider when a store is supplied", () => {
+    const repo = createFakeRepo({ nodes: [makeFakeNode("h1", "My Heading") as never] })
+    const node = repo.getNode("h1")!
+    const nodeStore = createNodeStore()
+
+    const content = buildNodePopoverContent(node, repo, inertInlineCtx, 55, nodeStore)
+
+    // Inspect the React tree without rendering the children — DocContent's
+    // internals (lazy require of DetailView) aren't reachable from vitest's
+    // ESM loader. Asserting on the wrapper element type proves the fix
+    // injected the provider at the right level so that DocContent → DocNode →
+    // useTreeNode → useNodeStore() resolves to the supplied store at runtime.
+    const tree = content.render!() as React.ReactElement
+    expect(tree).not.toBeNull()
+    expect(tree.type).toBe(NodeStoreContext.Provider)
+    const props = tree.props as { value: unknown; children: unknown }
+    expect(props.value).toBe(nodeStore)
+    expect(props.children).toBeDefined()
+  })
+
+  test("render() leaves tree unwrapped when no store is supplied (back-compat)", () => {
+    const repo = createFakeRepo({ nodes: [makeFakeNode("h2", "Bare") as never] })
+    const node = repo.getNode("h2")!
+
+    const content = buildNodePopoverContent(node, repo, inertInlineCtx)
+    const tree = content.render!() as React.ReactElement
+    expect(tree).not.toBeNull()
+    expect(tree.type).not.toBe(NodeStoreContext.Provider)
   })
 })
