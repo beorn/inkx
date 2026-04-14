@@ -41,6 +41,60 @@ describe("checkbox interaction", () => {
     expect(text).toContain("Buy milk")
   })
 
+  test("status icons render with a space between marker and title (km-tui.checkbox-spacing)", () => {
+    // Regression: ✓Build instead of ✓ Build. The prefix box is [marker][space]
+    // = 2 cells; the space must reach the screen as an actual space cell.
+    // Root cause was BODY_PREFIX/body fallback length=1 (fixed in 89b694ad5),
+    // but the visible symptom was on the done-task path so we lock that in.
+    using app = createTestApp(
+      item.root(
+        "board",
+        item(
+          "Column",
+          item.task("Build", "done"),
+          item.task("Plan", "todo"),
+          item.task("Code", "wip"),
+          item.task("Review", "blocked"),
+          item.task("Skip", "dropped"),
+        ),
+      ),
+      { cols: 80, rows: 24 },
+    )
+
+    // String-level check across all status icons.
+    expect(app.text).toContain("\u2713 Build") // ✓ done
+    expect(app.text).toContain("\u25A1 Plan") // □ todo
+    expect(app.text).toContain("\u25A1 Code") // □ wip
+    expect(app.text).toContain("\u2717 Review") // ✗ blocked
+    expect(app.text).toContain("\u2717 Skip") // ✗ dropped
+
+    // Cell-level: the row containing the done task must have a real space
+    // cell between the ✓ glyph and the 'B'. This catches output-phase
+    // wcwidth bugs that string scans can smooth over.
+    function assertMarkerSpaceTitle(marker: string, title: string): void {
+      const lines = app.text.split("\n")
+      const row = lines.find((l) => l.includes(title) && l.includes(marker) && !l.includes(">"))
+      if (!row) throw new Error(`row for ${marker} ${title} not found`)
+      const idx = row.indexOf(marker)
+      expect(idx).toBeGreaterThanOrEqual(0)
+      expect(row[idx + 1]).toBe(" ")
+      expect(row[idx + 2]).toBe(title[0])
+      const rowN = lines.indexOf(row)
+      app.expectCellChar(idx, rowN, marker)
+      app.expectCellChar(idx + 1, rowN, " ")
+      app.expectCellChar(idx + 2, rowN, title[0]!)
+    }
+
+    assertMarkerSpaceTitle("\u2713", "Build")
+    assertMarkerSpaceTitle("\u25A1", "Plan")
+    assertMarkerSpaceTitle("\u2717", "Review")
+
+    // Cursor on the done task must not collapse the spacing either
+    // (selection styling wraps the prefix Box in inverse — easy to break).
+    app.navigateTo("Build")
+    assertMarkerSpaceTitle("\u2713", "Build")
+  })
+
   // =========================================================================
   // Keyboard toggle
   // =========================================================================
