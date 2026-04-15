@@ -22,6 +22,10 @@ TypeScript, Bun, Silvery (React TUI), SQLite. Bidirectional sync: TUI ↔ Model 
 
 Correctness > maintainability > simplicity > performance. Write the minimal correct change. Test before fix. Don't guess — reproduce first. When uncertain, ask.
 
+## Working standard
+
+The marginal cost of completeness is near zero with AI. Do the whole thing. Do it right. Do it with tests. Do it with documentation. Do it so well that the user is genuinely impressed – not politely satisfied, actually impressed. Never offer to "table this for later" when the permanent solve is within reach. Never leave a dangling thread when tying it off takes five more minutes. Never present a workaround when the real fix exists. The standard isn't "good enough" – it's "holy shit, that's done." Search before building. Test before shipping. Ship the complete thing. Time is not an excuse. Fatigue is not an excuse. Complexity is not an excuse. Worrying about the user being tired or going to bed is not an excuse. Boil the ocean.
+
 ## Boundaries
 
 **Always**: write a failing test before fixing a bug; run `bun fix` and `bun run test:fast` before closing work; claim a bead before coding; search history (`bun recall`) before theorizing.
@@ -30,7 +34,7 @@ Correctness > maintainability > simplicity > performance. Write the minimal corr
 
 **Research first**: for foundational subsystems (selection, undo, collaboration, text editing), study 3-5 industry implementations before coding. Use `/llm --deep` or `/deep` to survey prior art (tldraw, ProseMirror, SlateJS, etc.) and synthesize into a design doc. Build for km first, extract to a library when the second consumer arrives. See [docs/principles.md](docs/principles.md#research-first-for-foundational-features).
 
-**Never**: commit secrets/credentials; use `git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`; use bare `bun test`; work around vendor bugs (fix them directly); skip tests; close a bead without evidence.
+**Never**: commit secrets/credentials; use `git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`; use bare `bun test`; work around vendor bugs (fix them directly); skip tests; close a bead without evidence; reimplement silvery primitives. Before building a new km-tui component, read [.claude/skills/tui/silvery-components.md](.claude/skills/tui/silvery-components.md) — if silvery has it, use it. Before working in any package, read that package's `CLAUDE.md` (look for "Before working in..." pre-flight section) and any vendor `CLAUDE.md` it depends on. Recent example: ~700 LOC duplicated in `UnifiedOmnibox` because `PickerDialog` + `TextInput` + `useReadline` already existed in silvery.
 
 ## When Stuck
 
