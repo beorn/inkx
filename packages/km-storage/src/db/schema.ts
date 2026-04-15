@@ -5,6 +5,22 @@
  * to ensure consistent table structure.
  */
 
+/**
+ * Schema version — bump when the FTS table layout or tokenizer changes, or
+ * when any other irreversible schema change needs re-running on existing DBs.
+ * `migrateSchema()` reads `meta.schema_version`; if it's absent or older than
+ * this constant, the appropriate migration steps run and the value is updated.
+ *
+ * History:
+ *   1 — Baseline (pre-versioning). Applied automatically on first open of a
+ *       DB that has no schema_version row.
+ *   2 — nodes_fts: add name + title columns, unicode61 tokenchars '@#+['.
+ *       Requires dropping nodes_fts (and its triggers) and repopulating from
+ *       nodes — CREATE VIRTUAL TABLE IF NOT EXISTS won't update an existing
+ *       virtual table's column set or tokenizer.
+ */
+export const SCHEMA_VERSION = 2
+
 export const SCHEMA = `
 -- Core node table
 CREATE TABLE IF NOT EXISTS nodes (
@@ -71,26 +87,41 @@ CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 CREATE INDEX IF NOT EXISTS idx_nodes_block_id ON nodes(block_id);
 
 -- Full-text search
+-- unicode61 tokenchars keeps @#+[ as part of tokens so sigil queries like
+-- "@next", "#urgent", "+taxes", "[foo" survive tokenization. This is required
+-- for the Omnibox to resolve sigil-prefixed files/tags at the index level.
+--
+-- Columns: id + name + title + content. Indexing name/title lets us find files
+-- by literal filename or heading title (e.g. a file named "@next.md" with empty
+-- body). If you add/remove columns here or change the tokenizer, bump
+-- SCHEMA_VERSION below — existing DBs need the migration path.
 CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
   id,
+  name,
+  title,
   content,
   content='nodes',
   content_rowid='rowid',
-  prefix='2,3,4'
+  prefix='2,3,4',
+  tokenize='unicode61 tokenchars ''@#+['''
 );
 
 -- Triggers to keep FTS in sync
 CREATE TRIGGER IF NOT EXISTS nodes_ai AFTER INSERT ON nodes BEGIN
-  INSERT INTO nodes_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
+  INSERT INTO nodes_fts(rowid, id, name, title, content)
+  VALUES (new.rowid, new.id, new.name, new.title, new.content);
 END;
 
 CREATE TRIGGER IF NOT EXISTS nodes_ad AFTER DELETE ON nodes BEGIN
-  INSERT INTO nodes_fts(nodes_fts, rowid, id, content) VALUES('delete', old.rowid, old.id, old.content);
+  INSERT INTO nodes_fts(nodes_fts, rowid, id, name, title, content)
+  VALUES('delete', old.rowid, old.id, old.name, old.title, old.content);
 END;
 
 CREATE TRIGGER IF NOT EXISTS nodes_au AFTER UPDATE ON nodes BEGIN
-  INSERT INTO nodes_fts(nodes_fts, rowid, id, content) VALUES('delete', old.rowid, old.id, old.content);
-  INSERT INTO nodes_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
+  INSERT INTO nodes_fts(nodes_fts, rowid, id, name, title, content)
+  VALUES('delete', old.rowid, old.id, old.name, old.title, old.content);
+  INSERT INTO nodes_fts(rowid, id, name, title, content)
+  VALUES (new.rowid, new.id, new.name, new.title, new.content);
 END;
 
 -- Event replay cursor
@@ -135,13 +166,25 @@ CREATE TABLE IF NOT EXISTS sync_state (
 `
 
 /**
+ * Result of a migration pass. `ftsDropped` means the v1 `nodes_fts` was
+ * dropped and the caller must rerun SCHEMA (to recreate it with the new
+ * layout) and then call `rebuildFtsIndex` to repopulate from `nodes`.
+ */
+export interface MigrateResult {
+  ftsDropped: boolean
+}
+
+/**
  * Migrate existing databases to add new columns.
  * Safe to run multiple times — uses IF NOT EXISTS / try-catch for idempotency.
+ *
+ * Returns a MigrateResult the caller inspects to decide whether to rebuild
+ * the FTS index. This avoids paying a full rebuild cost on every DB open.
  */
-export function migrateSchema(db: import("bun:sqlite").Database): void {
-  // Skip if nodes table doesn't exist yet (fresh database)
+export function migrateSchema(db: import("bun:sqlite").Database): MigrateResult {
+  // Skip if nodes table doesn't exist yet (fresh database) — no FTS to drop.
   const columns = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
-  if (columns.length === 0) return
+  if (columns.length === 0) return { ftsDropped: false }
 
   const columnNames = new Set(columns.map((c) => c.name))
 
@@ -208,7 +251,116 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   // SQLite treats NULL != NULL in composite PRIMARY KEYs, so INSERT OR REPLACE didn't deduplicate
   // rows where section/block_id/relationship were NULL — causing duplicate link rows.
   migrateLinksTable(db)
+
+  // Version-gated migrations. `meta` is created by SCHEMA, but on older DBs it
+  // may exist without a schema_version row — in which case we treat the DB as
+  // version 0 and run every migration below.
+  return migrateVersioned(db)
 }
+
+/**
+ * Read the current schema_version from the meta table, or 0 if absent.
+ * Returns 0 for DBs that predate the `schema_version` key, which is the
+ * cue for every versioned migration to run.
+ */
+function readSchemaVersion(db: import("bun:sqlite").Database): number {
+  // meta may not exist yet on a truly fresh DB — in that case, SCHEMA will
+  // create it and we're at the target version, no migration needed.
+  const hasMeta = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get()
+  if (!hasMeta) return SCHEMA_VERSION
+
+  const row = db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string } | null
+  if (!row) return 0
+  const n = parseInt(row.value, 10)
+  return Number.isFinite(n) ? n : 0
+}
+
+function writeSchemaVersion(db: import("bun:sqlite").Database, version: number): void {
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?)", [String(version)])
+}
+
+/**
+ * Run version-gated migrations for the nodes_fts schema and any future
+ * irreversible changes. Idempotent — re-running after the version is current
+ * is a no-op.
+ */
+function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
+  const result: MigrateResult = { ftsDropped: false }
+
+  const current = readSchemaVersion(db)
+  if (current >= SCHEMA_VERSION) return result
+
+  // v1 → v2: rebuild nodes_fts with name + title columns and sigil tokenchars.
+  //
+  // CREATE VIRTUAL TABLE IF NOT EXISTS won't update an existing fts5 table's
+  // column set or tokenizer, so we must drop the old one if it exists in the
+  // pre-v2 shape. Fresh DBs (created by SCHEMA just before migrateSchema ran)
+  // already have the correct layout — we detect that by probing for a `name`
+  // column on nodes_fts, and skip the drop in that case.
+  if (current < 2) {
+    // Ensure meta exists so we can write the version marker.
+    db.run("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
+
+    const hasFts = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes_fts'").get()
+    if (hasFts && !ftsHasNameColumn(db)) {
+      db.run("BEGIN IMMEDIATE")
+      try {
+        db.run("DROP TRIGGER IF EXISTS nodes_ai")
+        db.run("DROP TRIGGER IF EXISTS nodes_ad")
+        db.run("DROP TRIGGER IF EXISTS nodes_au")
+        db.run("DROP TABLE nodes_fts")
+        db.run("COMMIT")
+      } catch (error) {
+        db.run("ROLLBACK")
+        throw error
+      }
+      // Flag that the caller must rerun SCHEMA (to recreate nodes_fts with
+      // the v2 layout) and then call rebuildFtsIndex to repopulate.
+      result.ftsDropped = true
+    }
+  }
+
+  writeSchemaVersion(db, SCHEMA_VERSION)
+  return result
+}
+
+/**
+ * Probe whether `nodes_fts` already has the v2 `name` column.
+ * Uses `pragma_table_info` which works on fts5 virtual tables and exposes
+ * the user-defined columns (id, [name, title], content).
+ */
+function ftsHasNameColumn(db: import("bun:sqlite").Database): boolean {
+  try {
+    const cols = db.query("SELECT name FROM pragma_table_info('nodes_fts')").all() as { name: string }[]
+    return cols.some((c) => c.name === "name")
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Rebuild the `nodes_fts` index from the `nodes` table. Used after a v2
+ * schema migration that dropped and recreated `nodes_fts` — the new index
+ * starts empty and needs to pick up all existing rows.
+ *
+ * Safe to call on an already-populated index: `INSERT INTO fts(fts)
+ * VALUES('rebuild')` is defined by fts5 as "discard the current index and
+ * rebuild from the content table", so it's idempotent and doesn't produce
+ * duplicate rows. It's O(N) over the nodes table, so callers should only
+ * invoke it after a schema change, not on every DB open.
+ *
+ * No-op on an empty or missing nodes table.
+ */
+export function rebuildFtsIndex(db: import("bun:sqlite").Database): void {
+  const nodesExist = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes'").get()
+  if (!nodesExist) return
+
+  const nodeCount = (db.query("SELECT COUNT(*) as cnt FROM nodes").get() as { cnt: number }).cnt
+  if (nodeCount === 0) return
+
+  db.run("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild')")
+}
+
 
 /**
  * Migrate links table from NULL-unfriendly PRIMARY KEY to COALESCE-based UNIQUE index.

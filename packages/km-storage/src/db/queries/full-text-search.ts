@@ -64,15 +64,33 @@ export function toFts5Query(query: string): string {
  *
  * FTS5 has many special characters (-, `, ^, :, (, ), etc.) that cause
  * query parse errors when used raw. Strategy:
- * - Strip non-alphanumeric characters from the token
- * - If anything remains, use prefix matching (term*)
- * - Returns null for tokens that are entirely special characters
+ * - Strip punctuation that isn't part of a valid token, keeping sigils
+ * - If the token contains a sigil, quote it (FTS5 query syntax requires
+ *   that tokens starting with non-alphanumeric chars be quoted)
+ * - Append prefix-match `*` for prefix search
+ * - Returns null for tokens that are entirely noise
+ *
+ * Sigils `@ # + [` are preserved because the FTS5 tokenizer (unicode61 with
+ * tokenchars='@#+[') keeps them as part of the token. See schema.ts. Without
+ * this, an omnibox query for "@next" would be rewritten to "next*" and lose
+ * the sigil anchor.
+ *
+ * Quoting: FTS5 rejects bare tokens like `@next*` with a syntax error
+ * ("syntax error near @"). Wrapping in double quotes — `"@next"*` — passes
+ * the query as a phrase literal that the tokenizer still treats as one term.
+ * This works for plain tokens too (`"hello"*`), so we quote unconditionally
+ * when sigils are present and leave plain tokens bare for slightly nicer
+ * query plans.
  */
 function escapeFts5Token(token: string): string | null {
-  // Strip characters that are special in FTS5 syntax: - ` ^ : ( ) { } ~ + * " and other punctuation.
-  // Keep only word characters (letters, digits, underscore) which are safe for FTS5.
-  const cleaned = token.replace(/[^\p{L}\p{N}_]/gu, "")
+  // Keep word chars, sigils, and apostrophes-inside-words — nothing else.
+  // `[` is a literal inside the character class (valid unescaped, we escape for clarity).
+  const cleaned = token.replace(/[^\p{L}\p{N}_@#+\[]/gu, "")
   if (cleaned.length === 0) return null
+  // Tokens containing a sigil must be quoted in FTS5 query syntax, otherwise
+  // the parser chokes on `@` / `#` / `+` / `[` as operators.
+  const needsQuoting = /[@#+\[]/.test(cleaned)
+  if (needsQuoting) return `"${cleaned}"*`
   return `${cleaned}*`
 }
 
@@ -148,13 +166,14 @@ export function searchWithSnippet(
   const { startMark = "<<", endMark = ">>", ellipsis = "...", maxTokens = 32 } = snippetOptions
 
   try {
-    // Use snippet() function for highlighting
+    // Use snippet() function for highlighting.
     // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)
-    // column_idx 1 = content column
+    // Column order matches nodes_fts DDL: 0=id, 1=name, 2=title, 3=content.
+    // We snippet the content column (3) — that's where prose lives.
     const rows = db
       .query(
         `
-    SELECT n.*, snippet(nodes_fts, 1, ?, ?, ?, ?) as snippet
+    SELECT n.*, snippet(nodes_fts, 3, ?, ?, ?, ?) as snippet
     FROM nodes n
     JOIN nodes_fts f ON n.id = f.id
     WHERE nodes_fts MATCH ?

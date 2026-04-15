@@ -61,7 +61,7 @@ import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
-import { SCHEMA, migrateSchema } from "../db/schema.ts"
+import { SCHEMA, migrateSchema, rebuildFtsIndex } from "../db/schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "../watcher.ts"
 import { withFsWriter } from "../watch/fs-writer.ts"
 
@@ -1497,8 +1497,9 @@ function* initWithFileLoading(
     }
     const dbPath = join(kmDir, "state.db")
     db = openDiskDatabase(dbPath)
-    migrateSchema(db)
+    const migrateResult = migrateSchema(db)
     db.run(SCHEMA)
+    if (migrateResult.ftsDropped) rebuildFtsIndex(db)
   } else {
     db = new Database(":memory:")
     db.run(SCHEMA)
@@ -1588,8 +1589,9 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
 
     const dbPath = join(kmDir, "state.db")
     db = openDiskDatabase(dbPath)
-    migrateSchema(db)
+    const migrateResult = migrateSchema(db)
     db.run(SCHEMA)
+    if (migrateResult.ftsDropped) rebuildFtsIndex(db)
     dataStore = createDBDataStore(db, { emitter })
   } else {
     // Memory mode - ephemeral (no emitter = direct SQL)
