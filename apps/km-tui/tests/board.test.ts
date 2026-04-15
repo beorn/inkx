@@ -17,7 +17,12 @@ import { createSelection, type ID } from "@silvery/selection"
 /** Create a mock SelectionStore for test contexts that don't use createApp. */
 function createMockSel() {
   return createSelection({
-    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+    tree: {
+      walkOrder: () => [],
+      parent: () => undefined,
+      children: () => [],
+      contains: () => false,
+    },
   })
 }
 
@@ -137,13 +142,15 @@ describe("Runtime invariants", () => {
       nodes: item("board", item("col1", item("1a"), item("1b"))),
     })
 
-    // Create a sel that has "nonexistent-node" in its walk order so we can select it as cursor.
-    // checkInvariants reads ctx.cursor (from sel.node.cursor()).
+    // Create a sel that claims "nonexistent-node" exists so the store lets us
+    // select it as cursor. checkInvariants reads ctx.cursor (from
+    // sel.node.cursor()) and will trip on the bad ID.
     const sel = createSelection({
       tree: {
         walkOrder: () => ["nonexistent-node" as ID],
         parent: () => undefined,
         children: () => [],
+        contains: (id) => id === ("nonexistent-node" as ID),
       },
     })
     sel.node.select(["nonexistent-node" as ID])

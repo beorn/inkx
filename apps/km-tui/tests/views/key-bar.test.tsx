@@ -19,7 +19,12 @@ const baseRender = createRenderer()
 /** Create a minimal Zustand store with `sel` for components that call useSel(). */
 function createMinimalStore() {
   const sel = createSelection({
-    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+    tree: {
+      walkOrder: () => [],
+      parent: () => undefined,
+      children: () => [],
+      contains: () => false,
+    },
   })
   return createSignalStore(() => ({ sel }))
 }

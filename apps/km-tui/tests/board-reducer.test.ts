@@ -931,7 +931,12 @@ import { createSelection } from "@silvery/selection"
 function mockCtx() {
   const calls: { method: string; args: unknown[] }[] = []
   const sel = createSelection({
-    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+    tree: {
+      walkOrder: () => [],
+      parent: () => undefined,
+      children: () => [],
+      contains: () => false,
+    },
   })
   // Intercept sel.node.select to track calls
   const origSelect = sel.node.select.bind(sel.node)

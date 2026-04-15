@@ -1,16 +1,17 @@
 /**
- * Selection Adapter tests — walkOrder caching + TreeLens bridge.
+ * Selection Adapter tests — O(1) contains() + TreeLens bridge.
  *
- * Regression guard for km-tui.startup-input-freeze: on a ~528k-node vault,
- * every j/k keypress used to trigger a full O(N) DFS walk via
- * `@silvery/selection`'s store.select() → `app.tree.walkOrder()`. The walk
- * itself was uncached, so repeated selects (one per keypress) repeatedly
- * paid the full cost, blocking the main thread for 3-5 seconds per press
- * after startup. The fix caches walkOrder at the adapter level, keyed by
- * (lens identity, root) and invalidated whenever `update(newLens)` receives
- * a different lens reference.
+ * km-silvery.selection-contains retired the walkOrder cache: store.select()
+ * now validates IDs via `app.tree.contains(id)` (O(1) repo lookup) instead of
+ * filtering against a tree walk. On 500k-node vaults this was the difference
+ * between a 3-second input freeze per keystroke and no freeze at all
+ * (km-tui.startup-input-freeze).
  *
- * These tests mock a TreeLens so we can count walk invocations directly.
+ * These tests mock a TreeLens so we can prove:
+ *   - contains() delegates to lens.get() and never walks the tree
+ *   - 50 rapid selects don't walk the tree at all
+ *   - selectableAncestor uses contains() instead of building a walkOrder Set
+ *   - walkOrder is still available for range ops that genuinely need order
  */
 
 import { describe, expect, it } from "vitest"
@@ -28,12 +29,13 @@ interface CountingLens {
   lens: TreeLens
   childrenCalls: () => number
   walkOrderCalls: () => number
+  getCalls: () => number
 }
 
 /**
  * Build a tiny TreeLens with three cards in one column under a root. Counts
- * every call to children() and walkOrder — the two hottest paths walkOrder
- * traverses when computing the DFS from a non-null root.
+ * every call to children(), walkOrder, and get() — enough to distinguish
+ * "validated a single id" (get) from "walked the tree" (children/walkOrder).
  */
 function createCountingLens(): CountingLens {
   // Tree shape:
@@ -60,10 +62,14 @@ function createCountingLens(): CountingLens {
 
   let childrenCount = 0
   let walkOrderCount = 0
+  let getCount = 0
 
   const lens: TreeLens = {
     rootId: "root",
-    get: (id: string) => (childMap.has(id) ? makeNode(id) : undefined),
+    get: (id: string) => {
+      getCount++
+      return childMap.has(id) ? makeNode(id) : undefined
+    },
     children: (id: string) => {
       childrenCount++
       return childMap.get(id) ?? []
@@ -89,6 +95,7 @@ function createCountingLens(): CountingLens {
     lens,
     childrenCalls: () => childrenCount,
     walkOrderCalls: () => walkOrderCount,
+    getCalls: () => getCount,
   }
 }
 
@@ -96,65 +103,29 @@ function createCountingLens(): CountingLens {
 // Tests
 // =============================================================================
 
-describe("createSelectionAdapter — walkOrder cache (km-tui.startup-input-freeze)", () => {
-  it("caches walkOrder across repeated calls with the same lens", () => {
-    const { lens, childrenCalls } = createCountingLens()
+describe("createSelectionAdapter — tree.contains() is O(1)", () => {
+  it("contains() delegates to lens.get() and never walks the tree", () => {
+    const { lens, childrenCalls, walkOrderCalls, getCalls } = createCountingLens()
     const { app, source } = createSelectionAdapter()
     source.update(lens)
 
-    // First call — children() is invoked to compute the DFS
-    const first = app.tree.walkOrder("root" as ID)
-    const after1 = childrenCalls()
-    expect(after1).toBeGreaterThan(0)
+    // A real id — returns true
+    expect(app.tree.contains("cardA" as ID)).toBe(true)
+    // A stale id — returns false
+    expect(app.tree.contains("ghost" as ID)).toBe(false)
 
-    // Second call with the same lens — cache hit, no extra children() calls
-    const second = app.tree.walkOrder("root" as ID)
-    expect(childrenCalls()).toBe(after1)
-    expect(second).toEqual(first)
-
-    // Third, tenth, hundredth — still cached
-    for (let i = 0; i < 100; i++) app.tree.walkOrder("root" as ID)
-    expect(childrenCalls()).toBe(after1)
+    // Exactly two get() calls, no tree walk
+    expect(getCalls()).toBe(2)
+    expect(childrenCalls()).toBe(0)
+    expect(walkOrderCalls()).toBe(0)
   })
 
-  it("invalidates the cache when update() receives a fresh lens", () => {
-    const l1 = createCountingLens()
-    const l2 = createCountingLens()
-    const { app, source } = createSelectionAdapter()
-
-    source.update(l1.lens)
-    app.tree.walkOrder("root" as ID)
-    const afterFirst = l1.childrenCalls()
-    expect(afterFirst).toBeGreaterThan(0)
-
-    // Lens swap — new lens means the cache must invalidate
-    source.update(l2.lens)
-    app.tree.walkOrder("root" as ID)
-    expect(l2.childrenCalls()).toBeGreaterThan(0)
-    // l1 was not touched by the second call
-    expect(l1.childrenCalls()).toBe(afterFirst)
-  })
-
-  it("does NOT recompute when update() receives the identical lens ref", () => {
-    const { lens, childrenCalls } = createCountingLens()
-    const { app, source } = createSelectionAdapter()
-
-    source.update(lens)
-    app.tree.walkOrder("root" as ID)
-    const before = childrenCalls()
-
-    // Same reference — should keep the cache warm
-    source.update(lens)
-    app.tree.walkOrder("root" as ID)
-    expect(childrenCalls()).toBe(before)
-  })
-
-  it("rapid cursor-navigation selects do NOT re-walk the tree", () => {
-    // This is the km-tui.startup-input-freeze scenario in miniature:
-    // a user pressing j 50 times before the lens ever changes. Each select()
-    // in @silvery/selection calls app.tree.walkOrder(root) — the adapter
-    // must hit cache so the total walk cost stays O(N), not O(N × keypresses).
-    const { lens, childrenCalls } = createCountingLens()
+  it("rapid cursor-navigation selects do NOT walk the tree", () => {
+    // km-tui.startup-input-freeze regression guard. Each store.select() in
+    // @silvery/selection used to call app.tree.walkOrder(root) — at 528k
+    // nodes that was 3 seconds PER keystroke. With contains()-based
+    // validation, 50 selects should produce zero walks.
+    const { lens, childrenCalls, walkOrderCalls, getCalls } = createCountingLens()
     const { app, source } = createSelectionAdapter()
     source.update(lens)
 
@@ -162,44 +133,88 @@ describe("createSelectionAdapter — walkOrder cache (km-tui.startup-input-freez
 
     // Warm the cache with one navigation
     sel.node.select(["cardA" as ID])
-    const afterFirst = childrenCalls()
-    expect(afterFirst).toBeGreaterThan(0)
+    expect(sel.node.cursor()).toBe("cardA")
 
-    // 50 more single-ID selects against the same (unchanged) lens — cache hits
+    // 50 more single-ID selects against the same lens
     const targets = ["cardB", "cardC", "cardA"] as ID[]
     for (let i = 0; i < 50; i++) {
       sel.node.select([targets[i % targets.length]!])
     }
 
-    // Zero additional children() calls — walkOrder was served from cache.
-    expect(childrenCalls()).toBe(afterFirst)
+    // Zero walks — everything went through contains()
+    expect(childrenCalls()).toBe(0)
+    expect(walkOrderCalls()).toBe(0)
+    // get() was called ~once per select (51 total)
+    expect(getCalls()).toBeGreaterThanOrEqual(51)
     expect(sel.node.cursor()).not.toBeNull()
   })
 
-  it("caches separately for root=null vs root=<id>", () => {
+  it("selects with stale IDs filter them out and leave state clean", () => {
+    // The old walkOrder filter silently dropped stale IDs. contains() must
+    // preserve that semantic so callers can pass a mix without crashing.
+    const { lens } = createCountingLens()
+    const { app, source } = createSelectionAdapter()
+    source.update(lens)
+
+    const sel = createSelection(app, { initialRoot: "root" as ID })
+
+    sel.node.select(["ghost" as ID, "cardB" as ID, "phantom" as ID])
+    expect(sel.node.cursor()).toBe("cardB")
+    expect([...sel.node.ids()]).toEqual(["cardB"])
+  })
+
+  it("updates lens reference in place (no caching)", () => {
+    const l1 = createCountingLens()
+    const l2 = createCountingLens()
+    const { app, source } = createSelectionAdapter()
+
+    source.update(l1.lens)
+    expect(app.tree.contains("cardA" as ID)).toBe(true)
+    expect(l1.getCalls()).toBe(1)
+    expect(l2.getCalls()).toBe(0)
+
+    // Swap lens — reads go to the new one
+    source.update(l2.lens)
+    expect(app.tree.contains("cardA" as ID)).toBe(true)
+    expect(l2.getCalls()).toBe(1)
+    expect(l1.getCalls()).toBe(1) // untouched by the second call
+  })
+
+  it("walkOrder is still exposed for range ops", () => {
+    // extend()/reconcile() need walk order. contains() can't replace them.
+    // This test proves the bridge is still wired so those ops keep working.
     const { lens, walkOrderCalls, childrenCalls } = createCountingLens()
     const { app, source } = createSelectionAdapter()
     source.update(lens)
 
-    // root=null takes the full-walkOrder branch
-    app.tree.walkOrder(null)
+    const order = app.tree.walkOrder(null)
+    expect(order).toEqual(["root", "col1", "cardA", "cardB", "cardC"])
     expect(walkOrderCalls()).toBe(1)
 
-    // A second root=null call is cached
-    app.tree.walkOrder(null)
-    expect(walkOrderCalls()).toBe(1)
+    // Subtree walk from a specific root uses children(), not walkOrder
+    const sub = app.tree.walkOrder("col1" as ID)
+    expect(sub).toEqual(["col1", "cardA", "cardB", "cardC"])
+    expect(childrenCalls()).toBeGreaterThan(0)
+  })
 
-    // root="root" takes the subtree-walk branch (children)
-    app.tree.walkOrder("root" as ID)
-    const childrenAfter = childrenCalls()
-    expect(childrenAfter).toBeGreaterThan(0)
+  it("contains() returns false when no lens is installed", () => {
+    const { app } = createSelectionAdapter()
+    expect(app.tree.contains("anything" as ID)).toBe(false)
+  })
 
-    // A second root="root" call is cached (no additional children calls)
-    app.tree.walkOrder("root" as ID)
-    expect(childrenCalls()).toBe(childrenAfter)
+  it("fires beforeRead hook on contains()", () => {
+    const { lens } = createCountingLens()
+    const { app, source } = createSelectionAdapter()
+    source.update(lens)
 
-    // Both entries are still live — null is still cached too
-    app.tree.walkOrder(null)
-    expect(walkOrderCalls()).toBe(1)
+    let callCount = 0
+    source.setBeforeRead(() => {
+      callCount++
+    })
+
+    app.tree.contains("cardA" as ID)
+    expect(callCount).toBe(1)
+    app.tree.contains("cardB" as ID)
+    expect(callCount).toBe(2)
   })
 })

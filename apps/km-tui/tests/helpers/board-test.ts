@@ -96,6 +96,7 @@ function createMockSel(): SelectionStore {
       walkOrder: () => [],
       parent: () => undefined,
       children: () => [],
+      contains: () => false,
     },
   })
 }

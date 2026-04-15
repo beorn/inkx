@@ -18,7 +18,12 @@ import { createSelection, type ID } from "@silvery/selection"
 /** Create a mock SelectionStore for test contexts. */
 function createMockSel() {
   return createSelection({
-    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+    tree: {
+      walkOrder: () => [],
+      parent: () => undefined,
+      children: () => [],
+      contains: () => false,
+    },
   })
 }
 
@@ -91,6 +96,7 @@ describe("cursor-not-null invariant", () => {
         walkOrder: () => ["1a" as ID],
         parent: () => undefined,
         children: () => [],
+        contains: (id) => id === ("1a" as ID),
       },
     })
     sel.node.select(["1a" as ID]) // sets cursor → kind() = "node"
@@ -112,7 +118,12 @@ describe("cursor-not-null invariant", () => {
 
   test("null cursor is OK when sel is idle", () => {
     const sel = createSelection({
-      tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+      tree: {
+        walkOrder: () => [],
+        parent: () => undefined,
+        children: () => [],
+        contains: () => false,
+      },
     })
     // Don't select anything — sel stays idle (kind() = "idle")
     const ctx = validCtx({
@@ -377,7 +388,12 @@ describe("sel-root-matches-rootId invariant", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const sel = createSelection({
-      tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+      tree: {
+        walkOrder: () => [],
+        parent: () => undefined,
+        children: () => [],
+        contains: () => false,
+      },
     })
     // Force sel root to something different from rootId
     sel.root.set("other-root" as ID)

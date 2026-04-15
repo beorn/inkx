@@ -133,7 +133,12 @@ const mockUIState = createInitialPaneUI("cards", [], { columns: 120, rows: 40 })
 
 // Mock Zustand store satisfying TreeNode's useAppStore/useAppShallow requirements
 const mockSel = createSelection({
-  tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+  tree: {
+    walkOrder: () => [],
+    parent: () => undefined,
+    children: () => [],
+    contains: () => false,
+  },
 })
 const mockZustandStore = createSignalStore(() => ({
   ui: {
