@@ -14,7 +14,8 @@ import { Box, Text, Small, CursorLine, ModalDialog } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"
-import { NodeLine } from "./shared-components.tsx"
+import { OmniboxRow } from "./OmniboxRow.tsx"
+import { nodeToRow } from "./omnibox-row-adapters.ts"
 import { fuzzyScore } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
@@ -100,22 +101,20 @@ function PickerOptions({
       {visibleOptions.map((opt, i) => {
         const actualIndex = scrollOffset + i
         const isSelected = actualIndex === selectedIndex
-
-        return (
-          <NodeLine
-            key={`${opt.node.id}-${i}`}
-            node={opt.node}
-            title={opt.title}
-            parentContext={opt.parentContext}
-            isSelected={isSelected}
-          >
-            {opt.isRecent && (
-              <Text color={isSelected ? "$selection" : "$primary"} dimColor={!isSelected}>
-                {" (recent)"}
-              </Text>
-            )}
-          </NodeLine>
-        )
+        const base = nodeToRow(opt.node, {
+          parentContext: opt.parentContext,
+          isSelected,
+        })
+        // Override: pickers prefer the loader-supplied display title (which
+        // may differ from node.content for tags / projects) and surface the
+        // recent-marker as the right-side hint.
+        const rowData = {
+          ...base,
+          id: `${opt.node.id}-${i}`,
+          title: opt.title,
+          hint: opt.isRecent ? "recent" : undefined,
+        }
+        return <OmniboxRow key={rowData.id} data={rowData} />
       })}
     </>
   )
