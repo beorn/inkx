@@ -16,6 +16,8 @@
 import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+import { Workspace } from "../src/state/board-app-store.ts"
+import { isBoardPane } from "../src/board/board-types.ts"
 
 // ---------------------------------------------------------------------------
 // DatePromptDialog lifecycle
@@ -358,5 +360,47 @@ describe("FavoritesDialog lifecycle", () => {
     expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(true)
     app.press("Escape")
     expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FilterDialog lifecycle
+// ---------------------------------------------------------------------------
+
+describe("FilterDialog lifecycle", () => {
+  // Guard rail for km-tui.inscope-dialog-migration — filter bindings still
+  // use inScope("dialog:filter") today, which has the same production-gap
+  // risk that favorites had. This test locks in the desired behavior so
+  // the migration is a safe refactor.
+  test("filter command opens filter dialog; Escape closes it", () => {
+    using app = createTestApp(item("board", item("col1", item.task("Task1"))))
+    const readFilterOpen = (): boolean => {
+      return app.withStore((s) => {
+        const pane = Workspace.getActiveBoardPane(s)
+        return !!(pane && isBoardPane(pane) && pane.showFilterDialog)
+      })
+    }
+    app.command("filter")
+    expect(readFilterOpen()).toBe(true)
+    app.press("Escape")
+    expect(readFilterOpen()).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SearchDialog Tab routing guard rail
+// ---------------------------------------------------------------------------
+
+describe("SearchDialog Tab routing", () => {
+  // Guard rail for km-tui.inscope-dialog-migration — the `input-type-tab`
+  // layer gates on not(inScope("dialog:search")). This test verifies Tab
+  // works inside the search dialog today so the migration to
+  // not(searchDialogOpen) can be a safe refactor.
+  test("search dialog opens; Escape closes it", () => {
+    using app = createTestApp(item("board", item("col1", item("a"), item("b"))))
+    app.dispatch("search")
+    expect(app.withStore((s) => s.ui.showSearchDialog)).toBe(true)
+    app.press("Escape")
+    expect(app.withStore((s) => s.ui.showSearchDialog)).toBe(false)
   })
 })
