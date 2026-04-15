@@ -180,11 +180,50 @@ export interface OmniboxPane {
 
 /**
  * Construct a fresh `OmniboxPane` from a spec. This is what
- * `openOmnibox(spec)` passes to `setUI({ omnibox: ... })` to raise a new
- * singleton omnibox overlay.
+ * `openOmnibox(setUI, spec)` passes to `setUI({ omnibox: ... })` to raise
+ * a new singleton omnibox overlay.
  */
 export function createOmniboxPane(spec: OmniboxInvocationSpec): OmniboxPane {
   return { spec, state: initialStateFromSpec(spec) }
+}
+
+/**
+ * The UIState-setter signature. We inject it via DI so the omnibox helpers
+ * stay independent of Zustand / signal store plumbing and can be tested
+ * against a plain mock. In production this is `BoardAppStore["setUI"]`.
+ */
+export type SetUIFn = (patch: { omnibox: OmniboxPane | null }) => void
+
+/**
+ * Raise a singleton overlay omnibox from an invocation spec. Replaces any
+ * currently-open omnibox (we only ever have one at a time). Focus return
+ * on dismiss is the caller's responsibility via `spec.anchorPaneId`.
+ */
+export function openOmnibox(setUI: SetUIFn, spec: OmniboxInvocationSpec): OmniboxPane {
+  const pane = createOmniboxPane(spec)
+  setUI({ omnibox: pane })
+  return pane
+}
+
+/** Dismiss the current omnibox overlay. No-op if already null. */
+export function dismissOmnibox(setUI: SetUIFn): void {
+  setUI({ omnibox: null })
+}
+
+/**
+ * Dispatch an action against the current pane and write the result back
+ * through setUI. This is the full reducer loop for a single tick — the
+ * caller (usually a key handler) doesn't need to touch the pane directly.
+ */
+export function dispatchOmnibox(
+  setUI: SetUIFn,
+  currentPane: OmniboxPane | null,
+  action: OmniboxAction,
+): OmniboxPane | null {
+  if (currentPane == null) return null
+  const next = omniboxReduce(currentPane, action)
+  setUI({ omnibox: next })
+  return next
 }
 
 /**
@@ -192,10 +231,7 @@ export function createOmniboxPane(spec: OmniboxInvocationSpec): OmniboxPane {
  * Returns a new pane with the same spec and a replaced state. Keep the
  * reducer pure — the caller writes the result back via setUI.
  */
-export function withUpdatedState(
-  pane: OmniboxPane,
-  next: OmniboxBaseState,
-): OmniboxPane {
+export function withUpdatedState(pane: OmniboxPane, next: OmniboxBaseState): OmniboxPane {
   return { spec: pane.spec, state: next }
 }
 

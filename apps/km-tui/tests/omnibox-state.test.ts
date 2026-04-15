@@ -8,14 +8,18 @@ import {
   SIGIL_MODES,
   applySigilRule,
   createOmniboxPane,
+  dismissOmnibox,
+  dispatchOmnibox,
   initialStateFromSpec,
   modeOf,
   omniboxReduce,
+  openOmnibox,
   resolveEffectiveCommand,
   resolveEnterInvocation,
   withUpdatedState,
   type OmniboxBaseState,
   type OmniboxInvocationSpec,
+  type OmniboxPane,
 } from "../src/state/omnibox.ts"
 
 function spec(partial: Partial<OmniboxInvocationSpec> = {}): OmniboxInvocationSpec {
@@ -304,10 +308,10 @@ describe("createOmniboxPane + omniboxReduce", () => {
     })
 
     it("CLEAR_ALL wipes buffer + selection, preserves defaultCommand", () => {
-      const dirty = omniboxReduce(
-        omniboxReduce(pane, { type: "SET_BUFFER", buffer: "foo" }),
-        { type: "SET_SELECTED_ARGUMENT", argumentId: "n1" },
-      )
+      const dirty = omniboxReduce(omniboxReduce(pane, { type: "SET_BUFFER", buffer: "foo" }), {
+        type: "SET_SELECTED_ARGUMENT",
+        argumentId: "n1",
+      })
       const next = omniboxReduce(dirty, { type: "CLEAR_ALL" })
       expect(next.state.buffer).toBe("")
       expect(next.state.selectedArgumentId).toBeNull()
@@ -330,5 +334,84 @@ describe("createOmniboxPane + omniboxReduce", () => {
       ].reduce((p, a) => omniboxReduce(p, a), pane)
       expect(chain.spec.subjectSelection.cursorId).toBe("anchor")
     })
+  })
+})
+
+describe("openOmnibox / dismissOmnibox / dispatchOmnibox — setUI integration", () => {
+  function createFakeSetUI(): { setUI: (p: { omnibox: OmniboxPane | null }) => void; ui: { omnibox: OmniboxPane | null } } {
+    const ui: { omnibox: OmniboxPane | null } = { omnibox: null }
+    return {
+      setUI: (p) => {
+        ui.omnibox = p.omnibox
+      },
+      ui,
+    }
+  }
+
+  it("openOmnibox sets ui.omnibox to a fresh pane from the spec", () => {
+    const fake = createFakeSetUI()
+    const sp = spec({ initialBuffer: ":", initialDefaultCommand: "move", initialArgumentId: "n1" })
+    const pane = openOmnibox(fake.setUI, sp)
+
+    expect(fake.ui.omnibox).toBe(pane)
+    expect(fake.ui.omnibox?.state.buffer).toBe(":")
+    expect(fake.ui.omnibox?.state.defaultCommand).toBe("move")
+    expect(fake.ui.omnibox?.state.selectedArgumentId).toBe("n1")
+    expect(fake.ui.omnibox?.spec).toBe(sp)
+  })
+
+  it("openOmnibox replaces any existing open omnibox (singleton)", () => {
+    const fake = createFakeSetUI()
+    openOmnibox(fake.setUI, spec({ initialBuffer: ":" }))
+    openOmnibox(fake.setUI, spec({ initialBuffer: "@" }))
+    expect(fake.ui.omnibox?.state.buffer).toBe("@")
+  })
+
+  it("dismissOmnibox sets ui.omnibox to null", () => {
+    const fake = createFakeSetUI()
+    openOmnibox(fake.setUI, spec({ initialBuffer: ":" }))
+    dismissOmnibox(fake.setUI)
+    expect(fake.ui.omnibox).toBeNull()
+  })
+
+  it("dispatchOmnibox runs one reducer tick and writes back through setUI", () => {
+    const fake = createFakeSetUI()
+    openOmnibox(fake.setUI, spec({ initialBuffer: ":" }))
+    const next = dispatchOmnibox(fake.setUI, fake.ui.omnibox, {
+      type: "SET_SELECTED_ARGUMENT",
+      argumentId: "picked-node",
+    })
+    expect(next?.state.selectedArgumentId).toBe("picked-node")
+    expect(fake.ui.omnibox?.state.selectedArgumentId).toBe("picked-node")
+  })
+
+  it("dispatchOmnibox is a no-op when no omnibox is open", () => {
+    const fake = createFakeSetUI()
+    const result = dispatchOmnibox(fake.setUI, null, { type: "SET_BUFFER", buffer: "foo" })
+    expect(result).toBeNull()
+    expect(fake.ui.omnibox).toBeNull()
+  })
+
+  it("open → dispatch → confirm-ready cycle preserves the subject snapshot", () => {
+    const fake = createFakeSetUI()
+    const sp = spec({
+      initialBuffer: "",
+      initialDefaultCommand: "move",
+      subjectSelection: { cursorId: "anchor-card", selectedIds: ["anchor-card"] },
+    })
+    openOmnibox(fake.setUI, sp)
+
+    // User types '+k', '+km' becomes the buffer, reducer stays pure.
+    let pane = dispatchOmnibox(fake.setUI, fake.ui.omnibox, { type: "TYPE_CHAR", char: "+" })
+    pane = dispatchOmnibox(fake.setUI, pane, { type: "TYPE_CHAR", char: "k" })
+    pane = dispatchOmnibox(fake.setUI, pane, { type: "TYPE_CHAR", char: "m" })
+    pane = dispatchOmnibox(fake.setUI, pane, { type: "SET_SELECTED_ARGUMENT", argumentId: "project-km" })
+
+    // Spec / subjectSelection is still the original anchor — the
+    // /pro-blocker-1 invariant "subject is frozen at open time" holds.
+    expect(pane?.spec.subjectSelection.cursorId).toBe("anchor-card")
+    expect(pane?.state.buffer).toBe("+km")
+    expect(pane?.state.selectedArgumentId).toBe("project-km")
+    expect(pane?.state.defaultCommand).toBe("move")
   })
 })
