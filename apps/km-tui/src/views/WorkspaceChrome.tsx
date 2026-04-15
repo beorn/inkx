@@ -396,7 +396,7 @@ function UnifiedOmniboxConnector({
       // mangle their contents. The reducer test suite covers applySigilRule
       // exhaustively; we only need to pick off the typed char and run it.
       const prev = prevBufferRef.current
-      let nextBuffer = value
+      const nextBuffer = value
       if (value.length === prev.length + 1) {
         // Find the insertion point — walk the common prefix until they differ.
         let i = 0
@@ -577,7 +577,7 @@ export function WorkspaceChrome({
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={80}
-          topFraction={1 / 2}
+          topFraction={1 / 6}
           data-dialog="picker"
           focusScope
         >

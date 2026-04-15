@@ -91,95 +91,129 @@ export function useBoardDialogs({
 }: UseBoardDialogsParams): BoardDialogHandlers {
   const repoUpdate = useRepoEffect(repo)
 
-  // Handle item picker selection (move to project)
-  // For linked nodes (transclusions), re-parent the TARGET node, not the link
+  /**
+   * Shared navigate-to-picked-node helper. Used by every type-specific
+   * picker handler when `pendingVerb === "goto"` — a user who opened the
+   * context/tag/project picker via a `goto` chord (e.g. `g @` → go to
+   * context) expects Enter to navigate to the picked node, not to run
+   * the type's default action (assign/add/move).
+   *
+   * Fixes the km-tui.omnibox-* Enter-does-nothing regression where
+   * `@delei + Enter` silently set `assigned_to = "delei"` on the cursor
+   * instead of navigating to @delei. See the verb-switch in
+   * `handleItemPickerSelect` for the canonical pattern.
+   */
+  const navigateToPickedNode = useCallback(
+    (targetId: string) => {
+      const target = repo.getNode(targetId)
+      if (!target) return
+      const nav = navigateToNode(target.id, rootId, repo)
+      if (!nav) return
+      if (nav.action === "SELECT") {
+        sel.node.select([nav.cursorTarget as ID])
+      } else if (nav.zoomTarget) {
+        dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        if (nav.cursorTarget) sel.node.select([nav.cursorTarget as ID])
+        if (nav.action === "DETAIL_VIEW") openDetailPane()
+      }
+    },
+    [repo, rootId, sel, dispatchBoard, openDetailPane],
+  )
+
+  // Handle project picker selection — verb-aware.
+  //   move (default) → reparent cursor under picked project
+  //   goto           → navigate to picked project
   const handlePickerSelect = useCallback(
     (option: PickerOption) => {
       const targetNode = option.node
-      if (!cursor) {
-        setUI({ activePicker: null })
-        return
-      }
 
-      // Get the node at the cursor
-      const cursorNode = repo.getNode(cursor)
-      if (!cursorNode) {
-        setUI({ activePicker: null })
-        return
-      }
+      // Verb dispatch: `goto` delegates to the shared navigation helper.
+      // Any other verb (move, or no verb for legacy triggers) falls through
+      // to the project-specific "reparent under target" semantics below.
+      setUI((prev) => {
+        const verb = prev.activePicker?.pendingVerb
+        if (verb === "goto") {
+          navigateToPickedNode(targetNode.id)
+          return { activePicker: null }
+        }
 
-      // Resolve symlink target: if this is a symlink, operate on the target
-      const nodeToMove = cursorNode.embed_of ?? cursorNode.id
+        // Default behavior: move cursor under picked project
+        if (!cursor) return { activePicker: null }
+        const cursorNode = repo.getNode(cursor)
+        if (!cursorNode) return { activePicker: null }
+        const nodeToMove = cursorNode.embed_of ?? cursorNode.id
+        const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(targetNode.id))
+        undoHandle.setCursor(cursor)
+        repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
 
-      // Calculate sort order (add at end of target)
-      const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(targetNode.id))
-
-      // Record cursor for undo
-      undoHandle.setCursor(cursor)
-
-      // Update database via repo (handles memory/disk mode)
-      repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
-
-      // Track as recent project and close picker
-      setUI((prev) => ({
-        recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
-        activePicker: null,
-      }))
+        return {
+          recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
+          activePicker: null,
+        }
+      })
     },
-    [repo, cursor, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle, navigateToPickedNode],
   )
 
   const handlePickerCancel = useCallback(() => {
     setUI({ activePicker: null })
   }, [setUI])
 
-  // Handle tag picker selection — append #tag to current node's content
+  // Handle tag picker selection — verb-aware.
+  //   add (default) → append #tag to current node's content
+  //   goto          → navigate to picked tag node
   const handleTagSelect = useCallback(
     (option: PickerOption) => {
-      if (!cursor) {
-        setUI({ activePicker: null })
-        return
-      }
+      setUI((prev) => {
+        const verb = prev.activePicker?.pendingVerb
+        if (verb === "goto") {
+          navigateToPickedNode(option.node.id)
+          return { activePicker: null }
+        }
 
-      const node = repo.getNode(cursor)
-      if (!node) {
-        setUI({ activePicker: null })
-        return
-      }
-
-      // The option title is "#tagname" — use it directly
-      const tag = option.title
-      const currentContent = node.content ?? ""
-
-      // Only append if not already present
-      if (!currentContent.includes(tag)) {
-        undoHandle.setCursor(cursor)
-        const newContent = currentContent ? `${currentContent} ${tag}` : tag
-        repoUpdate(cursor, { content: newContent })
-      }
-
-      setUI({ activePicker: null })
+        // Default behavior: append #tag to cursor's content
+        if (!cursor) return { activePicker: null }
+        const node = repo.getNode(cursor)
+        if (!node) return { activePicker: null }
+        const tag = option.title
+        const currentContent = node.content ?? ""
+        if (!currentContent.includes(tag)) {
+          undoHandle.setCursor(cursor)
+          const newContent = currentContent ? `${currentContent} ${tag}` : tag
+          repoUpdate(cursor, { content: newContent })
+        }
+        return { activePicker: null }
+      })
     },
-    [repo, cursor, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle, repoUpdate, navigateToPickedNode],
   )
 
-  // Handle assignee picker selection — set assigned_to on current node
+  // Handle assignee picker selection — verb-aware.
+  //   assign (default) → set assigned_to on cursor node
+  //   goto             → navigate to picked assignee/context node
+  //
+  // This fixes the user-reported `@delei + Enter → nothing happens` bug.
+  // Before this fix the goto chord (g @ → "Go to context") opened the
+  // assignee picker and then silently set assigned_to on the cursor
+  // because the handler ignored pendingVerb entirely.
   const handleAssigneeSelect = useCallback(
     (option: PickerOption) => {
-      if (!cursor) {
-        setUI({ activePicker: null })
-        return
-      }
+      setUI((prev) => {
+        const verb = prev.activePicker?.pendingVerb
+        if (verb === "goto") {
+          navigateToPickedNode(option.node.id)
+          return { activePicker: null }
+        }
 
-      // The option title is "@name" — strip the @ prefix for assigned_to
-      const assignee = option.title.startsWith("@") ? option.title.slice(1) : option.title
-
-      undoHandle.setCursor(cursor)
-      repo.updateNode(cursor, { assigned_to: assignee })
-
-      setUI({ activePicker: null })
+        // Default behavior: write assigned_to on cursor node
+        if (!cursor) return { activePicker: null }
+        const assignee = option.title.startsWith("@") ? option.title.slice(1) : option.title
+        undoHandle.setCursor(cursor)
+        repo.updateNode(cursor, { assigned_to: assignee })
+        return { activePicker: null }
+      })
     },
-    [repo, cursor, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle, navigateToPickedNode],
   )
 
   // Handle item picker selection — verb-aware dispatch.

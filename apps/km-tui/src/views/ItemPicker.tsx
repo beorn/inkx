@@ -224,8 +224,9 @@ export function ItemPicker({
 
   return (
     <ModalDialog title={title} width={width} height={height} footer={footerContent}>
-      {/* Search input */}
-      <Box borderStyle="round" borderColor={"$focusborder"} flexShrink={0}>
+      {/* Search input — width=100% so it matches the options list below,
+          which also fills the dialog content area via flexGrow={1}. */}
+      <Box borderStyle="round" borderColor={"$focusborder"} flexShrink={0} width="100%">
         <Text>
           <Text color={"$selection-bg"}>{"/ "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
