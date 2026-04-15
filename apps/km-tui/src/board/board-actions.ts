@@ -56,6 +56,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
+import { openOmnibox, type OmniboxInvocationSpec } from "../state/omnibox.ts"
 
 import {
   applyFoldLevel as reducerApplyFoldLevel,
@@ -269,6 +270,7 @@ const DIALOG_TYPE_LIST = [
   "TOGGLE_HIDE_DONE",
   "CLEAR_FILTERS",
   "COMMAND_PALETTE",
+  "OPEN_UNIFIED_OMNIBOX",
   "DIALOG_NAV_UP",
   "DIALOG_NAV_DOWN",
   "DIALOG_NAV_LEFT",
@@ -1338,6 +1340,36 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         clearSelection(ctx)
       }
       return ok()
+    case "OPEN_UNIFIED_OMNIBOX": {
+      // Phase 7b — build an OmniboxInvocationSpec from the focused pane
+      // and raise the singleton overlay. Subject selection is snapshotted
+      // from the current cursor so binary verbs (move, add_link, etc.)
+      // operate on the pane's selection, not on what the user picks in
+      // the omnibox. See docs/design/omnibox.md.
+      const paneId = ctx.focusedPaneId()
+      const cursorId = ctx.cursor
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: action.initialBuffer ?? ":",
+        initialDefaultCommand: action.defaultCommand ?? "default",
+        initialArgumentId: null,
+        anchorPaneId: paneId,
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => {
+          // v1: top-level repo nodes. Full scope resolution lands in
+          // Phase 7d along with node search in the projection.
+          const rootId = ctx.rootId
+          if (!rootId) return []
+          return ctx.tree
+            .children(rootId)
+            .map((id) => ctx.repo.getNode(id))
+            .filter((n): n is KNode => n != null)
+        },
+      }
+      pushDialogMode("dialog:omnibox")
+      openOmnibox(ctx.setUI as (patch: { omnibox: import("../state/omnibox.ts").OmniboxPane | null }) => void, spec)
+      return ok()
+    }
     case "DIALOG_NAV_UP":
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({

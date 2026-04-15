@@ -191,6 +191,7 @@ export namespace PaneUI {
       ui.deleteConfirm ||
       ui.localSearch ||
       ui.showOmnibox ||
+      ui.omnibox ||
       ui.searchReplace ||
       ui.showFavoritesDialog
     )
@@ -217,6 +218,7 @@ export namespace PaneUI {
       ui.showSearchDialog ||
       ui.datePrompt ||
       ui.showOmnibox ||
+      ui.omnibox ||
       ui.localSearch?.isInputActive ||
       ui.searchReplace
     )

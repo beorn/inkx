@@ -10,8 +10,8 @@
  */
 import React from "react"
 import { Box, Muted, Small, Text } from "@silvery/ag-react"
-import type { TextDecoration } from "../text/text-pipeline.ts"
-import { InlineText } from "./shared-components.tsx"
+import type { TextDecoration } from "../text/inline-ast-types.ts"
+import { InlineText } from "../text/InlineComponents.tsx"
 
 /**
  * Normalized row descriptor. Commands and nodes both flow through this
@@ -71,7 +71,10 @@ export function OmniboxRow({ data }: { data: OmniboxRowData }): React.ReactEleme
           />
           {context &&
             (isSelected ? (
-              <Text color="$selection">{"  "}{context}</Text>
+              <Text color="$selection">
+                {"  "}
+                {context}
+              </Text>
             ) : (
               <Muted>
                 {"  "}

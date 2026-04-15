@@ -111,7 +111,21 @@ export interface BoardAppHandlers {
   ) => void | "exit" | "flush"
   handleMouse: (mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>) => void
   buildOpCtx: (get: () => BoardAppStore, exit: () => void) => OpCtx
-  dispatchCommandById: (commandId: string, get: () => BoardAppStore, exitApp?: () => void, targetId?: string) => void
+  dispatchCommandById: (
+    commandId: string,
+    get: () => BoardAppStore,
+    exitApp?: () => void,
+    targetId?: string,
+    /**
+     * Optional subject override for the unified omnibox (Phase 7b). When
+     * set, the command context's `currentNode` / `currentNodeId` /
+     * `selectedNodes` are read from this snapshot instead of the live
+     * focused pane. Binary verbs (move, add_link, etc.) dispatched from
+     * the omnibox use `subject` as the acted-on node and `targetId` as
+     * the destination. See docs/design/omnibox.md.
+     */
+    subject?: { cursorId: string | null; selectedIds: readonly string[] },
+  ) => void
   triggerChordTimeout: (get: () => BoardAppStore, exitApp?: () => void) => void
 }
 
@@ -427,25 +441,32 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     get: () => BoardAppStore,
     exitApp: () => void = () => {},
     targetId?: string,
+    subject?: { cursorId: string | null; selectedIds: readonly string[] },
   ): void {
     ensureCommandSystemInitialized()
     const ctx = buildOpCtx(get, exitApp)
 
+    // Resolve subject: unified omnibox passes a frozen snapshot; legacy
+    // callers fall through to the live focused pane.
+    const subjectNode = subject?.cursorId ? ctx.repo.getNode(subject.cursorId) : ctx.selectedNode
+    const subjectId = subject ? subject.cursorId : (ctx.selectedNode?.id ?? null)
+    const subjectSelectedIds = subject ? Array.from(subject.selectedIds) : Array.from(ctx.selectedIds)
+
     // Build command context for the executor
     const cmdCtx = {
-      currentNode: ctx.selectedNode
+      currentNode: subjectNode
         ? ({
-            ...ctx.selectedNode,
-            isTask: ctx.selectedNode.item?.task?.status != null,
+            ...subjectNode,
+            isTask: subjectNode.item?.task?.status != null,
             children: [],
             depth: 0,
-            childCount: ctx.selectedNode ? ctx.tree.children(ctx.selectedNode.id).length : 0,
+            childCount: subjectNode ? ctx.tree.children(subjectNode.id).length : 0,
             childrenLoaded: true,
           } as import("@km/commands").TNode)
         : null,
-      currentNodeId: ctx.selectedNode?.id ?? null,
+      currentNodeId: subjectId,
       cursor: ctx.cursor,
-      selectedNodes: Array.from(ctx.selectedIds),
+      selectedNodes: subjectSelectedIds,
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
       siblingCount: (() => {

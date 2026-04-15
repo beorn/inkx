@@ -55,11 +55,7 @@ export function nodeToRow(
     disabled?: boolean
   } = {},
 ): OmniboxRowData {
-  const iconInfo = getNodeIcon(
-    node.item?.task?.status,
-    undefined,
-    node.item?.task?.marker !== undefined,
-  )
+  const iconInfo = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
   return {
     id: `node:${node.id}`,
     icon: iconInfo.char,

@@ -27,7 +27,8 @@ import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
 import { Omnibox, type OmniboxResult } from "./Omnibox.tsx"
-import { ConfirmDialog } from "./shared-components.tsx"
+import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
+import { ConfirmDialog, InputBox } from "./shared-components.tsx"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import { FavoritesDialog } from "./FavoritesDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
@@ -36,6 +37,11 @@ import { dispatchCommandById } from "../board/board-app.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
+import { allCommands } from "@km/commands"
+import { useDialogInput } from "../hooks/use-dialog-input.ts"
+import { dispatchOmnibox, dismissOmnibox, resolveEffectiveCommand, type OmniboxPane } from "../state/omnibox.ts"
+import { commandResultsForOmnibox } from "../state/omnibox-projection.ts"
+import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 // =============================================================================
 // Picker configuration per type
@@ -197,6 +203,159 @@ function CursorAwareNewItemDialog({
   const cursorId = useSignal(ps.sel.node.cursor) as string | null
   const cursorNode = cursorId ? (repo.getNode(cursorId) ?? null) : null
   return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
+}
+
+// =============================================================================
+// UnifiedOmniboxConnector — Phase 7b runtime wiring for the unified omnibox
+// =============================================================================
+
+/**
+ * Bridges `ui.omnibox` (the OmniboxPane value object) to the UnifiedOmnibox
+ * presentation component. Handles:
+ *
+ * - Text input via useDialogInput → mirrored to `pane.state.buffer` on each
+ *   keystroke using dispatchOmnibox SET_BUFFER.
+ * - Enter/Escape/arrows via dialogTargetRef wiring inside useDialogInput.
+ * - Selection of results — cursor up/down updates a local index; the
+ *   currently-highlighted result is projected into `pane.state.selectedArgumentId`.
+ * - Confirmation — resolves the effective command, strips "cmd:"/"node:"
+ *   namespace from the selected ID, and calls `dispatchCommandById` with
+ *   the frozen subject snapshot so binary verbs (move, add_link, etc.)
+ *   operate on the anchor pane's cursor, not the omnibox's target pick.
+ *
+ * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
+ */
+function UnifiedOmniboxConnector({
+  pane,
+  setUI,
+  width,
+}: {
+  pane: OmniboxPane
+  setUI: BoardAppStore["setUI"]
+  width: number
+}): React.ReactElement {
+  const storeRef = React.useContext(StoreContext)
+  const [selectedIndex, setSelectedIndex] = React.useState(0)
+
+  // Live-computed results — projected from @km/commands when in `:`-mode.
+  // Other sigils return empty for v1; full node search lands in Phase 7d.
+  const results: OmniboxRowData[] = useMemo(() => {
+    const buffer = pane.state.buffer
+    if (buffer.startsWith(":")) {
+      return commandResultsForOmnibox(allCommands, buffer.slice(1))
+    }
+    if (buffer.length === 0) {
+      // Universal search — v1 shows the top-N commands as a starting point.
+      return commandResultsForOmnibox(allCommands, "").slice(0, 12)
+    }
+    return []
+  }, [pane.state.buffer])
+
+  // Keep selectedIndex in range as results change.
+  React.useEffect(() => {
+    if (selectedIndex >= results.length) {
+      setSelectedIndex(Math.max(0, results.length - 1))
+    }
+  }, [results.length, selectedIndex])
+
+  // Project selectedIndex → pane.state.selectedArgumentId (ID, not object).
+  // OmniboxRowData.id already carries the "cmd:" or "node:" namespace.
+  React.useEffect(() => {
+    const selected = results[selectedIndex]
+    const nextId = selected?.id ?? null
+    if (nextId !== pane.state.selectedArgumentId) {
+      dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, pane, {
+        type: "SET_SELECTED_ARGUMENT",
+        argumentId: nextId,
+      })
+    }
+    // We intentionally depend only on results/selectedIndex — pane is a value
+    // object that changes on every dispatch and would cause a feedback loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, selectedIndex])
+
+  // Refs for stable callbacks inside useDialogInput closures.
+  const paneRef = React.useRef(pane)
+  paneRef.current = pane
+  const resultsRef = React.useRef(results)
+  resultsRef.current = results
+
+  const handleConfirm = useCallback(() => {
+    const p = paneRef.current
+    if (!p) return
+    const effectiveCmdId = resolveEffectiveCommand(p.state)
+    const argumentId = p.state.selectedArgumentId
+    const subject = p.spec.subjectSelection
+
+    // Strip the namespace prefix — the executor consumes raw IDs.
+    // "cmd:foo" → directly invoke the picked command (targetId from subject).
+    // "node:abc" → stripped ID is the ctx.targetId (destination).
+    let commandToRun = effectiveCmdId
+    let targetId: string | undefined
+    if (argumentId?.startsWith("cmd:")) {
+      commandToRun = argumentId.slice("cmd:".length)
+      targetId = undefined
+    } else if (argumentId?.startsWith("node:")) {
+      targetId = argumentId.slice("node:".length)
+    } else if (argumentId != null) {
+      targetId = argumentId
+    }
+
+    // Dismiss BEFORE dispatching so popDialogMode lands before the command
+    // potentially opens another dialog (keeps the scope stack clean).
+    popDialogMode()
+    dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
+
+    if (storeRef) {
+      const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+      dispatchCommandById(commandToRun, store.getState.bind(store), () => {}, targetId, subject)
+    }
+  }, [setUI, storeRef])
+
+  const handleCancel = useCallback(() => {
+    popDialogMode()
+    dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
+  }, [setUI])
+
+  // Capture initialBuffer at first mount — useDialogInput's internal useMemo
+  // captures its `initialValue` prop on the first render only, and we don't
+  // want subsequent pane.state.buffer changes (from our own SET_BUFFER) to
+  // look like a re-init attempt.
+  const initialBufferRef = React.useRef(pane.state.buffer)
+
+  const editCtx = useDialogInput({
+    initialValue: initialBufferRef.current,
+    onChange: (value) => {
+      // Mirror editor buffer into the reducer. The pure slippery-sigil rule
+      // is tested in omnibox-state.test.ts; the live edit path uses a flat
+      // SET_BUFFER for v1 — users who want to swap sigils can backspace first.
+      dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, paneRef.current, {
+        type: "SET_BUFFER",
+        buffer: value,
+      })
+      setSelectedIndex(0)
+    },
+    onConfirm: handleConfirm,
+    onCancel: handleCancel,
+    navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+    navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
+  })
+
+  return (
+    <Box flexDirection="column" width={width}>
+      {/* Live input — the unified omnibox v1 shows a flat InputBox above the
+          presentational UnifiedOmnibox so the user sees the cursor. Phase 7d
+          collapses these into one chrome. */}
+      <InputBox
+        beforeCursor={editCtx.beforeCursor}
+        afterCursor={editCtx.afterCursor}
+        prompt="omnibox "
+        placeholder="type to search…"
+        focusRing
+      />
+      <UnifiedOmnibox pane={pane} results={results} width={width} />
+    </Box>
+  )
 }
 
 // =============================================================================
@@ -448,6 +607,25 @@ export function WorkspaceChrome({
             onCancel={dialogHandlers.handleOmniboxCancel}
             width={Math.min(100, Math.floor((termWidth * 3) / 4))}
             maxHeight={Math.floor((contentHeight * 2) / 3)}
+          />
+        </CenterDialog>
+      )}
+      {/* Unified omnibox (Phase 7b) — parallel surface to the legacy
+          Omnibox above. Lives until Phase 12 cleanup. See km-tui.omnibox-unified. */}
+      {ui.omnibox && (
+        <CenterDialog
+          termWidth={termWidth}
+          contentHeight={contentHeight}
+          maxWidth={100}
+          widthFraction={3 / 4}
+          topFraction={1 / 6}
+          data-dialog="unified-omnibox"
+          focusScope
+        >
+          <UnifiedOmniboxConnector
+            pane={ui.omnibox}
+            setUI={setUI}
+            width={Math.min(100, Math.floor((termWidth * 3) / 4))}
           />
         </CenterDialog>
       )}

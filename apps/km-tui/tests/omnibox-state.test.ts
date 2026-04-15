@@ -338,7 +338,10 @@ describe("createOmniboxPane + omniboxReduce", () => {
 })
 
 describe("openOmnibox / dismissOmnibox / dispatchOmnibox — setUI integration", () => {
-  function createFakeSetUI(): { setUI: (p: { omnibox: OmniboxPane | null }) => void; ui: { omnibox: OmniboxPane | null } } {
+  function createFakeSetUI(): {
+    setUI: (p: { omnibox: OmniboxPane | null }) => void
+    ui: { omnibox: OmniboxPane | null }
+  } {
     const ui: { omnibox: OmniboxPane | null } = { omnibox: null }
     return {
       setUI: (p) => {

@@ -30,4 +30,23 @@ const defaultCommand = {
   },
 } satisfies CommandDef
 
-export const omniboxCommands: CommandDef[] = [defaultCommand]
+/**
+ * Development entry point for the unified omnibox (Phase 7b).
+ *
+ * Emits OPEN_UNIFIED_OMNIBOX — the TUI-side handler (board-actions.ts)
+ * builds the full invocation spec from the focused pane's cursor + repo
+ * top-level nodes and calls `openOmnibox(setUI, spec)`. Parallel to
+ * `command_palette` — lives alongside the legacy omnibox until Phase 12.
+ *
+ * Bind to Cmd+Shift+K / Ctrl+Shift+K for dev tabbing.
+ */
+const unifiedOmniboxOpen = {
+  id: "unified_omnibox_open",
+  name: "Open unified omnibox",
+  shortLabel: "omnibox",
+  description: "Open the unified sigil-dispatched omnibox (dev)",
+  category: "Navigation",
+  execute: () => ({ type: "OPEN_UNIFIED_OMNIBOX" }),
+} satisfies CommandDef
+
+export const omniboxCommands: CommandDef[] = [defaultCommand, unifiedOmniboxOpen]

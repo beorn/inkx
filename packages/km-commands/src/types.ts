@@ -345,6 +345,25 @@ interface CommandPaletteOp {
   type: "COMMAND_PALETTE"
 }
 
+/**
+ * Open the unified omnibox overlay (Phase 7b of km-tui.omnibox-unified).
+ *
+ * Dispatched by `unified_omnibox_open` (dev keybind: Cmd+Shift+K). The
+ * TUI-side handler in board-actions.ts builds an OmniboxInvocationSpec
+ * from the current focused pane (cursor as subject, repo top-level nodes
+ * as candidate provider) and calls `openOmnibox(setUI, spec)`.
+ *
+ * Parallel to the legacy COMMAND_PALETTE op — doesn't replace it until
+ * Phase 12 cleanup deletes the legacy Omnibox.tsx component.
+ */
+interface OpenUnifiedOmniboxOp {
+  type: "OPEN_UNIFIED_OMNIBOX"
+  /** Optional pre-seeded default command. Defaults to "default". */
+  defaultCommand?: string
+  /** Optional initial buffer. Defaults to ":". */
+  initialBuffer?: string
+}
+
 // Edit operations
 interface InsertAboveOp {
   type: "INSERT_ABOVE"
@@ -912,6 +931,7 @@ export type DialogOp =
   | ToggleHideDoneOp
   | ClearFiltersOp
   | CommandPaletteOp
+  | OpenUnifiedOmniboxOp
   | DialogNavUpOp
   | DialogNavDownOp
   | DialogNavLeftOp

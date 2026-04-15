@@ -80,9 +80,7 @@ describe("default command", () => {
 
 describe("filterCommandsByMode", () => {
   it("commands with no modes list are available in every mode", () => {
-    const cmds = [
-      { id: "a", name: "A", description: "", category: "Navigation" as const, execute: () => null },
-    ]
+    const cmds = [{ id: "a", name: "A", description: "", category: "Navigation" as const, execute: () => null }]
     expect(filterCommandsByMode(cmds, "normal")).toHaveLength(1)
     expect(filterCommandsByMode(cmds, "move")).toHaveLength(1)
     expect(filterCommandsByMode(cmds, "search")).toHaveLength(1)
@@ -116,8 +114,20 @@ describe("filterCommandsByMode", () => {
 
 describe("rankCommands", () => {
   const cmds = [
-    { id: "goto", name: "Go to", description: "Navigate to a board", category: "Navigation" as const, execute: () => null },
-    { id: "move", name: "Move", description: "Move selection to target", category: "Edit" as const, execute: () => null },
+    {
+      id: "goto",
+      name: "Go to",
+      description: "Navigate to a board",
+      category: "Navigation" as const,
+      execute: () => null,
+    },
+    {
+      id: "move",
+      name: "Move",
+      description: "Move selection to target",
+      category: "Edit" as const,
+      execute: () => null,
+    },
     { id: "add", name: "Add", description: "Attach tag or link", category: "Edit" as const, execute: () => null },
   ]
 

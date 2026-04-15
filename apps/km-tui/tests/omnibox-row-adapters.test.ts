@@ -4,11 +4,7 @@
 import { describe, expect, it } from "vitest"
 import type { CommandDef } from "@km/commands"
 import type { KNode } from "@km/core"
-import {
-  commandToRow,
-  favoriteToRow,
-  nodeToRow,
-} from "../src/views/omnibox-row-adapters.ts"
+import { commandToRow, favoriteToRow, nodeToRow } from "../src/views/omnibox-row-adapters.ts"
 
 const fakeCommand: CommandDef = {
   id: "goto",
