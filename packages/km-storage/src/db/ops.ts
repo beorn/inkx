@@ -140,6 +140,67 @@ export function deleteSubtree(db: Database, rootId: string): void {
 // Implementation Functions (internal)
 // =============================================================================
 
+/** Thrown when moveNode is called with a parent type that's incompatible with the child. */
+export class InvalidMoveError extends Error {
+  constructor(
+    public readonly nodeId: string,
+    public readonly newParentId: string,
+    public readonly reason: string,
+  ) {
+    super(`Invalid move: ${nodeId} → ${newParentId}: ${reason}`)
+    this.name = "InvalidMoveError"
+  }
+}
+
+/**
+ * Validate that a move is structurally legal — filesystem-backed nodes
+ * (files, markdown files, folders) can only be parented to folders or the
+ * root node. This prevents the corruption class captured by
+ * km-storage.move-type-validation, where a node_moved event reparents a
+ * file/folder into an mdsection and every downstream cursor-invariant
+ * check trips on the broken hierarchy.
+ *
+ * Content nodes (mdsections, paragraphs, list items, etc.) are not
+ * constrained here — their parent can legitimately be a heading, a file,
+ * another list item, etc., and the tree/markdown layer enforces those
+ * rules.
+ *
+ * Non-existent child or parent is treated as a silent no-op (returns
+ * undefined) because the downstream UPDATE is idempotent and callers
+ * historically rely on that graceful degradation. Only structurally
+ * invalid type combinations throw.
+ *
+ * Returns an InvalidMoveError if the move is illegal, undefined otherwise.
+ */
+function validateMove(db: Database, nodeId: string, newParentId: string): InvalidMoveError | undefined {
+  const child = db.query("SELECT id, fstype FROM nodes WHERE id = ?").get(nodeId) as {
+    id: string
+    fstype: string | null
+  } | null
+  if (!child) return undefined
+
+  // Only filesystem-backed children are constrained.
+  const FS_TYPES = new Set(["file", "mdfile", "folder"])
+  if (child.fstype === null || !FS_TYPES.has(child.fstype)) return undefined
+
+  const parent = db.query("SELECT id, fstype FROM nodes WHERE id = ?").get(newParentId) as {
+    id: string
+    fstype: string | null
+  } | null
+  if (!parent) return undefined
+
+  // The filesystem root is represented as id="." with fstype="folder", so
+  // this rule covers it naturally.
+  if (parent.fstype !== "folder") {
+    return new InvalidMoveError(
+      nodeId,
+      newParentId,
+      `child is fs-backed (${child.fstype}) but parent has fstype=${parent.fstype ?? "null"} — filesystem nodes can only be parented to folders`,
+    )
+  }
+  return undefined
+}
+
 function moveNodeImpl(
   db: Database,
   nodeId: string,
@@ -148,6 +209,10 @@ function moveNodeImpl(
   emitter?: Emitter,
 ): void {
   log.debug?.(`moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`)
+
+  const err = validateMove(db, nodeId, newParentId)
+  if (err) throw err
+
   if (emitter) {
     // Snapshot old parent before emission so downstream FS projection decorators
     // can regenerate the source file after a cross-file move

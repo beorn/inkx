@@ -219,6 +219,19 @@ function testDataStore(name: string, factory: () => DataStore) {
         // Should not throw
         store.moveNode("nonexistent", parent, 100)
       })
+
+      test("rejects moving a filesystem-backed node into a non-folder parent", () => {
+        // Regression for km-storage.move-type-validation. Before the validator,
+        // a user could move a file/folder/mdfile into an mdsection, producing a
+        // node with parent_id pointing into an unrelated content subtree — every
+        // downstream cursor-invariant check in km-tui tripped on the broken
+        // hierarchy. The validator now throws InvalidMoveError at the write site.
+        const heading = store.addNode(null, { type: "h", item: {}, fstype: "mdsection" })
+        const file = store.addNode(null, { type: "h", item: {}, fstype: "mdfile" })
+        expect(() => store.moveNode(file, heading, 0)).toThrow(/Invalid move/)
+        // Original parent is untouched — the validator throws BEFORE the UPDATE.
+        expect(store.getNode(file)?.parent_id).not.toBe(heading)
+      })
     })
 
     describe("search", () => {

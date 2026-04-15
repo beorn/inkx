@@ -684,29 +684,25 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           // cursor-in-columns, and any future cursor-consistency check that
           // gets marked recoverable. Generalized heuristic so new checks
           // don't need to be added here explicitly.
-          const needsReset = violations.some(
-            (v) => v.recoverable === true && v.ids !== undefined && "cursor" in v.ids,
-          )
+          const needsReset = violations.some((v) => v.recoverable === true && v.ids !== undefined && "cursor" in v.ids)
           if (needsReset && freshCtx.rootId) {
             // Find the first visible card via the current view tree (respects
-            // filters/folds) so the cursor lands somewhere the user can see,
-            // not on the invisible rootId.
+            // filters/folds). Prefer a card. If NO column has any cards
+            // (board is effectively empty), fall back to rootId — landing on
+            // an empty column would immediately re-trip cardIndex-bounds.
             const VIRTUAL = ["__meta__", "__body__"]
             const isVirtual = (id: string): boolean => VIRTUAL.some((p) => id.startsWith(p))
             const rootId = freshCtx.rootId
-            let target: string = rootId
-            const colIds = freshCtx.tree.children(rootId)
+            const colIds = freshCtx.tree.children(rootId).filter((id: string) => !isVirtual(id))
+            let firstCard: string | undefined
             for (const colId of colIds) {
-              if (isVirtual(colId)) continue
-              const cardIds = freshCtx.tree.children(colId)
-              const firstCard = cardIds.find((id: string) => !isVirtual(id))
-              if (firstCard) {
-                target = firstCard
+              const cardIds = freshCtx.tree.children(colId).filter((id: string) => !isVirtual(id))
+              if (cardIds.length > 0) {
+                firstCard = cardIds[0]
                 break
               }
-              target = colId
-              break
             }
+            const target: string = firstCard ?? rootId
             freshCtx.sel.node.select([target as import("@silvery/selection").ID])
             freshCtx.setUI({
               status: {

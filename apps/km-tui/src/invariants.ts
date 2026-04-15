@@ -176,10 +176,16 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
       const colId = treeColIds[ctx.colIndex]
       const colCardIds = colId ? ctx.tree.children(colId) : []
       if (colId && ctx.cardIndex >= colCardIds.length) {
+        // Marked recoverable — same stale-cursor class as cursor-under-root,
+        // cursor-visible, cursor-in-walkOrder, cursor-in-columns. The cursor
+        // landed on an empty column (e.g. after the Phase 3 heal in
+        // board-app.ts falls back to a column when no cards exist).
+        // See km-tui.cursor-in-columns-crash.
         violations.push({
           check: "cardIndex-bounds",
           message: `cardIndex ${ctx.cardIndex} >= column cards ${colCardIds.length}`,
           ids: { cursor: ctx.cursor, columnNodeId: colId },
+          recoverable: true,
         })
       }
     }

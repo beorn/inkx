@@ -22,7 +22,7 @@ import {
   getChildren as dbGetChildren,
   getAllNodes as dbGetAllNodes,
 } from "./db/queries/index.ts"
-import { createDbOps } from "./db/ops.ts"
+import { createDbOps, InvalidMoveError } from "./db/ops.ts"
 import type { Emitter } from "./emitter.ts"
 import { search as dbSearch } from "./db/queries/full-text-search.ts"
 
@@ -246,6 +246,21 @@ export function createMapDataStore(): MapDataStore {
     moveNode(id, newParentId, position) {
       const node = nodes.get(id)
       if (!node) return
+
+      // Mirror the DB-store validator: filesystem-backed children must be
+      // parented to folders. See packages/km-storage/src/db/ops.ts validateMove
+      // and km-storage.move-type-validation.
+      const FS_TYPES = new Set(["file", "mdfile", "folder"])
+      if (node.fstype && FS_TYPES.has(node.fstype)) {
+        const parent = nodes.get(newParentId)
+        if (parent && parent.fstype !== "folder") {
+          throw new InvalidMoveError(
+            id,
+            newParentId,
+            `child is fs-backed (${node.fstype}) but parent has fstype=${parent.fstype ?? "null"} — filesystem nodes can only be parented to folders`,
+          )
+        }
+      }
 
       const updated: KNode = {
         ...node,

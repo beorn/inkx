@@ -166,6 +166,102 @@ const doctorResetCommand = new Command("reset")
     await loadAndReport(repoPath, "syncFromWorktree", "Reset complete")
   })
 
+// `km doctor integrity` scans the node table for structural corruption that
+// bypasses the normal write path — specifically, fs-backed nodes (file,
+// mdfile, folder) whose parent_id points to a non-folder. This catches the
+// km-tui.cursor-in-columns-crash class of bug where an unvalidated
+// node_moved event reparented a file into an mdsection and tripped every
+// downstream cursor invariant. With `--repair`, rows are re-parented to
+// the folder derived from fs_path.
+interface FsParentMismatchRow {
+  id: string
+  fs_path: string | null
+  parent_id: string | null
+  fstype: string | null
+  parent_fstype: string | null
+}
+
+function findFsParentMismatches(db: Database): FsParentMismatchRow[] {
+  return db
+    .query(
+      `SELECT n.id, n.fs_path, n.parent_id, n.fstype, p.fstype AS parent_fstype
+       FROM nodes n
+       LEFT JOIN nodes p ON p.id = n.parent_id
+       WHERE n.fstype IN ('file','mdfile','folder')
+         AND n.id != '.'
+         AND (p.fstype IS NULL OR p.fstype != 'folder')`,
+    )
+    .all() as FsParentMismatchRow[]
+}
+
+const doctorIntegrityCommand = new Command("integrity")
+  .description("Detect (and optionally repair) fs-parent corruption in the node table")
+  .argument("[path]", "Path to repo (default: current directory)")
+  .option("--repair", "Re-parent corrupt rows using dirname(fs_path)")
+  .action((path, options) => {
+    const { kmDir, repoPath } = resolveKmDir(path)
+    const dbPath = join(kmDir, "state.db")
+
+    console.log(term.bold("km doctor integrity"), term.dim(`(repo ${formatPath(repoPath)})`))
+
+    if (!existsSync(dbPath)) {
+      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
+      process.exit(1)
+    }
+
+    const db = options.repair ? new Database(dbPath) : new Database(dbPath, { readonly: true })
+    try {
+      const rows = findFsParentMismatches(db)
+      if (rows.length === 0) {
+        console.log(term.green("  ✓ No fs-parent mismatches"))
+        return
+      }
+
+      console.log(term.yellow(`  Found ${rows.length} corrupt row(s):`))
+      for (const row of rows) {
+        console.log(
+          `    ${row.fstype ?? "?"} ${term.dim(row.id)} → parent fstype=${row.parent_fstype ?? "null"} (expected folder)`,
+        )
+      }
+
+      if (!options.repair) {
+        console.log()
+        console.log(term.dim("  Run 'km doctor integrity --repair' to fix these rows."))
+        return
+      }
+
+      // Repair: derive the correct parent from fs_path. The correct parent
+      // is the folder node whose fs_path equals dirname(fs_path). If that
+      // folder doesn't exist as a node, we can't confidently repair — leave
+      // it and warn.
+      let repaired = 0
+      for (const row of rows) {
+        if (!row.fs_path) {
+          console.log(term.yellow(`    ${row.id}: no fs_path, cannot repair`))
+          continue
+        }
+        const lastSlash = row.fs_path.lastIndexOf("/")
+        const parentPath = lastSlash === -1 ? "." : row.fs_path.slice(0, lastSlash)
+        const parentRow = db
+          .query("SELECT id, fstype FROM nodes WHERE fs_path = ? OR id = ?")
+          .get(parentPath, parentPath) as { id: string; fstype: string | null } | null
+        if (parentRow?.fstype !== "folder") {
+          console.log(term.yellow(`    ${row.id}: expected parent '${parentPath}' not found as folder, cannot repair`))
+          continue
+        }
+        db.run("UPDATE nodes SET parent_id = ?, updated_at = ? WHERE id = ?", [parentRow.id, Date.now(), row.id])
+        repaired++
+      }
+      console.log()
+      console.log(term.green(`  ✓ Repaired ${repaired}/${rows.length} row(s)`))
+      if (repaired < rows.length) {
+        console.log(term.dim("  Unrepaired rows need manual inspection or a rebuild (`km doctor rebuild`)."))
+      }
+    } finally {
+      db.close()
+    }
+  })
+
 // `km doctor links` is a convenience alias for `km list --broken`.
 // Both paths call the same shared broken-links logic in ./broken-links.ts,
 // so output stays in sync. The only difference is the header line.
@@ -202,6 +298,7 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorGcCommand)
   .addCommand(doctorRebuildCommand)
   .addCommand(doctorResetCommand)
+  .addCommand(doctorIntegrityCommand)
   .addCommand(doctorLinksCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
@@ -240,6 +337,17 @@ export const doctorCommand = new Command("doctor")
           health.issues.push(`${brokenCount} broken wikilink(s)\n` + `      Run 'km doctor links' to see details`)
         }
         console.log(`  Links          ${brokenCount > 0 ? `${brokenCount} broken` : term.green("all resolved")}`)
+      }
+
+      // Integrity: fs-backed nodes parented to non-folders
+      if (db) {
+        const corrupt = findFsParentMismatches(db).length
+        if (corrupt > 0) {
+          health.issues.push(
+            `${corrupt} fs-node(s) with non-folder parent\n` + `      Run 'km doctor integrity --repair' to fix`,
+          )
+        }
+        console.log(`  Integrity      ${corrupt > 0 ? `${corrupt} corrupt fs-parent(s)` : term.green("clean")}`)
       }
 
       // Issues
@@ -316,4 +424,3 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
-
