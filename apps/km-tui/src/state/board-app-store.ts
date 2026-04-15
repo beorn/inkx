@@ -379,15 +379,34 @@ function resolvePersistedPane(persisted: PersistedPane, repo: Repo, fallback: Bo
  * Compute an initial cursor for a board root by finding the first card
  * in the first column (section). Used when restoring a workspace to a
  * board that differs from the default.
+ *
+ * Guards: every returned cursor is verified to be a descendant of `rootId`
+ * (walked via `parent_id`). If the first candidate's parent chain doesn't
+ * lead back to rootId — a symptom of a corrupt or stale repo — fall back
+ * to the column itself and then to rootId. This prevents the
+ * `cursor-under-root` invariant from tripping on load.
+ * See km-tui.cursor-under-root-crash.
  */
 function computeInitialCursorFromRepo(repo: Repo, rootId: string): string | null {
+  const isDescendant = (nodeId: string): boolean => {
+    let current: string | null = nodeId
+    for (let depth = 0; current && depth < 100; depth++) {
+      if (current === rootId) return true
+      const node = repo.getNode(current)
+      current = node?.parent_id ?? null
+    }
+    return false
+  }
+
   const columns = repo.getChildren(rootId)
   if (columns.length === 0) return null
   const firstCol = columns[0]
   if (!firstCol) return null
   const cards = repo.getChildren(firstCol.id)
-  if (cards.length > 0) return cards[0]?.id ?? firstCol.id
-  return firstCol.id
+  const firstCard = cards[0]
+  if (firstCard && isDescendant(firstCard.id)) return firstCard.id
+  if (isDescendant(firstCol.id)) return firstCol.id
+  return rootId
 }
 
 /** Convert persisted layout to live LayoutNode (structurally identical). */

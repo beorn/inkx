@@ -646,13 +646,32 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       parentSpan.spanData.outcome = "handled"
       parentSpan.spanData.ops = opList.length
 
-      // Phase 3: Invariant checks — verify state consistency after mutations
+      // Phase 3: Invariant checks — verify state consistency after mutations.
+      // Fatal violations throw inside checkInvariants; recoverable ones are
+      // returned and self-healed here (e.g. stale cursor on load after a
+      // rename — km-tui.cursor-under-root-crash).
       {
         using _invariants = parentSpan.span("invariants")
         const freshCtx = buildOpCtx(get, exitApp)
         const violations = checkInvariants(freshCtx)
         if (violations.length > 0) {
           parentSpan.spanData.invariantViolations = violations.length
+          // Self-heal stale cursors by resetting to rootId. cursor-under-root,
+          // cursor-visible, and cursor-in-walkOrder are all symptoms of the same
+          // class of issue (a cursor that no longer belongs under the active
+          // board root, or has fallen off the view tree).
+          const needsReset = violations.some(
+            (v) => v.check === "cursor-under-root" || v.check === "cursor-visible" || v.check === "cursor-in-walkOrder",
+          )
+          if (needsReset && freshCtx.rootId) {
+            freshCtx.sel.node.select([freshCtx.rootId as import("@silvery/selection").ID])
+            freshCtx.setUI({
+              status: {
+                level: "warning",
+                message: "Cursor reset: stale selection was outside the current board",
+              },
+            })
+          }
         }
       }
     }

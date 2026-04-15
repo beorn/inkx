@@ -135,10 +135,15 @@ describe("cursor-not-null invariant", () => {
 // =============================================================================
 
 describe("cursor-under-root invariant", () => {
-  test("cursor not under root triggers violation", () => {
+  test("cursor not under root is recoverable — returns violation, does not throw", () => {
+    // Regression for km-tui.cursor-under-root-crash. A stale cursor that survives
+    // a file/folder rename (or comes from any other persistence source) used to
+    // crash the TUI on the first event after load. It now surfaces as a
+    // recoverable violation so the caller can reset the cursor to rootId.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-    // Create repo with two separate roots
+    // Create repo with two separate roots — the orphan card is valid
+    // in the repo but parented to "other-root", not to "board".
     const repo = createFakeRepo({
       nodes: [...item("board", item("col1", item("1a"))), ...item("other-root", item("orphan-card"))],
     })
@@ -149,10 +154,59 @@ describe("cursor-under-root invariant", () => {
       rootId: "board",
       sel,
       selectedIds: sel.node.ids(),
+      // Tree must mirror the simpler repo shape: col1 has only 1a
+      tree: {
+        rootId: "board",
+        walkOrder: ["col1", "1a"],
+        node: (id: string) => (["col1", "1a"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["1a"]
+          return []
+        },
+        parent: () => null,
+      },
+      nodeIndex: new Map([["1a", { colIndex: 0, cardIndex: 0 }]]),
     })
 
+    const violations = checkInvariants(ctx)
+    // Three cursor-consistency checks fire — cursor-under-root, cursor-visible,
+    // and cursor-in-walkOrder — all symptoms of the same stale-cursor root
+    // cause and all marked recoverable.
+    const checks = violations.map((v) => v.check).sort()
+    expect(checks).toEqual(["cursor-in-walkOrder", "cursor-under-root", "cursor-visible"])
+    expect(violations.every((v) => v.recoverable)).toBe(true)
+    const underRoot = violations.find((v) => v.check === "cursor-under-root")
+    expect(underRoot?.ids).toMatchObject({ cursor: "orphan-card", rootId: "board" })
+    spy.mockRestore()
+  })
+
+  test("fatal violations still throw even when a recoverable one is present", () => {
+    // If both a recoverable and a fatal violation fire, fatal wins and throws.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const repo = createFakeRepo({
+      nodes: [...item("board", item("col1", item("1a"))), ...item("other-root", item("orphan-card"))],
+    })
+    const sel = createMockSel()
+    const ctx = validCtx({
+      repo,
+      cursor: "orphan-card", // recoverable: not under rootId "board"
+      rootId: "board",
+      sel,
+      // Force a fatal violation: invalid column node ID in the tree
+      tree: {
+        rootId: "board",
+        walkOrder: ["col1", "1a", "missing-col"],
+        node: (id: string) => (["col1", "1a", "missing-col"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "board") return ["col1", "missing-col"]
+          if (id === "col1") return ["1a"]
+          return []
+        },
+        parent: () => null,
+      },
+    })
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
-    expect(() => checkInvariants(ctx)).toThrow(/cursor-under-root/)
     spy.mockRestore()
   })
 })

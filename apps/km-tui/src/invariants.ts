@@ -31,6 +31,8 @@ export interface InvariantViolation {
   message: string
   /** Relevant IDs for debugging */
   ids?: Record<string, string | null>
+  /** If true, the caller can recover from this violation (no throw) */
+  recoverable?: boolean
 }
 
 /**
@@ -85,7 +87,11 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 2. Cursor node is a descendant of the current root (or IS the root)
-  // Skip check for virtual nodes
+  // Skip check for virtual nodes.
+  // Marked recoverable: the caller resets the cursor to rootId rather than crashing.
+  // This can happen at load time when a stale cursor persists across a file/folder
+  // rename, or when any other source restores a cursor that no longer matches the
+  // active board root. See km-tui.cursor-under-root-crash.
   if (ctx.cursor && ctx.rootId && !isVirtualNodeId(ctx.cursor as string)) {
     const isDescendant = isDescendantOf(ctx, ctx.cursor as string, ctx.rootId)
     if (!isDescendant) {
@@ -93,6 +99,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-under-root",
         message: `Cursor node is not a descendant of the board root`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
+        recoverable: true,
       })
     }
   }
@@ -206,6 +213,8 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
   // Skip virtual nodes and root-level cursor.
+  // Marked recoverable — same root cause as cursor-under-root (stale cursor).
+  // The caller resets cursor to rootId. See km-tui.cursor-under-root-crash.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string) && (ctx.cursor as string) !== ctx.rootId) {
     const inTree = ctx.tree.node(ctx.cursor as string)
     if (!inTree) {
@@ -216,6 +225,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           cursor: ctx.cursor,
           rootId: ctx.rootId,
         },
+        recoverable: true,
       })
     }
   }
@@ -249,6 +259,9 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 10. Cursor in walkOrder: if cursor is set, it must be in the view tree.
   // This catches the "cursor fell off the tree" class of bugs from stale lenses.
+  // Marked recoverable — same stale-cursor class as cursor-under-root and
+  // cursor-visible. The caller resets cursor to rootId.
+  // See km-tui.cursor-under-root-crash.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
     // Check cursor is findable in the ViewTreeProjection
     const cursorInTree = ctx.tree.node(ctx.cursor as string) !== undefined
@@ -257,6 +270,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-in-walkOrder",
         message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in view tree (walkOrder: ${ctx.tree.walkOrder.length} nodes). The view lens may not include this node.`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
+        recoverable: true,
       })
     }
   }
@@ -316,14 +330,18 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // Invariant violations are programming errors — throw immediately
-  if (violations.length > 0) {
-    const first = violations[0]!
-    // Log all violations before throwing so the full picture is in debug output
-    for (const v of violations) {
-      const idStr = v.ids ? ` ${JSON.stringify(v.ids)}` : ""
-      log.error?.(`INVARIANT [${v.check}]: ${v.message}${idStr}`)
-    }
+  // Log every violation so the full picture is in debug output either way.
+  for (const v of violations) {
+    const idStr = v.ids ? ` ${JSON.stringify(v.ids)}` : ""
+    const severity = v.recoverable ? "RECOVERABLE" : "INVARIANT"
+    log.error?.(`${severity} [${v.check}]: ${v.message}${idStr}`)
+  }
+
+  // Fatal violations are programming errors — throw immediately.
+  // Recoverable violations are returned for the caller to handle (e.g. reset cursor).
+  const fatal = violations.filter((v) => !v.recoverable)
+  if (fatal.length > 0) {
+    const first = fatal[0]!
     throw new InvariantViolationError(first.check, first.message, first.ids)
   }
 
