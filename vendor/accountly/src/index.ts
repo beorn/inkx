@@ -38,3 +38,28 @@ export { checkAccountQuota, checkAllQuotas, findBestAccount } from "./quota.ts"
 export { discoverAccounts, getCredentialForAccount, type DiscoveredAccount } from "./discover.ts"
 
 export { switchAccount } from "./switcher.ts"
+
+export {
+  profileRoot,
+  profileDir,
+  keychainSlot,
+  isLoggedIn,
+  listProfiles,
+  bootstrapProfile,
+  profileEmoji,
+  profileColor,
+  runProfile,
+  cmuxSpawn,
+  initShell,
+  readKeychainForProfile,
+  writeKeychainForProfile,
+  checkProfileQuota,
+  checkAllProfileQuotas,
+  findBestProfile,
+  fetchProfileEmail,
+  renameProfile,
+  resolveProfileName,
+  type ProfileInfo,
+  type ProfileQuotaResult,
+  type MigrationStep,
+} from "./profile.ts"

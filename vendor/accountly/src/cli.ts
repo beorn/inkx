@@ -1,297 +1,538 @@
 #!/usr/bin/env bun
-import { readSync } from "node:fs"
 import { Command } from "@silvery/commander"
 import pc from "picocolors"
 import {
-  getAccounts,
-  getAccount,
-  upsertAccount,
-  removeAccount,
-  renameAccount,
-  getActiveAccount,
-  setActiveAccount,
-} from "./config.ts"
-import { readCredential, writeCredential, deleteCredential, renameCredential } from "./credentials.ts"
-import { readKeychainCredential } from "./keychain.ts"
-import { checkAllQuotas, findBestAccount } from "./quota.ts"
-import { discoverAccounts } from "./discover.ts"
-import { switchAccount } from "./switcher.ts"
-import { formatStatus } from "./display.tsx"
-import { fetchClaudeProfile } from "./providers/claude-oauth.ts"
-import type { AccountProvider } from "./types.ts"
+  profileRoot,
+  profileDir,
+  listProfiles,
+  bootstrapProfile,
+  runProfile,
+  cmuxSpawn,
+  initShell,
+  keychainSlot,
+  readKeychainForProfile,
+  checkAllProfileQuotas,
+  checkLegacyDefaultQuota,
+  getLegacyDefaultProfile,
+  findBestProfile,
+  fetchProfileEmail,
+  renameProfile,
+  getDefaultProfile,
+  setDefaultProfile,
+  clearDefaultProfile,
+  type ProfileInfo,
+  type ProfileQuotaResult,
+} from "./profile.ts"
+import { discoverAccounts, type DiscoveredAccount } from "./discover.ts"
+import { getProvider } from "./providers/index.ts"
+import type { QuotaInfo } from "./types.ts"
 
 const program = new Command()
 
-program.name("accountly").description("Multi-account manager for Claude Code and other AI providers").version("0.1.0")
+program
+  .name("accountly")
+  .description("Multi-profile manager for Claude Code — run multiple accounts in parallel")
+  .version("0.4.0")
 
-// ── default (no subcommand) ─────────────────────────────────────────────
+// Top-level help sections — rendered after the built-in Commands block.
+program.addHelpSection("How it works:", [
+  ["Profile = dir", "~/.config/claude-profiles/<email>/ — each has its own Keychain slot"],
+  ["Keychain slot", "`Claude Code-credentials-<sha256(dir)[0:8]>` — per-profile OAuth session"],
+  ["Shared state", "settings, skills, projects, session-index.db symlinked from ~/.claude/"],
+  ["Default profile", "`default` symlink inside profileRoot; `init` reads it at install time"],
+  ["Stock ~/.claude", "Plain claude still uses the unhashed slot; surfaced as its own row"],
+])
+
+// Top-level examples — shown at the end of `accountly --help`.
+program.addHelpSection("Examples:", [
+  ["$ accountly", "Quota table (stock + profiles) with ★ default / ● active markers, + help"],
+  ["$ accountly status", "Quota table only, no help block"],
+  ["$ accountly claude", "Launch claude using the default profile (from `default` symlink)"],
+  ["$ accountly claude --user auto", "Pick the profile with lowest utilization and run"],
+  ["$ accountly claude --user work@example.com --cmux", "Spawn a new cmux workspace for a profile"],
+  ["$ accountly claude-profile default you@example.com", "Set default profile (creates `default` symlink)"],
+  ["$ accountly claude-profile ls", "List all accounts: stock ~/.claude + profiles"],
+  ["$ accountly claude-profile info you@example.com", "Path, Keychain slot, email for a profile"],
+])
+
+program.addHelpSection("Shell integration:", [
+  [`$ eval "$(accountly claude-profile init)"`, "Shell hook (auto-detects shell, reads default from `default` symlink)"],
+  ["$ alias claude='accountly claude'", 'Drop-in replacement for the `claude` binary'],
+])
+
+// ── default (no subcommand): show profile quota status + help ─────────
+// Running `accountly` with no arguments shows both the status table and the
+// full help text. `accountly status` shows only the table.
 program.action(async () => {
-  const discovered = discoverAccounts()
+  const profiles = listProfiles()
+  const envAccounts = discoverAccounts().filter((d) => d.config.provider !== "claude-oauth")
 
-  if (discovered.length === 0) {
-    console.log(pc.bold("accountly") + " — Multi-account manager for Claude Code\n")
-    console.log("No accounts found. Accountly auto-discovers from:\n")
-    console.log("  Claude Code    macOS Keychain (run accountly import after /login)")
-    console.log("  Anthropic      ANTHROPIC_API_KEY")
-    console.log("  OpenAI         OPENAI_API_KEY")
-    console.log("  xAI (Grok)     XAI_API_KEY")
-    console.log("  Gemini         GEMINI_API_KEY or GOOGLE_API_KEY")
-    console.log("  OpenRouter     OPENROUTER_API_KEY\n")
-    console.log(pc.dim("Run accountly --help for all commands."))
+  if (profiles.length === 0 && envAccounts.length === 0) {
+    console.log(pc.bold("accountly") + " — Multi-profile manager for Claude Code\n")
+    console.log(`No profiles found under ${profileRoot()}.\n`)
+    console.log(`Run ${pc.cyan("accountly claude --user <email>")} to bootstrap one,`)
+    console.log(`then use /login inside claude to authenticate.\n`)
+    program.outputHelp()
     return
   }
 
-  const active = getActiveAccount()
-  const quotas = await checkAllQuotas(discovered)
-  const accounts = discovered.map((d) => d.config)
-  console.log(await formatStatus(quotas, active, accounts))
+  process.stdout.write(pc.dim("Checking profile quotas…\r"))
+  const [profileResults, stockResult] = await Promise.all([
+    checkAllProfileQuotas(),
+    checkLegacyDefaultQuota(),
+  ])
+  process.stdout.write(" ".repeat(30) + "\r")
 
-  const claudeCount = discovered.filter((d) => d.config.provider === "claude-oauth").length
-  if (claudeCount <= 1) {
-    console.log(
-      `\n${pc.dim("Tip: Log in to another Claude Code account (/login), then run")} ${pc.cyan("accountly import")} ${pc.dim("to add it.")}`,
-    )
+  const allResults = stockResult ? [stockResult, ...profileResults] : profileResults
+  if (allResults.length > 0) {
+    console.log(pc.bold("Claude Code accounts") + pc.dim("  (stock ~/.claude + profiles in ~/.config/claude-profiles/)"))
+    renderStatusTable(allResults)
   }
 
-  console.log(pc.dim(`\nRun accountly --help for all commands.`))
+  if (envAccounts.length > 0) {
+    if (profiles.length > 0) console.log()
+    console.log(pc.bold("API-key providers") + pc.dim("  (from environment variables)"))
+    process.stdout.write(pc.dim("Checking API key quotas…\r"))
+    const envQuotas = await checkEnvAccountQuotas(envAccounts)
+    process.stdout.write(" ".repeat(30) + "\r")
+    renderEnvAccountsTable(envAccounts, envQuotas)
+  }
+
+  console.log()
+  program.outputHelp()
 })
 
-// ── status ──────────────────────────────────────────────────────────────
+// ── status (alias for default action) ───────────────────────────────────
 program
   .command("status")
-  .description("Show all accounts with quota usage")
+  .description("Show all profiles (including stock ~/.claude) with quota usage")
   .option("--json", "Output raw JSON for automation")
   .action(async (opts: { json?: boolean }) => {
-    const discovered = discoverAccounts()
-    const active = getActiveAccount()
-    const quotas = await checkAllQuotas(discovered)
+    const [profileResults, stockResult] = await Promise.all([
+      checkAllProfileQuotas(),
+      checkLegacyDefaultQuota(),
+    ])
+    const results = stockResult ? [stockResult, ...profileResults] : profileResults
     if (opts.json) {
-      console.log(JSON.stringify({ active, quotas }))
+      console.log(
+        JSON.stringify(
+          results.map((r) => ({
+            profile: r.profile.name,
+            dir: r.profile.dir,
+            authenticated: r.profile.authenticated,
+            error: r.error ?? r.quota?.error,
+            windows: r.quota?.windows ?? [],
+          })),
+          null,
+          2,
+        ),
+      )
       return
     }
-    const accounts = discovered.map((d) => d.config)
-    console.log(await formatStatus(quotas, active, accounts))
+    renderStatusTable(results)
   })
 
-// ── import ──────────────────────────────────────────────────────────────
-program
-  .command("import")
-  .description("Import current Claude Code credentials from Keychain (for multi-account switching)")
-  .action(async () => {
-    const credential = readKeychainCredential()
-    if (!credential) {
-      console.error(pc.red("No Claude Code credentials found in Keychain."))
-      console.error(pc.dim("Log in with Claude Code first, then run this command."))
-      process.exit(1)
-    }
+// ── claude ──────────────────────────────────────────────────────────────
+// Pins claude to a profile (by email, by `auto`, or against the default
+// ~/.claude slot) and forwards remaining args — plus CLAUDE_OPTIONS env var
+// — to the claude binary.
+//
+// Intended aliasing:
+//   alias claude='accountly claude'
+// After that, every `claude …` invocation goes through accountly's profile
+// routing and auto-appends CLAUDE_OPTIONS globally.
+const claudeCmd = program
+  .command("claude")
+  .description("Launch claude pinned to a profile")
+  .argument("[args...]", "Arguments forwarded to claude")
+  .option(
+    "-u, --user <spec>",
+    'Profile spec: <email> to pin, "auto" for lowest utilization, "default" for ~/.claude',
+  )
+  .option("--cmux", "Spawn a new cmux workspace instead of running in-place")
+  .allowUnknownOption(true)
 
-    // Fetch profile — email becomes the account name (auto-refreshes if expired)
-    const profile = await fetchClaudeProfile(credential)
-    if (!profile?.email) {
-      console.error(pc.red("Could not fetch account profile. Is the token still valid?"))
-      process.exit(1)
-    }
+claudeCmd.addHelpSection("Examples:", [
+  ["$ accountly claude", "Use default profile (from `default` symlink via init-zsh)"],
+  ["$ accountly claude --user you@example.com", "Pin to a specific account by email"],
+  ["$ accountly claude --user you", "Short name — fuzzy-resolves to you@example.com"],
+  ["$ accountly claude --user auto", "Lowest-utilization profile picked by quota check"],
+  ["$ accountly claude --user default", "Plain stock ~/.claude, no profile override"],
+  ["$ accountly claude --user work@example.com --cmux", "Spawn a tagged cmux workspace"],
+  ["$ accountly claude --user you@example.com -- -p 'one-shot prompt'", "Forward claude args after --"],
+])
 
-    const accountName = profile.email
-    const metadata: Record<string, string> = {
-      email: profile.email,
-    }
-    if (profile.fullName) metadata.name = profile.fullName
-    if (profile.orgName) metadata.org = profile.orgName
-    if (profile.plan) metadata.plan = profile.plan
+claudeCmd.addHelpSection("Environment:", [
+  ["CLAUDE_CONFIG_DIR", "If set, used instead of profileRoot/<user> (init-zsh hook sets this)"],
+  ["CLAUDE_PROFILE", "Inherited as the fallback profile when --user is omitted"],
+])
 
-    const existing = getAccount(accountName)
-    writeCredential(accountName, credential)
-    upsertAccount({ name: accountName, provider: "claude-oauth", metadata })
-    // Always activate the imported account — principle of least surprise:
-    // the user just imported it, they almost certainly want to use it.
-    setActiveAccount(accountName)
+claudeCmd.addHelpSection("Shell alias / function:", [
+  ["$ alias claude='accountly claude'", "Every `claude` invocation routes through accountly"],
+  [
+    "$ claude() { accountly claude \"$@\" -- --some-flag }",
+    "Function form — preserves --user parsing and appends flags after --",
+  ],
+])
+  .actionMerged(async (opts: { args?: string[]; user?: string; cmux?: boolean }) => {
+    const claudeArgs = opts.args ?? []
+    let target: string | undefined = opts.user
 
-    if (existing) {
-      console.log(pc.green(`Refreshed credentials for ${accountName}`))
-    } else {
-      console.log(pc.green(`Imported ${accountName}`))
-      if (profile.orgName) console.log(pc.dim(`  Org: ${profile.orgName} (${profile.plan})`))
-    }
-  })
-
-// ── switch ──────────────────────────────────────────────────────────────
-program
-  .command("switch")
-  .description("Switch active Claude Code account")
-  .argument("<name>", "Account name to switch to")
-  .actionMerged(async (opts: { name: string }) => {
-    const result = await switchAccount(opts.name)
-    if (result.success) {
-      console.log(pc.green(`Switched to "${opts.name}". New Claude Code sessions will use this account.`))
-    } else {
-      console.error(pc.red(`Failed to switch: ${result.error}`))
-      process.exit(1)
-    }
-  })
-
-// ── auto ────────────────────────────────────────────────────────────────
-program
-  .command("auto")
-  .description("Auto-switch to account with most remaining quota")
-  .action(async () => {
-    const discovered = discoverAccounts().filter((d) => d.config.provider === "claude-oauth" && !d.config.disabled)
-    if (discovered.length === 0) {
-      console.error(pc.red("No Claude OAuth accounts configured."))
-      process.exit(1)
-    }
-
-    console.log(pc.dim("Checking quotas..."))
-    const quotas = await checkAllQuotas(discovered)
-    const best = findBestAccount(quotas)
-
-    if (!best) {
-      console.error(pc.red("No accounts with available quota."))
-      for (const q of quotas) {
-        if (q.error) {
-          console.error(pc.dim(`  ${q.accountName}: ${q.error}`))
-        } else {
-          console.error(pc.dim(`  ${q.accountName}: all windows exhausted`))
+    // "auto" — pick lowest-utilization profile via quota check
+    if (target === "auto") {
+      process.stderr.write(pc.dim("accountly: picking profile with lowest utilization…\n"))
+      const results = await checkAllProfileQuotas()
+      const best = findBestProfile(results)
+      if (!best) {
+        console.error(pc.red("accountly: no profile has available quota."))
+        for (const r of results) {
+          const err = r.error ?? r.quota?.error
+          console.error(pc.dim(`  ${r.profile.name}: ${err ?? "all windows exhausted"}`))
         }
-      }
-      process.exit(1)
-    }
-
-    const active = getActiveAccount()
-    if (best.accountName === active) {
-      console.log(pc.green(`Already on best account: "${best.accountName}"`))
-      return
-    }
-
-    const result = await switchAccount(best.accountName)
-    if (result.success) {
-      console.log(pc.green(`Switched to "${best.accountName}" (lowest utilization)`))
-    } else {
-      console.error(pc.red(`Failed to switch: ${result.error}`))
-      process.exit(1)
-    }
-  })
-
-// ── add ─────────────────────────────────────────────────────────────────
-program
-  .command("add")
-  .description("Add an account manually")
-  .argument("<name>", "Account name")
-  .option("-p, --provider <provider>", "Provider type (claude-oauth, anthropic-api, openai, xai, google, openrouter)")
-  .option("--key", "Prompt for API key")
-  .option("--env <var>", "Environment variable containing the API key")
-  .actionMerged((opts) => {
-    if (!opts.provider) {
-      console.error(pc.red("Error: --provider is required"))
-      process.exit(1)
-    }
-    const provider = opts.provider as AccountProvider
-    upsertAccount({ name: opts.name, provider })
-
-    if (opts.env) {
-      const apiKey = process.env[opts.env]
-      if (!apiKey) {
-        console.error(pc.red(`Environment variable ${opts.env} is not set`))
         process.exit(1)
       }
-      writeCredential(opts.name, { apiKey })
-    } else if (opts.key) {
-      console.log("Enter API key (paste, then press Enter):")
-      const key = readlineSync()
-      if (key) {
-        writeCredential(opts.name, { apiKey: key })
+      process.stderr.write(pc.green(`accountly: using profile "${best.name}"\n`))
+      target = best.name
+    }
+
+    // "default" or unspecified and no profile context — run against default ~/.claude
+    if (target === "default" || (!target && !process.env.CLAUDE_PROFILE)) {
+      if (opts.cmux) {
+        console.error(pc.red("accountly: --cmux requires --user <profile>"))
+        process.exit(2)
       }
+      process.stderr.write(`accountly: profile=default  dir=~/.claude  action=exec-claude\n`)
+      const { spawnSync } = await import("node:child_process")
+      const res = spawnSync("claude", claudeArgs, { stdio: "inherit" })
+      process.exit(res.status ?? 1)
     }
 
-    console.log(pc.green(`Added account "${opts.name}" (${provider})`))
+    // Inherit from current shell's CLAUDE_PROFILE if no --user given
+    if (!target) target = process.env.CLAUDE_PROFILE
+
+    if (!target) {
+      console.error(pc.red("accountly claude: no profile resolved (pass --user <name|auto|default>)"))
+      process.exit(2)
+    }
+
+    if (opts.cmux) {
+      cmuxSpawn(target, claudeArgs)
+    } else {
+      runProfile(target, claudeArgs)
+    }
   })
 
-// ── rename ──────────────────────────────────────────────────────────────
-program
+// ── claude-profile ──────────────────────────────────────────────────────
+// Profile management subcommands. Subverbs (not flags) so `ls`, `new`, `info`,
+// `init`, `migrate`, `adopt` are unambiguous and get their own help.
+const profileCmd = program
+  .command("claude-profile")
+  .description("Manage Claude Code profiles")
+
+profileCmd.addHelpSection("Examples:", [
+  ["$ accountly claude-profile ls", "List stock + profiles"],
+  ["$ accountly claude-profile default", "Show current default"],
+  ["$ accountly claude-profile default you@example.com", "Set default"],
+  ["$ accountly claude-profile default --clear", "Clear default"],
+  ["$ accountly claude-profile new work@example.com", "Bootstrap profile dir"],
+  ["$ accountly claude-profile info you@example.com", "Show profile details"],
+  ["$ accountly claude-profile info you@example.com --token", "Print OAuth token"],
+  ['$ eval "$(accountly claude-profile init)"', "Install shell hook"],
+  ['$ accountly claude-profile init you@example.com', "Pin hook to a profile"],
+  ['$ accountly claude-profile init --shell bash', "Override detected shell"],
+  ["$ accountly claude-profile rename old new@example.com", "Rename profile"],
+])
+
+profileCmd.addHelpSection("Stock ~/.claude:", [
+  ["~/.claude (stock → <email>)", "Unhashed default Keychain slot"],
+  ["plain `claude`", "Uses the stock slot with no env vars set"],
+  ["`claude /login`", "(stock shell) rewrites the stock slot only"],
+])
+
+profileCmd
+  .command("ls")
+  .alias("list")
+  .description("List profiles with markers (★ default, ● active)")
+  .action(() => {
+    const profiles = listProfiles()
+    const stock = getLegacyDefaultProfile()
+    const rows: ProfileInfo[] = stock ? [stock, ...profiles] : [...profiles]
+    if (rows.length === 0) {
+      console.log(pc.dim(`no profiles (root: ${profileRoot()})`))
+      console.log(pc.dim(`run \`accountly claude --user <email>\` to bootstrap one`))
+      return
+    }
+    const defaultName = getDefaultProfile()
+    const nameWidth = Math.max(10, ...rows.map((p) => p.name.length))
+    console.log(`    ${pc.bold("PROFILE".padEnd(nameWidth))}  ${pc.bold("AUTH".padEnd(12))}  PATH`)
+    for (const p of rows) {
+      const marker = profileMarker(p.name, defaultName)
+      const auth = p.authenticated ? pc.green("logged-in   ") : pc.yellow("missing     ")
+      console.log(`${marker}  ${p.name.padEnd(nameWidth)}  ${auth}  ${p.dir}`)
+    }
+    const legend: string[] = []
+    if (defaultName) legend.push(`${pc.yellow("★")} default`)
+    const activeMode = process.env.CLAUDE_PROFILE
+      ? `CLAUDE_PROFILE=${process.env.CLAUDE_PROFILE}`
+      : "stock ~/.claude (no profile pinned)"
+    legend.push(`${pc.green("●")} active · ${activeMode}`)
+    console.log(pc.dim(`    ${legend.join("   ")}`))
+  })
+
+profileCmd
+  .command("default")
+  .description("Show or set the default profile")
+  .argument("[profile]", "Profile name to set as default; omit to show current")
+  .option("--clear", "Remove the default pointer")
+  .actionMerged((opts: { profile?: string; clear?: boolean }) => {
+    if (opts.clear) {
+      clearDefaultProfile()
+      console.log(pc.dim("default profile cleared"))
+      return
+    }
+    if (opts.profile) {
+      try {
+        setDefaultProfile(opts.profile)
+        console.log(pc.green(`default → ${opts.profile}`))
+        console.log(pc.dim(`symlink: ${profileRoot()}/default → ${opts.profile}`))
+      } catch (err) {
+        console.error(pc.red((err as Error).message))
+        process.exit(1)
+      }
+      return
+    }
+    const current = getDefaultProfile()
+    if (!current) {
+      console.log(pc.dim("no default profile set"))
+      console.log(pc.dim(`run \`accountly claude-profile default <name>\` to set one`))
+      return
+    }
+    console.log(current)
+  })
+
+profileCmd
+  .command("new")
+  .description("Bootstrap a new profile dir")
+  .argument("<profile>", "Profile name (preferably the Claude account email)")
+  .actionMerged((opts: { profile: string }) => {
+    const { dir, fresh, linked } = bootstrapProfile(opts.profile)
+    if (fresh) {
+      console.log(pc.green(`bootstrapped profile "${opts.profile}" at ${dir}`))
+      console.log(
+        pc.dim(`next: \`accountly claude --user ${opts.profile}\` and /login inside claude`),
+      )
+    } else {
+      const msg =
+        linked.length > 0 ? `backfilled ${linked.length} symlink(s): ${linked.join(", ")}` : "already up to date"
+      console.log(pc.dim(`profile "${opts.profile}" at ${dir} — ${msg}`))
+    }
+  })
+
+profileCmd
+  .command("info")
+  .description("Show profile details")
+  .argument("<profile>", "Profile name")
+  .option("--token", "Print the current OAuth access token on stdout (for apiKeyHelper use)")
+  .actionMerged(async (opts: { profile: string; token?: boolean }) => {
+    const dir = profileDir(opts.profile)
+    const slot = keychainSlot(dir)
+    const exists = (await import("node:fs")).existsSync(dir)
+    const credential = readKeychainForProfile(dir)
+
+    if (opts.token) {
+      // Token-only mode: just print the access token on stdout, nothing else.
+      if (!credential) {
+        console.error(pc.red(`no credential — run \`/login\` inside claude first`))
+        process.exit(1)
+      }
+      const oauth = credential.claudeAiOauth as Record<string, unknown> | undefined
+      const token =
+        (oauth?.accessToken as string | undefined) ??
+        (credential.accessToken as string | undefined) ??
+        (credential.apiKey as string | undefined)
+      if (!token) {
+        console.error(pc.red("no token in credential"))
+        process.exit(1)
+      }
+      process.stdout.write(token)
+      return
+    }
+
+    console.log(`${pc.bold("profile:       ")}${opts.profile}`)
+    console.log(`${pc.bold("dir:           ")}${dir} ${exists ? pc.green("(exists)") : pc.yellow("(not bootstrapped)")}`)
+    console.log(`${pc.bold("keychain slot: ")}${slot}`)
+    if (!credential) {
+      console.log(`${pc.bold("auth:          ")}${pc.yellow("no credential — run /login inside claude")}`)
+      return
+    }
+    console.log(`${pc.bold("auth:          ")}${pc.green("logged in")}`)
+    try {
+      const info = listProfiles().find((p) => p.name === opts.profile)
+      if (info) {
+        const email = await fetchProfileEmail(info)
+        if (email) console.log(`${pc.bold("email:         ")}${email}`)
+      }
+    } catch {
+      /* best effort */
+    }
+  })
+
+profileCmd
+  .command("init")
+  .description("Print shell hook (for .rc files)")
+  .argument("[profile]", "Default profile; falls back to the `default` symlink")
+  .option("-s, --shell <shell>", "Override detected shell (zsh or bash)")
+  .actionMerged((opts: { profile?: string; shell?: string }) => {
+    const shell = opts.shell ?? detectShell()
+    try {
+      process.stdout.write(initShell(shell, opts.profile))
+    } catch (err) {
+      console.error(pc.red((err as Error).message))
+      process.exit(2)
+    }
+  })
+
+/** Detect the user's shell from $SHELL, falling back to "zsh" if unknown. */
+function detectShell(): string {
+  const shellPath = process.env.SHELL ?? ""
+  const base = shellPath.split("/").pop() ?? ""
+  if (base === "zsh" || base === "bash") return base
+  return "zsh"
+}
+
+profileCmd
   .command("rename")
-  .description("Rename an account")
-  .argument("<old-name>", "Current account name")
-  .argument("<new-name>", "New account name")
-  .actionMerged((opts: { oldName: string; newName: string }) => {
-    const account = getAccount(opts.oldName)
-    if (!account) {
-      console.error(pc.red(`Account "${opts.oldName}" not found`))
+  .description("Rename a profile")
+  .argument("<old>", "Current profile name")
+  .argument("<new>", "New profile name")
+  .actionMerged((opts: { old: string; new: string }) => {
+    const step = renameProfile(opts.old, opts.new)
+    if (step.action === "renamed") {
+      console.log(pc.green(`renamed "${opts.old}" → "${opts.new}"`))
+      console.log(pc.dim(`remember to update any zshrc references (e.g. \`init zsh ${opts.new}\`)`))
+    } else if (step.action === "skipped") {
+      console.log(pc.dim(`skipped: ${step.reason}`))
+    } else {
+      console.error(pc.red(`error: ${step.reason}`))
       process.exit(1)
     }
-    if (getAccount(opts.newName)) {
-      console.error(pc.red(`Account "${opts.newName}" already exists`))
-      process.exit(1)
-    }
-
-    renameCredential(opts.oldName, opts.newName)
-    renameAccount(opts.oldName, opts.newName)
-    console.log(pc.green(`Renamed "${opts.oldName}" → "${opts.newName}"`))
   })
 
-// ── remove ──────────────────────────────────────────────────────────────
-program
-  .command("remove")
-  .description("Remove an account")
-  .argument("<name>", "Account name to remove")
-  .actionMerged((opts: { name: string }) => {
-    const account = getAccount(opts.name)
-    if (!account) {
-      console.error(pc.red(`Account "${opts.name}" not found`))
-      process.exit(1)
-    }
-
-    removeAccount(opts.name)
-    deleteCredential(opts.name)
-    console.log(pc.green(`Removed account "${opts.name}"`))
+profileCmd
+  .command("slot")
+  .description("Print Keychain slot name")
+  .argument("<profile>", "Profile name")
+  .actionMerged((opts: { profile: string }) => {
+    console.log(keychainSlot(profileDir(opts.profile)))
   })
 
-// ── get-token ───────────────────────────────────────────────────────────
-program
-  .command("get-token")
-  .description("Output the active access token (for apiKeyHelper integration)")
-  .option("-p, --provider <provider>", "Provider filter")
-  .action((opts: { provider?: string }) => {
-    const active = getActiveAccount()
-    if (!active) {
-      console.error(pc.red("No active account"))
-      process.exit(1)
-    }
+// ── helpers ─────────────────────────────────────────────────────────────
 
-    const account = getAccount(active)
-    if (!account) {
-      console.error(pc.red(`Active account "${active}" not found in config`))
-      process.exit(1)
-    }
+/** Prefix used for the synthetic stock ~/.claude row (with or without email annotation). */
+const STOCK_NAME_PREFIX = "~/.claude (stock"
 
-    if (opts.provider && account.provider !== opts.provider) {
-      console.error(pc.red(`Active account is ${account.provider}, not ${opts.provider}`))
-      process.exit(1)
-    }
+/**
+ * Compute the visible marker for one row.
+ *   ★ = default profile (from the `default` symlink)
+ *   ● = active profile (what the current shell is pinned to)
+ *
+ * Active resolution:
+ *   - If $CLAUDE_PROFILE is set → that named profile is active
+ *   - Otherwise → stock `~/.claude` is active (what plain `claude` uses)
+ */
+function profileMarker(name: string, defaultName?: string): string {
+  const isDefault = defaultName !== undefined && name === defaultName
+  const envProfile = process.env.CLAUDE_PROFILE
+  const isStockRow = name.startsWith(STOCK_NAME_PREFIX)
+  const isActive = envProfile ? name === envProfile : isStockRow
+  if (isDefault && isActive) return pc.green("★●")
+  if (isDefault) return pc.yellow("★ ")
+  if (isActive) return pc.green("● ")
+  return "  "
+}
 
-    const cred = readCredential(active)
-    if (!cred) {
-      console.error(pc.red("No credentials found for active account"))
-      process.exit(1)
+function renderStatusTable(results: ProfileQuotaResult[]): void {
+  if (results.length === 0) {
+    console.log(pc.dim("no profiles found"))
+    return
+  }
+  const defaultName = getDefaultProfile()
+  const rows = results.map((r) => {
+    const name = r.profile.name
+    const marker = profileMarker(name, defaultName)
+    const authed = r.profile.authenticated
+    if (!authed) {
+      return { marker, name, line: pc.yellow("missing login — run /login inside claude") }
     }
-
-    // Output the token (handles claudeAiOauth wrapper, direct accessToken, or apiKey)
-    const oauth = cred.claudeAiOauth as Record<string, unknown> | undefined
-    const token = (oauth?.accessToken as string) ?? (cred.accessToken as string) ?? (cred.apiKey as string)
-    if (!token) {
-      console.error(pc.red("No token found in credentials"))
-      process.exit(1)
+    if (r.error) {
+      return { marker, name, line: pc.red(r.error) }
     }
-
-    process.stdout.write(token)
+    const q = r.quota
+    if (!q || q.error) {
+      return { marker, name, line: pc.red(q?.error ?? "unknown error") }
+    }
+    const parts = q.windows.map((w) => {
+      const util = w.utilization
+      const bar = utilizationBar(util)
+      return `${w.name}: ${bar} ${util.toString().padStart(3)}%`
+    })
+    return { marker, name, line: parts.join("  ") }
   })
+  const nameWidth = Math.max(8, ...rows.map((r) => r.name.length))
+  console.log(`    ${pc.bold("PROFILE".padEnd(nameWidth))}  QUOTAS`)
+  for (const r of rows) {
+    console.log(`${r.marker}  ${pc.cyan(r.name.padEnd(nameWidth))}  ${r.line}`)
+  }
+  const legend: string[] = []
+  if (defaultName) legend.push(`${pc.yellow("★")} default`)
+  const activeMode = process.env.CLAUDE_PROFILE
+    ? `CLAUDE_PROFILE=${process.env.CLAUDE_PROFILE}`
+    : "stock ~/.claude (no profile pinned)"
+  legend.push(`${pc.green("●")} active · ${activeMode}`)
+  console.log(pc.dim(`    ${legend.join("   ")}`))
+}
 
-function readlineSync(): string | undefined {
-  try {
-    const buf = Buffer.alloc(4096)
-    const n = readSync(0, buf)
-    return buf.toString("utf-8", 0, n).trim()
-  } catch {
-    return undefined
+function utilizationBar(util: number): string {
+  const width = 10
+  const filled = Math.round((Math.min(100, Math.max(0, util)) / 100) * width)
+  const empty = width - filled
+  const bar = "█".repeat(filled) + "░".repeat(empty)
+  if (util >= 90) return pc.red(bar)
+  if (util >= 60) return pc.yellow(bar)
+  return pc.green(bar)
+}
+
+async function checkEnvAccountQuotas(accounts: DiscoveredAccount[]): Promise<QuotaInfo[]> {
+  return Promise.all(
+    accounts.map(async (a) => {
+      const provider = getProvider(a.config.provider)
+      const result = await provider.checkQuota(a.credential)
+      result.accountName = a.config.name
+      return result
+    }),
+  )
+}
+
+function renderEnvAccountsTable(accounts: DiscoveredAccount[], quotas: QuotaInfo[]): void {
+  const nameWidth = Math.max(10, ...accounts.map((a) => a.config.name.length))
+  for (let i = 0; i < accounts.length; i++) {
+    const a = accounts[i]!
+    const q = quotas[i]!
+    const name = a.config.name.padEnd(nameWidth)
+    if (q.error) {
+      console.log(`${pc.cyan(name)}  ${pc.red(q.error)}`)
+      continue
+    }
+    if (q.windows.length === 0) {
+      const note = q.available ? pc.green("✓ key valid") : pc.red("no quota data")
+      console.log(`${pc.cyan(name)}  ${note}`)
+      continue
+    }
+    const parts = q.windows.map((w) => {
+      const util = w.utilization
+      return `${w.name}: ${utilizationBar(util)} ${util.toString().padStart(3)}%`
+    })
+    console.log(`${pc.cyan(name)}  ${parts.join("  ")}`)
   }
 }
 
