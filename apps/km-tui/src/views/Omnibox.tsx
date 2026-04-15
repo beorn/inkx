@@ -10,8 +10,10 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/ag-react"
-import { InputBox, NodeLine } from "./shared-components.tsx"
+import { Box, Small, ModalDialog } from "@silvery/ag-react"
+import { InputBox } from "./shared-components.tsx"
+import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
+import { commandToRow, nodeToRow } from "./omnibox-row-adapters.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { getAllCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
 import { KNode } from "@km/core"
@@ -228,57 +230,45 @@ function SectionDivider({ label }: { label: string }): React.ReactElement {
   )
 }
 
-function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
-  const typeIcon = result.type === "goto" ? " " : " "
-  const bg = isSelected ? "$selection-bg" : undefined
-  const fg = isSelected ? "$selection" : undefined
-
-  return (
-    <Box height={1} backgroundColor={bg} flexDirection="row">
-      {/* Label + description: fills remaining space, truncates on overflow */}
-      <Box flexGrow={1} flexShrink={1} overflow="hidden">
-        <Text color={fg} bold={isSelected} wrap="truncate">
-          <Muted>{typeIcon}</Muted>
-          <Strong>{result.label}</Strong>
-          {"  "}
-          <Muted>{result.description}</Muted>
-        </Text>
-      </Box>
-      {/* Shortcut hint: fixed width, never squeezed */}
-      {result.shortcutHint && (
-        <Box flexGrow={0} flexShrink={0}>
-          <Muted color={isSelected ? "$selection" : undefined} backgroundColor={bg}>
-            {"  "}
-            {result.shortcutHint}
-          </Muted>
-        </Box>
-      )}
-    </Box>
-  )
-}
-
-function ResultItem({
-  result,
-  isSelected,
-  query,
-}: {
-  result: OmniboxResult
-  isSelected: boolean
-  query?: string
-}): React.ReactElement {
+/**
+ * Convert an OmniboxResult into the shared OmniboxRowData descriptor.
+ *
+ * Commands and goto entries route through commandToRow with a synthetic
+ * CommandDef shape — Omnibox.tsx still owns its own OmniboxResult type, so
+ * we don't have a real CommandDef in scope. Search results route through
+ * nodeToRow with the parent context as the secondary line.
+ */
+function omniboxResultToRowData(result: OmniboxResult, isSelected: boolean, query: string): OmniboxRowData {
   if (result.type === "search" && result.node) {
     const decorations = query ? computeSearchDecorationsFromSource(result.label, query, isSelected) : undefined
-    return (
-      <NodeLine
-        node={result.node}
-        title={result.label}
-        parentContext={result.description}
-        isSelected={isSelected}
-        decorations={decorations}
-      />
-    )
+    const base = nodeToRow(result.node, {
+      parentContext: result.description || undefined,
+      isSelected,
+    })
+    return {
+      ...base,
+      // Preserve the Omnibox result key so React reconciliation matches the
+      // visible-row slice (avoids index-only collisions across sections).
+      id: result.key,
+      title: result.label,
+      titleDecorations: decorations,
+    }
   }
-  return <CommandResultItem result={result} isSelected={isSelected} />
+  // Command / goto rows — feed a synthetic CommandDef into the shared adapter.
+  const base = commandToRow(
+    {
+      id: result.commandId ?? result.key,
+      name: result.label,
+      description: result.description,
+      category: "Navigation",
+      execute: () => null,
+    },
+    {
+      keybindingHint: result.shortcutHint,
+      isSelected,
+    },
+  )
+  return { ...base, id: result.key }
 }
 
 // =============================================================================
@@ -465,10 +455,12 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
         ) : (
           visibleResults.map((result, i) => {
             const actualIndex = scrollOffset + i
+            const isSelected = actualIndex === selectedIndex
+            const rowData = omniboxResultToRowData(result, isSelected, deferredQuery)
             return (
               <React.Fragment key={result.key}>
                 {actualIndex === searchDividerIndex && <SectionDivider label="Search" />}
-                <ResultItem result={result} isSelected={actualIndex === selectedIndex} query={deferredQuery} />
+                <OmniboxRow data={rowData} />
               </React.Fragment>
             )
           })
