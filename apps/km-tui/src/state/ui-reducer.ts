@@ -123,18 +123,15 @@ export interface UIState {
   /** True after the chord timeout fires (standalone executed) — hints go dim */
   chordTimedOut: boolean
 
-  // Omnibox / command palette state (global)
+  /** Legacy Omnibox (temporary — bound to cmd-k for comparison dogfood). */
   showOmnibox: boolean
 
   /**
-   * Unified omnibox (Phase 5 of km-tui.omnibox-unified).
+   * Unified omnibox / command palette state.
    *
    * When non-null, a singleton overlay omnibox is active. `pane` carries
    * the 3-field `OmniboxBaseState` plus the frozen invocation spec
-   * (anchorPaneId, subjectSelection, candidateProvider). The legacy
-   * `showOmnibox` flag remains during the migration; the new unified
-   * omnibox is an additive parallel surface until Phase 12 cleanup
-   * deletes the legacy dialog files.
+   * (anchorPaneId, subjectSelection, candidateProvider).
    *
    * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
    */
@@ -190,8 +187,8 @@ export namespace PaneUI {
       ui.datePrompt ||
       ui.deleteConfirm ||
       ui.localSearch ||
-      ui.showOmnibox ||
       ui.omnibox ||
+      ui.showOmnibox ||
       ui.searchReplace ||
       ui.showFavoritesDialog
     )
@@ -217,8 +214,8 @@ export namespace PaneUI {
       ui.activePicker ||
       ui.showSearchDialog ||
       ui.datePrompt ||
-      ui.showOmnibox ||
       ui.omnibox ||
+      ui.showOmnibox ||
       ui.localSearch?.isInputActive ||
       ui.searchReplace
     )

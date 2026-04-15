@@ -397,6 +397,12 @@ export interface InputBoxProps {
   prompt?: string
   /** Placeholder text when empty */
   placeholder?: string
+  /**
+   * Dim hint rendered after the cursor — shows even when the buffer is
+   * non-empty. Useful when the buffer is pre-filled with a sigil (`:`, `@`)
+   * and you still want a "type to search…" ghost.
+   */
+  ghostHint?: string
   /** Prompt color */
   promptColor?: string
   /** Whether to show cursor */
@@ -419,12 +425,14 @@ export function InputBox({
   afterCursor,
   prompt = "",
   placeholder = "",
+  ghostHint = "",
   promptColor = "$selection-bg",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
   const value = beforeCursor + afterCursor
   const showPlaceholder = !value && placeholder
+  const showGhostHint = !!value && !!ghostHint
 
   // Render the placeholder with the cursor INLINED on its first character
   // (inverse + dim), not as a separate inverse-space block. This fixes:
@@ -447,13 +455,19 @@ export function InputBox({
   ) : null
 
   const content = (
-    <Box flexDirection="column">
+    <Box flexDirection="column" width="100%" paddingX={1}>
       <Text>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
         {showPlaceholder ? (
           placeholderContent
         ) : (
           <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
+        )}
+        {showGhostHint && (
+          <Text dimColor>
+            {"  "}
+            {ghostHint}
+          </Text>
         )}
       </Text>
       {!focusRing && <Text dimColor>{"─".repeat(40)}</Text>}
@@ -462,7 +476,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor={"$focusborder"}>
+      <Box borderStyle="round" borderColor={"$focusborder"} width="100%">
         {content}
       </Box>
     )

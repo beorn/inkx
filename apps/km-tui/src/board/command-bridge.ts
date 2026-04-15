@@ -54,8 +54,7 @@ function deriveNodeForCtx(ctx: OpCtx): TNode | null {
   return {
     ...selectedNode,
     item: resolvedItem,
-    isTask:
-      selectedNode.item?.task?.status != null || (embedTarget != null && targetNode?.item?.task?.status != null),
+    isTask: selectedNode.item?.task?.status != null || (embedTarget != null && targetNode?.item?.task?.status != null),
     children: [],
     depth: 0,
     childCount: ctx.tree.children(selectedNode.id).length,
@@ -113,7 +112,7 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     inputMode: currentMode(),
     visualMode: false, // visual mode removed — sel handles multi-selection
     localFindActive: !!ui.localSearch,
-    omniboxOpen: ui.showOmnibox,
+    omniboxOpen: !!ui.omnibox || ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,

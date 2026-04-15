@@ -56,7 +56,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
-import { openOmnibox, type OmniboxInvocationSpec } from "../state/omnibox.ts"
+import { openOmnibox, dismissOmnibox, type OmniboxInvocationSpec } from "../state/omnibox.ts"
 
 import {
   applyFoldLevel as reducerApplyFoldLevel,
@@ -2319,12 +2319,49 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
     ctx.activateEmptyPane()
   }
 
-  // Cross-parent — navigate to that board
+  // Cross-parent — navigate to that board.
+  //
+  // The intent is "go to the target node", not "zoom into its contents".
+  // For a NON-LEAF target, zoom into it and cursor-select its first child —
+  // this is the existing cards-view behavior. For a LEAF target (file with
+  // no children, e.g. `@delei` pointing at a .md file with empty body), we
+  // cannot zoom into it because its root board has nothing to render — the
+  // old behavior was to ZOOM_IN anyway and leave the cursor stranded on
+  // the previous node, producing the "no cursor, can't move up" user bug.
+  //
+  // Fix: if the target has no children, zoom into its PARENT instead and
+  // cursor-select the target itself. That way the target is visible on
+  // screen, the cursor points at it, and Z (zoom_outwards) walks to the
+  // grandparent as the user expects.
+  // Cross-parent — navigate to that board.
+  //
+  // The intent is "go to the target node", not "zoom into its contents".
+  // For a NON-LEAF target, zoom into it and cursor-select its first child
+  // (the existing cards-view behavior). For a LEAF target (file with no
+  // children, e.g. `@delei` pointing at an empty .md file), the old path
+  // zoomed into the leaf anyway — leaving the cursor stranded on the
+  // previous node outside the new root, producing "no cursor, Z bells
+  // Can't move up". See km-tui.omnibox-goto-no-cursor.
+  //
+  // Fix: if the target has no children, zoom into its PARENT instead and
+  // cursor-select the target itself. That way the target is visible on
+  // screen, cursor points at it, and Z walks to the grandparent.
   saveNavHistory(ctx)
   const children = ctx.repo.getChildren(to.parentId)
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
-  const firstChild = children[0]?.id ?? null
-  if (firstChild) ctx.sel.node.select([firstChild as ID])
+  const targetNode = ctx.repo.getNode(to.parentId)
+  const isLeaf = children.length === 0
+  if (isLeaf && targetNode?.parent_id) {
+    // Leaf — zoom to parent, cursor on the leaf itself.
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.parent_id })
+    ctx.sel.root.set(targetNode.parent_id as ID)
+    ctx.sel.node.select([targetNode.id as ID])
+  } else {
+    // Non-leaf — zoom into target, cursor on its first child.
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
+    ctx.sel.root.set(to.parentId as ID)
+    const firstChild = children[0]?.id ?? null
+    if (firstChild) ctx.sel.node.select([firstChild as ID])
+  }
   clearSelection(ctx)
 }
 
@@ -2457,6 +2494,11 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   // --- Layer 3: Dialog open -> close topmost dialog ---
   if (ui.showHelp) {
     ctx.setUI({ showHelp: false })
+    return ok()
+  }
+  if (ui.omnibox) {
+    popDialogMode()
+    dismissOmnibox(ctx.setUI as (patch: { omnibox: import("../state/omnibox.ts").OmniboxPane | null }) => void)
     return ok()
   }
   if (ui.showOmnibox) {

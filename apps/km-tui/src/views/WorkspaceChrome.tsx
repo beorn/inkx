@@ -38,7 +38,7 @@ import { buildKeybindingContextFromOpCtx } from "../board/command-bridge.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
-import { allCommands } from "@km/commands"
+import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
   applySigilRule,
@@ -237,14 +237,28 @@ function UnifiedOmniboxConnector({
   pane,
   setUI,
   width,
+  maxHeight,
 }: {
   pane: OmniboxPane
   setUI: BoardAppStore["setUI"]
   width: number
+  maxHeight: number
 }): React.ReactElement {
   const storeRef = React.useContext(StoreContext)
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
+
+  // Build keybinding lookup once — commandId → first registered hint string.
+  // Used to decorate command rows with their keyboard shortcut on the right.
+  const keybindingMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    for (const binding of getAllKeybindings()) {
+      if (binding.wildcard) continue
+      if (map.has(binding.commandId)) continue
+      map.set(binding.commandId, formatKeybinding(binding))
+    }
+    return map
+  }, [])
 
   // Live-computed results — sigil-dispatched per docs/design/omnibox.md.
   //
@@ -266,6 +280,7 @@ function UnifiedOmniboxConnector({
   const results: OmniboxRowData[] = useMemo(() => {
     const buffer = pane.state.buffer
     const mode = modeOf(buffer)
+    let rows: OmniboxRowData[]
     if (mode === "command" || buffer.length === 0) {
       // Build a `KeybindingContext` at render time from the focused pane.
       // `defaultBuildOpCtx` returns the same OpCtx shape the keypress path
@@ -277,15 +292,24 @@ function UnifiedOmniboxConnector({
       const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
       const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
       const query = mode === "command" ? buffer.slice(1) : ""
-      const rows = commandResultsForOmnibox(allCommands, kbCtx, query)
-      // Universal search v1 — show top-N commands for an empty buffer.
-      // Recents will replace this in a later phase.
-      return buffer.length === 0 ? rows.slice(0, 12) : rows
+      const projected = commandResultsForOmnibox(allCommands, kbCtx, query)
+      rows = buffer.length === 0 ? projected.slice(0, 12) : projected
+    } else {
+      // Content sigils (+ @ # ~) and the bare `node` mode dispatch through
+      // node search. local_find returns empty here — Phase 9 owns that surface.
+      rows = nodeResultsForOmnibox(repo, buffer, mode)
     }
-    // Content sigils (+ @ # [) and the bare `node` mode all dispatch through
-    // node search. local_find returns empty here — Phase 9 owns that surface.
-    return nodeResultsForOmnibox(repo, buffer, mode)
-  }, [pane.state.buffer, repo, storeRef])
+    // Decorate command rows with their keybinding hint. The row's id is
+    // "cmd:<commandId>" — strip the namespace to look up the binding. Node
+    // rows fall through unchanged (their hint remains whatever the adapter
+    // set, typically nothing).
+    return rows.map((row) => {
+      if (!row.id.startsWith("cmd:")) return row
+      const cmdId = row.id.slice("cmd:".length)
+      const kb = keybindingMap.get(cmdId)
+      return kb ? { ...row, hint: kb } : { ...row, hint: undefined }
+    })
+  }, [pane.state.buffer, repo, storeRef, keybindingMap])
 
   // Keep selectedIndex in range as results change.
   React.useEffect(() => {
@@ -430,20 +454,60 @@ function UnifiedOmniboxConnector({
   // — setValue is memoised by useEditContext.
   setEditValueRef.current = editCtx.setValue
 
+  // Mouse hover moves the keyboard cursor to the hovered row (tree-view
+  // behavior). Click = hover + confirm. We sync selectedIndex first so
+  // handleConfirm reads the right argumentId via the selectedIndex →
+  // selectedArgumentId effect chain (Wait a tick: because React batches,
+  // we call the confirm path through the latest index directly).
+  const handleRowHover = useCallback((index: number) => {
+    setSelectedIndex(index)
+  }, [])
+  const handleRowClick = useCallback(
+    (index: number) => {
+      setSelectedIndex(index)
+      // The effect that projects selectedIndex → selectedArgumentId runs
+      // after this callback returns (React state update is async). Read
+      // the row directly and run handleConfirm with its ID, bypassing the
+      // pane state for the click path.
+      const row = resultsRef.current[index]
+      if (!row) return
+      const p = paneRef.current
+      if (!p) return
+
+      // Replicate handleConfirm's argument resolution using the clicked
+      // row's id so we don't race the effect.
+      const effectiveCmdId = resolveEffectiveCommand(p.state)
+      let commandToRun = effectiveCmdId
+      let targetId: string | undefined
+      if (row.id.startsWith("cmd:")) {
+        commandToRun = row.id.slice("cmd:".length)
+        targetId = undefined
+      } else if (row.id.startsWith("node:")) {
+        targetId = row.id.slice("node:".length)
+      }
+
+      popDialogMode()
+      dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
+
+      if (storeRef) {
+        const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+        dispatchCommandById(commandToRun, store.getState.bind(store), () => {}, targetId, p.spec.subjectSelection)
+      }
+    },
+    [setUI, storeRef],
+  )
+
   return (
-    <Box flexDirection="column" width={width}>
-      {/* Live input — the unified omnibox v1 shows a flat InputBox above the
-          presentational UnifiedOmnibox so the user sees the cursor. Phase 7d
-          collapses these into one chrome. */}
-      <InputBox
-        beforeCursor={editCtx.beforeCursor}
-        afterCursor={editCtx.afterCursor}
-        prompt="omnibox "
-        placeholder="type to search…"
-        focusRing
-      />
-      <UnifiedOmnibox pane={pane} results={results} width={width} />
-    </Box>
+    <UnifiedOmnibox
+      pane={pane}
+      results={results}
+      selectedIndex={selectedIndex}
+      editCtx={editCtx}
+      width={width}
+      maxHeight={maxHeight}
+      onRowHover={handleRowHover}
+      onRowClick={handleRowClick}
+    />
   )
 }
 
@@ -501,7 +565,10 @@ export function WorkspaceChrome({
     undoHandle,
   })
 
-  // Omnibox handlers
+  // Legacy omnibox handlers — kept while `cmd-k` temporarily opens the
+  // legacy Omnibox for side-by-side comparison with the unified surface
+  // (bound to `:` / `ctrl-k`). Delete along with Omnibox.tsx once the
+  // unified path is validated.
   const storeRef = React.useContext(StoreContext)
   const handleOmniboxSelect = useCallback(
     (result: OmniboxResult) => {
@@ -680,7 +747,9 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Omnibox / command palette */}
+      {/* Legacy Omnibox — temporary dogfood comparison surface bound to
+          cmd-k via `command_palette_legacy`. Delete along with Omnibox.tsx
+          once the unified path is validated. */}
       {ui.showOmnibox && (
         <CenterDialog
           termWidth={termWidth}
@@ -699,8 +768,8 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Unified omnibox (Phase 7b) — parallel surface to the legacy
-          Omnibox above. Lives until Phase 12 cleanup. See km-tui.omnibox-unified. */}
+      {/* Unified omnibox — the primary surface bound to `:` / ctrl-k via
+          `command_palette` → OPEN_UNIFIED_OMNIBOX. */}
       {ui.omnibox && (
         <CenterDialog
           termWidth={termWidth}
@@ -715,6 +784,7 @@ export function WorkspaceChrome({
             pane={ui.omnibox}
             setUI={setUI}
             width={Math.min(100, Math.floor((termWidth * 3) / 4))}
+            maxHeight={Math.max(10, Math.floor((contentHeight * 2) / 3))}
           />
         </CenterDialog>
       )}

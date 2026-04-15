@@ -355,20 +355,18 @@ interface ToggleHideDoneOp {
 interface ClearFiltersOp {
   type: "CLEAR_FILTERS"
 }
+/** Legacy Omnibox palette — temporarily bound to cmd-k for comparison dogfood. */
 interface CommandPaletteOp {
   type: "COMMAND_PALETTE"
 }
 
 /**
- * Open the unified omnibox overlay (Phase 7b of km-tui.omnibox-unified).
+ * Open the unified omnibox overlay — the primary command-palette / search /
+ * picker surface dispatched by `command_palette` (`:`, ctrl-k).
  *
- * Dispatched by `unified_omnibox_open` (dev keybind: Cmd+Shift+K). The
- * TUI-side handler in board-actions.ts builds an OmniboxInvocationSpec
+ * The TUI-side handler in board-actions.ts builds an OmniboxInvocationSpec
  * from the current focused pane (cursor as subject, repo top-level nodes
  * as candidate provider) and calls `openOmnibox(setUI, spec)`.
- *
- * Parallel to the legacy COMMAND_PALETTE op — doesn't replace it until
- * Phase 12 cleanup deletes the legacy Omnibox.tsx component.
  */
 interface OpenUnifiedOmniboxOp {
   type: "OPEN_UNIFIED_OMNIBOX"

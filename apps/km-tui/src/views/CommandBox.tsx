@@ -241,7 +241,7 @@ export function CommandBox({
   const multiSuffix = selIds.length > 1 ? `[${selIds.length}]` : ""
 
   // Command bar is "active" when the user is typing into it (omnibox, find input, search-replace)
-  const isCommandInput = !!(ui.showOmnibox || localSearch?.isInputActive || ui.searchReplace)
+  const isCommandInput = !!(ui.omnibox || localSearch?.isInputActive || ui.searchReplace)
 
   // Feedback and command independently decide visibility
   const hasFeedback = !!(ui.pendingChord || ui.bellState || ui.status || (localSearch && localSearch.query.length > 0))

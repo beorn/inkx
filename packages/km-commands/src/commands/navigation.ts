@@ -257,12 +257,27 @@ const filter = {
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
-// Command palette (stub)
+// Command palette — opens the unified omnibox pre-filled with ":".
+// Bound to `:` and `ctrl-k`. `cmd-k` is temporarily bound to the legacy
+// `command_palette_legacy` command below so the user can dogfood both
+// surfaces side-by-side before the legacy path is removed.
 const commandPalette = {
   id: "command_palette",
   name: "Command Palette",
   shortLabel: "palette",
   description: "Open command palette",
+  category: "Navigation",
+  execute: () => ({ type: "OPEN_UNIFIED_OMNIBOX", initialBuffer: ":" }),
+} satisfies CommandDef
+
+// Legacy Omnibox — temporary dogfood comparison surface bound to cmd-k.
+// Remove along with apps/km-tui/src/views/Omnibox.tsx once the unified
+// surface is validated.
+const commandPaletteLegacy = {
+  id: "command_palette_legacy",
+  name: "Command Palette (Legacy)",
+  shortLabel: "palette-legacy",
+  description: "Open legacy command palette for comparison",
   category: "Navigation",
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
@@ -352,6 +367,7 @@ export const navigationCommands: CommandDef[] = [
   openInTerminal,
   filter,
   commandPalette,
+  commandPaletteLegacy,
   goto,
   blockNavDown,
   blockNavUp,

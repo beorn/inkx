@@ -1397,8 +1397,8 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expectKey("n", "capture_dialog", sup)
     })
 
-    it("Cmd+k → command_palette (omnibox)", () => {
-      expectKey("k", "command_palette", sup)
+    it("Cmd+k → command_palette_legacy (temporary dogfood binding)", () => {
+      expectKey("k", "command_palette_legacy", sup)
     })
 
     it("Cmd+h → focus_board", () => {
@@ -1470,8 +1470,8 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expect(result).toBeNull()
     })
 
-    it("Cmd+k resolves to command_palette (global layer)", () => {
-      expectKey("k", "command_palette", sup)
+    it("Cmd+k resolves to command_palette_legacy (global layer)", () => {
+      expectKey("k", "command_palette_legacy", sup)
     })
 
     it("Option+h/l still shift nodes (Alt fallback)", () => {

@@ -119,6 +119,7 @@ function makeUI(overrides: Partial<PaneUI> = {}): PaneUI {
     pendingChord: null,
     chordTimedOut: false,
     showOmnibox: false,
+    omnibox: null,
     ...overrides,
   } as PaneUI
 }

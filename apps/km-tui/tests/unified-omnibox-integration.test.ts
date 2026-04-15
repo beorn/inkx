@@ -16,6 +16,8 @@
 import { describe, it, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
+import { dispatchCommandById } from "../src/board/board-app.ts"
 
 function standardBoard() {
   // Use a larger terminal so the omnibox overlay has room to render.
@@ -167,18 +169,65 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe("@cr")
   })
 
-  it("legacy Omnibox surface still works and coexists with the new one", () => {
-    // The legacy Omnibox (showOmnibox boolean) remains a parallel surface
-    // until Phase 12 cleanup. Opening one does not raise the other.
+  it("command_palette opens the unified omnibox (Phase 12 flip)", () => {
     using app = standardBoard()
     app.command("command_palette")
-    expect(app.withStore((s) => s.ui.showOmnibox)).toBe(true)
-    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
-    app.press("Escape")
-    expect(app.withStore((s) => s.ui.showOmnibox)).toBe(false)
-
-    app.press("cmd+shift+k")
-    expect(app.withStore((s) => s.ui.showOmnibox)).toBe(false)
     expect(app.withStore((s) => s.ui.omnibox)).not.toBeNull()
+    app.press("Escape")
+    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
+  })
+
+  // Regression: km-tui.omnibox-goto-no-cursor
+  //
+  // Before this fix, picking a leaf node in the unified omnibox (e.g.
+  // `@delei` pointing at an empty .md file with no children) ZOOM_IN'd
+  // into the leaf — its column was empty, no firstChild could be selected,
+  // and the cursor was left stranded on its previous location outside the
+  // new root. Z (zoom_outwards) then bell'd "Can't move up" because the
+  // cursor was unaddressable.
+  //
+  // Fix: handleCursorTo detects leaf targets and zooms into the PARENT,
+  // cursoring on the leaf itself so the node is visible and the cursor
+  // walks the normal zoom_outwards path.
+  it("goto via default command — leaf target cursors on the leaf, zoom_outwards works", () => {
+    using app = createTestApp(
+      [
+        ...item(
+          "board",
+          item("projects", item("alpha", item("task-a1")), item("beta", item("task-b1"))),
+          // delei is a LEAF — no children. This is the user's @delei case.
+          item("people", item("delei")),
+        ),
+      ],
+      { rows: 40 },
+    )
+    // Start zoomed into projects/alpha so we're crossing parent on the nav.
+    app.withStore((s) => s.dispatchBoard({ type: "ZOOM_IN", nodeId: "alpha" }))
+
+    // Fire the unified omnibox confirm path: dispatch the `default` command
+    // with targetId="delei". This is exactly what UnifiedOmniboxConnector's
+    // handleConfirm does when the user presses Enter on @delei.
+    app.withStore((s) =>
+      dispatchCommandById(
+        "default",
+        () => s as BoardAppStore,
+        () => {},
+        "delei",
+        { cursorId: null, selectedIds: [] },
+      ),
+    )
+
+    // Cursor should be on delei (the leaf itself), pane should be zoomed
+    // to its parent (people) so delei is visible on screen.
+    const afterRoot = app.withStore((s) => getActiveBoardPane(s)!.rootId)
+    const cursorAfter = app.withStore((s) => getActiveBoardPane(s)!.sel.node.cursor() as string | null)
+    expect(afterRoot).toBe("people")
+    expect(cursorAfter).toBe("delei")
+
+    // Zoom outwards (Z) must walk people -> board (grandparent) without
+    // belling "Can't move up".
+    const prevBellCount = app.state.bell
+    app.command("zoom_outwards")
+    expect(app.state.bell).toBe(prevBellCount)
   })
 })

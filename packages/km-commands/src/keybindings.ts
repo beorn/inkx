@@ -536,7 +536,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "`", commandId: "console.toggle" },
         { key: "ctrl-t", commandId: "task_dialog" },
         { key: "ctrl-k", commandId: "command_palette", when: not(textInputFocused) },
-        { key: "cmd-k", commandId: "command_palette" },
+        // Temporary dogfood: cmd-k opens the legacy Omnibox for comparison,
+        // `:` / ctrl-k open the unified path.
+        { key: "cmd-k", commandId: "command_palette_legacy" },
         // Phase 7b dev keybind — opens the unified omnibox (parallel to the
         // legacy Omnibox). Promoted to the canonical bind in Phase 12.
         { key: "cmd-shift-k", commandId: "unified_omnibox_open" },
