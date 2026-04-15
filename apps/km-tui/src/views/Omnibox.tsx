@@ -13,12 +13,12 @@ import React from "react"
 import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/ag-react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding } from "@km/commands"
+import { getAllCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
 import { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { getParentName } from "./search-utils.ts"
+import { fuzzyScore, getParentName } from "./search-utils.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // =============================================================================
@@ -203,32 +203,8 @@ function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
 }
 
 // =============================================================================
-// Fuzzy Scoring
+// Result Scoring
 // =============================================================================
-
-/**
- * Score a fuzzy match for sorting. Higher = better match.
- * Returns 0 if no match.
- */
-function fuzzyScore(query: string, target: string): number {
-  if (!query) return 1 // Empty query matches everything equally
-  const q = query.toLowerCase()
-  const t = target.toLowerCase()
-
-  // Exact match
-  if (t === q) return 1000
-
-  // Prefix match
-  if (t.startsWith(q)) return 500
-
-  // Substring match
-  if (t.includes(q)) return 200
-
-  // Fuzzy match (characters in order)
-  if (fuzzyMatch(query, target)) return 100
-
-  return 0
-}
 
 /** Score an omnibox result against a query */
 function scoreResult(result: OmniboxResult, query: string): number {
