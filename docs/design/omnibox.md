@@ -619,58 +619,93 @@ Both forms use the same reducer, the same `Pane` shape (with a `type: "combobox"
 
 Sticky memory: when the buffer's sigil changes, the previously-focused half keeps its `selected*` pointer. User bounces back, selection is still there.
 
+### Base state (normalized, stored)
+
 ```ts
-interface ComboboxState {
+interface ComboboxBaseState {
   /** Single working buffer — leading sigil determines what's being searched. */
   buffer: string
 
-  /** The resolved command. Always set. Mutated by:
+  /** The resolved command. Always set; `"default"` is the universal initial value.
+   *  Mutated by:
    *  - opening chord (`m +` → "move", `c @` → "create_at", `cmd-k`/`cmd-f` → "default")
-   *  - user arrowing over a result while in `:`-mode (picks a new command)
-   *  When the user is not in `:`-mode, this stays unchanged (sticky).
-   *  The universal fallback is "default" — a registered command that dispatches
-   *  based on the argument's node type (see § "The `default` command"). */
+   *  - user arrowing over a command result while in `:`-mode
+   *  When the user is NOT in `:`-mode, this stays unchanged (sticky). */
   defaultCommand: string
 
   /** Sticky argument. Mutated by:
    *  - opening chord with a pre-seeded argument (cursor pre-select)
-   *  - user arrowing over a result while NOT in `:`-mode
-   *  When the user is in `:`-mode, this stays unchanged (sticky). */
+   *  - user arrowing over a non-command result while NOT in `:`-mode
+   *  When the user IS in `:`-mode, this stays unchanged (sticky). */
   selectedArgument: KNode | null
 
-  /** Scope constraint on the argument source — replaces the legacy "pick a dialog
-   *  component per use case" pattern. favorites/item picker/local-find use this. */
-  sourceScope: "all" | "favorites" | "commands" | "current-view"
-
-  /** Optional per-invocation predicate for further narrowing. Non-serializable. */
-  resultFilter: ((node: KNode) => boolean) | null
-
-  /** Layout hint for the dialog form. Derived from defaultCommand at open time
-   *  (`local_find` → bottom-left; else → center). Ignored by the pane form. */
-  layout: "center" | "bottom-left"
+  /** Session-level argument-source scope. Set at open time, immutable for the
+   *  session. `manage_favorites` → "favorites"; `local_find` → "current-view"; else "all". */
+  sourceScope: "all" | "favorites" | "current-view"
 
   /** Dialog form dismisses on successful CONFIRM; pane form clears buffer and stays open. */
   ephemeral: boolean
 }
 ```
 
-**What's NOT in the state shape:** the result list and its highlighted-row index. Those are owned by the inner `SelectList` (Silvery component — see `vendor/silvery/packages/ag-react/src/ui/components/SelectList.tsx`). The combobox feeds `SelectList` the computed results (via the ranker over the current buffer + scope + filter), and listens to its `onSelect` / `onHighlight` callbacks to mutate `defaultCommand` or `selectedArgument` based on the buffer's current mode. No duplication.
+**5 fields, all normalized.** This is the canonical source of truth. The reducer only reads and writes these.
 
-**Sticky memory via two-slot mutation:**
-- Arrowing in `:`-mode (buffer starts with `:`) → `SelectList` highlights a command node → reducer mutates `defaultCommand = highlightedNode.data.commandId`.
-- Arrowing in any other mode → highlights a content node → reducer mutates `selectedArgument = highlightedNode`.
-- Switching sigils (by typing `:` or by `cmd-k`/`cmd-f` toggle) preserves the other slot automatically — it's not touched unless the user arrows in that mode.
+### Derived state (computed, not stored)
 
-**Resolution chain for Enter** — which command runs against which argument:
+Everything else that the renderer or keybinding layer needs is a pure function of the base state (plus external data like the node repo and the store cursor):
 
 ```ts
-function resolveEnter(state: ComboboxState): { cmd: string; arg: KNode | null } {
-  // defaultCommand is always set — "default" is the universal fallback
+// Which kind of search the buffer's leading sigil requests.
+type Mode =
+  | "universal"    // buffer = ""
+  | "command"      // buffer starts with :
+  | "context"      // @
+  | "tag"          // #
+  | "project"      // +
+  | "node"         // [
+  | "local_find"   // /
+
+function modeOf(buffer: string): Mode { /* switch on buffer[0] */ }
+
+// Layout derives from the default command + lifecycle.
+function layoutOf(state: ComboboxBaseState): "center" | "bottom-left" | "dock" {
+  if (!state.ephemeral) return "dock"
+  if (state.defaultCommand === "local_find") return "bottom-left"
+  return "center"
+}
+
+// Candidates for the current search mode + source scope, applied through the ranker.
+function resultsOf(state: ComboboxBaseState, ctx: Ctx): KNode[] {
+  const mode = modeOf(state.buffer)
+  const root = rootForScope(state.sourceScope, ctx, mode)  // "/" | "/favorites" | "/commands" | …
+  const parsed = parseQuery(state.buffer, ctx)
+  return rankResults(parsed, getCandidates(root, mode))
+}
+
+// Resolved command for Enter. Always defined.
+function resolveEnter(state: ComboboxBaseState): { cmd: string; arg: KNode | null } {
   return { cmd: state.defaultCommand, arg: state.selectedArgument }
 }
 ```
 
-No `defaultCommand` field. The "user picked a command" case is just "`defaultCommand` was mutated by arrowing in `:`-mode". Simpler reducer, simpler tests, simpler mental model.
+**Nothing in `ComboboxDerivedState` is stored or mutated directly.** Every keystroke recomputes `results` and `layout`. The inner `SelectList` (Silvery component at `vendor/silvery/packages/ag-react/src/ui/components/SelectList.tsx`) receives `results` as a prop and owns its own highlighted-row index — the combobox doesn't duplicate it.
+
+### Sticky memory via two-slot mutation
+
+When the user arrows in the result list, the reducer updates exactly ONE of the two sticky slots:
+
+- Arrowing in `:`-mode → `SelectList` highlights a command → reducer mutates `defaultCommand = highlightedNode.data.commandId`.
+- Arrowing in any other mode → highlights a node → reducer mutates `selectedArgument = highlightedNode`.
+- Switching modes (via sigil typing or `cmd-k`/`cmd-f`) preserves the other slot automatically — it's not touched unless the user arrows in that mode.
+
+### Resolution chain for Enter
+
+```ts
+// Pure function of base state — always defined.
+resolveEnter(state) → { cmd: state.defaultCommand, arg: state.selectedArgument }
+```
+
+No fallback chain. `defaultCommand` is always set; "user picked a command" is just "the reducer mutated `defaultCommand` to the user's pick". The `default` command (see below) handles type-based dispatch internally when `defaultCommand === "default"`.
 
 **The `default` command** (registered in `@km/commands` alongside the existing 172):
 
