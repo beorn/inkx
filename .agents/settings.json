@@ -1,1 +1,0 @@
-{"hooks": {"pre-task": [{"command": "cd /Users/beorn/Code/pim/km && bd prime", "type": "command"}], "post-task": [{"command": "cd /Users/beorn/Code/pim/km && git add .beads", "type": "command"}]}}
