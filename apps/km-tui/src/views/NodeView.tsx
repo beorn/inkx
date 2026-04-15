@@ -460,12 +460,19 @@ export function NodeColumnView({
   const textColor = isSelected ? "$selection" : undefined
   const bgColor = isSelected ? "$selection-bg" : undefined
 
+  // Skip the `§ ` prefix when the source heading already starts with `§`
+  // (e.g. the RESOLVER.md convention `## § 4 — Filename conventions`).
+  // Without this check we double-stamp the marker and every section renders
+  // as `§ § 4 — …` in the column header.
+  const alreadyHasSectionMark = displayName.trimStart().startsWith("\u00A7")
+  const prefix = alreadyHasSectionMark ? "" : "\u00A7 "
+
   return (
     <Box flexDirection="column" width={width}>
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} wrap="truncate">
-            {"§ "}
+            {prefix}
             {displayName}
           </Text>
         </Box>
