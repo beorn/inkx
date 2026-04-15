@@ -18,6 +18,7 @@ import { textEditingCommands } from "../src/commands/text-editing.ts"
 import { blockEditCommands } from "../src/commands/block-edit.ts"
 import { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "../src/commands/dialog.ts"
 import { paneCommands } from "../src/commands/pane.ts"
+import { omniboxCommands } from "../src/commands/omnibox.ts"
 import type { CommandContext, TNode, KmOp, CommandDef } from "../src/types.ts"
 
 // ============================================================================
@@ -135,7 +136,8 @@ describe("allCommands", () => {
       dialogCommands.length +
       filterDialogCommands.length +
       favoritesDialogCommands.length +
-      paneCommands.length
+      paneCommands.length +
+      omniboxCommands.length
 
     expect(allCommands.length).toBe(expectedCount)
   })

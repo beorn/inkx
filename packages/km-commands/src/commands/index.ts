@@ -9,6 +9,7 @@ export { textEditingCommands } from "./text-editing.ts"
 export { blockEditCommands } from "./block-edit.ts"
 export { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "./dialog.ts"
 export { paneCommands } from "./pane.ts"
+export { omniboxCommands } from "./omnibox.ts"
 
 import { navigationCommands } from "./navigation.ts"
 import { selectionCommands } from "./selection.ts"
@@ -21,6 +22,7 @@ import { textEditingCommands } from "./text-editing.ts"
 import { blockEditCommands } from "./block-edit.ts"
 import { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "./dialog.ts"
 import { paneCommands } from "./pane.ts"
+import { omniboxCommands } from "./omnibox.ts"
 
 export const allCommands = [
   ...navigationCommands,
@@ -36,4 +38,5 @@ export const allCommands = [
   ...filterDialogCommands,
   ...favoritesDialogCommands,
   ...paneCommands,
+  ...omniboxCommands,
 ]
