@@ -40,59 +40,68 @@ One result list, one row renderer, one state machine, one set of keybindings.
 
 Every invocation of the combobox resolves to **three parts**, and different users in different moments flow through them in different orders:
 
-1. **An optional default action** — the verb pre-populated by the opening chord. May be locked (action-first flows) or a safe fallback (object-first flows). May be empty in rare cases (e.g., `g :` drops into command search with no pre-selection).
-2. **An object** — a node from the tree. Always the central interaction; focus starts here.
-3. **An action** — what runs on confirm. Resolves to the default action unless the user explicitly overrides it.
+1. **A default command** — always set. `"default"` (a registered command that dispatches by argument type) is the universal fallback; verb-locking chords (`m +`, `c @`, `/`, etc.) override with a specific verb.
+2. **An object** — a node from the tree. The primary interaction.
+3. **A resolved action** — what runs on Enter. `selectedCommand ?? defaultCommand`. Sticky: picking a command or an object persists across sigil switches.
 
-The key insight: **the combobox supports both directions — object+action AND action+object — in the same component**, with `defaultCommand` acting as the pivot.
+The key insight: **the combobox supports both directions — object→action AND action→object — in the same component**, with `defaultCommand` acting as the pivot and the buffer's leading sigil as the in-session mode switch.
 
 ### The two directions
 
-| Direction | Chord | Flow | Example |
+| Direction | Entry | Flow | Example |
 |---|---|---|---|
-| **Object-first** (`object + action`) | `cmd-k`, no chord | User hunts the target; default action (`goto`) is a safe fallback that turns Enter into "focus this thing" | `cmd-k` → type `@del` → `@delei` selected → Enter → go to @delei |
-| **Action-first** (`action + object`) | `g @`, `m +`, `a #`, `c @`, `l g`, `/` | User committed the verb via the chord; object search is the second step | `m +` → type `km` → `+km` selected → Enter → move current cursor into +km |
-| **Either → override** | any | User flips direction at confirm time via Tab-to-action-chip (or Shift+Enter/Ctrl+Enter shortcuts) | `cmd-k` → `@delei` → Tab → type `move` → Enter → move to @delei |
+| **Command-first** (`action → object`) | `cmd-k` (buffer = `":"`) | Browse commands filtered by `when` against the sticky cursor. Pick a command. Enter → run against sticky cursor (or find a different target first by typing a non-`:` sigil). | `cmd-k` → `:cr` → pick `create_at` → Enter → create under sticky cursor |
+| **Object-first** (`object → action`) | `cmd-f` (buffer = `""`), `g` chords, or any chord with a pre-selected sigil | Hunt the target; Enter fires the default command (or the sticky selected command) against it. | `cmd-f` → `@del` → pick `@delei` → Enter → `default` dispatches → goto @delei |
+| **Action-first with locked verb** (`action → object`) | Verb-locking chords: `m +`, `a #`, `c @`, `l g`, `/` | Verb is locked by the chord; object search is step two. | `m +` → `km` → pick `+km` → Enter → move cursor into +km |
+| **Flip direction mid-stream** | Any | Type a different sigil in the buffer — the leading sigil auto-replaces, preserving the rest. Or press `cmd-k`/`cmd-f` to toggle modes. Sticky memory means both halves stay. | `cmd-f` → `@delei` selected → `cmd-k` → buffer `:` + `@delei` sticky → pick `move` → Enter → move @delei |
 
 **`defaultCommand` is the pivot:**
-- In **action-first** flows it's locked (the chord set it deliberately — Escape-on-command-field restores it, matching the user's intent).
-- In **object-first** flows it's a safe default (`goto`) the user can ignore — Enter still does the safe thing.
-- In either, Tab to the command chip is the override surface.
+- In **command-first** (`cmd-k`) and **object-first** (`cmd-f`) flows it's `"default"` — the universal type-dispatch fallback.
+- In **action-first** flows with verb-locking chords it's a specific verb (`"move"`, `"create_at"`, `"local_find"`).
+- The user can override via `selectedCommand` at any time by typing `:<verb>` or pressing `cmd-k`.
 
-| Opened via | defaultCommand | Direction | Focus starts in |
-|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `goto` (fallback) | object-first | argument |
-| `g @` chord | `goto` (locked) | action-first | argument |
-| `g #` / `g +` / `g [` | `goto` (locked) | action-first | argument |
-| `g g` | `goto` (locked) | object-first on cursor | argument |
-| `g :` | *(empty)* | — | command |
-| `m @` / `m +` | `move` (locked) | action-first | argument |
-| `a @` / `a #` | `add` (locked) | action-first | argument |
-| `l g` | `add_link` (locked) | action-first | argument |
-| `c @` | `create_at` (locked) | action-first | argument |
-| `/` | `local_find` (locked) | action-first (bottom-left) | argument |
+| Opened via | `buffer` | `defaultCommand` | `selectedArgument` at open | Direction |
+|---|---|---|---|---|
+| `cmd-k` / `ctrl-k` | `":"` | `"default"` | prior pane's cursor | command-first |
+| `cmd-f` / `ctrl-f` | `""` | `"default"` | prior pane's cursor | object-first |
+| `g @` chord | `"@"` | `"default"` | *(empty)* | action-first |
+| `g #` / `g +` / `g [` | `<sigil>` | `"default"` | *(empty)* | action-first |
+| `g g` | `""` | `"default"` | prior pane's cursor | object-first on cursor |
+| `g :` | `":"` | `"default"` | *(empty)* | command-first (empty) |
+| `m @` / `m +` | `<sigil>` | `"move"` (locked) | *(empty)* | action-first |
+| `a @` / `a #` | `<sigil>` | `"add"` (locked) | *(empty)* | action-first |
+| `l g` | `""` | `"add_link"` (locked) | prior pane's cursor | action-first |
+| `c @` | `"@"` | `"create_at"` (locked) | *(empty)* | action-first |
+| `/` | `"/"` | `"local_find"` (locked) | *(empty)* | action-first (bottom-left) |
 
 ### Vim alignment is automatic
 
 km's chord keybindings are already verb–noun grammar, which is exactly how vim users think: `d` + motion, `y` + text-object, `c` + word. The action-first flows in the combobox — `g @`, `m +`, `c @` — follow the same mental model: verb first, then the target is picked via search rather than via motion.
 
-The object-first `cmd-k` flow is the modeless / discovery-friendly path for users who *don't* think in vim grammar (or for cases where the user starts with "the thing", not "the verb"). **Both mental models get their native flow**, in the same component, without forcing anyone to relearn.
+`cmd-k` (command-first) and `cmd-f` (object-first) are the modeless / discovery-friendly paths for users who think in either "I know the verb" or "I know the thing" terms. **Both mental models get their native flow**, in the same component, without forcing anyone to relearn. Power users get `Ctrl+{g,m,a,l,c}+Enter` modifier-chord shortcuts that skip the `:`-search round-trip entirely.
 
-### What the object field actually owns
+### How the single buffer works
 
-Focus starts in the object field, always. The object field is where the user **is** — searching, arrowing, highlighting, pre-visualizing the thing they're going to operate on. The command chip above it shows the default action but isn't a field-you-edit-first. It only becomes a text input when the user Tabs to it to override.
+The combobox has **one working buffer**, whose leading sigil routes the search:
 
-- `Enter` → runs the current (`commandBuffer` or `defaultCommand`) action against the selected object.
-- `Shift+Enter` / `Ctrl+Enter` → shortcut overrides (`create_at`, `goto`) without Tab round-trip.
-- `Tab` → flip to action-override mode (command field becomes an editable input). Accepts ghost completion if visible; otherwise toggles focus.
-- `Escape` on a diverged command field → restore `defaultCommand`, return focus to argument.
-- Second `Escape` → dismiss.
+- `""` (empty) → universal search (everything ranked by type)
+- `":xxx"` → command search, filtered by `when` against `selectedArgument`
+- `"@xxx"` / `"#xxx"` / `"+xxx"` → type-scoped node search
+- `"[xxx"` → node full-text (or `[<task-status>]` task filter)
+- `"/xxx"` → local find (locks layout to bottom-left)
 
-The asymmetry matters: "two fields with Tab parity" undersells the intent. The object field is primary; the action override is rare enough that most users never touch it.
+Typing a sigil character auto-replaces the current leading sigil while preserving the rest of the buffer — no Tab, no focus-switch, no separate command-field and argument-field. Sticky memory (`selectedCommand` + `selectedArgument`) survives mode switches, so bouncing between `:cr` and `@del` doesn't lose the picks from either side.
+
+- `Enter` → runs `resolveEnter()` — `selectedCommand ?? defaultCommand` against `selectedArgument`.
+- `Shift+Enter` / `Ctrl+Enter` / `Ctrl+{g,m,a,l,c}+Enter` → direct-verb shortcuts that override `selectedCommand` for this single dispatch.
+- `cmd-k` / `cmd-f` → mode toggle (while open — see § "Opening and toggling the combobox").
+- `Escape` → dismiss (dialog) or clear (pane).
+
+The asymmetry matters: "two fields with Tab parity" undersells the intent. One buffer, one sigil-routed result list, sticky selections on both sides of the pivot. Most users never need the `:` override because the default command (or the chord's locked verb) already does the right thing.
 
 ### Dialog or pane — two presentation forms, one component
 
-The component itself is a **combobox**: two searchable fields + result list + state machine. It has **two presentation forms**, both equally valid, that share the same state shape, reducer, row renderer, and keybindings:
+The component itself is a **combobox**: single sigil-routed buffer + result list + state machine + sticky selections on both sides of the pivot. It has **two presentation forms**, both equally valid, that share the same state shape, reducer, row renderer, and keybindings:
 
 | Form | Ownership | Lifecycle | Example |
 |---|---|---|---|
@@ -114,30 +123,51 @@ Backspace through the `/` sigil in the argument field — which drops the defaul
 
 ### Why this unification is deep
 
-- **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) The command field is a node search over the `commands/` subtree; the argument field is a node search over the rest of the tree. Two fields, one tree, one ranker.
-- **The combobox's selected argument row IS the cursor while it has focus.** Commands read "the current cursor" and act. The cursor source follows focus:
+- **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) The `:` sigil searches the `commands/` subtree via the same ranker and row renderer that searches every other subtree. One tree, one buffer, one ranker, one row component.
+- **The combobox's `selectedArgument` IS the cursor while it has focus.** Commands read "the current cursor" and act. The cursor source follows focus:
   - Cards pane focused → cursor is the cursored card.
   - Detail pane focused → cursor is the focused block.
-  - **Combobox dialog open and focused → cursor is the dialog's selected argument row.**
-  - **Combobox pane focused (post-v1) → cursor is the pane's selected argument row.**
+  - **Combobox dialog open and focused → cursor is `selectedArgument`.**
+  - **Combobox pane focused (post-v1) → cursor is `selectedArgument`.**
   Commands don't know or care which surface supplies the cursor. `goto`, `move`, `create_at` just read `currentCursor()` and fire.
-- **Global keybindings work inside the combobox with no special scope.** There's no `dialog:combobox` mode that shadows the app's keymap. The only things the combobox consumes are keys that any focused text input would consume — letters, arrows, Enter, Escape, Tab, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `vm`, `z`/`Z`) falls through to the global layer exactly as it does when an inline card title editor has focus in the cards view. The combobox's input fields are just text inputs; that's the only scoping that matters.
+- **`default` resolves type-dispatch inside the command system, not the reducer.** When there's no explicit `selectedCommand` and no chord-locked `defaultCommand`, the universal fallback is the `default` command, which inspects `currentNode.type` and does the right thing (command → run, else → goto). Future per-type customization (tags → filter, projects → zoom) is a one-function change in `default.execute()` — zero combobox-UI work.
+- **Global keybindings work inside the combobox with no special scope.** There's no `dialog:combobox` mode that shadows the app's keymap. The only keys the combobox consumes are the ones any focused text input would consume — letters, arrows, Enter, Escape, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `vm`, `z`/`Z`) falls through to the global layer exactly as it does when an inline card-title editor has focus in the cards view. `cmd-k` and `cmd-f` are special only in that they're bound at the global layer to also work *while* the combobox is open, to toggle search mode.
 - **The dialog form and the pane form share `ComboboxState`.** The difference is only *where* the state lives — a global overlay slot vs. a pane. The reducer, keybindings, row renderer, command-tree projection, everything downstream of the state is identical. "Pop it out" is a single state transition: move `ComboboxState` from overlay-slot to a new pane, dismiss the overlay.
 
 ## Mockups
 
 All mockups below are the **same component** with different `placement` and initial field state. The layout is a presentation prop; the search, ranker, row renderer, and state machine are identical. These are semantic wireframes — not box-drawn ASCII — each element is a line annotated with what it is. `▸` prefix marks the currently-focused field; `←` marks the selected row in the result list.
 
-### 1. `cmd-k` — Universal, cursor pre-selected
+### 1. `cmd-k` — command-first, sticky cursor pre-selected as argument
 
-Empty argument buffer. The board cursor node is the top result (and therefore the argument). Enter runs the default command (`goto`) against the cursor = "re-focus". Shift+Enter runs `create-in` against the cursor = "create child under current node".
+Opens with `buffer = ":"`. User is in command-search mode by default (VS Code convention). `selectedArgument` is pre-seeded from the prior pane's cursor so that any picked command has something to operate on. Commands are filtered by `when` against the sticky cursor.
 
 ```
-placement:    center
-state:        { command: "goto", arg: "", focus: arg }
+state:        { buffer: ":", defaultCommand: "default", selectedArgument: <cursor> }
 
-  command     :   [ goto ]                                              (locked/default — tab to edit)
-  argument    : ▸ _                                                     (empty — argument slot has focus)
+  chip        :   [ default ]   selected target: <cursor node>  (sticky)
+  buffer      : ▸ :_
+
+  results     : : goto                       g
+              : : move <cursor> to…          m
+              : : create_at …                c
+              : : open_in_system             ⏎ (in detail)
+              : : … (filtered by when(cursor))
+
+  footer      : ↵ <picked cmd> <cursor>   ⌘f switch to finder   esc
+```
+
+User types `:cr`, picks `create_at`, Enter → runs `create_at` against the sticky cursor = create a child under the current node.
+
+### 2. `cmd-f` — object-first, same cursor pre-selected
+
+Opens with `buffer = ""` (empty, universal argument search). Same cursor pre-selected as `selectedArgument`. Top row is the cursor itself. Enter resolves via the `default` command: since the cursor is a node (not a command), it runs `goto` — a no-op refocus. Shift+Enter runs `create_at` against it instead.
+
+```
+state:        { buffer: "", defaultCommand: "default", selectedArgument: <cursor> }
+
+  chip        :   [ default ]
+  buffer      : ▸ _
 
   results     : @ omnibox.md                +km/docs/design         ←   (cursor node = selected arg)
               : + km-tui.omnibox-unified    beads              P0
@@ -145,66 +175,65 @@ state:        { command: "goto", arg: "", focus: arg }
               : # urgent                    47 uses
               : board.tsx                   +km/apps/km-tui/src
 
-  footer      : ↵ goto   ⇧↵ create-in   ⇥ edit command   esc
+  footer      : ↵ goto (via default)   ⇧↵ create_at   ⌘k switch to commands   esc
 ```
 
-### 2. `cmd-k`, then user typed `@del` — argument search with match highlighting
-
-Filtered to context nodes starting with "del". Match characters are **highlighted inside each row** (same treatment as `/` local find — highlights live in the row renderer, not a separate overlay). Ranker puts `@delei` first, deep subpath last.
+User types `@del` → buffer becomes `@del`, results switch to context search, `@delei` bubbles to the top with match-highlighting:
 
 ```
-placement:    center
-state:        { command: "goto", arg: "@del", focus: arg }
+state:        { buffer: "@del", defaultCommand: "default", selectedArgument: @delei }
 
-  command     :   [ goto ]
-  argument    : ▸ @del_
+  chip        :   [ default ]
+  buffer      : ▸ @del_
 
   results     : @ [del]ei                                context       ←
               : @ [del]oitte                             work/context
               : @ @office/Finance/Accounts/[Del]ei/SPD   deep match
 
-  footer      : ↵ goto   ⇧↵ create-in   ⇥ edit command   esc
+  footer      : ↵ goto (via default) @delei   ⇧↵ create_at @delei   ⌘k commands   esc
 ```
 
-Square brackets in the mockup stand in for the highlighted match spans.
+Square brackets in the mockup stand in for the highlighted match spans. Enter → `default` dispatches by type → `@delei` is a person → goto → navigate to @delei.
 
-### 3. Override via Tab — user tabbed to the command field
+### 3. Switch to commands via `cmd-k` — action panel on the selected argument
 
-From mockup 2, user presses Tab. Focus moves to the command field; results now search commands. User types `mo` → `move` bubbles to the top. Argument field stays locked at `@del` with its selected result. Enter now runs `move` against `@delei`.
-
-```
-placement:    center
-state:        { command: "mo", arg: "@del", focus: command }
-
-  command     : ▸ mo_
-  argument    :   @del                                  @delei  ← (selected arg stays)
-
-  results     : : [mo]ve                  m (chord)        ←  (command results — filtered by "mo")
-              : : [mo]ve-up                shift-k
-              : : toggle-[mo]noscreen      (no binding)
-
-  footer      : ↵ move @delei   ⇥ edit argument   esc
-```
-
-The footer re-renders to show the resolved action: **"↵ move @delei"**. Tab again returns focus to the argument field.
-
-### 4. `create-in` has no matching argument — inactivatable
-
-User opened via `c +` chord. Typed `+newproject`. No match. `create-in` requires an existing target node, so it's **not activatable** — Enter bells, the footer greys the action out, the user can Tab to pick a different command (or type a new search).
+From mockup 2 (user has `@delei` highlighted in the results), user presses `cmd-k`. The buffer switches to `:`, and the results list is now commands filtered by `when(@delei)` — only commands valid for a person node appear. This is the Embark/Raycast "action panel on selected candidate" pattern, achieved by the context-sensitive `cmd-k` toggle without any new mechanism.
 
 ```
-placement:    center
-state:        { command: "create-in", arg: "+newproject", focus: arg }
+state:        { buffer: ":", selectedCommand: null, selectedArgument: @delei }
 
-  command     :   [ create-in ]
-  argument    : ▸ +newproject_
+  chip        :   [ default ]  →  overridable
+  buffer      : ▸ :_
 
-  results     :   (no matches)
+  results     : : goto                    g                        ← top match
+              : : move @delei to…         m
+              : : add_tag to @delei       # (via add chord)
+              : : open in detail pane     ⏎ (in detail view)
+              : : … (filtered by when(@delei))
 
-  footer      : ↵ create-in (disabled — no target)   ⇥ edit command   esc
+  footer      : selected target: @delei   ·   ↵ run picked cmd   ⌘f back to finder   esc
 ```
 
-Creating a new `+newproject` node is a different command (e.g. `:new-project <title>`) — not the default action of `create-in`. This keeps `create-in` semantically clean: it always takes a target.
+User types `mo`, `move` bubbles to the top, Enter runs `move @delei`. Alternatively, the user could have used the shortcut `Ctrl+m+Enter` from mockup 2 to skip this step entirely — both land at the same dispatch.
+
+### 4. Sigil auto-replace — swap search mode mid-stream
+
+From mockup 2 (`:cr` typed, user was command-searching), user realizes they actually want to find a person. They type `@`. The leading `:` is auto-replaced, the buffer becomes `@cr`, and the results switch to context search.
+
+```
+state:        { buffer: "@cr", selectedCommand: "create_at"?, selectedArgument: null }
+
+  chip        :   [ default ]
+  buffer      : ▸ @cr_
+
+  results     : @ crashel                   context          ← top match
+              : @ craig                     work/context
+              : @ @office/Finance/Accounts/Crdei  deep match
+
+  footer      : ↵ default @crashel   ⌘k commands   esc
+```
+
+Typing sigils swaps modes in place. No Tab, no focus-switching. The search term after the sigil is preserved (`:cr` → `@cr`). Sticky memory keeps any previously-picked `selectedCommand` — bouncing back via `cmd-k` brings it back.
 
 ### 5. Bottom-left local find — `/` sigil
 
@@ -236,47 +265,40 @@ state:        { command: "goto", arg: "", focus: arg, persistent: true }
 
 ## Model
 
-### Object field (primary) + action override
+### Single buffer + sigil routing
 
-The combobox has **one primary field** (object / argument) and **one override surface** (command / action). Both are backed by searchable buffers, but they are **not symmetric**: the object field is where the user spends time, and the action chip is a visible label that only becomes a text input when the user Tabs to it to override.
+The combobox has **one working buffer** whose leading sigil determines what's being searched. There are no separate command/argument fields and no focus flag — one buffer, one result list, one keystroke to switch modes.
 
-- `argumentBuffer` — always editable; focus starts here.
-- `commandBuffer` — initialized to `defaultCommand` from the opening chord. Rendered as a chip above the argument field until focus transfers, at which point it becomes an input.
-- `focus: "command" | "argument"` — which field currently consumes key input. Starts on `argument`. Moves to `command` only when the user Tabs away to override.
+**Sigil routing.** The first character of `buffer` selects the search scope:
 
-Result list below always shows results for the focused field. When focus is on the argument, the user sees node search results. When focus is on the command, the user sees command search results.
-
-**Sigil routing inside the argument field.** The first character of `argumentBuffer` selects the search scope within the tree:
-
-| Argument first-char | Scope | Matches |
+| Leading char | Mode | Searches |
 |---|---|---|
+| `:` | **Command** | Command tree, filtered by `when` against `selectedArgument` |
 | `@` | **Context** | Person / assignee nodes |
 | `#` | **Tag** | Tag nodes |
 | `+` | **Project** | Project nodes |
-| `[` | **Node** | Any node by title/content (full-text) |
-| `/` | **Local find** | Same component, but forces `placement="bottom-left"` and locks command to `find` |
+| `[` | **Node** | Any node (full-text) — `[x]` / `[ ]` / `[]` are task-status filter prefixes; otherwise `[` + text is node-only full-text |
+| `/` | **Local find** | Current view's visible tree (locks layout to bottom-left, defaultCommand to `local_find`) |
 | `>` | *(reserved)* | Jump to heading in current doc |
 | `?` | *(reserved)* | Help — "what does this key do?" inline docs |
 | *(empty)* | **Universal** | Everything, ranked by type |
 
-Backspace through the sigil → empty → mode becomes Universal. Type a different sigil → mode switches. No separate components, no re-open.
+**Sigil auto-replace.** Typing a sigil character replaces the current leading sigil (if any), preserving the rest of the buffer. `@del` + `#` → `#del` (tag search for "del"). `:cr` + `@` → `@cr` (context search). Sticky memory ensures selections on both sides of the pivot persist across the switch.
 
-**Entering the command field** (the rare override path). Three ways:
-1. **`Tab`** — toggle focus to the command field. Preserves both buffers. Most users never press this.
-2. **`:` at empty argument buffer** — shortcut for "I want to run a command from scratch". Pops focus to the command field, clears the `:`.
-3. **`g :` chord** — explicitly opens in command-field-focused mode.
+**Entering command-search mode.** Three equivalent ways:
+1. **Type `:` into the buffer** — the sigil auto-replace rule makes `:` the command-search prefix.
+2. **Press `cmd-k`** (keyboard alias) — equivalent to setting `buffer = ":"`. Works whether the combobox is open or closed.
+3. **Open via `g :` chord** — initial buffer is `":"`.
 
-Most of the time, the user never touches the command field — the chord pre-populated `defaultCommand` is what they wanted, and confirming against the selected object is the whole interaction. Tab-to-command-field is the escape hatch for "oh wait, I actually want to do something else with this object".
+**Empty-buffer behavior.** When the buffer is empty (or just a bare sigil), the result list shows **recents filtered by prefix**. The prefix is whatever has been typed so far, including the leading sigil:
 
-**Empty-buffer behavior.** When either field is empty, its result list shows **recents filtered by prefix** (prefix being whatever has been typed so far, even if empty):
-
-- Empty argument field → recent goto targets (and the current board cursor, pre-selected first).
-- Empty command field → recently-run commands.
-- Partially-typed argument `@del` → recents that match `@del`, then other matches.
+- `buffer = ""` → recent goto targets + the prior pane's cursor (pre-selected as `selectedArgument`).
+- `buffer = ":"` → recently-run commands, filtered by `when` against the sticky cursor.
+- `buffer = "@del"` → recent context picks matching "del", then other matches.
 
 Recents are just "nodes ordered by `lastVisitedAt` desc"; the ranker combines recency with match score. "Filtered by prefix like everything else in the list" means the ranker applies the same match rules — recents are not a privileged separate list.
 
-**`/` local find is the same component, different placement.** `/` sets `placement="bottom-left"` and locks the command field to `find`. The argument field owns the query. The result list becomes in-place match highlighting on the board instead of a row list. Backspace through `/` → promotes back to `placement="center"`, command returns to `goto` (or whatever the chord set).
+**`/` local find is the same component, different layout.** `/` sets `buffer = "/"`, which in turn derives `layout = "bottom-left"` and `defaultCommand = "local_find"`. The result list becomes in-place match highlighting on the board instead of a row list. Backspace through `/` → promotes back to `layout = "center"` with `defaultCommand = "default"`.
 
 ### Result types — everything is a node
 
@@ -400,25 +422,32 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 **Canonical test fixture**: `apps/km-tui/tests/omnibox-ranking.test.ts` — table of `(query, results)` where the expected order is hand-written. Every ranking tweak is validated against the table.
 
-### Default command, override via Tab, restore via Escape
+### Default command, override via `:` sigil or `cmd-k`, fallback via `default`
 
-Every combobox instance has a **permanent default command** (`defaultCommand` on `ComboboxState`) set at creation from the opening chord:
+Every combobox instance has a **default command** (`defaultCommand` on `ComboboxState`) set at creation from the opening chord. Open chords that don't commit to a verb (`cmd-k`, `cmd-f`, generic `g` chords) use `"default"` as the initial value; verb-locking chords override:
 
 | Open via | defaultCommand |
 |---|---|
-| `cmd-k` | `goto` |
-| `g` chord | `goto` |
-| `m` chord | `move` |
-| `a` chord | `add` |
-| `l` chord | `add_link` |
-| `c` chord | `create_at` |
-| `/` (direct) | `local_find` |
+| `cmd-k`, `cmd-f`, `g` chords | `"default"` (universal fallback — dispatches by argument type) |
+| `m` chord | `"move"` |
+| `a` chord | `"add"` |
+| `l` chord | `"add_link"` |
+| `c` chord | `"create_at"` |
+| `/` (direct) | `"local_find"` |
 
-**Override = Tab to the command field and type.** There are no `Ctrl+g/m/a/l` chord overrides — the command field *is* the override surface. It's always visible as the top line of the modal (mockups 1, 2, 4) and becomes a text input the moment you Tab to it or press `:` on an empty argument field. The `commandBuffer` diverges from `defaultCommand` while the user edits. Once the user picks a different command, Tab back to the argument field and confirm.
+**Override = type `:` into the buffer (or press `cmd-k` while open).** There are two equivalent ways to enter command-search mode:
 
-**Escape on the command field restores the default.** The first Escape — with `commandBuffer !== defaultCommand` — resets `commandBuffer = defaultCommand` and switches focus back to the argument field. Only a second Escape (or Escape with the command field already matching the default) dismisses the pane. This gives a painless "I meant to search, not override" undo.
+1. **Type `:`** into the buffer — the sigil auto-replace rule makes `:` the command-search prefix. `selectedArgument` is preserved. Commands are filtered by `when` against the preserved argument.
+2. **Press `cmd-k`** (keyboard alias) — fires `COMBOBOX_SWITCH_TO_COMMANDS`, which is equivalent to setting `buffer = ":"`. Same effect, no typing.
 
-This is strictly simpler than the old "default verb + modifier override" model: the user doesn't have to learn a second key system. Tab is the universal "edit the other half of the tuple" affordance; Escape is the universal "undo that override" affordance.
+User picks a command via the filtered list. `selectedCommand` is set. Switching back to argument search (via `cmd-f` or typing a non-`:` sigil or backspacing through the `:`) preserves `selectedCommand` — the pick is sticky.
+
+**Enter resolution** follows the chain `selectedCommand ?? defaultCommand`, so:
+- If the user picked a command explicitly, it wins.
+- Else the chord's default command runs.
+- Else (`defaultCommand = "default"`) the `default` command handles type-dispatch internally (commands → run, else → goto).
+
+This is strictly simpler than the old "Tab + command field" model: there's no Tab, no field-focus flag, no `commandBuffer`/`argumentBuffer` split. Just one buffer, sticky memory, and the resolution chain.
 
 ### Global keybindings are automatic (no special scope)
 
@@ -432,54 +461,49 @@ This is not a new mechanism; it's the standard text-input-consumes-its-own-keys 
 
 | Key | Action |
 |---|---|
-| `Enter` | Run the currently-shown command against the selected argument |
-| `Shift+Enter` | Run `create-in` against the selected argument (shortcut — no Tab needed) |
-| `Ctrl+Enter` | Run `goto` against the selected argument (shortcut — mirrors global `follow_link`) |
-| `Escape` | Cancel, restore prior cursor |
-| `Tab` | Toggle focus between command and argument fields |
+| `Enter` | Run `resolveEnter()` — `selectedCommand ?? defaultCommand` against `selectedArgument`. |
+| `Shift+Enter` | Shortcut override — run `create_at` against `selectedArgument`. Equivalent to typing `:create_at` then Enter. |
+| `Ctrl+Enter` | Shortcut override — run `goto` against `selectedArgument`. Mirrors global `follow_link`. |
+| `Ctrl+{g,m,a,l,c}` + `Enter` | Shortcut overrides — direct verb dispatch without typing in `:`. The vim-style modifier-chord family. |
+| `cmd-k` | Switch to command-search mode (`buffer = ":"`, preserve `selectedArgument`). |
+| `cmd-f` | Switch to argument-search mode (`buffer = ""`, preserve `selectedCommand`). |
+| `Escape` | Cancel — dismiss the dialog (or clear the pane's buffers). |
 
-`Shift+Enter` and `Ctrl+Enter` are **shortcuts** for common overrides, not a separate "verb override" mechanism. They're equivalent to `Tab → type "create-in" → Tab → Enter` / `Tab → type "goto" → Tab → Enter` but without the round trip. Any other verb goes through Tab.
+The modifier-chord family (`Ctrl+{g,m,a,l,c}+Enter` + `Shift+Enter`) are direct-verb shortcuts that skip the `:search` round-trip. Each is equivalent to "type `:<verb>`, pick the top result, Enter" but in one keystroke. Power-user path for users who know the verb.
 
-**Disabled state.** If the current command requires an argument (`goto`, `move`, `create-in`, `link`, `add`) but the argument field has no selected result, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. Mockup 4 shows this case with `create-in` on an empty result list. The user's recourse is one of:
+**Disabled state.** If the resolved command requires an argument but `selectedArgument == null`, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. The user's recourse:
 
-1. Tab to the command field and pick a different command (e.g., `:capture` — see below).
-2. Type a different argument query.
-3. Escape.
+1. Type `:` (or press `cmd-k`) and pick a zero-arg command like `:capture`.
+2. Type a different argument query to get a new `selectedArgument`.
+3. `Escape` to dismiss.
 
 ### `:capture` — the "I have nothing to act on" command
 
 `create-in` requires a target. What if the user wants to **create a new node from scratch** — a fresh task, a new note, an inbox capture — without an existing parent in mind?
 
-That's a different command: **`:capture`**. It creates a new node under a configured default parent (usually `+Inbox` or the user's `inbox/` folder). The command reads `argumentBuffer` as the new node's title:
+That's a different command: **`capture_inbox`** (already exists as a stub in `packages/km-commands/src/commands/edit.ts:255`). It creates a new node under a configured default parent (usually `+Inbox`). When invoked from the combobox with a non-empty buffer that isn't a node selection, the command reads the buffer as the new node's title:
 
-- User opens omnibox, types `new task for tomorrow`, Tab, types `cap`, Enter → creates a new node titled "new task for tomorrow" under `+Inbox`.
-- Or: user opens via `c ` chord with no argument, types a title, Enter → since `create-in` has no target, the user Tabs and picks `:capture` → same result.
+- User opens with `cmd-f`, types `new task for tomorrow`, hits `cmd-k`, types `cap`, picks `capture_inbox`, Enter → creates a new node titled "new task for tomorrow" under `+Inbox`.
+- Or: user opens via `c @` chord with no match, types `:cap` directly in the buffer, picks `capture_inbox`, Enter → same result.
 
-`:capture` is a normal command node with `when: !isEditing`, a `run()` that creates-in-inbox-with-title, and a default keybinding. It's how "quick capture" works in the omnibox without special-casing the empty-result state. The principle: **no command is ever "create a new thing with no target" by default** — that's always the explicit `:capture` command, which is explicit about where the node goes.
+`capture_inbox` is a normal command node with a `when` predicate that says "always available", a `run()` that creates in inbox, and a default keybinding. The principle: **no command is ever "create a new thing with no target" by default** — that's always the explicit `capture_inbox` command, which names where the node goes.
 
-### Ghost completions drive auto-promotion
+### Ghost completions drive autocompletion
 
-Both fields show **ghost-text completions** from Silvery's `TextInput` autocomplete. The rule is simple and symmetric across both fields:
+The buffer shows **ghost-text completions** from Silvery's `TextInput` autocomplete. Rule:
 
-**If the ghost is visible, an "accept" key commits it. If the ghost is not visible, nothing happens.** Accept keys are `Tab`, `Space`, and `Right-Arrow`. `Enter` also commits the ghost before firing confirm, so pressing Enter with a ghost visible completes the text then runs the command.
+**If the ghost is visible, an "accept" key commits it. If the ghost is not visible, nothing happens.** Accept keys are `Space`, `Tab`, and `Right-Arrow`. `Enter` also commits the ghost before firing confirm, so pressing Enter with a ghost visible completes the text then runs the command.
 
-"Ghost visible" means: the `TextInput` has found a single unambiguous completion for the current buffer (Silvery's built-in `getAutocompleteSuggestion` logic). There is no "unambiguous top-2 ratio" heuristic — we use the ghost's presence as the sole signal. **Only ghosted completions are ever committed.** If the user is typing something ambiguous, no ghost → space is just a space.
+"Ghost visible" means: the `TextInput` has found a single unambiguous completion for the current buffer (Silvery's built-in `getAutocompleteSuggestion` logic). There is no "unambiguous top-2 ratio" heuristic — the ghost's presence is the sole signal. **Only ghosted completions are ever committed.** If the user is typing something ambiguous, no ghost → space is just a literal space.
 
-**Promotion happens on ghost-accept, not on space generally.** Concretely:
+**Example flow** — typing `:ne` with command-matching ghost `new-project`:
 
-1. User types in the argument field: `:ne`
-2. The argument field's scope is command-search (the `:` sigil). Ghost text appears: `w-project`, rendered as `:ne[w-project]` with the bracketed part dim.
-3. User presses space (or Tab, or right-arrow). The reducer fires a `PROMOTE` action because the accepted ghost starts with `:`:
-   - `commandBuffer ← "new-project"`
-   - `argumentBuffer ← ""`
-   - `focus ← "argument"`
-4. The user now types the argument for `:new-project` — a title, a target node, whatever that command takes.
+1. `buffer = ":ne"`, ghost shows `[w-project]` dimmed, rendered as `:ne[w-project]`.
+2. User presses space (or Tab, or right-arrow). The ghost is accepted — `buffer` becomes `:new-project`.
+3. Since `:new-project` is now an unambiguous command pick, `selectedCommand = "new-project"` is set.
+4. The user types a new sigil (like `@`) to find a target, or Enter to run with the sticky `selectedArgument`.
 
-If instead the user had typed `:zz` (no command matches), **there is no ghost, so space just inserts a space** and the argument buffer becomes `:zz `. No special-casing, no promotion heuristic.
-
-If the ghost is an argument-field node match (not a command), accepting it just completes the text in place — no promotion, because the accepted completion doesn't start with `:`.
-
-**Backspace undoes one promotion step.** The reducer stores a pre-promotion snapshot so backspace-after-promote restores `argumentBuffer = ":new"` and `focus = argument`.
+If instead the user had typed `:zz` (no command matches), **there is no ghost, so space just inserts a space** — `buffer` becomes `:zz `. No special-casing, no heuristic.
 
 ### The combobox's cursor IS the cursor — because focus routes the cursor
 
@@ -501,35 +525,64 @@ Commands read "the current cursor" and act. They don't know or care which surfac
 
 Commands that need an argument read it from the current cursor — which, as above, is the argument-field selection. **The user doesn't type arguments.** They search the argument field and pick one.
 
-For commands whose argument is an existing node (goto, move, link, create-in, add, zoom-to, open-in-pane, …) this is the default. For commands that need a *new* name (`:new-project <title>`, `:new-file <path>`), the title is the argument buffer itself — the command reads `argumentBuffer` directly instead of looking up a selected node. That's a per-command choice expressed in the command's `run()` function. The omnibox doesn't need to know.
+For commands whose argument is an existing node (goto, move, link, create_at, add, zoom-to, open-in-pane, …) this is the default. For commands that need a *new* name (`capture_inbox`, future `new_project`, `new_file`), the title is the buffer itself — the command reads `ctx.buffer` directly instead of looking up a selected node. That's a per-command choice expressed in the command's `execute()` function. The combobox doesn't need to know.
 
 This gives a clean mental model: **the argument field is always "what node are you talking about?"** — either selected from the results, or (rarely, for create-new commands) taken as raw text.
 
-## Opening the combobox
+## Opening and toggling the combobox
 
-Every opening path resolves to an action that puts `ComboboxState` into the appropriate slot (overlay for dialog, new pane for pop-out) with `defaultCommand` + initial buffers:
+Every invocation resolves to a `ComboboxState` with `buffer`, `defaultCommand`, and (optionally) a pre-selected `selectedArgument`. The same keys work while the combobox is already open — pressing them mid-session switches modes instead of re-opening.
 
-| Chord | defaultCommand | argumentPrefill | focus | form | placement |
-|---|---|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `goto` | *(current cursor)* | argument | dialog | center |
-| `g @` | `goto` | `@` | argument | dialog | center |
-| `g #` | `goto` | `#` | argument | dialog | center |
-| `g +` | `goto` | `+` | argument | dialog | center |
-| `g [` | `goto` | `[` | argument | dialog | center |
-| `g :` | *(empty)* | *(empty)* | command | dialog | center |
-| `g g` | `goto` | *(current cursor)* | argument | dialog | center |
-| `m @` | `move` | `@` | argument | dialog | center |
-| `m +` | `move` | `+` | argument | dialog | center |
-| `a @` | `add` | `@` | argument | dialog | center |
-| `a #` | `add` | `#` | argument | dialog | center |
-| `l g` | `add_link` | *(current cursor)* | argument | dialog | center |
-| `c @` | `create_at` | `@` | argument | dialog | center |
-| `/` | `local_find` | *(empty)* | argument | dialog | **bottom-left** |
-| *(post-v1)* `combobox.pop_out` | *(inherits from current dialog)* | *(inherits)* | *(inherits)* | pane | n/a |
+### While closed — opening keys
 
-All chords converge on the same component. The `form` column decides whether the state goes into the overlay slot or a new workspace pane; the `placement` column is a hint for the dialog layout and is derived from `defaultCommand` (`local_find` → bottom-left; everything else → center).
+| Chord | `buffer` | `defaultCommand` | `selectedArgument` at open |
+|---|---|---|---|
+| `cmd-k` / `ctrl-k` | `":"` | `"default"` | prior pane's cursor |
+| `cmd-f` / `ctrl-f` | `""` | `"default"` | prior pane's cursor |
+| `g @` | `"@"` | `"default"` | *(empty)* |
+| `g #` / `g +` / `g [` | `<sigil>` | `"default"` | *(empty)* |
+| `g :` | `":"` | `"default"` | *(empty)* |
+| `g g` | `""` | `"default"` | prior pane's cursor |
+| `m @` / `m +` | `<sigil>` | `"move"` (locked) | *(empty)* |
+| `a @` / `a #` | `<sigil>` | `"add"` (locked) | *(empty)* |
+| `l g` | `""` | `"add_link"` (locked) | prior pane's cursor |
+| `c @` | `"@"` | `"create_at"` (locked) | *(empty)* |
+| `/` | `"/"` | `"local_find"` (locked) | *(empty)* |
+| *(post-v1)* `combobox.pop_out` | *(inherits from dialog)* | *(inherits)* | *(inherits)* |
 
-**Command IDs in the table above reference existing commands** in `packages/km-commands/src/commands/` — `goto`, `move`, `add`, `add_link`, `capture_inbox`, `local_find`, etc. The combobox is not adding new command IDs for its verbs; it's routing the existing ones through a new surface. The one command it DOES add is `combobox.pop_out` (post-v1), which transitions an open dialog into a pane.
+### While open — mode-toggle keys (context-sensitive)
+
+| Key | Action |
+|---|---|
+| `cmd-k` / `ctrl-k` | `COMBOBOX_SWITCH_TO_COMMANDS` — set `buffer = ":"`, **preserve `selectedArgument`**. The command list is filtered by `when` against the preserved argument. This IS the Embark/Raycast "action panel on selected candidate" pattern — no new mechanism needed. |
+| `cmd-f` / `ctrl-f` | `COMBOBOX_SWITCH_TO_ARGUMENT` — set `buffer = ""`, **preserve `selectedCommand`**. Return to universal argument search, keeping any sticky command pick. |
+| Any sigil char in buffer | Auto-replaces the current leading sigil, preserving the search term. See § "Sigil auto-replace" below. |
+| `Escape` | Dismiss (dialog) or clear buffer + selections (pane). |
+
+### The defining invariants
+
+1. **Single buffer, sigil-routed.** The leading sigil of `buffer` determines what's being searched. No separate command-field and argument-field — one buffer, one focus, one result list. Sigil characters swap modes in place.
+2. **Sticky memory.** `selectedCommand` and `selectedArgument` persist across mode switches. Picking `:create_at` then switching to `@del` and picking `@delei` leaves both stored — Enter runs `create_at @delei`.
+3. **Default command is always set.** `defaultCommand` is never null; `"default"` is the universal initial value, a registered command that dispatches by argument type (command → run, else → goto).
+4. **All chords converge on the same component.** The difference between `cmd-k`, `cmd-f`, `g @`, `m +`, etc. is the triple `(buffer, defaultCommand, selectedArgument)`. Everything else is shared.
+
+### Sigil auto-replace
+
+Typing a sigil character replaces the current leading sigil while keeping the search term:
+
+| Before | Typed | After | Effect |
+|---|---|---|---|
+| `@del` | `#` | `#del` | Switch to tag search for "del" |
+| `:cr` | `@` | `@cr` | Switch to context search for "cr" |
+| `+km` | `:` | `:km` | Switch to command search for "km" |
+| `` (empty) | `@` | `@` | Start context search, empty query |
+| `@del` | `l` | `@dell` | Letter, no replacement — normal text input |
+
+Sigil replacement is an in-place edit: only the leading character is swapped, the rest of the buffer is preserved. Sticky memory ensures the previously-focused half (`selectedCommand` or `selectedArgument`) is still there when the user bounces back.
+
+This eliminates the need for an explicit "Tab between fields" binding — the sigil IS the mode selector.
+
+**Command IDs in the tables above reference existing commands** in `packages/km-commands/src/commands/` — `move`, `add`, `add_link`, `capture_inbox`, `local_find`, `goto`, etc. The combobox adds exactly two new commands: `default` (the type-dispatch fallback) and `combobox.pop_out` (post-v1, transitions an open dialog into a pane).
 
 ## State machine — `ComboboxState`
 
@@ -540,74 +593,123 @@ All chords converge on the same component. The `form` column decides whether the
 
 Both forms use the same reducer. The same actions move through the same state transitions. The only difference is ownership — and that's a workspace concern, not a state-machine concern.
 
+**Single buffer, sticky other-half memory.** The combobox has ONE working `buffer` — not two — whose leading sigil determines what's being searched:
+
+| Leading char | Mode | Search scope |
+|---|---|---|
+| `:` | command | command tree, filtered by `when` against `selectedArgument` |
+| `@` | context | person/assignee nodes |
+| `#` | tag | tag nodes |
+| `+` | project | project nodes |
+| `[` | node | any node (full-text) — `[x]` / `[ ]` / `[]` are task-status filter prefixes |
+| `/` | local find | current view's visible tree (locks layout to bottom-left) |
+| *(empty)* | universal | everything, ranked by type |
+
+**Sigil auto-replace.** Typing a sigil character replaces the current leading sigil (if any) while keeping the search term:
+- `@del` + typing `#` → `#del` (switch to tag search for "del")
+- `:cr` + typing `@` → `@cr` (switch to context search)
+- `@delei` + typing `:` → `:delei` (switch to command search — unlikely query but the mechanism is clean)
+
+Sticky memory: when the buffer's sigil changes, the previously-focused half keeps its `selected*` pointer. User bounces back, selection is still there.
+
 ```ts
 interface ComboboxState {
-  /** Permanent default command for this combobox, set at creation by the opening chord.
-   *  Never changes for the lifetime of the combobox instance. */
+  /** Single working buffer — leading sigil determines what's being searched. */
+  buffer: string
+
+  /** Default command for this combobox instance, set at creation by the opening chord.
+   *  Always set — the universal initial value is "default" (a registered command that
+   *  dispatches based on the argument's node type — see § "The `default` command"). */
   defaultCommand: string
-  /** Scope constraint on the argument-field source. Replaces the old "pick a dialog
-   *  component per use case" pattern — favorites, item pickers, etc. use sourceScope
-   *  to constrain which subtree the argument search draws from. */
+
+  /** Last command picked via `:` search. Overrides `defaultCommand` when set. Sticky
+   *  across sigil switches — switching from `:` to `@` does not clear this. */
+  selectedCommand: string | null
+
+  /** Last argument picked via sigil/argument search, OR pre-selected from the prior
+   *  pane's cursor at open time. Sticky across sigil switches. */
+  selectedArgument: KNode | null
+
+  /** Scope constraint on the argument source — replaces the legacy "pick a dialog
+   *  component per use case" pattern. favorites/item picker/local-find use this. */
   sourceScope: "all" | "favorites" | "commands" | "current-view"
-  /** Optional per-invocation predicate for further argument narrowing (e.g., "only
-   *  tag nodes that aren't already on the cursor"). Non-serializable. */
+
+  /** Optional per-invocation predicate for further narrowing. Non-serializable. */
   resultFilter: ((node: KNode) => boolean) | null
-  /** Working command buffer — usually equals defaultCommand, diverges when user Tabs
-   *  to the command field and edits. */
-  commandBuffer: string
-  /** Working argument buffer. */
-  argumentBuffer: string
-  focus: "command" | "argument"
-  commandResults: KNode[]         // filtered command nodes   (only populated when focus=command)
-  argumentResults: KNode[]        // filtered target nodes    (only populated when focus=argument)
-  selectedCommandIndex: number | null   // which command the user has picked
-  selectedArgumentIndex: number | null  // which argument the user has picked — this is the active cursor
-  /** If true, dismissed after a successful CONFIRM. Dialog form is always ephemeral;
-   *  pane form is always persistent. */
-  ephemeral: boolean
+
+  /** Filtered results for the CURRENT buffer (either commands or nodes depending on
+   *  the buffer's leading sigil). Recomputed on every keystroke. */
+  results: KNode[]
+  selectedResultIndex: number | null
+
   /** Layout hint for the dialog form. Derived from defaultCommand at open time
-   *  (`local_find` → bottom-left, everything else → center). Ignored by the pane form. */
+   *  (`local_find` → bottom-left; else → center). Ignored by the pane form. */
   layout: "center" | "bottom-left"
-  /** Snapshot of the pre-promote state, if the user's last action was a PROMOTE. */
-  promoteSnapshot: { argumentBuffer: string; focus: "command" | "argument" } | null
+
+  /** Dialog form dismisses on successful CONFIRM; pane form clears buffers and stays open. */
+  ephemeral: boolean
 }
 ```
 
-**`defaultCommand` is the combobox's identity.** Every combobox instance — dialog or pane — has one, set at creation from the opening chord and **never changes** for the instance's lifetime. The working `commandBuffer` / `selectedCommandIndex` are allowed to diverge temporarily when the user Tabs to the command field and types something else — but the combobox remembers what it "is". `Escape` while focused on the command field restores `commandBuffer = defaultCommand` and switches focus back to the argument field (instead of dismissing). Only a second `Escape` dismisses (for the dialog form) or clears the buffers (for the pane form).
+**Resolution chain for Enter** — which command runs against which argument:
 
-The footer renders the resolved action: if `commandBuffer === defaultCommand`, it shows `↵ <defaultCommand> <arg>`; if diverged, it shows `↵ <commandBuffer> <arg>  ·  esc restore <defaultCommand>`. The user always knows what the combobox is, even while overriding.
+```ts
+function resolveEnter(state: ComboboxState): { cmd: string; arg: KNode | null } {
+  // Priority: explicit user pick → chord-locked default → universal "default" fallback
+  const cmd = state.selectedCommand ?? state.defaultCommand  // never null; "default" is the bottom
+  // The `default` command handles type-based dispatch internally (see § below)
+  return { cmd, arg: state.selectedArgument }
+}
+```
 
-**The full identity is `(combobox, defaultCommand)`** — a "goto combobox" and a "move combobox" are as distinct as a cards pane and a columns pane are, regardless of whether they're presented as dialogs or panes.
+**The `default` command** (registered in `@km/commands` alongside the existing 172):
 
-The combobox's public **cursor** accessor returns `argumentResults[selectedArgumentIndex] ?? null`. While the combobox has focus, the app's `currentCursor()` reads from it — same as how `currentCursor()` reads from any focused pane.
+```ts
+const defaultCommand: CommandDef = {
+  id: "default",
+  name: "Default action",
+  description: "Dispatch the natural default action for the argument's node type",
+  execute: (ctx) => {
+    const node = ctx.currentNode
+    if (!node) return null
+    // Commands run themselves; everything else navigates.
+    if (node.type === "command") {
+      return { type: "EXECUTE_COMMAND", commandId: node.data.commandId }
+    }
+    return { type: "CURSOR_TO", locationKey: node.id }
+  },
+}
+```
+
+This is the universal fallback. `defaultCommand = "default"` for cmd-k, cmd-f, and generic chord opens. Chords that lock a specific verb (`m +`, `a #`, `c @`, `l g`, `/`) override it with their own verb id. Extending per-type behavior later (tags → `filter_by`, projects → `zoom_in`) is a one-function change inside `default.execute()` — no reducer or combobox-UI work.
 
 Actions (dispatched by the combobox's key handler):
 
 ```ts
 type ComboboxOp =
-  | { type: "COMBOBOX_INPUT"; field: "command" | "argument"; buffer: string }
+  | { type: "COMBOBOX_INPUT"; buffer: string }       // single-buffer input; reducer handles sigil auto-replace
   | { type: "COMBOBOX_NAV_UP" | "COMBOBOX_NAV_DOWN" | "COMBOBOX_NAV_HOME" | "COMBOBOX_NAV_END" }
-  | { type: "COMBOBOX_TOGGLE_FOCUS" }      // tab with no ghost
-  | { type: "COMBOBOX_ACCEPT_GHOST" }      // tab / space / right-arrow with ghost visible
-  | { type: "COMBOBOX_PROMOTE" }           // internal — fired by COMBOBOX_ACCEPT_GHOST when the accepted
-                                           // argument-field ghost starts with ":"
-  | { type: "COMBOBOX_RESTORE_DEFAULT" }   // escape on a diverged command field
-  | { type: "COMBOBOX_CONFIRM" }           // enter — runs the resolved (command, argument) via
-                                           // commandExecutor; dialog form dismisses, pane form clears
-  | { type: "COMBOBOX_CANCEL" }            // escape with command field at default — dismiss/clear
-  | { type: "COMBOBOX_POP_OUT" }           // post-v1: convert dialog to pane
+  | { type: "COMBOBOX_PICK" }                         // commit current selected* for the current sigil's mode
+  | { type: "COMBOBOX_SWITCH_TO_COMMANDS" }           // cmd-k while open: set buffer="." (command mode), sticky arg preserved
+  | { type: "COMBOBOX_SWITCH_TO_ARGUMENT" }           // cmd-f while open: set buffer="", sticky command preserved
+  | { type: "COMBOBOX_CONFIRM" }                      // enter — runs resolveEnter() via commandExecutor
+  | { type: "COMBOBOX_CANCEL" }                       // escape — dismisses or clears
+  | { type: "COMBOBOX_POP_OUT" }                      // post-v1: convert dialog to pane
 ```
 
-All reducers live in `@km/board` alongside the existing pane reducers. The existing `commandExecutor` (from `@km/commands`) handles `COMBOBOX_CONFIRM` — it reads the selected command, reads the combobox's cursor, and runs the command's `execute(ctx)`.
+Note: `COMBOBOX_INPUT` is the single-field input action. The reducer handles sigil auto-replace internally — if the new buffer's leading char is a different sigil and there's a search term after it, swap the leading char and preserve the rest.
+
+The existing `commandExecutor` (from `@km/commands`) handles `COMBOBOX_CONFIRM` — it calls `resolveEnter()`, looks up the command by id, and runs the command's `execute(ctx)` with `ctx.currentNodeId` = `selectedArgument?.id`.
 
 **Invariants:**
-- The combobox's cursor is always `argumentResults[selectedArgumentIndex] ?? null`.
-- `selected*Index` is in `[0, *Results.length)` or `null` when the corresponding list is empty.
-- Opening with `argumentPrefill` starting with a sigil runs the argument search immediately with that prefill.
-- `COMBOBOX_CONFIRM` with a disabled command (command requires argument, no argument selected) is a no-op + bell.
-- `COMBOBOX_CANCEL` on the dialog form dismisses it and restores the previously-focused pane. On the pane form it clears the buffers but keeps the pane open.
-- `COMBOBOX_ACCEPT_GHOST` with no visible ghost is a no-op (Tab then falls through to `COMBOBOX_TOGGLE_FOCUS`; Space / Right-Arrow pass through as normal text-input keys).
-- `COMBOBOX_RESTORE_DEFAULT` only fires when focus is on the command field AND `commandBuffer !== defaultCommand`. Otherwise Escape falls through to `COMBOBOX_CANCEL`.
+- `selectedResultIndex` is in `[0, results.length)` or `null` when `results` is empty.
+- Sigil auto-replace: when `buffer` changes such that its leading char is a sigil and differs from the old leading char, the rest of the buffer is preserved.
+- Sticky memory: changing the buffer's sigil does NOT clear `selectedCommand` or `selectedArgument` — the only thing that clears them is explicit picking of a new selection OR `COMBOBOX_CANCEL`.
+- `resolvedCommand` is always defined: `selectedCommand ?? defaultCommand` — both are string-or-null-but-at-least-one-is-set, and `defaultCommand` is always set.
+- `COMBOBOX_CONFIRM` with a selected command that requires an argument AND `selectedArgument == null` is a no-op + bell.
+- `COMBOBOX_SWITCH_TO_COMMANDS` (cmd-k while open): set `buffer = ":"`, preserve `selectedArgument`. Commands list is filtered by `when` against `selectedArgument`. This IS the Embark/Raycast "action panel on selected candidate" pattern.
+- `COMBOBOX_SWITCH_TO_ARGUMENT` (cmd-f while open): set `buffer = ""`, preserve `selectedCommand`. Result list reverts to universal search.
+- `COMBOBOX_CANCEL` on the dialog form dismisses it and restores the previously-focused pane. On the pane form it clears buffer + both selected* + refocuses argument mode.
 - `COMBOBOX_POP_OUT` (post-v1) creates a new pane with `viewMode: "combobox"`, copies the current `ComboboxState` into it, then dismisses the dialog.
 
 ## Migration
@@ -626,23 +728,23 @@ Build a read-only projection function that returns the `@km/commands` registry a
 ### Phase 4 — predicate-function availability
 Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
 
-### Phase 5 — unified combobox dialog
-Build the `Combobox` component + `ComboboxState` reducer as a **global overlay dialog** — not a pane. State lives in `app.combobox: ComboboxState | null`. Component has: command field (Silvery `TextInput` with `autocomplete = commandTitles`), argument field (same), result list below, footer with the resolved action. Single-field behavior internally for this phase (no Tab yet, no PROMOTE) — the command chip is locked by the opening chord. Layout: center or bottom-left, derived from `defaultCommand`. Route `command_palette`, `item_picker`, `search`, `manage_favorites`, `search_replace` to open the combobox dialog instead of their current bespoke overlays. The old dialog components become thin adapters that delegate to `openCombobox({ defaultCommand, argumentPrefill })`. **This is the v1 ship** — it replaces five components with one.
+### Phase 5 — unified combobox dialog (single buffer)
+Build the `Combobox` component + `ComboboxState` reducer as a **global overlay dialog** — not a pane. State lives in `app.combobox: ComboboxState | null`. Component has: one buffer (Silvery `TextInput` with `autocomplete` wired to sigil-routed results), result list below, footer showing the resolved action + sticky selections. Opened via `cmd-k` / `cmd-f` / chord; state is `{buffer, defaultCommand, selectedCommand, selectedArgument, sourceScope, layout}`. Add the `default` command to `@km/commands`. Route `command_palette`, `item_picker`, `search`, `manage_favorites` to open the combobox with appropriate `sourceScope`. Legacy `search_replace` and `filter` stay on their current dialogs (deferred). Old components become thin delegators that call `openCombobox(...)`. **This is the v1 ship** — it replaces five dialogs with one.
 
 ### Phase 6 — cursor unification via focus
-Teach the app's `currentCursor()` lookup to check the combobox overlay slot first: if a combobox has focus, its `.cursor` accessor (returning `argumentResults[selectedArgumentIndex]`) is the source; otherwise the focused pane's cursor wins. This is a one-function change in the command executor. Remove any `dialog:omnibox` scope guards. Tests: arrow in the combobox → commands that read `currentNodeId` act on the selected argument row.
+Teach the app's `currentCursor()` lookup to check the combobox overlay slot first: if a combobox has focus, its `selectedArgument` is the source; otherwise the focused pane's cursor wins. One-function change in the command executor. Remove any `dialog:omnibox` scope guards. Tests: arrow in the combobox → commands reading `ctx.currentNodeId` act on `selectedArgument`.
 
-### Phase 7 — two searchable fields + Tab + ghost accept + PROMOTE
-Split the single buffer into `commandBuffer` + `argumentBuffer` with `focus` toggle. Two-line center-modal layout (command above argument). Wire Silvery `TextInput`'s `autocomplete` prop for both fields. Add the key rules:
-- Tab: accept ghost if visible, else toggle focus.
-- Space/Right-Arrow: accept ghost if visible, else pass through.
-- `SEARCH_ACCEPT_GHOST` with a `:`-starting accepted ghost fires `SEARCH_PROMOTE` (move to command field, clear argument, store snapshot).
-- Backspace after PROMOTE restores the snapshot.
-- `Shift+Enter` shortcut for `create_at`, `Ctrl+Enter` shortcut for `goto`.
-Update the Opening table chord handlers to route to the new two-field state shape. Finish wiring the `CAPTURE` op handler so `:capture` does the right thing against the configured inbox.
+### Phase 7 — sigil auto-replace, sticky memory, ghost completion, modifier-chord shortcuts
+Add the full UX polish over the Phase 5 single-buffer foundation:
+- Sigil auto-replace: typing `@`/`#`/`+`/`[`/`/`/`:` replaces the leading sigil in the buffer, preserving the tail. No Tab, no focus-switch.
+- Sticky memory: `selectedCommand` and `selectedArgument` persist across sigil switches until explicitly replaced or cleared.
+- Ghost completion: Silvery `TextInput`'s autocomplete provides ghost text; Space/Tab/Right-Arrow accept.
+- Modifier-chord shortcuts: `Ctrl+{g,m,a,l,c}+Enter` and `Shift+Enter` as direct-verb overrides that bypass `:search`.
+- `cmd-k` / `cmd-f` context-toggle while open: switches between `buffer = ":"` and `buffer = ""`, preserving the sticky other-half.
+- Finish wiring the `CAPTURE` op handler so `capture_inbox` does the right thing against the configured inbox, reading the buffer as the new node's title.
 
 ### Phase 8 — cursor pre-select
-When opening a combobox dialog via `cmd-k`, propagate the previously-focused pane's cursor into the combobox's initial `selectedArgumentIndex`. Feature-flag behind a config option for the first release in case it's confusing.
+Ensure `cmd-k` / `cmd-f` / `g g` / `l g` / generic `g` chords propagate the previously-focused pane's cursor into `selectedArgument` at open time. Feature-flag behind a config option for the first release in case it's confusing. (Phase 6 handles the read side; this handles the write side.)
 
 ### Phase 9 — `/` local find, bottom-left layout
 Wire `/` to open the combobox dialog with `{ defaultCommand: "local_find" }`. Derive `layout: "bottom-left"` from that. Replace `apps/km-tui/src/views/FindBar.tsx` with the combobox dialog in local-find mode. In-place board highlighting reads from the combobox's argument buffer and uses `highlightMatches()`.
@@ -672,8 +774,8 @@ Add `viewMode: "combobox"` to the board pane view-mode enum. Add the `combobox.p
 ## Resolved questions
 
 1. **Recent handling** — recents are a recency bonus on the ranker, filtered by prefix like every other result. No separate "recents list"; the empty-buffer state just happens to be sorted by recency.
-2. **`create_at` with no match** — inactivatable. Users who want to create a brand-new thing with no target use `capture_inbox` (which already exists as a stub in `edit.ts:255`) or a future `:new-project` / `:new-file` command that reads `argumentBuffer` as the title. This keeps `create_at` semantically clean — always operates on an existing target.
-3. **Commands take arguments via the argument field** — not via typed strings. Commands whose argument is an existing node (`goto`, `move`, `add_link`, `create_at`, `reparent_picker`, …) read `ctx.currentNodeId` (which comes from the pane's cursor = the selected argument row). Create-new commands read `argumentBuffer` directly. Commands decide per-command; the omnibox doesn't care.
+2. **`create_at` with no match** — inactivatable. Users who want to create a brand-new thing with no target use `capture_inbox` (already exists as a stub in `edit.ts:255`) or future `new_project` / `new_file` commands that read the buffer as the title. This keeps `create_at` semantically clean — always operates on an existing target.
+3. **Commands take arguments via the sticky `selectedArgument`** — not via typed strings. Commands whose argument is an existing node (`goto`, `move`, `add_link`, `create_at`, `reparent_picker`, …) read `ctx.currentNodeId` from the combobox's `selectedArgument`. Create-new commands read `ctx.buffer` directly. Commands decide per-command; the combobox doesn't care.
 4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
 5. **No separate override scope.** Tab + typing in the command field is the override; `Shift+Enter` / `Ctrl+Enter` are shortcuts. Global keybindings work with only the standard text-input-consumes-letters rule (same as any focused inline editor). No new scope.
 6. **Layout — two lines.** The command field is the "title" of the action, the argument is the "object". Center modal stacks them vertically (command line, argument line, results, footer). Bottom-left local-find keeps the compact single-line form (command is locked to `local_find`, so there's nothing to edit).
@@ -691,7 +793,7 @@ The following commands already exist in `packages/km-commands/src/commands/` and
 
 | Existing command | Current behavior | After migration |
 |---|---|---|
-| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Combobox dialog, `{ focus: "command", sourceScope: "all" }` |
+| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Combobox dialog, `{ buffer: ":", sourceScope: "all" }` |
 | `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Combobox dialog, `{ defaultCommand: "goto", focus: "argument", sourceScope: "all" }` |
 | `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Combobox dialog, `{ defaultCommand: "goto", sourceScope: "favorites" }` |
 | `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Combobox dialog, `{ defaultCommand: "local_find", sourceScope: "current-view" }` (derives bottom-left layout) |
