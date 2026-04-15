@@ -94,7 +94,7 @@ function readSessionMeta(jsonlPath: string): SessionMeta | undefined {
   for (const line of lines) {
     let entry: JsonlEntry
     try {
-      entry = JSON.parse(line)
+      entry = JSON.parse(line) as JsonlEntry
     } catch {
       continue
     }
@@ -158,7 +158,7 @@ function renderSessionMarkdown(meta: SessionMeta): string {
     if (!line.trim()) continue
     let entry: JsonlEntry
     try {
-      entry = JSON.parse(line)
+      entry = JSON.parse(line) as JsonlEntry
     } catch {
       continue
     }
@@ -228,7 +228,7 @@ function cmdExport(args: string[]): void {
     }
     let input: { session_id?: string } = {}
     try {
-      input = JSON.parse(raw)
+      input = JSON.parse(raw) as { session_id?: string }
     } catch {
       /* ignore */
     }
@@ -407,7 +407,7 @@ function cmdHook(): void {
   }
   let input: { prompt?: string; session_id?: string } = {}
   try {
-    input = JSON.parse(raw)
+    input = JSON.parse(raw) as { prompt?: string; session_id?: string }
   } catch {
     /* ignore */
   }

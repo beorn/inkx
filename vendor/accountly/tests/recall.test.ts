@@ -105,25 +105,32 @@ describe("slugFromText", () => {
 // emitHookJson builds the hook response envelope. Must include hookEventName
 // or Claude Code's validator rejects the blob (500 API error on next prompt).
 
+type HookEnvelope = {
+  hookSpecificOutput: {
+    hookEventName: string
+    additionalContext?: string
+  }
+}
+
 describe("emitHookJson", () => {
   test("UserPromptSubmit with no context", () => {
-    const out = JSON.parse(emitHookJson("UserPromptSubmit"))
+    const out = JSON.parse(emitHookJson("UserPromptSubmit")) as HookEnvelope
     expect(out).toEqual({ hookSpecificOutput: { hookEventName: "UserPromptSubmit" } })
   })
 
   test("UserPromptSubmit with additionalContext", () => {
-    const out = JSON.parse(emitHookJson("UserPromptSubmit", "## Memory"))
+    const out = JSON.parse(emitHookJson("UserPromptSubmit", "## Memory")) as HookEnvelope
     expect(out.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit")
     expect(out.hookSpecificOutput.additionalContext).toBe("## Memory")
   })
 
   test("SessionEnd with no context", () => {
-    const out = JSON.parse(emitHookJson("SessionEnd"))
+    const out = JSON.parse(emitHookJson("SessionEnd")) as HookEnvelope
     expect(out).toEqual({ hookSpecificOutput: { hookEventName: "SessionEnd" } })
   })
 
   test("additionalContext is omitted when undefined", () => {
-    const out = JSON.parse(emitHookJson("UserPromptSubmit"))
+    const out = JSON.parse(emitHookJson("UserPromptSubmit")) as HookEnvelope
     expect("additionalContext" in out.hookSpecificOutput).toBe(false)
   })
 })
