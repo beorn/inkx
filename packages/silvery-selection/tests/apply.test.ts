@@ -27,6 +27,9 @@ const C = id("C")
 const D = id("D")
 const E = id("E")
 const ORDER = [A, B, C, D, E]
+/** Contains predicate: "these nodes exist in the tree". */
+const exists = (nodes: readonly ID[]) => (nid: ID) => nodes.indexOf(nid) !== -1
+const IN_ORDER = exists(ORDER)
 
 function makeState(overrides: Partial<SelectionSnapshot> = {}): SelectionSnapshot {
   return {
@@ -60,19 +63,19 @@ function idSet(state: SelectionSnapshot): Set<ID> {
 // --- applySelect ---
 
 describe("applySelect", () => {
-  it("replaces selection with normalized order", () => {
+  it("replaces selection preserving input order", () => {
     const state = EMPTY_STATE
-    const result = applySelect(state, [C, A], ORDER)
-    expect(result.cursor).toBe(A) // first in order
-    expect(result.anchor).toBe(C) // last in order
+    const result = applySelect(state, [C, A], IN_ORDER)
+    expect(result.cursor).toBe(C) // first in input
+    expect(result.anchor).toBe(A) // last in input
     expect(idSet(result)).toEqual(new Set([A, C]))
-    // Verify order: A comes before C in tree-walk order
-    expect(result.ids[0]).toBe(A)
-    expect(result.ids[1]).toBe(C)
+    // Input order is preserved — callers decide the order.
+    expect(result.ids[0]).toBe(C)
+    expect(result.ids[1]).toBe(A)
   })
 
   it("single select: cursor = anchor = the id", () => {
-    const result = applySelect(EMPTY_STATE, [B], ORDER)
+    const result = applySelect(EMPTY_STATE, [B], IN_ORDER)
     expect(result.cursor).toBe(B)
     expect(result.anchor).toBe(B)
     expect(result.ids).toEqual([B])
@@ -80,7 +83,7 @@ describe("applySelect", () => {
 
   it("empty ids without toggle => deselect", () => {
     const state = stateWith([A, B])
-    const result = applySelect(state, [], ORDER)
+    const result = applySelect(state, [], IN_ORDER)
     expect(result.cursor).toBeNull()
     expect(result.ids.length).toBe(0)
   })
@@ -92,25 +95,32 @@ describe("applySelect", () => {
       ids: [A],
       sub: { kind: "text", nodeId: A, cursor: 5 },
     })
-    const result = applySelect(state, [B], ORDER)
+    const result = applySelect(state, [B], IN_ORDER)
     expect(result.sub).toBeNull()
   })
 
   it("preserves root", () => {
     const state = makeState({ root: A })
-    const result = applySelect(state, [B], ORDER)
+    const result = applySelect(state, [B], IN_ORDER)
     expect(result.root).toBe(A)
   })
 
-  it("filters out IDs not in nodeOrder", () => {
-    const result = applySelect(EMPTY_STATE, [id("Z"), A], ORDER)
+  it("filters out IDs the contains predicate rejects", () => {
+    const result = applySelect(EMPTY_STATE, [id("Z"), A], IN_ORDER)
     expect(result.cursor).toBe(A)
     expect(result.ids).toEqual([A])
   })
 
-  it("all IDs not in order => deselect", () => {
-    const result = applySelect(EMPTY_STATE, [id("Z")], ORDER)
+  it("all IDs rejected by contains => deselect", () => {
+    const result = applySelect(EMPTY_STATE, [id("Z")], IN_ORDER)
     expect(result.cursor).toBeNull()
+  })
+
+  it("dedupes repeated IDs in input", () => {
+    const result = applySelect(EMPTY_STATE, [A, B, A, C, B], IN_ORDER)
+    expect(result.ids).toEqual([A, B, C])
+    expect(result.cursor).toBe(A)
+    expect(result.anchor).toBe(C)
   })
 
   // --- No-op detection ---
@@ -122,7 +132,7 @@ describe("applySelect", () => {
       ids: [A],
       sub: null,
     })
-    const result = applySelect(state, [A], ORDER)
+    const result = applySelect(state, [A], IN_ORDER)
     expect(result).toBe(state)
   })
 
@@ -131,7 +141,7 @@ describe("applySelect", () => {
   describe("toggle", () => {
     it("adds an unselected id", () => {
       const state = stateWith([A])
-      const result = applySelect(state, [C], ORDER, true)
+      const result = applySelect(state, [C], IN_ORDER, true)
       expect(idSet(result)).toEqual(new Set([A, C]))
       expect(result.cursor).toBe(C) // toggle add: cursor = first newly added
       expect(result.anchor).toBe(A) // preserved
@@ -139,7 +149,7 @@ describe("applySelect", () => {
 
     it("removes a selected id (non-cursor)", () => {
       const state = stateWith([A, B, C], A, C)
-      const result = applySelect(state, [B], ORDER, true)
+      const result = applySelect(state, [B], IN_ORDER, true)
       expect(idSet(result)).toEqual(new Set([A, C]))
       expect(result.cursor).toBe(A) // preserved
       expect(result.anchor).toBe(C) // preserved
@@ -147,7 +157,7 @@ describe("applySelect", () => {
 
     it("removes the cursor => first remaining becomes cursor", () => {
       const state = stateWith([A, B, C], A, C)
-      const result = applySelect(state, [A], ORDER, true)
+      const result = applySelect(state, [A], IN_ORDER, true)
       expect(idSet(result)).toEqual(new Set([B, C]))
       expect(result.cursor).toBe(B) // first remaining
       expect(result.anchor).toBe(B) // reset to new cursor
@@ -155,14 +165,14 @@ describe("applySelect", () => {
 
     it("toggle removing all => deselect", () => {
       const state = stateWith([A])
-      const result = applySelect(state, [A], ORDER, true)
+      const result = applySelect(state, [A], IN_ORDER, true)
       expect(result.cursor).toBeNull()
       expect(result.ids.length).toBe(0)
     })
 
     it("toggle removes anchor => anchor falls to cursor", () => {
       const state = stateWith([A, B], A, B)
-      const result = applySelect(state, [B], ORDER, true)
+      const result = applySelect(state, [B], IN_ORDER, true)
       expect(result.ids).toEqual([A])
       expect(result.anchor).toBe(A)
     })

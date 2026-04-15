@@ -14,6 +14,7 @@ const E = id("E")
 
 /** Simple tree: flat list A-E, all children of root */
 function flatApp(nodes: ID[] = [A, B, C, D, E]): SelectionApp {
+  const nodeSet = new Set(nodes)
   return {
     tree: {
       walkOrder(_root: ID | null) {
@@ -24,6 +25,9 @@ function flatApp(nodes: ID[] = [A, B, C, D, E]): SelectionApp {
       },
       children(_id: ID) {
         return []
+      },
+      contains(nid: ID) {
+        return nodeSet.has(nid)
       },
     },
   }
@@ -44,6 +48,7 @@ function hierarchicalApp(): SelectionApp {
     ["E", B],
   ])
   const order = [A, C, D, B, E]
+  const existing = new Set<ID>([id("root"), A, B, C, D, E])
 
   return {
     tree: {
@@ -55,6 +60,9 @@ function hierarchicalApp(): SelectionApp {
       },
       children(nodeId: ID) {
         return childMap.get(nodeId) ?? []
+      },
+      contains(nid: ID) {
+        return existing.has(nid)
       },
     },
   }
@@ -88,11 +96,11 @@ describe("createSelection", () => {
       expect(sel.kind()).toBe("node")
     })
 
-    it("selects multiple nodes in tree order", () => {
+    it("selects multiple nodes preserving input order", () => {
       const sel = createSelection(flatApp())
       sel.node.select([D, B])
-      expect(sel.node.cursor()).toBe(B) // first in order
-      expect(sel.node.anchor()).toBe(D) // last in order
+      expect(sel.node.cursor()).toBe(D) // first in input
+      expect(sel.node.anchor()).toBe(B) // last in input
       expect(sel.node.ids().length).toBe(2)
     })
 

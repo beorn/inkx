@@ -173,8 +173,18 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
 
   // --- Helpers ---
 
+  /**
+   * Lazy tree-walk order. Only computed for operations that genuinely need
+   * it (range extend, reconcile, select-all at root). The hot path —
+   * store.node.select() — never calls this.
+   */
   function getWalkOrder(): readonly ID[] {
     return app.tree.walkOrder($state().committed.root)
+  }
+
+  /** O(1) existence check for validating single IDs. */
+  function contains(id: ID): boolean {
+    return app.tree.contains(id)
   }
 
   /** Apply a pure transition, write if changed */
@@ -222,11 +232,15 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
     ids: $ids,
 
     select(ids: readonly ID[], toggle?: boolean): void {
-      const order = getWalkOrder()
-      apply((snap) => applySelect(snap, ids, order, toggle))
+      // O(ids.length) — no tree walk. `contains` is the hot path: on 500k-node
+      // vaults the old walkOrder filter blocked the main thread for 3s per
+      // keystroke. See km-silvery.selection-contains.
+      apply((snap) => applySelect(snap, ids, contains, toggle))
     },
 
     extend(cursor: ID): void {
+      // Range semantics genuinely need walk order. extend() fires once per
+      // user action (not per render), so paying O(visible) here is fine.
       const order = getWalkOrder()
       apply((snap) => applyExtend(snap, cursor, order))
     },
@@ -236,16 +250,17 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
     },
 
     remove(id: ID): void {
-      const order = getWalkOrder()
-      apply((snap) => applyRemove(snap, id, order))
+      // Single-id remove doesn't need walk order — applyRemove falls back to
+      // "first remaining" when nodeOrder is omitted.
+      apply((snap) => applyRemove(snap, id))
     },
 
     selectableAncestor(id: ID): ID | undefined {
-      const order = getWalkOrder()
-      const orderSet = new Set(order)
+      // O(depth) walk up the parent chain, checking existence with contains.
+      // Replaces the old O(visible) walkOrder + Set construction.
       let current: ID | undefined = id
       while (current !== undefined) {
-        if (orderSet.has(current)) return current
+        if (contains(current)) return current
         current = app.tree.parent(current)
       }
       return undefined

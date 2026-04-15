@@ -12,6 +12,12 @@ import type { ID, SelectionSnapshot, SubSelectionBase, TextSelection } from "./t
 
 // --- Helpers ---
 
+/** Predicate: does this ID refer to a real, selectable node? */
+export type ContainsFn = (id: ID) => boolean
+
+/** Always-valid contains predicate. Used when the caller doesn't care to filter. */
+export const ACCEPT_ALL: ContainsFn = () => true
+
 /** The empty state. Reused singleton. */
 export const EMPTY_STATE: SelectionSnapshot<never> = Object.freeze({
   cursor: null,
@@ -21,10 +27,27 @@ export const EMPTY_STATE: SelectionSnapshot<never> = Object.freeze({
   root: null,
 })
 
-/** Normalize an array of IDs to tree-walk order using nodeOrder. */
-function normalizeToOrder(ids: readonly ID[], nodeOrder: readonly ID[]): ID[] {
-  const idSet = new Set(ids)
-  return nodeOrder.filter((id) => idSet.has(id))
+/**
+ * Filter an ID array to only valid, deduplicated entries, preserving input
+ * order. Used by applySelect/applyToggle in place of the old O(visible)
+ * `nodeOrder.filter(set.has)` path, which forced callers to pay for a full
+ * tree walk on every select().
+ *
+ * Input order is preserved because callers pass IDs in the order they want
+ * cursor/anchor to resolve — navigation helpers emit single-ID arrays,
+ * rubber-band selects already iterate in hit order, etc.
+ */
+function filterValid(ids: readonly ID[], contains: ContainsFn): ID[] {
+  if (ids.length === 0) return []
+  const seen = new Set<ID>()
+  const out: ID[] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    if (!contains(id)) continue
+    seen.add(id)
+    out.push(id)
+  }
+  return out
 }
 
 /** Check if two readonly ID[] have the same contents in the same order. */
@@ -51,12 +74,16 @@ function getRange(anchor: ID, cursor: ID, nodeOrder: readonly ID[]): ID[] {
 
 /**
  * Replace or XOR-toggle selection.
- * IDs are normalized to nodeOrder. Cursor/anchor follow the rules table.
+ *
+ * IDs are validated via `contains` (O(1) per id) and deduped while preserving
+ * input order. Callers pass IDs in the order they want cursor/anchor to
+ * resolve — navigation helpers emit single-ID arrays, rubber-band selects
+ * iterate in hit order, etc. No tree walk is required.
  */
 export function applySelect<Sub>(
   state: SelectionSnapshot<Sub>,
   ids: readonly ID[],
-  nodeOrder: readonly ID[],
+  contains: ContainsFn,
   toggle?: boolean,
 ): SelectionSnapshot<Sub> {
   if (ids.length === 0 && !toggle) {
@@ -64,11 +91,11 @@ export function applySelect<Sub>(
   }
 
   if (toggle) {
-    return applyToggle(state, ids, nodeOrder)
+    return applyToggle(state, ids, contains)
   }
 
-  // Replace mode
-  const normalized = normalizeToOrder(ids, nodeOrder)
+  // Replace mode — dedupe + filter stale IDs, preserve input order
+  const normalized = filterValid(ids, contains)
   if (normalized.length === 0) {
     return applyDeselect(state)
   }
@@ -98,15 +125,19 @@ export function applySelect<Sub>(
 function applyToggle<Sub>(
   state: SelectionSnapshot<Sub>,
   ids: readonly ID[],
-  nodeOrder: readonly ID[],
+  contains: ContainsFn,
 ): SelectionSnapshot<Sub> {
-  const toggleSet = new Set(ids)
+  // Filter stale IDs up front so the toggle set is always valid
+  const validIds = filterValid(ids, contains)
+  if (validIds.length === 0) return state
+
+  const toggleSet = new Set(validIds)
   const currentSet = new Set(state.ids)
 
   // Partition: which to add, which to remove
   const toAdd: ID[] = []
   const toRemove: ID[] = []
-  for (const id of ids) {
+  for (const id of validIds) {
     if (currentSet.has(id)) {
       toRemove.push(id)
     } else {
@@ -114,7 +145,6 @@ function applyToggle<Sub>(
     }
   }
 
-  // Build new set
   const newIdSet = new Set(currentSet)
   for (const id of toRemove) newIdSet.delete(id)
   for (const id of toAdd) newIdSet.add(id)
@@ -123,17 +153,20 @@ function applyToggle<Sub>(
     return applyDeselect(state)
   }
 
-  // Normalize to order
-  const normalized = nodeOrder.filter((id) => newIdSet.has(id))
+  // Build result preserving existing order for kept items, appending new
+  // items in caller-supplied order. This matches the tree-walk behavior for
+  // "user keeps clicking things" while avoiding the O(visible) walk.
+  const kept = state.ids.filter((id) => newIdSet.has(id))
+  const added = toAdd.filter((id) => newIdSet.has(id))
+  const normalized: ID[] = [...kept, ...added]
 
   // Determine cursor/anchor per rules table
   let newCursor: ID | null
   let newAnchor: ID | null
 
   if (toAdd.length > 0) {
-    // Toggle add: cursor = first of newly added (in order), anchor preserved
-    const addedInOrder = normalizeToOrder(toAdd, nodeOrder)
-    newCursor = addedInOrder[0] ?? normalized[0]!
+    // Toggle add: cursor = first newly added (input order), anchor preserved
+    newCursor = toAdd[0] ?? normalized[0]!
     newAnchor = state.anchor !== null && newIdSet.has(state.anchor) ? state.anchor : newCursor
   } else {
     // Toggle remove only

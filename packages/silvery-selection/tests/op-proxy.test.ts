@@ -12,6 +12,7 @@ const B = id("B")
 const C = id("C")
 
 function flatApp(nodes: ID[] = [A, B, C]): SelectionApp {
+  const nodeSet = new Set(nodes)
   return {
     tree: {
       walkOrder(_root: ID | null) {
@@ -22,6 +23,9 @@ function flatApp(nodes: ID[] = [A, B, C]): SelectionApp {
       },
       children(_id: ID) {
         return []
+      },
+      contains(nid: ID) {
+        return nodeSet.has(nid)
       },
     },
   }

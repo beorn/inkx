@@ -179,6 +179,19 @@ export type SelectionApp = {
     walkOrder(root: ID | null): readonly ID[]
     parent(id: ID): ID | undefined
     children(id: ID): readonly ID[]
+    /**
+     * O(1) existence check: does `id` refer to a real, selectable node?
+     *
+     * Hot path for `store.select()` — replaces the old O(visible) walkOrder
+     * filter. On large vaults (500k+ nodes), walking the tree on every
+     * keystroke blocked the main thread for 3+ seconds; an O(1) `contains`
+     * (backed by a repo-level hash) makes selection validation free.
+     *
+     * Implementations should return true for any id that the app would
+     * accept as a selection target — typically "exists in the tree" (which
+     * for km means `repo.getNode(id) !== null`).
+     */
+    contains(id: ID): boolean
   }
 }
 
