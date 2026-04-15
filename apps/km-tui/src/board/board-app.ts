@@ -656,7 +656,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         const violations = checkInvariants(freshCtx)
         if (violations.length > 0) {
           parentSpan.spanData.invariantViolations = violations.length
-          // Self-heal stale cursors by resetting to rootId. cursor-under-root,
+          // Self-heal stale cursors by resetting to the first visible card
+          // (or column, or rootId as last resort). cursor-under-root,
           // cursor-visible, and cursor-in-walkOrder are all symptoms of the same
           // class of issue (a cursor that no longer belongs under the active
           // board root, or has fallen off the view tree).
@@ -664,7 +665,26 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             (v) => v.check === "cursor-under-root" || v.check === "cursor-visible" || v.check === "cursor-in-walkOrder",
           )
           if (needsReset && freshCtx.rootId) {
-            freshCtx.sel.node.select([freshCtx.rootId as import("@silvery/selection").ID])
+            // Find the first visible card via the current view tree (respects
+            // filters/folds) so the cursor lands somewhere the user can see,
+            // not on the invisible rootId.
+            const VIRTUAL = ["__meta__", "__body__"]
+            const isVirtual = (id: string): boolean => VIRTUAL.some((p) => id.startsWith(p))
+            const rootId = freshCtx.rootId
+            let target: string = rootId
+            const colIds = freshCtx.tree.children(rootId)
+            for (const colId of colIds) {
+              if (isVirtual(colId)) continue
+              const cardIds = freshCtx.tree.children(colId)
+              const firstCard = cardIds.find((id: string) => !isVirtual(id))
+              if (firstCard) {
+                target = firstCard
+                break
+              }
+              target = colId
+              break
+            }
+            freshCtx.sel.node.select([target as import("@silvery/selection").ID])
             freshCtx.setUI({
               status: {
                 level: "warning",

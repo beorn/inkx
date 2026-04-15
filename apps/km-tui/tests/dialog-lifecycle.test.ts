@@ -342,3 +342,21 @@ describe("dialog state isolation", () => {
     app.expect("[data-dialog='search']").not.toExist()
   })
 })
+
+// ---------------------------------------------------------------------------
+// FavoritesDialog lifecycle
+// ---------------------------------------------------------------------------
+
+describe("FavoritesDialog lifecycle", () => {
+  test("shift+m opens favorites dialog; Escape closes it", () => {
+    // Regression for km-tui.manage-favorites-escape — the Escape binding used
+    // to depend on inScope("dialog:favorites"), which wasn't reliably populated
+    // in every production path. Now guarded by the direct favoritesDialogOpen
+    // UI state check.
+    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
+    app.press("shift+m")
+    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(true)
+    app.press("Escape")
+    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(false)
+  })
+})

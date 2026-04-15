@@ -6,6 +6,7 @@ import {
   textInputFocused,
   isInDetailPane,
   isInlineEditing,
+  favoritesDialogOpen,
   favoritesKeySelected,
   helpOverlayOpen,
   deleteConfirmOpen,
@@ -564,18 +565,21 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "favorites-dialog",
       bindings: [
-        // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
-        { key: "Enter", commandId: "favorites.assign", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
-        { key: "Delete", commandId: "favorites.clear", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back.
+        // Guarded by `favoritesDialogOpen` (direct UI state) rather than `inScope("dialog:favorites")`
+        // because the focus-scope stack isn't reliably populated in every production path — see
+        // km-tui.manage-favorites-escape. The UI state is the single source of truth.
+        { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
         {
           key: "Backspace",
           commandId: "favorites.clear",
-          when: and(inScope("dialog:favorites"), favoritesKeySelected),
+          when: and(favoritesDialogOpen, favoritesKeySelected),
         },
-        { key: "Escape", commandId: "favorites.back", when: and(inScope("dialog:favorites"), favoritesKeySelected) },
+        { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
         // List view: Escape closes, any key selects it
-        { key: "Escape", commandId: "dialog.cancel", when: inScope("dialog:favorites") },
-        { key: "*", wildcard: true, commandId: "favorites.select_key", when: inScope("dialog:favorites") },
+        { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
+        { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
       ],
     },
 
