@@ -39,6 +39,7 @@ import {
   InlineText,
 } from "../text/index.ts"
 import { getOwnColor, getHeaderStyle } from "../board/board-pills.ts"
+import { getTypeBullet } from "../icons.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
@@ -451,7 +452,7 @@ export interface NodeColumnViewProps {
  * and separator line below.
  */
 export function NodeColumnView({
-  node: _node,
+  node,
   displayName,
   count,
   isSelected = false,
@@ -460,20 +461,23 @@ export function NodeColumnView({
   const textColor = isSelected ? "$selection" : undefined
   const bgColor = isSelected ? "$selection-bg" : undefined
 
-  // Skip the `§ ` prefix when the source heading already starts with `§`
-  // (e.g. the RESOLVER.md convention `## § 4 — Filename conventions`).
-  // Without this check we double-stamp the marker and every section renders
-  // as `§ § 4 — …` in the column header.
-  const alreadyHasSectionMark = displayName.trimStart().startsWith("\u00A7")
-  const prefix = alreadyHasSectionMark ? "" : "\u00A7 "
+  // Icon comes from the type-bullet resolver — it owns the mdsection→§,
+  // folder→, mdfile→, etc. mapping. We no longer hardcode `§ ` here
+  // (that caused double-stamping on source headings that already started
+  // with `§`, see km-tui.section-double-prefix). We also strip any leading
+  // `§` / `#` markers from the displayName so source headings like
+  // `## § 4 — Filename conventions` render as `§ 4 — Filename conventions`,
+  // not `§ § 4 — …` or `§ ## § 4 — …`.
+  const bullet = getTypeBullet(node, count > 0)
+  const cleanedName = displayName.replace(/^\s*[\u00A7#]+\s*/, "")
 
   return (
     <Box flexDirection="column" width={width}>
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} wrap="truncate">
-            {prefix}
-            {displayName}
+            {bullet ? `${bullet.char} ` : ""}
+            {cleanedName}
           </Text>
         </Box>
         <Box flexShrink={0}>
