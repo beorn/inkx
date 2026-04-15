@@ -126,7 +126,6 @@ const DIALOG_TYPES = [
   "CLEAR_ALL_FILTER_PROPERTIES",
   "TOGGLE_HIDE_DONE",
   "CLEAR_FILTERS",
-  "COMMAND_PALETTE",
   "OPEN_UNIFIED_OMNIBOX",
   "DIALOG_NAV_UP",
   "DIALOG_NAV_DOWN",
@@ -291,7 +290,7 @@ describe("sub-union categorization", () => {
     const edit: EditOp = { type: "INSERT_BELOW" }
     const text: TextOp = { type: "TEXT_INSERT", char: "a" }
     const board: BoardOp = { type: "SELECT", nodeId: "n1" }
-    const dialog: DialogOp = { type: "COMMAND_PALETTE" }
+    const dialog: DialogOp = { type: "OPEN_UNIFIED_OMNIBOX" }
     const pane: PaneOp = { type: "PANE_CLOSE" }
     const view: ViewOp = { type: "QUIT" }
 

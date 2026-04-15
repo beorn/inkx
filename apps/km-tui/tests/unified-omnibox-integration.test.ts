@@ -1,15 +1,15 @@
 /**
- * Unified Omnibox — Phase 7b integration tests.
+ * Unified Omnibox — runtime integration tests.
  *
- * Phase 7b wires `ui.omnibox` (the OmniboxPane value object) into the live
- * TUI: the `unified_omnibox_open` command raises the overlay, typing drives
- * the reducer state, Escape dismisses, and Enter invokes the resolved
- * command with subject/target separation.
+ * Wires `ui.omnibox` (the OmniboxPane value object) into the live TUI:
+ * `command_palette` raises the overlay, typing drives the reducer state,
+ * Escape dismisses, and Enter invokes the resolved command with
+ * subject/target separation.
  *
- * These tests are the integration guard — they exercise the full path from
- * keypress → reducer dispatch → React render → command execution. The
- * pure reducer is covered in omnibox-state.test.ts (51 tests); this file
- * covers the runtime wiring that Phase 7b adds.
+ * These tests are the integration guard — they exercise the full path
+ * from keypress → reducer dispatch → React render → command execution.
+ * The pure reducer is covered in omnibox-state.test.ts (51 tests); this
+ * file covers the runtime wiring on top of silvery primitives.
  *
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
@@ -33,12 +33,12 @@ function standardBoard() {
   )
 }
 
-describe("unified omnibox — runtime integration (Phase 7b)", () => {
-  it("unified_omnibox_open raises the overlay (ui.omnibox becomes non-null)", () => {
+describe("unified omnibox — runtime integration", () => {
+  it("command_palette raises the overlay (ui.omnibox becomes non-null)", () => {
     using app = standardBoard()
     expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
 
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
 
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
@@ -52,7 +52,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
 
   it("typing into the new omnibox updates ui.omnibox.state.buffer", () => {
     using app = standardBoard()
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
     // Starts with sigil ":"
     expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe(":")
 
@@ -68,7 +68,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
 
   it("Escape dismisses the unified omnibox (ui.omnibox becomes null)", () => {
     using app = standardBoard()
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
     expect(app.withStore((s) => s.ui.omnibox)).not.toBeNull()
 
     app.press("Escape")
@@ -79,7 +79,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
 
   it("typing ':go' filters command results so goto is selected", () => {
     using app = standardBoard()
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
     // Buffer starts at ":", append "go" → ":go"
     app.press("g")
     app.press("o")
@@ -106,7 +106,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     const cursorBefore = app.state.cursor
     expect(cursorBefore).toBe("task2")
 
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
 
     const pane = app.withStore((s) => s.ui.omnibox!)
     // The OPEN_UNIFIED_OMNIBOX handler freezes subjectSelection from the
@@ -133,7 +133,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     app.navigateTo("task2")
     expect(app.state.cursor).toBe("task2")
 
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
 
     const pane = app.withStore((s) => s.ui.omnibox!)
     // The frozen subject snapshot captures the same cursor…
@@ -154,7 +154,7 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     // fire when the user types them (not only when SET_BUFFER is dispatched
     // directly).
     using app = standardBoard()
-    app.press("cmd+shift+k")
+    app.press("cmd+k")
     expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe(":")
 
     // Type ":cr" — content after the sticky `:` sigil.
@@ -169,9 +169,18 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe("@cr")
   })
 
-  it("command_palette opens the unified omnibox (Phase 12 flip)", () => {
+  it("command_palette opens the unified omnibox (cmd-k path)", () => {
+    // After Phase B the legacy Omnibox surface is gone — `command_palette`
+    // now dispatches OPEN_UNIFIED_OMNIBOX directly. This test guards that
+    // both entry points (the command id and the cmd-k keybind) land on the
+    // same ui.omnibox overlay.
     using app = standardBoard()
     app.command("command_palette")
+    expect(app.withStore((s) => s.ui.omnibox)).not.toBeNull()
+    app.press("Escape")
+    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
+
+    app.press("cmd+k")
     expect(app.withStore((s) => s.ui.omnibox)).not.toBeNull()
     app.press("Escape")
     expect(app.withStore((s) => s.ui.omnibox)).toBeNull()

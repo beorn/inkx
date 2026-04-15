@@ -269,7 +269,6 @@ const DIALOG_TYPE_LIST = [
   "CLEAR_ALL_FILTER_PROPERTIES",
   "TOGGLE_HIDE_DONE",
   "CLEAR_FILTERS",
-  "COMMAND_PALETTE",
   "OPEN_UNIFIED_OMNIBOX",
   "DIALOG_NAV_UP",
   "DIALOG_NAV_DOWN",
@@ -1329,16 +1328,6 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         filterCursorVal: 0,
         showFilterDialog: false,
       })
-      return ok()
-    case "COMMAND_PALETTE":
-      if (ctx.ui.showOmnibox) {
-        popDialogMode()
-        ctx.setUI({ showOmnibox: false })
-      } else {
-        pushDialogMode("dialog:omnibox")
-        ctx.setUI({ showOmnibox: true })
-        clearSelection(ctx)
-      }
       return ok()
     case "OPEN_UNIFIED_OMNIBOX": {
       // Phase 7b — build an OmniboxInvocationSpec from the focused pane
@@ -2499,11 +2488,6 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   if (ui.omnibox) {
     popDialogMode()
     dismissOmnibox(ctx.setUI as (patch: { omnibox: import("../state/omnibox.ts").OmniboxPane | null }) => void)
-    return ok()
-  }
-  if (ui.showOmnibox) {
-    popDialogMode()
-    ctx.setUI({ showOmnibox: false })
     return ok()
   }
   if (ui.searchReplace) {

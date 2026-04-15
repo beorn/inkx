@@ -26,7 +26,6 @@ import { HelpOverlay } from "./HelpOverlay.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
-import { Omnibox, type OmniboxResult } from "./Omnibox.tsx"
 import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
 import { ConfirmDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -520,38 +519,7 @@ export function WorkspaceChrome({
     undoHandle,
   })
 
-  // Legacy omnibox handlers — kept while `cmd-k` temporarily opens the
-  // legacy Omnibox for side-by-side comparison with the unified surface
-  // (bound to `:` / `ctrl-k`). Delete along with Omnibox.tsx once the
-  // unified path is validated.
-  const storeRef = React.useContext(StoreContext)
-  const handleOmniboxSelect = useCallback(
-    (result: OmniboxResult) => {
-      popDialogMode()
-      setUI({ showOmnibox: false })
-      if (result.type === "search" && result.nodeId) {
-        const node = repo.getNode(result.nodeId)
-        if (node) baseDialogHandlers.handleSearchSelect(node)
-      } else if (result.commandId && storeRef) {
-        const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
-        dispatchCommandById(result.commandId, store.getState.bind(store), () => {}, result.targetId)
-      }
-    },
-    [setUI, storeRef, repo, baseDialogHandlers, dispatchCommandById],
-  )
-  const handleOmniboxCancel = useCallback(() => {
-    popDialogMode()
-    setUI({ showOmnibox: false })
-  }, [setUI])
-
-  const dialogHandlers = useMemo(
-    () => ({
-      ...baseDialogHandlers,
-      handleOmniboxSelect,
-      handleOmniboxCancel,
-    }),
-    [baseDialogHandlers, handleOmniboxSelect, handleOmniboxCancel],
-  )
+  const dialogHandlers = baseDialogHandlers
 
   // Content height for dialog positioning — use full terminal
   const contentHeight = termHeight
@@ -702,29 +670,7 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Legacy Omnibox — temporary dogfood comparison surface bound to
-          cmd-k via `command_palette_legacy`. Delete along with Omnibox.tsx
-          once the unified path is validated. */}
-      {ui.showOmnibox && (
-        <CenterDialog
-          termWidth={termWidth}
-          contentHeight={contentHeight}
-          maxWidth={100}
-          widthFraction={3 / 4}
-          topFraction={1 / 6}
-          data-dialog="omnibox"
-          focusScope
-        >
-          <Omnibox
-            onSelect={dialogHandlers.handleOmniboxSelect}
-            onCancel={dialogHandlers.handleOmniboxCancel}
-            width={Math.min(100, Math.floor((termWidth * 3) / 4))}
-            maxHeight={Math.floor((contentHeight * 2) / 3)}
-          />
-        </CenterDialog>
-      )}
-      {/* Unified omnibox — the primary surface bound to `:` / ctrl-k via
-          `command_palette` → OPEN_UNIFIED_OMNIBOX. */}
+      {/* Unified omnibox — singleton command palette + node search surface */}
       {ui.omnibox && (
         <CenterDialog
           termWidth={termWidth}

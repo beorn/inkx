@@ -112,7 +112,7 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     inputMode: currentMode(),
     visualMode: false, // visual mode removed — sel handles multi-selection
     localFindActive: !!ui.localSearch,
-    omniboxOpen: !!ui.omnibox || ui.showOmnibox,
+    omniboxOpen: !!ui.omnibox,
     searchReplaceOpen: !!ui.searchReplace,
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,

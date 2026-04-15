@@ -914,12 +914,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
-        if (ui.showOmnibox) {
-          popDialogMode()
-          opctx.setUI({ showOmnibox: false })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
-          return
-        }
         if (ui.searchReplace) {
           opctx.setUI({ searchReplace: null })
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
