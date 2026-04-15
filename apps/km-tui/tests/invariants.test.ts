@@ -378,7 +378,11 @@ describe("move-source-exists invariant", () => {
 // =============================================================================
 
 describe("sel-root-matches-rootId invariant", () => {
-  test("mismatched selection root and rootId triggers violation", () => {
+  test("mismatched selection root is recoverable — returns violation, does not throw", () => {
+    // Regression for km-tui.sel-root-sync-crash. Sync drift between pane
+    // rootId and sel tree root used to crash the TUI fatally. Now
+    // surfaces as a recoverable violation so the Phase 3 handler can
+    // call sel.root.set(rootId) to re-sync.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const sel = createSelection({
@@ -392,8 +396,11 @@ describe("sel-root-matches-rootId invariant", () => {
       selectedIds: sel.node.ids(),
     })
 
-    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
-    expect(() => checkInvariants(ctx)).toThrow(/sel-root-matches-rootId/)
+    const violations = checkInvariants(ctx)
+    const selRoot = violations.find((v) => v.check === "sel-root-matches-rootId")
+    expect(selRoot).toBeDefined()
+    expect(selRoot?.recoverable).toBe(true)
+    expect(selRoot?.ids).toMatchObject({ selRoot: "other-root", rootId: "board" })
     spy.mockRestore()
   })
 })
@@ -403,7 +410,10 @@ describe("sel-root-matches-rootId invariant", () => {
 // =============================================================================
 
 describe("viewTree-root-matches invariant", () => {
-  test("tree rootId mismatch triggers violation", () => {
+  test("tree rootId mismatch is recoverable — returns violation, does not throw", () => {
+    // Same sync-drift class as sel-root-matches-rootId. The Phase 3 handler
+    // re-syncs by calling sel.root.set(rootId) which propagates through
+    // signals and rebuilds the ViewTreeProjection.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const ctx = validCtx({
@@ -420,8 +430,10 @@ describe("viewTree-root-matches invariant", () => {
       },
     })
 
-    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
-    expect(() => checkInvariants(ctx)).toThrow(/viewTree-root-matches/)
+    const violations = checkInvariants(ctx)
+    const viewTree = violations.find((v) => v.check === "viewTree-root-matches")
+    expect(viewTree).toBeDefined()
+    expect(viewTree?.recoverable).toBe(true)
     spy.mockRestore()
   })
 })

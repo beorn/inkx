@@ -286,6 +286,9 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 11. Selection root matches pane rootId.
   // After zoom/SET_ROOT, the sel root must be synced. Mismatch → empty walkOrder → cursor null.
+  // Marked recoverable — the caller calls sel.root.set(rootId) to re-sync.
+  // Reached via omnibox go-to and other nav paths that bypass syncPaneSignals.
+  // See km-tui.sel-root-sync-crash.
   if (ctx.rootId) {
     const selRoot = ctx.sel.root.id() as string | null
     if (selRoot && selRoot !== ctx.rootId && !isVirtualNodeId(selRoot)) {
@@ -293,12 +296,16 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "sel-root-matches-rootId",
         message: `Selection root "${selRoot}" does not match pane rootId "${ctx.rootId}". Did syncPaneSignals miss sel.root.set()?`,
         ids: { selRoot, rootId: ctx.rootId },
+        recoverable: true,
       })
     }
   }
 
   // 12. viewTree root matches rootId.
   // The ViewTreeProjection should be built for the current rootId.
+  // Marked recoverable — same sync-drift class as sel-root-matches-rootId.
+  // The heal re-syncs by calling sel.root.set(rootId), which propagates
+  // through signals and rebuilds the ViewTreeProjection.
   if (ctx.rootId && ctx.tree.rootId) {
     const treeRootId = ctx.tree.rootId
     if (treeRootId !== ctx.rootId) {
@@ -306,6 +313,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "viewTree-root-matches",
         message: `ViewTree root "${treeRootId}" does not match pane rootId "${ctx.rootId}". View lens may be stale.`,
         ids: { viewTreeRoot: treeRootId, rootId: ctx.rootId },
+        recoverable: true,
       })
     }
   }

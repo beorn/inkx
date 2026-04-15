@@ -677,6 +677,20 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         const violations = checkInvariants(freshCtx)
         if (violations.length > 0) {
           parentSpan.spanData.invariantViolations = violations.length
+
+          // Sync-drift heal: sel-root / viewTree-root don't match the pane
+          // rootId. Reached via omnibox go-to and other nav paths that
+          // bypass syncPaneSignals. Re-sync by calling sel.root.set(rootId)
+          // — this propagates through signals and rebuilds the ViewTree.
+          // See km-tui.sel-root-sync-crash.
+          const needsSelRootSync = violations.some(
+            (v) =>
+              v.recoverable === true && (v.check === "sel-root-matches-rootId" || v.check === "viewTree-root-matches"),
+          )
+          if (needsSelRootSync && freshCtx.rootId) {
+            freshCtx.sel.root.set(freshCtx.rootId as import("@silvery/selection").ID)
+          }
+
           // Self-heal stale cursors by resetting to the first visible card
           // (or column, or rootId as last resort). Any recoverable violation
           // whose ids contain a "cursor" key is treated as a stale-cursor
