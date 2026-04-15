@@ -41,10 +41,13 @@ describe("omnibox", () => {
     app.expect("[data-dialog='omnibox']").not.toExist()
   })
 
-  it("shows Command Palette title", () => {
+  it("derives title from leading sigil (empty buffer → Omnibox)", () => {
     using app = standardBoard()
     app.command("command_palette")
-    expect(app.text).toContain("Command Palette")
+    // Empty buffer defaults to the generic "Omnibox" title; the title
+    // re-derives as the user types a sigil (: → Command, @ → Context,
+    // etc.). See docs/design/omnibox.md and the modeOf() mapping.
+    expect(app.text).toContain("Omnibox")
   })
 
   it("shows go-to locations in results", () => {

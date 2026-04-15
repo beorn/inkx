@@ -19,6 +19,7 @@ import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { fuzzyScore, getParentName } from "./search-utils.ts"
+import { modeOf } from "../state/omnibox.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // =============================================================================
@@ -355,8 +356,20 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     return scored.map(({ result }) => result)
   }, [allResults, deferredQuery])
 
-  // Vault-wide search results (FTS5, deferred until 2+ chars)
-  const searchResults = React.useMemo(() => buildSearchResults(repo, deferredQuery), [repo, deferredQuery])
+  // Vault-wide search results (FTS5, deferred until 2+ chars). FTS5 tokenizes
+  // the query so its native ranking doesn't honor sigil prefixes or literal
+  // title-prefix matches. Re-rank through the shared fuzzyScore (tiered —
+  // exact > prefix > segment-boundary > substring > fuzzy) so that typing
+  // `+ta` surfaces title-prefix matches like `+taxes` / `+taxonomic` above
+  // deep-body hits. See km-tui.picker-rank-subpath.
+  const searchResults = React.useMemo(() => {
+    const raw = buildSearchResults(repo, deferredQuery)
+    if (!deferredQuery) return raw
+    const scored = raw.map((r) => ({ r, s: fuzzyScore(deferredQuery, r.label) }))
+    // Keep FTS5 order as a tie-break by using a stable sort on score only.
+    scored.sort((a, b) => b.s - a.s)
+    return scored.map(({ r }) => r)
+  }, [repo, deferredQuery])
 
   // Merge: command/goto results first, then search results (with divider tracked by index)
   const hasSearchResults = searchResults.length > 0
@@ -398,8 +411,41 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     </Box>
   )
 
+  // Derive the dialog title from the buffer's leading sigil, so it
+  // re-reads as the user switches modes with a single keystroke.
+  // Matches docs/design/omnibox.md — the title never lies about mode.
+  const mode = modeOf(editCtx.beforeCursor + editCtx.afterCursor)
+  const title =
+    mode === "command"
+      ? "Command"
+      : mode === "context"
+        ? "Context"
+        : mode === "tag"
+          ? "Tag"
+          : mode === "project"
+            ? "Project"
+            : mode === "node"
+              ? "Node"
+              : mode === "local_find"
+                ? "Find"
+                : "Omnibox"
+  const placeholderText =
+    mode === "command"
+      ? "Search commands…"
+      : mode === "context"
+        ? "Search contexts (@someone)…"
+        : mode === "tag"
+          ? "Search tags (#topic)…"
+          : mode === "project"
+            ? "Search projects (+name)…"
+            : mode === "node"
+              ? "Search nodes ([title])…"
+              : mode === "local_find"
+                ? "Find in view (/text)…"
+                : "Type : for commands, + @ # [ for nodes…"
+
   return (
-    <ModalDialog title="Command Palette" hotkey=":" width={width} height={dialogHeight} footer={footerContent}>
+    <ModalDialog title={title} hotkey=":" width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input */}
       <Box flexShrink={0}>
         <InputBox
@@ -407,7 +453,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
           afterCursor={editCtx.afterCursor}
           prompt="> "
           promptColor={"$primary"}
-          placeholder="Search commands and content..."
+          placeholder={placeholderText}
           focusRing
         />
       </Box>

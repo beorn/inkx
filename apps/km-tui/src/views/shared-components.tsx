@@ -431,11 +431,15 @@ export function InputBox({
       <Text>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
         {showPlaceholder ? (
-          <Muted>{placeholder}</Muted>
+          // Cursor at position 0, placeholder reads as ghost text after it.
+          // Matches the standard input pattern: █ghost hint text…
+          <>
+            {showCursor && <Text inverse> </Text>}
+            <Muted>{placeholder}</Muted>
+          </>
         ) : (
           <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
         )}
-        {showPlaceholder && showCursor && <Text inverse> </Text>}
       </Text>
       {!focusRing && <Text dimColor>{"─".repeat(40)}</Text>}
     </Box>
