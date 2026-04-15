@@ -267,7 +267,7 @@ state:        { command: "goto", arg: "", focus: arg, persistent: true }
 
 ### Single buffer + sigil routing
 
-the omnibox has **one working buffer** whose leading sigil determines what's being searched. There are no separate command/argument fields and no focus flag — one buffer, one result list, one keystroke to switch modes.
+The omnibox has **one working buffer** whose leading sigil determines what's being searched. One buffer, one result list, one keystroke to switch modes.
 
 **Sigil routing.** The first character of `buffer` selects the search scope:
 
@@ -435,7 +435,7 @@ User picks a command via the filtered list. `defaultCommand` is set. Switching b
 - Else the chord's default command runs.
 - Else (`defaultCommand = "default"`) the `default` command handles type-dispatch internally (commands → run, else → goto).
 
-This is strictly simpler than the old "Tab + command field" model: there's no Tab, no field-focus flag, no `commandBuffer`/`argumentBuffer` split. Just one buffer, sticky memory, and the resolution chain.
+One buffer, sticky memory, and the resolution chain — no Tab toggle, no field-focus flag, no parallel buffers.
 
 ### Global keybindings are automatic (no special scope)
 
@@ -459,7 +459,7 @@ This is not a new mechanism; it's the standard text-input-consumes-its-own-keys 
 
 The modifier-chord family (`Ctrl+{g,m,a,l,c}+Enter` + `Shift+Enter`) are direct-verb shortcuts that skip the `:search` round-trip. Each is equivalent to "type `:<verb>`, pick the top result, Enter" but in one keystroke. Power-user path for users who know the verb.
 
-**Disabled state.** If the resolved command requires an argument but `selectedArgument ==the omnibox is stored as a pane in `workspace.overlayPane: OmniboxPane |`workspace.overlayPane: OmniboxPane | null` (singleton), Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. The user's recourse:
+**Disabled state.** If the resolved command requires an argument but `selectedArgument == null`, Enter is inactivatable — the footer shows `↵ <command> (disabled — no target)` and a bell rings on Enter. The user's recourse:
 
 1. Type `:` (or press `cmd-k`) and pick a zero-arg command like `:capture`.
 2. Type a different argument query to get a new `selectedArgument`.
@@ -598,7 +598,7 @@ interface OmniboxPane extends Pane {
 ```
 
 **Storage — two lifecycle slots, same pane shape:**
-- **Dialog form (v1):** `workspace.overlayPane: OmniboxPane |the omnibox is stored as a pane in `workspace.overlayPane: OmniboxPane |`workspace.overlayPane: OmniboxPane | null` (singleton). Singleton, ephemeral. Rendered above the normal pane layout. Dismisses on confirm or escape, returning focus to `anchorPaneId`.
+- **Dialog form (v1):** `workspace.overlayPane: OmniboxPane | null` (singleton). Ephemeral. Rendered above the normal pane layout. Dismisses on confirm or escape, returning focus to `anchorPaneId`.
 - **Docked form (post-v1):** a regular entry in `workspace.panes`. Persistent. Participates in splits, resize, focus cycling. Cleared (buffer + sticky slots) on confirm but stays mounted.
 
 Pop-out (post-v1) is a workspace mutation: move the `OmniboxPane` out of `overlayPane` and into `panes`, keep everything else the same.
@@ -661,7 +661,7 @@ Everything else is either **derived** (a pure function of base state) or **props
 - `candidates: KNode[] | () => KNode[]` — the pre-scoped candidate set. Caller decides what's in scope; omnibox never knows about "favorites" or "current-view" as scope strings. Wrapper components (`CommandPaletteOmnibox`, `FavoritesOmnibox`, `LocalFindOmnibox`, …) pre-scope this per invocation.
 - `initialBuffer: string` — `":"`, `""`, `"/"`, `"@"`, etc. Becomes `state.buffer` at mount.
 - `initialDefaultCommand: string` — becomes `state.defaultCommand` at mount. Default: `"default"`.
-- `initialArgument: KNode |the omnibox is stored as a pane in `workspace.overlayPane: OmniboxPane |`workspace.overlayPane: OmniboxPane | null` (singleton) — becomes `state.selectedArgument` at mount (cursor pre-select).
+- `initialArgument: KNode | null` — becomes `state.selectedArgument` at mount (cursor pre-select).
 
 **Derived (pure functions, recomputed on every render):**
 - `mode(buffer)` — which search mode the leading sigil requests (`"command" | "context" | "tag" | "project" | "node" | "local_find" | "universal"`).
@@ -923,7 +923,7 @@ The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` �
 - Sigil auto-replace: when `buffer` changes such that its leading char is a sigil and differs from the old leading char, the rest of the buffer is preserved.
 - Sticky memory: changing the buffer's sigil does NOT clear `defaultCommand` or `selectedArgument` — the only thing that clears them is explicit picking of a new selection OR `OMNIBOX_CANCEL`.
 - `resolvedCommand` is always defined: `defaultCommand` — both are string-or-null-but-at-least-one-is-set, and `defaultCommand` is always set.
-- `OMNIBOX_CONFIRM` with a selected command that requires an argument AND `selectedArgument ==the omnibox is stored as a pane in `workspace.overlayPane: OmniboxPane |`workspace.overlayPane: OmniboxPane | null` (singleton) is a no-op + bell.
+- `OMNIBOX_CONFIRM` with a selected command that requires an argument AND `selectedArgument == null` is a no-op + bell.
 - `OMNIBOX_SWITCH_TO_COMMANDS` (cmd-k while open): set `buffer = ":"`, preserve `selectedArgument`. Commands list is filtered by `when` against `selectedArgument`. This IS the Embark/Raycast "action panel on selected candidate" pattern.
 - `OMNIBOX_SWITCH_TO_ARGUMENT` (cmd-f while open): set `buffer = ""`, preserve `defaultCommand`. Result list reverts to universal search.
 - `OMNIBOX_CANCEL` on the dialog form dismisses it and restores the previously-focused pane. On the pane form it clears buffer + both selected* + refocuses argument mode.
@@ -931,7 +931,7 @@ The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` �
 
 ## Migration
 
-This is a refactor-then-feature, not a rewrite. The codebase already has most of the pieces: 172 registered commands (including `goto`, `move`, `add`, `add_link`, `local_find`, `capture_inbox`, `command_palette`, `item_picker`, `search`, `filter`, `manage_favorites`, `search_replace`), the `VerbOp` (`CURSOR_TO | REPARENT_TO | LINK_TO | CREATE_AT`) infrastructure that already dispatches to pickers, and Silvery's `TextInput` with autocomplete. The migration is mostly about collapsing 5 dialog components into one view mode and adding the command/argument two-field UX.
+This is a refactor-then-feature, not a rewrite. The codebase already has most of the pieces: 172 registered commands (including `goto`, `move`, `add`, `add_link`, `local_find`, `capture_inbox`, `command_palette`, `item_picker`, `search`, `filter`, `manage_favorites`, `search_replace`), the `VerbOp` (`CURSOR_TO | REPARENT_TO | LINK_TO | CREATE_AT`) infrastructure that already dispatches to pickers, and Silvery's `TextInput` with autocomplete. The migration is mostly about collapsing 5 dialog components into one sigil-dispatched single-buffer surface.
 
 ### Phase 1 — shared row component
 Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx` to use it — adapter layer converts today's result shapes to `KNode`-compatible rows. No behavior change. Catches divergence bugs.
@@ -946,7 +946,7 @@ Build a read-only projection function that returns the `@km/commands` registry a
 Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
 
 ### Phase 5 — unified omnibox dialog (single buffer)
-Build the `omnibox` component + `OmniboxState` reducer as a **global overlay dialog** — not a pane. State lives in `workspace.overlayPane: OmniboxPane | null`|the omnibox is stored as a pane in `workspace.overlayPane: OmniboxPane |`workspace.overlayPane: OmniboxPane | null` (singleton). Component has: one buffer (Silvery `TextInput` with `autocomplete` wired to sigil-routed results), result list below, footer showing the resolved action + sticky selections. Opened via `cmd-k` / `cmd-f` / chord; state is `{buffer, defaultCommand, selectedArgument, sourceScope, layout, ephemeral}`. Add the `default` command to `@km/commands`. Route `command_palette`, `item_picker`, `search`, `manage_favorites` to open the omnibox with appropriate `sourceScope`. Legacy `search_replace` and `filter` stay on their current dialogs (deferred). Old components become thin delegators that call `openOmnibox(...)`. **This is the v1 ship** — it replaces five dialogs with one.
+Build the `omnibox` pane + reducer. It lives in `workspace.overlayPane: OmniboxPane | null` (singleton, dialog form) with the 3-field `OmniboxBaseState` (`buffer`, `defaultCommand`, `selectedArgument`) as the canonical state; layout is derived from the buffer, candidates come from the wrapper. Component: one Silvery `TextInput` with `autocomplete` wired to sigil-routed results, a `SelectList` below, a footer showing the resolved action + sticky selections. Opened via `cmd-k` / `cmd-f` / chord. Add the `default` command to `@km/commands`. Route `command_palette`, `item_picker`, `search`, `manage_favorites` through wrapper components (`CommandPaletteOmnibox`, `FavoritesOmnibox`, …) that pre-scope `candidates`. Legacy `search_replace` and `filter` stay on their current dialogs (deferred). Old dialog components become thin delegators that call `openOmnibox(...)`. **This is the v1 ship** — it replaces five dialogs with one.
 
 ### Phase 6 — cursor unification via focus
 Teach the app's `currentCursor()` lookup to check the omnibox overlay slot first: if an omnibox has focus, its `selectedArgument` is the source; otherwise the focused pane's cursor wins. One-function change in the command executor. Remove any `dialog:omnibox` scope guards. Tests: arrow in the omnibox → commands reading `ctx.currentNodeId` act on `selectedArgument`.
@@ -1010,11 +1010,11 @@ The following commands already exist in `packages/km-commands/src/commands/` and
 
 | Existing command | Current behavior | After migration |
 |---|---|---|
-| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | Omnibox dialog, `{ buffer: ":", sourceScope: "all" }` |
-| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | Omnibox dialog, `{ defaultCommand: "goto", sourceScope: "all" }` |
-| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | Omnibox dialog, `{ defaultCommand: "goto", sourceScope: "favorites" }` |
-| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | Omnibox dialog, `{ defaultCommand: "local_find", sourceScope: "current-view" }` (derives bottom-left layout) |
-| `search` (`tui.ts:66`) | Opens search dialog | Omnibox dialog, `{ defaultCommand: "goto", sourceScope: "all" }` |
+| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | `CommandPaletteOmnibox` wrapper — `{ initialBuffer: ":", candidates: allNodes }` |
+| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | `ItemPickerOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: allNodes }` |
+| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | `FavoritesOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: favorites }` |
+| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | `LocalFindOmnibox` wrapper — `{ initialBuffer: "/", candidates: currentViewNodes }` (layout derives to bottom-left from the `/` sigil) |
+| `search` (`tui.ts:66`) | Opens search dialog | `GotoOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: allNodes }` |
 | `filter` (`navigation.ts:252`) | Opens filter dialog | **NOT routed in v1** — stays on current filter dialog; follow-up bead for filter-aware layout |
 | `search_replace` (`tui.ts:241`) | Opens search/replace dialog | **NOT routed in v1** — stays on current search/replace dialog; needs replace-aware layout (follow-up) |
 | `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — omnibox's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
