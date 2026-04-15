@@ -102,35 +102,51 @@ describe("slugFromText", () => {
   })
 })
 
-// emitHookJson builds the hook response envelope. Must include hookEventName
-// or Claude Code's validator rejects the blob (500 API error on next prompt).
+// emitHookJson builds the hook response envelope. The schema Claude Code
+// enforces is event-specific and strict:
+//
+//   - UserPromptSubmit: hookSpecificOutput.additionalContext is REQUIRED
+//     when hookSpecificOutput is present. No additionalContext → don't
+//     emit hookSpecificOutput → emit plain `{}`.
+//   - SessionEnd: has no event-specific hookSpecificOutput schema. Always
+//     emit `{}`.
+//
+// Any deviation trips the validator and raises a 500 on the next turn.
 
 type HookEnvelope = {
-  hookSpecificOutput: {
+  hookSpecificOutput?: {
     hookEventName: string
     additionalContext?: string
   }
 }
 
 describe("emitHookJson", () => {
-  test("UserPromptSubmit with no context", () => {
-    const out = JSON.parse(emitHookJson("UserPromptSubmit")) as HookEnvelope
-    expect(out).toEqual({ hookSpecificOutput: { hookEventName: "UserPromptSubmit" } })
-  })
-
-  test("UserPromptSubmit with additionalContext", () => {
+  test("UserPromptSubmit with additionalContext emits full envelope", () => {
     const out = JSON.parse(emitHookJson("UserPromptSubmit", "## Memory")) as HookEnvelope
-    expect(out.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit")
-    expect(out.hookSpecificOutput.additionalContext).toBe("## Memory")
+    expect(out.hookSpecificOutput?.hookEventName).toBe("UserPromptSubmit")
+    expect(out.hookSpecificOutput?.additionalContext).toBe("## Memory")
   })
 
-  test("SessionEnd with no context", () => {
-    const out = JSON.parse(emitHookJson("SessionEnd")) as HookEnvelope
-    expect(out).toEqual({ hookSpecificOutput: { hookEventName: "SessionEnd" } })
-  })
-
-  test("additionalContext is omitted when undefined", () => {
+  test("UserPromptSubmit with no context emits empty object", () => {
     const out = JSON.parse(emitHookJson("UserPromptSubmit")) as HookEnvelope
-    expect("additionalContext" in out.hookSpecificOutput).toBe(false)
+    expect(out).toEqual({})
+  })
+
+  test("SessionEnd always emits empty object (schema forbids hookSpecificOutput)", () => {
+    expect(JSON.parse(emitHookJson("SessionEnd"))).toEqual({})
+    expect(JSON.parse(emitHookJson("SessionEnd", "ignored"))).toEqual({})
+  })
+
+  test("unknown event emits empty object", () => {
+    expect(JSON.parse(emitHookJson("Whatever"))).toEqual({})
+  })
+
+  // Schema invariant: if hookSpecificOutput is present on UserPromptSubmit,
+  // additionalContext MUST be present too (it's required by the validator).
+  test("never emits hookSpecificOutput without additionalContext (UserPromptSubmit)", () => {
+    const out = JSON.parse(emitHookJson("UserPromptSubmit")) as HookEnvelope
+    if (out.hookSpecificOutput !== undefined) {
+      expect(out.hookSpecificOutput.additionalContext).toBeDefined()
+    }
   })
 })

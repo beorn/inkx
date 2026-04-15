@@ -318,12 +318,36 @@ function cmdExport(args: string[]): void {
  * next turn as "Session Memory". For SessionEnd (or any hook where we just
  * want to acknowledge), call with no extras.
  */
+/**
+ * Build a valid Claude Code hook-response JSON blob.
+ *
+ * The schema is event-specific and strict:
+ *
+ *   - **UserPromptSubmit** allows a `hookSpecificOutput` block with
+ *     `{ hookEventName, additionalContext }` where additionalContext is
+ *     REQUIRED when the block is present. Emit the block only when we
+ *     actually have context to inject; otherwise emit plain `{}`.
+ *   - **SessionEnd** has no event-specific schema at all — any
+ *     `hookSpecificOutput` key is rejected. Always emit `{}`.
+ *   - **PreToolUse / PostToolUse** have their own schemas (not used here).
+ *
+ * For our two hook entry points (UserPromptSubmit via `recall hook`,
+ * SessionEnd via `recall export --hook`), the safe universal "no-op"
+ * response is plain `{}`. Only emit a full envelope when we have
+ * `additionalContext` to hand back for UserPromptSubmit.
+ */
 export function emitHookJson(eventName: string, additionalContext?: string): string {
-  const hookSpecificOutput: Record<string, string> = { hookEventName: eventName }
-  if (additionalContext !== undefined) {
-    hookSpecificOutput.additionalContext = additionalContext
+  if (eventName === "UserPromptSubmit" && additionalContext !== undefined) {
+    return JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "UserPromptSubmit",
+        additionalContext,
+      },
+    })
   }
-  return JSON.stringify({ hookSpecificOutput })
+  // All other cases (SessionEnd, UserPromptSubmit with no hits, unknown events):
+  // emit a valid-but-empty response. Claude Code accepts `{}` as a no-op.
+  return "{}"
 }
 
 // ── search ───────────────────────────────────────────────────────────────
