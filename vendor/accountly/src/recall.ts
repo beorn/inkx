@@ -215,9 +215,22 @@ function cmdExport(args: string[]): void {
   const force = args.includes("--force")
   const all = args.includes("--all")
   const isHook = args.includes("--hook")
+  // --catchup: "export anything missing, silently".
+  // Same filesystem scan as --all but:
+  //   - stderr stays empty unless we actually wrote something (no spam on
+  //     every SessionStart when there's nothing to do)
+  //   - when combined with --hook, emits a valid empty hook response
+  //   - fires a fire-and-forget `qmd update` at the end if new files were
+  //     written, so the search index picks up fresh exports without the user
+  //     having to remember to run `recall index`
+  // This is the "system always tries to complete stuff" path: wire it into
+  // SessionStart and missing-export state self-heals over time.
+  const isCatchup = args.includes("--catchup")
 
   let jsonlPaths: string[] = []
-  if (isHook) {
+  if (isCatchup) {
+    jsonlPaths = listAllJsonlPaths()
+  } else if (isHook) {
     // SessionEnd hook input shape: JSON on stdin with { session_id, ... }
     // We read it, find the matching JSONL, export it, then emit empty hook JSON.
     let raw = ""
@@ -284,15 +297,26 @@ function cmdExport(args: string[]): void {
       continue
     }
     const outPath = join(SESSIONS_DIR, sessionFilename(meta))
-    // In --hook mode we always overwrite since the session just ended and has
-    // more content than any prior snapshot.
-    if (existsSync(outPath) && !force && !isHook) {
+    // Skip existing files unless one of:
+    //   --force         explicit rewrite
+    //   SessionEnd hook (--hook alone, without --catchup) — we want the
+    //                   freshest snapshot of the session that just ended
+    // --catchup mode always skips existing files; its whole job is to backfill
+    // missing exports, not rewrite ones already on disk.
+    const sessionEndOverwrite = isHook && !isCatchup
+    if (existsSync(outPath) && !force && !sessionEndOverwrite) {
       skipped++
       continue
     }
-    writeFileSync(outPath, renderSessionMarkdown(meta), "utf-8")
-    written++
-    if (!all && !isHook) process.stderr.write(`exported: ${outPath}\n`)
+    try {
+      writeFileSync(outPath, renderSessionMarkdown(meta), "utf-8")
+      written++
+      if (!all && !isHook && !isCatchup) process.stderr.write(`exported: ${outPath}\n`)
+    } catch (err) {
+      // Don't crash the catchup / hook over one bad session — log and move on.
+      process.stderr.write(`recall export: failed to write ${outPath}: ${(err as Error).message}\n`)
+      empty++
+    }
   }
   if (all) {
     process.stderr.write(
@@ -302,9 +326,34 @@ function cmdExport(args: string[]): void {
       process.stderr.write(`run \`recall index\` to refresh qmd's sessions collection\n`)
     }
   }
+  // Catchup: stay silent unless we actually did work. When we did work, log
+  // to stderr so SessionStart-hook output captures it in Claude Code's hook
+  // log, and fire a background `qmd update` so the new exports become
+  // searchable without user intervention.
+  if (isCatchup) {
+    if (written > 0) {
+      process.stderr.write(`recall catchup: exported ${written} missing session(s); triggering qmd index\n`)
+      // Fire-and-forget background reindex. We unref() + detach so catchup
+      // returns immediately — the reindex may take seconds to minutes and
+      // the user shouldn't wait on it.
+      try {
+        // Lazy import so non-catchup paths don't pay for this
+        // biome-ignore lint: dynamic import is intentional
+        const { spawn } = require("node:child_process") as typeof import("node:child_process")
+        const child = spawn("qmd", ["update"], {
+          stdio: "ignore",
+          detached: true,
+        })
+        child.unref()
+      } catch {
+        // If qmd isn't installed or spawn fails, just skip — next manual
+        // `recall index` will catch up.
+      }
+    }
+  }
   if (isHook) {
-    // Hook contract: emit hookSpecificOutput JSON with hookEventName so
-    // Claude Code's validator is happy. SessionEnd doesn't need any payload.
+    // Claude Code's SessionEnd validator doesn't accept hookSpecificOutput
+    // for this event (see emitHookJson docs). Plain {} is the correct no-op.
     process.stdout.write(emitHookJson("SessionEnd"))
   }
 }
@@ -542,29 +591,44 @@ function cmdStatus(): void {
 }
 
 function printHelp(): void {
-  process.stderr.write(`recall — qmd-backed session memory (replaces km's bearly-recall)
+  process.stderr.write(`recall — qmd-backed session memory
 
 usage:
-  recall <query> [-n N] [-c cols] [--json]      search (default)
-  recall export <session-id|jsonl-path>         export one session to markdown
-  recall export --all [--force]                 bootstrap: export every session
-  recall hook                                   UserPromptSubmit hook mode (stdin JSON)
-  recall index                                  run qmd update to refresh collections
-  recall status                                 show counts + qmd status
-  recall help                                   this message
+  recall <query> [-n N] [--json]                 search (default)
+  recall export <session-id|jsonl-path>          export one session to markdown
+  recall export --all [--force]                  bootstrap: export every session
+  recall export --catchup [--hook]               silent: export missing sessions only
+  recall hook                                    UserPromptSubmit hook (stdin JSON)
+  recall export --hook                           SessionEnd hook (stdin JSON)
+  recall index                                   run qmd update to refresh collections
+  recall status                                  show counts + qmd status
+  recall help                                    this message
 
 export target: ${SESSIONS_DIR}
-default collections: vault,sessions,km
 
-bootstrap:
+bootstrap / one-time:
   recall export --all          # write markdown for every session
   recall index                 # refresh qmd's sessions collection
 
-hook install (global):
-  add to ~/.claude/settings.json hooks.UserPromptSubmit:
-    { "type": "command", "command": "${HOME}/.local/bin/recall hook" }
-  add to hooks.SessionEnd:
-    { "type": "command", "command": "${HOME}/.local/bin/recall export \\$CLAUDE_SESSION_ID" }
+self-healing via Claude Code hooks (~/.claude/settings.json):
+
+  hooks.SessionStart:
+    { "type": "command", "command": "recall export --catchup --hook" }
+      # runs silently on every session start; exports any sessions that
+      # were missed (e.g. SessionEnd hook crashed), fires background
+      # qmd update if work was done
+
+  hooks.SessionEnd:
+    { "type": "command", "command": "recall export --hook" }
+      # immediate export of the session that just ended
+
+  hooks.UserPromptSubmit:
+    { "type": "command", "command": "recall hook" }
+      # injects qmd search hits as Session Memory
+
+With all three hooks wired up, missed exports self-heal on the next
+session start. No manual intervention needed; use \`recall export --all\`
+only for a forced full rebuild.
 `)
 }
 
