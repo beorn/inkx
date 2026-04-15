@@ -846,7 +846,19 @@ This is the entire control loop. There's no additional "selection mutation" acti
 
 The omnibox is a full command surface, not a read-only picker. Anything a user could do to a node from the board pane they can do from the omnibox (minus shift/reorder which has no visible semantics here).
 
-**Capability gates beyond `when`** — the user may need more than one predicate per command. `when` answers "should this command appear at all?", but finer-grained gates like `canMove`, `canMultiselect`, `canShift`, etc. answer "is this specific capability enabled for this command in this context?". For **v1**, `when` alone is sufficient (shift commands are globally disabled in the omnibox via `when`; multi-select is globally disabled). **Post-v1** adds per-capability predicate fields on `CommandDef` as multi-select lands and capability questions multiply.
+**Multiple `when`-style predicates per capability.** `when` is the mechanism; we reuse it for different capability gates by adding additional predicate fields with descriptive names. All of them are `(ctx) => boolean` — same shape, same evaluation, same API — they just answer different questions:
+
+```ts
+interface CommandDef {
+  when?:          (ctx: CommandContext) => boolean  // "should this command appear at all?"
+  whenMovable?:   (ctx: CommandContext) => boolean  // "can the selected argument be moved via this command?"
+  whenMultiselectable?: (ctx: CommandContext) => boolean  // "can this command operate on a multi-selection?"
+  whenShiftable?: (ctx: CommandContext) => boolean  // "can shift-reorder apply here?"
+  // …new capability gates added on demand
+}
+```
+
+For **v1**, only the base `when` is wired up — shift commands are globally disabled in the omnibox via `when: (ctx) => ctx.activePaneType !== "omnibox"`, and multi-select is globally disabled (single-select only). **Post-v1** adds `whenMovable` / `whenMultiselectable` etc. as the per-capability gates multiply (when multi-select lands for content mode). No new abstraction — just more named predicates on the same shape.
 
 **Nothing in `OmniboxDerivedState` is stored or mutated directly.** Every keystroke recomputes `results` and `layout`. The inner `SelectList` (Silvery component at `vendor/silvery/packages/ag-react/src/ui/components/SelectList.tsx`) receives `results` as a prop and owns its own highlighted-row index — the omnibox doesn't duplicate it.
 
