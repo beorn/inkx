@@ -189,6 +189,8 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // This catches the "editDepth() returns board/column instead of card" bug.
   // Skip virtual nodes which may not be in standard columns.
   // Skip when cursor IS the root node — that's legitimate "board level" cursor.
+  // Marked recoverable — same stale-cursor class as cursor-under-root,
+  // cursor-visible, cursor-in-walkOrder. See km-tui.cursor-in-columns-crash.
   if (
     ctx.cursor &&
     treeColIds.length > 0 &&
@@ -207,6 +209,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           parentId: cursorNode.parent_id,
           rootId: ctx.rootId,
         },
+        recoverable: true,
       })
     }
   }

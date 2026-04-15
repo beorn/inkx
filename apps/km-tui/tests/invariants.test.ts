@@ -181,6 +181,47 @@ describe("cursor-under-root invariant", () => {
     spy.mockRestore()
   })
 
+  test("cursor-in-columns is recoverable — cursor exists in repo but not in any column", () => {
+    // Regression for km-tui.cursor-in-columns-crash. A file-path cursor whose
+    // parent_id points into an unrelated ULID subtree exists in repo but is
+    // not derivable as a column. Used to crash the TUI fatally; now surfaces
+    // as a recoverable violation so the Phase 3 handler resets the cursor.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const repo = createFakeRepo({
+      nodes: [...item("board", item("col1", item("1a"))), ...item("other-root", item("orphan-card"))],
+    })
+    const sel = createMockSel()
+    const ctx = validCtx({
+      repo,
+      cursor: "orphan-card",
+      rootId: "board",
+      sel,
+      selectedIds: sel.node.ids(),
+      colIndex: -1, // not in any column
+      cardIndex: -1,
+      isAtCardLevel: false,
+      nodeIndex: new Map(),
+      // Tree has the board's actual children — orphan-card isn't there
+      tree: {
+        rootId: "board",
+        walkOrder: ["col1", "1a"],
+        node: (id: string) => (["col1", "1a"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["1a"]
+          return []
+        },
+        parent: () => null,
+      },
+    })
+    const violations = checkInvariants(ctx)
+    const cursorInColumns = violations.find((v) => v.check === "cursor-in-columns")
+    expect(cursorInColumns).toBeDefined()
+    expect(cursorInColumns?.recoverable).toBe(true)
+    expect(cursorInColumns?.ids).toMatchObject({ cursor: "orphan-card", rootId: "board" })
+    spy.mockRestore()
+  })
+
   test("fatal violations still throw even when a recoverable one is present", () => {
     // If both a recoverable and a fatal violation fire, fatal wins and throws.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})

@@ -678,12 +678,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         if (violations.length > 0) {
           parentSpan.spanData.invariantViolations = violations.length
           // Self-heal stale cursors by resetting to the first visible card
-          // (or column, or rootId as last resort). cursor-under-root,
-          // cursor-visible, and cursor-in-walkOrder are all symptoms of the same
-          // class of issue (a cursor that no longer belongs under the active
-          // board root, or has fallen off the view tree).
+          // (or column, or rootId as last resort). Any recoverable violation
+          // whose ids contain a "cursor" key is treated as a stale-cursor
+          // symptom — cursor-under-root, cursor-visible, cursor-in-walkOrder,
+          // cursor-in-columns, and any future cursor-consistency check that
+          // gets marked recoverable. Generalized heuristic so new checks
+          // don't need to be added here explicitly.
           const needsReset = violations.some(
-            (v) => v.check === "cursor-under-root" || v.check === "cursor-visible" || v.check === "cursor-in-walkOrder",
+            (v) => v.recoverable === true && v.ids !== undefined && "cursor" in v.ids,
           )
           if (needsReset && freshCtx.rootId) {
             // Find the first visible card via the current view tree (respects
