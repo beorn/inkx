@@ -143,11 +143,7 @@ function genTree(opts: { nCols: number; maxCards: number; maxDepth: number; seed
 // =============================================================================
 
 /** Check invariants on a constructed lens. Throws on violation with descriptive message. */
-function checkConsistency(
-  lens: ReturnType<typeof createViewLens>,
-  label: string,
-  maxWalkHops = 10_000,
-): void {
+function checkConsistency(lens: ReturnType<typeof createViewLens>, label: string, maxWalkHops = 10_000): void {
   // Invariant 1+2: walkOrder computes without exception and terminates
   const walk = lens.walkOrder
   if (walk.length > maxWalkHops) {
@@ -256,10 +252,9 @@ describe("view-lens fuzz", () => {
       }
 
       for (const id of lens.walkOrder) {
-        expect(
-          reachable.has(id),
-          `seed=${seed}: walkOrder node ${id} not reachable from root via children()`,
-        ).toBe(true)
+        expect(reachable.has(id), `seed=${seed}: walkOrder node ${id} not reachable from root via children()`).toBe(
+          true,
+        )
       }
     }
   })

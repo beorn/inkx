@@ -388,7 +388,6 @@ export function rebuildFtsIndex(db: import("bun:sqlite").Database): void {
   db.run("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild')")
 }
 
-
 /**
  * Migrate links table from NULL-unfriendly PRIMARY KEY to COALESCE-based UNIQUE index.
  *

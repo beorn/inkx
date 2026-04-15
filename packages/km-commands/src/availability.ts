@@ -35,11 +35,7 @@ import type { KeybindingContext } from "./keybindings.ts"
  *
  * Both gates must pass when both are present.
  */
-export function isCommandAvailable(
-  def: CommandDef,
-  ctx: KeybindingContext,
-  mode?: CommandMode,
-): boolean {
+export function isCommandAvailable(def: CommandDef, ctx: KeybindingContext, mode?: CommandMode): boolean {
   if (def.modes && def.modes.length > 0 && mode !== undefined) {
     if (!def.modes.includes(mode)) return false
   }

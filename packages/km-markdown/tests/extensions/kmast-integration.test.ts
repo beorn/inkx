@@ -713,9 +713,7 @@ describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", (
     const md = "## Column km.collapse:: true km.add:: +project\n"
     const nodes = parseMarkdownToNodes(md, "test.md")
     // Skip the file-level h node (fstype mdfile) — we want the section heading
-    const heading = nodes.find(
-      (n: { type: string; fstype?: string }) => n.type === "h" && n.fstype === "mdsection",
-    )
+    const heading = nodes.find((n: { type: string; fstype?: string }) => n.type === "h" && n.fstype === "mdsection")
     expect(heading, "section heading should exist").toBeDefined()
     // km.* rules live in node.rules
     expect((heading as { rules?: { collapse?: boolean } }).rules?.collapse).toBe(true)
@@ -748,7 +746,8 @@ describe("heading-task refs/props extraction (km-markdown.heading-task-refs)", (
 // ===========================================================================
 
 describe("tasks with both inline props and inline formatting", () => {
-  const { parseMarkdownToNodes: parseToNodes } = require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
+  const { parseMarkdownToNodes: parseToNodes } =
+    require("../../src/ast2nodes.ts") as typeof import("../../src/ast2nodes.ts")
 
   test("bold + props → _mdSource preserves bold, strips props", () => {
     const md = "- [ ] Pay **CA FTB $2,500** via tax system priority:: P0 due:: 2026-04-15\n"

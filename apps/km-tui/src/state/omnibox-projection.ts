@@ -126,11 +126,7 @@ const NODE_RESULT_LIMIT = 12
  * better, so we don't. Mode dispatch remains: `command` / `local_find` /
  * `universal` are handled elsewhere (or not at all for v1).
  */
-export function nodeResultsForOmnibox(
-  repo: NodeSearchRepo,
-  query: string,
-  sigilMode: OmniboxMode,
-): OmniboxRowData[] {
+export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigilMode: OmniboxMode): OmniboxRowData[] {
   // Modes the node projection deliberately doesn't handle.
   if (sigilMode === "command" || sigilMode === "local_find" || sigilMode === "universal") {
     return []

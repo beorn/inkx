@@ -55,10 +55,7 @@ export function getBrokenLinkCount(db: Database): number {
  * descendants of the matched node). Passing undefined / empty returns
  * the original array unchanged.
  */
-export function filterBrokenLinksByScope(
-  links: BrokenLink[],
-  scopeNodeIds: Set<string> | undefined,
-): BrokenLink[] {
+export function filterBrokenLinksByScope(links: BrokenLink[], scopeNodeIds: Set<string> | undefined): BrokenLink[] {
   if (!scopeNodeIds || scopeNodeIds.size === 0) return links
   return links.filter((l) => scopeNodeIds.has(l.source_id))
 }

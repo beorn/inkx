@@ -90,13 +90,9 @@ describe("isCommandAvailable", () => {
     // No cursor → false
     expect(isCommandAvailable(def, createCtx({ currentNode: null }))).toBe(false)
     // Cursor + text input focused → false
-    expect(
-      isCommandAvailable(def, createCtx({ currentNode: fakeNode, textInputFocused: true })),
-    ).toBe(false)
+    expect(isCommandAvailable(def, createCtx({ currentNode: fakeNode, textInputFocused: true }))).toBe(false)
     // Cursor + no text input → true
-    expect(
-      isCommandAvailable(def, createCtx({ currentNode: fakeNode, textInputFocused: false })),
-    ).toBe(true)
+    expect(isCommandAvailable(def, createCtx({ currentNode: fakeNode, textInputFocused: false }))).toBe(true)
   })
 
   it("requires BOTH `modes` and `when` to pass when both are present", () => {
@@ -104,17 +100,11 @@ describe("isCommandAvailable", () => {
     const fakeNode = { id: "n1" } as KeybindingContext["currentNode"]
 
     // Wrong mode, even with cursor → false
-    expect(
-      isCommandAvailable(def, createCtx({ currentNode: fakeNode, mode: "move" }), "move"),
-    ).toBe(false)
+    expect(isCommandAvailable(def, createCtx({ currentNode: fakeNode, mode: "move" }), "move")).toBe(false)
     // Right mode, no cursor → false
-    expect(
-      isCommandAvailable(def, createCtx({ currentNode: null, mode: "normal" }), "normal"),
-    ).toBe(false)
+    expect(isCommandAvailable(def, createCtx({ currentNode: null, mode: "normal" }), "normal")).toBe(false)
     // Right mode + cursor → true
-    expect(
-      isCommandAvailable(def, createCtx({ currentNode: fakeNode, mode: "normal" }), "normal"),
-    ).toBe(true)
+    expect(isCommandAvailable(def, createCtx({ currentNode: fakeNode, mode: "normal" }), "normal")).toBe(true)
   })
 
   it("skips the `modes` gate when no `mode` argument is supplied", () => {

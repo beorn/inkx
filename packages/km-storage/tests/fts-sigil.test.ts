@@ -188,9 +188,7 @@ describe("FTS5 sigil-aware search", () => {
     db.run("INSERT INTO nodes (id, type, name, title, content) VALUES ('n2', 'p', 'regular.md', 'regular', 'buy milk')")
 
     // With the old schema, @next is NOT findable
-    const preMigration = db
-      .prepare("SELECT id FROM nodes_fts WHERE nodes_fts MATCH ?")
-      .all("next*") as { id: string }[]
+    const preMigration = db.prepare("SELECT id FROM nodes_fts WHERE nodes_fts MATCH ?").all("next*") as { id: string }[]
     // Old schema strips @ via default unicode61, and content is empty for n1
     expect(preMigration.map((r) => r.id)).not.toContain("n1")
 
