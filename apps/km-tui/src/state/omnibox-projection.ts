@@ -91,6 +91,10 @@ export function rankCommands(cmds: CommandDef[], query: string): CommandDef[] {
  * command list explicitly; this keeps the function pure and registry-
  * agnostic so the TUI can use `registry.getAll()` and tests can use
  * the static `allCommands` export.
+ *
+ * Phase 4 variant — gates on `def.modes` only. Use
+ * `commandResultsForOmniboxWithContext` when a `KeybindingContext` is
+ * available so cross-field `def.when` predicates are honored too.
  */
 export function commandResultsForOmnibox(
   cmds: readonly CommandDef[],
@@ -98,6 +102,28 @@ export function commandResultsForOmnibox(
   mode: CommandMode = "normal",
 ): OmniboxRowData[] {
   const available = filterCommandsByMode([...cmds], mode)
+  const ranked = rankCommands(available, query)
+  return ranked.map((cmd) => commandToRow(cmd))
+}
+
+/**
+ * Context-aware end-to-end projection — Phase 8 variant. Gates commands
+ * through `filterCommandsByAvailability` so both `def.modes` AND `def.when`
+ * predicates are honored before ranking. The connector calls this at render
+ * time with a `KeybindingContext` built from the focused pane's OpCtx, so
+ * commands whose `when` predicate returns false (e.g. move commands when
+ * there is nothing to move) are omitted from the omnibox result list.
+ *
+ * Prefer this over `commandResultsForOmnibox` whenever a `KeybindingContext`
+ * is available — it's a strict superset of the mode-only filter.
+ */
+export function commandResultsForOmniboxWithContext(
+  cmds: readonly CommandDef[],
+  ctx: KeybindingContext,
+  query: string,
+  mode: CommandMode = "normal",
+): OmniboxRowData[] {
+  const available = filterCommandsByAvailability(cmds, ctx, mode)
   const ranked = rankCommands(available, query)
   return ranked.map((cmd) => commandToRow(cmd))
 }
@@ -146,11 +172,7 @@ const NODE_RESULT_LIMIT = 12
  *
  * Results are capped at 12 rows so the dropdown never blows up the UI.
  */
-export function nodeResultsForOmnibox(
-  repo: NodeSearchRepo,
-  query: string,
-  sigilMode: OmniboxMode,
-): OmniboxRowData[] {
+export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigilMode: OmniboxMode): OmniboxRowData[] {
   // Modes the node projection deliberately doesn't handle. Caller routes
   // these elsewhere (commands → commandResultsForOmnibox; local_find → the
   // Phase 9 in-pane find chrome; universal empty buffer → recents later).

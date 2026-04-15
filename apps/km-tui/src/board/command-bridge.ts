@@ -39,30 +39,40 @@ export function ensureCommandSystemInitialized(): void {
   initCommandSystem()
 }
 
-/** Build command and keybinding contexts from the current OpCtx */
-function buildCommandContexts(ctx: OpCtx) {
-  const { ui, selectedNode } = ctx
-
-  // Compute TNode derived fields from KNode for the command system.
-  // For symlink nodes, resolve through embed_of so that task commands (x, Space)
-  // see the target's task status — not the symlink's (which has none).
-  const embedTarget = selectedNode?.embed_of
+/**
+ * Derive a `TNode` for the command system from the focused pane's selected
+ * KNode. For symlink nodes we resolve through `embed_of` so task commands
+ * (x, Space) see the target's task status — not the symlink's (which has none).
+ */
+function deriveNodeForCtx(ctx: OpCtx): TNode | null {
+  const { selectedNode } = ctx
+  if (!selectedNode) return null
+  const embedTarget = selectedNode.embed_of
   const targetNode = embedTarget ? ctx.repo.getNode(embedTarget) : null
   const resolvedItem =
-    embedTarget && targetNode?.item?.task ? { ...selectedNode?.item, task: targetNode.item.task } : selectedNode?.item
-  const nodeForCtx: TNode | null = selectedNode
-    ? ({
-        ...selectedNode,
-        item: resolvedItem,
-        isTask:
-          selectedNode.item?.task?.status != null || (embedTarget != null && targetNode?.item?.task?.status != null),
-        children: [],
-        depth: 0,
-        childCount: selectedNode ? ctx.tree.children(selectedNode.id).length : 0,
-        childrenLoaded: true,
-      } as TNode)
-    : null
+    embedTarget && targetNode?.item?.task ? { ...selectedNode.item, task: targetNode.item.task } : selectedNode.item
+  return {
+    ...selectedNode,
+    item: resolvedItem,
+    isTask:
+      selectedNode.item?.task?.status != null || (embedTarget != null && targetNode?.item?.task?.status != null),
+    children: [],
+    depth: 0,
+    childCount: ctx.tree.children(selectedNode.id).length,
+    childrenLoaded: true,
+  } as TNode
+}
 
+/**
+ * Build a `KeybindingContext` from the current OpCtx. Exported so render-time
+ * callers (UnifiedOmniboxConnector, which needs it to gate commands through
+ * `filterCommandsByAvailability`) can reuse the exact same shape the keypress
+ * path assembles. The keypress path goes through `buildCommandContexts` which
+ * composes this helper with `buildContext` from @km/commands.
+ */
+export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
+  const { ui } = ctx
+  const nodeForCtx = deriveNodeForCtx(ctx)
   const dialogInput = PaneUI.isDialogInput(ui)
 
   // Detect orphaned text selection: sel.text() is non-null but no edit target is mounted.
@@ -75,7 +85,7 @@ function buildCommandContexts(ctx: OpCtx) {
     ctx.sel.text.deselect()
   }
 
-  const kbCtx = buildKeybindingContext({
+  return buildKeybindingContext({
     inMoveMode: ctx.moveState.active,
     inSearchMode: ui.showSearchDialog,
     inInputMode: dialogInput || ui.showFilterDialog,
@@ -150,8 +160,13 @@ function buildCommandContexts(ctx: OpCtx) {
       return entry.cardIndex < 0 ? ("column" as const) : ("card" as const)
     },
   })
+}
 
-  const { colIndex, cardIndex, columnId } = ctx
+/** Build command and keybinding contexts from the current OpCtx */
+function buildCommandContexts(ctx: OpCtx) {
+  const { ui, selectedNode, colIndex, cardIndex, columnId } = ctx
+  const nodeForCtx = deriveNodeForCtx(ctx)
+  const kbCtx = buildKeybindingContextFromOpCtx(ctx)
 
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,

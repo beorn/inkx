@@ -121,6 +121,52 @@ describe("unified omnibox — runtime integration (Phase 7b)", () => {
     // is frozen from the anchor pane, not re-read at confirm time.)
   })
 
+  it("cursor pre-select: selectedArgumentId is seeded from the anchor pane cursor", () => {
+    // km-tui.omnibox-pre-select — opening the unified omnibox should
+    // pre-seed `ui.omnibox.state.selectedArgumentId` with the anchor pane's
+    // cursor node ID, so pressing Enter on an unchanged buffer runs the
+    // default action on the current card. This matches the user mental
+    // model of "the omnibox opens already pointing at where I was".
+    using app = standardBoard()
+    app.navigateTo("task2")
+    expect(app.state.cursor).toBe("task2")
+
+    app.press("cmd+shift+k")
+
+    const pane = app.withStore((s) => s.ui.omnibox!)
+    // The frozen subject snapshot captures the same cursor…
+    expect(pane.spec.subjectSelection.cursorId).toBe("task2")
+    // …and `initialArgumentId` seeds the sticky argument slot so the row
+    // for the cursor card is pre-highlighted at open time. The connector
+    // may immediately replace this with the top-ranked result once its
+    // projection runs, but the pane's initial state carries the cursor ID
+    // as the seed — that's the invariant Phase 8 guarantees.
+    expect(pane.spec.initialArgumentId).toBe("task2")
+  })
+
+  it("slippery sigil rule fires in the live type path: ':cr' + '@' → '@cr'", () => {
+    // Task 3 — the pure `applySigilRule` is covered exhaustively in
+    // omnibox-state.test.ts; this test guards the live integration. The
+    // connector's onChange handler must detect the typed character and
+    // run it through `applySigilRule` so colon-to-sigil swaps actually
+    // fire when the user types them (not only when SET_BUFFER is dispatched
+    // directly).
+    using app = standardBoard()
+    app.press("cmd+shift+k")
+    expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe(":")
+
+    // Type ":cr" — content after the sticky `:` sigil.
+    app.press("c")
+    app.press("r")
+    expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe(":cr")
+
+    // Typing `@` after `:cr` should SLIP — the leading `:` is replaced
+    // with `@` and the tail `cr` is preserved. Result: `@cr`. Without
+    // the live sigil rule the naïve buffer would be `:cr@` or `:@cr`.
+    app.press("@")
+    expect(app.withStore((s) => s.ui.omnibox!.state.buffer)).toBe("@cr")
+  })
+
   it("legacy Omnibox surface still works and coexists with the new one", () => {
     // The legacy Omnibox (showOmnibox boolean) remains a parallel surface
     // until Phase 12 cleanup. Opening one does not raise the other.

@@ -33,20 +33,25 @@ import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import { FavoritesDialog } from "./FavoritesDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { popDialogMode } from "../dialog-guard.ts"
-import { dispatchCommandById } from "../board/board-app.ts"
+import { dispatchCommandById, defaultBuildOpCtx } from "../board/board-app.ts"
+import { buildKeybindingContextFromOpCtx } from "../board/command-bridge.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands } from "@km/commands"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
+  applySigilRule,
   dispatchOmnibox,
   dismissOmnibox,
   modeOf,
   resolveEffectiveCommand,
   type OmniboxPane,
 } from "../state/omnibox.ts"
-import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
+import {
+  commandResultsForOmniboxWithContext,
+  nodeResultsForOmnibox,
+} from "../state/omnibox-projection.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 // =============================================================================
@@ -246,27 +251,43 @@ function UnifiedOmniboxConnector({
 
   // Live-computed results — sigil-dispatched per docs/design/omnibox.md.
   //
-  // - `:` (command mode) → projected from @km/commands via commandResultsForOmnibox
+  // - `:` (command mode) → projected from @km/commands via
+  //   commandResultsForOmniboxWithContext (Phase 8 — gates on `def.when` too)
   // - `+ @ # [` (content sigils) → repo-scanned via nodeResultsForOmnibox (Phase 7d)
   // - empty buffer (universal) → top-N commands as a starting point until
   //   recents land in a later phase
   //
   // The full query (sigil included) is passed to nodeResultsForOmnibox so
   // the tiered fuzzy scorer's prefix tier handles `+ta` → `+taxes` correctly.
+  //
+  // Commands are gated by a `KeybindingContext` assembled from the focused
+  // pane's OpCtx via `defaultBuildOpCtx` + `buildKeybindingContextFromOpCtx`.
+  // This is the same shape the keypress path produces, so a command whose
+  // `when` predicate returns false in the live app is also absent from the
+  // omnibox dropdown — no dead rows, no surprises.
   const results: OmniboxRowData[] = useMemo(() => {
     const buffer = pane.state.buffer
     const mode = modeOf(buffer)
-    if (mode === "command") {
-      return commandResultsForOmnibox(allCommands, buffer.slice(1))
-    }
-    if (buffer.length === 0) {
-      // Universal search v1 — show top-N commands. Recents will replace this.
-      return commandResultsForOmnibox(allCommands, "").slice(0, 12)
+    if (mode === "command" || buffer.length === 0) {
+      // Build a `KeybindingContext` at render time from the focused pane.
+      // `defaultBuildOpCtx` returns the same OpCtx shape the keypress path
+      // uses; `buildKeybindingContextFromOpCtx` then produces the kbCtx
+      // that `filterCommandsByAvailability` consumes. We pass a no-op
+      // `exit` because render-time projection never quits the app.
+      const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore> | null
+      if (!store) return []
+      const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
+      const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
+      const query = mode === "command" ? buffer.slice(1) : ""
+      const rows = commandResultsForOmniboxWithContext(allCommands, kbCtx, query)
+      // Universal search v1 — show top-N commands for an empty buffer.
+      // Recents will replace this in a later phase.
+      return buffer.length === 0 ? rows.slice(0, 12) : rows
     }
     // Content sigils (+ @ # [) and the bare `node` mode all dispatch through
     // node search. local_find returns empty here — Phase 9 owns that surface.
     return nodeResultsForOmnibox(repo, buffer, mode)
-  }, [pane.state.buffer, repo])
+  }, [pane.state.buffer, repo, storeRef])
 
   // Keep selectedIndex in range as results change.
   React.useEffect(() => {
@@ -340,15 +361,65 @@ function UnifiedOmniboxConnector({
   // look like a re-init attempt.
   const initialBufferRef = React.useRef(pane.state.buffer)
 
+  // Track the last buffer we mirrored into the reducer so onChange can
+  // detect single-char insertions and apply the asymmetric slippery-sigil
+  // rule from `applySigilRule`. Initialised to the invocation spec's seed
+  // so the very first keystroke compares against the correct baseline.
+  const prevBufferRef = React.useRef(initialBufferRef.current)
+  // Guard against our own `setValue` re-firing onChange — when we override
+  // the editor buffer to apply the slippery rule, the editor re-emits
+  // onChange with the overridden value. This flag lets us accept that echo
+  // silently (we already dispatched SET_BUFFER for the target buffer).
+  const suppressNextChangeRef = React.useRef(false)
+  // We need to call `editCtx.setValue` from inside the onChange closure,
+  // but `editCtx` is the return value of `useDialogInput` so it's not in
+  // scope yet. A ref lets the closure reach back at call time.
+  const setEditValueRef = React.useRef<((value: string) => void) | null>(null)
+
   const editCtx = useDialogInput({
     initialValue: initialBufferRef.current,
     onChange: (value) => {
-      // Mirror editor buffer into the reducer. The pure slippery-sigil rule
-      // is tested in omnibox-state.test.ts; the live edit path uses a flat
-      // SET_BUFFER for v1 — users who want to swap sigils can backspace first.
+      // Echo from our own setValue override — accept and forward without
+      // re-applying the sigil rule (otherwise we'd double-apply).
+      if (suppressNextChangeRef.current) {
+        suppressNextChangeRef.current = false
+        prevBufferRef.current = value
+        dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, paneRef.current, {
+          type: "SET_BUFFER",
+          buffer: value,
+        })
+        setSelectedIndex(0)
+        return
+      }
+
+      // Detect a single-char insertion by diffing against the prior buffer.
+      // Only single-char inserts trigger the slippery rule — pastes, deletes,
+      // and cursor-move edits fall through to a flat SET_BUFFER so we don't
+      // mangle their contents. The reducer test suite covers applySigilRule
+      // exhaustively; we only need to pick off the typed char and run it.
+      const prev = prevBufferRef.current
+      let nextBuffer = value
+      if (value.length === prev.length + 1) {
+        // Find the insertion point — walk the common prefix until they differ.
+        let i = 0
+        while (i < prev.length && prev[i] === value[i]) i++
+        const typedChar = value[i] ?? ""
+        const adjusted = applySigilRule(prev, typedChar)
+        if (adjusted !== value) {
+          // The slippery rule fired — override the editor buffer so the
+          // visible text matches what the reducer will store. setValue
+          // re-fires onChange synchronously, so we mark the next call as
+          // an echo; the echo branch above handles the actual dispatch.
+          suppressNextChangeRef.current = true
+          setEditValueRef.current?.(adjusted)
+          return
+        }
+      }
+      // Flat path — paste, delete, middle-edit, or a no-slip insert.
+      prevBufferRef.current = nextBuffer
       dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, paneRef.current, {
         type: "SET_BUFFER",
-        buffer: value,
+        buffer: nextBuffer,
       })
       setSelectedIndex(0)
     },
@@ -357,6 +428,9 @@ function UnifiedOmniboxConnector({
     navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
     navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
   })
+  // Wire the setValue ref now that editCtx exists. Stable across renders
+  // — setValue is memoised by useEditContext.
+  setEditValueRef.current = editCtx.setValue
 
   return (
     <Box flexDirection="column" width={width}>

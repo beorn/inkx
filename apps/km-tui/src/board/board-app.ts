@@ -1256,3 +1256,12 @@ export const handleKey = defaultHandlers.handleKey
 export const handleMouse = defaultHandlers.handleMouse
 export const dispatchCommandById = defaultHandlers.dispatchCommandById
 export const __triggerChordTimeout = defaultHandlers.triggerChordTimeout
+/**
+ * Build an OpCtx from the current store state using the default handlers'
+ * locals bag. Exposed so non-keypress callers (e.g. the UnifiedOmniboxConnector,
+ * which needs a KeybindingContext at render time to filter commands through
+ * `filterCommandsByAvailability`) can assemble the same context the keypress
+ * path does. Non-keypress callers pass a no-op `exit` — they never need to
+ * quit the app from a render-time projection.
+ */
+export const defaultBuildOpCtx = defaultHandlers.buildOpCtx

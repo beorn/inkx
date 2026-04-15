@@ -1346,13 +1346,22 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       // from the current cursor so binary verbs (move, add_link, etc.)
       // operate on the pane's selection, not on what the user picks in
       // the omnibox. See docs/design/omnibox.md.
+      //
+      // Pre-select (km-tui.omnibox-pre-select): the anchor pane's cursor
+      // node seeds `selectedArgumentId` so Enter on an unchanged buffer
+      // runs the default action on the cursor — matching the user's
+      // mental model of "omnibox opens already pointing at the current
+      // card". The value is frozen through the same cursor snapshot that
+      // feeds `subjectSelection.cursorId`, keeping subject and target in
+      // sync at open time (the user can still arrow away from the
+      // pre-selected row to pick a different target).
       const paneId = ctx.focusedPaneId()
       const cursorId = ctx.cursor
       const selectedIds = Array.from(ctx.selectedIds)
       const spec: OmniboxInvocationSpec = {
         initialBuffer: action.initialBuffer ?? ":",
         initialDefaultCommand: action.defaultCommand ?? "default",
-        initialArgumentId: null,
+        initialArgumentId: cursorId,
         anchorPaneId: paneId,
         subjectSelection: { cursorId, selectedIds },
         candidateProvider: () => {
