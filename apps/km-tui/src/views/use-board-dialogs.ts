@@ -113,6 +113,13 @@ export function useBoardDialogs({
         sel.node.select([nav.cursorTarget as ID])
       } else if (nav.zoomTarget) {
         dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        // Mirror the selection tree root so the sel-root-matches-rootId
+        // invariant holds. ZOOM_IN changes pane.rootId but doesn't touch
+        // sel.root on its own — every goto path that bypasses
+        // syncPaneSignals must set it explicitly. Skipping this is how
+        // the omnibox go-to path crashed on @delei this morning (see
+        // km-tui.cursor-gate-refactor / sixth cursor invariant crash).
+        sel.root.set(nav.zoomTarget as ID)
         if (nav.cursorTarget) sel.node.select([nav.cursorTarget as ID])
         if (nav.action === "DETAIL_VIEW") openDetailPane()
       }
@@ -247,6 +254,11 @@ export function useBoardDialogs({
                 sel.node.select([nav.cursorTarget as ID])
               } else if (nav.zoomTarget) {
                 dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+                // See navigateToPickedNode above — ZOOM_IN must pair with
+                // sel.root.set() or the sel-root-matches-rootId invariant
+                // fires. Auto-heal covers it, but skipping the explicit
+                // sync means we're relying on heal instead of correctness.
+                sel.root.set(nav.zoomTarget as ID)
                 if (nav.cursorTarget) sel.node.select([nav.cursorTarget as ID])
                 if (nav.action === "DETAIL_VIEW") openDetailPane()
               }
@@ -361,6 +373,9 @@ export function useBoardDialogs({
         // Zoom target would produce a flat list — zoom there but also open detail pane
         // so the user sees rich content instead of a single-column flat board.
         dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        // Mirror sel.root to pane.rootId so the sel-root-matches-rootId
+        // invariant holds — see navigateToPickedNode for the full rationale.
+        sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
         if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
         openDetailPane()
       } else {
@@ -369,11 +384,12 @@ export function useBoardDialogs({
         // batch into a single render (avoids the freeze from two separate renders).
         if (nav.zoomTarget) {
           dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+          sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
           if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
         }
       }
     },
-    [repo, setUI, dispatchBoard, openDetailPane, rootId],
+    [repo, setUI, dispatchBoard, openDetailPane, rootId, sel],
   )
 
   const handleSearchCancel = useCallback(() => {
