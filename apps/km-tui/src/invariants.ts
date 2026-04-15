@@ -86,12 +86,20 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // 2. Cursor node is a descendant of the current root (or IS the root)
+  // 2. Cursor node is a descendant of the current root (or IS the root).
   // Skip check for virtual nodes.
-  // Marked recoverable: the caller resets the cursor to rootId rather than crashing.
-  // This can happen at load time when a stale cursor persists across a file/folder
-  // rename, or when any other source restores a cursor that no longer matches the
-  // active board root. See km-tui.cursor-under-root-crash.
+  //
+  // FATAL: when this fires, the cursor points at a node whose parent_id chain
+  // doesn't reach the pane's rootId. That's data-layer corruption — either the
+  // repo has a broken parent_id pointer (the ghost-writer class that
+  // km-storage.move-type-validation closed) or a writer set the cursor without
+  // validating against the lens. Both are real bugs that MUST surface loudly
+  // so they get hunted and fixed. Auto-recovery here masks them.
+  //
+  // The plateau answer is km-all.unified-selection: cursor becomes a derived
+  // property of (selection, lens), and this check becomes structurally
+  // unreachable. Until then, keep it fatal — fire-on-bug is the invariant's
+  // intended behavior per km-silvery.selection-focus-plateau.
   if (ctx.cursor && ctx.rootId && !isVirtualNodeId(ctx.cursor as string)) {
     const isDescendant = isDescendantOf(ctx, ctx.cursor as string, ctx.rootId)
     if (!isDescendant) {
@@ -99,7 +107,6 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-under-root",
         message: `Cursor node is not a descendant of the board root`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
-        recoverable: true,
       })
     }
   }
@@ -191,12 +198,17 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // 7. Cursor node exists but is not found in any column (orphan cursor)
-  // This catches the "editDepth() returns board/column instead of card" bug.
+  // 7. Cursor node exists but is not found in any column (orphan cursor).
   // Skip virtual nodes which may not be in standard columns.
   // Skip when cursor IS the root node — that's legitimate "board level" cursor.
-  // Marked recoverable — same stale-cursor class as cursor-under-root,
-  // cursor-visible, cursor-in-walkOrder. See km-tui.cursor-in-columns-crash.
+  //
+  // FATAL: this fires when the cursor is a real repo node but column derivation
+  // can't place it — i.e. its parent_id chain doesn't reach any visible column.
+  // Same data-corruption class as cursor-under-root. km-storage.move-type-validation
+  // closed the ghost-writer path that produced this in 6cda83b22; any future trip
+  // is a new writer bug that MUST surface, not be silently healed.
+  //
+  // Plateau fix: km-all.unified-selection makes this structurally unreachable.
   if (
     ctx.cursor &&
     treeColIds.length > 0 &&
@@ -206,7 +218,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   ) {
     const cursorNode = ctx.repo.getNode(ctx.cursor as string)
     if (cursorNode) {
-      // Node exists in repo but not in columns — potential state corruption
+      // Node exists in repo but not in columns — state corruption
       violations.push({
         check: "cursor-in-columns",
         message: `Cursor node exists in repo but not found in any column (colIndex=${ctx.colIndex})`,
@@ -215,7 +227,6 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           parentId: cursorNode.parent_id,
           rootId: ctx.rootId,
         },
-        recoverable: true,
       })
     }
   }

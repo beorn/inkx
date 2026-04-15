@@ -135,11 +135,13 @@ describe("cursor-not-null invariant", () => {
 // =============================================================================
 
 describe("cursor-under-root invariant", () => {
-  test("cursor not under root is recoverable — returns violation, does not throw", () => {
-    // Regression for km-tui.cursor-under-root-crash. A stale cursor that survives
-    // a file/folder rename (or comes from any other persistence source) used to
-    // crash the TUI on the first event after load. It now surfaces as a
-    // recoverable violation so the caller can reset the cursor to rootId.
+  test("cursor not under root is FATAL — data-corruption class must surface loudly", () => {
+    // Previously this check was marked recoverable as a 24-hour triage while
+    // the ghost-writer class (parent_id corruption from unvalidated node_moved
+    // events) was unknown. km-storage.move-type-validation closed that class
+    // in 6cda83b22. Going forward, any trip of this check is a new bug in a
+    // writer that MUST be hunted and fixed — silent recovery would mask it.
+    // The plateau answer is km-all.unified-selection; see km-tui.cursor-under-root-crash.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     // Create repo with two separate roots — the orphan card is valid
@@ -169,23 +171,15 @@ describe("cursor-under-root invariant", () => {
       nodeIndex: new Map([["1a", { colIndex: 0, cardIndex: 0 }]]),
     })
 
-    const violations = checkInvariants(ctx)
-    // Three cursor-consistency checks fire — cursor-under-root, cursor-visible,
-    // and cursor-in-walkOrder — all symptoms of the same stale-cursor root
-    // cause and all marked recoverable.
-    const checks = violations.map((v) => v.check).sort()
-    expect(checks).toEqual(["cursor-in-walkOrder", "cursor-under-root", "cursor-visible"])
-    expect(violations.every((v) => v.recoverable)).toBe(true)
-    const underRoot = violations.find((v) => v.check === "cursor-under-root")
-    expect(underRoot?.ids).toMatchObject({ cursor: "orphan-card", rootId: "board" })
+    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
+    expect(() => checkInvariants(ctx)).toThrow(/cursor-under-root/)
     spy.mockRestore()
   })
 
-  test("cursor-in-columns is recoverable — cursor exists in repo but not in any column", () => {
-    // Regression for km-tui.cursor-in-columns-crash. A file-path cursor whose
-    // parent_id points into an unrelated ULID subtree exists in repo but is
-    // not derivable as a column. Used to crash the TUI fatally; now surfaces
-    // as a recoverable violation so the Phase 3 handler resets the cursor.
+  test("cursor-in-columns is FATAL — data-corruption class must surface loudly", () => {
+    // Same rationale as cursor-under-root above: ghost-writer class closed by
+    // move-type-validation, so any future trip is a real writer bug that must
+    // not be masked. Plateau fix: km-all.unified-selection.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
     const repo = createFakeRepo({
       nodes: [...item("board", item("col1", item("1a"))), ...item("other-root", item("orphan-card"))],
@@ -214,11 +208,8 @@ describe("cursor-under-root invariant", () => {
         parent: () => null,
       },
     })
-    const violations = checkInvariants(ctx)
-    const cursorInColumns = violations.find((v) => v.check === "cursor-in-columns")
-    expect(cursorInColumns).toBeDefined()
-    expect(cursorInColumns?.recoverable).toBe(true)
-    expect(cursorInColumns?.ids).toMatchObject({ cursor: "orphan-card", rootId: "board" })
+    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
+    expect(() => checkInvariants(ctx)).toThrow(/cursor-under-root|cursor-in-columns/)
     spy.mockRestore()
   })
 
