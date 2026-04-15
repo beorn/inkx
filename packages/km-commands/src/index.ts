@@ -69,6 +69,9 @@ export {
 // Executor
 export { executeCommand, buildContext } from "./executor.ts"
 
+// Availability (Phase 8 — when-predicate filter for offering commands)
+export { isCommandAvailable } from "./availability.ts"
+
 // Keybindings
 export type { Keybinding, KeybindingContext, KeybindingLayer, ParsedKey } from "./keybindings.ts"
 export {

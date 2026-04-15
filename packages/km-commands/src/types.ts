@@ -10,6 +10,7 @@
  */
 
 import type { BoardReducerOp, TNode, ViewMode, TaskStatus, NodeDirection } from "@km/board"
+import type { WhenPredicate } from "./when.ts"
 
 export type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View" | "TextEdit"
 
@@ -67,6 +68,19 @@ export interface CommandDef {
   description: string
   category: CommandCategory
   modes?: CommandMode[]
+  /**
+   * Availability predicate. When set, the command is only offered to the
+   * user (keybindings, omnibox results, command palette) when the predicate
+   * returns true against the current KeybindingContext. `modes?: CommandMode[]`
+   * remains the coarse gate; `when` is the precise one for cross-field
+   * predicates (e.g. `and(hasCursor, not(textInputFocused))`).
+   *
+   * `when` is a pre-filter for offering commands — it does NOT affect
+   * `executeCommand`, which runs whatever id is dispatched. Callers
+   * (omnibox projection, keybinding resolver) must apply `isCommandAvailable`
+   * before listing or binding a command.
+   */
+  when?: WhenPredicate
   execute: (ctx: CommandContext) => KmOp | KmOp[] | null
 }
 

@@ -96,6 +96,51 @@ export function fuzzyScore(query: string, target: string): number {
 }
 
 /**
+ * One contiguous range of matched characters in a target string.
+ * Half-open: [start, end). Indices are on the ORIGINAL text (preserving case).
+ */
+export interface HighlightSpan {
+  start: number
+  end: number
+}
+
+/**
+ * Return spans highlighting which characters of `text` matched `query`,
+ * walking left-to-right in lockstep (same algorithm as `fuzzyMatch`).
+ * Consecutive matches collapse into one span. Empty query or no-match → `[]`.
+ *
+ * Used by row renderers to bold/highlight the chars that contributed to
+ * a fuzzy result, fzf-style. Pure function — no allocation when there's
+ * no match beyond the empty array literal.
+ */
+export function highlightMatches(text: string, query: string): HighlightSpan[] {
+  if (!query) return []
+  if (!fuzzyMatch(query, text)) return []
+
+  const lowerQuery = query.toLowerCase()
+  const lowerText = text.toLowerCase()
+  const spans: HighlightSpan[] = []
+  let queryIndex = 0
+  let spanStart = -1
+  let lastMatchEnd = -1 // exclusive end of the current contiguous run
+
+  for (let i = 0; i < lowerText.length && queryIndex < lowerQuery.length; i++) {
+    if (lowerText[i] === lowerQuery[queryIndex]) {
+      if (spanStart === -1) spanStart = i
+      lastMatchEnd = i + 1
+      queryIndex++
+    } else if (spanStart !== -1) {
+      spans.push({ start: spanStart, end: lastMatchEnd })
+      spanStart = -1
+    }
+  }
+  if (spanStart !== -1) {
+    spans.push({ start: spanStart, end: lastMatchEnd })
+  }
+  return spans
+}
+
+/**
  * Get parent display name for context
  */
 export function getParentName(

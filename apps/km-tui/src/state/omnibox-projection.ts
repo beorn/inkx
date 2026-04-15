@@ -37,12 +37,32 @@ export function projectCommands(cmds: readonly CommandDef[]): OmniboxRowData[] {
  * Filter a command list by the current km-tui mode (normal / move /
  * search / input). Commands without a `modes` list are considered
  * available in every mode.
+ *
+ * Phase 4 helper — gates on `def.modes` only. Use
+ * `filterCommandsByAvailability` when a `KeybindingContext` is available
+ * so cross-field `def.when` predicates are honored too.
  */
 export function filterCommandsByMode(cmds: CommandDef[], mode: CommandMode): CommandDef[] {
   return cmds.filter((cmd) => {
     if (!cmd.modes || cmd.modes.length === 0) return true
     return cmd.modes.includes(mode)
   })
+}
+
+/**
+ * Filter a command list by full availability — both the coarse `def.modes`
+ * gate and the precise `def.when` predicate (Phase 8).
+ *
+ * Prefer this over `filterCommandsByMode` whenever the caller has a
+ * `KeybindingContext` handy. Commands without `modes` and without `when`
+ * always pass, so it's a strict superset of `filterCommandsByMode`.
+ */
+export function filterCommandsByAvailability(
+  cmds: readonly CommandDef[],
+  ctx: KeybindingContext,
+  mode?: CommandMode,
+): CommandDef[] {
+  return cmds.filter((cmd) => isCommandAvailable(cmd, ctx, mode))
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fuzzyScore, fuzzyMatch } from "../src/views/search-utils.ts"
+import { fuzzyScore, fuzzyMatch, highlightMatches } from "../src/views/search-utils.ts"
 
 describe("fuzzyMatch", () => {
   it("matches consecutive chars", () => {
@@ -78,5 +78,51 @@ describe("fuzzyScore ranking — picker-rank-subpath regression", () => {
 
   it("non-match returns score <= 0", () => {
     expect(fuzzyScore("xyz", "abcdef")).toBeLessThanOrEqual(0)
+  })
+})
+
+describe("highlightMatches", () => {
+  it("empty query returns empty spans", () => {
+    expect(highlightMatches("foo", "")).toEqual([])
+  })
+  it("no match returns empty spans", () => {
+    expect(highlightMatches("abcdef", "xyz")).toEqual([])
+  })
+  it("exact full-string match", () => {
+    expect(highlightMatches("foo", "foo")).toEqual([{ start: 0, end: 3 }])
+  })
+  it("prefix match", () => {
+    expect(highlightMatches("foobar", "foo")).toEqual([{ start: 0, end: 3 }])
+  })
+  it("substring match in middle", () => {
+    expect(highlightMatches("barfoobaz", "foo")).toEqual([{ start: 3, end: 6 }])
+  })
+  it("suffix match", () => {
+    expect(highlightMatches("barfoo", "foo")).toEqual([{ start: 3, end: 6 }])
+  })
+  it("fuzzy disjoint match emits multiple spans", () => {
+    expect(highlightMatches("f_o_o", "foo")).toEqual([
+      { start: 0, end: 1 },
+      { start: 2, end: 3 },
+      { start: 4, end: 5 },
+    ])
+  })
+  it("consecutive fuzzy chars merge into one span", () => {
+    expect(highlightMatches("abcd", "ab")).toEqual([{ start: 0, end: 2 }])
+  })
+  it("case-insensitive with spans on original-case indices", () => {
+    expect(highlightMatches("FooBar", "foo")).toEqual([{ start: 0, end: 3 }])
+  })
+  it("multiple separate spans with gaps", () => {
+    expect(highlightMatches("abxcdy", "acd")).toEqual([
+      { start: 0, end: 1 },
+      { start: 3, end: 5 },
+    ])
+  })
+  it("query longer than target returns empty", () => {
+    expect(highlightMatches("ab", "abcdef")).toEqual([])
+  })
+  it("single char query", () => {
+    expect(highlightMatches("hello", "e")).toEqual([{ start: 1, end: 2 }])
   })
 })
