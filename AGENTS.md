@@ -1,6 +1,6 @@
-# Agent Instructions
+# Agent Instructions (opencode)
 
-This project uses **bd** (beads v1.0.0) for issue tracking. Run `bd prime` for full workflow context.
+This project uses **bd** (beads v1.0.0) for issue tracking.
 
 ## Quick Reference
 
@@ -11,6 +11,20 @@ bd update <id> --claim  # Claim work
 bd close <id>         # Complete work
 bd dolt push          # Push beads to remote
 ```
+
+## Session Workflow
+
+1. **Find work**: `bd ready` or check open beads
+2. **Claim before coding**: `bd update <id> --claim`
+3. **Recall context**: `bun recall "<bead-id>"` or `bun recall "<keywords>"`
+4. **Implement**: Do the work
+5. **Complete**: Run `bun fix && bun run test:all` then `bd close <id>`
+
+## Comprehensive Documentation
+
+For full technical documentation (architecture, commands, principles), see [CLAUDE.md](./CLAUDE.md).
+
+This file contains opencode-specific guidance. Claude Code users should refer to `CLAUDE.md` for the complete experience.
 
 ## Session Completion
 
