@@ -281,6 +281,51 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [diagram/](.claude/skills/diagram/)                                 | ASCII + HTML/CSS diagrams — aligned boxes, trees, flow, blog-ready HTML |
 | [batch-refactor](vendor/bearly/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
 
+## opencode Compatibility
+
+This repository supports **opencode** in addition to Claude Code.
+
+### For opencode Users
+
+- **Instructions**: See [`AGENTS.md`](./AGENTS.md) for opencode-specific guidance
+- **Skills**: Available in `.agents/skills/` (symlinked from `.claude/skills/`)
+- **Hooks**: Available in `.agents/hooks/` (symlinked from `.claude/hooks/`)
+- **Settings**: Available in `.agents/settings.json`
+
+### Hook Compatibility
+
+The hooks directory contains Claude Code hooks. opencode should map these equivalents:
+
+| Claude Hook | opencode Equivalent | Notes |
+|-------------|---------------------|-------|
+| `SessionStart` | `pre-task` | Initialize session context, bead workflow |
+| `SessionEnd` | `post-task` | Cleanup, summarize session |
+| `PreCompact` | `pre-compact` | Context gathering for checkpoint |
+| `SubagentStop` | `post-subagent` | Zombie worker cleanup |
+
+### Settings Files
+
+- **Claude**: `.claude/settings.json`
+- **opencode**: `.agents/settings.json` (separate file, may need format adaptation)
+
+### Workflow Integration
+
+Both agents use **bd** (beads) for issue tracking:
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim before coding
+bd close <id>         # Complete work
+```
+
+### Known Differences
+
+- opencode may use different hook output format (not `{"hookSpecificOutput": ...}`)
+- Settings JSON schema may differ
+- Hook event names may vary
+
+For issues, prefer Claude hooks (master) and adapt for opencode as needed.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 <!-- Beads integration managed by `bd setup claude`. Do not remove markers. -->
