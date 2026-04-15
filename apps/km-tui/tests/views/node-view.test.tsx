@@ -373,8 +373,12 @@ describe("NodeColumnView (column style)", () => {
     expect(output).toContain("5")
   })
 
-  test("renders section sigil prefix", async () => {
-    const node = makeNode({ content: "Done" })
+  test("renders section sigil prefix for mdsection nodes", async () => {
+    // NodeColumnView gets its bullet from getTypeBullet(node) — mdsection
+    // nodes render with `§`, not a hardcoded prefix. See 5240e893a
+    // (NodeColumnView icon from getTypeBullet). A `p` node would render
+    // with `·` instead.
+    const node = makeNode({ type: "h", item: {}, fstype: "mdsection", content: "Done" })
     const output = await renderString(<NodeColumnView node={node} displayName="Done" count={12} width={40} />, {
       plain: true,
       width: 40,
@@ -382,6 +386,26 @@ describe("NodeColumnView (column style)", () => {
     expect(output).toContain("\u00A7") // § character
     expect(output).toContain("Done")
     expect(output).toContain("12")
+  })
+
+  test("strips leading § from displayName to avoid double-stamping", async () => {
+    // Regression: RESOLVER.md with `## § 4 — Filename conventions` would
+    // render as `§ § 4 — Filename conventions`. After 5240e893a the leading
+    // `§` / `#` markers are stripped from displayName before render.
+    const node = makeNode({
+      type: "h",
+      item: {},
+      fstype: "mdsection",
+      content: "§ 4 — Filename conventions",
+    })
+    const output = await renderString(
+      <NodeColumnView node={node} displayName="§ 4 — Filename conventions" count={3} width={60} />,
+      { plain: true, width: 60 },
+    )
+    // Exactly one `§` (from the type bullet), not two.
+    const sectionCount = (output.match(/\u00A7/g) ?? []).length
+    expect(sectionCount).toBe(1)
+    expect(output).toContain("4 — Filename conventions")
   })
 
   test("renders separator line", async () => {
