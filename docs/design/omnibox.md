@@ -272,7 +272,7 @@ The omnibox has **one working buffer** whose leading sigil determines what's bei
 | `@` | **Context** | Person / assignee nodes |
 | `#` | **Tag** | Tag nodes |
 | `+` | **Project** | Project nodes |
-| `[` | **Node** | Any node (full-text) — `[x]` / `[ ]` / `[]` are task-status filter prefixes; otherwise `[` + text is node-only full-text |
+| `~` | **Path / alias** | Reserved for path-like and alias lookups (not yet wired — `~` is in the FTS tokenchars set so it's ready to use) |
 | `/` | **Local find** | Current view's visible tree (locks layout to bottom-left, defaultCommand to `local_find`) |
 | `>` | *(reserved)* | Jump to heading in current doc |
 | `?` | *(reserved)* | Help — "what does this key do?" inline docs |
@@ -613,8 +613,9 @@ Both forms share **one reducer, one component tree, one keybinding scope, one se
 | `@` | context | person/assignee nodes |
 | `#` | tag | tag nodes |
 | `+` | project | project nodes |
-| `[` | node | any node (full-text) — `[x]` / `[ ]` / `[]` are task-status filter prefixes |
+| `~` | path/alias | reserved sigil — in the FTS tokenchars set, not yet wired to a mode |
 | `/` | local find | current view's visible tree (locks layout to bottom-left) |
+| *(none of the above)* | universal | everything — `[x]` / `[ ]` / `[]` anywhere in the buffer are parsed as task-status filters, not sigils |
 | *(empty)* | universal | everything, ranked by type |
 
 **Sigil auto-replace.** Typing a sigil character replaces the current leading sigil (if any) while keeping the search term:
@@ -697,7 +698,7 @@ interface OmniboxInvocationSpec {
 Everything else is either **derived** (a pure function of base state) or frozen in the invocation spec above:
 
 **Derived (pure functions, recomputed on every render):**
-- `mode(buffer)` — which search mode the leading sigil requests (`"command" | "context" | "tag" | "project" | "node" | "local_find" | "universal"`).
+- `mode(buffer)` — which search mode the leading sigil requests (`"command" | "context" | "tag" | "project" | "local_find" | "universal"`). Note: `[` is **not** a sigil — it's the task-filter bracket (`[x]`, `[ ]`, etc.) and the wikilink delimiter (`[[...]]`), so it can't also mean "node mode". Universal fuzzy over node names covers that use case.
 - `effectiveCommand(state)` — `buffer.startsWith("/") ? "local_find" : defaultCommand`. Never stored; backspace through `/` restores the sticky command automatically.
 - `Layout(state)` — which layout component to render. Derived from `effectiveCommand`/`mode`: `local_find` → bottom-left, else center. Backspacing through `/` re-derives → re-renders as `CenterDialog`.
 - `results(state, candidates)` — pure function; the ranker applied to the candidates filtered by mode. Fed as a prop to the inner `SelectList`.

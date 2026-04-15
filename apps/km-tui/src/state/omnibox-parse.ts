@@ -100,8 +100,10 @@ function matchBracketFilter(token: string): TaskStatusFilter | null {
  * Look for a leading bracket filter at position 0 of the raw buffer. Returns
  * the matched filter and the length consumed, or `null` if the buffer does
  * not start with a recognized bracket token. Used to disambiguate the `[`
- * sigil from `[x]`-style task filters — if a filter matches at position 0,
- * the mode stays "universal" and the filter is consumed.
+ * `[x]`-style task filter from any ordinary `[`-prefixed content — if a
+ * filter matches at position 0, the filter is consumed and the mode stays
+ * "universal". `[` is NOT a sigil (it's the task-filter + wikilink bracket);
+ * non-matching `[...` just becomes a plain smart term.
  */
 function leadingBracketFilter(raw: string): { filter: TaskStatusFilter; length: number } | null {
   if (raw.length === 0 || raw[0] !== "[") return null
@@ -269,7 +271,8 @@ export function parseQuery(raw: string): ParsedQuery {
     return { raw, mode: "universal", body: "", terms: [], taskStatus: null, properties: [] }
   }
 
-  // (2) Leading bracket-filter takes precedence over the `[` sigil.
+  // (2) Leading bracket-filter recognition. `[` is not a sigil; if this
+  //     matches, the filter is consumed and mode stays universal.
   let mode: OmniboxMode
   let body: string
   let taskStatus: TaskStatusFilter | null = null

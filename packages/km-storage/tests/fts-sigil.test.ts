@@ -3,7 +3,7 @@
  *
  * Verifies that the nodes_fts virtual table:
  *   1. Indexes `name` and `title` (not just `content`)
- *   2. Uses unicode61 with tokenchars '@#+[' so sigils survive tokenization
+ *   2. Uses unicode61 with tokenchars '@#+~' so sigils survive tokenization
  *
  * These tests pin the behavior the Omnibox depends on — a file literally named
  * `@next.md` with an empty body MUST be findable via `repo.search("@next")` at

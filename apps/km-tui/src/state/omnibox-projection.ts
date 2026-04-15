@@ -250,10 +250,6 @@ function modeFilter(node: KNode, mode: OmniboxMode): boolean {
       // rank exact `#tag` matches above content occurrences.
       if (node.embed_of) return false
       return true
-    case "node":
-      // `[node]` is the universal item picker. Any node, fuzzy.
-      if (node.embed_of) return false
-      return true
     default:
       return false
   }

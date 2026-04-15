@@ -146,12 +146,12 @@ describe("parseQuery — task filter disambiguation", () => {
     expect(q.terms).toEqual([{ kind: "smart", value: "urgent", negated: false }])
   })
 
-  it("plain '[foo' → node mode (real sigil), smart 'foo', taskStatus null", () => {
+  it("plain '[foo' → universal mode (`[` is not a sigil), smart '[foo', taskStatus null", () => {
     const q = parseQuery("[foo")
-    expect(q.mode).toBe("node")
-    expect(q.body).toBe("foo")
+    expect(q.mode).toBe("universal")
+    expect(q.body).toBe("[foo")
     expect(q.taskStatus).toBeNull()
-    expect(q.terms).toEqual([{ kind: "smart", value: "foo", negated: false }])
+    expect(q.terms).toEqual([{ kind: "smart", value: "[foo", negated: false }])
   })
 })
 

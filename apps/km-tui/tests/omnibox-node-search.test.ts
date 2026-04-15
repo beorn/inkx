@@ -52,15 +52,15 @@ function makeRepo(nodes: KNode[]): NodeSearchRepo {
 
 describe("nodeResultsForOmnibox — project sigil (+)", () => {
   it("ranks +taxes and +taxonomic above +traffic for query '+ta'", () => {
-    const repo = makeRepo([
-      node("a", "+taxes"),
-      node("b", "+taxonomic"),
-      node("c", "+traffic"),
-      node("d", "misc"),
-    ])
+    const repo = makeRepo([node("a", "+taxes"), node("b", "+taxonomic"), node("c", "+traffic"), node("d", "misc")])
     const rows = nodeResultsForOmnibox(repo, "+ta", "project")
     // Top two must be the +ta-prefixed nodes (Tier 2 prefix beats Tier 5 fuzzy)
-    expect(rows.slice(0, 2).map((r) => r.title).sort()).toEqual(["+taxes", "+taxonomic"])
+    expect(
+      rows
+        .slice(0, 2)
+        .map((r) => r.title)
+        .sort(),
+    ).toEqual(["+taxes", "+taxonomic"])
     // The '+traffic' fuzzy match must NOT push `+ta` prefix matches down
     expect(rows[0]?.title).not.toBe("+traffic")
   })
@@ -84,11 +84,7 @@ describe("nodeResultsForOmnibox — project sigil (+)", () => {
 
 describe("nodeResultsForOmnibox — context sigil (@)", () => {
   it("ranks exact @delei above @delei.co above deep subpath @office/Delei/SPD", () => {
-    const repo = makeRepo([
-      node("a", "@delei"),
-      node("b", "@delei.co"),
-      node("c", "@office/Finance/Delei/SPD"),
-    ])
+    const repo = makeRepo([node("a", "@delei"), node("b", "@delei.co"), node("c", "@office/Finance/Delei/SPD")])
     const rows = nodeResultsForOmnibox(repo, "@delei", "context")
     // Tier 1 exact > Tier 2 prefix > Tier 3 segment-boundary substring
     expect(rows.map((r) => r.title)).toEqual(["@delei", "@delei.co", "@office/Finance/Delei/SPD"])
@@ -124,23 +120,9 @@ describe("nodeResultsForOmnibox — tag sigil (#)", () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Node sigil (`[`)
-// ---------------------------------------------------------------------------
-
-describe("nodeResultsForOmnibox — node sigil ([)", () => {
-  it("matches any node fuzzily (no type filter)", () => {
-    const repo = makeRepo([
-      node("a", "[Buy milk]"),
-      node("b", "Buy bread"),
-      node("c", "Sell house"),
-    ])
-    const rows = nodeResultsForOmnibox(repo, "[buy", "node")
-    const titles = rows.map((r) => r.title)
-    expect(titles).toContain("[Buy milk]")
-    expect(titles).not.toContain("Sell house")
-  })
-})
+// `[` is NOT a sigil — it's the task-filter / wikilink bracket. No node-mode
+// tests here. The universal fuzzy path (empty sigil, leading alphanum) covers
+// the old `[foo` use case through the generic smart-term path.
 
 // ---------------------------------------------------------------------------
 // Mode contracts

@@ -13,15 +13,25 @@
  */
 
 /** Sigil-dispatched search mode, derived from the leading char of the buffer. */
-export type OmniboxMode = "command" | "context" | "tag" | "project" | "node" | "local_find" | "universal"
+export type OmniboxMode = "command" | "context" | "tag" | "project" | "local_find" | "universal"
 
-/** Canonical sigil → mode map. Matches docs/design/omnibox.md. */
+/**
+ * Canonical sigil → mode map. Matches docs/design/omnibox.md.
+ *
+ * Note: `[` is NOT a sigil. It's the task-filter bracket (`[x]`, `[ ]`,
+ * `[/]`, `[-]`, `[.]`, `[]`) and the wikilink delimiter (`[[...]]`).
+ * Treating it as a search-mode sigil would conflict with both. The parser
+ * in `omnibox-parse.ts` handles `[` as a task-filter / wikilink anchor.
+ *
+ * Universal `[search]` node queries still work — they just don't get a
+ * dedicated sigil mode. The `+`/`@`/`#` sigils cover the typed-identity
+ * use case; anything else is universal fuzzy over all node names/titles.
+ */
 export const SIGIL_MODES: Readonly<Record<string, OmniboxMode>> = Object.freeze({
   ":": "command",
   "@": "context",
   "#": "tag",
   "+": "project",
-  "[": "node",
   "/": "local_find",
 })
 

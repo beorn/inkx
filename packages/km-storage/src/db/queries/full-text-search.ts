@@ -70,10 +70,11 @@ export function toFts5Query(query: string): string {
  * - Append prefix-match `*` for prefix search
  * - Returns null for tokens that are entirely noise
  *
- * Sigils `@ # + [` are preserved because the FTS5 tokenizer (unicode61 with
- * tokenchars='@#+[') keeps them as part of the token. See schema.ts. Without
+ * Sigils `@ # + ~` are preserved because the FTS5 tokenizer (unicode61 with
+ * tokenchars='@#+~') keeps them as part of the token. See schema.ts. Without
  * this, an omnibox query for "@next" would be rewritten to "next*" and lose
- * the sigil anchor.
+ * the sigil anchor. `[` is NOT a sigil — it's the task-filter / wikilink
+ * delimiter and gets stripped with other punctuation.
  *
  * Quoting: FTS5 rejects bare tokens like `@next*` with a syntax error
  * ("syntax error near @"). Wrapping in double quotes — `"@next"*` — passes
@@ -83,13 +84,13 @@ export function toFts5Query(query: string): string {
  * query plans.
  */
 function escapeFts5Token(token: string): string | null {
-  // Keep word chars, sigils, and apostrophes-inside-words — nothing else.
-  // `[` is a literal inside the character class (valid unescaped, we escape for clarity).
-  const cleaned = token.replace(/[^\p{L}\p{N}_@#+\[]/gu, "")
+  // Keep word chars and sigils (@#+~) — strip everything else, including
+  // `[` / `]` which are wikilink + task-filter delimiters, not identity sigils.
+  const cleaned = token.replace(/[^\p{L}\p{N}_@#+~]/gu, "")
   if (cleaned.length === 0) return null
   // Tokens containing a sigil must be quoted in FTS5 query syntax, otherwise
-  // the parser chokes on `@` / `#` / `+` / `[` as operators.
-  const needsQuoting = /[@#+\[]/.test(cleaned)
+  // the parser chokes on `@` / `#` / `+` / `~` as operators.
+  const needsQuoting = /[@#+~]/.test(cleaned)
   if (needsQuoting) return `"${cleaned}"*`
   return `${cleaned}*`
 }
