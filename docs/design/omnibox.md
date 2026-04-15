@@ -36,29 +36,59 @@ One result list, one row renderer, one state machine, one set of keybindings.
 
 > **Naming note:** this doc uses "combobox" for the component and "omnibox" for the overall feature (the filename and the tracking bead `km-tui.omnibox-unified` still use "omnibox"). A combobox dialog and a combobox pane are the same component in two presentation forms.
 
-## The core realization — the combobox is two searchable fields
+## The core realization — bidirectional action↔object combobox
 
-Every invocation of the omnibox resolves to **exactly two things**:
+Every invocation of the combobox resolves to **three parts**, and different users in different moments flow through them in different orders:
 
-1. **A command** — the verb to run (goto, move, add, link, create-in, run, find, …)
-2. **An argument** — a node the command operates on (or nothing, for zero-arg commands)
+1. **An optional default action** — the verb pre-populated by the opening chord. May be locked (action-first flows) or a safe fallback (object-first flows). May be empty in rare cases (e.g., `g :` drops into command search with no pre-selection).
+2. **An object** — a node from the tree. Always the central interaction; focus starts here.
+3. **An action** — what runs on confirm. Resolves to the default action unless the user explicitly overrides it.
 
-Both are **searchable**. Both have a **result list**. Both are **pre-populated differently depending on how the omnibox was opened**. Neither is ever typed as a freeform argument string — the argument is always selected from the node tree.
+The key insight: **the combobox supports both directions — object+action AND action+object — in the same component**, with `defaultCommand` acting as the pivot.
 
-| Opened via | Command field | Argument field | Focus starts in |
+### The two directions
+
+| Direction | Chord | Flow | Example |
 |---|---|---|---|
-| `cmd-k` | *(auto — default is `goto`)* | Current board cursor | Argument |
-| `g @` chord | `goto` (locked) | `@` sigil prefilled | Argument |
-| `m +` chord | `move` (locked) | `+` sigil prefilled | Argument |
-| `a #` chord | `add` (locked) | `#` sigil prefilled | Argument |
-| `l g` chord | `link` (locked) | Current cursor prefilled | Argument |
-| `c @` chord | `create-in` (locked) | `@` sigil prefilled | Argument |
-| `:` from cmd-k | Auto-focus command field | Empty | Command |
-| `/` from cmd-k | `find` (locked) | Empty | Argument (bottom-left placement) |
+| **Object-first** (`object + action`) | `cmd-k`, no chord | User hunts the target; default action (`goto`) is a safe fallback that turns Enter into "focus this thing" | `cmd-k` → type `@del` → `@delei` selected → Enter → go to @delei |
+| **Action-first** (`action + object`) | `g @`, `m +`, `a #`, `c @`, `l g`, `/` | User committed the verb via the chord; object search is the second step | `m +` → type `km` → `+km` selected → Enter → move current cursor into +km |
+| **Either → override** | any | User flips direction at confirm time via Tab-to-action-chip (or Shift+Enter/Ctrl+Enter shortcuts) | `cmd-k` → `@delei` → Tab → type `move` → Enter → move to @delei |
 
-**Tab** swaps focus between the command field and the argument field. The user can always re-pick either half of the tuple. `Ctrl+g/m/a/l + Enter` becomes a shortcut for "tab to command, type the command, tab back, confirm".
+**`defaultCommand` is the pivot:**
+- In **action-first** flows it's locked (the chord set it deliberately — Escape-on-command-field restores it, matching the user's intent).
+- In **object-first** flows it's a safe default (`goto`) the user can ignore — Enter still does the safe thing.
+- In either, Tab to the command chip is the override surface.
 
-This replaces the old "default verb + modifier-key override" model with something simpler: **two searchable fields, always visible, always editable**. The verb is not an invisible attribute of the session — it's a visible chip the user can click, tab to, or type over.
+| Opened via | defaultCommand | Direction | Focus starts in |
+|---|---|---|---|
+| `cmd-k` / `ctrl-k` | `goto` (fallback) | object-first | argument |
+| `g @` chord | `goto` (locked) | action-first | argument |
+| `g #` / `g +` / `g [` | `goto` (locked) | action-first | argument |
+| `g g` | `goto` (locked) | object-first on cursor | argument |
+| `g :` | *(empty)* | — | command |
+| `m @` / `m +` | `move` (locked) | action-first | argument |
+| `a @` / `a #` | `add` (locked) | action-first | argument |
+| `l g` | `add_link` (locked) | action-first | argument |
+| `c @` | `create_at` (locked) | action-first | argument |
+| `/` | `local_find` (locked) | action-first (bottom-left) | argument |
+
+### Vim alignment is automatic
+
+km's chord keybindings are already verb–noun grammar, which is exactly how vim users think: `d` + motion, `y` + text-object, `c` + word. The action-first flows in the combobox — `g @`, `m +`, `c @` — follow the same mental model: verb first, then the target is picked via search rather than via motion.
+
+The object-first `cmd-k` flow is the modeless / discovery-friendly path for users who *don't* think in vim grammar (or for cases where the user starts with "the thing", not "the verb"). **Both mental models get their native flow**, in the same component, without forcing anyone to relearn.
+
+### What the object field actually owns
+
+Focus starts in the object field, always. The object field is where the user **is** — searching, arrowing, highlighting, pre-visualizing the thing they're going to operate on. The command chip above it shows the default action but isn't a field-you-edit-first. It only becomes a text input when the user Tabs to it to override.
+
+- `Enter` → runs the current (`commandBuffer` or `defaultCommand`) action against the selected object.
+- `Shift+Enter` / `Ctrl+Enter` → shortcut overrides (`create_at`, `goto`) without Tab round-trip.
+- `Tab` → flip to action-override mode (command field becomes an editable input). Accepts ghost completion if visible; otherwise toggles focus.
+- `Escape` on a diverged command field → restore `defaultCommand`, return focus to argument.
+- Second `Escape` → dismiss.
+
+The asymmetry matters: "two fields with Tab parity" undersells the intent. The object field is primary; the action override is rare enough that most users never touch it.
 
 ### Dialog or pane — two presentation forms, one component
 
@@ -206,11 +236,17 @@ state:        { command: "goto", arg: "", focus: arg, persistent: true }
 
 ## Model
 
-### Two fields
+### Object field (primary) + action override
 
-The omnibox has two text fields — `commandBuffer` and `argumentBuffer` — and a single `focus: "command" | "argument"` flag. Both fields drive node searches (against `commands/` and everything else, respectively). Only the focused field's search populates the result list. The unfocused field is rendered as a chip/label showing its current state.
+The combobox has **one primary field** (object / argument) and **one override surface** (command / action). Both are backed by searchable buffers, but they are **not symmetric**: the object field is where the user spends time, and the action chip is a visible label that only becomes a text input when the user Tabs to it to override.
 
-**Sigil routing inside the argument field.** The first character of `argumentBuffer` selects the search scope within the tree. This is identical to the old "single buffer" design — the change is that sigils now route within the argument field, not across the whole buffer.
+- `argumentBuffer` — always editable; focus starts here.
+- `commandBuffer` — initialized to `defaultCommand` from the opening chord. Rendered as a chip above the argument field until focus transfers, at which point it becomes an input.
+- `focus: "command" | "argument"` — which field currently consumes key input. Starts on `argument`. Moves to `command` only when the user Tabs away to override.
+
+Result list below always shows results for the focused field. When focus is on the argument, the user sees node search results. When focus is on the command, the user sees command search results.
+
+**Sigil routing inside the argument field.** The first character of `argumentBuffer` selects the search scope within the tree:
 
 | Argument first-char | Scope | Matches |
 |---|---|---|
@@ -225,10 +261,12 @@ The omnibox has two text fields — `commandBuffer` and `argumentBuffer` — and
 
 Backspace through the sigil → empty → mode becomes Universal. Type a different sigil → mode switches. No separate components, no re-open.
 
-**Entering the command field.** Three ways:
-1. **`Tab`** — toggle focus between the two fields. Preserves both buffers.
-2. **`:` at empty argument buffer** — shortcut. Pops focus to the command field, clears the `:` so the command field starts empty.
-3. **Opening via `cmd-k` with no chord** — focus defaults to argument, but the user can immediately Tab or `:`-shortcut.
+**Entering the command field** (the rare override path). Three ways:
+1. **`Tab`** — toggle focus to the command field. Preserves both buffers. Most users never press this.
+2. **`:` at empty argument buffer** — shortcut for "I want to run a command from scratch". Pops focus to the command field, clears the `:`.
+3. **`g :` chord** — explicitly opens in command-field-focused mode.
+
+Most of the time, the user never touches the command field — the chord pre-populated `defaultCommand` is what they wanted, and confirming against the selected object is the whole interaction. Tab-to-command-field is the escape hatch for "oh wait, I actually want to do something else with this object".
 
 **Empty-buffer behavior.** When either field is empty, its result list shows **recents filtered by prefix** (prefix being whatever has been typed so far, even if empty):
 
