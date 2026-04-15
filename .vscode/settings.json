@@ -14,5 +14,23 @@
   },
   "[json]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.bun": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/result": true,
+    "**/.next": true,
+    "**/coverage": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.bun/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/dist/**": true,
+    "**/.next/**": true,
+    "**/coverage/**": true
   }
 }
