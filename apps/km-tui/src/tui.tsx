@@ -398,55 +398,11 @@ export async function runBoard(
       // to flush buffered debug output to Console component)
       if (patched) options?.onReady?.()
 
-      // km-tui.startup-input-freeze: pre-warm the repo children cache AND the
-      // visible-lens walkOrder in the background, so the first cursor-move
-      // keypress doesn't have to pay the O(visible subtree) cost while the
-      // user is waiting on input.
-      //
-      // On large vaults (18k+ files, 500k+ nodes), the first
-      // `sel.node.select()` call walks the visible tree via
-      // `@silvery/selection`'s store → selection-adapter, which:
-      //   1. Hits the repo's children cache once per visited node — uncached
-      //      nodes fall through to SQLite (one query each, so 500k queries on
-      //      a cold repo cache = multi-second main-thread block).
-      //   2. Walks the whole visible subtree in JavaScript, populating
-      //      visible-lens's internal walkOrder cache.
-      //
-      // Step 1 is fixed by `preloadSubtree(rootId, ∞)` — one recursive CTE
-      // query loads the whole subtree and warms the children cache in <500ms.
-      //
-      // Step 2 is fixed by eagerly evaluating `lens.walkOrder` now: the walk
-      // happens once on a warm repo cache, memoised inside visible-lens, and
-      // reused by the selection-adapter's own walkOrder cache (which in turn
-      // short-circuits every subsequent j/k select() without recomputing).
-      //
-      // The setTimeout yields one tick so the terminal can finish painting
-      // the first frame before the warmup kicks off. Both operations are safe
-      // to repeat — preloadSubtree is a no-op on warm caches, lens.walkOrder
-      // is memoised.
-      if (isInteractive && rootId) {
-        setTimeout(() => {
-          try {
-            const t0 = performance.now()
-            options.repo.preloadSubtree(rootId, Number.MAX_SAFE_INTEGER)
-            const t1 = performance.now()
-            // Force visible-lens walkOrder computation now so the adapter
-            // cache is populated before the user's first keypress.
-            const store = handle.store.getState()
-            const pane = store.workspace.panes.get(store.workspace.focusedPaneId)
-            if (pane && "signals" in pane && pane.signals) {
-              const lens = pane.signals.visibleLens()
-              void lens.walkOrder
-            }
-            const t2 = performance.now()
-            log.debug?.(
-              `startup warmup: preload=${(t1 - t0).toFixed(0)}ms walkOrder=${(t2 - t1).toFixed(0)}ms total=${(t2 - t0).toFixed(0)}ms`,
-            )
-          } catch (err) {
-            log.debug?.(`startup warmup failed: ${err instanceof Error ? err.message : String(err)}`)
-          }
-        }, 50)
-      }
+      // km-silvery.selection-contains retired the old startup walkOrder
+      // warmup. With `SelectionApp.tree.contains(id)` backed by an O(1) repo
+      // lookup, `sel.node.select()` no longer walks the visible subtree, so
+      // there's no multi-second first-keystroke block to hide behind a
+      // setTimeout. See km-tui.startup-input-freeze for the original bug.
 
       // End the run span before blocking on waitUntilExit (TUI is now running)
       run.end()
