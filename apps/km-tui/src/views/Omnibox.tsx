@@ -22,6 +22,7 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { fuzzyScore, getParentName } from "./search-utils.ts"
 import { modeOf } from "../state/omnibox.ts"
+import { scoreNodeForOmnibox } from "../state/omnibox-projection.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // =============================================================================
@@ -396,15 +397,27 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
 
   // Vault-wide search results (FTS5, deferred until 2+ chars). FTS5 tokenizes
   // the query so its native ranking doesn't honor sigil prefixes or literal
-  // title-prefix matches. Re-rank through the shared fuzzyScore (tiered —
-  // exact > prefix > segment-boundary > substring > fuzzy) so that typing
-  // `+ta` surfaces title-prefix matches like `+taxes` / `+taxonomic` above
-  // deep-body hits. See km-tui.picker-rank-subpath.
+  // title-prefix matches. Re-rank through the shared multi-field scorer from
+  // omnibox-projection so that `name` (filename) matches outrank `title`
+  // (heading) matches outrank `display-name` fallbacks, with a shallow-depth
+  // boost. See km-tui.picker-rank-subpath for the tiered base, and
+  // scoreNodeForOmnibox for the field weighting.
+  //
+  // Why not fuzzyScore(query, r.label)? The `label` is the display name,
+  // which for a file with an H1 heading returns the heading text (e.g.
+  // "Next Actions") rather than the filename. A file `@next.md` with H1
+  // "# Next" would score low against `@next` query because the display name
+  // "Next" drops the sigil entirely. Multi-field scoring looks at name and
+  // title directly, side-stepping the display-name reduction.
   const searchResults = React.useMemo(() => {
     const raw = buildSearchResults(repo, deferredQuery)
     if (!deferredQuery) return raw
-    const scored = raw.map((r) => ({ r, s: fuzzyScore(deferredQuery, r.label) }))
-    // Keep FTS5 order as a tie-break by using a stable sort on score only.
+    const scored = raw.map((r) => {
+      // Prefer the full node scorer when we have the raw KNode. Fallback to
+      // label-only fuzzyScore for results without a node handle.
+      const s = r.node ? scoreNodeForOmnibox(r.node, deferredQuery) : fuzzyScore(deferredQuery, r.label)
+      return { r, s }
+    })
     scored.sort((a, b) => b.s - a.s)
     return scored.map(({ r }) => r)
   }, [repo, deferredQuery])

@@ -11,7 +11,11 @@
  */
 import { describe, expect, it } from "vitest"
 import type { KNode } from "@km/core"
-import { nodeResultsForOmnibox, type NodeSearchRepo } from "../src/state/omnibox-projection.ts"
+import {
+  nodeResultsForOmnibox,
+  scoreNodeForOmnibox,
+  type NodeSearchRepo,
+} from "../src/state/omnibox-projection.ts"
 import { allCommands } from "@km/commands"
 import { commandResultsForOmnibox } from "../src/state/omnibox-projection.ts"
 
@@ -156,5 +160,107 @@ describe("nodeResultsForOmnibox — mode contracts", () => {
     const rows = commandResultsForOmnibox(allCommands, "goto", "normal")
     expect(rows.length).toBeGreaterThan(0)
     expect(rows[0]?.id.startsWith("cmd:")).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Multi-field ranking (scoreNodeForOmnibox)
+// ---------------------------------------------------------------------------
+
+describe("scoreNodeForOmnibox — identity-first ranking", () => {
+  function fileNode(id: string, name: string, title: string = "", fsPath: string = `${name}.md`, content: string = ""): KNode {
+    return node(id, content, { name, title, fs_path: fsPath, fstype: "file" } as Partial<KNode>)
+  }
+
+  it("name match beats title match (same query)", () => {
+    // Root file literally named '@next.md' — should win over any node whose
+    // title merely contains '@next' as a metadata tag annotation.
+    const rootFile = fileNode("root", "@next", "", "@next.md", "")
+    const tagSection = node("sec", "", { name: "", title: "@next actions", fs_path: "inbox/tasks.md" } as Partial<KNode>)
+    const rootScore = scoreNodeForOmnibox(rootFile, "@next")
+    const tagScore = scoreNodeForOmnibox(tagSection, "@next")
+    expect(rootScore).toBeGreaterThan(tagScore)
+  })
+
+  it("name exact match outranks title prefix match", () => {
+    const exact = fileNode("a", "@next", "", "@next.md")
+    const prefix = fileNode("b", "", "@next actions")
+    expect(scoreNodeForOmnibox(exact, "@next")).toBeGreaterThan(scoreNodeForOmnibox(prefix, "@next"))
+  })
+
+  it("shallower nodes rank higher via depth boost (tie-break)", () => {
+    // Both have the same name match ('@taxes'), but one lives at the root
+    // and one is nested three folders deep. Root should win by the depth
+    // bonus.
+    const root = fileNode("a", "@taxes", "", "@taxes.md")
+    const deep = fileNode("b", "@taxes", "", "personal/finance/2026/@taxes.md")
+    expect(scoreNodeForOmnibox(root, "@taxes")).toBeGreaterThan(scoreNodeForOmnibox(deep, "@taxes"))
+  })
+
+  it("title-as-tag is demoted vs actual identity node", () => {
+    // Section node whose title contains the sigil (tag convention) loses to
+    // a file whose NAME is the sigil-prefixed identity. This is the
+    // user-reported case from screenshot 2026-04-14 21:14.
+    const identityFile = fileNode("file", "@next", "", "@next.md")
+    const tagSection = node("sec", "pick up drycleaning @next", {
+      name: "",
+      title: "@next actions",
+      fs_path: "inbox/tasks.md",
+    } as Partial<KNode>)
+    expect(scoreNodeForOmnibox(identityFile, "@next")).toBeGreaterThan(scoreNodeForOmnibox(tagSection, "@next"))
+  })
+
+  it("empty query returns 0", () => {
+    const n = fileNode("a", "foo", "", "foo.md")
+    expect(scoreNodeForOmnibox(n, "")).toBe(0)
+  })
+
+  it("non-match returns 0 (no depth boost on non-matches)", () => {
+    const n = fileNode("a", "apples", "", "apples.md")
+    expect(scoreNodeForOmnibox(n, "bananas")).toBe(0)
+  })
+
+  it("content-only match still works but loses to name match", () => {
+    const contentOnly = node("content", "something about @next here", { name: "journal", title: "Day 1", fs_path: "journal/day1.md" } as Partial<KNode>)
+    const nameMatch = fileNode("name", "@next", "", "@next.md")
+    expect(scoreNodeForOmnibox(nameMatch, "@next")).toBeGreaterThan(scoreNodeForOmnibox(contentOnly, "@next"))
+    expect(scoreNodeForOmnibox(contentOnly, "@next")).toBeGreaterThan(0)
+  })
+
+  it("depth proxy uses fs_path slash count", () => {
+    // Same name, same title, only fs_path differs — verify the depth math
+    // is the only source of the score delta.
+    const a = fileNode("a", "foo", "", "foo.md")
+    const b = fileNode("b", "foo", "", "a/foo.md")
+    const c = fileNode("c", "foo", "", "a/b/c/foo.md")
+    const aScore = scoreNodeForOmnibox(a, "foo")
+    const bScore = scoreNodeForOmnibox(b, "foo")
+    const cScore = scoreNodeForOmnibox(c, "foo")
+    expect(aScore).toBeGreaterThan(bScore)
+    expect(bScore).toBeGreaterThan(cScore)
+  })
+})
+
+describe("nodeResultsForOmnibox — ranking integration", () => {
+  function fileNode(id: string, name: string, title: string = "", fsPath: string = `${name}.md`): KNode {
+    return node(id, "", { name, title, fs_path: fsPath, fstype: "file" } as Partial<KNode>)
+  }
+
+  it("'@next' query surfaces the root '@next.md' at the top even when a title-as-tag section is present", () => {
+    const repo = makeRepo([
+      // Deep section whose title is a tag annotation — should rank LOWER
+      node("tag-section", "pick up drycleaning", {
+        name: "",
+        title: "@next actions",
+        fs_path: "inbox/triage/tasks.md",
+      } as Partial<KNode>),
+      // Root file — should rank HIGHEST
+      fileNode("root", "@next", "", "@next.md"),
+      // Another file with a weak connection
+      fileNode("other", "weekly-planning", "Tasks for @next week", "planning/weekly.md"),
+    ])
+    const rows = nodeResultsForOmnibox(repo, "@next", "context")
+    // Root @next.md should be at position 0
+    expect(rows[0]?.title).toBe("@next")
   })
 })

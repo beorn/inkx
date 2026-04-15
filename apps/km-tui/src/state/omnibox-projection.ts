@@ -191,13 +191,12 @@ export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigil
   // candidates than miss a match the user expected.
   const candidates = allNodes.filter((n) => modeFilter(n, sigilMode))
 
-  // Rank by the FULL query (sigil included). The scorer's prefix tier then
-  // naturally treats "+ta" as a Tier 2 match against "+taxes".
+  // Multi-field scoring (see scoreNodeForOmnibox for the weights). The
+  // full query — sigil included — is passed through so the tiered scorer's
+  // prefix tier handles "`+ta` starts with `+ta`" correctly.
   const scored: { node: KNode; score: number }[] = []
   for (const n of candidates) {
-    const target = displayTitle(n)
-    if (!target) continue
-    const score = fuzzyScore(query, target)
+    const score = scoreNodeForOmnibox(n, query)
     if (score > 0) scored.push({ node: n, score })
   }
   scored.sort((a, b) => b.score - a.score)
@@ -206,21 +205,67 @@ export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigil
 }
 
 /**
- * Display text for a node, used both as the row title and the fuzzy-score
- * target. Falls back to the node ID so we never score against `undefined`.
+ * Display text for a node, used as the row title and as the **fallback**
+ * scoring field (see `scoreNodeForOmnibox`). Falls back to the node ID so
+ * nothing is ever undefined.
  *
  * Uses `||` (not `??`) so empty-string content falls through to title/name.
  * Critical for files like `@next.md` whose body is empty — without the
- * fall-through, `displayTitle` would return `""` and the candidate gets
- * skipped, hiding the file from sigil queries that should match its name.
+ * fall-through, `displayTitle` would return `""` and the ranker would
+ * produce a noisy score for a node that actually has a good name match.
  *
- * NOTE: We intentionally don't depend on `getNodeDisplayName` from
- * `state.ts` here — that would pull in repo.getChildren walks for every
- * scored node and turn an O(n) projection into O(n²). The raw fields are
- * the same values the row would render anyway.
+ * NOTE: We don't depend on `getNodeDisplayName` from `state.ts` here — that
+ * walks `repo.getChildren` for every file node to find H1 headings, turning
+ * an O(n) projection into O(n²). The name/title/content fields are the same
+ * values the row would render anyway.
  */
 function displayTitle(node: KNode): string {
   return node.content || node.title || node.name || node.id
+}
+
+// =============================================================================
+// Multi-field node scoring (name > title > content, with depth boost)
+// =============================================================================
+
+/**
+ * Score a KNode against a query using three weighted fields, taking the
+ * max. This is the identity-first ranker: a file literally named `@next.md`
+ * beats a section titled `@next actions` beats a card with `@next` in body,
+ * even when the fuzzy scores are similar.
+ *
+ *   name  × 2.0  — filename / alias. Strongest signal of identity.
+ *   title × 1.0  — H1 / section heading. Medium — often carries sigils as
+ *                  tags (km convention uses `@person` / `#topic` in titles
+ *                  as metadata markers), which is exactly why we rank it
+ *                  lower than name.
+ *   display × 0.9 — `displayTitle(node)` fallback (content || title || name).
+ *                   Catches cases where the node has meaningful content text
+ *                   but no clean name/title.
+ *
+ * A small additive depth boost promotes shallower nodes (ones higher in
+ * the repo tree). `fs_path` slash count is used as the depth proxy — files
+ * at the vault root get a +50 bonus decaying to 0 at depth 5.
+ *
+ * The shared `fuzzyScore` is tiered (exact > prefix > segment-boundary >
+ * substring > fuzzy), so a tier-1 name match is ~10000 and a tier-2 title
+ * prefix match is ~5000. With the 2× name weight that's 20000 vs 5000 —
+ * the root file wins even when the title match is strong.
+ */
+export function scoreNodeForOmnibox(node: KNode, query: string): number {
+  if (!query) return 0
+  const nameScore = fuzzyScore(query, node.name ?? "") * 2.0
+  const titleScore = fuzzyScore(query, node.title ?? "") * 1.0
+  const displayScore = fuzzyScore(query, displayTitle(node)) * 0.9
+  const best = Math.max(nameScore, titleScore, displayScore)
+  if (best <= 0) return 0
+  // Depth proxy: fs_path slash count. "@next.md" → 0, "inbox/next.md" → 1,
+  // "inbox/things/next.md" → 2. Nodes without fs_path (in-memory, items,
+  // sub-blocks) inherit depth 0 for the boost — their fs_path is typically
+  // either unset or the containing file's path, which is OK.
+  const fsPath = node.fs_path ?? ""
+  const depth = fsPath.length === 0 ? 0 : fsPath.split("/").length - 1
+  const depthBoost = Math.max(0, 50 - depth * 10)
+  return best + depthBoost
 }
 
 /**

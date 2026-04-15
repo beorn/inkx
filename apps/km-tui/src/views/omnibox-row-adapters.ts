@@ -56,11 +56,16 @@ export function nodeToRow(
   } = {},
 ): OmniboxRowData {
   const iconInfo = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
+  // Prefer content (body), then title (heading), then name (filename). `||`
+  // falls through empty strings so a file with no body but a meaningful name
+  // still renders its name — matches the identity-first ranking in
+  // scoreNodeForOmnibox (see omnibox-projection.ts).
+  const title = node.content || node.title || node.name || node.id
   return {
     id: `node:${node.id}`,
     icon: iconInfo.char,
     iconColor: iconInfo.color,
-    title: node.content ?? node.id,
+    title,
     context: opts.parentContext ?? undefined,
     hint: opts.hint,
     isSelected: opts.isSelected,
