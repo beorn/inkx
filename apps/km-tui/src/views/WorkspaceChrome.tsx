@@ -28,7 +28,8 @@ import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
 import { Omnibox, type OmniboxResult } from "./Omnibox.tsx"
 import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
-import { ConfirmDialog, InputBox } from "./shared-components.tsx"
+import { ConfirmDialog } from "./shared-components.tsx"
+import { dialogTargetRef } from "../dialog-target.ts"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import { FavoritesDialog } from "./FavoritesDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
@@ -39,13 +40,11 @@ import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
-import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
   applySigilRule,
   dispatchOmnibox,
   dismissOmnibox,
   modeOf,
-  resolveEffectiveCommand,
   type OmniboxPane,
 } from "../state/omnibox.ts"
 import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
@@ -214,22 +213,27 @@ function CursorAwareNewItemDialog({
 }
 
 // =============================================================================
-// UnifiedOmniboxConnector — Phase 7b runtime wiring for the unified omnibox
+// UnifiedOmniboxConnector — runtime wiring for the unified omnibox
 // =============================================================================
 
 /**
  * Bridges `ui.omnibox` (the OmniboxPane value object) to the UnifiedOmnibox
- * presentation component. Handles:
+ * presentation component. Responsibilities:
  *
- * - Text input via useDialogInput → mirrored to `pane.state.buffer` on each
- *   keystroke using dispatchOmnibox SET_BUFFER.
- * - Enter/Escape/arrows via dialogTargetRef wiring inside useDialogInput.
- * - Selection of results — cursor up/down updates a local index; the
- *   currently-highlighted result is projected into `pane.state.selectedArgumentId`.
- * - Confirmation — resolves the effective command, strips "cmd:"/"node:"
- *   namespace from the selected ID, and calls `dispatchCommandById` with
- *   the frozen subject snapshot so binary verbs (move, add_link, etc.)
- *   operate on the anchor pane's cursor, not the omnibox's target pick.
+ * - Project `pane.state.buffer` → ranked row list via commandResultsForOmnibox
+ *   (command mode) or nodeResultsForOmnibox (content sigils + universal).
+ * - Mirror keystrokes into the reducer via SET_BUFFER, applying the asymmetric
+ *   slippery-sigil rule on single-char inserts. Silvery's TextInput runs in
+ *   controlled mode — transforming the value inside onChange is sufficient
+ *   because TextInput respects parent-driven value overrides.
+ * - Route Enter / Esc / Up / Down from the command system (dialog.confirm,
+ *   dialog.cancel, dialog.nav_up, dialog.nav_down) through `dialogTargetRef`.
+ * - Project `selectedIndex` → `pane.state.selectedArgumentId` so Enter picks
+ *   the highlighted row.
+ * - On confirm: resolve the effective command, strip "cmd:"/"node:" namespace
+ *   from the selected ID, and dispatch via `dispatchCommandById` with the
+ *   frozen subject snapshot so binary verbs operate on the anchor pane's
+ *   cursor, not the omnibox's target pick.
  *
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
@@ -268,25 +272,11 @@ function UnifiedOmniboxConnector({
   //   (FTS5 BM25 column weights + depth tie-break live in SQL)
   // - empty buffer (universal) → top-N commands as a starting point until
   //   recents land in a later phase
-  //
-  // The full query (sigil included) is passed to nodeResultsForOmnibox so
-  // the tiered fuzzy scorer's prefix tier handles `+ta` → `+taxes` correctly.
-  //
-  // Commands are gated by a `KeybindingContext` assembled from the focused
-  // pane's OpCtx via `defaultBuildOpCtx` + `buildKeybindingContextFromOpCtx`.
-  // This is the same shape the keypress path produces, so a command whose
-  // `when` predicate returns false in the live app is also absent from the
-  // omnibox dropdown — no dead rows, no surprises.
   const results: OmniboxRowData[] = useMemo(() => {
     const buffer = pane.state.buffer
     const mode = modeOf(buffer)
     let rows: OmniboxRowData[]
     if (mode === "command" || buffer.length === 0) {
-      // Build a `KeybindingContext` at render time from the focused pane.
-      // `defaultBuildOpCtx` returns the same OpCtx shape the keypress path
-      // uses; `buildKeybindingContextFromOpCtx` then produces the kbCtx
-      // that `filterAvailableCommands` consumes. We pass a no-op `exit`
-      // because render-time projection never quits the app.
       const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore> | null
       if (!store) return []
       const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
@@ -329,172 +319,136 @@ function UnifiedOmniboxConnector({
         argumentId: nextId,
       })
     }
-    // We intentionally depend only on results/selectedIndex — pane is a value
-    // object that changes on every dispatch and would cause a feedback loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results, selectedIndex])
 
-  // Refs for stable callbacks inside useDialogInput closures.
+  // Refs for stable callbacks.
   const paneRef = React.useRef(pane)
   paneRef.current = pane
   const resultsRef = React.useRef(results)
   resultsRef.current = results
+  const selectedIndexRef = React.useRef(selectedIndex)
+  selectedIndexRef.current = selectedIndex
 
-  const handleConfirm = useCallback(() => {
-    const p = paneRef.current
-    if (!p) return
-    const effectiveCmdId = resolveEffectiveCommand(p.state)
-    const argumentId = p.state.selectedArgumentId
-    const subject = p.spec.subjectSelection
+  /**
+   * Run the currently-highlighted row. Extracted so both Enter (via
+   * dialogTargetRef.confirm) and row clicks can share the path.
+   *
+   * When called with an explicit index (row click), we first update
+   * `selectedArgumentId` so the current pane state matches the clicked row
+   * before resolving the command. For Enter (index === undefined) we trust
+   * that the selection effect has already propagated the current selectedIndex.
+   */
+  const runSelection = useCallback(
+    (explicitIndex?: number) => {
+      const p = paneRef.current
+      if (!p) return
+      const items = resultsRef.current
+      const idx = explicitIndex ?? selectedIndexRef.current
+      const row = items[idx]
+      const argumentId = row?.id ?? p.state.selectedArgumentId
+      const effectiveCmdId = p.state.buffer.startsWith("/") ? "local_find" : p.state.defaultCommand
+      const subject = p.spec.subjectSelection
 
-    // Strip the namespace prefix — the executor consumes raw IDs.
-    // "cmd:foo" → directly invoke the picked command (targetId from subject).
-    // "node:abc" → stripped ID is the ctx.targetId (destination).
-    let commandToRun = effectiveCmdId
-    let targetId: string | undefined
-    if (argumentId?.startsWith("cmd:")) {
-      commandToRun = argumentId.slice("cmd:".length)
-      targetId = undefined
-    } else if (argumentId?.startsWith("node:")) {
-      targetId = argumentId.slice("node:".length)
-    } else if (argumentId != null) {
-      targetId = argumentId
-    }
+      // Strip the namespace prefix — the executor consumes raw IDs.
+      let commandToRun = effectiveCmdId
+      let targetId: string | undefined
+      if (argumentId?.startsWith("cmd:")) {
+        commandToRun = argumentId.slice("cmd:".length)
+        targetId = undefined
+      } else if (argumentId?.startsWith("node:")) {
+        targetId = argumentId.slice("node:".length)
+      } else if (argumentId != null) {
+        targetId = argumentId
+      }
 
-    // Dismiss BEFORE dispatching so popDialogMode lands before the command
-    // potentially opens another dialog (keeps the scope stack clean).
-    popDialogMode()
-    dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
+      // Dismiss BEFORE dispatching so popDialogMode lands before the command
+      // potentially opens another dialog (keeps the scope stack clean).
+      popDialogMode()
+      dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
 
-    if (storeRef) {
-      const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
-      dispatchCommandById(commandToRun, store.getState.bind(store), () => {}, targetId, subject)
-    }
-  }, [setUI, storeRef])
+      if (storeRef) {
+        const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+        dispatchCommandById(commandToRun, store.getState.bind(store), () => {}, targetId, subject)
+      }
+    },
+    [setUI, storeRef],
+  )
 
   const handleCancel = useCallback(() => {
     popDialogMode()
     dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
   }, [setUI])
 
-  // Capture initialBuffer at first mount — useDialogInput's internal useMemo
-  // captures its `initialValue` prop on the first render only, and we don't
-  // want subsequent pane.state.buffer changes (from our own SET_BUFFER) to
-  // look like a re-init attempt.
-  const initialBufferRef = React.useRef(pane.state.buffer)
+  // Track the last buffer we mirrored into the reducer so onChange can detect
+  // single-char insertions and apply the asymmetric slippery-sigil rule.
+  // Initialised to the pane's initial buffer so the first keystroke compares
+  // against the correct baseline.
+  const prevBufferRef = React.useRef(pane.state.buffer)
 
-  // Track the last buffer we mirrored into the reducer so onChange can
-  // detect single-char insertions and apply the asymmetric slippery-sigil
-  // rule from `applySigilRule`. Initialised to the invocation spec's seed
-  // so the very first keystroke compares against the correct baseline.
-  const prevBufferRef = React.useRef(initialBufferRef.current)
-  // Guard against our own `setValue` re-firing onChange — when we override
-  // the editor buffer to apply the slippery rule, the editor re-emits
-  // onChange with the overridden value. This flag lets us accept that echo
-  // silently (we already dispatched SET_BUFFER for the target buffer).
-  const suppressNextChangeRef = React.useRef(false)
-  // We need to call `editCtx.setValue` from inside the onChange closure,
-  // but `editCtx` is the return value of `useDialogInput` so it's not in
-  // scope yet. A ref lets the closure reach back at call time.
-  const setEditValueRef = React.useRef<((value: string) => void) | null>(null)
-
-  const editCtx = useDialogInput({
-    initialValue: initialBufferRef.current,
-    onChange: (value) => {
-      // Echo from our own setValue override — accept and forward without
-      // re-applying the sigil rule (otherwise we'd double-apply).
-      if (suppressNextChangeRef.current) {
-        suppressNextChangeRef.current = false
-        prevBufferRef.current = value
-        dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, paneRef.current, {
-          type: "SET_BUFFER",
-          buffer: value,
-        })
-        setSelectedIndex(0)
-        return
-      }
-
-      // Detect a single-char insertion by diffing against the prior buffer.
-      // Only single-char inserts trigger the slippery rule — pastes, deletes,
-      // and cursor-move edits fall through to a flat SET_BUFFER so we don't
-      // mangle their contents. The reducer test suite covers applySigilRule
-      // exhaustively; we only need to pick off the typed char and run it.
+  /**
+   * Silvery TextInput's onChange fires on every keystroke. We apply the
+   * slippery sigil rule here and dispatch SET_BUFFER with the adjusted value.
+   *
+   * Because TextInput is controlled (value={pane.state.buffer}), transforming
+   * the value here is sufficient: silvery's TextInput detects that the parent
+   * echoed back a different value than it emitted and syncs readline to the
+   * overridden buffer. See vendor/silvery feat(ag-react): TextInput parent
+   * override commit for the supporting change.
+   */
+  const handleBufferChange = useCallback(
+    (value: string) => {
       const prev = prevBufferRef.current
-      const nextBuffer = value
+      let adjusted = value
+      // Only single-char inserts run through the slippery rule — pastes,
+      // deletes, and cursor-move edits fall through to a flat SET_BUFFER.
       if (value.length === prev.length + 1) {
         // Find the insertion point — walk the common prefix until they differ.
         let i = 0
         while (i < prev.length && prev[i] === value[i]) i++
         const typedChar = value[i] ?? ""
-        const adjusted = applySigilRule(prev, typedChar)
-        if (adjusted !== value) {
-          // The slippery rule fired — override the editor buffer so the
-          // visible text matches what the reducer will store. setValue
-          // re-fires onChange synchronously, so we mark the next call as
-          // an echo; the echo branch above handles the actual dispatch.
-          suppressNextChangeRef.current = true
-          setEditValueRef.current?.(adjusted)
-          return
-        }
+        adjusted = applySigilRule(prev, typedChar)
       }
-      // Flat path — paste, delete, middle-edit, or a no-slip insert.
-      prevBufferRef.current = nextBuffer
+      prevBufferRef.current = adjusted
       dispatchOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void, paneRef.current, {
         type: "SET_BUFFER",
-        buffer: nextBuffer,
+        buffer: adjusted,
       })
       setSelectedIndex(0)
     },
-    onConfirm: handleConfirm,
-    onCancel: handleCancel,
-    navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-    navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
-  })
-  // Wire the setValue ref now that editCtx exists. Stable across renders
-  // — setValue is memoised by useEditContext.
-  setEditValueRef.current = editCtx.setValue
+    [setUI],
+  )
 
-  // Mouse hover moves the keyboard cursor to the hovered row (tree-view
-  // behavior). Click = hover + confirm. We sync selectedIndex first so
-  // handleConfirm reads the right argumentId via the selectedIndex →
-  // selectedArgumentId effect chain (Wait a tick: because React batches,
-  // we call the confirm path through the latest index directly).
-  const handleRowHover = useCallback((index: number) => {
-    setSelectedIndex(index)
-  }, [])
+  // Wire dialogTargetRef so the command system can drive navigation from
+  // dialog.nav_up / dialog.nav_down / dialog.confirm / dialog.cancel bindings.
+  React.useLayoutEffect(() => {
+    dialogTargetRef.current = {
+      navUp() {
+        setSelectedIndex((i) => Math.max(0, i - 1))
+      },
+      navDown() {
+        setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1)))
+      },
+      confirm() {
+        runSelection()
+      },
+      cancel() {
+        handleCancel()
+      },
+    }
+    return () => {
+      dialogTargetRef.current = null
+    }
+  }, [runSelection, handleCancel])
+
+  // Row click: move selection to the clicked row and run the selection path.
+  // Row hover: move selection to the hovered row (tree-view behavior).
   const handleRowClick = useCallback(
-    (index: number) => {
+    (_row: OmniboxRowData, index: number) => {
       setSelectedIndex(index)
-      // The effect that projects selectedIndex → selectedArgumentId runs
-      // after this callback returns (React state update is async). Read
-      // the row directly and run handleConfirm with its ID, bypassing the
-      // pane state for the click path.
-      const row = resultsRef.current[index]
-      if (!row) return
-      const p = paneRef.current
-      if (!p) return
-
-      // Replicate handleConfirm's argument resolution using the clicked
-      // row's id so we don't race the effect.
-      const effectiveCmdId = resolveEffectiveCommand(p.state)
-      let commandToRun = effectiveCmdId
-      let targetId: string | undefined
-      if (row.id.startsWith("cmd:")) {
-        commandToRun = row.id.slice("cmd:".length)
-        targetId = undefined
-      } else if (row.id.startsWith("node:")) {
-        targetId = row.id.slice("node:".length)
-      }
-
-      popDialogMode()
-      dismissOmnibox(setUI as (patch: { omnibox: OmniboxPane | null }) => void)
-
-      if (storeRef) {
-        const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
-        dispatchCommandById(commandToRun, store.getState.bind(store), () => {}, targetId, p.spec.subjectSelection)
-      }
+      runSelection(index)
     },
-    [setUI, storeRef],
+    [runSelection],
   )
 
   return (
@@ -502,11 +456,12 @@ function UnifiedOmniboxConnector({
       pane={pane}
       results={results}
       selectedIndex={selectedIndex}
-      editCtx={editCtx}
+      onBufferChange={handleBufferChange}
+      onConfirm={() => runSelection()}
+      onRowClick={handleRowClick}
+      onRowHover={setSelectedIndex}
       width={width}
       maxHeight={maxHeight}
-      onRowHover={handleRowHover}
-      onRowClick={handleRowClick}
     />
   )
 }
