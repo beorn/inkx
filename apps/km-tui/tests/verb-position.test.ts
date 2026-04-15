@@ -378,3 +378,103 @@ describe("picker dialog title reflects pending verb", () => {
     expect(app.text).toContain("Create under item")
   })
 })
+
+// =============================================================================
+// Picker verb-goto Enter dispatch — regression for km-tui.omnibox-picker-verb-goto
+// =============================================================================
+//
+// Before commit 42435f62f, the type-specific picker handlers
+// (handleAssigneeSelect, handleTagSelect, handlePickerSelect) hardcoded
+// their default verb (assign/add/move) and ignored pendingVerb entirely.
+// Opening the context picker via `@` with pendingVerb='goto' then pressing
+// Enter silently ran the assign path — set cursor's assigned_to to the
+// picked assignee name — instead of navigating to the node.
+//
+// The user-visible symptom was "Enter does nothing" because the mutation
+// happened silently on the cursor card's metadata with no feedback toast.
+//
+// These tests pin the verb-aware dispatch so it can't regress.
+
+describe("picker Enter dispatch — verb-aware for assignee / tag / project", () => {
+  test("Enter on assignee picker (goto verb) does NOT set assigned_to on cursor card", () => {
+    // Set up a board where one card contains an @alice mention in its content.
+    // The assignee loader will extract "alice" as a picker option, pointing
+    // to the source node. The test cursor starts on "anchor card" in col1.
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("anchor card")),
+        item("col2", item("note with @alice mention")),
+      ),
+      { rows: 40 },
+    )
+    // Confirm the cursor starts on the anchor card. Without this the
+    // picker's source (cursor) might be a different node and the test
+    // could pass for the wrong reason.
+    expect(app).toHaveCursorOn("anchor card")
+
+    // Open the context picker via bare `@` (goto verb).
+    app.press("shift+2")
+    expect(app).toHaveOverlay("itemPicker")
+
+    // The picker auto-selects index 0. Enter confirms.
+    app.press("Enter")
+
+    // Critical assertion: the cursor card's assigned_to field is NOT set.
+    // Before the fix, handleAssigneeSelect would have written
+    // `assigned_to: "alice"` on the cursor card silently.
+    const anchorNode = app.repo.getNode("anchor card")
+    expect(anchorNode?.assigned_to).toBeFalsy()
+  })
+
+  test("Enter on tag picker (goto verb) does NOT append tag to cursor content", () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("anchor")),
+        item("col2", item("note with #urgent tag")),
+      ),
+      { rows: 40 },
+    )
+    expect(app).toHaveCursorOn("anchor")
+
+    // Open tag picker via bare `#`.
+    app.press("shift+3")
+    expect(app).toHaveOverlay("itemPicker")
+
+    // Confirm the auto-selected first option. Goto should navigate, not
+    // append. Before the fix, handleTagSelect appended `#urgent` to the
+    // cursor node's content.
+    app.press("Enter")
+
+    // Critical assertion: cursor content is unchanged.
+    const anchorNode = app.repo.getNode("anchor")
+    const content = anchorNode?.content ?? ""
+    expect(content).not.toContain("#urgent")
+  })
+
+  test("Enter on project picker (goto verb) does NOT reparent the cursor", () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("anchor")),
+        item("col2", item("+project-alpha")),
+      ),
+      { rows: 40 },
+    )
+    expect(app).toHaveCursorOn("anchor")
+    const originalParent = app.repo.getNode("anchor")?.parent_id
+
+    // Open project picker via bare `+`.
+    app.press("shift+=")
+    expect(app).toHaveOverlay("itemPicker")
+
+    // Confirm Enter. Goto should navigate. Before the fix,
+    // handlePickerSelect reparented the cursor under the picked project.
+    app.press("Enter")
+
+    // Critical assertion: cursor's parent_id is unchanged.
+    const afterParent = app.repo.getNode("anchor")?.parent_id
+    expect(afterParent).toBe(originalParent)
+  })
+})

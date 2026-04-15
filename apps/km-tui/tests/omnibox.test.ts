@@ -67,6 +67,39 @@ describe("omnibox", () => {
     expect(app.text).toContain("Move to Previous")
   })
 
+  it("typing ':' (sigil-only) keeps all commands visible — regression for km-tui.omnibox-cmd-k-colon", () => {
+    // Before the fix: scoreResult(':', 'Move to Previous') returned 0 for
+    // every command because no label contains ':'. Filter dropped all
+    // results — user saw an empty list immediately after opening command
+    // mode. The fix strips the leading sigil from the query BEFORE scoring.
+    using app = standardBoard()
+    app.command("command_palette")
+    // command_palette opens with ':' pre-filled. Back the buffer out to
+    // confirm universal mode works, then re-type ':' and ensure commands
+    // stay visible (not filtered to zero).
+    app.press("Backspace") // buffer := ""
+    app.press(":") // buffer := ":"
+    // A common command should still be visible
+    expect(app.text).toContain("Move to Previous")
+  })
+
+  it("hotkey badge switches with buffer sigil — : → Command, @ → Context, # → Tag", () => {
+    // Regression for km-tui.omnibox-hotkey-badge. Before the fix the
+    // hotkey was hardcoded to ':' so the title badge always showed [:]
+    // regardless of the active sigil. Now derived via modeChrome lookup.
+    using app = standardBoard()
+    app.command("command_palette") // opens in command mode
+    expect(app.text).toContain("Command")
+    // Backspace to universal, then type @ — title flips to Context
+    app.press("Backspace")
+    app.press("@")
+    expect(app.text).toContain("Context")
+    // Backspace + # → Tag
+    app.press("Backspace")
+    app.press("#")
+    expect(app.text).toContain("Tag")
+  })
+
   it("typing filters results", () => {
     using app = standardBoard()
     app.command("command_palette")
