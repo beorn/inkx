@@ -124,12 +124,7 @@ Backspace through the `/` sigil in the buffer — which drops the default comman
 ### Why this unification is deep
 
 - **Commands are already nodes.** (See [Result types](#result-types--everything-is-a-node).) The `:` sigil searches the `commands/` subtree via the same ranker and row renderer that searches every other subtree. One tree, one buffer, one ranker, one row component.
-- **the omnibox's `selectedArgument` IS the cursor while it has focus.** Commands read "the current cursor" and act. The cursor source follows focus:
-  - Cards pane focused → cursor is the cursored card.
-  - Detail pane focused → cursor is the focused block.
-  - **Omnibox dialog open and focused → cursor is `selectedArgument`.**
-  - **omnibox pane focused (post-v1) → cursor is `selectedArgument`.**
-  Commands don't know or care which surface supplies the cursor. `goto`, `move`, `create_at` just read `currentCursor()` and fire.
+- **The command executor distinguishes subject from target.** When the omnibox dispatches a command, the executor builds `ctx` with *two* node identities: `ctx.currentNodeId` = the anchor pane's cursor (the *subject* of the action, snapshotted at open time) and `ctx.targetId` = the omnibox's `selectedArgumentId` (the *target* the user picked). Unary verbs (`goto`, `open_in_system`, `zoom_in`, `default` on a node) read `ctx.targetId` and ignore `ctx.currentNodeId`; binary verbs (`move`, `add`, `add_link`, `create_at`) read both. That's why `m +` → pick `+km` → Enter correctly moves the anchor-pane selection *into* `+km` — the subject stays the anchor pane's cursor even while the omnibox has keyboard focus.
 - **`default` resolves type-dispatch inside the command system, not the reducer.** When there's no explicit `defaultCommand` and no chord-locked `defaultCommand`, the universal fallback is the `default` command, which inspects `currentNode.type` and does the right thing (command → run, else → goto). Future per-type customization (tags → filter, projects → zoom) is a one-function change in `default.execute()` — zero omnibox-UI work.
 - **Global keybindings work inside the omnibox with no special scope.** There's no `dialog:omnibox` mode that shadows the app's keymap. The only keys the omnibox consumes are the ones any focused text input would consume — letters, arrows, Enter, Escape, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `vm`, `z`/`Z`) falls through to the global layer exactly as it does when an inline card-title editor has focus in the cards view. `cmd-k` and `cmd-f` are special only in that they're bound at the global layer to also work *while* the omnibox is open, to toggle search mode.
 - **The dialog form and the pane form share `OmniboxState`.** The difference is only *where* the state lives — a global overlay slot vs. a pane. The reducer, keybindings, row renderer, command-tree projection, everything downstream of the state is identical. "Pop it out" is a single state transition: move `OmniboxState` from overlay-slot to a new pane, dismiss the overlay.
@@ -636,38 +631,77 @@ interface OmniboxBaseState {
   /** Single working buffer — leading sigil determines what's being searched. */
   buffer: string
 
-  /** The resolved command. Always set; `"default"` is the universal initial value.
+  /** The sticky default command. Always set; `"default"` is the universal initial value.
    *  Mutated by:
    *  - opening chord / initial prop ("move", "create_at", "default", …)
    *  - user arrowing over a command result while in `:`-mode
-   *  When the user is NOT in `:`-mode, this stays unchanged (sticky). */
+   *  When the user is NOT in `:`-mode, this stays unchanged (sticky).
+   *  Note: the *effective* command at any moment is `resolveEffectiveCommand(buffer, defaultCommand)`
+   *  — typing `/` derives `local_find` without touching `defaultCommand`, so backspace-through-`/`
+   *  trivially restores the prior command. */
   defaultCommand: string
 
-  /** Sticky argument. Mutated by:
+  /** Sticky argument — stored as an ID, not an object. The actual KNode is derived from the repo
+   *  at render / command-execution time. This avoids stale object refs across reranks, deletes,
+   *  and repo-query identity churn.
+   *  Mutated by:
    *  - opening chord with a pre-seeded argument (cursor pre-select)
    *  - user arrowing over a non-command result while NOT in `:`-mode
    *  When the user IS in `:`-mode, this stays unchanged (sticky). */
-  selectedArgument: KNode | null
+  selectedArgumentId: string | null
 }
 ```
 
-**3 fields, fully normalized.** This is the canonical source of truth. The reducer only reads and writes these.
+**3 fields, fully normalized.** This is the canonical source of truth. The reducer only reads and writes these. The third field is an **ID**, not a `KNode` — resolving it through the repo at read-time keeps state serialisable, survives repo mutations, and eliminates object-identity bugs on rerank.
+
+### Invocation spec (immutable per invocation)
+
+The omnibox is opened via `openOmnibox(spec)` — a single entry point that takes an **invocation spec**, not a family of React wrapper components. The spec carries everything the session needs that isn't reducer-mutated:
+
+```ts
+interface OmniboxInvocationSpec {
+  /** Initial buffer text: ":", "", "/", "@", etc. */
+  initialBuffer: string
+
+  /** Initial sticky defaultCommand: "default", "goto", "move", "local_find", ... */
+  initialDefaultCommand: string
+
+  /** Initial sticky argument (pre-select from anchor pane cursor). */
+  initialArgumentId: string | null
+
+  /** The pane the omnibox is anchored to. Used for (a) focus restore on dismiss and
+   *  (b) supplying the *subject* node for binary verbs — see "Subject vs target" below. */
+  anchorPaneId: string
+
+  /** Snapshot of the anchor pane's selection/cursor at open time. Frozen — even if the
+   *  anchor pane mutates during the session, the invocation's subject stays fixed. */
+  subjectSelection: { cursorId: string | null; selectedIds: string[] }
+
+  /** Pre-scoped candidate provider. The caller decides what's in scope; the omnibox never
+   *  knows about "favorites" or "current-view" as string flags. */
+  candidateProvider: () => KNode[]
+}
+```
+
+**Subject vs target.** This is the most important contract in the design. Binary verbs (`move`, `add`, `add_link`, some `create_at` flows) need **two** node identities:
+
+| Role | Source | `CommandContext` field |
+|---|---|---|
+| **Subject** (what is acted *on*) | Anchor pane cursor/selection, snapshotted at open time | `ctx.currentNodeId` / `ctx.selectedNodes` |
+| **Target** (what is acted *with*) | The omnibox's `selectedArgumentId` | `ctx.targetId` |
+
+`move` means "move the anchor-pane cursor **into** the omnibox's selection". If we conflated them, `m +` would try to move `+km` into itself. Unary verbs (`goto`, `open_in_system`, `zoom_in`, `default` on a node) read `ctx.targetId` and ignore `ctx.currentNodeId`. Commands that don't need either (`toggle_theme`) ignore both.
 
 ### What's NOT in the state
 
-Everything else is either **derived** (a pure function of base state) or **props set at mount** (immutable per-session config):
-
-**Props (set at invocation, immutable for the session):**
-- `candidates: KNode[] | () => KNode[]` — the pre-scoped candidate set. Caller decides what's in scope; omnibox never knows about "favorites" or "current-view" as scope strings. Wrapper components (`CommandPaletteOmnibox`, `FavoritesOmnibox`, `LocalFindOmnibox`, …) pre-scope this per invocation.
-- `initialBuffer: string` — `":"`, `""`, `"/"`, `"@"`, etc. Becomes `state.buffer` at mount.
-- `initialDefaultCommand: string` — becomes `state.defaultCommand` at mount. Default: `"default"`.
-- `initialArgument: KNode | null` — becomes `state.selectedArgument` at mount (cursor pre-select).
+Everything else is either **derived** (a pure function of base state) or frozen in the invocation spec above:
 
 **Derived (pure functions, recomputed on every render):**
 - `mode(buffer)` — which search mode the leading sigil requests (`"command" | "context" | "tag" | "project" | "node" | "local_find" | "universal"`).
-- `Layout(state)` — which layout component to render. Backspacing through `/` → re-derives → re-renders as `CenterDialog`. See "Layout is a component choice" below.
+- `effectiveCommand(state)` — `buffer.startsWith("/") ? "local_find" : defaultCommand`. Never stored; backspace through `/` restores the sticky command automatically.
+- `Layout(state)` — which layout component to render. Derived from `effectiveCommand`/`mode`: `local_find` → bottom-left, else center. Backspacing through `/` re-derives → re-renders as `CenterDialog`.
 - `results(state, candidates)` — pure function; the ranker applied to the candidates filtered by mode. Fed as a prop to the inner `SelectList`.
-- `resolveEnter(state) → { cmd: state.defaultCommand, arg: state.selectedArgument }` — always defined.
+- `resolveEnter(state) → { cmd: effectiveCommand(state), argId: state.selectedArgumentId }` — always defined.
 
 **Owned by child components, not the reducer:**
 - Result list rendering + highlighted-row index → inner `SelectList` (Silvery, `vendor/silvery/packages/ag-react/src/ui/components/SelectList.tsx`). The reducer subscribes to `SelectList.onHighlight` to mutate its own sticky slots (`defaultCommand` in `:`-mode; `selectedArgument` in other modes).
@@ -916,18 +950,18 @@ type OmniboxOp =
 
 Note: `OMNIBOX_INPUT` is the single-field input action. The reducer handles sigil auto-replace internally — if the new buffer's leading char is a different sigil and there's a search term after it, swap the leading char and preserve the rest.
 
-The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` — it calls `resolveEnter()`, looks up the command by id, and runs the command's `execute(ctx)` with `ctx.currentNodeId` = `selectedArgument?.id`.
+The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` — it calls `resolveEnter()`, looks up the command by id, and runs `execute(ctx)` with **both** identities plumbed: `ctx.currentNodeId` / `ctx.selectedNodes` = the invocation spec's `subjectSelection` (the *subject*, frozen at open time from the anchor pane), and `ctx.targetId` = `selectedArgumentId` (the *target*, picked in the omnibox). Unary verbs (`goto`, `open_in_system`, `default` on a node) read `ctx.targetId` and ignore the subject. Binary verbs (`move`, `add`, `add_link`) read both.
 
 **Invariants:**
 - `highlightedRowId` is in `[0, results.length)` or `null` when `results` is empty.
-- Sigil auto-replace: when `buffer` changes such that its leading char is a sigil and differs from the old leading char, the rest of the buffer is preserved.
-- Sticky memory: changing the buffer's sigil does NOT clear `defaultCommand` or `selectedArgument` — the only thing that clears them is explicit picking of a new selection OR `OMNIBOX_CANCEL`.
-- `resolvedCommand` is always defined: `defaultCommand` — both are string-or-null-but-at-least-one-is-set, and `defaultCommand` is always set.
-- `OMNIBOX_CONFIRM` with a selected command that requires an argument AND `selectedArgument == null` is a no-op + bell.
-- `OMNIBOX_SWITCH_TO_COMMANDS` (cmd-k while open): set `buffer = ":"`, preserve `selectedArgument`. Commands list is filtered by `when` against `selectedArgument`. This IS the Embark/Raycast "action panel on selected candidate" pattern.
+- Sigil auto-replace is asymmetric: only `:` is slippery (typing any other sigil while `buffer.startsWith(":")` replaces the leading char and preserves the rest). Content sigils (`@ # + [`) are sticky literals — typing another character after `@del` appends it; typing `:` replaces only when the current leading char is `:`. Use `cmd-k` / `cmd-f` for explicit mode changes in any direction.
+- Sticky memory: changing the buffer's sigil does NOT clear `defaultCommand` or `selectedArgumentId` — they only clear when the user explicitly picks a new value OR on `OMNIBOX_CANCEL`.
+- `effectiveCommand` is always defined: `buffer.startsWith("/") ? "local_find" : defaultCommand`. Backspacing through `/` drops the derived override and restores `defaultCommand` with zero reducer work.
+- `OMNIBOX_CONFIRM` with a resolved command that requires a target AND `selectedArgumentId == null` is a no-op + bell.
+- `OMNIBOX_SWITCH_TO_COMMANDS` (cmd-k while open): set `buffer = ":"`, preserve `selectedArgumentId`. Commands list is filtered by `when` against the resolved argument node. This IS the Embark/Raycast "action panel on selected candidate" pattern.
 - `OMNIBOX_SWITCH_TO_ARGUMENT` (cmd-f while open): set `buffer = ""`, preserve `defaultCommand`. Result list reverts to universal search.
-- `OMNIBOX_CANCEL` on the dialog form dismisses it and restores the previously-focused pane. On the pane form it clears buffer + both selected* + refocuses argument mode.
-- `OMNIBOX_POP_OUT` (post-v1) creates a new pane with `viewMode: "omnibox"`, copies the current `OmniboxState` into it, then dismisses the dialog.
+- `OMNIBOX_CANCEL` on the dialog form dismisses it and restores focus to `anchorPaneId`. On the pane form it clears buffer + `selectedArgumentId` + refocuses argument mode.
+- `OMNIBOX_POP_OUT` (post-v1) creates a new pane with `viewMode: "omnibox"`, copies the current base state + invocation spec into it, then dismisses the dialog.
 
 ## Migration
 
@@ -948,8 +982,8 @@ Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`.
 ### Phase 5 — unified omnibox dialog (single buffer)
 Build the `omnibox` pane + reducer. It lives in `workspace.overlayPane: OmniboxPane | null` (singleton, dialog form) with the 3-field `OmniboxBaseState` (`buffer`, `defaultCommand`, `selectedArgument`) as the canonical state; layout is derived from the buffer, candidates come from the wrapper. Component: one Silvery `TextInput` with `autocomplete` wired to sigil-routed results, a `SelectList` below, a footer showing the resolved action + sticky selections. Opened via `cmd-k` / `cmd-f` / chord. Add the `default` command to `@km/commands`. Route `command_palette`, `item_picker`, `search`, `manage_favorites` through wrapper components (`CommandPaletteOmnibox`, `FavoritesOmnibox`, …) that pre-scope `candidates`. Legacy `search_replace` and `filter` stay on their current dialogs (deferred). Old dialog components become thin delegators that call `openOmnibox(...)`. **This is the v1 ship** — it replaces five dialogs with one.
 
-### Phase 6 — cursor unification via focus
-Teach the app's `currentCursor()` lookup to check the omnibox overlay slot first: if an omnibox has focus, its `selectedArgument` is the source; otherwise the focused pane's cursor wins. One-function change in the command executor. Remove any `dialog:omnibox` scope guards. Tests: arrow in the omnibox → commands reading `ctx.currentNodeId` act on `selectedArgument`.
+### Phase 6 — subject/target plumbing in the command executor
+Teach the command executor to build `CommandContext` from the invocation spec when dispatched via the omnibox: `ctx.currentNodeId` and `ctx.selectedNodes` come from `subjectSelection` (the frozen anchor-pane snapshot), and `ctx.targetId` is resolved from `selectedArgumentId` at confirm time. **Do NOT globally redefine `currentCursor()` to return the omnibox selection** — that breaks binary verbs (`move`, `add`, `add_link`) which need both identities. Remove any `dialog:omnibox` scope guards in `when.ts`. Tests: (a) `cmd-k :move` → pick `+km` → Enter moves the anchor-pane cursor into `+km` (subject + target); (b) `cmd-f @del` → pick `@delei` → Enter runs `default` (goto) on `@delei` (target only, subject ignored); (c) unary and binary verbs coexist.
 
 ### Phase 7 — sigil auto-replace, sticky memory, ghost completion, modifier-chord shortcuts
 Add the full UX polish over the Phase 5 single-buffer foundation:
