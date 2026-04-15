@@ -279,9 +279,14 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 10. Cursor in walkOrder: if cursor is set, it must be in the view tree.
   // This catches the "cursor fell off the tree" class of bugs from stale lenses.
-  // Marked recoverable — same stale-cursor class as cursor-under-root and
-  // cursor-visible. The caller resets cursor to rootId.
-  // See km-tui.cursor-under-root-crash.
+  //
+  // FATAL: km-silvery.selection-contains made the whole "stale IDs slip into
+  // the selection" class of bug structurally impossible. `store.select()`
+  // now validates every id through `tree.contains` (O(1) repo lookup) before
+  // touching state, so the only way to reach this check with a cursor that
+  // isn't in the view tree is a writer that bypassed the store — a real bug
+  // that MUST surface, not be silently healed. The Phase 3 heal in
+  // board-app.ts no longer catches this.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
     // Check cursor is findable in the ViewTreeProjection
     const cursorInTree = ctx.tree.node(ctx.cursor as string) !== undefined
@@ -290,7 +295,6 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-in-walkOrder",
         message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in view tree (walkOrder: ${ctx.tree.walkOrder.length} nodes). The view lens may not include this node.`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
-        recoverable: true,
       })
     }
   }
