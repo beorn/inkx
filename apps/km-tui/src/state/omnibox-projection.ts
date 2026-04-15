@@ -187,13 +187,18 @@ export function nodeResultsForOmnibox(
  * Display text for a node, used both as the row title and the fuzzy-score
  * target. Falls back to the node ID so we never score against `undefined`.
  *
+ * Uses `||` (not `??`) so empty-string content falls through to title/name.
+ * Critical for files like `@next.md` whose body is empty — without the
+ * fall-through, `displayTitle` would return `""` and the candidate gets
+ * skipped, hiding the file from sigil queries that should match its name.
+ *
  * NOTE: We intentionally don't depend on `getNodeDisplayName` from
  * `state.ts` here — that would pull in repo.getChildren walks for every
- * scored node and turn an O(n) projection into O(n²). The raw `content`
- * field is the same value the row would render anyway.
+ * scored node and turn an O(n) projection into O(n²). The raw fields are
+ * the same values the row would render anyway.
  */
 function displayTitle(node: KNode): string {
-  return node.content ?? node.title ?? node.name ?? node.id
+  return node.content || node.title || node.name || node.id
 }
 
 /**

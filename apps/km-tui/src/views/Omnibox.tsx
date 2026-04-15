@@ -175,16 +175,64 @@ function buildKeybindingMap(): Map<string, string> {
 /** Minimum query length before FTS5 search fires */
 const MIN_SEARCH_LENGTH = 2
 /** Maximum number of search results shown */
-const MAX_SEARCH_RESULTS = 10
+const MAX_SEARCH_RESULTS = 12
 
-/** Build vault-wide search results from FTS5 */
+/**
+ * Find nodes whose `name` (filename) or `title` (heading) contains the
+ * query. **Bypasses FTS5** — necessary because the FTS5 schema only indexes
+ * `id` + `content`, so filename/title hits never appear via `repo.search()`.
+ * A file `@next.md` with an empty body would otherwise never surface for
+ * the query `@next` no matter how good the ranker is.
+ *
+ * Uses an in-memory scan over `SELECT * FROM nodes` (the same pattern the
+ * unified omnibox's `nodeResultsForOmnibox` uses) so we get a registry of
+ * candidates that the fuzzy ranker can score. Comparison is case-insensitive
+ * and matches anywhere in `name` or `title`. The literal query is preserved
+ * (sigils included) so `@next` still anchors to the right column.
+ */
+function findByNameOrTitle(repo: Repo, query: string): KNode[] {
+  const all = repo.rawQuery<KNode>("SELECT * FROM nodes")
+  const q = query.toLowerCase()
+  const matches: KNode[] = []
+  for (const n of all) {
+    const name = (n.name ?? "").toLowerCase()
+    const title = (n.title ?? "").toLowerCase()
+    if (name.includes(q) || title.includes(q)) matches.push(n)
+    if (matches.length >= 50) break
+  }
+  return matches
+}
+
+/**
+ * Build vault-wide search results. Two sources are merged and deduped:
+ *   1. FTS5 content search (`repo.search(query)`) — body matches
+ *   2. Filename/title prefix search (`findByNameOrTitle`) — surfaces files
+ *      and headings whose text contains the query. This is required for
+ *      sigil queries like `@next` to find a file literally named `@next.md`,
+ *      because FTS5 doesn't index the `name` column.
+ *
+ * Caller re-ranks the merged set through the shared tiered fuzzyScore so
+ * exact/prefix matches bubble to the top regardless of which source found them.
+ */
 function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
   if (query.length < MIN_SEARCH_LENGTH) return []
 
-  const nodes = repo.search(query)
-  const results: OmniboxResult[] = []
+  // Merge two sources by node id — title-prefix hits + FTS body hits.
+  const seen = new Set<string>()
+  const merged: KNode[] = []
+  for (const node of findByNameOrTitle(repo, query)) {
+    if (seen.has(node.id)) continue
+    seen.add(node.id)
+    merged.push(node)
+  }
+  for (const node of repo.search(query)) {
+    if (seen.has(node.id)) continue
+    seen.add(node.id)
+    merged.push(node)
+  }
 
-  for (const node of nodes) {
+  const results: OmniboxResult[] = []
+  for (const node of merged) {
     if (results.length >= MAX_SEARCH_RESULTS) break
     if (KNode.isOutline(node) && node.fstype === "folder") continue
     if (KNode.isEmbed(node)) continue

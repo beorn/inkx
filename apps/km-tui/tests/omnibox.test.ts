@@ -135,6 +135,33 @@ describe("omnibox", () => {
     expect(app.text).toContain("task1")
   })
 
+  it("title-prefix match surfaces files whose name matches the sigil query", () => {
+    // Regression for the screenshot 2026-04-14 21:14: typing `@next` in the
+    // legacy omnibox returned 'Next actions @next' content hits but missed
+    // the actual `@next` file. FTS5 only indexes id+content so a file with
+    // an empty body never appeared. The new findByNameOrTitle source bridges
+    // the gap by scanning name/title literally.
+    using app = createTestApp(
+      [
+        ...item(
+          "board",
+          item("col1", item("@next", item("Some sub-item with the literal text 'next' in body"))),
+          item("col2"),
+        ),
+      ],
+      { rows: 40 },
+    )
+    app.command("command_palette")
+    // Type the sigil-prefixed query @next
+    app.press("@")
+    app.press("n")
+    app.press("e")
+    app.press("x")
+    app.press("t")
+    // The file/node @next must appear in the dialog's text
+    expect(app.text).toContain("@next")
+  })
+
   it("search results appear below command results", () => {
     // Use extra-tall terminal so both sections are visible
     using app = createTestApp([...item("board", item("col1", item("task1"), item("task2")))], { rows: 60 })
