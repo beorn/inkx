@@ -258,6 +258,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [silvery-components](.claude/skills/tui/silvery-components.md)      | **Audit gate** — list of silvery components. Check before building new km-tui components to avoid reimplementing primitives silvery ships. |
 | [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md)     | Building with silvery — canonical components, anti-patterns              |
 | [Silvery Styling](vendor/silvery/docs/guide/styling.md)             | Semantic colors, typography presets, theme tokens (`$primary`, `$muted`) |
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
