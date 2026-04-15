@@ -7,10 +7,13 @@ import { describe, expect, it } from "vitest"
 import {
   SIGIL_MODES,
   applySigilRule,
+  createOmniboxPane,
   initialStateFromSpec,
   modeOf,
+  omniboxReduce,
   resolveEffectiveCommand,
   resolveEnterInvocation,
+  withUpdatedState,
   type OmniboxBaseState,
   type OmniboxInvocationSpec,
 } from "../src/state/omnibox.ts"
@@ -221,6 +224,111 @@ describe("applySigilRule — asymmetric sigil replace", () => {
     })
     it("multi-char typed strings append verbatim", () => {
       expect(applySigilRule(":cr", "eate")).toBe(":create")
+    })
+  })
+})
+
+describe("createOmniboxPane + omniboxReduce", () => {
+  const baseSpec = spec({
+    initialBuffer: ":",
+    initialDefaultCommand: "default",
+    subjectSelection: { cursorId: "anchor", selectedIds: ["anchor"] },
+  })
+
+  it("createOmniboxPane couples state with frozen spec", () => {
+    const pane = createOmniboxPane(baseSpec)
+    expect(pane.state).toEqual({
+      buffer: ":",
+      defaultCommand: "default",
+      selectedArgumentId: null,
+    })
+    expect(pane.spec).toBe(baseSpec)
+  })
+
+  it("withUpdatedState returns a new pane with replaced state and same spec", () => {
+    const pane = createOmniboxPane(baseSpec)
+    const updated = withUpdatedState(pane, { ...pane.state, buffer: "foo" })
+    expect(updated.spec).toBe(pane.spec)
+    expect(updated.state.buffer).toBe("foo")
+    expect(updated).not.toBe(pane)
+  })
+
+  describe("omniboxReduce", () => {
+    const pane = createOmniboxPane(baseSpec)
+
+    it("SET_BUFFER replaces the buffer", () => {
+      const next = omniboxReduce(pane, { type: "SET_BUFFER", buffer: "hello" })
+      expect(next.state.buffer).toBe("hello")
+      expect(next.state.defaultCommand).toBe("default") // sticky preserved
+    })
+
+    it("TYPE_CHAR applies the asymmetric sigil rule (: slippery)", () => {
+      const seed = omniboxReduce(pane, { type: "SET_BUFFER", buffer: ":cr" })
+      const next = omniboxReduce(seed, { type: "TYPE_CHAR", char: "@" })
+      expect(next.state.buffer).toBe("@cr")
+    })
+
+    it("TYPE_CHAR applies sticky rule to content sigils", () => {
+      const seed = omniboxReduce(pane, { type: "SET_BUFFER", buffer: "@del" })
+      const next = omniboxReduce(seed, { type: "TYPE_CHAR", char: "#" })
+      expect(next.state.buffer).toBe("@del#")
+    })
+
+    it("SET_DEFAULT_COMMAND updates the sticky command", () => {
+      const next = omniboxReduce(pane, { type: "SET_DEFAULT_COMMAND", commandId: "move" })
+      expect(next.state.defaultCommand).toBe("move")
+    })
+
+    it("SET_SELECTED_ARGUMENT updates the argument ID", () => {
+      const next = omniboxReduce(pane, {
+        type: "SET_SELECTED_ARGUMENT",
+        argumentId: "node-42",
+      })
+      expect(next.state.selectedArgumentId).toBe("node-42")
+    })
+
+    it("SWITCH_TO_COMMANDS forces :-mode and preserves sticky argument", () => {
+      const seed = omniboxReduce(pane, { type: "SET_SELECTED_ARGUMENT", argumentId: "n1" })
+      const seeded2 = omniboxReduce(seed, { type: "SET_BUFFER", buffer: "" })
+      const next = omniboxReduce(seeded2, { type: "SWITCH_TO_COMMANDS" })
+      expect(next.state.buffer).toBe(":")
+      expect(next.state.selectedArgumentId).toBe("n1") // sticky preserved
+    })
+
+    it("SWITCH_TO_ARGUMENT clears the buffer and preserves sticky command", () => {
+      const seed = omniboxReduce(pane, { type: "SET_DEFAULT_COMMAND", commandId: "move" })
+      const seeded2 = omniboxReduce(seed, { type: "SET_BUFFER", buffer: ":move" })
+      const next = omniboxReduce(seeded2, { type: "SWITCH_TO_ARGUMENT" })
+      expect(next.state.buffer).toBe("")
+      expect(next.state.defaultCommand).toBe("move") // sticky preserved
+    })
+
+    it("CLEAR_ALL wipes buffer + selection, preserves defaultCommand", () => {
+      const dirty = omniboxReduce(
+        omniboxReduce(pane, { type: "SET_BUFFER", buffer: "foo" }),
+        { type: "SET_SELECTED_ARGUMENT", argumentId: "n1" },
+      )
+      const next = omniboxReduce(dirty, { type: "CLEAR_ALL" })
+      expect(next.state.buffer).toBe("")
+      expect(next.state.selectedArgumentId).toBeNull()
+    })
+
+    it("reducer is pure — input pane is not mutated", () => {
+      const original = createOmniboxPane(baseSpec)
+      omniboxReduce(original, { type: "SET_BUFFER", buffer: "changed" })
+      expect(original.state.buffer).toBe(":")
+    })
+
+    it("spec is preserved across reducer actions", () => {
+      const next = omniboxReduce(pane, { type: "SET_BUFFER", buffer: "foo" })
+      expect(next.spec).toBe(pane.spec)
+      // Subject never changes, even after a full action chain:
+      const chain = [
+        { type: "SET_BUFFER", buffer: ":move" } as const,
+        { type: "SET_SELECTED_ARGUMENT", argumentId: "target" } as const,
+        { type: "SET_DEFAULT_COMMAND", commandId: "move" } as const,
+      ].reduce((p, a) => omniboxReduce(p, a), pane)
+      expect(chain.spec.subjectSelection.cursorId).toBe("anchor")
     })
   })
 })

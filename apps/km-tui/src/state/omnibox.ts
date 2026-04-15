@@ -161,6 +161,85 @@ export function initialStateFromSpec(spec: OmniboxInvocationSpec): OmniboxBaseSt
 }
 
 // ---------------------------------------------------------------------------
+// OmniboxPane — the value object stored in UIState.omnibox (Phase 5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Value object that couples the base state with its frozen invocation spec.
+ * This is what lives in `UIState.omnibox` while an omnibox is open.
+ *
+ * Separating mutable `state` from immutable `spec` keeps reducers focused
+ * on the 3-field base state while the spec (anchorPaneId, subjectSelection,
+ * candidateProvider) stays constant for the whole session.
+ */
+export interface OmniboxPane {
+  readonly spec: OmniboxInvocationSpec
+  /** The 3-field mutable base state. Reducer actions rewrite this field. */
+  state: OmniboxBaseState
+}
+
+/**
+ * Construct a fresh `OmniboxPane` from a spec. This is what
+ * `openOmnibox(spec)` passes to `setUI({ omnibox: ... })` to raise a new
+ * singleton omnibox overlay.
+ */
+export function createOmniboxPane(spec: OmniboxInvocationSpec): OmniboxPane {
+  return { spec, state: initialStateFromSpec(spec) }
+}
+
+/**
+ * Pure reducer action: update the base state of an existing OmniboxPane.
+ * Returns a new pane with the same spec and a replaced state. Keep the
+ * reducer pure — the caller writes the result back via setUI.
+ */
+export function withUpdatedState(
+  pane: OmniboxPane,
+  next: OmniboxBaseState,
+): OmniboxPane {
+  return { spec: pane.spec, state: next }
+}
+
+/**
+ * Minimal omnibox reducer. Pure: `(pane, action) → pane`. The caller
+ * dispatches via `setUI({ omnibox: omniboxReduce(ui.omnibox, action) })`.
+ */
+export type OmniboxAction =
+  | { type: "SET_BUFFER"; buffer: string }
+  | { type: "TYPE_CHAR"; char: string }
+  | { type: "SET_DEFAULT_COMMAND"; commandId: string }
+  | { type: "SET_SELECTED_ARGUMENT"; argumentId: string | null }
+  | { type: "SWITCH_TO_COMMANDS" } // cmd-k while open
+  | { type: "SWITCH_TO_ARGUMENT" } // cmd-f while open
+  | { type: "CLEAR_ALL" }
+
+export function omniboxReduce(pane: OmniboxPane, action: OmniboxAction): OmniboxPane {
+  const s = pane.state
+  switch (action.type) {
+    case "SET_BUFFER":
+      return withUpdatedState(pane, { ...s, buffer: action.buffer })
+    case "TYPE_CHAR":
+      return withUpdatedState(pane, { ...s, buffer: applySigilRule(s.buffer, action.char) })
+    case "SET_DEFAULT_COMMAND":
+      return withUpdatedState(pane, { ...s, defaultCommand: action.commandId })
+    case "SET_SELECTED_ARGUMENT":
+      return withUpdatedState(pane, { ...s, selectedArgumentId: action.argumentId })
+    case "SWITCH_TO_COMMANDS":
+      // cmd-k: force :-mode, preserve sticky argument.
+      return withUpdatedState(pane, { ...s, buffer: ":" })
+    case "SWITCH_TO_ARGUMENT":
+      // cmd-f: force universal mode, preserve sticky defaultCommand.
+      return withUpdatedState(pane, { ...s, buffer: "" })
+    case "CLEAR_ALL":
+      // Triggered on CANCEL or on CONFIRM in pane form.
+      return withUpdatedState(pane, {
+        ...s,
+        buffer: "",
+        selectedArgumentId: null,
+      })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Sigil auto-replace rule (asymmetric — only `:` is slippery)
 // ---------------------------------------------------------------------------
 

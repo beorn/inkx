@@ -126,6 +126,20 @@ export interface UIState {
   // Omnibox / command palette state (global)
   showOmnibox: boolean
 
+  /**
+   * Unified omnibox (Phase 5 of km-tui.omnibox-unified).
+   *
+   * When non-null, a singleton overlay omnibox is active. `pane` carries
+   * the 3-field `OmniboxBaseState` plus the frozen invocation spec
+   * (anchorPaneId, subjectSelection, candidateProvider). The legacy
+   * `showOmnibox` flag remains during the migration; the new unified
+   * omnibox is an additive parallel surface until Phase 12 cleanup
+   * deletes the legacy dialog files.
+   *
+   * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
+   */
+  omnibox: import("./omnibox.ts").OmniboxPane | null
+
   // Favorites dialog state (global)
   showFavoritesDialog: boolean
   favoritesSelectedKey: string | null
@@ -410,6 +424,7 @@ export function createInitialUIState(
     chordTimedOut: false,
 
     showOmnibox: false,
+    omnibox: null,
 
     showFavoritesDialog: false,
     favoritesSelectedKey: null,
