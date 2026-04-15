@@ -16,10 +16,12 @@
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog, H1, H2, Muted, Small, Strong } from "@silvery/ag-react"
+import { Box, Text, ModalDialog, H2, Muted, Small, Strong } from "@silvery/ag-react"
 import { getAllFavorites, getFavorite, getSystemLocs, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
+import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
+import { favoriteToRow } from "./omnibox-row-adapters.ts"
 
 interface FavoritesDialogProps {
   /** The key selected for detail view, or null for list view */
@@ -38,7 +40,14 @@ function SectionHeader({ label }: { label: string }): React.ReactElement {
   )
 }
 
-/** A single key→label/node row */
+/**
+ * A single key→label/node row.
+ *
+ * For assigned nodes, defers to the shared OmniboxRow via favoriteToRow —
+ * the favorite key becomes the right-side hint. For label-only entries
+ * (System / Pickers) and empty slots, builds an OmniboxRowData manually
+ * with no icon so the row layout stays consistent across sections.
+ */
 function KeyRow({
   keyChar,
   label,
@@ -54,24 +63,40 @@ function KeyRow({
   const node = nodeId ? repo.getNode(nodeId) : null
   const title = node?.title ?? node?.name ?? nodeId
 
-  return (
-    <Box flexDirection="row" height={1}>
-      <H1>{` ${keyChar} `}</H1>
-      {node && title ? (
+  if (node && title) {
+    const data = favoriteToRow(keyChar, node)
+    // favoriteToRow uses node.content for the title; favorites prefer the
+    // explicit title/name lookup the dialog already does, so override here.
+    return <OmniboxRow data={{ ...data, title }} />
+  }
+
+  // Empty / label-only slot — synthesize a row descriptor by hand so the
+  // visual matches the OmniboxRow flexbox layout (icon column, title slot,
+  // right-aligned hint with the favorite key).
+  const data: OmniboxRowData = {
+    id: `fav:${keyChar}`,
+    icon: " ",
+    title: label ?? "",
+    hint: keyChar.toUpperCase(),
+    disabled: !label || dimLabel,
+  }
+  if (!label) {
+    // Truly unassigned slot — render the (empty) marker as the title.
+    return (
+      <Box flexDirection="row" height={1}>
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
-          <NodeLine node={node} title={title} />
+          <Text>
+            <Muted>{"  "}</Muted>
+            <Muted>{"(empty)"}</Muted>
+          </Text>
         </Box>
-      ) : label ? (
-        dimLabel ? (
-          <Muted>{label}</Muted>
-        ) : (
-          <Text>{label}</Text>
-        )
-      ) : (
-        <Muted>{"(empty)"}</Muted>
-      )}
-    </Box>
-  )
+        <Box flexGrow={0} flexShrink={0}>
+          <Small>{keyChar.toUpperCase()}</Small>
+        </Box>
+      </Box>
+    )
+  }
+  return <OmniboxRow data={data} />
 }
 
 export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesDialogProps): React.ReactElement {
