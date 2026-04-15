@@ -42,6 +42,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
   - [Principle: MECE — No Gaps, No Overlaps](#principle-mece--no-gaps-no-overlaps)
   - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
+  - [Principle: Self-Healing Over Fragility](#principle-self-healing-over-fragility)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
   - [Principle: Public API First](#principle-public-api-first)
@@ -772,6 +773,53 @@ export function getDb() { ... }
 **Guidelines:**
 - [ ] No compat shims — delete old API / not `export { old as new }`
 - [ ] Hard delete — comment out + fix callers / not `@deprecated` tag
+
+---
+
+### Principle: Self-Healing Over Fragility
+
+**The insight**: Any hook (or any one-shot job that produces durable side effects) will eventually fail. Pair it with a cheap, idempotent catchup on a frequent trigger so missed work self-repairs.
+
+**The pattern**: SessionEnd writes, SessionStart reconciles.
+
+```typescript
+// SessionEnd hook — primary write path (best-effort)
+recall export --hook
+
+// SessionStart hook — idempotent catchup (safety net)
+recall export --catchup --hook
+//   - scans for missing exports vs. JSONL source of truth
+//   - skip-if-exists: zero work on the happy path
+//   - silent on stderr unless it actually did something
+//   - fires a detached `qmd update` only when work was done
+```
+
+**Why**: Hooks crash, schemas change, dependencies go missing. A one-shot write path with no reconciliation means failures accumulate invisibly until you notice the index is wrong. The catchup is the WAL-replay-on-mount pattern: the system always tries to complete stuck work on a frequent trigger, so any single failure loses at most one event's worth of work.
+
+**When to use**:
+- Any hook that writes files, database rows, cache entries, or other durable state.
+- Any one-shot job (cron, systemd timer, post-commit hook) where the trigger runs less often than the catchup opportunity would.
+- Anywhere silent partial failure would accumulate cumulative damage invisibly.
+
+**When NOT to use**:
+- Read-only enrichment hooks (UserPromptSubmit → qmd search injection). No state to heal. Failure just means that one turn misses the enrichment.
+- Expensive irreversible operations (OAuth refreshes, remote pushes). Self-healing these silently would make each session start slow and hide errors the user needs to see. Surface them as doctor findings instead.
+
+**Design rules**:
+- **Catchup trigger ≥ primary trigger frequency.** SessionStart runs for every session; SessionEnd only runs when a session terminates cleanly. Pick the catchup trigger so it fires under conditions where the primary hook might have been skipped.
+- **Silent on the happy path.** Zero stderr output when there's nothing to catch up. Noise-during-normal-operation destroys the signal on actual failures.
+- **Idempotency is the invariant; protect it with a test.** `catchup()` twice in a row must be a no-op on the second call. Regressions here silently rewrite live state on every session start. Add a test.
+- **Fire-and-forget downstream work.** If catchup writes new data that other subsystems need, trigger their updates as a detached process (`spawn().unref()`). Don't block the session on indexing.
+- **Pair with a `doctor` command for expensive repairs.** Cheap idempotent work auto-heals on the catchup trigger. Expensive or user-blocking work (re-login, force-rebuild, cache invalidation) surfaces as findings in a `doctor` command. Both use the same underlying logic.
+
+**Guidelines:**
+- [ ] Paired catchup — every durable-write hook has a corresponding `--catchup` invocation on a frequent trigger / not standalone fire-and-forget
+- [ ] Silent happy path — catchup emits zero stderr when nothing to do / not "ran, 0 files" noise
+- [ ] Idempotent test — "run catchup twice, second is no-op" test exists / not hand-waved
+- [ ] Detached downstream — background reindex after writes / not blocking the session
+- [ ] Doctor for loud repairs — expensive fixes surface as findings / not hidden in catchup
+
+See [Self-Healing Hooks lesson](lessons/self-healing-hooks.md) for the recall-export-hook war story.
 
 ---
 
@@ -1724,3 +1772,4 @@ Real stories from km development that shaped these principles:
 - [filetree-as-peer.md](lessons/filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
 - [km-me0n.md](lessons/km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.
 - [worktree-discipline.md](lessons/worktree-discipline.md) — **Worktree Creation Is a Prerequisite**: Agents must create worktrees before editing, not as a step they'll get to later. Process steps that create isolation gate all other work.
+- [self-healing-hooks.md](lessons/self-healing-hooks.md) — **The Hook That Silently Lost Work**: A `SessionEnd` hook in accountly's recall tool silently failed to write session markdown when Claude Code's schema validator tightened. The lesson: every durable-side-effect hook needs a paired idempotent catchup on a frequent trigger.
