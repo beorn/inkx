@@ -39,8 +39,14 @@ import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands } from "@km/commands"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import { dispatchOmnibox, dismissOmnibox, resolveEffectiveCommand, type OmniboxPane } from "../state/omnibox.ts"
-import { commandResultsForOmnibox } from "../state/omnibox-projection.ts"
+import {
+  dispatchOmnibox,
+  dismissOmnibox,
+  modeOf,
+  resolveEffectiveCommand,
+  type OmniboxPane,
+} from "../state/omnibox.ts"
+import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 // =============================================================================
@@ -235,21 +241,32 @@ function UnifiedOmniboxConnector({
   width: number
 }): React.ReactElement {
   const storeRef = React.useContext(StoreContext)
+  const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-  // Live-computed results — projected from @km/commands when in `:`-mode.
-  // Other sigils return empty for v1; full node search lands in Phase 7d.
+  // Live-computed results — sigil-dispatched per docs/design/omnibox.md.
+  //
+  // - `:` (command mode) → projected from @km/commands via commandResultsForOmnibox
+  // - `+ @ # [` (content sigils) → repo-scanned via nodeResultsForOmnibox (Phase 7d)
+  // - empty buffer (universal) → top-N commands as a starting point until
+  //   recents land in a later phase
+  //
+  // The full query (sigil included) is passed to nodeResultsForOmnibox so
+  // the tiered fuzzy scorer's prefix tier handles `+ta` → `+taxes` correctly.
   const results: OmniboxRowData[] = useMemo(() => {
     const buffer = pane.state.buffer
-    if (buffer.startsWith(":")) {
+    const mode = modeOf(buffer)
+    if (mode === "command") {
       return commandResultsForOmnibox(allCommands, buffer.slice(1))
     }
     if (buffer.length === 0) {
-      // Universal search — v1 shows the top-N commands as a starting point.
+      // Universal search v1 — show top-N commands. Recents will replace this.
       return commandResultsForOmnibox(allCommands, "").slice(0, 12)
     }
-    return []
-  }, [pane.state.buffer])
+    // Content sigils (+ @ # [) and the bare `node` mode all dispatch through
+    // node search. local_find returns empty here — Phase 9 owns that surface.
+    return nodeResultsForOmnibox(repo, buffer, mode)
+  }, [pane.state.buffer, repo])
 
   // Keep selectedIndex in range as results change.
   React.useEffect(() => {
