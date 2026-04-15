@@ -22,7 +22,6 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { fuzzyScore, getParentName } from "./search-utils.ts"
 import { modeOf } from "../state/omnibox.ts"
-import { scoreNodeForOmnibox } from "../state/omnibox-projection.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // =============================================================================
@@ -179,61 +178,22 @@ const MIN_SEARCH_LENGTH = 2
 const MAX_SEARCH_RESULTS = 12
 
 /**
- * Find nodes whose `name` (filename) or `title` (heading) contains the
- * query. **Bypasses FTS5** — necessary because the FTS5 schema only indexes
- * `id` + `content`, so filename/title hits never appear via `repo.search()`.
- * A file `@next.md` with an empty body would otherwise never surface for
- * the query `@next` no matter how good the ranker is.
+ * Build vault-wide search results. Delegates entirely to `repo.search()` —
+ * which uses FTS5 `bm25(table, 1.0, 3.0, 2.0, 1.0)` column weights plus a
+ * slash-count depth tie-break to produce identity-first ordering (name >
+ * title > content, shallower wins). See
+ * packages/km-storage/src/db/queries/full-text-search.ts.
  *
- * Uses an in-memory scan over `SELECT * FROM nodes` (the same pattern the
- * unified omnibox's `nodeResultsForOmnibox` uses) so we get a registry of
- * candidates that the fuzzy ranker can score. Comparison is case-insensitive
- * and matches anywhere in `name` or `title`. The literal query is preserved
- * (sigils included) so `@next` still anchors to the right column.
- */
-function findByNameOrTitle(repo: Repo, query: string): KNode[] {
-  const all = repo.rawQuery<KNode>("SELECT * FROM nodes")
-  const q = query.toLowerCase()
-  const matches: KNode[] = []
-  for (const n of all) {
-    const name = (n.name ?? "").toLowerCase()
-    const title = (n.title ?? "").toLowerCase()
-    if (name.includes(q) || title.includes(q)) matches.push(n)
-    if (matches.length >= 50) break
-  }
-  return matches
-}
-
-/**
- * Build vault-wide search results. Two sources are merged and deduped:
- *   1. FTS5 content search (`repo.search(query)`) — body matches
- *   2. Filename/title prefix search (`findByNameOrTitle`) — surfaces files
- *      and headings whose text contains the query. This is required for
- *      sigil queries like `@next` to find a file literally named `@next.md`,
- *      because FTS5 doesn't index the `name` column.
- *
- * Caller re-ranks the merged set through the shared tiered fuzzyScore so
- * exact/prefix matches bubble to the top regardless of which source found them.
+ * No JS re-rank here — BM25 handles everything the ad-hoc scorer used to
+ * do, with better characteristics (term frequency, IDF, length norm) and
+ * at the storage layer where the index is already built.
  */
 function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
   if (query.length < MIN_SEARCH_LENGTH) return []
 
-  // Merge two sources by node id — title-prefix hits + FTS body hits.
-  const seen = new Set<string>()
-  const merged: KNode[] = []
-  for (const node of findByNameOrTitle(repo, query)) {
-    if (seen.has(node.id)) continue
-    seen.add(node.id)
-    merged.push(node)
-  }
-  for (const node of repo.search(query)) {
-    if (seen.has(node.id)) continue
-    seen.add(node.id)
-    merged.push(node)
-  }
-
+  const nodes = repo.search(query, MAX_SEARCH_RESULTS * 2)
   const results: OmniboxResult[] = []
-  for (const node of merged) {
+  for (const node of nodes) {
     if (results.length >= MAX_SEARCH_RESULTS) break
     if (KNode.isOutline(node) && node.fstype === "folder") continue
     if (KNode.isEmbed(node)) continue
@@ -395,32 +355,14 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     return scored.map(({ result }) => result)
   }, [allResults, deferredQuery])
 
-  // Vault-wide search results (FTS5, deferred until 2+ chars). FTS5 tokenizes
-  // the query so its native ranking doesn't honor sigil prefixes or literal
-  // title-prefix matches. Re-rank through the shared multi-field scorer from
-  // omnibox-projection so that `name` (filename) matches outrank `title`
-  // (heading) matches outrank `display-name` fallbacks, with a shallow-depth
-  // boost. See km-tui.picker-rank-subpath for the tiered base, and
-  // scoreNodeForOmnibox for the field weighting.
-  //
-  // Why not fuzzyScore(query, r.label)? The `label` is the display name,
-  // which for a file with an H1 heading returns the heading text (e.g.
-  // "Next Actions") rather than the filename. A file `@next.md` with H1
-  // "# Next" would score low against `@next` query because the display name
-  // "Next" drops the sigil entirely. Multi-field scoring looks at name and
-  // title directly, side-stepping the display-name reduction.
-  const searchResults = React.useMemo(() => {
-    const raw = buildSearchResults(repo, deferredQuery)
-    if (!deferredQuery) return raw
-    const scored = raw.map((r) => {
-      // Prefer the full node scorer when we have the raw KNode. Fallback to
-      // label-only fuzzyScore for results without a node handle.
-      const s = r.node ? scoreNodeForOmnibox(r.node, deferredQuery) : fuzzyScore(deferredQuery, r.label)
-      return { r, s }
-    })
-    scored.sort((a, b) => b.s - a.s)
-    return scored.map(({ r }) => r)
-  }, [repo, deferredQuery])
+  // Vault-wide search results (FTS5, deferred until 2+ chars). `repo.search()`
+  // returns results already ordered by `bm25(nodes_fts, 1.0, 3.0, 2.0, 1.0)`
+  // plus a depth tie-break — identity-first ranking is pushed all the way
+  // down into SQL. No JS re-rank layer needed.
+  const searchResults = React.useMemo(
+    () => buildSearchResults(repo, deferredQuery),
+    [repo, deferredQuery],
+  )
 
   // Merge: command/goto results first, then search results (with divider tracked by index)
   const hasSearchResults = searchResults.length > 0

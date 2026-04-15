@@ -30,9 +30,24 @@ function insertNode(
     name = null,
     title = null,
     content = null,
-  }: { id: string; type?: string; name?: string | null; title?: string | null; content?: string | null },
+    fsPath = null,
+  }: {
+    id: string
+    type?: string
+    name?: string | null
+    title?: string | null
+    content?: string | null
+    fsPath?: string | null
+  },
 ): void {
-  db.run("INSERT INTO nodes (id, type, name, title, content) VALUES (?, ?, ?, ?, ?)", [id, type, name, title, content])
+  db.run("INSERT INTO nodes (id, type, name, title, content, fs_path) VALUES (?, ?, ?, ?, ?, ?)", [
+    id,
+    type,
+    name,
+    title,
+    content,
+    fsPath,
+  ])
 }
 
 describe("FTS5 sigil-aware search", () => {
@@ -205,5 +220,121 @@ describe("FTS5 sigil-aware search", () => {
 
     const results = search(db, "@next")
     expect(results.map((n) => n.id)).toContain("n1")
+  })
+})
+
+// ===========================================================================
+// BM25 column-weight ranking + depth tie-break
+//
+// These tests pin the identity-first ordering that the omnibox depends on.
+// Regressions here mean users typing sigil-prefixed queries will see
+// body-text mentions above actual identity files — the exact bug from
+// screenshot 2026-04-14 21:14.
+// ===========================================================================
+
+describe("BM25 column-weight ranking", () => {
+  test("name match outranks title match for the same query", () => {
+    const db = freshDb()
+    // Root file whose NAME literally matches the query — should win
+    insertNode(db, { id: "name-hit", name: "@next", title: "", content: "", fsPath: "@next.md" })
+    // Section whose TITLE contains the query as a tag annotation — should lose
+    insertNode(db, {
+      id: "title-hit",
+      type: "h",
+      name: null,
+      title: "@next actions",
+      content: "",
+      fsPath: "inbox/tasks.md",
+    })
+
+    const results = search(db, "@next")
+    // name-hit must come before title-hit in the result order
+    const nameIdx = results.findIndex((n) => n.id === "name-hit")
+    const titleIdx = results.findIndex((n) => n.id === "title-hit")
+    expect(nameIdx).toBeGreaterThanOrEqual(0)
+    expect(titleIdx).toBeGreaterThanOrEqual(0)
+    expect(nameIdx).toBeLessThan(titleIdx)
+  })
+
+  test("title match outranks content match for the same query", () => {
+    const db = freshDb()
+    insertNode(db, {
+      id: "title-hit",
+      type: "h",
+      name: null,
+      title: "@next",
+      content: "",
+      fsPath: "inbox/plan.md",
+    })
+    insertNode(db, {
+      id: "content-hit",
+      type: "p",
+      name: null,
+      title: null,
+      content: "we should schedule @next soon",
+      fsPath: "journal/day1.md",
+    })
+
+    const results = search(db, "@next")
+    const titleIdx = results.findIndex((n) => n.id === "title-hit")
+    const contentIdx = results.findIndex((n) => n.id === "content-hit")
+    expect(titleIdx).toBeGreaterThanOrEqual(0)
+    expect(contentIdx).toBeGreaterThanOrEqual(0)
+    expect(titleIdx).toBeLessThan(contentIdx)
+  })
+
+  test("identity-first ranking — user screenshot scenario (@next)", () => {
+    const db = freshDb()
+    // The exact scenario from the user's feedback: typing '@next' should
+    // surface the root '@next.md' file at the top, even when nested sections
+    // use '@next' as a tag annotation in their title.
+    insertNode(db, {
+      id: "root-file",
+      type: "f",
+      name: "@next",
+      title: "@next",
+      content: "",
+      fsPath: "@next.md",
+    })
+    insertNode(db, {
+      id: "tag-section",
+      type: "h",
+      name: null,
+      title: "@next actions",
+      content: "pick up drycleaning",
+      fsPath: "inbox/triage/tasks.md",
+    })
+    insertNode(db, {
+      id: "content-mention",
+      type: "p",
+      name: null,
+      title: null,
+      content: "we should plan @next week together",
+      fsPath: "planning/weekly.md",
+    })
+
+    const results = search(db, "@next")
+    expect(results[0]?.id).toBe("root-file")
+  })
+})
+
+describe("depth tie-break — shallower nodes rank higher at equal BM25", () => {
+  test("equal-name nodes at different depths: root wins", () => {
+    const db = freshDb()
+    insertNode(db, { id: "root", name: "@taxes", title: "@taxes", content: "", fsPath: "@taxes.md" })
+    insertNode(db, {
+      id: "deep",
+      name: "@taxes",
+      title: "@taxes",
+      content: "",
+      fsPath: "personal/finance/2026/@taxes.md",
+    })
+
+    const results = search(db, "@taxes")
+    const rootIdx = results.findIndex((n) => n.id === "root")
+    const deepIdx = results.findIndex((n) => n.id === "deep")
+    expect(rootIdx).toBeGreaterThanOrEqual(0)
+    expect(deepIdx).toBeGreaterThanOrEqual(0)
+    expect(rootIdx).toBeLessThan(deepIdx)
   })
 })

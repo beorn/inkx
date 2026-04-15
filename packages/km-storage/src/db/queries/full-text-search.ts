@@ -96,7 +96,29 @@ function escapeFts5Token(token: string): string | null {
 }
 
 /**
- * Full-text search
+ * Full-text search with identity-biased ranking.
+ *
+ * Uses FTS5's `bm25(table, ...weights)` auxiliary function with per-column
+ * weights to produce the identity-first ordering the omnibox needs:
+ *
+ *   id      × 1.0   — rarely typed, but an exact match is meaningful
+ *   name    × 3.0   — filename / alias; strongest identity signal
+ *   title   × 2.0   — H1 / section heading; medium weight (km convention
+ *                    puts `@person` / `#topic` in section titles as tag
+ *                    annotations, which we rank below name)
+ *   content × 1.0   — body text; baseline
+ *
+ * The `bm25()` function returns the NEGATED BM25 score (lower = better)
+ * so `ORDER BY bm25(...) ASC` sorts best-match first. Depth is a secondary
+ * tie-breaker: we add `slashes_in_fs_path * 0.1` as a small positive
+ * penalty so shallower nodes beat deeper nodes with identical relevance
+ * (the vault-root `@next.md` beats a nested `personal/2026/@next.md`).
+ *
+ * Why not a JS post-pass for identity bias? Because `bm25(table, weights)`
+ * is the exact mechanism FTS5 provides for this — precomputed in the
+ * index, applied in C, consistent with the literature. Any JS scorer is
+ * reimplementing BM25 with worse characteristics. See docs/design/omnibox.md
+ * § "Why BM25 column weights" for the full design rationale.
  */
 export function search(db: Database, query: string, limit = 50): KNode[] {
   const ftsQuery = toFts5Query(query)
@@ -113,7 +135,9 @@ export function search(db: Database, query: string, limit = 50): KNode[] {
     SELECT n.* FROM nodes n
     JOIN nodes_fts f ON n.id = f.id
     WHERE nodes_fts MATCH ?
-    ORDER BY rank
+    ORDER BY
+      bm25(nodes_fts, 1.0, 3.0, 2.0, 1.0)
+      + (LENGTH(COALESCE(n.fs_path, '')) - LENGTH(REPLACE(COALESCE(n.fs_path, ''), '/', ''))) * 0.1
     LIMIT ?
   `,
       )
@@ -171,6 +195,8 @@ export function searchWithSnippet(
     // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)
     // Column order matches nodes_fts DDL: 0=id, 1=name, 2=title, 3=content.
     // We snippet the content column (3) — that's where prose lives.
+    // Same identity-biased ranking as `search()` — see the weights + depth
+    // penalty comment there. The snippet column is rendered separately.
     const rows = db
       .query(
         `
@@ -178,7 +204,9 @@ export function searchWithSnippet(
     FROM nodes n
     JOIN nodes_fts f ON n.id = f.id
     WHERE nodes_fts MATCH ?
-    ORDER BY rank
+    ORDER BY
+      bm25(nodes_fts, 1.0, 3.0, 2.0, 1.0)
+      + (LENGTH(COALESCE(n.fs_path, '')) - LENGTH(REPLACE(COALESCE(n.fs_path, ''), '/', ''))) * 0.1
     LIMIT ?
   `,
       )
