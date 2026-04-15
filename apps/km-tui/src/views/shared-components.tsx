@@ -426,17 +426,32 @@ export function InputBox({
   const value = beforeCursor + afterCursor
   const showPlaceholder = !value && placeholder
 
+  // Render the placeholder with the cursor INLINED on its first character
+  // (inverse + dim), not as a separate inverse-space block. This fixes:
+  //   (1) "not left-aligned" — there's no leading block pushing the text
+  //   (2) "too white" — the placeholder uses explicit dimColor, not <Muted>
+  //       (which some themes render too close to primary)
+  // The cursor is visible as a dim inverse cell on the first ghost char;
+  // the rest of the placeholder is plain dim text.
+  const placeholderContent = showPlaceholder ? (
+    showCursor && placeholder.length > 0 ? (
+      <>
+        <Text dimColor inverse>
+          {placeholder[0]}
+        </Text>
+        <Text dimColor>{placeholder.slice(1)}</Text>
+      </>
+    ) : (
+      <Text dimColor>{placeholder}</Text>
+    )
+  ) : null
+
   const content = (
     <Box flexDirection="column">
       <Text>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
         {showPlaceholder ? (
-          // Cursor at position 0, placeholder reads as ghost text after it.
-          // Matches the standard input pattern: █ghost hint text…
-          <>
-            {showCursor && <Text inverse> </Text>}
-            <Muted>{placeholder}</Muted>
-          </>
+          placeholderContent
         ) : (
           <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
         )}

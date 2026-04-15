@@ -41,13 +41,13 @@ describe("omnibox", () => {
     app.expect("[data-dialog='omnibox']").not.toExist()
   })
 
-  it("derives title from leading sigil (empty buffer → Omnibox)", () => {
+  it("derives title + hotkey from leading sigil (command_palette → Command mode)", () => {
     using app = standardBoard()
     app.command("command_palette")
-    // Empty buffer defaults to the generic "Omnibox" title; the title
-    // re-derives as the user types a sigil (: → Command, @ → Context,
-    // etc.). See docs/design/omnibox.md and the modeOf() mapping.
-    expect(app.text).toContain("Omnibox")
+    // Per km-tui.omnibox-cmd-k-colon, command_palette now opens the
+    // omnibox pre-filled with ":" so the user sees they're in command
+    // mode. Title shows "Command", hotkey badge is ":".
+    expect(app.text).toContain("Command")
   })
 
   it("shows go-to locations in results", () => {
@@ -120,9 +120,13 @@ describe("omnibox", () => {
     app.expect("[data-dialog='omnibox']").toExist()
   })
 
-  it("shows vault search results for content queries", () => {
+  it("shows vault search results for content queries (after clearing command-mode sigil)", () => {
     using app = standardBoard()
     app.command("command_palette")
+    // command_palette opens in command mode (buffer := ":"). To run a
+    // content search the user backspaces the sigil away first — this is
+    // the universal (no-sigil) mode that runs repo.search() via FTS5.
+    app.press("Backspace")
     // Type "task1" — should match the node title via FTS
     app.press("t")
     app.press("a")
@@ -162,10 +166,13 @@ describe("omnibox", () => {
     expect(app.text).toContain("@next")
   })
 
-  it("search results appear below command results", () => {
+  it("search results appear below command results (universal mode, no sigil)", () => {
     // Use extra-tall terminal so both sections are visible
     using app = createTestApp([...item("board", item("col1", item("task1"), item("task2")))], { rows: 60 })
     app.command("command_palette")
+    // Clear the default ':' to enter universal mode where commands + FTS
+    // search results can both surface in the merged result list.
+    app.press("Backspace")
     // Type "task1" — matches few commands but definitely matches the node
     app.press("t")
     app.press("a")

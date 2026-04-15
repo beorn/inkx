@@ -293,9 +293,22 @@ interface OmniboxProps {
   width: number
   /** Maximum height */
   maxHeight: number
+  /**
+   * Initial buffer text. Defaults to `":"` so Cmd-K / Ctrl-K / `:` open
+   * the omnibox in command mode with the sigil already visible — the user
+   * sees what mode they're in without needing to type the sigil first, and
+   * the sigil-aware scorer immediately shows all commands.
+   */
+  initialBuffer?: string
 }
 
-export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps): React.ReactElement {
+export function Omnibox({
+  onSelect,
+  onCancel,
+  width,
+  maxHeight,
+  initialBuffer = ":",
+}: OmniboxProps): React.ReactElement {
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
@@ -309,7 +322,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   const resultsRef = React.useRef<OmniboxResult[]>([])
 
   const editCtx = useDialogInput({
-    initialValue: "",
+    initialValue: initialBuffer,
     onChange: () => setSelectedIndex(0),
     navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
     navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
@@ -343,25 +356,41 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     return () => clearTimeout(omniTimerRef.current)
   }, [query])
 
-  // Filter and sort command/goto results based on deferred query
-  const filteredCommandResults = React.useMemo(() => {
-    if (!deferredQuery) return allResults
+  // Split the query into sigil + body. The leading sigil dictates which
+  // result category (commands / gotos / nodes) we surface, and the body
+  // is what we fuzzy-score against. Stripping the sigil is the key fix for
+  // the ':' bug: typing ':' with nothing after used to score ALL commands
+  // at 0 (since no label contains ':'), hiding them; now ':' → body='', and
+  // the empty-body branch returns the full command list.
+  const queryMode = modeOf(deferredQuery)
+  const queryBody = queryMode === "universal" || queryMode === "local_find" ? deferredQuery : deferredQuery.slice(1)
 
+  // Filter and sort command/goto results. Empty body (user typed just the
+  // sigil, or hasn't typed anything yet) returns the full list unranked.
+  const filteredCommandResults = React.useMemo(() => {
+    // Content sigils (@ # + ~) are for NODE queries, not commands — hide
+    // the command list entirely so the UI doesn't mix categories.
+    if (queryMode !== "command" && queryMode !== "universal") return []
+    if (!queryBody) return allResults
     const scored = allResults
-      .map((result) => ({ result, score: scoreResult(result, deferredQuery) }))
+      .map((result) => ({ result, score: scoreResult(result, queryBody) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
-
     return scored.map(({ result }) => result)
-  }, [allResults, deferredQuery])
+  }, [allResults, queryMode, queryBody])
 
   // Vault-wide search results (FTS5, deferred until 2+ chars). `repo.search()`
   // returns results already ordered by `bm25(nodes_fts, 1.0, 3.0, 2.0, 1.0)`
   // plus a depth tie-break — identity-first ranking is pushed all the way
   // down into SQL. No JS re-rank layer needed.
+  //
+  // Command mode (`:` sigil) skips the node search — the user is looking
+  // for verbs, not content. Sigil-prefixed content queries (@ # + ~) pass
+  // through the full buffer including the sigil so FTS5's tokenchars
+  // config handles the match natively.
   const searchResults = React.useMemo(
-    () => buildSearchResults(repo, deferredQuery),
-    [repo, deferredQuery],
+    () => (queryMode === "command" ? [] : buildSearchResults(repo, deferredQuery)),
+    [repo, deferredQuery, queryMode],
   )
 
   // Merge: command/goto results first, then search results (with divider tracked by index)
@@ -404,41 +433,24 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     </Box>
   )
 
-  // Derive the dialog title from the buffer's leading sigil, so it
-  // re-reads as the user switches modes with a single keystroke.
-  // Matches docs/design/omnibox.md — the title never lies about mode.
-  const mode = modeOf(editCtx.beforeCursor + editCtx.afterCursor)
-  const title =
-    mode === "command"
-      ? "Command"
-      : mode === "context"
-        ? "Context"
-        : mode === "tag"
-          ? "Tag"
-          : mode === "project"
-            ? "Project"
-            : mode === "node"
-              ? "Node"
-              : mode === "local_find"
-                ? "Find"
-                : "Omnibox"
-  const placeholderText =
-    mode === "command"
-      ? "Search commands…"
-      : mode === "context"
-        ? "Search contexts (@someone)…"
-        : mode === "tag"
-          ? "Search tags (#topic)…"
-          : mode === "project"
-            ? "Search projects (+name)…"
-            : mode === "node"
-              ? "Search nodes ([title])…"
-              : mode === "local_find"
-                ? "Find in view (/text)…"
-                : "Type : for commands, + @ # [ for nodes…"
+  // Derive the dialog title + hotkey badge + placeholder from the buffer's
+  // leading sigil, so the chrome re-reads as the user switches modes with
+  // a single keystroke. One lookup table keeps the three in sync.
+  //
+  // The `hotkey` prop drives the small badge next to the title — it used
+  // to be hardcoded to ":" (the bug from issue km-tui.omnibox-hotkey-badge).
+  const modeChrome = {
+    command: { label: "Command", hotkey: ":", placeholder: "Search commands…" },
+    context: { label: "Context", hotkey: "@", placeholder: "Search contexts (@someone)…" },
+    tag: { label: "Tag", hotkey: "#", placeholder: "Search tags (#topic)…" },
+    project: { label: "Project", hotkey: "+", placeholder: "Search projects (+name)…" },
+    local_find: { label: "Find", hotkey: "/", placeholder: "Find in view (/text)…" },
+    universal: { label: "Omnibox", hotkey: "", placeholder: "Type : for commands, + @ # for nodes…" },
+  } as const
+  const chrome = modeChrome[queryMode] ?? modeChrome.universal
 
   return (
-    <ModalDialog title={title} hotkey=":" width={width} height={dialogHeight} footer={footerContent}>
+    <ModalDialog title={chrome.label} hotkey={chrome.hotkey} width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input */}
       <Box flexShrink={0}>
         <InputBox
@@ -446,7 +458,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
           afterCursor={editCtx.afterCursor}
           prompt="> "
           promptColor={"$primary"}
-          placeholder={placeholderText}
+          placeholder={chrome.placeholder}
           focusRing
         />
       </Box>
