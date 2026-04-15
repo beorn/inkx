@@ -1,18 +1,48 @@
 /**
- * Phase 4 tests — omnibox command projection + default command.
+ * Omnibox command projection tests — covers projection, ranking, and
+ * context-aware availability filtering.
  */
 import { describe, expect, it } from "vitest"
 import { allCommands } from "@km/commands"
-import type { CommandDef } from "@km/commands"
+import type { CommandDef, KeybindingContext } from "@km/commands"
 import {
   commandResultsForOmnibox,
-  filterCommandsByMode,
+  filterAvailableCommands,
   projectCommands,
   rankCommands,
 } from "../src/state/omnibox-projection.ts"
 
 function findCmd(id: string): CommandDef | undefined {
   return allCommands.find((c) => c.id === id)
+}
+
+/**
+ * Permissive keybinding context for tests. All flags false, no cursor,
+ * so built-in predicates (`hasCursor`, `textInputFocused`, `inMoveMode`,
+ * etc.) evaluate to their "neutral" values. Tests that care about a
+ * specific predicate override the relevant field.
+ */
+function testCtx(overrides: Partial<KeybindingContext> = {}): KeybindingContext {
+  return {
+    currentNode: null,
+    textInputFocused: false,
+    mode: "normal",
+    isInDetailPane: false,
+    isInOutlineMode: false,
+    hasMultiSelection: false,
+    isInlineEditing: false,
+    searchDialogOpen: false,
+    itemPickerOpen: false,
+    newItemDialogOpen: false,
+    datePromptOpen: false,
+    filterDialogOpen: false,
+    helpOverlayOpen: false,
+    deleteConfirmOpen: false,
+    consoleOpen: false,
+    hasActiveToast: false,
+    visualMode: false,
+    ...overrides,
+  } as KeybindingContext
 }
 
 describe("projectCommands", () => {
@@ -78,16 +108,17 @@ describe("default command", () => {
   })
 })
 
-describe("filterCommandsByMode", () => {
-  it("commands with no modes list are available in every mode", () => {
+describe("filterAvailableCommands", () => {
+  it("commands with no modes list and no when predicate are available in every mode", () => {
     const cmds = [{ id: "a", name: "A", description: "", category: "Navigation" as const, execute: () => null }]
-    expect(filterCommandsByMode(cmds, "normal")).toHaveLength(1)
-    expect(filterCommandsByMode(cmds, "move")).toHaveLength(1)
-    expect(filterCommandsByMode(cmds, "search")).toHaveLength(1)
-    expect(filterCommandsByMode(cmds, "input")).toHaveLength(1)
+    const ctx = testCtx()
+    expect(filterAvailableCommands(cmds, ctx, "normal")).toHaveLength(1)
+    expect(filterAvailableCommands(cmds, ctx, "move")).toHaveLength(1)
+    expect(filterAvailableCommands(cmds, ctx, "search")).toHaveLength(1)
+    expect(filterAvailableCommands(cmds, ctx, "input")).toHaveLength(1)
   })
 
-  it("commands with modes list are gated by that list", () => {
+  it("commands with a modes list are gated by that list", () => {
     const cmds = [
       {
         id: "m1",
@@ -105,9 +136,10 @@ describe("filterCommandsByMode", () => {
         execute: () => null,
       },
     ]
-    const inNormal = filterCommandsByMode(cmds, "normal")
+    const ctx = testCtx()
+    const inNormal = filterAvailableCommands(cmds, ctx, "normal")
     expect(inNormal.map((c) => c.id)).toEqual(["a"])
-    const inMove = filterCommandsByMode(cmds, "move")
+    const inMove = filterAvailableCommands(cmds, ctx, "move")
     expect(inMove.map((c) => c.id).sort()).toEqual(["a", "m1"])
   })
 })
@@ -152,8 +184,8 @@ describe("rankCommands", () => {
 })
 
 describe("commandResultsForOmnibox", () => {
-  it("empty query returns all commands projected as rows", () => {
-    const rows = commandResultsForOmnibox(allCommands, "", "normal")
+  it("empty query returns all available commands projected as rows", () => {
+    const rows = commandResultsForOmnibox(allCommands, testCtx(), "", "normal")
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
       expect(row.id.startsWith("cmd:")).toBe(true)
@@ -161,7 +193,7 @@ describe("commandResultsForOmnibox", () => {
   })
 
   it("filters by query fuzzy match", () => {
-    const rows = commandResultsForOmnibox(allCommands, "goto", "normal")
+    const rows = commandResultsForOmnibox(allCommands, testCtx(), "goto", "normal")
     expect(rows.length).toBeGreaterThan(0)
     expect(rows[0]?.id).toBe("cmd:goto") // exact match top
   })

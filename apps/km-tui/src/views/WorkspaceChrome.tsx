@@ -48,10 +48,7 @@ import {
   resolveEffectiveCommand,
   type OmniboxPane,
 } from "../state/omnibox.ts"
-import {
-  commandResultsForOmniboxWithContext,
-  nodeResultsForOmnibox,
-} from "../state/omnibox-projection.ts"
+import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 // =============================================================================
@@ -252,8 +249,9 @@ function UnifiedOmniboxConnector({
   // Live-computed results — sigil-dispatched per docs/design/omnibox.md.
   //
   // - `:` (command mode) → projected from @km/commands via
-  //   commandResultsForOmniboxWithContext (Phase 8 — gates on `def.when` too)
-  // - `+ @ # [` (content sigils) → repo-scanned via nodeResultsForOmnibox (Phase 7d)
+  //   commandResultsForOmnibox (gates on both `def.modes` and `def.when`)
+  // - `+ @ # ~` (content sigils) → repo.search() via nodeResultsForOmnibox
+  //   (FTS5 BM25 column weights + depth tie-break live in SQL)
   // - empty buffer (universal) → top-N commands as a starting point until
   //   recents land in a later phase
   //
@@ -272,14 +270,14 @@ function UnifiedOmniboxConnector({
       // Build a `KeybindingContext` at render time from the focused pane.
       // `defaultBuildOpCtx` returns the same OpCtx shape the keypress path
       // uses; `buildKeybindingContextFromOpCtx` then produces the kbCtx
-      // that `filterCommandsByAvailability` consumes. We pass a no-op
-      // `exit` because render-time projection never quits the app.
+      // that `filterAvailableCommands` consumes. We pass a no-op `exit`
+      // because render-time projection never quits the app.
       const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore> | null
       if (!store) return []
       const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
       const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
       const query = mode === "command" ? buffer.slice(1) : ""
-      const rows = commandResultsForOmniboxWithContext(allCommands, kbCtx, query)
+      const rows = commandResultsForOmnibox(allCommands, kbCtx, query)
       // Universal search v1 — show top-N commands for an empty buffer.
       // Recents will replace this in a later phase.
       return buffer.length === 0 ? rows.slice(0, 12) : rows

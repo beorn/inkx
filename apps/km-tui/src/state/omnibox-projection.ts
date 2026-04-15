@@ -1,20 +1,13 @@
 /**
- * Omnibox command projection — Phase 4 (mode filter) + Phase 8 (when filter).
+ * Omnibox command projection.
  *
  * Turns the @km/commands registry into OmniboxRowData for the unified
- * omnibox. This is a pure adapter: registry → rows, with optional
- * mode/context filtering.
+ * omnibox. Pure adapter: registry + query + context → rows.
  *
- * Two filter helpers exist:
- *   - `filterCommandsByMode(cmds, mode)` — Phase 4, gates on `def.modes`
- *     only. Kept for callers that don't yet have a KeybindingContext.
- *   - `filterCommandsByAvailability(cmds, ctx, mode?)` — Phase 8, gates
- *     on both `def.modes` and `def.when` via `isCommandAvailable`.
- *
- * Wiring `filterCommandsByAvailability` into `commandResultsForOmnibox`
- * requires a KeybindingContext at the call site (currently
- * `WorkspaceChrome` / `UnifiedOmniboxConnector`). That wiring lands in
- * a follow-up; until then, both helpers are exported and stable.
+ * Filtering gates on both `def.modes` (coarse) and `def.when` (precise)
+ * via `isCommandAvailable` — a single function call that honors both the
+ * legacy Phase 4 mode list and the Phase 8 predicate. Callers must supply
+ * a `KeybindingContext`; tests use a permissive stub.
  */
 import type { CommandDef, CommandMode, KeybindingContext } from "@km/commands"
 import { isCommandAvailable } from "@km/commands"
@@ -25,39 +18,20 @@ import type { OmniboxRowData } from "../views/OmniboxRow.tsx"
 import type { OmniboxMode } from "./omnibox.ts"
 
 /**
- * Project a command list to row descriptors. The caller supplies the
- * command list (usually `registry.getAll()` or `allCommands`) so this
- * function is independent of which registry instance the app uses.
+ * Project a command list to row descriptors. Pure adapter — no filtering,
+ * no ranking. Use `commandResultsForOmnibox` for the full filter → rank →
+ * project pipeline.
  */
 export function projectCommands(cmds: readonly CommandDef[]): OmniboxRowData[] {
   return cmds.map((cmd) => commandToRow(cmd))
 }
 
 /**
- * Filter a command list by the current km-tui mode (normal / move /
- * search / input). Commands without a `modes` list are considered
- * available in every mode.
- *
- * Phase 4 helper — gates on `def.modes` only. Use
- * `filterCommandsByAvailability` when a `KeybindingContext` is available
- * so cross-field `def.when` predicates are honored too.
+ * Filter a command list by availability: both the coarse `def.modes` gate
+ * and the precise `def.when` predicate, composed through `isCommandAvailable`.
+ * Commands with neither set always pass.
  */
-export function filterCommandsByMode(cmds: CommandDef[], mode: CommandMode): CommandDef[] {
-  return cmds.filter((cmd) => {
-    if (!cmd.modes || cmd.modes.length === 0) return true
-    return cmd.modes.includes(mode)
-  })
-}
-
-/**
- * Filter a command list by full availability — both the coarse `def.modes`
- * gate and the precise `def.when` predicate (Phase 8).
- *
- * Prefer this over `filterCommandsByMode` whenever the caller has a
- * `KeybindingContext` handy. Commands without `modes` and without `when`
- * always pass, so it's a strict superset of `filterCommandsByMode`.
- */
-export function filterCommandsByAvailability(
+export function filterAvailableCommands(
   cmds: readonly CommandDef[],
   ctx: KeybindingContext,
   mode?: CommandMode,
@@ -70,6 +44,12 @@ export function filterCommandsByAvailability(
  * Scores against command name (weight 1.0), description (0.5), id (0.3);
  * takes the best field score. Returns commands sorted by score desc,
  * filtering out non-matches. Empty query returns the input as-is.
+ *
+ * Why fuzzyScore instead of BM25? Commands are a small in-memory registry
+ * (~200 entries) with short identifiers. BM25's term frequency and length
+ * normalization add nothing over a direct tier-based match. The shared
+ * tiered scorer (exact > prefix > segment-boundary > substring > fuzzy)
+ * is the right tool for this shape.
  */
 export function rankCommands(cmds: CommandDef[], query: string): CommandDef[] {
   if (!query) return cmds
@@ -87,43 +67,19 @@ export function rankCommands(cmds: CommandDef[], query: string): CommandDef[] {
 }
 
 /**
- * End-to-end: filter → rank → project → rows. The caller supplies the
- * command list explicitly; this keeps the function pure and registry-
- * agnostic so the TUI can use `registry.getAll()` and tests can use
- * the static `allCommands` export.
+ * End-to-end: filter (by ctx.modes + ctx.when) → rank → project → rows.
  *
- * Phase 4 variant — gates on `def.modes` only. Use
- * `commandResultsForOmniboxWithContext` when a `KeybindingContext` is
- * available so cross-field `def.when` predicates are honored too.
+ * Callers MUST supply a `KeybindingContext`. In production this comes from
+ * `buildKeybindingContextFromOpCtx` in `command-bridge.ts`. Tests use a
+ * permissive stub that satisfies all built-in predicates.
  */
 export function commandResultsForOmnibox(
-  cmds: readonly CommandDef[],
-  query: string,
-  mode: CommandMode = "normal",
-): OmniboxRowData[] {
-  const available = filterCommandsByMode([...cmds], mode)
-  const ranked = rankCommands(available, query)
-  return ranked.map((cmd) => commandToRow(cmd))
-}
-
-/**
- * Context-aware end-to-end projection — Phase 8 variant. Gates commands
- * through `filterCommandsByAvailability` so both `def.modes` AND `def.when`
- * predicates are honored before ranking. The connector calls this at render
- * time with a `KeybindingContext` built from the focused pane's OpCtx, so
- * commands whose `when` predicate returns false (e.g. move commands when
- * there is nothing to move) are omitted from the omnibox result list.
- *
- * Prefer this over `commandResultsForOmnibox` whenever a `KeybindingContext`
- * is available — it's a strict superset of the mode-only filter.
- */
-export function commandResultsForOmniboxWithContext(
   cmds: readonly CommandDef[],
   ctx: KeybindingContext,
   query: string,
   mode: CommandMode = "normal",
 ): OmniboxRowData[] {
-  const available = filterCommandsByAvailability(cmds, ctx, mode)
+  const available = filterAvailableCommands(cmds, ctx, mode)
   const ranked = rankCommands(available, query)
   return ranked.map((cmd) => commandToRow(cmd))
 }

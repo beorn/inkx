@@ -15,6 +15,30 @@ import {
   commandResultsForOmnibox,
 } from "../src/state/omnibox-projection.ts"
 import { allCommands } from "@km/commands"
+import type { KeybindingContext } from "@km/commands"
+
+/** Permissive test KeybindingContext — see omnibox-projection.test.ts. */
+function testCtx(): KeybindingContext {
+  return {
+    currentNode: null,
+    textInputFocused: false,
+    mode: "normal",
+    isInDetailPane: false,
+    isInOutlineMode: false,
+    hasMultiSelection: false,
+    isInlineEditing: false,
+    searchDialogOpen: false,
+    itemPickerOpen: false,
+    newItemDialogOpen: false,
+    datePromptOpen: false,
+    filterDialogOpen: false,
+    helpOverlayOpen: false,
+    deleteConfirmOpen: false,
+    consoleOpen: false,
+    hasActiveToast: false,
+    visualMode: false,
+  } as KeybindingContext
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -104,7 +128,7 @@ describe("nodeResultsForOmnibox — mode contracts", () => {
   })
 
   it("commandResultsForOmnibox is the orthogonal command path — sanity check", () => {
-    const rows = commandResultsForOmnibox(allCommands, "goto", "normal")
+    const rows = commandResultsForOmnibox(allCommands, testCtx(), "goto", "normal")
     expect(rows.length).toBeGreaterThan(0)
     expect(rows[0]?.id.startsWith("cmd:")).toBe(true)
   })
