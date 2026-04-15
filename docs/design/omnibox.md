@@ -127,7 +127,7 @@ Backspace through the `/` sigil in the buffer — which drops the default comman
 - **The command executor distinguishes subject from target.** When the omnibox dispatches a command, the executor builds `ctx` with *two* node identities: `ctx.currentNodeId` = the anchor pane's cursor (the *subject* of the action, snapshotted at open time) and `ctx.targetId` = the omnibox's `selectedArgumentId` (the *target* the user picked). Unary verbs (`goto`, `open_in_system`, `zoom_in`, `default` on a node) read `ctx.targetId` and ignore `ctx.currentNodeId`; binary verbs (`move`, `add`, `add_link`, `create_at`) read both. That's why `m +` → pick `+km` → Enter correctly moves the anchor-pane selection *into* `+km` — the subject stays the anchor pane's cursor even while the omnibox has keyboard focus.
 - **`default` resolves type-dispatch inside the command system, not the reducer.** When there's no explicit `defaultCommand` and no chord-locked `defaultCommand`, the universal fallback is the `default` command, which inspects `currentNode.type` and does the right thing (command → run, else → goto). Future per-type customization (tags → filter, projects → zoom) is a one-function change in `default.execute()` — zero omnibox-UI work.
 - **Global keybindings work inside the omnibox with no special scope.** There's no `dialog:omnibox` mode that shadows the app's keymap. The only keys the omnibox consumes are the ones any focused text input would consume — letters, arrows, Enter, Escape, Backspace. Everything else (`Ctrl+S`, `Cmd+Z`, `vm`, `z`/`Z`) falls through to the global layer exactly as it does when an inline card-title editor has focus in the cards view. `cmd-k` and `cmd-f` are special only in that they're bound at the global layer to also work *while* the omnibox is open, to toggle search mode.
-- **The dialog form and the pane form share `OmniboxState`.** The difference is only *where* the state lives — a global overlay slot vs. a pane. The reducer, keybindings, row renderer, command-tree projection, everything downstream of the state is identical. "Pop it out" is a single state transition: move `OmniboxState` from overlay-slot to a new pane, dismiss the overlay.
+- **The dialog form and the pane form share `OmniboxBaseState`.** The difference is only *where* the state lives — a global overlay slot vs. a pane. The reducer, keybindings, row renderer, command-tree projection, everything downstream of the state is identical. "Pop it out" is a single state transition: move `OmniboxBaseState` from overlay-slot to a new pane, dismiss the overlay.
 
 ## Mockups
 
@@ -407,7 +407,7 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 ### Default command, override via `:` sigil or `cmd-k`, fallback via `default`
 
-Every omnibox instance has a **default command** (`defaultCommand` on `OmniboxState`) set at creation from the opening chord. Open chords that don't commit to a verb (`cmd-k`, `cmd-f`, generic `g` chords) use `"default"` as the initial value; verb-locking chords override:
+Every omnibox instance has a **default command** (`defaultCommand` on `OmniboxBaseState`) set at creation from the opening chord. Open chords that don't commit to a verb (`cmd-k`, `cmd-f`, generic `g` chords) use `"default"` as the initial value; verb-locking chords override:
 
 | Open via | defaultCommand |
 |---|---|
@@ -514,7 +514,7 @@ This gives a clean mental model: **selectedArgument is always "what node are you
 
 ## Opening and toggling the omnibox
 
-Every invocation resolves to a `OmniboxState` with `buffer`, `defaultCommand`, and (optionally) a pre-selected `selectedArgument`. The same keys work while the omnibox is already open — pressing them mid-session switches modes instead of re-opening.
+Every invocation resolves to a `OmniboxBaseState` with `buffer`, `defaultCommand`, and (optionally) a pre-selected `selectedArgument`. The same keys work while the omnibox is already open — pressing them mid-session switches modes instead of re-opening.
 
 ### While closed — opening keys
 
@@ -1004,7 +1004,7 @@ Wire `/` to open the omnibox dialog with `{ defaultCommand: "local_find" }`. Der
 Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the `dialog:omnibox` scope plumbing). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **km-tui.palette-arrow-keys** — with the reframe, the bug class is gone because there's no dialog-scope layering for commands.
 
 ### Phase 11 (post-v1) — omnibox pane ("pop it out")
-Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop_out` command: takes the current dialog's `OmniboxState`, creates a new pane with `viewMode: "omnibox"` seeded from that state, and dismisses the dialog. The pane form is persistent — `OMNIBOX_CONFIRM` clears the buffers but keeps the pane open. Workspace pane manager treats it like any other pane (split, resize, focus cycling). Users get a permanent triage / navigator surface — e.g., a docked `goto` omnibox for keyboard-driven browsing or a docked `move` omnibox for bulk organization. Not as urgent as v1.
+Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop_out` command: takes the current dialog's `OmniboxBaseState`, creates a new pane with `viewMode: "omnibox"` seeded from that state, and dismisses the dialog. The pane form is persistent — `OMNIBOX_CONFIRM` clears the buffers but keeps the pane open. Workspace pane manager treats it like any other pane (split, resize, focus cycling). Users get a permanent triage / navigator surface — e.g., a docked `goto` omnibox for keyboard-driven browsing or a docked `move` omnibox for bulk organization. Not as urgent as v1.
 
 **Ship sequencing:**
 - Phase 1+2 ship together (pure refactors with test support).
@@ -1030,7 +1030,7 @@ Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop
 4. **Universal mode shows commands** — yes, with a tuneable type weight (start at 0.4; adjust against the canonical ranking test fixture).
 5. **No separate override scope.** typing ":" (or pressing cmd-k) is the override; `Shift+Enter` / `Ctrl+Enter` are shortcuts. Global keybindings work with only the standard text-input-consumes-letters rule (same as any focused inline editor). No new scope.
 6. **Layout — two lines.** The command chip (derived from defaultCommand) is the "title" of the action; the buffer below it searches for the "object". Center modal stacks them vertically (command line, argument line, results, footer). Bottom-left local-find keeps the compact single-line form (command is locked to `local_find`, so there's nothing to edit).
-7. **Dialog vs pane.** the omnibox has two presentation forms. The dialog form (v1) is held in a global overlay slot; the pane form (post-v1) is held on a regular workspace pane. Both share the same `OmniboxState` shape, reducer, keybindings, and row renderer. "Pop it out" is a single action that moves state from overlay to pane.
+7. **Dialog vs pane.** the omnibox has two presentation forms. The dialog form (v1) is held in a global overlay slot; the pane form (post-v1) is held on a regular workspace pane. Both share the same `OmniboxBaseState` shape, reducer, keybindings, and row renderer. "Pop it out" is a single action that moves state from overlay to pane.
 8. **Empty buffer content.** Recents (recently-run commands) plus — if the previously-focused pane had a cursor — that cursor surfaced as the "cursor target" suggestion in the argument side. "Here are the things you'd most likely want to do right now", not "here is a command reference".
 9. **Tab completion — Silvery's `TextInput` autocomplete.** `vendor/silvery/packages/ag-react/src/ui/input/TextInput.tsx` already has `autocomplete: string[]` + ghost text + "accept the suggestion" semantics. Wire both fields to it. Tab priority: accept ghost if visible, else toggle focus. Space / Right-Arrow also accept when ghost visible. Only ghosted completions are ever committed — no separate "unambiguous top-match" heuristic.
 
@@ -1089,7 +1089,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
    pipe(createApp(), withBoard(), withSelection(), withOmnibox(), withUndo(), ...)
    ```
    `withOmnibox()` contributes:
-   - The `OmniboxState` model and reducer.
+   - The `OmniboxBaseState` model and reducer.
    - omnibox-specific commands (`omnibox.open`, `omnibox.toggle_focus`, `omnibox.accept_ghost`, `omnibox.confirm`, `omnibox.cancel`, `omnibox.restore_default`, `omnibox.pop_out`).
    - Keybindings scoped via `when(omniboxModel.isActive, ...)` (with text-input-conflict handling for letter keys / arrows / Enter etc).
    - The `viewMode: "omnibox"` registration on `withBoard()` — but only for the pane form. The dialog form is hosted by whatever overlay system the app shell provides (pre-TEA: the global overlay slot; post-TEA: whatever `createApp()` and related plugins provide for dialogs).
@@ -1098,7 +1098,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 
 ### Interactions with other domain plugins
 
-- **`withSelection()`** (km-tui.tea): the omnibox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgument` field. Arrowing in the omnibox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgument` in `OmniboxState` becomes a derived view over `sel`, not primary state.
+- **`withSelection()`** (km-tui.tea): the omnibox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgument` field. Arrowing in the omnibox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgument` in `OmniboxBaseState` becomes a derived view over `sel`, not primary state.
 
 - **`withTree()`** (km-tui.tea): structural ops from the omnibox (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the omnibox is a normal command producer. Undo works through the shared middleware.
 
@@ -1126,7 +1126,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 - **km-tui.palette-arrow-keys** — absorbed into Phase 5+6 (the bug class goes away once the omnibox uses standard text-input scoping instead of a dialog overlay with its own scope stack).
 - **km-silvery.focus** — the omnibox is a single focusable component (dialog or pane), not five near-duplicate dialogs, making the focus system's job simpler.
 - **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
-- **km-tui.tea** — the `OmniboxState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `omnibox.open` and moved to a new `withOmnibox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
+- **km-tui.tea** — the `OmniboxBaseState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `omnibox.open` and moved to a new `withOmnibox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
 - **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the `app.commands.*` tree. Validating the omnibox validates those primitives.
 - **km-tui.atomic-tree-ops** — the omnibox is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
 - **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
