@@ -1,18 +1,17 @@
 /** Supported account provider types */
 export type AccountProvider = "claude-oauth" | "anthropic-api" | "openai" | "xai" | "google" | "openrouter"
 
-/** Account configuration (no secrets — stored in accounts.json) */
+/**
+ * Account configuration — used by the env-var discovery path (discover.ts)
+ * to describe API-key providers. The old account-registry persistence was
+ * removed when the profile system replaced it; profiles are now identified
+ * by directory name under ~/.config/claude-profiles/.
+ */
 export interface AccountConfig {
-  name: string // "personal", "work", "org-acme"
+  name: string // "anthropic", "openai", "you@example.com"
   provider: AccountProvider
   disabled?: boolean
-  metadata?: Record<string, string> // email, orgId, plan tier
-}
-
-/** Full config file structure */
-export interface ConfigFile {
-  accounts: AccountConfig[]
-  activeAccount?: string // name of the currently active account
+  metadata?: Record<string, string>
 }
 
 /** Credential data stored per account */

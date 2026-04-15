@@ -1,9 +1,14 @@
 import type { AccountConfig, AccountProvider, Credential } from "./types.ts"
-import { getAccounts } from "./config.ts"
-import { readCredential } from "./credentials.ts"
-import { readKeychainCredential } from "./keychain.ts"
 
-/** Env var → provider mapping, in display order */
+/**
+ * Env var → provider mapping, in display order.
+ *
+ * accountly's profile system handles Claude OAuth via macOS Keychain slots
+ * (see src/profile.ts). This module now only handles zero-config API-key
+ * providers discovered from environment variables — Anthropic API key users,
+ * OpenAI, xAI, Gemini, OpenRouter. The old persistent-account registry was
+ * removed when the profile model replaced it.
+ */
 const ENV_SOURCES: { envVar: string; provider: AccountProvider; name: string }[] = [
   { envVar: "ANTHROPIC_API_KEY", provider: "anthropic-api", name: "anthropic" },
   { envVar: "OPENAI_API_KEY", provider: "openai", name: "openai" },
@@ -18,58 +23,19 @@ export interface DiscoveredAccount {
   credential: Credential
 }
 
-/**
- * Discover all available accounts:
- * 1. Persisted accounts (Claude OAuth from ~/.config/accountly/)
- * 2. API keys from environment variables (zero-config)
- */
+/** Discover API-key-based providers from environment variables. */
 export function discoverAccounts(): DiscoveredAccount[] {
   const results: DiscoveredAccount[] = []
-  const seen = new Set<string>()
-
-  // 1. Persisted accounts (Claude OAuth multi-account)
-  for (const account of getAccounts()) {
-    const credential = readCredential(account.name)
-    if (credential) {
-      results.push({ config: account, credential })
-      seen.add(account.name)
-    }
-  }
-
-  // 2. Auto-discover from env vars
   const seenProviders = new Set<string>()
   for (const { envVar, provider, name } of ENV_SOURCES) {
     if (seenProviders.has(provider)) continue
-    if (seen.has(name)) continue
-
     const apiKey = process.env[envVar]
     if (!apiKey) continue
-
     seenProviders.add(provider)
     results.push({
       config: { name, provider },
       credential: { apiKey },
     })
   }
-
   return results
-}
-
-/**
- * Get credential for an account — checks persisted first, then env vars.
- */
-export function getCredentialForAccount(name: string): Credential | undefined {
-  // Check persisted
-  const persisted = readCredential(name)
-  if (persisted) return persisted
-
-  // Check env vars
-  for (const { envVar, name: envName } of ENV_SOURCES) {
-    if (envName === name) {
-      const apiKey = process.env[envVar]
-      if (apiKey) return { apiKey }
-    }
-  }
-
-  return undefined
 }

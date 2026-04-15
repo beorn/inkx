@@ -20,8 +20,11 @@ import {
   getDefaultProfile,
   setDefaultProfile,
   clearDefaultProfile,
+  diagnoseAllProfiles,
+  adoptStockProfile,
   type ProfileInfo,
   type ProfileQuotaResult,
+  type HealthCheck,
 } from "./profile.ts"
 import { discoverAccounts, type DiscoveredAccount } from "./discover.ts"
 import { getProvider } from "./providers/index.ts"
@@ -231,6 +234,8 @@ const profileCmd = program
 
 profileCmd.addHelpSection("Examples:", [
   ["$ accountly claude-profile ls", "List stock + profiles"],
+  ["$ accountly claude-profile doctor", "Health-check all profiles"],
+  ["$ accountly claude-profile adopt", "Promote stock ~/.claude to a profile"],
   ["$ accountly claude-profile default", "Show current default"],
   ["$ accountly claude-profile default you@example.com", "Set default"],
   ["$ accountly claude-profile default --clear", "Clear default"],
@@ -415,6 +420,55 @@ profileCmd
     } else {
       console.error(pc.red(`error: ${step.reason}`))
       process.exit(1)
+    }
+  })
+
+profileCmd
+  .command("doctor")
+  .description("Health-check all profiles; print actionable fixes for any issues found")
+  .action(async () => {
+    process.stderr.write(pc.dim("Running checks…\n"))
+    const findings = await diagnoseAllProfiles()
+    if (findings.length === 0) {
+      console.log(pc.green("✓ all profiles healthy"))
+      return
+    }
+    // Group findings by profile for readable output.
+    const byProfile = new Map<string, HealthCheck[]>()
+    for (const f of findings) {
+      const list = byProfile.get(f.profile) ?? []
+      list.push(f)
+      byProfile.set(f.profile, list)
+    }
+    for (const [name, list] of byProfile) {
+      console.log(pc.bold(name))
+      for (const f of list) {
+        const icon = f.level === "error" ? pc.red("✗") : f.level === "warn" ? pc.yellow("!") : pc.green("✓")
+        console.log(`  ${icon} ${f.issue}`)
+        if (f.fix) console.log(`    ${pc.dim("fix: " + f.fix)}`)
+      }
+    }
+    // Nonzero exit if any errors — makes this usable as a shell health gate.
+    if (findings.some((f) => f.level === "error")) process.exit(1)
+  })
+
+profileCmd
+  .command("adopt")
+  .description("Promote the stock ~/.claude slot to a named profile (copies credential, fetches email)")
+  .option("--keep-stock", "Leave the stock slot alive instead of clearing it after adoption")
+  .action(async (opts: { keepStock?: boolean }) => {
+    const result = await adoptStockProfile({ clearStock: !opts.keepStock })
+    if (result.status === "error") {
+      console.error(pc.red(`accountly: ${result.message}`))
+      process.exit(1)
+    }
+    console.log(pc.green(`adopted stock ~/.claude → profile "${result.email}"`))
+    console.log(pc.dim(`  dir:    ${result.dir}`))
+    console.log(pc.dim(`  slot:   ${result.slot}`))
+    if (result.clearedStock) {
+      console.log(pc.dim(`  stock:  cleared (run \`claude /login\` to re-authenticate stock)`))
+    } else {
+      console.log(pc.dim(`  stock:  kept intact (--keep-stock)`))
     }
   })
 

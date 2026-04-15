@@ -1,28 +1,11 @@
 export type {
   AccountProvider,
   AccountConfig,
-  ConfigFile,
   Credential,
   QuotaWindow,
   QuotaInfo,
   QuotaProvider,
 } from "./types.ts"
-
-export {
-  readConfig,
-  writeConfig,
-  getAccounts,
-  getAccount,
-  upsertAccount,
-  removeAccount,
-  renameAccount,
-  getActiveAccount,
-  setActiveAccount,
-} from "./config.ts"
-
-export { readCredential, writeCredential, deleteCredential, renameCredential, credentialExists } from "./credentials.ts"
-
-export { readKeychainCredential, writeKeychainCredential, keychainCredentialExists } from "./keychain.ts"
 
 export { getProvider, getAllProviders } from "./providers/index.ts"
 
@@ -33,33 +16,57 @@ export {
   type ClaudeProfile,
 } from "./providers/claude-oauth.ts"
 
-export { checkAccountQuota, checkAllQuotas, findBestAccount } from "./quota.ts"
+export { discoverAccounts, type DiscoveredAccount } from "./discover.ts"
 
-export { discoverAccounts, getCredentialForAccount, type DiscoveredAccount } from "./discover.ts"
-
-export { switchAccount } from "./switcher.ts"
-
+// Profile-based multi-account management — the primary accountly API.
+// See src/profile.ts for the full architecture.
 export {
+  // profile discovery + layout
   profileRoot,
   profileDir,
-  keychainSlot,
-  isLoggedIn,
+  assertSafeProfileName,
+  resolveProfileName,
   listProfiles,
   bootstrapProfile,
-  profileEmoji,
-  profileColor,
-  runProfile,
-  cmuxSpawn,
-  initShell,
+  // Keychain slot derivation + per-profile credential access
+  keychainSlot,
+  isLoggedIn,
   readKeychainForProfile,
   writeKeychainForProfile,
+  // stock ~/.claude support (the unhashed slot used by plain `claude`)
+  LEGACY_KEYCHAIN_SLOT,
+  readLegacyKeychain,
+  writeLegacyKeychain,
+  getLegacyDefaultProfile,
+  checkLegacyDefaultQuota,
+  adoptStockProfile,
+  type AdoptResult,
+  // default profile (symlink in profileRoot)
+  defaultLinkPath,
+  getDefaultProfile,
+  setDefaultProfile,
+  clearDefaultProfile,
+  // launchers
+  runProfile,
+  cmuxSpawn,
+  // shell hook generation
+  initShell,
+  // cosmetic (used by --cmux workspace tag)
+  profileEmoji,
+  profileColor,
+  // rename / migration helpers
+  renameProfile,
+  // quota checks
   checkProfileQuota,
   checkAllProfileQuotas,
   findBestProfile,
+  // doctor
+  diagnoseProfile,
+  diagnoseAllProfiles,
+  // account metadata
   fetchProfileEmail,
-  renameProfile,
-  resolveProfileName,
   type ProfileInfo,
   type ProfileQuotaResult,
   type MigrationStep,
+  type HealthCheck,
 } from "./profile.ts"

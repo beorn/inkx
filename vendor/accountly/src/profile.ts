@@ -221,37 +221,44 @@ export function readKeychainForProfile(configDir: string): Credential | undefine
 }
 
 /**
- * Write a credential JSON back to a profile's Keychain slot. Used as the
- * refresh callback when checking quotas so a refreshed OAuth token stays
- * in the right slot (and is picked up by the next claude launch).
+ * Write a credential JSON back to a profile's Keychain slot.
  *
- * Security note: passes the password via stdin using `security add -w`
- * (last arg, no value) to avoid exposing the OAuth token in process argv
- * where any same-user process can read it via `ps`. The macOS `security`
- * man page explicitly flags `-w <value>` as insecure for this reason.
+ * SECURITY NOTE — argv exposure:
+ *
+ * We pass the credential JSON via the `-w <value>` argv form, which is
+ * briefly visible to same-user processes via `ps auxww`. The macOS security(1)
+ * man page flags this as insecure and documents `-w` (no value, last arg) as
+ * the secure stdin-prompt alternative. We CANNOT use that alternative: the
+ * stdin prompt is read through a TTY line buffer with a hard limit of 128
+ * bytes, which silently truncates OAuth credential JSON blobs (~450 bytes)
+ * and corrupts the stored credential.
+ *
+ * Mitigations:
+ *   - The exposure window is ~10–50ms (one spawn cycle).
+ *   - Claude Code's own binary uses the same argv form for its Keychain
+ *     writes, so accountly isn't introducing new exposure — it matches the
+ *     baseline threat model of the environment.
+ *   - Cross-user ps is not a concern (macOS hides process argv across users
+ *     without elevated privileges).
+ *
+ * A durable fix would require an FFI binding to Security.framework (e.g.
+ * @napi-rs/keyring) to bypass the `security` CLI entirely. Deferred until
+ * someone wants the extra dependency.
  */
 export function writeKeychainForProfile(configDir: string, credential: Credential): void {
   const slot = keychainSlot(configDir)
   const user = userInfo().username
-  writeKeychainViaStdin(slot, user, JSON.stringify(credential))
+  writeKeychainArgv(slot, user, JSON.stringify(credential))
 }
 
-/**
- * Write a keychain password via stdin (avoids argv exposure).
- *
- * `security add-generic-password` with a trailing `-w` (no value) enters
- * interactive prompt mode, asking for the password twice. We pipe the
- * password+newline twice via stdio.input so it never touches argv.
- */
-function writeKeychainViaStdin(slot: string, user: string, password: string): void {
+/** Internal helper: delete + re-add via argv `-w`. See security note above. */
+function writeKeychainArgv(slot: string, user: string, password: string): void {
   // Remove any existing entry first so add-generic-password doesn't conflict.
   spawnSync("security", ["delete-generic-password", "-s", slot, "-a", user], {
     stdio: ["ignore", "ignore", "ignore"],
   })
-  const stdinPayload = `${password}\n${password}\n`
-  spawnSync("security", ["add-generic-password", "-s", slot, "-a", user, "-w"], {
-    input: stdinPayload,
-    stdio: ["pipe", "ignore", "ignore"],
+  spawnSync("security", ["add-generic-password", "-s", slot, "-a", user, "-w", password], {
+    stdio: ["ignore", "ignore", "ignore"],
   })
 }
 
@@ -277,10 +284,186 @@ export async function checkProfileQuota(profile: ProfileInfo): Promise<ProfileQu
   return { profile, quota }
 }
 
-/** Check quotas for all profiles in parallel. */
+// ── doctor: profile health check ─────────────────────────────────────────
+
+export interface HealthCheck {
+  profile: string
+  level: "ok" | "warn" | "error"
+  issue: string
+  fix?: string
+}
+
+/**
+ * Health-check a single profile. Returns a list of findings (empty = all good).
+ * Designed to produce actionable messages for `accountly claude-profile doctor`.
+ */
+export async function diagnoseProfile(profile: ProfileInfo): Promise<HealthCheck[]> {
+  const findings: HealthCheck[] = []
+
+  if (!existsSync(profile.dir)) {
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: `profile dir missing: ${profile.dir}`,
+      fix: `accountly claude-profile new ${profile.name}`,
+    })
+    return findings
+  }
+
+  if (!profile.authenticated) {
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: "no credential in Keychain",
+      fix: `accountly claude --user ${profile.name}  # then /login inside claude`,
+    })
+    return findings
+  }
+
+  // Check symlinks: every SHARED_ITEM that exists in ~/.claude should also
+  // exist (as a symlink) in the profile dir, so shared state stays shared.
+  const claudeHome = join(homedir(), ".claude")
+  const missingLinks: string[] = []
+  const brokenLinks: string[] = []
+  for (const item of SHARED_ITEMS) {
+    const src = join(claudeHome, item)
+    const dst = join(profile.dir, item)
+    if (!existsSync(src)) continue
+    try {
+      const s = lstatSync(dst)
+      if (!s.isSymbolicLink()) {
+        missingLinks.push(item)
+        continue
+      }
+      // Symlink present — verify it points somewhere that still exists.
+      if (!existsSync(dst)) brokenLinks.push(item)
+    } catch {
+      missingLinks.push(item)
+    }
+  }
+  if (missingLinks.length > 0) {
+    findings.push({
+      profile: profile.name,
+      level: "warn",
+      issue: `missing shared-state symlinks: ${missingLinks.join(", ")}`,
+      fix: `accountly claude-profile new ${profile.name}  # idempotent — backfills symlinks`,
+    })
+  }
+  if (brokenLinks.length > 0) {
+    findings.push({
+      profile: profile.name,
+      level: "warn",
+      issue: `broken shared-state symlinks: ${brokenLinks.join(", ")}`,
+      fix: `check ~/.claude/ for the missing targets`,
+    })
+  }
+
+  // Check credential structure + expiry.
+  const credential = readKeychainForProfile(profile.dir)
+  if (!credential) {
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: "Keychain slot exists but credential failed to read",
+      fix: `accountly claude --user ${profile.name}  # then /login`,
+    })
+    return findings
+  }
+  const oauth = credential.claudeAiOauth as Record<string, unknown> | undefined
+  if (!oauth) {
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: "credential missing claudeAiOauth block",
+      fix: `accountly claude --user ${profile.name}  # then /login`,
+    })
+    return findings
+  }
+  const accessToken = oauth.accessToken as string | undefined
+  const refreshToken = oauth.refreshToken as string | undefined
+  const expiresAt = oauth.expiresAt as number | undefined
+  if (!accessToken || !refreshToken) {
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: "credential missing accessToken or refreshToken",
+      fix: `accountly claude --user ${profile.name}  # then /login`,
+    })
+    return findings
+  }
+  // Live check: does the stored token actually authenticate against Anthropic?
+  // This refreshes the token if needed and catches the rate-limit-rotation bug
+  // where the refresh token was consumed server-side but a refresh failure left
+  // a stale credential on disk. It's the authoritative health signal; don't
+  // emit expiry warnings when this passes (the refresh is a no-op from the
+  // user's perspective).
+  const email = await fetchProfileEmail(profile).catch(() => undefined)
+  if (!email) {
+    // Include staleness in the error message only when the refresh actually failed.
+    const stalenessNote =
+      typeof expiresAt === "number"
+        ? ` (token expired ${Math.round((Date.now() - expiresAt) / 1000)}s ago, refresh failed)`
+        : ""
+    findings.push({
+      profile: profile.name,
+      level: "error",
+      issue: `Anthropic rejected the stored credential${stalenessNote}`,
+      fix: `accountly claude --user ${profile.name}  # then /login to mint a new refresh token`,
+    })
+  } else if (email !== profile.name) {
+    findings.push({
+      profile: profile.name,
+      level: "warn",
+      issue: `profile name does not match account email (${email})`,
+      fix: `accountly claude-profile rename ${profile.name} ${email}`,
+    })
+  }
+
+  return findings
+}
+
+/** Run diagnoseProfile against every profile; serialize to avoid rate limiting. */
+export async function diagnoseAllProfiles(): Promise<HealthCheck[]> {
+  const profiles = listProfiles()
+  const all: HealthCheck[] = []
+  for (const p of profiles) {
+    const findings = await diagnoseProfile(p)
+    all.push(...findings)
+  }
+  return all
+}
+
+/**
+ * Check quotas for all profiles.
+ *
+ * Refreshes are **serialized** with a small stagger (250ms between profiles
+ * that actually need to refresh). Reason: Anthropic's token refresh endpoint
+ * rate-limits at the IP level — firing N parallel refreshes gets some of them
+ * 429'd, but the refresh token is rotated server-side *before* the 429 response
+ * reaches the client. The client then falls back to the stale credential and
+ * the subsequent usage call 401s, permanently desyncing the profile's stored
+ * credential from what Anthropic expects.
+ *
+ * Serialization is cheap (3 profiles × ~600ms ≈ 2s worst case) and eliminates
+ * the rate-limit race entirely. Profiles that don't need a refresh (access
+ * token still valid) pay zero serialization cost because `ensureFreshOAuth`
+ * short-circuits before making a network call.
+ */
 export async function checkAllProfileQuotas(): Promise<ProfileQuotaResult[]> {
   const profiles = listProfiles()
-  return Promise.all(profiles.map(checkProfileQuota))
+  const results: ProfileQuotaResult[] = []
+  let priorProfileNeededRefresh = false
+  for (const profile of profiles) {
+    if (priorProfileNeededRefresh) {
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    const credBefore = readKeychainForProfile(profile.dir)
+    const expBefore = (credBefore?.claudeAiOauth as Record<string, unknown> | undefined)?.expiresAt as number | undefined
+    const willRefresh = typeof expBefore === "number" && Date.now() + 5 * 60 * 1000 >= expBefore
+    results.push(await checkProfileQuota(profile))
+    priorProfileNeededRefresh = willRefresh
+  }
+  return results
 }
 
 // ── stock / legacy-default ~/.claude support ─────────────────────────────
@@ -311,7 +494,7 @@ export function readLegacyKeychain(): Credential | undefined {
 /** Write a credential back to the legacy default Keychain slot (used for refresh). */
 export function writeLegacyKeychain(credential: Credential): void {
   const user = userInfo().username
-  writeKeychainViaStdin(LEGACY_KEYCHAIN_SLOT, user, JSON.stringify(credential))
+  writeKeychainArgv(LEGACY_KEYCHAIN_SLOT, user, JSON.stringify(credential))
 }
 
 /** Synthetic ProfileInfo for the legacy ~/.claude slot, if authenticated. */
@@ -324,6 +507,66 @@ export function getLegacyDefaultProfile(): ProfileInfo | undefined {
     authenticated: true,
     slot: LEGACY_KEYCHAIN_SLOT,
   }
+}
+
+export interface AdoptResult {
+  status: "ok" | "error"
+  message?: string
+  email?: string
+  dir?: string
+  slot?: string
+  clearedStock?: boolean
+}
+
+/**
+ * Adopt the stock ~/.claude Keychain slot as a named profile.
+ *
+ * Flow:
+ *   1. Read stock Keychain slot. Error if empty.
+ *   2. Fetch account email via Anthropic's OAuth profile endpoint.
+ *   3. Create (or refresh) a profile dir at profileRoot/<email>/.
+ *   4. Copy the credential into the profile's own Keychain slot.
+ *   5. Optionally clear the stock slot (default: yes).
+ *
+ * Idempotent: if the profile already exists and is authenticated, this just
+ * overwrites its Keychain slot with the current stock credential. If the
+ * stock slot is empty or the email fetch fails, returns an error result
+ * instead of throwing (so the CLI caller can print a clean error).
+ */
+export async function adoptStockProfile(opts: { clearStock?: boolean } = {}): Promise<AdoptResult> {
+  const credential = readLegacyKeychain()
+  if (!credential) {
+    return { status: "error", message: "stock ~/.claude Keychain slot is empty — run `claude /login` first" }
+  }
+  // Refresh the stock token if needed so the email fetch has a live token.
+  const fresh = await ensureFreshOAuth(credential, (updated) => writeLegacyKeychain(updated))
+  const live = fresh ?? credential
+  const claudeInfo = await fetchClaudeProfile(live).catch(() => undefined)
+  if (!claudeInfo?.email) {
+    return {
+      status: "error",
+      message: "could not fetch account email from stock credential (token may be stale)",
+    }
+  }
+  const email = claudeInfo.email
+  try {
+    assertSafeProfileName(email)
+  } catch (err) {
+    return { status: "error", message: `unsafe email for profile name: ${(err as Error).message}` }
+  }
+  // Bootstrap the profile dir (creates symlinks if fresh, backfills if existing).
+  const { dir } = bootstrapProfile(email)
+  // Write the credential into the profile's own Keychain slot.
+  writeKeychainForProfile(dir, live)
+  const slot = keychainSlot(dir)
+  const clearStock = opts.clearStock ?? true
+  if (clearStock) {
+    const user = userInfo().username
+    spawnSync("security", ["delete-generic-password", "-s", LEGACY_KEYCHAIN_SLOT, "-a", user], {
+      stdio: ["ignore", "ignore", "ignore"],
+    })
+  }
+  return { status: "ok", email, dir, slot, clearedStock: clearStock }
 }
 
 /** Quota check for the legacy ~/.claude slot. Also fetches the account email

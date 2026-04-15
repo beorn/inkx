@@ -21,7 +21,8 @@
     "url": "https://github.com/beorn/accountly.git"
   },
   "bin": {
-    "accountly": "./src/cli.ts"
+    "accountly": "./src/cli.ts",
+    "recall": "./src/recall.ts"
   },
   "files": [
     "src"
