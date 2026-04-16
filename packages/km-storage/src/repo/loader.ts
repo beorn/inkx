@@ -36,7 +36,7 @@ import {
   parseDeferredAsync as parseDeferredAsyncImpl,
   parseStubFile as parseStubFileImpl,
 } from "../markdown/deferred.ts"
-import { readSiblingOrder } from "../sibling-order.ts"
+import { readSiblingOrder, applySiblingOrder } from "../sibling-order.ts"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -655,6 +655,27 @@ function* reconcileFilesystem(
   // Track newly created node IDs by relPath (for parent lookup of nested new entries)
   const newPathToId = new Map<string, string>()
 
+  // Pre-compute sibling order indices per parent directory.
+  // Group new paths by parent, then apply persisted order for each group.
+  const siblingOrderCache = new Map<string, Map<string, number>>()
+  function getSiblingOrderIdx(parentRelPath: string, entryName: string): number {
+    let cached = siblingOrderCache.get(parentRelPath)
+    if (!cached) {
+      const persistedOrder = siblingOrders[parentRelPath]
+      if (persistedOrder) {
+        // Collect all new entries for this parent
+        const siblingNames = newPaths
+          .filter((p) => dirname(p) === parentRelPath)
+          .map((p) => basename(p))
+        cached = applySiblingOrder(persistedOrder, siblingNames)
+      } else {
+        cached = new Map()
+      }
+      siblingOrderCache.set(parentRelPath, cached)
+    }
+    return cached.get(entryName) ?? 0
+  }
+
   // Find files on disk but NOT in DB → generate node_created changes
   for (const relPath of newPaths) {
     const fullPath = join(repoRoot, relPath)
@@ -675,11 +696,7 @@ function* reconcileFilesystem(
     }
 
     // Look up persisted sibling order for the parent directory
-    const persistedOrder = siblingOrders[parentRelPath]
-    const parentIdx = persistedOrder ? persistedOrder.indexOf(entryName) : -1
-    // If the entry is in the persisted order, use its index; otherwise fall back to 0
-    // (new entries not in persisted order get 0, placed before ordered siblings)
-    const orderIdx = parentIdx >= 0 ? parentIdx : 0
+    const orderIdx = getSiblingOrderIdx(parentRelPath, entryName)
 
     const nodeId = generatePathBasedId(repoRoot, fullPath)
     newPathToId.set(relPath, nodeId)
