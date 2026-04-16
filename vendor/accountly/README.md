@@ -79,15 +79,15 @@ claude() { accountly claude "$@" -- --some-flag }
 
 ### `accountly claude-profile <subverb>` — profile management
 
-| Subverb | Purpose |
-|---|---|
-| `ls` (alias `list`) | List profiles with auth status; marks default (★) and active (●) |
-| `default [profile]` | Show or set the default profile (backed by a `default` symlink in profileRoot) |
-| `new <profile>` | Bootstrap a profile dir with shared-state symlinks (no launch) |
-| `info <profile> [--token]` | Path, Keychain slot, email, auth; `--token` prints OAuth access token only |
+| Subverb                              | Purpose                                                                                             |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `ls` (alias `list`)                  | List profiles with auth status; marks default (★) and active (●)                                    |
+| `default [profile]`                  | Show or set the default profile (backed by a `default` symlink in profileRoot)                      |
+| `new <profile>`                      | Bootstrap a profile dir with shared-state symlinks (no launch)                                      |
+| `info <profile> [--token]`           | Path, Keychain slot, email, auth; `--token` prints OAuth access token only                          |
 | `init [profile] [--shell zsh\|bash]` | Print shell hook; auto-detects shell from `$SHELL`, reads profile from `default` symlink if omitted |
-| `rename <old> <new>` | Move the dir AND rewrite the Keychain slot (handles both atomically) |
-| `slot <profile>` | Print the Keychain service name for a profile |
+| `rename <old> <new>`                 | Move the dir AND rewrite the Keychain slot (handles both atomically)                                |
+| `slot <profile>`                     | Print the Keychain service name for a profile                                                       |
 
 ```bash
 accountly claude-profile ls                              # lists with markers, including stock

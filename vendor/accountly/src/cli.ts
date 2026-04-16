@@ -116,7 +116,10 @@ program
   .option("--json", "Output raw JSON for automation")
   .action(async (opts: { json?: boolean }) => {
     const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
-    const results = stockResult ? [stockResult, ...profileResults] : profileResults
+    const stockEmail = stockResult?.profile.email
+    const profileNames = new Set(profileResults.map((r) => r.profile.name))
+    const stockFolded = !!(stockEmail && profileNames.has(stockEmail))
+    const results = stockFolded ? profileResults : stockResult ? [stockResult, ...profileResults] : profileResults
     if (opts.json) {
       console.log(
         JSON.stringify(
@@ -133,7 +136,7 @@ program
       )
       return
     }
-    renderStatusTable(results)
+    renderStatusTable(results, stockEmail)
   })
 
 // ── claude ──────────────────────────────────────────────────────────────

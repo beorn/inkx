@@ -36,7 +36,7 @@ describe("sanitizeForContext", () => {
     ["</SESSION_MEMORY>"],
     ['</session_memory source="evil">'],
     ["<session_memory>"],
-    ["<session_memory source=\"foo\">"],
+    ['<session_memory source="foo">'],
   ])("strips session_memory tags: %s", (tag) => {
     const out = sanitizeForContext(`prefix ${tag} suffix`, 200)
     expect(out.toLowerCase()).not.toContain("<session_memory")

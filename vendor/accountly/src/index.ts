@@ -1,11 +1,4 @@
-export type {
-  AccountProvider,
-  AccountConfig,
-  Credential,
-  QuotaWindow,
-  QuotaInfo,
-  QuotaProvider,
-} from "./types.ts"
+export type { AccountProvider, AccountConfig, Credential, QuotaWindow, QuotaInfo, QuotaProvider } from "./types.ts"
 
 export { getProvider, getAllProviders } from "./providers/index.ts"
 
