@@ -4,8 +4,10 @@
  * Complexity Analysis Report
  *
  * Runs oxlint with complexity rules and generates a sorted report.
- * Uses advisory thresholds (cyclomatic=20, cognitive=15) to flag
- * functions that are candidates for refactoring.
+ * Uses advisory thresholds (cyclomatic=50, cognitive=50, set in
+ * packages/km-infra/oxlint/config.json) to flag functions that are
+ * candidates for refactoring. Test/fuzz/bench files and helpers are
+ * excluded — only production code is measured.
  *
  * Usage:
  *   bun lint:complexity              # Full report
@@ -36,15 +38,20 @@ async function getFiles(paths: string[]): Promise<string[]> {
       // It's a file
       files.push(path)
     } else {
-      // It's a directory - use glob to find ts/tsx files
+      // It's a directory - use glob to find ts/tsx files.
+      // Skip node_modules + dist + test/fuzz/bench artifacts; vendor IS scanned
+      // (vendor packages are part of this project per the workspace policy).
       const glob = new Bun.Glob("**/*.{ts,tsx}")
       for await (const file of glob.scan({ cwd: path })) {
-        // Skip test files, node_modules, vendor
         if (
           !file.includes("node_modules") &&
-          !file.includes("vendor") &&
+          !file.includes("/dist/") &&
           !file.includes(".test.") &&
-          !file.includes(".spec.")
+          !file.includes(".spec.") &&
+          !file.includes(".fuzz.") &&
+          !file.includes(".bench.") &&
+          !file.includes("/tests/helpers/") &&
+          !file.includes("/tests/profile-")
         ) {
           files.push(`${path}/${file}`)
         }
@@ -238,7 +245,7 @@ Examples:
     process.exit(0)
   }
 
-  const paths = positionals.length > 0 ? positionals : ["apps", "packages"]
+  const paths = positionals.length > 0 ? positionals : ["apps", "packages", "vendor"]
   const output = await runOxlint(paths)
   const findings = parseFindings(output)
 

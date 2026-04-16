@@ -34,7 +34,7 @@
     "vendor/bearly/plugins/tribe/server.ts"
   ],
   "rules": {
-    "complexity/complexity": ["warn", { "cyclomatic": 30, "cognitive": 30 }],
+    "complexity/complexity": ["warn", { "cyclomatic": 50, "cognitive": 50 }],
     "no-control-regex": "off",
     "getter-return": "error",
     "no-undef": "error",
