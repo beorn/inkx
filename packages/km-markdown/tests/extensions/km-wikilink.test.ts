@@ -211,4 +211,26 @@ describe("km-wikilink", () => {
     expect(links).toHaveLength(1)
     expect(links[0]!.relative).toBeUndefined()
   })
+
+  // Regression: multi-line wikilinks caused micromark subtokenizer crash
+  // (RangeError in splice-buffer when content spanned 3+ lines)
+  it("multi-line wikilink does not crash", () => {
+    const tree = parse("![[file#heading\n-- line2\n-- line3\n+- line4]]")
+    // Should parse without throwing; multi-line content is not a valid wikilink
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(0)
+  })
+
+  it("two-line wikilink is rejected gracefully", () => {
+    const tree = parse("![[file#a\nb]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(0)
+  })
+
+  it("wikilink with embedded code block does not crash", () => {
+    const md = "![[file#section\n```ts\nconst x = 1\n```\nmore]]"
+    const tree = parse(md)
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(0)
+  })
 })
