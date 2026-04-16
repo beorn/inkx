@@ -19,7 +19,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { execSync } from "node:child_process"
 
-const ROOT = join(import.meta.dir, "..")
+const ROOT = join(import.meta.dir, "..", "..", "..")
 const args = process.argv.slice(2)
 const jsonMode = args.includes("--json")
 
