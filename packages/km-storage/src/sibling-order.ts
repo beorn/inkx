@@ -108,10 +108,7 @@ export function writeSiblingOrder(repoRoot: string, parentFsPath: string, childN
  * @param entryNames - The actual child names found on the filesystem
  * @returns Map from entry name to order index
  */
-export function applySiblingOrder(
-  persistedOrder: string[],
-  entryNames: string[],
-): Map<string, number> {
+export function applySiblingOrder(persistedOrder: string[], entryNames: string[]): Map<string, number> {
   const result = new Map<string, number>()
   const persistedSet = new Set(persistedOrder)
 

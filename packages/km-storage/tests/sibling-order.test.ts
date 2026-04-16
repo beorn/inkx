@@ -17,11 +17,7 @@ import { runGenerator } from "@km/core"
 import { SCHEMA } from "../src/db/schema.ts"
 import { loadRepo } from "../src/repo/loader.ts"
 import { createRepo } from "../src/repo/repo.ts"
-import {
-  readSiblingOrder,
-  writeSiblingOrder,
-  applySiblingOrder,
-} from "../src/sibling-order.ts"
+import { readSiblingOrder, writeSiblingOrder, applySiblingOrder } from "../src/sibling-order.ts"
 
 /** Helper: exhaust a loadRepo generator and return the result */
 function runLoadRepo(...args: Parameters<typeof loadRepo>) {
@@ -98,11 +94,7 @@ describe("sibling-order.ts unit tests", () => {
   test("readSiblingOrder filters invalid entries", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "km-so-"))
     mkdirSync(join(tmpDir, ".km"), { recursive: true })
-    writeFileSync(
-      join(tmpDir, ".km", "sibling-order.json"),
-      JSON.stringify({ ".": ["a", "b"], bad: 42 }),
-      "utf-8",
-    )
+    writeFileSync(join(tmpDir, ".km", "sibling-order.json"), JSON.stringify({ ".": ["a", "b"], bad: 42 }), "utf-8")
 
     // Suppress expected warning
     vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -297,9 +289,7 @@ describe("end-to-end: moveNode persists and survives rebuild", () => {
     const db1 = repo.database
 
     // Find the folder node IDs and root ID
-    const rootNode = db1
-      .prepare("SELECT id FROM nodes WHERE fs_path = '.'")
-      .get() as { id: string }
+    const rootNode = db1.prepare("SELECT id FROM nodes WHERE fs_path = '.'").get() as { id: string }
     const rootId = rootNode.id
 
     const foldersBefore = db1

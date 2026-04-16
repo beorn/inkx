@@ -240,7 +240,14 @@ export function* discoverFiles(
           if (!tryEnterDirectory(fullPath, true)) continue
           const folderId = generateId(repoRoot, fullPath)
           changes.push(
-            createFolderChange(folderId, parentId, getOrder(entry.name), toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+            createFolderChange(
+              folderId,
+              parentId,
+              getOrder(entry.name),
+              toRelativeFsPath(repoRoot, fullPath),
+              entry.name,
+              now,
+            ),
           )
           // Depth limit: record as unexplored instead of recursing
           if (depth >= preloadDepth) {
@@ -269,7 +276,14 @@ export function* discoverFiles(
         if (!tryEnterDirectory(fullPath)) continue
         const folderId = generateId(repoRoot, fullPath)
         changes.push(
-          createFolderChange(folderId, parentId, getOrder(entry.name), toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+          createFolderChange(
+            folderId,
+            parentId,
+            getOrder(entry.name),
+            toRelativeFsPath(repoRoot, fullPath),
+            entry.name,
+            now,
+          ),
         )
         // Depth limit: record as unexplored instead of recursing
         if (depth >= preloadDepth) {

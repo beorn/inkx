@@ -443,12 +443,10 @@ export function slugify(text: string): string {
  * at lookup time).
  */
 export function normalizeNodeName(title: string): string {
-  return (
-    title
-      .replace(/^- \[.\]\s*/, "") // Strip task marker prefix (e.g., "- [x] ")
-      .replace(/[`\[\]]/g, "") // Strip markdown inline syntax
-      .trim()
-  )
+  return title
+    .replace(/^- \[.\]\s*/, "") // Strip task marker prefix (e.g., "- [x] ")
+    .replace(/[`\[\]]/g, "") // Strip markdown inline syntax
+    .trim()
 }
 
 // =============================================================================

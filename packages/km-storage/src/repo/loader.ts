@@ -265,7 +265,9 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
 
     if (allDeferred.length > 0) {
       returnDeferredFiles = allDeferred
-      log.debug?.(`${allDeferred.length} files need deferred parsing (${reconcileDeferredFiles.length} from reconciliation, ${unparsedStubs.length} unparsed stubs)`)
+      log.debug?.(
+        `${allDeferred.length} files need deferred parsing (${reconcileDeferredFiles.length} from reconciliation, ${unparsedStubs.length} unparsed stubs)`,
+      )
     }
 
     if (source.pendingLinks.length > 0) {
@@ -681,9 +683,7 @@ function* reconcileFilesystem(
       const persistedOrder = siblingOrders[parentRelPath]
       if (persistedOrder) {
         // Collect all new entries for this parent
-        const siblingNames = newPaths
-          .filter((p) => dirname(p) === parentRelPath)
-          .map((p) => basename(p))
+        const siblingNames = newPaths.filter((p) => dirname(p) === parentRelPath).map((p) => basename(p))
         cached = applySiblingOrder(persistedOrder, siblingNames)
       } else {
         cached = new Map()

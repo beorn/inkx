@@ -469,10 +469,12 @@ export class ChangeHandlers {
     if (fsChildren.length === 0) return
 
     // Extract child names (filesystem basenames)
-    const childNames = fsChildren.map((c) => {
-      if (c.fs_path) return basename(c.fs_path)
-      return c.name ?? c.content ?? ""
-    }).filter((n) => n.length > 0)
+    const childNames = fsChildren
+      .map((c) => {
+        if (c.fs_path) return basename(c.fs_path)
+        return c.name ?? c.content ?? ""
+      })
+      .filter((n) => n.length > 0)
 
     writeSiblingOrder(this.repoPath, parentFsPath, childNames)
   }
