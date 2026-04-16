@@ -102,6 +102,9 @@ describe("absolute path detection", () => {
     const dbPath = join(dir, ".km/state.db")
     const db = new Database(dbPath)
     db.run(SCHEMA)
+    // Set data_version so the data migration doesn't wipe these nodes before
+    // the absolute-path detection can check them.
+    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('data_version', '1')")
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('.', 'oi', NULL, 0, '/old/absolute/repo', ${Date.now()}, ${Date.now()}, '1', '{}')`,

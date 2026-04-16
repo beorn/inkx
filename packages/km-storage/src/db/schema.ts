@@ -26,6 +26,20 @@
  */
 export const SCHEMA_VERSION = 3
 
+/**
+ * Data version — bump when application-logic changes invalidate derived data
+ * in existing rows (computed node.name, materialized titles, link resolution).
+ * Unlike SCHEMA_VERSION (which runs ALTER TABLE / DDL), DATA_VERSION triggers
+ * a full state.db rebuild from the source .md files — safe because state.db
+ * is a rebuildable cache.
+ *
+ * History:
+ *   1 — normalizeNodeName: heading names now preserve @/+/# sigils (previously
+ *       slugified, stripping them). Rebuild to re-derive all heading names.
+ *       Also: deferred-stub re-queue fix (rebuild-different-titles).
+ */
+export const DATA_VERSION = 1
+
 export const SCHEMA = `
 -- Core node table
 CREATE TABLE IF NOT EXISTS nodes (
@@ -386,6 +400,69 @@ export function rebuildFtsIndex(db: import("bun:sqlite").Database): void {
   if (nodeCount === 0) return
 
   db.run("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild')")
+}
+
+// =============================================================================
+// Data migration — application-logic changes that invalidate derived rows
+// =============================================================================
+
+export interface DataMigrateResult {
+  /** True when derived data is stale and the DB should be rebuilt from .md files */
+  needsRebuild: boolean
+}
+
+/**
+ * Check whether derived data is stale due to application-logic changes.
+ * Returns `needsRebuild: true` when the data version is behind, signaling
+ * the caller to wipe nodes/links/FTS and re-parse from source .md files.
+ *
+ * Unlike migrateSchema (which runs ALTER TABLE in-place), data migrations
+ * are too complex for SQL — they depend on TypeScript logic (normalizeNodeName,
+ * title derivation, link resolution). The safest path is a full rebuild,
+ * which is fast (~2-4s for a large vault) and always correct because
+ * state.db is a rebuildable cache.
+ */
+export function migrateData(db: import("bun:sqlite").Database): DataMigrateResult {
+  const current = readDataVersion(db)
+  if (current >= DATA_VERSION) return { needsRebuild: false }
+
+  // Any version behind DATA_VERSION triggers a full rebuild.
+  // Future: if a data migration can be done incrementally (e.g., UPDATE
+  // all heading names), add a version-gated branch here before the
+  // blanket rebuild. For now, rebuild is the only strategy.
+
+  // Wipe derived data so the loader re-parses everything from .md files.
+  db.run("BEGIN IMMEDIATE")
+  try {
+    db.run("DELETE FROM nodes")
+    db.run("DELETE FROM links")
+    // FTS is rebuilt automatically after SCHEMA re-runs
+    const hasFts = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes_fts'").get()
+    if (hasFts) db.run("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild')")
+    // Sync state must also be cleared so the reconciler re-discovers all files
+    const hasSyncState = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='sync_state'").get()
+    if (hasSyncState) db.run("DELETE FROM sync_state")
+    writeDataVersion(db, DATA_VERSION)
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
+
+  return { needsRebuild: true }
+}
+
+function readDataVersion(db: import("bun:sqlite").Database): number {
+  const hasMeta = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get()
+  if (!hasMeta) return DATA_VERSION // fresh DB, no migration needed
+  const row = db.query("SELECT value FROM meta WHERE key = 'data_version'").get() as { value: string } | null
+  if (!row) return 0 // pre-data-versioning DB
+  const n = parseInt(row.value, 10)
+  return Number.isFinite(n) ? n : 0
+}
+
+function writeDataVersion(db: import("bun:sqlite").Database, version: number): void {
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('data_version', ?)", [String(version)])
 }
 
 /**

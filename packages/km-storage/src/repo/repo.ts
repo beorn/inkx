@@ -61,7 +61,7 @@ import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes, normalizeNodeName } from "@km/markdown"
 import { resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
-import { SCHEMA, migrateSchema, rebuildFtsIndex } from "../db/schema.ts"
+import { SCHEMA, migrateSchema, migrateData, rebuildFtsIndex } from "../db/schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "../watcher.ts"
 import { withFsWriter } from "../watch/fs-writer.ts"
 
@@ -1498,8 +1498,15 @@ function* initWithFileLoading(
     const dbPath = join(kmDir, "state.db")
     db = openDiskDatabase(dbPath)
     const migrateResult = migrateSchema(db)
+    // Data migration: run BEFORE SCHEMA (same as migrateSchema) so that
+    // readDataVersion sees the pre-SCHEMA meta state — fresh DBs have no
+    // meta table yet → returns DATA_VERSION (no migration needed).
+    const dataResult = migrateData(db)
     db.run(SCHEMA)
     if (migrateResult.ftsDropped) rebuildFtsIndex(db)
+    if (dataResult.needsRebuild) {
+      log.debug?.("Data version upgrade — rebuilding database from source files...")
+    }
   } else {
     db = new Database(":memory:")
     db.run(SCHEMA)
@@ -1590,8 +1597,12 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
     const dbPath = join(kmDir, "state.db")
     db = openDiskDatabase(dbPath)
     const migrateResult = migrateSchema(db)
+    const dataResult = migrateData(db)
     db.run(SCHEMA)
     if (migrateResult.ftsDropped) rebuildFtsIndex(db)
+    if (dataResult.needsRebuild) {
+      log.debug?.("Data version upgrade — rebuilding database from source files...")
+    }
     dataStore = createDBDataStore(db, { emitter })
   } else {
     // Memory mode - ephemeral (no emitter = direct SQL)

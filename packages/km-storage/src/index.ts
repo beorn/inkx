@@ -1,5 +1,5 @@
 // Database schema (for testing with in-memory databases)
-export { SCHEMA, migrateSchema } from "./db/schema.ts"
+export { SCHEMA, migrateSchema, migrateData, DATA_VERSION } from "./db/schema.ts"
 
 // Link resolver (for benchmarks and testing)
 export { createLinkResolver, type LinkResolver } from "./markdown/link-resolver.ts"
