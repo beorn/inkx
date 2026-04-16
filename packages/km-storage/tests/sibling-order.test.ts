@@ -12,9 +12,11 @@ import { Database } from "bun:sqlite"
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
+import { runGenerator } from "@km/core"
 
 import { SCHEMA } from "../src/db/schema.ts"
 import { loadRepo } from "../src/repo/loader.ts"
+import { createRepo } from "../src/repo/repo.ts"
 import {
   readSiblingOrder,
   writeSiblingOrder,
@@ -274,5 +276,80 @@ describe("sibling order integration with discovery", () => {
     const alphaIdx = children.findIndex((c) => c.fs_path === "alpha")
     const betaIdx = children.findIndex((c) => c.fs_path === "beta")
     expect(alphaIdx).toBeLessThan(betaIdx)
+  })
+})
+
+describe("end-to-end: moveNode persists and survives rebuild", () => {
+  test("column reorder via moveNode writes sibling-order.json and survives rebuild", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "km-so-e2e-"))
+
+    // Create vault with 3 folders and .km directory
+    mkdirSync(join(tmpDir, ".km"), { recursive: true })
+    mkdirSync(join(tmpDir, "alpha"))
+    writeFileSync(join(tmpDir, "alpha", "index.md"), "# Alpha\n")
+    mkdirSync(join(tmpDir, "beta"))
+    writeFileSync(join(tmpDir, "beta", "index.md"), "# Beta\n")
+    mkdirSync(join(tmpDir, "gamma"))
+    writeFileSync(join(tmpDir, "gamma", "index.md"), "# Gamma\n")
+
+    // Load repo in disk mode (withFsWriter handles moveNode → persist)
+    const repo = runGenerator(createRepo(tmpDir, { loadFiles: true }))
+    const db1 = repo.database
+
+    // Find the folder node IDs and root ID
+    const rootNode = db1
+      .prepare("SELECT id FROM nodes WHERE fs_path = '.'")
+      .get() as { id: string }
+    const rootId = rootNode.id
+
+    const foldersBefore = db1
+      .prepare(
+        `SELECT id, fs_path, parent_idx FROM nodes
+         WHERE fstype = 'folder' AND fs_path != '.'
+         ORDER BY parent_idx, created_at`,
+      )
+      .all() as { id: string; fs_path: string; parent_idx: number }[]
+
+    expect(foldersBefore).toHaveLength(3)
+
+    // Reorder: move gamma to the front (index 0)
+    // This simulates what renumberColumns does in the TUI
+    const gammaNode = foldersBefore.find((f) => f.fs_path === "gamma")!
+    // Give gamma a lower parent_idx than everything else
+    repo.moveNode(gammaNode.id, rootId, -1)
+
+    // Now give the others ascending indices
+    const alphaNode = foldersBefore.find((f) => f.fs_path === "alpha")!
+    repo.moveNode(alphaNode.id, rootId, 0)
+    const betaNode = foldersBefore.find((f) => f.fs_path === "beta")!
+    repo.moveNode(betaNode.id, rootId, 1)
+
+    // Verify sibling-order.json was written
+    const orderFile = join(tmpDir, ".km", "sibling-order.json")
+    expect(existsSync(orderFile)).toBe(true)
+
+    const order = readSiblingOrder(tmpDir)
+    expect(order["."]).toBeDefined()
+    // The order should reflect gamma first, then alpha, then beta
+    expect(order["."]![0]).toBe("gamma")
+
+    // Dispose the repo
+    repo[Symbol.dispose]()
+
+    // Rebuild from scratch (new DB, like deleting state.db)
+    const db2 = new Database(":memory:")
+    db2.run(SCHEMA)
+    runLoadRepo(tmpDir, { db: db2 })
+
+    // Verify gamma is first after rebuild
+    const foldersAfter = db2
+      .prepare(
+        `SELECT fs_path, parent_idx FROM nodes
+         WHERE fstype = 'folder' AND fs_path != '.'
+         ORDER BY parent_idx, created_at`,
+      )
+      .all() as { fs_path: string; parent_idx: number }[]
+
+    expect(foldersAfter.map((f) => f.fs_path)).toEqual(["gamma", "alpha", "beta"])
   })
 })
