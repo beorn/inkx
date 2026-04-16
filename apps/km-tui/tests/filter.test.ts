@@ -202,11 +202,9 @@ describe("P2: Filter feature", () => {
     expect(cardArea).not.toContain("Write documentation")
   })
 
-  // Columns/List/Tabs views do not currently consume columnFilters — text
-  // filtering only applies in cards view. Filter STATE persists (filterText
-  // is on the pane) but non-cards views don't render the filtered subset.
-  // Re-enable when the non-cards views wire up filteredCardIds.
-  test.skip("filter persists across view mode changes", () => {
+  // km-tui.view-mode-feature-parity: alternate views now consume columnFilters
+  // via BoardView's per-mode dispatch, so text filtering works in every view.
+  test("filter persists across view mode changes", () => {
     using app = createTestApp(
       item(
         "board",

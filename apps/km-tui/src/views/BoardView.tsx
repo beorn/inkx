@@ -507,7 +507,12 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ColumnsView columnIds={columnIds} width={termWidth} height={contentHeight} />
+                <ColumnsView
+                  columnIds={columnIds}
+                  width={termWidth}
+                  height={contentHeight}
+                  columnFilters={columnFilters}
+                />
               </ErrorBoundary>
             ) : ui.viewMode === "list" ? (
               <ErrorBoundary
@@ -515,7 +520,12 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ListView columnIds={columnIds} width={termWidth} height={contentHeight} />
+                <ListView
+                  columnIds={columnIds}
+                  width={termWidth}
+                  height={contentHeight}
+                  columnFilters={columnFilters}
+                />
               </ErrorBoundary>
             ) : (
               <ErrorBoundary
@@ -523,7 +533,12 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <TabsView columnIds={columnIds} width={termWidth} height={contentHeight} />
+                <TabsView
+                  columnIds={columnIds}
+                  width={termWidth}
+                  height={contentHeight}
+                  columnFilters={columnFilters}
+                />
               </ErrorBoundary>
             )}
           </Box>

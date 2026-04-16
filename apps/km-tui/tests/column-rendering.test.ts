@@ -852,12 +852,15 @@ describe("body block spacing in columns view", () => {
     expect(sectionAlphaBox).not.toBeNull()
     expect(sectionBetaBox).not.toBeNull()
 
-    // Both body blocks and structural items: 1 row spacing (compact)
+    // Body blocks are one-liners: 1 row spacing.
     const bodySpacing = bodyTwoBox!.y - bodyOneBox!.y
     expect(bodySpacing).toBe(1)
 
+    // Sections now render their children recursively (km-tui.view-mode-feature-parity),
+    // so section-alpha occupies its header row plus its task rows before section-beta
+    // starts. Spacing is >1 by design.
     const structuralSpacing = sectionBetaBox!.y - sectionAlphaBox!.y
-    expect(structuralSpacing).toBe(1)
+    expect(structuralSpacing).toBeGreaterThanOrEqual(2)
   })
 
   test("all-body column (no structural items) also renders compactly", () => {
@@ -879,8 +882,10 @@ describe("body block spacing in columns view", () => {
     expect(paraThreeBox!.y - paraTwoBox!.y).toBe(1)
   })
 
-  test("all-structural column (no body) renders compactly", () => {
-    // When ALL children are oi, none get marginBottom
+  test("all-structural column (no body) recurses into section children", () => {
+    // When ALL children are oi, each section renders its children recursively.
+    // Prior to km-tui.view-mode-feature-parity, alternate views were stuck at
+    // the top level and sections compressed to 1 row — the tree was invisible.
     const nodes = item(
       "board",
       item(
@@ -901,9 +906,15 @@ describe("body block spacing in columns view", () => {
     expect(secTwoBox).not.toBeNull()
     expect(secThreeBox).not.toBeNull()
 
-    // Structural items: 1 row spacing (compact)
-    expect(secTwoBox!.y - secOneBox!.y).toBe(1)
-    expect(secThreeBox!.y - secTwoBox!.y).toBe(1)
+    // Each section now takes >=2 rows (header + task child), so spacing is >=2.
+    expect(secTwoBox!.y - secOneBox!.y).toBeGreaterThanOrEqual(2)
+    expect(secThreeBox!.y - secTwoBox!.y).toBeGreaterThanOrEqual(2)
+
+    // Section tasks are rendered and are positioned between the section headers.
+    const taskOneBox = board.screen.nodeBox("task-1")
+    expect(taskOneBox).not.toBeNull()
+    expect(taskOneBox!.y).toBeGreaterThan(secOneBox!.y)
+    expect(taskOneBox!.y).toBeLessThan(secTwoBox!.y)
   })
 })
 

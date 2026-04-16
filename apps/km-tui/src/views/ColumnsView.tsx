@@ -27,6 +27,7 @@ import { useNodeStore } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { extractWipLimits } from "@km/board"
+import type { ColumnFilterState } from "./BoardView.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -55,6 +56,8 @@ interface ColumnTreeProps {
   colIndex: number
   width: number
   height: number
+  /** Optional Board-level filter overlay for this column */
+  filter?: ColumnFilterState
 }
 
 /**
@@ -64,7 +67,7 @@ interface ColumnTreeProps {
  * ScrollTrackingVirtualList handles cardIndex subscription via ListView.
  * Cards use NodeStore self-subscription for selection state.
  */
-const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, height }: ColumnTreeProps) {
+const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, height, filter }: ColumnTreeProps) {
   const repo = useRepo()
   const {
     treeConfig: { iconStyle },
@@ -75,12 +78,16 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
   const lens = useSignal(ps.visibleLens)
   const colNode = lens.get(colId) ?? repo.getNode(colId)
 
-  // Card list + WIP limit derived from the lens
-  const cardIds = lens.children(colId)
+  // Card list + WIP limit derived from the lens or Board-supplied filter.
+  const lensCardIds = lens.children(colId)
+  const cardIds = filter?.filteredCardIds ?? lensCardIds
   const cardNodes = useMemo(
     () => cardIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null),
     [cardIds, repo],
   )
+  const hiddenCount = filter
+    ? (filter.totalCardCount ?? lensCardIds.length) - cardNodes.length + (filter.hiddenDescendantCount ?? 0)
+    : 0
   const rules = lens.rules(colId)
   const wipLimit = useMemo(() => {
     if (rules?.limit !== undefined) return rules.limit
@@ -198,6 +205,13 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
           getKey={(card) => card.id}
           renderItem={renderCard}
           overflowIndicator
+          listFooter={
+            hiddenCount > 0 ? (
+              <Box width={width} height={1} justifyContent="center">
+                <Small>+{hiddenCount} filtered</Small>
+              </Box>
+            ) : undefined
+          }
         />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
@@ -217,12 +231,14 @@ interface ColumnsViewProps {
   columnIds: readonly string[]
   width: number
   height: number
+  /** Per-column filter overlay from Board (text/property filters) */
+  columnFilters?: ReadonlyMap<string, ColumnFilterState>
 }
 
 // Maximum column width for columns view (tighter than cards view)
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
-export function ColumnsView({ columnIds, width, height }: ColumnsViewProps): React.ReactElement {
+export function ColumnsView({ columnIds, width, height, columnFilters }: ColumnsViewProps): React.ReactElement {
   const nodeStore = useNodeStore()
   const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
   const colIndex = useMemo(() => {
@@ -262,7 +278,13 @@ export function ColumnsView({ columnIds, width, height }: ColumnsViewProps): Rea
           itemWidth={expandedWidth}
           scrollTo={colIndex}
           renderItem={(id, index) => (
-            <ColumnTree colId={id} colIndex={index} width={expandedWidth} height={columnHeight} />
+            <ColumnTree
+              colId={id}
+              colIndex={index}
+              width={expandedWidth}
+              height={columnHeight}
+              filter={columnFilters?.get(id)}
+            />
           )}
           renderOverflowIndicator={(dir, hiddenCount) => (
             <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />

@@ -25,6 +25,7 @@ import { useNodeStore } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create"
 import { type BoardAppStore } from "../state/board-app-store.ts"
+import type { ColumnFilterState } from "./BoardView.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -46,18 +47,29 @@ type FlatItem =
       colId: string
       card: KNode
     }
-
-// Empty children array constant - stable reference for memoization
-const EMPTY_CHILDREN: KNode[] = []
+  | {
+      type: "filtered-footer"
+      colIndex: number
+      cardIndex: -1
+      colId: string
+      card?: undefined
+      hiddenCount: number
+    }
 
 interface ListViewProps {
   /** Column node ids in render order */
   columnIds: readonly string[]
   width: number
   height: number
+  /**
+   * Per-column filter overlay from Board. When the map contains an entry for
+   * a column, list view renders only the filtered subset and appends a
+   * "+N filtered" footer. Empty/undefined = render all lens children.
+   */
+  columnFilters?: ReadonlyMap<string, ColumnFilterState>
 }
 
-export function ListView({ columnIds, width, height }: ListViewProps): React.ReactElement {
+export function ListView({ columnIds, width, height, columnFilters }: ListViewProps): React.ReactElement {
   const { rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
 
@@ -75,22 +87,32 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
   const textEdit = useSignal(sel.text)
   const editingNodeId = (textEdit?.nodeId as string) ?? null
 
-  // Flatten all cards into a single list
+  // Flatten all cards into a single list. Applies board-level column filters
+  // (text + property) the same way CardColumn does — when a column has a
+  // filter overlay, use filteredCardIds; otherwise fall back to lens children.
+  // When filtered, append a "+N filtered" footer row per column.
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
 
     columnIds.forEach((colId, cIdx) => {
       items.push({ type: "header", colIndex: cIdx, cardIndex: -1, colId })
-      const cardIds = lens.children(colId)
+      const filter = columnFilters?.get(colId)
+      const cardIds = filter?.filteredCardIds ?? lens.children(colId)
       cardIds.forEach((cardId, idx) => {
         const card = repo.getNode(cardId)
         if (!card) return
         items.push({ type: "card", colIndex: cIdx, cardIndex: idx, colId, card })
       })
+      if (filter) {
+        const hidden = (filter.totalCardCount ?? cardIds.length) - cardIds.length + (filter.hiddenDescendantCount ?? 0)
+        if (hidden > 0) {
+          items.push({ type: "filtered-footer", colIndex: cIdx, cardIndex: -1, colId, hiddenCount: hidden })
+        }
+      }
     })
 
     return items
-  }, [columnIds, lens, repo])
+  }, [columnIds, lens, repo, columnFilters])
 
   // Pre-cache column-level excluded sigils per column index
   const columnExcludedSigilsByCol = useMemo(() => {
@@ -158,7 +180,17 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
         )
       }
 
-      // Card item — MemoizedTreeCard self-subscribes to tree node signals
+      if (item.type === "filtered-footer") {
+        return (
+          <Box key={`filtered-${item.colId}-${flatIndex}`} width={width} height={1} justifyContent="center">
+            <Text color="$muted">+{item.hiddenCount} filtered</Text>
+          </Box>
+        )
+      }
+
+      // Card item — MemoizedTreeCard self-subscribes to tree node signals.
+      // Let TreeNode recurse naturally so per-card fold / max-lines / body
+      // truncation work the same way as in the cards view path.
       const cIdx = item.colIndex
       const cardIdx = item.cardIndex
       const cardNodeId = item.card.id
@@ -169,7 +201,6 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
           card={item.card}
           colIndex={cIdx}
           cardIndex={cardIdx}
-          children={EMPTY_CHILDREN}
           getBoardPills={getCachedBoardPills}
           extraExcludedSigils={columnExcludedSigilsByCol.get(cIdx)}
         />
@@ -206,7 +237,13 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
-        getKey={(item) => (item.type === "header" ? `header-${item.colId}` : item.card.id)}
+        getKey={(item) =>
+          item.type === "header"
+            ? `header-${item.colId}`
+            : item.type === "filtered-footer"
+              ? `filtered-${item.colId}`
+              : item.card.id
+        }
         renderItem={renderItem}
         width={width}
       />

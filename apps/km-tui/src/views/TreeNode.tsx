@@ -618,11 +618,16 @@ function TreeNodeImpl({
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
   // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
-  // In oneliner mode, a fixed cap prevents performance issues with large nodes.
-  // When expanded (cursor/edit), cap to MAX_EXPANDED_CHILDREN to avoid overflow.
+  // In oneliner mode the oneliner cap used to apply (20 children) because
+  // alternate views never recursed into cards. After the view-mode parity fix
+  // (km-tui.view-mode-feature-parity) oneliner top-level cards render their
+  // children just like cards view, so they honor maxContentLines too. Nested
+  // rows (depth > 0) keep the oneliner cap as a safety net for very wide
+  // outlines. When expanded (cursor/edit), cap to MAX_EXPANDED_CHILDREN to
+  // avoid overflow.
   const maxChildren = shouldExpand
     ? MAX_EXPANDED_CHILDREN
-    : variant === "multiline"
+    : variant === "multiline" || (variant === "oneliner" && depth === 0)
       ? maxContentLines
       : VARIANT_CONFIG.oneliner.maxChildren
 
@@ -655,8 +660,18 @@ function TreeNodeImpl({
   const childrenVisible = hasChildren && !isFolded
   const childrenHidden = hasChildren && !childrenVisible
 
+  // In oneliner variant, the outer Box is normally fixed to 1 row so each card
+  // renders as a single-line summary. But when a top-level card has visible
+  // children (unfolded), we let it grow so children render — same behavior as
+  // cards view. Nested card children (depth > 0) stay single-row so the
+  // outline indentation remains compact. This is what makes per-card fold +
+  // max-lines + body truncation work in columns/list/tabs views.
+  const oneOutlineRoot = isOneliner && depth === 0 && childrenVisible
+  const outerHeight = isOneliner && !oneOutlineRoot ? 1 : undefined
+  const outerOverflow = isOneliner && !oneOutlineRoot ? "hidden" : undefined
+
   return (
-    <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
+    <Box flexDirection="column" height={outerHeight} overflow={outerOverflow}>
       {/* Parent context line (shown ABOVE task for symlinked items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {/* Wrapped in Link for Cmd+click navigation to the parent node */}
@@ -891,7 +906,7 @@ function TreeNodeImpl({
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
-            showOverflowIndicator={depth > 0}
+            showOverflowIndicator={depth > 0 || isOneliner}
             remainingDepth={resolvedDepth - 1}
             bodyIdSet={stableBodyIdSet}
             suppressCursorHighlight={isInlineEditing || editingDescendant}

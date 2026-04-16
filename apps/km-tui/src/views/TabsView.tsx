@@ -22,6 +22,7 @@ import { useNodeStore } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create"
 import { type BoardAppStore } from "../state/board-app-store.ts"
+import type { ColumnFilterState } from "./BoardView.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -32,9 +33,11 @@ interface TabsViewProps {
   columnIds: readonly string[]
   width: number
   height: number
+  /** Per-column filter overlay from Board (text/property filters) */
+  columnFilters?: ReadonlyMap<string, ColumnFilterState>
 }
 
-export function TabsView({ columnIds, width, height }: TabsViewProps): React.ReactElement {
+export function TabsView({ columnIds, width, height, columnFilters }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
 
   // Reactive lens — subscribe once and derive column/card data below
@@ -58,17 +61,22 @@ export function TabsView({ columnIds, width, height }: TabsViewProps): React.Rea
   const textEdit = useSignal(sel.text)
   const editingNodeId = (textEdit?.nodeId as string) ?? null
 
-  // Resolve current column (node + card nodes) via the lens
+  // Resolve current column (node + card nodes) via the lens or Board-supplied
+  // filter overlay.
   const currentColId = columnIds[colIndex]
   const currentColNode = currentColId ? (lens.get(currentColId) ?? repo.getNode(currentColId)) : null
+  const currentFilter = currentColId ? columnFilters?.get(currentColId) : undefined
   const currentCardNodes = useMemo(() => {
     if (!currentColId) return [] as KNode[]
-    return lens
-      .children(currentColId)
-      .map((id) => repo.getNode(id))
-      .filter((n): n is KNode => n != null)
-  }, [currentColId, lens, repo])
+    const ids = currentFilter?.filteredCardIds ?? lens.children(currentColId)
+    return ids.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
+  }, [currentColId, lens, repo, currentFilter])
   const count = currentCardNodes.length
+  const tabsHiddenCount = currentFilter
+    ? (currentFilter.totalCardCount ?? lens.children(currentColId ?? "").length) -
+      count +
+      (currentFilter.hiddenDescendantCount ?? 0)
+    : 0
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const colName = currentColNode ? parseToPlainText(getNodeDisplayName(repo, currentColNode)) : ""
@@ -162,6 +170,13 @@ export function TabsView({ columnIds, width, height }: TabsViewProps): React.Rea
                   />
                 )
               }}
+              listFooter={
+                tabsHiddenCount > 0 ? (
+                  <Box width={width} height={1} justifyContent="center">
+                    <Small>+{tabsHiddenCount} filtered</Small>
+                  </Box>
+                ) : undefined
+              }
             />
           ) : (
             <Box marginLeft={1}>

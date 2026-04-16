@@ -12,6 +12,7 @@ import { createLogger } from "loggily"
 const log = createLogger("km:tui:layout")
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
+import { CARD_REMAINING_DEPTH } from "@km/board"
 import type { BoardPill } from "../board/board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
 import type { TextDecoration } from "../text/index.ts"
@@ -37,6 +38,13 @@ interface MemoizedTreeCardProps {
   getBoardPills?: (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
   /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
   extraExcludedSigils?: string[]
+  /**
+   * Remaining fold-depth budget passed to TreeNode. Defaults to
+   * `CARD_REMAINING_DEPTH` so alternate views (columns/list/tabs) recurse to
+   * the same depth as the cards view. Per-node fold overrides (foldDepths)
+   * are still honored inside TreeNode via the reactive `foldOverride` signal.
+   */
+  remainingDepth?: number
 }
 
 /**
@@ -57,6 +65,7 @@ export const MemoizedTreeCard = React.memo(
     children,
     getBoardPills,
     extraExcludedSigils,
+    remainingDepth = CARD_REMAINING_DEPTH,
   }: MemoizedTreeCardProps): React.ReactElement {
     // Per-node reactive selection — reads tree signals instead of global
     // cursorCardNodeId/cursorDepth. Only affected cards re-render on j/k.
@@ -69,12 +78,10 @@ export const MemoizedTreeCard = React.memo(
     const textEdit = useSignal(ps.sel.text)
     const isEditing = textEdit?.nodeId === card.id
 
-    // Fold depth: per-card override or root's depth budget
-    const foldDepths = useSignal(ps.foldDepths)
-    const paneRootId = useSignal(ps.rootId)
-    const cardOverride = foldDepths.get(card.id)
-    const rootFoldDepth = cardOverride !== undefined ? cardOverride : (foldDepths.get(paneRootId ?? "") ?? 1)
-
+    // Per-card fold overrides (foldDepths) are honored inside TreeNode via the
+    // reactive `foldOverride` signal — no need to resolve them here. We pass the
+    // base budget (CARD_REMAINING_DEPTH by default) so alternate views recurse
+    // to the same depth as the cards view path.
     const content = (
       <CardLayoutTracker nodeId={card.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode
@@ -86,7 +93,7 @@ export const MemoizedTreeCard = React.memo(
           children={children}
           getBoardPills={getBoardPills}
           extraExcludedSigils={extraExcludedSigils}
-          remainingDepth={rootFoldDepth}
+          remainingDepth={remainingDepth}
         />
       </CardLayoutTracker>
     )
@@ -112,7 +119,8 @@ export const MemoizedTreeCard = React.memo(
       prev.cardIndex === next.cardIndex &&
       prev.isSelected === next.isSelected &&
       prev.getBoardPills === next.getBoardPills &&
-      prev.extraExcludedSigils === next.extraExcludedSigils
+      prev.extraExcludedSigils === next.extraExcludedSigils &&
+      prev.remainingDepth === next.remainingDepth
     )
   },
 )

@@ -2479,7 +2479,7 @@ describe("Merged from body-nav.slow.test.ts", () => {
         }
       })
 
-      test("body blocks have same spacing as structural items", () => {
+      test("body blocks are compact and section cards recurse into their children", () => {
         using app = createTestApp(boardWithBodyContent(), { viewMode: "columns" })
 
         const text = app.text
@@ -2489,14 +2489,20 @@ describe("Merged from body-nav.slow.test.ts", () => {
 
         const paraOneIdx = contentLines.findIndex((l) => l.includes("body paragraph one"))
         const paraTwoIdx = contentLines.findIndex((l) => l.includes("body paragraph two"))
-        const taskAIdx = contentLines.findIndex((l) => l.includes("task-a"))
-        const taskBIdx = contentLines.findIndex((l) => l.includes("task-b"))
+        // task-a is the section header row; use a tighter match so we skip
+        // "task-a-child" which now renders below it after the parity fix.
+        const taskAIdx = contentLines.findIndex((l) => /\btask-a\b/.test(l) && !l.includes("task-a-child"))
+        const taskBIdx = contentLines.findIndex((l) => /\btask-b\b/.test(l) && !l.includes("task-b-child"))
 
-        const bodySpacing = paraTwoIdx - paraOneIdx
-        const structuralSpacing = taskBIdx - taskAIdx
-
-        expect(bodySpacing).toBe(1)
-        expect(structuralSpacing).toBe(1)
+        // Body blocks are compact (1 row apart).
+        expect(paraTwoIdx - paraOneIdx).toBe(1)
+        // Section headers take at least 2 rows because each now recurses into
+        // its children (km-tui.view-mode-feature-parity).
+        expect(taskBIdx - taskAIdx).toBeGreaterThanOrEqual(2)
+        // Child of task-a is rendered between the two section headers.
+        const taskAChildIdx = contentLines.findIndex((l) => l.includes("task-a-child"))
+        expect(taskAChildIdx).toBeGreaterThan(taskAIdx)
+        expect(taskAChildIdx).toBeLessThan(taskBIdx)
       })
     })
   })
