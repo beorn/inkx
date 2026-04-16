@@ -15,6 +15,9 @@ import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
+import { getNodeContentHash } from "../db/queries/core-lookup.ts"
+import { hashContent } from "../fs/cas.ts"
+import { parseMarkdownWithLinks } from "@km/markdown"
 // reconcileIfChanged removed — DB is authority for user-origin changes
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { getFolderIndexConfig } from "../config.ts"
@@ -47,6 +50,14 @@ export interface FsWriteTarget {
 
   /** Record a write token for a path (for watcher suppression). Optional. */
   recordWriteToken?(absPath: string, content: string): void
+
+  /**
+   * Record the on-disk content as the current baseline (for conflict
+   * detection). Called by `save()` after it merges external drift into
+   * the in-memory subtree, so the subsequent write is not flagged as a
+   * spurious conflict. Optional.
+   */
+  recordExternalObservation?(absPath: string, content: string, nodeId?: string): void
 
   /** Rewrite a pending write's path when the target file is renamed. Optional. */
   renamePending?(oldPath: string, newPath: string): boolean
@@ -170,6 +181,17 @@ export class ChangeHandlers {
    * Finds the containing file, serializes its subtree to markdown,
    * writes to disk, and cascades block ID rewrites to other files.
    * This is the single primitive that all change handlers use.
+   *
+   * Before writing, this method performs a drift-aware merge: if the
+   * on-disk content has diverged from the baseline km last observed
+   * (e.g. because an external editor added frontmatter or appended a
+   * task and the watcher hasn't fired yet), the disk version is
+   * re-parsed and its additive content (frontmatter + appended nodes)
+   * is folded into the in-memory subtree before serialization. This
+   * prevents silent data loss when the filesystem watcher misses an
+   * external edit.
+   *
+   * See km-storage.frontmatter-wipe and km-storage.watcher-misses-changes.
    */
   save(node: KNode): void {
     const fileNode = findFileNode(this.db, node)
@@ -177,10 +199,60 @@ export class ChangeHandlers {
 
     const blockIds = this.createBlockIdAssigner()
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    let subtreeNodes = getSubtree(this.db, fileNode.id)
+    subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     blockIds.rewriteSourceFiles(fileNode.id)
+  }
+
+  /**
+   * If the on-disk content has drifted from the baseline km last saw,
+   * fold the additive parts of the disk version (frontmatter, appended
+   * child nodes) into the in-memory subtree before we serialize it.
+   *
+   * "Additive" is deliberate: existing child nodes keep their DB state
+   * (the in-app mutation that triggered this save() has already been
+   * committed there and must not be reverted). We only rescue content
+   * that the DB would otherwise overwrite — namely:
+   *
+   *   - frontmatter added externally (file node's `data` field)
+   *   - brand-new child nodes that exist on disk but not in the DB
+   *
+   * The watcher's normal reconciliation path is still the preferred
+   * route for keeping the DB in sync with disk. This is the safety net
+   * for the narrow window where an external edit slipped past the
+   * watcher and an in-app write is about to clobber it.
+   */
+  private mergeExternalDrift(fileNode: KNode, absPath: string, subtreeNodes: KNode[]): KNode[] {
+    const diskContent = readDiskContentIfChanged(this.db, fileNode, absPath)
+    if (diskContent === null) return subtreeNodes
+
+    // Update the tracker + DB baseline to the current disk content so the
+    // subsequent write is not flagged as a spurious conflict by the
+    // WriteQueue's baseline-hash check. We've already read and folded the
+    // disk state into the in-memory subtree, so it is the new baseline.
+    this.fsTarget.recordExternalObservation?.(absPath, diskContent, fileNode.id)
+    this.updateBaselineHash(fileNode.id, hashContent(diskContent))
+
+    const diskNodes = parseDiskContent(diskContent, fileNode, absPath)
+    if (!diskNodes) return subtreeNodes
+
+    const diskFile = diskNodes.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
+    if (!diskFile) return subtreeNodes
+
+    const withMergedFrontmatter = mergeFileFrontmatter(subtreeNodes, fileNode.id, diskFile)
+    return appendUnmatchedDiskChildren(withMergedFrontmatter, fileNode, diskFile, diskNodes)
+  }
+
+  private updateBaselineHash(nodeId: string, diskHash: string): void {
+    try {
+      this.db.run("UPDATE nodes SET content_hash = ? WHERE id = ?", [diskHash, nodeId])
+    } catch (err) {
+      log.warn?.(
+        `mergeExternalDrift: failed to update content_hash for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
   }
 
   /**
@@ -636,4 +708,107 @@ export class ChangeHandlers {
       // Directory read failure — skip, markInFlight provides fallback
     }
   }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Drift-aware save helpers (used by ChangeHandlers.save → mergeExternalDrift)
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Read the on-disk content and return it only when it differs from the
+ * baseline km last observed for this file node. Returns null when the file
+ * is missing, unreadable, or still matches the baseline (no drift).
+ */
+function readDiskContentIfChanged(db: Database, fileNode: KNode, absPath: string): string | null {
+  if (!existsSync(absPath)) return null
+  let diskContent: string
+  try {
+    diskContent = readFileSync(absPath, "utf-8")
+  } catch {
+    return null
+  }
+  const baselineHash = getNodeContentHash(db, fileNode.id)
+  if (baselineHash && baselineHash === hashContent(diskContent)) return null
+  return diskContent
+}
+
+/**
+ * Parse the on-disk markdown into km-ast nodes. Returns null on parse
+ * failure (drift merge falls back to the DB snapshot — noisy but safe).
+ */
+function parseDiskContent(content: string, fileNode: KNode, absPath: string): KNode[] | null {
+  try {
+    return parseMarkdownWithLinks(content, fileNode.fs_path ?? absPath).nodes
+  } catch (err) {
+    log.warn?.(
+      `mergeExternalDrift: failed to parse disk content for ${absPath}: ${err instanceof Error ? err.message : String(err)}`,
+    )
+    return null
+  }
+}
+
+/**
+ * Merge the disk file node's `data` field (frontmatter + parser internals)
+ * into the DB file node's. DB state wins on conflict — anything the DB
+ * actively tracks stays authoritative — but fields only present on disk
+ * (user-added frontmatter keys) are imported.
+ */
+function mergeFileFrontmatter(subtreeNodes: KNode[], fileNodeId: string, diskFile: KNode): KNode[] {
+  const dbFileIdx = subtreeNodes.findIndex((n) => n.id === fileNodeId)
+  if (dbFileIdx < 0) return subtreeNodes
+  const dbFile = subtreeNodes[dbFileIdx]
+  if (!dbFile) return subtreeNodes
+  const mergedData: Record<string, unknown> = { ...diskFile.data, ...dbFile.data }
+  const next = subtreeNodes.slice()
+  next[dbFileIdx] = { ...dbFile, data: mergedData }
+  return next
+}
+
+/**
+ * Identify child nodes on disk that are not represented in the DB subtree
+ * (matched by block_id or by type+content), and append them to the subtree
+ * re-parented to the file node. Existing children keep their DB state — the
+ * in-app mutation that triggered the save has already been committed and
+ * must not be reverted here.
+ */
+function appendUnmatchedDiskChildren(
+  subtreeNodes: KNode[],
+  fileNode: KNode,
+  diskFile: KNode,
+  diskNodes: KNode[],
+): KNode[] {
+  const dbChildren = subtreeNodes.filter((n) => n.id !== fileNode.id)
+  const diskChildren = diskNodes.filter((n) => n !== diskFile)
+  if (diskChildren.length === 0) return subtreeNodes
+
+  const dbBlockIds = new Set<string>()
+  const dbContentKeys = new Set<string>()
+  for (const n of dbChildren) {
+    if (n.block_id) dbBlockIds.add(n.block_id)
+    if (n.content) dbContentKeys.add(`${n.type}:${n.content}`)
+  }
+
+  const maxIdx = dbChildren.reduce((acc, n) => Math.max(acc, n.parent_idx ?? 0), -1)
+  let nextIdx = maxIdx + 1
+  const appended: KNode[] = []
+
+  for (const disk of diskChildren) {
+    if (isDiskChildMatched(disk, dbBlockIds, dbContentKeys)) continue
+    appended.push({
+      ...disk,
+      id: ulid(),
+      parent_id: fileNode.id,
+      parent_idx: nextIdx++,
+    })
+  }
+
+  if (appended.length === 0) return subtreeNodes
+  log.info?.(`mergeExternalDrift: rescuing ${appended.length} externally-added node(s) from ${fileNode.fs_path ?? ""}`)
+  return [...subtreeNodes, ...appended]
+}
+
+function isDiskChildMatched(disk: KNode, dbBlockIds: Set<string>, dbContentKeys: Set<string>): boolean {
+  if (disk.block_id && dbBlockIds.has(disk.block_id)) return true
+  if (disk.content && dbContentKeys.has(`${disk.type}:${disk.content}`)) return true
+  return false
 }

@@ -724,14 +724,22 @@ code
   })
 
   // ─────────────────────────────────────────────────────────────────────────
-  // km-storage.last-write-wins-no-mtime — external edits preserved as backups
+  // km-storage.frontmatter-wipe / watcher-misses-changes — drift-aware merge
   // ─────────────────────────────────────────────────────────────────────────
   //
-  // Regression: last_write_wins used to overwrite external edits silently.
-  // The fix is hash-based conflict detection driven by sync_state.baseline_hash,
-  // writing a .conflict.<ts>.md backup before overwriting the user's changes.
-  describe("external edit conflict backup", () => {
-    test("external append before km save preserves disk content in .conflict backup", () =>
+  // Regression: when the filesystem watcher misses an external edit (FSEvents
+  // coalescing, backgrounded tab, etc.) the next in-app save() used to
+  // overwrite the disk version with km's stale DB snapshot, silently stashing
+  // the user's edit into a `.conflict.<ts>.md` sibling. That was a data-loss
+  // trap (bug 1 — frontmatter wipe — was the most visible form).
+  //
+  // The fix: save() now performs a drift-aware merge before writing. If the
+  // disk hash no longer matches km's baseline, save() re-parses the disk
+  // version and folds the additive bits (frontmatter + appended nodes) into
+  // the in-memory subtree. No conflict backup, no data loss — the external
+  // edit survives in the main file alongside the in-app mutation.
+  describe("external edit merge-on-save", () => {
+    test("external append before km save survives in the main file (no conflict backup)", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "tasks.md")
         writeFileSync(
@@ -779,7 +787,7 @@ code
 
         // km now tries to save its version
         manager.applyChangeToFs({
-          id: "test-conflict-1",
+          id: "test-merge-1",
           ts: Date.now(),
           type: "node_updated",
           actor: "user",
@@ -791,26 +799,18 @@ code
         await new Promise((r) => setTimeout(r, 100))
         await manager.stop()
 
-        // A conflict must have been reported
-        expect(conflicts.length).toBeGreaterThanOrEqual(1)
-        const conflict = conflicts[0]!
-        expect(conflict.path).toBe(testFile)
-        expect(conflict.resolution).toBe("written")
-        expect(conflict.backupPath).toBeDefined()
-        expect(conflict.backupPath).toMatch(/tasks\.conflict\.\d{8}T\d{6}Z\.md$/)
+        // The on-disk file must contain BOTH the in-app mutation
+        // (Alpha flipped to done) AND the external addition.
+        const finalContent = readFileSync(testFile, "utf-8")
+        expect(finalContent).toContain("[x] Alpha")
+        expect(finalContent).toContain("[ ] Beta")
+        expect(finalContent).toContain("External task added by another editor")
 
-        // The backup file must contain the external edit (so the user can recover it)
-        const backupContent = readFileSync(conflict.backupPath!, "utf-8")
-        expect(backupContent).toBe(externalContent)
-        expect(backupContent).toContain("External task added by another editor")
-
-        // The original file now holds km's version (Alpha marked done)
-        const originalContent = readFileSync(testFile, "utf-8")
-        expect(originalContent).toContain("[x] Alpha")
-
-        // A real .conflict.*.md file exists in the repo directory
+        // No `.conflict.*.md` sibling should have been created — that file
+        // was the old "overwrite and stash" symptom, now obsolete.
         const files = readdirSync(repoDir)
-        expect(files.some((f) => /^tasks\.conflict\..*\.md$/.test(f))).toBe(true)
+        expect(files.some((f) => /^tasks\.conflict\..*\.md$/.test(f))).toBe(false)
+        expect(conflicts).toHaveLength(0)
       }))
 
     test("no conflict when km saves with no external edits", () =>

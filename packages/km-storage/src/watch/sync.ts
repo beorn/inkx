@@ -274,6 +274,9 @@ export function withSync(config?: Partial<SyncConfig>) {
       recordWriteToken: (absPath: string, content: string) => {
         tracker.recordWrite(absPath, content)
       },
+      recordExternalObservation: (absPath: string, content: string, nodeId?: string) => {
+        tracker.recordObservation(absPath, content, nodeId)
+      },
       renamePending: (oldPath: string, newPath: string) => {
         return writeQueue.renamePending(oldPath, newPath)
       },
