@@ -15,7 +15,7 @@
 
 import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync, openSync, readSync, closeSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
 import { toRelativeFsPath } from "../fs/path-utils.ts"
 import type { Change } from "@km/core"
@@ -24,7 +24,7 @@ import { applyChangeWithDb } from "../db/changes.ts"
 import { evaluateAllRules, createRuleContext } from "../db/rules.ts"
 import { findKmRootFromPath } from "../fs/path-utils.ts"
 import { MemoryStore, type NodeStore } from "../store/store.ts"
-import { getIgnorePatterns, shouldIgnore, isHiddenFile } from "../fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore, isHiddenFile } from "../fs/ignore.ts"
 import { generatePathBasedId } from "../fs/id-utils.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
 import { decomposeChangeItem } from "../item-helpers.ts"
@@ -453,15 +453,53 @@ function* discoverMemoryMode(
  * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
  * Returns empty array if file doesn't exist.
  */
-function parseChangesFile(kmDir: string, caller: string): Change[] {
+/**
+ * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
+ * When `fromByteOffset` is provided, only reads the tail of the file from that position,
+ * dramatically speeding up startup when most changes are already applied.
+ * Returns empty array if file doesn't exist.
+ */
+function parseChangesFile(
+  kmDir: string,
+  caller: string,
+  fromByteOffset?: number,
+): { changes: Change[]; byteLength: number } {
   const changesPath = join(kmDir, "changes.jsonl")
 
   if (!existsSync(changesPath)) {
     log.debug?.(`no changes file at ${changesPath}`)
-    return []
+    return { changes: [], byteLength: 0 }
   }
 
-  const content = readFileSync(changesPath, "utf-8")
+  const fileSize = statSync(changesPath).size
+
+  // Fast path: if we have a byte offset and the file hasn't grown, no new changes
+  if (fromByteOffset !== undefined && fromByteOffset >= fileSize) {
+    log.debug?.(`${caller}: changes.jsonl unchanged (offset ${fromByteOffset} >= size ${fileSize})`)
+    return { changes: [], byteLength: fileSize }
+  }
+
+  let content: string
+  if (fromByteOffset !== undefined && fromByteOffset > 0) {
+    // Read only the tail of the file from the byte offset
+    const fd = openSync(changesPath, "r")
+    try {
+      const buf = Buffer.alloc(fileSize - fromByteOffset)
+      readSync(fd, buf, 0, buf.length, fromByteOffset)
+      content = buf.toString("utf-8")
+      // If the offset landed mid-line, discard the partial first line
+      const firstNewline = content.indexOf("\n")
+      if (firstNewline > 0 && fromByteOffset > 0) {
+        content = content.slice(firstNewline + 1)
+      }
+    } finally {
+      closeSync(fd)
+    }
+    log.debug?.(`${caller}: reading tail of changes.jsonl from offset ${fromByteOffset} (${content.length} bytes)`)
+  } else {
+    content = readFileSync(changesPath, "utf-8")
+  }
+
   const lines = content.split("\n").filter((line) => line.trim())
 
   log.debug?.(`reading ${lines.length} lines from changes.jsonl`)
@@ -490,11 +528,11 @@ function parseChangesFile(kmDir: string, caller: string): Change[] {
   changes.sort((a, b) => a.id.localeCompare(b.id))
 
   log.debug?.(`read ${changes.length} changes`)
-  return changes
+  return { changes, byteLength: fileSize }
 }
 
 export function readChanges(kmDir: string): Change[] {
-  return parseChangesFile(kmDir, "readChanges")
+  return parseChangesFile(kmDir, "readChanges").changes
 }
 
 // ============================================================================
@@ -509,18 +547,28 @@ function* discoverFromChanges(
 ): Generator<StepYield, ChangeSource, unknown> {
   yield "Reading changes"
 
-  const allChanges = parseChangesFile(kmDir, "discoverFromChanges")
-
-  // Filter to only new changes (unless force rebuild)
-  let changes: Change[]
+  // Read the byte offset cursor to skip already-applied changes
   const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
     | { value: string }
     | undefined
+  const lastOffset = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_offset") as
+    | { value: string }
+    | undefined
+  const byteOffset = !force && lastApplied?.value && lastOffset?.value ? Number(lastOffset.value) : undefined
 
+  const { changes: allChanges, byteLength } = parseChangesFile(kmDir, "discoverFromChanges", byteOffset)
+
+  // Filter to only new changes (unless force rebuild)
+  let changes: Change[]
   if (force) {
     changes = allChanges
   } else {
     changes = lastApplied?.value ? allChanges.filter((e) => e.id > lastApplied.value) : allChanges
+  }
+
+  // Store the byte offset for next startup
+  if (byteLength > 0) {
+    db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event_offset", String(byteLength)])
   }
 
   yield { current: changes.length, total: changes.length }
@@ -555,7 +603,7 @@ function* reconcileFilesystem(
   const changes: Change[] = []
   const deferredFiles: DeferredFile[] = []
   const now = Date.now()
-  const ignorePatterns = getIgnorePatterns(repoRoot)
+  const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const siblingOrders = readSiblingOrder(repoRoot)
 
   // Collect all fs_path values from DB (non-null, excluding repo root ".")
@@ -612,7 +660,7 @@ function* reconcileFilesystem(
       if (isHiddenFile(fullPath)) continue
 
       // Skip ignored entries
-      if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
+      if (shouldIgnore(fullPath, ignoreMatcher, repoRoot)) continue
 
       if (entry.isSymbolicLink()) {
         let targetStat

@@ -14,7 +14,7 @@ import { decomposeItem } from "../item-helpers.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, NODE_COLUMNS } from "../db/schema.ts"
 import { addLink } from "../db/db.ts"
-import { getIgnorePatterns, shouldIgnore } from "../fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore, type PatternMatcher } from "../fs/ignore.ts"
 import { ensureRepoRootNode } from "../repo/loader.ts"
 import { findChildByContent, findFileByName } from "../db/queries/wikilink-resolver.ts"
 import { getNode } from "../db/queries/index.ts"
@@ -86,11 +86,11 @@ export class MemoryStore extends BaseStore {
     current: number
     total: number
   }> {
-    const ignorePatterns = getIgnorePatterns(this.rootPath)
+    const ignoreMatcher = createIgnoreMatcher(this.rootPath)
 
     // First pass: count files for progress reporting
     yield { phase: "scanning", current: 0, total: 0 }
-    const total = this.countMarkdownFiles(this.rootPath, ignorePatterns)
+    const total = this.countMarkdownFiles(this.rootPath, ignoreMatcher)
 
     // Clear any previous errors
     this.parseErrors = []
@@ -101,7 +101,7 @@ export class MemoryStore extends BaseStore {
     ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      yield* this.scanDirectoryAsync(this.rootPath, ".", 0, total, ignorePatterns)
+      yield* this.scanDirectoryAsync(this.rootPath, ".", 0, total, ignoreMatcher)
       this.db.run("COMMIT")
     } catch (error) {
       this.db.run("ROLLBACK")
@@ -137,7 +137,7 @@ export class MemoryStore extends BaseStore {
   /**
    * Count markdown files for progress reporting
    */
-  private countMarkdownFiles(dirPath: string, ignorePatterns: string[]): number {
+  private countMarkdownFiles(dirPath: string, ignoreMatcher: PatternMatcher): number {
     if (!existsSync(dirPath)) return 0
 
     let count = 0
@@ -145,10 +145,10 @@ export class MemoryStore extends BaseStore {
 
     for (const entry of entries) {
       const fullPath = join(dirPath, entry.name)
-      if (shouldIgnore(fullPath, ignorePatterns, this.rootPath)) continue
+      if (shouldIgnore(fullPath, ignoreMatcher, this.rootPath)) continue
 
       if (entry.isDirectory()) {
-        count += this.countMarkdownFiles(fullPath, ignorePatterns)
+        count += this.countMarkdownFiles(fullPath, ignoreMatcher)
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
         count++
       }
@@ -161,11 +161,11 @@ export class MemoryStore extends BaseStore {
    */
   private scanFilesystem(): void {
     this.parseErrors = []
-    const ignorePatterns = getIgnorePatterns(this.rootPath)
+    const ignoreMatcher = createIgnoreMatcher(this.rootPath)
     ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      for (const _ of this.scanDirectoryAsync(this.rootPath, ".", 0, 0, ignorePatterns)) {
+      for (const _ of this.scanDirectoryAsync(this.rootPath, ".", 0, 0, ignoreMatcher)) {
         // Consume generator without progress reporting
       }
       this.db.run("COMMIT")
@@ -185,12 +185,12 @@ export class MemoryStore extends BaseStore {
     parentId: string | null,
     sortOrder: number,
     total: number,
-    ignorePatterns: string[],
+    ignoreMatcher: PatternMatcher,
   ): Generator<{ phase: string; current: number; total: number }> {
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (but not the root directory)
-    if (parentId !== "." && shouldIgnore(dirPath, ignorePatterns, this.rootPath)) {
+    if (parentId !== "." && shouldIgnore(dirPath, ignoreMatcher, this.rootPath)) {
       return
     }
 
@@ -201,7 +201,7 @@ export class MemoryStore extends BaseStore {
       const fullPath = join(dirPath, entry.name)
 
       // Skip ignored entries BEFORE creating nodes
-      if (shouldIgnore(fullPath, ignorePatterns, this.rootPath)) continue
+      if (shouldIgnore(fullPath, ignoreMatcher, this.rootPath)) continue
 
       if (entry.isDirectory()) {
         // Create folder node
@@ -219,7 +219,7 @@ export class MemoryStore extends BaseStore {
         })
 
         // Recurse
-        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total, ignorePatterns)
+        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total, ignoreMatcher)
       } else if (entry.isFile()) {
         const isMarkdown = entry.name.endsWith(".md")
 

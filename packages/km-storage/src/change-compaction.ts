@@ -13,7 +13,7 @@ import { existsSync, readdirSync, statSync, writeFileSync } from "fs"
 import { join } from "path"
 import { readChanges } from "./repo/loader.ts"
 import { getNodeCount, getLastEventId } from "./db/db.ts"
-import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore } from "./fs/ignore.ts"
 
 /** Result of identifying or compacting stale changes */
 export interface CompactionResult {
@@ -179,7 +179,7 @@ function countWorktree(repoPath: string, _kmDir: string): { fileCount: number; d
   let fileCount = 0
   let dirCount = 0
 
-  const ignorePatterns = getIgnorePatterns(repoPath)
+  const ignoreMatcher = createIgnoreMatcher(repoPath)
 
   function walk(dir: string): void {
     let entries: import("fs").Dirent[]
@@ -191,7 +191,7 @@ function countWorktree(repoPath: string, _kmDir: string): { fileCount: number; d
 
     for (const entry of entries) {
       const fullPath = join(dir, entry.name)
-      if (shouldIgnore(fullPath, ignorePatterns, repoPath)) continue
+      if (shouldIgnore(fullPath, ignoreMatcher, repoPath)) continue
 
       if (entry.isDirectory()) {
         dirCount++

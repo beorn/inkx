@@ -29,7 +29,7 @@ import { createReconciliationEngine, type ReconciliationEngine } from "../watch/
 import { wrapEmitterForReconcile, BulkSync } from "../watch/bulk-sync.ts"
 import type { BulkSyncDeps, SyncFromFsResult } from "../watch/bulk-sync.ts"
 import { FileSystemWatcher } from "../watch/watcher.ts"
-import { getIgnorePatterns } from "../fs/ignore.ts"
+import { createIgnoreMatcher, type PatternMatcher } from "../fs/ignore.ts"
 import { createParsePool, type ParsePoolService } from "../markdown/parse-pool.ts"
 import { ulid } from "ulid"
 
@@ -140,8 +140,8 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
   // Commit listeners (for onCommit)
   const listeners = new Set<(result: CommitResult) => void>()
 
-  // Ignore patterns for reconciliation
-  let ignorePatterns: string[] = []
+  // Ignore matcher for reconciliation (pre-compiled patterns)
+  let ignoreMatcher: PatternMatcher | undefined
 
   // Mutable state
   let watcherStarted = false
@@ -163,7 +163,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     for (const dir of data.directories) {
       if (stopped) break
       try {
-        const ops = await engine.reconcileAsync(dir, ignorePatterns)
+        const ops = await engine.reconcileAsync(dir, ignoreMatcher!)
         if (ops.length > 0 && !stopped) {
           if (!parsePool) {
             parsePool = createParsePool()
@@ -275,7 +275,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     startWatching(): void {
       if (watcherStarted || stopped) return
       watcherStarted = true
-      ignorePatterns = getIgnorePatterns(repoPath)
+      ignoreMatcher = createIgnoreMatcher(repoPath)
       watcher.start(repoPath)
     },
 

@@ -41,7 +41,7 @@ export async function parseDeferredAsync(
   db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
-  options?: { useWorkerPool?: boolean },
+  options?: { useWorkerPool?: boolean; onProgress?: (completed: number, total: number) => void },
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
   if (total === 0) return { parsed: 0, pendingLinks: [] }
@@ -49,7 +49,7 @@ export async function parseDeferredAsync(
   const useWorkerPool = options?.useWorkerPool ?? true
 
   if (useWorkerPool && total >= 4) {
-    return parseDeferredWithPool(db, deferredFiles, shouldAbort)
+    return parseDeferredWithPool(db, deferredFiles, shouldAbort, options?.onProgress)
   }
 
   return parseDeferredSequential(db, deferredFiles, shouldAbort)
@@ -182,6 +182,7 @@ async function parseDeferredWithPool(
   db: Database,
   deferredFiles: DeferredFile[],
   _shouldAbort?: () => boolean,
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
   log.debug?.(`parseDeferredWithPool: starting ${total} files with pipeline`)
@@ -189,7 +190,7 @@ async function parseDeferredWithPool(
   await using pool = createParsePool()
   await pool.start()
 
-  const result = await runDeferredPipeline(db, deferredFiles, pool)
+  const result = await runDeferredPipeline(db, deferredFiles, pool, { onProgress })
 
   const pendingLinks: PendingLink[] = result.pendingLinks.map((link) => ({
     nodeId: link.source_id,

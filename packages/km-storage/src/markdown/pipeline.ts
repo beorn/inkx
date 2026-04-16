@@ -80,6 +80,8 @@ export interface PipelineOptions {
   stubInfo?: Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }>
   /** For updates: map of old ID -> new ID for node matching */
   idMap?: Map<string, string>
+  /** Called after each batch commit with (completedFiles, totalFiles) */
+  onProgress?: (completed: number, total: number) => void
 }
 
 // ============================================================================
@@ -142,14 +144,16 @@ export async function* parseFiles(
 
 /**
  * Apply parsed nodes to database.
- * Exhausts upstream, then applies in single transaction.
+ * Exhausts upstream, then applies in batched transactions to avoid blocking
+ * the event loop. Each batch commits independently and yields to the event
+ * loop between batches so the UI stays responsive during background parsing.
  */
 export async function* applyNodes(
   upstream: AsyncGenerator<ParsedFile>,
   db: Database,
   options: PipelineOptions = {},
 ): AsyncGenerator<AppliedFile> {
-  const { signal, emitter, stubInfo } = options
+  const { signal, emitter, stubInfo, onProgress } = options
 
   // Collect all parsed files (exhaust upstream)
   const files: ParsedFile[] = []
@@ -168,19 +172,39 @@ export async function* applyNodes(
 
   const now = Date.now()
 
-  // Apply in single transaction
-  db.run("BEGIN IMMEDIATE")
-  try {
-    for (const file of files) {
-      if (file.error) continue
+  // Apply in batched transactions — commit every BATCH_SIZE files to avoid
+  // holding BEGIN IMMEDIATE for too long (which blocks the event loop and
+  // freezes the UI during background parsing of deferred stubs).
+  const BATCH_SIZE = 5
+  let batchStart = 0
 
-      if (file.isCreate) {
-        insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now)
-      } else {
-        updateFileMetadata(file, db, emitter, now)
+  while (batchStart < files.length) {
+    if (signal?.aborted) return
+
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, files.length)
+
+    db.run("BEGIN IMMEDIATE")
+    try {
+      for (let i = batchStart; i < batchEnd; i++) {
+        const file = files[i]!
+        if (file.error) continue
+
+        if (file.isCreate) {
+          insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now)
+        } else {
+          updateFileMetadata(file, db, emitter, now)
+        }
       }
+      db.run("COMMIT")
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
 
-      // Yield with wikilinks for next stage
+    // Yield applied files for next stage
+    for (let i = batchStart; i < batchEnd; i++) {
+      const file = files[i]!
+      if (file.error) continue
       const name = basename(file.path).replace(/\.md$/, "")
       yield {
         nodeId: file.nodeId,
@@ -190,12 +214,16 @@ export async function* applyNodes(
       }
     }
 
-    db.run("COMMIT")
-    log.debug?.(`applyNodes: committed ${files.length} files`)
-  } catch (error) {
-    db.run("ROLLBACK")
-    throw error
+    batchStart = batchEnd
+
+    // Report progress and yield to event loop between batches
+    if (onProgress) onProgress(batchStart, files.length)
+    if (batchStart < files.length) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    }
   }
+
+  log.debug?.(`applyNodes: committed ${files.length} files in ${Math.ceil(files.length / BATCH_SIZE)} batches`)
 }
 
 // ============================================================================

@@ -209,6 +209,14 @@ export const viewCommand = new Command("view")
                 createdRepo.database,
                 deferredFiles,
                 () => aborted, // Check abort on each batch
+                {
+                  onProgress: (completed, total) => {
+                    tuiModule.tuiEvents.emit("watcher-status", {
+                      state: "syncing",
+                      pendingPaths: total - completed,
+                    })
+                  },
+                },
               )
             debug.debug?.(`background parsing complete: ${parsed} parsed`)
 

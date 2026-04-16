@@ -24,7 +24,7 @@ import { join } from "path"
 import type { Change } from "@km/core"
 import { createLogger } from "loggily"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
-import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore, type PatternMatcher } from "./fs/ignore.ts"
 import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loader.ts"
 import { generatePathBasedId } from "./fs/id-utils.ts"
 import { toRelativeFsPath } from "./fs/path-utils.ts"
@@ -103,7 +103,7 @@ export function* discoverFiles(
   const deferredFiles: DeferredFile[] = []
   const unexploredDirs: UnexploredDir[] = []
   const now = Date.now()
-  const ignorePatterns = getIgnorePatterns(repoRoot)
+  const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const siblingOrders = readSiblingOrder(repoRoot)
 
   // Query for existing repo root node (created by migration)
@@ -121,7 +121,7 @@ export function* discoverFiles(
   const repoRootId = repoRootRow.id
 
   // Count files for progress
-  const total = countMarkdownFilesFast(repoRoot, ignorePatterns)
+  const total = countMarkdownFilesFast(repoRoot, ignoreMatcher)
   yield { current: 0, total }
 
   // Full mode yields "Parsing markdown" step
@@ -193,7 +193,7 @@ export function* discoverFiles(
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (except root)
-    if (parentId !== null && shouldIgnore(dirPath, ignorePatterns, repoRoot)) {
+    if (parentId !== null && shouldIgnore(dirPath, ignoreMatcher, repoRoot)) {
       return
     }
 
@@ -207,7 +207,7 @@ export function* discoverFiles(
     const orderMap = persistedOrder
       ? applySiblingOrder(
           persistedOrder,
-          entries.filter((e) => !shouldIgnore(join(dirPath, e.name), ignorePatterns, repoRoot)).map((e) => e.name),
+          entries.filter((e) => !shouldIgnore(join(dirPath, e.name), ignoreMatcher, repoRoot)).map((e) => e.name),
         )
       : null
 
@@ -224,7 +224,7 @@ export function* discoverFiles(
       const fullPath = join(dirPath, entry.name)
 
       // Skip ignored entries BEFORE creating nodes
-      if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
+      if (shouldIgnore(fullPath, ignoreMatcher, repoRoot)) continue
 
       // Handle symlinks — follow to directories and files, detect loops
       if (entry.isSymbolicLink()) {
@@ -251,7 +251,7 @@ export function* discoverFiles(
           )
           // Depth limit: record as unexplored instead of recursing
           if (depth >= preloadDepth) {
-            const childCount = quickChildCount(fullPath, ignorePatterns, repoRoot)
+            const childCount = quickChildCount(fullPath, ignoreMatcher, repoRoot)
             unexploredDirs.push({
               id: folderId,
               path: toRelativeFsPath(repoRoot, fullPath),
@@ -287,7 +287,7 @@ export function* discoverFiles(
         )
         // Depth limit: record as unexplored instead of recursing
         if (depth >= preloadDepth) {
-          const childCount = quickChildCount(fullPath, ignorePatterns, repoRoot)
+          const childCount = quickChildCount(fullPath, ignoreMatcher, repoRoot)
           unexploredDirs.push({
             id: folderId,
             path: toRelativeFsPath(repoRoot, fullPath),
@@ -414,10 +414,10 @@ function isParseableFile(name: string): boolean {
  * Quick child count for an unexplored directory.
  * Uses readdirSync and filters out ignored entries without stat calls.
  */
-function quickChildCount(dirPath: string, ignorePatterns: string[], repoRoot: string): number {
+function quickChildCount(dirPath: string, ignoreMatcher: PatternMatcher, repoRoot: string): number {
   try {
     const entries = readdirSync(dirPath)
-    return entries.filter((name) => !shouldIgnore(join(dirPath, name), ignorePatterns, repoRoot)).length
+    return entries.filter((name) => !shouldIgnore(join(dirPath, name), ignoreMatcher, repoRoot)).length
   } catch {
     return 0
   }
@@ -429,7 +429,7 @@ function quickChildCount(dirPath: string, ignorePatterns: string[], repoRoot: st
  * Used for progress display only.
  */
 // oxlint-disable-next-line complexity/complexity -- stack-based directory walker, complexity from error handling
-function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): number {
+function countMarkdownFilesFast(rootPath: string, ignoreMatcher: PatternMatcher): number {
   if (!existsSync(rootPath)) return 0
 
   let count = 0
@@ -441,14 +441,14 @@ function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): num
     const dirPath = stack.pop()
     if (!dirPath) continue
 
-    if (dirPath !== rootPath && shouldIgnore(dirPath, ignorePatterns, rootPath)) continue
+    if (dirPath !== rootPath && shouldIgnore(dirPath, ignoreMatcher, rootPath)) continue
 
     try {
       const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
         const fullPath = join(dirPath, entry.name)
-        if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
+        if (shouldIgnore(fullPath, ignoreMatcher, rootPath)) continue
 
         if (entry.isSymbolicLink()) {
           try {

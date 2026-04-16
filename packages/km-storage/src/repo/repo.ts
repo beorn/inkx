@@ -55,7 +55,7 @@ import { executeQuery, parseQuery } from "../query.ts"
 import { type MutationContext, type RepoHooks } from "./hooks.ts"
 import { loadRepo, type DeferredFile, type LoadError, type PendingLink, type StepYield } from "./loader.ts"
 import { type UnexploredDir } from "../discovery.ts"
-import { getIgnorePatterns, shouldIgnore } from "../fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore } from "../fs/ignore.ts"
 import { generatePathBasedId } from "../fs/id-utils.ts"
 import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes, normalizeNodeName } from "@km/markdown"
@@ -1210,7 +1210,7 @@ function expandUnexploredDirectory(
   const fullPath = join(repoRoot, dir.path)
   if (!existsSync(fullPath)) return { nodeCount: 0, pendingLinks: [], newUnexploredDirs: [] }
 
-  const ignorePatterns = getIgnorePatterns(repoRoot)
+  const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const preloadDepth = options.preloadDepth ?? Infinity
   const now = Date.now()
   const changes: Change[] = []
@@ -1288,7 +1288,7 @@ function expandUnexploredDirectory(
     let order = 0
     for (const entry of entries) {
       const entryPath = join(dirPath, entry.name)
-      if (shouldIgnore(entryPath, ignorePatterns, repoRoot)) continue
+      if (shouldIgnore(entryPath, ignoreMatcher, repoRoot)) continue
 
       if (entry.isSymbolicLink()) {
         let targetStat
@@ -1358,7 +1358,7 @@ function expandUnexploredDirectory(
       let childCount = 0
       try {
         const entries = readdirSync(dirPath)
-        childCount = entries.filter((n) => !shouldIgnore(join(dirPath, n), ignorePatterns, repoRoot)).length
+        childCount = entries.filter((n) => !shouldIgnore(join(dirPath, n), ignoreMatcher, repoRoot)).length
       } catch {
         // ignore
       }

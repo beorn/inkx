@@ -52,8 +52,16 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
   const needsPathFilter = ast.paths.length > 0
   const params: (string | number)[] = []
 
+  // Nodes of type file/folder always have fs_path set — skip the expensive
+  // recursive CTE that walks all 500K+ nodes to compute ancestor paths.
+  const typeHasFsPath =
+    baseType === "file" ||
+    baseType === "folder" ||
+    ast.conditions.some((c) => c.field === "type" && c.op === "=" && (c.value === "file" || c.value === "folder"))
+  const needsCte = needsPathFilter && !typeHasFsPath
+
   // Build base SQL (with or without CTE for path ancestor lookup)
-  let sql = needsPathFilter ? buildPathCteSelect() : "SELECT * FROM nodes WHERE 1=1"
+  let sql = needsCte ? buildPathCteSelect() : "SELECT * FROM nodes WHERE 1=1"
 
   // Apply type and task_status filters
   // Translate virtual types from old schema to new km-ast types
@@ -72,13 +80,13 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
   for (const propCond of ast.propConditions) {
     sql += buildPropCondition(propCond, params)
   }
-  const outerTable = needsPathFilter ? "n" : "nodes"
+  const outerTable = needsCte ? "n" : "nodes"
   for (const special of ast.specials) {
     sql += buildBlockedCondition(special, outerTable)
   }
   for (const phrase of ast.phrases) sql += buildPhraseCondition(phrase, params)
   for (const term of ast.text) sql += buildTextCondition(term, params)
-  const pathColumn = needsPathFilter ? "effective_path" : "fs_path"
+  const pathColumn = needsCte ? "effective_path" : "fs_path"
   for (const pathFilter of ast.paths) {
     sql += buildPathCondition(pathFilter, pathColumn, params)
   }
