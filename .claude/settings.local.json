@@ -79,7 +79,8 @@
       "Bash(mv .claude/agents/expert/release.md .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/name: release/name: npm/' .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/Release — Packaging Expert/npm — Packaging Expert/' .claude/agents/expert/npm.md)",
-      "Bash(sed -i '' 's/release-knowledge/npm-knowledge/' .claude/agents/expert/npm.md)"
+      "Bash(sed -i '' 's/release-knowledge/npm-knowledge/' .claude/agents/expert/npm.md)",
+      "Skill(sop)"
     ],
     "deny": [],
     "ask": []

@@ -564,6 +564,13 @@ This ensures local development uses the workspace versions while vendor packages
 - Module-level `let` state (no globals/singletons)
 - `dimColor` for cascading dim (doesn't cascade to children -- pass `dim` prop)
 
+## Staging (2026-04-16 review)
+
+- **TEA migration really ~15%** (verified): `board-reducer.ts` has 17 discriminated `case "…"` handlers (navigation + edit effects); `board-actions.ts` still has 50 exported imperative function bodies with 8 direct `repo.*` mutation sites. `board-effect-runner.ts` is only 129 LOC — the reducer→effect path exists but most handlers still bypass it. Confirms Phase 2a shipped, Phase 2b not started. `promote-to: keep in staging until km-tui.tea unblocks`.
+- **Classes in km-storage count = 8** (verified against arch-knowledge list): `WriteQueue`, `FileSystemWatcher`, `WorkerWatcher` (EventEmitter — legit); `InvalidMoveError`, `IncompleteDatabase` (Error — legit); `BaseStore` + `MemoryStore` (abstract+impl of pluggable store — defensible); `ChangeHandlers`, `WriteTokenMap`, `WorkerBridge` — pure state holders, could be factory functions. Not urgent. `promote-to: km-storage.reactive-store epic will restructure anyway`.
+- **km-storage = 24,746 LOC is structural necessity, not creep** (verified by subdir breakdown): `watch/` 5,477 + `db/` 2,321 + `repo/` 3,323 + `markdown/` 1,973 + `store/` (reactive layer). Each subdir is a distinct subsystem (file watching, SQL schema+rules, write queue, parse pool, pluggable store). The `reactive-store` epic (P2) restructures via `pipe()` composition → moves concerns behind capability traits. Hotspot `repo.ts` 2,175 LOC IS the legitimate choke-point for backward compat.
+- **km-board dep declaration is now clean** (see #1 below, was stale) — layer boundaries are actually enforced.
+
 ## Inconsistencies Found
 
 ### Version mismatches in docs/packages.md
@@ -596,7 +603,7 @@ This ensures local development uses the workspace versions while vendor packages
 
 ### Layer boundary observations
 
-1. **`@km/board` depends on `@silvery/ag-react`**: The `grid-navigator.ts` imports `PositionRegistry` and `ScrollRect` from `@silvery/ag-react`. This means the BOARD layer reaches into the rendering framework directly, which is unusual for a "no UI rendering" package (as its own description states). The dependency is for spatial navigation, which arguably belongs at the board level, but it creates a coupling between the board domain package and the rendering framework.
+1. **`@km/board` no longer depends on `@silvery/ag-react`** (verified 2026-04-16): The package.json declares only `@km/core` + `@km/tree`. Zero `@silvery/ag-react` imports in `packages/km-board/src`. Both `docs/architecture.md` lines 192/202/211 AND `docs/README.md` layer commentary still claim this dep — **stale, needs fixing**. The grid-navigator apparently moved to `apps/km-tui` (spatial navigation now at the app layer where it belongs). `promote-to: fix docs/architecture.md directly`.
 
 2. **`@km/board` dependency on `@km/markdown` -- FIXED**: The board layer no longer depends on `@km/markdown`. `SectionRules` was unified with the identical `NodeRules` type already in `@km/core`, and `parseHeadingRules`/`extractKVProperties`/`PROP_REGEX` were moved to `@km/core/heading-rules.ts`. This also fixed `@km/tree`'s undeclared import of `PROP_REGEX` from `@km/markdown`.
 
