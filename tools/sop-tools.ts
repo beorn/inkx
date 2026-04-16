@@ -232,7 +232,19 @@ const zeroDep: SopTask = {
 const cjsEsm: SopTask = {
   id: "cjs-esm",
   label: "CJS/ESM compat",
-  command: "bunx --bun @arethetypeswrong/cli --pack vendor/silvery 2>&1 | tail -20",
+  // Per vendor-scope rule (_sop-rules.md): all public vendor packages are
+  // first-class workspace members and need attw verification. Walk each
+  // vendor/* directory with a public package.json and pack it through attw.
+  command: [
+    "for d in vendor/*/; do",
+    '  [ -f "$d/package.json" ] || continue',
+    '  grep -q \'"private":\\s*true\' "$d/package.json" 2>/dev/null && continue',
+    '  name=$(basename "$d")',
+    '  result=$(bunx --bun @arethetypeswrong/cli --pack "$d" --format=ascii 2>&1 | grep -E "(Resolution|Pass|FAIL|✓|💀|⚠️)" | head -8 || echo "  (no output)")',
+    '  echo "── $name ──"',
+    '  echo "$result"',
+    "done",
+  ].join("\n"),
   cache: "git",
 }
 

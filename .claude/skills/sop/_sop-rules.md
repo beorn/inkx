@@ -57,6 +57,23 @@ No overlap, no gaps. One owner per process. If a user request could reasonably t
 - **/big vs /fresh** — /big = proactive reframe, /fresh = reactive unstuck. OK (documented in /big).
 - **/audit, /review-all, /project-audit, /project-cleanup, /repo-health** — all absorbed into `/sop`. RESOLVED.
 
+## Vendor Scope — vendor/* IS Part of This Project
+
+**Rule:** Every SOP check scans `apps/`, `packages/`, AND `vendor/` by default. Vendor packages are first-class workspace members — silvery, termless, mdspec, bearly, etc. share the same quality bar as km's own code.
+
+**This means:**
+- Complexity, type-coverage, dead-code, lint, test, license, CVE, secret-scan, bundle-size, attw — all run across `vendor/*`.
+- Sherif's "multiple dependency versions" findings spanning vendor are **real** consistency issues to fix (align versions), not "vendor independence" to whitelist.
+- Knip's unused-export findings in vendor are **real** dead code, not "different repo's problem."
+- Site/doc freshness checks must walk every vendor package's docs/, not just the showcase ones.
+- Standalone-ready ≠ excluded: vendor packages must work outside km (no `workspace:*`), but their declared npm versions should still align with km root where compatible.
+
+**Exclusion bar:** Excluding a vendor file or pattern requires an explicit per-target reason (e.g., `vendor/termless/packages/vt100/tests/backend.test.ts` is skipped from oxlint because it tests a backend that genuinely cannot run in the lint environment). Generic `vendor/**` exclusions in any check config are a violation — file a bead to remove them.
+
+**When a check's tooling is vendor-shaped** (e.g., it operates on package.json files), it must enumerate vendor/* alongside packages/* — see `tools/sop-tools.ts` for canonical examples (`bundle-sizes`, `zero-dep`, `license-files` all walk `vendor/*/`).
+
+**When proposing a new check or fix:** if the first instinct is "this doesn't apply to vendor," stop — that's almost always wrong. Either the check applies and vendor needs to comply, or the check itself is misframed.
+
 ## Finding Quality
 
 A finding must be actionable or explicitly informational.
