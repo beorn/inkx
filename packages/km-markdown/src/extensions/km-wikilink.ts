@@ -37,7 +37,7 @@ function wikilinkBody(effects: any, ok: any, nok: any) {
   return beforeTarget
 
   function beforeTarget(code: number | null): any {
-    if (code === null || code === 91) return nok(code)
+    if (code === null || code === 91 || code === -5 || code === -4 || code === -3) return nok(code)
     // Empty target — skip directly to separator handling
     if (code === 35) {
       effects.enter("kmWikilinkMarker")
@@ -63,7 +63,7 @@ function wikilinkBody(effects: any, ok: any, nok: any) {
   }
 
   function insideTarget(code: number | null): any {
-    if (code === null || code === 91) return nok(code) // EOF or nested [
+    if (code === null || code === 91 || code === -5 || code === -4 || code === -3) return nok(code) // EOF, nested [, or newline
     if (code === 93) {
       effects.exit("kmWikilinkTarget")
       return closeBracket1(code)
@@ -115,7 +115,7 @@ function wikilinkBody(effects: any, ok: any, nok: any) {
   }
 
   function insideSection(code: number | null): any {
-    if (code === null || code === 91) return nok(code)
+    if (code === null || code === 91 || code === -5 || code === -4 || code === -3) return nok(code)
     if (code === 93) {
       effects.exit("kmWikilinkSection")
       return closeBracket1(code)
@@ -151,7 +151,7 @@ function wikilinkBody(effects: any, ok: any, nok: any) {
   }
 
   function insideBlockRef(code: number | null): any {
-    if (code === null || code === 91) return nok(code)
+    if (code === null || code === 91 || code === -5 || code === -4 || code === -3) return nok(code)
     if (code === 93) {
       effects.exit("kmWikilinkBlockRef")
       return closeBracket1(code)
@@ -170,7 +170,7 @@ function wikilinkBody(effects: any, ok: any, nok: any) {
   }
 
   function insideAlias(code: number | null): any {
-    if (code === null || code === 91) return nok(code)
+    if (code === null || code === 91 || code === -5 || code === -4 || code === -3) return nok(code)
     if (code === 93) {
       effects.exit("kmWikilinkAlias")
       return closeBracket1(code)
