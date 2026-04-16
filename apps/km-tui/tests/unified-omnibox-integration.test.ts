@@ -186,6 +186,108 @@ describe("unified omnibox — runtime integration", () => {
     expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
   })
 
+  // Regression: km-tui.omnibox-fixed-width
+  //
+  // The omnibox dialog must be pinned to a stable width across all frames.
+  // Typing progressively must not reflow the outer dialog as results stream
+  // in or drop out. Both the measured layout boundingBox AND the rendered
+  // double-border span (╔═══╗) must stay at identical columns across frames.
+  //
+  // The test probes both:
+  //   1. `.boundingBox()` — the Flexily-computed layout rect of the outer
+  //      CenterDialog wrapper. Catches layout-level reflow.
+  //   2. The screen ANSI border span at the top of the dialog (╔…╗). Catches
+  //      any delta where the ModalDialog's actual painted border moved even
+  //      if the wrapper reported stable dims.
+  it("dialog width is stable across frames as results stream in (regression)", () => {
+    using app = createTestApp(
+      [
+        ...item(
+          "board",
+          item("projects", item("alpha"), item("beta"), item("gamma"), item("delta"), item("epsilon")),
+          item("people", item("alice"), item("bob"), item("carol"), item("dave")),
+          item("tags", item("urgent"), item("later"), item("done"), item("review")),
+        ),
+      ],
+      { cols: 120, rows: 40 },
+    )
+
+    app.press("cmd+k")
+    app.expect("[data-dialog='unified-omnibox']").toExist()
+
+    // Scan one rendered screen for the double-border top edge ╔═══╗ and
+    // return { start, end, width } in columns. Returns null if not found.
+    const scanBorder = (): { start: number; end: number; width: number } | null => {
+      const screen = app.screen.text
+      for (const line of screen.split("\n")) {
+        const start = line.indexOf("╔")
+        const end = line.indexOf("╗")
+        if (start >= 0 && end > start) {
+          // ╔═══╗ — the visible width spans inclusive of both corners.
+          return { start, end, width: end - start + 1 }
+        }
+      }
+      return null
+    }
+
+    interface Frame {
+      label: string
+      box: { x: number; y: number; width: number; height: number } | null
+      border: { start: number; end: number; width: number } | null
+    }
+    const frames: Frame[] = []
+    const capture = (label: string) => {
+      frames.push({
+        label,
+        box: app.q("[data-dialog='unified-omnibox']").boundingBox(),
+        border: scanBorder(),
+      })
+    }
+
+    capture("open")
+    // Type a command-mode query — results filter as we go.
+    app.press("g")
+    capture(":g")
+    app.press("o")
+    capture(":go")
+    app.press("t")
+    capture(":got")
+    app.press("o")
+    capture(":goto")
+    // Switch to a content-sigil mode — result set changes shape entirely.
+    // The slippery-sigil rule rewrites ":goto" → "@goto" on the first sigil.
+    app.press("@")
+    capture("@goto")
+    // Delete back to narrow the query further.
+    app.press("Backspace")
+    capture("@got")
+    app.press("Backspace")
+    capture("@go")
+    app.press("Backspace")
+    capture("@g")
+
+    // Every frame must have the dialog mounted.
+    for (const f of frames) {
+      expect(f.box, `boundingBox must be present at ${f.label}`).not.toBeNull()
+      expect(f.border, `double-border must be painted at ${f.label}`).not.toBeNull()
+    }
+
+    // All layout widths must equal the first — the dialog is pinned.
+    const firstBoxWidth = frames[0]!.box!.width
+    const firstBorder = frames[0]!.border!
+    const history = frames
+      .map((f) => `${f.label}: box.width=${f.box?.width} border=${f.border?.start}..${f.border?.end}`)
+      .join("\n")
+    for (const f of frames) {
+      expect(f.box!.width, `layout width must be stable across frames:\n${history}`).toBe(firstBoxWidth)
+      expect(f.border!.start, `border start column must be stable:\n${history}`).toBe(firstBorder.start)
+      expect(f.border!.end, `border end column must be stable:\n${history}`).toBe(firstBorder.end)
+    }
+
+    // And the two measurements must agree with each other.
+    expect(firstBoxWidth).toBe(firstBorder.width)
+  })
+
   // Regression: km-tui.omnibox-goto-no-cursor
   //
   // Before this fix, picking a leaf node in the unified omnibox (e.g.

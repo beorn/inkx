@@ -35,7 +35,7 @@ import { NewItemDialog } from "./NewItemDialog.tsx"
 import { popDialogMode } from "../dialog-guard.ts"
 import { dispatchCommandById, defaultBuildOpCtx } from "../board/board-app.ts"
 import { buildKeybindingContextFromOpCtx } from "../board/command-bridge.ts"
-import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
+import { FILTER_PANEL_WIDTH, computeOmniboxDialogWidth, OMNIBOX_MAX_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
@@ -91,12 +91,24 @@ function pickerTitle(type: "item" | "project" | "tag" | "assignee", verb: Pendin
 // Dialog Layout Helpers
 // =============================================================================
 
-/** Centered dialog — horizontally centered, vertical position via topFraction. */
+/** Centered dialog — horizontally centered, vertical position via topFraction.
+ *
+ *  The wrapper Box is pinned to a fixed `width` so the dialog cannot reflow
+ *  as its children's measured sizes fluctuate (e.g. the omnibox's result
+ *  list growing/shrinking between frames). Without an explicit width, the
+ *  Box would auto-fit to its inner ModalDialog, and any content-driven
+ *  reflow inside the dialog would propagate outward and jitter the border.
+ *
+ *  Callers can override `widthFraction` for a different fraction of the
+ *  terminal width; `pinWidth` forces a literal column count (used when
+ *  the caller already computed it against a shared constant).
+ */
 function CenterDialog({
   termWidth,
   contentHeight,
   maxWidth,
   widthFraction = 1 / 2,
+  pinWidth,
   topFraction,
   children,
   focusScope,
@@ -106,15 +118,18 @@ function CenterDialog({
   contentHeight: number
   maxWidth: number
   widthFraction?: number
+  /** Explicit column count — overrides the `maxWidth`/`widthFraction` math. */
+  pinWidth?: number
   topFraction: number
   children: React.ReactNode
   "data-dialog": string
   focusScope?: boolean
 }): React.ReactElement {
-  const w = Math.min(maxWidth, Math.floor(termWidth * widthFraction))
+  const w = pinWidth ?? Math.min(maxWidth, Math.floor(termWidth * widthFraction))
   return (
     <Box
       position="absolute"
+      width={w}
       marginLeft={Math.floor((termWidth - w) / 2)}
       marginTop={Math.floor(contentHeight * topFraction)}
       focusScope={focusScope}
@@ -664,13 +679,17 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Unified omnibox — singleton command palette + node search surface */}
+      {/* Unified omnibox — singleton command palette + node search surface.
+           Dialog width is pinned via `computeOmniboxDialogWidth` so both the
+           outer wrapper and the inner ModalDialog resolve to the same column
+           count. See regression test in unified-omnibox-integration.test.ts —
+           "dialog width is stable across frames as results stream in". */}
       {ui.omnibox && (
         <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
-          maxWidth={100}
-          widthFraction={3 / 4}
+          maxWidth={OMNIBOX_MAX_WIDTH}
+          pinWidth={computeOmniboxDialogWidth(termWidth)}
           topFraction={1 / 6}
           data-dialog="unified-omnibox"
           focusScope
@@ -678,7 +697,7 @@ export function WorkspaceChrome({
           <UnifiedOmniboxConnector
             pane={ui.omnibox}
             setUI={setUI}
-            width={Math.min(100, Math.floor((termWidth * 3) / 4))}
+            width={computeOmniboxDialogWidth(termWidth)}
             maxHeight={Math.max(10, Math.floor((contentHeight * 2) / 3))}
           />
         </CenterDialog>
