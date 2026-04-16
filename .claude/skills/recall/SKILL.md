@@ -37,6 +37,42 @@ bun recall --json "command system design"
 bun recall -n 15 "storage layer"
 ```
 
+### Agent mode — LLM-driven multi-query search (experimental)
+
+For vague or fuzzy queries (`"that time we fixed the column thing"`), a single FTS5 query
+often misses. Agent mode uses a cheap LLM to plan 10–20 FTS variants *from your project
+context* (recent sessions, beads, rare vocabulary, commits), fans out in parallel, and
+coverage-reranks so docs hit by multiple variants dominate.
+
+```bash
+# Enable agent mode
+bun recall --agent "that time we fixed the column thing"
+
+# Round-2 mode (default: auto — picks wider/deeper based on round-1 coverage)
+bun recall --agent --round2=wider  "foo"   # force broader phrasings
+bun recall --agent --round2=deeper "foo"   # force entity-specific drill-in
+bun recall --agent --round2=off    "foo"   # skip round 2 entirely
+
+# Show the full plan each round (keywords, phrases, paths, bead IDs, notes)
+bun recall --debug-plan "query"
+
+# Cap rounds (useful for eval runs)
+bun recall --agent --max-rounds 1 "query"
+
+# Env var: enable agent mode without per-call flag
+RECALL_AGENT=1 bun recall "query"
+
+# Offline trace for post-hoc A/B evaluation — writes JSON to ~/.claude/recall-traces/
+RECALL_AGENT_TRACE=1 bun recall --agent "query"
+```
+
+**How it reads**: compact trace printed above the synthesis shows planner model,
+variants generated, fanout stats (queries / raw hits / unique docs / top coverage),
+round-2 mode and why.
+
+**Fallthrough**: if no LLM provider is available (no API keys, no local model), agent
+mode falls through to the standard single-query path. Never worse than the default.
+
 ### Power-user filters (imply --raw)
 
 ```bash
