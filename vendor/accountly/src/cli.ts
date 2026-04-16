@@ -35,6 +35,7 @@ const program = new Command()
 program
   .name("accountly")
   .description("Multi-profile manager for Claude Code — run multiple accounts in parallel")
+  .enablePositionalOptions()
   .version("0.4.0")
 
 // Top-level help sections — rendered after the built-in Commands block.
@@ -59,8 +60,11 @@ program.addHelpSection("Examples:", [
 ])
 
 program.addHelpSection("Shell integration:", [
-  [`$ eval "$(accountly claude-profile init)"`, "Shell hook (auto-detects shell, reads default from `default` symlink)"],
-  ["$ alias claude='accountly claude'", 'Drop-in replacement for the `claude` binary'],
+  [
+    `$ eval "$(accountly claude-profile init)"`,
+    "Shell hook (auto-detects shell, reads default from `default` symlink)",
+  ],
+  ["$ alias claude='accountly claude'", "Drop-in replacement for the `claude` binary"],
 ])
 
 // ── default (no subcommand): show profile quota status + help ─────────
@@ -80,15 +84,14 @@ program.action(async () => {
   }
 
   process.stdout.write(pc.dim("Checking profile quotas…\r"))
-  const [profileResults, stockResult] = await Promise.all([
-    checkAllProfileQuotas(),
-    checkLegacyDefaultQuota(),
-  ])
+  const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
   process.stdout.write(" ".repeat(30) + "\r")
 
   const allResults = stockResult ? [stockResult, ...profileResults] : profileResults
   if (allResults.length > 0) {
-    console.log(pc.bold("Claude Code accounts") + pc.dim("  (stock ~/.claude + profiles in ~/.config/claude-profiles/)"))
+    console.log(
+      pc.bold("Claude Code accounts") + pc.dim("  (stock ~/.claude + profiles in ~/.config/claude-profiles/)"),
+    )
     renderStatusTable(allResults)
   }
 
@@ -111,10 +114,7 @@ program
   .description("Show all profiles (including stock ~/.claude) with quota usage")
   .option("--json", "Output raw JSON for automation")
   .action(async (opts: { json?: boolean }) => {
-    const [profileResults, stockResult] = await Promise.all([
-      checkAllProfileQuotas(),
-      checkLegacyDefaultQuota(),
-    ])
+    const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
     const results = stockResult ? [stockResult, ...profileResults] : profileResults
     if (opts.json) {
       console.log(
@@ -148,12 +148,10 @@ const claudeCmd = program
   .command("claude")
   .description("Launch claude pinned to a profile")
   .argument("[args...]", "Arguments forwarded to claude")
-  .option(
-    "-u, --user <spec>",
-    'Profile spec: <email> to pin, "auto" for lowest utilization, "default" for ~/.claude',
-  )
+  .option("-u, --user <spec>", 'Profile spec: <email> to pin, "auto" for lowest utilization, "default" for ~/.claude')
   .option("--cmux", "Spawn a new cmux workspace instead of running in-place")
   .allowUnknownOption(true)
+  .passThroughOptions()
 
 claudeCmd.addHelpSection("Examples:", [
   ["$ accountly claude", "Use default profile (from `default` symlink via init-zsh)"],
@@ -162,7 +160,7 @@ claudeCmd.addHelpSection("Examples:", [
   ["$ accountly claude --user auto", "Lowest-utilization profile picked by quota check"],
   ["$ accountly claude --user default", "Plain stock ~/.claude, no profile override"],
   ["$ accountly claude --user work@example.com --cmux", "Spawn a tagged cmux workspace"],
-  ["$ accountly claude --user you@example.com -- -p 'one-shot prompt'", "Forward claude args after --"],
+  ["$ accountly claude --user you@example.com --resume <id>", "Accountly flags first, rest forwarded to claude"],
 ])
 
 claudeCmd.addHelpSection("Environment:", [
@@ -170,13 +168,14 @@ claudeCmd.addHelpSection("Environment:", [
   ["CLAUDE_PROFILE", "Inherited as the fallback profile when --user is omitted"],
 ])
 
-claudeCmd.addHelpSection("Shell alias / function:", [
-  ["$ alias claude='accountly claude'", "Every `claude` invocation routes through accountly"],
-  [
-    "$ claude() { accountly claude \"$@\" -- --some-flag }",
-    "Function form — preserves --user parsing and appends flags after --",
-  ],
-])
+claudeCmd
+  .addHelpSection("Shell alias / function:", [
+    ["$ alias claude='accountly claude'", "Every `claude` invocation routes through accountly"],
+    [
+      '$ claude() { accountly claude "$@" --some-flag }',
+      "Function form — accountly parses --user/--cmux, forwards everything else to claude",
+    ],
+  ])
   .actionMerged(async (opts: { args?: string[]; user?: string; cmux?: boolean }) => {
     const claudeArgs = opts.args ?? []
     let target: string | undefined = opts.user
@@ -228,9 +227,7 @@ claudeCmd.addHelpSection("Shell alias / function:", [
 // ── claude-profile ──────────────────────────────────────────────────────
 // Profile management subcommands. Subverbs (not flags) so `ls`, `new`, `info`,
 // `init`, `migrate`, `adopt` are unambiguous and get their own help.
-const profileCmd = program
-  .command("claude-profile")
-  .description("Manage Claude Code profiles")
+const profileCmd = program.command("claude-profile").description("Manage Claude Code profiles")
 
 profileCmd.addHelpSection("Examples:", [
   ["$ accountly claude-profile ls", "List stock + profiles"],
@@ -243,8 +240,8 @@ profileCmd.addHelpSection("Examples:", [
   ["$ accountly claude-profile info you@example.com", "Show profile details"],
   ["$ accountly claude-profile info you@example.com --token", "Print OAuth token"],
   ['$ eval "$(accountly claude-profile init)"', "Install shell hook"],
-  ['$ accountly claude-profile init you@example.com', "Pin hook to a profile"],
-  ['$ accountly claude-profile init --shell bash', "Override detected shell"],
+  ["$ accountly claude-profile init you@example.com", "Pin hook to a profile"],
+  ["$ accountly claude-profile init --shell bash", "Override detected shell"],
   ["$ accountly claude-profile rename old new@example.com", "Rename profile"],
 ])
 
@@ -323,9 +320,7 @@ profileCmd
     const { dir, fresh, linked } = bootstrapProfile(opts.profile)
     if (fresh) {
       console.log(pc.green(`bootstrapped profile "${opts.profile}" at ${dir}`))
-      console.log(
-        pc.dim(`next: \`accountly claude --user ${opts.profile}\` and /login inside claude`),
-      )
+      console.log(pc.dim(`next: \`accountly claude --user ${opts.profile}\` and /login inside claude`))
     } else {
       const msg =
         linked.length > 0 ? `backfilled ${linked.length} symlink(s): ${linked.join(", ")}` : "already up to date"
@@ -364,7 +359,9 @@ profileCmd
     }
 
     console.log(`${pc.bold("profile:       ")}${opts.profile}`)
-    console.log(`${pc.bold("dir:           ")}${dir} ${exists ? pc.green("(exists)") : pc.yellow("(not bootstrapped)")}`)
+    console.log(
+      `${pc.bold("dir:           ")}${dir} ${exists ? pc.green("(exists)") : pc.yellow("(not bootstrapped)")}`,
+    )
     console.log(`${pc.bold("keychain slot: ")}${slot}`)
     if (!credential) {
       console.log(`${pc.bold("auth:          ")}${pc.yellow("no credential — run /login inside claude")}`)
