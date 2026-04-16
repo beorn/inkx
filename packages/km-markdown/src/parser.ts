@@ -423,6 +423,92 @@ export function slugify(text: string): string {
 }
 
 // =============================================================================
+// Node Name Normalization
+// =============================================================================
+
+/**
+ * Normalize a heading/section title into the canonical `name` field value.
+ *
+ * This is the single policy for "given a heading's display text, what should
+ * its `name` field be?" Both the markdown parse path (ast2nodes.ts) and the
+ * TUI edit path (repo.ts:renameNode) must call this so the name index
+ * resolves consistently.
+ *
+ * Unlike `slugify()`, this preserves sigil prefixes (@, +, #) so that a
+ * heading titled `@office` produces `name = "@office"` — matching the folder
+ * node whose `name` is the raw directory name `@office`.
+ *
+ * Stripping: markdown syntax (backticks, brackets), task marker prefix,
+ * leading/trailing whitespace. Does NOT lowercase (the name index lowercases
+ * at lookup time).
+ */
+export function normalizeNodeName(title: string): string {
+  return (
+    title
+      .replace(/^- \[.\]\s*/, "") // Strip task marker prefix (e.g., "- [x] ")
+      .replace(/[`\[\]]/g, "") // Strip markdown inline syntax
+      .trim()
+  )
+}
+
+// =============================================================================
+// Ref Href Normalization
+// =============================================================================
+
+/**
+ * Markdown notation form — how a reference was written in source text.
+ * Preserved for roundtrip fidelity; the `href` is the parsed canonical form.
+ *
+ * See docs/design/links.md "Markdown → Ref" table.
+ */
+export type MdForm = "wiki" | "mdlink" | "autolink" | "bare" | "tag" | "mention" | "project"
+
+/**
+ * Normalize a raw reference label + notation form into a canonical `href`.
+ *
+ * This is the single source of truth for "what does this notation mean?"
+ * Every code path that produces a Ref (or a node name that refs resolve
+ * against) must route through this function.
+ *
+ * Pure, synchronous, deterministic — no DB, no network, no cache.
+ *
+ * Examples:
+ *   ('wiki',    'Note')           → 'km:Note'
+ *   ('wiki',    'Note#Section')   → 'km:Note#Section'
+ *   ('wiki',    'Note^abc')       → 'km:Note#^abc'
+ *   ('mention', '@Alice')         → 'km:Alice'
+ *   ('tag',     '#urgent')        → 'km:urgent'
+ *   ('project', '+cleanup')       → 'km:cleanup'
+ *   ('bare',    'https://x.com')  → 'https://x.com'
+ *   ('mdlink',  'https://x.com')  → 'https://x.com'
+ *   ('autolink','https://x.com')  → 'https://x.com'
+ *   ('autolink','mailto:a@b.com') → 'mailto:a@b.com'
+ */
+export function normalizeRefHref(form: MdForm, label: string): string {
+  switch (form) {
+    case "wiki": {
+      // [[Note^abc]] → km:Note#^abc (block ref uses # anchor)
+      const blockRef = label.replace(/\^/, "#^")
+      return `km:${blockRef}`
+    }
+    case "mention":
+      // @Alice → km:Alice (strip leading @)
+      return `km:${label.replace(/^@/, "")}`
+    case "tag":
+      // #urgent → km:urgent (strip leading #)
+      return `km:${label.replace(/^#/, "")}`
+    case "project":
+      // +cleanup → km:cleanup (strip leading +)
+      return `km:${label.replace(/^\+/, "")}`
+    case "mdlink":
+    case "autolink":
+    case "bare":
+      // External URLs pass through unchanged; internal km: refs pass through too
+      return label
+  }
+}
+
+// =============================================================================
 // Inline Properties (Logseq-style property:: value syntax)
 // =============================================================================
 

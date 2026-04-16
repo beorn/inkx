@@ -8,6 +8,7 @@
 import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
+import { normalizeNodeName } from "@km/markdown"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
@@ -260,7 +261,7 @@ function replaceInNode(
   // Apply the change via the repo
   const newContent = KNode.setString(node, newText)
   if (KNode.isOutline(node)) {
-    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { name: newContent } })
+    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { name: normalizeNodeName(newContent) } })
   } else {
     runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { content: newContent } })
   }

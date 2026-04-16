@@ -34,7 +34,7 @@ import {
   nodeToText,
   blockquoteToText,
   tableToMarkdown,
-  slugify,
+  normalizeNodeName,
   parseTaskMetadata,
   parseWikiLinks,
   extractAllRefs,
@@ -373,7 +373,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       const rules = interpretHeadingRules(propsRaw)
       const hasRules = Object.keys(rules).length > 0
       const title = cleanText
-      const sectionName = slugify(title)
+      const sectionName = normalizeNodeName(title)
 
       const taskMarker = taskMark !== undefined ? markToMarker(taskMark) : undefined
       const taskStatus = getStatusForMarker(taskMarker)

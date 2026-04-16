@@ -58,7 +58,7 @@ import { type UnexploredDir } from "../discovery.ts"
 import { getIgnorePatterns, shouldIgnore } from "../fs/ignore.ts"
 import { generatePathBasedId } from "../fs/id-utils.ts"
 import { toRelativeFsPath } from "../fs/path-utils.ts"
-import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
+import { parseMarkdownWithLinks, parsePlainTextToNodes, normalizeNodeName } from "@km/markdown"
 import { resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
 import { SCHEMA, migrateSchema, rebuildFtsIndex } from "../db/schema.ts"
@@ -466,8 +466,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       if (!node) throw new Error(`Node not found: ${id}`)
       const oldName = node.name ?? ""
 
-      // Derive new name from content (strip task mark prefix like "- [ ] ")
-      const newName = newContent.replace(/^- \[.\]\s*/, "")
+      // Derive new name from content using shared normalization (preserves sigils)
+      const newName = normalizeNodeName(newContent)
 
       if (oldName && oldName === newName) {
         // Name didn't change — only update content

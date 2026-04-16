@@ -14,6 +14,8 @@ export {
   nodeToText,
   listItemToText,
   slugify,
+  normalizeNodeName,
+  normalizeRefHref,
 } from "./parser.ts"
 
 export type {
@@ -26,6 +28,7 @@ export type {
   TaskListItem,
   WikiLink,
   PropertyValue,
+  MdForm,
 } from "./parser.ts"
 
 // kmast types and extensions
