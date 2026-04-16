@@ -36,6 +36,7 @@ import {
   parseDeferredAsync as parseDeferredAsyncImpl,
   parseStubFile as parseStubFileImpl,
 } from "../markdown/deferred.ts"
+import { readSiblingOrder } from "../sibling-order.ts"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -536,6 +537,7 @@ function* reconcileFilesystem(
   const deferredFiles: DeferredFile[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
+  const siblingOrders = readSiblingOrder(repoRoot)
 
   // Collect all fs_path values from DB (non-null, excluding repo root ".")
   const dbRows = db.prepare("SELECT id, fs_path FROM nodes WHERE fs_path IS NOT NULL AND fs_path != '.'").all() as {
@@ -672,6 +674,13 @@ function* reconcileFilesystem(
       }
     }
 
+    // Look up persisted sibling order for the parent directory
+    const persistedOrder = siblingOrders[parentRelPath]
+    const parentIdx = persistedOrder ? persistedOrder.indexOf(entryName) : -1
+    // If the entry is in the persisted order, use its index; otherwise fall back to 0
+    // (new entries not in persisted order get 0, placed before ordered siblings)
+    const orderIdx = parentIdx >= 0 ? parentIdx : 0
+
     const nodeId = generatePathBasedId(repoRoot, fullPath)
     newPathToId.set(relPath, nodeId)
 
@@ -694,7 +703,7 @@ function* reconcileFilesystem(
           item: {},
           fstype: "folder",
           parent_id: parentId,
-          parent_idx: 0,
+          parent_idx: orderIdx,
           fs_path: relPath,
           name: entryName,
           content: entryName,
@@ -715,7 +724,7 @@ function* reconcileFilesystem(
           item: {},
           fstype: isTxt ? "txtfile" : "mdfile",
           parent_id: parentId,
-          parent_idx: 0,
+          parent_idx: orderIdx,
           fs_path: relPath,
           name,
           title: name,
@@ -736,7 +745,7 @@ function* reconcileFilesystem(
           item: {},
           fstype: "file",
           parent_id: parentId,
-          parent_idx: 0,
+          parent_idx: orderIdx,
           fs_path: relPath,
           content: entryName,
         },

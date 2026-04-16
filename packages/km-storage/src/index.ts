@@ -257,6 +257,11 @@ export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope 
 // Reactive signals layer — per-node signals driven by RepoDelta
 export { withReactive } from "./store/reactive.ts"
 
+// Sibling order persistence (survives state.db rebuilds)
+export { readSiblingOrder, writeSiblingOrder, applySiblingOrder } from "./sibling-order.ts"
+
+export type { SiblingOrderMap } from "./sibling-order.ts"
+
 export type { Reactive, ReadonlySignal } from "./store/reactive.ts"
 
 // Emitter domain object - owns change emission lifecycle

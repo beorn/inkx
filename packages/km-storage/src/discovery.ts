@@ -28,6 +28,7 @@ import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
 import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loader.ts"
 import { generatePathBasedId } from "./fs/id-utils.ts"
 import { toRelativeFsPath } from "./fs/path-utils.ts"
+import { readSiblingOrder, applySiblingOrder, type SiblingOrderMap } from "./sibling-order.ts"
 
 const log = createLogger("km:storage:discovery")
 
@@ -103,6 +104,7 @@ export function* discoverFiles(
   const unexploredDirs: UnexploredDir[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
+  const siblingOrders = readSiblingOrder(repoRoot)
 
   // Query for existing repo root node (created by migration)
   // Use is_repo_root flag to distinguish from other folders with NULL parent_id
@@ -196,7 +198,27 @@ export function* discoverFiles(
     }
 
     const entries = readdirSync(dirPath, { withFileTypes: true })
-    let order = 0
+
+    // Check for persisted sibling order for this directory
+    const parentRelPath = toRelativeFsPath(repoRoot, dirPath)
+    const persistedOrder = siblingOrders[parentRelPath]
+
+    // Build name→order map from persisted order, or fall back to sequential
+    const orderMap = persistedOrder
+      ? applySiblingOrder(
+          persistedOrder,
+          entries.filter((e) => !shouldIgnore(join(dirPath, e.name), ignorePatterns, repoRoot)).map((e) => e.name),
+        )
+      : null
+
+    let fallbackOrder = 0
+
+    function getOrder(name: string): number {
+      if (orderMap) {
+        return orderMap.get(name) ?? fallbackOrder++
+      }
+      return fallbackOrder++
+    }
 
     for (const entry of entries) {
       const fullPath = join(dirPath, entry.name)
@@ -218,7 +240,7 @@ export function* discoverFiles(
           if (!tryEnterDirectory(fullPath, true)) continue
           const folderId = generateId(repoRoot, fullPath)
           changes.push(
-            createFolderChange(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+            createFolderChange(folderId, parentId, getOrder(entry.name), toRelativeFsPath(repoRoot, fullPath), entry.name, now),
           )
           // Depth limit: record as unexplored instead of recursing
           if (depth >= preloadDepth) {
@@ -237,7 +259,7 @@ export function* discoverFiles(
           // but since we're processing entries at this level, only skip files if
           // this directory itself is beyond the limit. Since we only enter scanDirectory
           // when depth < preloadDepth (or depth === 0 for root), files here are always valid.
-          yield* handleFile(fullPath, parentId, order++, entry.name)
+          yield* handleFile(fullPath, parentId, getOrder(entry.name), entry.name)
         }
         // Symlink to something else (socket, etc.) — skip
         continue
@@ -247,7 +269,7 @@ export function* discoverFiles(
         if (!tryEnterDirectory(fullPath)) continue
         const folderId = generateId(repoRoot, fullPath)
         changes.push(
-          createFolderChange(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+          createFolderChange(folderId, parentId, getOrder(entry.name), toRelativeFsPath(repoRoot, fullPath), entry.name, now),
         )
         // Depth limit: record as unexplored instead of recursing
         if (depth >= preloadDepth) {
@@ -265,7 +287,7 @@ export function* discoverFiles(
       }
 
       if (entry.isFile()) {
-        yield* handleFile(fullPath, parentId, order++, entry.name)
+        yield* handleFile(fullPath, parentId, getOrder(entry.name), entry.name)
       }
     }
   }

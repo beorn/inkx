@@ -22,6 +22,7 @@ import { parseMarkdownWithLinks } from "@km/markdown"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { getFolderIndexConfig } from "../config.ts"
 import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
+import { writeSiblingOrder } from "../sibling-order.ts"
 
 const log = createLogger("km:storage:watch:change-handlers")
 
@@ -434,6 +435,46 @@ export class ChangeHandlers {
     if (parent?.fstype === "folder" && parent.fs_path) {
       this.handleFolderIndexUpdate(parent)
     }
+
+    // Persist sibling order when folder children are reordered.
+    // This ensures column order survives state.db rebuilds.
+    this.persistFolderChildOrder(node, change)
+  }
+
+  /**
+   * Persist folder child order to `.km/sibling-order.json` when the moved
+   * node's parent is a folder. Reads the current children from the DB
+   * (already updated by the time this runs) and writes their names in
+   * parent_idx order. This allows discovery to restore the order on rebuild.
+   */
+  private persistFolderChildOrder(node: KNode, _change: Change): void {
+    if (!node.parent_id) return
+
+    const parent = getNode(this.db, node.parent_id)
+    if (!parent) return
+
+    // Only persist order for folder parents — markdown file sections already
+    // have their order serialized in the file content.
+    if (parent.fstype !== "folder") return
+
+    const parentFsPath = parent.fs_path ?? "."
+    const children = getChildren(this.db, parent.id)
+
+    // Only persist order for filesystem-backed children (folders, files).
+    // Inline children (sections, paragraphs) are serialized in markdown.
+    const fsChildren = children.filter(
+      (c) => c.fstype === "folder" || c.fstype === "mdfile" || c.fstype === "file" || c.fstype === "txtfile",
+    )
+
+    if (fsChildren.length === 0) return
+
+    // Extract child names (filesystem basenames)
+    const childNames = fsChildren.map((c) => {
+      if (c.fs_path) return basename(c.fs_path)
+      return c.name ?? c.content ?? ""
+    }).filter((n) => n.length > 0)
+
+    writeSiblingOrder(this.repoPath, parentFsPath, childNames)
   }
 
   /**
