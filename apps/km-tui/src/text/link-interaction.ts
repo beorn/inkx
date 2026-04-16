@@ -23,13 +23,13 @@ import {
 } from "../views/Popover.tsx"
 import { getCachedMetadata, fetchUrlMetadata } from "./url-metadata.ts"
 
-export type LinkKind = "url" | "wikilink"
+export type LinkKind = "url" | "wiki" | "sigil"
 
 export interface UseLinkInteractionOpts {
   kind: LinkKind
   /** For kind === "url": the URL to fetch metadata for on hover. */
   url?: string
-  /** For kind === "wikilink": optional rich popover content; else falls back to internalTitle. */
+  /** For kind === "wiki" or "sigil": optional rich popover content; else falls back to internalTitle. */
   internalPopover?: PopoverContent | null
   /** Fallback title when internalPopover is absent. */
   internalTitle?: string
@@ -74,6 +74,8 @@ export function useLinkInteraction(opts: UseLinkInteractionOpts): LinkInteractio
         })
         return
       }
+      // Wikilink + sigil share the internal-link popover path: rich content
+      // from buildLinkPopover if provided, title fallback otherwise.
       const content = internalPopover ?? internalLinkPopoverContent(internalTitle ?? "")
       popover.show(content, anchor)
     },
@@ -114,21 +116,28 @@ export function linkTextProps(
         underlineStyle: hovered ? "single" : "dotted",
         underlineColor: hovered ? "$link" : "$border",
       }
-    case "wikilink": {
-      // Hover replaces the underline with a subtle pill bg, except when
-      // colorOverride is active (pill clashes with colored card bgs).
+    case "wiki": {
+      // Wikilinks are colored like URLs at rest so they're visibly
+      // distinguishable from plain text; on hover a subtle pill bg replaces
+      // the dotted underline. colorOverride (e.g. cursor inverse) always wins.
       const pillBg = hovered && colorOverride === undefined ? "#404050" : undefined
       return {
-        color: hovered
-          ? honorOverride
-            ? (colorOverride ?? undefined)
-            : "$link"
-          : honorOverride
-            ? (colorOverride ?? undefined)
-            : undefined,
+        color: honorOverride ? (colorOverride ?? undefined) : "$link",
         backgroundColor: pillBg,
         underlineStyle: hovered ? false : "dotted",
-        underlineColor: "$border",
+        underlineColor: "$link",
+      }
+    }
+    case "sigil": {
+      // Sigil-links (@mentions, #tags, +projects that resolve to a vault
+      // node) share wikilink interaction but keep their own fg color — the
+      // sigil color (from sigilColors map / resolveSigilColor) is the visual
+      // anchor, and we add a dotted underline to signal navigability.
+      // Color is supplied by the caller via SigilText.
+      return {
+        color: undefined, // caller wraps with its own sigil color
+        underlineStyle: hovered ? "single" : "dotted",
+        underlineColor: hovered ? "$link" : "$border",
       }
     }
   }

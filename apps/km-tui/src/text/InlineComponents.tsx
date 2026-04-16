@@ -257,14 +257,14 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   const internalPopover = ctx.buildLinkPopover?.(node.target) ?? null
   const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({
-    kind: "wikilink",
+    kind: "wiki",
     internalPopover,
     internalTitle: resolved ?? node.target,
   })
   if (resolved) {
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
-    const props = linkTextProps("wikilink", hovered, ctx.colorOverride)
+    const props = linkTextProps("wiki", hovered, ctx.colorOverride)
     return (
       <Text
         id={linkNodeId ?? undefined}
@@ -450,13 +450,53 @@ export function InlineNodeView({
 /** Render a sigil with its resolved color, or plain if unresolved */
 function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  if (ctx.colorOverride !== undefined) return <Text>{sigil}</Text>
-  const color = ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil)
 
-  if (color) {
-    return <Text>{getTermColor(color)(sigil)}</Text>
+  // Resolve the sigil against the vault. resolveWikiLink takes the same
+  // shape as wikilink targets (e.g. "+taxomatic", "@delei") and hits the
+  // name index, so sigil refs that point at a folder/file/section become
+  // navigable for free. Unresolved sigils keep their colorable-but-plain
+  // rendering — they might be tags/projects that exist only as indexes.
+  const resolvedTitle = ctx.resolveWikiLink?.(sigil) ?? null
+  const linkNodeId = ctx.resolveWikiLinkId?.(sigil) ?? null
+  const internalPopover = ctx.buildLinkPopover?.(sigil) ?? null
+
+  const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({
+    kind: "sigil",
+    internalPopover,
+    internalTitle: resolvedTitle ?? sigil,
+  })
+
+  // Sigil color: from the sigilColors map first, then the resolver. Used for
+  // BOTH resolved and unresolved sigils so the visual identity is stable.
+  const sigilColor =
+    ctx.colorOverride === undefined ? (ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil)) : undefined
+
+  // Unresolved sigil: preserve legacy rendering (plain or colorized via
+  // ANSI wrapping). No link styling, no popover, no navigation.
+  if (!resolvedTitle) {
+    if (ctx.colorOverride !== undefined) return <Text>{sigil}</Text>
+    if (sigilColor) return <Text>{getTermColor(sigilColor)(sigil)}</Text>
+    return <Text>{sigil}</Text>
   }
-  return <Text>{sigil}</Text>
+
+  // Resolved sigil-link: wrap in link styling so it's navigable + shows a
+  // popover on hover. Keep the sigil's own color as the anchor (fall back
+  // to $link if the sigil has no configured color) and add a dotted
+  // underline via linkTextProps("sigil").
+  const props = linkTextProps("sigil", hovered, ctx.colorOverride)
+  const color = ctx.colorOverride !== undefined ? (ctx.colorOverride ?? undefined) : (sigilColor ?? "$link")
+  return (
+    <Text
+      id={linkNodeId ?? undefined}
+      color={color}
+      underlineStyle={props.underlineStyle}
+      underlineColor={props.underlineColor}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {sigil}
+    </Text>
+  )
 }
 
 // =============================================================================

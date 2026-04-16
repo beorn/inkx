@@ -178,47 +178,29 @@ export function useTreeInlineContext(
 
   return useMemo(() => {
     const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
-    const wikiLinkCache = new Map<string, string | null>()
-    // Cache stores both display name and node ID for each target
-    const wikiLinkIdCache = new Map<string, string | null>()
+    // No closure-local cache: repo.resolveByName already uses an O(1) in-memory
+    // name index at the storage layer that invalidates correctly on writes
+    // (clearNameIndex in repo.ts). A React-layer cache here was a second layer
+    // that never invalidated — repo reference is stable across mutations, so
+    // this memo never re-ran, and stale/null results stuck forever.
     const resolveWikiLink = (target: string): string | null => {
       if (!target?.trim()) return null
-      const cached = wikiLinkCache.get(target)
-      if (cached !== undefined) return cached
       const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-      let result: string | null = null
-      if (resolved) {
-        result = getNodeDisplayName(repo, resolved)
-        wikiLinkIdCache.set(target, resolved.id)
-      } else if (target.startsWith("^")) {
+      if (resolved) return getNodeDisplayName(repo, resolved)
+      if (target.startsWith("^")) {
         const byId = repo.getNode(target.slice(1))
-        if (byId) {
-          result = getNodeDisplayName(repo, byId)
-          wikiLinkIdCache.set(target, byId.id)
-        }
+        if (byId) return getNodeDisplayName(repo, byId)
       }
-      wikiLinkCache.set(target, result)
-      return result
+      return null
     }
     const resolveWikiLinkId = (target: string): string | null => {
       if (!target?.trim()) return null
-      // Ensure the target has been resolved (populates idCache)
-      const idCached = wikiLinkIdCache.get(target)
-      if (idCached !== undefined) return idCached
-      // Resolve fresh
       const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-      if (resolved) {
-        wikiLinkIdCache.set(target, resolved.id)
-        return resolved.id
-      }
+      if (resolved) return resolved.id
       if (target.startsWith("^")) {
         const byId = repo.getNode(target.slice(1))
-        if (byId) {
-          wikiLinkIdCache.set(target, byId.id)
-          return byId.id
-        }
+        if (byId) return byId.id
       }
-      wikiLinkIdCache.set(target, null)
       return null
     }
     // Rich popover for internal links — lazily imports DocContent to avoid circular deps.
