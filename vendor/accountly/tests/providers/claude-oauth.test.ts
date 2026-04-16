@@ -95,7 +95,7 @@ describe("claude-oauth provider", () => {
       expect(sevenDay).toBeDefined()
       expect(sevenDay!.utilization).toBe(35)
 
-      const extra = result.windows.find((w) => w.name === "Extra usage")
+      const extra = result.windows.find((w) => w.name === "Xtra")
       expect(extra).toBeDefined()
       expect(extra!.utilization).toBe(50)
       expect(extra!.remaining).toBe(10000)

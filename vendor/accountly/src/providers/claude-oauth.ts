@@ -30,11 +30,11 @@ type UsageResponse = Record<string, UsageWindowData | ExtraUsageData | null> & {
 const WINDOW_LABELS: Record<string, string> = {
   five_hour: "5-hour",
   seven_day: "7-day",
-  seven_day_oauth_apps: "7-day (OAuth apps)",
-  seven_day_opus: "7-day (Opus)",
-  seven_day_sonnet: "7-day (Sonnet)",
-  seven_day_cowork: "7-day (Cowork)",
-  extra_usage: "Extra usage",
+  seven_day_oauth_apps: "OAuth apps 7-day",
+  seven_day_opus: "Opus 7-day",
+  seven_day_sonnet: "Sonnet 7-day",
+  seven_day_cowork: "Cowork 7-day",
+  extra_usage: "Xtra",
 }
 
 function isUsageWindow(v: unknown): v is UsageWindowData {
@@ -72,6 +72,14 @@ function extractOAuth(credential: Credential): OAuthData | undefined {
     }
   }
   return undefined
+}
+
+/** Extract subscription plan info (rateLimitTier) from credential. Keychain stores this
+ * alongside the OAuth token — saves us an API round-trip to classify Pro vs Max 5x/20x. */
+export function extractPlan(credential: Credential): string | undefined {
+  const wrapped = credential.claudeAiOauth as Record<string, unknown> | undefined
+  const tier = (wrapped?.rateLimitTier ?? credential.rateLimitTier) as string | undefined
+  return typeof tier === "string" && tier.length > 0 ? tier : undefined
 }
 
 /** Check if an OAuth token needs refresh */

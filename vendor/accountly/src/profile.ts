@@ -1,10 +1,20 @@
-import { mkdirSync, existsSync, symlinkSync, readdirSync, rmdirSync, lstatSync, renameSync, readlinkSync, unlinkSync } from "node:fs"
+import {
+  mkdirSync,
+  existsSync,
+  symlinkSync,
+  readdirSync,
+  rmdirSync,
+  lstatSync,
+  renameSync,
+  readlinkSync,
+  unlinkSync,
+} from "node:fs"
 import { join, resolve } from "node:path"
 import { homedir, userInfo } from "node:os"
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
 import type { Credential, QuotaInfo } from "./types.ts"
-import { ensureFreshOAuth, fetchClaudeProfile } from "./providers/claude-oauth.ts"
+import { ensureFreshOAuth, extractPlan, fetchClaudeProfile } from "./providers/claude-oauth.ts"
 import { getProvider } from "./providers/index.ts"
 
 /**
@@ -48,6 +58,10 @@ export interface ProfileInfo {
   dir: string
   authenticated: boolean
   slot: string
+  /** Email annotation for the synthetic stock row — shown dim beside the name. */
+  email?: string
+  /** Subscription plan (raw `organization_type` from the profile API). */
+  plan?: string
 }
 
 export function profileRoot(): string {
@@ -280,6 +294,8 @@ export async function checkProfileQuota(profile: ProfileInfo): Promise<ProfileQu
   if (fresh) credential = fresh
   const provider = getProvider("claude-oauth")
   const quota = await provider.checkQuota(credential)
+  const plan = extractPlan(credential)
+  if (plan) profile.plan = plan
   quota.accountName = profile.name
   return { profile, quota }
 }
@@ -458,7 +474,9 @@ export async function checkAllProfileQuotas(): Promise<ProfileQuotaResult[]> {
       await new Promise((r) => setTimeout(r, 250))
     }
     const credBefore = readKeychainForProfile(profile.dir)
-    const expBefore = (credBefore?.claudeAiOauth as Record<string, unknown> | undefined)?.expiresAt as number | undefined
+    const expBefore = (credBefore?.claudeAiOauth as Record<string, unknown> | undefined)?.expiresAt as
+      | number
+      | undefined
     const willRefresh = typeof expBefore === "number" && Date.now() + 5 * 60 * 1000 >= expBefore
     results.push(await checkProfileQuota(profile))
     priorProfileNeededRefresh = willRefresh
@@ -502,7 +520,7 @@ export function getLegacyDefaultProfile(): ProfileInfo | undefined {
   const cred = readLegacyKeychain()
   if (!cred) return undefined
   return {
-    name: "~/.claude (stock)",
+    name: "~/.claude",
     dir: join(homedir(), ".claude"),
     authenticated: true,
     slot: LEGACY_KEYCHAIN_SLOT,
@@ -588,7 +606,11 @@ export async function checkLegacyDefaultQuota(): Promise<ProfileQuotaResult | un
     provider.checkQuota(credential),
   ])
   if (claudeInfo?.email) {
-    info.name = `~/.claude (stock → ${claudeInfo.email})`
+    info.email = claudeInfo.email
+  }
+  const plan = extractPlan(credential)
+  if (plan) {
+    info.plan = plan
   }
   quota.accountName = info.name
   return { profile: info, quota }
@@ -596,7 +618,7 @@ export async function checkLegacyDefaultQuota(): Promise<ProfileQuotaResult | un
 
 /** Fetch the Claude account email for a logged-in profile (via OAuth profile endpoint). */
 export async function fetchProfileEmail(profile: ProfileInfo): Promise<string | undefined> {
-  let credential = readKeychainForProfile(profile.dir)
+  const credential = readKeychainForProfile(profile.dir)
   if (!credential) return undefined
   const info = await fetchClaudeProfile(credential, (updated) => {
     writeKeychainForProfile(profile.dir, updated)
@@ -646,8 +668,15 @@ export function renameProfile(oldName: string, newName: string): MigrationStep {
     // Roll back the directory rename so we don't leave a dir without a keychain slot.
     try {
       renameSync(newDir, oldDir)
-    } catch { /* can't roll back — report original failure */ }
-    return { from: oldName, to: newName, action: "error", reason: `new keychain write failed: ${(err as Error).message}` }
+    } catch {
+      /* can't roll back — report original failure */
+    }
+    return {
+      from: oldName,
+      to: newName,
+      action: "error",
+      reason: `new keychain write failed: ${(err as Error).message}`,
+    }
   }
   const oldSlot = keychainSlot(oldDir)
   const user = userInfo().username

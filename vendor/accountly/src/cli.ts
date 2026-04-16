@@ -87,12 +87,13 @@ program.action(async () => {
   const [profileResults, stockResult] = await Promise.all([checkAllProfileQuotas(), checkLegacyDefaultQuota()])
   process.stdout.write(" ".repeat(30) + "\r")
 
-  const allResults = stockResult ? [stockResult, ...profileResults] : profileResults
+  const stockEmail = stockResult?.profile.email
+  const profileNames = new Set(profileResults.map((r) => r.profile.name))
+  // Fold stock into the matching profile row if possible; otherwise show it standalone.
+  const stockFolded = !!(stockEmail && profileNames.has(stockEmail))
+  const allResults = stockFolded ? profileResults : stockResult ? [stockResult, ...profileResults] : profileResults
   if (allResults.length > 0) {
-    console.log(
-      pc.bold("Claude Code accounts") + pc.dim("  (stock ~/.claude + profiles in ~/.config/claude-profiles/)"),
-    )
-    renderStatusTable(allResults)
+    renderStatusTable(allResults, stockEmail)
   }
 
   if (envAccounts.length > 0) {
@@ -246,7 +247,7 @@ profileCmd.addHelpSection("Examples:", [
 ])
 
 profileCmd.addHelpSection("Stock ~/.claude:", [
-  ["~/.claude (stock → <email>)", "Unhashed default Keychain slot"],
+  ["~/.claude → <email>", "Unhashed default Keychain slot"],
   ["plain `claude`", "Uses the stock slot with no env vars set"],
   ["`claude /login`", "(stock shell) rewrites the stock slot only"],
 ])
@@ -268,9 +269,10 @@ profileCmd
     const nameWidth = Math.max(10, ...rows.map((p) => p.name.length))
     console.log(`    ${pc.bold("PROFILE".padEnd(nameWidth))}  ${pc.bold("AUTH".padEnd(12))}  PATH`)
     for (const p of rows) {
-      const marker = profileMarker(p.name, defaultName)
+      const { str: marker, width } = buildMarker(p.name, defaultName, undefined)
+      const paddedMarker = marker + " ".repeat(Math.max(0, 2 - width))
       const auth = p.authenticated ? pc.green("logged-in   ") : pc.yellow("missing     ")
-      console.log(`${marker}  ${p.name.padEnd(nameWidth)}  ${auth}  ${p.dir}`)
+      console.log(`${paddedMarker}  ${p.name.padEnd(nameWidth)}  ${auth}  ${p.dir}`)
     }
     const legend: string[] = []
     if (defaultName) legend.push(`${pc.yellow("★")} default`)
@@ -479,68 +481,116 @@ profileCmd
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
-/** Prefix used for the synthetic stock ~/.claude row (with or without email annotation). */
-const STOCK_NAME_PREFIX = "~/.claude (stock"
+/** Name used for the synthetic stock ~/.claude row. */
+const STOCK_NAME = "~/.claude"
 
 /**
  * Compute the visible marker for one row.
  *   ★ = default profile (from the `default` symlink)
  *   ● = active profile (what the current shell is pinned to)
+ *   ~ = stock ~/.claude slot is logged into this account
  *
  * Active resolution:
  *   - If $CLAUDE_PROFILE is set → that named profile is active
- *   - Otherwise → stock `~/.claude` is active (what plain `claude` uses)
+ *   - Otherwise → whatever account the stock slot holds (what plain `claude` uses)
  */
-function profileMarker(name: string, defaultName?: string): string {
+function buildMarker(
+  name: string,
+  defaultName: string | undefined,
+  stockEmail: string | undefined,
+): { str: string; width: number } {
   const isDefault = defaultName !== undefined && name === defaultName
   const envProfile = process.env.CLAUDE_PROFILE
-  const isStockRow = name.startsWith(STOCK_NAME_PREFIX)
-  const isActive = envProfile ? name === envProfile : isStockRow
-  if (isDefault && isActive) return pc.green("★●")
-  if (isDefault) return pc.yellow("★ ")
-  if (isActive) return pc.green("● ")
-  return "  "
+  const stockMatchesHere = stockEmail ? name === stockEmail : name === STOCK_NAME
+  const isActive = envProfile ? name === envProfile : stockMatchesHere
+  const parts: string[] = []
+  if (isDefault) parts.push(pc.yellow("★"))
+  if (isActive) parts.push(pc.green("●"))
+  if (stockMatchesHere) parts.push(pc.magenta("~"))
+  return { str: parts.join(""), width: parts.length }
 }
 
-function renderStatusTable(results: ProfileQuotaResult[]): void {
+function prettyPlan(raw: string | undefined): string {
+  if (!raw || raw === "unknown") return ""
+  // `rateLimitTier` from the credential looks like "default_claude_max_20x" / "default_claude_pro".
+  const cleaned = raw.replace(/^default_claude_/, "").replace(/^claude_/, "")
+  const maxMatch = /^max_(\d+)x$/.exec(cleaned)
+  if (maxMatch) return `MAX${maxMatch[1]}`
+  return cleaned.replace(/_/g, " ").toUpperCase()
+}
+
+interface StatusRow {
+  marker: string
+  markerWidth: number
+  name: string
+  email?: string
+  plan: string
+  line: string
+}
+
+function renderStatusTable(results: ProfileQuotaResult[], stockEmail: string | undefined): void {
   if (results.length === 0) {
     console.log(pc.dim("no profiles found"))
     return
   }
   const defaultName = getDefaultProfile()
-  const rows = results.map((r) => {
+  const rows: StatusRow[] = results.map((r) => {
     const name = r.profile.name
-    const marker = profileMarker(name, defaultName)
+    const { str: marker, width: markerWidth } = buildMarker(name, defaultName, stockEmail)
+    const email = r.profile.email
+    const plan = prettyPlan(r.profile.plan)
     const authed = r.profile.authenticated
     if (!authed) {
-      return { marker, name, line: pc.yellow("missing login — run /login inside claude") }
+      return { marker, markerWidth, name, email, plan, line: pc.yellow("missing login — run /login inside claude") }
     }
     if (r.error) {
-      return { marker, name, line: pc.red(r.error) }
+      return { marker, markerWidth, name, email, plan, line: pc.red(r.error) }
     }
     const q = r.quota
     if (!q || q.error) {
-      return { marker, name, line: pc.red(q?.error ?? "unknown error") }
+      return { marker, markerWidth, name, email, plan, line: pc.red(q?.error ?? "unknown error") }
     }
     const parts = q.windows.map((w) => {
       const util = w.utilization
       const bar = utilizationBar(util)
-      return `${w.name}: ${bar} ${util.toString().padStart(3)}%`
+      return `${w.name} ${bar} ${util.toString().padStart(3)}%`
     })
-    return { marker, name, line: parts.join("  ") }
+    return { marker, markerWidth, name, email, plan, line: parts.join("  ") }
   })
-  const nameWidth = Math.max(8, ...rows.map((r) => r.name.length))
-  console.log(`    ${pc.bold("PROFILE".padEnd(nameWidth))}  QUOTAS`)
+  // Marker counts as part of name cell width so the QUOTAS column aligns across all groups.
+  const markerSize = (r: StatusRow) => (r.markerWidth > 0 ? 1 + r.markerWidth : 0)
+  const cellWidth = Math.max(8, ...rows.map((r) => r.name.length + markerSize(r)))
+
+  // Group rows by plan label so each subscription tier gets its own header.
+  const groups = new Map<string, StatusRow[]>()
   for (const r of rows) {
-    console.log(`${r.marker}  ${pc.cyan(r.name.padEnd(nameWidth))}  ${r.line}`)
+    const key = r.plan || "Unknown"
+    const existing = groups.get(key)
+    if (existing) existing.push(r)
+    else groups.set(key, [r])
   }
-  const legend: string[] = []
-  if (defaultName) legend.push(`${pc.yellow("★")} default`)
+  let first = true
+  for (const [plan, groupRows] of groups) {
+    if (!first) console.log()
+    first = false
+    console.log(`${pc.bold("CLAUDE CODE")} ${plan.toUpperCase()}`)
+    for (const r of groupRows) {
+      const nameCell = pc.cyan(r.name)
+      const markerPart = r.markerWidth > 0 ? ` ${r.marker}` : ""
+      const trailing = " ".repeat(cellWidth - r.name.length - markerSize(r))
+      const suffix = r.email ? pc.dim(`  → ${r.email}`) : ""
+      console.log(`${nameCell}${markerPart}${trailing}  ${r.line}${suffix}`)
+    }
+  }
+
+  const stockLegend = `${pc.magenta("~")} stock ~/.claude`
+  const profileLegend: string[] = []
+  if (defaultName) profileLegend.push(`${pc.yellow("★")} default`)
   const activeMode = process.env.CLAUDE_PROFILE
     ? `CLAUDE_PROFILE=${process.env.CLAUDE_PROFILE}`
     : "stock ~/.claude (no profile pinned)"
-  legend.push(`${pc.green("●")} active · ${activeMode}`)
-  console.log(pc.dim(`    ${legend.join("   ")}`))
+  profileLegend.push(`${pc.green("●")} active · ${activeMode}`)
+  console.log(pc.dim(`${stockLegend}       ${profileLegend.join("   ")}`))
 }
 
 function utilizationBar(util: number): string {
@@ -564,26 +614,37 @@ async function checkEnvAccountQuotas(accounts: DiscoveredAccount[]): Promise<Quo
   )
 }
 
+function apiKeyHint(cred: unknown): string {
+  if (typeof cred !== "object" || cred === null) return ""
+  const key = (cred as Record<string, unknown>).apiKey
+  if (typeof key !== "string" || key.length < 4) return ""
+  return `…${key.slice(-4)}`
+}
+
 function renderEnvAccountsTable(accounts: DiscoveredAccount[], quotas: QuotaInfo[]): void {
   const nameWidth = Math.max(10, ...accounts.map((a) => a.config.name.length))
+  const hintWidth = Math.max(0, ...accounts.map((a) => apiKeyHint(a.credential).length))
   for (let i = 0; i < accounts.length; i++) {
     const a = accounts[i]!
     const q = quotas[i]!
-    const name = a.config.name.padEnd(nameWidth)
+    const name = pc.cyan(a.config.name.padEnd(nameWidth))
+    const hint = apiKeyHint(a.credential)
+    const hintCell = pc.dim(hint.padEnd(hintWidth))
+    const prefix = hintWidth > 0 ? `${name} ${hintCell}` : name
     if (q.error) {
-      console.log(`${pc.cyan(name)}  ${pc.red(q.error)}`)
+      console.log(`${prefix}  ${pc.red(q.error)}`)
       continue
     }
     if (q.windows.length === 0) {
       const note = q.available ? pc.green("✓ key valid") : pc.red("no quota data")
-      console.log(`${pc.cyan(name)}  ${note}`)
+      console.log(`${prefix}  ${note}`)
       continue
     }
     const parts = q.windows.map((w) => {
       const util = w.utilization
-      return `${w.name}: ${utilizationBar(util)} ${util.toString().padStart(3)}%`
+      return `${w.name} ${utilizationBar(util)} ${util.toString().padStart(3)}%`
     })
-    console.log(`${pc.cyan(name)}  ${parts.join("  ")}`)
+    console.log(`${prefix}  ${parts.join("  ")}`)
   }
 }
 
