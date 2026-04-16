@@ -401,11 +401,7 @@ describe("picker Enter dispatch — verb-aware for assignee / tag / project", ()
     // The assignee loader will extract "alice" as a picker option, pointing
     // to the source node. The test cursor starts on "anchor card" in col1.
     using app = createTestApp(
-      item(
-        "board",
-        item("col1", item("anchor card")),
-        item("col2", item("note with @alice mention")),
-      ),
+      item("board", item("col1", item("anchor card")), item("col2", item("note with @alice mention"))),
       { rows: 40 },
     )
     // Confirm the cursor starts on the anchor card. Without this the
@@ -429,11 +425,7 @@ describe("picker Enter dispatch — verb-aware for assignee / tag / project", ()
 
   test("Enter on tag picker (goto verb) does NOT append tag to cursor content", () => {
     using app = createTestApp(
-      item(
-        "board",
-        item("col1", item("anchor")),
-        item("col2", item("note with #urgent tag")),
-      ),
+      item("board", item("col1", item("anchor")), item("col2", item("note with #urgent tag"))),
       { rows: 40 },
     )
     expect(app).toHaveCursorOn("anchor")
@@ -454,14 +446,9 @@ describe("picker Enter dispatch — verb-aware for assignee / tag / project", ()
   })
 
   test("Enter on project picker (goto verb) does NOT reparent the cursor", () => {
-    using app = createTestApp(
-      item(
-        "board",
-        item("col1", item("anchor")),
-        item("col2", item("+project-alpha")),
-      ),
-      { rows: 40 },
-    )
+    using app = createTestApp(item("board", item("col1", item("anchor")), item("col2", item("+project-alpha"))), {
+      rows: 40,
+    })
     expect(app).toHaveCursorOn("anchor")
     const originalParent = app.repo.getNode("anchor")?.parent_id
 

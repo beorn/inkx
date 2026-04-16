@@ -64,14 +64,7 @@ export function OmniboxRow({
   const iconFg = disabled ? "$muted" : isSelected ? "$selection" : iconColor
 
   return (
-    <Box
-      width="100%"
-      height={1}
-      backgroundColor={bg}
-      flexDirection="row"
-      onMouseEnter={onHover}
-      onClick={onClick}
-    >
+    <Box width="100%" height={1} backgroundColor={bg} flexDirection="row" onMouseEnter={onHover} onClick={onClick}>
       {/* Icon — fixed 3-col region (glyph + space) */}
       <Box flexGrow={0} flexShrink={0}>
         <Text color={iconFg}>

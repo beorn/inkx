@@ -39,13 +39,7 @@ import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
-import {
-  applySigilRule,
-  dispatchOmnibox,
-  dismissOmnibox,
-  modeOf,
-  type OmniboxPane,
-} from "../state/omnibox.ts"
+import { applySigilRule, dispatchOmnibox, dismissOmnibox, modeOf, type OmniboxPane } from "../state/omnibox.ts"
 import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
