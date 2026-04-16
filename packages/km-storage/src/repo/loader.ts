@@ -244,10 +244,27 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
 
     log.debug?.(`discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`)
   } else {
-    // Even in full mode, reconciliation may find new files that need parsing
-    if (reconcileDeferredFiles.length > 0) {
-      returnDeferredFiles = reconcileDeferredFiles
-      log.debug?.(`reconciliation found ${reconcileDeferredFiles.length} new files to parse`)
+    // Even in full mode, reconciliation may find new files that need parsing.
+    // Also detect unparsed stubs replayed from changes.jsonl — these occur when
+    // a prior discoverOnly session wrote stubs to the journal and state.db was
+    // later deleted. The rebuild replays the stubs but doesn't re-parse them,
+    // leaving nodes with title=filename_stem instead of the H1-merged title.
+    const allDeferred = [...reconcileDeferredFiles]
+
+    // Re-queue unparsed stubs from the replayed changes (same logic as discoverOnly path)
+    const alreadyQueued = new Set(allDeferred.map((f) => f.nodeId))
+    const unparsedStubs = db
+      .prepare("SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%'")
+      .all() as { id: string; fs_path: string }[]
+    for (const stub of unparsedStubs) {
+      if (!alreadyQueued.has(stub.id)) {
+        allDeferred.push({ nodeId: stub.id, fsPath: join(repoRoot, stub.fs_path) })
+      }
+    }
+
+    if (allDeferred.length > 0) {
+      returnDeferredFiles = allDeferred
+      log.debug?.(`${allDeferred.length} files need deferred parsing (${reconcileDeferredFiles.length} from reconciliation, ${unparsedStubs.length} unparsed stubs)`)
     }
 
     if (source.pendingLinks.length > 0) {
