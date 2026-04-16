@@ -45,6 +45,12 @@ km init                    # Enable persistence (stable IDs, history)
 
 ## Documentation
 
+### What's Next
+
+| Doc                         | Description                                                        |
+| --------------------------- | ------------------------------------------------------------------ |
+| [backlog.md](backlog.md)    | Prioritized phase list — position is priority. Start here to see what ships next. |
+
 ### Understanding (Start Here)
 
 | Doc                                | Description                                                                                            |

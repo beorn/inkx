@@ -249,6 +249,7 @@ This will be resolved once Bun releases a fix.
 
 ## Docs
 
+- [docs/backlog.md](docs/backlog.md) — Prioritized phase list — what ships next
 - [ROADMAP.md](ROADMAP.md) — Implementation phases
 - [docs/README.md](docs/README.md) — Documentation hub
 - [docs/concepts.md](docs/concepts.md) — Core concepts
