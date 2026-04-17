@@ -109,7 +109,7 @@ function isSegmentBoundary(target: string, pos: number): boolean {
   return SEGMENT_SEPARATORS.has(target[pos - 1]!)
 }
 
-/** Lockstep char-order fuzzy check — same rule as legacy fuzzyMatch. */
+/** Lockstep char-order fuzzy check — query chars must appear in order in target. */
 function fuzzyMatchAt(query: string, target: string): boolean {
   let qi = 0
   for (let i = 0; i < target.length && qi < query.length; i++) {
@@ -265,9 +265,7 @@ export function rankResults(
   candidates: readonly KNode[] | readonly RankCandidate[],
   opts: RankOptions = {},
 ): ScoredResult[] {
-  const normalized: RankCandidate[] = candidates.map((c) =>
-    "node" in c ? c : { node: c, title: nodeDisplayText(c) },
-  )
+  const normalized: RankCandidate[] = candidates.map((c) => ("node" in c ? c : { node: c, title: nodeDisplayText(c) }))
 
   // Empty query: return all passing filters. If `recencyBoost` is provided,
   // surface MRU first (recents-bonus desc, alphabetic fallback for untouched
@@ -294,32 +292,26 @@ export function rankResults(
     if (!passesSigilFilter(cand.node, parsedQuery)) continue
     if (!passesTaskFilter(cand.node, parsedQuery)) continue
 
-    // Sum per-term scores. If ANY positive term has score 0, the candidate
-    // is out (AND semantics). Negated terms short-circuit via -Infinity.
+    // Sum per-term scores. AND semantics: any positive term scoring 0 kills
+    // the candidate; any negated term that matches kills it via -Infinity.
+    // Fall-through cases (terms.length === 0 or all-negated-with-no-hits)
+    // get total === 0 and stay in the result set — correct for sigil-only
+    // and exclude-only queries.
     let total = 0
     let killed = false
-    let hasPositive = false
     for (const term of parsedQuery.terms) {
       const s = scoreTermForCandidate(term, cand)
       if (s === Number.NEGATIVE_INFINITY) {
         killed = true
         break
       }
-      if (!term.negated) {
-        hasPositive = true
-        if (s <= 0) {
-          killed = true
-          break
-        }
+      if (!term.negated && s <= 0) {
+        killed = true
+        break
       }
       total += s
     }
     if (killed) continue
-    // If the query had ONLY a sigil / taskFilter (no positive terms), show
-    // everything that passed the filters with score 0.
-    if (!hasPositive && parsedQuery.terms.length > 0 && !opts.includeZeroScores) {
-      // All terms were negated and none matched — include with base score.
-    }
 
     total *= typeWeight(cand.node)
     if (opts.recencyBoost) total += opts.recencyBoost(cand.node.id)

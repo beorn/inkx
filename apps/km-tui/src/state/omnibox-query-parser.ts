@@ -33,12 +33,14 @@
  * `kind`:
  *   - "smart"   — default fuzzy/substring/prefix match against the target
  *   - "phrase"  — exact phrase match (from `"..."`)
- *   - "exact"   — reserved for v1.1 fzf `'foo` — treated as smart in v1
- *   - "prefix"  — reserved for v1.1 fzf `^foo` — treated as smart in v1
- *   - "suffix"  — reserved for v1.1 fzf `foo$` — treated as smart in v1
+ *
+ * v1.1 will widen `kind` to add `"exact"` (fzf `'foo`), `"prefix"` (fzf
+ * `^foo`), and `"suffix"` (fzf `foo$`). The type stays narrow in v1 so
+ * downstream consumers (ranker, highlighter) can't accidentally branch
+ * on unimplemented kinds.
  */
 export interface QueryTerm {
-  kind: "smart" | "phrase" | "exact" | "prefix" | "suffix"
+  kind: "smart" | "phrase"
   value: string
   negated: boolean
 }
