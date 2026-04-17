@@ -73,14 +73,11 @@ Icons MUST use both color AND shape for accessibility:
 <Text color="yellowBright" dimColor>{header}</Text>
 ```
 
-## Ink Framework Patterns
+## TUI Framework — Silvery
 
-When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Critical workarounds:
+km migrated off Ink to [silvery](../../../vendor/silvery/). Before writing TUI code, read [The Silvery Way](../../../vendor/silvery/docs/guide/the-silvery-way.md) and [Styling Guide](../../../vendor/silvery/docs/guide/styling.md). Use canonical silvery components (SelectList, TextInput, ModalDialog, etc.) — never reimplement.
 
-- **Fullscreen race condition** - 50ms delay on init
-- **Manual width management** - Constraint propagation required
-- **ANSI-aware text length** - Use displayLength() not .length
-- **Text truncation** - Use truncateText() for proper ANSI handling
+Historical Ink-era notes (archived): [docs/archive/ink-patterns-pre-silvery.md](../../../docs/archive/ink-patterns-pre-silvery.md).
 
 ## Batch Operations Convention
 

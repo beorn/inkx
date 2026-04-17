@@ -2,7 +2,7 @@
   "extends": "./packages/km-infra/typescript/base.json",
   "compilerOptions": {
     // DO NOT add "paths" - packages resolve via node_modules symlinks
-    // See docs/dev/monorepo-module-resolution.md
+    // See docs/dev/monorepo.md
   },
   "exclude": [
     "node_modules",
