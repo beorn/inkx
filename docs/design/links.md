@@ -179,7 +179,7 @@ CREATE TABLE links (
 
 CREATE INDEX idx_links_host_id ON links(host_id);
 CREATE INDEX idx_links_href    ON links(href);
-CREATE UNIQUE INDEX idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
+CREATE INDEX idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
 ```
 
 Three columns. Resolution happens at runtime via the name index (`Map<name, nodeId[]>`), which is already built at startup in 55ms.
@@ -306,7 +306,7 @@ An **embed node** is a KNode whose sole purpose is transclusion — no content o
 
 **`embed_of` is runtime-materialized, not a DB column.** At load time, the loader populates `KNode.embed_of` from `SELECT host_id, href FROM links WHERE rel = 'embed'`, then resolves `href` via the name index. This keeps the `links` table as the single source of truth.
 
-**Embed invariant**: a node with `embed_of` set must have empty content and exactly one `links` row with `rel='embed'`. The `idx_links_embed_one` partial unique index enforces the row count; STRICT mode enforces empty content and matching shape.
+**Embed invariant**: a node with `embed_of` set must have empty content and exactly one `links` row with `rel='embed'`. The invariant is enforced at write time by `buildEmbedChild` and the create/update handlers — the DB-level index can't be UNIQUE because the markdown parser legitimately coalesces consecutive `![[A]]\n![[B]]` into one paragraph host with multiple embed rows (those aren't dedicated embed nodes; `embed_of` is null for such hosts). STRICT mode enforces empty content and matching shape for dedicated embed nodes.
 
 **Enforcement sites**:
 - Parse time: `getEmbeddingText()` only recognizes sole-content `![[...]]`.
