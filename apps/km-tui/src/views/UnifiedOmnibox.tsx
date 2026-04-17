@@ -60,7 +60,9 @@ function GuideRow({ sigil, label }: { sigil: string; label: string }): React.Rea
 
 function GuideHeading({ children }: { children: string }): React.ReactElement {
   return (
-    <Text bold>{children}</Text>
+    <Text bold color="$muted" dimColor>
+      {children}
+    </Text>
   )
 }
 
@@ -200,10 +202,12 @@ function CenterOmnibox({
   // should still surface favorites, not the guide).
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
 
-  // Chrome budget: border(2) + title(2) + input(3 — content + top/bot border) +
-  // blank-line gap between input and results(1) + padding(2). No footer —
-  // PrefixGuide covers discovery; nav keys (↑↓/Enter/Esc) are modal idioms.
-  const overhead = 10
+  // Chrome budget: dialog border(2) + title(2) + paddingY(2) + input(1 row —
+  // borderless) + blank-line gap(1). Opencode-style: the TextInput has no
+  // border so the cursor starts flush-left, aligned with the title above and
+  // the result rows below. ModalDialog's paddingX is reduced to 1 so the
+  // selection bg stretches the full inner width minus 1 col on each side.
+  const overhead = 8
   const maxVisible = maxHeight ? Math.max(1, maxHeight - overhead) : 12
 
   return (
@@ -217,6 +221,7 @@ function CenterOmnibox({
       }
       width={width}
       height={maxHeight}
+      paddingX={1}
     >
       <Box flexDirection="column" width="100%">
         <TextInput
@@ -226,11 +231,9 @@ function CenterOmnibox({
           placeholder={chrome.placeholder}
           prompt={chrome.prompt}
           promptColor="$primary"
-          borderStyle="round"
-          focusBorderColor="$focusborder"
         />
         {/* One-line gap between the input and the results/guide — visual
-            breathing room so the box border doesn't abut the first row. */}
+            breathing room so the input doesn't abut the first row. */}
         <Text> </Text>
         {showGuide ? (
           <PrefixGuide />
