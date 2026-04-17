@@ -126,3 +126,14 @@ export type { JobSpec, JobHandle, JobRunner } from "./job.ts"
 // Heading rules — parse/serialize km.* inline directives (pure text processing)
 export { PROP_REGEX, extractKVProperties, parseHeadingRules } from "./heading-rules.ts"
 export type { ExtractedProp, ParsedHeading } from "./heading-rules.ts"
+
+// Link model — KLink type + parse/resolve API. See docs/design/links.md.
+export type { KLink, KLinkRel, MdForm } from "./klink.ts"
+export type { KLinkRef, KAnchor } from "./klink-ref.ts"
+export { parseLinkHref, stringifyLinkRef } from "./klink-ref.ts"
+export type { KLinkResolver, KResolution, NameIndex } from "./klink-resolver.ts"
+export { createLinkResolver } from "./klink-resolver.ts"
+
+// Sigils — name-prefix characters with semantic meaning. See docs/design/links.md.
+export type { SigilChar, SigilKind, SigilDefinition } from "./sigils.ts"
+export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, isInlineSigilStart } from "./sigils.ts"
