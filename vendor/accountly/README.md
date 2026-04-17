@@ -1,12 +1,12 @@
 # accountly
 
-Multi-profile manager for Claude Code. Run multiple Claude accounts in parallel on one machine — each with its own OAuth session, `/usage`, connected MCP servers, and Max quota — while sharing one `~/.claude/` for memory, skills, settings, and session history.
+Multi-profile manager for Claude Code. Run multiple Claude accounts in parallel on one machine — each with its own OAuth session, `/usage`, connected MCP servers, and Max quota — while sharing one `~/.claude/` for everything non-identity (memory, skills, settings, session history, `--resume` visibility, todos, plans, file history, …).
 
 ## How it works
 
 Each profile is a separate directory under `~/.config/claude-profiles/<email>/`. Claude Code derives the macOS Keychain slot name from a sha256 of `CLAUDE_CONFIG_DIR`, so pointing two shells at two different dirs gives you two fully-independent OAuth sessions — no env-var token hacks, no shared-slot contention, real subscription features everywhere.
 
-Shared state (settings, skills, plugins, CLAUDE.md, projects, session index, memory, hooks) lives in `~/.claude/` and is symlinked into each profile at bootstrap. Per-session state (credentials, statsig, caches, shell snapshots) stays per-profile.
+Share-by-default: at bootstrap, every entry in `~/.claude/` is symlinked into the profile dir **except** a tiny denylist of identity-bound state (`.credentials.json`, `statsig/`). New dirs Claude Code adds over time (`session-env/`, `tasks/`, `plans/`, …) are picked up automatically on the next bootstrap — no allowlist to maintain. Credentials stay in the Keychain (per-profile slot), so a profile dir is effectively an identity wrapper around one shared workspace.
 
 Stock `~/.claude` keeps working alongside profiles. It uses the original unhashed `Claude Code-credentials` Keychain slot and is surfaced in the listing as `~/.claude (stock → <email>)` so you always know which account plain `claude` is billing against.
 
@@ -172,8 +172,8 @@ CLI (commander)  →  Profile ops  →  Keychain (per-profile slot)  →  claude
 - **Keychain slot derivation**: `Claude Code-credentials-<first 8 hex chars of sha256(profile_dir)>`. Verified against Claude Code 2.1.109. Stock `~/.claude` uses the unhashed `Claude Code-credentials` slot.
 - **Profile root**: `~/.config/claude-profiles/` (override with `CLAUDE_PROFILE_ROOT`).
 - **Default pointer**: `~/.config/claude-profiles/default` is a relative symlink to the chosen profile dir. `listProfiles()` filters it out; `initShell()` resolves it at hook-generation time.
-- **Shared items** (symlinked from `~/.claude/` at bootstrap): `CLAUDE.md`, `settings.json`, `settings.local.json`, `skills`, `plugins`, `agents`, `commands`, `hooks`, `output-styles`, `ide`, `projects`, `sessions`, `session-index.db{,-shm,-wal}`, `todos`.
-- **Bootstrap is idempotent** — running `accountly claude --user X` or `accountly claude-profile new X` refreshes symlinks for any `SHARED_ITEMS` added after the profile was created.
+- **Sharing model**: share-by-default with a denylist. At bootstrap, accountly symlinks every entry in `~/.claude/` into the profile dir *except* `PER_PROFILE_ITEMS` (`.credentials.json`, `statsig/`). A small stable denylist beats a growing allowlist — Claude Code adds new state dirs over time (`session-env/`, `tasks/`, `plans/`, `file-history/`, `telemetry/`, …), and with share-by-default they're all picked up automatically. An allowlist would silently miss them until something broke.
+- **Bootstrap is idempotent** — running `accountly claude --user X` or `accountly claude-profile new X` walks `~/.claude/` again and backfills symlinks for anything new.
 - **Rename safety**: `renameProfile` rolls back the directory move if writing the new Keychain slot fails.
 - **Unknown quota windows**: Anthropic's usage API occasionally includes experimental window keys (e.g. `seven_day_omelette`, `iguana_necktie`). The provider filters unknown keys from the output unless they have utilization > 0, so dormant codenames don't clutter the table but live ones surface under their raw name.
 

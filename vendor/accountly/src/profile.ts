@@ -33,25 +33,26 @@ import { getProvider } from "./providers/index.ts"
 
 const DEFAULT_PROFILE_ROOT = join(homedir(), ".config", "claude-profiles")
 
-/** Items under ~/.claude/ that are symlinked into every profile. */
-const SHARED_ITEMS = [
-  "CLAUDE.md",
-  "settings.json",
-  "settings.local.json",
-  "skills",
-  "plugins",
-  "agents",
-  "commands",
-  "hooks",
-  "output-styles",
-  "ide",
-  "projects",
-  "sessions",
-  "session-index.db",
-  "session-index.db-shm",
-  "session-index.db-wal",
-  "todos",
-] as const
+/**
+ * Items under ~/.claude/ that stay per-profile (identity-bound state).
+ * Everything else is symlinked into every profile — share-by-default.
+ *
+ * Why a denylist instead of an allowlist: Claude Code grows new state dirs
+ * (`session-env/`, `tasks/`, `file-history/`, `plans/`, …) over time, and an
+ * allowlist silently misses them until something breaks. The canonical
+ * example: `session-env/<uuid>/` is the per-session marker that `--resume`
+ * scans to decide which sessions to offer. When it wasn't shared, sessions
+ * started under one profile were invisible to `--resume` from another profile
+ * even though the transcript (`projects/…/<uuid>.jsonl`) was right there.
+ *
+ * The denylist is small and stable: only genuinely identity-bound state
+ * belongs here. `.credentials.json` is per-identity by definition (though
+ * Claude Code normally uses Keychain). `statsig/` is identity-bound analytics.
+ */
+const PER_PROFILE_ITEMS = new Set<string>([
+  ".credentials.json",
+  "statsig",
+])
 
 export interface ProfileInfo {
   name: string
@@ -336,12 +337,19 @@ export async function diagnoseProfile(profile: ProfileInfo): Promise<HealthCheck
     return findings
   }
 
-  // Check symlinks: every SHARED_ITEM that exists in ~/.claude should also
-  // exist (as a symlink) in the profile dir, so shared state stays shared.
+  // Check symlinks: every non-denied item in ~/.claude/ should also exist
+  // (as a symlink) in the profile dir, so shared state stays shared.
   const claudeHome = join(homedir(), ".claude")
   const missingLinks: string[] = []
   const brokenLinks: string[] = []
-  for (const item of SHARED_ITEMS) {
+  let claudeEntries: string[] = []
+  try {
+    claudeEntries = readdirSync(claudeHome)
+  } catch {
+    // no ~/.claude yet — nothing to share
+  }
+  for (const item of claudeEntries) {
+    if (PER_PROFILE_ITEMS.has(item)) continue
     const src = join(claudeHome, item)
     const dst = join(profile.dir, item)
     if (!existsSync(src)) continue
@@ -721,9 +729,10 @@ export function listProfiles(): ProfileInfo[] {
 }
 
 /**
- * Create or refresh a profile dir: symlink every shareable item from ~/.claude/
- * into the profile dir. Idempotent — safe to call on existing profiles to
- * backfill any SHARED_ITEMS added since the profile was created.
+ * Create or refresh a profile dir: symlink every non-denylisted item from
+ * ~/.claude/ into the profile dir. Idempotent — safe to call on existing
+ * profiles to backfill any entries Claude Code created in ~/.claude/ since
+ * the profile was last bootstrapped.
  *
  * Never clobbers existing files or non-empty dirs; only replaces empty dirs
  * with symlinks (Claude Code may create one before the symlink is added).
@@ -736,7 +745,15 @@ export function bootstrapProfile(name: string): { dir: string; fresh: boolean; l
   const claudeHome = join(homedir(), ".claude")
   const linked: string[] = []
 
-  for (const item of SHARED_ITEMS) {
+  let entries: string[]
+  try {
+    entries = readdirSync(claudeHome)
+  } catch {
+    return { dir, fresh, linked }
+  }
+
+  for (const item of entries) {
+    if (PER_PROFILE_ITEMS.has(item)) continue
     const src = join(claudeHome, item)
     const dst = join(dir, item)
     if (!existsSync(src)) continue
