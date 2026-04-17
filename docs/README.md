@@ -100,7 +100,6 @@ km init                    # Enable persistence (stable IDs, history)
 | [design/phases.md](design/phases.md)                                         | TEA migration roadmap (phase status and key files)       |
 | [design/data-model.md](design/data-model.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
 | [design/outliner-spec.md](design/outliner-spec.md)                           | Outliner editing operations (split, indent, merge)       |
-| [design/render-neutral-tui.md](design/render-neutral-tui.md)                 | Render-neutral TUI design                                |
 | [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Terminal integration testing strategy                |
 | [design/visual-navigation.md](design/visual-navigation.md)                   | Visual navigation design                                 |
 | [architecture-review-findings.md](architecture-review-findings.md)           | Three-pass review: types, flows, composition, top 5 simplifications |

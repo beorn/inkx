@@ -1,3 +1,7 @@
+# Selection Landscape — ARCHIVED 2026-04-17
+
+> **Research artifact**, not active design. Comparison with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM API. Pull back from archive if a future selection redesign needs the comparative input.
+
 # Selection Landscape
 
 Industry reference for selection and manipulation systems. Covers what exists across tree UIs, canvas/drawing tools, text editors, and diagramming tools. Used to validate that `@silvery/selection` is extensible to these use cases.

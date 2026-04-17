@@ -1,3 +1,7 @@
+# Render-Neutral TUI — ARCHIVED 2026-04-17
+
+> **Silvery already owns multi-target rendering** (terminal, canvas, DOM — see silvery.dev). This km-side speculative design doc is redundant. Pull back into `docs/future/` only if a km-specific renderer-selection policy needs its own design.
+
 # Render-Neutral TUI: Terminal + Canvas from Shared Components
 
 ## Problem

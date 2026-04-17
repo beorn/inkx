@@ -1,3 +1,7 @@
+# Keybinding Reference — ARCHIVED 2026-04-17
+
+> **Superseded** by [`docs/keybindings-v2.md`](../keybindings-v2.md) — the authoritative keybinding spec. This was a condensed reference duplicating v2 at lower fidelity.
+
 # Keyboard Shortcut Reference Across Applications
 
 Cross-application keyboard shortcut research for designing optimal km keybindings.

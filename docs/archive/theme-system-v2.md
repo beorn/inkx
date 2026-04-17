@@ -1,3 +1,7 @@
+# Theme System v2 — ARCHIVED 2026-04-17
+
+> **Concern owned by silvery.** km uses silvery's theme tokens — see [silvery.dev/guide/styling](https://silvery.dev/guide/styling) and [silvery.dev/guide/theming](https://silvery.dev/guide/theming) for current docs. Any km-specific configuration belongs in a km UI design section, not as a standalone doc.
+
 # Theme System v2: Semantic Tokens + Progressive Enhancement
 
 > **SUPERSEDED**: This design spec predates the swatch redesign (2026-03).

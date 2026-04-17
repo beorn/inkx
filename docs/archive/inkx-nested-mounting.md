@@ -1,3 +1,7 @@
+# InkX Nested Mounting — ARCHIVED 2026-04-17
+
+> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design won't ship.
+
 # Nested Mounting API for Silvery
 
 > **Status: Future** — Speculative design, no concrete use case yet.

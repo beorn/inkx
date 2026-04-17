@@ -20,7 +20,7 @@ km's architecture borrows deliberately from systems that solved hard problems we
 
 **React** — rendering. silvery's custom reconciler produces an ag node tree (not DOM). Same component model, same hooks, same mental model. But layout (flexily) and output (ANSI terminal buffer) are fully owned.
 
-See [docs/design/selection-landscape.md](design/selection-landscape.md) for detailed comparisons with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, and AppKit/UIKit.
+For detailed comparisons with other selection systems (tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, AppKit/UIKit), see [docs/design/selection-model.md](design/selection-model.md).
 
 ## Reactive Model
 

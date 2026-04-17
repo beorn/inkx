@@ -3,7 +3,7 @@
 Comprehensive keybinding redesign for km TUI. Three binding layers (vim/Ctrl/Cmd),
 verb×location system (g/m/a), unified modal interface, smart pane toggle.
 
-Bead: `km-all.keybindings-v2`. Prior research: [ref-keybindings.md](ref-keybindings.md).
+Bead: `km-all.keybindings-v2`.
 
 ## Design Principles
 

@@ -1,3 +1,7 @@
+# Tribe Design — ARCHIVED from km 2026-04-17
+
+> **Tribe is a [bearly](../../vendor/bearly/plugins/tribe/) plugin**, not a km concern. This 868-line design doc lived in km's docs for historical reasons; the content belongs in `vendor/bearly/plugins/tribe/` if bearly wants a detailed design companion to its README.
+
 # Tribe: Cross-Session Coordination for Claude Code
 
 > **Status: Phase 1 implemented** — Channel plugin at `vendor/bearly/tools/tribe.ts`, tests at `vendor/bearly/tests/tribe.test.ts`.

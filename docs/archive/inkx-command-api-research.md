@@ -1,3 +1,7 @@
+# InkX Command API Research — ARCHIVED 2026-04-17
+
+> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design for an InkX command API will never ship. Kept for historical interest only.
+
 # Command API Design Research
 
 Deep research on ergonomic API design patterns for TUI automation.

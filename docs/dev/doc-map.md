@@ -28,15 +28,14 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Navigation (cursor movement, grid nav, zoom) | [design/navigation-architecture.md](../design/navigation-architecture.md) |
 | Node visual spec (rendering, embed expansion) | [design/node-visual-spec.md](../design/node-visual-spec.md) |
 | Per-node reactive computeds | [design/per-node-view-computeds.md](../design/per-node-view-computeds.md) |
-| Multi-target rendering (terminal, browser, headless) | [design/render-neutral-tui.md](../design/render-neutral-tui.md) |
 | Horizontal virtualization, sticky columns | [design/horizontal-virtualization.md](../design/horizontal-virtualization.md) |
 | Outliner spec (indent, bullets, nesting) | [design/outliner-spec.md](../design/outliner-spec.md) |
-| Color theme system | [design/theme-system-v2.md](../design/theme-system-v2.md) |
+| Theme tokens (km uses silvery's system) | [silvery.dev/guide/theming](https://silvery.dev/guide/theming) |
 | Spatial navigation, focus scope | [design/visual-navigation.md](../design/visual-navigation.md) |
 | Omnibox (command palette, fuzzy search) | [design/omnibox.md](../design/omnibox.md) |
 | Tree aggregation, fold-depth | [design/tree-reduce.md](../design/tree-reduce.md) |
 | Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |
-| Tribe multi-session coordination | [design/tribe.md](../design/tribe.md) |
+| Tribe multi-session coordination | [vendor/bearly/plugins/tribe/README.md](../../vendor/bearly/plugins/tribe/README.md) — owned by bearly |
 | Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../storage.md) |
 | Query language (field:value, sigils, paths, FTS) | [ref/query.md](../ref/query.md) |
 | Task fields (marker, status, due, priority, recur) + cross-system mapping | [ref/task-fields.md](../ref/task-fields.md) |
@@ -58,8 +57,14 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 ## Retired — moved to archive
 
 - `docs/keybindings.md` → [archive/keybindings-v1.md](../archive/keybindings-v1.md) — superseded by `keybindings-v2.md` (2026-04-16).
+- `docs/ref-keybindings.md` → [archive/ref-keybindings.md](../archive/ref-keybindings.md) — duplicate of `keybindings-v2.md` at lower fidelity (2026-04-17).
 - `docs/dev/ink-patterns.md` → [archive/ink-patterns-pre-silvery.md](../archive/ink-patterns-pre-silvery.md) — km migrated off Ink to silvery (2026-04-16).
 - `docs/ref/inkx-vs-ink-deep-research-2026-02.md` → [archive/inkx-vs-ink-deep-research-2026-02.md](../archive/inkx-vs-ink-deep-research-2026-02.md) — dated research; decision stands (2026-04-16).
+- `docs/future/inkx-*.md` (3 files) → [archive/](../archive/) — Ink is retired; speculative designs won't ship (2026-04-17).
+- `docs/design/selection-landscape.md` → [archive/selection-landscape.md](../archive/selection-landscape.md) — research artifact, not active design (2026-04-17).
+- `docs/design/theme-system-v2.md` → [archive/theme-system-v2.md](../archive/theme-system-v2.md) — theme is silvery's concern; see [silvery.dev/guide/theming](https://silvery.dev/guide/theming) (2026-04-17).
+- `docs/design/render-neutral-tui.md` → [archive/render-neutral-tui.md](../archive/render-neutral-tui.md) — silvery owns multi-target rendering (2026-04-17).
+- `docs/design/tribe.md` → [archive/tribe.md](../archive/tribe.md) — tribe is a bearly plugin; see [`vendor/bearly/plugins/tribe/`](../../vendor/bearly/plugins/tribe/) (2026-04-17).
 
 ## Deferred (orphans + backlog — see `docs/backlog.md`)
 

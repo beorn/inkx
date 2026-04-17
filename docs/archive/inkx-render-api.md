@@ -1,3 +1,7 @@
+# InkX Render API — ARCHIVED 2026-04-17
+
+> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design won't ship.
+
 # Unified Silvery Rendering API
 
 > **Status: Future** — Design proposal, not yet implemented.
