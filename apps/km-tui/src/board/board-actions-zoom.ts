@@ -11,6 +11,7 @@ import { KNode, type ItemData } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
+import { getRecentsStore } from "../state/recents-store.ts"
 
 /** Short display name for a node (≤25 chars), suitable for toast messages. */
 function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
@@ -210,6 +211,10 @@ export function handleZoomIn(ctx: OpCtx): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
+  // km-tui.omnibox-recents: zooming in is a visit of both the zoomed node
+  // and its landed-on child.
+  getRecentsStore().touchNode(nodeId)
+  if (firstCard) getRecentsStore().touchNode(firstCard)
   ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, nodeId)}` } })
   return ok()
 }
@@ -234,6 +239,10 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
+  // km-tui.omnibox-recents: zoom-to-node (symlink-follow, wikilink,
+  // omnibox goto, etc.) records an explicit visit.
+  getRecentsStore().touchNode(nodeId)
+  if (firstCard) getRecentsStore().touchNode(firstCard)
   ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, nodeId)}` } })
   return ok()
 }

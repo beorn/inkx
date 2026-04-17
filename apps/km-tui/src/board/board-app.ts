@@ -34,6 +34,7 @@ import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
 import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts"
+import { getRecentsStore } from "../state/recents-store.ts"
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
@@ -666,6 +667,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
       parentSpan.spanData.outcome = "handled"
       parentSpan.spanData.ops = opList.length
+
+      // km-tui.omnibox-recents: every successfully-dispatched command bumps
+      // its MRU timestamp. This feeds `rankCommands(..., recencyBoost)` so
+      // the palette surfaces recently-run commands first on empty query and
+      // tie-breaks toward them on typed query.
+      if (result.commandId) {
+        getRecentsStore().touchCommand(result.commandId)
+      }
 
       // Phase 3: Invariant checks — verify state consistency after mutations.
       // Fatal violations throw inside checkInvariants; recoverable ones are

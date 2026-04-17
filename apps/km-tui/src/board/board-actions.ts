@@ -33,6 +33,7 @@ import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { getRecentsStore } from "../state/recents-store.ts"
 import {
   clearSelection,
   progressiveSelectAll,
@@ -2291,6 +2292,8 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
     if (target) {
       ctx.sel.node.select([target.id as ID])
       clearSelection(ctx)
+      // km-tui.omnibox-recents: goto via omnibox or picker = visit.
+      getRecentsStore().touchNode(target.id)
     }
     return
   }
@@ -2344,12 +2347,18 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.parent_id })
     ctx.sel.root.set(targetNode.parent_id as ID)
     ctx.sel.node.select([targetNode.id as ID])
+    // km-tui.omnibox-recents: cross-parent goto lands on targetNode.
+    getRecentsStore().touchNode(targetNode.id)
   } else {
     // Non-leaf — zoom into target, cursor on its first child.
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
     ctx.sel.root.set(to.parentId as ID)
     const firstChild = children[0]?.id ?? null
     if (firstChild) ctx.sel.node.select([firstChild as ID])
+    // km-tui.omnibox-recents: cross-parent zoom-into records the container
+    // and its first-child landing row.
+    getRecentsStore().touchNode(to.parentId)
+    if (firstChild) getRecentsStore().touchNode(firstChild)
   }
   clearSelection(ctx)
 }
