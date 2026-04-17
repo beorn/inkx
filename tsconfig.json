@@ -18,6 +18,7 @@
     "hub/silvery/archive",
     "hub/silvery/design",
     "vendor/bearly/plugins/tribe/server.ts",
-    "packages/km-infra/scripts"
+    "packages/km-infra/scripts",
+    "apps/km-tui/web"
   ]
 }

@@ -1,0 +1,6 @@
+{
+  "extends": "../../../packages/km-infra/typescript/base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  }
+}
