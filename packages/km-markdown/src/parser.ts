@@ -450,61 +450,17 @@ export function normalizeNodeName(title: string): string {
 }
 
 // =============================================================================
-// Ref Href Normalization
+// Link Href Normalization — re-export of the canonical function.
 // =============================================================================
+//
+// Historical `normalizeRefHref` (+ its 7-value MdForm enum including tag /
+// mention / project) was Phase 1 scaffolding. It has been replaced by
+// `normalizeLinkHref` in link-href.ts, which consumes the 4-value MdForm
+// from @km/core ('wiki' | 'mdlink' | 'autolink' | 'bare'). Sigils are
+// handled by link-href's `normalizeBare` branch — see docs/design/links.md
+// (sigil-as-name section).
 
-/**
- * Markdown notation form — how a reference was written in source text.
- * Preserved for roundtrip fidelity; the `href` is the parsed canonical form.
- *
- * See docs/design/links.md "Markdown → Ref" table.
- */
-export type MdForm = "wiki" | "mdlink" | "autolink" | "bare" | "tag" | "mention" | "project"
-
-/**
- * Normalize a raw reference label + notation form into a canonical `href`.
- *
- * This is the single source of truth for "what does this notation mean?"
- * Every code path that produces a Ref (or a node name that refs resolve
- * against) must route through this function.
- *
- * Pure, synchronous, deterministic — no DB, no network, no cache.
- *
- * Examples:
- *   ('wiki',    'Note')           → 'km:Note'
- *   ('wiki',    'Note#Section')   → 'km:Note#Section'
- *   ('wiki',    'Note^abc')       → 'km:Note#^abc'
- *   ('mention', '@Alice')         → 'km:Alice'
- *   ('tag',     '#urgent')        → 'km:urgent'
- *   ('project', '+cleanup')       → 'km:cleanup'
- *   ('bare',    'https://x.com')  → 'https://x.com'
- *   ('mdlink',  'https://x.com')  → 'https://x.com'
- *   ('autolink','https://x.com')  → 'https://x.com'
- *   ('autolink','mailto:a@b.com') → 'mailto:a@b.com'
- */
-export function normalizeRefHref(form: MdForm, label: string): string {
-  switch (form) {
-    case "wiki": {
-      // [[Note^abc]] → km:Note#^abc (block ref uses # anchor)
-      const blockRef = label.replace(/\^/, "#^")
-      return `km:${blockRef}`
-    }
-    case "mention":
-      // @Alice → km:Alice (strip leading @)
-      return `km:${label.replace(/^@/, "")}`
-    case "tag":
-      // #urgent → km:urgent (strip leading #)
-      return `km:${label.replace(/^#/, "")}`
-    case "project":
-      // +cleanup → km:cleanup (strip leading +)
-      return `km:${label.replace(/^\+/, "")}`
-    case "mdlink":
-    case "autolink":
-    case "bare":
-      // External URLs pass through unchanged; internal km: refs pass through too
-      return label
-  }
-}
+export type { MdForm } from "@km/core"
 
 // =============================================================================
 // Inline Properties (Logseq-style property:: value syntax)

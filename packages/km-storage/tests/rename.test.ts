@@ -1,15 +1,15 @@
 /**
  * Rename Tests
  *
- * Tests for renameNode, getRenameImpact, and updateTargetName.
+ * Tests for renameNode and getRenameImpact under the v4 links schema
+ * (see docs/design/links.md). The legacy updateTargetName helper is
+ * gone — rename rewrites content in host nodes and updates links.href
+ * rows keyed on the renamed node's canonical href.
  */
 
 import { describe, test, expect } from "vitest"
-import { Database } from "bun:sqlite"
 
 import { createTestRepo, addLink, type Repo } from "../src/index.ts"
-import { updateTargetName } from "../src/db/links.ts"
-import { SCHEMA } from "../src/db/schema.ts"
 
 /** Create a test repo and add file-like nodes with names and backlinks */
 function setupRepoWithLinks(): {
@@ -42,28 +42,11 @@ function setupRepoWithLinks(): {
     name: "task-2",
   })
 
-  // Add backlinks in the links table
-  addLink(repo.database, {
-    source_id: source1Id,
-    target_name: "Old Name",
-    target_id: targetId,
-    section: null,
-    block_id: null,
-    alias: null,
-    embedded: false,
-    relationship: null,
-  })
-
-  addLink(repo.database, {
-    source_id: source2Id,
-    target_name: "Old Name",
-    target_id: targetId,
-    section: null,
-    block_id: null,
-    alias: null,
-    embedded: false,
-    relationship: null,
-  })
+  // Add backlinks — under the v4 links schema, the target is keyed by
+  // its canonical href (normalizeLinkHref("wiki", name)). "Old Name"
+  // → "km:Old Name".
+  addLink(repo.database, { host_id: source1Id, href: "km:Old Name", rel: "link" })
+  addLink(repo.database, { host_id: source2Id, href: "km:Old Name", rel: "link" })
 
   return { repo, targetId, source1Id, source2Id }
 }
@@ -106,16 +89,7 @@ describe("renameNode", () => {
       content: "Embed ![[Target File]] here",
     })
 
-    addLink(repo.database, {
-      source_id: sourceId,
-      target_name: "Target File",
-      target_id: targetId,
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: true,
-      relationship: null,
-    })
+    addLink(repo.database, { host_id: sourceId, href: "km:Target File", rel: "embed" })
 
     repo.renameNode(targetId, "Renamed File")
 
@@ -139,16 +113,7 @@ describe("renameNode", () => {
       content: "See [[Original|my alias]] for info",
     })
 
-    addLink(repo.database, {
-      source_id: sourceId,
-      target_name: "Original",
-      target_id: targetId,
-      section: null,
-      block_id: null,
-      alias: "my alias",
-      embedded: false,
-      relationship: null,
-    })
+    addLink(repo.database, { host_id: sourceId, href: "km:Original", rel: "link" })
 
     repo.renameNode(targetId, "Updated")
 
@@ -204,16 +169,7 @@ describe("renameNode", () => {
       content: "Ref [[Same]]",
     })
 
-    addLink(repo.database, {
-      source_id: sourceId,
-      target_name: "Same",
-      target_id: targetId,
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
+    addLink(repo.database, { host_id: sourceId, href: "km:Same", rel: "link" })
 
     // Rename to same name — backlink content should not change
     repo.renameNode(targetId, "Same")
@@ -238,16 +194,7 @@ describe("renameNode", () => {
       content: "See [[my note]] and [[MY NOTE]]",
     })
 
-    addLink(repo.database, {
-      source_id: sourceId,
-      target_name: "My Note",
-      target_id: targetId,
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
+    addLink(repo.database, { host_id: sourceId, href: "km:My Note", rel: "link" })
 
     repo.renameNode(targetId, "Renamed Note")
 
@@ -504,61 +451,66 @@ describe("renameNode - blocked-by property references", () => {
   })
 })
 
-describe("updateTargetName", () => {
-  test("updates matching rows case-insensitively", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
+describe("renameNode updates links.href rows", () => {
+  test("rewrites href on all link rows pointing at the old name", () => {
+    const repo = createTestRepo()
 
-    // Insert some links with different cases
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('s1', 'My File', 't1', NULL, NULL, NULL, 0, NULL, 1)`,
-    )
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('s2', 'my file', 't1', NULL, NULL, NULL, 0, NULL, 2)`,
-    )
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('s3', 'other file', 't2', NULL, NULL, NULL, 0, NULL, 3)`,
-    )
+    const targetId = repo.addNode(null, {
+      type: "h",
+      item: {},
+      fstype: "mdfile",
+      content: "Old Title",
+      name: "Old Title",
+    })
 
-    const updated = updateTargetName(db, "My File", "Renamed File")
+    const sourceId = repo.addNode(null, {
+      type: "p",
+      content: "See [[Old Title]] here",
+    })
 
-    expect(updated).toBe(2)
+    addLink(repo.database, { host_id: sourceId, href: "km:Old Title", rel: "link" })
 
-    // Verify the target_name values
-    const rows = db.query("SELECT source_id, target_name FROM links ORDER BY source_id").all() as Array<{
-      source_id: string
-      target_name: string
-    }>
+    repo.renameNode(targetId, "New Title")
 
-    expect(rows).toEqual([
-      { source_id: "s1", target_name: "Renamed File" },
-      { source_id: "s2", target_name: "Renamed File" },
-      { source_id: "s3", target_name: "other file" },
-    ])
+    const rows = repo.database
+      .query("SELECT host_id, href, rel FROM links WHERE host_id = ?")
+      .all(sourceId) as Array<{ host_id: string; href: string; rel: string }>
 
-    db.close()
+    // Even though content rewrite would produce a fresh href on re-parse,
+    // the in-memory rows are eagerly updated so backlink queries stay
+    // correct until the next reconciliation pass.
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.href).toBe("km:New Title")
+    expect(rows[0]!.rel).toBe("link")
   })
 
-  test("handles .md extension stripping", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
+  test("leaves unrelated hrefs untouched", () => {
+    const repo = createTestRepo()
 
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('s1', 'notes.md', 't1', NULL, NULL, NULL, 0, NULL, 1)`,
-    )
+    const targetId = repo.addNode(null, {
+      type: "h",
+      item: {},
+      fstype: "mdfile",
+      content: "Alpha",
+      name: "Alpha",
+    })
 
-    const updated = updateTargetName(db, "notes", "renamed-notes")
+    const sourceId = repo.addNode(null, {
+      type: "p",
+      content: "See [[Alpha]] and also [[Beta]]",
+    })
 
-    expect(updated).toBe(1)
+    addLink(repo.database, { host_id: sourceId, href: "km:Alpha", rel: "link" })
+    addLink(repo.database, { host_id: sourceId, href: "km:Beta", rel: "link" })
 
-    const row = db.query("SELECT target_name FROM links WHERE source_id = 's1'").get() as { target_name: string }
+    repo.renameNode(targetId, "Gamma")
 
-    expect(row.target_name).toBe("renamed-notes")
+    const hrefs = (
+      repo.database
+        .query("SELECT href FROM links WHERE host_id = ? ORDER BY href")
+        .all(sourceId) as Array<{ href: string }>
+    ).map((r) => r.href)
 
-    db.close()
+    expect(hrefs).toEqual(["km:Beta", "km:Gamma"])
   })
 })

@@ -482,6 +482,12 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // data.name (the frontmatter title override) takes priority in
       // getNodeDisplayName, so leaving it stale would make the column header
       // keep showing the old label after a successful rename.
+      // Compute the old/new canonical hrefs BEFORE the node update so
+      // we still have the pre-rename href to query backlinks with.
+      const oldHref = normalizeLinkHref("wiki", oldName)
+      const newHref = normalizeLinkHref("wiki", newName)
+      const backlinks = dbGetBacklinksByHref(deps.db, oldHref)
+
       // Use this.updateNode (not mutations.updateNode) so undo proxy intercepts.
       const nextData =
         node.data && typeof node.data === "object" && "name" in (node.data as Record<string, unknown>)
@@ -494,7 +500,6 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       //    target_id, so we look up hosts whose link rows reference the
       //    old name's href and patch their markdown. A re-parse on next
       //    load will then regenerate fresh link rows with the new href.
-      const backlinks = backlinksForNodeId(deps.db, dataStore, id)
       const total = backlinks.length
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       const pattern = new RegExp(`(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`, "gi")
@@ -515,8 +520,6 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // 3. Rewrite the href column on link rows pointing at the old name,
       //    so in-memory backlink queries stay correct until the next
       //    re-parse. Scoped by href (not node id) under the v4 schema.
-      const oldHref = normalizeLinkHref("wiki", oldName)
-      const newHref = normalizeLinkHref("wiki", newName)
       if (oldHref !== newHref) {
         deps.db.run(`UPDATE links SET href = ? WHERE href = ?`, [newHref, oldHref])
       }

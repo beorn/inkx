@@ -15,7 +15,6 @@ export {
   listItemToText,
   slugify,
   normalizeNodeName,
-  normalizeRefHref,
 } from "./parser.ts"
 
 export type {
@@ -31,8 +30,8 @@ export type {
   MdForm,
 } from "./parser.ts"
 
-// New canonical href normalizer — parallel to normalizeRefHref during transition.
-// See docs/design/links.md and @km/core for the KLink type and MdForm.
+// Canonical href normalizer. See docs/design/links.md and @km/core for
+// the KLink type and MdForm.
 export { normalizeLinkHref } from "./link-href.ts"
 
 // kmast types and extensions

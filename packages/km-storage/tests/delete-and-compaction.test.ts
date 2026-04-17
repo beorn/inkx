@@ -56,12 +56,13 @@ function insertNode(
   )
 }
 
-function insertLink(db: Database, sourceId: string, targetName: string, targetId?: string | null): void {
-  db.run(
-    `INSERT INTO links (source_id, target_name, target_id, section, block_id, relationship, created_at)
-     VALUES (?, ?, ?, '', '', '', ?)`,
-    [sourceId, targetName, targetId ?? null, Date.now()],
-  )
+/**
+ * Insert a link row (v4 schema: host_id, href, rel). Callers pass a
+ * `targetName` that becomes `km:<targetName>` as the href — matching how
+ * the parser normalizes a `[[target]]` wikilink.
+ */
+function insertLink(db: Database, hostId: string, targetName: string, _targetId?: string | null): void {
+  db.run(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, 'link')`, [hostId, `km:${targetName}`])
 }
 
 // Track temp dirs for cleanup
@@ -104,29 +105,36 @@ describe("recursive delete", () => {
     expect(getNodeCount(db)).toBe(0)
   })
 
-  test("deleteNodeImpl (no emitter) cleans up links referencing deleted nodes", () => {
+  test("deleteNodeImpl cleans up link rows whose host is being deleted", () => {
     const db = createTestDatabase()
     insertNode(db, "parent", null)
     insertNode(db, "child", "parent")
     insertNode(db, "other", null)
 
-    // Links where deleted nodes are source or target
-    insertLink(db, "child", "other", "other")
-    insertLink(db, "other", "parent", "parent")
-    insertLink(db, "other", "other") // link not involving deleted nodes
+    // Three rows: (host=child→other), (host=other→parent),
+    // (host=other→other). Under the v4 links schema, only host_id
+    // cascades — backlinks to a deleted node become broken hrefs,
+    // surfaced at runtime by the resolver.
+    insertLink(db, "child", "other")
+    insertLink(db, "other", "parent")
+    insertLink(db, "other", "other")
     expect(getLinkCount(db)).toBe(3)
 
     const ops = createDbOps(db)
     ops.deleteNode("parent")
 
-    // Only the link from "other" to "other" should remain
-    expect(getLinkCount(db)).toBe(1)
-    const remaining = db.query("SELECT source_id, target_name FROM links").get() as {
-      source_id: string
-      target_name: string
-    }
-    expect(remaining.source_id).toBe("other")
-    expect(remaining.target_name).toBe("other")
+    // Rows where the host (child or parent) was deleted disappear; the
+    // two rows hosted by "other" remain — including the now-broken
+    // "km:parent" href, which the resolver reports as broken.
+    expect(getLinkCount(db)).toBe(2)
+    const rows = db.query("SELECT host_id, href FROM links ORDER BY href").all() as Array<{
+      host_id: string
+      href: string
+    }>
+    expect(rows.map((r) => ({ host_id: r.host_id, href: r.href }))).toEqual([
+      { host_id: "other", href: "km:other" },
+      { host_id: "other", href: "km:parent" },
+    ])
   })
 
   test("deleteNodeImpl (with emitter) includes metadata in event", () => {
@@ -186,15 +194,15 @@ describe("recursive delete", () => {
     expect(getNodeCount(db)).toBe(0)
   })
 
-  test("applyNodeDeleted cleans up links for all deleted nodes", () => {
+  test("applyNodeDeleted cleans up link rows hosted by deleted nodes", () => {
     const db = createTestDatabase()
     insertNode(db, "parent", null)
     insertNode(db, "child", "parent")
     insertNode(db, "unrelated", null)
 
-    insertLink(db, "child", "unrelated", "unrelated") // source is deleted
-    insertLink(db, "unrelated", "parent", "parent") // target_id is deleted
-    insertLink(db, "unrelated", "unrelated") // no relation to deleted nodes
+    insertLink(db, "child", "unrelated") // host is deleted (child)
+    insertLink(db, "unrelated", "parent") // hrefs "km:parent" — host survives
+    insertLink(db, "unrelated", "unrelated")
     expect(getLinkCount(db)).toBe(3)
 
     const event: Change = {
@@ -207,7 +215,10 @@ describe("recursive delete", () => {
     }
     applyChangeWithDb(db, event)
 
-    expect(getLinkCount(db)).toBe(1)
+    // Only the host=child row disappears; the two host=unrelated rows
+    // stay (the `km:parent` one will resolve as broken at runtime under
+    // the v4 schema — see docs/design/links.md).
+    expect(getLinkCount(db)).toBe(2)
   })
 
   test("deleting a leaf node works correctly", () => {

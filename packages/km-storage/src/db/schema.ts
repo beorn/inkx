@@ -173,8 +173,12 @@ CREATE TABLE IF NOT EXISTS meta (
 --             normalizeLinkHref() — every write goes through it.
 --   rel     : 'link' | 'embed' (closed enum for v1)
 -- Resolution happens at runtime via the name index (Map<name, nodeId[]>).
--- The partial unique index enforces the embed invariant: a host can have at
--- most one rel='embed' row.
+--
+-- The design's embed invariant ("a node with embed_of set must have exactly
+-- one rel=embed row") is enforced at write time by buildEmbedChild + the
+-- create/update handlers, not at the DB layer. A plain paragraph that
+-- happens to contain multiple embed wikilinks is NOT an embed node (it has
+-- no embed_of), and those occurrences legitimately share a host.
 CREATE TABLE IF NOT EXISTS links (
   host_id TEXT NOT NULL,
   href    TEXT NOT NULL,
@@ -183,7 +187,7 @@ CREATE TABLE IF NOT EXISTS links (
 
 CREATE INDEX IF NOT EXISTS idx_links_host_id ON links(host_id);
 CREATE INDEX IF NOT EXISTS idx_links_href    ON links(href);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
+CREATE INDEX IF NOT EXISTS idx_links_rel     ON links(rel);
 
 -- Sync state: content-hash baseline for bidirectional sync
 -- Tracks what we last projected (wrote) or observed (read) for each file path.

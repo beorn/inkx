@@ -1,22 +1,30 @@
 /**
- * Link Resolution Bug Tests
+ * Link Resolution Bug Tests (v4 schema)
  *
- * Tests for bugs identified in code review:
- * - 1a: Wikilinks resolve arbitrarily on name collision (link-resolver.ts)
- * - 1b: Section-specific links updated with over-broad WHERE (db-links.ts)
- * - 1c: renameNode corrupts unrelated links (db-links.ts updateTargetName)
- * - 2: Resolver cache stale after mutations (repo.ts + smart-resolver.ts)
+ * Historical context: these tests originally covered Bug 1b (section-
+ * scoped resolveLinks), Bug 1c (updateTargetName corrupts unrelated
+ * links), and the composite-PK dedup bug. All three artifacts belonged
+ * to the pre-v4 persisted-resolution model and were deleted in Phase 3
+ * of the link-model migration (docs/design/links.md).
+ *
+ * Under the v4 (host_id, href, rel) schema, resolution happens at
+ * runtime via the name index — there are no unresolved rows to scope,
+ * no target_id to rewrite on rename, and no composite PK to dedupe.
+ * The remaining bugs here exercise the name-index / resolver behavior
+ * that still applies:
+ *
+ *   - Bug 1a: ambiguous name resolution (link-resolver.ts)
+ *   - Bug 2:  resolver cache invalidation after mutations (smart-resolver.ts)
  */
 
 import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 
-import { createTestRepo, addLink, type Repo } from "../src/index.ts"
+import { createTestRepo, addLink } from "../src/index.ts"
 import { createLinkResolver } from "../src/markdown/link-resolver.ts"
-import { resolveLinks, resolveLinksBatch, updateTargetName } from "../src/db/links.ts"
 import { findFileByName } from "../src/db/queries/wikilink-resolver.ts"
-import { resolveByName, clearNameIndex, clearResolveCache } from "../src/db/queries/smart-resolver.ts"
-import { SCHEMA, migrateSchema } from "../src/db/schema.ts"
+import { resolveByName } from "../src/db/queries/smart-resolver.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 
 // =============================================================================
 // Bug 1a: Wikilinks resolve arbitrarily on name collision
@@ -86,7 +94,7 @@ describe("Bug 1a: name collision in link resolver", () => {
     db.close()
   })
 
-  test("findFileByName returns null for ambiguous names", () => {
+  test("findFileByName returns first match for ambiguous names", () => {
     const db = new Database(":memory:")
     db.run(SCHEMA)
 
@@ -111,411 +119,68 @@ describe("Bug 1a: name collision in link resolver", () => {
 })
 
 // =============================================================================
-// Bug 1b: Section-specific unresolved links updated with over-broad WHERE
+// Schema: v4 links table shape & the embed-one invariant
 // =============================================================================
 
-describe("Bug 1b: section-specific link resolution over-broad WHERE", () => {
-  test("resolveLinks scopes update to specific section", () => {
+describe("Links v4 schema shape", () => {
+  test("addLink inserts canonical (host_id, href, rel) rows", () => {
     const db = new Database(":memory:")
     db.run(SCHEMA)
 
-    // Create the target file node and two section children
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, name, fs_path)
-       VALUES ('file-1', 'h', 1, 0, 'doc', 'doc.md')`,
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, parent_id, title, content)
-       VALUES ('section-a', 'h', 1, 0, 'file-1', 'Section A', 'Section A content')`,
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, parent_id, title, content)
-       VALUES ('section-b', 'h', 1, 1, 'file-1', 'Section B', 'Section B content')`,
-    )
+    addLink(db, { host_id: "src-1", href: "km:Target", rel: "link" })
+    addLink(db, { host_id: "src-1", href: "km:Target", rel: "link" })
 
-    // Insert two unresolved links from the same source, different sections
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-1', 'doc', NULL, 'Section A', NULL, NULL, 0, NULL, 1)`,
-    )
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-1', 'doc', NULL, 'Section B', NULL, NULL, 0, NULL, 2)`,
-    )
-
-    // Resolve links for the target "doc"
-    resolveLinks(db, "file-1", "doc")
-
-    // Each link should resolve to its specific section, not both to the same one
-    const links = db.query("SELECT * FROM links WHERE source_id = 'src-1' ORDER BY section").all() as Array<{
-      section: string
-      target_id: string
+    // v4 cache stores each occurrence as its own row — two rows here.
+    // See docs/design/links.md invariant 2.
+    const rows = db.query("SELECT * FROM links WHERE host_id = 'src-1'").all() as Array<{
+      host_id: string
+      href: string
+      rel: string
     }>
-
-    expect(links).toHaveLength(2)
-    expect(links[0]!.section).toBe("Section A")
-    expect(links[0]!.target_id).toBe("section-a")
-    expect(links[1]!.section).toBe("Section B")
-    expect(links[1]!.target_id).toBe("section-b")
-  })
-
-  test("resolveLinksBatch scopes update to specific section", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    // Create target file with sections
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, name, fs_path)
-       VALUES ('file-x', 'h', 1, 0, 'notes', 'notes.md')`,
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, parent_id, title, content)
-       VALUES ('sec-intro', 'h', 1, 0, 'file-x', 'Intro', 'Intro content')`,
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_idx, parent_id, title, content)
-       VALUES ('sec-outro', 'h', 1, 1, 'file-x', 'Outro', 'Outro content')`,
-    )
-
-    // Insert two unresolved links with different sections
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-2', 'notes', NULL, 'Intro', NULL, NULL, 0, NULL, 1)`,
-    )
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-2', 'notes', NULL, 'Outro', NULL, NULL, 0, NULL, 2)`,
-    )
-
-    resolveLinksBatch(db, [{ id: "file-x", name: "notes" }])
-
-    const links = db.query("SELECT * FROM links WHERE source_id = 'src-2' ORDER BY section").all() as Array<{
-      section: string
-      target_id: string
-    }>
-
-    expect(links).toHaveLength(2)
-    expect(links[0]!.section).toBe("Intro")
-    expect(links[0]!.target_id).toBe("sec-intro")
-    expect(links[1]!.section).toBe("Outro")
-    expect(links[1]!.target_id).toBe("sec-outro")
-  })
-})
-
-// =============================================================================
-// Bug: Duplicate link rows from NULL in composite PRIMARY KEY
-// =============================================================================
-
-describe("Duplicate link rows (NULL in composite PK)", () => {
-  test("INSERT OR REPLACE deduplicates links with NULL section/block_id/relationship", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    // Insert a link with NULL section, block_id, relationship
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    // Insert the same link again (e.g., from re-parsing or app restart)
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    // Should have exactly 1 row, not 2
-    const rows = db.query("SELECT * FROM links WHERE source_id = 'src-1'").all()
-    expect(rows).toHaveLength(1)
+    expect(rows).toHaveLength(2)
+    for (const row of rows) {
+      expect(row.href).toBe("km:Target")
+      expect(row.rel).toBe("link")
+    }
 
     db.close()
   })
 
-  test("INSERT OR REPLACE deduplicates links with same section", () => {
+  test("multiple embed rows per host are allowed at the DB layer", () => {
     const db = new Database(":memory:")
     db.run(SCHEMA)
 
-    // Insert a link with a specific section
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: "Intro",
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
+    // The design's embed-one invariant applies to dedicated embed nodes
+    // (embed_of set); plain paragraphs that happen to contain several
+    // ![[…]] embeds legitimately share a host, so the DB doesn't enforce
+    // a unique index. See schema.ts comment + docs/design/links.md.
+    expect(() => {
+      addLink(db, { host_id: "host-1", href: "km:Target", rel: "embed" })
+      addLink(db, { host_id: "host-1", href: "km:Another", rel: "embed" })
+    }).not.toThrow()
 
-    // Insert the same link again
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: "Intro",
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    // Should have exactly 1 row
-    const rows = db.query("SELECT * FROM links WHERE source_id = 'src-1'").all()
-    expect(rows).toHaveLength(1)
-
-    db.close()
-  })
-
-  test("different sections are NOT deduplicated", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: "Intro",
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: "Outro",
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    // Should have 2 distinct rows
-    const rows = db.query("SELECT * FROM links WHERE source_id = 'src-1'").all()
+    const rows = db.query("SELECT * FROM links WHERE host_id = 'host-1'").all()
     expect(rows).toHaveLength(2)
 
     db.close()
   })
 
-  test("backlink count reflects deduplicated links", () => {
+  test("different hrefs for the same host produce distinct rows", () => {
     const db = new Database(":memory:")
     db.run(SCHEMA)
 
-    // Insert the same link 5 times (simulating repeated re-parsing)
-    for (let i = 0; i < 5; i++) {
-      addLink(db, {
-        source_id: "src-1",
-        target_name: "target",
-        target_id: "tgt-1",
-        section: null,
-        block_id: null,
-        alias: null,
-        embedded: false,
-        relationship: null,
-      })
-    }
+    addLink(db, { host_id: "src-1", href: "km:Target#Intro", rel: "link" })
+    addLink(db, { host_id: "src-1", href: "km:Target#Outro", rel: "link" })
 
-    // Backlink count should be 1, not 5
-    const backlinks = db.query("SELECT * FROM links WHERE target_id = 'tgt-1'").all()
-    expect(backlinks).toHaveLength(1)
+    const rows = db.query("SELECT * FROM links WHERE host_id = 'src-1'").all()
+    expect(rows).toHaveLength(2)
 
     db.close()
   })
 })
 
 // =============================================================================
-// Migration: deduplicate existing links table
-// =============================================================================
-
-describe("Links table migration deduplicates existing data", () => {
-  test("migrateSchema deduplicates rows with NULL columns from old PK", () => {
-    const db = new Database(":memory:")
-
-    // Create the OLD schema with the broken PRIMARY KEY
-    db.run(`
-      CREATE TABLE nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        item INTEGER DEFAULT 0,
-        parent_idx REAL DEFAULT 0,
-        name TEXT,
-        fs_path TEXT,
-        content TEXT,
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT,
-        fstype TEXT,
-        due_at TEXT,
-        start_at TEXT,
-        embed_of TEXT,
-        parsed INTEGER DEFAULT 0,
-        block_id TEXT,
-        title TEXT,
-        md_pos INTEGER,
-        md_line INTEGER,
-        list_marker TEXT,
-        task_marker TEXT,
-        task_status TEXT,
-        assigned_to TEXT,
-        priority TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        fs_ino INTEGER,
-        fs_mtime INTEGER
-      )
-    `)
-    db.run(`
-      CREATE TABLE links (
-        source_id TEXT NOT NULL,
-        target_name TEXT NOT NULL,
-        target_id TEXT,
-        section TEXT,
-        block_id TEXT,
-        alias TEXT,
-        embedded INTEGER DEFAULT 0,
-        relationship TEXT,
-        created_at INTEGER,
-        PRIMARY KEY (source_id, target_name, section, block_id, relationship)
-      )
-    `)
-    db.run("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
-
-    // Insert duplicate rows (possible because NULL != NULL in old PK)
-    // Same logical link inserted 3 times
-    db.run(`INSERT INTO links VALUES ('src-1', 'target', 'tgt-1', NULL, NULL, NULL, 0, NULL, 100)`)
-    db.run(`INSERT INTO links VALUES ('src-1', 'target', 'tgt-1', NULL, NULL, NULL, 0, NULL, 200)`)
-    db.run(`INSERT INTO links VALUES ('src-1', 'target', 'tgt-1', NULL, NULL, NULL, 0, NULL, 300)`)
-
-    // Also insert a distinct link (different section) — should be preserved
-    db.run(`INSERT INTO links VALUES ('src-1', 'target', 'tgt-1', 'Intro', NULL, NULL, 0, NULL, 400)`)
-
-    // Verify we have 4 rows before migration
-    const beforeCount = (db.query("SELECT COUNT(*) as cnt FROM links").get() as { cnt: number }).cnt
-    expect(beforeCount).toBe(4)
-
-    // Run migration
-    migrateSchema(db)
-
-    // Now apply the new schema (creates the UNIQUE index)
-    db.run(SCHEMA)
-
-    // After migration: 3 duplicates collapsed to 1, plus the distinct section link = 2
-    const afterCount = (db.query("SELECT COUNT(*) as cnt FROM links").get() as { cnt: number }).cnt
-    expect(afterCount).toBe(2)
-
-    // Verify the kept row has the latest created_at
-    const nullRow = db.query("SELECT created_at FROM links WHERE source_id = 'src-1' AND section IS NULL").get() as {
-      created_at: number
-    }
-    expect(nullRow.created_at).toBe(300)
-
-    // Verify distinct section link is preserved
-    const sectionRow = db
-      .query("SELECT created_at FROM links WHERE source_id = 'src-1' AND section = 'Intro'")
-      .get() as { created_at: number }
-    expect(sectionRow.created_at).toBe(400)
-
-    // Verify INSERT OR REPLACE now works (no more duplicates)
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-    const finalCount = (db.query("SELECT COUNT(*) as cnt FROM links").get() as { cnt: number }).cnt
-    expect(finalCount).toBe(2)
-
-    db.close()
-  })
-
-  test("migrateSchema is idempotent (safe to run multiple times)", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    // Insert a link
-    addLink(db, {
-      source_id: "src-1",
-      target_name: "target",
-      target_id: "tgt-1",
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
-    })
-
-    // Insert a node so migrateSchema doesn't skip (it checks nodes table)
-    db.run("INSERT INTO nodes (id, type, item, parent_idx) VALUES ('n1', 'h', 0, 0)")
-
-    // Run migrateSchema again — should be safe (already has idx_links_unique)
-    migrateSchema(db)
-
-    // Link should still be there
-    const count = (db.query("SELECT COUNT(*) as cnt FROM links").get() as { cnt: number }).cnt
-    expect(count).toBe(1)
-
-    db.close()
-  })
-})
-
-// =============================================================================
-// Bug 1c: renameNode corrupts unrelated links
-// =============================================================================
-
-describe("Bug 1c: updateTargetName corrupts unrelated links", () => {
-  test("updateTargetName with target_id only updates links pointing to the renamed node", () => {
-    const db = new Database(":memory:")
-    db.run(SCHEMA)
-
-    // Two different nodes happen to share the same name
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-a', 'Report', 'target-1', NULL, NULL, NULL, 0, NULL, 1)`,
-    )
-    db.run(
-      `INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-       VALUES ('src-b', 'Report', 'target-2', NULL, NULL, NULL, 0, NULL, 2)`,
-    )
-
-    // Rename only the node target-1 from "Report" to "Summary"
-    updateTargetName(db, "Report", "Summary", "target-1")
-
-    const links = db.query("SELECT source_id, target_name, target_id FROM links ORDER BY source_id").all() as Array<{
-      source_id: string
-      target_name: string
-      target_id: string
-    }>
-
-    // Only the link to target-1 should be updated; target-2's link stays as "Report"
-    expect(links).toEqual([
-      { source_id: "src-a", target_name: "Summary", target_id: "target-1" },
-      { source_id: "src-b", target_name: "Report", target_id: "target-2" },
-    ])
-
-    db.close()
-  })
-})
-
-// =============================================================================
-// Bug 2: Resolver cache stale after mutations
+// Bug 2: Resolver cache stale after mutations (smart-resolver)
 // =============================================================================
 
 describe("Bug 2: resolver cache stale after mutations", () => {

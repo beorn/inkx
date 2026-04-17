@@ -266,19 +266,7 @@ describe("FakeRepo", () => {
 
     it("getAllLinks returns all links", () => {
       const repo = createFakeRepo({
-        links: [
-          {
-            source_id: "1",
-            target_id: "2",
-            target_name: "node2",
-            section: null,
-            block_id: null,
-            alias: null,
-            embedded: false,
-            relationship: null,
-            created_at: Date.now(),
-          },
-        ],
+        links: [{ host_id: "1", href: "km:node2", rel: "link" }],
       })
 
       expect(repo.getAllLinks()).toHaveLength(1)

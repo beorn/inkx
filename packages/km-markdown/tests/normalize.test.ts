@@ -1,19 +1,24 @@
 /**
- * Tests for normalizeNodeName and normalizeRefHref
+ * Tests for normalizeNodeName and normalizeLinkHref
  *
  * These two functions are the single sources of truth for:
  * - normalizeNodeName: heading title → node `name` field
- * - normalizeRefHref: notation form + label → canonical `href`
+ * - normalizeLinkHref: notation form + label → canonical `href`
  *
  * The critical invariant: normalizeNodeName must produce keys that match
  * the name index lookup (lowercased, .md stripped) used by resolveByName.
  * In particular, sigil prefixes (@, +, #) must be preserved so that heading
  * nodes resolve against folder nodes with the same sigiled name.
+ *
+ * Under the v4 link model (docs/design/links.md), MdForm is closed to
+ * 4 values ('wiki' | 'mdlink' | 'autolink' | 'bare'); sigil-prefixed names
+ * flow through `bare` and are percent-encoded where needed.
  */
 
 import { describe, expect, it } from "vitest"
-import { normalizeNodeName, normalizeRefHref, slugify } from "../src/parser.ts"
-import type { MdForm } from "../src/parser.ts"
+import { normalizeNodeName, slugify } from "../src/parser.ts"
+import { normalizeLinkHref } from "../src/link-href.ts"
+import type { MdForm } from "@km/core"
 
 // =============================================================================
 // normalizeNodeName
@@ -126,79 +131,69 @@ describe("normalizeNodeName", () => {
 })
 
 // =============================================================================
-// normalizeRefHref
+// normalizeLinkHref
 // =============================================================================
 
-describe("normalizeRefHref", () => {
+describe("normalizeLinkHref", () => {
   describe("wiki form", () => {
     it("wraps bare name in km: scheme", () => {
-      expect(normalizeRefHref("wiki", "Note")).toBe("km:Note")
+      expect(normalizeLinkHref("wiki", "Note")).toBe("km:Note")
     })
 
     it("preserves fragment (# section)", () => {
-      expect(normalizeRefHref("wiki", "Note#Section")).toBe("km:Note#Section")
+      expect(normalizeLinkHref("wiki", "Note#Section")).toBe("km:Note#Section")
     })
 
     it("converts block ref caret to #^ anchor", () => {
-      expect(normalizeRefHref("wiki", "Note^abc")).toBe("km:Note#^abc")
+      expect(normalizeLinkHref("wiki", "Note^abc")).toBe("km:Note#^abc")
+    })
+
+    it("self-ref wiki form (starts with #) produces fragment-only href", () => {
+      expect(normalizeLinkHref("wiki", "#Section")).toBe("#Section")
     })
   })
 
-  describe("mention form", () => {
-    it("strips @ and wraps in km: scheme", () => {
-      expect(normalizeRefHref("mention", "@Alice")).toBe("km:Alice")
+  describe("bare form with sigils (sigil-as-name, docs/design/links.md)", () => {
+    it("@Alice preserves the sigil inside km: scheme", () => {
+      expect(normalizeLinkHref("bare", "@Alice")).toBe("km:@Alice")
     })
 
-    it("handles name without @ prefix", () => {
-      // Edge case: if label somehow doesn't have @
-      expect(normalizeRefHref("mention", "Alice")).toBe("km:Alice")
-    })
-  })
-
-  describe("tag form", () => {
-    it("strips # and wraps in km: scheme", () => {
-      expect(normalizeRefHref("tag", "#urgent")).toBe("km:urgent")
+    it("+cleanup preserves the sigil inside km: scheme", () => {
+      expect(normalizeLinkHref("bare", "+cleanup")).toBe("km:+cleanup")
     })
 
-    it("handles name without # prefix", () => {
-      expect(normalizeRefHref("tag", "urgent")).toBe("km:urgent")
-    })
-  })
-
-  describe("project form", () => {
-    it("strips + and wraps in km: scheme", () => {
-      expect(normalizeRefHref("project", "+cleanup")).toBe("km:cleanup")
+    it("#urgent percent-encodes the sigil as %23", () => {
+      expect(normalizeLinkHref("bare", "#urgent")).toBe("km:%23urgent")
     })
 
-    it("handles name without + prefix", () => {
-      expect(normalizeRefHref("project", "cleanup")).toBe("km:cleanup")
+    it("plain bare name wraps in km: scheme", () => {
+      expect(normalizeLinkHref("bare", "Note")).toBe("km:Note")
     })
   })
 
   describe("external URL forms", () => {
     it("bare URLs pass through unchanged", () => {
-      expect(normalizeRefHref("bare", "https://example.com")).toBe("https://example.com")
+      expect(normalizeLinkHref("bare", "https://example.com")).toBe("https://example.com")
     })
 
     it("mdlink URLs pass through unchanged", () => {
-      expect(normalizeRefHref("mdlink", "https://example.com")).toBe("https://example.com")
+      expect(normalizeLinkHref("mdlink", "https://example.com")).toBe("https://example.com")
     })
 
     it("autolink URLs pass through unchanged", () => {
-      expect(normalizeRefHref("autolink", "https://example.com")).toBe("https://example.com")
+      expect(normalizeLinkHref("autolink", "https://example.com")).toBe("https://example.com")
     })
 
     it("mailto links pass through unchanged", () => {
-      expect(normalizeRefHref("autolink", "mailto:a@b.com")).toBe("mailto:a@b.com")
+      expect(normalizeLinkHref("autolink", "mailto:a@b.com")).toBe("mailto:a@b.com")
     })
   })
 
   describe("all MdForm variants covered", () => {
-    const forms: MdForm[] = ["wiki", "mdlink", "autolink", "bare", "tag", "mention", "project"]
+    const forms: MdForm[] = ["wiki", "mdlink", "autolink", "bare"]
     for (const form of forms) {
       it(`handles form: ${form}`, () => {
-        // Should not throw for any valid form
-        const result = normalizeRefHref(form, "test")
+        const result = normalizeLinkHref(form, "test")
         expect(typeof result).toBe("string")
         expect(result.length).toBeGreaterThan(0)
       })
@@ -206,36 +201,39 @@ describe("normalizeRefHref", () => {
   })
 
   describe("design doc examples (docs/design/links.md)", () => {
-    // From the "Markdown → Ref" table in the design doc
+    // From the "Markdown → KLink" table in the design doc
     it("[[Note]] → km:Note", () => {
-      expect(normalizeRefHref("wiki", "Note")).toBe("km:Note")
+      expect(normalizeLinkHref("wiki", "Note")).toBe("km:Note")
     })
     it("[[Note#Section]] → km:Note#Section", () => {
-      expect(normalizeRefHref("wiki", "Note#Section")).toBe("km:Note#Section")
+      expect(normalizeLinkHref("wiki", "Note#Section")).toBe("km:Note#Section")
     })
     it("[[Note^abc]] → km:Note#^abc", () => {
-      expect(normalizeRefHref("wiki", "Note^abc")).toBe("km:Note#^abc")
+      expect(normalizeLinkHref("wiki", "Note^abc")).toBe("km:Note#^abc")
     })
-    it("@Alice → km:Alice", () => {
-      expect(normalizeRefHref("mention", "@Alice")).toBe("km:Alice")
+    it("[[#Section]] → #Section (self-ref)", () => {
+      expect(normalizeLinkHref("wiki", "#Section")).toBe("#Section")
     })
-    it("#foo → km:foo", () => {
-      expect(normalizeRefHref("tag", "#foo")).toBe("km:foo")
+    it("@Alice (bare) → km:@Alice", () => {
+      expect(normalizeLinkHref("bare", "@Alice")).toBe("km:@Alice")
     })
-    it("+bar → km:bar", () => {
-      expect(normalizeRefHref("project", "+bar")).toBe("km:bar")
+    it("#urgent (bare) → km:%23urgent", () => {
+      expect(normalizeLinkHref("bare", "#urgent")).toBe("km:%23urgent")
+    })
+    it("+cleanup (bare) → km:+cleanup", () => {
+      expect(normalizeLinkHref("bare", "+cleanup")).toBe("km:+cleanup")
     })
     it("https://x.com (bare) → https://x.com", () => {
-      expect(normalizeRefHref("bare", "https://x.com")).toBe("https://x.com")
+      expect(normalizeLinkHref("bare", "https://x.com")).toBe("https://x.com")
     })
     it("https://x.com (mdlink) → https://x.com", () => {
-      expect(normalizeRefHref("mdlink", "https://x.com")).toBe("https://x.com")
+      expect(normalizeLinkHref("mdlink", "https://x.com")).toBe("https://x.com")
     })
     it("https://x.com (autolink) → https://x.com", () => {
-      expect(normalizeRefHref("autolink", "https://x.com")).toBe("https://x.com")
+      expect(normalizeLinkHref("autolink", "https://x.com")).toBe("https://x.com")
     })
     it("mailto:a@b.com (autolink) → mailto:a@b.com", () => {
-      expect(normalizeRefHref("autolink", "mailto:a@b.com")).toBe("mailto:a@b.com")
+      expect(normalizeLinkHref("autolink", "mailto:a@b.com")).toBe("mailto:a@b.com")
     })
   })
 })

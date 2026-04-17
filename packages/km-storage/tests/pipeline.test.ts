@@ -74,21 +74,14 @@ function createAppliedFile(
   return { nodeId, name, path, wikilinks }
 }
 
-/** Create a resolved link with sensible defaults */
-function createResolvedLink(
-  source_id: string,
-  target_name: string,
-  overrides: Partial<ResolvedLink> = {},
-): ResolvedLink {
+/** Create a resolved link with sensible defaults (v4 schema). */
+function createResolvedLink(host_id: string, targetName: string, overrides: Partial<ResolvedLink> = {}): ResolvedLink {
   return {
-    source_id,
-    target_name,
-    target_id: overrides.target_id ?? null,
-    section: null,
-    block_id: null,
+    host_id,
+    href: `km:${targetName}`,
+    rel: "link",
+    embedTargetId: null,
     alias: null,
-    embedded: false,
-    relationship: null,
     ...overrides,
   }
 }
@@ -311,8 +304,8 @@ describe("applyNodes()", () => {
     const parsedFiles = [
       createParsedFile("/test/file1.md", "file1", {
         wikilinks: [
-          { nodeId: "file1", link: { target: "other" } },
-          { nodeId: "file1", link: { target: "another" } },
+          { nodeId: "file1", link: { target: "other" }, href: "km:other" },
+          { nodeId: "file1", link: { target: "another" }, href: "km:another" },
         ],
       }),
     ]
@@ -329,60 +322,73 @@ describe("applyNodes()", () => {
 // ============================================================================
 
 describe("pipelineResolveLinks()", () => {
-  test("resolves links to existing files", async () => {
+  test("produces a canonical 'link' row for a plain wikilink", async () => {
     const db = createTestDb()
 
-    // Insert target file with name column (used for link resolution)
+    // Insert target file (name-indexable) — resolution of plain links is
+    // runtime under the v4 schema, so the pipeline just records the href.
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, name, data, created_at, updated_at, version)
        VALUES ('target1', 'file', NULL, 0, '/test/target.md', 'target', '{}', 1000, 1000, '')`,
     )
 
     const appliedFiles = [
-      createAppliedFile("source1", "source", "/test/source.md", [{ nodeId: "source1", link: { target: "target" } }]),
+      createAppliedFile("source1", "source", "/test/source.md", [
+        { nodeId: "source1", link: { target: "target" }, href: "km:target" },
+      ]),
     ]
 
     const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
-    expect(results[0]!.source_id).toBe("source1")
-    expect(results[0]!.target_name).toBe("target")
-    expect(results[0]!.target_id).toBe("target1")
+    expect(results[0]!.host_id).toBe("source1")
+    expect(results[0]!.href).toBe("km:target")
+    expect(results[0]!.rel).toBe("link")
+    // Plain links carry no embedTargetId — resolution happens on read.
+    expect(results[0]!.embedTargetId).toBeNull()
   })
 
-  test("resolves forward references (files in same batch)", async () => {
+  test("forward references still produce canonical 'link' rows", async () => {
     const db = createTestDb()
 
     // No pre-existing files - both are in the batch
     const appliedFiles = [
-      createAppliedFile("file1", "first", "/test/first.md", [{ nodeId: "file1", link: { target: "second" } }]),
+      createAppliedFile("file1", "first", "/test/first.md", [
+        { nodeId: "file1", link: { target: "second" }, href: "km:second" },
+      ]),
       createAppliedFile("file2", "second", "/test/second.md"),
     ]
 
     const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
-    expect(results[0]!.target_id).toBe("file2") // Forward reference resolved!
+    expect(results[0]!.href).toBe("km:second")
+    expect(results[0]!.rel).toBe("link")
   })
 
-  test("returns null target_id for unresolved links", async () => {
+  test("emits a row even when the target name isn't in the index", async () => {
     const db = createTestDb()
 
     const appliedFiles = [
-      createAppliedFile("file1", "source", "/test/source.md", [{ nodeId: "file1", link: { target: "nonexistent" } }]),
+      createAppliedFile("file1", "source", "/test/source.md", [
+        { nodeId: "file1", link: { target: "nonexistent" }, href: "km:nonexistent" },
+      ]),
     ]
 
     const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
+    // Under the v4 schema an unresolved link is still a valid row — the
+    // resolver reports it as broken at runtime based on the name index.
     expect(results).toHaveLength(1)
-    expect(results[0]!.target_id).toBeNull()
-    expect(results[0]!.target_name).toBe("nonexistent")
+    expect(results[0]!.href).toBe("km:nonexistent")
+    expect(results[0]!.embedTargetId).toBeNull()
   })
 
-  test("resolves links to folders by name", async () => {
+  test("embeds resolve embedTargetId so nodes.embed_of can be materialized", async () => {
     const db = createTestDb()
 
-    // Insert a folder with name column (folders are linkable via name)
+    // Insert a folder (linkable via name) + the host node, so the
+    // LinkResolver can map "inbox" → "folder1".
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, name, data, created_at, updated_at, version)
        VALUES ('folder1', 'folder', NULL, 0, '/test/inbox', 'inbox', '{}', 1000, 1000, '')`,
@@ -390,37 +396,17 @@ describe("pipelineResolveLinks()", () => {
 
     const appliedFiles = [
       createAppliedFile("file1", "board", "/test/board.md", [
-        { nodeId: "file1", link: { target: "inbox", embedded: true } },
+        { nodeId: "file1", link: { target: "inbox", embedded: true }, href: "km:inbox" },
       ]),
     ]
 
     const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
-    expect(results[0]!.source_id).toBe("file1")
-    expect(results[0]!.target_name).toBe("inbox")
-    expect(results[0]!.target_id).toBe("folder1") // Folder resolved!
-  })
-
-  test("resolves links to sections by name", async () => {
-    const db = createTestDb()
-
-    // Insert a section with name column (sections have slugified heading as name)
-    db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, name, title, data, created_at, updated_at, version)
-       VALUES ('section1', 'section', 'file1', 0, 'my-section', 'My Section', '{}', 1000, 1000, '')`,
-    )
-
-    const appliedFiles = [
-      createAppliedFile("file2", "reference", "/test/reference.md", [
-        { nodeId: "file2", link: { target: "my-section" } },
-      ]),
-    ]
-
-    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
-
-    expect(results).toHaveLength(1)
-    expect(results[0]!.target_id).toBe("section1") // Section resolved by name!
+    expect(results[0]!.host_id).toBe("file1")
+    expect(results[0]!.href).toBe("km:inbox")
+    expect(results[0]!.rel).toBe("embed")
+    expect(results[0]!.embedTargetId).toBe("folder1")
   })
 })
 
@@ -429,17 +415,17 @@ describe("pipelineResolveLinks()", () => {
 // ============================================================================
 
 describe("applyLinks()", () => {
-  test("inserts links into database", async () => {
+  test("inserts (host_id, href, rel) rows", async () => {
     const db = createTestDb()
-    const links = [createResolvedLink("src1", "target", { target_id: "tgt1" })]
+    const links = [createResolvedLink("src1", "target")]
 
     await runPipeline(applyLinks(fromArray(links), db))
 
-    const dbLinks = db.query("SELECT * FROM links").all()
-    expect(dbLinks).toHaveLength(1)
+    const dbLinks = db.query("SELECT host_id, href, rel FROM links").all()
+    expect(dbLinks).toEqual([{ host_id: "src1", href: "km:target", rel: "link" }])
   })
 
-  test("updates node embed_of for embedded links", async () => {
+  test("updates nodes.embed_of for rel='embed' rows with a resolved embedTargetId", async () => {
     const db = createTestDb()
 
     // Insert source node
@@ -450,9 +436,9 @@ describe("applyLinks()", () => {
 
     const links = [
       createResolvedLink("src1", "embed", {
-        target_id: "tgt1",
+        rel: "embed",
+        embedTargetId: "tgt1",
         alias: "My Alias",
-        embedded: true,
       }),
     ]
 
@@ -641,14 +627,14 @@ describe("pipeline composition", () => {
           "/test/a.md",
           {
             nodes: [createNode("a", { data: { name: "a" } })],
-            wikilinks: [{ nodeId: "a", link: { target: "b" } }],
+            wikilinks: [{ nodeId: "a", link: { target: "b" }, href: "km:b" }],
           },
         ],
         [
           "/test/b.md",
           {
             nodes: [createNode("b", { data: { name: "b" } })],
-            wikilinks: [{ nodeId: "b", link: { target: "a" } }],
+            wikilinks: [{ nodeId: "b", link: { target: "a" }, href: "km:a" }],
           },
         ],
       ]),
@@ -674,15 +660,15 @@ describe("pipeline composition", () => {
     }>
     expect(nodes.map((n) => n.id)).toEqual(["a", "b"])
 
-    // Verify links created with resolved targets
-    const links = db.query("SELECT * FROM links ORDER BY source_id").all() as Array<{
-      source_id: string
-      target_id: string
+    // Verify links created with canonical hrefs (v4 schema)
+    const links = db.query("SELECT host_id, href, rel FROM links ORDER BY host_id").all() as Array<{
+      host_id: string
+      href: string
+      rel: string
     }>
-    expect(links).toHaveLength(2)
-    expect(links[0]!.source_id).toBe("a")
-    expect(links[0]!.target_id).toBe("b")
-    expect(links[1]!.source_id).toBe("b")
-    expect(links[1]!.target_id).toBe("a")
+    expect(links).toEqual([
+      { host_id: "a", href: "km:b", rel: "link" },
+      { host_id: "b", href: "km:a", rel: "link" },
+    ])
   })
 })
