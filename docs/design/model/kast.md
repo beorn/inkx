@@ -1,6 +1,6 @@
 # kast — km markdown AST (parser tree)
 
-kast is the parser-side AST — mdast plus km extensions. Produced by `@km/markdown`, lowered to `KNode[]` for storage. See also [knode.md](knode.md) for the storage tree.
+kast is the parser-side AST — mdast plus km extensions. Produced by `@km/markdown`, lowered to `KNode[]` for storage. See also [knode.md](knode.md) for the storage tree and [kast-fixtures.md](kast-fixtures.md) for the reference fixtures used by parser tests.
 
 **kast = mdast + km extensions**. The AST is self-describing: all km semantics live in AST structure and data fields, not in downstream regex extraction.
 

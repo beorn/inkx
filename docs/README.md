@@ -84,6 +84,7 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 | [ref/task-fields.md](ref/task-fields.md)                     | Task fields + cross-system mapping       |
 | [ref/tree-globs.md](ref/tree-globs.md)                       | Glob syntax                              |
 | [ref/packages.md](ref/packages.md)                           | Package roster + dependencies            |
+| [ref/dependencies.md](ref/dependencies.md)                   | Package dependency graph                 |
 | [ref/pipelines.md](ref/pipelines.md)                         | Async generator pipelines                |
 | [ref/ansi-color-detection.md](ref/ansi-color-detection.md)   | ANSI color capability detection          |
 | [ref/prior-art.md](ref/prior-art.md)                         | Research notes on related tools          |
@@ -99,6 +100,7 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 | [dev/chaos-testing.md](dev/chaos-testing.md)           | Fuzz + chaos strategy                |
 | [dev/debugging.md](dev/debugging.md)                   | Debugging TUI, storage, sync         |
 | [dev/releasing.md](dev/releasing.md)                   | Versioning and releases              |
+| [dev/vitest-ci.md](dev/vitest-ci.md)                   | Vitest CI integration details        |
 | [dev/monorepo.md](dev/monorepo.md)                     | Module resolution + workspace layout |
 | [dev/term-tui-migration.md](dev/term-tui-migration.md) | Ink → silvery migration history      |
 
@@ -118,6 +120,7 @@ Append-only case studies. See [lessons/](lessons/) for the full index. Highlight
 - [archive/](archive/) — retired docs (with forward pointers to replacements)
 - [architecture-review-findings.md](architecture-review-findings.md) — point-in-time review notes
 - [vs-decker.md](vs-decker.md) — architecture comparison with the Decker predecessor
+- [content-marketing-strategy.md](content-marketing-strategy.md) — ecosystem marketing plan (silvery.dev, termless.dev, etc.)
 
 ## Key Principles
 

@@ -652,4 +652,4 @@ This ensures tests are:
 
 ## Further Reading
 
-- [Vitest Configuration](../testing/vitest-ci-integration.md) - CI integration details
+- [Vitest Configuration](../dev/vitest-ci.md) - CI integration details

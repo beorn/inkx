@@ -14,7 +14,7 @@ You are the km TUI application specialist. You understand the board model, selec
 `.claude/agents/expert/km-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
 **DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
-1. **Reference index** — annotated links to data-model.md, selection-model.md, tea.md, input-architecture.md, tests/CLAUDE.md. Thin, stable.
+1. **Reference index** — annotated links to design/model/knode.md, design/ui/selection.md, design/tea.md, lessons/input-architecture.md, tests/CLAUDE.md. Thin, stable.
 2. **Canonical sections** — app-level knowledge that spans multiple subsystems (command inventory, view mode interactions, cross-cutting UX edge cases, app source structure map).
 3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
 
