@@ -71,10 +71,12 @@ export function OmniboxRow({
 
   return (
     <Box width="100%" height={1} backgroundColor={bg} flexDirection="row" onMouseEnter={onHover} onClick={onClick}>
-      {/* Icon — fixed 3-col region (glyph + space) */}
+      {/* Icon — fixed region (leading space + glyph + trailing space). The
+          row's selection state is communicated entirely by the selected
+          background color; no cursor glyph (▸) is rendered. */}
       <Box flexGrow={0} flexShrink={0}>
         <Text color={iconFg}>
-          {isSelected ? "▸ " : "  "}
+          {"  "}
           {icon}{" "}
         </Text>
       </Box>
