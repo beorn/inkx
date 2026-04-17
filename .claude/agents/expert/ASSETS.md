@@ -58,7 +58,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 - `apps/km-tui/CLAUDE.md` (if exists)
 - `apps/km-tui/tests/CLAUDE.md` — test patterns, assertion hierarchy
 - `docs/design/model/knode.md` — co-owned with arch agent
-- `docs/design/selection-model.md` — selection system
+- `docs/design/ui/selection.md` — selection system
 - `docs/design/tea-state-machines.md` — co-owned with arch agent
 - `docs/lessons/input-architecture.md` — input pipeline
 - `docs/lessons/reproduce-first.md` — debugging methodology

@@ -1,7 +1,7 @@
 /**
  * Outliner Tests — withOutliner composition pattern
  *
- * Tests each operation in each context from docs/design/outliner-spec.md.
+ * Tests each operation in each context from docs/design/ui/layout.md.
  * Uses createTestRepo for an in-memory Repo that satisfies TreeMutator.
  */
 

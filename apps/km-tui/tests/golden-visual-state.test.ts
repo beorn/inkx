@@ -2,7 +2,7 @@
  * Golden Visual State Tests — freeze visual treatment before refactoring.
  *
  * These tests capture the current visual behavior for the node state × role
- * matrix from docs/design/node-visual-spec.md. They serve as the acceptance
+ * matrix from docs/design/ui/rendering.md. They serve as the acceptance
  * gate for km-tui.hierarchical-node-state: if any test here breaks, the
  * refactoring introduced a visual regression.
  */

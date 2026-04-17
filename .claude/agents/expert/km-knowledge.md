@@ -5,7 +5,7 @@ Last updated: 2026-04-12
 ## References (canonical sources — don't duplicate, supplement)
 
 - `docs/design/model/knode.md` — KNode, items vs blocks, board hierarchy
-- `docs/design/selection-model.md` — selection system design
+- `docs/design/ui/selection.md` — selection system design
 - `docs/design/tea-state-machines.md` — TEA pattern, state machine composition
 - `docs/lessons/input-architecture.md` — 5-stage input pipeline
 - `apps/km-tui/tests/CLAUDE.md` — test patterns, assertion hierarchy, canonical examples
@@ -121,7 +121,7 @@ text --Esc--> node --Esc--> idle (board mode) --j/click--> node --Enter--> text
 - `apps/km-tui/src/state/selection-adapter.ts` -- bridges selection store to km's tree
 - `apps/km-tui/src/board/board-actions-selection.ts` -- multi-select handlers
 - `apps/km-tui/src/board/board-selection-helpers.ts` -- `clearSelection()`, `progressiveSelectAll()`, `getSelectedNodes()`, `getSelectedNodeIds()`
-- `docs/design/selection-model.md` -- canonical reference
+- `docs/design/ui/selection.md` -- canonical reference
 
 ## Editing Flows
 

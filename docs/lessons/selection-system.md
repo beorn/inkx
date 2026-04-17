@@ -180,4 +180,4 @@ The user correctly identified: two undo systems is two too many. Every undo-awar
 - [Refactoring Lessons](refactoring.md) — migration patterns (break intentionally, purge aggressively)
 - [Reproduce First](reproduce-first.md) — verify with real data before theorizing
 - [docs/design/tea-state-machines.md](../design/tea-state-machines.md) — the pure state machine architecture
-- [docs/design/selection-model.md](../design/selection-model.md) — the selection model specification
+- [docs/design/ui/selection.md](../design/ui/selection.md) — the selection model specification

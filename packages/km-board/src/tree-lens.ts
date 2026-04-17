@@ -45,7 +45,7 @@ export type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
  * incremental rendering optimization and triggers full re-renders on every
  * lens change.
  *
- * See: docs/design/visibility-model.md, docs/glossary.md (TreeLens, ViewTree).
+ * See: docs/design/ui/visibility.md, docs/glossary.md (TreeLens, ViewTree).
  *
  * @example
  * ```ts

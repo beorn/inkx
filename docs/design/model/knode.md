@@ -230,7 +230,7 @@ The TUI wraps KNode in view models for rendering:
 | Rich text | Markdown in content string | Slate inline nodes |
 | Collaboration | File sync (bidirectional) | Yjs real-time CRDT |
 
-**Shared structure**: Both use Board → Column → Card → Sub-item hierarchy. Both have body content and transclusion. The outliner spec (`docs/design/outliner-spec.md`) defines shared editing behavior.
+**Shared structure**: Both use Board → Column → Card → Sub-item hierarchy. Both have body content and transclusion. The outliner spec (`docs/design/ui/layout.md`) defines shared editing behavior.
 
 ## Tree Traversal (`KTree.nodes`)
 

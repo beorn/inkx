@@ -87,5 +87,5 @@ We spent multiple sessions investigating a "73-89% output phase bottleneck" that
 ## See Also
 
 - `apps/km-tui/src/state/reactive-graph.ts` — the computed engine (160 LOC)
-- `docs/design/tree-reduce.md` — design doc (API, semantics, migration)
-- `docs/design/node-visual-spec.md` — visual treatment matrix
+- `docs/design/ui/rendering.md` — design doc (API, semantics, migration)
+- `docs/design/ui/rendering.md` — visual treatment matrix

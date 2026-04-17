@@ -71,7 +71,7 @@ export {
 //     - In a React component? Use ViewTree via useNode(id).
 //     - In reducer/selector/navigation/store code? Use TreeLens directly.
 //
-//   See: docs/design/visibility-model.md, docs/glossary.md (TreeLens, ViewTree)
+//   See: docs/design/ui/visibility.md, docs/glossary.md (TreeLens, ViewTree)
 // =============================================================================
 
 // ===== Tree Lens (universal navigation interface — DATA LAYER) =====

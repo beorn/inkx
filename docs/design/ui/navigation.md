@@ -28,7 +28,7 @@ State passed to ViewNavigation for resolving movement. Defined in `view-navigati
 
 ### ViewNode Tree
 
-The single source of truth for visual structure. Built by `buildViewTree()` in `packages/km-board/src/view-tree.ts`. Each node has a `role` (board, column, body-column, card, subitem) determined by tree position. Hidden/collapsed nodes are pruned at construction time, so navigation over this tree exactly matches what renders on screen. See `docs/design/visibility-model.md`.
+The single source of truth for visual structure. Built by `buildViewTree()` in `packages/km-board/src/view-tree.ts`. Each node has a `role` (board, column, body-column, card, subitem) determined by tree position. Hidden/collapsed nodes are pruned at construction time, so navigation over this tree exactly matches what renders on screen. See `docs/design/ui/visibility.md`.
 
 ### GridNavigator
 

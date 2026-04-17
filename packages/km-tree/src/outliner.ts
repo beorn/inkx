@@ -1,7 +1,7 @@
 /**
  * Outliner — centralized outliner behavior composition.
  *
- * Implements the semantic intents from docs/design/outliner-spec.md:
+ * Implements the semantic intents from docs/design/ui/layout.md:
  * indent, outdent, splitBlock, joinBackward, joinForward.
  *
  * Each operation checks guards from the spec and returns the mutation result

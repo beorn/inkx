@@ -21,19 +21,19 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | KNode record shape, items vs blocks, ItemData, visual roles, body content | [design/model/knode.md](../design/model/knode.md) |
 | KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/model/klink.md](../design/model/klink.md) |
 | km-ast type system, block types, traits, derivation rules | [design/model/kast.md](../design/model/kast.md) |
-| Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/visibility-model.md](../design/visibility-model.md) |
-| Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/folder-note-model.md](../design/folder-note-model.md) |
-| Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/selection-model.md](../design/selection-model.md), [design/selection-state-spec.md](../design/selection-state-spec.md) |
+| Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/ui/visibility.md](../design/ui/visibility.md) |
+| Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/ui/visibility.md](../design/ui/visibility.md) |
+| Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/ui/selection.md](../design/ui/selection.md), [design/ui/selection.md](../design/ui/selection.md) |
 | TEA state machine pattern | [design/tea-state-machines.md](../design/tea-state-machines.md) |
-| Navigation (cursor movement, grid nav, zoom) | [design/navigation-architecture.md](../design/navigation-architecture.md) |
-| Node visual spec (rendering, embed expansion) | [design/node-visual-spec.md](../design/node-visual-spec.md) |
-| Per-node reactive computeds | [design/per-node-view-computeds.md](../design/per-node-view-computeds.md) |
-| Horizontal virtualization, sticky columns | [design/horizontal-virtualization.md](../design/horizontal-virtualization.md) |
-| Outliner spec (indent, bullets, nesting) | [design/outliner-spec.md](../design/outliner-spec.md) |
+| Navigation (cursor movement, grid nav, zoom) | [design/ui/navigation.md](../design/ui/navigation.md) |
+| Node visual spec (rendering, embed expansion) | [design/ui/rendering.md](../design/ui/rendering.md) |
+| Per-node reactive computeds | [design/ui/rendering.md](../design/ui/rendering.md) |
+| Horizontal virtualization, sticky columns | [design/ui/layout.md](../design/ui/layout.md) |
+| Outliner spec (indent, bullets, nesting) | [design/ui/layout.md](../design/ui/layout.md) |
 | Theme tokens (km uses silvery's system) | [silvery.dev/guide/theming](https://silvery.dev/guide/theming) |
 | Spatial navigation, focus scope | [design/visual-navigation.md](../design/visual-navigation.md) |
 | Omnibox (command palette, fuzzy search) | [design/omnibox.md](../design/omnibox.md) |
-| Tree aggregation, fold-depth | [design/tree-reduce.md](../design/tree-reduce.md) |
+| Tree aggregation, fold-depth | [design/ui/rendering.md](../design/ui/rendering.md) |
 | Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |
 | Tribe multi-session coordination | [vendor/bearly/plugins/tribe/README.md](../../vendor/bearly/plugins/tribe/README.md) — owned by bearly |
 | Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../design/model/storage.md) |

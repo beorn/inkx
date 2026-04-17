@@ -408,7 +408,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 - *effective*: the computed value `selecting ?? selected` — what consumers read, overlaying any in-progress gesture preview on committed state.
 - *type*: see *Selection*.
 
-**Selection** — The core type: `{ nodes: readonly [ID, ...ID[]]; text?: readonly [TextPoint] | readonly [TextPoint, TextPoint] }`. `nodes[0]` = cursor, `nodes.at(-1)` = anchor. `text` is an optional caret/range within the cursor node. See `docs/design/selection-model.md`.
+**Selection** — The core type: `{ nodes: readonly [ID, ...ID[]]; text?: readonly [TextPoint] | readonly [TextPoint, TextPoint] }`. `nodes[0]` = cursor, `nodes.at(-1)` = anchor. `text` is an optional caret/range within the cursor node. See `docs/design/ui/selection.md`.
 
 **Selection.\*** — A namespace of pure read helpers and constructors: `cursor(sel)`, `anchor(sel)`, `ids(sel)`, `includes(sel, id)`, `isEditing(sel)`, `inputMode(sel)`, `from(nodes, text?)`. Mutation logic lives in `Selecting.*`.
 
@@ -498,7 +498,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **VisibleLens** — The second lens in the visibility pipeline. `createVisibleLens(view, { collapsedNodes, taskStatusFilter, cardFilter })` wraps a *ViewLens* with column collapse, task-status filtering, and card-level predicate filtering. Same TreeLens interface as the parent — only `children()` and `walkOrder` are modified to exclude collapsed and filtered cards. Cards in collapsed columns are excluded from `walkOrder` so the cursor cannot land on them. **Use directly only from non-React code.**
 
-**visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/visibility-model.md](design/visibility-model.md) for the full picture.
+**visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/ui/visibility.md](design/ui/visibility.md) for the full picture.
 - **Structural exclusion** (ViewLens construction): nodes never appear in `walkOrder` — `isCollapsedChild`, `isDetailOnly`, `hiddenNodeIds`
 - **Collapsed columns** (VisibleLens construction): card children of collapsed columns excluded
 - **Per-node fold** (NodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `km-tui.view-mode-feature-parity`

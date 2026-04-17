@@ -23,8 +23,8 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 **Position/Cursor types (7, with duplication)**
 
 - `Position` — packages/km-core/src/interfaces/position.ts — tree slot {parentId, childIdx}
-- `CursorState` — apps/km-tui/src/cursor-store.ts — derived {cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel} *(legacy — see [selection-model.md](design/selection-model.md): `sel.node.cursor`, `sel.kind`)*
-- `CursorStore` — apps/km-tui/src/cursor-store.ts — custom pub/sub *(legacy — deleted in sel.* migration, see [selection-model.md](design/selection-model.md))*
+- `CursorState` — apps/km-tui/src/cursor-store.ts — derived {cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel} *(legacy — see [selection-model.md](design/ui/selection.md): `sel.node.cursor`, `sel.kind`)*
+- `CursorStore` — apps/km-tui/src/cursor-store.ts — custom pub/sub *(legacy — deleted in sel.* migration, see [selection-model.md](design/ui/selection.md))*
 - `CursorPosition` — apps/km-tui/src/driver.ts — physical terminal {x, y} (different domain)
 - `cursorNodeId` on BoardState — **3 separate definitions**: packages/km-board/src/board-types.ts, apps/km-tui/src/board-types.ts, apps/km-repl/src/board-types.ts *(migrating to `sel.node.cursor`)*
 - `deriveCursorAncestors()` — apps/km-tui/src/cursor-store.ts — legacy parent chain walk

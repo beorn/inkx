@@ -509,7 +509,7 @@ interface BoardState {
 }
 ```
 
-**Key design:** `sel.node.cursor()` is the sole cursor authority. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `deriveCursorIndices()`. Cursor is always visible — fold nudges cursor to card, navigation auto-unfolds. See [selection-model.md](../design/selection-model.md) for the full selection API.
+**Key design:** `sel.node.cursor()` is the sole cursor authority. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `deriveCursorIndices()`. Cursor is always visible — fold nudges cursor to card, navigation auto-unfolds. See [selection-model.md](../design/ui/selection.md) for the full selection API.
 
 **No tree data in state:** Repo provides tree queries directly. Column IDs are derived from `PaneSignals.visibleLens` (computed TreeLens). Components take string IDs and self-resolve via `useNode(id)`.
 
@@ -552,7 +552,7 @@ The `visualToStructural(depth, direction)` function translates visual directions
 | 1 (column)   | enter 1st card   | exit to board        | prev column | next column |
 | 2+ (card)    | next sibling     | prev sibling or exit | prev column | next column |
 
-This eliminates the need for a stored selection level state (`sel.kind`) — the behavior is purely determined by cursor path depth. See [selection-model.md](../design/selection-model.md).
+This eliminates the need for a stored selection level state (`sel.kind`) — the behavior is purely determined by cursor path depth. See [selection-model.md](../design/ui/selection.md).
 
 ### Sticky Cursor (curswant)
 

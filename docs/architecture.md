@@ -20,7 +20,7 @@ km's architecture borrows deliberately from systems that solved hard problems we
 
 **React** — rendering. silvery's custom reconciler produces an ag node tree (not DOM). Same component model, same hooks, same mental model. But layout (flexily) and output (ANSI terminal buffer) are fully owned.
 
-For detailed comparisons with other selection systems (tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, AppKit/UIKit), see [docs/design/selection-model.md](design/selection-model.md).
+For detailed comparisons with other selection systems (tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, AppKit/UIKit), see [docs/design/ui/selection.md](design/ui/selection.md).
 
 ## Reactive Model
 
@@ -167,7 +167,7 @@ interface ViewTree {
 - React components → use `ViewTree` via `useNode(id)`
 - Reducers, selectors, navigation helpers, store → use `TreeLens` directly
 
-See [docs/design/visibility-model.md](design/visibility-model.md) for details.
+See [docs/design/ui/visibility.md](design/ui/visibility.md) for details.
 
 ## Layers
 
