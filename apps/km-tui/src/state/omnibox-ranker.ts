@@ -181,6 +181,36 @@ function scoreTermForCandidate(term: QueryTerm, cand: RankCandidate): number {
   return best
 }
 
+/**
+ * Score a parsed query against a tuple of text fields (primary / secondary /
+ * tertiary), applying the same tier-based scoring and negation rules as
+ * `rankResults` — but without the KNode coupling. Useful for candidates
+ * that are not KNodes (commands, registry entries, etc.).
+ *
+ * Returns 0 on "no match" (skip), NEGATIVE_INFINITY if a negated term hits
+ * (caller should exclude).
+ */
+export function scoreTextFields(
+  parsedQuery: ParsedQuery,
+  fields: { primary: string; secondary?: string; tertiary?: string },
+): number {
+  if (parsedQuery.terms.length === 0) return 0
+  let total = 0
+  for (const term of parsedQuery.terms) {
+    const pScore = scoreTermAgainst(term, fields.primary)
+    const sScore = fields.secondary ? scoreTermAgainst(term, fields.secondary) * 0.8 : 0
+    const tScore = fields.tertiary ? scoreTermAgainst(term, fields.tertiary) * 0.6 : 0
+    const best = Math.max(pScore, sScore, tScore)
+    if (term.negated) {
+      if (best > 0) return Number.NEGATIVE_INFINITY
+      continue
+    }
+    if (best <= 0) return 0
+    total += best
+  }
+  return total
+}
+
 // =============================================================================
 // Sigil + task filter
 // =============================================================================

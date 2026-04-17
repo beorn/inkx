@@ -38,10 +38,11 @@
 import type { CommandDef, CommandMode, KeybindingContext } from "@km/commands"
 import { isCommandAvailable } from "@km/commands"
 import type { KNode } from "@km/core"
-import { fuzzyScore } from "../views/search-utils.ts"
 import { commandToRow, nodeToRow } from "../views/omnibox-row-adapters.ts"
 import type { OmniboxRowData } from "../views/OmniboxRow.tsx"
 import type { OmniboxMode } from "./omnibox.ts"
+import { parseQuery } from "./omnibox-query-parser.ts"
+import { scoreTextFields } from "./omnibox-ranker.ts"
 
 /**
  * Project a command list to row descriptors. Pure adapter — no filtering,
@@ -66,27 +67,28 @@ export function filterAvailableCommands(
 }
 
 /**
- * Rank a command list against a query string using the shared fuzzyScore.
- * Scores against command name (weight 1.0), description (0.5), id (0.3);
- * takes the best field score. Returns commands sorted by score desc,
- * filtering out non-matches. Empty query returns the input as-is.
+ * Rank a command list against a query string using the shared omnibox ranker.
+ * Parses the query through `parseQuery`, then scores each command across three
+ * fields: name (primary, 1.0×), description (secondary, 0.8×), id (tertiary,
+ * 0.6×). Returns commands sorted by total score desc, filtering out non-matches.
+ * Empty query returns the input as-is.
  *
- * Why fuzzyScore instead of BM25? Commands are a small in-memory registry
- * (~200 entries) with short identifiers. BM25's term frequency and length
- * normalization add nothing over a direct tier-based match. The shared
- * tiered scorer (exact > prefix > segment-boundary > substring > fuzzy)
- * is the right tool for this shape.
+ * Shares `scoreTextFields` with node ranking so every omnibox result set uses
+ * identical match rules (exact > prefix > segment-boundary > substring > fuzzy,
+ * plus negation, plus phrase/prefix/suffix kinds).
  */
 export function rankCommands(cmds: CommandDef[], query: string): CommandDef[] {
   if (!query) return cmds
+  const parsed = parseQuery(query)
   const scored = cmds
-    .map((cmd) => {
-      const nameScore = fuzzyScore(query, cmd.name)
-      const descScore = fuzzyScore(query, cmd.description) * 0.5
-      const idScore = fuzzyScore(query, cmd.id) * 0.3
-      const best = Math.max(nameScore, descScore, idScore)
-      return { cmd, score: best }
-    })
+    .map((cmd) => ({
+      cmd,
+      score: scoreTextFields(parsed, {
+        primary: cmd.name,
+        secondary: cmd.description,
+        tertiary: cmd.id,
+      }),
+    }))
     .filter((s) => s.score > 0)
   scored.sort((a, b) => b.score - a.score)
   return scored.map((s) => s.cmd)
