@@ -5,7 +5,7 @@
  * to a target node ID. The navigation layer asks "where should I go?",
  * the view answers with a nodeId.
  *
- * See docs/design/visual-navigation.md for the full design.
+ * See docs/design/ui/navigation.md for the full design.
  */
 
 import type { Repo } from "@km/storage"

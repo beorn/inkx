@@ -76,6 +76,6 @@ connectors:
 
 ## See Also
 
-- [../architecture/brain.md](../architecture/brain.md) — Brain layer: chats, memory graph, solidification (sync adapters are Phase 5)
+- [../future/brain.md](../future/brain.md) — Brain layer: chats, memory graph, solidification (sync adapters are Phase 5)
 - [../storage.md](../design/model/storage.md) — Events and sync model
 - [agents.md](agents.md) — Agent connectors

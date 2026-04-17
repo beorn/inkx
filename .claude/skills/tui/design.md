@@ -6,7 +6,7 @@ description: TUI styling rules - colors, selection states, icons
 
 **Keywords**: TUI styling, colors, selection, cyan, yellow, icons, colorblind, background color, chalk, silvery
 
-When modifying TUI styling (colors, selection states, visual hierarchy), follow these rules. See @docs/ref/ui.md for the full design system.
+When modifying TUI styling (colors, selection states, visual hierarchy), follow these rules. See @docs/ref/visual-spec.md for the full design system.
 
 ## Quick Reference
 

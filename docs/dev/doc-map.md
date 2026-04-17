@@ -33,7 +33,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Horizontal virtualization, sticky columns | [design/ui/layout.md](../design/ui/layout.md) |
 | Outliner spec (indent, bullets, nesting) | [design/ui/layout.md](../design/ui/layout.md) |
 | Theme tokens (km uses silvery's system) | [silvery.dev/guide/theming](https://silvery.dev/guide/theming) |
-| Spatial navigation, focus scope | [design/visual-navigation.md](../design/visual-navigation.md) |
+| Spatial navigation, focus scope | [design/ui/navigation.md](../design/ui/navigation.md) |
 | Omnibox (command palette, fuzzy search) | [design/omnibox.md](../design/omnibox.md) |
 | Tree aggregation, fold-depth | [design/ui/rendering.md](../design/ui/rendering.md) |
 | Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |

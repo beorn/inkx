@@ -1,6 +1,6 @@
 # The Plain Brain: An Exploration
 
-> **Graduated**: This exploration led to the [brain architecture doc](../architecture/brain.md), which captures the committed design: chats as event source, memory graph (SPO triples), knowledge tree, solidification, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
+> **Graduated**: This exploration led to the [brain architecture doc](../future/brain.md), which captures the committed design: chats as event source, memory graph (SPO triples), knowledge tree, solidification, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
 
 *Feb 10, 2026 — triggered by Obsidian 1.12 CLI release*
 
@@ -220,7 +220,7 @@ full history, query interface, file-system materialization.
 **pam provides**: Channel adapters, security harness (8 layers), conversation state
 (ephemeral), tool execution (WASM sandbox), escalation chain, anomaly detection.
 
-**The gray zone**: ~~ENGRAM memory (SPO triples) — persistent agent knowledge.~~ **Resolved**: SPO triples live in km as `spo_triples` table in SQLite, with entity schemas for contacts/events/tasks. See [brain architecture](../architecture/brain.md).
+**The gray zone**: ~~ENGRAM memory (SPO triples) — persistent agent knowledge.~~ **Resolved**: SPO triples live in km as `spo_triples` table in SQLite, with entity schemas for contacts/events/tasks. See [brain architecture](../future/brain.md).
 
 **Coupling**: Start tight (pam imports @km/storage directly, same monorepo), extract
 protocol once it stabilizes.
@@ -260,7 +260,7 @@ Publishing (use git + SSG), plugins (use vendor packages), themes (TUI is simple
 - How does multi-brain work? (Personal brain + work brain + project brain)
 - Where does the boardliner web interface fit in the priority stack?
 - What's the minimum Obsidian compatibility needed? (wikilinks, .obsidian/ ignore, what else?)
-- ~~Should km parse Dataview inline properties (`key:: value`) for graph extraction?~~ **Yes** — entity schemas use `key:: value` format. See [brain.md](../architecture/brain.md#entity-schemas).
+- ~~Should km parse Dataview inline properties (`key:: value`) for graph extraction?~~ **Yes** — entity schemas use `key:: value` format. See [brain.md](../future/brain.md#entity-schemas).
 
 ## References
 

@@ -72,7 +72,7 @@ If the diffs are truncated, Read the changed files to fill gaps. If still unclea
 
 1. **Follow the blast radius.** Every change has downstream consumers. A renamed export has importers. A changed type has destructurers. A new command should appear in help text. A fixed bug might exist in the sibling code path. Trace outward from your change.
 
-2. **Check the shadow copies.** Code gets described in multiple places: source, tests, test fixtures, docs, skill files, CLAUDE.md, MEMORY.md, `docs/ref/ui.md`, error messages, log strings, comments. A change to the source that doesn't update the shadows leaves lies behind.
+2. **Check the shadow copies.** Code gets described in multiple places: source, tests, test fixtures, docs, skill files, CLAUDE.md, MEMORY.md, `docs/ref/visual-spec.md`, error messages, log strings, comments. A change to the source that doesn't update the shadows leaves lies behind.
 
 3. **Look for the old way still working.** The most insidious remnant isn't a broken reference — it's a *working* one. Compat re-exports, `@deprecated` annotations, function overloads supporting both signatures, two code paths doing the same thing. If the old way still works, someone will use it. (From `docs/lessons/refactoring.md`: "Deprecated code still works, so there's no urgency" — that's exactly why it never gets cleaned up.)
 
@@ -155,7 +155,7 @@ Close completed beads. Sync (`bd dolt push`). Commit and push.
 | # | Hypothesis | Search | Result |
 |---|---|---|---|
 | 1 | "Callers of X still destructure old shape" | `Grep oldField *.ts` | PASS — 0 hits |
-| 2 | "docs/ref/ui.md still lists removed state" | `Grep oldState docs/` | FIXED — updated ui.md:42 |
+| 2 | "docs/ref/visual-spec.md still lists removed state" | `Grep oldState docs/` | FIXED — updated ui.md:42 |
 | 3 | "unfold has same bug as fold" | `Read unfold.ts:80` | FIXED — applied same fix |
 | 4 | "Major API redesign needed" | analysis | ESCALATE — ask user |
 

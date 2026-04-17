@@ -10,7 +10,7 @@
  * - createDriverTest() is fast (~50-200ms), so no performance penalty
  *
  * @see curswanty-regression.test.tsx - specific regression tests
- * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
+ * @see docs/ref/visual-spec.md#curswanty-cross-column-navigation-hl
  */
 // FREEZE: all tests need white-box API (registry from createDriverTest) — registry is not exposed by createTestApp
 import { describe, test, expect } from "vitest"

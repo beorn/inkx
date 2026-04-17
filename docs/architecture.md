@@ -237,7 +237,7 @@ Dependencies flow downward. Each package imports only from packages on its row o
 - `vimonkey` — Fuzz testing for Vitest
 - `bearly` — Claude Code tools (tribe, llm, recall, tty)
 
-For the full package inventory (versions, npm scopes, CLI commands), see [packages.md](packages.md).
+For the full package inventory (versions, npm scopes, CLI commands), see [packages.md](ref/packages.md).
 
 ## Data Flows
 
@@ -353,7 +353,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 ## Related Docs
 
 - [principles.md](principles.md) — Philosophy: composability, code for humans, governance
-- [packages.md](packages.md) — Full package inventory (versions, npm scopes, CLI commands)
+- [packages.md](ref/packages.md) — Full package inventory (versions, npm scopes, CLI commands)
 - [design/model/knode.md](design/model/knode.md) — KNode tree, items vs blocks, board hierarchy
 - [design/tea.md](design/tea.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals

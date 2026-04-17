@@ -21,7 +21,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 ### Files
 - `CLAUDE.md` — Architecture, Code Style, Gotchas sections
 - `docs/README.md` — layered architecture overview
-- `docs/packages.md` — package inventory with layers + APIs
+- `docs/ref/packages.md` — package inventory with layers + APIs
 - `docs/glossary.md` — terminology definitions
 - `docs/principles.md` — code style, patterns, design philosophy
 - `docs/design/model/knode.md` — co-owned with km agent

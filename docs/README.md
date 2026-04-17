@@ -71,15 +71,13 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 | [design/omnibox.md](design/omnibox.md)                                           | Command palette                          |
 | [design/recurrence.md](design/recurrence.md)                                     | Task recurrence (RRULE + FROM)          |
 | [design/phases.md](design/phases.md)                                             | TEA migration status                    |
-| [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Headless TUI testing                    |
-| [design/visual-navigation.md](design/visual-navigation.md)                       | Spatial navigation design               |
-| [architecture/brain.md](architecture/brain.md)                                   | Future: memory graph, solidification    |
+| [design/ui/navigation.md](design/ui/navigation.md)                       | Spatial navigation design               |
 
 ## ref/ — builder reference
 
 | Doc                                                          | Description                             |
 | ------------------------------------------------------------ | --------------------------------------- |
-| [ref/ui.md](ref/ui.md)                                       | Views, navigation, colors, design system |
+| [ref/visual-spec.md](ref/visual-spec.md)                     | Views, navigation, colors, design system |
 | [ref/commands.md](ref/commands.md)                           | Command registry, when clauses           |
 | [ref/effects.md](ref/effects.md)                             | Effect catalog — TreeEffect + BoardEffect |
 | [ref/changes.md](ref/changes.md)                             | Change-type taxonomy                     |
@@ -95,16 +93,17 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 
 | Doc                                                    | Description                          |
 | ------------------------------------------------------ | ------------------------------------ |
-| [dev/doc-map.md](dev/doc-map.md)                       | Canonical concept → doc map          |
-| [dev/testing.md](dev/testing.md)                       | Test strategy, tiers, patterns       |
-| [dev/test-system.md](dev/test-system.md)               | Vitest + Bun runner architecture     |
-| [dev/test-fakes.md](dev/test-fakes.md)                 | Fake factories reference             |
-| [dev/chaos-testing.md](dev/chaos-testing.md)           | Fuzz + chaos strategy                |
-| [dev/debugging.md](dev/debugging.md)                   | Debugging TUI, storage, sync         |
-| [dev/releasing.md](dev/releasing.md)                   | Versioning and releases              |
-| [dev/vitest-ci.md](dev/vitest-ci.md)                   | Vitest CI integration details        |
-| [dev/monorepo.md](dev/monorepo.md)                     | Module resolution + workspace layout |
-| [dev/term-tui-migration.md](dev/term-tui-migration.md) | Ink → silvery migration history      |
+| [dev/doc-map.md](dev/doc-map.md)                                             | Canonical concept → doc map          |
+| [dev/testing.md](dev/testing.md)                                             | Test strategy, tiers, patterns       |
+| [dev/test-system.md](dev/test-system.md)                                     | Vitest + Bun runner architecture     |
+| [dev/test-fakes.md](dev/test-fakes.md)                                       | Fake factories reference             |
+| [dev/chaos-testing.md](dev/chaos-testing.md)                                 | Fuzz + chaos strategy                |
+| [dev/terminal-integration-testing.md](dev/terminal-integration-testing.md)   | Headless terminal integration tests  |
+| [dev/vitest-ci.md](dev/vitest-ci.md)                                         | Vitest CI integration details        |
+| [dev/debugging.md](dev/debugging.md)                                         | Debugging TUI, storage, sync         |
+| [dev/releasing.md](dev/releasing.md)                                         | Versioning and releases              |
+| [dev/monorepo.md](dev/monorepo.md)                                           | Module resolution + workspace layout |
+| [dev/term-tui-migration.md](dev/term-tui-migration.md)                       | Ink → silvery migration history      |
 
 ## lessons/ — retrospectives (frozen)
 
@@ -120,9 +119,9 @@ Append-only case studies. See [lessons/](lessons/) for the full index. Highlight
 - [future/](future/) — speculation (universal editor, agents, beads integration, services)
 - [adr/](adr/) — architectural decision records
 - [archive/](archive/) — retired docs (with forward pointers to replacements)
-- [architecture-review-findings.md](architecture-review-findings.md) — point-in-time review notes
-- [vs-decker.md](vs-decker.md) — architecture comparison with the Decker predecessor
-- [content-marketing-strategy.md](content-marketing-strategy.md) — ecosystem marketing plan (silvery.dev, termless.dev, etc.)
+- [architecture-review-findings.md](archive/architecture-review-findings-2026-04.md) — point-in-time review notes
+- [vs-decker.md](archive/vs-decker.md) — architecture comparison with the Decker predecessor
+- [../vendor/internal/market/km-ecosystem-content-strategy.md](../vendor/internal/market/km-ecosystem-content-strategy.md) — ecosystem marketing plan (silvery.dev, termless.dev, etc.)
 
 ## Key Principles
 

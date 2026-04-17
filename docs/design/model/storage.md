@@ -511,7 +511,7 @@ Used for tracking change replay cursor and other internal state.
 
 Changes are append-only records in `.km/changes.jsonl`. The `emit()` function is the central mutation path in @km/storage.
 
-> **Planned**: The [brain architecture](architecture/brain.md) evolves changes.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
+> **Planned**: The [brain architecture](future/brain.md) evolves changes.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
 
 ### The 4-Path Multiplexer
 
@@ -922,7 +922,7 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 
 ## See Also
 
-- [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, solidification
+- [future/brain.md](future/brain.md) — Brain layer: chats, memory graph, solidification
 - [concepts.md](concepts.md) — Core concepts, two modes overview
 - [architecture.md](architecture.md) — Change system, data flow
 - [guides/markdown.md](guides/markdown.md) — Parsing .md to nodes

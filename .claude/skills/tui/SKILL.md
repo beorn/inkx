@@ -64,7 +64,7 @@ bun storybook --fullscreen       # alternate screen
 bun storybook --fullscreen-nonalt
 ```
 
-**Full design rationale**: [docs/ref/ui.md](../../docs/ref/ui.md)
+**Full design rationale**: [docs/ref/visual-spec.md](../../docs/ref/visual-spec.md)
 
 ---
 

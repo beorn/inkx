@@ -73,8 +73,8 @@ New findings awaiting promotion to canonical docs. Each entry has a `promote-to:
 ## Staging
 - **Gotcha**: changing scrollRect phase order breaks sticky headers
   promote-to: RENDERING.md#sticky-two-pass or LESSONS.md
-- **Inconsistency**: docs/packages.md lists @silvery/ansi as 0.3.4, actual is 0.17.3
-  promote-to: fix docs/packages.md directly
+- **Inconsistency**: docs/ref/packages.md lists @silvery/ansi as 0.3.4, actual is 0.17.3
+  promote-to: fix docs/ref/packages.md directly
 ```
 
 Each grooming run drains staging by promoting findings to their canonical homes. Staging that keeps growing means the agent isn't doing its primary job. But some items may stay if, on reflection, they belong in the canonical section instead.
@@ -82,7 +82,7 @@ Each grooming run drains staging by promoting findings to their canonical homes.
 #### What does NOT belong in knowledge files
 - Design explanations that fit in `docs/design/` (→ put them there)
 - Algorithm descriptions that fit in RENDERING.md (→ put them there)
-- Package inventories that fit in docs/packages.md or npm-packages.md (→ put them there)
+- Package inventories that fit in docs/ref/packages.md or npm-packages.md (→ put them there)
 - Type definitions or code structure (→ derive from code, don't copy)
 - Anything that duplicates content in a canonical doc elsewhere
 

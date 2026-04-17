@@ -257,7 +257,7 @@ Taxes/                      →    Taxes / .md #
     # Taxes
 ```
 
-The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/ui.md).
+The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/visual-spec.md).
 
 ---
 

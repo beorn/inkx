@@ -573,9 +573,9 @@ This ensures local development uses the workspace versions while vendor packages
 
 ## Inconsistencies Found
 
-### Version mismatches in docs/packages.md
+### Version mismatches in docs/ref/packages.md
 
-1. **All silvery internal packages**: `docs/packages.md` lists versions like `0.5.1`--`0.5.3` but actual versions are all `0.17.3`. This applies to: `@silvery/ag`, `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/create`, `@silvery/headless`, `@silvery/theme`, `@silvery/test`, `@silvery/commands`, `@silvery/scope`, `@silvery/signals`, `@silvery/model`, `@silvery/ink`.
+1. **All silvery internal packages**: `docs/ref/packages.md` lists versions like `0.5.1`--`0.5.3` but actual versions are all `0.17.3`. This applies to: `@silvery/ag`, `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/create`, `@silvery/headless`, `@silvery/theme`, `@silvery/test`, `@silvery/commands`, `@silvery/scope`, `@silvery/signals`, `@silvery/model`, `@silvery/ink`.
 
 2. **`@silvery/ansi`**: docs say `0.3.4`, actual is `0.17.3`.
 
@@ -623,7 +623,7 @@ Most are legitimate under the exception, but `ChangeHandlers` (km-storage) and `
 
 ### Documentation vs code state
 
-1. **`docs/packages.md` silvery dependency chain**: Shows `@silvery/create` depending on `@silvery/headless` and `@silvery/commands`. This appears to be the logical dependency rather than the actual npm dependency chain, since the chain goes from `@silvery/color` (zero deps) up to the barrel.
+1. **`docs/ref/packages.md` silvery dependency chain**: Shows `@silvery/create` depending on `@silvery/headless` and `@silvery/commands`. This appears to be the logical dependency rather than the actual npm dependency chain, since the chain goes from `@silvery/color` (zero deps) up to the barrel.
 
 2. **Test file count**: CLAUDE.md says `test:fast` is "~190 files" and `test:all` is "~393 files", while the earlier CLAUDE.md version says "~124 files" and "~240 files" respectively. The actual count of test files in the repo is 3661 (though many are in node_modules). The numbers are likely approximate and change frequently.
 

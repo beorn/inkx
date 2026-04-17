@@ -1,6 +1,6 @@
 # Memory Systems Analysis: ENGRAM/AutoMem/Hindsight for km recall
 
-> **See also**: [brain architecture doc](../architecture/brain.md) — the committed design that incorporates these findings (memory graph with ENGRAM cognitive types, chats as event source, entity schemas, solidification).
+> **See also**: [brain architecture doc](../future/brain.md) — the committed design that incorporates these findings (memory graph with ENGRAM cognitive types, chats as event source, entity schemas, solidification).
 
 Evaluates whether advanced memory system designs could improve km's recall architecture.
 Compares current FTS5-based retrieval with three research systems, estimates effort vs accuracy gain.
@@ -91,7 +91,7 @@ AutoMem's graph storage and Hindsight's entity extraction are powerful but requi
 - LLM extraction pipeline during indexing (expensive, slow)
 - Entity resolution logic (deduplication, merging)
 
-> **Update**: km now absorbs Cloudi's memory system (see [brain architecture](../architecture/brain.md)). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
+> **Update**: km now absorbs Cloudi's memory system (see [brain architecture](../future/brain.md)). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
 
 ### Later: Embedding-Based Search
 
@@ -100,7 +100,7 @@ Vector search (semantic similarity) requires:
 - Vector storage (SQLite doesn't natively support ANN search)
 - Significant latency increase
 
-FTS5 with cognitive type separation captures most of the value for session recall. Embeddings are planned as Phase 2 of the [brain architecture roadmap](../architecture/brain.md#implementation-roadmap) to handle query/storage phrasing mismatch in SPO retrieval.
+FTS5 with cognitive type separation captures most of the value for session recall. Embeddings are planned as Phase 2 of the [brain architecture roadmap](../future/brain.md#implementation-roadmap) to handle query/storage phrasing mismatch in SPO retrieval.
 
 ## Conclusion
 
@@ -112,11 +112,11 @@ km recall's FTS5 architecture is fundamentally sound. The cloudi research (ADR01
 
 Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No external infrastructure needed — all SQLite-native.
 
-> **Update**: The full AutoMem/Hindsight architectures (entity extraction, graph storage, embeddings) are now part of km's roadmap via the [brain architecture](../architecture/brain.md) — km absorbs Cloudi's memory system. The phased approach above remains correct: recall ranking improvements first, SPO memory and entity schemas in later phases.
+> **Update**: The full AutoMem/Hindsight architectures (entity extraction, graph storage, embeddings) are now part of km's roadmap via the [brain architecture](../future/brain.md) — km absorbs Cloudi's memory system. The phased approach above remains correct: recall ranking improvements first, SPO memory and entity schemas in later phases.
 
 ## References
 
-- [Brain architecture](../architecture/brain.md) — committed design incorporating these findings
+- [Brain architecture](../future/brain.md) — committed design incorporating these findings
 - Cloudi ADR01 memory system spec *(internal: `~/Code/pim/cloudi/specs/active/ADR01/`)*
 - [Plain-brain exploration](plain-brain.md) — original exploration (graduated to brain.md)
 - km recall implementation: `vendor/bearly/tools/recall.ts`, `recall/search.ts`

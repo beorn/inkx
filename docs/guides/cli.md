@@ -250,5 +250,5 @@ beads:
 ## See Also
 
 - [guides/query.md](../guides/query.md) — Query language
-- [ref/ui.md](../ref/ui.md) — Views, navigation, design system
+- [ref/ui.md](../ref/visual-spec.md) — Views, navigation, design system
 - [tasks.md](tasks.md) — Task management

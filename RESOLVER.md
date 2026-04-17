@@ -40,13 +40,14 @@ Walk this decision tree before writing any documentation, knowledge, or persiste
 → STOP
 
 ### Q8. Is this INTERNAL (strategy, competitive, roadmap, drafts)?
-→ **vendor/internal/** in the relevant project subdirectory
+→ **`vendor/internal/`** — walk [`vendor/internal/RESOLVER.md`](vendor/internal/RESOLVER.md) for the per-slot rules (design/launch/research/market/etc).
 → Never reference from public docs.
 → STOP
 
 ### Q9. Is this STABLE DESIGN KNOWLEDGE (how the system works and why)?
-→ **Canonical docs** (`docs/` or `vendor/*/docs/`)
-→ Pick the directory that matches the domain (see domain list below).
+→ **Canonical docs**:
+  - km concepts → walk [`docs/RESOLVER.md`](docs/RESOLVER.md) for subdir routing (guides/design/ref/dev)
+  - vendor package (silvery, flexily, termless, loggily, mdspec) concepts → `vendor/<pkg>/docs/`
 → STOP
 
 ### Q10. None of the above?
