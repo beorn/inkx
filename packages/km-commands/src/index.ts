@@ -109,7 +109,6 @@ export {
   blockEditCommands,
   dialogCommands,
   filterDialogCommands,
-  favoritesDialogCommands,
   type TaskOp,
 } from "./commands/index.ts"
 
@@ -140,8 +139,6 @@ export {
   localFindActive,
   omniboxOpen,
   searchReplaceOpen,
-  favoritesDialogOpen,
-  favoritesKeySelected,
   hasKitty,
   // Input type predicates
   inputTypeField,

@@ -131,8 +131,6 @@ describe("CommandBox", () => {
     pendingChord: null,
     chordTimedOut: false,
     omnibox: null,
-    showFavoritesDialog: false,
-    favoritesSelectedKey: null,
     iconStyle: "nerdfont",
     borderMode: "normal",
     toastVersion: 0,
@@ -291,8 +289,6 @@ describe("StatusCounters", () => {
     pendingChord: null,
     chordTimedOut: false,
     omnibox: null,
-    showFavoritesDialog: false,
-    favoritesSelectedKey: null,
     terminalFocused: true,
     toastVersion: 0,
   }

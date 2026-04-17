@@ -117,8 +117,6 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     localFindActive: !!ui.localSearch,
     omniboxOpen: !!ui.omnibox,
     searchReplaceOpen: !!ui.searchReplace,
-    favoritesDialogOpen: ui.showFavoritesDialog,
-    favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
     activeScopes: ctx.focusManager?.scopeStack ?? [],
     inputType: ctx.sel.text() ? "textarea" : dialogInput ? "field" : undefined,

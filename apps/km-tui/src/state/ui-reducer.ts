@@ -135,10 +135,6 @@ export interface UIState {
    */
   omnibox: import("./omnibox.ts").OmniboxPane | null
 
-  // Favorites dialog state (global)
-  showFavoritesDialog: boolean
-  favoritesSelectedKey: string | null
-
   // Toast version counter — incremented by TOAST_DISMISS to trigger React re-renders
   // (toast queue is a mutable object outside React state; this counter bridges the gap)
   toastVersion: number
@@ -186,8 +182,7 @@ export namespace PaneUI {
       ui.deleteConfirm ||
       ui.localSearch ||
       ui.omnibox ||
-      ui.searchReplace ||
-      ui.showFavoritesDialog
+      ui.searchReplace
     )
   }
 
@@ -419,9 +414,6 @@ export function createInitialUIState(
     chordTimedOut: false,
 
     omnibox: null,
-
-    showFavoritesDialog: false,
-    favoritesSelectedKey: null,
 
     toastVersion: 0,
   }

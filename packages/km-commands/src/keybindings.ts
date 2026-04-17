@@ -6,8 +6,6 @@ import {
   textInputFocused,
   isInDetailPane,
   isInlineEditing,
-  favoritesDialogOpen,
-  favoritesKeySelected,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
@@ -149,10 +147,6 @@ export interface KeybindingContext {
   omniboxOpen?: boolean
   /** True when the search/replace dialog is open */
   searchReplaceOpen?: boolean
-  /** True when the favorites dialog is open */
-  favoritesDialogOpen?: boolean
-  /** True when a key is selected in the favorites detail view */
-  favoritesKeySelected?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
   /** Active focus scopes from the FocusManager's scope stack */
@@ -559,28 +553,6 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: " ", commandId: "dialog.confirm", when: inScope("dialog:filter") },
         { key: "Enter", commandId: "dialog.confirm", when: inScope("dialog:filter") },
         { key: "shift-x", commandId: "filter.clear_all", when: inScope("dialog:filter") },
-      ],
-    },
-
-    // --- Layer 3a: Favorites dialog (manage key→node mappings) ---
-    {
-      name: "favorites-dialog",
-      bindings: [
-        // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back.
-        // Guarded by `favoritesDialogOpen` (direct UI state) rather than `inScope("dialog:favorites")`
-        // because the focus-scope stack isn't reliably populated in every production path — see
-        // km-tui.manage-favorites-escape. The UI state is the single source of truth.
-        { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        {
-          key: "Backspace",
-          commandId: "favorites.clear",
-          when: and(favoritesDialogOpen, favoritesKeySelected),
-        },
-        { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
-        // List view: Escape closes, any key selects it
-        { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
-        { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
       ],
     },
 

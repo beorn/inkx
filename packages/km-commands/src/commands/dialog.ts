@@ -52,45 +52,6 @@ export const dialogCommands: CommandDef[] = [
  * These use DIALOG_NAV_UP/DOWN for row navigation and DIALOG_CONFIRM for toggle.
  * h/l and clear operations dispatch filter-specific actions.
  */
-/**
- * Favorites dialog commands
- *
- * "Key first, then action" flow:
- * 1. M opens dialog showing all favorites (read-only list)
- * 2. Press any key → favorites.select_key → detail view for that key
- * 3. Enter → assign cursor node, Delete/Backspace → clear, Esc → back to list
- */
-export const favoritesDialogCommands: CommandDef[] = [
-  {
-    id: "favorites.select_key",
-    name: "Select Favorite Key",
-    description: "Select a key to view/assign/clear",
-    category: "Navigation",
-    execute: (): KmOp => ({ type: "FAVORITES_SELECT_KEY", key: "" }), // key injected by caller
-  },
-  {
-    id: "favorites.assign",
-    name: "Assign Favorite",
-    description: "Assign cursor node to the selected key",
-    category: "Navigation",
-    execute: (): KmOp => ({ type: "FAVORITES_ASSIGN" }),
-  },
-  {
-    id: "favorites.clear",
-    name: "Clear Favorite",
-    description: "Clear the selected favorite",
-    category: "Navigation",
-    execute: (): KmOp => ({ type: "FAVORITES_CLEAR" }),
-  },
-  {
-    id: "favorites.back",
-    name: "Back to Favorites List",
-    description: "Return to favorites list from detail view",
-    category: "Navigation",
-    execute: (): KmOp => ({ type: "FAVORITES_BACK" }),
-  },
-]
-
 export const filterDialogCommands: CommandDef[] = [
   {
     id: "filter.nav_left",

@@ -740,23 +740,6 @@ interface ManageFavoritesOp {
   type: "MANAGE_FAVORITES"
 }
 
-interface FavoritesSelectKeyOp {
-  type: "FAVORITES_SELECT_KEY"
-  key: string
-}
-
-interface FavoritesAssignOp {
-  type: "FAVORITES_ASSIGN"
-}
-
-interface FavoritesClearOp {
-  type: "FAVORITES_CLEAR"
-}
-
-interface FavoritesBackOp {
-  type: "FAVORITES_BACK"
-}
-
 type SearchReplaceOp =
   | SearchReplaceOpenOp
   | SearchReplaceCloseOp
@@ -948,10 +931,6 @@ export type DialogOp =
   | DeleteConfirmExecuteOp
   | DeleteConfirmCancelOp
   | ManageFavoritesOp
-  | FavoritesSelectKeyOp
-  | FavoritesAssignOp
-  | FavoritesClearOp
-  | FavoritesBackOp
   | SetDueDateOp
   | SetStartDateOp
   | SetRecurringOp

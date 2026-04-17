@@ -30,7 +30,6 @@ import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
 import { ConfirmDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
-import { FavoritesDialog } from "./FavoritesDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { popDialogMode } from "../dialog-guard.ts"
 import { dispatchCommandById, defaultBuildOpCtx } from "../board/board-app.ts"
@@ -291,7 +290,13 @@ function UnifiedOmniboxConnector({
       const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
       const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
       const query = mode === "command" ? buffer.slice(1) : ""
-      const projected = commandResultsForOmnibox(allCommands, kbCtx, query, "normal", getRecentsStore().getCommandBoost())
+      const projected = commandResultsForOmnibox(
+        allCommands,
+        kbCtx,
+        query,
+        "normal",
+        getRecentsStore().getCommandBoost(),
+      )
       rows = buffer.length === 0 ? projected.slice(0, 12) : projected
     } else {
       // Content sigils (+ @ # ~) and the bare `node` mode dispatch through
@@ -719,23 +724,6 @@ export function WorkspaceChrome({
             width={Math.min(70, Math.floor(termWidth * 0.6))}
             onSearchChange={searchReplaceSearchHandler ?? (() => {})}
             onReplaceChange={searchReplaceReplaceHandler ?? (() => {})}
-          />
-        </CenterDialog>
-      )}
-      {/* Favorites dialog */}
-      {ui.showFavoritesDialog && (
-        <CenterDialog
-          termWidth={termWidth}
-          contentHeight={contentHeight}
-          maxWidth={50}
-          topFraction={1 / 4}
-          data-dialog="favorites"
-          focusScope
-        >
-          <FavoritesDialog
-            selectedKey={ui.favoritesSelectedKey}
-            width={Math.min(50, Math.floor(termWidth / 2))}
-            assignNodeId={cursor}
           />
         </CenterDialog>
       )}

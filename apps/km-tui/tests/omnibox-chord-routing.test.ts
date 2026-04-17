@@ -143,8 +143,6 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
     expect(pane?.state.defaultCommand).toBe("manage_favorites")
-    // Legacy dialog stays closed — routing now flows through openOmnibox.
-    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(false)
   })
 
   it("GAP: cmd-f / ctrl-f / '/' open the legacy inline find bar, not the unified omnibox", () => {
@@ -194,17 +192,11 @@ describe("unified omnibox — manage_favorites candidate scope (Phase 5 acceptan
     app.press("shift+m")
 
     const pane = app.withStore((s) => s.ui.omnibox)
-    if (pane == null) {
-      // PRE-PHASE-5: legacy FavoritesDialog path. Pin the baseline so the
-      // Phase 5 promotion is a visible behavior change.
-      expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(true)
-      return
-    }
+    expect(pane).not.toBeNull()
 
-    // POST-PHASE-5 positive assertion: the omnibox pane's candidate
-    // provider must yield only favorited node ids and NOT the 5 non-fav
-    // siblings.
-    const candidateIds = pane.spec.candidateProvider().map((n) => n.id)
+    // The omnibox pane's candidate provider yields only favorited node ids
+    // and NOT the 5 non-fav siblings.
+    const candidateIds = pane!.spec.candidateProvider().map((n) => n.id)
     expect(candidateIds).not.toContain("other-1")
     expect(candidateIds).not.toContain("other-2")
     expect(candidateIds).not.toContain("other-3")

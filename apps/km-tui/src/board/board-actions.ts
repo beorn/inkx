@@ -42,13 +42,7 @@ import {
   moveSelectedTo,
 } from "./board-selection-helpers.ts"
 import {
-  getFavorite,
-  setFavorite,
-  clearFavorite,
   getAllFavorites,
-  RESERVED_KEYS,
-  getReservedKeyLabel,
-  initDefaultKeybindings,
   expandLocationTemplate,
   isDateTemplate,
 } from "@km/commands"
@@ -282,10 +276,6 @@ const DIALOG_TYPE_LIST = [
   "DELETE_CONFIRM_EXECUTE",
   "DELETE_CONFIRM_CANCEL",
   "MANAGE_FAVORITES",
-  "FAVORITES_SELECT_KEY",
-  "FAVORITES_ASSIGN",
-  "FAVORITES_CLEAR",
-  "FAVORITES_BACK",
   "SET_DUE_DATE",
   "SET_START_DATE",
   "SET_RECURRING",
@@ -1499,11 +1489,6 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       return ok()
     }
     case "DIALOG_CANCEL":
-      if (ctx.ui.showFavoritesDialog) {
-        popDialogMode()
-        ctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
-        return ok()
-      }
       if (ctx.ui.showFilterDialog) {
         popDialogMode()
         ctx.setUI({ showFilterDialog: false })
@@ -1538,9 +1523,10 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       ctx.setUI({ deleteConfirm: null })
       return ok()
     case "MANAGE_FAVORITES": {
-      // Phase 5b — reroute shift-m through the unified omnibox. The legacy
-      // FavoritesDialog surface is preserved (rendered if ui.showFavoritesDialog
-      // is set directly — no chord does that anymore) pending Phase 10 cleanup.
+      // Phase 5b — shift-m opens the unified omnibox scoped to favorited nodes.
+      // The legacy FavoritesDialog + key-assign machinery was deleted in the
+      // Phase 5 cleanup — a future bead may re-add a key-assign UX on the
+      // unified surface if desired.
       //
       // Scope: only nodes that are currently favorited. The favorites map
       // stores nodeId values; we look them up through the repo and filter
@@ -1570,15 +1556,6 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       clearSelection(ctx)
       return ok()
     }
-    case "FAVORITES_SELECT_KEY":
-      return handleFavoritesSelectKey(ctx, action.key)
-    case "FAVORITES_ASSIGN":
-      return handleFavoritesAssign(ctx)
-    case "FAVORITES_CLEAR":
-      return handleFavoritesClear(ctx)
-    case "FAVORITES_BACK":
-      ctx.setUI({ favoritesSelectedKey: null })
-      return ok()
     case "SET_DUE_DATE":
       return handleSetDatePrompt(ctx, "due_at")
     case "SET_START_DATE":
@@ -2307,55 +2284,6 @@ function handleToggleFold(ctx: OpCtx): OpResult {
       message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}`,
     },
   })
-  return ok()
-}
-
-function handleFavoritesSelectKey(ctx: OpCtx, key: string): OpResult {
-  if (!key) return ok()
-  if (RESERVED_KEYS.has(key)) {
-    const label = getReservedKeyLabel(key)
-    ctx.toastQueue.warning(`Key '${key}' is reserved for '${label}'`)
-    return ok()
-  }
-  ctx.setUI({ favoritesSelectedKey: key })
-  return ok()
-}
-
-function handleFavoritesAssign(ctx: OpCtx): OpResult {
-  const key = ctx.ui.favoritesSelectedKey
-  if (!key) return ok()
-
-  const nodeId = ctx.cursor
-  if (!nodeId) {
-    ctx.toastQueue.warning("No node selected")
-    return ok()
-  }
-
-  const node = ctx.repo.getNode(nodeId)
-  const name = node?.title ?? node?.name ?? nodeId
-  setFavorite(key, nodeId)
-  initDefaultKeybindings()
-  ctx.toastQueue.success(`Favorite '${key}' → ${name}`)
-  popDialogMode()
-  ctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
-  return ok()
-}
-
-function handleFavoritesClear(ctx: OpCtx): OpResult {
-  const key = ctx.ui.favoritesSelectedKey
-  if (!key) return ok()
-
-  const existing = getFavorite(key)
-  if (!existing) {
-    ctx.toastQueue.warning(`No favorite assigned to '${key}'`)
-    ctx.setUI({ favoritesSelectedKey: null })
-    return ok()
-  }
-
-  clearFavorite(key)
-  initDefaultKeybindings()
-  ctx.toastQueue.info(`Cleared favorite '${key}'`)
-  ctx.setUI({ favoritesSelectedKey: null })
   return ok()
 }
 

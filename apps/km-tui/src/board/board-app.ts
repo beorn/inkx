@@ -640,13 +640,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
       }
 
-      // Inject pressed key into FAVORITES_SELECT_KEY (wildcard catches key, command doesn't have it)
-      for (const op of opList) {
-        if (op.type === "FAVORITES_SELECT_KEY" && !(op as { key?: string }).key) {
-          ;(op as { key: string }).key = input
-        }
-      }
-
       // Phase 2: Ops — execute state mutations
       for (const op of opList) {
         using opSpan = parentSpan.span("op", { type: op.type })
@@ -960,12 +953,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         if (ui.datePrompt) {
           popDialogMode()
           opctx.setUI({ datePrompt: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
-          return
-        }
-        if (ui.showFavoritesDialog) {
-          popDialogMode()
-          opctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }

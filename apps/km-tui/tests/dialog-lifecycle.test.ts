@@ -349,19 +349,9 @@ describe("dialog state isolation", () => {
 // FavoritesDialog lifecycle
 // ---------------------------------------------------------------------------
 
-describe("FavoritesDialog lifecycle", () => {
-  test("shift+m opens favorites dialog; Escape closes it", () => {
-    // Regression for km-tui.manage-favorites-escape — the Escape binding used
-    // to depend on inScope("dialog:favorites"), which wasn't reliably populated
-    // in every production path. Now guarded by the direct favoritesDialogOpen
-    // UI state check.
-    using app = createTestApp(item("board", item("col1", item("1a"), item("1b"))))
-    app.press("shift+m")
-    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(true)
-    app.press("Escape")
-    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(false)
-  })
-})
+// FavoritesDialog was deleted in the Phase 5 cleanup (shift-m now opens the
+// unified omnibox scoped to favorited nodes). See
+// apps/km-tui/tests/omnibox-chord-routing.test.ts for the current coverage.
 
 // ---------------------------------------------------------------------------
 // FilterDialog lifecycle
