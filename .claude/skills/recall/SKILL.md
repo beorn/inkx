@@ -16,7 +16,7 @@ Unified CLI for searching, managing, and recovering Claude Code session history.
 
 Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
 You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
-When the `bear` daemon is up, the hook routes through `bear.inject_delta` so dedup
+When the `bear` daemon is up, the hook routes through `lore.inject_delta` so dedup
 state is held in memory per session (no tmpfile I/O, no 400 ms subprocess spawn).
 The hook falls back to the library `hookRecall` path (tmpfile dedup) when the
 daemon is unreachable.
