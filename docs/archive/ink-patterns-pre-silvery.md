@@ -1,4 +1,6 @@
-# Ink Development Patterns
+# Ink Development Patterns (ARCHIVED 2026-04-16)
+
+> **Archived** because km migrated off Ink to [silvery](../../vendor/silvery/). See [`docs/dev/term-tui-migration.md`](../dev/term-tui-migration.md) for the migration writeup and [The Silvery Way](../../vendor/silvery/docs/guide/the-silvery-way.md) for current patterns.
 
 _Patterns documented for Ink v4.x (pre-Silvery migration). Last verified: 2026-01._
 

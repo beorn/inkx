@@ -1,0 +1,84 @@
+# Documentation Map
+
+_The canonical-source-per-concept map. Read this before proposing a new doc or editing an existing one. Last full audit: 2026-04-16 (W2 of the backlog)._
+
+Every concept in km has exactly one canonical doc. Overviews, references, and guides **link** to the canonical, they do not redefine. When terminology drifts, this file helps track where the drift is.
+
+## Doc roles
+
+| Role | Purpose | Edit discipline |
+|---|---|---|
+| **canonical** | Owns one or more concepts. Authoritative definition lives here. | Update in place. Bump the "last verified" date. |
+| **overview** | Surveys multiple concepts without owning any. | Point at canonicals. No redefining. |
+| **reference** | Lookup table or API docs. | Mechanical. Regenerate if derived. |
+| **guide** | How-to for users or devs. | Keep aligned with canonical. |
+| **lesson** | Retrospective / case study. | Frozen once written; move to archive if the pattern is retired. |
+
+## Canonical sources — concept → doc
+
+| Concept | Canonical doc |
+|---|---|
+| KNode record shape, items vs blocks, ItemData, visual roles, body content | [design/data-model.md](../design/data-model.md) |
+| KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/links.md](../design/links.md) |
+| km-ast type system, block types, traits, derivation rules | [design/km-ast/model.md](../design/km-ast/model.md) |
+| Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/visibility-model.md](../design/visibility-model.md) |
+| Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/folder-note-model.md](../design/folder-note-model.md) |
+| Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/selection-model.md](../design/selection-model.md), [design/selection-state-spec.md](../design/selection-state-spec.md) |
+| TEA state machine pattern | [design/tea-state-machines.md](../design/tea-state-machines.md) |
+| Navigation (cursor movement, grid nav, zoom) | [design/navigation-architecture.md](../design/navigation-architecture.md) |
+| Node visual spec (rendering, embed expansion) | [design/node-visual-spec.md](../design/node-visual-spec.md) |
+| Per-node reactive computeds | [design/per-node-view-computeds.md](../design/per-node-view-computeds.md) |
+| Multi-target rendering (terminal, browser, headless) | [design/render-neutral-tui.md](../design/render-neutral-tui.md) |
+| Horizontal virtualization, sticky columns | [design/horizontal-virtualization.md](../design/horizontal-virtualization.md) |
+| Outliner spec (indent, bullets, nesting) | [design/outliner-spec.md](../design/outliner-spec.md) |
+| Color theme system | [design/theme-system-v2.md](../design/theme-system-v2.md) |
+| Spatial navigation, focus scope | [design/visual-navigation.md](../design/visual-navigation.md) |
+| Omnibox (command palette, fuzzy search) | [design/omnibox.md](../design/omnibox.md) |
+| Tree aggregation, fold-depth | [design/tree-reduce.md](../design/tree-reduce.md) |
+| Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |
+| Tribe multi-session coordination | [design/tribe.md](../design/tribe.md) |
+| Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../storage.md) |
+| Query language (field:value, sigils, paths, FTS) | [ref/query.md](../ref/query.md) |
+| Task fields (marker, status, due, priority, recur) + cross-system mapping | [ref/task-fields.md](../ref/task-fields.md) |
+| Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [ref/markdown.md](../ref/markdown.md) |
+| Keybindings (layers, chord system, v2) | [keybindings-v2.md](../keybindings-v2.md) |
+| Command registry, when clauses | [ref/commands.md](../ref/commands.md) |
+| Tree glob patterns | [ref/tree-globs.md](../ref/tree-globs.md) |
+| Terminology index (all terms A–Z) | [glossary.md](../glossary.md) |
+| Test architecture (unit, integration, driver, system) | [dev/test-system.md](../dev/test-system.md) |
+
+## Overview docs — what to expect
+
+- [architecture.md](../architecture.md) — layer stack, data flows, top-level TreeLens pipeline. Points at canonicals for every concept.
+- [concepts.md](../concepts.md) — user-facing "what km is". Short summaries + links.
+- [principles.md](../principles.md) — design philosophy, code style, factories/DI/no classes.
+- [packages.md](../packages.md) — package roster, dependencies, CLI.
+- [README.md](../../README.md) — landing page, quick start, feature list.
+
+## Retired — moved to archive
+
+- `docs/keybindings.md` → [archive/keybindings-v1.md](../archive/keybindings-v1.md) — superseded by `keybindings-v2.md` (2026-04-16).
+- `docs/dev/ink-patterns.md` → [archive/ink-patterns-pre-silvery.md](../archive/ink-patterns-pre-silvery.md) — km migrated off Ink to silvery (2026-04-16).
+- `docs/ref/inkx-vs-ink-deep-research-2026-02.md` → [archive/inkx-vs-ink-deep-research-2026-02.md](../archive/inkx-vs-ink-deep-research-2026-02.md) — dated research; decision stands (2026-04-16).
+
+## Deferred (orphans + backlog — see `docs/backlog.md`)
+
+Concepts code uses heavily but docs don't fully own. Tracked for follow-up:
+
+- **TreeMutator operations** (split, merge, indent, outdent, inverse, normalize) — brief in `architecture.md`, detailed per-operation doc missing.
+- **Repo mutation API** (addNode, updateNode, moveNode, deleteNode + event semantics) — brief in `architecture.md`, detailed doc missing.
+- **Effect type catalog** (persist, notify, clipboard, kill_ring_push, …) — glossary has a one-line definition; no complete list.
+- **Change type taxonomy** (node_created, node_moved, node_deleted, link_created, link_deleted, …) — glossary has a one-liner; no complete list.
+
+## Known inconsistencies (deferred cleanup)
+
+The W2 audit flagged these but they need their own bead — breaking changes that touch code + docs together:
+
+- `TreeLens.resolvedSymlink()` method name → should be `resolvedEmbed()` (symlink terminology retired, code still uses old name).
+- `ViewRole` type name in code → should be `ViewType` (glossary says ViewType, some code still says ViewRole).
+
+## How to use this file
+
+- **Before editing a doc**: check the concept map. If the doc you're editing is not the canonical for the concept, fix the canonical instead.
+- **Before creating a new doc**: check if the concept is already owned. If yes, update the owner. If no, add a row to the concept map here once the new doc lands.
+- **When a canonical changes**: the overview docs that reference it should be checked for drift. Track these via `grep` for the concept name.

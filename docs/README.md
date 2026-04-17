@@ -109,9 +109,9 @@ km init                    # Enable persistence (stable IDs, history)
 
 | Doc                                        | Description                         |
 | ------------------------------------------ | ----------------------------------- |
+| [dev/doc-map.md](dev/doc-map.md)           | Canonical-source-per-concept map    |
 | [dev/testing.md](dev/testing.md)           | Testing strategy and test types     |
 | [dev/debugging.md](dev/debugging.md)       | Debugging TUI, storage, sync, tests |
-| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns          |
 | [dev/releasing.md](dev/releasing.md)       | Versioning and releases             |
 
 ### Future

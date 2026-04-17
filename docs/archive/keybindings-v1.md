@@ -1,4 +1,6 @@
-# Keybinding Design Guide
+# Keybinding Design Guide (v1 — ARCHIVED 2026-04-16)
+
+> **Superseded** by [`docs/keybindings-v2.md`](../keybindings-v2.md). This v1 guide is kept for historical reference only — current project policy and binding layout live in v2.
 
 > Self-contained guide for choosing keybindings in km. Follow these principles to
 > assign a binding for a new action and have it feel native.

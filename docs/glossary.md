@@ -76,7 +76,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **body** — Block content that appears before the first sub-item within an item node. In card view, body renders as dimmed text below the card title.
 
-**body-column** — A ViewRole for body content rendered as a pseudo-column. Allows body blocks to participate in the column/card layout without being true structural columns.
+**body-column** — A ViewType for body content rendered as a pseudo-column. Allows body blocks to participate in the column/card layout without being true structural columns.
 
 **Box** — The fundamental layout component in silvery. Accepts flexbox props, border props, and style props. Children are laid out by flexily.
 

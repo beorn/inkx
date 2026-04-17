@@ -877,4 +877,4 @@ km automatically shows toasts for certain events:
 
 - [../architecture.md](../architecture.md) — Layer responsibilities
 - [../storage.md](../storage.md) — Node schema
-- [../dev/ink-patterns.md](../dev/ink-patterns.md) — Ink framework workarounds and patterns
+- [The Silvery Way](../../vendor/silvery/docs/guide/the-silvery-way.md) — Current TUI patterns (km migrated off Ink to silvery)

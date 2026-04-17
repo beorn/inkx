@@ -1,4 +1,8 @@
-# Overview of Silvery vs Ink for Complex Terminal UIs
+# Overview of Silvery vs Ink for Complex Terminal UIs (ARCHIVED 2026-04-16)
+
+> **Archived** as dated research (February 2026). The framework decision stands: km uses silvery. For current positioning see [`vendor/silvery/docs/guide/silvery-vs-ink.md`](../../vendor/silvery/docs/guide/silvery-vs-ink.md) and [`vendor/internal/silvery/research/opentui-vs-silvery.md`](../../vendor/internal/silvery/research/opentui-vs-silvery.md).
+
+
 
 Building rich **terminal UIs** for AI coding assistants (like Anthropic’s Claude Code CLI, Cursor, Aider, etc.) requires high performance, robust input handling, and advanced layout capabilities. **Silvery** is a ground-up reimplementation of the popular Ink (React CLI framework) aimed at addressing Ink’s long-standing limitations and adding new features. Ink has been widely adopted – e.g. Claude Code uses Ink ([github.com](https://github.com/vadimdemedes/ink#:~:text=Who%27s%20Using%20Ink%3F)) – but developers have noted some rough edges in performance and rendering ([www.libhunt.com](https://www.libhunt.com/posts/1476376-claude-opus-4-6#:~:text=,performance%20but%20it%27s%20nice%20overall)). Silvery introduces a redesigned architecture (two-phase rendering, pure TypeScript layout, fine-grained diffing) and expanded input/rendering features to support complex, interactive TUIs. Below, we compare Silvery and Ink in depth, and consider benefits for AI assistant CLIs, potential downsides, comparisons to non-React TUI frameworks, and the market outlook.
 
