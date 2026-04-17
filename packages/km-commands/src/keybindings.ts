@@ -21,6 +21,7 @@ import {
   and,
   inDialog,
   inScope,
+  omniboxOpen,
 } from "./when.ts"
 import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
 import { getAllFavorites } from "./favorites.ts"
@@ -918,15 +919,17 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // (Up/Down = scroll, Left = Home/Ctrl+E, Right = End/Ctrl+A)
         // Cmd+[ / ] already used for nav_back/forward (navigation layer)
         // Fold/unfold: use H/L (Shift+h/l)
-        // Shifting (Opt+direction) — move nodes in tree
-        { key: "opt-ArrowUp", commandId: "shift_up" },
-        { key: "opt-ArrowDown", commandId: "shift_down" },
-        { key: "opt-ArrowLeft", commandId: "shift_left" },
-        { key: "opt-ArrowRight", commandId: "shift_right" },
-        { key: "opt-k", commandId: "shift_up" },
-        { key: "opt-j", commandId: "shift_down" },
-        { key: "opt-h", commandId: "shift_left" },
-        { key: "opt-l", commandId: "shift_right" },
+        // Shifting (Opt+direction) — move nodes in tree. Suppressed when
+        // the unified omnibox is open so Opt+j/k/etc. navigate the result
+        // list instead of mutating the tree (Phase 5 acceptance k).
+        { key: "opt-ArrowUp", commandId: "shift_up", when: not(omniboxOpen) },
+        { key: "opt-ArrowDown", commandId: "shift_down", when: not(omniboxOpen) },
+        { key: "opt-ArrowLeft", commandId: "shift_left", when: not(omniboxOpen) },
+        { key: "opt-ArrowRight", commandId: "shift_right", when: not(omniboxOpen) },
+        { key: "opt-k", commandId: "shift_up", when: not(omniboxOpen) },
+        { key: "opt-j", commandId: "shift_down", when: not(omniboxOpen) },
+        { key: "opt-h", commandId: "shift_left", when: not(omniboxOpen) },
+        { key: "opt-l", commandId: "shift_right", when: not(omniboxOpen) },
 
         // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
         { key: "Tab", commandId: "indent_node", when: not(textInputFocused) },
