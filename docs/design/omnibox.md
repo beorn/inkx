@@ -2,7 +2,7 @@
 
 Unified picker + command palette + search, one component, sigil-dispatched.
 
-Tracked by [km-tui.omnibox-unified](../../.beads/issues.jsonl). Design-first.
+> **Status (2026-04-17): v1 shipped.** The migration described by Phases 1–12 below is complete. Every legacy component named in "The problem" section (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`), every legacy state field (`activePicker`, `showFavoritesDialog`, `favoritesSelectedKey`), every legacy op (`FAVORITES_*`), and every legacy command (`favorites.select_key`, `favorites.assign`, `favorites.clear`, `favorites.back`) has been deleted. Live code: `apps/km-tui/src/state/{omnibox,omnibox-parser,omnibox-ranker,omnibox-projection,recents-store}.ts` + `apps/km-tui/src/views/UnifiedOmnibox.tsx`. Closed beads: `km-tui.omnibox-dialog`, `km-tui.itempicker-unify`, `km-tui.omnibox-{row,ranker,query-syntax,recents,command-projection,when,default-command}`. Remaining beads: Phase 6–11 polish/feature work (`km-tui.omnibox-{cursor,interactions,pre-select,local-find,migration-cleanup,pop-out}` + extras).
 
 **Prerequisites**: [data-model.md](data-model.md) (nodes, sigils, contexts), [navigation-architecture.md](navigation-architecture.md) (goto/zoom/nav-history).
 

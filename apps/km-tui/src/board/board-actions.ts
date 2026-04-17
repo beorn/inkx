@@ -41,11 +41,7 @@ import {
   getSelectedNodeIds,
   moveSelectedTo,
 } from "./board-selection-helpers.ts"
-import {
-  getAllFavorites,
-  expandLocationTemplate,
-  isDateTemplate,
-} from "@km/commands"
+import { getAllFavorites, expandLocationTemplate, isDateTemplate } from "@km/commands"
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
@@ -547,7 +543,7 @@ function initialBufferForPickSigil(pick: string): string {
  * have been deleted. The omnibox opens with a pre-scoped sigil buffer
  * and a sticky defaultCommand matching the verb.
  */
-function openPickerForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
+function openOmniboxForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
   const cursorId = ctx.cursor
   const selectedIds = Array.from(ctx.selectedIds)
   const spec: OmniboxInvocationSpec = {
@@ -600,7 +596,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
         return ok()
       }
       if (isPickTarget(cursorTarget)) {
-        return openPickerForVerb(ctx, cursorTarget.pick, "goto")
+        return openOmniboxForVerb(ctx, cursorTarget.pick, "goto")
       }
       handleCursorTo(ctx, cursorTarget)
       return ok()
@@ -622,7 +618,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
         return ok()
       }
       if (isPickTarget(moveTarget)) {
-        return openPickerForVerb(ctx, moveTarget.pick, "move")
+        return openOmniboxForVerb(ctx, moveTarget.pick, "move")
       }
       return handleReparentTo(ctx, moveTarget)
     }
@@ -780,9 +776,9 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
     case "CLIPBOARD_PASTE":
       return handleClipboardPaste(ctx)
     case "ADD_LINK":
-      return openPickerForVerb(ctx, "[", "link")
+      return openOmniboxForVerb(ctx, "[", "link")
     case "REPARENT_PICKER":
-      return openPickerForVerb(ctx, "+", "move")
+      return openOmniboxForVerb(ctx, "+", "move")
     case "ARCHIVE_NODE":
       return unimplemented("ui")
     case "TASK_SET_STATUS":
@@ -2479,7 +2475,7 @@ function handleReparentTo(ctx: OpCtx, to: Position): OpResult {
 /** Handle LINK_TO with resolved target. */
 function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
-    return openPickerForVerb(ctx, to.pick, "link")
+    return openOmniboxForVerb(ctx, to.pick, "link")
   }
 
   // Position → add link (stub)
@@ -2492,7 +2488,7 @@ function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): OpResult {
 /** Handle CREATE_AT with resolved target (stub). */
 function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
-    return openPickerForVerb(ctx, to.pick, "create")
+    return openOmniboxForVerb(ctx, to.pick, "create")
   }
   const targetNode = ctx.repo.getNode(to.parentId)
   ctx.toastQueue.info(`Create at "${targetNode?.name ?? to.parentId}" not yet implemented`)
