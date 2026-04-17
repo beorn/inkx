@@ -16,7 +16,7 @@ repo                                  all nodes, SQLite-backed
 | Layer | Where | What it does | What it filters |
 |---|---|---|---|
 | **Repo** | `@km/storage` | Source of truth, SQLite-backed | Nothing — every KNode is in here |
-| **ViewLens** | `packages/km-board/src/view-lens.ts` | Walks the repo from a root, computes visual roles, resolves symlinks, classifies body content | Hidden nodes (`hiddenNodeIds`), structural exclusions (`isCollapsedChild`, `isDetailOnly`, frontmatter `km.collapse:: true`), folder-index file expansion |
+| **ViewLens** | `packages/km-board/src/view-lens.ts` | Walks the repo from a root, computes visual roles, resolves embeds, classifies body content | Hidden nodes (`hiddenNodeIds`), structural exclusions (`isCollapsedChild`, `isDetailOnly`, frontmatter `km.collapse:: true`), folder-index file expansion |
 | **VisibleLens** | `packages/km-board/src/visible-lens.ts` | Wraps a ViewLens; further restricts which nodes are visible | Collapsed columns (`collapsedNodes`), task-status filter (`taskStatusFilter`), card-level predicate (`cardFilter`) |
 | **ViewTree** | `packages/km-board/src/view-tree-projection.ts` | React-side projection of any TreeLens; per-node signal bags via `ProjectedMap`; iterator API (`nodes()`) | None — same visibility as the underlying lens. ViewTree's job is *reactivity*, not filtering. |
 

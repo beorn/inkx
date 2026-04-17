@@ -183,18 +183,18 @@ The first non-collapsed, non-removed column is the default target for `km add`. 
 | `km.limit:: N`       | WIP limit (visual warning)                      |
 | `km.default:: true`  | Override: new items go here instead of first col |
 
-### Embeddings (Symlinks)
+### Embeds
 
-Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax creates an embed link.
+Board items are **embeds** of tasks. The `![[...]]` syntax creates an embed link (`rel='embed'`) — see [docs/design/links.md](../design/links.md).
 
-| Operation Type | Target  | Rationale                                      |
-| -------------- | ------- | ---------------------------------------------- |
-| **Positional** | Symlink | Board organization is independent of task data |
-| **Content**    | Target  | Task data has single source of truth           |
+| Operation Type | Target | Rationale                                      |
+| -------------- | ------ | ---------------------------------------------- |
+| **Positional** | Embed  | Board organization is independent of task data |
+| **Content**    | Target | Task data has single source of truth           |
 
-- **Moving** a card within the board moves the symlink
+- **Moving** a card within the board moves the embed
 - **Status/priority changes** update the original task
-- **Deleting** a card removes the symlink (task remains)
+- **Deleting** a card removes the embed (task remains)
 - **Display** always reads from the target task
 
 ---
