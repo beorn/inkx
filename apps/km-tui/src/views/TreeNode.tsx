@@ -194,7 +194,6 @@ function TreeNodeImpl({
   remainingDepth = Infinity,
   isBody = false,
 }: TreeNodeProps): React.ReactElement {
-  // @ts-expect-error -- loggily's conditional debug may be undefined at runtime but tsc sees it as always-defined
   const _tnStart = renderLog.debug ? performance.now() : 0
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
 
