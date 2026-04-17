@@ -6,7 +6,7 @@ Last updated: 2026-04-12
 
 - `docs/design/model/knode.md` — KNode, items vs blocks, board hierarchy
 - `docs/design/ui/selection.md` — selection system design
-- `docs/design/tea-state-machines.md` — TEA pattern, state machine composition
+- `docs/design/tea.md` — TEA pattern, state machine composition
 - `docs/lessons/input-architecture.md` — 5-stage input pipeline
 - `apps/km-tui/tests/CLAUDE.md` — test patterns, assertion hierarchy, canonical examples
 
@@ -299,7 +299,7 @@ TEA middleware shipped in `@silvery/create`: `tea()` Zustand middleware, `create
 - `apps/km-tui/src/state/signal-store.ts` -- signal store implementation
 - `apps/km-tui/src/board/board-reducer.ts` -- pure TEA reducer (`BoardNavState`, `BoardEffect`, `applyBoard`)
 - `apps/km-tui/src/board/board-effect-runner.ts` -- effect interpreter
-- `docs/design/tea-state-machines.md` -- design and roadmap
+- `docs/design/tea.md` -- design and roadmap
 
 ## Input Architecture
 

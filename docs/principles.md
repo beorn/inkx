@@ -620,7 +620,7 @@ drag.commit()
 
 **Why**: Flags leak. If even one handler forgets to clear `isDragging`, you have a zombie mode that breaks unrelated interactions. Scoped operations can't leak — the machine's lifetime is the operation's lifetime.
 
-Serializable actions (`dragStart`, `dragMove`, `dragEnd`) also enable replay, undo, and AI automation — see [docs/design/tea-state-machines.md](design/tea-state-machines.md).
+Serializable actions (`dragStart`, `dragMove`, `dragEnd`) also enable replay, undo, and AI automation — see [docs/design/tea.md](design/tea.md).
 
 **Guidelines:**
 - [ ] Scope temporary state — `using op = beginX()` / not `store.xMode = true`

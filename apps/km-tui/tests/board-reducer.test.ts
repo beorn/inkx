@@ -4,7 +4,7 @@
  * Tests for the Board.apply() pure navigation reducer.
  * No React, no Repo, no side effects — just state in, state out.
  *
- * See docs/design/tea-state-machines.md for the TEA vision.
+ * See docs/design/tea.md for the TEA vision.
  */
 
 import { describe, it, expect } from "vitest"

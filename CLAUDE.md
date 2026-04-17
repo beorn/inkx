@@ -114,7 +114,7 @@ FILESYSTEM .md files (source of truth)
 
 Dependencies flow downward. `@km/tree` and `@km/storage` are peer layers (both depend on `@km/core`, neither on each other). UI never touches filesystem; all edits bidirectional. For terminology, see [docs/glossary.md](docs/glossary.md). For the full package inventory, see [docs/packages.md](docs/packages.md). For code style, see [docs/principles.md](docs/principles.md).
 
-**State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea-state-machines.md](docs/design/tea-state-machines.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
+**State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea.md](docs/design/tea.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
 
 ## Quick Reference
 

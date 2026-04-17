@@ -24,7 +24,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/ui/visibility.md](../design/ui/visibility.md) |
 | Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/ui/visibility.md](../design/ui/visibility.md) |
 | Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/ui/selection.md](../design/ui/selection.md), [design/ui/selection.md](../design/ui/selection.md) |
-| TEA state machine pattern | [design/tea-state-machines.md](../design/tea-state-machines.md) |
+| TEA state machine pattern | [design/tea.md](../design/tea.md) |
 | Navigation (cursor movement, grid nav, zoom) | [design/ui/navigation.md](../design/ui/navigation.md) |
 | Node visual spec (rendering, embed expansion) | [design/ui/rendering.md](../design/ui/rendering.md) |
 | Per-node reactive computeds | [design/ui/rendering.md](../design/ui/rendering.md) |
@@ -40,7 +40,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Query language (field:value, sigils, paths, FTS) | [ref/query.md](../ref/query.md) |
 | Task fields (marker, status, due, priority, recur) + cross-system mapping | [ref/task-fields.md](../ref/task-fields.md) |
 | Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [ref/markdown.md](../ref/markdown.md) |
-| Keybindings (layers, chord system, v2) | [keybindings-v2.md](../keybindings-v2.md) |
+| Keybindings (layers, chord system, v2) | [design/input.md](../design/input.md) |
 | Command registry, when clauses | [ref/commands.md](../ref/commands.md) |
 | Tree glob patterns | [ref/tree-globs.md](../ref/tree-globs.md) |
 | Terminology index (all terms A–Z) | [glossary.md](../glossary.md) |
@@ -56,8 +56,8 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 
 ## Retired — moved to archive
 
-- `docs/keybindings.md` → [archive/keybindings-v1.md](../archive/keybindings-v1.md) — superseded by `keybindings-v2.md` (2026-04-16).
-- `docs/ref-keybindings.md` → [archive/ref-keybindings.md](../archive/ref-keybindings.md) — duplicate of `keybindings-v2.md` at lower fidelity (2026-04-17).
+- `docs/keybindings.md` → [archive/keybindings-v1.md](../archive/keybindings-v1.md) — superseded by `design/input.md` (2026-04-16).
+- `docs/ref-keybindings.md` → [archive/ref-keybindings.md](../archive/ref-keybindings.md) — duplicate of `design/input.md` at lower fidelity (2026-04-17).
 - `docs/dev/ink-patterns.md` → [archive/ink-patterns-pre-silvery.md](../archive/ink-patterns-pre-silvery.md) — km migrated off Ink to silvery (2026-04-16).
 - `docs/ref/inkx-vs-ink-deep-research-2026-02.md` → [archive/inkx-vs-ink-deep-research-2026-02.md](../archive/inkx-vs-ink-deep-research-2026-02.md) — dated research; decision stands (2026-04-16).
 - `docs/future/inkx-*.md` (3 files) → [archive/](../archive/) — Ink is retired; speculative designs won't ship (2026-04-17).

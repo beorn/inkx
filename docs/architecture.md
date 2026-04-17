@@ -331,7 +331,7 @@ The ViewTreeProjection (in OpCtx as `tree`) is the single authoritative derivati
 
 ### Target: TEA State Machines + Plugin Slices
 
-Following the [TEA state machine design](design/tea-state-machines.md):
+Following the [TEA state machine design](design/tea.md):
 
 ```
 Board.apply(state, op) -> [state, effects]
@@ -355,6 +355,6 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 - [principles.md](principles.md) — Philosophy: composability, code for humans, governance
 - [packages.md](packages.md) — Full package inventory (versions, npm scopes, CLI commands)
 - [design/model/knode.md](design/model/knode.md) — KNode tree, items vs blocks, board hierarchy
-- [design/tea-state-machines.md](design/tea-state-machines.md) — TEA vision and phase plan
+- [design/tea.md](design/tea.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles

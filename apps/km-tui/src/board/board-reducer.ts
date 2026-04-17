@@ -11,7 +11,7 @@
  *   Edit ops produce effects that instruct the runtime to perform repo mutations.
  *   The reducer itself remains pure — no side effects, no async.
  *
- * See docs/design/tea-state-machines.md for the full TEA vision.
+ * See docs/design/tea.md for the full TEA vision.
  */
 
 import type { KNode, TaskStatus } from "@km/core"

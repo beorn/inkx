@@ -388,7 +388,7 @@ O5 (Explicit Node/Text Mode) is now implemented:
 
 - KM TUI has inline text editing in both board view and detail pane (Enter/i to edit, Escape to exit)
 
-- Node mode vs text edit mode is the core interaction model (see docs/keybindings-v2.md)
+- Node mode vs text edit mode is the core interaction model (see docs/design/input.md)
 
 ### Patterns NOT to Adopt
 

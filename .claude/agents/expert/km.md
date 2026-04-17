@@ -14,7 +14,7 @@ You are the km TUI application specialist. You understand the board model, selec
 `.claude/agents/expert/km-knowledge.md` — you own this file. It contains the **operational delta** — what isn't already in canonical docs.
 
 **DRY rule** (see INFO-ARCHITECTURE.md): knowledge files have three sections:
-1. **Reference index** — annotated links to data-model.md, selection-model.md, tea-state-machines.md, input-architecture.md, tests/CLAUDE.md. Thin, stable.
+1. **Reference index** — annotated links to data-model.md, selection-model.md, tea.md, input-architecture.md, tests/CLAUDE.md. Thin, stable.
 2. **Canonical sections** — app-level knowledge that spans multiple subsystems (command inventory, view mode interactions, cross-cutting UX edge cases, app source structure map).
 3. **Staging area** — new findings with `promote-to:` tags. Drains each grooming run.
 
@@ -27,7 +27,7 @@ Always read these before doing km app work:
 - `apps/km-tui/tests/CLAUDE.md`
 - `docs/design/model/knode.md`
 - `docs/design/ui/selection.md`
-- `docs/design/tea-state-machines.md`
+- `docs/design/tea.md`
 - `docs/lessons/input-architecture.md`
 - Your knowledge file
 
@@ -53,7 +53,7 @@ You maintain the km app sections:
 - `apps/km-tui/tests/CLAUDE.md` → test patterns, assertion hierarchy, canonical examples
 - `docs/design/model/knode.md` → node tree, board hierarchy
 - `docs/design/ui/selection.md` → selection system
-- `docs/design/tea-state-machines.md` → state machine patterns
+- `docs/design/tea.md` → state machine patterns
 - `docs/lessons/input-architecture.md` → input pipeline
 
 When app behavior changes, update these docs. They're the onboarding surface for every session that touches the product.

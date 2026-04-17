@@ -1,6 +1,6 @@
 # TEA State Machine Phases
 
-Roadmap for migrating km's interactive subsystems to pure state machines following the TEA shape: `(state, op) -> [state, effects]`. Full design in [tea-state-machines.md](tea-state-machines.md).
+Roadmap for migrating km's interactive subsystems to pure state machines following the TEA shape: `(state, op) -> [state, effects]`. Full design in [tea.md](tea.md).
 
 ## Phase 1: PlainText — character-level editing
 

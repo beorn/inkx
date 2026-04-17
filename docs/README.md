@@ -96,7 +96,7 @@ km init                    # Enable persistence (stable IDs, history)
 | Doc                                                                          | Description                                              |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------- |
 | [design/ui/selection.md](design/ui/selection.md)                       | Selection model — reactive signals, gestures, Selection.*/Selecting.* |
-| [design/tea-state-machines.md](design/tea-state-machines.md)                 | TEA state machine architecture (`(state, op) -> [state, effects]`) |
+| [design/tea.md](design/tea.md)                 | TEA state machine architecture (`(state, op) -> [state, effects]`) |
 | [design/phases.md](design/phases.md)                                         | TEA migration roadmap (phase status and key files)       |
 | [design/model/knode.md](design/model/knode.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
 | [design/ui/layout.md](design/ui/layout.md)                           | Outliner editing operations (split, indent, merge)       |

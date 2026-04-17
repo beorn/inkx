@@ -10,7 +10,7 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 
 1. [`docs/design/model/knode.md`](../../docs/design/model/knode.md) — KNode, items vs blocks, board hierarchy (column/card/sub-item roles are **positional**, not typed)
 2. [`docs/design/ui/selection.md`](../../docs/design/ui/selection.md) — canonical selection semantics, `Selection.nodes(ctx)`, multi-select contracts
-3. [`docs/design/tea-state-machines.md`](../../docs/design/tea-state-machines.md) — the TEA pattern every km state machine follows
+3. [`docs/design/tea.md`](../../docs/design/tea.md) — the TEA pattern every km state machine follows
 4. [`docs/design/ui/visibility.md`](../../docs/design/ui/visibility.md) and [`docs/design/visual-navigation.md`](../../docs/design/visual-navigation.md) — how folding and view modes interact with cursor movement
 
 **Do NOT reimplement:**

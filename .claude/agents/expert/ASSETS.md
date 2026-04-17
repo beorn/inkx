@@ -25,7 +25,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 - `docs/glossary.md` — terminology definitions
 - `docs/principles.md` — code style, patterns, design philosophy
 - `docs/design/model/knode.md` — co-owned with km agent
-- `docs/design/tea-state-machines.md` — co-owned with km agent
+- `docs/design/tea.md` — co-owned with km agent
 - `docs/lessons/*.md` — postmortems + learnings
 - `.claude/agents/expert/arch-knowledge.md` — deep reference
 
@@ -59,7 +59,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 - `apps/km-tui/tests/CLAUDE.md` — test patterns, assertion hierarchy
 - `docs/design/model/knode.md` — co-owned with arch agent
 - `docs/design/ui/selection.md` — selection system
-- `docs/design/tea-state-machines.md` — co-owned with arch agent
+- `docs/design/tea.md` — co-owned with arch agent
 - `docs/lessons/input-architecture.md` — input pipeline
 - `docs/lessons/reproduce-first.md` — debugging methodology
 - `.claude/agents/expert/km-knowledge.md` — deep reference

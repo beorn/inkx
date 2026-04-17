@@ -179,5 +179,5 @@ The user correctly identified: two undo systems is two too many. Every undo-awar
 - [Worktree Discipline](worktree-discipline.md) — why uncommitted worktree work gets lost
 - [Refactoring Lessons](refactoring.md) — migration patterns (break intentionally, purge aggressively)
 - [Reproduce First](reproduce-first.md) — verify with real data before theorizing
-- [docs/design/tea-state-machines.md](../design/tea-state-machines.md) — the pure state machine architecture
+- [docs/design/tea.md](../design/tea.md) — the pure state machine architecture
 - [docs/design/ui/selection.md](../design/ui/selection.md) — the selection model specification

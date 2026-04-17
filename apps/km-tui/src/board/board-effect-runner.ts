@@ -7,7 +7,7 @@
  * The reducer is pure (state, op) → {state, effects}. This module is the
  * impure boundary that executes those effects against the runtime.
  *
- * See docs/design/tea-state-machines.md for the TEA vision.
+ * See docs/design/tea.md for the TEA vision.
  */
 
 import type { ID } from "@silvery/selection"
