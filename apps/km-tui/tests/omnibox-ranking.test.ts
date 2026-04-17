@@ -15,12 +15,7 @@
 import { describe, expect, it } from "vitest"
 import type { KNode } from "@km/core"
 import { parseQuery } from "../src/state/omnibox-query-parser.ts"
-import {
-  rankResults,
-  highlightMatches,
-  stickySelectedIndex,
-  type RankCandidate,
-} from "../src/state/omnibox-ranker.ts"
+import { rankResults, highlightMatches, stickySelectedIndex, type RankCandidate } from "../src/state/omnibox-ranker.ts"
 
 // ----------------------------------------------------------------------------
 // Fixture helpers
@@ -107,27 +102,18 @@ describe("ranker — tiered smart ranking", () => {
 // ----------------------------------------------------------------------------
 describe("ranker — field weighting (title > parent > path)", () => {
   it("title match outranks equivalent parent-context match", () => {
-    const cands = [
-      mkCand("p", "unrelated", { parentContext: "foo bar baz" }),
-      mkCand("t", "foo bar baz"),
-    ]
+    const cands = [mkCand("p", "unrelated", { parentContext: "foo bar baz" }), mkCand("t", "foo bar baz")]
     // Title is 1.0× vs parent 0.8× — title wins.
     expect(ranked("foo", cands)[0]).toBe("t")
   })
 
   it("falls back to parent when title doesn't match", () => {
-    const cands = [
-      mkCand("p", "no-match-here", { parentContext: "foo" }),
-      mkCand("none", "unrelated"),
-    ]
+    const cands = [mkCand("p", "no-match-here", { parentContext: "foo" }), mkCand("none", "unrelated")]
     expect(ranked("foo", cands)).toEqual(["p"])
   })
 
   it("falls back to path when neither title nor parent match", () => {
-    const cands = [
-      mkCand("p", "no-match", { parentContext: "also-no", path: "a/foo/b" }),
-      mkCand("none", "unrelated"),
-    ]
+    const cands = [mkCand("p", "no-match", { parentContext: "also-no", path: "a/foo/b" }), mkCand("none", "unrelated")]
     expect(ranked("foo", cands)).toEqual(["p"])
   })
 })
@@ -280,9 +266,7 @@ describe("highlightMatches", () => {
   })
 
   it("highlights a phrase match literally", () => {
-    expect(highlightMatches("new project kickoff", parseQuery('"new project"'))).toEqual([
-      { start: 0, end: 11 },
-    ])
+    expect(highlightMatches("new project kickoff", parseQuery('"new project"'))).toEqual([{ start: 0, end: 11 }])
   })
 
   it("merges overlapping spans from multiple terms", () => {

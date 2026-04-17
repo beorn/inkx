@@ -334,10 +334,11 @@ export function rankResults(
 
 function passesSigilFilter(node: KNode, q: ParsedQuery): boolean {
   if (!q.sigil) return true
-  // Sigil scoping is coarse in v1: `@`, `#`, `+`, `[` pre-filter candidates
-  // by the leading char of their display text. Callers that source a pre-
-  // filtered candidate pool (picker-loaders) can leave the sigil as a hint
-  // only; the check here is defensive.
+  // `[` = regular nodes only (exclude tasks). The parser already consumes
+  // bracket task-filters (`[]`, `[x]`, etc.) into `q.taskFilter`, so sigil
+  // `[` only reaches here for bare `[` or `[foo`-shaped queries.
+  if (q.sigil === "[") return node.item?.task == null
+  // Other sigils (@#+) prefix-match the node's display text.
   const txt = nodeDisplayText(node)
   if (!txt) return true
   return txt.startsWith(q.sigil)

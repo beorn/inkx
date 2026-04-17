@@ -25,12 +25,36 @@ import { modeOf } from "../state/omnibox.ts"
 // =============================================================================
 
 const PREFIX_GUIDE: ReadonlyArray<readonly [sigil: string, label: string]> = [
+  ["(none)", "search everything"],
   [":", "commands"],
   ["+", "projects"],
   ["@", "contexts"],
   ["#", "tags"],
+  ["[", "regular nodes (no tasks)"],
   ["/", "find on screen"],
 ]
+
+const TASK_BRACKETS: ReadonlyArray<readonly [bracket: string, label: string]> = [
+  ["[]", "any task"],
+  ["[ ]", "todo"],
+  ["[/]", "wip"],
+  ["[!]", "blocked"],
+  ["[x]", "done"],
+  ["[-]", "dropped"],
+]
+
+const GUIDE_SIGIL_WIDTH = 8
+
+function GuideRow({ sigil, label }: { sigil: string; label: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row">
+      <Box width={GUIDE_SIGIL_WIDTH}>
+        <Text color="$muted">{sigil}</Text>
+      </Box>
+      <Text>{label}</Text>
+    </Box>
+  )
+}
 
 /** Shown inside the omnibox when the buffer is empty and no sigil is set. */
 function PrefixGuide(): React.ReactElement {
@@ -39,12 +63,15 @@ function PrefixGuide(): React.ReactElement {
       <Small>PREFIXES</Small>
       <Box flexDirection="column" marginTop={1}>
         {PREFIX_GUIDE.map(([sigil, label]) => (
-          <Box key={sigil} flexDirection="row">
-            <Box width={3}>
-              <Text color="$muted">{sigil}</Text>
-            </Box>
-            <Text>{label}</Text>
-          </Box>
+          <GuideRow key={sigil} sigil={sigil} label={label} />
+        ))}
+      </Box>
+      <Box marginTop={1}>
+        <Small>TASKS</Small>
+      </Box>
+      <Box flexDirection="column" marginTop={1}>
+        {TASK_BRACKETS.map(([bracket, label]) => (
+          <GuideRow key={bracket} sigil={bracket} label={label} />
         ))}
       </Box>
     </Box>

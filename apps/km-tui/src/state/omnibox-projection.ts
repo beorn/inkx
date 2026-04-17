@@ -153,28 +153,68 @@ const NODE_RESULT_LIMIT = 12
 
 /**
  * Project FTS5 search results to `OmniboxRowData` for the unified omnibox.
- * Thin wrapper over `repo.search()` — all the ranking lives in the SQL
- * query (see the storage module for BM25 column weights and the sigil
- * tokenchars config that make this work).
+ * Thin wrapper over `repo.search()` — all the text ranking lives in the
+ * SQL query (BM25 column weights + sigil-aware tokenization). JS-side we
+ * do only post-filters that FTS doesn't express:
  *
- * Why so thin? Because FTS5's `bm25(table, ...weights)` already gives us:
- *   - Identity bias (name > title > content via weights)
- *   - Sigil-preserving tokenization (`tokenchars='@#+~'`)
- *   - Depth tie-break (slash count in fs_path, done in SQL)
- *   - BM25 scoring for term frequency / rarity / length normalization
+ *   - `[`-sigil (node mode) → drop tasks (`node.item?.task != null`)
+ *   - bracket task-filter (`[]`, `[x]`, `[ ]`, `[/]`, `[!]`, `[-]`) →
+ *     keep only tasks with the matching status
  *
- * Any JS post-pass here would be reimplementing what BM25 already does
- * better, so we don't. Mode dispatch remains: `command` / `local_find` /
- * `universal` are handled elsewhere (or not at all for v1).
+ * Modes this function does NOT handle (caller dispatches elsewhere):
+ *   - `command` — commandResultsForOmnibox owns the registry projection
+ *   - `local_find` — Phase 9's in-pane find chrome owns that surface
+ *
+ * Universal mode (no sigil, non-empty buffer) does unrestricted FTS —
+ * the caller typically merges these rows with command-search results to
+ * produce the "search everything" experience.
  */
 export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigilMode: OmniboxMode): OmniboxRowData[] {
-  // Modes the node projection deliberately doesn't handle.
-  if (sigilMode === "command" || sigilMode === "local_find" || sigilMode === "universal") {
-    return []
-  }
+  if (sigilMode === "command" || sigilMode === "local_find") return []
   if (!query) return []
 
-  // FTS5 does the ranking. We just forward and project.
-  const nodes = repo.search(query, NODE_RESULT_LIMIT)
-  return nodes.map((n) => nodeToRow(n))
+  const parsed = parseQuery(query)
+
+  // FTS query string: drop the leading sigil + any bracket-task prefix the
+  // parser consumed. Whatever's left is the free-text that FTS should match.
+  // For pure sigil buffers (e.g. `[`, `@`, `[]`), fall back to the raw
+  // buffer so FTS still has something to tokenize (BM25 on "[" alone is
+  // empty — we instead return all nodes when the only content is the sigil).
+  let fts: KNode[]
+  const trimmed = parsed.raw.trim()
+  const hasSearchText = parsed.terms.length > 0
+  if (hasSearchText) {
+    // Join positive terms for FTS. Phrase terms get quoted; negated and v1.1
+    // kinds fall back to the raw value.
+    const ftsQuery = parsed.terms
+      .filter((t) => !t.negated)
+      .map((t) => (t.kind === "phrase" ? `"${t.value}"` : t.value))
+      .join(" ")
+    fts = ftsQuery ? repo.search(ftsQuery, NODE_RESULT_LIMIT * 2) : []
+  } else if (parsed.sigil || parsed.taskFilter) {
+    // Sigil/task-filter only (e.g. `[`, `[]`, `[x]`) — we need every
+    // candidate the post-filter can keep. Ask FTS for a fat slice.
+    fts = repo.search(trimmed || "", NODE_RESULT_LIMIT * 4)
+  } else {
+    fts = []
+  }
+
+  const filtered = fts.filter((n) => {
+    // `[`-sigil: exclude tasks
+    if (parsed.sigil === "[" && n.item?.task != null) return false
+    // Other sigils (@#+): prefix-match display text
+    if (parsed.sigil && parsed.sigil !== "[") {
+      const txt = n.name ?? n.content ?? ""
+      if (!txt.startsWith(parsed.sigil)) return false
+    }
+    // Bracket task filter: keep only tasks with matching status
+    if (parsed.taskFilter) {
+      const status = n.item?.task?.status
+      if (status === undefined) return false
+      if (parsed.taskFilter !== "any" && status !== parsed.taskFilter) return false
+    }
+    return true
+  })
+
+  return filtered.slice(0, NODE_RESULT_LIMIT).map((n) => nodeToRow(n))
 }

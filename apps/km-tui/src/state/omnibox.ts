@@ -13,25 +13,24 @@
  */
 
 /** Sigil-dispatched search mode, derived from the leading char of the buffer. */
-export type OmniboxMode = "command" | "context" | "tag" | "project" | "local_find" | "universal"
+export type OmniboxMode = "command" | "context" | "tag" | "project" | "node" | "local_find" | "universal"
 
 /**
  * Canonical sigil → mode map. Matches docs/design/omnibox.md.
  *
- * Note: `[` is NOT a sigil. It's the task-filter bracket (`[x]`, `[ ]`,
- * `[/]`, `[-]`, `[.]`, `[]`) and the wikilink delimiter (`[[...]]`).
- * Treating it as a search-mode sigil would conflict with both. The parser
- * in `omnibox-parse.ts` handles `[` as a task-filter / wikilink anchor.
- *
- * Universal `[search]` node queries still work — they just don't get a
- * dedicated sigil mode. The `+`/`@`/`#` sigils cover the typed-identity
- * use case; anything else is universal fuzzy over all node names/titles.
+ * `[` means "regular nodes (non-tasks) only". The parser additionally
+ * recognizes bracket-task forms (`[]`, `[ ]`, `[x]`, `[/]`, `[!]`, `[-]`)
+ * at the start of the buffer and sets `ParsedQuery.taskFilter` — those
+ * don't conflict with the `[`-sigil because the parser consumes the
+ * bracket token first. Typing a bare `[` (or `[foo`) remains in node
+ * mode and is resolved to the non-task filter in `passesSigilFilter`.
  */
 export const SIGIL_MODES: Readonly<Record<string, OmniboxMode>> = Object.freeze({
   ":": "command",
   "@": "context",
   "#": "tag",
   "+": "project",
+  "[": "node",
   "/": "local_find",
 })
 

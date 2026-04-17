@@ -52,9 +52,9 @@ describe("modeOf", () => {
   it("+ → project", () => {
     expect(modeOf("+km")).toBe("project")
   })
-  it("[ is NOT a sigil (universal mode) — it's the task-filter / wikilink bracket", () => {
-    expect(modeOf("[foo")).toBe("universal")
-    expect(modeOf("[x]")).toBe("universal")
+  it("[ → node (regular nodes only; bracket-task forms handled by parser)", () => {
+    expect(modeOf("[foo")).toBe("node")
+    expect(modeOf("[x]")).toBe("node") // parser disambiguates to taskFilter inside nodeResultsForOmnibox
   })
   it("/ → local_find", () => {
     expect(modeOf("/todo")).toBe("local_find")
@@ -62,8 +62,8 @@ describe("modeOf", () => {
   it("unknown leading char → universal", () => {
     expect(modeOf("foo")).toBe("universal")
   })
-  it("SIGIL_MODES has 5 canonical entries (no [)", () => {
-    expect(Object.keys(SIGIL_MODES)).toEqual([":", "@", "#", "+", "/"])
+  it("SIGIL_MODES has 6 canonical entries including [", () => {
+    expect(Object.keys(SIGIL_MODES)).toEqual([":", "@", "#", "+", "[", "/"])
   })
 })
 

@@ -313,12 +313,7 @@ describe("TUI Fuzz Tests", () => {
       checkViewModeInvariants(after, key, before)
 
       // View mode specific: v should cycle when not in dialog
-      if (
-        key === "v" &&
-        !before.dialogs.search &&
-        !before.dialogs.help &&
-        !before.dialogs.newItem
-      ) {
+      if (key === "v" && !before.dialogs.search && !before.dialogs.help && !before.dialogs.newItem) {
         expect(after.viewMode, "View mode should change after v").not.toBe(before.viewMode)
       }
     }

@@ -238,23 +238,33 @@ function UnifiedOmniboxConnector({
     const buffer = pane.state.buffer
     const mode = modeOf(buffer)
     let rows: OmniboxRowData[]
-    if (mode === "command" || buffer.length === 0) {
-      const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore> | null
-      if (!store) return []
-      const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
-      const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
-      const query = mode === "command" ? buffer.slice(1) : ""
-      const projected = commandResultsForOmnibox(
-        allCommands,
-        kbCtx,
-        query,
-        "normal",
-        getRecentsStore().getCommandBoost(),
-      )
-      rows = buffer.length === 0 ? projected.slice(0, 12) : projected
+    const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore> | null
+    const kbCtx = store
+      ? buildKeybindingContextFromOpCtx(defaultBuildOpCtx(store.getState.bind(store), () => {}))
+      : null
+    const commandBoost = getRecentsStore().getCommandBoost()
+
+    if (!store || !kbCtx) {
+      rows = []
+    } else if (buffer.length === 0) {
+      // Empty buffer: PrefixGuide carries the UX; we seed results with a
+      // short list of MRU commands so explicit openOmnibox callers (shift-m,
+      // item_picker, etc.) have something to pick from while they type.
+      rows = commandResultsForOmnibox(allCommands, kbCtx, "", "normal", commandBoost).slice(0, 12)
+    } else if (mode === "command") {
+      // `:foo` — command palette only.
+      rows = commandResultsForOmnibox(allCommands, kbCtx, buffer.slice(1), "normal", commandBoost)
+    } else if (mode === "universal") {
+      // No prefix + text — search everything: commands fuzzy, nodes FTS.
+      // Commands first so "goto <node>"-style actions surface above any
+      // content match with the same token.
+      const commandRows = commandResultsForOmnibox(allCommands, kbCtx, buffer, "normal", commandBoost)
+      const nodeRows = nodeResultsForOmnibox(repo, buffer, "universal")
+      rows = [...commandRows, ...nodeRows]
     } else {
-      // Content sigils (+ @ # ~) and the bare `node` mode dispatch through
-      // node search. local_find returns empty here — Phase 9 owns that surface.
+      // Sigil modes (+ @ # [) and bracket task filters (`[]`, `[x]`, ...)
+      // dispatch through node search. local_find returns empty here — Phase 9
+      // owns the find-bar surface.
       rows = nodeResultsForOmnibox(repo, buffer, mode)
     }
     // Decorate command rows with their keybinding hint. Node rows fall through

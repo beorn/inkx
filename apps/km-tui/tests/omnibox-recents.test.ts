@@ -13,10 +13,7 @@ import { createRecentsStore, RECENCY_PEAK, RECENCY_DECAY_MS } from "../src/state
 import { parseQuery } from "../src/state/omnibox-query-parser.ts"
 import { rankResults, type RankCandidate } from "../src/state/omnibox-ranker.ts"
 import { rankCommands } from "../src/state/omnibox-projection.ts"
-import {
-  initialStateFromSpec,
-  type OmniboxInvocationSpec,
-} from "../src/state/omnibox.ts"
+import { initialStateFromSpec, type OmniboxInvocationSpec } from "../src/state/omnibox.ts"
 
 // ---------------------------------------------------------------------------
 // Fixtures
