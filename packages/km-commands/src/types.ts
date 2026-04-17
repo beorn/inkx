@@ -358,7 +358,7 @@ interface ClearFiltersOp {
 /**
  * Open the unified omnibox overlay.
  *
- * Dispatched by `command_palette` (Cmd+K / Ctrl+K / `:`). The TUI-side
+ * Dispatched by `open_omnibox` (Cmd+K / Ctrl+K) or `command_palette` (`:`). The TUI-side
  * handler in board-actions.ts builds an OmniboxInvocationSpec from the
  * current focused pane (cursor as subject, repo top-level nodes as
  * candidate provider) and calls `openOmnibox(setUI, spec)`.

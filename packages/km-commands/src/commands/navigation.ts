@@ -257,12 +257,23 @@ const filter = {
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
-// Command palette — canonical entry to the unified omnibox
+// Open the unified omnibox in universal mode (no prefix — shows the
+// prefix guide on empty buffer).
+const openOmnibox = {
+  id: "open_omnibox",
+  name: "Open Omnibox",
+  shortLabel: "omnibox",
+  description: "Open the unified omnibox (search everything)",
+  category: "Navigation",
+  execute: () => ({ type: "OPEN_UNIFIED_OMNIBOX", initialBuffer: "" }),
+} satisfies CommandDef
+
+// Open the unified omnibox pre-seeded with ':' — command palette mode.
 const commandPalette = {
   id: "command_palette",
   name: "Command Palette",
   shortLabel: "palette",
-  description: "Open command palette / omnibox",
+  description: "Open the unified omnibox in command mode (':')",
   category: "Navigation",
   execute: () => ({ type: "OPEN_UNIFIED_OMNIBOX", initialBuffer: ":" }),
 } satisfies CommandDef
@@ -351,6 +362,7 @@ export const navigationCommands: CommandDef[] = [
   openInSystem,
   openInTerminal,
   filter,
+  openOmnibox,
   commandPalette,
   goto,
   blockNavDown,

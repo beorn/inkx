@@ -530,8 +530,10 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       bindings: [
         { key: "`", commandId: "console.toggle" },
         { key: "ctrl-t", commandId: "task_dialog" },
-        { key: "ctrl-k", commandId: "command_palette", when: not(textInputFocused) },
-        { key: "cmd-k", commandId: "command_palette" },
+        // Cmd-k / Ctrl-k open the omnibox without any prefix — universal
+        // mode, shows the PrefixGuide on empty buffer.
+        { key: "ctrl-k", commandId: "open_omnibox", when: not(textInputFocused) },
+        { key: "cmd-k", commandId: "open_omnibox" },
       ],
     },
 
@@ -653,7 +655,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ctrl-w", commandId: "text.delete_word", when: textInputFocused },
         { key: "ctrl-u", commandId: "text.delete_to_start", when: textInputFocused },
         { key: "ctrl-k", commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
-        { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
+        { key: "ctrl-k", commandId: "open_omnibox", when: and(textInputFocused, not(hasKitty)) },
 
         // Enter — inline edit: cursor-position-aware behavior
         // Title: start → insert before, middle → split, end → child or sibling

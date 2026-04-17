@@ -116,7 +116,8 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["⌘⇧f"], command: "search_replace", description: "find & replace" },
       { keys: ["C", "c i", "⌘n"], command: "capture_dialog", description: "capture" },
-      { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
+      { keys: ["⌃k", "⌘k"], command: "open_omnibox", description: "open omnibox (search everything)" },
+      { keys: [":"], command: "command_palette", description: "command palette (':' prefix)" },
       { keys: ["/", "⌘f"], command: "local_find", description: "find on screen" },
       { keys: ["n / N", "⌃n/p"], command: "find_next", description: "find next / prev" },
       { keys: ["?"], command: "show_help", description: "help" },

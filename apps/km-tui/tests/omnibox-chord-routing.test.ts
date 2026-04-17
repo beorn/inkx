@@ -52,7 +52,7 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
   // Chords that ARE routed through openOmnibox today
   // -----------------------------------------------------------------------
 
-  it("cmd-k opens omnibox with buffer=':' and defaultCommand='default'", () => {
+  it("cmd-k opens omnibox with EMPTY buffer (universal mode — PrefixGuide)", () => {
     using app = standardBoard()
     expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
 
@@ -60,18 +60,18 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
 
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
-    expect(pane!.state.buffer).toBe(":")
+    expect(pane!.state.buffer).toBe("")
     expect(pane!.state.defaultCommand).toBe("default")
     expect(pane!.spec.anchorPaneId).toBeTruthy()
     app.expect("[data-dialog='unified-omnibox']").toExist()
   })
 
-  it("ctrl-k opens omnibox with buffer=':' (kitty-less / text-input paths share the binding)", () => {
+  it("ctrl-k opens omnibox with EMPTY buffer (kitty-less / text-input paths share the binding)", () => {
     using app = standardBoard()
     app.press("ctrl+k")
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
-    expect(pane!.state.buffer).toBe(":")
+    expect(pane!.state.buffer).toBe("")
     expect(pane!.state.defaultCommand).toBe("default")
   })
 
@@ -114,7 +114,7 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
     app.press("cmd+k")
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
-    expect(pane!.state.buffer).toBe(":")
+    expect(pane!.state.buffer).toBe("")
   })
 
   it("omnibox anchor pane id is captured from the focused pane at open time", () => {

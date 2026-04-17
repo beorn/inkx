@@ -496,8 +496,8 @@ describe("initDefaultKeybindings", () => {
     ["u", { ctrl: true }, "page_up"],
     // Sibling board navigation (Ctrl+J)
     ["j", { ctrl: true }, "sibling_board_next"],
-    // Ctrl+K → command_palette (global layer 2, higher priority than sibling_board_prev)
-    ["k", { ctrl: true }, "command_palette"],
+    // Ctrl+K → open_omnibox (global layer 2, higher priority than sibling_board_prev)
+    ["k", { ctrl: true }, "open_omnibox"],
     // z = zoom_inwards (one level closer to cursor)
     ["z", {}, "zoom_inwards"],
   ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
@@ -1290,9 +1290,9 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("u", { ctrl: true }, inlineCtx)).toEqual({ commandId: "text.delete_to_start" })
     })
 
-    it("Ctrl+k → text.delete_to_end (with Kitty) or command_palette (without)", () => {
+    it("Ctrl+k → text.delete_to_end (with Kitty) or open_omnibox (without)", () => {
       // Without Kitty: Ctrl+K overrides emacs to open omnibox
-      expect(resolveKeybinding("k", { ctrl: true }, inlineCtx)).toEqual({ commandId: "command_palette" })
+      expect(resolveKeybinding("k", { ctrl: true }, inlineCtx)).toEqual({ commandId: "open_omnibox" })
       // With Kitty: Ctrl+K keeps emacs kill-line (Cmd+K available for omnibox)
       const kittyCtx = createContext({ isInlineEditing: true, textInputFocused: true, hasKitty: true })
       expect(resolveKeybinding("k", { ctrl: true }, kittyCtx)).toEqual({ commandId: "text.delete_to_end" })
@@ -1397,8 +1397,8 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expectKey("n", "capture_dialog", sup)
     })
 
-    it("Cmd+k → command_palette (unified omnibox)", () => {
-      expectKey("k", "command_palette", sup)
+    it("Cmd+k → open_omnibox (unified omnibox, no prefix)", () => {
+      expectKey("k", "open_omnibox", sup)
     })
 
     it("Cmd+h → focus_board", () => {
@@ -1470,8 +1470,8 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expect(result).toBeNull()
     })
 
-    it("Cmd+k resolves to command_palette (global layer)", () => {
-      expectKey("k", "command_palette", sup)
+    it("Cmd+k resolves to open_omnibox (global layer)", () => {
+      expectKey("k", "open_omnibox", sup)
     })
 
     it("Option+h/l still shift nodes (Alt fallback)", () => {
