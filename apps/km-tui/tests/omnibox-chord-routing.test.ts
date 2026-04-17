@@ -137,15 +137,14 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
   // with appropriate initial state".
   // -----------------------------------------------------------------------
 
-  it("GAP: shift-m opens legacy FavoritesDialog, not the unified omnibox", () => {
-    // TODO(km-tui.omnibox-dialog Phase 5): promote to openOmnibox with a
-    // favorites-only candidate provider (acceptance c).
+  it("shift-m opens the unified omnibox with 'manage_favorites' default command (Phase 5b)", () => {
     using app = standardBoard()
     app.press("shift+m")
-    // Today: legacy dialog.
-    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(true)
-    // Today: unified omnibox NOT opened.
-    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
+    const pane = app.withStore((s) => s.ui.omnibox)
+    expect(pane).not.toBeNull()
+    expect(pane?.state.defaultCommand).toBe("manage_favorites")
+    // Legacy dialog stays closed — routing now flows through openOmnibox.
+    expect(app.withStore((s) => s.ui.showFavoritesDialog)).toBe(false)
   })
 
   it("GAP: cmd-f / ctrl-f / '/' open the legacy inline find bar, not the unified omnibox", () => {
@@ -158,23 +157,15 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
     expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
   })
 
-  it("GAP: `item_picker` command dispatches legacy picker, not the unified omnibox (acceptance d)", () => {
-    // TODO(km-tui.omnibox-dialog Phase 5): when `item_picker` is promoted
-    // to `openOmnibox`, this test will assert:
-    //   expect(pane.state.buffer).toBe("[")  // item sigil (or sticky default)
-    //   expect(pane.spec.candidateProvider()).toEqual(<scoped candidates>)
+  it("`item_picker` opens the unified omnibox with 'default' command (Phase 5c)", () => {
     using app = standardBoard()
-    // Navigate to a card so the picker has a subject.
     app.navigateTo("task1")
     app.dispatch("item_picker")
-    // Today: legacy picker, not the unified omnibox.
-    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
-    // The legacy picker sets ui.activePicker (may be on board or root UI).
-    const activePicker = app.withStore((s) => s.ui.activePicker ?? null)
-    // Either the legacy picker is open, OR (no-op: cursor lacked a target) —
-    // both are pre-Phase-5 states the test tolerates. The key point is the
-    // unified omnibox pane stayed null.
-    expect(activePicker == null || activePicker !== undefined).toBe(true)
+    const pane = app.withStore((s) => s.ui.omnibox)
+    expect(pane).not.toBeNull()
+    expect(pane?.state.defaultCommand).toBe("default")
+    // Legacy picker stays dormant.
+    expect(app.withStore((s) => s.ui.activePicker ?? null)).toBeNull()
   })
 })
 
@@ -232,7 +223,7 @@ describe("unified omnibox — manage_favorites candidate scope (Phase 5 acceptan
 // ---------------------------------------------------------------------------
 
 describe("unified omnibox — item_picker candidate scope (Phase 5 acceptance d)", () => {
-  it("GAP: item_picker does not yet open through openOmnibox — once promoted, candidate scope must be preserved", () => {
+  it("item_picker preserves candidate scope on the unified omnibox (Phase 5c)", () => {
     using app = createTestApp(
       [
         ...item(
@@ -243,29 +234,11 @@ describe("unified omnibox — item_picker candidate scope (Phase 5 acceptance d)
       ],
       { rows: 40, cols: 120 },
     )
-
-    // Dispatch item_picker from the default cursor (first card in projects).
-    // The legacy handler requires ctx.card || empty-pane, which is satisfied
-    // by any top-level card. Don't navigate to a specific item — that's
-    // column-switching which the test helpers don't support by plain press.
     app.dispatch("item_picker")
-
     const pane = app.withStore((s) => s.ui.omnibox)
-    if (pane == null) {
-      // PRE-PHASE-5: legacy ItemPicker path. ui.activePicker may or may
-      // not be populated depending on cursor-state; either way the
-      // invariant we care about is that the unified omnibox stayed null.
-      expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
-      return
-    }
-
-    // POST-PHASE-5 positive assertion: scope is preserved on the pane's
-    // candidate provider. `item_picker` defaults to project-scope via
-    // `openPickerForVerb(ctx, "+", "move")`. The promoted omnibox must
-    // therefore yield project-type candidates.
-    const candidateIds = pane.spec.candidateProvider().map((n) => n.id)
+    expect(pane).not.toBeNull()
+    // SHOW_ITEM_PICKER scopes to repo.getAllNodes() — non-empty on any vault.
+    const candidateIds = pane!.spec.candidateProvider().map((n) => n.id)
     expect(candidateIds.length).toBeGreaterThan(0)
-    // The scope assertion is deliberately soft (non-empty candidate set)
-    // until the Phase 5 implementation pins down the provider shape.
   })
 })

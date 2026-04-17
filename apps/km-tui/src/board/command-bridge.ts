@@ -89,7 +89,10 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     inSearchMode: ui.showSearchDialog,
     inInputMode: dialogInput || ui.showFilterDialog,
     hasMultiSelection: ctx.selectedIds.size > 0,
-    isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
+    isInDetailPane:
+      ctx.focusManager != null &&
+      ctx.focusManager.activeScopeId !== null &&
+      isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: CursorDepth.isOutline(
       CursorDepth.derive({
         cursor: ctx.cursor,
@@ -117,7 +120,7 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
-    activeScopes: ctx.focusManager.scopeStack,
+    activeScopes: ctx.focusManager?.scopeStack ?? [],
     inputType: ctx.sel.text() ? "textarea" : dialogInput ? "field" : undefined,
     editBlockIndex: ctx.textEditHints?.blockIndex,
     cursorAtStart() {
