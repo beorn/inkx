@@ -36,21 +36,25 @@ const DEFAULT_PROFILE_ROOT = join(homedir(), ".config", "claude-profiles")
 
 /**
  * Items under ~/.claude/ that stay per-profile (identity-bound state).
- * Everything else is symlinked into every profile — share-by-default.
- *
- * Why a denylist instead of an allowlist: Claude Code grows new state dirs
- * (`session-env/`, `tasks/`, `file-history/`, `plans/`, …) over time, and an
- * allowlist silently misses them until something breaks. The canonical
- * example: `session-env/<uuid>/` is the per-session marker that `--resume`
- * scans to decide which sessions to offer. When it wasn't shared, sessions
- * started under one profile were invisible to `--resume` from another profile
- * even though the transcript (`projects/…/<uuid>.jsonl`) was right there.
- *
- * The denylist is small and stable: only genuinely identity-bound state
- * belongs here. `.credentials.json` is per-identity by definition (though
- * Claude Code normally uses Keychain). `statsig/` is identity-bound analytics.
+ * Denylist instead of allowlist so future dirs Claude Code adds are shared
+ * by default — an allowlist silently misses them until a feature breaks.
  */
-const PER_PROFILE_ITEMS = new Set<string>([".credentials.json", "statsig"])
+const IDENTITY_BOUND_ITEMS = new Set<string>([".credentials.json", "statsig"])
+
+/** Yield every ~/.claude entry that should be shared into `profileDir`. */
+function* shareableEntries(profileDir: string): Generator<{ item: string; src: string; dst: string }> {
+  const claudeHome = join(homedir(), ".claude")
+  let entries: string[]
+  try {
+    entries = readdirSync(claudeHome)
+  } catch {
+    return
+  }
+  for (const item of entries) {
+    if (IDENTITY_BOUND_ITEMS.has(item)) continue
+    yield { item, src: join(claudeHome, item), dst: join(profileDir, item) }
+  }
+}
 
 export interface ProfileInfo {
   name: string
@@ -335,22 +339,9 @@ export async function diagnoseProfile(profile: ProfileInfo): Promise<HealthCheck
     return findings
   }
 
-  // Check symlinks: every non-denied item in ~/.claude/ should also exist
-  // (as a symlink) in the profile dir, so shared state stays shared.
-  const claudeHome = join(homedir(), ".claude")
   const missingLinks: string[] = []
   const brokenLinks: string[] = []
-  let claudeEntries: string[] = []
-  try {
-    claudeEntries = readdirSync(claudeHome)
-  } catch {
-    // no ~/.claude yet — nothing to share
-  }
-  for (const item of claudeEntries) {
-    if (PER_PROFILE_ITEMS.has(item)) continue
-    const src = join(claudeHome, item)
-    const dst = join(profile.dir, item)
-    if (!existsSync(src)) continue
+  for (const { item, dst } of shareableEntries(profile.dir)) {
     try {
       const s = lstatSync(dst)
       if (!s.isSymbolicLink()) {
@@ -740,22 +731,8 @@ export function bootstrapProfile(name: string): { dir: string; fresh: boolean; l
   const fresh = !existsSync(dir)
   if (fresh) mkdirSync(dir, { recursive: true })
 
-  const claudeHome = join(homedir(), ".claude")
   const linked: string[] = []
-
-  let entries: string[]
-  try {
-    entries = readdirSync(claudeHome)
-  } catch {
-    return { dir, fresh, linked }
-  }
-
-  for (const item of entries) {
-    if (PER_PROFILE_ITEMS.has(item)) continue
-    const src = join(claudeHome, item)
-    const dst = join(dir, item)
-    if (!existsSync(src)) continue
-
+  for (const { item, src, dst } of shareableEntries(dir)) {
     try {
       const s = lstatSync(dst)
       if (s.isSymbolicLink()) continue
