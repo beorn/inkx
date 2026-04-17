@@ -162,8 +162,7 @@ describe("unified omnibox — chord routing (Phase 5 acceptance b/g)", () => {
     const pane = app.withStore((s) => s.ui.omnibox)
     expect(pane).not.toBeNull()
     expect(pane?.state.defaultCommand).toBe("default")
-    // Legacy picker stays dormant.
-    expect(app.withStore((s) => s.ui.activePicker ?? null)).toBeNull()
+    // Legacy picker state was removed in km-tui.itempicker-unify.
   })
 })
 

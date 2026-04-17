@@ -101,7 +101,7 @@ export const rendering: Invariant = (app) => {
 
 /** Cursor exists and is valid (unless in dialog) */
 export const cursor: Invariant = (app) => {
-  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.itemPicker
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem
   if (inDialog) return
 
   expect(app.cursor, "Cursor missing").toBeDefined()
@@ -121,7 +121,7 @@ export const selection: Invariant = (app) => {
 export const cursorVisible: Invariant = (app) => {
   if (!app.nodeId) return
   // Skip when in dialog — dialogs may overlay the cursor
-  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.itemPicker
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem
   if (inDialog) return
   const node = app.repo.getNode(app.nodeId)
   if (!node) return
