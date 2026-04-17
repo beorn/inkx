@@ -1,8 +1,34 @@
 /**
- * Omnibox command projection.
+ * Omnibox command projection — single-owner adapter (Phase 3 TEA shim).
  *
  * Turns the @km/commands registry into OmniboxRowData for the unified
  * omnibox. Pure adapter: registry + query + context → rows.
+ *
+ * ## Single-owner principle
+ *
+ * Exactly ONE module owns the command → row projection: the
+ * `commandToRow` adapter in `../views/omnibox-row-adapters.ts`, invoked
+ * from here. The row renderer (`OmniboxRow`), the ranker (`rankCommands`
+ * below; future shared `rankResults` per km-tui.omnibox-ranker), and the
+ * query-syntax parser (km-tui.omnibox-query-syntax) all consume the
+ * registry through this module — no consumer imports `CommandDef`
+ * directly for display purposes.
+ *
+ * When TEA lands, this module retargets at `app.commands.*` without any
+ * consumer needing to change.
+ *
+ * ## Row-view shape, not KNode
+ *
+ * The unified row shape is `OmniboxRowData` (a view-model), not `KNode`.
+ * Commands are a registry, not user content: they have no `parent_id`,
+ * `created_at`, `data` blob, or `BlockType`. Forcing a `KNode` envelope
+ * would require fabricating structural fields the rest of the system
+ * would then have to ignore. The row view-model is the honest shape for
+ * "thing the omnibox displays" — commands and nodes both flow through
+ * it via `commandToRow` / `nodeToRow` adapters that own the domain-
+ * specific conversions.
+ *
+ * ## Availability filtering
  *
  * Filtering gates on both `def.modes` (coarse) and `def.when` (precise)
  * via `isCommandAvailable` — a single function call that honors both the
