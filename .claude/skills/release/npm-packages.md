@@ -150,3 +150,5 @@ Last updated: 2026-04-12 (63 packages)
 | ~~`@beorn/watcher-chaos`~~ | vendor/watcher-chaos/ | Internal only — NOT released, no GitHub repo |
 | `claude-tty-mcp` | vendor/bearly/plugins/tty/ | TTY testing MCP server |
 | `@bearly/lore` | vendor/bearly/plugins/lore/ | Workspace daemon MCP server — FTS-indexed session memory + focus cache + LLM summarizer + daemon-held hook dedup (private, 0.5.0). Renamed from `@bearly/bear` on 2026-04-17. |
+| `@bearly/recall` | vendor/bearly/plugins/recall/ | Session-history search primitive — FTS5 + LLM planner/agent. Consumed by `@bearly/lore` (private, 0.1.0). Extracted from tools/recall + tools/lib/history on 2026-04-17. |
+| `@bearly/llm` | vendor/bearly/plugins/llm/ | Multi-provider LLM dispatch — cheap-model race, consensus, deep research, mock for tests (private, 0.1.0). Extracted from tools/lib/llm on 2026-04-17. |
