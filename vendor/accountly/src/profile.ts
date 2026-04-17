@@ -26,9 +26,10 @@ import { getProvider } from "./providers/index.ts"
  * which gives each profile its own OAuth session — real subscription auth in
  * parallel, no /usage downgrade, full connected-MCP server support.
  *
- * Shared state (skills, settings, CLAUDE.md, memory, session index, projects,
- * todos) is symlinked from `~/.claude/` into each profile so there's no
- * duplication and updates propagate automatically.
+ * Everything under `~/.claude/` is symlinked into each profile by default;
+ * only identity-bound state (see `PER_PROFILE_ITEMS` below) stays per-profile.
+ * New dirs Claude Code adds over time are picked up automatically on the next
+ * bootstrap — no allowlist to maintain.
  */
 
 const DEFAULT_PROFILE_ROOT = join(homedir(), ".config", "claude-profiles")
@@ -49,10 +50,7 @@ const DEFAULT_PROFILE_ROOT = join(homedir(), ".config", "claude-profiles")
  * belongs here. `.credentials.json` is per-identity by definition (though
  * Claude Code normally uses Keychain). `statsig/` is identity-bound analytics.
  */
-const PER_PROFILE_ITEMS = new Set<string>([
-  ".credentials.json",
-  "statsig",
-])
+const PER_PROFILE_ITEMS = new Set<string>([".credentials.json", "statsig"])
 
 export interface ProfileInfo {
   name: string
