@@ -285,7 +285,7 @@ export async function* applyLinks(
   const links: ResolvedLink[] = []
   const embeddedUpdates: Array<{
     host_id: string
-    target_id: string
+    embed_of: string
     alias: string | null
   }> = []
 
@@ -297,7 +297,7 @@ export async function* applyLinks(
     if (link.rel === "embed" && link.embedTargetId) {
       embeddedUpdates.push({
         host_id: link.host_id,
-        target_id: link.embedTargetId,
+        embed_of: link.embedTargetId,
         alias: link.alias,
       })
     }
@@ -321,7 +321,7 @@ export async function* applyLinks(
       const now = Date.now()
       const updateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.host_id)
+        updateStmt.run(update.embed_of, update.alias, now, update.host_id)
       }
     }
 

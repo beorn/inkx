@@ -36,7 +36,7 @@ export interface LinkData {
 /** Embedded link update for batch UPDATE of nodes.embed_of. */
 export interface EmbeddedUpdate {
   host_id: string
-  target_id: string
+  embed_of: string
   alias: string | null
 }
 
@@ -92,7 +92,7 @@ function applyResolvedLinks(db: Database, result: LinkResolutionResult): void {
       const now = Date.now()
       const updateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.host_id)
+        updateStmt.run(update.embed_of, update.alias, now, update.host_id)
       }
     }
 
@@ -154,7 +154,7 @@ export function* resolveLinksGen(
           }
         }
         if (targetId) {
-          embeddedUpdates.push({ host_id: nodeId, target_id: targetId, alias: link.alias ?? null })
+          embeddedUpdates.push({ host_id: nodeId, embed_of: targetId, alias: link.alias ?? null })
           resolved++
         }
       } else if (resolver.resolveTarget(link.target)) {
@@ -233,7 +233,7 @@ export async function resolveLinksAsync(
         }
       }
       if (targetId) {
-        embeddedUpdates.push({ host_id: nodeId, target_id: targetId, alias: link.alias ?? null })
+        embeddedUpdates.push({ host_id: nodeId, embed_of: targetId, alias: link.alias ?? null })
         resolved++
       }
     } else if (resolver.resolveTarget(link.target)) {

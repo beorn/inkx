@@ -472,9 +472,11 @@ describe("renameNode updates links.href rows", () => {
 
     repo.renameNode(targetId, "New Title")
 
-    const rows = repo.database
-      .query("SELECT host_id, href, rel FROM links WHERE host_id = ?")
-      .all(sourceId) as Array<{ host_id: string; href: string; rel: string }>
+    const rows = repo.database.query("SELECT host_id, href, rel FROM links WHERE host_id = ?").all(sourceId) as Array<{
+      host_id: string
+      href: string
+      rel: string
+    }>
 
     // Even though content rewrite would produce a fresh href on re-parse,
     // the in-memory rows are eagerly updated so backlink queries stay
@@ -506,9 +508,9 @@ describe("renameNode updates links.href rows", () => {
     repo.renameNode(targetId, "Gamma")
 
     const hrefs = (
-      repo.database
-        .query("SELECT href FROM links WHERE host_id = ? ORDER BY href")
-        .all(sourceId) as Array<{ href: string }>
+      repo.database.query("SELECT href FROM links WHERE host_id = ? ORDER BY href").all(sourceId) as Array<{
+        href: string
+      }>
     ).map((r) => r.href)
 
     expect(hrefs).toEqual(["km:Beta", "km:Gamma"])

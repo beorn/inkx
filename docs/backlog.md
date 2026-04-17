@@ -42,4 +42,8 @@ Related:
 
 _(Dated list, newest first — entries move here as phases ship.)_
 
-- **2026-04-16 — W1 Storage: links + sigils shipped** — `km-storage.link-model-canonical` closed. Unified KLink type in `@km/core`, 3-column `links(host_id, href, rel)` cache with DATA_VERSION transparent rebuild, sigil-as-name design (no config file), letter-after-sigil parser rule, RFC 3986 percent-encoding, self-ref via bare `#Section`. 7 phases in 11 commits + 2 parallel worktree merges.
+- **2026-04-16 — W1 Storage: links + sigils shipped** — `km-storage.link-model-canonical` closed. Unified KLink type in `@km/core`, 3-column `links(host_id, href, rel)` cache with DATA_VERSION transparent rebuild, sigil-as-name design (no config file), letter-after-sigil parser rule, RFC 3986 percent-encoding, self-ref via bare `#Section`. 7 phases in 13 commits + 2 parallel worktree merges. Completeness audit followed `/refactor` 7-layer sweep: Data ✓ Types ✓ Functions ✓ Files ✓ Comments (migration history, legit) ✓ Docs ✓ Tests ✓. Post-audit cleanup: `EmbeddedUpdate.target_id` → `.embed_of` (terminological leak from internal type).
+    - **Impact**: -575 net LOC across storage (Phase 3 alone); 80 new unit tests + 8 parser href tests; 6583 total passing / 37 skipped / 0 failing.
+    - **Went well**: parallel worktree agents for Phase 3 (storage code) and Phase 6 (docs) — zero file conflicts because scopes cleanly separated (`docs/design/links.md` off-limits to both).
+    - **Didn't go well**: Phase 3 agent committed to `main` directly instead of its worktree branch (unusual but landed correctly). Migration-path ambiguity about `embed_of` materialization resolved mid-flight (pragmatic choice: keep column, populate from links table in handlers).
+    - **Worth it**: yes — name-based resolution at runtime replaces cache-based resolution; new code is simpler and less prone to staleness bugs.
