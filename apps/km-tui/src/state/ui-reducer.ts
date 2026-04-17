@@ -34,16 +34,6 @@ export interface UIState {
   // Overlays/dialogs (global — single modal at a time)
   showHelp: boolean
   helpScrollOffset: number
-  /**
-   * Active picker dialog. `type` chooses the loader and UI; `pendingVerb`
-   * records which verb prefix opened it so the onSelect handler can dispatch
-   * the right follow-up action. Omitted pendingVerb defaults to the picker's
-   * canonical action (project → move, tag → add tag, assignee → assign).
-   */
-  activePicker: {
-    type: "project" | "tag" | "assignee" | "item"
-    pendingVerb?: "goto" | "move" | "link" | "create"
-  } | null
   showNewItemDialog: boolean
   showSearchDialog: boolean
   searchDialogInitialInput: string // Buffer for keypresses during dialog open transition
@@ -67,9 +57,6 @@ export interface UIState {
     foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number
-
-  // Recent projects for picker (global)
-  recentProjectIds: string[]
 
   // Terminal state (global)
   terminalFocused: boolean
@@ -176,7 +163,6 @@ export namespace PaneUI {
     return !!(
       ui.showSearchDialog ||
       ui.showNewItemDialog ||
-      ui.activePicker ||
       ui.showFilterDialog ||
       ui.datePrompt ||
       ui.deleteConfirm ||
@@ -203,7 +189,6 @@ export namespace PaneUI {
   export function isDialogInput(ui: PaneUI): boolean {
     return !!(
       ui.showNewItemDialog ||
-      ui.activePicker ||
       ui.showSearchDialog ||
       ui.datePrompt ||
       ui.omnibox ||
@@ -375,7 +360,6 @@ export function createInitialUIState(
 
     showHelp: false,
     helpScrollOffset: 0,
-    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",
@@ -389,8 +373,6 @@ export function createInitialUIState(
 
     navHistory: [],
     navHistoryIndex: 0,
-
-    recentProjectIds: [],
 
     terminalFocused: true,
     dimensions,

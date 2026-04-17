@@ -287,6 +287,8 @@ const DIALOG_TYPE_LIST = [
   "SET_PRIORITY_4",
   "SET_LABEL",
   "SET_ASSIGNEE",
+  "APPEND_TAG",
+  "SET_ASSIGNEE_VALUE",
   "DATE_PROMPT_CONFIRM",
   "DATE_PROMPT_CANCEL",
   "LOCAL_FIND_OPEN",
@@ -539,11 +541,11 @@ function initialBufferForPickSigil(pick: string): string {
  * `c [`). Routes through `openOmnibox` with a seeded invocation spec so the
  * single omnibox surface replaces the legacy per-sigil picker dialog.
  *
- * Phase 5d: the legacy `activePicker` path is no longer used for verb chords
- * — callers now land on the unified `ui.omnibox` overlay with a pre-scoped
- * sigil buffer and a sticky defaultCommand matching the verb. FavoritesDialog
- * / ItemPicker still render if set directly (Phase 10 will delete them), but
- * no chord reaches them anymore.
+ * km-tui.itempicker-unify: every verb × pick chord — and the orphan
+ * SET_LABEL / SET_ASSIGNEE / PANE_SPLIT_AND_PICK ops — now land on the
+ * unified `ui.omnibox` overlay. ItemPicker.tsx + `activePicker` state
+ * have been deleted. The omnibox opens with a pre-scoped sigil buffer
+ * and a sticky defaultCommand matching the verb.
  */
 function openPickerForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
   const cursorId = ctx.cursor

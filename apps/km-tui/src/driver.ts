@@ -87,7 +87,6 @@ import { handleKey } from "./board/board-app.ts"
 export interface DialogState {
   search: boolean
   newItem: boolean
-  itemPicker: boolean
   help: boolean
 }
 
@@ -391,7 +390,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       dialogs: {
         search: s.ui.showSearchDialog,
         newItem: s.ui.showNewItemDialog,
-        itemPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
       detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),

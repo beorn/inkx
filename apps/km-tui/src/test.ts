@@ -49,7 +49,7 @@ export function checkRendering(app: BoardApp) {
 
 /** Cursor exists and is valid (unless in dialog) */
 export function checkCursor(app: BoardApp) {
-  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.itemPicker
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem
   if (inDialog) return
   expect(app.cursor, "Cursor missing").toBeDefined()
   if (app.cursor.level !== "board") {
