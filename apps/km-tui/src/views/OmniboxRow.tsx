@@ -73,10 +73,6 @@ export function OmniboxRow({
   // selection fg when the row is selected, matching board-view behavior.
   const iconIsMuted = iconColor === "$muted"
   const iconFg = disabled ? "$muted" : iconIsMuted ? "$muted" : isSelected ? "$selection" : iconColor
-  // Session convention: whenever a token is $muted (grey), reinforce with
-  // the ANSI dim attribute so the terminal renders it visibly dimmer
-  // regardless of how the theme palette resolves $muted against the popover bg.
-  const iconDim = iconIsMuted
 
   return (
     <Box width="100%" height={1} backgroundColor={bg} flexDirection="row" onMouseEnter={onHover} onClick={onClick}>
@@ -84,7 +80,7 @@ export function OmniboxRow({
           communicated entirely by the row's bg color; no cursor glyph (▸)
           and no leading padding. */}
       <Box flexGrow={0} flexShrink={0}>
-        <Text color={iconFg} dimColor={iconDim}>
+        <Text color={iconFg}>
           {icon}{" "}
         </Text>
       </Box>

@@ -51,16 +51,14 @@ function GuideRow({ sigil, label }: { sigil: string; label: string }): React.Rea
       <Box width={GUIDE_SIGIL_WIDTH}>
         <Text>{sigil}</Text>
       </Box>
-      <Text color="$muted" dimColor>
-        {label}
-      </Text>
+      <Text color="$muted">{label}</Text>
     </Box>
   )
 }
 
 function GuideHeading({ children }: { children: string }): React.ReactElement {
   return (
-    <Text bold color="$muted" dimColor>
+    <Text bold color="$muted">
       {children}
     </Text>
   )
@@ -214,11 +212,7 @@ function CenterOmnibox({
     <ModalDialog
       title={chrome.label}
       titleAlign="flex-start"
-      titleRight={
-        <Text color="$muted" dimColor>
-          esc
-        </Text>
-      }
+      titleRight={<Text color="$muted">esc</Text>}
       width={width}
       height={maxHeight}
       paddingX={1}

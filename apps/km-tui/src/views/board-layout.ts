@@ -19,8 +19,10 @@ export const COLLAPSED_COL_WIDTH = 3
  * Regression test: apps/km-tui/tests/unified-omnibox-integration.test.ts —
  * "dialog width is stable across frames as results stream in".
  */
-export const OMNIBOX_MAX_WIDTH = 100
-export const OMNIBOX_WIDTH_FRACTION = 3 / 4
+// 20% narrower than the prior sizing (max 100 → 80, fraction 3/4 → 3/5) to
+// match the opencode-style compact command palette shape.
+export const OMNIBOX_MAX_WIDTH = 80
+export const OMNIBOX_WIDTH_FRACTION = 3 / 5
 
 /** Resolve the omnibox dialog's column width for a given terminal width.
  *  Both the CenterDialog wrapper and the ModalDialog call this so their
