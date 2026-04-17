@@ -9,7 +9,7 @@ argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|se
 
 Coordinates the entire content marketing effort across silvery.dev, termless.dev, terminfo.dev, and beorn.codes/flexily. Tracks what's been done, what's next, and when each workflow should run.
 
-**Strategy doc**: `hub/market/km-ecosystem-content-strategy.md` — the canonical plan with all 240 article ideas, programmatic SEO strategy, Greg Isenberg framework, and GPT Pro review findings.
+**Strategy doc**: `hub/market/strategy/km-ecosystem-content-strategy.md` — the canonical plan with all 240 article ideas, programmatic SEO strategy, Greg Isenberg framework, and GPT Pro review findings.
 
 **Tracking epic**: `km-market`
 

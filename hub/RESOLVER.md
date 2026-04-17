@@ -82,9 +82,9 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 
 (Also stated in `vendor/CLAUDE.md`.)
 
-- **`vendor/<pkg>/docs/` MAY NOT reference `hub/...` paths.** When silvery.dev ships, it can't link to workspace drafts.
-- **`hub/*` MAY reference anything** — public docs, other internal workspaces, GitHub URLs to the public silvery-internal repo.
-- **km's `docs/` MAY NOT reference `hub/`.** If km docs describe silvery-internal design, the reference must be a GitHub URL to silvery-internal's public repo.
+- **`vendor/<pkg>/docs/` MAY NOT reference `hub/...` paths.** When silvery.dev ships, it can't link to workspace drafts — they must be standalone-clean for npm/GitHub.
+- **`hub/*` MAY reference anything** — public docs, other hub subdirs, external URLs.
+- **km's `docs/` MAY NOT reference `hub/`.** Public km docs stay shippable; internal-only references live inside `hub/`.
 - **Promotion requires approval.** Moving from `hub/*/` to public is a deliberate act with editorial review. Don't auto-promote.
 - **Demotion is cheap.** If a public doc drops below quality bar, move it back to internal and fix it there.
 
@@ -101,8 +101,9 @@ If you walk § 2 and nothing fits: park the draft in `hub/<pkg>/draft/` (or `hub
 ## § 6 — Corrections (the resolver grows with use)
 
 - **2026-04-17** — Ecosystem marketing content (applies to multiple packages) goes to `hub/market/`, not a single package's `launch/`. → § 2.2
-- **2026-04-17** — `hub/market/km-ecosystem-content-strategy.md` (km repo, ecosystem marketing) should have been in `hub/market/` from the start. Corrected. → § 1
-- **2026-04-17** — Silvery's private design workspace is a public repo (`beorn/silvery-internal`) mounted as a submodule at `hub/silvery/`. Its "private" means "not served on silvery.dev" — not "secret." Cross-repo refs should use GitHub URLs when km needs to link in. → § 4
+- **2026-04-17** — `hub/market/km-ecosystem-content-strategy.md` (km repo, ecosystem marketing) should have been in `hub/market/strategy/` from the start. Corrected. → § 1
+- **2026-04-17** — `vendor/internal/` renamed to `hub/` at repo root. Silvery-internal submodule (`beorn/silvery-internal`, always private) absorbed as plain tracked files under `hub/silvery/`; the separate GitHub repo was deleted. All hub content now rides with km. → § 1 + § 4
+- **2026-04-17** — `hub/market/` top-level flattened into `strategy/`, `ideas/`, `reference/` subdirs (was 7 md files mixed in one flat dir). → § 2.2
 
 ---
 
