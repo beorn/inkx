@@ -77,12 +77,13 @@ Concepts code uses heavily but docs don't fully own. Tracked for follow-up:
 - ~~**Effect type catalog**~~ — closed 2026-04-17: canonical at [ref/effects.md](../ref/effects.md).
 - ~~**Change type taxonomy**~~ — closed 2026-04-17: canonical at [ref/changes.md](../ref/changes.md).
 
-## Known inconsistencies (deferred cleanup)
+## Resolved code renames (2026-04-17)
 
-The W2 audit flagged these but they need their own bead — breaking changes that touch code + docs together:
+W2 flagged these as deferred; all shipped as part of the docs-grooming /complete follow-up.
 
-- `TreeLens.resolvedSymlink()` method name → should be `resolvedEmbed()` (symlink terminology retired, code still uses old name).
-- `ViewRole` type name in code → should be `ViewType` (glossary says ViewType, some code still says ViewRole).
+- ~~`TreeLens.resolvedSymlink()` → `resolvedEmbed()`~~ — codebase already on `resolvedEmbed` (verified 0 legacy hits).
+- ~~`ViewRole` → `ViewType`~~ — 11 files updated; type + all call sites.
+- ~~`kmast/` dir → `kast/`~~ — directory + test file renamed; 6 import-path updates.
 
 ## How to use this file
 

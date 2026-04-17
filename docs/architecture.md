@@ -135,7 +135,7 @@ repo
 `ViewTree` (`packages/km-board/src/view-tree-projection.ts`) wraps the bottom of the lens stack with `ProjectedMap` per-node signal bags. React components subscribe to individual node IDs via `useNode(id)` — they re-render only when *that specific node's* view state changes. This is what enables the cards-view incremental rendering performance.
 
 ```typescript
-type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
+type ViewType = "board" | "body-column" | "column" | "card" | "subitem"
 
 // TreeLens — universal navigation interface (data layer, no signals)
 interface TreeLens {
@@ -146,7 +146,7 @@ interface TreeLens {
   nextInWalk(id: string): string | null
   prevInWalk(id: string): string | null
   readonly walkOrder: readonly string[]
-  role(id: string): ViewRole | undefined
+  role(id: string): ViewType | undefined
   isBody(id: string): boolean
   resolvedSymlink(id: string): KNode | undefined
   rules(id: string): NodeRules | undefined
@@ -309,7 +309,7 @@ A node's visual role is determined by its **depth from the zoom root** — not b
 | 2 | Card | Bordered box (title + sub-items + body) |
 | 3+ | Sub-item | Indented line; expands when selected |
 
-This is a **rendering rule, not data**. The same KNode renders as a column when zoomed out and as the board root when zoomed in. ViewNode makes this explicit — each node carries its `ViewRole`, derived from tree position.
+This is a **rendering rule, not data**. The same KNode renders as a column when zoomed out and as the board root when zoomed in. ViewNode makes this explicit — each node carries its `ViewType`, derived from tree position.
 
 **Body content**: Non-outline direct children of root (paragraphs, tasks, embeds before the first heading) render in a virtual "Description" column. Determined by `extractBody()` at derivation time.
 

@@ -22,7 +22,7 @@ import type { KNode, NodeRules } from "@km/core"
 // =============================================================================
 
 /** Visual role determined by position in the view tree */
-export type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
+export type ViewType = "board" | "body-column" | "column" | "card" | "subitem"
 
 /**
  * Universal tree navigation interface.
@@ -86,7 +86,7 @@ export interface TreeLens {
   // === Computed properties (lens-specific enrichments) ===
 
   /** Visual role: board, column, card, subitem, body-column */
-  role(id: string): ViewRole | undefined
+  role(id: string): ViewType | undefined
 
   /** True if this node is body content (non-outline before first heading) */
   isBody(id: string): boolean

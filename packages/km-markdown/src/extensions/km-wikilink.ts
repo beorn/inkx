@@ -4,7 +4,7 @@
  * Syntax: [[target]], [[target|alias]], ![[embed]], [[target#section]],
  *         [[target#^blockRef]], [[#section]], [[^blockRef]].
  *
- * Produces a `KmWikilink` mdast node (see kmast/types.ts).
+ * Produces a `KmWikilink` mdast node (see kast/types.ts).
  */
 
 /* oxlint-disable typescript-eslint/no-unsafe-call, typescript-eslint/no-unsafe-member-access, typescript-eslint/no-unsafe-return, typescript-eslint/no-unsafe-assignment, typescript-eslint/no-unsafe-argument, typescript-eslint/no-explicit-any -- Micromark tokenizer API is inherently untyped */
@@ -12,7 +12,7 @@
 import type { Extension as MicromarkExtension } from "micromark-util-types"
 import type { Extension as FromMarkdownExtension, CompileContext } from "mdast-util-from-markdown"
 import type { Token } from "micromark-util-types"
-import type { KmWikilink } from "../kmast/types.ts"
+import type { KmWikilink } from "../kast/types.ts"
 
 // =============================================================================
 // Micromark syntax extension

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { fromMarkdown } from "mdast-util-from-markdown"
 import { kmWikilink, kmWikilinkFromMarkdown } from "../../src/extensions/km-wikilink.ts"
-import type { KmWikilink } from "../../src/kmast/types.ts"
+import type { KmWikilink } from "../../src/kast/types.ts"
 
 function parse(md: string) {
   return fromMarkdown(md, {

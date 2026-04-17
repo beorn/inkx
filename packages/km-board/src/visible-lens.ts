@@ -18,7 +18,7 @@
 
 import type { KNode, NodeRules } from "@km/core"
 import { getStatusForMarker } from "@km/core"
-import type { TreeLens, ViewRole } from "./tree-lens.ts"
+import type { TreeLens, ViewType } from "./tree-lens.ts"
 
 // =============================================================================
 // Types
@@ -197,7 +197,7 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
       return _walkOrder
     },
 
-    role(id: string): ViewRole | undefined {
+    role(id: string): ViewType | undefined {
       return parent.role(id)
     },
 

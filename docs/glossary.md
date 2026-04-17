@@ -492,7 +492,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **ViewNode** — An enriched view of a KNode within the ViewTree. Carries `viewType` (visual role), `childIds` (visible children), `parentId` (visual parent), `display` (the KNode to render — self or embed target), `isBody`, `isEmbed`, `rules`. The raw repo node is accessible via `.data`. React components subscribe to individual ViewNodes via `useNode(id)` — re-renders only when that specific node's view state changes.
 
-**ViewType** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type. (Replaces `ViewRole`.)
+**ViewType** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type. (Replaces `ViewType`.)
 
 **ViewTree** — The React-side projection of a *TreeLens*. `createViewTree()` wraps any TreeLens with per-node signal bags via `ProjectedMap`, plus a `nodes({ from?, reverse? })` iterator for tree-wide traversal. Components subscribe to individual nodes via `useNode(id)` — re-renders only when *that node's* view state changes. The single source of truth for React rendering and navigation. Methods: `track(id)`, `sync(lens)`, `next(id)`, `prev(id)`, `nodes(opts?)`, plus delegation to the underlying lens (`node(id)`, `children(id)`, `parent(id)`). **Use this from React code**, not the raw TreeLens.
 

@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest"
 import { createSelectionAdapter } from "../src/state/selection-adapter.ts"
 import { createSelection } from "@silvery/selection"
 import type { ID } from "@silvery/selection"
-import type { TreeLens, ViewRole } from "@km/board"
+import type { TreeLens, ViewType } from "@km/board"
 import type { KNode } from "@km/core"
 
 // =============================================================================
@@ -75,7 +75,7 @@ function createCountingLens(): CountingLens {
       return childMap.get(id) ?? []
     },
     parent: (id: string) => parentMap.get(id) ?? null,
-    role: (id: string): ViewRole | undefined => {
+    role: (id: string): ViewType | undefined => {
       if (id === "root") return "board"
       if (id === "col1") return "column"
       return "card"

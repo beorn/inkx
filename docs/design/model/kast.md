@@ -649,7 +649,7 @@ Transform order matters: block-id strips suffix first, heading-task-mark strips 
 
 ## Type extensions (module augmentation)
 
-All types are in `packages/km-markdown/src/kmast/types.ts`. Uses mdast's module augmentation pattern:
+All types are in `packages/km-markdown/src/kast/types.ts`. Uses mdast's module augmentation pattern:
 
 ```typescript
 // Extended Data fields (on existing mdast nodes)

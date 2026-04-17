@@ -14,7 +14,7 @@
 import { KNode, extractSlotTargets, findIndexFile, namesAreSimilar, parseHeadingRules } from "@km/core"
 import type { NodeRules } from "@km/core"
 import { extractBody } from "@km/tree"
-import type { TreeLens, ViewRole } from "./tree-lens.ts"
+import type { TreeLens, ViewType } from "./tree-lens.ts"
 import {
   isCollapsedChild,
   isDetailOnly,
@@ -80,7 +80,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
 
   const childrenCache = new Map<string, readonly string[]>()
   const parentCache = new Map<string, string | null>()
-  const roleCache = new Map<string, ViewRole>()
+  const roleCache = new Map<string, ViewType>()
   const nodeCache = new Map<string, KNode>() // includes virtual body nodes
 
   // Re-entry guard for parent(). Tracks IDs currently on the call stack so
@@ -626,7 +626,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   // TreeLens: role()
   // =========================================================================
 
-  function role(id: string): ViewRole | undefined {
+  function role(id: string): ViewType | undefined {
     const effectiveRootId = rootId ?? "__root__"
     if (id === effectiveRootId) return "board"
 

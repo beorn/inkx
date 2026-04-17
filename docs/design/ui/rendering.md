@@ -319,7 +319,7 @@ slower.
 ```typescript
 interface NodeViewSignals {
   // Core derivations
-  readonly role: Computed<ViewRole>
+  readonly role: Computed<ViewType>
   readonly children: Computed<ViewNode[]>
   readonly isBody: Computed<boolean>
   readonly resolvedEmbed: Computed<KNode | undefined>

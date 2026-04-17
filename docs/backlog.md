@@ -25,8 +25,9 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 - **Orphan: Repo mutation API doc** — addNode/updateNode/moveNode/deleteNode + change generation semantics.
 - ~~**Orphan: Effect type catalog**~~ — shipped 2026-04-17 as [ref/effects.md](ref/effects.md).
 - ~~**Orphan: Change type taxonomy**~~ — shipped 2026-04-17 as [ref/changes.md](ref/changes.md).
-- **Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`** — cross-package breaking change; needs its own bead.
-- **Code rename: `ViewRole` type → `ViewType`** — glossary already defines ViewType as replacement; code still uses ViewRole in places. Breaking change; needs its own bead.
+- ~~**Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`**~~ — shipped; codebase now uses `resolvedEmbed` exclusively (grep confirms 0 hits for old name 2026-04-17).
+- ~~**Code rename: `ViewRole` type → `ViewType`**~~ — shipped 2026-04-17 (11 files updated).
+- ~~**Code rename: `kmast/` dir → `kast/`**~~ — shipped 2026-04-17 (directory + test file renamed; 6 import-path updates).
 - **Consolidation: Task status defs in concepts.md duplicate `ref/task-fields.md`** — keep semantic summary in concepts, have it link to the field reference instead of repeating the table.
 - **Consolidation: KNode typedef duplicated in `architecture.md` and `design/model/knode.md`** — arch.md should summarize + link, not repeat typedef.
 

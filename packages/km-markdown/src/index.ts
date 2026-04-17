@@ -35,7 +35,7 @@ export type {
 export { normalizeLinkHref } from "./link-href.ts"
 
 // kmast types and extensions
-export type { KmWikilink } from "./kmast/types.ts"
+export type { KmWikilink } from "./kast/types.ts"
 export { km, kmFromMarkdown } from "./extensions/index.ts"
 export {
   kmTaskMark,

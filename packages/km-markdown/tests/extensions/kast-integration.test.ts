@@ -13,7 +13,7 @@
 import { describe, expect, test } from "vitest"
 import { fromMarkdown } from "mdast-util-from-markdown"
 import type { Heading } from "mdast"
-import type { KmWikilink } from "../../src/kmast/types.ts"
+import type { KmWikilink } from "../../src/kast/types.ts"
 import { km, kmFromMarkdown } from "../../src/extensions/index.ts"
 import { parseMarkdownWithLinks, nodesToMarkdown, parseMarkdown } from "../../src/index.ts"
 

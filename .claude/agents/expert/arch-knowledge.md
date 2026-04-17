@@ -247,8 +247,8 @@ Board Root (depth 0)  -- fstype: "repo" or "folder"
 
 | Model | Source | Adds |
 |-------|--------|------|
-| `ViewNode` | KNode via ViewTree | `viewType` (ViewRole), `childIds`, `parentId`, `display` (resolved embed), `isBody`, `rules` |
-| `ViewRole` / `ViewType` | Tree depth | `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"` |
+| `ViewNode` | KNode via ViewTree | `viewType` (ViewType), `childIds`, `parentId`, `display` (resolved embed), `isBody`, `rules` |
+| `ViewType` / `ViewType` | Tree depth | `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"` |
 | `TreeLens` | Universal nav interface | `get(id)`, `children(id)`, `parent(id)`, `nextInWalk(id)`, `prevInWalk(id)`, `walkOrder`, `role(id)`, `isBody(id)` |
 
 ### TreeLens Pipeline

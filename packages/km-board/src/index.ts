@@ -76,7 +76,7 @@ export {
 
 // ===== Tree Lens (universal navigation interface — DATA LAYER) =====
 // React code should NOT consume TreeLens directly. Use ViewTree below.
-export type { TreeLens, ViewRole } from "./tree-lens.ts"
+export type { TreeLens, ViewType } from "./tree-lens.ts"
 
 // ===== View Lens (TreeLens-based view over repo — DATA LAYER) =====
 // React code should NOT consume this directly. Use ViewTree below.
