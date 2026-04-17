@@ -6,7 +6,7 @@
     },
     "lore": {
       "command": "bun",
-      "args": ["vendor/bearly/plugins/lore/server.ts"]
+      "args": ["vendor/bearly/plugins/lore/src/server.ts"]
     }
   }
 }
