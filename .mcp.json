@@ -3,6 +3,10 @@
     "tty": {
       "command": "bun",
       "args": ["vendor/termless/packages/cli/src/cli.ts", "mcp"]
+    },
+    "bear": {
+      "command": "bun",
+      "args": ["vendor/bearly/plugins/bear/server.ts"]
     }
   }
 }

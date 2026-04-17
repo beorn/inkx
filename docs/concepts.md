@@ -243,7 +243,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 | `blocked:true` | `blocked:true`   | Has unresolved blockers |
 | `"text"`       | `"quarterly"`    | Full-text search        |
 
-See [ref/query.md](ref/query.md) for full query language specification.
+See [guides/query.md](guides/query.md) for full query language specification.
 
 ---
 

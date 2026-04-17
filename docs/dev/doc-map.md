@@ -23,7 +23,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | km-ast type system, block types, traits, derivation rules | [design/model/kast.md](../design/model/kast.md) |
 | Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/ui/visibility.md](../design/ui/visibility.md) |
 | Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/ui/visibility.md](../design/ui/visibility.md) |
-| Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/ui/selection.md](../design/ui/selection.md), [design/ui/selection.md](../design/ui/selection.md) |
+| Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/ui/selection.md](../design/ui/selection.md) |
 | TEA state machine pattern | [design/tea.md](../design/tea.md) |
 | Navigation (cursor movement, grid nav, zoom) | [design/ui/navigation.md](../design/ui/navigation.md) |
 | Node visual spec (rendering, embed expansion) | [design/ui/rendering.md](../design/ui/rendering.md) |
@@ -37,9 +37,9 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |
 | Tribe multi-session coordination | [vendor/bearly/plugins/tribe/README.md](../../vendor/bearly/plugins/tribe/README.md) — owned by bearly |
 | Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../design/model/storage.md) |
-| Query language (field:value, sigils, paths, FTS) | [ref/query.md](../ref/query.md) |
+| Query language (field:value, sigils, paths, FTS) | [guides/query.md](../guides/query.md) |
 | Task fields (marker, status, due, priority, recur) + cross-system mapping | [ref/task-fields.md](../ref/task-fields.md) |
-| Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [ref/markdown.md](../ref/markdown.md) |
+| Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [guides/markdown.md](../guides/markdown.md) |
 | Keybindings (layers, chord system, v2) | [design/input.md](../design/input.md) |
 | Command registry, when clauses | [ref/commands.md](../ref/commands.md) |
 | Effect type catalog (TreeEffect + BoardEffect) | [ref/effects.md](../ref/effects.md) |

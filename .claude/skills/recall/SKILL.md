@@ -21,28 +21,31 @@ You usually don't need to search manually — prior knowledge appears as "Sessio
 
 For a user query like `/recall X`, `recall X`, or "what did we do about Y":
 
+**Prefer the `bear.*` MCP tools** when they're available (registered in
+`.mcp.json`) — they call the same library as `bun recall` but without the
+~400ms subprocess-spawn cost. The CLI remains available for humans and scripts.
+
 **Simple queries with specific tokens** (file names, bead IDs, function names — 1–3 words):
 ```bash
-bun recall --raw "X" -n 10          # single FTS, ~500ms
+bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP equivalent)
 ```
 
 **Everything else** (vague, natural-language, "that time we…"):
-```bash
-bun recall "X"                       # default: FTS + synthesis, ~2–3s
-bun recall "X" --agent               # planner-driven, ~5–14s, best quality
-```
+- Via MCP: call `bear.ask({ query: "X" })` — planner-driven, ~4–6s with speculative synth
+- Via CLI: `bun recall "X" --agent` — same library, 400ms subprocess overhead
 
 **Speculative cheap context** (when you want to see results BEFORE deciding whether to escalate):
-```bash
-bun recall current-brief             # ~50ms — current session paths/beads/tokens
-bun recall "X" --raw -n 10           # ~500ms — first-pass FTS snapshot
-# ...inspect results, then optionally escalate:
-bun recall "X" --agent --debug-plan  # full planner trace if still unclear
-```
+- Via MCP: `bear.current_brief()` for session paths/beads/tokens, then `bear.plan_only({ query })` for planner variants only (~2s, no fanout/synth)
+- Via CLI:
+  ```bash
+  bun recall current-brief             # ~50ms
+  bun recall "X" --raw -n 10           # ~500ms — first-pass FTS snapshot
+  bun recall "X" --agent --debug-plan  # full planner trace if still unclear
+  ```
 
-**Never** iterate by running `bun recall` with slightly different query wordings — agent
-mode does that internally (2 rounds with wider/deeper variants) in one call. If one call
-with `--agent` doesn't find it, the answer is not in the corpus.
+**Never** iterate by running `bun recall` or `bear.ask` with slightly different query wordings
+— agent mode does that internally (2 rounds with wider/deeper variants) in one call. If one
+call with agent mode doesn't find it, the answer is not in the corpus.
 
 ### Current session context
 

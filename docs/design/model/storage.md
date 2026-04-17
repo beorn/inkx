@@ -925,4 +925,4 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 - [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, solidification
 - [concepts.md](concepts.md) — Core concepts, two modes overview
 - [architecture.md](architecture.md) — Change system, data flow
-- [ref/markdown.md](ref/markdown.md) — Parsing .md to nodes
+- [guides/markdown.md](guides/markdown.md) — Parsing .md to nodes

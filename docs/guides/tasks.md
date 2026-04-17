@@ -441,5 +441,5 @@ km init gtd --dry-run      # Preview what would be created
 ## See Also
 
 - [ref/task-fields.md](../ref/task-fields.md) — Task fields, cross-system mapping
-- [ref/query.md](../ref/query.md) — Query language
+- [guides/query.md](../guides/query.md) — Query language
 - [storage.md](../design/model/storage.md) — Node schema details
