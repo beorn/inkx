@@ -17,91 +17,163 @@ The canonical layer is the source of truth. The cache is 100% rebuildable by re-
 
 ```typescript
 type KLink = {
-  href: string            // parsed target reference: "km:Note", "https://…", "mailto:…"
+  href: string            // parsed target reference: "km:Note", "km:%23urgent", "#Section", "https://…"
   rel: 'link' | 'embed'   // semantic relation — closed enum for v1
   alias?: string          // |alias display override
   md?: { form?: MdForm }  // notation used, for roundtrip fidelity
 }
 
-type MdForm = 'wiki' | 'mdlink' | 'autolink' | 'bare' | 'sigil'
+type MdForm = 'wiki' | 'mdlink' | 'autolink' | 'bare'
 ```
 
-`rel` is a closed enum for v1. Typed predicates (`blocked-by`, `author`, `cites`, …) from property links are deferred — when they land, `rel` widens to `string` and the normalizer enforces kebab-case. Every current call site is explicit about which of the two rels it emits.
+`rel` is a closed enum for v1. Typed predicates (`blocked-by`, `author`, `cites`, …) from property links are deferred — when they land, `rel` widens to `string` and a rel normalizer enforces kebab-case.
 
 The link's **host node is implicit** — it's whichever KNode owns the AST the link lives in. Named `KLink` following the `KNode` convention; avoids collision with silvery's `<Link>` UI component.
 
 ### `href` — parsed target, not raw notation
 
-`href` is the **parsed target reference** — the target extracted from notation. `[[Note]]` → `km:Note`; `[text](url)` → `url`; `@Alice` → `km:Alice`. The notation (`[[…]]`, `[…](…)`, `@…`) is captured by `md.form` for roundtrip reconstruction.
+`href` is the **parsed target reference** — the target extracted and normalized from notation:
 
-The resolver normalizes `href` into a target node ID at runtime via the name index; the canonical layer keeps `href` intact.
+| Notation               | href                       |
+|------------------------|----------------------------|
+| `[[Note]]`             | `km:Note`                  |
+| `[[Project/Alpha]]`    | `km:Project/Alpha`         |
+| `@Alice` (inline)      | `km:@Alice`                |
+| `[[@Alice]]`           | `km:@Alice` (equivalent)   |
+| `#urgent` (inline)     | `km:%23urgent`             |
+| `+cleanup` (inline)    | `km:+cleanup`              |
+| `[[#Section]]`         | `#Section` (self-ref)      |
+| `[text](#Section)`     | `#Section` (self-ref)      |
+| `[text](https://x.com)`| `https://x.com`            |
+
+The notation is captured by `md.form` for roundtrip reconstruction. The resolver takes `href` and returns either a target node ID, a self-ref, an external URL, an ambiguity, or broken — regardless of which notation produced it.
 
 ## URI scheme
 
+km uses two href shapes:
+
 ```
-km:<name>                 node by name (resolved at runtime via name index)
-km:<name>#<section>       section heading anchor
-km:<name>#^<block>        block anchor
-km:#<section>             self-reference — resolves to host node
-km://<auth>/<path>        hierarchical — reserved for cross-vault federation
+km:<name>[#<fragment>]    named node reference (optionally with anchor)
+#<fragment>               self-reference (same-host anchor, HTML convention)
 
 https://…  mailto:…       external references flow through unchanged
 ```
 
+`km://<auth>/<path>` is reserved for cross-vault federation (deferred).
+
 ### Hierarchical names
 
-`/` is a **path separator**, not an escapable character. `km:Project/Alpha` is a two-segment hierarchical name (matches Dendron/Foam convention). Segments are the atoms of the name index.
+`/` is a **path separator**, not an escapable character. `km:Project/Alpha` is a two-segment hierarchical name (matches Dendron/Foam convention). Nodes whose names are meant to contain a literal `/` are not supported — use hyphens or nested names instead. Segments are the atoms of the name index.
 
 ### Encoding
 
-`km:` is an internal scheme optimized for readability, not strict RFC 3986 compliance. `normalizeLinkHref` encodes only the characters that would break parsing:
+`km:` is a standard URI scheme. `normalizeLinkHref` percent-encodes **reserved** characters (RFC 3986) when they appear inside a name:
 
-| char | encoding | why                                            |
-|------|----------|------------------------------------------------|
-| `?`  | `%3F`    | query delimiter                                |
-| `#`  | `%23`    | fragment delimiter (unless it *is* the delimiter) |
-| `%`  | `%25`    | escape for the above                           |
-| `/`  | *unchanged* | path separator — hierarchical name segment |
+| char | encoding | why                                                              |
+|------|----------|------------------------------------------------------------------|
+| `#`  | `%23`    | fragment delimiter — must be encoded when part of a name          |
+| `?`  | `%3F`    | query delimiter                                                  |
+| `%`  | `%25`    | escape for the above                                             |
+| `/`  | *unchanged* | path separator — hierarchical name segment                     |
+| `@`  | *unchanged* | allowed in path (sub-delim)                                   |
+| `+`  | *unchanged* | allowed in path (sub-delim)                                   |
 
-Spaces, colons, apostrophes, and UTF-8 pass through raw. Names like `Project: Phase 1`, `Alice's notes`, or `研究` serialize as `km:Project: Phase 1`, `km:Alice's notes`, `km:研究`. Scheme-colon is only the first `:`; everything after is path. Inside fragments (`#…`), spaces are encoded to `%20`.
+Spaces, colons, apostrophes, and UTF-8 pass through raw. Names like `Project: Phase 1`, `Alice's notes`, or `研究` serialize as `km:Project: Phase 1`, `km:Alice's notes`, `km:研究`.
 
-External URIs (`https://…`, `mailto:…`) pass through unchanged — they arrived already encoded.
+Sigil-prefixed names: `km:@Alice`, `km:+cleanup`, `km:%23urgent`.
+
+Inside a fragment, literal `#` is also percent-encoded: a section literally named `#section` gives `km:Note#%23section`.
+
+Authors never see encoded form — they write `#urgent`, the normalizer stores `km:%23urgent`, the serializer writes `#urgent`. `new URL('km:...')` parses correctly.
+
+## Sigils
+
+Sigils (`@`, `+`, `#`) are **part of the node name**, not a separate namespace. A node literally named `@Alice` has name `@Alice`. A tag node literally named `#urgent` has name `#urgent`.
+
+### Recognized sigils
+
+```typescript
+// packages/km-core/src/sigils.ts
+export const SIGILS = {
+  '@': { kind: 'person' },
+  '#': { kind: 'tag' },
+  '+': { kind: 'project' },
+} as const
+```
+
+Centralized for v1; listed in source. The `kind` field is informational (used by callers that want to display a sigil-specific icon, for example) — resolution treats all three identically (sigil is just a name prefix).
+
+### Sigil parsing rule — letter after sigil
+
+A sigil character counts as a sigil introducer only when followed by a **letter** and preceded by a word boundary. This keeps prose like "issue #42", "+4 extras", "dial @911" from becoming accidental links.
+
+- `#urgent` → tag link ✓
+- `#42`, `#1 priority` → literal text
+- `+cleanup` → project link ✓
+- `+4 dB` → literal text
+- `@Alice` → person link ✓
+- `@911` → literal text
+- `foo#bar` → literal text (no word boundary before `#`)
+
+### Canonical serialization
+
+When serializing a KLink whose target is a sigil-prefixed name, the writer emits **bare form**, never wiki form:
+
+- href `km:@Alice` → `@Alice`
+- href `km:+cleanup` → `+cleanup`
+- href `km:%23urgent` → `#urgent`
+
+The parser accepts both forms (`[[@Alice]]` ≡ `@Alice`), but on the next write the bare form is canonical. Wiki form is never emitted for a sigil-prefixed target.
+
+Exception: `#` in wiki form means self-ref (next section) — you can't use `[[#foo]]` to link to a `#`-prefixed node. Use bare `#foo` instead.
+
+### `#` is special
+
+`#` is the URL fragment delimiter, so it carries extra semantics:
+
+- **`[[#Section]]` = self-ref** (matches Obsidian) — href `#Section`
+- **`[text](#Section)` = self-ref** (matches standard markdown) — href `#Section`
+- **bare `#foo` inline** (with letter-after rule) = link to tag node `#foo` — href `km:%23foo`
+- Wiki form `[[#foo]]` cannot be used to link to a `#`-prefixed node; use bare only
+
+`@` and `+` don't have this exception because they aren't URL-reserved.
 
 ## `rel` taxonomy
 
 | `rel`    | Meaning                                                         |
 |----------|-----------------------------------------------------------------|
-| `link`   | Reference — includes plain links, sigils (`#tag`, `@person`, `+project`), external URLs |
+| `link`   | Reference — plain links, sigils, external URLs                  |
 | `embed`  | Inline content rendering (`![[Note]]`, `![](image.png)`)        |
-
-**Sigils are just node references.** `#tag`, `@person`, `+project` all have `rel='link'` — the notation is UX, captured by `md.form`. The "tag-ness" lives on the **target node**, not on the link.
 
 ## Markdown → KLink
 
-Complete rel↔notation mapping — **each notation produces exactly one rel**:
+Complete notation → `(href, rel, md.form)` table:
 
-| Notation             | `href`                | `rel`    | `md.form`  |
-|----------------------|-----------------------|----------|------------|
-| `[[Note]]`           | `km:Note`             | `link`   | `wiki`     |
-| `[[Note\|alias]]`    | `km:Note` + `alias`   | `link`   | `wiki`     |
-| `[[Note#Section]]`   | `km:Note#Section`     | `link`   | `wiki`     |
-| `[[Note^abc]]`       | `km:Note#^abc`        | `link`   | `wiki`     |
-| `[[#Section]]`       | `km:#Section`         | `link`   | `wiki`     |
-| `![[Note]]`          | `km:Note`             | `embed`  | `wiki`     |
-| `![[image.png]]`     | `km:image.png`        | `embed`  | `wiki`     |
-| `[t](https://x.com)` | `https://x.com` + `t` | `link`   | `mdlink`   |
-| `<https://x.com>`    | `https://x.com`       | `link`   | `autolink` |
-| `https://x.com`      | `https://x.com`       | `link`   | `bare`     |
-| `@Alice`             | `km:Alice`            | `link`   | `sigil`    |
-| `#foo`               | `km:foo`              | `link`   | `sigil`    |
-| `+bar`               | `km:bar`              | `link`   | `sigil`    |
+| Notation             | `href`                 | `rel`    | `md.form`  |
+|----------------------|------------------------|----------|------------|
+| `[[Note]]`           | `km:Note`              | `link`   | `wiki`     |
+| `[[Note\|alias]]`    | `km:Note` + `alias`    | `link`   | `wiki`     |
+| `[[Note#Section]]`   | `km:Note#Section`      | `link`   | `wiki`     |
+| `[[Note^abc]]`       | `km:Note#^abc`         | `link`   | `wiki`     |
+| `[[#Section]]`       | `#Section`             | `link`   | `wiki`     |
+| `![[Note]]`          | `km:Note`              | `embed`  | `wiki`     |
+| `![[image.png]]`     | `km:image.png`         | `embed`  | `wiki`     |
+| `[t](https://x.com)` | `https://x.com` + `t`  | `link`   | `mdlink`   |
+| `[t](#Section)`      | `#Section` + `t`       | `link`   | `mdlink`   |
+| `<https://x.com>`    | `https://x.com`        | `link`   | `autolink` |
+| `https://x.com`      | `https://x.com`        | `link`   | `bare`     |
+| `@Alice`             | `km:@Alice`            | `link`   | `bare`     |
+| `#urgent`            | `km:%23urgent`         | `link`   | `bare`     |
+| `+cleanup`           | `km:+cleanup`          | `link`   | `bare`     |
+| `[[@Alice]]`         | `km:@Alice`            | `link`   | `wiki`     |
+| `[[+cleanup]]`       | `km:+cleanup`          | `link`   | `wiki`     |
 
 ## Cache: `links` table
 
 ```sql
 CREATE TABLE links (
   host_id TEXT NOT NULL,   -- node that hosts this link occurrence
-  href    TEXT NOT NULL,   -- normalized authored locator (km:Note, https://…)
+  href    TEXT NOT NULL,   -- normalized authored locator (km:Note, #Section, https://…)
   rel     TEXT NOT NULL    -- 'link' | 'embed'
 );
 
@@ -110,9 +182,9 @@ CREATE INDEX idx_links_href    ON links(href);
 CREATE UNIQUE INDEX idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
 ```
 
-Three columns. Resolution happens at runtime via the name index (`Map<name, nodeId[]>`), which is already built at startup in 55ms. The `links` table records what each node references; the name index tells you where those references point today.
+Three columns. Resolution happens at runtime via the name index (`Map<name, nodeId[]>`), which is already built at startup in 55ms.
 
-**Column naming.** `host_id` mirrors the design language ("host node is implicit") and reads correctly for both link (host→target mention) and embed (host transcludes target) semantics. No conflict with `KNode.parent` (tree parent). When a cached `to_id` ships later, the pair reads `host_id, to_id, rel`.
+**Column naming.** `host_id` mirrors the design language ("host node is implicit") and reads correctly for both link (host→target mention) and embed (host transcludes target) semantics. When a cached `to_id` ships later, the pair reads `host_id, to_id, rel`.
 
 ### Why no `to_id` column?
 
@@ -124,13 +196,13 @@ Three columns. Resolution happens at runtime via the name index (`Map<name, node
 ### Why `href` is needed
 
 - **Broken links**: know what the dead reference was targeting without re-parsing source content.
-- **External URLs**: `https://…` links have no target node.
+- **External URLs / self-refs**: `https://…` links have no target node; `#Section` refs have no target name.
 - **Rename re-resolution**: find all links to the old name, re-resolve.
 - **Debuggability**: "why is this link unresolved?" answerable from DB alone.
 
 ## Link resolution
 
-Two pure stages: **parse**, then **resolve**. Shaped after WHATWG `URL` but closed to km's scheme and rel enum. Matches km's domain-object convention: plain data types + factory-created stateful resolvers, no classes.
+Two pure stages: **parse**, then **resolve**. Shaped after WHATWG `URL` but closed to km's scheme and rel enum.
 
 ### Parsing: `parseLinkHref`
 
@@ -138,23 +210,24 @@ Two pure stages: **parse**, then **resolve**. Shaped after WHATWG `URL` but clos
 function parseLinkHref(href: string): KLinkRef  // total; throws on malformed input
 
 type KLinkRef = {
-  readonly scheme: string              // 'km' | 'https' | 'mailto' | …
-  readonly isKm: boolean               // scheme === 'km'
-  readonly isExternal: boolean         // !isKm
-  readonly name: string                // lowercased hierarchical name for km; '' for external or self-ref
-  readonly displayName: string         // original author casing, preserved for rendering
-  readonly segments: readonly string[] // name split on '/'  ['project', 'alpha']
-  readonly fragment: string | null     // raw fragment text, without leading '#'
-  readonly anchor: KAnchor | null      // typed parse of the fragment
-  readonly external: URL | null        // for non-km schemes, the WHATWG URL
+  readonly scheme: string               // 'km' | 'https' | 'mailto' | '' (self-ref)
+  readonly isKm: boolean                // scheme === 'km'
+  readonly isSelfRef: boolean           // scheme === '' && fragment != null
+  readonly isExternal: boolean          // !isKm && !isSelfRef
+  readonly name: string                 // lowercased hierarchical name; '' for external/self-ref
+  readonly displayName: string          // original author casing, preserved for rendering
+  readonly segments: readonly string[]  // name split on '/'  e.g. ['project', 'alpha']
+  readonly fragment: string | null      // raw fragment text, without leading '#'
+  readonly anchor: KAnchor | null       // typed parse of the fragment
+  readonly external: URL | null         // for non-km schemes, the WHATWG URL
 }
 
 type KAnchor =
-  | { kind: 'section'; value: string }  // '#Section Name'  → { kind:'section', value:'Section Name' }
-  | { kind: 'block';   value: string }  // '#^abc'          → { kind:'block',   value:'abc' }
+  | { kind: 'section'; value: string }  // 'Section Name'  → { kind:'section', value:'Section Name' }
+  | { kind: 'block';   value: string }  // '^abc'          → { kind:'block',   value:'abc' }
 ```
 
-External URIs (`https://…`, `mailto:…`) delegate to `new URL()`; `ref.external` is the parsed result.
+Self-ref href (`#Section`) parses as `scheme: '', isSelfRef: true, fragment: 'Section', anchor: {kind:'section', value:'Section'}`. External URIs delegate to `new URL()`; `ref.external` is the parsed result.
 
 Parse invariant: `parseLinkHref(stringifyLinkRef(ref))` deep-equals `ref`. Round-trip is total.
 
@@ -186,7 +259,7 @@ Built at startup from `nodes` (55ms typical); backs the resolver.
 
 ```typescript
 type NameIndex = Map<string, NodeId[]>
-// key = lowercased hierarchical name, e.g. "project/alpha" or "alice"
+// key = lowercased hierarchical name, e.g. "project/alpha" or "@alice" or "#urgent"
 ```
 
 **Case-insensitive.** Keys are lowercased on insert and lookup; display uses the author's original casing from the node. `[[Alice]]` and `[[alice]]` resolve to the same target. Matches Obsidian, Dendron, and filesystem norms on macOS/Windows.
@@ -197,7 +270,7 @@ type NameIndex = Map<string, NodeId[]>
 - Node create/delete: O(1) — single insert/remove.
 - Bulk import: full rebuild.
 
-**Lookup**: strict match only. `km:Alice` resolves via `get("alice")`; `km:Project/Alpha` via `get("project/alpha")`. **No base-name fallback** — if `Project/Alpha` isn't found, it's broken, even if an unambiguous `Alpha` exists. (Matches Dendron; prevents surprise resolution.)
+**Lookup**: strict match only. `km:Alice` resolves via `get("alice")`; `km:Project/Alpha` via `get("project/alpha")`; `km:%23urgent` via `get("#urgent")` (keys store decoded names). **No base-name fallback** — if `Project/Alpha` isn't found, it's broken, even if an unambiguous `Alpha` exists. (Matches Dendron; prevents surprise resolution.)
 
 ### Render & interact
 
@@ -223,8 +296,7 @@ function normalizeLinkHref(form: MdForm, label: string): string
 - Every KLink writer routes through this function.
 - Deterministic: same `(form, label)` → same `href`. No timestamps, no UUIDs, no Map-iteration-order dependence.
 - Percent-encodes reserved characters per the Encoding section.
-
-Since `rel` is a closed enum (`'link' | 'embed'`), the TypeScript type system enforces valid values — no runtime rel normalizer needed. When rel widens to include user-defined predicates, add `normalizeLinkRel` alongside.
+- Sigil-prefixed labels encode the sigil: `#urgent` → `km:%23urgent`, `@Alice` → `km:@Alice`.
 
 Already implemented in `@km/markdown` under its previous name `normalizeRefHref`. **Must be renamed to `normalizeLinkHref` and wired into all write paths before schema migration.**
 
@@ -264,7 +336,8 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 | `links.embedded` (bool)      | `links.rel = 'embed'`                    |
 | `links.relationship`         | `links.rel`                              |
 | `links.section`, `.block_id` | Fragment inside `links.href`             |
-| `Ref`, `normalizeRefHref`    | `KLink`, `normalizeLinkHref`             |
+| `Link`, `normalizeRefHref`   | `KLink`, `normalizeLinkHref`             |
+| `MdForm = 'mention'\|'tag'\|'project'` | `MdForm = 'bare'` (sigil inline is bare form) |
 
 **Strategy**: bump data version → auto-rebuild from content re-parse on first open. No manual `.km/state.db` deletion required — the migration is transparent.
 
@@ -283,6 +356,7 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 9. **Every writer goes through `normalizeLinkHref`.**
 10. **The render path never calls `resolveByName`.** It reads `href` and resolves via name index by cardinality.
 11. Name-index keys are lowercase; display preserves author casing.
+12. **Sigil-prefixed names serialize as bare form** — never wiki, except `#` which reserves wiki for self-ref.
 
 ## Deferred
 
@@ -290,9 +364,12 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 - Full source spans (`pos_start`, `pos_end`).
 - Cross-vault federation (`km://…`).
 - Auto-create stub nodes on unresolved references.
-- `KNode.kind` field for sigil targets.
+- User-configurable sigils (v1 ships the fixed `SIGILS` object; `loadSigilConfig()` from a file is future work).
+- Non-linked vs linked sigil distinction — sometimes an author wants `#urgent` to be literal, not a link. Possible future escape syntax; see-if-missed before designing.
 - `to_id` cached column + backlink index (add when profiling demands it).
 - `link_targets` junction table for pre-resolved ambiguity.
 - Base-name fallback resolution (rejected — ambiguity surprise > typing cost).
 
-See also: [data-model.md](data-model.md), [glossary.md](../glossary.md). Review history: GPT-5.4 Pro 2026-04-07 (original), conversational 2026-04-15 (ambiguity, normalization, render invariant), GPT-5.4 Pro review 2026-04-16 (schema options evaluation), final simplification 2026-04-16 (3-column schema, runtime resolution, KLink naming), terminology + scope 2026-04-16 (host_id, symlink→embed unification, rel closed to `link|embed`, `/` as path separator, case-insensitive lookup, self-reference, determinism invariant).
+See also: [data-model.md](data-model.md), [glossary.md](../glossary.md).
+
+Review history: GPT-5.4 Pro 2026-04-07 (original), conversational 2026-04-15 (ambiguity, normalization, render invariant), GPT-5.4 Pro review 2026-04-16 (schema options evaluation), simplification 2026-04-16 (3-column schema, runtime resolution, KLink naming), terminology + scope 2026-04-16 (host_id, symlink→embed unification, rel closed to `link|embed`, `/` as path separator, case-insensitive lookup, self-reference, determinism invariant), sigil-as-name 2026-04-16 (sigil is part of node name, canonical bare serialization, `#` special-cased to preserve Obsidian self-ref, letter-after-sigil parsing rule, RFC 3986 percent-encoding for reserved chars).
