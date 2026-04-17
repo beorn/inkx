@@ -4,7 +4,7 @@
  * Every KLink writer routes through this function. Deterministic: same
  * (form, label) → same href.
  *
- * See docs/design/links.md for the full notation → href table.
+ * See docs/design/model/klink.md for the full notation → href table.
  */
 
 import type { MdForm } from "@km/core"

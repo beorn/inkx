@@ -156,7 +156,7 @@ See [.claude/skills/git/worktree.md] for details.
 
 ## Data Model
 
-**Read [docs/design/data-model.md](docs/design/data-model.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed). See also [docs/design/selection-model.md](docs/design/selection-model.md) for the selection model.
+**Read [docs/design/model/knode.md](docs/design/model/knode.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed). See also [docs/design/selection-model.md](docs/design/selection-model.md) for the selection model.
 
 ## Code Style
 

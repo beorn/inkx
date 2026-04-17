@@ -185,7 +185,7 @@ The first non-collapsed, non-removed column is the default target for `km add`. 
 
 ### Embeds
 
-Board items are **embeds** of tasks. The `![[...]]` syntax creates an embed link (`rel='embed'`) — see [docs/design/links.md](../design/links.md).
+Board items are **embeds** of tasks. The `![[...]]` syntax creates an embed link (`rel='embed'`) — see [docs/design/model/klink.md](../design/model/klink.md).
 
 | Operation Type | Target | Rationale                                      |
 | -------------- | ------ | ---------------------------------------------- |
@@ -442,4 +442,4 @@ km init gtd --dry-run      # Preview what would be created
 
 - [ref/task-fields.md](../ref/task-fields.md) — Task fields, cross-system mapping
 - [ref/query.md](../ref/query.md) — Query language
-- [storage.md](../storage.md) — Node schema details
+- [storage.md](../design/model/storage.md) — Node schema details

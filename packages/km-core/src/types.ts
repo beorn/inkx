@@ -12,7 +12,7 @@
  * - item == null → leaf block
  * - embed_of != null → transcludes content from target node
  *
- * See docs/design/km-ast/model.md for the full specification.
+ * See docs/design/model/kast.md for the full specification.
  */
 
 // =============================================================================

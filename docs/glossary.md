@@ -162,7 +162,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **emitter** — The component that handles the commit/save lifecycle: apply to DB, persist to journal, broadcast, then FS sync. Three methods: `apply()` (commit + save), `commit()` (no FS), `save()` (FS only).
 
-**embed** — A KNode whose sole purpose is transclusion — empty content plus exactly one KLink with `rel: 'embed'`. The term is used everywhere: in markdown (`![[Note]]`), in storage (`rel='embed'`), in the AST, and in TUI user-facing strings. `KNode.embed_of` is runtime-materialized at load time from `SELECT host_id, href FROM links WHERE rel='embed'`, then resolved via the name index — the column still exists for hot-path access, but the `links` table is the source of truth. See [docs/design/links.md](design/links.md) for the full link model.
+**embed** — A KNode whose sole purpose is transclusion — empty content plus exactly one KLink with `rel: 'embed'`. The term is used everywhere: in markdown (`![[Note]]`), in storage (`rel='embed'`), in the AST, and in TUI user-facing strings. `KNode.embed_of` is runtime-materialized at load time from `SELECT host_id, href FROM links WHERE rel='embed'`, then resolved via the name index — the column still exists for hot-path access, but the `links` table is the source of truth. See [docs/design/model/klink.md](design/model/klink.md) for the full link model.
 
 **ESM** — ECMAScript Modules. km and all vendor packages use ESM exclusively — no CommonJS. Vendor packages publish raw TypeScript source.
 
@@ -210,11 +210,11 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **heartbeat** — Periodic anti-entropy reconciliation in the sync system. Runs when idle, reconciles all directories to catch dropped watcher events, re-projects dirty paths.
 
-**host_id** — In the `links` cache table, the node ID that hosts a link occurrence (the KNode whose content the link lives in). Named to read correctly for both `link` (host mentions target) and `embed` (host transcludes target) semantics. See [docs/design/links.md](design/links.md).
+**host_id** — In the `links` cache table, the node ID that hosts a link occurrence (the KNode whose content the link lives in). Named to read correctly for both `link` (host mentions target) and `embed` (host transcludes target) semantics. See [docs/design/model/klink.md](design/model/klink.md).
 
 **hoverTarget** — A computed signal indicating which node the pointer currently hovers over. Used for hover effects, tooltips, and drop target visualization. Distinct from *pressHit* (latched on mousedown).
 
-**href** — On a KLink, the parsed target reference as a normalized URI-shaped string: `km:<name>[#<frag>]` for internal references, `#<frag>` for self-refs, or `https://…`/`mailto:…` for external. Not the raw markdown notation — that's captured separately in `md.form`. Produced by `normalizeLinkHref(form, label)`. See [docs/design/links.md](design/links.md).
+**href** — On a KLink, the parsed target reference as a normalized URI-shaped string: `km:<name>[#<frag>]` for internal references, `#<frag>` for self-refs, or `https://…`/`mailto:…` for external. Not the raw markdown notation — that's captured separately in `md.form`. Produced by `normalizeLinkHref(form, label)`. See [docs/design/model/klink.md](design/model/klink.md).
 
 ### I
 
@@ -242,11 +242,11 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **km-ast** — The abstract syntax tree produced by km's markdown parser. Uses types like `oi` (outline item), `li` (list item), `p`, `h`, `code`, `quote`. Parse-time types that map to `KNode` in storage.
 
-**KLink** — The canonical reference type. Lives inline in parsed AST inside `KNode.content`. Shape: `{ href: string, rel: 'link' | 'embed', alias?: string, md?: { form?: MdForm } }`. The host node is implicit — whichever KNode owns the AST the link lives in. Named after the `KNode` convention; avoids collision with silvery's `<Link>` UI component. See [docs/design/links.md](design/links.md).
+**KLink** — The canonical reference type. Lives inline in parsed AST inside `KNode.content`. Shape: `{ href: string, rel: 'link' | 'embed', alias?: string, md?: { form?: MdForm } }`. The host node is implicit — whichever KNode owns the AST the link lives in. Named after the `KNode` convention; avoids collision with silvery's `<Link>` UI component. See [docs/design/model/klink.md](design/model/klink.md).
 
-**KLinkRef** — The parsed form of a `KLink.href`. Read-only record with `scheme`, `isKm`, `isSelfRef`, `isExternal`, `name`, `displayName`, `segments`, `fragment`, `anchor`, `external`. Produced by `parseLinkHref(href)`. Round-trips with `stringifyLinkRef(ref)`. See [docs/design/links.md](design/links.md).
+**KLinkRef** — The parsed form of a `KLink.href`. Read-only record with `scheme`, `isKm`, `isSelfRef`, `isExternal`, `name`, `displayName`, `segments`, `fragment`, `anchor`, `external`. Produced by `parseLinkHref(href)`. Round-trips with `stringifyLinkRef(ref)`. See [docs/design/model/klink.md](design/model/klink.md).
 
-**KResolution** — The resolved form of a `KLinkRef`. Closed union of five kinds: `external`, `self`, `resolved`, `ambiguous`, `broken`. Renderers and handlers switch on `kind` with no further logic. Produced by `createLinkResolver(nameIndex, hostId).resolve(ref)`. See [docs/design/links.md](design/links.md).
+**KResolution** — The resolved form of a `KLinkRef`. Closed union of five kinds: `external`, `self`, `resolved`, `ambiguous`, `broken`. Renderers and handlers switch on `kind` with no further logic. Produced by `createLinkResolver(nameIndex, hostId).resolve(ref)`. See [docs/design/model/klink.md](design/model/klink.md).
 
 **KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `embed_of`, `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
 
@@ -280,7 +280,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 ### N
 
-**NameIndex** — `Map<string, NodeId[]>` keyed by lowercased hierarchical node name (e.g., `"project/alpha"`, `"@alice"`, `"#urgent"`). Built at startup from `nodes` (~55ms typical); maintained O(1) per rename/create/delete. Backs `createLinkResolver` — the render path never touches it directly. Strict match only, no base-name fallback. See [docs/design/links.md](design/links.md).
+**NameIndex** — `Map<string, NodeId[]>` keyed by lowercased hierarchical node name (e.g., `"project/alpha"`, `"@alice"`, `"#urgent"`). Built at startup from `nodes` (~55ms typical); maintained O(1) per rename/create/delete. Backs `createLinkResolver` — the render path never touches it directly. Strict match only, no base-name fallback. See [docs/design/model/klink.md](design/model/klink.md).
 
 **navigate** — Changing the board root via zoom (Enter to drill in, u to zoom out). Distinct from *cursoring* (moving to adjacent nodes with hjkl).
 
@@ -366,7 +366,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **reconciliation engine** — The component that syncs filesystem changes into the database (FS -> DB). Scans FS entries, queries DB nodes, diffs to produce operations (create, update, rename, delete), and filters owned writes.
 
-**rel** — On a KLink, the semantic relation. Closed enum for v1: `'link'` (plain links, sigils, external URLs) or `'embed'` (inline content rendering via `![[…]]`). Same model as HTML's `rel` attribute (RFC 8288). Will widen to `string` with a kebab-case normalizer when property-link typed rels (`blocked-by`, `author`, `cites`) ship. See [docs/design/links.md](design/links.md).
+**rel** — On a KLink, the semantic relation. Closed enum for v1: `'link'` (plain links, sigils, external URLs) or `'embed'` (inline content rendering via `![[…]]`). Same model as HTML's `rel` attribute (RFC 8288). Will widen to `string` with a kebab-case normalizer when property-link typed rels (`blocked-by`, `author`, `cites`) ship. See [docs/design/model/klink.md](design/model/klink.md).
 
 **render** — The act of producing terminal output from a React element tree. In silvery, `run(<App />, term)` starts the render loop; `createRenderer()` provides headless rendering for tests.
 
@@ -418,7 +418,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **serializer** — The component that converts KNode trees back to markdown text. Used by the DB -> FS sync path. Counterpart of *parser*.
 
-**sigil** — A single-character prefix (`@`, `#`, `+`) that is **part of a node's name**, not a separate namespace. A node literally named `@Alice` has name `@Alice`. Recognized as a link introducer only when followed by a letter and preceded by a word boundary — `#urgent` is a tag link, `#42` is literal text. Canonical serialization is bare form (`@Alice`, not `[[@Alice]]`), except `#`-prefixed names which reserve wiki form for self-refs. Centralized in `packages/km-core/src/sigils.ts` with `kind` metadata (`person`, `tag`, `project`). See [docs/design/links.md](design/links.md).
+**sigil** — A single-character prefix (`@`, `#`, `+`) that is **part of a node's name**, not a separate namespace. A node literally named `@Alice` has name `@Alice`. Recognized as a link introducer only when followed by a letter and preceded by a word boundary — `#urgent` is a tag link, `#42` is literal text. Canonical serialization is bare form (`@Alice`, not `[[@Alice]]`), except `#`-prefixed names which reserve wiki form for self-refs. Centralized in `packages/km-core/src/sigils.ts` with `kind` metadata (`person`, `tag`, `project`). See [docs/design/model/klink.md](design/model/klink.md).
 
 **signal** — A reactive primitive that holds a value and notifies dependents when it changes. `signal<T>(initial)` creates a writable signal; `computed(() => ...)` creates a derived one.
 
@@ -480,7 +480,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **ULID** — Universally Unique Lexicographically Sortable Identifier. Used for node IDs in disk mode. Stable, sortable, unique identifiers that survive structural changes.
 
-**URI** — KLink targets use RFC 3986 URI syntax. Internal: `km:<name>[#<frag>]`. External: `https://…`, `mailto:…`, etc. Self-ref: `#<frag>`. Future federation: `km://<authority>/<path>`. Reserved characters in names are percent-encoded per RFC 3986 (`#` → `%23`, `?` → `%3F`, `%` → `%25`); `/` is retained as a hierarchical path separator. See [docs/design/links.md](design/links.md).
+**URI** — KLink targets use RFC 3986 URI syntax. Internal: `km:<name>[#<frag>]`. External: `https://…`, `mailto:…`, etc. Self-ref: `#<frag>`. Future federation: `km://<authority>/<path>`. Reserved characters in names are percent-encoded per RFC 3986 (`#` → `%23`, `?` → `%3F`, `%` → `%25`); `/` is retained as a hierarchical path separator. See [docs/design/model/klink.md](design/model/klink.md).
 
 **using** — TC39 Explicit Resource Management keyword. Ties object lifetime to scope — cleanup runs automatically on exit. Used throughout km and silvery: `using term = createTerm()`. Resources clean up in reverse order.
 

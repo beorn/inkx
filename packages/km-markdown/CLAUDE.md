@@ -8,7 +8,7 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 
 **Read first, in this order:**
 
-1. [`docs/design/data-model.md`](../../docs/design/data-model.md) — the km-ast shape this package must produce
+1. [`docs/design/model/knode.md`](../../docs/design/model/knode.md) — the km-ast shape this package must produce
 2. [`src/kmast/`](src/kmast) — the km-ast types and what gets mapped to/from mdast; [`src/ast2nodes.ts`](src/ast2nodes.ts) and [`src/nodes2md.ts`](src/nodes2md.ts) are the two conversion directions
 3. [mdast spec](https://github.com/syntax-tree/mdast) — the external AST this package converts from/to
 4. [micromark docs](https://github.com/micromark/micromark) and [unifiedjs.com](https://unifiedjs.com) — tokenizer and unified pipeline

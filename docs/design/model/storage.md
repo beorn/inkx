@@ -325,7 +325,7 @@ type NodeType =
   | "embed" // Embedded reference (![[target]]) linking to another node
 ````
 
-> **Current: km-ast v2** — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (`embed_of` on any type). See [design/km-ast/model.md](design/km-ast/model.md).
+> **Current: km-ast v2** — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (`embed_of` on any type). See [design/model/kast.md](design/model/kast.md).
 
 ### Task Status
 
@@ -350,7 +350,7 @@ type TaskStatus =
 
 ### Embeds
 
-A KNode whose content is a single `![[Target]]` is an **embed** — it transcludes the target without duplicating its content. See [docs/design/links.md](design/links.md) for the canonical link model.
+A KNode whose content is a single `![[Target]]` is an **embed** — it transcludes the target without duplicating its content. See [docs/design/model/klink.md](design/model/klink.md) for the canonical link model.
 
 ```typescript
 interface KNode {
@@ -476,7 +476,7 @@ END;
 
 ### links table
 
-A derived cache of every link/embed occurrence parsed out of node content. Three columns — resolution happens at runtime via the name index (see [docs/design/links.md](design/links.md) for the canonical link model).
+A derived cache of every link/embed occurrence parsed out of node content. Three columns — resolution happens at runtime via the name index (see [docs/design/model/klink.md](design/model/klink.md) for the canonical link model).
 
 ```sql
 CREATE TABLE links (

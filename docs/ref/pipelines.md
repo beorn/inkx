@@ -202,4 +202,4 @@ See [principles.md](../principles.md) Part 2: Composable Flows for the architect
 
 - [principles.md](../principles.md) — Async generator pipelines principle
 - [architecture.md](../architecture.md) — Data flow through layers
-- [storage.md](../storage.md) — SQLite schema and sync details
+- [storage.md](../design/model/storage.md) — SQLite schema and sync details

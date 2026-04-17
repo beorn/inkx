@@ -8,7 +8,7 @@ A knowledge base is **personal** — designed for one user, not collaborative ed
 
 The design combines the transparency of plain-file PKM tools (Obsidian, Logseq — user control, git-versioned, editor-agnostic) with the structured memory of AI agent systems (ENGRAM, Hindsight — queryable triples, confidence scoring, per-category retrieval). Markdown is a view of the data, not the source of truth. The critical path is deterministic — LLM inference is background-only.
 
-> **Relationship to [architecture.md](../architecture.md)**: That document describes km's five-layer system (App → Board → Tree → Storage → FS). The items described here are implemented by that five-layer system — items and blocks map to `KNode` records, queries and mutations flow through the same `emit()` pipeline described in [storage.md](../storage.md). This document describes the **knowledge base layer** — logs, statements, and the transformations that connect them.
+> **Relationship to [architecture.md](../architecture.md)**: That document describes km's five-layer system (App → Board → Tree → Storage → FS). The items described here are implemented by that five-layer system — items and blocks map to `KNode` records, queries and mutations flow through the same `emit()` pipeline described in [storage.md](../design/model/storage.md). This document describes the **knowledge base layer** — logs, statements, and the transformations that connect them.
 >
 > **Status**: Under active development. See [Current State](#current-state) for what's implemented vs planned.
 
@@ -81,7 +81,7 @@ Agent chat logs are the purest event source: the transcript IS the event stream.
 
 ### Log Event Schema
 
-Log events use the same `Event` structure defined in [storage.md](../storage.md):
+Log events use the same `Event` structure defined in [storage.md](../design/model/storage.md):
 
 ```typescript
 interface Event {
@@ -96,7 +96,7 @@ interface Event {
 
 Agent chat log events (session lifecycle, messages, tool calls) are defined in [agents.md](../future/agents.md#session-events). Edit log events wrap `node_*` event types. Sync chat log events wrap the sync adapter's diff output.
 
-All log events flow through storage.md's [4-path multiplexer](../storage.md#the-4-path-multiplexer) (`emit()` → persist, project, broadcast, sync).
+All log events flow through storage.md's [4-path multiplexer](../design/model/storage.md#the-4-path-multiplexer) (`emit()` → persist, project, broadcast, sync).
 
 ### Memory Quality Gradient
 
@@ -504,7 +504,7 @@ The PIM ecosystem simplifies to two things:
 ## See Also
 
 - [../architecture.md](../architecture.md) — km system architecture (layers, data flow, events)
-- [../storage.md](../storage.md) — Storage modes, KNode schema, `emit()` pipeline, event types
+- [../storage.md](../design/model/storage.md) — Storage modes, KNode schema, `emit()` pipeline, event types
 - [../future/services.md](../future/services.md) — CalDAV/CardDAV connectors
 - [../future/agents.md](../future/agents.md) — Agent runtime, harnesses, session events (= chat logs)
 - [../explorations/plain-brain.md](../explorations/plain-brain.md) — original exploration (graduated to this doc)

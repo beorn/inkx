@@ -354,7 +354,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 
 - [principles.md](principles.md) — Philosophy: composability, code for humans, governance
 - [packages.md](packages.md) — Full package inventory (versions, npm scopes, CLI commands)
-- [design/data-model.md](design/data-model.md) — KNode tree, items vs blocks, board hierarchy
+- [design/model/knode.md](design/model/knode.md) — KNode tree, items vs blocks, board hierarchy
 - [design/tea-state-machines.md](design/tea-state-machines.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles

@@ -2,7 +2,7 @@
  * Rename Tests
  *
  * Tests for renameNode and getRenameImpact under the v4 links schema
- * (see docs/design/links.md). The legacy updateTargetName helper is
+ * (see docs/design/model/klink.md). The legacy updateTargetName helper is
  * gone — rename rewrites content in host nodes and updates links.href
  * rows keyed on the renamed node's canonical href.
  */

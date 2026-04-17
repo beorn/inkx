@@ -131,7 +131,7 @@ export function deleteSubtree(db: Database, rootId: string): void {
   // Clean up link rows whose host is being deleted. The v4 links schema
   // has no target column — backlinks pointing at a deleted node are
   // broken-by-href and reported as such by the runtime resolver, not by a
-  // cascade delete. See docs/design/links.md.
+  // cascade delete. See docs/design/model/klink.md.
   db.run(`DELETE FROM links WHERE host_id IN (${placeholders})`, ids)
 
   // Delete all nodes in the subtree

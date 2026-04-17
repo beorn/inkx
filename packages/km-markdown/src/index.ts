@@ -30,7 +30,7 @@ export type {
   MdForm,
 } from "./parser.ts"
 
-// Canonical href normalizer. See docs/design/links.md and @km/core for
+// Canonical href normalizer. See docs/design/model/klink.md and @km/core for
 // the KLink type and MdForm.
 export { normalizeLinkHref } from "./link-href.ts"
 

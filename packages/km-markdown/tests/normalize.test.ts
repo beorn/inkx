@@ -10,7 +10,7 @@
  * In particular, sigil prefixes (@, +, #) must be preserved so that heading
  * nodes resolve against folder nodes with the same sigiled name.
  *
- * Under the v4 link model (docs/design/links.md), MdForm is closed to
+ * Under the v4 link model (docs/design/model/klink.md), MdForm is closed to
  * 4 values ('wiki' | 'mdlink' | 'autolink' | 'bare'); sigil-prefixed names
  * flow through `bare` and are percent-encoded where needed.
  */
@@ -153,7 +153,7 @@ describe("normalizeLinkHref", () => {
     })
   })
 
-  describe("bare form with sigils (sigil-as-name, docs/design/links.md)", () => {
+  describe("bare form with sigils (sigil-as-name, docs/design/model/klink.md)", () => {
     it("@Alice preserves the sigil inside km: scheme", () => {
       expect(normalizeLinkHref("bare", "@Alice")).toBe("km:@Alice")
     })
@@ -200,7 +200,7 @@ describe("normalizeLinkHref", () => {
     }
   })
 
-  describe("design doc examples (docs/design/links.md)", () => {
+  describe("design doc examples (docs/design/model/klink.md)", () => {
     // From the "Markdown → KLink" table in the design doc
     it("[[Note]] → km:Note", () => {
       expect(normalizeLinkHref("wiki", "Note")).toBe("km:Note")

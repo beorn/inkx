@@ -323,7 +323,7 @@ function itemToNodes(
   }
   // Cross-project dedup: if already rendered in another project, emit embed reference.
   //
-  // Embed data model (see docs/design/km-ast/model.md):
+  // Embed data model (see docs/design/model/kast.md):
   //   embed_of  — target node ID to transclude (e.g., "^1234567890")
   //   content       — optional alias override; if non-empty, displayed INSTEAD of target's title
   //                   (like ![[^GID|My custom title]]). If empty, TUI resolves title from target.

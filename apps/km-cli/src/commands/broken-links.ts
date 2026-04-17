@@ -8,7 +8,7 @@
  * Scoping: pass `scope` to restrict results to links whose source is
  * the scope node or a descendant.
  *
- * Under the v4 links schema (see docs/design/links.md), a link row is
+ * Under the v4 links schema (see docs/design/model/klink.md), a link row is
  * (host_id, href, rel). Resolution is runtime: a link is "broken" when
  * its href is a `km:` reference whose name doesn't resolve in the name
  * index built from node names and paths.
@@ -54,7 +54,7 @@ export function getBrokenLinks(db: Database): BrokenLink[] {
     .all() as LinkRow[]
 
   // Build a name index of known targets. Keys are lowercased for the
-  // case-insensitive lookup documented in docs/design/links.md.
+  // case-insensitive lookup documented in docs/design/model/klink.md.
   const known = new Set<string>()
   const nodeRows = db.query("SELECT name, fs_path FROM nodes").all() as Array<{
     name: string | null

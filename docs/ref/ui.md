@@ -96,7 +96,7 @@ Suffix renders dim/gray.
 
 ### Link States
 
-Every inline link (wiki, embed, sigil, mdlink, autolink, bare URL) resolves to one of five `KResolution` kinds. Renderers switch on `kind` and apply the corresponding visual. See [docs/design/links.md](../design/links.md).
+Every inline link (wiki, embed, sigil, mdlink, autolink, bare URL) resolves to one of five `KResolution` kinds. Renderers switch on `kind` and apply the corresponding visual. See [docs/design/model/klink.md](../design/model/klink.md).
 
 | Kind        | Visual                                           | Click                             |
 | ----------- | ------------------------------------------------ | --------------------------------- |
@@ -876,5 +876,5 @@ km automatically shows toasts for certain events:
 ## See Also
 
 - [../architecture.md](../architecture.md) — Layer responsibilities
-- [../storage.md](../storage.md) — Node schema
+- [../storage.md](../design/model/storage.md) — Node schema
 - [The Silvery Way](../../vendor/silvery/docs/guide/the-silvery-way.md) — Current TUI patterns (km migrated off Ink to silvery)

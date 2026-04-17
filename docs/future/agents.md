@@ -400,6 +400,6 @@ km hub status               # Show status
 ## See Also
 
 - [../architecture/brain.md](../architecture/brain.md) — Knowledge base: logs, statements, items, views
-- [../storage.md](../storage.md) — Events and storage model
+- [../storage.md](../design/model/storage.md) — Events and storage model
 - [../guides/tasks.md](../guides/tasks.md) — Task management
 - [../guides/cli.md](../guides/cli.md) — CLI commands

@@ -6,15 +6,15 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 
 **vendor packages must never reference `vendor/` paths.** They don't know they're inside km. This applies uniformly — source, docs, CLAUDE.md files inside the vendor package, comments, anything. No "local dev convenience" exception.
 
-| Context                                  | Allowed                                              | Not Allowed                           |
-| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------- |
-| Source code (imports)                    | `@termless/core`, `@silvery/ag-react`                | `../../../vendor/silvery/src/...`     |
-| Source code (strings / docstrings)       | `tests/layout.test.ts` (relative to package)         | `vendor/flexily/tests/layout.test.ts` |
-| Documentation                            | `npm install @termless/ghostty`                      | `cd vendor/termless && ...`           |
-| Links in docs                            | `https://silvery.dev/guide/...`                      | `vendor/silvery/docs/guide/...`       |
+| Context                                  | Allowed                                                 | Not Allowed                           |
+| ---------------------------------------- | ------------------------------------------------------- | ------------------------------------- |
+| Source code (imports)                    | `@termless/core`, `@silvery/ag-react`                   | `../../../vendor/silvery/src/...`     |
+| Source code (strings / docstrings)       | `tests/layout.test.ts` (relative to package)            | `vendor/flexily/tests/layout.test.ts` |
+| Documentation                            | `npm install @termless/ghostty`                         | `cd vendor/termless && ...`           |
+| Links in docs                            | `https://silvery.dev/guide/...`                         | `vendor/silvery/docs/guide/...`       |
 | CLAUDE.md **inside** a vendor package    | relative paths (`tests/foo.ts`), npm names, GitHub URLs | `vendor/<pkg>/...` paths              |
-| Comments (run-command examples)          | relative paths (`bun tests/foo.ts`)                  | `bun vendor/<pkg>/tests/foo.ts`       |
-| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo) | `vendor/internal/silvery/...` paths   |
+| Comments (run-command examples)          | relative paths (`bun tests/foo.ts`)                     | `bun vendor/<pkg>/tests/foo.ts`       |
+| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo)   | `vendor/internal/silvery/...` paths   |
 
 **Why:** when someone clones `github.com/beorn/silvery` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage. A vendor package that survives `git clone <repo> && bun test` without knowing about km is correct; anything else has monorepo-leak.
 

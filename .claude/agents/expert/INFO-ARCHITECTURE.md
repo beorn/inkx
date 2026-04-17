@@ -41,7 +41,7 @@ Annotated links to canonical docs — NOT copies. Each link includes a short ann
 
 ```markdown
 ## Reference Index
-- `docs/design/data-model.md` — KNode shape, items vs blocks, board hierarchy
+- `docs/design/model/knode.md` — KNode shape, items vs blocks, board hierarchy
   - Note: body extraction edge case with mixed heading siblings (2026-04-10)
 - `vendor/silvery/RENDERING.md` — pipeline algorithm, 8 phases
   - Note: bgDirty epoch clearing changed in v0.17.3

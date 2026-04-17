@@ -60,7 +60,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [concepts.md](concepts.md)         | Core concepts: nodes, modes, status                                                                    |
 | [architecture.md](architecture.md) | Building blocks, 5-layer stack, 4 data flows, ViewNode, composition model                              |
 | [architecture/brain.md](architecture/brain.md) | Brain layer: chats, memory graph, knowledge tree, solidification                              |
-| [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
+| [storage.md](design/model/storage.md)           | SQLite schema, two modes, sync                                                                         |
 
 ### User Guides
 
@@ -98,7 +98,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [design/selection-model.md](design/selection-model.md)                       | Selection model — reactive signals, gestures, Selection.*/Selecting.* |
 | [design/tea-state-machines.md](design/tea-state-machines.md)                 | TEA state machine architecture (`(state, op) -> [state, effects]`) |
 | [design/phases.md](design/phases.md)                                         | TEA migration roadmap (phase status and key files)       |
-| [design/data-model.md](design/data-model.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
+| [design/model/knode.md](design/model/knode.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
 | [design/outliner-spec.md](design/outliner-spec.md)                           | Outliner editing operations (split, indent, merge)       |
 | [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Terminal integration testing strategy                |
 | [design/visual-navigation.md](design/visual-navigation.md)                   | Visual navigation design                                 |

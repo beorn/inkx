@@ -104,7 +104,7 @@ export interface ExtractedLink {
   relationship?: string
   /**
    * Normalized href for the new link model. Computed from the wiki notation via
-   * normalizeLinkHref (see docs/design/links.md). Consumed in Phase 3 of the
+   * normalizeLinkHref (see docs/design/model/klink.md). Consumed in Phase 3 of the
    * link-model migration (km-storage.link-model-canonical) when the schema
    * flips to the 3-column links table. Presence is unconditional as of
    * Phase 2 — every extracted link has its canonical href attached.
@@ -996,7 +996,7 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
 /**
  * Build the wiki-form label from a WikiLink and normalize to canonical href.
  * Re-assembles the authored text (`Note#Section`, `Note^abc`, `#Section`)
- * then runs normalizeLinkHref("wiki", label). See docs/design/links.md.
+ * then runs normalizeLinkHref("wiki", label). See docs/design/model/klink.md.
  */
 function wikiLinkToHref(link: WikiLink): string {
   let label = link.target

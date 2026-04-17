@@ -132,7 +132,7 @@ Item (2)   — tree structure
 
 ### References: Links and Embeds
 
-Two relation kinds, one canonical type — the **KLink** (see [docs/design/links.md](design/links.md)):
+Two relation kinds, one canonical type — the **KLink** (see [docs/design/model/klink.md](design/model/klink.md)):
 
 | Type | Where | What it does | Example |
 |---|---|---|---|
@@ -169,7 +169,7 @@ Status answers: **Can I work on this?**
 
 ## Links
 
-Every reference — wikilinks, embeds, sigils, external URLs — is a single canonical `KLink` type `{ href, rel, alias?, md? }` inline in `KNode.content`. A derived `links` cache table (`host_id`, `href`, `rel`) powers backlinks and indexed queries. See [docs/design/links.md](design/links.md) for the full model.
+Every reference — wikilinks, embeds, sigils, external URLs — is a single canonical `KLink` type `{ href, rel, alias?, md? }` inline in `KNode.content`. A derived `links` cache table (`host_id`, `href`, `rel`) powers backlinks and indexed queries. See [docs/design/model/klink.md](design/model/klink.md) for the full model.
 
 | Notation            | `rel`    | `md.form` | `href`                  | Meaning                   |
 | ------------------- | -------- | --------- | ----------------------- | ------------------------- |
@@ -302,6 +302,6 @@ Key differences: we use stable node IDs (not fragile index paths), effects are d
 ## See Also
 
 - [architecture.md](architecture.md) — Package structure, data flow, event system
-- [storage.md](storage.md) — Mode detection, SQLite schema, sync
+- [storage.md](design/model/storage.md) — Mode detection, SQLite schema, sync
 - [guides/tasks.md](guides/tasks.md) — Task management, GTD workflow
 - [principles.md](principles.md) — Composability and architectural principles

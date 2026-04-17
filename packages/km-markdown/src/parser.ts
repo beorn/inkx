@@ -457,7 +457,7 @@ export function normalizeNodeName(title: string): string {
 // mention / project) was Phase 1 scaffolding. It has been replaced by
 // `normalizeLinkHref` in link-href.ts, which consumes the 4-value MdForm
 // from @km/core ('wiki' | 'mdlink' | 'autolink' | 'bare'). Sigils are
-// handled by link-href's `normalizeBare` branch — see docs/design/links.md
+// handled by link-href's `normalizeBare` branch — see docs/design/model/klink.md
 // (sigil-as-name section).
 
 export type { MdForm } from "@km/core"

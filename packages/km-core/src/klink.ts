@@ -5,7 +5,7 @@
  * sigils, external URLs. The host node is implicit — it's whichever KNode
  * owns the AST the link lives in, so KLink has no host/source field.
  *
- * See docs/design/links.md for the full model.
+ * See docs/design/model/klink.md for the full model.
  */
 
 /**

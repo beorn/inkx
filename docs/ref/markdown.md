@@ -515,11 +515,11 @@ oi (section)
 
 The split rule is uniform: `blocks = children.filter(c => c.type !== "oi")`, `subitems = children.filter(c => c.type === "oi")`. No positional heuristic — type alone determines classification.
 
-See [design/km-ast/model.md](../design/km-ast/model.md) for the full specification.
+See [design/model/kast.md](../design/model/kast.md) for the full specification.
 
 ---
 
 ## See Also
 
-- [storage.md](../storage.md) — Node storage, sync
+- [storage.md](../design/model/storage.md) — Node storage, sync
 - [query.md](query.md) — Query language

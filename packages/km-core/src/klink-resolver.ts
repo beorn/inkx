@@ -6,7 +6,7 @@
  * node id. Callers consume the tagged union `KResolution`; they never query
  * the name index directly.
  *
- * See docs/design/links.md for the render/interaction contract.
+ * See docs/design/model/klink.md for the render/interaction contract.
  */
 
 import type { KAnchor, KLinkRef } from "./klink-ref.ts"

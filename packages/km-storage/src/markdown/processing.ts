@@ -59,7 +59,7 @@ export interface ProcessedMarkdown {
  *
  * `href` is the canonical parsed locator produced by normalizeLinkHref()
  * in @km/markdown. It is always present under the Phase 2+ parser contract
- * (see docs/design/links.md). Storage consumers should prefer it over the
+ * (see docs/design/model/klink.md). Storage consumers should prefer it over the
  * raw `link.target` for name-index lookups and link-row inserts.
  */
 export interface WikilinkRef {
@@ -138,7 +138,7 @@ export function toPendingLinks(processed: ProcessedMarkdown): Array<{
  * Under the v4 links schema the row itself is just (host_id, href, rel).
  * We keep a sibling `embedTargetId` so callers can update the host node's
  * `embed_of` column after the link row is inserted — `embed_of` is still
- * materialized on `nodes` (see docs/design/links.md "Embed nodes"). The
+ * materialized on `nodes` (see docs/design/model/klink.md "Embed nodes"). The
  * embed-target id is resolved via LinkResolver at write time and is not
  * persisted in the links table.
  */

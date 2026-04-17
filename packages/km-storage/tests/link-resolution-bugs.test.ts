@@ -5,7 +5,7 @@
  * scoped resolveLinks), Bug 1c (updateTargetName corrupts unrelated
  * links), and the composite-PK dedup bug. All three artifacts belonged
  * to the pre-v4 persisted-resolution model and were deleted in Phase 3
- * of the link-model migration (docs/design/links.md).
+ * of the link-model migration (docs/design/model/klink.md).
  *
  * Under the v4 (host_id, href, rel) schema, resolution happens at
  * runtime via the name index — there are no unresolved rows to scope,
@@ -131,7 +131,7 @@ describe("Links v4 schema shape", () => {
     addLink(db, { host_id: "src-1", href: "km:Target", rel: "link" })
 
     // v4 cache stores each occurrence as its own row — two rows here.
-    // See docs/design/links.md invariant 2.
+    // See docs/design/model/klink.md invariant 2.
     const rows = db.query("SELECT * FROM links WHERE host_id = 'src-1'").all() as Array<{
       host_id: string
       href: string
@@ -153,7 +153,7 @@ describe("Links v4 schema shape", () => {
     // The design's embed-one invariant applies to dedicated embed nodes
     // (embed_of set); plain paragraphs that happen to contain several
     // ![[…]] embeds legitimately share a host, so the DB doesn't enforce
-    // a unique index. See schema.ts comment + docs/design/links.md.
+    // a unique index. See schema.ts comment + docs/design/model/klink.md.
     expect(() => {
       addLink(db, { host_id: "host-1", href: "km:Target", rel: "embed" })
       addLink(db, { host_id: "host-1", href: "km:Another", rel: "embed" })

@@ -18,9 +18,9 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 
 | Concept | Canonical doc |
 |---|---|
-| KNode record shape, items vs blocks, ItemData, visual roles, body content | [design/data-model.md](../design/data-model.md) |
-| KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/links.md](../design/links.md) |
-| km-ast type system, block types, traits, derivation rules | [design/km-ast/model.md](../design/km-ast/model.md) |
+| KNode record shape, items vs blocks, ItemData, visual roles, body content | [design/model/knode.md](../design/model/knode.md) |
+| KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/model/klink.md](../design/model/klink.md) |
+| km-ast type system, block types, traits, derivation rules | [design/model/kast.md](../design/model/kast.md) |
 | Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/visibility-model.md](../design/visibility-model.md) |
 | Folder/file/H1 collapse rule, index file expansion, fstype classification | [design/folder-note-model.md](../design/folder-note-model.md) |
 | Selection type, cursor/anchor, inputMode, 9 Selecting kinds | [design/selection-model.md](../design/selection-model.md), [design/selection-state-spec.md](../design/selection-state-spec.md) |
@@ -36,7 +36,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Tree aggregation, fold-depth | [design/tree-reduce.md](../design/tree-reduce.md) |
 | Task recurrence (RRULE + FROM) | [design/recurrence.md](../design/recurrence.md) |
 | Tribe multi-session coordination | [vendor/bearly/plugins/tribe/README.md](../../vendor/bearly/plugins/tribe/README.md) — owned by bearly |
-| Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../storage.md) |
+| Storage modes (memory/disk), SQLite schema, ULIDs | [storage.md](../design/model/storage.md) |
 | Query language (field:value, sigils, paths, FTS) | [ref/query.md](../ref/query.md) |
 | Task fields (marker, status, due, priority, recur) + cross-system mapping | [ref/task-fields.md](../ref/task-fields.md) |
 | Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [ref/markdown.md](../ref/markdown.md) |

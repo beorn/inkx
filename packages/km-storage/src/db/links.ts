@@ -1,7 +1,7 @@
 /**
  * Database Links - Link cache (3-column canonical schema).
  *
- * Flipped schema per docs/design/links.md:
+ * Flipped schema per docs/design/model/klink.md:
  *
  *   (host_id, href, rel)
  *
@@ -10,7 +10,7 @@
  * runtime via the name index (Map<name, nodeId[]>). There is no target_id
  * column — resolution state is not persisted.
  *
- * See docs/design/links.md for the full model.
+ * See docs/design/model/klink.md for the full model.
  */
 
 import type { Database } from "bun:sqlite"
@@ -45,7 +45,7 @@ export interface KLink {
  * Insert a link-occurrence row.
  *
  * Multiple occurrences of the same href inside the same host are stored as
- * separate rows (see invariant 2 in docs/design/links.md). The partial
+ * separate rows (see invariant 2 in docs/design/model/klink.md). The partial
  * UNIQUE index `idx_links_embed_one` enforces at most one rel='embed' row
  * per host.
  */

@@ -30,4 +30,4 @@ Once we recognized this, the design simplified:
 
 - [Layered Architecture](../principles.md#principle-organize-objects-into-layers) - Each layer calls only the layer below
 - [architecture.md](../architecture.md) - System layers and data flow
-- [storage.md](../storage.md) - SQLite schema and sync details
+- [storage.md](../design/model/storage.md) - SQLite schema and sync details

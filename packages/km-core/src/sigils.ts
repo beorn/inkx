@@ -10,7 +10,7 @@
  * prose like "issue #42", "dial @911", "+4 dB" from becoming accidental
  * links.
  *
- * See docs/design/links.md for the full rationale.
+ * See docs/design/model/klink.md for the full rationale.
  */
 
 export type SigilChar = "@" | "#" | "+"

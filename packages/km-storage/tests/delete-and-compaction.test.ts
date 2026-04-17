@@ -217,7 +217,7 @@ describe("recursive delete", () => {
 
     // Only the host=child row disappears; the two host=unrelated rows
     // stay (the `km:parent` one will resolve as broken at runtime under
-    // the v4 schema — see docs/design/links.md).
+    // the v4 schema — see docs/design/model/klink.md).
     expect(getLinkCount(db)).toBe(2)
   })
 

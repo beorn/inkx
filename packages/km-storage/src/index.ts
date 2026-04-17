@@ -65,7 +65,7 @@ export {
   executeQuery,
   queryTasks,
   queryNodes,
-  // Link operations (canonical 3-column schema — see docs/design/links.md)
+  // Link operations (canonical 3-column schema — see docs/design/model/klink.md)
   addLink,
   removeLinksFromSource,
   getOutgoingLinks,

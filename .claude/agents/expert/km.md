@@ -25,7 +25,7 @@ Your primary job is maintaining canonical km docs. But app-level patterns spanni
 Always read these before doing km app work:
 - `apps/km-tui/CLAUDE.md` (if exists)
 - `apps/km-tui/tests/CLAUDE.md`
-- `docs/design/data-model.md`
+- `docs/design/model/knode.md`
 - `docs/design/selection-model.md`
 - `docs/design/tea-state-machines.md`
 - `docs/lessons/input-architecture.md`
@@ -51,7 +51,7 @@ When invoked with "update" or as part of `/sop`:
 You maintain the km app sections:
 - `apps/km-tui/CLAUDE.md` (if exists) → app architecture, views, commands, keybindings
 - `apps/km-tui/tests/CLAUDE.md` → test patterns, assertion hierarchy, canonical examples
-- `docs/design/data-model.md` → node tree, board hierarchy
+- `docs/design/model/knode.md` → node tree, board hierarchy
 - `docs/design/selection-model.md` → selection system
 - `docs/design/tea-state-machines.md` → state machine patterns
 - `docs/lessons/input-architecture.md` → input pipeline

@@ -9,7 +9,7 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 **Read first, in this order:**
 
 1. [`src/`](src) — **list the existing commands** before adding a new one. Commands are cheap to duplicate by accident; grep for similar names and verb roots (`move`, `fold`, `toggle`, `insert`).
-2. [`docs/design/data-model.md`](../../docs/design/data-model.md) and [`docs/design/selection-model.md`](../../docs/design/selection-model.md) — commands operate on `Selection.nodes(ctx)`, never on a single "current node"
+2. [`docs/design/model/knode.md`](../../docs/design/model/knode.md) and [`docs/design/selection-model.md`](../../docs/design/selection-model.md) — commands operate on `Selection.nodes(ctx)`, never on a single "current node"
 3. [`docs/lessons/input-architecture.md`](../../docs/lessons/input-architecture.md) — why components must not handle discrete keys themselves
 4. [`docs/design/tea-state-machines.md`](../../docs/design/tea-state-machines.md) — commands are TEA actions; they must stay serializable and pure
 

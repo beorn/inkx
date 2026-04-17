@@ -25,7 +25,7 @@ Your primary job is maintaining canonical docs (docs/README.md, docs/packages.md
 ## When Invoked
 
 1. **Load your knowledge file** — read `arch-knowledge.md` first
-2. **Load current state** — read docs/principles.md, docs/design/data-model.md, docs/glossary.md, docs/packages.md, CLAUDE.md
+2. **Load current state** — read docs/principles.md, docs/design/model/knode.md, docs/glossary.md, docs/packages.md, CLAUDE.md
 3. **Do your job** — answer the question, review the code, check the architecture
 4. **Update your knowledge file** — if you learned anything new, append it
 

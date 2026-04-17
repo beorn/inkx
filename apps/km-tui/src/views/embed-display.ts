@@ -122,7 +122,7 @@ export function getDisplayContent(
   resolvedNode: KNode | null,
   isEmbedded: boolean,
 ): string {
-  // Embed display resolution (see docs/design/km-ast/model.md):
+  // Embed display resolution (see docs/design/model/kast.md):
   //   1. node.content non-empty & not wiki-embed syntax → alias override (show instead of target title)
   //   2. resolvedNode exists → show target's content/display name
   //   3. Neither → broken link (rendered red via isBrokenEmbed flag in TreeNode)

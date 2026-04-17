@@ -8,7 +8,7 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 
 **Read first, in this order:**
 
-1. [`docs/design/data-model.md`](../../docs/design/data-model.md) — the canonical KNode shape, items vs blocks, what belongs in core
+1. [`docs/design/model/knode.md`](../../docs/design/model/knode.md) — the canonical KNode shape, items vs blocks, what belongs in core
 2. [`docs/glossary.md`](../../docs/glossary.md) — terms of art used across the codebase; align new names with existing ones
 3. [`docs/principles.md`](../../docs/principles.md) — factory functions, `using` cleanup, async generators, explicit DI, no classes, no globals
 4. [`docs/architecture.md`](../../docs/architecture.md) — core sits at the bottom of the stack; km-core must not import from board, storage, markdown, commands, or tree

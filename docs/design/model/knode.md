@@ -61,7 +61,7 @@ KNode.isBlock(node)     // node.item == null
 KNode.isOutline(node)   // type === "h" && item != null
 KNode.isListItem(node)  // type !== "h" && item != null
 KNode.isTask(node)      // node.item?.task != null
-KNode.isEmbed(node)     // has embed_of (runtime-materialized from links.rel='embed') — see docs/design/links.md
+KNode.isEmbed(node)     // has embed_of (runtime-materialized from links.rel='embed') — see docs/design/model/klink.md
 ```
 
 ## Visual Roles (View-Level Only)

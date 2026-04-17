@@ -9,8 +9,8 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 **Read first, in this order:**
 
 1. [`docs/architecture.md`](../../docs/architecture.md) — storage is a peer of tree, below board; UI never touches storage directly
-2. [`docs/design/data-model.md`](../../docs/design/data-model.md) — KNode, items vs blocks, what's authoritative vs derived
-3. [`docs/design/links.md`](../../docs/design/links.md) — the canonical Link model (URI scheme, rel taxonomy, cache fields). Edit this doc first when changing the link type.
+2. [`docs/design/model/knode.md`](../../docs/design/model/knode.md) — KNode, items vs blocks, what's authoritative vs derived
+3. [`docs/design/model/klink.md`](../../docs/design/model/klink.md) — the canonical Link model (URI scheme, rel taxonomy, cache fields). Edit this doc first when changing the link type.
 4. [Bun SQLite docs](https://bun.sh/docs/api/sqlite) — km uses `bun:sqlite` (WAL mode, FTS5). Never import `better-sqlite3` or `node:sqlite`.
 
 **Do NOT reimplement:**

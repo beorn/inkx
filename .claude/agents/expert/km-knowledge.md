@@ -4,7 +4,7 @@ Last updated: 2026-04-12
 
 ## References (canonical sources — don't duplicate, supplement)
 
-- `docs/design/data-model.md` — KNode, items vs blocks, board hierarchy
+- `docs/design/model/knode.md` — KNode, items vs blocks, board hierarchy
 - `docs/design/selection-model.md` — selection system design
 - `docs/design/tea-state-machines.md` — TEA pattern, state machine composition
 - `docs/lessons/input-architecture.md` — 5-stage input pipeline
@@ -68,7 +68,7 @@ Type guards (SlateJS namespace pattern): `KNode.isItem(node)`, `KNode.isBlock(no
 - `packages/km-tree/src/walk.ts` -- `KTree.nodes()` composable tree iteration
 - `packages/km-board/src/board-types.ts` -- `BoardState`, `ViewMode`, `MoveState`, `NavHistoryEntry`
 - `apps/km-tui/src/board/board-types.ts` -- TUI-specific types, `PerPaneUIFields`, re-exports from `@km/board`
-- `docs/design/data-model.md` -- canonical reference
+- `docs/design/model/knode.md` -- canonical reference
 
 ## Selection System
 

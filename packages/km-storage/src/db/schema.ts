@@ -28,7 +28,7 @@
  *       relationship, created_at) to the canonical 3-column schema
  *       (host_id, href, rel). Resolution happens at runtime via the name
  *       index; `href` carries the parsed target locator. See
- *       docs/design/links.md. Migration drops the old table; DATA_VERSION=2
+ *       docs/design/model/klink.md. Migration drops the old table; DATA_VERSION=2
  *       rebuilds rows from re-parsing content.
  */
 export const SCHEMA_VERSION = 4
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 
 -- Links cache (occurrence index over KLink inline AST data).
--- 3-column canonical shape per docs/design/links.md.
+-- 3-column canonical shape per docs/design/model/klink.md.
 --   host_id : the node that hosts this link occurrence
 --   href    : canonical, parsed target locator (km:Note, km:Note#Section,
 --             #Section for self-refs, https://…, mailto:…). Encoded via
@@ -492,7 +492,7 @@ function writeDataVersion(db: import("bun:sqlite").Database, version: number): v
  * The legacy schema carried 9 columns (source_id, target_name, target_id,
  * section, block_id, alias, embedded, relationship, created_at) and
  * resolution state. v4 flips this to (host_id, href, rel) with runtime
- * resolution via the name index — see docs/design/links.md.
+ * resolution via the name index — see docs/design/model/klink.md.
  *
  * The migration drops the legacy table and its indices so SCHEMA can
  * recreate it empty in the 3-column shape. Rows are repopulated by the

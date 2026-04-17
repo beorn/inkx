@@ -5,7 +5,7 @@
  * Total: `parseLinkHref` throws on malformed input; every writer must
  * produce hrefs that round-trip through this parser.
  *
- * See docs/design/links.md for the URI grammar.
+ * See docs/design/model/klink.md for the URI grammar.
  */
 
 export type KAnchor =

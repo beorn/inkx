@@ -8,7 +8,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 
 | Layer | Contains | Example |
 |---|---|---|
-| **Canonical docs** | Design truth (what + why) | `docs/design/data-model.md` |
+| **Canonical docs** | Design truth (what + why) | `docs/design/model/knode.md` |
 | **CLAUDE.md** | Session entry points (summaries + pointers) | Root `CLAUDE.md` |
 | **Skill files** | Procedural workflows (how to execute) | `.claude/skills/release/SKILL.md` |
 | **Knowledge files** | Operational delta (state, gotchas, failures) | `*-knowledge.md` |
@@ -24,7 +24,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 - `docs/packages.md` — package inventory with layers + APIs
 - `docs/glossary.md` — terminology definitions
 - `docs/principles.md` — code style, patterns, design philosophy
-- `docs/design/data-model.md` — co-owned with km agent
+- `docs/design/model/knode.md` — co-owned with km agent
 - `docs/design/tea-state-machines.md` — co-owned with km agent
 - `docs/lessons/*.md` — postmortems + learnings
 - `.claude/agents/expert/arch-knowledge.md` — deep reference
@@ -57,7 +57,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 ### Files
 - `apps/km-tui/CLAUDE.md` (if exists)
 - `apps/km-tui/tests/CLAUDE.md` — test patterns, assertion hierarchy
-- `docs/design/data-model.md` — co-owned with arch agent
+- `docs/design/model/knode.md` — co-owned with arch agent
 - `docs/design/selection-model.md` — selection system
 - `docs/design/tea-state-machines.md` — co-owned with arch agent
 - `docs/lessons/input-architecture.md` — input pipeline
