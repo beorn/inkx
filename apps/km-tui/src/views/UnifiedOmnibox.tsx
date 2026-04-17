@@ -197,9 +197,9 @@ function CenterOmnibox({
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
 
   // Chrome budget: border(2) + title(2) + input(3 — content + top/bot border) +
-  // padding(2). No footer — the PrefixGuide covers discovery; nav keys (↑↓/Enter/Esc)
-  // are standard modal idioms and don't earn screen real-estate here.
-  const overhead = 9
+  // blank-line gap between input and results(1) + padding(2). No footer —
+  // PrefixGuide covers discovery; nav keys (↑↓/Enter/Esc) are modal idioms.
+  const overhead = 10
   const maxVisible = maxHeight ? Math.max(1, maxHeight - overhead) : 12
 
   return (
@@ -225,6 +225,9 @@ function CenterOmnibox({
           borderStyle="round"
           focusBorderColor="$focusborder"
         />
+        {/* One-line gap between the input and the results/guide — visual
+            breathing room so the box border doesn't abut the first row. */}
+        <Text> </Text>
         {showGuide ? (
           <PrefixGuide />
         ) : (

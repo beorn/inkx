@@ -9,7 +9,7 @@
  */
 import type { KNode } from "@km/core"
 import type { CommandDef } from "@km/commands"
-import { getNodeIcon } from "../icons.ts"
+import { getNodeIcon, getTypeBullet } from "../icons.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 /**
@@ -62,7 +62,7 @@ export function nodeToRow(
     disabled?: boolean
   } = {},
 ): OmniboxRowData {
-  const iconInfo = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
+  const iconInfo = iconForNode(node)
   // Prefer content (body), then title (heading), then name (filename). `||`
   // falls through empty strings so a file with no body but a meaningful name
   // still renders its name — matches the identity-first ranking in
@@ -79,4 +79,27 @@ export function nodeToRow(
     isSelected: opts.isSelected,
     disabled: opts.disabled,
   }
+}
+
+/**
+ * Pick the right icon for a node — matches the board view's algorithm so
+ * search results look visually consistent with the cards/columns they
+ * represent.
+ *
+ *   - Tasks → task-status icon (`✓`, `□`, etc.) via getNodeIcon
+ *   - Folders / files / sections / outlines / list items → typed bullet
+ *     via getTypeBullet (file-text-o, folder-o, §, •, ·)
+ *   - Fallback → middle dot
+ */
+function iconForNode(node: KNode): { char: string; color: string } {
+  const isTask = node.item?.task?.status != null || node.item?.task?.marker !== undefined
+  if (isTask) {
+    return getNodeIcon(node.item?.task?.status, undefined, true)
+  }
+  // hasChildren isn't exposed on KNode directly (children live in the repo,
+  // not on the node). getTypeBullet only uses hasChildren for list-item
+  // variants — default false is fine for omnibox rows; the bullet style
+  // still conveys type, just without the "has children" filled variant.
+  const bullet = getTypeBullet(node, false)
+  return bullet ?? { char: "\u00B7", color: "$muted" }
 }
