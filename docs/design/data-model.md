@@ -23,8 +23,9 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │ ItemData: { list?: string, task?: {marker,status} }
 │                                                 │
 │ Traits (orthogonal to type):                    │
-│   embed_of: string|null   ← cache: sole-content  │
-│                              embed target id    │
+│   embed_of: string|null   ← runtime-materialized │
+│                              from links table   │
+│                              (rel='embed')      │
 │   fstype: "repo"|"folder"|"file"|"mdsection"    │
 │   rules: { collapse, limit, color, ... }        │
 └─────────────────────────────────────────────────┘
@@ -60,7 +61,7 @@ KNode.isBlock(node)     // node.item == null
 KNode.isOutline(node)   // type === "h" && item != null
 KNode.isListItem(node)  // type !== "h" && item != null
 KNode.isTask(node)      // node.item?.task != null
-KNode.isEmbed(node)     // has embed_of (cache for sole-content embed) — see docs/design/links.md
+KNode.isEmbed(node)     // has embed_of (runtime-materialized from links.rel='embed') — see docs/design/links.md
 ```
 
 ## Visual Roles (View-Level Only)
