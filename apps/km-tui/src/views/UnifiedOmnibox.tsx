@@ -161,17 +161,10 @@ function CenterOmnibox({
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
 
   // Chrome budget: border(2) + title(2) + input(3 — content + top/bot border) +
-  // footer(2) + padding(2). Rest goes to PickerList.
-  const overhead = 11
-  const resultCount = results.length
+  // padding(2). No footer — the PrefixGuide covers discovery; nav keys (↑↓/Enter/Esc)
+  // are standard modal idioms and don't earn screen real-estate here.
+  const overhead = 9
   const maxVisible = maxHeight ? Math.max(1, maxHeight - overhead) : 12
-
-  const footerContent = (
-    <Box flexDirection="row" justifyContent="space-between">
-      <Small>{"↑↓ nav  Enter select  Esc close"}</Small>
-      {resultCount > maxVisible && <Small>{`${Math.min(selectedIndex + 1, resultCount)}/${resultCount}`}</Small>}
-    </Box>
-  )
 
   return (
     <ModalDialog
@@ -180,7 +173,6 @@ function CenterOmnibox({
       hotkey={chrome.hotkey || undefined}
       width={width}
       height={maxHeight}
-      footer={footerContent}
     >
       <Box flexDirection="column" width="100%">
         <TextInput
