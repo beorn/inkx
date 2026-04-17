@@ -200,12 +200,12 @@ function CenterOmnibox({
   // should still surface favorites, not the guide).
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
 
-  // Chrome budget: dialog border(2) + title(2) + paddingY(2) + input(1 row —
-  // borderless) + blank-line gap(1). Opencode-style: the TextInput has no
-  // border so the cursor starts flush-left, aligned with the title above and
-  // the result rows below. ModalDialog's paddingX is reduced to 1 so the
-  // selection bg stretches the full inner width minus 1 col on each side.
-  const overhead = 8
+  // Chrome budget (borderless dialog, opencode-style): title(2) + paddingY(2)
+  // + input(1 row, borderless) + blank-line gap(1) = 6 rows. No outer border.
+  // paddingX=3 pushes primary content (title, input, results) 2 cols right of
+  // the previous inset and pulls fringe elements (esc, row hints) 2 cols left
+  // of the previous outer edge.
+  const overhead = 6
   const maxVisible = maxHeight ? Math.max(1, maxHeight - overhead) : 12
 
   return (
@@ -215,7 +215,9 @@ function CenterOmnibox({
       titleRight={<Text color="$muted">esc</Text>}
       width={width}
       height={maxHeight}
-      paddingX={1}
+      paddingX={3}
+      borderStyle={undefined}
+      borderColor={undefined}
     >
       <Box flexDirection="column" width="100%">
         <TextInput

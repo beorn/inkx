@@ -67,12 +67,13 @@ export function OmniboxRow({
 
   const bg = isSelected ? "$selection-bg" : "$popover-bg"
   const fg = disabled ? "$muted" : isSelected ? "$selection" : undefined
-  // Icons declared with $muted (e.g. the command ':' marker) stay muted
-  // regardless of selection — the marker is a quiet hint, not a focus
-  // target. Non-muted icons (task status, file/folder glyphs) take the
-  // selection fg when the row is selected, matching board-view behavior.
+  // Selection rules win over everything: on a selected row ALL content —
+  // including $muted icons — takes the selection fg (black).
+  // For unselected muted icons (e.g. the command ':' marker), we render via
+  // the <Small> preset below (MECE: fine print = $muted + dimColor bundled).
   const iconIsMuted = iconColor === "$muted"
-  const iconFg = disabled ? "$muted" : iconIsMuted ? "$muted" : isSelected ? "$selection" : iconColor
+  const iconFg = disabled ? "$muted" : isSelected ? "$selection" : iconColor
+  const iconUsesFinePrint = iconIsMuted && !isSelected && !disabled
 
   return (
     <Box width="100%" height={1} backgroundColor={bg} flexDirection="row" onMouseEnter={onHover} onClick={onClick}>
@@ -80,9 +81,15 @@ export function OmniboxRow({
           communicated entirely by the row's bg color; no cursor glyph (▸)
           and no leading padding. */}
       <Box flexGrow={0} flexShrink={0}>
-        <Text color={iconFg}>
-          {icon}{" "}
-        </Text>
+        {iconUsesFinePrint ? (
+          <Small>
+            {icon}{" "}
+          </Small>
+        ) : (
+          <Text color={iconFg}>
+            {icon}{" "}
+          </Text>
+        )}
       </Box>
 
       {/* Title + context — flex-grow, truncates */}
@@ -108,16 +115,13 @@ export function OmniboxRow({
         </Text>
       </Box>
 
-      {/* Hint — fixed width, never truncated. Selected rows pass
-          dimColor={false} to opt out of Small's default ANSI dim attribute
-          (TypographyProps spreads {...rest} last, so the override wins).
-          Without this, $selection → black gets dimmed into grey on the
-          yellow selection bg. */}
+      {/* Hint — fixed width, never truncated. Plain Text (not <Small>) so the
+          keybinding reads at default fg — it's navigation-relevant meta that
+          the user scans; muting it makes discovery harder. On selection it
+          takes $selection (black) like the rest of the row's content. */}
       {hint && (
         <Box flexGrow={0} flexShrink={0}>
-          <Small color={isSelected ? "$selection" : undefined} dimColor={isSelected ? false : undefined}>
-            {hint}
-          </Small>
+          <Text color={fg}>{hint}</Text>
         </Box>
       )}
     </Box>
