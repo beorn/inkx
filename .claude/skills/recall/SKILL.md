@@ -133,7 +133,22 @@ RECALL_AGENT_TRACE=1 bun recall --agent "query"
 
 **How it reads**: compact trace printed above the synthesis shows planner model,
 variants generated, fanout stats (queries / raw hits / unique docs / top coverage),
-round-2 mode and why.
+round-2 mode and why. After the answer, a single line reports the synth path:
+`short-circuited after round 1`, `round 2 ran but was marginal — used round-1 speculative`,
+`round 2 added new docs — fresh synth ran AND speculative was WASTED (2 calls)`, or
+`fresh synth on merged (speculative disabled)`.
+
+**Speculative synth** is enabled by default — fires synthesis on round-1 results in
+parallel with round-2 planning. If round 2 adds <2 new top-K docs, we use the
+speculative answer (saves ~2–3s). Disable with:
+
+```bash
+bun recall --agent --no-speculative-synth "query"   # per call
+RECALL_SPECULATIVE_SYNTH=0 bun recall "query"       # env var
+```
+
+Disabling saves nothing on short-circuit queries, costs ~2–3s on marginal-round-2
+queries, and saves one billed LLM call on substantive-round-2 queries.
 
 **Fallthrough**: if no LLM provider is available (no API keys, no local model), agent
 mode falls through to the standard single-query path. Never worse than the default.
