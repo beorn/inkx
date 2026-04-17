@@ -28,8 +28,8 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 - ~~**Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`**~~ — shipped; codebase now uses `resolvedEmbed` exclusively (grep confirms 0 hits for old name 2026-04-17).
 - ~~**Code rename: `ViewRole` type → `ViewType`**~~ — shipped 2026-04-17 (11 files updated).
 - ~~**Code rename: `kmast/` dir → `kast/`**~~ — shipped 2026-04-17 (directory + test file renamed; 6 import-path updates).
-- **Consolidation: Task status defs in concepts.md duplicate `ref/task-fields.md`** — keep semantic summary in concepts, have it link to the field reference instead of repeating the table.
-- **Consolidation: KNode typedef duplicated in `architecture.md` and `design/model/knode.md`** — arch.md should summarize + link, not repeat typedef.
+- ~~**Consolidation: Task status defs in concepts.md duplicate `ref/task-fields.md`**~~ — shipped 2026-04-17; concepts.md now carries a 2-sentence summary + link.
+- ~~**Consolidation: KNode typedef duplicated in `architecture.md` and `design/model/knode.md`**~~ — shipped 2026-04-17; architecture.md now summarizes fields inline + links to the canonical doc.
 
 ## Parallel (unblocked — pick up when blocked on Now)
 

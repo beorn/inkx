@@ -38,33 +38,11 @@ Every piece of the system is built from a small set of domain objects. Like [Sla
 
 ### KNode — The Universal Node
 
-Every piece of content is a `KNode` — a flat record with parent-child links. Defined in `@km/core` ([packages/km-core/src/interfaces/node.ts](../packages/km-core/src/interfaces/node.ts)).
+Every piece of content is a `KNode` — a flat record with parent-child links (`id`, `type`, `parent_id`, `parent_idx`, `content`, `title`, optional `item`, `embed_of`, `fstype`, `rules`). Defined in `@km/core` ([packages/km-core/src/interfaces/node.ts](../packages/km-core/src/interfaces/node.ts)).
 
-```typescript
-interface KNode {
-  id: string              // ULID
-  type: string            // "h" | "p" | "code" | "quote" | "table" | "hr" | ...
-  item?: ItemData         // present = structural (cursor target, has children)
-  parent_id: string       // parent reference
-  parent_idx: number      // sibling order
-  content: string         // text content
-  title: string           // display title (materialized)
-  embed_of?: string     // points to embed target (runtime-materialized from links where rel='embed')
-  fstype?: string         // "repo" | "folder" | "file" | "mdsection"
-  rules?: NodeRules       // parsed km.* directives (collapse, color, limit)
-}
+The single most important distinction: **Item** (`item: {}`) = structural, has children, cursor target. **Block** (no `item`) = leaf content, not selectable. `ItemData` holds list marker and task status. Type guards (`KNode.isItem`, `isBlock`, `isOutline`, `isListItem`, `isTask`, `isEmbed`) are namespace functions on the `KNode` value.
 
-const KNode = {
-  isItem(node): boolean     // node.item != null — structural, cursor target
-  isBlock(node): boolean    // node.item == null — leaf content
-  isOutline(node): boolean  // type === "h" && item != null — creates hierarchy
-  isListItem(node): boolean // type !== "h" && item != null — bullet/task
-  isTask(node): boolean     // node.item?.task != null
-  isEmbed(node): boolean    // has embed_of
-}
-```
-
-The single most important distinction: **Item** (`item: {}`) = structural, has children, cursor target. **Block** (no `item`) = leaf content, not selectable. `ItemData` holds list marker and task status.
+See [design/model/knode.md](design/model/knode.md) for the canonical field-by-field reference, item/block semantics, and km-ast ↔ KNode mapping.
 
 ### Position — Where in the Tree
 

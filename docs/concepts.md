@@ -145,25 +145,9 @@ When a KNode's content is exactly one KLink with `rel='embed'` and nothing else,
 
 ## Task Model
 
-A node becomes a task when it has a `status` property. Tasks have one of five statuses:
+A node becomes a task when it has `item.task` — five statuses answering **Can I work on this?**: `todo` (yes), `wip` (in progress), `blocked` (waiting), `done`, `dropped`. `wip` enables cross-board queries like `status:wip`; the `task_claimed` change sets it, `task_released` clears it.
 
-| Mark  | Status    | Meaning                      |
-| ----- | --------- | ---------------------------- |
-| `[ ]` | `todo`    | Available to work on         |
-| `[/]` | `wip`     | Work in progress             |
-| `[!]` | `blocked` | Waiting on something/someone |
-| `[x]` | `done`    | Completed                    |
-| `[-]` | `dropped` | Cancelled                    |
-
-Status answers: **Can I work on this?**
-
-- `todo` — Yes, ready to pick up
-- `wip` — Someone is actively working on it
-- `blocked` — No, waiting on something/someone
-- `done` — No, it's finished
-- `dropped` — No, decided not to do it
-
-**Note:** `wip` enables cross-board queries for "what's being worked on" (`status:wip`). The `task_claimed` change sets status to `wip`; `task_released` sets it back to `todo`.
+See [ref/task-fields.md](ref/task-fields.md) for the full field reference — markers, priority, dates, recurrence, assignee, and cross-system mappings (Asana, VTODO, Linear, Jira, GitHub).
 
 ---
 
