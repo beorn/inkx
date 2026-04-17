@@ -76,14 +76,21 @@ For reliable detection under parallel sessions, install the SessionStart hook in
 }
 ```
 
-The hook writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` once per session.
-`bun recall` walks its ancestor PIDs to find the matching sentinel. Works even with
-multiple Claude Code sessions in the same project.
+The hook writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` once per session
+(fallback detection path) and — when the `bear` daemon is running — also
+registers the session via `bear.session_register` so the daemon has canonical
+session state. `bun recall` walks its ancestor PIDs to find the matching
+sentinel. Works even with multiple Claude Code sessions in the same project.
 
 **Without the hook**: the mtime fallback still works for typical single-session use.
 
 `bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
-for inspection.
+for inspection. `bear.current_brief()` (MCP) returns the same data but via the
+warm daemon — faster when available, transparent fallback to the library when not.
+
+**Checking daemon state** (humans): `bun vendor/bearly/tools/bear.ts status` or
+`bun vendor/bearly/tools/bear.ts sessions`. The daemon auto-starts on first
+MCP call and idle-quits after 30 minutes.
 
 ## Search (default command)
 
