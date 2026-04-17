@@ -20,6 +20,8 @@ If you can't answer the resolver's questions without reading, read.
 
 ### Q2. Applying colors, typography, bold/dim, or any styling?
 → `vendor/silvery/docs/guide/styling.md`
+→ For the `$muted` vs `$muted + dim` MECE rule: styling.md §2 "Build Hierarchy" callout.
+  TL;DR — `$muted` alone for meta/caption/hint; `<Small>` preset (bundles `$muted + dim`) for fine print; **never manually pair the two**.
 
 ### Q3. Fighting a typography preset (Small / Muted / H1-3 / P / Strong / Em)? Want to override its default dim / bold / color?
 → `vendor/silvery/docs/guide/typography-overrides.md` (covers the `{...rest}` spread pattern — e.g. `<Small dimColor={false}>`)
