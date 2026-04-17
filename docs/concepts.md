@@ -114,7 +114,7 @@ repo/
 
 ### Node Types (km-ast)
 
-11 types in 3 categories:
+10 types in 2 categories:
 
 ````
 Block (8)  — content blocks
@@ -123,26 +123,23 @@ Block (8)  — content blocks
 Item (2)   — tree structure
   oi       — outline item (folder, file, section via fstype)
   li       — list item (bullets, numbered, tasks via markers)
-
-Link (1)   — references
-  link     — wiki links, sigil links (inline in content)
 ````
 
 - **`oi`** (outline item) creates hierarchy. `fstype` distinguishes: `folder`, `file`, `mdfile`, `mdsection`.
 - **`li`** (list item) holds content. `item.list` for bullet style, `item.task` for task status.
 - **Blocks** are leaf content that doesn't create hierarchy.
+- **References** — `[[wiki]]`, `![[embed]]`, `@alice`, `#tag`, `+project`, and external URLs — are `KLink` values inline in `KNode.content`, not their own km-ast type. See the Links section below.
 
-### References: Symlinks, Links, Embeds
+### References: Links and Embeds
 
-Three ways a node can reference another:
+Two relation kinds, one canonical type — the **KLink** (see [docs/design/links.md](design/links.md)):
 
 | Type | Where | What it does | Example |
 |---|---|---|---|
-| **Embed** (structural) | `KNode.embed_of` (structural) | Node IS the target — displays target's content and children at this position | A task card that mirrors a node from another file |
-| **Link** | `[[wikilink]]` in content (inline) | Clickable text that navigates to the target | `See [[project-alpha]]` |
-| **Embed** | `![[page]]` in content (inline, future) | Displays target's content inline within the node's body | `![[meeting-notes]]` renders notes inline |
+| **Link** (`rel: 'link'`) | KLink inside `KNode.content` | Clickable text that navigates to the target | `See [[project-alpha]]` or `@alice` |
+| **Embed** (`rel: 'embed'`) | KLink inside `KNode.content` | Transcludes target's content (inline or as sole node content) | `![[meeting-notes]]` |
 
-Structural embeds use the node-level `embed_of` field. Links and inline embeds are inline content (parsed from markdown). The ViewTree resolves embeds: `viewNode.display` is always the renderable node.
+When a KNode's content is exactly one KLink with `rel='embed'` and nothing else, the node becomes an **embed node** — `embed_of` is runtime-materialized from the `links` cache (`SELECT host_id, href FROM links WHERE rel='embed'`) at load and resolved via the name index. The ViewTree exposes this through `viewNode.display`: always the renderable node.
 
 ---
 
@@ -172,38 +169,31 @@ Status answers: **Can I work on this?**
 
 ## Links
 
-| Syntax              | Type          | Creates                        |
-| ------------------- | ------------- | ------------------------------ |
-| `[[target]]`        | Wiki link     | Forward link                   |
-| `![[target]]`       | Embed link    | Embedded node                  |
-| `@user`             | Sigil link    | Forward link                   |
-| `#tag`              | Sigil link    | Forward link                   |
-| `+project`          | Sigil link    | Forward link                   |
-| `prop:: [[target]]` | Property link | Forward link with relationship |
-| (reverse)           | Back link     | Auto-tracked                   |
+Every reference — wikilinks, embeds, sigils, external URLs — is a single canonical `KLink` type `{ href, rel, alias?, md? }` inline in `KNode.content`. A derived `links` cache table (`host_id`, `href`, `rel`) powers backlinks and indexed queries. See [docs/design/links.md](design/links.md) for the full model.
 
-### Property Links
+| Notation            | `rel`    | `md.form` | `href`                  | Meaning                   |
+| ------------------- | -------- | --------- | ----------------------- | ------------------------- |
+| `[[Target]]`        | `link`   | `wiki`    | `km:Target`             | Wiki link                 |
+| `![[Target]]`       | `embed`  | `wiki`    | `km:Target`             | Embed (transclusion)      |
+| `[[#Section]]`      | `link`   | `wiki`    | `#Section`              | Self-ref (same host)      |
+| `@Alice`            | `link`   | `bare`    | `km:@Alice`             | Sigil (person)            |
+| `#urgent`           | `link`   | `bare`    | `km:%23urgent`          | Sigil (tag)               |
+| `+cleanup`          | `link`   | `bare`    | `km:+cleanup`           | Sigil (project)           |
+| `[text](url)`       | `link`   | `mdlink`  | `url` (+ `alias:text`)  | Standard Markdown link    |
+| `<https://x.com>`   | `link`   | `autolink`| `https://x.com`         | Autolink                  |
+| `https://x.com`     | `link`   | `bare`    | `https://x.com`         | Bare URL                  |
 
-Property links add semantic relationships to links:
+### Sigils
 
-```markdown
-- [ ] Deploy blocked-by:: [[km-auth]]
-- [ ] Review blocks:: [[km-release]]
-```
+Sigils (`@`, `+`, `#`) are **part of the node name**, not a separate namespace. A node literally named `@Alice` has name `@Alice`; the tag node `#urgent` has name `#urgent`.
 
-These create backlinks with relationship type, enabling queries like:
+**Letter-after-sigil rule**: a sigil counts as a link introducer only when followed by a letter and preceded by a word boundary. `#urgent` is a tag link; `#42`, `+4 dB`, and `dial @911` are literal text.
 
-- `blocked:true` — tasks with unresolved blockers
-- `blocks::km-123` — tasks that block a specific issue
+**Canonical serialization**: sigil-prefixed names always write as bare form (`@Alice`, not `[[@Alice]]`). The parser accepts both; the writer emits bare. `#` is special-cased — wiki form `[[#Section]]` is reserved for self-ref, so tag nodes with `#` prefix must use bare form only.
 
-### Node References
+### Property Links (deferred)
 
-| Syntax   | Example             | Description      |
-| -------- | ------------------- | ---------------- |
-| `^id`    | `^abc123`           | Partial ID match |
-| `name`   | `@next`             | Unique name      |
-| `./path` | `./inbox/task.md`   | Relative path    |
-| `/path`  | `/projects/work.md` | Absolute path    |
+The closed `rel` enum for v1 is `'link' | 'embed'`. Typed relations from property syntax (`blocked-by:: [[X]]`, `author:: [[Y]]`) widen `rel` to `string` with a kebab-case normalizer — deferred until the foundational migration ships.
 
 ---
 
