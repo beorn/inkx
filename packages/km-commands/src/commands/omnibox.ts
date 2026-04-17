@@ -27,9 +27,11 @@
  * their target text / id from `ctx.targetId`.
  *
  * The TUI's `runSelection` wires `ctx.targetId`:
- *   - For tag / assignee commands: the sigil-stripped buffer OR the picked
- *     candidate's title, whichever is present. That's the raw tag/assignee
- *     text (without leading `#`/`@`).
+ *   - For tag / assignee commands: the sigil-stripped buffer — the user
+ *     types the exact tag/assignee they want, so the buffer is the
+ *     source of truth. FTS row titles name whole nodes, not tag tokens,
+ *     and expanding a `#important` query into the matching node's full
+ *     title loses the user's intent.
  *   - For `omnibox.split_and_reparent`: the picked node's id (same as
  *     `move`).
  */
