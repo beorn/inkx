@@ -204,7 +204,6 @@ function CenterOmnibox({
     <ModalDialog
       title={chrome.label}
       titleAlign="flex-start"
-      hotkey={chrome.hotkey || undefined}
       titleRight={<Text color="$muted">esc</Text>}
       width={width}
       height={maxHeight}

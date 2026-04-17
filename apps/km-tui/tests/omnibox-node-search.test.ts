@@ -68,6 +68,7 @@ function node(id: string, content: string, extra: Partial<KNode> = {}): KNode {
 function makeRepo(searchResults: KNode[]): NodeSearchRepo {
   return {
     search: (_query: string, limit?: number) => searchResults.slice(0, limit ?? searchResults.length),
+    data: { getAllNodes: () => searchResults },
   }
 }
 

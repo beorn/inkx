@@ -146,6 +146,12 @@ export interface NodeSearchRepo {
    * packages/km-storage/src/db/queries/full-text-search.ts.
    */
   search(query: string, limit?: number): KNode[]
+  /**
+   * All nodes in the repo. Used for pure-filter queries (e.g. `[]` for
+   * "all tasks") where there's no FTS-able search text but we still need
+   * a candidate pool to apply sigil/task filters against.
+   */
+  data: { getAllNodes(): KNode[] }
 }
 
 /** Cap on the number of node rows returned to the omnibox dropdown. */
@@ -180,26 +186,25 @@ export function nodeResultsForOmnibox(repo: NodeSearchRepo, query: string, sigil
   // For pure sigil buffers (e.g. `[`, `@`, `[]`), fall back to the raw
   // buffer so FTS still has something to tokenize (BM25 on "[" alone is
   // empty — we instead return all nodes when the only content is the sigil).
-  let fts: KNode[]
-  const trimmed = parsed.raw.trim()
+  let candidates: KNode[]
   const hasSearchText = parsed.terms.length > 0
   if (hasSearchText) {
-    // Join positive terms for FTS. Phrase terms get quoted; negated and v1.1
-    // kinds fall back to the raw value.
+    // Join positive terms for FTS. Phrase terms get quoted.
     const ftsQuery = parsed.terms
       .filter((t) => !t.negated)
       .map((t) => (t.kind === "phrase" ? `"${t.value}"` : t.value))
       .join(" ")
-    fts = ftsQuery ? repo.search(ftsQuery, NODE_RESULT_LIMIT * 2) : []
+    candidates = ftsQuery ? repo.search(ftsQuery, NODE_RESULT_LIMIT * 2) : []
   } else if (parsed.sigil || parsed.taskFilter) {
-    // Sigil/task-filter only (e.g. `[`, `[]`, `[x]`) — we need every
-    // candidate the post-filter can keep. Ask FTS for a fat slice.
-    fts = repo.search(trimmed || "", NODE_RESULT_LIMIT * 4)
+    // Sigil/task-filter only (e.g. `[`, `[]`, `[x]`) — FTS can't help with
+    // an empty query; iterate the full node set and let the post-filter
+    // narrow it down.
+    candidates = repo.data.getAllNodes()
   } else {
-    fts = []
+    candidates = []
   }
 
-  const filtered = fts.filter((n) => {
+  const filtered = candidates.filter((n) => {
     // `[`-sigil: exclude tasks
     if (parsed.sigil === "[" && n.item?.task != null) return false
     // Other sigils (@#+): prefix-match display text
