@@ -43,6 +43,7 @@ import type { OmniboxRowData } from "../views/OmniboxRow.tsx"
 import type { OmniboxMode } from "./omnibox.ts"
 import { parseQuery } from "./omnibox-query-parser.ts"
 import { scoreTextFields } from "./omnibox-ranker.ts"
+import type { RecencyBoost } from "./recents-store.ts"
 
 /**
  * Project a command list to row descriptors. Pure adapter — no filtering,
@@ -71,24 +72,35 @@ export function filterAvailableCommands(
  * Parses the query through `parseQuery`, then scores each command across three
  * fields: name (primary, 1.0×), description (secondary, 0.8×), id (tertiary,
  * 0.6×). Returns commands sorted by total score desc, filtering out non-matches.
- * Empty query returns the input as-is.
+ *
+ * Empty query: when `recencyBoost` is supplied, returns commands sorted by MRU
+ * bonus (desc) so the palette surfaces recents first; otherwise returns the
+ * input order. Typed queries always apply `recencyBoost` additively so a
+ * recent-AND-matching command wins ties against a non-recent match.
  *
  * Shares `scoreTextFields` with node ranking so every omnibox result set uses
  * identical match rules (exact > prefix > segment-boundary > substring > fuzzy,
  * plus negation, plus phrase/prefix/suffix kinds).
  */
-export function rankCommands(cmds: CommandDef[], query: string): CommandDef[] {
-  if (!query) return cmds
+export function rankCommands(cmds: CommandDef[], query: string, recencyBoost?: RecencyBoost): CommandDef[] {
+  if (!query) {
+    if (!recencyBoost) return cmds
+    const withBoost = cmds.map((cmd) => ({ cmd, score: recencyBoost(cmd.id) }))
+    withBoost.sort((a, b) => b.score - a.score)
+    return withBoost.map((s) => s.cmd)
+  }
   const parsed = parseQuery(query)
   const scored = cmds
-    .map((cmd) => ({
-      cmd,
-      score: scoreTextFields(parsed, {
+    .map((cmd) => {
+      const textScore = scoreTextFields(parsed, {
         primary: cmd.name,
         secondary: cmd.description,
         tertiary: cmd.id,
-      }),
-    }))
+      })
+      if (textScore <= 0) return { cmd, score: 0 }
+      const boost = recencyBoost ? recencyBoost(cmd.id) : 0
+      return { cmd, score: textScore + boost }
+    })
     .filter((s) => s.score > 0)
   scored.sort((a, b) => b.score - a.score)
   return scored.map((s) => s.cmd)
@@ -106,9 +118,10 @@ export function commandResultsForOmnibox(
   ctx: KeybindingContext,
   query: string,
   mode: CommandMode = "normal",
+  recencyBoost?: RecencyBoost,
 ): OmniboxRowData[] {
   const available = filterAvailableCommands(cmds, ctx, mode)
-  const ranked = rankCommands(available, query)
+  const ranked = rankCommands(available, query, recencyBoost)
   return ranked.map((cmd) => commandToRow(cmd))
 }
 
