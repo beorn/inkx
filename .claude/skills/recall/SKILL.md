@@ -17,6 +17,71 @@ Unified CLI for searching, managing, and recovering Claude Code session history.
 Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
 You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
 
+## Recommended calling pattern
+
+For a user query like `/recall X`, `recall X`, or "what did we do about Y":
+
+**Simple queries with specific tokens** (file names, bead IDs, function names — 1–3 words):
+```bash
+bun recall --raw "X" -n 10          # single FTS, ~500ms
+```
+
+**Everything else** (vague, natural-language, "that time we…"):
+```bash
+bun recall "X"                       # default: FTS + synthesis, ~2–3s
+bun recall "X" --agent               # planner-driven, ~5–14s, best quality
+```
+
+**Speculative cheap context** (when you want to see results BEFORE deciding whether to escalate):
+```bash
+bun recall current-brief             # ~50ms — current session paths/beads/tokens
+bun recall "X" --raw -n 10           # ~500ms — first-pass FTS snapshot
+# ...inspect results, then optionally escalate:
+bun recall "X" --agent --debug-plan  # full planner trace if still unclear
+```
+
+**Never** iterate by running `bun recall` with slightly different query wordings — agent
+mode does that internally (2 rounds with wider/deeper variants) in one call. If one call
+with `--agent` doesn't find it, the answer is not in the corpus.
+
+### Current session context
+
+`bun recall` feeds the last ~300 lines of the current conversation into the planner.
+This means vague queries like "that link thing we just did" work naturally — the
+planner sees what the user was actually doing.
+
+**Session detection** (best to fallback):
+1. `CLAUDE_SESSION_ID` env var (if set)
+2. **Sentinel file** written by a SessionStart hook — deterministic; recommended
+3. Most-recently-modified JSONL for the current project (fallback heuristic)
+
+For reliable detection under parallel sessions, install the SessionStart hook in
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "bun recall session-start" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` once per session.
+`bun recall` walks its ancestor PIDs to find the matching sentinel. Works even with
+multiple Claude Code sessions in the same project.
+
+**Without the hook**: the mtime fallback still works for typical single-session use.
+
+`bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
+for inspection.
+
 ## Search (default command)
 
 ```bash

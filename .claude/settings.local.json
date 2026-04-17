@@ -80,7 +80,8 @@
       "Bash(sed -i '' 's/name: release/name: npm/' .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/Release — Packaging Expert/npm — Packaging Expert/' .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/release-knowledge/npm-knowledge/' .claude/agents/expert/npm.md)",
-      "Skill(sop)"
+      "Skill(sop)",
+      "Bash(find /Users/beorn/Code/pim/km/vendor/silvery/docs -maxdepth 2 -type f -name \"*.md\" -exec grep -l \"vendor/\" {} \\\\;)"
     ],
     "deny": [],
     "ask": []
