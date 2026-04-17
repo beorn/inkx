@@ -54,6 +54,19 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 
 _(Dated list, newest first — entries move here as phases ship.)_
 
+- **2026-04-17 — Docs grooming (km + silvery ecosystem) shipped** — `km-all.docs-grooming` closed. 9 phases:
+    - P1: archived 8 stale docs (ref-keybindings, selection-landscape, 3 inkx-future, theme-system-v2, render-neutral-tui, tribe)
+    - P2: 4 Ink refs replaced with silvery
+    - P3: `docs/README.md` rewritten as audience-first hub; `ref/markdown.md` + `ref/query.md` moved to `guides/`
+    - P4: `design/model/` carve-out — knode, kast, klink, storage (3 docs merged → kast.md)
+    - P5: `design/ui/` carve-out — 10 docs → 5 (visibility, rendering, layout, selection, navigation)
+    - P6: `tea-state-machines.md` → `tea.md`; `keybindings-v2.md` → `design/input.md`
+    - P7: created `ref/effects.md` (165 lines) + `ref/changes.md` (279 lines) — closes 2 of 4 W2 orphans
+    - P8: `dev/monorepo-module-resolution.md` → `dev/monorepo.md`
+    - P9: final broken-link sweep
+    - **Impact**: active docs ~90 → ~35; ~100 inbound-link updates across docs/, packages/, apps/, vendor/, .claude/
+    - Also: silvery submodule (6 commits) — `docs/showcase-inventory.md` restored with TODO, 35 `vendor/` boundary violations stripped; `vendor/CLAUDE.md` tightened to close the "CLAUDE.md inside vendor packages" exception.
+
 - **2026-04-16 — W2 Docs MECE review shipped** — `km-all.docs-mece-review` closed. 92-doc full-tree inventory (single Explore agent, 1500-word report). Created `docs/dev/doc-map.md` as canonical concept map. Archived 3 stale docs (`keybindings.md → archive/keybindings-v1.md`, `dev/ink-patterns.md → archive/ink-patterns-pre-silvery.md`, `ref/inkx-vs-ink-deep-research-2026-02.md → archive/`). Fixed glossary ViewRole/ViewType inconsistency. Fixed 4 broken cross-doc links after the archive moves. 4 orphan concepts and 2 code renames deferred to follow-up beads (tracked above).
 
 - **2026-04-16 — W1 Storage: links + sigils shipped** — `km-storage.link-model-canonical` closed. Unified KLink type in `@km/core`, 3-column `links(host_id, href, rel)` cache with DATA_VERSION transparent rebuild, sigil-as-name design (no config file), letter-after-sigil parser rule, RFC 3986 percent-encoding, self-ref via bare `#Section`. 7 phases in 13 commits + 2 parallel worktree merges. Completeness audit followed `/refactor` 7-layer sweep: Data ✓ Types ✓ Functions ✓ Files ✓ Comments (migration history, legit) ✓ Docs ✓ Tests ✓. Post-audit cleanup: `EmbeddedUpdate.target_id` → `.embed_of` (terminological leak from internal type).
