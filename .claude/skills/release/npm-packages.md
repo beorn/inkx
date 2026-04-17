@@ -149,4 +149,4 @@ Last updated: 2026-04-12 (63 packages)
 | `@beorn/tap` | vendor/tap/ | TAP stream orchestration (private) |
 | ~~`@beorn/watcher-chaos`~~ | vendor/watcher-chaos/ | Internal only — NOT released, no GitHub repo |
 | `claude-tty-mcp` | vendor/bearly/plugins/tty/ | TTY testing MCP server |
-| `@bearly/bear` | vendor/bearly/plugins/bear/ | Workspace daemon MCP server — recall memory + focus cache + future coordination (private, 0.3.0) |
+| `@bearly/bear` | vendor/bearly/plugins/bear/ | Workspace daemon MCP server — recall memory + focus cache + LLM summarizer + future coordination (private, 0.4.0) |
