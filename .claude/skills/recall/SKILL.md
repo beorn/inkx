@@ -49,7 +49,9 @@ bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP eq
 
 **Never** iterate by running `bun recall` or `bear.ask` with slightly different query wordings
 — agent mode does that internally (2 rounds with wider/deeper variants) in one call. If one
-call with agent mode doesn't find it, the answer is not in the corpus.
+call with agent mode doesn't find it, the answer is not in the corpus **— unless the index
+is stale**. On an empty result, `bun recall status` is the first thing to check (see
+Troubleshooting below).
 
 ### Current session context
 
@@ -75,18 +77,46 @@ For reliable detection under parallel sessions, install the SessionStart hook in
           { "type": "command", "command": "bun recall session-start" }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "bun recall session-end" }
+        ]
+      }
     ]
   }
 }
 ```
 
-The hook writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` once per session
-(fallback detection path) and — when the `bear` daemon is running — also
-registers the session via `bear.session_register` so the daemon has canonical
-session state. `bun recall` walks its ancestor PIDs to find the matching
-sentinel. Works even with multiple Claude Code sessions in the same project.
+The `session-start` hook:
+1. Writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` (sentinel fallback)
+2. Registers with the `bear`/lore daemon when running (canonical session state)
+3. **Spawns detached `recall index --incremental`** if the FTS5 index is >1h stale
 
-**Without the hook**: the mtime fallback still works for typical single-session use.
+The `session-end` hook:
+1. Always spawns detached `recall index --incremental` — a session just produced new content
+
+Background index logs go to `~/.claude/bearly-sessions/index-bg.log`. Set
+`RECALL_NO_BG_INDEX=1` to disable auto-refresh. Both hooks are non-blocking —
+session start/end never wait on indexing.
+
+**Without the hooks**: run `bun recall index --incremental` manually; the mtime
+fallback keeps session detection working for single-session use.
+
+## Troubleshooting empty results
+
+If a search returns nothing for a topic you're sure was discussed, **check
+index freshness before assuming absence**:
+
+```bash
+bun recall status | head -5   # shows "Last rebuild: Nd ago (stale)" if indexer is behind
+```
+
+If stale, run `bun recall index --incremental` (or just start a new session —
+the SessionStart hook does it automatically). Empty results ≠ absent when the
+index hasn't caught up to recent sessions.
 
 `bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
 for inspection. `bear.current_brief()` (MCP) returns the same data but via the
