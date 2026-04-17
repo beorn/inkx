@@ -51,7 +51,9 @@ function GuideRow({ sigil, label }: { sigil: string; label: string }): React.Rea
       <Box width={GUIDE_SIGIL_WIDTH}>
         <Text>{sigil}</Text>
       </Box>
-      <Text color="$muted">{label}</Text>
+      <Text color="$muted" dimColor>
+        {label}
+      </Text>
     </Box>
   )
 }
