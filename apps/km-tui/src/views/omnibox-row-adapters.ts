@@ -30,8 +30,12 @@ export function commandToRow(
   return {
     id: cmd.id,
     kind: "command",
-    icon: "",
-    iconColor: "$primary",
+    // Grey `:` marker so command rows left-align with node rows (both icons
+    // now occupy the same 1-char column) and are still visually distinct
+    // from content. Matches the command sigil so the glyph doubles as a
+    // "this is a command" hint.
+    icon: ":",
+    iconColor: "$muted",
     title: cmd.name,
     context: cmd.description,
     hint: opts.keybindingHint ?? cmd.category,

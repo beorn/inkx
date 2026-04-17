@@ -15,7 +15,7 @@
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
 import React from "react"
-import { Box, ModalDialog, PickerList, Small, Text, TextInput } from "@silvery/ag-react"
+import { Box, ModalDialog, PickerList, Text, TextInput } from "@silvery/ag-react"
 import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
 import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
@@ -43,16 +43,22 @@ const TASK_BRACKETS: ReadonlyArray<readonly [bracket: string, label: string]> = 
   ["[-]", "dropped"],
 ]
 
-const GUIDE_SIGIL_WIDTH = 8
+const GUIDE_SIGIL_WIDTH = 10
 
 function GuideRow({ sigil, label }: { sigil: string; label: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
       <Box width={GUIDE_SIGIL_WIDTH}>
-        <Text color="$muted">{sigil}</Text>
+        <Text>{sigil}</Text>
       </Box>
-      <Text>{label}</Text>
+      <Text color="$muted">{label}</Text>
     </Box>
+  )
+}
+
+function GuideHeading({ children }: { children: string }): React.ReactElement {
+  return (
+    <Text bold>{children}</Text>
   )
 }
 
@@ -60,14 +66,14 @@ function GuideRow({ sigil, label }: { sigil: string; label: string }): React.Rea
 function PrefixGuide(): React.ReactElement {
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <Small>PREFIXES</Small>
+      <GuideHeading>PREFIXES</GuideHeading>
       <Box flexDirection="column" marginTop={1}>
         {PREFIX_GUIDE.map(([sigil, label]) => (
           <GuideRow key={sigil} sigil={sigil} label={label} />
         ))}
       </Box>
       <Box marginTop={1}>
-        <Small>TASKS</Small>
+        <GuideHeading>TASKS</GuideHeading>
       </Box>
       <Box flexDirection="column" marginTop={1}>
         {TASK_BRACKETS.map(([bracket, label]) => (
@@ -121,8 +127,9 @@ const MODE_CHROME: Record<string, ModeChrome> = {
   context: { label: "Context", hotkey: "@", placeholder: "Search contexts…", prompt: "" },
   tag: { label: "Tag", hotkey: "#", placeholder: "Search tags…", prompt: "" },
   project: { label: "Project", hotkey: "+", placeholder: "Search projects…", prompt: "" },
+  node: { label: "Node", hotkey: "[", placeholder: "Search regular nodes…", prompt: "" },
   local_find: { label: "Find", hotkey: "/", placeholder: "Find in view…", prompt: "" },
-  universal: { label: "Search", hotkey: "", placeholder: "Type a command or search…", prompt: "> " },
+  universal: { label: "Search", hotkey: "", placeholder: "Type a command or search…", prompt: "" },
 }
 
 function modeChromeFor(mode: string): ModeChrome {
@@ -198,6 +205,7 @@ function CenterOmnibox({
       title={chrome.label}
       titleAlign="flex-start"
       hotkey={chrome.hotkey || undefined}
+      titleRight={<Text color="$muted">esc</Text>}
       width={width}
       height={maxHeight}
     >
