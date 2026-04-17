@@ -933,12 +933,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }
-        if (ui.activePicker) {
-          popDialogMode()
-          opctx.setUI({ activePicker: null })
-          locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
-          return
-        }
         if (ui.showNewItemDialog) {
           popDialogMode()
           opctx.setUI({ showNewItemDialog: false })

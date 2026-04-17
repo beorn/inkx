@@ -376,6 +376,21 @@ function UnifiedOmniboxConnector({
         targetId = argumentId
       }
 
+      // km-tui.itempicker-unify: for subject-action commands, the target is
+      // the raw tag/assignee text, not a node id. Prefer the displayed row
+      // title (e.g. `#urgent`) when one exists; otherwise fall back to the
+      // buffer minus the sigil. This matches the legacy ItemPicker behavior
+      // where `option.title` supplied the tag/assignee string.
+      if (
+        commandToRun === "omnibox.append_tag_to_subject" ||
+        commandToRun === "omnibox.set_assignee_on_subject"
+      ) {
+        const rowTitle = row?.title
+        const bufferText = p.state.buffer
+        const rawFromBuffer = bufferText.startsWith("#") || bufferText.startsWith("@") ? bufferText.slice(1) : bufferText
+        targetId = (rowTitle && rowTitle.trim()) || rawFromBuffer.trim() || undefined
+      }
+
       // Dismiss BEFORE dispatching so popDialogMode lands before the command
       // potentially opens another dialog (keeps the scope stack clean).
       popDialogMode()
