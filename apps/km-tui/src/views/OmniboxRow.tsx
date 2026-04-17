@@ -112,12 +112,16 @@ export function OmniboxRow({
         </Text>
       </Box>
 
-      {/* Hint — fixed width, never truncated. Selected rows use plain Text
-          (not Small) because Small hardcodes dimColor, which washes black
-          into grey on the yellow selection bg. */}
+      {/* Hint — fixed width, never truncated. Selected rows pass
+          dimColor={false} to opt out of Small's default ANSI dim attribute
+          (TypographyProps spreads {...rest} last, so the override wins).
+          Without this, $selection → black gets dimmed into grey on the
+          yellow selection bg. */}
       {hint && (
         <Box flexGrow={0} flexShrink={0}>
-          {isSelected ? <Text color="$selection">{hint}</Text> : <Small>{hint}</Small>}
+          <Small color={isSelected ? "$selection" : undefined} dimColor={isSelected ? false : undefined}>
+            {hint}
+          </Small>
         </Box>
       )}
     </Box>
