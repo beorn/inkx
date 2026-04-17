@@ -122,8 +122,8 @@ index hasn't caught up to recent sessions.
 for inspection. `lore.current_brief()` (MCP) returns the same data but via the
 warm daemon — faster when available, transparent fallback to the library when not.
 
-**Checking daemon state** (humans): `bun vendor/bearly/plugins/lore/src/cli.ts status` or
-`bun vendor/bearly/plugins/lore/src/cli.ts sessions`. The daemon auto-starts on first
+**Checking daemon state** (humans): `bun vendor/bearly/plugins/tribe/lore/cli.ts status` or
+`bun vendor/bearly/plugins/tribe/lore/cli.ts sessions`. The daemon auto-starts on first
 MCP call and idle-quits after 30 minutes.
 
 ## Search (default command)
