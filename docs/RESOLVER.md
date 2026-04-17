@@ -81,16 +81,18 @@ Rule: one concern → one doc. If the doc exceeds ~1000 lines, split by sub-conc
 
 ### § 3.3 — `design/` top-level
 
+Paths relative to `docs/design/`:
+
 | Concept | File |
 |---|---|
-| Code-style principles, DI, factories, TEA stance | `../principles.md` (hub-level) |
-| User-facing concept overview | `../concepts.md` (hub-level) |
-| TEA state machines, apply chain, phase roadmap | `design/tea.md` |
-| Keybindings, chord system, verb×location | `design/input.md` |
-| Command palette | `design/omnibox.md` |
-| Task recurrence (RRULE + FROM) | `design/recurrence.md` |
-| TEA migration status | `design/phases.md` |
-| Spatial-navigation principles (complements ui/navigation.md) | `design/ui/navigation.md` |
+| TEA state machines, apply chain, phase roadmap | `tea.md` |
+| Keybindings, chord system, verb×location | `input.md` |
+| Command palette | `omnibox.md` |
+| Task recurrence (RRULE + FROM) | `recurrence.md` |
+| TEA migration status | `phases.md` |
+| Spatial-navigation principles (complements `ui/navigation.md`) | `ui/navigation.md` |
+
+Hub-level explainers (one level up in `docs/`): `principles.md` (code style + DI + TEA stance), `concepts.md` (user-facing concept overview).
 
 ---
 
@@ -154,22 +156,20 @@ Rule: every contributor-task-oriented doc goes here. If it's design rationale (n
 
 ## § 7 — Top-level (hub)
 
-Exactly these 5 files live at the top level of `docs/`:
+Exactly these 8 files live at the top level of `docs/`:
 
 | File | Purpose |
 |---|---|
 | `README.md` | Entry point — routes by audience |
 | `architecture.md` | The architecture (5-layer stack, data flows, composition) |
-| `backlog.md` | Prioritized phase list — what ships next |
+| `backlog.md` | Prioritized phase list — what ships next (source of truth) |
+| `roadmap.md` | Longer-horizon narrative (horizons H1-H4); may merge into backlog |
 | `glossary.md` | Terminology A–Z |
-| (and these two hub-level explainers) | |
 | `principles.md` | Code-style + design-stance principles (contributor- and agent-facing) |
 | `concepts.md` | User-facing core concepts (nodes, modes, status) |
-| `packages.md` | Package roster + CLI |
+| `RESOLVER.md` | This file — filing rules (meta) |
 
-**Everything else at `docs/` top-level is a MECE violation** — route per § 1–6. Current exceptions (to be resolved):
-
-- `RESOLVER.md` — this file (meta; fine at top)
+**Everything else at `docs/` top-level is a MECE violation** — route per § 1–6.
 
 ---
 
@@ -201,7 +201,9 @@ Every time the user corrects a filing decision, record the rule here.
 - **2026-04-17** — Non-km-product content (ecosystem marketing, silvery launch, bearly design) goes to `hub/`, not `docs/archive/`. `docs/archive/` is only for *retired km docs*. → § 1 + § 6
 - **2026-04-17** — `ref/` and `design/` subdir names must not shadow each other (`ref/ui.md` renamed to avoid collision with `design/ui/`). → § 4
 - **2026-04-17** — Historical-snapshot review docs (e.g. `architecture-review-findings.md`) go to `archive/` with a date suffix (`-2026-04`), not top-level. → § 7
-- **2026-04-17** — Single-file subdirs are an anti-pattern. If a dir has one file, collapse or move. (Was: `docs/future/brain.md`; now: `docs/future/brain.md`.) → § 3/§ 6
+- **2026-04-17** — Single-file subdirs are an anti-pattern. Collapse or move. Example: `docs/architecture/brain.md` (single-file dir) moved to `docs/future/brain.md`; `docs/adr/` removed when its contents fit under `archive/`. → § 6
+- **2026-04-17** — `packages.md` moved from top-level to `ref/packages.md` (reference-shaped, not hub-level). → § 4 + § 7
+- **2026-04-17** — `roadmap.md` added at top-level (moved from repo root `ROADMAP.md`); overlap with `backlog.md` tracked via bead `km-all.roadmap-integrate`. → § 7
 
 ---
 

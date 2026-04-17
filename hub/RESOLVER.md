@@ -72,8 +72,12 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 | bearly plugin design                               | `hub/bearly/design/`                           |
 | bearly agent memory/context                        | `hub/bearly/memory.md`                         |
 | loggily API v2 research                            | `hub/loggily/`                                 |
-| Cross-ecosystem content marketing                  | `hub/market/`                                  |
-| Ecosystem growth strategy                          | `hub/market/`                                  |
+| Cross-ecosystem content marketing system/funnel    | `hub/market/strategy/`                         |
+| Ecosystem growth strategy                          | `hub/market/strategy/`                         |
+| Content/growth brainstorm lists                    | `hub/market/ideas/`                            |
+| Marketing tool reference                           | `hub/market/reference/`                        |
+| Per-site blog drafts                               | `hub/market/blogs/<site>/`                     |
+| Point-in-time SEO/audit snapshots                  | `hub/market/audits/<YYYY-MM-DD>/`              |
 | Retro / post-shipped analysis of a silvery feature | `hub/silvery/archive/` (internal-only lessons) |
 
 ---
@@ -83,6 +87,7 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 (Also stated in `vendor/CLAUDE.md`.)
 
 - **`vendor/<pkg>/docs/` MAY NOT reference `hub/...` paths.** When silvery.dev ships, it can't link to workspace drafts — they must be standalone-clean for npm/GitHub.
+- **No internal content inside a vendor package.** If you catch yourself creating `vendor/<pkg>/internal/`, `vendor/<pkg>/silvery-internal/`, or any private dir inside a published package: **stop**. Move to `hub/<pkg>/`. Published packages must be 100% public-clean so `git clone <pkg>` delivers a shippable tree. (2026-04-17: 5 `silvery-internal/*.md` files were caught and moved.)
 - **`hub/*` MAY reference anything** — public docs, other hub subdirs, external URLs.
 - **km's `docs/` MAY NOT reference `hub/`.** Public km docs stay shippable; internal-only references live inside `hub/`.
 - **Promotion requires approval.** Moving from `hub/*/` to public is a deliberate act with editorial review. Don't auto-promote.
@@ -92,7 +97,7 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 
 ## § 5 — Fallback: `hub/<pkg>/draft/`
 
-If you walk § 2 and nothing fits: park the draft in `hub/<pkg>/draft/` (or `hub/market/draft/` for ecosystem-wide) and flag the resolver gap. When you surface it, propose the rule.
+If you walk § 2 and nothing fits: park the draft in `hub/<pkg>/draft/` (create the dir) and flag the resolver gap. For ecosystem-wide misfits, create `hub/market/draft/`. When you surface the draft, propose the rule in § 6.
 
 `draft/` should stay small. Growing drafts means the resolver is incomplete.
 

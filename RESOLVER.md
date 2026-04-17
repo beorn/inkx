@@ -13,59 +13,51 @@ Walk this decision tree before writing any documentation, knowledge, or persiste
 → If it's a sub-procedure within a skill, add it to the existing skill.
 → STOP
 
-### Q3. Is this a CURRENT STATE snapshot (versions, counts, scan results)?
-→ **Agent knowledge file** (`.claude/agents/expert/*-knowledge.md`) — canonical section
-→ Include a timestamp. Will be refreshed on next grooming run.
+### Q3. Is this AGENT-OWNED knowledge (state snapshot, new finding, or cross-cutting operational)?
+→ **Agent knowledge file** (`.claude/agents/expert/*-knowledge.md`)
+  - **Current state** (versions, counts, scan results) → *canonical section* with timestamp; refreshed on grooming
+  - **Fresh finding** needing review → *staging section* with `promote-to:` tag; agent promotes on grooming
+  - **Cross-cutting** (regression patterns spanning subsystems, multi-repo coordination) → *canonical section*; this IS the home, no promotion
 → STOP
 
-### Q4. Is this a NEW FINDING that needs review before becoming permanent?
-→ **Agent knowledge file** — staging section (with `promote-to:` tag)
-→ Agent will promote it to the right canonical home during grooming.
-→ STOP
-
-### Q5. Is this CROSS-CUTTING operational knowledge with no single-doc home?
-(regression patterns spanning multiple subsystems, multi-repo coordination rules, cross-domain connections)
-→ **Agent knowledge file** — canonical section
-→ This IS the canonical home. It won't be promoted elsewhere.
-→ STOP
-
-### Q6. Is this a SESSION ENTRY POINT (what you need in the first 30 seconds)?
+### Q4. Is this a SESSION ENTRY POINT (what you need in the first 30 seconds)?
 → **CLAUDE.md** in the relevant directory
 → Keep it under 200 lines. Link to deeper docs, don't duplicate them.
 → STOP
 
-### Q7. Is this about a SPECIFIC WORK ITEM (bug context, feature plan, investigation)?
+### Q5. Is this about a SPECIFIC WORK ITEM (bug context, feature plan, investigation)?
 → **Bead notes/design** (`bd update <id> --notes/--design`)
 → Ephemeral — tied to the work item's lifecycle.
 → STOP
 
-### Q8. Is this INTERNAL (strategy, competitive, roadmap, drafts)?
-→ **`hub/`** — walk [`hub/RESOLVER.md`](hub/RESOLVER.md) for the per-slot rules (design/launch/research/market/etc).
+### Q6. Is this INTERNAL (strategy, competitive, roadmap, drafts, pre-public design)?
+→ **`hub/`** — walk [`hub/RESOLVER.md`](hub/RESOLVER.md) for per-slot rules (design/launch/research/market/etc).
 → Never reference from public docs.
 → STOP
 
-### Q9. Is this STABLE DESIGN KNOWLEDGE (how the system works and why)?
-→ **Canonical docs**:
-  - km concepts → walk [`docs/RESOLVER.md`](docs/RESOLVER.md) for subdir routing (guides/design/ref/dev)
-  - vendor package (silvery, flexily, termless, loggily, mdspec) concepts → `vendor/<pkg>/docs/`
+### Q7. Is this STABLE, PUBLISHABLE DESIGN KNOWLEDGE (how the system works and why)?
+→ **Canonical docs** — pick the tree by audience:
+  - km product concepts → walk [`docs/RESOLVER.md`](docs/RESOLVER.md) for subdir routing (guides/design/ref/dev)
+  - vendor package public API (silvery, flexily, termless, loggily, mdspec) → `vendor/<pkg>/docs/`
+→ Rule for content that could go either public or internal: **publishable now → `vendor/<pkg>/docs/`**; **WIP or needs editorial polish → `hub/<pkg>/`** (default to hub until promoted, per Q6).
 → STOP
 
-### Q10. None of the above?
-→ Ask: "Will this be needed again?" If no → don't write it. If yes → re-read Q1-Q9; one of them fits.
+### Q8. None of the above?
+→ Ask: "Will this be needed again?" If no → don't write it. If yes → re-read Q1-Q7; one of them fits.
 
-## Domain Routing (for Q9)
+## Domain Routing (for Q7)
 
-When placing canonical docs, route by bounded context:
+When placing canonical docs, route by bounded context. The "Home" column names the **publishable** destination; anything not publishable yet goes to `hub/<pkg>/` first (Q6) and promotes to this home when ready.
 
-| If it's about... | It goes in... | Owned by... |
+| If it's about... | Publishable home | Owned by... |
 |---|---|---|
 | Layer boundaries, invariants, principles, glossary, package map | `docs/` (arch domain) | arch agent |
-| Rendering pipeline, dirty flags, layout, scroll, perf | `vendor/silvery/docs/` or `hub/silvery/` | render agent |
 | Selection, commands, views, editing, navigation, input | `docs/design/` (editor domain) | editor agent |
-| Packaging, versioning, publishing, registry, exports | `vendor/CLAUDE.md` or `.claude/skills/release/` | npm agent |
-| Testing patterns, assertion hierarchy | `apps/km-tui/tests/CLAUDE.md` | editor agent |
+| km product-level testing patterns | `apps/km-tui/tests/CLAUDE.md` | editor agent |
 | silvery public API, components, styling | `vendor/silvery/docs/guide/` | render agent |
-| Pipeline internals, postmortems | `hub/silvery/` | render agent |
+| Rendering pipeline, dirty flags, layout, scroll, perf (public) | `vendor/silvery/docs/` | render agent |
+| Pipeline internals, WIP design, postmortems (not yet public) | `hub/silvery/` | render agent |
+| Packaging, versioning, publishing, registry, exports | `vendor/CLAUDE.md` + `.claude/skills/release/` | npm agent |
 
 ## What Does NOT Go Where
 
