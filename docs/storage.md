@@ -208,8 +208,7 @@ interface KNode {
   type: NodeType
   parent_id: string | null // Flat structure - parent reference
   parent_idx: number // Fractional index for ordering among siblings
-  link_to: string | null // Target node ID for embeddings (![[...]])
-  link_alias?: string // Optional display alias from |alias syntax
+  embed_of: string | null // Target node ID for embeds (![[...]]) — runtime-materialized from links table
 
   // Filesystem mapping (for folder/file nodes)
   fs_path?: string // Absolute path to .md file or directory
@@ -260,8 +259,7 @@ interface KNode {
 | `type`           | NodeType       | Node classification (see Node Types below)    |
 | `parent_id`      | string \| null | ID of parent node (null for repo root only)   |
 | `parent_idx`     | number         | Fractional index for sibling ordering         |
-| `link_to`        | string \| null | Target node ID if this is an embedding        |
-| `link_alias`     | string         | Display alias from `\|alias` syntax           |
+| `embed_of`       | string \| null | Target node ID for an embed (runtime-materialized from `links` table where `rel='embed'`) |
 | `fs_path`        | string         | Absolute filesystem path                      |
 | `fs_ino`         | number         | Filesystem inode (for rename detection)       |
 | `fs_mtime`       | number         | File modification time at last sync (ms)      |
@@ -350,26 +348,25 @@ type TaskStatus =
 | `x` or `X` | done    | `[x]`   |
 | `-`        | dropped | `[-]`   |
 
-### Links (Embeddings)
+### Embeds
 
-Nodes can be **linked** to appear in multiple locations (e.g., `![[Target]]` embeddings):
+A KNode whose content is a single `![[Target]]` is an **embed** — it transcludes the target without duplicating its content. See [docs/design/links.md](design/links.md) for the canonical link model.
 
 ```typescript
 interface KNode {
   // ... other fields ...
-  link_to?: string // ID of target node (if this is a link)
-  link_alias?: string // Optional display alias from |alias syntax
+  embed_of?: string | null // ID of embed target (runtime-materialized from links where rel='embed')
 }
 ```
 
 **Key rules:**
 
-1. **Links are positional references** — they exist in the tree but point elsewhere
-2. **Content operations apply to target** — status, priority changes affect the linked node
-3. **Positional operations apply to link** — moving within a board moves the link node
-4. **Display reads from target** — links show the target's content
-5. **Delete removes link only** — deleting a link does not delete the target
-6. **Serialization reconstructs syntax** — `![[path|alias]]` rebuilt from `link_to` + `link_alias`
+1. **Embeds are positional references** — they exist in the tree but point elsewhere
+2. **Content operations apply to target** — status, priority changes affect the embed target
+3. **Positional operations apply to the embed node** — moving within a board moves the embed occurrence
+4. **Display reads from target** — embeds render the target's content
+5. **Delete removes the embed only** — deleting an embed does not delete the target
+6. **Serialization reconstructs `![[…]]`** — the KLink in the embed node's content carries `href` (plus optional `alias`) and `md.form='wiki'`, from which the markdown is regenerated
 
 ---
 
@@ -395,8 +392,7 @@ CREATE TABLE nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
   parent_id TEXT,
-  link_to TEXT,                  -- Target node ID for embeddings
-  link_alias TEXT,               -- Display alias
+  embed_of TEXT,                 -- Target node ID for embeds (runtime-materialized; see links table)
   parent_idx REAL DEFAULT 0,     -- Fractional ordering
 
   -- Filesystem
@@ -480,25 +476,21 @@ END;
 
 ### links table
 
-Tracks wikilinks for bidirectional linking:
+A derived cache of every link/embed occurrence parsed out of node content. Three columns — resolution happens at runtime via the name index (see [docs/design/links.md](design/links.md) for the canonical link model).
 
 ```sql
 CREATE TABLE links (
-  source_id TEXT NOT NULL,       -- Node containing the link
-  target_name TEXT NOT NULL,     -- Target filename/slug from [[target]]
-  target_id TEXT,                -- Resolved target node ID (null if unresolved)
-  section TEXT,                  -- Optional section anchor (#section)
-  block_id TEXT,                 -- Optional block ID (^block)
-  alias TEXT,                    -- Display alias (|alias)
-  embedded INTEGER DEFAULT 0,    -- 1 if embedding (![[...]]), 0 otherwise
-  created_at INTEGER,
-  PRIMARY KEY (source_id, target_name, section, block_id)
+  host_id TEXT NOT NULL,   -- Node that hosts this link occurrence
+  href    TEXT NOT NULL,   -- Normalized authored locator (km:Note, #Section, https://…)
+  rel     TEXT NOT NULL    -- 'link' | 'embed'
 );
 
-CREATE INDEX idx_links_source ON links(source_id);
-CREATE INDEX idx_links_target_name ON links(target_name);
-CREATE INDEX idx_links_target_id ON links(target_id);
+CREATE INDEX idx_links_host_id ON links(host_id);
+CREATE INDEX idx_links_href    ON links(href);
+CREATE UNIQUE INDEX idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
 ```
+
+The canonical source of truth is the `KLink` inline in `KNode.content`; the `links` table is 100% rebuildable by re-parsing all content. `href` is the parsed target (e.g., `km:Note`, `#Section`, `https://x.com`), not the raw markdown notation — the notation variant is kept on the KLink via `md.form` for roundtrip fidelity. Resolution (mapping `href` → target node ID) is computed on demand through a startup-built `NameIndex`; no `to_id` column.
 
 ### meta table
 
