@@ -23,8 +23,8 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 
 - **Orphan: TreeMutator ops doc** — no dedicated design doc for split/merge/indent/outdent/inverse/normalize. Write `design/tree-mutations.md` or expand `architecture.md`.
 - **Orphan: Repo mutation API doc** — addNode/updateNode/moveNode/deleteNode + change generation semantics.
-- **Orphan: Effect type catalog** — `ref/effects.md` listing all effect types, arguments, runtime handling.
-- **Orphan: Change type taxonomy** — `ref/change-types.md` enumerating node_created/updated/moved/deleted + link_created/deleted + args.
+- ~~**Orphan: Effect type catalog**~~ — shipped 2026-04-17 as [ref/effects.md](ref/effects.md).
+- ~~**Orphan: Change type taxonomy**~~ — shipped 2026-04-17 as [ref/changes.md](ref/changes.md).
 - **Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`** — cross-package breaking change; needs its own bead.
 - **Code rename: `ViewRole` type → `ViewType`** — glossary already defines ViewType as replacement; code still uses ViewRole in places. Breaking change; needs its own bead.
 - **Consolidation: Task status defs in concepts.md duplicate `ref/task-fields.md`** — keep semantic summary in concepts, have it link to the field reference instead of repeating the table.

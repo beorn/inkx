@@ -37536,3 +37536,24 @@ time="2026-04-16T23:29:37-07:00" level=warning msg="error running query" connect
 time="2026-04-16T23:29:37-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3907
 time="2026-04-16T23:29:37-07:00" level=info msg=ConnectionClosed connectionID=3907
 time="2026-04-16T23:29:37-07:00" level=info msg=ConnectionClosed connectionID=3906
+time="2026-04-16T23:30:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3908
+time="2026-04-16T23:30:18-07:00" level=info msg=ConnectionClosed connectionID=3908
+time="2026-04-16T23:30:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3909
+time="2026-04-16T23:30:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3910
+time="2026-04-16T23:30:18-07:00" level=info msg=ConnectionClosed connectionID=3909
+time="2026-04-16T23:30:18-07:00" level=warning msg="error running query" connectTime="2026-04-16 23:30:18.170891 -0700 PDT m=+128517.922194710" connectionDb=km connectionID=3910 error="nothing to commit" queryTime="2026-04-16 23:30:18.177092 -0700 PDT m=+128517.928395960"
+time="2026-04-16T23:30:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3911
+time="2026-04-16T23:30:18-07:00" level=info msg=ConnectionClosed connectionID=3911
+time="2026-04-16T23:30:18-07:00" level=info msg=ConnectionClosed connectionID=3910
+time="2026-04-16T23:33:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3912
+time="2026-04-16T23:33:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3913
+time="2026-04-16T23:33:54-07:00" level=info msg=ConnectionClosed connectionID=3912
+time="2026-04-16T23:33:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3914
+time="2026-04-16T23:33:54-07:00" level=info msg=ConnectionClosed connectionID=3913
+time="2026-04-16T23:33:54-07:00" level=warning msg="error running query" connectTime="2026-04-16 23:33:54.960136 -0700 PDT m=+128734.711708376" connectionDb=km connectionID=3914 error="nothing to commit" queryTime="2026-04-16 23:33:54.969841 -0700 PDT m=+128734.721413543"
+time="2026-04-16T23:33:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3915
+time="2026-04-16T23:33:55-07:00" level=info msg=ConnectionClosed connectionID=3915
+
+time="2026-04-16T23:33:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3916
+time="2026-04-16T23:33:55-07:00" level=info msg=ConnectionClosed connectionID=3916
+time="2026-04-16T23:33:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3917

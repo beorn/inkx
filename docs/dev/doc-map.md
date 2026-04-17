@@ -42,6 +42,8 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs) | [ref/markdown.md](../ref/markdown.md) |
 | Keybindings (layers, chord system, v2) | [design/input.md](../design/input.md) |
 | Command registry, when clauses | [ref/commands.md](../ref/commands.md) |
+| Effect type catalog (TreeEffect + BoardEffect) | [ref/effects.md](../ref/effects.md) |
+| Change type taxonomy (node_*, task_*, session_*) | [ref/changes.md](../ref/changes.md) |
 | Tree glob patterns | [ref/tree-globs.md](../ref/tree-globs.md) |
 | Terminology index (all terms A–Z) | [glossary.md](../glossary.md) |
 | Test architecture (unit, integration, driver, system) | [dev/test-system.md](../dev/test-system.md) |
@@ -72,8 +74,8 @@ Concepts code uses heavily but docs don't fully own. Tracked for follow-up:
 
 - **TreeMutator operations** (split, merge, indent, outdent, inverse, normalize) — brief in `architecture.md`, detailed per-operation doc missing.
 - **Repo mutation API** (addNode, updateNode, moveNode, deleteNode + event semantics) — brief in `architecture.md`, detailed doc missing.
-- **Effect type catalog** (persist, notify, clipboard, kill_ring_push, …) — glossary has a one-line definition; no complete list.
-- **Change type taxonomy** (node_created, node_moved, node_deleted, link_created, link_deleted, …) — glossary has a one-liner; no complete list.
+- ~~**Effect type catalog**~~ — closed 2026-04-17: canonical at [ref/effects.md](../ref/effects.md).
+- ~~**Change type taxonomy**~~ — closed 2026-04-17: canonical at [ref/changes.md](../ref/changes.md).
 
 ## Known inconsistencies (deferred cleanup)
 
