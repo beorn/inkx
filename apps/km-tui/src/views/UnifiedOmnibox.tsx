@@ -20,6 +20,37 @@ import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
 import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
 
+// =============================================================================
+// Empty-buffer prefix guide
+// =============================================================================
+
+const PREFIX_GUIDE: ReadonlyArray<readonly [sigil: string, label: string]> = [
+  [":", "commands"],
+  ["+", "projects"],
+  ["@", "contexts"],
+  ["/", "find on screen"],
+  ["[", "search for name"],
+]
+
+/** Shown inside the omnibox when the buffer is empty and no sigil is set. */
+function PrefixGuide(): React.ReactElement {
+  return (
+    <Box flexDirection="column" paddingX={2} paddingY={1}>
+      <Small>PREFIXES</Small>
+      <Box flexDirection="column" marginTop={1}>
+        {PREFIX_GUIDE.map(([sigil, label]) => (
+          <Box key={sigil} flexDirection="row">
+            <Box width={3}>
+              <Text color="$muted">{sigil}</Text>
+            </Box>
+            <Text>{label}</Text>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
 export interface UnifiedOmniboxProps {
   /** The pane value-object from ui.omnibox — carries state + frozen spec. */
   pane: OmniboxPane
@@ -124,6 +155,11 @@ function CenterOmnibox({
   const mode = modeOf(buffer)
   const chrome = modeChromeFor(mode)
 
+  // Show the prefix guide in the empty-universal state: buffer is empty AND the
+  // caller didn't override with a sigil-specific defaultCommand (e.g. `manage_favorites`
+  // should still surface favorites, not the guide).
+  const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
+
   // Chrome budget: border(2) + title(2) + input(3 — content + top/bot border) +
   // footer(2) + padding(2). Rest goes to PickerList.
   const overhead = 11
@@ -157,21 +193,25 @@ function CenterOmnibox({
           borderStyle="round"
           focusBorderColor="$focusborder"
         />
-        <PickerList
-          items={results as OmniboxRowData[]}
-          selectedIndex={selectedIndex}
-          getKey={(row) => row.id}
-          maxVisible={maxVisible}
-          renderItem={(row, selected) => (
-            <OmniboxRowClickable
-              row={row}
-              selected={selected}
-              index={results.indexOf(row)}
-              onClick={onRowClick}
-              onHover={onRowHover}
-            />
-          )}
-        />
+        {showGuide ? (
+          <PrefixGuide />
+        ) : (
+          <PickerList
+            items={results as OmniboxRowData[]}
+            selectedIndex={selectedIndex}
+            getKey={(row) => row.id}
+            maxVisible={maxVisible}
+            renderItem={(row, selected) => (
+              <OmniboxRowClickable
+                row={row}
+                selected={selected}
+                index={results.indexOf(row)}
+                onClick={onRowClick}
+                onHover={onRowHover}
+              />
+            )}
+          />
+        )}
       </Box>
     </ModalDialog>
   )
