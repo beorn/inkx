@@ -543,7 +543,7 @@ function initialBufferForPickSigil(pick: string): string {
  *
  * km-tui.itempicker-unify: every verb × pick chord — and the orphan
  * SET_LABEL / SET_ASSIGNEE / PANE_SPLIT_AND_PICK ops — now land on the
- * unified `ui.omnibox` overlay. ItemPicker.tsx + `activePicker` state
+ * unified `ui.omnibox` overlay. The legacy ItemPicker + its picker state
  * have been deleted. The omnibox opens with a pre-scoped sigil buffer
  * and a sticky defaultCommand matching the verb.
  */
