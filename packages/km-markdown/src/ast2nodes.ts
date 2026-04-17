@@ -40,6 +40,7 @@ import {
   extractAllRefs,
 } from "./parser.ts"
 import type { WikiLink, PropertyValue } from "./parser.ts"
+import { normalizeLinkHref } from "./link-href.ts"
 import type { NodeRules } from "@km/core"
 
 /**
@@ -101,6 +102,14 @@ export interface ExtractedLink {
   link: WikiLink
   /** Property name for property-based links (e.g., "blocked-by"), undefined for content wikilinks */
   relationship?: string
+  /**
+   * Normalized href for the new link model. Computed from the wiki notation via
+   * normalizeLinkHref (see docs/design/links.md). Consumed in Phase 3 of the
+   * link-model migration (km-storage.link-model-canonical) when the schema
+   * flips to the 3-column links table. Presence is unconditional as of
+   * Phase 2 — every extracted link has its canonical href attached.
+   */
+  href: string
 }
 
 /**
@@ -959,7 +968,7 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
     if (node.content) {
       const links = parseWikiLinks(node.content)
       for (const link of links) {
-        wikilinks.push({ nodeId: node.id, link })
+        wikilinks.push({ nodeId: node.id, link, href: wikiLinkToHref(link) })
       }
     }
 
@@ -969,10 +978,12 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
       for (const [propName, propValue] of Object.entries(nodeData.props)) {
         const propLinks = extractLinksFromProperty(propValue)
         for (const target of propLinks) {
+          const link: WikiLink = { type: "wikiLink", target, embedded: false }
           wikilinks.push({
             nodeId: node.id,
-            link: { type: "wikiLink", target, embedded: false },
+            link,
             relationship: propName,
+            href: wikiLinkToHref(link),
           })
         }
       }
@@ -980,6 +991,18 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
   }
 
   return wikilinks
+}
+
+/**
+ * Build the wiki-form label from a WikiLink and normalize to canonical href.
+ * Re-assembles the authored text (`Note#Section`, `Note^abc`, `#Section`)
+ * then runs normalizeLinkHref("wiki", label). See docs/design/links.md.
+ */
+function wikiLinkToHref(link: WikiLink): string {
+  let label = link.target
+  if (link.blockId) label += `^${link.blockId}`
+  else if (link.section) label += `#${link.section}`
+  return normalizeLinkHref("wiki", label)
 }
 
 /**
