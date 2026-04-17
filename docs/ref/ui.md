@@ -94,6 +94,18 @@ Rules: strip `#`, `.md`, replace `-_` with space, lowercase, trim.
 
 Suffix renders dim/gray.
 
+### Link States
+
+Every inline link (wiki, embed, sigil, mdlink, autolink, bare URL) resolves to one of five `KResolution` kinds. Renderers switch on `kind` and apply the corresponding visual. See [docs/design/links.md](../design/links.md).
+
+| Kind        | Visual                                           | Click                             |
+| ----------- | ------------------------------------------------ | --------------------------------- |
+| `external`  | External-link style, external icon               | Open in browser                   |
+| `self`      | Resolved style (link color + dotted underline)   | Scroll to anchor in host          |
+| `resolved`  | Resolved style (link color + dotted underline)   | Navigate to target                |
+| `ambiguous` | Ambiguous warning (`$warning` + superscript N)   | `PickerDialog` over targets       |
+| `broken`    | Broken style (`$error` dashed underline)         | Offer "create note"               |
+
 ---
 
 ## Design System
@@ -171,7 +183,7 @@ Users can assign colors to boards and tags using the `km.color::` attribute:
 | Separators        | `gray`                 | Column dividers, borders        |
 | Scroll indicators | `gray` bg + `white` fg | Show more content available     |
 | Hints/metadata    | `dimColor`             | Secondary information           |
-| Embedded context  | `dimColor` + `italic`  | Parent path for embedded tasks |
+| Embedded context  | `dimColor` + `italic`  | Parent path for embed targets   |
 
 ---
 

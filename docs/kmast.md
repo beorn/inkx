@@ -86,6 +86,21 @@ interface KmWikilink extends Node {
 }
 ```
 
+### kmast → KLink
+
+The parser-layer `KmWikilink` (above), plus mdast's native `Link` and autolink/bare-URL nodes, are lowered by `astToNodes()` into the canonical [`KLink`](design/links.md) that lives inside `KNode.content`:
+
+```typescript
+type KLink = {
+  href: string                                    // parsed target (km:Note, #Section, https://…)
+  rel: 'link' | 'embed'                           // closed enum for v1
+  alias?: string                                  // |alias or [text](…) text
+  md?: { form?: 'wiki' | 'mdlink' | 'autolink' | 'bare' }
+}
+```
+
+`md.form` captures the notation for roundtrip fidelity. `#tag`, `@mention`, `+project` sigils are recognized as `rel: 'link'` with `md.form: 'bare'` — sigils are part of the node name, not a separate namespace. See [docs/design/links.md](design/links.md) for the full link model, including the complete Markdown → KLink table.
+
 ## Usage
 
 ```typescript
