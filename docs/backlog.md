@@ -21,8 +21,8 @@ Related:
 
 See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 
-- **Orphan: TreeMutator ops doc** — no dedicated design doc for split/merge/indent/outdent/inverse/normalize. Write `design/tree-mutations.md` or expand `architecture.md`.
-- **Orphan: Repo mutation API doc** — addNode/updateNode/moveNode/deleteNode + change generation semantics.
+- ~~**Orphan: TreeMutator ops doc**~~ — shipped 2026-04-17 as [design/model/tree-mutator.md](design/model/tree-mutator.md).
+- ~~**Orphan: Repo mutation API doc**~~ — shipped 2026-04-17 as [design/model/repo-api.md](design/model/repo-api.md).
 - ~~**Orphan: Effect type catalog**~~ — shipped 2026-04-17 as [ref/effects.md](ref/effects.md).
 - ~~**Orphan: Change type taxonomy**~~ — shipped 2026-04-17 as [ref/changes.md](ref/changes.md).
 - ~~**Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`**~~ — shipped; codebase now uses `resolvedEmbed` exclusively (grep confirms 0 hits for old name 2026-04-17).

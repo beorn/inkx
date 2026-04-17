@@ -19,6 +19,8 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 | Concept | Canonical doc |
 |---|---|
 | KNode record shape, items vs blocks, ItemData, visual roles, body content | [design/model/knode.md](../design/model/knode.md) |
+| TreeMutator — atomic ops (split, merge, indent, outdent, inverse, normalize) | [design/model/tree-mutator.md](../design/model/tree-mutator.md) |
+| Repo API — queries, mutations, event semantics, sync | [design/model/repo-api.md](../design/model/repo-api.md) |
 | KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/model/klink.md](../design/model/klink.md) |
 | km-ast type system, block types, traits, derivation rules | [design/model/kast.md](../design/model/kast.md) |
 | Visibility mechanisms (structural exclusion, collapsed columns, fold) | [design/ui/visibility.md](../design/ui/visibility.md) |
@@ -68,14 +70,12 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 - `docs/design/render-neutral-tui.md` → [archive/render-neutral-tui.md](../archive/render-neutral-tui.md) — silvery owns multi-target rendering (2026-04-17).
 - `docs/design/tribe.md` → [archive/tribe.md](../archive/tribe.md) — tribe is a bearly plugin; see [`vendor/bearly/plugins/tribe/`](../../vendor/bearly/plugins/tribe/) (2026-04-17).
 
-## Deferred (orphans + backlog — see `docs/backlog.md`)
+## Resolved orphans (all 4 W2-flagged canonicals shipped 2026-04-17)
 
-Concepts code uses heavily but docs don't fully own. Tracked for follow-up:
-
-- **TreeMutator operations** (split, merge, indent, outdent, inverse, normalize) — brief in `architecture.md`, detailed per-operation doc missing.
-- **Repo mutation API** (addNode, updateNode, moveNode, deleteNode + event semantics) — brief in `architecture.md`, detailed doc missing.
-- ~~**Effect type catalog**~~ — closed 2026-04-17: canonical at [ref/effects.md](../ref/effects.md).
-- ~~**Change type taxonomy**~~ — closed 2026-04-17: canonical at [ref/changes.md](../ref/changes.md).
+- ~~**TreeMutator operations**~~ → [design/model/tree-mutator.md](../design/model/tree-mutator.md).
+- ~~**Repo mutation API**~~ → [design/model/repo-api.md](../design/model/repo-api.md).
+- ~~**Effect type catalog**~~ → [ref/effects.md](../ref/effects.md).
+- ~~**Change type taxonomy**~~ → [ref/changes.md](../ref/changes.md).
 
 ## Resolved code renames (2026-04-17)
 

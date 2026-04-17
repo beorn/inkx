@@ -45,10 +45,12 @@ Your data stays in plain markdown. km adds queryability and navigation without l
 
 | Doc                                                | Description                                    |
 | -------------------------------------------------- | ---------------------------------------------- |
-| [design/model/knode.md](design/model/knode.md)     | Storage node: items vs blocks, visual roles    |
-| [design/model/kast.md](design/model/kast.md)       | Parser AST: block+trait, inline, lowering      |
-| [design/model/klink.md](design/model/klink.md)     | Link model — KLink, KLinkRef, resolver, sigils |
-| [design/model/storage.md](design/model/storage.md) | SQLite schema, memory/disk modes, sync         |
+| [design/model/knode.md](design/model/knode.md)             | Storage node: items vs blocks, visual roles    |
+| [design/model/kast.md](design/model/kast.md)               | Parser AST: block+trait, inline, lowering      |
+| [design/model/klink.md](design/model/klink.md)             | Link model — KLink, KLinkRef, resolver, sigils |
+| [design/model/storage.md](design/model/storage.md)         | SQLite schema, memory/disk modes, sync         |
+| [design/model/tree-mutator.md](design/model/tree-mutator.md) | TreeMutator atomic ops (split/merge/indent/…)  |
+| [design/model/repo-api.md](design/model/repo-api.md)       | Repo API — queries, mutations, events, sync    |
 
 ### design/ui/ — how the user sees and drives km
 
