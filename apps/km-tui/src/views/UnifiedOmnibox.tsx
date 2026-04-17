@@ -64,23 +64,27 @@ function GuideHeading({ children }: { children: string }): React.ReactElement {
   )
 }
 
-/** Shown inside the omnibox when the buffer is empty and no sigil is set. */
+/** Shown inside the omnibox when the buffer is empty and no sigil is set.
+ * Horizontally centered, pushed down a few rows from the input for a quiet
+ * "first time here?" feel. */
 function PrefixGuide(): React.ReactElement {
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <GuideHeading>PREFIXES</GuideHeading>
-      <Box flexDirection="column" marginTop={1}>
-        {PREFIX_GUIDE.map(([sigil, label]) => (
-          <GuideRow key={sigil} sigil={sigil} label={label} />
-        ))}
-      </Box>
-      <Box marginTop={1}>
-        <GuideHeading>TASKS</GuideHeading>
-      </Box>
-      <Box flexDirection="column" marginTop={1}>
-        {TASK_BRACKETS.map(([bracket, label]) => (
-          <GuideRow key={bracket} sigil={bracket} label={label} />
-        ))}
+    <Box flexDirection="row" justifyContent="center" marginTop={2}>
+      <Box flexDirection="column">
+        <GuideHeading>PREFIXES</GuideHeading>
+        <Box flexDirection="column" marginTop={1}>
+          {PREFIX_GUIDE.map(([sigil, label]) => (
+            <GuideRow key={sigil} sigil={sigil} label={label} />
+          ))}
+        </Box>
+        <Box marginTop={1}>
+          <GuideHeading>TASKS</GuideHeading>
+        </Box>
+        <Box flexDirection="column" marginTop={1}>
+          {TASK_BRACKETS.map(([bracket, label]) => (
+            <GuideRow key={bracket} sigil={bracket} label={label} />
+          ))}
+        </Box>
       </Box>
     </Box>
   )
