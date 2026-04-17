@@ -21,6 +21,9 @@ const alwaysExclude = [
 	// Playwright tests — run via `bun run test:showcase` in vendor/silvery, not vitest
 	"vendor/silvery/tests/web/**",
 	"vendor/silvery/tests/site-smoke.test.ts",
+	// hub/ is internal workspace — prototypes/examples-wip import from silvery-internal
+	// paths that don't resolve in km's module graph
+	"hub/**",
 ]
 
 // Performance note: each test file pays ~1.8s import overhead (React + silvery + zustand

@@ -423,7 +423,7 @@ tree.withBatch(fn)    // defer validate until batch ends
 | `vendor/termless` | beorn/termless | Public | vterm.js, xterm.js, various emulator backends |
 | `vendor/vterm` | beorn/vterm | Public | Zero deps (pure TS) |
 | `vendor/bearly` | beorn/bearly | Partly (tribe, github public) | Various (claude SDK, alien-signals, etc.) |
-| `hub/silvery` | beorn/silvery-internal | Private | -- (docs only) |
+| `hub/silvery` | (in km, was beorn/silvery-internal — absorbed 2026-04-17) | Private | -- (docs only) |
 | `vendor/terminfo.dev` | beorn/terminfo.dev | Private | termless, vterm |
 
 Note: `vendor/accountly`, `vendor/tap`, `vendor/watcher-chaos` are NOT git submodules -- they are tracked directly in the km repo.

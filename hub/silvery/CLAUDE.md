@@ -1,12 +1,12 @@
-# silvery-internal
+# hub/silvery — Silvery internal workspace
 
-Private development docs for Silvery. Not published, not part of silvery.dev. Lives in `vendor/silvery-internal/` inside the km repo (tracked directly, not a submodule).
+Private development docs for Silvery. Not published, not part of silvery.dev. Lives at `hub/silvery/` inside the km repo (tracked directly, not a submodule — absorbed 2026-04-17 from the former `beorn/silvery-internal` private repo).
 
 ## Purpose
 
 This is where design work happens before it becomes code or public docs. Everything here is internal — vision, design, architecture deep dives, prototypes, benchmarks, and launch materials.
 
-**silvery-internal is the design workspace. `vendor/silvery/` is the implementation. `vendor/silvery/docs/` is the public site.**
+**`hub/silvery/` is the design workspace. `vendor/silvery/` is the implementation. `vendor/silvery/docs/` is the public site.**
 
 ## When to Use
 

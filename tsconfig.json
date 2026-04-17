@@ -13,6 +13,10 @@
     "archive",
     "vendor/silvery/tests/compat/ink/generated",
     "hub/silvery/prototype",
+    "hub/silvery/examples-wip",
+    "hub/silvery/benchmarks",
+    "hub/silvery/archive",
+    "hub/silvery/design",
     "vendor/bearly/plugins/tribe/server.ts",
     "packages/km-infra/scripts"
   ]

@@ -143,8 +143,9 @@ See [.claude/skills/git/worktree.md] for details.
 
 `hub/` holds private documents that should NOT appear on public-facing sites. Each project gets its own subdirectory:
 
-- `hub/silvery/` — silvery design docs, mockups, prototypes, roadmap (git submodule → beorn/silvery-internal)
-- `hub/bearly/` — bearly/tribe design docs (tracked in km repo)
+- `hub/silvery/` — silvery design docs, mockups, prototypes, roadmap (tracked in km; was submodule, absorbed 2026-04-17)
+- `hub/bearly/` — bearly/tribe design docs
+- `hub/km/`, `hub/loggily/`, `hub/market/` — per-project + ecosystem workspaces
 
 **What goes here:** design documents, architecture plans, marketing strategies, competitive analysis, launch plans, internal roadmaps, mockups, prototypes, example drafts — anything that informs development but shouldn't be published.
 

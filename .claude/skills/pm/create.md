@@ -172,7 +172,7 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
 **WARNING**: `--id` and `--parent` cannot be combined — see [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes).
 
-**Include acceptance criteria** in the description — explicit "done when" conditions help future sessions know when the bead is truly complete. Anchor to design docs or skill files where relevant (e.g., "See docs/architecture/X.md for context").
+**Include acceptance criteria** in the description — explicit "done when" conditions help future sessions know when the bead is truly complete. Anchor to design docs or skill files where relevant (e.g., "See docs/design/X.md for context").
 
 ```bash
 # Step 1: Create (NO --parent flag here!)

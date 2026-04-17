@@ -59,7 +59,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # perles local config
 .perles/
 tmp-test/
-docs/vs-decker.md
 issue/
 __fuzz_cases__/
 

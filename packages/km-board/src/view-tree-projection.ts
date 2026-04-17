@@ -17,15 +17,12 @@
  */
 
 import type { KNode, NodeRules } from "@km/core"
-import type { TreeLens } from "./tree-lens.ts"
+import type { TreeLens, ViewType } from "./tree-lens.ts"
 import { createProjectedMap, type ProjectedMap, type Projected } from "./projected-map.ts"
 
 // =============================================================================
 // Types
 // =============================================================================
-
-/** Visual type determined by position in the view tree. */
-export type ViewType = "board" | "body-column" | "column" | "card" | "subitem"
 
 /** The projected state for one node — each field backed by a signal. */
 export interface ViewNodeState {

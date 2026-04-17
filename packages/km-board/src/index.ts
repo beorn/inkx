@@ -99,5 +99,4 @@ export type {
   ViewTree as ViewTreeProjection,
   ViewNode as ProjectedViewNode,
   ViewNodeState,
-  ViewType,
 } from "./view-tree-projection.ts"

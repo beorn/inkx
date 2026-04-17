@@ -6,15 +6,15 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 
 **vendor packages must never reference `vendor/` paths.** They don't know they're inside km. This applies uniformly — source, docs, CLAUDE.md files inside the vendor package, comments, anything. No "local dev convenience" exception.
 
-| Context                                  | Allowed                                                 | Not Allowed                           |
-| ---------------------------------------- | ------------------------------------------------------- | ------------------------------------- |
-| Source code (imports)                    | `@termless/core`, `@silvery/ag-react`                   | `../../../vendor/silvery/src/...`     |
-| Source code (strings / docstrings)       | `tests/layout.test.ts` (relative to package)            | `vendor/flexily/tests/layout.test.ts` |
-| Documentation                            | `npm install @termless/ghostty`                         | `cd vendor/termless && ...`           |
-| Links in docs                            | `https://silvery.dev/guide/...`                         | `vendor/silvery/docs/guide/...`       |
-| CLAUDE.md **inside** a vendor package    | relative paths (`tests/foo.ts`), npm names, GitHub URLs | `vendor/<pkg>/...` paths              |
-| Comments (run-command examples)          | relative paths (`bun tests/foo.ts`)                     | `bun vendor/<pkg>/tests/foo.ts`       |
-| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo)   | `hub/silvery/...` paths   |
+| Context                               | Allowed                                                                   | Not Allowed                                          |
+| ------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Source code (imports)                 | `@termless/core`, `@silvery/ag-react`                                     | `../../../vendor/silvery/src/...`                    |
+| Source code (strings / docstrings)    | `tests/layout.test.ts` (relative to package)                              | `vendor/flexily/tests/layout.test.ts`                |
+| Documentation                         | `npm install @termless/ghostty`                                           | `cd vendor/termless && ...`                          |
+| Links in docs                         | `https://silvery.dev/guide/...`                                           | `vendor/silvery/docs/guide/...`                      |
+| CLAUDE.md **inside** a vendor package | relative paths (`tests/foo.ts`), npm names, GitHub URLs                   | `vendor/<pkg>/...` paths                             |
+| Comments (run-command examples)       | relative paths (`bun tests/foo.ts`)                                       | `bun vendor/<pkg>/tests/foo.ts`                      |
+| References to the private workspace   | (none — `hub/` lives in km only, not visible to standalone vendor clones) | `hub/silvery/...` paths from inside a vendor package |
 
 **Why:** when someone clones `github.com/beorn/silvery` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage. A vendor package that survives `git clone <repo> && bun test` without knowing about km is correct; anything else has monorepo-leak.
 
@@ -50,20 +50,21 @@ For any vendor package to be "standalone-ready":
 
 ## Packages
 
-| Package              | npm Scope              | Description                                                                   |
-| -------------------- | ---------------------- | ----------------------------------------------------------------------------- |
-| **silvery**          | `@silvery/*`           | React TUI framework — reconciler, components, theme                           |
-| **flexily**          | `@flexily/*`           | Yoga-compatible flexbox layout engine                                         |
-| **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals)                     |
-| **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                                                |
-| **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor                         |
-| **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                                              |
-| **loggily**          | `loggily`              | Structured logging                                                            |
-| **accountly**        | `@beorn/accountly`     | Multi-account manager — credential switching, quota monitoring, auto-rotation |
-| **tap**              | `@beorn/tap`           | Terminal app protocol                                                         |
-| **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern                                |
-| **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                                    |
-| **silvery-internal** | —                      | Internal design docs (not published)                                          |
+| Package           | npm Scope              | Description                                                                   |
+| ----------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| **silvery**       | `@silvery/*`           | React TUI framework — reconciler, components, theme                           |
+| **flexily**       | `@flexily/*`           | Yoga-compatible flexbox layout engine                                         |
+| **termless**      | `@termless/*`          | Headless terminal testing (like Playwright for terminals)                     |
+| **ansi**          | `@silvery/ansi`        | ANSI escape sequence utilities                                                |
+| **bearly**        | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor                         |
+| **vimonkey**      | `vimonkey`             | Vitest monkey-patching utilities                                              |
+| **loggily**       | `loggily`              | Structured logging                                                            |
+| **accountly**     | `@beorn/accountly`     | Multi-account manager — credential switching, quota monitoring, auto-rotation |
+| **tap**           | `@beorn/tap`           | Terminal app protocol                                                         |
+| **vt100** (vterm) | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern                                |
+| **watcher-chaos** | `@beorn/watcher-chaos` | File watcher chaos testing                                                    |
+
+(silvery-internal was absorbed into `hub/silvery/` on 2026-04-17 — no longer a vendor submodule.)
 
 ## Internal vs Public (`hub/` vs `vendor/*/`)
 

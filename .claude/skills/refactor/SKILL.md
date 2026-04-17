@@ -59,7 +59,7 @@ When extracting packages from a monolith:
 
 4. **Every new package needs tests in the same commit.** Not "will add tests later." At minimum: `test("exports are defined", () => expect(createFoo).toBeDefined())`. The era2 audit found @silvery/commands shipped with zero tests.
 
-5. **Docstrings document reality, not plans.** Only list APIs that exist. Future APIs belong in design docs (`silvery-internal/design/`), not source code comments. LLMs read docstrings literally — a listed-but-unimplemented function will be called and fail.
+5. **Docstrings document reality, not plans.** Only list APIs that exist. Future APIs belong in design docs (`hub/silvery/design/`), not source code comments. LLMs read docstrings literally — a listed-but-unimplemented function will be called and fail.
 
 6. **Barrel exports = discoverability.** If `withApp()` works and has tests but isn't in the barrel, users can't find it. Export from barrel or don't ship. Subpath-only exports are for internal/advanced use.
 
