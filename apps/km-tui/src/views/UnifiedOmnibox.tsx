@@ -28,8 +28,8 @@ const PREFIX_GUIDE: ReadonlyArray<readonly [sigil: string, label: string]> = [
   [":", "commands"],
   ["+", "projects"],
   ["@", "contexts"],
+  ["#", "tags"],
   ["/", "find on screen"],
-  ["[", "search for name"],
 ]
 
 /** Shown inside the omnibox when the buffer is empty and no sigil is set. */
