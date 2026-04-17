@@ -49,7 +49,7 @@ interface KNode {
   parent_idx: number      // sibling order
   content: string         // text content
   title: string           // display title (materialized)
-  embed_of?: string     // points to another node (embeds)
+  embed_of?: string     // points to embed target (runtime-materialized from links where rel='embed')
   fstype?: string         // "repo" | "folder" | "file" | "mdsection"
   rules?: NodeRules       // parsed km.* directives (collapse, color, limit)
 }
@@ -130,7 +130,7 @@ repo
               └── createViewTree()  ← React-side projection with per-node signals
 ```
 
-`TreeLens` is the universal navigation interface (`packages/km-board/src/tree-lens.ts`). Each layer preserves the same KNode identity through all levels — only visibility changes. Enrichments (`role`, `isBody`, `resolvedSymlink`, `rules`) are lens **methods**, not node properties — pure query interface, zero upfront allocation, lazy + cached.
+`TreeLens` is the universal navigation interface (`packages/km-board/src/tree-lens.ts`). Each layer preserves the same KNode identity through all levels — only visibility changes. Enrichments (`role`, `isBody`, `resolvedSymlink` — legacy name for embed resolution, `rules`) are lens **methods**, not node properties — pure query interface, zero upfront allocation, lazy + cached.
 
 `ViewTree` (`packages/km-board/src/view-tree-projection.ts`) wraps the bottom of the lens stack with `ProjectedMap` per-node signal bags. React components subscribe to individual node IDs via `useNode(id)` — they re-render only when *that specific node's* view state changes. This is what enables the cards-view incremental rendering performance.
 
