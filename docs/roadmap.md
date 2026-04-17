@@ -1,5 +1,7 @@
 # km Roadmap
 
+> **TODO (km-all.roadmap-integrate)**: integrate this horizon narrative into [backlog.md](backlog.md) or retire. `backlog.md` is the live ordered queue; this doc is longer-horizon narrative and may have drifted since Mar 31. Decide: merge useful horizon framing into backlog's "Later" section, or keep as vision-level doc and cross-link.
+
 km is a PIM/PKM engine that turns markdown files into a queryable, navigable semantic tree — rendered as a TUI. Your data stays in plain markdown. km adds structure, navigation, and task management without lock-in. The long-term vision is a full personal information manager: tasks, notes, contacts, calendar, and AI agents — all keyboard-driven, all markdown-native.
 
 ## Horizon 1: TUI Polish
