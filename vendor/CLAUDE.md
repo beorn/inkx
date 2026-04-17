@@ -4,18 +4,21 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 
 ## The Boundary Rule
 
-**vendor packages must never reference `vendor/` paths.** They don't know they're inside km.
+**vendor packages must never reference `vendor/` paths.** They don't know they're inside km. This applies uniformly — source, docs, CLAUDE.md files inside the vendor package, comments, anything. No "local dev convenience" exception.
 
-| Context                 | Allowed                                               | Not Allowed                           |
-| ----------------------- | ----------------------------------------------------- | ------------------------------------- |
-| Source code (imports)   | `@termless/core`, `@silvery/ag-react`                 | `../../../vendor/silvery/src/...`     |
-| Source code (strings)   | `tests/layout.test.ts` (relative to package)          | `vendor/flexily/tests/layout.test.ts` |
-| Documentation           | `npm install @termless/ghostty`                       | `cd vendor/termless && ...`           |
-| Links in docs           | `https://silvery.dev/guide/...`                       | `vendor/silvery/docs/guide/...`       |
-| CLAUDE.md files         | `vendor/` paths OK (local dev context, not published) | —                                     |
-| Comments (run examples) | `vendor/` paths OK (developer convenience)            | —                                     |
+| Context                                  | Allowed                                              | Not Allowed                           |
+| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------- |
+| Source code (imports)                    | `@termless/core`, `@silvery/ag-react`                | `../../../vendor/silvery/src/...`     |
+| Source code (strings / docstrings)       | `tests/layout.test.ts` (relative to package)         | `vendor/flexily/tests/layout.test.ts` |
+| Documentation                            | `npm install @termless/ghostty`                      | `cd vendor/termless && ...`           |
+| Links in docs                            | `https://silvery.dev/guide/...`                      | `vendor/silvery/docs/guide/...`       |
+| CLAUDE.md **inside** a vendor package    | relative paths (`tests/foo.ts`), npm names, GitHub URLs | `vendor/<pkg>/...` paths              |
+| Comments (run-command examples)          | relative paths (`bun tests/foo.ts`)                  | `bun vendor/<pkg>/tests/foo.ts`       |
+| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo) | `vendor/internal/silvery/...` paths   |
 
-**Why:** When someone clones `github.com/beorn/termless` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage.
+**Why:** when someone clones `github.com/beorn/silvery` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage. A vendor package that survives `git clone <repo> && bun test` without knowing about km is correct; anything else has monorepo-leak.
+
+**Monorepo-specific commands** (e.g., "run all silvery tests from km root with vitest project filter") belong in km files — this `vendor/CLAUDE.md`, the km root `CLAUDE.md`, or `package.json` scripts — never inside the vendor package itself.
 
 ## km → vendor references (allowed)
 
@@ -36,11 +39,14 @@ Vendor packages that depend on each other use **npm package names**, never relat
 
 For any vendor package to be "standalone-ready":
 
-- [ ] No `vendor/` in source code strings (except comments)
-- [ ] No `vendor/` in documentation or guides
+- [ ] No `vendor/` in source code (imports, strings, docstrings, or comments)
+- [ ] No `vendor/` in documentation, guides, or package-level CLAUDE.md
+- [ ] No `vendor/internal/<pkg>/` refs — use the GitHub URL to the public internal repo
 - [ ] No `workspace:*` in its `package.json` (use npm versions or `github:owner/repo`)
 - [ ] `bun test` works from the package root (not just from km root)
-- [ ] CLAUDE.md can reference `vendor/` (it's local dev context, not published)
+- [ ] Run-command docstrings use relative paths: `bun tests/foo.ts`, not `bun vendor/<pkg>/tests/foo.ts`
+
+**Audit command:** `grep -rn 'vendor/' vendor/<pkg>/ --include='*.md' --include='*.ts' --include='*.tsx' --include='*.json' | grep -v '/node_modules/' | grep -v '/dist/'` should return zero hits in the vendor package.
 
 ## Packages
 
