@@ -41,6 +41,7 @@ import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
 import { applySigilRule, dispatchOmnibox, dismissOmnibox, modeOf, type OmniboxPane } from "../state/omnibox.ts"
 import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
+import { getRecentsStore } from "../state/recents-store.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
 
 // =============================================================================
@@ -290,7 +291,7 @@ function UnifiedOmniboxConnector({
       const opCtx = defaultBuildOpCtx(store.getState.bind(store), () => {})
       const kbCtx = buildKeybindingContextFromOpCtx(opCtx)
       const query = mode === "command" ? buffer.slice(1) : ""
-      const projected = commandResultsForOmnibox(allCommands, kbCtx, query)
+      const projected = commandResultsForOmnibox(allCommands, kbCtx, query, "normal", getRecentsStore().getCommandBoost())
       rows = buffer.length === 0 ? projected.slice(0, 12) : projected
     } else {
       // Content sigils (+ @ # ~) and the bare `node` mode dispatch through
