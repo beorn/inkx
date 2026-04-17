@@ -16,7 +16,8 @@ import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { OmniboxRow } from "./OmniboxRow.tsx"
 import { nodeToRow } from "./omnibox-row-adapters.ts"
-import { fuzzyScore } from "./search-utils.ts"
+import { parseQuery } from "../state/omnibox-query-parser.ts"
+import { rankResults, type RankCandidate } from "../state/omnibox-ranker.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
 
@@ -44,7 +45,9 @@ export type PickerLoadOptions = (repo: Repo, recentIds: string[]) => PickerOptio
 
 function filterOptions(allOptions: PickerOption[], query: string): (PickerOption & { score?: number })[] {
   if (!query) {
-    // Show recent first, then alphabetically by title
+    // Show recent first, then alphabetically by title. (The shared ranker
+    // doesn't know about PickerOption.isRecent — that's picker-local and
+    // belongs here until km-tui.omnibox-recents lands.)
     return [...allOptions].sort((a, b) => {
       if (a.isRecent && !b.isRecent) return -1
       if (!a.isRecent && b.isRecent) return 1
@@ -52,18 +55,21 @@ function filterOptions(allOptions: PickerOption[], query: string): (PickerOption
     })
   }
 
-  // Filter and score by query - match against title, parent context, and full path
-  return allOptions
-    .map((opt) => {
-      // Score against title (primary), parent context, and full path
-      const titleScore = fuzzyScore(query, opt.title)
-      const parentScore = opt.parentContext ? fuzzyScore(query, opt.parentContext) * 0.8 : -1
-      const pathScore = fuzzyScore(query, opt.path) * 0.6
-      const bestScore = Math.max(titleScore, parentScore, pathScore)
-      return { ...opt, score: bestScore }
-    })
-    .filter((opt) => (opt.score ?? -1) >= 0)
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+  // Migrated to the shared ranker (km-tui.omnibox-ranker). The ranker
+  // consumes ParsedQuery directly — no more per-call fuzzyScore loops.
+  const parsed = parseQuery(query)
+  const byId = new Map<string, PickerOption>()
+  const candidates: RankCandidate[] = allOptions.map((opt) => {
+    byId.set(opt.node.id, opt)
+    return { node: opt.node, title: opt.title, parentContext: opt.parentContext, path: opt.path }
+  })
+  const scored = rankResults(parsed, candidates)
+  const out: (PickerOption & { score?: number })[] = []
+  for (const r of scored) {
+    const opt = byId.get(r.node.id)
+    if (opt) out.push({ ...opt, score: r.score })
+  }
+  return out
 }
 
 // =============================================================================
