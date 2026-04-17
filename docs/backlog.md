@@ -8,15 +8,27 @@ Related:
 
 ## Now
 
-1. **W2 — Full-tree docs MECE review** — `km-all.docs-mece-review`. One canonical source per concept; concept-ownership map in `docs/dev/doc-map.md`; glossary reconciled; retired docs archived.
+1. **W3 — Omnibox v1 finish** — ship gate: `km-tui.omnibox-dialog`. Phases 2–5: ranker, command projection, when-predicate, unified dialog. In-flight: `km-tui.omnibox-quality-plateau` (legacy-dialog deletion).
 
 ## Queued
 
-2. **W3 — Omnibox v1 finish** — ship gate: `km-tui.omnibox-dialog`. Phases 2–5: ranker, command projection, when-predicate, unified dialog. In-flight: `km-tui.omnibox-quality-plateau` (legacy-dialog deletion).
-3. **W4 — TEA in silvery + aichat showcase** — `km-silvery.tea`, new `km-silvery.aichat-showcase`, new `km-silvery.version-0.18-unify`. Dogfood TEA on silvery via aichat (coding-assistant showcase). End: silvery 0.18.0 unified lockstep release; `@silvery/ag-react` public.
-4. **W5 — Theme system + aichat polish** — new `km-silvery.theme-mature`, new `km-silvery.aichat-polish`. Semantic tokens, typography presets, opencode visual parity.
-5. **W6 — TEA in km + polish** — `km-tui.tea`, new `km-tui.theme-upgrade`, new `km-tui.polish-against-showcase`. Adopt silvery's matured TEA + theme. Includes internal refactor of omnibox v1 (shipped in W3) onto TEA `apply()`.
-6. **W7 — Selection system** — `km-all.unified-selection`, `km-tui.sel-migration`. Ships on mature TEA so `apply()` chain is atomic across tree + selection. Downstream: `km-all.atomic-tree-ops` unblocks.
+2. **W4 — TEA in silvery + aichat showcase** — `km-silvery.tea`, new `km-silvery.aichat-showcase`, new `km-silvery.version-0.18-unify`. Dogfood TEA on silvery via aichat (coding-assistant showcase). End: silvery 0.18.0 unified lockstep release; `@silvery/ag-react` public.
+3. **W5 — Theme system + aichat polish** — new `km-silvery.theme-mature`, new `km-silvery.aichat-polish`. Semantic tokens, typography presets, opencode visual parity.
+4. **W6 — TEA in km + polish** — `km-tui.tea`, new `km-tui.theme-upgrade`, new `km-tui.polish-against-showcase`. Adopt silvery's matured TEA + theme. Includes internal refactor of omnibox v1 (shipped in W3) onto TEA `apply()`.
+5. **W7 — Selection system** — `km-all.unified-selection`, `km-tui.sel-migration`. Ships on mature TEA so `apply()` chain is atomic across tree + selection. Downstream: `km-all.atomic-tree-ops` unblocks.
+
+## W2 follow-ups (deferred from the MECE sweep — pick up between phases)
+
+See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
+
+- **Orphan: TreeMutator ops doc** — no dedicated design doc for split/merge/indent/outdent/inverse/normalize. Write `design/tree-mutations.md` or expand `architecture.md`.
+- **Orphan: Repo mutation API doc** — addNode/updateNode/moveNode/deleteNode + change generation semantics.
+- **Orphan: Effect type catalog** — `ref/effects.md` listing all effect types, arguments, runtime handling.
+- **Orphan: Change type taxonomy** — `ref/change-types.md` enumerating node_created/updated/moved/deleted + link_created/deleted + args.
+- **Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`** — cross-package breaking change; needs its own bead.
+- **Code rename: `ViewRole` type → `ViewType`** — glossary already defines ViewType as replacement; code still uses ViewRole in places. Breaking change; needs its own bead.
+- **Consolidation: Task status defs in concepts.md duplicate `ref/task-fields.md`** — keep semantic summary in concepts, have it link to the field reference instead of repeating the table.
+- **Consolidation: KNode typedef duplicated in `architecture.md` and `design/data-model.md`** — arch.md should summarize + link, not repeat typedef.
 
 ## Parallel (unblocked — pick up when blocked on Now)
 
@@ -41,6 +53,8 @@ Related:
 ## Done
 
 _(Dated list, newest first — entries move here as phases ship.)_
+
+- **2026-04-16 — W2 Docs MECE review shipped** — `km-all.docs-mece-review` closed. 92-doc full-tree inventory (single Explore agent, 1500-word report). Created `docs/dev/doc-map.md` as canonical concept map. Archived 3 stale docs (`keybindings.md → archive/keybindings-v1.md`, `dev/ink-patterns.md → archive/ink-patterns-pre-silvery.md`, `ref/inkx-vs-ink-deep-research-2026-02.md → archive/`). Fixed glossary ViewRole/ViewType inconsistency. Fixed 4 broken cross-doc links after the archive moves. 4 orphan concepts and 2 code renames deferred to follow-up beads (tracked above).
 
 - **2026-04-16 — W1 Storage: links + sigils shipped** — `km-storage.link-model-canonical` closed. Unified KLink type in `@km/core`, 3-column `links(host_id, href, rel)` cache with DATA_VERSION transparent rebuild, sigil-as-name design (no config file), letter-after-sigil parser rule, RFC 3986 percent-encoding, self-ref via bare `#Section`. 7 phases in 13 commits + 2 parallel worktree merges. Completeness audit followed `/refactor` 7-layer sweep: Data ✓ Types ✓ Functions ✓ Files ✓ Comments (migration history, legit) ✓ Docs ✓ Tests ✓. Post-audit cleanup: `EmbeddedUpdate.target_id` → `.embed_of` (terminological leak from internal type).
     - **Impact**: -575 net LOC across storage (Phase 3 alone); 80 new unit tests + 8 parser href tests; 6583 total passing / 37 skipped / 0 failing.
