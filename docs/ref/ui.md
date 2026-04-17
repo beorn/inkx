@@ -171,7 +171,7 @@ Users can assign colors to boards and tags using the `km.color::` attribute:
 | Separators        | `gray`                 | Column dividers, borders        |
 | Scroll indicators | `gray` bg + `white` fg | Show more content available     |
 | Hints/metadata    | `dimColor`             | Secondary information           |
-| Embedded context  | `dimColor` + `italic`  | Parent path for symlinked tasks |
+| Embedded context  | `dimColor` + `italic`  | Parent path for embedded tasks |
 
 ---
 
@@ -666,7 +666,7 @@ Press `?` in the TUI to show the interactive help overlay.
 | Key            | Action                                         |
 | -------------- | ---------------------------------------------- |
 | `Space`        | Cycle task status (todo→wip→done→dropped→todo) |
-| `D`            | Delete card (symlinks: remove from board)      |
+| `D`            | Delete card (embeds: remove from board)        |
 | `n`            | Open new item dialog                           |
 | `Tab`          | Indent (make child of item above)              |
 | `Shift+Tab`    | Outdent (make sibling of parent)               |
