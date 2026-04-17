@@ -4,14 +4,24 @@ The terminal UI for km — React components rendered via `@silvery/ag-react` int
 
 See the repo root [CLAUDE.md](../../CLAUDE.md) for the km-wide architecture, commands, and boundaries. This doc only covers the km-tui pre-flight.
 
-## Before working in km-tui
+## STOP — walk the Silvery Resolver first
 
-**Read first, in this order:**
+**Editing anything under `apps/km-tui/src/views/`, `apps/km-tui/src/state/omnibox*`, or `vendor/silvery/packages/` is enforced by a PreToolUse hook** (`.claude/hooks/silvery-read-gate.sh`). Edit/Write will be **blocked** until you've Read `vendor/silvery/docs/guide/the-silvery-way.md` in the current session.
 
-1. [`vendor/silvery/CLAUDE.md`](../../vendor/silvery/CLAUDE.md) — canonical components, hooks, theme tokens
-2. [`.claude/skills/tui/silvery-components.md`](../../.claude/skills/tui/silvery-components.md) — **the audit gate**. If what you're about to write matches anything on that list, use silvery's version. If silvery is missing a prop/feature, add it in `vendor/silvery/` and consume it from km-tui — never fork it here.
-3. [`vendor/silvery/docs/guide/the-silvery-way.md`](../../vendor/silvery/docs/guide/the-silvery-way.md) — philosophy, canonical patterns, anti-patterns
-4. [`vendor/silvery/docs/guide/styling.md`](../../vendor/silvery/docs/guide/styling.md) — semantic tokens (`$primary`, `$muted`), typography presets, theme usage
+The gate exists because silvery is core architecture — not a generic framework. Operating inside it requires reprogramming out of Ink/blessed intuition (ANSI flatness, closed presets) into silvery's actual model (cascading inheritance, prop-spread override, semantic tokens).
+
+**Session-start protocol:**
+
+1. `Read vendor/silvery/docs/guide/the-silvery-way.md` — the canonical primer (always). Unlocks the Edit gate.
+2. Walk [`.claude/skills/tui/silvery-resolver.md`](../../.claude/skills/tui/silvery-resolver.md) — the decision tree tells you which OTHER silvery docs to read for today's task.
+3. Only then start coding.
+
+## Reference links
+
+- [`vendor/silvery/CLAUDE.md`](../../vendor/silvery/CLAUDE.md) — canonical components, hooks, theme tokens
+- [`.claude/skills/tui/silvery-components.md`](../../.claude/skills/tui/silvery-components.md) — audit gate for every list/picker/modal/input
+- [`vendor/silvery/docs/guide/the-silvery-way.md`](../../vendor/silvery/docs/guide/the-silvery-way.md) — 10 principles
+- [`vendor/silvery/docs/guide/styling.md`](../../vendor/silvery/docs/guide/styling.md) — tokens, typography, theme
 
 **Do NOT reimplement** (all of these already exist in silvery — consume them):
 
