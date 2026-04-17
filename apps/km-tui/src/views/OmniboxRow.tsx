@@ -18,8 +18,14 @@ import { InlineText } from "../text/InlineComponents.tsx"
  * shape so the row renderer doesn't branch on domain type.
  */
 export interface OmniboxRowData {
-  /** Stable identity for React keys and onHighlight tracking. */
+  /**
+   * Raw id of the backing domain object — a CommandDef.id for commands,
+   * a KNode.id for nodes. Consumers disambiguate via `kind`, not by
+   * parsing a namespaced prefix.
+   */
   id: string
+  /** Domain of the row — used to branch confirm-handling and rendering hints. */
+  kind: "command" | "node"
   /** Icon character (nerd font glyph or emoji). */
   icon: string
   /** Optional icon color token (`$primary`, `$muted`, etc.). */

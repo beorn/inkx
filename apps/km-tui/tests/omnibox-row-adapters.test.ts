@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest"
 import type { CommandDef } from "@km/commands"
 import type { KNode } from "@km/core"
-import { commandToRow, favoriteToRow, nodeToRow } from "../src/views/omnibox-row-adapters.ts"
+import { commandToRow, nodeToRow } from "../src/views/omnibox-row-adapters.ts"
 
 const fakeCommand: CommandDef = {
   id: "goto",
@@ -27,7 +27,8 @@ function node(id: string, content: string, taskStatus?: string): KNode {
 describe("commandToRow", () => {
   it("maps CommandDef fields to row data", () => {
     const row = commandToRow(fakeCommand)
-    expect(row.id).toBe("cmd:goto")
+    expect(row.id).toBe("goto")
+    expect(row.kind).toBe("command")
     expect(row.title).toBe("Go to")
     expect(row.context).toBe("Navigate to a node")
   })
@@ -48,16 +49,17 @@ describe("commandToRow", () => {
     expect(row.disabled).toBe(true)
   })
 
-  it("uses cmd: id namespace to avoid collision with nodes", () => {
+  it("sets kind='command' so the confirm handler can branch without parsing ids", () => {
     const row = commandToRow(fakeCommand)
-    expect(row.id.startsWith("cmd:")).toBe(true)
+    expect(row.kind).toBe("command")
   })
 })
 
 describe("nodeToRow", () => {
   it("maps node content to title", () => {
     const row = nodeToRow(node("n1", "Buy milk"))
-    expect(row.id).toBe("node:n1")
+    expect(row.id).toBe("n1")
+    expect(row.kind).toBe("node")
     expect(row.title).toBe("Buy milk")
   })
 
@@ -82,32 +84,20 @@ describe("nodeToRow", () => {
     expect(row.hint).toBe("recent")
   })
 
-  it("uses node: id namespace to avoid collision with commands", () => {
+  it("sets kind='node' so the confirm handler can branch without parsing ids", () => {
     const row = nodeToRow(node("n1", "foo"))
-    expect(row.id.startsWith("node:")).toBe(true)
+    expect(row.kind).toBe("node")
   })
 })
 
-describe("favoriteToRow", () => {
-  it("composes node data + key hint", () => {
-    const row = favoriteToRow("i", node("inbox", "Inbox"))
-    expect(row.id).toBe("fav:i")
-    expect(row.title).toBe("Inbox")
-    expect(row.hint).toBe("I")
-  })
-
-  it("uppercases the key for display", () => {
-    const row = favoriteToRow("a", node("a", "Archive"))
-    expect(row.hint).toBe("A")
-  })
-})
-
-describe("adapter collision safety", () => {
-  it("command ids and node ids cannot collide even when the underlying ID matches", () => {
+describe("adapter kind discriminator", () => {
+  it("command and node rows can share the same underlying id — `kind` disambiguates", () => {
     const cmdRow = commandToRow({ ...fakeCommand, id: "inbox" })
     const nodeRow = nodeToRow(node("inbox", "Inbox"))
-    expect(cmdRow.id).toBe("cmd:inbox")
-    expect(nodeRow.id).toBe("node:inbox")
-    expect(cmdRow.id).not.toBe(nodeRow.id)
+    expect(cmdRow.id).toBe("inbox")
+    expect(nodeRow.id).toBe("inbox")
+    // Underlying ids collide — that's fine because consumers branch on kind.
+    expect(cmdRow.kind).toBe("command")
+    expect(nodeRow.kind).toBe("node")
   })
 })

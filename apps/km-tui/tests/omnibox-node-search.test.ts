@@ -79,7 +79,7 @@ describe("nodeResultsForOmnibox — forwards to repo.search() and projects to ro
   it("returns rows in the order repo.search supplies (no re-rank)", () => {
     const repo = makeRepo([node("a", "first"), node("b", "second"), node("c", "third")])
     const rows = nodeResultsForOmnibox(repo, "any", "project")
-    expect(rows.map((r) => r.id)).toEqual(["node:a", "node:b", "node:c"])
+    expect(rows.map((r) => r.id)).toEqual(["a", "b", "c"])
   })
 
   it("caps results at NODE_RESULT_LIMIT (12)", () => {
@@ -89,11 +89,11 @@ describe("nodeResultsForOmnibox — forwards to repo.search() and projects to ro
     expect(rows.length).toBeLessThanOrEqual(12)
   })
 
-  it("every row is namespaced with node: prefix", () => {
+  it("every row carries kind='node'", () => {
     const repo = makeRepo([node("a", "foo"), node("b", "bar")])
     const rows = nodeResultsForOmnibox(repo, "foo", "project")
     for (const row of rows) {
-      expect(row.id.startsWith("node:")).toBe(true)
+      expect(row.kind).toBe("node")
     }
   })
 })
@@ -130,6 +130,6 @@ describe("nodeResultsForOmnibox — mode contracts", () => {
   it("commandResultsForOmnibox is the orthogonal command path — sanity check", () => {
     const rows = commandResultsForOmnibox(allCommands, testCtx(), "goto", "normal")
     expect(rows.length).toBeGreaterThan(0)
-    expect(rows[0]?.id.startsWith("cmd:")).toBe(true)
+    expect(rows[0]?.kind).toBe("command")
   })
 })

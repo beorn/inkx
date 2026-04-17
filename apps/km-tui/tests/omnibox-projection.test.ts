@@ -51,16 +51,16 @@ describe("projectCommands", () => {
     expect(rows.length).toBe(allCommands.length)
   })
 
-  it("every projected row is in the cmd: namespace", () => {
+  it("every projected row carries kind='command'", () => {
     const rows = projectCommands(allCommands)
     for (const row of rows) {
-      expect(row.id.startsWith("cmd:")).toBe(true)
+      expect(row.kind).toBe("command")
     }
   })
 
   it("the new `default` command is present in allCommands", () => {
     const rows = projectCommands(allCommands)
-    expect(rows.some((r) => r.id === "cmd:default")).toBe(true)
+    expect(rows.some((r) => r.id === "default" && r.kind === "command")).toBe(true)
   })
 })
 
@@ -188,13 +188,13 @@ describe("commandResultsForOmnibox", () => {
     const rows = commandResultsForOmnibox(allCommands, testCtx(), "", "normal")
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      expect(row.id.startsWith("cmd:")).toBe(true)
+      expect(row.kind).toBe("command")
     }
   })
 
   it("filters by query fuzzy match", () => {
     const rows = commandResultsForOmnibox(allCommands, testCtx(), "goto", "normal")
     expect(rows.length).toBeGreaterThan(0)
-    expect(rows[0]?.id).toBe("cmd:goto") // exact match top
+    expect(rows[0]?.id).toBe("goto") // exact match top
   })
 })

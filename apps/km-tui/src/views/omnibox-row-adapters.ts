@@ -1,9 +1,11 @@
 /**
  * OmniboxRow adapters — convert domain objects into OmniboxRowData.
  *
- * The omnibox renders commands, nodes, favorites, and search results
- * through one unified row component (OmniboxRow). This module owns the
- * per-type conversions so the row component stays type-agnostic.
+ * The omnibox renders commands, nodes, and search results through one
+ * unified row component (OmniboxRow). This module owns the per-type
+ * conversions so the row component stays type-agnostic. Rows carry a
+ * `kind` discriminator and a raw domain id (no "cmd:"/"node:" prefix
+ * encoding — consumers branch on `kind`).
  */
 import type { KNode } from "@km/core"
 import type { CommandDef } from "@km/commands"
@@ -26,7 +28,8 @@ export function commandToRow(
   } = {},
 ): OmniboxRowData {
   return {
-    id: `cmd:${cmd.id}`,
+    id: cmd.id,
+    kind: "command",
     icon: "",
     iconColor: "$primary",
     title: cmd.name,
@@ -62,7 +65,8 @@ export function nodeToRow(
   // scoreNodeForOmnibox (see omnibox-projection.ts).
   const title = node.content || node.title || node.name || node.id
   return {
-    id: `node:${node.id}`,
+    id: node.id,
+    kind: "node",
     icon: iconInfo.char,
     iconColor: iconInfo.color,
     title,
@@ -71,17 +75,4 @@ export function nodeToRow(
     isSelected: opts.isSelected,
     disabled: opts.disabled,
   }
-}
-
-/**
- * Convert a favorite entry (key + node) into a row descriptor.
- * Hint is the single-letter key that jumps to it.
- */
-export function favoriteToRow(
-  key: string,
-  node: KNode,
-  opts: { parentContext?: string | null; isSelected?: boolean } = {},
-): OmniboxRowData {
-  const base = nodeToRow(node, { parentContext: opts.parentContext, isSelected: opts.isSelected })
-  return { ...base, id: `fav:${key}`, hint: key.toUpperCase() }
 }

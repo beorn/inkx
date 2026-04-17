@@ -191,10 +191,11 @@ function CursorAwareNewItemDialog({
  *   dialog.cancel, dialog.nav_up, dialog.nav_down) through `dialogTargetRef`.
  * - Project `selectedIndex` → `pane.state.selectedArgumentId` so Enter picks
  *   the highlighted row.
- * - On confirm: resolve the effective command, strip "cmd:"/"node:" namespace
- *   from the selected ID, and dispatch via `dispatchCommandById` with the
- *   frozen subject snapshot so binary verbs operate on the anchor pane's
- *   cursor, not the omnibox's target pick.
+ * - On confirm: resolve the effective command, branch on the row's `kind`
+ *   (command rows self-dispatch; node rows become the targetId for the
+ *   effective default command), then dispatch via `dispatchCommandById`
+ *   with the frozen subject snapshot so binary verbs operate on the anchor
+ *   pane's cursor, not the omnibox's target pick.
  *
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
@@ -256,14 +257,11 @@ function UnifiedOmniboxConnector({
       // node search. local_find returns empty here — Phase 9 owns that surface.
       rows = nodeResultsForOmnibox(repo, buffer, mode)
     }
-    // Decorate command rows with their keybinding hint. The row's id is
-    // "cmd:<commandId>" — strip the namespace to look up the binding. Node
-    // rows fall through unchanged (their hint remains whatever the adapter
-    // set, typically nothing).
+    // Decorate command rows with their keybinding hint. Node rows fall through
+    // unchanged (their hint remains whatever the adapter set, typically nothing).
     return rows.map((row) => {
-      if (!row.id.startsWith("cmd:")) return row
-      const cmdId = row.id.slice("cmd:".length)
-      const kb = keybindingMap.get(cmdId)
+      if (row.kind !== "command") return row
+      const kb = keybindingMap.get(row.id)
       return kb ? { ...row, hint: kb } : { ...row, hint: undefined }
     })
   }, [pane.state.buffer, repo, storeRef, keybindingMap])
@@ -275,8 +273,9 @@ function UnifiedOmniboxConnector({
     }
   }, [results.length, selectedIndex])
 
-  // Project selectedIndex → pane.state.selectedArgumentId (ID, not object).
-  // OmniboxRowData.id already carries the "cmd:" or "node:" namespace.
+  // Project selectedIndex → pane.state.selectedArgumentId (raw id, no prefix).
+  // Consumers that need to know whether the argument is a command or node
+  // branch on `row.kind` at the point of use (see runSelection below).
   React.useEffect(() => {
     const selected = results[selectedIndex]
     const nextId = selected?.id ?? null
@@ -313,20 +312,24 @@ function UnifiedOmniboxConnector({
       const items = resultsRef.current
       const idx = explicitIndex ?? selectedIndexRef.current
       const row = items[idx]
-      const argumentId = row?.id ?? p.state.selectedArgumentId
       const effectiveCmdId = p.state.buffer.startsWith("/") ? "local_find" : p.state.defaultCommand
       const subject = p.spec.subjectSelection
 
-      // Strip the namespace prefix — the executor consumes raw IDs.
+      // Dispatch by row kind — commands run themselves, nodes become the
+      // targetId for the effective default command. When no row is selected
+      // (empty results), fall back to the bare default command.
       let commandToRun = effectiveCmdId
       let targetId: string | undefined
-      if (argumentId?.startsWith("cmd:")) {
-        commandToRun = argumentId.slice("cmd:".length)
-        targetId = undefined
-      } else if (argumentId?.startsWith("node:")) {
-        targetId = argumentId.slice("node:".length)
-      } else if (argumentId != null) {
-        targetId = argumentId
+      if (row) {
+        if (row.kind === "command") {
+          commandToRun = row.id
+        } else {
+          targetId = row.id
+        }
+      } else if (p.state.selectedArgumentId != null) {
+        // Programmatic dispatch path (dialog.confirm without a current row):
+        // treat the pre-seeded selectedArgumentId as a node target.
+        targetId = p.state.selectedArgumentId
       }
 
       // km-tui.itempicker-unify: for subject-action commands, the target
@@ -336,12 +339,10 @@ function UnifiedOmniboxConnector({
       // not the tag token, so deriving the target from the buffer keeps
       // `#important` as `#important` instead of expanding to the matching
       // node's full title.
-      if (
-        commandToRun === "omnibox.append_tag_to_subject" ||
-        commandToRun === "omnibox.set_assignee_on_subject"
-      ) {
+      if (commandToRun === "omnibox.append_tag_to_subject" || commandToRun === "omnibox.set_assignee_on_subject") {
         const bufferText = p.state.buffer
-        const rawFromBuffer = bufferText.startsWith("#") || bufferText.startsWith("@") ? bufferText.slice(1) : bufferText
+        const rawFromBuffer =
+          bufferText.startsWith("#") || bufferText.startsWith("@") ? bufferText.slice(1) : bufferText
         targetId = rawFromBuffer.trim() || undefined
       }
 
