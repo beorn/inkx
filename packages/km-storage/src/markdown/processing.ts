@@ -21,8 +21,9 @@
 
 import { createLogger } from "loggily"
 import type { Change, KNode } from "@km/core"
-import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
+import { parseMarkdownWithLinks, normalizeLinkHref, type ParseResult } from "@km/markdown"
 import { hashContent } from "../fs/cas.ts"
+import type { KLink } from "../db/links.ts"
 import type { LinkResolver } from "./link-resolver.ts"
 
 const log = createLogger("km:storage:markdown-data")
@@ -55,6 +56,11 @@ export interface ProcessedMarkdown {
 /**
  * A wikilink reference extracted from markdown.
  * This is a pure data type - no resolution, just the extracted info.
+ *
+ * `href` is the canonical parsed locator produced by normalizeLinkHref()
+ * in @km/markdown. It is always present under the Phase 2+ parser contract
+ * (see docs/design/links.md). Storage consumers should prefer it over the
+ * raw `link.target` for name-index lookups and link-row inserts.
  */
 export interface WikilinkRef {
   /** Node ID where this link appears */
@@ -67,6 +73,8 @@ export interface WikilinkRef {
     alias?: string
     embedded?: boolean
   }
+  /** Canonical href — always set by @km/markdown ≥ Phase 2. */
+  href: string
   /** Relationship type (from frontmatter) */
   relationship?: string
 }
@@ -125,51 +133,59 @@ export function toPendingLinks(processed: ProcessedMarkdown): Array<{
 }
 
 /**
- * Resolved link ready for database insertion.
+ * A resolved link row for insertion + an optional embed-of target id.
+ *
+ * Under the v4 links schema the row itself is just (host_id, href, rel).
+ * We keep a sibling `embedTargetId` so callers can update the host node's
+ * `embed_of` column after the link row is inserted — `embed_of` is still
+ * materialized on `nodes` (see docs/design/links.md "Embed nodes"). The
+ * embed-target id is resolved via LinkResolver at write time and is not
+ * persisted in the links table.
  */
-export interface ResolvedLink {
-  source_id: string
-  target_name: string
-  target_id: string | null
-  section: string | null
-  block_id: string | null
+export interface ResolvedLink extends KLink {
+  /** For rel='embed' rows: the resolved target node id, or null if the
+   *  target couldn't be resolved at write time. Null for rel='link' rows. */
+  embedTargetId: string | null
+  /** Alias override, kept so the caller can update nodes.name when
+   *  materializing an embed child. Not persisted in the links table. */
   alias: string | null
-  embedded: boolean
-  relationship: string | null
 }
 
 /**
- * Resolve a single wikilink reference using a LinkResolver.
+ * Resolve a single wikilink reference into a KLink row plus the
+ * auxiliary embed-target info needed for `nodes.embed_of` materialization.
+ *
+ * Href normalization already happened in the parser (@km/markdown), so the
+ * row's href comes straight from `ref.href`. For sigil-prefixed names or
+ * legacy callers that haven't been through Phase 2, we re-normalize here
+ * as a safety net — normalizeLinkHref is idempotent.
  */
 export function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): ResolvedLink {
-  const { nodeId, link, relationship } = ref
+  const { nodeId, link } = ref
 
-  let targetId: string | null = null
+  const embedded = link.embedded ?? false
+  const href = ref.href ?? computeFallbackHref(link)
 
-  // Prefer block_id resolution (stable across content edits)
-  if (link.blockId) {
-    targetId = resolver.resolveBlockId(link.blockId)
-  }
+  let embedTargetId: string | null = null
+  if (embedded) {
+    // Prefer block_id resolution (stable across content edits).
+    if (link.blockId) embedTargetId = resolver.resolveBlockId(link.blockId)
 
-  if (!targetId) {
-    targetId = resolver.resolveTarget(link.target)
-    if (targetId && link.section) {
-      const sectionId = resolver.resolveSection(targetId, link.section)
-      if (sectionId) {
-        targetId = sectionId
+    if (!embedTargetId) {
+      embedTargetId = resolver.resolveTarget(link.target)
+      if (embedTargetId && link.section) {
+        const sectionId = resolver.resolveSection(embedTargetId, link.section)
+        if (sectionId) embedTargetId = sectionId
       }
     }
   }
 
   return {
-    source_id: nodeId,
-    target_name: link.target,
-    target_id: targetId,
-    section: link.section ?? null,
-    block_id: link.blockId ?? null,
+    host_id: nodeId,
+    href,
+    rel: embedded ? "embed" : "link",
+    embedTargetId,
     alias: link.alias ?? null,
-    embedded: link.embedded ?? false,
-    relationship: relationship ?? null,
   }
 }
 
@@ -179,6 +195,18 @@ export function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): Resol
  */
 export function toResolvedLinks(processed: ProcessedMarkdown, resolver: LinkResolver): ResolvedLink[] {
   return processed.wikilinks.map((ref) => resolveWikilink(ref, resolver))
+}
+
+/**
+ * Safety net for callers (or tests) that haven't been rerouted through
+ * Phase 2's parser-computed href. Mirrors the wiki-form normalization in
+ * km-markdown's ast2nodes.ts.
+ */
+function computeFallbackHref(link: WikilinkRef["link"]): string {
+  let label = link.target
+  if (link.blockId) label += `^${link.blockId}`
+  else if (link.section) label += `#${link.section}`
+  return normalizeLinkHref("wiki", label)
 }
 
 /**

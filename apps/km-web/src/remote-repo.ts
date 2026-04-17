@@ -28,9 +28,9 @@ export interface RepoLike {
   search(query: string): KNode[]
   resolveNode(query: string): KNode | null
   resolveByName(name: string): KNode | null
-  getBacklinks(nodeId: string): { source_id: string; target_id: string }[]
+  getBacklinks(nodeId: string): { host_id: string; href: string; rel: "link" | "embed" }[]
   getLinksTo(targetId: string): KNode[]
-  getOutgoingLinks(sourceId: string): { source_id: string; target_id: string }[]
+  getOutgoingLinks(sourceId: string): { host_id: string; href: string; rel: "link" | "embed" }[]
   getRenameImpact(nodeId: string): { backlinks: unknown[]; childCount: number; ruleRefs: number; propRefs: number }
   updateNode(id: string, changes: Partial<KNode>): void
   moveNode(id: string, newParentId: string, position: number): void

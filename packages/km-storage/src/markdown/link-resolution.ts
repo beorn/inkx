@@ -16,6 +16,7 @@ declare function setImmediate(callback: (value?: unknown) => void): unknown
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
+import { normalizeLinkHref } from "@km/markdown"
 import { createLinkResolver } from "./link-resolver.ts"
 import type { StepYield, PendingLink, LoadError } from "../repo/loader.ts"
 
@@ -25,21 +26,16 @@ const log = createLogger("km:storage:link-resolution")
 // TYPES
 // ============================================================================
 
-/** Resolved link data for database insertion */
+/** Resolved link data for database insertion (canonical 3-column schema). */
 export interface LinkData {
-  source_id: string
-  target_name: string
-  target_id: string | null
-  section: string | null
-  block_id: string | null
-  alias: string | null
-  embedded: boolean
-  relationship: string | null
+  host_id: string
+  href: string
+  rel: "link" | "embed"
 }
 
-/** Embedded link update for batch UPDATE */
+/** Embedded link update for batch UPDATE of nodes.embed_of. */
 export interface EmbeddedUpdate {
-  source_id: string
+  host_id: string
   target_id: string
   alias: string | null
 }
@@ -49,6 +45,21 @@ interface LinkResolutionResult {
   linksToInsert: LinkData[]
   embeddedUpdates: EmbeddedUpdate[]
   resolvedCount: number
+}
+
+/**
+ * Compute the canonical href for a PendingLink. Prefers any href already
+ * attached (by the Phase 2 parser or upstream) and falls back to
+ * normalizeLinkHref("wiki", …) otherwise, so old call sites don't break.
+ */
+function pendingLinkHref(pending: PendingLink): string {
+  const preset = (pending as { href?: string }).href
+  if (typeof preset === "string" && preset.length > 0) return preset
+  const { link } = pending
+  let label = link.target
+  if (link.blockId) label += `^${link.blockId}`
+  else if (link.section) label += `#${link.section}`
+  return normalizeLinkHref("wiki", label)
 }
 
 // ============================================================================
@@ -67,38 +78,21 @@ function applyResolvedLinks(db: Database, result: LinkResolutionResult): void {
 
   if (linksToInsert.length === 0) return
 
-  const now = Date.now()
-
   db.run("BEGIN IMMEDIATE")
   try {
-    const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO links
-      (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
+    const insertStmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
     for (const link of linksToInsert) {
-      insertStmt.run(
-        link.source_id,
-        link.target_name,
-        link.target_id,
-        link.section,
-        link.block_id,
-        link.alias,
-        link.embedded ? 1 : 0,
-        link.relationship,
-        now,
-      )
+      insertStmt.run(link.host_id, link.href, link.rel)
     }
 
-    // Batch UPDATE for embedded links — set embed_of on the source node.
-    // Node type stays as-is (p, h, etc.) — embed_of is orthogonal to type.
+    // Batch UPDATE for embedded links — set embed_of on the host node.
+    // `embed_of` is still materialized on `nodes`; it's resolved at write
+    // time from the embed row's href. Node type stays as-is.
     if (embeddedUpdates.length > 0) {
-      const updateStmt = db.prepare(`
-        UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?
-      `)
+      const now = Date.now()
+      const updateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.source_id)
+        updateStmt.run(update.target_id, update.alias, now, update.host_id)
       }
     }
 
@@ -141,44 +135,29 @@ export function* resolveLinksGen(
     const embeddedUpdates: EmbeddedUpdate[] = []
     let resolved = 0
 
-    for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
-      let targetId: string | null = null
+    for (const [i, pending] of pendingLinks.entries()) {
+      const { nodeId, link } = pending
+      const embedded = link.embedded ?? false
+      const href = pendingLinkHref(pending)
 
-      // Prefer block_id resolution (stable across content edits)
-      if (link.blockId) {
-        targetId = resolver.resolveBlockId(link.blockId)
-      }
+      linksToInsert.push({ host_id: nodeId, href, rel: embedded ? "embed" : "link" })
 
-      if (!targetId) {
-        targetId = resolver.resolveTarget(link.target)
-        if (targetId && link.section) {
-          const sectionId = resolver.resolveSection(targetId, link.section)
-          if (sectionId) {
-            targetId = sectionId
+      // For embeds, resolve the target id so nodes.embed_of gets populated.
+      if (embedded) {
+        let targetId: string | null = null
+        if (link.blockId) targetId = resolver.resolveBlockId(link.blockId)
+        if (!targetId) {
+          targetId = resolver.resolveTarget(link.target)
+          if (targetId && link.section) {
+            const sectionId = resolver.resolveSection(targetId, link.section)
+            if (sectionId) targetId = sectionId
           }
         }
-      }
-
-      linksToInsert.push({
-        source_id: nodeId,
-        target_name: link.target,
-        target_id: targetId,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
-
-      if (link.embedded && targetId) {
-        embeddedUpdates.push({
-          source_id: nodeId,
-          target_id: targetId,
-          alias: link.alias ?? null,
-        })
-      }
-
-      if (targetId) {
+        if (targetId) {
+          embeddedUpdates.push({ host_id: nodeId, target_id: targetId, alias: link.alias ?? null })
+          resolved++
+        }
+      } else if (resolver.resolveTarget(link.target)) {
         resolved++
       }
 
@@ -236,44 +215,28 @@ export async function resolveLinksAsync(
   const BATCH_SIZE = 50
 
   // Phase 1: Build link data, yielding periodically
-  for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
-    let targetId: string | null = null
+  for (const [i, pending] of pendingLinks.entries()) {
+    const { nodeId, link } = pending
+    const embedded = link.embedded ?? false
+    const href = pendingLinkHref(pending)
 
-    // Prefer block_id resolution (stable across content edits)
-    if (link.blockId) {
-      targetId = resolver.resolveBlockId(link.blockId)
-    }
+    linksToInsert.push({ host_id: nodeId, href, rel: embedded ? "embed" : "link" })
 
-    if (!targetId) {
-      targetId = resolver.resolveTarget(link.target)
-      if (targetId && link.section) {
-        const sectionId = resolver.resolveSection(targetId, link.section)
-        if (sectionId) {
-          targetId = sectionId
+    if (embedded) {
+      let targetId: string | null = null
+      if (link.blockId) targetId = resolver.resolveBlockId(link.blockId)
+      if (!targetId) {
+        targetId = resolver.resolveTarget(link.target)
+        if (targetId && link.section) {
+          const sectionId = resolver.resolveSection(targetId, link.section)
+          if (sectionId) targetId = sectionId
         }
       }
-    }
-
-    linksToInsert.push({
-      source_id: nodeId,
-      target_name: link.target,
-      target_id: targetId,
-      section: link.section ?? null,
-      block_id: link.blockId ?? null,
-      alias: link.alias ?? null,
-      embedded: link.embedded ?? false,
-      relationship: relationship ?? null,
-    })
-
-    if (link.embedded && targetId) {
-      embeddedUpdates.push({
-        source_id: nodeId,
-        target_id: targetId,
-        alias: link.alias ?? null,
-      })
-    }
-
-    if (targetId) {
+      if (targetId) {
+        embeddedUpdates.push({ host_id: nodeId, target_id: targetId, alias: link.alias ?? null })
+        resolved++
+      }
+    } else if (resolver.resolveTarget(link.target)) {
       resolved++
     }
 

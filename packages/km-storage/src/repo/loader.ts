@@ -129,6 +129,9 @@ export interface PendingLink {
     alias?: string
     embedded?: boolean
   }
+  /** Canonical href (set by the parser in Phase 2+). May be absent on
+   *  legacy callers; link-resolution falls back to normalizeLinkHref. */
+  href?: string
   relationship?: string
 }
 

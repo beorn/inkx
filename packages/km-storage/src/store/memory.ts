@@ -40,6 +40,7 @@ export class MemoryStore extends BaseStore {
       alias?: string
       embedded?: boolean
     }
+    href: string
     relationship?: string
   }> = []
   private initialized = false
@@ -302,42 +303,39 @@ export class MemoryStore extends BaseStore {
     const total = this.pendingWikilinks.length
     let current = 0
 
-    for (const { nodeId, link, relationship } of this.pendingWikilinks) {
-      let targetNode: { id: string } | null = null
+    for (const { nodeId, link, href } of this.pendingWikilinks) {
+      const embedded = link.embedded ?? false
 
-      // Prefer block_id resolution (stable across content edits)
-      if (link.blockId) {
-        const row = this.db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1").get(link.blockId) as {
-          id: string
-        } | null
-        if (row) targetNode = row
-      }
-
-      if (!targetNode) {
-        // Try to find target file by name
-        targetNode = findFileByName(this.db, link.target)
-        // If there's a section reference, try to find the specific child node
-        if (targetNode && link.section) {
-          const childNode = findChildByContent(this.db, targetNode.id, link.section)
-          if (childNode) {
-            targetNode = childNode
-          }
+      // Runtime resolution for embeds — only embeds still materialize a
+      // `nodes.embed_of` value under the v4 links schema. Plain links are
+      // resolved on read via the name index.
+      if (embedded) {
+        let targetNode: { id: string } | null = null
+        if (link.blockId) {
+          const row = this.db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1").get(link.blockId) as {
+            id: string
+          } | null
+          if (row) targetNode = row
         }
-        // Fallback: target might be a node ID (e.g., ![[ULID]] from serialized embeds)
         if (!targetNode) {
-          targetNode = getNode(this.db, link.target)
+          targetNode = findFileByName(this.db, link.target)
+          if (targetNode && link.section) {
+            const childNode = findChildByContent(this.db, targetNode.id, link.section)
+            if (childNode) targetNode = childNode
+          }
+          if (!targetNode) targetNode = getNode(this.db, link.target)
+        }
+        if (targetNode) {
+          this.db.run(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`, [
+            targetNode.id,
+            link.alias ?? null,
+            Date.now(),
+            nodeId,
+          ])
         }
       }
-      addLink(this.db, {
-        source_id: nodeId,
-        target_name: link.target,
-        target_id: targetNode?.id ?? null,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
+
+      addLink(this.db, { host_id: nodeId, href, rel: embedded ? "embed" : "link" })
 
       current++
       // Yield progress every 10 links for smoother animation

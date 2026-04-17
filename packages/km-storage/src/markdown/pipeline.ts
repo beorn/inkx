@@ -284,7 +284,7 @@ export async function* applyLinks(
   // Collect all links
   const links: ResolvedLink[] = []
   const embeddedUpdates: Array<{
-    source_id: string
+    host_id: string
     target_id: string
     alias: string | null
   }> = []
@@ -293,11 +293,11 @@ export async function* applyLinks(
     if (signal?.aborted) return
     links.push(link)
 
-    // Track embedded links for node updates
-    if (link.embedded && link.target_id) {
+    // Track embedded links for node updates (embed_of still lives on nodes)
+    if (link.rel === "embed" && link.embedTargetId) {
       embeddedUpdates.push({
-        source_id: link.source_id,
-        target_id: link.target_id,
+        host_id: link.host_id,
+        target_id: link.embedTargetId,
         alias: link.alias,
       })
     }
@@ -307,39 +307,21 @@ export async function* applyLinks(
 
   log.debug?.(`applyLinks: inserting ${links.length} links`)
 
-  const now = Date.now()
-
   // Batch insert in single transaction
   db.run("BEGIN IMMEDIATE")
   try {
-    const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO links
-      (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
+    const insertStmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
     for (const link of links) {
-      insertStmt.run(
-        link.source_id,
-        link.target_name,
-        link.target_id,
-        link.section,
-        link.block_id,
-        link.alias,
-        link.embedded ? 1 : 0,
-        link.relationship,
-        now,
-      )
+      insertStmt.run(link.host_id, link.href, link.rel)
       yield // Progress indication
     }
 
     // Batch UPDATE for embedded links (update source node's embed_of)
     if (embeddedUpdates.length > 0) {
-      const updateStmt = db.prepare(`
-        UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?
-      `)
+      const now = Date.now()
+      const updateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.source_id)
+        updateStmt.run(update.target_id, update.alias, now, update.host_id)
       }
     }
 

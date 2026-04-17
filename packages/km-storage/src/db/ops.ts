@@ -128,9 +128,11 @@ export function deleteSubtree(db: Database, rootId: string): void {
   const ids = descendants.map((d) => d.id)
   const placeholders = ids.map(() => "?").join(",")
 
-  // Clean up links referencing any deleted node
-  db.run(`DELETE FROM links WHERE source_id IN (${placeholders})`, ids)
-  db.run(`DELETE FROM links WHERE target_id IN (${placeholders})`, ids)
+  // Clean up link rows whose host is being deleted. The v4 links schema
+  // has no target column — backlinks pointing at a deleted node are
+  // broken-by-href and reported as such by the runtime resolver, not by a
+  // cascade delete. See docs/design/links.md.
+  db.run(`DELETE FROM links WHERE host_id IN (${placeholders})`, ids)
 
   // Delete all nodes in the subtree
   db.run(`DELETE FROM nodes WHERE id IN (${placeholders})`, ids)

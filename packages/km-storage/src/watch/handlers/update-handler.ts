@@ -186,18 +186,22 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   }
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
   for (const link of resolvedLinks) {
-    const sourceId = idMap.get(link.source_id) ?? link.source_id
-    addLink(db, {
-      ...link,
-      source_id: sourceId,
-    })
+    const hostId = idMap.get(link.host_id) ?? link.host_id
+    addLink(db, { host_id: hostId, href: link.href, rel: link.rel })
 
-    // Emit embed_of update so the in-memory store stays in sync.
-    // addLink sets embed_of on the DB node directly (no changes),
-    // but the TUI reads from the in-memory store which needs the change.
-    if (link.embedded && link.target_id) {
-      emitNodeUpdated(emitter, "fs-watch", sourceId, {
-        embed_of: link.target_id,
+    // For embed rows, mirror embed_of + alias back onto the host node so
+    // the in-memory store stays in sync. The v4 links schema has no
+    // target_id column — embed_of is resolved transiently and materialized
+    // on `nodes` here.
+    if (link.rel === "embed" && link.embedTargetId) {
+      db.run(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`, [
+        link.embedTargetId,
+        link.alias,
+        Date.now(),
+        hostId,
+      ])
+      emitNodeUpdated(emitter, "fs-watch", hostId, {
+        embed_of: link.embedTargetId,
         name: link.alias ?? undefined,
       })
     }

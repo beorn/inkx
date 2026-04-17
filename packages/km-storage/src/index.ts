@@ -65,13 +65,11 @@ export {
   executeQuery,
   queryTasks,
   queryNodes,
-  // Link operations (require Database parameter)
+  // Link operations (canonical 3-column schema — see docs/design/links.md)
   addLink,
   removeLinksFromSource,
   getOutgoingLinks,
-  getBacklinks,
-  getBacklinksByName,
-  resolveLinks,
+  getBacklinksByHref,
   // Mutation operations (factory pattern - use createDbOps())
   createDbOps,
   buildEmbedChild,
@@ -79,7 +77,7 @@ export {
   applyChangeWithDb,
 } from "./db/db.ts"
 
-export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db/db.ts"
+export type { KLink, KLinkRel, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db/db.ts"
 
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()

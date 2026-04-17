@@ -7,9 +7,10 @@
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
 import { KNode, type Change } from "@km/core"
+import { normalizeLinkHref } from "@km/markdown"
 import type { Repo, RepoStats } from "../repo/repo.ts"
 import type { LoadError } from "../repo/loader.ts"
-import type { Link } from "../db/db.ts"
+import type { KLink } from "../db/db.ts"
 import type { StepYield } from "../repo/loader.ts"
 import type { Emitter, ChangeHub } from "../emitter.ts"
 import { ulid } from "ulid"
@@ -25,7 +26,7 @@ export interface FakeRepoOptions {
   nodes?: KNode[]
 
   /** Initial links (for backlinks) */
-  links?: Link[]
+  links?: KLink[]
 
   /** Load errors to report */
   loadErrors?: LoadError[]
@@ -42,7 +43,7 @@ export interface FakeRepo extends Repo {
   getAllNodes(): KNode[]
 
   /** Get all links (for test assertions) */
-  getAllLinks(): Link[]
+  getAllLinks(): KLink[]
 
   /** Reset to initial state */
   reset(): void
@@ -67,6 +68,21 @@ export interface FakeRepo extends Repo {
  * @param options - Configuration with initial data
  * @returns FakeRepo instance
  */
+
+/**
+ * Compute the canonical href a node would be referenced by. Matches the
+ * real Repo's `backlinksForNodeId`: prefers `node.name`, falls back to
+ * `node.fs_path` (stripped of `./` and `.md`).
+ */
+function fakeHrefForNode(node: KNode): string | null {
+  if (node.name) return normalizeLinkHref("wiki", node.name)
+  if (node.fs_path) {
+    const stem = node.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
+    if (stem) return normalizeLinkHref("wiki", stem)
+  }
+  return null
+}
+
 export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const path = options.path ?? "/fake/repo"
   const initialNodes = options.nodes ?? []
@@ -81,7 +97,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
   // Internal state
   let nodes = new Map<string, KNode>()
-  let links: Link[] = []
+  let links: KLink[] = []
   let nextId = 1
   let closed = false
   let mutationVersion = 0
@@ -367,25 +383,34 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getLinksTo(targetId) {
       ensureNotClosed()
-      const linkingIds = links.filter((l) => l.target_id === targetId).map((l) => l.source_id)
+      const target = nodes.get(targetId)
+      if (!target) return []
+      const href = fakeHrefForNode(target)
+      if (!href) return []
+      const linkingIds = links.filter((l) => l.href === href).map((l) => l.host_id)
       return [...nodes.values()].filter((n) => linkingIds.includes(n.id))
     },
 
     getBacklinks(nodeId) {
       ensureNotClosed()
-      return links.filter((l) => l.target_id === nodeId)
+      const target = nodes.get(nodeId)
+      if (!target) return []
+      const href = fakeHrefForNode(target)
+      return href ? links.filter((l) => l.href === href) : []
     },
 
     getRenameImpact(nodeId) {
       ensureNotClosed()
-      const backlinks = links.filter((l) => l.target_id === nodeId)
+      const target = nodes.get(nodeId)
+      const href = target ? fakeHrefForNode(target) : null
+      const backlinks = href ? links.filter((l) => l.href === href) : []
       const children = [...nodes.values()].filter((n) => n.parent_id === nodeId)
       return { backlinks, childCount: children.length, ruleRefs: 0, propRefs: 0 }
     },
 
     getOutgoingLinks(sourceId) {
       ensureNotClosed()
-      return links.filter((l) => l.source_id === sourceId)
+      return links.filter((l) => l.host_id === sourceId)
     },
 
     resolveNode(query, _typeOrOptions) {
@@ -463,9 +488,15 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     deleteNode(id) {
       ensureNotClosed()
+      const deletedHref = (() => {
+        const node = nodes.get(id)
+        return node ? fakeHrefForNode(node) : null
+      })()
       nodes.delete(id)
-      // Remove any links from/to this node
-      links = links.filter((l) => l.source_id !== id && l.target_id !== id)
+      // Remove link rows hosted by this node. Backlinks to this node are
+      // left intact (they'll surface as broken at runtime resolution under
+      // the v4 links schema) unless we can compute the target's href.
+      links = links.filter((l) => l.host_id !== id && (deletedHref == null || l.href !== deletedHref))
       mutationVersion++
       notifyListeners()
     },
@@ -547,17 +578,18 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
       if (!oldName || oldName === newName) return
 
-      const backlinks = links.filter((l) => l.target_id === id)
+      const oldHref = fakeHrefForNode(node)
+      const backlinks = oldHref ? links.filter((l) => l.href === oldHref) : []
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       const pattern = new RegExp(`(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`, "gi")
 
       let updated = 0
       for (const link of backlinks) {
-        const sourceNode = nodes.get(link.source_id)
+        const sourceNode = nodes.get(link.host_id)
         if (!sourceNode?.content) continue
         const updatedContent = sourceNode.content.replace(pattern, `$1${newName}$2$3`)
         if (updatedContent !== sourceNode.content) {
-          this.updateNode(link.source_id, { content: updatedContent })
+          this.updateNode(link.host_id, { content: updatedContent })
         }
         updated++
         onProgress?.({ updated, total: backlinks.length })

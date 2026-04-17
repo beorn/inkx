@@ -26,11 +26,11 @@ import { loadConfigObject } from "../config-object.ts"
 import type { DataStore, HasDatabase } from "../data-store.ts"
 import { createDBDataStore } from "../data-store.ts"
 import {
-  getBacklinks as dbGetBacklinks,
+  getBacklinksByHref as dbGetBacklinksByHref,
   getOutgoingLinks as dbGetOutgoingLinks,
-  updateTargetName as dbUpdateTargetName,
-  type Link,
+  type KLink,
 } from "../db/links.ts"
+import { normalizeLinkHref } from "@km/markdown"
 import {
   resolveNode as dbResolveNode,
   resolveByName as dbResolveByName,
@@ -161,7 +161,7 @@ interface RepoMethodDeps {
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
   const { db, dataStore, childrenCache, rootPath } = deps
-  const backlinksCache = new Map<string, Link[]>()
+  const backlinksCache = new Map<string, KLink[]>()
   return {
     getNode(id: string) {
       return dataStore.getNode(id)
@@ -238,19 +238,19 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getLinksTo(targetId: string) {
       return dbGetLinksTo(db, targetId)
     },
-    getOutgoingLinks(sourceId: string): Link[] {
+    getOutgoingLinks(sourceId: string): KLink[] {
       return dbGetOutgoingLinks(db, sourceId)
     },
-    getBacklinks(nodeId: string): Link[] {
+    getBacklinks(nodeId: string): KLink[] {
       const cached = backlinksCache.get(nodeId)
       if (cached) return cached
-      const result = dbGetBacklinks(db, nodeId)
+      const result = backlinksForNodeId(db, dataStore, nodeId)
       backlinksCache.set(nodeId, result)
       return result
     },
     getRenameImpact(nodeId: string) {
       const node = dataStore.getNode(nodeId)
-      const backlinks = dbGetBacklinks(db, nodeId)
+      const backlinks = backlinksForNodeId(db, dataStore, nodeId)
       const children = dataStore.getChildren(nodeId)
       const oldName = node?.name ?? ""
 
@@ -489,27 +489,37 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
           : node.data
       this.updateNode(id, { content: newContent, name: newName, title: newContent, data: nextData })
 
-      // 2. Update backlinks in source nodes
-      const backlinks = dbGetBacklinks(deps.db, id)
+      // 2. Update backlinks in source nodes by rewriting wiki-form text in
+      //    each host's content. The v4 links schema no longer stores a
+      //    target_id, so we look up hosts whose link rows reference the
+      //    old name's href and patch their markdown. A re-parse on next
+      //    load will then regenerate fresh link rows with the new href.
+      const backlinks = backlinksForNodeId(deps.db, dataStore, id)
       const total = backlinks.length
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       const pattern = new RegExp(`(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`, "gi")
 
       let updated = 0
       for (const link of backlinks) {
-        const sourceNode = dataStore.getNode(link.source_id)
+        const sourceNode = dataStore.getNode(link.host_id)
         if (!sourceNode?.content) continue
 
         const updatedContent = sourceNode.content.replace(pattern, `$1${newName}$2$3`)
         if (updatedContent !== sourceNode.content) {
-          this.updateNode(link.source_id, { content: updatedContent })
+          this.updateNode(link.host_id, { content: updatedContent })
         }
         updated++
         onProgress?.({ updated, total })
       }
 
-      // 3. Update target_name in links table (scoped to this node's links only)
-      dbUpdateTargetName(deps.db, oldName, newName, id)
+      // 3. Rewrite the href column on link rows pointing at the old name,
+      //    so in-memory backlink queries stay correct until the next
+      //    re-parse. Scoped by href (not node id) under the v4 schema.
+      const oldHref = normalizeLinkHref("wiki", oldName)
+      const newHref = normalizeLinkHref("wiki", newName)
+      if (oldHref !== newHref) {
+        deps.db.run(`UPDATE links SET href = ? WHERE href = ?`, [newHref, oldHref])
+      }
 
       // 4. Update path references in rules and blocked-by property targets
       // Pass this (not mutations) so undo proxy intercepts through the proxy chain
@@ -871,13 +881,13 @@ export interface Repo extends Disposable {
   getLinksTo(targetId: string): KNode[]
 
   /** Get outgoing links from a node */
-  getOutgoingLinks(sourceId: string): Link[]
+  getOutgoingLinks(sourceId: string): KLink[]
 
   /** Get backlinks (link records pointing to this node) */
-  getBacklinks(nodeId: string): Link[]
+  getBacklinks(nodeId: string): KLink[]
 
   /** Get rename impact: backlinks, child count, rule references, and property references */
-  getRenameImpact(nodeId: string): { backlinks: Link[]; childCount: number; ruleRefs: number; propRefs: number }
+  getRenameImpact(nodeId: string): { backlinks: KLink[]; childCount: number; ruleRefs: number; propRefs: number }
 
   /** Rename a node and update all backlinks referencing it */
   renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void): void
@@ -1179,6 +1189,39 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
   }
 
   return null
+}
+
+/**
+ * Find backlink rows (host_id, href, rel) that target the given node.
+ *
+ * Under the v4 links schema, link rows identify targets by href rather
+ * than a cached target_id. This helper computes all plausible hrefs for a
+ * node (its primary name, and — when the node is a file — a path-style
+ * hierarchical name) and queries rows matching any of them.
+ */
+function backlinksForNodeId(db: Database, dataStore: DataStore, nodeId: string): KLink[] {
+  const node = dataStore.getNode(nodeId)
+  if (!node) return []
+
+  const hrefs = new Set<string>()
+  if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
+  if (node.fs_path) {
+    // Strip leading "./" and ".md" so `km:Project/Alpha` matches either
+    // notation the author used.
+    const stem = node.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
+    if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
+  }
+  if (hrefs.size === 0) return []
+
+  const placeholders = Array.from(hrefs, () => "?").join(",")
+  const rows = db.query(`SELECT * FROM links WHERE href IN (${placeholders})`).all(...hrefs) as Array<
+    Record<string, unknown>
+  >
+  return rows.map((row) => ({
+    host_id: row.host_id as string,
+    href: row.href as string,
+    rel: row.rel as "link" | "embed",
+  }))
 }
 
 // =============================================================================

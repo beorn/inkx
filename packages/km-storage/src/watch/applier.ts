@@ -16,7 +16,6 @@ import { getFolderIndexConfig } from "../config.ts"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { join } from "path"
 import { createLinkResolver } from "../markdown/link-resolver.ts"
-import { resolveLinksBatch } from "../db/links.ts"
 import type { FileSystemOps } from "./writequeue.ts"
 import { realFs } from "./writequeue.ts"
 import type { ReconcileOp } from "./reconcile.ts"
@@ -266,9 +265,12 @@ function finalizeBatchLinks(
   repoRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
+  // Under the v4 links schema, resolution happens at runtime via the name
+  // index — there are no per-file unresolved target_ids to fix up after a
+  // batch create. The embed_of column is populated inline by the
+  // create/update handlers. So no batch resolve step is needed here.
   if (ctx.newFiles.length > 0) {
-    const resolved = resolveLinksBatch(db, ctx.newFiles)
-    log.debug?.(`batch resolved ${resolved} links for ${ctx.newFiles.length} new files`)
+    log.debug?.(`batch: ${ctx.newFiles.length} new files (resolution is runtime under links v4)`)
   }
 
   // Collect all index files that need post-batch sync (creates + updates)

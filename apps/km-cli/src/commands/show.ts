@@ -9,7 +9,7 @@ import { createTerm } from "@silvery/ag-react"
 import { join } from "path"
 
 const term = createTerm(process)
-import { resolvePathArg, type Repo, type Link } from "@km/storage"
+import { resolvePathArg, type Repo, type KLink } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"
@@ -163,55 +163,37 @@ function getIndent(node: KNode, rootId: string): string {
 }
 
 /**
- * Format an outgoing link
+ * Format an outgoing link (v4 KLink: host_id, href, rel).
+ *
+ * Under the v4 schema, links carry a canonical `href` (km:Note,
+ * km:Note#Section, https://…) and no cached target_id. We display the
+ * href verbatim and mark embeds with an "[embed]" tag.
  */
-function formatLink(link: Link, repo: Repo): string {
+function formatLink(link: KLink, _repo: Repo): string {
   const parts: string[] = []
-
-  // Target name with section/block
-  let target = term.cyan(`[[${link.target_name}]]`)
-  if (link.section) {
-    target = term.cyan(`[[${link.target_name}#${link.section}]]`)
-  }
-  if (link.block_id) {
-    target = term.cyan(`[[${link.target_name}^${link.block_id}]]`)
-  }
-  parts.push(target)
-
-  // Resolution status
-  if (link.target_id) {
-    const targetNode = repo.getNode(link.target_id)
-    if (targetNode) {
-      parts.push(term.dim(`→ ${targetNode.fs_path || link.target_id.slice(-8)}`))
-    }
-  } else {
-    parts.push(term.yellow("(unresolved)"))
-  }
-
-  // Alias
-  if (link.alias) {
-    parts.push(term.dim(`"${link.alias}"`))
-  }
-
+  parts.push(term.cyan(link.href))
+  if (link.rel === "embed") parts.push(term.dim("[embed]"))
   return parts.join(" ")
 }
 
 /**
- * Format a backlink (incoming link)
+ * Format a backlink (incoming link) — v4 KLink.
  */
-function formatBacklink(link: Link, repo: Repo): string {
-  const sourceNode = repo.getNode(link.source_id)
+function formatBacklink(link: KLink, repo: Repo): string {
+  const sourceNode = repo.getNode(link.host_id)
   const parts: string[] = []
 
   if (sourceNode) {
     const sourceName = sourceNode.fs_path
       ? sourceNode.fs_path.split("/").pop()
-      : sourceNode.content?.slice(0, 30) || link.source_id.slice(-8)
+      : sourceNode.content?.slice(0, 30) || link.host_id.slice(-8)
     parts.push(term.green(`← ${sourceName}`))
-    parts.push(term.dim(`(${link.source_id.slice(-8)})`))
+    parts.push(term.dim(`(${link.host_id.slice(-8)})`))
   } else {
-    parts.push(term.dim(`← ${link.source_id.slice(-8)}`))
+    parts.push(term.dim(`← ${link.host_id.slice(-8)}`))
   }
+
+  if (link.rel === "embed") parts.push(term.dim("[embed]"))
 
   return parts.join(" ")
 }

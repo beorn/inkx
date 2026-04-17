@@ -19,15 +19,11 @@
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "../query.ts"
-import { removeLinksFromSourceByRelationship } from "./links.ts"
 import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./queries/index.ts"
 import { createDbOps, buildEmbedChild } from "./ops.ts"
 import { parseQuery, KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
-
-/** Relationship type for km.add:: rule results */
-const ADD_RULE_RELATIONSHIP = "query:add"
 
 // =============================================================================
 // Rule Context - Replaces global state with explicit context passing
@@ -146,8 +142,11 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     }
   }
 
-  // Clear existing add-rule links from this section (for backward compat)
-  removeLinksFromSourceByRelationship(db, sectionId, ADD_RULE_RELATIONSHIP)
+  // km.add:: rule materialization went from link-rows to embed child nodes
+  // (buildEmbedChild + ops.addNode below) in the pre-v4 refactor. The v4
+  // links schema has no `relationship` column to target, so the legacy
+  // "clear add-rule link rows" cleanup is a no-op: stale embed nodes are
+  // removed below via the `sectionChildren` filter.
 
   // Evaluate all queries and union results (deduplicate by node ID)
   const matchingMap = new Map<string, KNode>()
@@ -586,15 +585,16 @@ export function onNodeChanged(
 }
 
 /**
- * Called when a node is deleted to clean up any links pointing to it.
+ * Called when a node is deleted to clean up any rule-materialized state.
+ *
+ * In the v4 links schema, add-rule results are represented as embed child
+ * nodes (not link rows with a relationship column), and broken backlinks
+ * surface through the runtime resolver rather than a persisted target_id.
+ * So there's nothing to clean up here beyond what ops.deleteSubtree
+ * already does (it drops links rows where host_id is in the deleted
+ * subtree). Kept as a no-op hook for symmetry with onNodeChanged.
  */
 export function onNodeDeleted(db: Database, deletedNodeId: string): void {
-  log.debug?.(`onNodeDeleted: ${deletedNodeId}`)
-
-  // Remove any computed links that point TO this node
-  db.run("DELETE FROM links WHERE target_id = ? AND relationship = ?", [deletedNodeId, ADD_RULE_RELATIONSHIP])
-
-  // If this node had rules, its outgoing links are already deleted
-  // by the node deletion cascade (if FK is set) or we need to clean up
-  removeLinksFromSourceByRelationship(db, deletedNodeId, ADD_RULE_RELATIONSHIP)
+  log.debug?.(`onNodeDeleted: ${deletedNodeId} (no-op under links v4 schema)`)
+  void db
 }

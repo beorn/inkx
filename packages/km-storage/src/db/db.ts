@@ -50,17 +50,11 @@ export { executeQuery, queryTasks, queryNodes } from "../query.ts"
 
 export type { QueryAST } from "../query.ts"
 
-// Re-export db-accepting link operations
-export {
-  addLink,
-  removeLinksFromSource,
-  getOutgoingLinks,
-  getBacklinks,
-  getBacklinksByName,
-  resolveLinks,
-} from "./links.ts"
+// Re-export db-accepting link operations (canonical 3-column schema —
+// see docs/design/links.md).
+export { addLink, removeLinksFromSource, getOutgoingLinks, getBacklinksByHref } from "./links.ts"
 
-export type { Link } from "./links.ts"
+export type { KLink, KLinkRel } from "./links.ts"
 
 // Re-export db-accepting mutation operations
 export { createDbOps, type DbOps, buildEmbedChild, type EmbedChildOpts } from "./ops.ts"

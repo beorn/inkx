@@ -6,64 +6,89 @@
  * to this module so the two commands stay in sync.
  *
  * Scoping: pass `scope` to restrict results to links whose source is
- * the scope node or a descendant. Matches the path-like query semantics
- * of `km list` (e.g. `km list --broken @next.md` scopes to the
- * @next.md subtree).
+ * the scope node or a descendant.
+ *
+ * Under the v4 links schema (see docs/design/links.md), a link row is
+ * (host_id, href, rel). Resolution is runtime: a link is "broken" when
+ * its href is a `km:` reference whose name doesn't resolve in the name
+ * index built from node names and paths.
  */
 
 import type { Database } from "bun:sqlite"
 import type { createTerm } from "@silvery/ag-react"
 
 export interface BrokenLink {
-  source_id: string
-  source_path: string | null
-  target_name: string
-  section: string | null
-  embedded: boolean
+  host_id: string
+  host_path: string | null
+  href: string
+  rel: "link" | "embed"
+}
+
+interface LinkRow {
+  host_id: string
+  host_path: string | null
+  href: string
+  rel: "link" | "embed"
 }
 
 /**
- * Query all broken wikilinks in the repo. A link is "broken" when its
- * target_id is null — i.e. the wikilink was parsed but the parser couldn't
- * resolve it to a known node. Results are sorted by source path + target
- * for stable grouped output.
+ * Query all broken wikilinks in the repo.
+ *
+ * A link is broken when its href looks up as an internal name (scheme
+ * `km:`), has no fragment, and no node name or fs_path matches. External
+ * schemes (https://, mailto:) and self-refs (#section) are never broken.
+ *
+ * Results are sorted by source path + href for stable grouped output.
  */
 export function getBrokenLinks(db: Database): BrokenLink[] {
-  return db
+  const rows = db
     .query(
       `
-    SELECT l.source_id, n.fs_path as source_path, l.target_name, l.section, l.embedded
+    SELECT l.host_id, n.fs_path as host_path, l.href, l.rel
     FROM links l
-    LEFT JOIN nodes n ON n.id = l.source_id
-    WHERE l.target_id IS NULL
-    ORDER BY n.fs_path, l.target_name
+    LEFT JOIN nodes n ON n.id = l.host_id
+    WHERE l.href LIKE 'km:%'
+    ORDER BY n.fs_path, l.href
   `,
     )
-    .all() as BrokenLink[]
+    .all() as LinkRow[]
+
+  // Build a name index of known targets. Keys are lowercased for the
+  // case-insensitive lookup documented in docs/design/links.md.
+  const known = new Set<string>()
+  const nodeRows = db.query("SELECT name, fs_path FROM nodes").all() as Array<{
+    name: string | null
+    fs_path: string | null
+  }>
+  for (const n of nodeRows) {
+    if (n.name) known.add(n.name.toLowerCase())
+    if (n.fs_path) {
+      const stem = n.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
+      if (stem) known.add(stem.toLowerCase())
+    }
+  }
+
+  return rows.filter((row) => {
+    const name = extractKmName(row.href)
+    if (!name) return false
+    return !known.has(name.toLowerCase())
+  })
 }
 
 export function getBrokenLinkCount(db: Database): number {
-  const row = db.prepare("SELECT COUNT(*) as count FROM links WHERE target_id IS NULL").get() as { count: number }
-  return row.count
+  return getBrokenLinks(db).length
 }
 
 /**
- * Filter broken links to those whose source is within a scope subtree.
- *
- * `scopeNodeIds` is the set of node IDs that count as "inside scope".
- * The caller computes this from a query/path argument (e.g. by walking
- * descendants of the matched node). Passing undefined / empty returns
- * the original array unchanged.
+ * Filter broken links to those whose host is within a scope subtree.
  */
 export function filterBrokenLinksByScope(links: BrokenLink[], scopeNodeIds: Set<string> | undefined): BrokenLink[] {
   if (!scopeNodeIds || scopeNodeIds.size === 0) return links
-  return links.filter((l) => scopeNodeIds.has(l.source_id))
+  return links.filter((l) => scopeNodeIds.has(l.host_id))
 }
 
 /**
- * Print broken links to stdout, grouped by source file. Matches the
- * original `km doctor links` output so both command entry points produce
- * identical results.
+ * Print broken links to stdout, grouped by host file.
  */
 export function printBrokenLinks(
   links: BrokenLink[],
@@ -83,7 +108,7 @@ export function printBrokenLinks(
   // Group by source file for readability
   const bySource = new Map<string, BrokenLink[]>()
   for (const link of links) {
-    const key = link.source_path ?? link.source_id
+    const key = link.host_path ?? link.host_id
     const existing = bySource.get(key)
     if (existing) existing.push(link)
     else bySource.set(key, [link])
@@ -92,9 +117,25 @@ export function printBrokenLinks(
   for (const [source, sourceLinks] of bySource) {
     console.log(`  ${source}`)
     for (const link of sourceLinks) {
-      const section = link.section ? `#${link.section}` : ""
-      const type = link.embedded ? "embed" : "link"
-      console.log(term.dim(`    -> [[${link.target_name}${section}]]`), term.dim(`(${type})`))
+      console.log(term.dim(`    -> ${link.href}`), term.dim(`(${link.rel})`))
     }
+  }
+}
+
+/**
+ * Extract the internal name from a `km:name[#fragment]` href. Returns
+ * null for external URIs, self-refs, or malformed input.
+ */
+function extractKmName(href: string): string | null {
+  if (!href.startsWith("km:")) return null
+  const rest = href.slice(3)
+  const hashAt = rest.indexOf("#")
+  const path = hashAt === -1 ? rest : rest.slice(0, hashAt)
+  if (!path) return null
+  // Decode percent-encoded reserved chars (`%23` → `#`, `%3F` → `?`, `%25` → `%`).
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
   }
 }

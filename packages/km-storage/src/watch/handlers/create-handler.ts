@@ -212,14 +212,22 @@ function handleMarkdownCreate(
   }
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
   for (const link of resolvedLinks) {
-    addLink(db, link)
+    addLink(db, { host_id: link.host_id, href: link.href, rel: link.rel })
 
-    // Emit embed_of update so the in-memory store stays in sync.
-    // addLink sets embed_of on the DB node directly (no events),
-    // but the node was already emitted via emitNodeCreated with embed_of: null.
-    if (link.embedded && link.target_id) {
-      emitNodeUpdated(emitter, "fs-watch", link.source_id, {
-        embed_of: link.target_id,
+    // For embed rows, mirror embed_of onto the host node so the in-memory
+    // store stays in sync. The links table itself no longer carries
+    // target_id — we resolved it transiently via the LinkResolver.
+    if (link.rel === "embed" && link.embedTargetId) {
+      // Persist embed_of + alias on the node row directly (links.addLink
+      // no longer does this — the v4 schema has no target_id column).
+      db.run(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`, [
+        link.embedTargetId,
+        link.alias,
+        Date.now(),
+        link.host_id,
+      ])
+      emitNodeUpdated(emitter, "fs-watch", link.host_id, {
+        embed_of: link.embedTargetId,
         name: link.alias,
       })
     }

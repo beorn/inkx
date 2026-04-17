@@ -34,7 +34,7 @@ import { getNode, getNodeByPath } from "../db/queries/core-lookup.ts"
 import { getChildren, getChildCountsBatch, getAncestors } from "../db/queries/tree-traversal.ts"
 import { getAllNodes } from "../db/queries/utils.ts"
 import { getLinksTo } from "../db/queries/task-queries.ts"
-import { getBacklinks, type Link } from "../db/links.ts"
+import { getBacklinksByHref, type KLink } from "../db/links.ts"
 import type { DataStore, HasDatabase } from "../data-store.ts"
 import { createTestEnvRepo } from "../repo/repo.ts"
 
@@ -89,7 +89,7 @@ interface TestRepo {
   getAllNodes: () => KNode[]
   getChildren: (parentId: string | null) => KNode[]
   getChildCountsBatch: (parentIds: string[]) => Map<string, number>
-  getBacklinks: (nodeId: string) => Link[]
+  getBacklinks: (hrefOrNodeId: string) => KLink[]
   getAncestors: (nodeId: string) => KNode[]
   getLinksTo: (targetId: string) => KNode[]
   moveNode: (id: string, newParentId: string, position: number) => void
@@ -220,7 +220,14 @@ function setupTestEnv(options?: { mode?: TestMode }): TestEnv {
     getAllNodes: () => getAllNodes(db),
     getChildren: (parentId) => getChildren(db, parentId),
     getChildCountsBatch: (parentIds) => getChildCountsBatch(db, parentIds),
-    getBacklinks: (nodeId) => getBacklinks(db, nodeId),
+    // Tests pass a node id here for legacy reasons; under v4 backlinks are
+    // keyed by href so we interpret the arg as a name, encode it as a
+    // wiki-form href, and query. Callers that want true href lookups
+    // should use rawQuery directly against the links table.
+    getBacklinks: (hrefOrNodeId) => {
+      const href = hrefOrNodeId.startsWith("km:") || hrefOrNodeId.startsWith("#") ? hrefOrNodeId : `km:${hrefOrNodeId}`
+      return getBacklinksByHref(db, href)
+    },
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
     moveNode: (id, newParentId, position) => data.moveNode(id, newParentId, position),

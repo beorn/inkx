@@ -192,21 +192,13 @@ async function parseDeferredWithPool(
 
   const result = await runDeferredPipeline(db, deferredFiles, pool, { onProgress })
 
-  const pendingLinks: PendingLink[] = result.pendingLinks.map((link) => ({
-    nodeId: link.source_id,
-    link: {
-      target: link.target_name,
-      section: link.section ?? undefined,
-      blockId: link.block_id ?? undefined,
-      alias: link.alias ?? undefined,
-      embedded: link.embedded,
-    },
-    relationship: link.relationship ?? undefined,
-  }))
+  // Links have already been written to the DB by runDeferredPipeline's
+  // applyLinks stage. The v4 schema carries only (host_id, href, rel), so
+  // there's nothing to re-derive into PendingLink shape here — return an
+  // empty list and let callers rely on the persisted rows.
+  log.debug?.(`parseDeferredWithPool: completed, ${result.parsed} parsed, ${result.pendingLinks.length} links applied`)
 
-  log.debug?.(`parseDeferredWithPool: completed, ${result.parsed} parsed, ${pendingLinks.length} links`)
-
-  return { parsed: result.parsed, pendingLinks }
+  return { parsed: result.parsed, pendingLinks: [] }
 }
 
 /**

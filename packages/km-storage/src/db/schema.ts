@@ -23,8 +23,15 @@
  *       mistake. `~` replaces it as a legitimate identity sigil. Same
  *       drop-and-rebuild path as v2 — the tokenizer change is irreversible
  *       on an existing virtual table.
+ *   4 — links: flipped from the 9-column legacy schema (source_id,
+ *       target_name, target_id, section, block_id, alias, embedded,
+ *       relationship, created_at) to the canonical 3-column schema
+ *       (host_id, href, rel). Resolution happens at runtime via the name
+ *       index; `href` carries the parsed target locator. See
+ *       docs/design/links.md. Migration drops the old table; DATA_VERSION=2
+ *       rebuilds rows from re-parsing content.
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -37,8 +44,13 @@ export const SCHEMA_VERSION = 3
  *   1 — normalizeNodeName: heading names now preserve @/+/# sigils (previously
  *       slugified, stripping them). Rebuild to re-derive all heading names.
  *       Also: deferred-stub re-queue fix (rebuild-different-titles).
+ *   2 — links schema flipped to 3 columns (host_id, href, rel). Old
+ *       (source_id, target_name, target_id, section, block_id, alias,
+ *       embedded, relationship, created_at) rows are dropped by the
+ *       SCHEMA_VERSION=4 migration; DATA_VERSION=2 triggers a full rebuild
+ *       from .md files so `href` rows are re-derived from the content.
  */
-export const DATA_VERSION = 1
+export const DATA_VERSION = 2
 
 export const SCHEMA = `
 -- Core node table
@@ -153,27 +165,25 @@ CREATE TABLE IF NOT EXISTS meta (
   value TEXT
 );
 
--- Wikilinks (for bidirectional linking)
+-- Links cache (occurrence index over KLink inline AST data).
+-- 3-column canonical shape per docs/design/links.md.
+--   host_id : the node that hosts this link occurrence
+--   href    : canonical, parsed target locator (km:Note, km:Note#Section,
+--             #Section for self-refs, https://…, mailto:…). Encoded via
+--             normalizeLinkHref() — every write goes through it.
+--   rel     : 'link' | 'embed' (closed enum for v1)
+-- Resolution happens at runtime via the name index (Map<name, nodeId[]>).
+-- The partial unique index enforces the embed invariant: a host can have at
+-- most one rel='embed' row.
 CREATE TABLE IF NOT EXISTS links (
-  source_id TEXT NOT NULL,     -- Node containing the link
-  target_name TEXT NOT NULL,   -- Target filename/slug (from [[target]])
-  target_id TEXT,              -- Resolved target node ID (can be null if unresolved)
-  section TEXT,                -- Optional section anchor (#section)
-  block_id TEXT,               -- Optional block ID (^block)
-  alias TEXT,                  -- Display alias (|alias)
-  embedded INTEGER DEFAULT 0,  -- 1 if this is an embedding (![[...]]), 0 otherwise
-  relationship TEXT,           -- Property name for property-based links (null for wikilinks)
-  created_at INTEGER
+  host_id TEXT NOT NULL,
+  href    TEXT NOT NULL,
+  rel     TEXT NOT NULL
 );
 
--- Unique constraint using COALESCE to handle NULLs (SQLite treats NULL != NULL in PRIMARY KEY,
--- which caused duplicate rows for simple wikilinks where section/block_id/relationship are NULL)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_links_unique
-  ON links(source_id, target_name, COALESCE(section, ''), COALESCE(block_id, ''), COALESCE(relationship, ''));
-
-CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
-CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
-CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
+CREATE INDEX IF NOT EXISTS idx_links_host_id ON links(host_id);
+CREATE INDEX IF NOT EXISTS idx_links_href    ON links(href);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_links_embed_one ON links(host_id) WHERE rel = 'embed';
 
 -- Sync state: content-hash baseline for bidirectional sync
 -- Tracks what we last projected (wrote) or observed (read) for each file path.
@@ -270,10 +280,11 @@ export function migrateSchema(db: import("bun:sqlite").Database): MigrateResult 
     /* ignore */
   }
 
-  // Migrate links table: replace NULL-unfriendly PRIMARY KEY with COALESCE-based UNIQUE index.
-  // SQLite treats NULL != NULL in composite PRIMARY KEYs, so INSERT OR REPLACE didn't deduplicate
-  // rows where section/block_id/relationship were NULL — causing duplicate link rows.
-  migrateLinksTable(db)
+  // Links schema v4: drop the legacy 9-column links table so SCHEMA can
+  // recreate it as a 3-column (host_id, href, rel) cache. Safe because the
+  // links table is rebuildable by re-parsing .md content — DATA_VERSION=2
+  // triggers that rebuild in migrateData() after SCHEMA runs.
+  migrateLinksTableToV4(db)
 
   // Version-gated migrations. `meta` is created by SCHEMA, but on older DBs it
   // may exist without a schema_version row — in which case we treat the DB as
@@ -341,6 +352,12 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
     dropFtsTable(db)
     result.ftsDropped = true
   }
+
+  // v3 → v4: links table flipped to 3-column (host_id, href, rel). The actual
+  // drop runs in migrateLinksTableToV4() above (which executes before this
+  // version gate because it's idempotent and needs to run before SCHEMA
+  // creates the new-shape table). Nothing to do here beyond recording the
+  // version bump; the DATA_VERSION=2 rebuild populates rows from re-parse.
 
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
@@ -466,52 +483,37 @@ function writeDataVersion(db: import("bun:sqlite").Database, version: number): v
 }
 
 /**
- * Migrate links table from NULL-unfriendly PRIMARY KEY to COALESCE-based UNIQUE index.
+ * Migrate the `links` table to the canonical 3-column v4 schema.
  *
- * The old schema had `PRIMARY KEY (source_id, target_name, section, block_id, relationship)`
- * but SQLite treats NULL != NULL in PRIMARY KEYs, so INSERT OR REPLACE couldn't deduplicate
- * rows where section/block_id/relationship were NULL. This recreates the table without the
- * composite PK, deduplicates existing data, and lets the SCHEMA's CREATE UNIQUE INDEX handle
- * future deduplication.
+ * The legacy schema carried 9 columns (source_id, target_name, target_id,
+ * section, block_id, alias, embedded, relationship, created_at) and
+ * resolution state. v4 flips this to (host_id, href, rel) with runtime
+ * resolution via the name index — see docs/design/links.md.
+ *
+ * The migration drops the legacy table and its indices so SCHEMA can
+ * recreate it empty in the 3-column shape. Rows are repopulated by the
+ * DATA_VERSION=2 rebuild (full re-parse of .md content), which is why the
+ * destructive drop is safe — the links table has always been a cache.
+ *
+ * Idempotent: detects the v4 shape by probing for the `host_id` column.
  */
-function migrateLinksTable(db: import("bun:sqlite").Database): void {
-  // Check if links table exists
+function migrateLinksTableToV4(db: import("bun:sqlite").Database): void {
   const linksExists = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='links'").get()
   if (!linksExists) return
 
-  // Check if it still has the old PRIMARY KEY (by checking for our new unique index)
-  const hasNewIndex = db.query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_links_unique'").get()
-  if (hasNewIndex) return // Already migrated
+  const cols = db.query("PRAGMA table_info(links)").all() as { name: string }[]
+  const hasHostId = cols.some((c) => c.name === "host_id")
+  if (hasHostId) return // Already v4
 
-  // Recreate with deduplication: keep the row with the latest created_at per unique key
   db.run("BEGIN IMMEDIATE")
   try {
-    db.run("ALTER TABLE links RENAME TO links_old")
-
-    // Create new table without PRIMARY KEY (the UNIQUE index in SCHEMA handles uniqueness)
-    db.run(`
-      CREATE TABLE links (
-        source_id TEXT NOT NULL,
-        target_name TEXT NOT NULL,
-        target_id TEXT,
-        section TEXT,
-        block_id TEXT,
-        alias TEXT,
-        embedded INTEGER DEFAULT 0,
-        relationship TEXT,
-        created_at INTEGER
-      )
-    `)
-
-    // Copy deduplicated data — keep the row with the latest created_at per unique key
-    db.run(`
-      INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
-      SELECT source_id, target_name, target_id, section, block_id, alias, embedded, relationship, MAX(created_at)
-      FROM links_old
-      GROUP BY source_id, target_name, COALESCE(section, ''), COALESCE(block_id, ''), COALESCE(relationship, '')
-    `)
-
-    db.run("DROP TABLE links_old")
+    // Drop legacy indices — CREATE TABLE below won't touch them and they
+    // reference dropped columns after the table flip.
+    db.run("DROP INDEX IF EXISTS idx_links_unique")
+    db.run("DROP INDEX IF EXISTS idx_links_source")
+    db.run("DROP INDEX IF EXISTS idx_links_target_name")
+    db.run("DROP INDEX IF EXISTS idx_links_target_id")
+    db.run("DROP TABLE IF EXISTS links")
     db.run("COMMIT")
   } catch (error) {
     db.run("ROLLBACK")
