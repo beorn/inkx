@@ -244,7 +244,7 @@ When both are used, chalk bg only colors the text characters while silvery fills
 
 ### Runtime Detection
 
-InkX detects this conflict at runtime. Control via `SILVERY_BG_CONFLICT` env var:
+Silvery detects this conflict at runtime. Control via `SILVERY_BG_CONFLICT` env var:
 
 | Value             | Behavior                              |
 | ----------------- | ------------------------------------- |

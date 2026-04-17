@@ -18,7 +18,7 @@ executeCommand(commandId, CommandContext)
 KmOp returned to caller (TUI handler dispatches)
 ```
 
-The command system is intentionally decoupled from the TUI: commands know nothing about React, Ink, or the board reducer. The TUI's `board-actions.ts` handles dispatching the returned actions to the appropriate reducer or storage layer.
+The command system is intentionally decoupled from the TUI: commands know nothing about React, silvery, or the board reducer. The TUI's `board-actions.ts` handles dispatching the returned actions to the appropriate reducer or storage layer.
 
 ### Key Design Decisions
 
@@ -173,7 +173,7 @@ wouldHandleKey(input, key, keybindingCtx): boolean
 buildKeybindingContext({ inMoveMode?, inSearchMode?, ... }): KeybindingContext
 ```
 
-Ink maps `meta` to Alt/Option on macOS. The adapter translates this: `key.meta` becomes `alt: true` in the modifier flags passed to `resolveKeybinding()`.
+Silvery's input layer normalizes modifier keys (Alt/Option, Cmd/Super, Ctrl, Shift) into flags passed to `resolveKeybinding()`. The command system consumes the normalized flags; it doesn't know or care which terminal-emulator protocol provided the original key event.
 
 ---
 

@@ -432,7 +432,7 @@ KM TUI's biggest friction is the terminal development experience. Consider:
 
 - A web-based preview/debug mode
 
-- Storybook-like component isolation for Ink components
+- Storybook-like component isolation for silvery components
 
 These would provide more value than adopting Decker's patterns wholesale.
 
