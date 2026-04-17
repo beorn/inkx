@@ -99,7 +99,7 @@ tribe_broadcast("CPU silence requested — running benchmarks (~10-20 min). Plea
 # 2. Wait for acknowledgment (or objection — another session may need to finish first)
 
 # 3. Run bench
-SILVERY_STRICT=0 bun vitest bench vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts
+SILVERY_STRICT=0 bun vitest bench hub/silvery/benchmarks/silvery-vs-ink.bench.ts
 
 # 4. All-clear
 tribe_broadcast("Benchmarks complete. Resume normal work.")

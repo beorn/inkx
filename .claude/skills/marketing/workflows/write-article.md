@@ -10,7 +10,7 @@ Article ID from the strategy doc (e.g., "2.1" for Phase 2 article 1, "A3" for Bu
 
 ### 1. Look Up Article Details
 
-Read `vendor/internal/market/km-ecosystem-content-strategy.md` and find the article by ID. Extract:
+Read `hub/market/km-ecosystem-content-strategy.md` and find the article by ID. Extract:
 - Title
 - Description
 - Site (silvery.dev / terminfo.dev / termless.dev / beorn.codes/flexily)

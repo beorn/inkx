@@ -33,18 +33,18 @@ Produce current silvery-vs-ink numbers, compare with prior baseline, detect regr
 
 2. **Run the bench**
    ```bash
-   SILVERY_STRICT=0 bun vitest bench vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts 2>&1 | tee /tmp/bench-silvery-vs-ink-$(date +%Y%m%d).txt
+   SILVERY_STRICT=0 bun vitest bench hub/silvery/benchmarks/silvery-vs-ink.bench.ts 2>&1 | tee /tmp/bench-silvery-vs-ink-$(date +%Y%m%d).txt
    ```
 
 3. **Compare with baseline**
-   - Read `vendor/internal/silvery/benchmarks/history.jsonl` (if exists)
+   - Read `hub/silvery/benchmarks/history.jsonl` (if exists)
    - Compare current run to last entry
    - Flag regressions >10%
    - Flag improvements >10%
 
 4. **Update results**
-   - Append new entry to `vendor/internal/silvery/benchmarks/history.jsonl`
-   - Update `vendor/internal/silvery/internals/perf-analysis-YYYY-MM.md` with latest numbers
+   - Append new entry to `hub/silvery/benchmarks/history.jsonl`
+   - Update `hub/silvery/internals/perf-analysis-YYYY-MM.md` with latest numbers
 
 5. **Report**
    - Summary table: Silvery vs Ink per scenario
@@ -53,9 +53,9 @@ Produce current silvery-vs-ink numbers, compare with prior baseline, detect regr
    - Flag anything >10% regression for investigation
 
 ### Key reference
-- Bench file: `vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts`
+- Bench file: `hub/silvery/benchmarks/silvery-vs-ink.bench.ts`
 - Perf bead tree: `km-silvery.perf` (children track specific optimizations)
-- Existing analysis: `vendor/internal/silvery/internals/perf-analysis-2026-04.md`
+- Existing analysis: `hub/silvery/internals/perf-analysis-2026-04.md`
 
 ---
 
@@ -175,7 +175,7 @@ Deep-dive on Ink's latest features, understand architectural implications, propo
    - **Irrelevant**: Ink-specific concern that doesn't apply to silvery
 
 4. **For "parity needed" items, create design docs**
-   - `vendor/internal/silvery/design/v-undecided/{feature}-parity.md`
+   - `hub/silvery/design/v-undecided/{feature}-parity.md`
    - Include: API diff, migration path, effort estimate
    - Reference existing examples: `boxmetrics-parity.md`, `focus-parity.md`, `animation.md`
 
@@ -203,7 +203,7 @@ Update silvery's positioning docs based on current state of both projects.
    - Latest bench numbers (from `bench` mode)
    - Latest compat % (from `upgrade` mode)
    - Latest feature parity table (from `analyze` mode)
-   - Silvery horizons: `vendor/internal/silvery/horizons.md`
+   - Silvery horizons: `hub/silvery/horizons.md`
 
 2. **Update positioning bead**
    - `bd show km-silvery.positioning`
@@ -260,7 +260,7 @@ For each Ink change, answer:
 
 **Update targets:**
 - `km-silvery.positioning` bead (append findings)
-- `vendor/internal/silvery/launch/positioning-YYYY.md` (internal strategy)
+- `hub/silvery/launch/positioning-YYYY.md` (internal strategy)
 - Defensibility scorecard (add/remove rows)
 
 #### Axis 2: Docs
@@ -331,9 +331,9 @@ For each Ink change, answer:
 - Should any silvery-internal design docs be updated?
 
 **Update targets:**
-- `vendor/internal/silvery/horizons.md` (roadmap definitions)
-- `vendor/internal/silvery/design/v05-layout/`, `v10-terminal/`, `v15-tea/`, `v20-canvas/`, `v30-graphics/`
-- `vendor/internal/silvery/design/v-undecided/` (new parity designs)
+- `hub/silvery/horizons.md` (roadmap definitions)
+- `hub/silvery/design/v05-layout/`, `v10-terminal/`, `v15-tea/`, `v20-canvas/`, `v30-graphics/`
+- `hub/silvery/design/v-undecided/` (new parity designs)
 - `km-silvery.*` beads (new implementation tasks)
 
 **Decision matrix**:
@@ -389,7 +389,7 @@ For each Ink change, answer:
 
 ### Step 4: File the report
 
-Save to: `vendor/internal/silvery/launch/ink-{VERSION}-impact-{DATE}.md`
+Save to: `hub/silvery/launch/ink-{VERSION}-impact-{DATE}.md`
 
 Reference from: `km-silvery.positioning` bead notes
 
@@ -433,8 +433,8 @@ Things to build into this skill over time:
 - `km-silvery.boxmetrics-parity`, `km-silvery.focus-parity`, `km-silvery.animation` — feature parity work
 
 ### Bench
-- `vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts` — head-to-head
-- `vendor/internal/silvery/internals/perf-analysis-2026-04.md` — latest analysis
+- `hub/silvery/benchmarks/silvery-vs-ink.bench.ts` — head-to-head
+- `hub/silvery/internals/perf-analysis-2026-04.md` — latest analysis
 
 ### Compat
 - `vendor/silvery/packages/ink/scripts/compat-check.ts` — AVA runner
@@ -445,9 +445,9 @@ Things to build into this skill over time:
 ### Docs
 - `vendor/silvery/docs/guide/silvery-vs-ink.md` — public comparison
 - `vendor/silvery/docs/getting-started/migrate-from-ink.md` — migration guide
-- `vendor/internal/silvery/launch/positioning-2026.md` — internal strategy
-- `vendor/internal/silvery/design/v-undecided/*-parity.md` — per-feature design docs
+- `hub/silvery/launch/positioning-2026.md` — internal strategy
+- `hub/silvery/design/v-undecided/*-parity.md` — per-feature design docs
 
 ### Horizons
-- `vendor/internal/silvery/horizons.md` — v0.5 / v1.0 / v1.5 / v2.0 / v3.0 roadmap
+- `hub/silvery/horizons.md` — v0.5 / v1.0 / v1.5 / v2.0 / v3.0 roadmap
 - Each horizon expands silvery's moat beyond Ink's reach (canvas, multi-framework, a11y, AI mode)

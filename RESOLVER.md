@@ -40,7 +40,7 @@ Walk this decision tree before writing any documentation, knowledge, or persiste
 → STOP
 
 ### Q8. Is this INTERNAL (strategy, competitive, roadmap, drafts)?
-→ **`vendor/internal/`** — walk [`vendor/internal/RESOLVER.md`](vendor/internal/RESOLVER.md) for the per-slot rules (design/launch/research/market/etc).
+→ **`hub/`** — walk [`hub/RESOLVER.md`](hub/RESOLVER.md) for the per-slot rules (design/launch/research/market/etc).
 → Never reference from public docs.
 → STOP
 
@@ -60,12 +60,12 @@ When placing canonical docs, route by bounded context:
 | If it's about... | It goes in... | Owned by... |
 |---|---|---|
 | Layer boundaries, invariants, principles, glossary, package map | `docs/` (arch domain) | arch agent |
-| Rendering pipeline, dirty flags, layout, scroll, perf | `vendor/silvery/docs/` or `vendor/internal/silvery/` | render agent |
+| Rendering pipeline, dirty flags, layout, scroll, perf | `vendor/silvery/docs/` or `hub/silvery/` | render agent |
 | Selection, commands, views, editing, navigation, input | `docs/design/` (editor domain) | editor agent |
 | Packaging, versioning, publishing, registry, exports | `vendor/CLAUDE.md` or `.claude/skills/release/` | npm agent |
 | Testing patterns, assertion hierarchy | `apps/km-tui/tests/CLAUDE.md` | editor agent |
 | silvery public API, components, styling | `vendor/silvery/docs/guide/` | render agent |
-| Pipeline internals, postmortems | `vendor/internal/silvery/` | render agent |
+| Pipeline internals, postmortems | `hub/silvery/` | render agent |
 
 ## What Does NOT Go Where
 

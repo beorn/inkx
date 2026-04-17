@@ -104,7 +104,7 @@ The method name IS the op type. The arguments ARE the op data. Plugins (undo, tr
 - `createSlice()` — always, for defining state machines with typed handlers and apply
 - `op()` proxy — when mutations need interception (undo, recording, collaboration). The caller decides per-call whether to use `op(model).method()` (intercepted) or `model.method()` (direct)
 
-See `vendor/internal/silvery/design/v15-tea/app.md` § `op() Proxy` for the full design. Bead: km-all.1.
+See `hub/silvery/design/v15-tea/app.md` § `op() Proxy` for the full design. Bead: km-all.1.
 
 ### Unified pipeline
 

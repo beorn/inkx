@@ -14,7 +14,7 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 | Links in docs                            | `https://silvery.dev/guide/...`                         | `vendor/silvery/docs/guide/...`       |
 | CLAUDE.md **inside** a vendor package    | relative paths (`tests/foo.ts`), npm names, GitHub URLs | `vendor/<pkg>/...` paths              |
 | Comments (run-command examples)          | relative paths (`bun tests/foo.ts`)                     | `bun vendor/<pkg>/tests/foo.ts`       |
-| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo)   | `vendor/internal/silvery/...` paths   |
+| References to the private workspace repo | GitHub URL to `silvery-internal` (it's a public repo)   | `hub/silvery/...` paths   |
 
 **Why:** when someone clones `github.com/beorn/silvery` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage. A vendor package that survives `git clone <repo> && bun test` without knowing about km is correct; anything else has monorepo-leak.
 
@@ -41,7 +41,7 @@ For any vendor package to be "standalone-ready":
 
 - [ ] No `vendor/` in source code (imports, strings, docstrings, or comments)
 - [ ] No `vendor/` in documentation, guides, or package-level CLAUDE.md
-- [ ] No `vendor/internal/<pkg>/` refs — use the GitHub URL to the public internal repo
+- [ ] No `hub/<pkg>/` refs — use the GitHub URL to the public internal repo
 - [ ] No `workspace:*` in its `package.json` (use npm versions or `github:owner/repo`)
 - [ ] `bun test` works from the package root (not just from km root)
 - [ ] Run-command docstrings use relative paths: `bun tests/foo.ts`, not `bun vendor/<pkg>/tests/foo.ts`
@@ -65,11 +65,11 @@ For any vendor package to be "standalone-ready":
 | **watcher-chaos**    | `@beorn/watcher-chaos` | File watcher chaos testing                                                    |
 | **silvery-internal** | —                      | Internal design docs (not published)                                          |
 
-## Internal vs Public (`vendor/internal/` vs `vendor/*/`)
+## Internal vs Public (`hub/` vs `vendor/*/`)
 
-`vendor/internal/` is the workspace. `vendor/*/docs/` and `vendor/*/examples/` are the showcase.
+`hub/` is the workspace. `vendor/*/docs/` and `vendor/*/examples/` are the showcase.
 
-**Everything starts internal.** Design docs, example drafts, mockups, prototypes, blog drafts — all begin in `vendor/internal/<project>/`. Don't create WIP content in public directories (`vendor/*/docs/`, `vendor/*/examples/`). Public directories are for polished, approved work only.
+**Everything starts internal.** Design docs, example drafts, mockups, prototypes, blog drafts — all begin in `hub/<project>/`. Don't create WIP content in public directories (`vendor/*/docs/`, `vendor/*/examples/`). Public directories are for polished, approved work only.
 
 **Promotion requires approval.** Before moving anything from internal to public:
 
@@ -78,7 +78,7 @@ For any vendor package to be "standalone-ready":
 
 **Public → internal demotion.** If published content breaks or degrades below quality bar, move it back to internal. Fix there, re-promote when ready.
 
-**Reference rule:** Public docs must never reference `vendor/internal/` content. Internal docs can reference anything.
+**Reference rule:** Public docs must never reference `hub/` content. Internal docs can reference anything.
 
 ## npm Publishing
 

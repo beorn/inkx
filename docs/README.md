@@ -121,7 +121,7 @@ Append-only case studies. See [lessons/](lessons/) for the full index. Highlight
 - [archive/](archive/) — retired docs (with forward pointers to replacements)
 - [architecture-review-findings.md](archive/architecture-review-findings-2026-04.md) — point-in-time review notes
 - [vs-decker.md](archive/vs-decker.md) — architecture comparison with the Decker predecessor
-- [../vendor/internal/market/km-ecosystem-content-strategy.md](../vendor/internal/market/km-ecosystem-content-strategy.md) — ecosystem marketing plan (silvery.dev, termless.dev, etc.)
+- [../hub/market/km-ecosystem-content-strategy.md](../hub/market/km-ecosystem-content-strategy.md) — ecosystem marketing plan (silvery.dev, termless.dev, etc.)
 
 ## Key Principles
 

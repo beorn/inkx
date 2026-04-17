@@ -3,7 +3,7 @@
 Ordered by priority. Position is priority — top = next. Move the line to re-prioritize. No P-values on new beads; rank lives here.
 
 Related:
-- Silvery version roadmap (v0.5, v1.0, v1.5, v2.0, v3.0) lives in [`vendor/internal/silvery/horizons.md`](../vendor/internal/silvery/horizons.md). Don't duplicate — link.
+- Silvery version roadmap (v0.5, v1.0, v1.5, v2.0, v3.0) lives in [`hub/silvery/horizons.md`](../hub/silvery/horizons.md). Don't duplicate — link.
 - Bead details: `bd show <id>`.
 
 ## Now
@@ -38,7 +38,7 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 
 ## Not committed (future work, seen but not scheduled)
 
-- Silvery 1.0 stability contract (see `vendor/internal/silvery/horizons.md`).
+- Silvery 1.0 stability contract (see `hub/silvery/horizons.md`).
 - Cross-vault federation (`km://<vault>/...`).
 - Backlinks panel + `to_id` cache.
 - Property links / typed `rel` predicates.

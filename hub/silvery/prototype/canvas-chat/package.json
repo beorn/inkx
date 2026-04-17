@@ -1,0 +1,15 @@
+{
+  "name": "canvas-chat-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bunx vite"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "latest",
+    "flexily": "latest"
+  },
+  "devDependencies": {
+    "vite": "^6"
+  }
+}

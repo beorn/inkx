@@ -10,7 +10,7 @@
  * // → apply({ type: "model-op", path: ["node", "select"], args: [["C"]], run: ... })
  * ```
  *
- * See vendor/internal/silvery/design/v15-tea/app.md § "op() Proxy — Operations as Data"
+ * See hub/silvery/design/v15-tea/app.md § "op() Proxy — Operations as Data"
  */
 
 /** A serializable descriptor of a method call captured by op(). */

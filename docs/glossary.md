@@ -304,7 +304,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **op** — Serializable data dispatched to `Machine.apply()`. Named after the consuming machine: `BoardOp`, `TreeOp`, `PlainTextOp`. The universal term for "dispatchable state-machine input." `KmOp` is the union of all domain ops. See also: *op handler*, *op() proxy*, *createSlice()*, *apply*.
 
-**op() proxy** — Ergonomic wrapper that intercepts method calls on a model and routes them through `apply()` as serializable `{ path, args }` data. `op(model).method(args)` behaves like `model.method(args)` but is interceptable by plugins (undo, tracing, recording). The method name IS the op type, the arguments ARE the op data. Built on `createSlice()` + `apply()`. See `vendor/internal/silvery/design/v15-tea/app.md`.
+**op() proxy** — Ergonomic wrapper that intercepts method calls on a model and routes them through `apply()` as serializable `{ path, args }` data. `op(model).method(args)` behaves like `model.method(args)` but is interceptable by plugins (undo, tracing, recording). The method name IS the op type, the arguments ARE the op data. Built on `createSlice()` + `apply()`. See `hub/silvery/design/v15-tea/app.md`.
 
 **op handler** — A pure function implementing one op type within a machine. Op handlers are defined in a `createSlice()` handler map and dispatched by `apply()`. Testable independently.
 

@@ -550,7 +550,7 @@ function applyReconcile(state: SelectionSnapshot, tree): SelectionSnapshot
 
 ### op() — operations as data, ergonomically
 
-silvery's `op()` proxy (see `vendor/internal/silvery/design/v15-tea/app.md`) intercepts method calls and routes them through `apply()` as serializable data. You write normal method calls — same API, same autocomplete — and get logging/undo/replay for free:
+silvery's `op()` proxy (see `hub/silvery/design/v15-tea/app.md`) intercepts method calls and routes them through `apply()` as serializable data. You write normal method calls — same API, same autocomplete — and get logging/undo/replay for free:
 
 ```ts
 // Direct — fast, no overhead

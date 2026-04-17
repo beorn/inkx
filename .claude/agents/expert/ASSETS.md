@@ -95,7 +95,7 @@ See `INFO-ARCHITECTURE.md` for the full design. Summary:
 - `vendor/loggily/CLAUDE.md` — loggily docs
 - `.claude/skills/sop/SKILL.md` — SOP skill (meta — owned by `/sop` itself?)
 - `.claude/skills/tribe/` — tribe coordination
-- `vendor/internal/` — private design docs (per-project ownership?)
+- `hub/` — private design docs (per-project ownership?)
 - DNS domains: silvery.dev, termless.dev, terminfo.dev, beorn.codes
 - LLM accounts: OpenAI, Anthropic, Google, xAI, OpenRouter (via accountly)
 - Cloudflare analytics accounts

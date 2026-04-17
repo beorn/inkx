@@ -9,7 +9,7 @@ argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|se
 
 Coordinates the entire content marketing effort across silvery.dev, termless.dev, terminfo.dev, and beorn.codes/flexily. Tracks what's been done, what's next, and when each workflow should run.
 
-**Strategy doc**: `vendor/internal/market/km-ecosystem-content-strategy.md` — the canonical plan with all 240 article ideas, programmatic SEO strategy, Greg Isenberg framework, and GPT Pro review findings.
+**Strategy doc**: `hub/market/km-ecosystem-content-strategy.md` — the canonical plan with all 240 article ideas, programmatic SEO strategy, Greg Isenberg framework, and GPT Pro review findings.
 
 **Tracking epic**: `km-market`
 
@@ -166,7 +166,7 @@ All sites have: robots.txt with sitemap reference, `sitemap.hostname` in VitePre
 4. **80/20 AI/human** — AI drafts, human reviews and tests all code examples
 5. **Freshness matters** — Benchmark/comparison pages need "last tested" dates and refresh owners
 6. **Cross-link everything** — terminfo feature pages link to silvery protocol pages and vice versa
-7. **km is NOT public** — Never mention "km", "Knowledge Machine", or any non-public project in public content. Only `vendor/` packages are public (silvery, flexily, termless, terminfo.dev, loggily, mdspec). `vendor/internal/` is private. Use generic descriptions like "a complex terminal application" instead.
+7. **km is NOT public** — Never mention "km", "Knowledge Machine", or any non-public project in public content. Only `vendor/` packages are public (silvery, flexily, termless, terminfo.dev, loggily, mdspec). `hub/` is private. Use generic descriptions like "a complex terminal application" instead.
 8. **Social proof requires real traction** — Do NOT add npm download badges, GitHub star counts, or similar metrics until they're impressive (npm >1k/week, GitHub >100 stars). Low numbers are anti-social-proof.
 9. **Blog requires content** — Do NOT add blog to site navigation until there are 5+ published articles. Empty blogs signal abandonment.
 

@@ -45,12 +45,12 @@ Last updated: 2026-04-12
 | `watcher-chaos` | `vendor/watcher-chaos` | 0.2.0 | `@beorn/watcher-chaos` | Private | Chaos file watcher for testing |
 | `terminfo.dev` | `vendor/terminfo.dev` | -- | -- | Private | Terminal capability database + probes |
 
-### vendor/internal/ (Private design docs, not published)
+### hub/ (Private design docs, not published)
 
-- `vendor/internal/silvery` -- silvery design docs, mockups, prototypes, roadmap (git submodule)
-- `vendor/internal/bearly` -- bearly/tribe design docs (tracked in km repo)
-- `vendor/internal/loggily` -- loggily design docs
-- `vendor/internal/market` -- marketing materials
+- `hub/silvery` -- silvery design docs, mockups, prototypes, roadmap (git submodule)
+- `hub/bearly` -- bearly/tribe design docs (tracked in km repo)
+- `hub/loggily` -- loggily design docs
+- `hub/market` -- marketing materials
 
 ### Silvery internal packages (within vendor/silvery/packages/)
 
@@ -423,7 +423,7 @@ tree.withBatch(fn)    // defer validate until batch ends
 | `vendor/termless` | beorn/termless | Public | vterm.js, xterm.js, various emulator backends |
 | `vendor/vterm` | beorn/vterm | Public | Zero deps (pure TS) |
 | `vendor/bearly` | beorn/bearly | Partly (tribe, github public) | Various (claude SDK, alien-signals, etc.) |
-| `vendor/internal/silvery` | beorn/silvery-internal | Private | -- (docs only) |
+| `hub/silvery` | beorn/silvery-internal | Private | -- (docs only) |
 | `vendor/terminfo.dev` | beorn/terminfo.dev | Private | termless, vterm |
 
 Note: `vendor/accountly`, `vendor/tap`, `vendor/watcher-chaos` are NOT git submodules -- they are tracked directly in the km repo.

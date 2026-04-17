@@ -1,6 +1,6 @@
 # Overview of Silvery vs Ink for Complex Terminal UIs (ARCHIVED 2026-04-16)
 
-> **Archived** as dated research (February 2026). The framework decision stands: km uses silvery. For current positioning see [`vendor/silvery/docs/guide/silvery-vs-ink.md`](../../vendor/silvery/docs/guide/silvery-vs-ink.md) and [`vendor/internal/silvery/research/opentui-vs-silvery.md`](../../vendor/internal/silvery/research/opentui-vs-silvery.md).
+> **Archived** as dated research (February 2026). The framework decision stands: km uses silvery. For current positioning see [`vendor/silvery/docs/guide/silvery-vs-ink.md`](../../vendor/silvery/docs/guide/silvery-vs-ink.md) and [`hub/silvery/research/opentui-vs-silvery.md`](../../hub/silvery/research/opentui-vs-silvery.md).
 
 
 

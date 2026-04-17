@@ -22,9 +22,6 @@
 [submodule "vendor/vterm"]
 	path = vendor/vterm
 	url = git@github.com:beorn/vterm.git
-[submodule "vendor/internal/silvery"]
-	path = vendor/internal/silvery
-	url = git@github.com:beorn/silvery-internal.git
 [submodule "vendor/mdspec"]
 	path = vendor/mdspec
 	url = git@github.com:beorn/mdspec.git

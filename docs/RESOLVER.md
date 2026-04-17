@@ -2,7 +2,7 @@
 
 **Read this before writing or moving any doc under `docs/`.** Walk the tree top-to-bottom, stop at first match. Inspired by the gbrain pattern in `~vault/RESOLVER.md` — "every filing decision has one right answer, and when it doesn't, we record the correction here."
 
-This resolver covers **km's `docs/` tree only**. For cognitive/agent-level routing (skill vs knowledge vs memory vs canonical), see [`RESOLVER.md`](../RESOLVER.md) at the repo root. For `vendor/internal/` routing, see [`vendor/internal/RESOLVER.md`](../vendor/internal/RESOLVER.md).
+This resolver covers **km's `docs/` tree only**. For cognitive/agent-level routing (skill vs knowledge vs memory vs canonical), see [`RESOLVER.md`](../RESOLVER.md) at the repo root. For `hub/` routing, see [`hub/RESOLVER.md`](../hub/RESOLVER.md).
 
 ---
 
@@ -18,10 +18,10 @@ This resolver covers **km's `docs/` tree only**. For cognitive/agent-level routi
 | Speculation / not-shipped design | § 6 → `future/` |
 | Active WIP investigation (not design-ready, not speculation) | § 6 → `explorations/` |
 | Retired doc (superseded, out-of-scope, or closed) | § 6 → `archive/` |
-| Ecosystem marketing / non-km-product | **Not in `docs/`** → `vendor/internal/market/` |
+| Ecosystem marketing / non-km-product | **Not in `docs/`** → `hub/market/` |
 | Hub-level (one of the 4 entry files) | § 7 → top-level |
 
-If the content is **not about km the product**, it doesn't belong in `docs/`. Route to `vendor/internal/` (see its own RESOLVER).
+If the content is **not about km the product**, it doesn't belong in `docs/`. Route to `hub/` (see its own RESOLVER).
 
 ---
 
@@ -198,7 +198,7 @@ If you walk § 1–7 and nothing fits: put the draft in `docs/explorations/` wit
 
 Every time the user corrects a filing decision, record the rule here.
 
-- **2026-04-17** — Non-km-product content (ecosystem marketing, silvery launch, bearly design) goes to `vendor/internal/`, not `docs/archive/`. `docs/archive/` is only for *retired km docs*. → § 1 + § 6
+- **2026-04-17** — Non-km-product content (ecosystem marketing, silvery launch, bearly design) goes to `hub/`, not `docs/archive/`. `docs/archive/` is only for *retired km docs*. → § 1 + § 6
 - **2026-04-17** — `ref/` and `design/` subdir names must not shadow each other (`ref/ui.md` renamed to avoid collision with `design/ui/`). → § 4
 - **2026-04-17** — Historical-snapshot review docs (e.g. `architecture-review-findings.md`) go to `archive/` with a date suffix (`-2026-04`), not top-level. → § 7
 - **2026-04-17** — Single-file subdirs are an anti-pattern. If a dir has one file, collapse or move. (Was: `docs/future/brain.md`; now: `docs/future/brain.md`.) → § 3/§ 6
@@ -208,7 +208,7 @@ Every time the user corrects a filing decision, record the rule here.
 ## § 11 — Related documents
 
 - [`../RESOLVER.md`](../RESOLVER.md) — repo-root cognitive-routing resolver (skill vs knowledge vs memory vs canonical)
-- [`../vendor/internal/RESOLVER.md`](../vendor/internal/RESOLVER.md) — internal workspace resolver (where package drafts + ecosystem marketing live)
+- [`../hub/RESOLVER.md`](../hub/RESOLVER.md) — internal workspace resolver (where package drafts + ecosystem marketing live)
 - [`dev/doc-map.md`](dev/doc-map.md) — concept → canonical doc index (lookup; this file is filing)
 - [`glossary.md`](glossary.md) — terminology index
 - [`~vault/RESOLVER.md`](https://github.com/beorn/Vault/blob/main/RESOLVER.md) — the pattern's origin (personal vault)

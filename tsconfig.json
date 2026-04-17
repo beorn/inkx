@@ -12,7 +12,7 @@
     "**/dist",
     "archive",
     "vendor/silvery/tests/compat/ink/generated",
-    "vendor/internal/silvery/prototype",
+    "hub/silvery/prototype",
     "vendor/bearly/plugins/tribe/server.ts",
     "packages/km-infra/scripts"
   ]

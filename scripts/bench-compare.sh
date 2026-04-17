@@ -76,7 +76,7 @@ echo "==> Creating worktree at $WORKTREE for $REF_SHA"
 git worktree add --detach "$WORKTREE" "$REF_SHA" >/dev/null
 
 # Init submodules in the worktree (vendor/silvery, vendor/bearly, etc).
-# Skip vendor/internal which is private and may not be available.
+# Skip hub which is private and may not be available.
 echo "==> Initializing submodules in worktree"
 (
   cd "$WORKTREE"

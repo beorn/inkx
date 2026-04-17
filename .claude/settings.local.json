@@ -81,7 +81,12 @@
       "Bash(sed -i '' 's/Release — Packaging Expert/npm — Packaging Expert/' .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/release-knowledge/npm-knowledge/' .claude/agents/expert/npm.md)",
       "Skill(sop)",
-      "Bash(find /Users/beorn/Code/pim/km/vendor/silvery/docs -maxdepth 2 -type f -name \"*.md\" -exec grep -l \"vendor/\" {} \\\\;)"
+      "Bash(find /Users/beorn/Code/pim/km/vendor/silvery/docs -maxdepth 2 -type f -name \"*.md\" -exec grep -l \"vendor/\" {} \\\\;)",
+      "Bash(git mv *)",
+      "Bash(sed -i '' 's|hub/silvery|hub/silvery|g' .gitmodules)",
+      "Bash(rm -rf /tmp/hub-silvery-backup/.git)",
+      "Bash(git submodule *)",
+      "Bash(git rm *)"
     ],
     "deny": [],
     "ask": []

@@ -1069,7 +1069,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 ### Four direct mappings
 
 1. **Commands-as-nodes → projection of the TEA command tree.**
-   TEA already specifies a canonical command tree where every surface projects from `app.commands.*` ([commands.md § "One Command, Every Surface"](../../vendor/internal/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
+   TEA already specifies a canonical command tree where every surface projects from `app.commands.*` ([commands.md § "One Command, Every Surface"](../../hub/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
    - **Pre-TEA**: project the current `CommandDef` registry (`@km/commands`, 172 entries) into `KNode`-shaped rows.
    - **Post-TEA**: retarget the projection at `app.commands.*`. Row renderer unchanged; only the source changes.
    The omnibox row renderer doesn't see the difference.
@@ -1085,7 +1085,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
    - **Pre-TEA**: the `CommandContext` builder reads `activePane.cursor` and populates `currentNodeId` imperatively (same effect, pre-reactive).
 
 4. **`withOmnibox()` domain plugin, parametrized by `defaultCommand`.**
-   Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../vendor/internal/silvery/design/v15-tea/commands.md)). the omnibox becomes `withOmnibox()`:
+   Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../hub/silvery/design/v15-tea/commands.md)). the omnibox becomes `withOmnibox()`:
    ```ts
    pipe(createApp(), withBoard(), withSelection(), withOmnibox(), withUndo(), ...)
    ```
