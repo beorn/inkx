@@ -138,27 +138,26 @@ Content leaf. Has a `content` string. No children (except `quote`).
 | `math` | Block math (LaTeX) |
 ### Embed Trait (orthogonal to type)
 
-A node is an "embed" iff `embed_of != null`. This is a **denormalized cache** for the predicate "the node's content is exactly one Link with `rel='embed'`" — a hot-path index for rendering. The canonical link model lives inside `KNode.content` as parsed AST Link nodes; see [docs/design/links.md](../links.md).
+A node is an "embed" iff `embed_of != null`. This is **runtime-materialized at load time** from the cache row `SELECT host_id, href FROM links WHERE rel='embed'`, then resolved through the name index. The canonical source of truth lives inside `KNode.content` as a parsed AST `KLink`; see [docs/design/links.md](../links.md).
 
 Embeds created by different paths:
 
-- **Markdown parser**: `![[target]]` as sole content of a li/heading/paragraph → cache `embed_of` set
-- **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to the embed link
-- **CLI add**: creates `type:"p", item:{list:"-"}` with content set to the embed link
+- **Markdown parser**: `![[target]]` as sole content of a li/heading/paragraph → KLink `{ href: 'km:target', rel: 'embed', md: { form: 'wiki' } }`; loader populates `embed_of` from the resolved target
+- **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to a single embed KLink
+- **CLI add**: creates `type:"p", item:{list:"-"}` with content set to a single embed KLink
 
 | Field | Type | Notes |
 |---|---|---|
-| `embed_of` | `string?` | Cache: target node ID when sole-content embed (null = not a sole-content embed, or unresolved) |
-| `name` | `string?` | Alias (from `![[target\|alias]]`) |
-| `content` | `string?` | Source markdown — parses to AST containing the Link |
+| `embed_of` | `string?` | Target node ID, runtime-materialized from the `links` cache (`rel='embed'`) and resolved via the name index |
+| `content` | `string?` | Source markdown — parses to AST containing the KLink |
 
 **Links vs embeds (in the canonical model)**:
-- Both are `Link` nodes inside `KNode.content` AST
-- `[[wikilink]]` → `Link { to: "km:wikilink", rel: "link" }`
-- `![[embed]]` → `Link { to: "km:embed", rel: "embed" }`
-- A KNode is "a node link" iff its content has exactly one Link and nothing else (recognition pattern, not stored type)
-- The `embed_of` column is a hot-path cache for the embed-only case
-- All Links flow into the `links` cache table for indexed queries (backlinks, outgoing, typed)
+- Both are `KLink` nodes inside `KNode.content` AST: `{ href, rel, alias?, md? }`
+- `[[wikilink]]` → `KLink { href: 'km:wikilink', rel: 'link', md: { form: 'wiki' } }`
+- `![[embed]]` → `KLink { href: 'km:embed', rel: 'embed', md: { form: 'wiki' } }`
+- A KNode is an **embed node** iff its content is exactly one KLink with `rel='embed'` and nothing else
+- The `embed_of` field is a runtime-materialized convenience for the embed-only case; the `links` table is the durable cache
+- All KLink occurrences flow into the `links` cache table (3 columns: `host_id`, `href`, `rel`) for indexed queries
 
 See [docs/design/links.md](../links.md) for the full link model, URI scheme, `rel` taxonomy, and recovery semantics.
 
@@ -370,13 +369,13 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 | Non-markdown file | `h item (fstype:"file")` |
 | Section (H2+ heading) | `h item (fstype:"mdsection")` — title in `.content` |
 | Repository root | `h item (fstype:"repo")` |
-| **Links & embeds** | |
-| `![[target]]` (embed) | node with `embed_of:"<id>"` (type from context) |
-| `![[target\|alias]]` | node with `embed_of:"<id>", name:"alias"` |
-| `[[target]]` inline | Stays in `p.content`, indexed in `links` table |
-| `[text](url)` | Stays in `p.content` (inline) |
-| `![alt](url)` | Stays in `p.content` (inline image) |
-| `![[image.png]]` (vault image) | `embed (embed_of:"<image-node-id>")` |
+| **Links & embeds** (see [docs/design/links.md](../links.md)) | |
+| `![[target]]` (embed) | node whose content is a single `KLink { href:"km:target", rel:"embed", md:{form:"wiki"} }`; `embed_of` resolved at load |
+| `![[target\|alias]]` | same as above with `alias:"alias"` on the KLink |
+| `[[target]]` inline | KLink `{ href:"km:target", rel:"link", md:{form:"wiki"} }` in `p.content`; cached in `links` table |
+| `[text](url)` | KLink `{ href:"url", rel:"link", alias:"text", md:{form:"mdlink"} }` in content |
+| `![alt](url)` | KLink `{ href:"url", rel:"embed", alias:"alt", md:{form:"mdlink"} }` in content |
+| `![[image.png]]` (vault image) | embed node with KLink `{ href:"km:image.png", rel:"embed", md:{form:"wiki"} }` |
 | `[^1]` reference | Stays in `p.content` (inline) |
 | **Metadata** | |
 | YAML frontmatter (`---`) | `data` JSON field on file's h item node |
@@ -396,9 +395,9 @@ YAML frontmatter (`---` delimited) is not a node type. Parsed into the `data` JS
 Inline formatting (bold, italic, code spans, standard links, images) stays in content strings as markdown. Not broken into child nodes. This is a block-level AST only.
 
 - `**bold**` → stored as-is in `p.content`
-- `![alt](url)` → stored as-is in `p.content` (standard MD images)
-- `![[vault-image.png]]` → becomes a node with `embed_of` (Obsidian-style)
-- `[[wiki-link]]` inline → stays in content string, extracted to `links` table
+- `![alt](url)` → standard Markdown image; parsed as KLink with `rel:'embed'` in content
+- `![[vault-image.png]]` → becomes an embed node (empty content + embed KLink)
+- `[[wiki-link]]` inline → stays in content as KLink; extracted to `links` cache table
 - `[^1]` reference → stays in content string
 
 ## Design Decisions
