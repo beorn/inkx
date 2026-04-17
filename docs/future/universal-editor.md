@@ -3,7 +3,7 @@
 **Status:** Future vision -- packages referenced here (runly, docily, textily, termily) do not yet exist. This describes the target architecture, not current state.
 **Bead:** km-all.universal-editor
 **Last Updated:** 2026-02-27
-**See also:** [tea-state-machines.md](../design/tea.md) — phased implementation plan (PlainText → SlateJS → Tree); [phases.md](../design/phases.md) — current implementation status
+**See also:** [tea.md](../design/tea.md) — phased implementation plan (PlainText → SlateJS → Tree); [phases.md](../design/phases.md) — current implementation status
 
 ## Vision
 

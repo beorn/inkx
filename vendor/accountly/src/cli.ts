@@ -39,13 +39,17 @@ program
   .version("0.4.0")
 
 // Top-level help sections — rendered after the built-in Commands block.
-program.addHelpSection("How it works:", [
-  ["Profile = dir", "~/.config/claude-profiles/<email>/ — each has its own Keychain slot"],
-  ["Keychain slot", "`Claude Code-credentials-<sha256(dir)[0:8]>` — per-profile OAuth session"],
-  ["Shared state", "settings, skills, projects, session-index.db symlinked from ~/.claude/"],
-  ["Default profile", "`default` symlink inside profileRoot; `init` reads it at install time"],
-  ["Stock ~/.claude", "Plain claude still uses the unhashed slot; surfaced as its own row"],
-])
+program.addHelpSection(
+  "How it works:",
+  [
+    "Each profile is a directory under ~/.config/claude-profiles/<email>/ with its own Keychain",
+    "slot `Claude Code-credentials-<sha256(dir)[0:8]>` holding a dedicated OAuth session. Shared",
+    "state (settings, skills, projects, session-index.db) is symlinked from ~/.claude/. The",
+    "`default` symlink inside profileRoot names the default profile, which `init` reads at",
+    "install time. The stock ~/.claude still uses the unhashed slot and is surfaced as its own",
+    "row so plain `claude` usage stays visible.",
+  ].join("\n"),
+)
 
 // Top-level examples — shown at the end of `accountly --help`.
 program.addHelpSection("Examples:", [
