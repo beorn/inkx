@@ -45,6 +45,7 @@ import {
   getFavorite,
   setFavorite,
   clearFavorite,
+  getAllFavorites,
   RESERVED_KEYS,
   getReservedKeyLabel,
   initDefaultKeybindings,
@@ -57,7 +58,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
-import { openOmnibox, dismissOmnibox, type OmniboxInvocationSpec } from "../state/omnibox.ts"
+import { openOmnibox, dismissOmnibox, type OmniboxInvocationSpec, type OmniboxPane } from "../state/omnibox.ts"
 
 import {
   applyFoldLevel as reducerApplyFoldLevel,
@@ -514,32 +515,64 @@ export function handleKmOp(ctx: OpCtx, action: KmOp): OpResult {
 // Sub-Handlers (focused switches, each ≤25 cases)
 // =============================================================================
 
-/** Map a pick sigil to the picker UI type. Unknown sigils fall back to `project`. */
-function pickerTypeFromSigil(pick: string): "project" | "tag" | "assignee" | "item" {
+/** Map a verb chord slot to the km-commands command ID used as the omnibox defaultCommand. */
+function commandIdForPendingVerb(pendingVerb: "goto" | "move" | "link" | "create"): string {
+  switch (pendingVerb) {
+    case "goto":
+      return "goto"
+    case "move":
+      return "move"
+    case "link":
+      return "add"
+    case "create":
+      return "create_in"
+  }
+}
+
+/** Map a pick sigil to the initial omnibox buffer. Non-sigil `[` seeds an empty
+ * buffer (universal mode); the three real sigils seed themselves so the omnibox
+ * opens already in the right search mode. */
+function initialBufferForPickSigil(pick: string): string {
   switch (pick) {
     case "#":
-      return "tag"
     case "@":
-      return "assignee"
     case "+":
-      return "project"
+      return pick
     case "[":
-      return "item"
     default:
-      return "project"
+      return ""
   }
 }
 
 /**
- * Open a picker dialog for the given sigil, recording the pending verb so
- * the onSelect handler knows what to do with the picked target. Centralizes
- * the dialog-mode/push/clear-selection side effects across all four verbs.
+ * Open the unified omnibox for a verb × picker chord (e.g. `g @`, `m +`, `a #`,
+ * `c [`). Routes through `openOmnibox` with a seeded invocation spec so the
+ * single omnibox surface replaces the legacy per-sigil picker dialog.
+ *
+ * Phase 5d: the legacy `activePicker` path is no longer used for verb chords
+ * — callers now land on the unified `ui.omnibox` overlay with a pre-scoped
+ * sigil buffer and a sticky defaultCommand matching the verb. FavoritesDialog
+ * / ItemPicker still render if set directly (Phase 10 will delete them), but
+ * no chord reaches them anymore.
  */
 function openPickerForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
-  const type = pickerTypeFromSigil(pick)
-  pushDialogMode("dialog:picker")
+  const cursorId = ctx.cursor
+  const selectedIds = Array.from(ctx.selectedIds)
+  const spec: OmniboxInvocationSpec = {
+    initialBuffer: initialBufferForPickSigil(pick),
+    initialDefaultCommand: commandIdForPendingVerb(pendingVerb),
+    initialArgumentId: cursorId,
+    anchorPaneId: ctx.focusedPaneId(),
+    subjectSelection: { cursorId, selectedIds },
+    candidateProvider: () => {
+      // All nodes in the repo — the omnibox's own projection filters by
+      // sigil mode (tag/assignee/project/universal). See omnibox-projection.
+      return ctx.repo.data.getAllNodes()
+    },
+  }
+  pushDialogMode("dialog:omnibox")
   ctx.closeDetailPane()
-  ctx.setUI({ activePicker: { type, pendingVerb } })
+  openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
   clearSelection(ctx)
   return ok()
 }
@@ -1236,14 +1269,30 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       ctx.setUI({ showNewItemDialog: true })
       clearSelection(ctx)
       return ok()
-    case "SHOW_ITEM_PICKER":
-      // Legacy command (orphan — no keybinding). Defaults to the project picker
-      // in "move" mode so existing direct dispatches keep working. The verb x
-      // location grid is the canonical entry point for picker dialogs.
-      if (ctx.card || ctx.focusedPaneViewType() === "empty") {
-        return openPickerForVerb(ctx, "+", "move")
+    case "SHOW_ITEM_PICKER": {
+      // Phase 5c — orphan command (no keybinding) that historically raised the
+      // legacy ItemPicker. Now routes through the unified omnibox in universal
+      // mode so direct dispatches (programmatic / tests) still work and land
+      // on the single canonical surface. The verb x location grid is the real
+      // entry point; this case exists only so SHOW_ITEM_PICKER callers don't
+      // break during the migration.
+      if (!ctx.card && ctx.focusedPaneViewType() !== "empty") return ok()
+      const cursorId = ctx.cursor
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: "",
+        initialDefaultCommand: "default",
+        initialArgumentId: cursorId,
+        anchorPaneId: ctx.focusedPaneId(),
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => ctx.repo.data.getAllNodes(),
       }
+      pushDialogMode("dialog:omnibox")
+      ctx.closeDetailPane()
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
+      clearSelection(ctx)
       return ok()
+    }
     case "SHOW_TASK_DIALOG":
       ctx.toastQueue.info("Task dialog not yet implemented")
       ctx.setUI({})
@@ -1366,7 +1415,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         },
       }
       pushDialogMode("dialog:omnibox")
-      openOmnibox(ctx.setUI as (patch: { omnibox: import("../state/omnibox.ts").OmniboxPane | null }) => void, spec)
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
       return ok()
     }
     case "DIALOG_NAV_UP":
@@ -1488,11 +1537,39 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
     case "DELETE_CONFIRM_CANCEL":
       ctx.setUI({ deleteConfirm: null })
       return ok()
-    case "MANAGE_FAVORITES":
-      pushDialogMode("dialog:favorites")
-      ctx.setUI({ showFavoritesDialog: true, favoritesSelectedKey: null })
+    case "MANAGE_FAVORITES": {
+      // Phase 5b — reroute shift-m through the unified omnibox. The legacy
+      // FavoritesDialog surface is preserved (rendered if ui.showFavoritesDialog
+      // is set directly — no chord does that anymore) pending Phase 10 cleanup.
+      //
+      // Scope: only nodes that are currently favorited. The favorites map
+      // stores nodeId values; we look them up through the repo and filter
+      // nulls (favorites pointing at deleted nodes are a repo-consistency
+      // concern, not an omnibox concern).
+      const cursorId = ctx.cursor
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: "",
+        initialDefaultCommand: "manage_favorites",
+        initialArgumentId: cursorId,
+        anchorPaneId: ctx.focusedPaneId(),
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => {
+          const favs = getAllFavorites()
+          const nodes: KNode[] = []
+          for (const nodeId of favs.values()) {
+            const node = ctx.repo.getNode(nodeId)
+            if (node != null) nodes.push(node)
+          }
+          return nodes
+        },
+      }
+      pushDialogMode("dialog:omnibox")
+      ctx.closeDetailPane()
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
       clearSelection(ctx)
       return ok()
+    }
     case "FAVORITES_SELECT_KEY":
       return handleFavoritesSelectKey(ctx, action.key)
     case "FAVORITES_ASSIGN":
@@ -2496,7 +2573,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   }
   if (ui.omnibox) {
     popDialogMode()
-    dismissOmnibox(ctx.setUI as (patch: { omnibox: import("../state/omnibox.ts").OmniboxPane | null }) => void)
+    dismissOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void)
     return ok()
   }
   if (ui.searchReplace) {
