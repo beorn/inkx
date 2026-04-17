@@ -100,7 +100,7 @@ export const invariants = {
    * Cursor should exist and be valid when not in a dialog
    */
   validCursor(state: FuzzState, action: string): void {
-    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem
 
     if (!inDialog) {
       expect(state.cursor, `Cursor missing after ${action}`).toBeDefined()
@@ -138,7 +138,7 @@ export const invariants = {
    * Note: help can overlay other dialogs, so we exclude it
    */
   mutuallyExclusiveDialogs(state: FuzzState, action: string): void {
-    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.itemPicker].filter(Boolean).length
+    const mainDialogs = [state.dialogs.search, state.dialogs.newItem].filter(Boolean).length
 
     expect(mainDialogs, `Multiple main dialogs open after ${action}`).toBeLessThanOrEqual(1)
   },
@@ -168,8 +168,7 @@ export const invariants = {
     const dialogChanged =
       state.dialogs.search !== before.dialogs.search ||
       state.dialogs.help !== before.dialogs.help ||
-      state.dialogs.newItem !== before.dialogs.newItem ||
-      state.dialogs.itemPicker !== before.dialogs.itemPicker
+      state.dialogs.newItem !== before.dialogs.newItem
 
     // Skip if view mode changed
     const viewModeChanged = state.viewMode !== before.viewMode
@@ -218,7 +217,7 @@ export const invariants = {
    * pointing at a node that no longer exists in the layout.
    */
   cursorNodeExists(state: FuzzState, action: string): void {
-    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem
 
     if (!inDialog && state.cursor.level === "card") {
       expect
@@ -284,7 +283,7 @@ export const invariants = {
    * the cursor wasn't clamped after a layout change (fold, filter, zoom).
    */
   cursorWithinBounds(state: FuzzState, action: string): void {
-    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem
 
     if (inDialog) return
     if (state.cursor.level !== "card") return

@@ -20,8 +20,6 @@ import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
-import { ItemPicker } from "./ItemPicker.tsx"
-import { loadProjectOptions, loadTagOptions, loadAssigneeOptions, loadItemOptions } from "./picker-loaders.ts"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
@@ -36,56 +34,11 @@ import { dispatchCommandById, defaultBuildOpCtx } from "../board/board-app.ts"
 import { buildKeybindingContextFromOpCtx } from "../board/command-bridge.ts"
 import { FILTER_PANEL_WIDTH, computeOmniboxDialogWidth, OMNIBOX_MAX_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
-import type { PickerLoadOptions } from "./ItemPicker.tsx"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
 import { applySigilRule, dispatchOmnibox, dismissOmnibox, modeOf, type OmniboxPane } from "../state/omnibox.ts"
 import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
-
-// =============================================================================
-// Picker configuration per type
-// =============================================================================
-
-type PickerType = "project" | "tag" | "assignee" | "item"
-type PendingVerb = "goto" | "move" | "link" | "create"
-
-const pickerConfig: Record<
-  PickerType,
-  {
-    title: string
-    loadOptions: PickerLoadOptions
-    emptyLabel: string
-  }
-> = {
-  project: { title: "project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
-  tag: { title: "tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
-  assignee: { title: "context", loadOptions: loadAssigneeOptions, emptyLabel: "No matching contexts" },
-  item: { title: "item", loadOptions: loadItemOptions, emptyLabel: "No matching items" },
-}
-
-/** Verb-aware picker title for any picker type. A single dialog is
- *  reused across pickers — the title distinguishes intent by verb prefix,
- *  not by which sigil was typed. Matches the bare-sigil semantics where
- *  `+` `@` `#` `[` default to "go to" and explicit chords (a +, m +, c +)
- *  keep their original verbs. */
-function pickerTitle(type: "item" | "project" | "tag" | "assignee", verb: PendingVerb | undefined): string {
-  const noun = pickerConfig[type].title
-  switch (verb) {
-    case "goto":
-      return `Go to ${noun}`
-    case "move":
-      return `Move to ${noun}`
-    case "link":
-      return `Link to ${noun}`
-    case "create":
-      return `Create under ${noun}`
-    default:
-      // Fallback — legacy call sites without an explicit verb. Default to
-      // "go to" so the more common intent shows up in the title.
-      return `Go to ${noun}`
-  }
-}
 
 // =============================================================================
 // Dialog Layout Helpers
@@ -376,6 +329,22 @@ function UnifiedOmniboxConnector({
         targetId = argumentId
       }
 
+      // km-tui.itempicker-unify: for subject-action commands, the target
+      // is the raw tag/assignee text. The buffer is the source of truth —
+      // the user typed the exact tag/assignee they want, sigil included.
+      // Row titles from FTS results name whole nodes ("work #important"),
+      // not the tag token, so deriving the target from the buffer keeps
+      // `#important` as `#important` instead of expanding to the matching
+      // node's full title.
+      if (
+        commandToRun === "omnibox.append_tag_to_subject" ||
+        commandToRun === "omnibox.set_assignee_on_subject"
+      ) {
+        const bufferText = p.state.buffer
+        const rawFromBuffer = bufferText.startsWith("#") || bufferText.startsWith("@") ? bufferText.slice(1) : bufferText
+        targetId = rawFromBuffer.trim() || undefined
+      }
+
       // Dismiss BEFORE dispatching so popDialogMode lands before the command
       // potentially opens another dialog (keeps the scope stack clean).
       popDialogMode()
@@ -576,36 +545,6 @@ export function WorkspaceChrome({
       {/* Dialogs — all positioned using full terminal dimensions           */}
       {/* ================================================================= */}
 
-      {/* Generic picker modal (project / tag / assignee) */}
-      {ui.activePicker && (
-        <CenterDialog
-          termWidth={termWidth}
-          contentHeight={contentHeight}
-          maxWidth={80}
-          topFraction={1 / 6}
-          data-dialog="picker"
-          focusScope
-        >
-          <ItemPicker
-            title={pickerTitle(ui.activePicker.type, ui.activePicker.pendingVerb)}
-            loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
-            onSelect={
-              ui.activePicker.type === "item"
-                ? dialogHandlers.handleItemPickerSelect
-                : ui.activePicker.type === "project"
-                  ? dialogHandlers.handlePickerSelect
-                  : ui.activePicker.type === "tag"
-                    ? dialogHandlers.handleTagSelect
-                    : dialogHandlers.handleAssigneeSelect
-            }
-            onCancel={dialogHandlers.handlePickerCancel}
-            width={Math.min(80, Math.floor(termWidth / 2))}
-            height={Math.floor(contentHeight / 2)}
-            recentIds={ui.recentProjectIds}
-            emptyLabel={pickerConfig[ui.activePicker.type].emptyLabel}
-          />
-        </CenterDialog>
-      )}
       {/* New item dialog modal */}
       {ui.showNewItemDialog && (
         <CenterDialog

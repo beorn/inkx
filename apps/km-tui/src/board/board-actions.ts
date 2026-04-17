@@ -287,6 +287,8 @@ const DIALOG_TYPE_LIST = [
   "SET_PRIORITY_4",
   "SET_LABEL",
   "SET_ASSIGNEE",
+  "APPEND_TAG",
+  "SET_ASSIGNEE_VALUE",
   "DATE_PROMPT_CONFIRM",
   "DATE_PROMPT_CANCEL",
   "LOCAL_FIND_OPEN",
@@ -539,11 +541,11 @@ function initialBufferForPickSigil(pick: string): string {
  * `c [`). Routes through `openOmnibox` with a seeded invocation spec so the
  * single omnibox surface replaces the legacy per-sigil picker dialog.
  *
- * Phase 5d: the legacy `activePicker` path is no longer used for verb chords
- * — callers now land on the unified `ui.omnibox` overlay with a pre-scoped
- * sigil buffer and a sticky defaultCommand matching the verb. FavoritesDialog
- * / ItemPicker still render if set directly (Phase 10 will delete them), but
- * no chord reaches them anymore.
+ * km-tui.itempicker-unify: every verb × pick chord — and the orphan
+ * SET_LABEL / SET_ASSIGNEE / PANE_SPLIT_AND_PICK ops — now land on the
+ * unified `ui.omnibox` overlay. The legacy ItemPicker + its picker state
+ * have been deleted. The omnibox opens with a pre-scoped sigil buffer
+ * and a sticky defaultCommand matching the verb.
  */
 function openPickerForVerb(ctx: OpCtx, pick: string, pendingVerb: "goto" | "move" | "link" | "create"): OpResult {
   const cursorId = ctx.cursor
@@ -1484,7 +1486,6 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
         else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
         else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
-        else if (ctx.ui.activePicker) ctx.setUI({ activePicker: null })
       }
       return ok()
     }
@@ -1505,7 +1506,6 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
         else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
         else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
-        else if (ctx.ui.activePicker) ctx.setUI({ activePicker: null })
       }
       return ok()
     case "TOGGLE_SEARCH_SCOPE":
@@ -1574,18 +1574,72 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       return handleSetPriority(ctx, "P3")
     case "SET_PRIORITY_4":
       return handleSetPriority(ctx, "P4")
-    case "SET_LABEL":
-      pushDialogMode("dialog:picker")
+    case "SET_LABEL": {
+      // km-tui.itempicker-unify: route through the unified omnibox instead of
+      // the legacy ItemPicker. Pre-seeds the `#` sigil so FTS5 tag search is
+      // active on open. Enter runs `omnibox.append_tag_to_subject` — see
+      // packages/km-commands/src/commands/omnibox.ts.
+      const cursorId = ctx.cursor
+      if (!cursorId) return ok()
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: "#",
+        initialDefaultCommand: "omnibox.append_tag_to_subject",
+        initialArgumentId: null,
+        anchorPaneId: ctx.focusedPaneId(),
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => ctx.repo.data.getAllNodes(),
+      }
+      pushDialogMode("dialog:omnibox")
       ctx.closeDetailPane()
-      ctx.setUI({ activePicker: { type: "tag" } })
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
       clearSelection(ctx)
       return ok()
-    case "SET_ASSIGNEE":
-      pushDialogMode("dialog:picker")
+    }
+    case "SET_ASSIGNEE": {
+      // km-tui.itempicker-unify: route through the unified omnibox. Opens
+      // with `@` sigil so assignee FTS is active. Enter runs
+      // `omnibox.set_assignee_on_subject`.
+      const cursorId = ctx.cursor
+      if (!cursorId) return ok()
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: "@",
+        initialDefaultCommand: "omnibox.set_assignee_on_subject",
+        initialArgumentId: null,
+        anchorPaneId: ctx.focusedPaneId(),
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => ctx.repo.data.getAllNodes(),
+      }
+      pushDialogMode("dialog:omnibox")
       ctx.closeDetailPane()
-      ctx.setUI({ activePicker: { type: "assignee" } })
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
       clearSelection(ctx)
       return ok()
+    }
+    case "APPEND_TAG": {
+      // km-tui.itempicker-unify: writes `#tag` to a specific node's content.
+      // Dispatched by `omnibox.append_tag_to_subject` after Enter in the
+      // unified omnibox. No-op if the tag is already present.
+      const node = ctx.repo.getNode(action.nodeId)
+      if (!node) return ok()
+      const tagToken = `#${action.tag}`
+      const currentContent = node.content ?? ""
+      if (currentContent.includes(tagToken)) return ok()
+      ctx.undoHandle.setCursor(action.nodeId)
+      const newContent = currentContent ? `${currentContent} ${tagToken}` : tagToken
+      runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: action.nodeId, updates: { content: newContent } })
+      return ok()
+    }
+    case "SET_ASSIGNEE_VALUE": {
+      // km-tui.itempicker-unify: writes `assigned_to = <name>` on a specific
+      // node. Dispatched by `omnibox.set_assignee_on_subject` after Enter.
+      const node = ctx.repo.getNode(action.nodeId)
+      if (!node) return ok()
+      ctx.undoHandle.setCursor(action.nodeId)
+      runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: action.nodeId, updates: { assigned_to: action.assignee } })
+      return ok()
+    }
     case "DATE_PROMPT_CONFIRM":
       return handleDatePromptConfirm(ctx)
     case "DATE_PROMPT_CANCEL":
@@ -1673,13 +1727,29 @@ function handlePaneAction(ctx: OpCtx, action: PaneOp): OpResult {
     case "PANE_SWAP":
       ctx.swapPaneInDirection(action.direction)
       return ok()
-    case "PANE_SPLIT_AND_PICK":
+    case "PANE_SPLIT_AND_PICK": {
+      // km-tui.itempicker-unify: split first, then raise the unified omnibox
+      // on the newly-split pane with a project sigil and `omnibox.split_and_reparent`
+      // as the default command. Enter reparents the (subject) cursor under
+      // the picked project — same semantics as the legacy ItemPicker default
+      // verb on the project picker.
       ctx.splitFocusedPane("h")
-      pushDialogMode("dialog:picker")
+      const cursorId = ctx.cursor
+      const selectedIds = Array.from(ctx.selectedIds)
+      const spec: OmniboxInvocationSpec = {
+        initialBuffer: "+",
+        initialDefaultCommand: "omnibox.split_and_reparent",
+        initialArgumentId: null,
+        anchorPaneId: ctx.focusedPaneId(),
+        subjectSelection: { cursorId, selectedIds },
+        candidateProvider: () => ctx.repo.data.getAllNodes(),
+      }
+      pushDialogMode("dialog:omnibox")
       ctx.closeDetailPane()
-      ctx.setUI({ activePicker: { type: "project" } })
+      openOmnibox(ctx.setUI as (patch: { omnibox: OmniboxPane | null }) => void, spec)
       clearSelection(ctx)
       return ok()
+    }
     case "CLOSE_DETAIL_PANE": {
       const boardPane = ownerPaneId(ctx.focusedPaneId())
       ctx.closeDetailPane()
@@ -2520,11 +2590,6 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   if (ui.showFilterDialog) {
     popDialogMode()
     ctx.setUI({ showFilterDialog: false })
-    return ok()
-  }
-  if (ui.activePicker) {
-    popDialogMode()
-    ctx.setUI({ activePicker: null })
     return ok()
   }
   if (ui.showNewItemDialog) {

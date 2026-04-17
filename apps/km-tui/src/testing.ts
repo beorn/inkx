@@ -46,10 +46,6 @@ import { classifyCursorFromLens, createViewLens } from "@km/board"
 
 /** No-op dialog handlers — constant to avoid per-render allocation */
 const _NOOP_DIALOG_HANDLERS = {
-  handlePickerSelect: () => {},
-  handlePickerCancel: () => {},
-  handleTagSelect: () => {},
-  handleAssigneeSelect: () => {},
   handleNewItemCreate: () => {},
   handleNewItemCancel: () => {},
   handleSearchSelect: () => {},

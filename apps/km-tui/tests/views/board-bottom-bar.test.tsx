@@ -58,7 +58,6 @@ describe("CommandBox", () => {
     // Overlays/dialogs (global)
     showHelp: false,
     helpScrollOffset: 0,
-    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",
@@ -101,7 +100,6 @@ describe("CommandBox", () => {
     navHistoryIndex: 0,
 
     // Recent projects (global)
-    recentProjectIds: [],
 
     // Terminal state (global)
     terminalFocused: true,
@@ -262,7 +260,6 @@ describe("StatusCounters", () => {
     borderMode: "normal",
     showHelp: false,
     helpScrollOffset: 0,
-    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",
@@ -274,7 +271,6 @@ describe("StatusCounters", () => {
     showDropNotification: false,
     navHistory: [],
     navHistoryIndex: 0,
-    recentProjectIds: [],
     dimensions: { columns: 80, rows: 24 },
     isLoading: false,
     loadingStartTime: null,

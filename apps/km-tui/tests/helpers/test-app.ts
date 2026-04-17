@@ -595,7 +595,6 @@ function getHeadlessState(driver: BoardDriver): TestAppState {
   if (ds.dialogs.search) overlay = "search"
   else if (ds.dialogs.help) overlay = "help"
   else if (ds.dialogs.newItem) overlay = "newItem"
-  else if (ds.dialogs.itemPicker) overlay = "itemPicker"
   else if (ds.detailPaneOpen) overlay = "detail"
 
   // Collect visible node IDs from tree
@@ -1532,7 +1531,6 @@ function getTermlessState(
   if (s.ui.showSearchDialog) overlay = "search"
   else if (s.ui.showHelp) overlay = "help"
   else if (s.ui.showNewItemDialog) overlay = "newItem"
-  else if (s.ui.activePicker) overlay = "itemPicker"
   else if (hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId)) overlay = "detail"
 
   // Visible nodes

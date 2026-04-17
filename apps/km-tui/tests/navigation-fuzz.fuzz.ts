@@ -317,8 +317,7 @@ describe("TUI Fuzz Tests", () => {
         key === "v" &&
         !before.dialogs.search &&
         !before.dialogs.help &&
-        !before.dialogs.newItem &&
-        !before.dialogs.itemPicker
+        !before.dialogs.newItem
       ) {
         expect(after.viewMode, "View mode should change after v").not.toBe(before.viewMode)
       }

@@ -456,6 +456,36 @@ interface SetAssigneeOp {
   type: "SET_ASSIGNEE"
 }
 
+/**
+ * Append a tag to a specific node's content (km-tui.itempicker-unify).
+ *
+ * Dispatched by `omnibox.append_tag_to_subject` when the user picks a tag
+ * in the unified omnibox. The op carries the subject node id (frozen at
+ * omnibox open) and the tag text (derived from the picked candidate or
+ * the buffer). Handler appends `#tag` to `node.content` if not already
+ * present.
+ */
+interface AppendTagOp {
+  type: "APPEND_TAG"
+  nodeId: string
+  /** Tag text without leading `#`. */
+  tag: string
+}
+
+/**
+ * Set `assigned_to` on a specific node (km-tui.itempicker-unify).
+ *
+ * Dispatched by `omnibox.set_assignee_on_subject` when the user picks an
+ * assignee in the unified omnibox. Carries the subject node id (frozen at
+ * omnibox open) and the assignee name (without leading `@`).
+ */
+interface SetAssigneeValueOp {
+  type: "SET_ASSIGNEE_VALUE"
+  nodeId: string
+  /** Assignee name without leading `@`. */
+  assignee: string
+}
+
 interface IncreaseOutlineDepthOp {
   type: "INCREASE_OUTLINE_DEPTH"
 }
@@ -942,6 +972,8 @@ export type DialogOp =
   | SetPriority4Op
   | SetLabelOp
   | SetAssigneeOp
+  | AppendTagOp
+  | SetAssigneeValueOp
   | DatePromptConfirmOp
   | DatePromptCancelOp
   | LocalFindOp

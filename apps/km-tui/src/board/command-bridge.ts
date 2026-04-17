@@ -104,7 +104,7 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
     textInputFocused: PaneUI.isTextInputFocused(ui, isTextEditing),
     isInlineEditing: isTextEditing,
     searchDialogOpen: ui.showSearchDialog,
-    itemPickerOpen: !!ui.activePicker,
+    itemPickerOpen: false,
     newItemDialogOpen: ui.showNewItemDialog,
     datePromptOpen: !!ui.datePrompt,
     filterDialogOpen: ui.showFilterDialog,
