@@ -16,7 +16,7 @@ Unified CLI for searching, managing, and recovering Claude Code session history.
 
 Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
 You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
-When the `bear` daemon is up, the hook routes through `lore.inject_delta` so dedup
+When the lore daemon is up, the hook routes through `lore.inject_delta` so dedup
 state is held in memory per session (no tmpfile I/O, no 400 ms subprocess spawn).
 The hook falls back to the library `hookRecall` path (tmpfile dedup) when the
 daemon is unreachable.
@@ -25,7 +25,7 @@ daemon is unreachable.
 
 For a user query like `/recall X`, `recall X`, or "what did we do about Y":
 
-**Prefer the `bear.*` MCP tools** when they're available (registered in
+**Prefer the `lore.*` MCP tools** when they're available (registered in
 `.mcp.json`) — they call the same library as `bun recall` but without the
 ~400ms subprocess-spawn cost. The CLI remains available for humans and scripts.
 
@@ -35,11 +35,11 @@ bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP eq
 ```
 
 **Everything else** (vague, natural-language, "that time we…"):
-- Via MCP: call `bear.ask({ query: "X" })` — planner-driven, ~4–6s with speculative synth
+- Via MCP: call `lore.ask({ query: "X" })` — planner-driven, ~4–6s with speculative synth
 - Via CLI: `bun recall "X" --agent` — same library, 400ms subprocess overhead
 
 **Speculative cheap context** (when you want to see results BEFORE deciding whether to escalate):
-- Via MCP: `bear.current_brief()` for session paths/beads/tokens, then `bear.plan_only({ query })` for planner variants only (~2s, no fanout/synth)
+- Via MCP: `lore.current_brief()` for session paths/beads/tokens, then `lore.plan_only({ query })` for planner variants only (~2s, no fanout/synth)
 - Via CLI:
   ```bash
   bun recall current-brief             # ~50ms
@@ -47,7 +47,7 @@ bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP eq
   bun recall "X" --agent --debug-plan  # full planner trace if still unclear
   ```
 
-**Never** iterate by running `bun recall` or `bear.ask` with slightly different query wordings
+**Never** iterate by running `bun recall` or `lore.ask` with slightly different query wordings
 — agent mode does that internally (2 rounds with wider/deeper variants) in one call. If one
 call with agent mode doesn't find it, the answer is not in the corpus **— unless the index
 is stale**. On an empty result, `bun recall status` is the first thing to check (see
@@ -92,7 +92,7 @@ For reliable detection under parallel sessions, install the SessionStart hook in
 
 The `session-start` hook:
 1. Writes `~/.claude/bearly-sessions/pid-<claude-pid>.json` (sentinel fallback)
-2. Registers with the `bear`/lore daemon when running (canonical session state)
+2. Registers with the lore daemon when running (canonical session state)
 3. **Spawns detached `recall index --incremental`** if the FTS5 index is >1h stale
 
 The `session-end` hook:
@@ -119,11 +119,11 @@ the SessionStart hook does it automatically). Empty results ≠ absent when the
 index hasn't caught up to recent sessions.
 
 `bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
-for inspection. `bear.current_brief()` (MCP) returns the same data but via the
+for inspection. `lore.current_brief()` (MCP) returns the same data but via the
 warm daemon — faster when available, transparent fallback to the library when not.
 
-**Checking daemon state** (humans): `bun vendor/bearly/tools/bear.ts status` or
-`bun vendor/bearly/tools/bear.ts sessions`. The daemon auto-starts on first
+**Checking daemon state** (humans): `bun vendor/bearly/plugins/lore/src/cli.ts status` or
+`bun vendor/bearly/plugins/lore/src/cli.ts sessions`. The daemon auto-starts on first
 MCP call and idle-quits after 30 minutes.
 
 ## Search (default command)
