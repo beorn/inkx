@@ -23,10 +23,14 @@
  * ItemPicker.filterOptions (km-tui.picker-rank-subpath is already fixed in
  * commit 6de2f918d — that tiered floor is the starting point here).
  *
- * TODO(km-tui.omnibox-recents): `opts.recencyBoost` is a hook that receives
- * a node id and returns an additive bonus. Wire the actual MRU source once
- * km-tui.omnibox-recents ships. Keep the parameter today so callers don't
- * break when it does.
+ * `opts.recencyBoost` receives a node id and returns an additive bonus
+ * applied to the final score. Wired by callers to `getRecentsStore().getNodeBoost()`
+ * (see km-tui.omnibox-recents, `state/recents-store.ts`).
+ *
+ * Empty-query behavior: when the query has no terms, `rankResults` returns
+ * all candidates that pass sigil/task filters. If `recencyBoost` is supplied,
+ * the list is sorted by bonus desc (with 0s ordered alphabetically at the
+ * end); otherwise it falls back to the historic title-alphabetical sort.
  */
 import type { KNode } from "@km/core"
 import type { ParsedQuery, QueryTerm } from "./omnibox-query-parser.ts"
@@ -265,16 +269,24 @@ export function rankResults(
     "node" in c ? c : { node: c, title: nodeDisplayText(c) },
   )
 
-  // Empty query: return all, sorted by title (stable, lexicographic).
+  // Empty query: return all passing filters. If `recencyBoost` is provided,
+  // surface MRU first (recents-bonus desc, alphabetic fallback for untouched
+  // items); otherwise stable title-alphabetical.
   if (isEmptyQuery(parsedQuery)) {
-    return normalized
+    const rows = normalized
       .filter((c) => passesSigilFilter(c.node, parsedQuery) && passesTaskFilter(c.node, parsedQuery))
-      .map((c) => ({ node: c.node, score: 0, highlights: [] }))
-      .sort((a, b) => {
-        const ta = nodeDisplayText(a.node).toLowerCase()
-        const tb = nodeDisplayText(b.node).toLowerCase()
-        return ta < tb ? -1 : ta > tb ? 1 : a.node.id < b.node.id ? -1 : 1
-      })
+      .map((c) => ({
+        node: c.node,
+        score: opts.recencyBoost ? opts.recencyBoost(c.node.id) : 0,
+        highlights: [] as HighlightSpan[],
+      }))
+    rows.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score
+      const ta = nodeDisplayText(a.node).toLowerCase()
+      const tb = nodeDisplayText(b.node).toLowerCase()
+      return ta < tb ? -1 : ta > tb ? 1 : a.node.id < b.node.id ? -1 : 1
+    })
+    return rows
   }
 
   const scored: ScoredResult[] = []
