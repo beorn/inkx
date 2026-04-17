@@ -8,16 +8,15 @@ Related:
 
 ## Now
 
-1. **W1 — Storage: links + sigils** — [`km-storage.link-model-canonical`](../.beads) + [`km-storage.sigils`](../.beads). Unified KLink type, 3-column `links` cache, strict sigil namespaces. Canonical doc: [`docs/design/links.md`](design/links.md). Mini-MECE sweep on 8 link/sigil docs at the end.
+1. **W2 — Full-tree docs MECE review** — `km-all.docs-mece-review`. One canonical source per concept; concept-ownership map in `docs/dev/doc-map.md`; glossary reconciled; retired docs archived.
 
 ## Queued
 
-2. **W2 — Full-tree docs MECE review** — `km-all.docs-mece-review`. One canonical source per concept; concept-ownership map in `docs/dev/doc-map.md`; glossary reconciled; retired docs archived.
-3. **W3 — Omnibox v1 finish** — ship gate: `km-tui.omnibox-dialog`. Phases 2–5: ranker, command projection, when-predicate, unified dialog. In-flight: `km-tui.omnibox-quality-plateau` (legacy-dialog deletion).
-4. **W4 — TEA in silvery + aichat showcase** — `km-silvery.tea`, new `km-silvery.aichat-showcase`, new `km-silvery.version-0.18-unify`. Dogfood TEA on silvery via aichat (coding-assistant showcase). End: silvery 0.18.0 unified lockstep release; `@silvery/ag-react` public.
-5. **W5 — Theme system + aichat polish** — new `km-silvery.theme-mature`, new `km-silvery.aichat-polish`. Semantic tokens, typography presets, opencode visual parity.
-6. **W6 — TEA in km + polish** — `km-tui.tea`, new `km-tui.theme-upgrade`, new `km-tui.polish-against-showcase`. Adopt silvery's matured TEA + theme. Includes internal refactor of omnibox v1 (shipped in W3) onto TEA `apply()`.
-7. **W7 — Selection system** — `km-all.unified-selection`, `km-tui.sel-migration`. Ships on mature TEA so `apply()` chain is atomic across tree + selection. Downstream: `km-all.atomic-tree-ops` unblocks.
+2. **W3 — Omnibox v1 finish** — ship gate: `km-tui.omnibox-dialog`. Phases 2–5: ranker, command projection, when-predicate, unified dialog. In-flight: `km-tui.omnibox-quality-plateau` (legacy-dialog deletion).
+3. **W4 — TEA in silvery + aichat showcase** — `km-silvery.tea`, new `km-silvery.aichat-showcase`, new `km-silvery.version-0.18-unify`. Dogfood TEA on silvery via aichat (coding-assistant showcase). End: silvery 0.18.0 unified lockstep release; `@silvery/ag-react` public.
+4. **W5 — Theme system + aichat polish** — new `km-silvery.theme-mature`, new `km-silvery.aichat-polish`. Semantic tokens, typography presets, opencode visual parity.
+5. **W6 — TEA in km + polish** — `km-tui.tea`, new `km-tui.theme-upgrade`, new `km-tui.polish-against-showcase`. Adopt silvery's matured TEA + theme. Includes internal refactor of omnibox v1 (shipped in W3) onto TEA `apply()`.
+6. **W7 — Selection system** — `km-all.unified-selection`, `km-tui.sel-migration`. Ships on mature TEA so `apply()` chain is atomic across tree + selection. Downstream: `km-all.atomic-tree-ops` unblocks.
 
 ## Parallel (unblocked — pick up when blocked on Now)
 
@@ -42,3 +41,5 @@ Related:
 ## Done
 
 _(Dated list, newest first — entries move here as phases ship.)_
+
+- **2026-04-16 — W1 Storage: links + sigils shipped** — `km-storage.link-model-canonical` closed. Unified KLink type in `@km/core`, 3-column `links(host_id, href, rel)` cache with DATA_VERSION transparent rebuild, sigil-as-name design (no config file), letter-after-sigil parser rule, RFC 3986 percent-encoding, self-ref via bare `#Section`. 7 phases in 11 commits + 2 parallel worktree merges.
