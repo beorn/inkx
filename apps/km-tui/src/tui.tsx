@@ -28,7 +28,7 @@ import { createBoardApp } from "./board/board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
-import { terminalFocused, lastKey } from "./diagnostics.ts"
+import { terminalFocused, lastKey, startupPhase, setStartupPhase } from "./diagnostics.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
@@ -97,9 +97,74 @@ export async function runBoard(
   let syncManager: Sync | null = null
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
+  // Event-loop heartbeat: detect main-thread blocks >500ms
+  // Reports last key, current startup phase, render pipeline timing, render count, and cause
+  // Pauses when terminal loses focus (saves CPU/battery — no diagnostics needed while blurred)
+  // Started early so it covers sync-manager-init, detectTheme, React mount, etc.
+  if (isInteractive) {
+    const memLog = createLogger("km:memory")
+    let memoryTickCount = 0
+    const MEMORY_LOG_INTERVAL = 150 // Every 150 ticks * 200ms = 30s
+    let lastHeartbeat = performance.now()
+    let lastRenderCount = 0
+    heartbeatInterval = setInterval(() => {
+      if (terminalFocused === false) {
+        lastHeartbeat = performance.now()
+        return
+      }
+      const now = performance.now()
+      const gap = now - lastHeartbeat
+      if (gap > 500) {
+        const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
+        if (lastKey) {
+          parts.push(`after key='${lastKey}'`)
+        } else if (startupPhase) {
+          parts.push(`(startup:${startupPhase})`)
+        } else {
+          parts.push("(startup)")
+        }
+
+        const pipeline = globalThis.__silvery_last_pipeline
+        const renderCount = globalThis.__silvery_render_count ?? 0
+        const rendersSinceLastCheck = renderCount - lastRenderCount
+        lastRenderCount = renderCount
+
+        if (pipeline && rendersSinceLastCheck > 0) {
+          const phases = [
+            pipeline.content > 1 ? `content=${pipeline.content.toFixed(0)}ms` : null,
+            pipeline.output > 1 ? `output=${pipeline.output.toFixed(0)}ms` : null,
+            pipeline.layout > 1 ? `layout=${pipeline.layout.toFixed(0)}ms` : null,
+            pipeline.measure > 1 ? `measure=${pipeline.measure.toFixed(0)}ms` : null,
+          ]
+            .filter(Boolean)
+            .join(" ")
+          if (phases) parts.push(`render: ${phases} (total=${pipeline.total.toFixed(0)}ms)`)
+          if (rendersSinceLastCheck > 1) parts.push(`(${rendersSinceLastCheck} renders)`)
+        } else if (rendersSinceLastCheck === 0) {
+          parts.push("(no renders — React mount or sync I/O)")
+        }
+
+        log.warn?.(parts.join(" — "))
+      }
+      lastHeartbeat = now
+
+      // Periodic memory diagnostics (every ~30s)
+      if (memLog.debug) {
+        memoryTickCount++
+        if (memoryTickCount % MEMORY_LOG_INTERVAL === 0) {
+          const mem = process.memoryUsage()
+          memLog.debug?.(
+            `rss=${(mem.rss / 1024 / 1024).toFixed(0)}MB heap=${(mem.heapUsed / 1024 / 1024).toFixed(0)}/${(mem.heapTotal / 1024 / 1024).toFixed(0)}MB external=${(mem.external / 1024 / 1024).toFixed(0)}MB`,
+          )
+        }
+      }
+    }, 200)
+  }
+
   const rootPath = options.repo.path
   if (isInteractive && rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
+    setStartupPhase("sync-init")
     const useWorker = options?.watchWorker !== false
     log.debug?.(`Creating sync rootPath=${rootPath} watch=true worker=${useWorker}`)
     // withSync decorates the repo, wrapping apply() to add FS sync
@@ -159,75 +224,11 @@ export async function runBoard(
     })(options.repo)
     syncManager = syncedRepo
 
+    setStartupPhase("sync-start")
     log.debug?.("Starting sync...")
     syncManager.start()
     log.debug?.("sync started")
-
-    // Memory diagnostics: log RSS growth every 30s when km:memory debug is enabled.
-    // Useful for identifying memory leaks in long-running sessions.
-    const memLog = createLogger("km:memory")
-    let memoryTickCount = 0
-    const MEMORY_LOG_INTERVAL = 150 // Every 150 ticks * 200ms = 30s
-
-    // Event-loop heartbeat: detect main-thread blocks >500ms
-    // Reports last key, render pipeline phase breakdown, render count, and cause
-    // Pauses when terminal loses focus (saves CPU/battery — no diagnostics needed while blurred)
-    let lastHeartbeat = performance.now()
-    let lastRenderCount = 0
-    heartbeatInterval = setInterval(() => {
-      if (terminalFocused === false) {
-        // Reset heartbeat baseline so we don't false-alarm on refocus
-        lastHeartbeat = performance.now()
-        return
-      }
-      const now = performance.now()
-      const gap = now - lastHeartbeat
-      if (gap > 500) {
-        const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
-
-        // Last key that was pressed (set by board-app handleKey)
-        if (lastKey) {
-          parts.push(`after key='${lastKey}'`)
-        } else {
-          parts.push("(startup)")
-        }
-
-        // Per-phase pipeline timing from last render
-        const pipeline = globalThis.__silvery_last_pipeline
-        const renderCount = globalThis.__silvery_render_count ?? 0
-        const rendersSinceLastCheck = renderCount - lastRenderCount
-        lastRenderCount = renderCount
-
-        if (pipeline && rendersSinceLastCheck > 0) {
-          const phases = [
-            pipeline.content > 1 ? `content=${pipeline.content.toFixed(0)}ms` : null,
-            pipeline.output > 1 ? `output=${pipeline.output.toFixed(0)}ms` : null,
-            pipeline.layout > 1 ? `layout=${pipeline.layout.toFixed(0)}ms` : null,
-            pipeline.measure > 1 ? `measure=${pipeline.measure.toFixed(0)}ms` : null,
-          ]
-            .filter(Boolean)
-            .join(" ")
-          if (phases) parts.push(`render: ${phases} (total=${pipeline.total.toFixed(0)}ms)`)
-          if (rendersSinceLastCheck > 1) parts.push(`(${rendersSinceLastCheck} renders)`)
-        } else if (rendersSinceLastCheck === 0) {
-          parts.push("(no renders — React mount or sync I/O)")
-        }
-
-        log.warn?.(parts.join(" — "))
-      }
-      lastHeartbeat = now
-
-      // Periodic memory diagnostics (every ~30s)
-      if (memLog.debug) {
-        memoryTickCount++
-        if (memoryTickCount % MEMORY_LOG_INTERVAL === 0) {
-          const mem = process.memoryUsage()
-          memLog.debug?.(
-            `rss=${(mem.rss / 1024 / 1024).toFixed(0)}MB heap=${(mem.heapUsed / 1024 / 1024).toFixed(0)}/${(mem.heapTotal / 1024 / 1024).toFixed(0)}MB external=${(mem.external / 1024 / 1024).toFixed(0)}MB`,
-          )
-        }
-      }
-    }, 200)
+    setStartupPhase("post-sync")
   }
 
   // Register error handlers to clean up terminal on crash
@@ -282,6 +283,7 @@ export async function runBoard(
     log.debug?.(`Starting TUI isInteractive=${isInteractive}`)
 
     // Derive initial collapsed nodes from repo data (rules.collapse + data.collapsed)
+    setStartupPhase("collapsed-derive")
     const collapsedNodeIds = new Set<string>()
     if (rootId) {
       for (const child of options.repo.getChildren(rootId)) {
@@ -298,6 +300,7 @@ export async function runBoard(
     const viewMode = options?.initialViewMode ?? "cards"
 
     // Load locations config (favorites, system locations, journal template)
+    setStartupPhase("load-config")
     const vaultPath = options.repo.path
     if (vaultPath) {
       const config = loadConfig(vaultPath)
@@ -310,6 +313,7 @@ export async function runBoard(
 
     // Restore saved workspace (layout, view mode, filters, zoom location).
     // Falls back gracefully if the saved state can't be resolved (deleted nodes, etc.).
+    setStartupPhase("load-workspace")
     const savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
 
     if (savedWorkspace) {
@@ -317,11 +321,13 @@ export async function runBoard(
     }
 
     // Detect terminal theme from actual colors (OSC 4/10/11) with fallback
+    setStartupPhase("detect-theme")
     const theme = await detectTheme({ caps })
     log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
+    setStartupPhase("init-lens")
     const initLens = createVisibleLens(createViewLens(options.repo, { rootId, foldDepths: new Map() }), {
       collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
     })
@@ -343,6 +349,7 @@ export async function runBoard(
     }
 
     // Create reactive store from repo: wrap Repo as Store, then add signal reactivity
+    setStartupPhase("reactive-store")
     using reactiveStore = withReactive(createStoreFromRepo(options.repo))
     log.debug?.("reactive store created for fine-grained per-node reactivity")
 
@@ -358,6 +365,7 @@ export async function runBoard(
     //     withFocus(),
     //     withDomEvents(),
     //   )
+    setStartupPhase("create-board-app")
     const boardApp = createBoardApp(storeParams)
 
     {
@@ -365,6 +373,7 @@ export async function runBoard(
       // With progressive column loading, the first render is an empty board frame
       // (fast), then columns fill in one-by-one on the alt screen. No need to show
       // "Rendering..." — the board frame appears almost immediately.
+      setStartupPhase("react-mount")
       const handle = await boardApp.run(
         <ThemeProvider theme={theme}>
           <RepoProvider repo={options.repo}>
@@ -397,6 +406,11 @@ export async function runBoard(
       // Now that alternate screen is active, notify caller (CLI uses this
       // to flush buffered debug output to Console component)
       if (patched) options?.onReady?.()
+
+      // React mount is done; we're past startup. Any further event-loop block
+      // is a post-mount issue (first keypress, sync reconciliation, etc.) —
+      // marking phase=idle so the heartbeat attributes correctly.
+      setStartupPhase("idle")
 
       // km-silvery.selection-contains retired the old startup walkOrder
       // warmup. With `SelectionApp.tree.contains(id)` backed by an O(1) repo
