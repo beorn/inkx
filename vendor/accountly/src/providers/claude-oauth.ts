@@ -270,15 +270,14 @@ export function createClaudeOAuthProvider(): QuotaProvider {
               limit: value.monthly_limit,
             })
           } else if (isUsageWindow(value)) {
-            const utilization = Math.round(value.utilization)
             // Hide unknown/experimental window keys (e.g. Anthropic A/B-test
-            // codenames like `seven_day_omelette`, `iguana_necktie`) unless
-            // they're actually accruing usage — so dormant codenames stay out
-            // of the UI but active ones surface under their raw name.
-            if (!(key in WINDOW_LABELS) && utilization === 0) continue
+            // codenames like `seven_day_omelette`, `iguana_necktie`). They
+            // expose nothing actionable — when a real new window ships,
+            // it gets a label here.
+            if (!(key in WINDOW_LABELS)) continue
             windows.push({
-              name: WINDOW_LABELS[key] ?? key,
-              utilization,
+              name: WINDOW_LABELS[key],
+              utilization: Math.round(value.utilization),
               resetsAt: value.resets_at,
             })
           }
