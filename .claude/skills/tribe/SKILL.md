@@ -28,9 +28,9 @@ Cross-session coordination. Parse the subcommand from ARGUMENTS.
 | `/tribe history <name>` | `tribe.history(with=name, limit=20)` — messages with specific session |
 | `/tribe rename <new_name>` | `tribe.rename(new_name)` — rename this session |
 | `/tribe whoami` | Show this session's name, role, and domains |
-| `/tribe db <sql>` | `sqlite3 .beads/tribe.db "<sql>"` — raw query |
-| `/tribe log` | `sqlite3 .beads/tribe.db "SELECT sender, recipient, type, substr(content,1,80), datetime(ts/1000,'unixepoch','localtime') FROM messages ORDER BY ts DESC LIMIT 20"` |
-| `/tribe events` | `sqlite3 .beads/tribe.db "SELECT type, session, datetime(ts/1000,'unixepoch','localtime') FROM events ORDER BY ts DESC LIMIT 20"` |
+| `/tribe db <sql>` | `sqlite3 ~/.local/share/tribe/tribe.db "<sql>"` — raw query |
+| `/tribe log` | `sqlite3 ~/.local/share/tribe/tribe.db "SELECT sender, recipient, type, substr(content,1,80), datetime(ts/1000,'unixepoch','localtime') FROM messages ORDER BY ts DESC LIMIT 20"` |
+| `/tribe events` | `sqlite3 ~/.local/share/tribe/tribe.db "SELECT type, session, datetime(ts/1000,'unixepoch','localtime') FROM events ORDER BY ts DESC LIMIT 20"` |
 | `/tribe sync` | Broadcast asking all members to ensure their work is tracked in beads (see below) |
 | `/tribe rollcall` | Broadcast asking all members to report name, status, and current work |
 
@@ -106,7 +106,7 @@ bun tribe doctor           # Verify daemon + MCP + hooks + env
 ## Notes
 
 - If tribe tools are not available (MCP server not loaded), tell the user to run `claude-tribe` instead of `claude`
-- The tribe DB is at `.beads/tribe.db`
+- The tribe DB is at `~/.local/share/tribe/tribe.db` (user-global default since 2026-04-18; legacy `.beads/tribe.db` is auto-migrated on first start)
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
 - After updating tribe.ts, use `tribe.reload` to pick up changes without restarting the session
 - **Chief runbook**: See [runbook.md](runbook.md) for operational procedures (health checks, version sync, troubleshooting)
@@ -130,4 +130,4 @@ Tribe can run as a single daemon process per project. Sessions connect via Unix 
 - **Proxy** (`tribe-proxy.ts`): Thin MCP server forwarding to daemon. ~230 lines, no DB access.
 - **Auto-start**: Proxy spawns daemon if not running. Auto-quit after 30s with no clients.
 - **Hot-reload**: SIGHUP re-execs daemon with socket fd transfer. No connection loss.
-- **Socket**: `.beads/tribe.sock` (per-project, auto-discovered)
+- **Socket**: `~/.local/share/tribe/tribe.sock` (user-global, auto-discovered; `TRIBE_SOCKET` env var overrides)

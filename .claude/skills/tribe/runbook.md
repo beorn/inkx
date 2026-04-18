@@ -63,13 +63,13 @@ tribe.health()
 ### 6. Orphan Cleanup
 ```bash
 # Check for dead PIDs in active sessions
-sqlite3 .beads/tribe.db "SELECT name, pid FROM sessions WHERE pruned_at IS NULL"
+sqlite3 ~/.local/share/tribe/tribe.db "SELECT name, pid FROM sessions WHERE pruned_at IS NULL"
 ```
 For each PID, verify it's alive: `kill -0 <pid>`. Prune dead ones.
 
 ### 7. SQLite Health
 ```bash
-sqlite3 .beads/tribe.db "PRAGMA integrity_check; PRAGMA wal_checkpoint(TRUNCATE);"
+sqlite3 ~/.local/share/tribe/tribe.db "PRAGMA integrity_check; PRAGMA wal_checkpoint(TRUNCATE);"
 ```
 If WAL file grows large, checkpoint it.
 
