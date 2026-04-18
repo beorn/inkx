@@ -26,7 +26,7 @@ import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
-import { dispatchSelection } from "../state/selection.ts"
+import { dispatchSelection, NO_SELECTION, nodeSelect, textCaret } from "../state/selection.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
@@ -723,7 +723,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
               }
             }
             const target: string = firstCard ?? rootId
-            freshCtx.sel.node.select([target as import("@silvery/selection").ID])
+            freshCtx.setSelection(nodeSelect(target))
             freshCtx.setUI({
               status: {
                 level: "warning",
@@ -971,7 +971,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // Exit any edit mode first so the dialog opens cleanly
         if (opctx.sel.text()) {
           activeEditTargetRef.current?.save()
-          opctx.sel.text.deselect()
+          opctx.setSelection(NO_SELECTION)
         }
         handleKmOp(opctx, { type: "SHOW_FILTER_DIALOG" })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
@@ -984,10 +984,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // a visible target to re-enter "board level".
         if (opctx.sel.text()) {
           activeEditTargetRef.current?.save()
-          opctx.sel.text.deselect()
+          opctx.setSelection(NO_SELECTION)
         }
         if (opctx.rootId) {
-          opctx.sel.node.select([opctx.rootId as ID])
+          opctx.setSelection(nodeSelect(opctx.rootId))
         }
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
@@ -1020,9 +1020,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             }
           } else if (nodeId) {
             // Different node in same card → save + re-enter edit on clicked node
+            // Paired pattern collapsed: sel.text.edit already selects the node.
             activeEditTargetRef.current?.save()
-            opctx.sel.node.select([nodeId as ID])
-            opctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+            opctx.setSelection(textCaret(nodeId, 0))
             opctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
           }
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
@@ -1030,7 +1030,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
         // Different card → exit edit mode, fall through to normal click
         activeEditTargetRef.current?.save()
-        opctx.sel.text.deselect()
+        opctx.setSelection(NO_SELECTION)
       }
 
       // Empty-space-in-column click: the click landed on a column box (no card
@@ -1044,8 +1044,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // Do NOT set cursor=rootId: the view treats rootId as "cursor
         // intentionally walked up to board level" and tints the entire
         // board (selection-style.ts rule 4). Empty-space clicks should
-        // clear all selection and all highlighting.
-        opctx.sel.node.select([])
+        // clear all selection and all highlighting. The empty-ids form
+        // maps to sel.deselect() (full clear), not sel.text.deselect()
+        // (which preserves the cursor) — see dispatchSelection comments.
+        opctx.setSelection({ type: "node", ids: [] })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
@@ -1054,7 +1056,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // double-clicking a column header enters inline edit (title-as-card behavior).
       if (isDoubleClick) {
         // Double-click → select and enter inline edit on the clicked node
-        opctx.sel.node.select([selectId as ID])
+        opctx.setSelection(nodeSelect(selectId))
         handleKmOp(opctx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0, nodeId: null } // Reset to prevent triple-click triggering
         return
@@ -1062,7 +1064,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       if (isColumnNode) {
         // Column header single click → select the column (not board root)
-        opctx.sel.node.select([selectId as ID])
+        opctx.setSelection(nodeSelect(selectId))
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
         return
       }
@@ -1076,12 +1078,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
 
       if (mouse.ctrl) {
+        // TODO(km-tui.sel-migration): toggle pattern deferred to Phase 3
         // Ctrl-click → move cursor to card and toggle its selection
         opctx.sel.node.select([selectId as ID], true)
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
       } else {
         // Single click → select the card (not sub-block)
-        opctx.sel.node.select([selectId as ID])
+        opctx.setSelection(nodeSelect(selectId))
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
       }
       return

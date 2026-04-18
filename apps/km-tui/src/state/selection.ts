@@ -144,6 +144,14 @@ export interface SelectionDispatch {
  * Phase 0 contract: `setSelection` is additive. Old writers (`sel.node.select`,
  * `sel.text.edit`) continue to compile and work. Migration happens one call
  * site at a time via km-tui.sel-migration.
+ *
+ * Two distinct "empty" dispatches:
+ * - `NO_SELECTION` exits any sub-selection (text mode) but **preserves the
+ *   node cursor** — historically this was `sel.text.deselect()`. Most call
+ *   sites want this: "exit edit mode, don't jump the cursor."
+ * - `{type: "node", ids: []}` **clears everything** (cursor + ids + sub) —
+ *   historically this was `sel.node.select([])`. Empty-space clicks, logout,
+ *   etc. want this stronger semantics.
  */
 export function dispatchSelection(ctx: SelectionDispatch, sel: Selection): void {
   const { sel: store } = ctx
@@ -157,6 +165,8 @@ export function dispatchSelection(ctx: SelectionDispatch, sel: Selection): void 
     }
     case "node": {
       if (sel.ids.length === 0) {
+        // Stronger semantics: clear cursor + ids + sub. Used by empty-space
+        // clicks and explicit "deselect all" commands.
         store.deselect()
         return
       }
@@ -165,14 +175,17 @@ export function dispatchSelection(ctx: SelectionDispatch, sel: Selection): void 
     }
     case "gap": {
       // GapSelection has no @silvery/selection backing yet. For now we treat
-      // it as a deselect — the gap position is a UI concern the caller tracks
-      // separately. When @silvery/selection gains a gap sub-kind, this
-      // dispatcher will grow a third branch.
-      store.deselect()
+      // it as a sub-selection exit — the gap position is a UI concern the
+      // caller tracks separately. When @silvery/selection gains a gap
+      // sub-kind, this dispatcher will grow a third branch.
+      store.text.deselect()
       return
     }
     case "none": {
-      store.deselect()
+      // Exit sub-selection only. Preserves node cursor so exiting edit
+      // mode doesn't lose the user's place. Use {type:"node", ids:[]}
+      // for a full deselect.
+      store.text.deselect()
       return
     }
   }

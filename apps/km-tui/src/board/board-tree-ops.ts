@@ -10,8 +10,8 @@
  */
 
 import { split, mergeBackward, mergeForward, type SplitResult, type MergeResult } from "@km/tree"
-import type { ID } from "@silvery/selection"
 import type { OpCtx } from "../tui-context.ts"
+import { textCaret } from "../state/selection.ts"
 
 // =============================================================================
 // Split
@@ -26,8 +26,7 @@ export function boardSplit(ctx: OpCtx, nodeId: string, offset: number): SplitRes
   ctx.undoHandle.startBatch("Split node")
   const result = split(ctx.repo, nodeId, offset)
   ctx.undoHandle.endBatch()
-  ctx.sel.node.select([result.afterId as ID])
-  ctx.sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(result.afterId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   return result
 }
@@ -47,8 +46,7 @@ export function boardMergeBackward(ctx: OpCtx, nodeId: string): MergeResult | nu
   ctx.undoHandle.endBatch()
   if (result) {
     // Stay in edit mode on the survivor at the merge point
-    ctx.sel.node.select([result.survivorId as ID])
-    ctx.sel.text.edit(result.survivorId as import("@silvery/selection").ID, result.cursorOffset)
+    ctx.setSelection(textCaret(result.survivorId, result.cursorOffset))
     ctx.textEditHints = { blockIndex: 0 }
   }
   return result
@@ -69,8 +67,7 @@ export function boardMergeForward(ctx: OpCtx, nodeId: string): MergeResult | nul
   ctx.undoHandle.endBatch()
   if (result) {
     // Stay in edit mode on the survivor at the merge point
-    ctx.sel.node.select([result.survivorId as ID])
-    ctx.sel.text.edit(result.survivorId as import("@silvery/selection").ID, result.cursorOffset)
+    ctx.setSelection(textCaret(result.survivorId, result.cursorOffset))
     ctx.textEditHints = { blockIndex: 0 }
   }
   return result

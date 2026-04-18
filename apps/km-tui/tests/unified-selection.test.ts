@@ -123,22 +123,22 @@ describe("dispatchSelection — one entry point, three writers", () => {
     expect(calls).toEqual([{ method: "node.select", args: [["n1", "n2"]] }])
   })
 
-  test("empty node selection → sel.deselect() (canonical empty)", () => {
+  test("empty node selection → sel.deselect() (stronger: clears cursor too)", () => {
     const { ctx, calls } = createMockDispatch()
     dispatchSelection(ctx, { type: "node", ids: [] })
     expect(calls).toEqual([{ method: "deselect", args: [] }])
   })
 
-  test("gap selection → sel.deselect() (no store backing yet)", () => {
+  test("gap selection → sel.text.deselect() (preserves cursor)", () => {
     const { ctx, calls } = createMockDispatch()
     dispatchSelection(ctx, gapSelect("n1", "before"))
-    expect(calls).toEqual([{ method: "deselect", args: [] }])
+    expect(calls).toEqual([{ method: "text.deselect", args: [] }])
   })
 
-  test("NO_SELECTION → sel.deselect()", () => {
+  test("NO_SELECTION → sel.text.deselect() (exits sub-selection, preserves cursor)", () => {
     const { ctx, calls } = createMockDispatch()
     dispatchSelection(ctx, NO_SELECTION)
-    expect(calls).toEqual([{ method: "deselect", args: [] }])
+    expect(calls).toEqual([{ method: "text.deselect", args: [] }])
   })
 })
 
@@ -157,9 +157,9 @@ describe("dispatchSelection — replaces paired-op coordination", () => {
     expect(calls.map((c) => c.method)).toEqual(["text.edit"])
   })
 
-  test("node-then-deselect collapses to single deselect", () => {
-    // BEFORE: ctx.sel.node.select([]); ctx.sel.text.deselect()
-    // AFTER: ctx.setSelection(NO_SELECTION)
+  test("NO_SELECTION maps to a single text.deselect (preserves cursor)", () => {
+    // BEFORE: ctx.sel.text.deselect()
+    // AFTER:  ctx.setSelection(NO_SELECTION)
     const { ctx, calls } = createMockDispatch()
     dispatchSelection(ctx, NO_SELECTION)
     expect(calls.length).toBe(1)
@@ -201,7 +201,7 @@ describe("setSelection behaviour matches ctx shape", () => {
     expect(calls).toEqual([
       { method: "text.edit", args: ["a", 3] },
       { method: "node.select", args: [["b"]] },
-      { method: "deselect", args: [] },
+      { method: "text.deselect", args: [] },
     ])
   })
 
@@ -223,6 +223,6 @@ describe("setSelection behaviour matches ctx shape", () => {
     expect(sel.node.select).toHaveBeenCalledWith(["x", "y"])
 
     setSelection(NO_SELECTION)
-    expect(sel.deselect).toHaveBeenCalled()
+    expect(sel.text.deselect).toHaveBeenCalled()
   })
 })

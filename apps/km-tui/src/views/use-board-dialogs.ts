@@ -14,6 +14,7 @@ import type { PaneUI } from "../state/ui-reducer.ts"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigation/navigate-to-node.ts"
+import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 
 const log = createLogger("km:tui:dialogs")
 
@@ -125,7 +126,7 @@ export function useBoardDialogs({
 
       if (nav.action === "SELECT") {
         // Target is already visible (child/grandchild of root, or IS the root)
-        sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+        dispatchSelection({ sel }, nodeSelect(nav.cursorTarget))
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         // Zoom target would produce a flat list — zoom there but also open detail pane
         // so the user sees rich content instead of a single-column flat board.
@@ -133,7 +134,7 @@ export function useBoardDialogs({
         // Mirror sel.root to pane.rootId so the sel-root-matches-rootId
         // invariant holds — see navigateToPickedNode for the full rationale.
         sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
-        if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+        if (nav.cursorTarget) dispatchSelection({ sel }, nodeSelect(nav.cursorTarget))
         openDetailPane()
       } else {
         // Target is deeper — zoom to make it a visible card.
@@ -142,7 +143,7 @@ export function useBoardDialogs({
         if (nav.zoomTarget) {
           dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
           sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
-          if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+          if (nav.cursorTarget) dispatchSelection({ sel }, nodeSelect(nav.cursorTarget))
         }
       }
     },

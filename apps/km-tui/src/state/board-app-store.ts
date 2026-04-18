@@ -47,6 +47,7 @@ import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createSelection, type SelectionStore } from "@silvery/selection"
 import { signal, effect } from "alien-signals"
+import { dispatchSelection, NO_SELECTION, nodeSelect } from "./selection.ts"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { createPaneSignals } from "./pane-signals.ts"
 import { computeHiddenNodeIds } from "../hidden.ts"
@@ -603,9 +604,9 @@ export function createBoardAppStoreState(
       const lens = pane.signals.visibleLens()
       const fallback = lens.walkOrder.find((id) => id !== lens.rootId) ?? null
       if (fallback) {
-        pane.sel.node.select([fallback as import("@silvery/selection").ID])
+        dispatchSelection({ sel: pane.sel }, nodeSelect(fallback))
       } else {
-        pane.sel.node.select([])
+        dispatchSelection({ sel: pane.sel }, NO_SELECTION)
       }
     }
 
@@ -773,7 +774,7 @@ export function createBoardAppStoreState(
             // If multi-selection is active, preserve it and just move cursor.
             // Otherwise, set cursor with a single-item selection.
             if (ids.length <= 1) {
-              s.sel.node.select([action.nodeId as import("@silvery/selection").ID])
+              dispatchSelection({ sel: s.sel }, nodeSelect(action.nodeId))
             }
           }
           // Derive cursor ancestors from the visible lens (O(depth) parent walk).
@@ -830,7 +831,7 @@ export function createBoardAppStoreState(
               }
               // Sync the detail pane's sel with the new cursor
               if (newFirstItemId) {
-                detailPane.sel.node.select([newFirstItemId as import("@silvery/selection").ID])
+                dispatchSelection({ sel: detailPane.sel }, nodeSelect(newFirstItemId))
               }
             }
           }
@@ -950,7 +951,7 @@ export function createBoardAppStoreState(
               }
               // Restore cursor to pre-move position via sel store
               if (sourceCursor) {
-                pane.sel.node.select([sourceCursor as import("@silvery/selection").ID])
+                dispatchSelection({ sel: pane.sel }, nodeSelect(sourceCursor))
               }
               break
             }
@@ -995,7 +996,7 @@ export function createBoardAppStoreState(
             s.selTreeSource.update(lens)
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
-              s.sel.node.select([cursorId as import("@silvery/selection").ID])
+              dispatchSelection({ sel: s.sel }, nodeSelect(cursorId))
             }
           }
           // NodeStore cursor/fold/sticky sync is handled by alien-signals effects
@@ -1119,12 +1120,12 @@ export function createBoardAppStoreState(
           if (boardPaneCursorId) {
             const rescuedId = findVisibleAncestor(boardPaneCursorId, lens, boardPane.foldDepths)
             if (rescuedId !== null && rescuedId !== boardPaneCursorId) {
-              boardPane.sel.node.select([rescuedId as import("@silvery/selection").ID])
+              dispatchSelection({ sel: boardPane.sel }, nodeSelect(rescuedId))
             }
             s.selTreeSource.update(lens)
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
-              s.sel.node.select([(rescuedId ?? boardPaneCursorId) as import("@silvery/selection").ID])
+              dispatchSelection({ sel: s.sel }, nodeSelect(rescuedId ?? boardPaneCursorId))
             }
           }
         }
@@ -1198,7 +1199,7 @@ export function createBoardAppStoreState(
           if (!detail) return state
           // Set cursor via sel store (sole authority)
           if (id) {
-            detail.sel.node.select([id as import("@silvery/selection").ID])
+            dispatchSelection({ sel: detail.sel }, nodeSelect(id))
           }
           return state
         })
@@ -1249,7 +1250,7 @@ export function createBoardAppStoreState(
           // Initialize the detail pane's sel with the initial cursor
           if (firstItemId && detailPane.signals) {
             detailPane.selTreeSource.update(detailPane.signals.visibleLens())
-            detailPane.sel.node.select([firstItemId as import("@silvery/selection").ID])
+            dispatchSelection({ sel: detailPane.sel }, nodeSelect(firstItemId))
           }
 
           const newPanes = new Map(state.workspace.panes)
@@ -1623,7 +1624,7 @@ export function createBoardAppStoreState(
           // Initialize the new pane's sel with the cursor
           if (activeBoardCursor && updatedPane.signals) {
             updatedPane.selTreeSource.update(updatedPane.signals.visibleLens())
-            updatedPane.sel.node.select([activeBoardCursor as import("@silvery/selection").ID])
+            dispatchSelection({ sel: updatedPane.sel }, nodeSelect(activeBoardCursor))
           }
           const newPanes = new Map(workspace.panes)
           newPanes.set(workspace.focusedPaneId, updatedPane)

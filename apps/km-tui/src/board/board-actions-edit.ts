@@ -31,6 +31,7 @@ import { clearSelection, getSelectedNodes, forEachSelected } from "./board-selec
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 import { captureTree } from "../state/capture-tree.ts"
+import { nodeSelect, textCaret } from "../state/selection.ts"
 
 /**
  * Find the nearest surviving node to `target` in the new tree.
@@ -259,7 +260,7 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
     const nextOrder = nextTree.walkOrder(selRoot)
     const nearestId = findNearestSurvivor(prevCursor, prevOrder, nextOrder)
     if (nearestId !== null) {
-      ctx.sel.node.select([nearestId])
+      ctx.setSelection(nodeSelect(nearestId))
     }
   }
 
@@ -298,8 +299,7 @@ function handleAddFirstChild(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(ctx.rootId, newNode)
-  ctx.sel.node.select([newId as ID])
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -349,9 +349,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(ctx.columnId!, newNode)
 
-  ctx.sel.node.select([newId as ID])
-
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -381,8 +379,7 @@ export function handleAddNodeChild(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
-  ctx.sel.node.select([newId as ID])
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -422,8 +419,7 @@ export function handleAddNodeAtParent(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(grandparentId, newNode)
-  ctx.sel.node.select([newId as ID])
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -464,7 +460,7 @@ export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(ctx.columnId, newNode)
 
-  ctx.sel.node.select([newId as ID])
+  ctx.setSelection(nodeSelect(newId))
 }
 
 /**
@@ -584,7 +580,7 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
   // Re-select current node to trigger UI update
-  ctx.sel.node.select([ctx.cursor as ID])
+  ctx.setSelection(nodeSelect(ctx.cursor as string))
 }
 
 /**
@@ -611,7 +607,7 @@ export function handleClearTask(ctx: OpCtx): void {
   })
 
   if (count === 0) return
-  ctx.sel.node.select([ctx.cursor as ID])
+  ctx.setSelection(nodeSelect(ctx.cursor as string))
 }
 
 /**
@@ -687,7 +683,7 @@ function moveColumn(
   ctx.undoHandle.endBatch()
 
   // Column moved — re-select by node ID (column header)
-  ctx.sel.node.select([col.node.id as ID])
+  ctx.setSelection(nodeSelect(col.node.id))
   return ok()
 }
 
