@@ -405,3 +405,112 @@ describe("excludedSigils multi-level propagation", () => {
     expect(store.get("card1").excludedSigils()).toEqual(["@root", "@card"])
   })
 })
+
+// ─── Pro-review hardening tests (atomicity / re-entrancy / bootstrap) ───────
+//
+// Pro review of the sparse-ancestor-index inversion flagged five classes of
+// concerns beyond the existing 28-test suite. The tests below cover them so
+// regressions in the batching / untracking / bootstrap machinery are caught.
+
+import { effect } from "alien-signals"
+
+describe("sparse-index: atomicity / re-entrancy / bootstrap", () => {
+  it("indexed write produces exactly one combined observation (no glitch)", () => {
+    const t = simpleTree()
+    const store = makeStore(t)
+    // Prime accessors so the effect can subscribe cleanly
+    const sub = store.get("sub1")
+    const col = store.get("col1")
+    const observations: Array<{ cursor: boolean; desc: boolean }> = []
+    const stop = effect(() => {
+      observations.push({ cursor: !!sub.cursor(), desc: !!col.cursorDescendant() })
+    })
+    // Baseline snapshot from initial effect run
+    const baseline = observations.length
+    sub.cursor(true)
+    // After the write, the effect should have re-run at most once with the
+    // final consistent state — never an intermediate (cursor=true, desc=false)
+    const after = observations.slice(baseline)
+    expect(after.length).toBeLessThanOrEqual(1)
+    if (after.length === 1) {
+      expect(after[0]).toEqual({ cursor: true, desc: true })
+    }
+    stop()
+  })
+
+  it("rebind produces one consistent re-observation for mixed indexed + walk computeds", () => {
+    const store = makeStore(simpleTree())
+    store.get("sub1").cursor(true)
+    store.get("card1").selected(true)
+    // Observe: indexed (cursorDescendant on col1) + walk-based (selectedAncestor on sub2)
+    const observations: Array<{ a: boolean; b: boolean }> = []
+    const stop = effect(() => {
+      observations.push({
+        a: !!store.get("col1").cursorDescendant(),
+        b: !!store.get("sub2").selectedAncestor(),
+      })
+    })
+    const baseline = observations.length
+    // New traversal — same shape, same node IDs. Rebuild should be transparent.
+    store.rebind(simpleTree())
+    const after = observations.slice(baseline)
+    expect(after.length).toBeLessThanOrEqual(1)
+    if (after.length === 1) expect(after[0]).toEqual({ a: true, b: true })
+    stop()
+  })
+
+  it("re-entrant write inside effect does not corrupt index", () => {
+    const store = makeStore(simpleTree())
+    const sub = store.get("sub1")
+    // Effect that clears the cursor when it sees it set
+    const stop = effect(() => {
+      if (sub.cursor()) sub.cursor(false)
+    })
+    sub.cursor(true)
+    expect(sub.cursor()).toBe(false)
+    expect(store.get("card1").cursorDescendant()).toBe(false)
+    expect(store.get("col1").cursorDescendant()).toBe(false)
+    stop()
+  })
+
+  it("nodes.set happens before index seeding — no re-entrant construction", () => {
+    // Build a tree where the index bootstrap for one node could plausibly
+    // resolve the same node through its ancestors. If `nodes.set` happens
+    // after seeding, `get(id)` re-entry would fall through to a fresh
+    // constructor call and corrupt the map.
+    const t = simpleTree()
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(true), // truthy by default — seeds the index on every get()
+        cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
+      }),
+      t,
+    )
+    // First get triggers bootstrap. Ancestor get calls during seeding must
+    // not recursively reconstruct the same node.
+    const a = store.get("sub1")
+    const b = store.get("sub1")
+    expect(a).toBe(b)
+    // The store should still produce consistent cursorDescendant counts.
+    expect(store.get("card1").cursorDescendant()).toBe(true)
+  })
+
+  it("indexed-signal writer does not accidentally subscribe the caller", () => {
+    const store = makeStore(simpleTree())
+    const sub = store.get("sub1")
+    let runs = 0
+    // Effect WRITES the indexed signal but never reads it — should only run
+    // once (the initial invocation), never re-trigger from later writes.
+    const stop = effect(() => {
+      runs++
+      sub.cursor(true)
+    })
+    const baseline = runs
+    // External write to the SAME signal — because the effect didn't read the
+    // signal, it shouldn't re-run.
+    sub.cursor(false)
+    sub.cursor(true)
+    expect(runs - baseline).toBe(0)
+    stop()
+  })
+})

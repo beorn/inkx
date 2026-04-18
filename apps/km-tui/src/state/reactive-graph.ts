@@ -17,7 +17,33 @@
  * ```
  */
 
-import { signal, computed } from "alien-signals"
+import { signal, computed, startBatch, endBatch, getActiveSub, setActiveSub } from "alien-signals"
+
+// ─── Internal batching/untracked helpers ────────────────────────────────────
+// Expose alien-signals' low-level primitives in local, safe wrappers so the
+// index-mutating paths stay atomic from an observer's perspective (writers
+// see one combined reactive update per logical change, never an intermediate
+// half-state) and don't accidentally track internal signal reads inside a
+// caller's computed / effect.
+
+function runBatch(fn: () => void): void {
+  startBatch()
+  try {
+    fn()
+  } finally {
+    endBatch()
+  }
+}
+
+function runUntracked<T>(fn: () => T): T {
+  const prev = getActiveSub()
+  setActiveSub(undefined)
+  try {
+    return fn()
+  } finally {
+    setActiveSub(prev)
+  }
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -193,14 +219,19 @@ export function reactiveTree<T extends SchemaDef>(
   interface SparseIndex {
     truthyNodes: Set<string>
     countByAncestor: Map<string, number>
+    /** Signal readers depend on to invalidate when the index changes. */
     version: Sig<number>
+    /** Plain counter — avoids read-then-write on the version signal. */
+    epoch: number
   }
   const sparseIndices = new Map<string, SparseIndex>()
   for (const { desc } of computedDefs) {
     if (desc.dir === "down" && (desc.type === "some" || desc.type === "count") && !sparseIndices.has(desc.key)) {
-      sparseIndices.set(desc.key, { truthyNodes: new Set(), countByAncestor: new Map(), version: signal(0) })
+      sparseIndices.set(desc.key, { truthyNodes: new Set(), countByAncestor: new Map(), version: signal(0), epoch: 0 })
     }
   }
+  // Plain counter for treeVersion, same reasoning as idx.epoch.
+  let treeEpoch = 0
 
   function indexIncrement(idx: SparseIndex, nodeId: string): void {
     for (const anc of walkUp(traversal, nodeId)) {
@@ -217,16 +248,18 @@ export function reactiveTree<T extends SchemaDef>(
   function indexSet(key: string, nodeId: string, truthy: boolean): void {
     const idx = sparseIndices.get(key)
     if (!idx) return
-    if (truthy) {
-      if (idx.truthyNodes.has(nodeId)) return
-      idx.truthyNodes.add(nodeId)
-      indexIncrement(idx, nodeId)
-    } else {
-      if (!idx.truthyNodes.has(nodeId)) return
-      idx.truthyNodes.delete(nodeId)
-      indexDecrement(idx, nodeId)
-    }
-    idx.version(idx.version() + 1)
+    runBatch(() => {
+      if (truthy) {
+        if (idx.truthyNodes.has(nodeId)) return
+        idx.truthyNodes.add(nodeId)
+        indexIncrement(idx, nodeId)
+      } else {
+        if (!idx.truthyNodes.has(nodeId)) return
+        idx.truthyNodes.delete(nodeId)
+        indexDecrement(idx, nodeId)
+      }
+      idx.version(++idx.epoch)
+    })
   }
   function rebuildSparseIndices(): void {
     // Traversal may have changed — ancestor chains are different. Rebuild the
@@ -234,7 +267,7 @@ export function reactiveTree<T extends SchemaDef>(
     for (const idx of sparseIndices.values()) {
       idx.countByAncestor.clear()
       for (const nid of idx.truthyNodes) indexIncrement(idx, nid)
-      idx.version(idx.version() + 1)
+      idx.version(++idx.epoch)
     }
   }
 
@@ -246,24 +279,34 @@ export function reactiveTree<T extends SchemaDef>(
 
     // Signals — fresh per node, cloned initial value. Signals whose key appears
     // in a sparse-indexed descriptor are wrapped so writes update the index.
+    // Bootstrap of truthy initial values is deferred until after `nodes.set`
+    // so index maintenance can't re-enter the constructor via `get(id)`.
+    const truthyBootstrap: string[] = []
     for (const { name, init } of signalDefs) {
       const cloned = Array.isArray(init) ? [...init] : typeof init === "object" && init !== null ? { ...init } : init
       const sig = signal(cloned) as Sig<unknown>
       if (sparseIndices.has(name)) {
         const nodeId = id
         function indexedSig(value?: unknown) {
-          // Read path: no args → return current value
+          // Read path: no args → return current value (caller's tracking applies)
           // eslint-disable-next-line prefer-rest-params
           if (arguments.length === 0) return sig()
-          const oldTruthy = !!sig()
-          sig(value)
-          const newTruthy = !!value
-          if (oldTruthy !== newTruthy) indexSet(name, nodeId, newTruthy)
+          // Wrap the whole write in a batch so observers see one combined
+          // update (signal flip + index version bump) instead of two.
+          runBatch(() => {
+            // Untracked: a caller inside a computed/effect shouldn't subscribe
+            // to this signal just because the wrapper reads it to detect
+            // truthiness flips. Only explicit reads (the 0-arg branch above)
+            // should establish a dependency.
+            const oldTruthy = runUntracked(() => !!sig())
+            sig(value)
+            const newTruthy = !!value
+            if (oldTruthy !== newTruthy) indexSet(name, nodeId, newTruthy)
+          })
           return undefined
         }
-        // Bootstrap: if initial value is truthy, seed the index for this node
-        if (!!cloned) indexSet(name, id, true)
         accessor[name] = indexedSig
+        if (!!cloned) truthyBootstrap.push(name)
       } else {
         accessor[name] = sig
       }
@@ -348,7 +391,15 @@ export function reactiveTree<T extends SchemaDef>(
     }
 
     node = accessor as NodeAccessor<T>
+    // Register the node BEFORE seeding index entries — if an external observer
+    // is triggered by the index update and calls `get(id)` re-entrantly, we
+    // want it to find the already-registered accessor, not recurse.
     nodes.set(id, node)
+    if (truthyBootstrap.length > 0) {
+      runBatch(() => {
+        for (const name of truthyBootstrap) indexSet(name, id, true)
+      })
+    }
     return node
   }
 
@@ -356,30 +407,37 @@ export function reactiveTree<T extends SchemaDef>(
     get,
     has: (id) => nodes.has(id),
     clear: () => {
-      nodes.clear()
-      for (const idx of sparseIndices.values()) {
-        idx.truthyNodes.clear()
-        idx.countByAncestor.clear()
-        idx.version(idx.version() + 1)
-      }
+      runBatch(() => {
+        nodes.clear()
+        for (const idx of sparseIndices.values()) {
+          idx.truthyNodes.clear()
+          idx.countByAncestor.clear()
+          idx.version(++idx.epoch)
+        }
+        treeVersion(++treeEpoch)
+      })
     },
     get size() {
       return nodes.size
     },
     rebind(t: Traversal) {
-      traversal = t
-      // Rebuild sparse indices first — parent chains are different under the
-      // new traversal, so countByAncestor entries would be wrong otherwise.
-      rebuildSparseIndices()
-      // Bump the shared version signal to invalidate every cached tree-walking
-      // computed. Without this, computeds that walked with the old traversal
-      // would keep returning their stale cached values until one of their
-      // per-node signal dependencies changed.
-      //
-      // We intentionally do NOT clear `nodes` here. Clearing would destroy
-      // signal instances that React components are subscribed to via useSignal,
-      // causing stale subscriptions (components would never see subsequent writes).
-      treeVersion(treeVersion() + 1)
+      runBatch(() => {
+        traversal = t
+        // Rebuild sparse indices first — parent chains are different under
+        // the new traversal, so countByAncestor entries would be wrong
+        // otherwise.
+        rebuildSparseIndices()
+        // Bump the shared version signal to invalidate every cached
+        // tree-walking computed. Without this, computeds that walked with
+        // the old traversal would keep returning their stale cached values
+        // until one of their per-node signal dependencies changed.
+        //
+        // We intentionally do NOT clear `nodes` here. Clearing would
+        // destroy signal instances that React components are subscribed to
+        // via useSignal, causing stale subscriptions (components would
+        // never see subsequent writes).
+        treeVersion(++treeEpoch)
+      })
     },
   }
 }
