@@ -88,6 +88,7 @@ import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
 
 import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
+import { dispatchSelection, textCaret } from "../../src/state/selection.ts"
 
 /** Create a mock SelectionStore for test environments that don't use createApp. */
 function createMockSel(): SelectionStore {
@@ -1762,7 +1763,7 @@ function createFluentBoardApi(ctx: {
     editNode(nodeId: string, opts?: { block?: number; card?: string }) {
       if (!store) throw new Error("editNode() requires createDriverTest() — not available in renderBoard()")
       const s = store.getState()
-      s.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+      dispatchSelection({ sel: s.sel }, textCaret(nodeId, 0))
       s.textEditHints = { blockIndex: opts?.block ?? 0 }
       pressKey("") // flush render
       return board
