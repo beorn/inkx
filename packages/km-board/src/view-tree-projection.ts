@@ -17,8 +17,15 @@
  */
 
 import type { KNode, NodeRules } from "@km/core"
+import { createLogger } from "loggily"
 import type { TreeLens, ViewType } from "./tree-lens.ts"
 import { createProjectedMap, type ProjectedMap, type Projected } from "./projected-map.ts"
+
+// Gated by DEBUG=km:board:walk — counts ViewTree constructions and syncs
+// (km-tui.board-mount-n-traversal).
+const walkLog = createLogger("km:board:walk")
+let _viewTreeCtorCount = 0
+let _viewTreeSyncCount = 0
 
 // =============================================================================
 // Types
@@ -119,6 +126,9 @@ const VIEW_NODE_FIELDS: readonly (keyof ViewNodeState & string)[] = [
  * Components call track(id) via useNode to start receiving updates.
  */
 export function createViewTree(): ViewTree {
+  const treeNum = ++_viewTreeCtorCount
+  walkLog.debug?.(`createViewTree #${treeNum}`)
+
   const projection: ProjectedMap<string, ViewNodeState> = createProjectedMap(VIEW_NODE_FIELDS)
   let currentLens: TreeLens | null = null
 
@@ -166,8 +176,14 @@ export function createViewTree(): ViewTree {
     },
 
     sync(lens: TreeLens): void {
+      const syncNum = ++_viewTreeSyncCount
+      const startTime = walkLog.debug ? performance.now() : 0
       currentLens = lens
       projection.sync((id) => computeNodeState(lens, id))
+      if (walkLog.debug) {
+        const elapsed = (performance.now() - startTime).toFixed(0)
+        walkLog.debug(`ViewTree.sync #${syncNum} (tree #${treeNum}) in ${elapsed}ms`)
+      }
     },
 
     // === Navigation (delegates to current lens) ===

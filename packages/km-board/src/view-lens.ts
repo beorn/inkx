@@ -14,6 +14,7 @@
 import { KNode, extractSlotTargets, findIndexFile, namesAreSimilar, parseHeadingRules } from "@km/core"
 import type { NodeRules } from "@km/core"
 import { extractBody } from "@km/tree"
+import { createLogger } from "loggily"
 import type { TreeLens, ViewType } from "./tree-lens.ts"
 import {
   isCollapsedChild,
@@ -22,6 +23,12 @@ import {
   getCollapseRules,
   createVirtualBodyNode,
 } from "./view-lens-helpers.ts"
+
+// Gated by DEBUG=km:board:walk — counts full-vault walks to diagnose
+// mount-time N-traversal bugs on large vaults (km-tui.board-mount-n-traversal).
+const walkLog = createLogger("km:board:walk")
+let _walkLensCtorCount = 0
+let _walkComputeCount = 0
 
 // =============================================================================
 // Types
@@ -73,6 +80,11 @@ export interface ViewLensOptions {
  */
 export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): TreeLens {
   const { rootId, hiddenNodeIds } = options
+
+  // km-tui.board-mount-n-traversal — count lens constructions per mount.
+  // Each construction seeds a fresh childrenCache. Expect 1 per rootId change.
+  const lensNum = ++_walkLensCtorCount
+  walkLog.debug?.(`createViewLens #${lensNum} rootId=${rootId ?? "null"} hidden=${hiddenNodeIds?.size ?? 0}`)
 
   // =========================================================================
   // Caches
@@ -547,6 +559,12 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   function computeWalkOrder(): readonly string[] {
     if (_walkOrder !== null) return _walkOrder
 
+    // km-tui.board-mount-n-traversal — instrument WHO triggered the DFS
+    // and how many nodes get touched. Gated by DEBUG=km:board:walk.
+    const computeNum = ++_walkComputeCount
+    const startTime = walkLog.debug ? performance.now() : 0
+    const trace = walkLog.debug ? new Error("computeWalkOrder stack").stack : ""
+
     const ids: string[] = []
     const effectiveRootId = rootId ?? "__root__"
     const rootChildren = children(effectiveRootId)
@@ -568,6 +586,19 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     }
 
     _walkOrder = ids
+    if (walkLog.debug) {
+      const elapsed = (performance.now() - startTime).toFixed(0)
+      // Keep only the 4 most relevant frames for caller identification
+      const callerLines =
+        trace
+          ?.split("\n")
+          .slice(2, 8)
+          .map((l) => l.trim())
+          .join(" | ") ?? ""
+      walkLog.debug(
+        `view-lens.computeWalkOrder #${computeNum} (lens #${lensNum}, rootId=${rootId ?? "null"}) → ${ids.length} nodes in ${elapsed}ms; caller: ${callerLines}`,
+      )
+    }
     return ids
   }
 

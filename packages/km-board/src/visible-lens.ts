@@ -18,7 +18,14 @@
 
 import type { KNode, NodeRules } from "@km/core"
 import { getStatusForMarker } from "@km/core"
+import { createLogger } from "loggily"
 import type { TreeLens, ViewType } from "./tree-lens.ts"
+
+// Gated by DEBUG=km:board:walk — counts visible-lens full walks to diagnose
+// mount-time N-traversal bugs (km-tui.board-mount-n-traversal).
+const walkLog = createLogger("km:board:walk")
+let _visibleLensCtorCount = 0
+let _visibleWalkComputeCount = 0
 
 // =============================================================================
 // Types
@@ -53,6 +60,12 @@ export interface VisibleLensOptions {
 export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions = {}): TreeLens {
   const { collapsedNodes, cardFilter, taskStatusFilter } = options
   const hasTaskFilter = taskStatusFilter != null && taskStatusFilter.size > 0
+
+  // km-tui.board-mount-n-traversal — count visible-lens constructions.
+  const lensNum = ++_visibleLensCtorCount
+  walkLog.debug?.(
+    `createVisibleLens #${lensNum} rootId=${parent.rootId ?? "null"} collapsed=${collapsedNodes?.size ?? 0} cardFilter=${cardFilter ? 1 : 0} taskFilter=${taskStatusFilter?.size ?? 0}`,
+  )
 
   // Cache filtered children
   const childrenCache = new Map<string, readonly string[]>()
@@ -178,6 +191,11 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
 
     get walkOrder(): readonly string[] {
       if (_walkOrder === null) {
+        // km-tui.board-mount-n-traversal instrumentation.
+        const computeNum = ++_visibleWalkComputeCount
+        const startTime = walkLog.debug ? performance.now() : 0
+        const trace = walkLog.debug ? new Error("visibleLens.walkOrder stack").stack : ""
+
         const ids: string[] = []
         const rootId = parent.rootId
         // Include root itself if it has an ID
@@ -193,6 +211,18 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
           }
         }
         _walkOrder = ids
+        if (walkLog.debug) {
+          const elapsed = (performance.now() - startTime).toFixed(0)
+          const callerLines =
+            trace
+              ?.split("\n")
+              .slice(2, 8)
+              .map((l) => l.trim())
+              .join(" | ") ?? ""
+          walkLog.debug(
+            `visible-lens.walkOrder #${computeNum} (vlens #${lensNum}, rootId=${rootId ?? "null"}) → ${ids.length} nodes in ${elapsed}ms; caller: ${callerLines}`,
+          )
+        }
       }
       return _walkOrder
     },

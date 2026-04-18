@@ -85,20 +85,52 @@ interface ChildrenCache {
 }
 
 const cacheLog = createLogger("km:storage:cache")
+const walkLog = createLogger("km:board:walk")
 const strictCache = process.env.KM_STRICT_CACHE === "1"
 
 function createChildrenCache(dataStore: DataStore): ChildrenCache {
   const cache = new Map<string | null, KNode[]>()
+  // km-tui.board-mount-n-traversal — when DEBUG=km:board:walk is on, sample
+  // the caller stack every 10k gets so we can pinpoint who's DFSing. Gated
+  // so the production fast path stays free of stack-trace allocations.
+  let _totalGets = 0
+  let _samplesLogged = 0
   return {
     get(parentId) {
       const cached = cache.get(parentId)
       if (cached) {
         cacheLog.debug?.(`hit parent=${parentId ?? "null"} n=${cached.length}`)
+        if (walkLog.debug) {
+          _totalGets++
+          if (_totalGets % 10000 === 1 && _samplesLogged < 30) {
+            _samplesLogged++
+            const trace = new Error("childrenCache.get sample").stack ?? ""
+            const caller = trace
+              .split("\n")
+              .slice(2, 9)
+              .map((l) => l.trim())
+              .join(" | ")
+            walkLog.debug(`childrenCache.get sample #${_samplesLogged} totalGets=${_totalGets}; caller: ${caller}`)
+          }
+        }
         return cached
       }
       const result = dataStore.getChildren(parentId)
       cache.set(parentId, result)
       cacheLog.debug?.(`miss parent=${parentId ?? "null"} n=${result.length}`)
+      if (walkLog.debug) {
+        _totalGets++
+        if (_totalGets % 10000 === 1 && _samplesLogged < 30) {
+          _samplesLogged++
+          const trace = new Error("childrenCache.get sample").stack ?? ""
+          const caller = trace
+            .split("\n")
+            .slice(2, 9)
+            .map((l) => l.trim())
+            .join(" | ")
+          walkLog.debug(`childrenCache.get sample #${_samplesLogged} totalGets=${_totalGets}; caller: ${caller}`)
+        }
+      }
       return result
     },
     bust(parentId) {
