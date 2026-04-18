@@ -40,6 +40,8 @@ The single most important distinction:
 
 `item` is a **presence trait** using an `ItemData` object. Items have `item: { ... }` — the object holds list marker and task data. Blocks simply don't have the field. All structural metadata lives inside `item`, keeping the item/block boundary clean.
 
+**Storage note (for ad-hoc SQL):** the runtime domain uses `item: ItemData | undefined`, but the SQLite column stores a 0/1 integer flag (`item INTEGER DEFAULT 0` — see `packages/km-storage/src/db/schema.ts`). The list marker and task fields live in separate columns and are reassembled by `composeItem`. When querying the DB directly, use `WHERE item = 0` for blocks and `WHERE item = 1` for items — not `item IS NULL` (that will match nothing).
+
 ```typescript
 interface ItemData {
   list?: string                  // "-", "*", "+", "1.", etc.
