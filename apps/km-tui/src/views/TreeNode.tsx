@@ -796,7 +796,7 @@ function TreeNodeImpl({
                       ...effectiveInlineContext,
                       // Strip inline colors when selected/done or search highlighted.
                       // Links use dotted underline (no color) by default, so no heading clash.
-                      colorOverride: searchHighlight || shouldStripColor ? null : undefined,
+                      stripInlineColors: searchHighlight || shouldStripColor || undefined,
                     }}
                     decorations={searchDecorations}
                   />
@@ -1154,7 +1154,7 @@ const FoldedChildRow = React.memo(
                 text={displayContent}
                 context={{
                   ...foldEffectiveContext,
-                  colorOverride: searchHighlight || isNodeSelected || style.isDoneOrDropped ? null : undefined,
+                  stripInlineColors: searchHighlight || isNodeSelected || style.isDoneOrDropped || undefined,
                 }}
                 decorations={foldSearchDecorations}
               />

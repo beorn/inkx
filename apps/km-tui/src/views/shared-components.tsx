@@ -541,7 +541,7 @@ export function NodeLine({
           <InlineText
             text={title}
             decorations={decorations}
-            context={isSelected ? { colorOverride: "$cursor" } : undefined}
+            context={isSelected ? { stripInlineColors: true } : undefined}
           />
         </Text>
       </Box>

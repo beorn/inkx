@@ -101,37 +101,31 @@ export interface LinkTextProps {
 
 /**
  * Kind-specific styling props for a link at rest or on hover.
- * Respects colorOverride:
- *   undefined → normal (link uses its own $link color)
- *   string    → override (link paints in that color)
- *   null      → inherit (link uses nearest colored ancestor via silvery cascade)
+ * Respects stripColors:
+ *   false/undefined → normal (link uses its own $link color)
+ *   true            → inherit (link uses nearest colored ancestor via silvery cascade)
  *
- * The null→"inherit" mapping (previously null→strip) leans on silvery's
- * color="inherit" cascade primitive: when a cursor row wraps the link in
- * $cursor fg, the link naturally adopts $cursor without an explicit string
- * override. See bead km-silvery.color-inherit.
+ * The inherit cascade leans on silvery's color="inherit" primitive: when a
+ * cursor row wraps the link in $selection fg, the link naturally adopts
+ * $selection without an explicit string override.
+ * See bead km-silvery.color-inherit.
  */
-export function linkTextProps(
-  kind: LinkKind,
-  hovered: boolean,
-  colorOverride: string | null | undefined,
-): LinkTextProps {
-  const overrideColor = colorOverride === null ? "inherit" : colorOverride
-  const honorOverride = colorOverride !== undefined
+export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boolean | undefined): LinkTextProps {
+  const color = stripColors ? "inherit" : "$link"
   switch (kind) {
     case "url":
       return {
-        color: honorOverride ? overrideColor : "$link",
+        color,
         underlineStyle: hovered ? "single" : "dotted",
         underlineColor: hovered ? "$link" : "$border",
       }
     case "wiki": {
       // Wikilinks are colored like URLs at rest so they're visibly
       // distinguishable from plain text; on hover a subtle pill bg replaces
-      // the dotted underline. colorOverride (e.g. cursor inverse) always wins.
-      const pillBg = hovered && colorOverride === undefined ? "#404050" : undefined
+      // the dotted underline. stripColors (e.g. cursor inverse) always wins.
+      const pillBg = hovered && !stripColors ? "#404050" : undefined
       return {
-        color: honorOverride ? overrideColor : "$link",
+        color,
         backgroundColor: pillBg,
         underlineStyle: hovered ? false : "dotted",
         underlineColor: "$link",

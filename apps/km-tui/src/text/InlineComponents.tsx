@@ -61,12 +61,13 @@ export interface InlineRenderContext {
   resolveWikiLinkId?: (target: string) => string | null
   /** Resolve block ref IDs to display titles */
   /**
-   * Color override for selected/highlighted items.
-   * - `undefined`: use each component's own token color (default)
-   * - `null`: strip all foreground colors
-   * - `string`: use this color for all tokens
+   * Strip all foreground colors from inline leaves.
+   * When true, every leaf uses color="inherit" so the nearest colored
+   * ancestor (e.g. a cursor row's $selection fg or a done-dimmed row)
+   * wins cleanly. Callers that want a specific color for the override
+   * wrap <InlineText> in a colored ancestor Box/Text and set stripInlineColors={true}.
    */
-  colorOverride?: string | null
+  stripInlineColors?: boolean
   /** Hide inline fields from display */
   hideFields?: boolean
   /** Build rich popover content for a wikilink — returns render callback for DocContent */
@@ -79,25 +80,6 @@ export const InlineRenderProvider = InlineRenderCtx.Provider
 
 function useInlineRenderContext(): InlineRenderContext {
   return React.useContext(InlineRenderCtx)
-}
-
-/**
- * Resolve a token color against the context's colorOverride.
- * - colorOverride undefined → return token (use component's own color)
- * - colorOverride null → return "inherit" (cascade from nearest colored ancestor).
- *   Prior behavior was `undefined` (strip color to terminal default). `inherit`
- *   is strictly better: when the ancestor has no color, it's still default;
- *   when the ancestor has a color (e.g. a cursor row wrapped in $cursor fg),
- *   the inline component naturally adopts it. Retires the string-override
- *   path for most callers — they can wrap with a single `<Text color="$cursor">`.
- * - colorOverride string → return that string (override color)
- *
- * Bead: km-silvery.color-inherit
- */
-function resolveColor(ctx: InlineRenderContext, token: string): string | undefined {
-  if (ctx.colorOverride === undefined) return token
-  if (ctx.colorOverride === null) return "inherit"
-  return ctx.colorOverride
 }
 
 // =============================================================================
@@ -232,20 +214,21 @@ export function InlineStrikethrough({
 
 export function InlineCode({ node, decorations, offset }: { node: CodeNode } & DecorationProps): React.ReactElement {
   const ctx = useInlineRenderContext()
+  const codeColor = ctx.stripInlineColors ? "inherit" : "$inputborder"
   if (decorations?.length) {
     return (
-      <Text color={resolveColor(ctx, "$inputborder")}>
+      <Text color={codeColor}>
         <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
       </Text>
     )
   }
-  return <Text color={resolveColor(ctx, "$inputborder")}>{node.code}</Text>
+  return <Text color={codeColor}>{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({ kind: "url", url: node.url })
-  const props = linkTextProps("url", hovered, ctx.colorOverride)
+  const props = linkTextProps("url", hovered, ctx.stripInlineColors)
   return (
     <Link
       href={node.url}
@@ -272,7 +255,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   if (resolved) {
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
-    const props = linkTextProps("wiki", hovered, ctx.colorOverride)
+    const props = linkTextProps("wiki", hovered, ctx.stripInlineColors)
     return (
       <Text
         id={linkNodeId ?? undefined}
@@ -292,7 +275,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   // CURSOR-SAFE BY CONSTRUCTION: we intentionally do NOT set a foreground color
   // here, because a red fg competes with cursor-inverse styling (the cell's fg
   // gets forced to $selection on the cursor line, and inline colors get
-  // stripped via colorOverride=null on the subtree). The dashed $error
+  // stripped via stripInlineColors=true on the subtree). The dashed $error
   // underline passes through all states unchanged because decoration attributes
   // are not composed into the fg/bg override pipeline.
   return (
@@ -346,11 +329,10 @@ export function InlineProject({ node }: { node: ProjectNode }): React.ReactEleme
 export function InlineField({ node }: { node: InlineFieldNode }): React.ReactElement | null {
   const ctx = useInlineRenderContext()
   if (ctx.hideFields) return null
-  const hasColorOverride = ctx.colorOverride !== undefined
-  const styledValue = hasColorOverride ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
+  const styledValue = ctx.stripInlineColors ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={resolveColor(ctx, "$inputborder")}>
+      <Text dim color={ctx.stripInlineColors ? "inherit" : "$inputborder"}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>
@@ -362,7 +344,7 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
 export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const { hovered, onMouseEnter, onMouseLeave } = useLinkInteraction({ kind: "url", url: node.url })
-  const props = linkTextProps("url", hovered, ctx.colorOverride)
+  const props = linkTextProps("url", hovered, ctx.stripInlineColors)
   return (
     <Link
       href={node.url}
@@ -476,13 +458,14 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
 
   // Sigil color: from the sigilColors map first, then the resolver. Used for
   // BOTH resolved and unresolved sigils so the visual identity is stable.
-  const sigilColor =
-    ctx.colorOverride === undefined ? (ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil)) : undefined
+  // When stripping inline colors the sigil's own color is suppressed so the
+  // nearest colored ancestor (e.g. cursor row $selection) wins.
+  const sigilColor = ctx.stripInlineColors ? undefined : (ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil))
 
   // Unresolved sigil: preserve legacy rendering (plain or colorized via
   // ANSI wrapping). No link styling, no popover, no navigation.
   if (!resolvedTitle) {
-    if (ctx.colorOverride !== undefined) return <Text>{sigil}</Text>
+    if (ctx.stripInlineColors) return <Text>{sigil}</Text>
     if (sigilColor) return <Text>{getTermColor(sigilColor)(sigil)}</Text>
     return <Text>{sigil}</Text>
   }
@@ -491,15 +474,10 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   // popover on hover. Keep the sigil's own color as the anchor (fall back
   // to $link if the sigil has no configured color) and add a dotted
   // underline via linkTextProps("sigil").
-  const props = linkTextProps("sigil", hovered, ctx.colorOverride)
-  // colorOverride: undefined → sigil's own color; string → that string;
-  // null → "inherit" (cascade from nearest colored ancestor via silvery).
-  const color =
-    ctx.colorOverride === undefined
-      ? (sigilColor ?? "$link")
-      : ctx.colorOverride === null
-        ? "inherit"
-        : ctx.colorOverride
+  const props = linkTextProps("sigil", hovered, ctx.stripInlineColors)
+  // stripInlineColors: false/undefined → sigil's own color;
+  // true → "inherit" (cascade from nearest colored ancestor via silvery).
+  const color = ctx.stripInlineColors ? "inherit" : (sigilColor ?? "$link")
   return (
     <Text
       id={linkNodeId ?? undefined}
@@ -540,7 +518,7 @@ export function InlineText({
   const parentCtx = useInlineRenderContext()
   const inner = <InlineNodes nodes={nodes} decorations={decorations} />
   if (context) {
-    // Merge with parent context so overrides (e.g. colorOverride) don't wipe
+    // Merge with parent context so overrides (e.g. stripInlineColors) don't wipe
     // resolution functions (resolveWikiLink, buildLinkPopover)
     const merged = { ...parentCtx, ...context }
     return <InlineRenderProvider value={merged}>{inner}</InlineRenderProvider>

@@ -34,10 +34,13 @@
  * When a leaf component applies its own `color=` attribute, it competes with
  * the cursor inverse at layer 4. Two strategies:
  *
- * a) Route through `resolveColor(ctx, token)` — the leaf's color becomes
- *    `undefined` when `colorOverride === null` (cursor/done path), and the
- *    cursor's forced fg wins cleanly. This is the CURRENT model for most
- *    leaves: `color={resolveColor(ctx, "$inputborder")}` etc.
+ * a) Use `color="inherit"` (the silvery cascade primitive) — the leaf walks
+ *    the AgNode parent tree to find the nearest ancestor's resolved fg.
+ *    Callers set `stripInlineColors: true` in `InlineRenderContext` to enable
+ *    this on the whole inline subtree. The cursor row's `<Text color="$selection">`
+ *    ancestor provides the forced fg; when no ancestor has a color (done/dropped
+ *    with no override), the leaf resolves to terminal default.
+ *    This is the CURRENT model for most leaves.
  *
  * b) Don't set fg at all — use DECORATION attributes (underlineStyle,
  *    underlineColor, dim, italic) which pass through layer 4 unchanged
@@ -47,11 +50,11 @@
  *
  * Rule of thumb: if the marker must be visible under the cursor, use
  * decoration (b). If the marker is informational and can be dimmed under
- * the cursor, use resolveColor (a).
+ * the cursor, use stripInlineColors (a).
  *
  * ## Known gaps in the current precedence model (tracked in km-silvery.variant-style-system)
  *
- * - `colorOverride` only handles fg. Decoration attributes (underline, dim,
+ * - `stripInlineColors` only handles fg. Decoration attributes (underline, dim,
  *   bold, bg) don't go through it — they pass through regardless. This is
  *   fine for the cursor-safe decoration rule above, but it means inconsistent
  *   enforcement: a leaf can hardcode `underlineStyle` and nothing can strip it.
@@ -63,7 +66,7 @@
  *   They bypass the theme token system and break dark/light mode consistency.
  *
  * - Enforcement is convention-only. There's no lint rule banning raw `color=`
- *   or requiring `resolveColor`. Tracked in km-infra.style-precedence-lint.
+ *   or requiring `stripInlineColors`. Tracked in km-infra.style-precedence-lint.
  *
  * ## Hierarchy
  *

@@ -392,7 +392,7 @@ export function NodeCardView({
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineText
               text={displayContent}
-              context={{ colorOverride: shouldStripColor ? null : undefined, hideFields: true }}
+              context={{ stripInlineColors: shouldStripColor || undefined, hideFields: true }}
             />
             {subtaskBadge && <Text color={isSelected ? "$selection" : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
@@ -623,7 +623,7 @@ export function NodeDetailView({
       <Box flexDirection="column" width={width - 2} backgroundColor={"$selection-bg"} paddingX={1}>
         <Text bold color={"$selection"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
-          <InlineText text={displayContent} context={{ colorOverride: null, hideFields: true }} />
+          <InlineText text={displayContent} context={{ stripInlineColors: true, hideFields: true }} />
         </Text>
       </Box>
 

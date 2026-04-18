@@ -92,7 +92,7 @@ export function OmniboxRow({
           <InlineText
             text={title}
             decorations={titleDecorations}
-            context={isSelected && !disabled ? { colorOverride: "$selection" } : undefined}
+            context={isSelected && !disabled ? { stripInlineColors: true } : undefined}
           />
           {context &&
             (isSelected ? (

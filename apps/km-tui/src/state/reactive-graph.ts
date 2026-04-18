@@ -171,46 +171,154 @@ export function reactiveTree<T extends SchemaDef>(
   // computeds, forcing them to re-evaluate against the new traversal.
   const treeVersion = signal(0)
 
+  // ─── Sparse ancestor index for `descendants().some()/.count()` ─────────────
+  //
+  // Keeps each descendants + some/count descriptor O(depth) per signal write
+  // instead of O(subtree) per read. For every signal key that appears in a
+  // `descendants(...).some()` or `.count()` descriptor, we maintain:
+  //
+  //   truthyNodes    = Set of nodeIds where signal[key]() is truthy
+  //   countByAncestor = Map<ancestorId, number_of_truthy_descendants>
+  //   version        = signal bumped on any index change (drives read invalidation)
+  //
+  // Writes to indexed signals walk UP from the written node once (O(depth))
+  // and adjust countByAncestor entries. Reads of the inverted computed return
+  // `countByAncestor.get(nodeId) ?? 0` — O(1).
+  //
+  // This inverts the ~100K children() calls per cursor move on large vaults
+  // (km-tui.reactive-desc-walk-inversion). `reduce` descriptors and the
+  // ancestors direction keep their existing walk-based implementation —
+  // `reduce` needs the actual values, not just membership, and walkUp is
+  // already cheap (max O(depth)).
+  interface SparseIndex {
+    truthyNodes: Set<string>
+    countByAncestor: Map<string, number>
+    version: Sig<number>
+  }
+  const sparseIndices = new Map<string, SparseIndex>()
+  for (const { desc } of computedDefs) {
+    if (desc.dir === "down" && (desc.type === "some" || desc.type === "count") && !sparseIndices.has(desc.key)) {
+      sparseIndices.set(desc.key, { truthyNodes: new Set(), countByAncestor: new Map(), version: signal(0) })
+    }
+  }
+
+  function indexIncrement(idx: SparseIndex, nodeId: string): void {
+    for (const anc of walkUp(traversal, nodeId)) {
+      idx.countByAncestor.set(anc, (idx.countByAncestor.get(anc) ?? 0) + 1)
+    }
+  }
+  function indexDecrement(idx: SparseIndex, nodeId: string): void {
+    for (const anc of walkUp(traversal, nodeId)) {
+      const n = (idx.countByAncestor.get(anc) ?? 0) - 1
+      if (n <= 0) idx.countByAncestor.delete(anc)
+      else idx.countByAncestor.set(anc, n)
+    }
+  }
+  function indexSet(key: string, nodeId: string, truthy: boolean): void {
+    const idx = sparseIndices.get(key)
+    if (!idx) return
+    if (truthy) {
+      if (idx.truthyNodes.has(nodeId)) return
+      idx.truthyNodes.add(nodeId)
+      indexIncrement(idx, nodeId)
+    } else {
+      if (!idx.truthyNodes.has(nodeId)) return
+      idx.truthyNodes.delete(nodeId)
+      indexDecrement(idx, nodeId)
+    }
+    idx.version(idx.version() + 1)
+  }
+  function rebuildSparseIndices(): void {
+    // Traversal may have changed — ancestor chains are different. Rebuild the
+    // countByAncestor maps for every indexed key against the new traversal.
+    for (const idx of sparseIndices.values()) {
+      idx.countByAncestor.clear()
+      for (const nid of idx.truthyNodes) indexIncrement(idx, nid)
+      idx.version(idx.version() + 1)
+    }
+  }
+
   function get(id: string): NodeAccessor<T> {
     let node = nodes.get(id)
     if (node) return node
 
     const accessor: Record<string, unknown> = {}
 
-    // Signals — fresh per node, cloned initial value
+    // Signals — fresh per node, cloned initial value. Signals whose key appears
+    // in a sparse-indexed descriptor are wrapped so writes update the index.
     for (const { name, init } of signalDefs) {
       const cloned = Array.isArray(init) ? [...init] : typeof init === "object" && init !== null ? { ...init } : init
-      accessor[name] = signal(cloned)
+      const sig = signal(cloned) as Sig<unknown>
+      if (sparseIndices.has(name)) {
+        const nodeId = id
+        function indexedSig(value?: unknown) {
+          // Read path: no args → return current value
+          // eslint-disable-next-line prefer-rest-params
+          if (arguments.length === 0) return sig()
+          const oldTruthy = !!sig()
+          sig(value)
+          const newTruthy = !!value
+          if (oldTruthy !== newTruthy) indexSet(name, nodeId, newTruthy)
+          return undefined
+        }
+        // Bootstrap: if initial value is truthy, seed the index for this node
+        if (!!cloned) indexSet(name, id, true)
+        accessor[name] = indexedSig
+      } else {
+        accessor[name] = sig
+      }
     }
 
     // Computeds — derived from tree walks
     for (const { name, desc } of computedDefs) {
       const nodeId = id // capture for closure
-      if (desc.type === "some") {
+      const idx = sparseIndices.get(desc.key)
+      if (desc.type === "some" && desc.dir === "down" && idx) {
+        // Sparse-inverted: O(1) per read instead of O(subtree)
         accessor[name] = computed(() => {
-          treeVersion() // establish dependency so rebind() invalidates us
+          treeVersion() // rebind invalidation
+          idx.version() // index mutation invalidation
+          if (desc.includeSelf) {
+            const selfSig = (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]
+            if (selfSig?.()) return true
+          }
+          return (idx.countByAncestor.get(nodeId) ?? 0) > 0
+        })
+      } else if (desc.type === "count" && desc.dir === "down" && idx) {
+        accessor[name] = computed(() => {
+          treeVersion()
+          idx.version()
+          let n = idx.countByAncestor.get(nodeId) ?? 0
+          if (desc.includeSelf) {
+            const selfSig = (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]
+            if (selfSig?.()) n++
+          }
+          return n
+        })
+      } else if (desc.type === "some") {
+        // ancestors direction — walkUp is cheap (max O(depth))
+        accessor[name] = computed(() => {
+          treeVersion()
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
-          const walk = desc.dir === "down" ? walkDown : walkUp
-          for (const vid of walk(traversal, nodeId)) {
+          for (const vid of walkUp(traversal, nodeId)) {
             if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
           }
           return false
         })
       } else if (desc.type === "count") {
         accessor[name] = computed(() => {
-          treeVersion() // establish dependency so rebind() invalidates us
+          treeVersion()
           let n = 0
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
-          const walk = desc.dir === "down" ? walkDown : walkUp
-          for (const vid of walk(traversal, nodeId)) {
+          for (const vid of walkUp(traversal, nodeId)) {
             if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
           }
           return n
         })
       } else {
-        // reduce
+        // reduce — needs actual values, not just membership. Keep walk-based.
         accessor[name] = computed(() => {
-          treeVersion() // establish dependency so rebind() invalidates us
+          treeVersion()
           const reducer = desc.reducer!
           let acc = typeof desc.initial === "function" ? (desc.initial as () => unknown)() : desc.initial
 
@@ -247,12 +355,22 @@ export function reactiveTree<T extends SchemaDef>(
   return {
     get,
     has: (id) => nodes.has(id),
-    clear: () => nodes.clear(),
+    clear: () => {
+      nodes.clear()
+      for (const idx of sparseIndices.values()) {
+        idx.truthyNodes.clear()
+        idx.countByAncestor.clear()
+        idx.version(idx.version() + 1)
+      }
+    },
     get size() {
       return nodes.size
     },
     rebind(t: Traversal) {
       traversal = t
+      // Rebuild sparse indices first — parent chains are different under the
+      // new traversal, so countByAncestor entries would be wrong otherwise.
+      rebuildSparseIndices()
       // Bump the shared version signal to invalidate every cached tree-walking
       // computed. Without this, computeds that walked with the old traversal
       // would keep returning their stale cached values until one of their

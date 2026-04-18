@@ -290,7 +290,7 @@ function DocNode({
   const cursorProps = isCursor ? { "data-cursor": true } : {}
   // Strip inline colors on cursor row — blue links on gold bg are unreadable
   // During editing, no color override needed (editor handles its own styling)
-  const cursorCtx = isCursor && !isEditing ? { colorOverride: null as null } : undefined
+  const cursorCtx = isCursor && !isEditing ? { stripInlineColors: true as const } : undefined
 
   // Editing content: when editing, render TitleEditor instead of InlineText
   const editableContent = isEditing ? (
