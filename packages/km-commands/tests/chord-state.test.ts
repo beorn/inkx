@@ -172,14 +172,27 @@ describe("ChordState", () => {
   })
 
   describe("unmatched second key", () => {
-    test("replays standalone + second key when chord doesnt match", () => {
+    // BUG km-tui.chord-invalid-bell: Previously, an unmatched second key would
+    // "replay" — fire the prefix's standalone command and then resolve the
+    // second key. That silently executed the leader's default (e.g., pressing
+    // `g +` would run `g`'s "move to", ignoring the user's obvious intent to
+    // enter a chord). The new contract: unmatched chord second key cancels
+    // the chord so the caller can ring the bell — no leader fallback.
+    test("cancels chord on unmatched second key (leader has standalone)", () => {
       state.processKey("g", false, noMods, {}, cb)
       const r = state.processKey("q", false, noMods, {}, cb)
-      expect(r.type).toBe("replay")
-      if (r.type === "replay") {
-        expect(r.standaloneId).toBe("cursor_first")
-        expect(r.replayKey).toBe("q")
-      }
+      expect(r.type).toBe("cancelled")
+      expect(state.pending).toBeNull()
+    })
+
+    test("cancels chord on unmatched second key (prefix `g`, second `+`)", () => {
+      // Exact repro from bug report — `g` is both a chord prefix (gg → home)
+      // and has a standalone (cursor_first aka "move to"). Pressing `+` with
+      // no `g:+` chord binding must NOT execute `g`'s standalone.
+      state.processKey("g", false, noMods, {}, cb)
+      const r = state.processKey("+", false, noMods, {}, cb)
+      expect(r.type).toBe("cancelled")
+      expect(state.pending).toBeNull()
     })
 
     test("cancelled when prefix has no standalone binding", () => {
