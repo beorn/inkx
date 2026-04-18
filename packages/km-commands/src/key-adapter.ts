@@ -29,18 +29,6 @@ function resolveOps(
   return executeCommand(resolved.commandId, ctx, resolved.targetId)
 }
 
-/** Flatten multiple nullable op results into a single array */
-function flattenOps(...results: (KmOp | KmOp[] | null)[]): KmOp[] {
-  const out: KmOp[] = []
-  for (const r of results) {
-    if (r) {
-      if (Array.isArray(r)) out.push(...r)
-      else out.push(r)
-    }
-  }
-  return out
-}
-
 /** Key event structure */
 export interface KeyEvent {
   escape?: boolean
@@ -189,21 +177,6 @@ export function processKey(
       case "resolved": {
         const ops = resolveOps(chordResult, ctx)
         return { commandId: chordResult.commandId, ops, handled: true, chordResolved: true }
-      }
-      case "replay": {
-        // Execute the standalone command, then resolve the replayed key normally
-        const standaloneOps = executeCommand(chordResult.standaloneId, ctx, chordResult.standaloneTargetId)
-        const resolved = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
-        if (resolved) {
-          const allOps = flattenOps(standaloneOps, resolveOps(resolved, ctx))
-          return {
-            commandId: chordResult.standaloneId,
-            ops: allOps.length > 0 ? allOps : null,
-            handled: true,
-          }
-        }
-        // Replay key didn't match — just return standalone
-        return { commandId: chordResult.standaloneId, ops: standaloneOps, handled: true }
       }
       case "fallback": {
         const ops = resolveOps(chordResult, ctx)

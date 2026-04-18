@@ -2,8 +2,15 @@
  * Chord State Machine
  *
  * Handles multi-key sequences (chords) like za, gg, zM.
- * State: idle → pending(prefix) → resolved/fallback/replay.
+ * State: idle → pending(prefix) → resolved/cancelled/passthrough.
  * 300ms timeout: if no second key, fires standalone command for the prefix.
+ *
+ * Contract for an unmatched second key: the chord is **cancelled** and the
+ * caller is expected to signal the user (bell). We deliberately do NOT
+ * replay the leader's standalone — that silently executed the leader's
+ * default action on accidental / wrong second keys, hiding user intent
+ * (see bug km-tui.chord-invalid-bell). The leader's standalone is only
+ * reachable via the timeout path.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,7 +22,6 @@ export type ChordResult =
   | { type: "fallback"; commandId: string; targetId?: string; execute?: AnyExecuteFn }
   | { type: "passthrough" }
   | { type: "cancelled" }
-  | { type: "replay"; standaloneId: string; standaloneTargetId?: string; replayKey: string }
 
 /** Resolved binding from keybinding resolution */
 interface Resolved {
@@ -103,20 +109,12 @@ export function createChordState(): ChordState {
           return result
         }
 
-        // No chord match → replay: fire standalone for prefix + replay second key
-        const standalone = resolver.resolveStandalone(prefix)
-        if (standalone) {
-          return standalone.targetId
-            ? {
-                type: "replay",
-                standaloneId: standalone.commandId,
-                standaloneTargetId: standalone.targetId,
-                replayKey: key,
-              }
-            : { type: "replay", standaloneId: standalone.commandId, replayKey: key }
-        }
-
-        // No standalone either — invalid second key, cancel chord + ring bell
+        // No chord match — cancel the chord. The caller rings the bell
+        // (see apps/km-tui/src/board/board-app.ts → chordCancelled). We do
+        // NOT fall back to the leader's standalone: silently running e.g.
+        // `g` ("move to") when the user pressed `g +` hides the invalid
+        // chord and destroys user intent. The leader standalone is only
+        // reachable via timeout (see ChordState.timeout()).
         return { type: "cancelled" }
       }
 
