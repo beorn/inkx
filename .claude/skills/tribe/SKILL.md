@@ -1,30 +1,32 @@
 ---
 description: "Tribe coordination — check sessions, send messages, view health/history. Use when user says /tribe."
 argument-hint: [sessions|send|health|history|retro|rename]
-allowed-tools: mcp__tribe__tribe_sessions, mcp__tribe__tribe_send, mcp__tribe__tribe_broadcast, mcp__tribe__tribe_history, mcp__tribe__tribe_rename, mcp__tribe__tribe_health, Bash(sqlite3:*)
+allowed-tools: mcp__tribe__tribe.members, mcp__tribe__tribe.send, mcp__tribe__tribe.broadcast, mcp__tribe__tribe.history, mcp__tribe__tribe.rename, mcp__tribe__tribe.health, Bash(sqlite3:*)
 ---
 
 # Tribe
 
 Cross-session coordination. Parse the subcommand from ARGUMENTS.
 
+> **Namespace note** (@bearly/tribe 0.9.0): every MCP tool lives under the unified `tribe.*` namespace. The old `tribe_*` underscored names are deprecated aliases and will be removed in `@bearly/tribe` 0.10. See `vendor/bearly/plugins/tribe/CHANGELOG.md` for the full rename table.
+
 ## Command Mapping
 
 | User Says | Action |
 |-----------|--------|
 | `/tribe` | Consult the tribe — broadcast the current question/topic to all members for input |
-| `/tribe sessions` or `/tribe who` | `tribe_sessions()` — show who's online |
-| `/tribe status` | `tribe_sessions()` + `tribe_health()` — full dashboard |
-| `/tribe health` | `tribe_health()` — warnings, silent members, unread counts |
+| `/tribe sessions` or `/tribe who` | `tribe.members()` — show who's online |
+| `/tribe status` | `tribe.members()` + `tribe.health()` — full dashboard |
+| `/tribe health` | `tribe.health()` — warnings, silent members, unread counts |
 | `/tribe sessions` | (same as above) |
-| `/tribe sessions --all` | `tribe_sessions(all=true)` — include dead sessions |
-| `/tribe send <to> <message>` | `tribe_send(to, message)` — send notify message |
-| `/tribe assign <to> <message>` | `tribe_send(to, message, type="assign")` — assign work |
-| `/tribe query <to> <message>` | `tribe_send(to, message, type="query")` — ask a question |
-| `/tribe broadcast <message>` | `tribe_broadcast(message)` — message everyone |
-| `/tribe history` | `tribe_history(limit=20)` — recent messages |
-| `/tribe history <name>` | `tribe_history(with=name, limit=20)` — messages with specific session |
-| `/tribe rename <new_name>` | `tribe_rename(new_name)` — rename this session |
+| `/tribe sessions --all` | `tribe.members(all=true)` — include dead sessions |
+| `/tribe send <to> <message>` | `tribe.send(to, message)` — send notify message |
+| `/tribe assign <to> <message>` | `tribe.send(to, message, type="assign")` — assign work |
+| `/tribe query <to> <message>` | `tribe.send(to, message, type="query")` — ask a question |
+| `/tribe broadcast <message>` | `tribe.broadcast(message)` — message everyone |
+| `/tribe history` | `tribe.history(limit=20)` — recent messages |
+| `/tribe history <name>` | `tribe.history(with=name, limit=20)` — messages with specific session |
+| `/tribe rename <new_name>` | `tribe.rename(new_name)` — rename this session |
 | `/tribe whoami` | Show this session's name, role, and domains |
 | `/tribe db <sql>` | `sqlite3 .beads/tribe.db "<sql>"` — raw query |
 | `/tribe log` | `sqlite3 .beads/tribe.db "SELECT sender, recipient, type, substr(content,1,80), datetime(ts/1000,'unixepoch','localtime') FROM messages ORDER BY ts DESC LIMIT 20"` |
@@ -34,7 +36,7 @@ Cross-session coordination. Parse the subcommand from ARGUMENTS.
 
 ## Output Format
 
-Keep output concise. For `tribe_sessions`, format as a table. For `tribe_health`, highlight warnings. For `tribe_history`, show as a chat log with timestamps.
+Keep output concise. For `tribe.members`, format as a table. For `tribe.health`, highlight warnings. For `tribe.history`, show as a chat log with timestamps.
 
 ## `/tribe sync` Protocol
 
@@ -51,7 +53,7 @@ If you received multiple old messages, batch-acknowledge: "Ack N old messages" �
 
 After responses come in:
 1. Summarize the results as a table for the user
-2. **Cross-match blockers**: if member A is blocked on something member B could unblock, proactively suggest the assignment or send a tribe_send to coordinate
+2. **Cross-match blockers**: if member A is blocked on something member B could unblock, proactively suggest the assignment or send a `tribe.send` to coordinate
 3. **Infrastructure conflicts**: check for overlapping worktrees, concurrent test runs, half-migrated code, unpublished package dependencies
 4. **Suggest renames**: if a member has a generic name (member-N) but clear domain focus, suggest they `/tribe rename` to a domain name
 5. Flag any beads that have been in_progress too long without updates
@@ -61,7 +63,7 @@ After responses come in:
 Broadcast this message:
 
 ```
-Roll call: please report your current session name (/rename), what you're working on, and your status (idle/busy/blocked). Reply with tribe_send to chief.
+Roll call: please report your current session name (/rename), what you're working on, and your status (idle/busy/blocked). Reply with tribe.send to chief.
 ```
 
 Collect responses and present as a table.
@@ -70,15 +72,19 @@ Collect responses and present as a table.
 
 | Tool | Purpose |
 |------|---------|
-| `tribe_send` | Send message to a specific member |
-| `tribe_broadcast` | Message all members |
-| `tribe_sessions` | List active sessions |
-| `tribe_health` | Diagnostics: stale members, unread messages |
-| `tribe_history` | Recent message log |
-| `tribe_rename` | Rename this session |
-| `tribe_join` | Re-register name/role/domains (after compaction) |
-| `tribe_retro` | Generate retrospective report (metrics, timeline) |
-| `tribe_reload` | Hot-reload MCP server with latest code from disk |
+| `tribe.send` | Send message to a specific member |
+| `tribe.broadcast` | Message all members |
+| `tribe.members` | List active sessions |
+| `tribe.health` | Diagnostics: stale members, unread messages |
+| `tribe.history` | Recent message log |
+| `tribe.rename` | Rename this session |
+| `tribe.join` | Re-register name/role/domains (after compaction) |
+| `tribe.retro` | Generate retrospective report (metrics, timeline) |
+| `tribe.reload` | Hot-reload MCP server with latest code from disk |
+| `tribe.leadership` | Query / claim / release the chief lease |
+| `tribe.ask` / `tribe.brief` / `tribe.plan` / `tribe.session` / `tribe.workspace` / `tribe.inject_delta` | Lore (session history / memory) tools — see `.claude/skills/recall/` |
+
+Old names (`tribe_send`, `lore.ask`, etc.) still resolve through 0.10 with a one-line stderr deprecation — but new code should use the dotted form.
 
 ## CLI Tools (no MCP needed)
 
@@ -92,6 +98,9 @@ bun tribe start            # Start daemon foreground
 bun tribe stop             # Stop daemon
 bun tribe reload           # Hot-reload daemon
 bun tribe watch            # Live event dashboard
+bun tribe install          # Install Claude Code hooks (SessionStart/SessionEnd)
+bun tribe uninstall        # Remove installed hooks
+bun tribe doctor           # Verify daemon + MCP + hooks + env
 ```
 
 ## Notes
@@ -99,7 +108,7 @@ bun tribe watch            # Live event dashboard
 - If tribe tools are not available (MCP server not loaded), tell the user to run `claude-tribe` instead of `claude`
 - The tribe DB is at `.beads/tribe.db`
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
-- After updating tribe.ts, use `tribe_reload` to pick up changes without restarting the session
+- After updating tribe.ts, use `tribe.reload` to pick up changes without restarting the session
 - **Chief runbook**: See [runbook.md](runbook.md) for operational procedures (health checks, version sync, troubleshooting)
 - **Message format**: Plain text only, 1-3 lines max. No markdown — it renders as ugly escaped text in MCP tool call display
 - **Naming**: Use "runbook" (not "playbook") for operational procedures

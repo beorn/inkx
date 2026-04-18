@@ -119,7 +119,7 @@ This is how `/sop` learns. When a check produces a misleading result, or a "fix"
 1. **Record immediately** — add the anti-pattern to this file's table above
 2. **Fix the check** — update the parser in `tools/sop.ts` to handle the case correctly
 3. **Add a gotcha** — if the anti-pattern is domain-specific, add it to the domain's check definition as a comment
-4. **Broadcast** — `tribe_broadcast("SOP gotcha: [description]. Updated _sop-rules.md.")` so other sessions learn
+4. **Broadcast** — `tribe.broadcast("SOP gotcha: [description]. Updated _sop-rules.md.")` so other sessions learn
 
 **The table above is append-only during a session.** Don't remove entries — they're institutional memory. Mark obsolete entries with `(FIXED: date)` when the underlying check is fixed.
 

@@ -121,11 +121,11 @@ bd list --status closed --limit 20 --sort updated  # Recent completions for cont
 
 Before analyzing, get ground truth from tribe so you don't propose closing actively-worked beads:
 
-1. **List sessions**: `mcp__tribe__tribe_sessions()` — who's alive
+1. **List sessions**: `mcp__tribe__tribe.members()` — who's alive
 2. **Ask for status**:
 
 ```
-mcp__tribe__tribe_broadcast(type="notify",
+mcp__tribe__tribe.broadcast(type="notify",
   message="Backlog grooming starting. Quick status check — what beads are you actively working on right now? Just bead IDs + one-line status.")
 ```
 
@@ -369,11 +369,11 @@ Output structured report:
 
 **Never execute grooming changes without tribe feedback.** Tribe members have ground truth about what's actively worked on, what's blocked, and what's about to change.
 
-1. **Check who's online**: `mcp__tribe__tribe_sessions()` — know who can respond
+1. **Check who's online**: `mcp__tribe__tribe.members()` — know who can respond
 2. **Broadcast the full plan**: Send the entire Phase 3 report to tribe, asking for:
 
 ```
-mcp__tribe__tribe_broadcast(type="notify",
+mcp__tribe__tribe.broadcast(type="notify",
   message="Backlog grooming — proposed changes below. Please reply with:
   1. Objections to any close/merge/reprioritize/restructure
   2. Status update for ALL beads you know about (in_progress, claimed, or related to your work)

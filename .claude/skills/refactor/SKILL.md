@@ -153,7 +153,7 @@ When working on the main worktree (not an isolated git worktree), **notify the t
 - Before modifying vendor/ packages that other sessions depend on
 - Before any multi-file refactor that could break the build for 5+ minutes
 
-Use `tribe_broadcast` or `tribe_send` to the chief: "Starting disruptive refactor on <scope>. Expect <description> to be broken for ~N min. Don't start <scope>-related work until all-clear."
+Use `tribe.broadcast` or `tribe.send` to the chief: "Starting disruptive refactor on <scope>. Expect <description> to be broken for ~N min. Don't start <scope>-related work until all-clear."
 
 Send an all-clear when the refactor is stable (tests pass).
 

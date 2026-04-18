@@ -30,7 +30,7 @@ bun tools/sop.ts scan [args...]
 ### Step 2: Tribe broadcast (if tribe is connected)
 After the scan completes, broadcast findings summary to tribe:
 ```
-tribe_broadcast("SOP scan complete: [domain summary]. N findings (X warn, Y error).")
+tribe.broadcast("SOP scan complete: [domain summary]. N findings (X warn, Y error).")
 ```
 
 ### Step 3: Fix findings (--fix mode)
@@ -470,19 +470,19 @@ curl -s "https://api.cloudflare.com/client/v4/zones?name=beorn.codes" \
 
 `/sop` broadcasts to tribe at every phase transition so other sessions stay informed and can flag gotchas.
 
-**Start**: `tribe_broadcast("SOP starting — scanning [domains]. Reply with gotchas or blocks if any.")`
+**Start**: `tribe.broadcast("SOP starting — scanning [domains]. Reply with gotchas or blocks if any.")`
 
-**Per-domain scan complete**: `tribe_broadcast("SOP [domain]: [summary]. N findings, M actions proposed.")`
+**Per-domain scan complete**: `tribe.broadcast("SOP [domain]: [summary]. N findings, M actions proposed.")`
 
-**Before execute**: `tribe_broadcast("SOP executing [N actions]. Last call for objections (30s).")`
+**Before execute**: `tribe.broadcast("SOP executing [N actions]. Last call for objections (30s).")`
 - Wait for responses. Any session can reply with "block: [reason]" to halt a specific action.
 - This catches things only active sessions know: "don't publish silvery, I have uncommitted layoutDirty changes" or "termless CI is broken, skip verify"
 
-**Non-minor findings**: `tribe_broadcast("SOP [domain] ⚠ [finding summary]")` — any warn/error finding broadcast immediately so other sessions can react or avoid conflicting work.
+**Non-minor findings**: `tribe.broadcast("SOP [domain] ⚠ [finding summary]")` — any warn/error finding broadcast immediately so other sessions can react or avoid conflicting work.
 
-**After execute**: `tribe_broadcast("SOP complete: [dashboard summary]")`
+**After execute**: `tribe.broadcast("SOP complete: [dashboard summary]")`
 
-**Domain agents** can also `tribe_send(to="*", type="query", ...)` to ask active sessions about their domain before proposing actions. Example: packaging agent asks "any known bundle regressions?" before flagging size growth.
+**Domain agents** can also `tribe.send(to="*", type="query", ...)` to ask active sessions about their domain before proposing actions. Example: packaging agent asks "any known bundle regressions?" before flagging size growth.
 
 ## Cross-Domain Triggers
 
@@ -594,7 +594,7 @@ When a CI failure is found:
 
 ### Plugin Health Checks
 
-**Tribe**: Check daemon socket (`ls -la /tmp/km-tribe-*.sock`), health (`tribe_health`), sessions.
+**Tribe**: Check daemon socket (`ls -la /tmp/km-tribe-*.sock`), health (`tribe.health`), sessions.
 
 **Recall**: Check index exists and freshness (`bun recall status`), test search works.
 

@@ -8,6 +8,8 @@ allowed-tools: Bash
 
 **Keywords**: recall, memory, history, session, recover, find, previous session, lost conversation
 
+> **Namespace note** (@bearly/tribe 0.9.0): MCP tools moved from `lore.*` to `tribe.*` and env vars from `LORE_*` to `TRIBE_*`. Old names still work through 0.10 with a one-line stderr deprecation.
+
 Unified CLI for searching, managing, and recovering Claude Code session history.
 
 **NEVER read/cat entire session or tool-results files.** Always use `bun recall` (FTS5-indexed, <100ms).
@@ -16,7 +18,7 @@ Unified CLI for searching, managing, and recovering Claude Code session history.
 
 Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
 You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
-When the lore daemon is up, the hook routes through `lore.inject_delta` so dedup
+When the lore daemon is up, the hook routes through `tribe.inject_delta` so dedup
 state is held in memory per session (no tmpfile I/O, no 400 ms subprocess spawn).
 The hook falls back to the library `hookRecall` path (tmpfile dedup) when the
 daemon is unreachable.
@@ -25,9 +27,10 @@ daemon is unreachable.
 
 For a user query like `/recall X`, `recall X`, or "what did we do about Y":
 
-**Prefer the `lore.*` MCP tools** when they're available (registered in
-`.mcp.json`) — they call the same library as `bun recall` but without the
-~400ms subprocess-spawn cost. The CLI remains available for humans and scripts.
+**Prefer the `tribe.*` MCP tools** when they're available (registered in
+`.mcp.json` under the `tribe` server) — they call the same library as
+`bun recall` but without the ~400ms subprocess-spawn cost. The CLI remains
+available for humans and scripts.
 
 **Simple queries with specific tokens** (file names, bead IDs, function names — 1–3 words):
 ```bash
@@ -35,11 +38,11 @@ bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP eq
 ```
 
 **Everything else** (vague, natural-language, "that time we…"):
-- Via MCP: call `lore.ask({ query: "X" })` — planner-driven, ~4–6s with speculative synth
+- Via MCP: call `tribe.ask({ query: "X" })` — planner-driven, ~4–6s with speculative synth
 - Via CLI: `bun recall "X" --agent` — same library, 400ms subprocess overhead
 
 **Speculative cheap context** (when you want to see results BEFORE deciding whether to escalate):
-- Via MCP: `lore.current_brief()` for session paths/beads/tokens, then `lore.plan_only({ query })` for planner variants only (~2s, no fanout/synth)
+- Via MCP: `tribe.brief()` for session paths/beads/tokens, then `tribe.plan({ query })` for planner variants only (~2s, no fanout/synth)
 - Via CLI:
   ```bash
   bun recall current-brief             # ~50ms
@@ -47,7 +50,7 @@ bun recall --raw "X" -n 10          # single FTS, ~500ms — CLI only (no MCP eq
   bun recall "X" --agent --debug-plan  # full planner trace if still unclear
   ```
 
-**Never** iterate by running `bun recall` or `lore.ask` with slightly different query wordings
+**Never** iterate by running `bun recall` or `tribe.ask` with slightly different query wordings
 — agent mode does that internally (2 rounds with wider/deeper variants) in one call. If one
 call with agent mode doesn't find it, the answer is not in the corpus **— unless the index
 is stale**. On an empty result, `bun recall status` is the first thing to check (see
@@ -64,8 +67,21 @@ planner sees what the user was actually doing.
 2. **Sentinel file** written by a SessionStart hook — deterministic; recommended
 3. Most-recently-modified JSONL for the current project (fallback heuristic)
 
-For reliable detection under parallel sessions, install the SessionStart hook in
-`.claude/settings.json`:
+For reliable detection under parallel sessions, install the SessionStart/SessionEnd
+hooks in `.claude/settings.json`. Use the unified `tribe` CLI (0.9.0+):
+
+```bash
+bun tribe install           # writes hooks for SessionStart + SessionEnd
+bun tribe hook session-start  # the command the hook actually runs
+bun tribe hook session-end    # same, for session end
+bun tribe uninstall         # removes them
+bun tribe doctor            # verify daemon + MCP + hooks
+```
+
+The old entry points (`bun recall session-start`, `bun recall session-end`,
+`bun recall hook`) still work but print a one-line stderr deprecation.
+
+The resulting `.claude/settings.json` hook block looks like:
 
 ```json
 {
@@ -74,7 +90,7 @@ For reliable detection under parallel sessions, install the SessionStart hook in
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "bun recall session-start" }
+          { "type": "command", "command": "bun tribe hook session-start" }
         ]
       }
     ],
@@ -82,7 +98,7 @@ For reliable detection under parallel sessions, install the SessionStart hook in
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "bun recall session-end" }
+          { "type": "command", "command": "bun tribe hook session-end" }
         ]
       }
     ]
@@ -119,7 +135,7 @@ the SessionStart hook does it automatically). Empty results ≠ absent when the
 index hasn't caught up to recent sessions.
 
 `bun recall current-brief` exposes the detected session + paths/beads/tokens/tail
-for inspection. `lore.current_brief()` (MCP) returns the same data but via the
+for inspection. `tribe.brief()` (MCP) returns the same data but via the
 warm daemon — faster when available, transparent fallback to the library when not.
 
 **Checking daemon state** (humans): `bun vendor/bearly/plugins/tribe/lore/cli.ts status` or
