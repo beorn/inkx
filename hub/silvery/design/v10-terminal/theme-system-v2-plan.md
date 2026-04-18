@@ -1,5 +1,7 @@
 # Theme System v2 — making it truly great
 
+**Status: SHIPPED 2026-04-18.** All 9 v2 child beads closed under epic `km-silvery.theme-system-v2`. The km-tui follow-up `km-tui.coloroverride-purge` (36 sites → silvery's `color="inherit"` cascade) also shipped. See per-section status notes below.
+
 Follow-up to the Path G design system (terminal-color-strategy.md). The v1 landed 16 beads: OKLCH math, ColorScheme rename, invariants, monochrome attrs, fingerprint, generators, catalog (84 schemes), custom tokens, dim deprecation, fake-cursor, public docs, standalone detect library, storybook, backdrop-fade.
 
 This doc captures what's left to make the system feel *complete* and *ergonomic*, synthesizing /big analysis + user decisions on 2026-04-18.
