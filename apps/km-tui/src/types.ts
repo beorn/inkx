@@ -37,7 +37,7 @@ export interface RenderOptions {
  * Typed globalThis extensions for cross-boundary diagnostics.
  *
  * silvery sets: __silvery_last_pipeline, __silvery_render_count
- * km diagnostics (lastKey, terminalFocused) are in ./diagnostics.ts
+ * km diagnostics (lastKey, terminalFocused, startupPhase) are in ./diagnostics.ts
  */
 declare global {
   // eslint-disable-next-line no-var -- must be `var` for `declare global`

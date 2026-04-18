@@ -179,12 +179,14 @@ DEBUG=silvery:pipeline:output DEBUG_LOG=/tmp/silvery.log bun km view --repo <pat
 
 The heartbeat monitor in `apps/km-tui/src/tui.tsx` fires every 200ms and reports blocks >500ms. Enhanced output includes:
 - **Last key**: which key/command triggered the block
+- **Startup phase** (before first keypress): `(startup:<phase>)` where phase ∈ sync-init, sync-start, post-sync, collapsed-derive, load-config, load-workspace, detect-theme, init-lens, reactive-store, create-board-app, react-mount, idle
 - **Pipeline breakdown**: which phase (content, output, layout) was slow
 
 ```bash
 DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
 grep "event loop blocked" /tmp/km.log
-# Output: "event loop blocked for 1173ms — key='l' → cursor_right — render: content=800ms output=200ms (total=1050ms)"
+# Post-startup:  "event loop blocked for 1173ms — key='l' → cursor_right — render: content=800ms output=200ms (total=1050ms)"
+# Cold-startup:  "event loop blocked for 16908ms — (startup:react-mount) — (no renders — React mount or sync I/O)"
 ```
 
 **Interpreting phase timing**:
