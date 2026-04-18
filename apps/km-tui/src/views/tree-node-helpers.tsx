@@ -119,8 +119,12 @@ export function getNodeStyle(
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected) {
-    // Cursor node: inverse yellow on the title row (heavy bg, dark text).
-    // CardColumn applies a subtle blended bg to the entire card area.
+    // Cursor node: $selection-bg/$selection (Nord yellow or equivalent).
+    // Kept on selection tokens (not cursor tokens) because km-tui's per-pane
+    // theme dimming logic in theme.ts dims selectionbg to produce the
+    // 'unfocused pane' dimmed look. Migrating to $cursor-bg/$cursor would
+    // need that dimming logic extended to cursorbg too — tracked in
+    // km-silvery.theme-fake-cursor (follow-up).
     backgroundColor = "$selection-bg"
     textColor = "$selection"
   }

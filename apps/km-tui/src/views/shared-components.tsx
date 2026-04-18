@@ -532,16 +532,16 @@ export function NodeLine({
   const icon = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$selection-bg" : "$popover-bg"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$cursor-bg" : "$popover-bg"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-        <Text color={isSelected ? "$selection" : undefined} wrap="truncate">
+        <Text color={isSelected ? "$cursor" : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? "$selection" : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? "$cursor" : icon.color}>{icon.char} </Text>
           <InlineText
             text={title}
             decorations={decorations}
-            context={isSelected ? { colorOverride: "$selection" } : undefined}
+            context={isSelected ? { colorOverride: "$cursor" } : undefined}
           />
         </Text>
       </Box>
