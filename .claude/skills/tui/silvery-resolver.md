@@ -8,6 +8,7 @@
 |---|---|---|
 | **The Silvery Way** | `vendor/silvery/docs/guide/the-silvery-way.md` | First UI task of the session. Always. |
 | **Styling Guide** | `vendor/silvery/docs/guide/styling.md` | Any color/typography/theme work |
+| **Terminal Color Strategy** | `hub/silvery/design/v10-terminal/terminal-color-strategy.md` | 22-slot color scheme (ColorScheme), deriveTheme(), capability tiers, scheme detection & fingerprinting, monochrome mode |
 | **Silvery CLAUDE.md** | `vendor/silvery/CLAUDE.md` | Pre-flight for any silvery edit |
 | **silvery-components audit gate** | `.claude/skills/tui/silvery-components.md` | Before building any list/modal/input/etc |
 
@@ -20,8 +21,22 @@ If you can't answer the resolver's questions without reading, read.
 
 ### Q2. Applying colors, typography, bold/dim, or any styling?
 → `vendor/silvery/docs/guide/styling.md`
-→ For the `$muted` vs `$muted + dim` MECE rule: styling.md §2 "Build Hierarchy" callout.
-  TL;DR — `$muted` alone for meta/caption/hint; `<Small>` preset (bundles `$muted + dim`) for fine print; **never manually pair the two**.
+→ TL;DR on `dim`: **never write `dim` (or `dimColor`) in component code.** It's a terminal-level SGR modifier, not a design primitive. Use semantic tokens instead:
+  - `$muted` alone — meta/caption/hint (canonical grey)
+  - `<Small>` preset — fine print (bundles `$muted + dim` as the sanctioned composition)
+  - `$disabledfg` — inactive/disabled
+  `dim` is only allowed inside the token system (preset bundles, monochrome derivation, custom-token attrs, renderer realization at ANSI 16 tier). See styling.md's "dim is a rendering detail, not a design primitive" tip.
+
+### Q2b. Designing with color schemes / theme derivation / capability tiers / palette detection / monochrome?
+→ `hub/silvery/design/v10-terminal/terminal-color-strategy.md` — the canonical reference for:
+  - 22-slot ColorScheme (16 ANSI + 6 semantic) and how it seeds ~33 Theme tokens via `deriveTheme()`
+  - Capability tiers (truecolor / 256 / ANSI16 / monochrome) and the rendering ladder
+  - OSC probe support per slot (fg/bg: 100%, cursor: 86%, selection: 43%)
+  - Four-tier detection strategy (full probe / fingerprint match / formula derivation / declared fallback)
+  - Formula derivations for non-probeable slots, with accuracy %
+  - Fake cursor integration (SelectList, PickerList, TextInput, Board cursor → cursorColor/cursorText)
+  - Monochrome mode (attrs-only theme derivation)
+→ Also: tokens are palette-derived (not hex-picked); scheme switching re-runs derivation; components unchanged.
 
 ### Q3. Fighting a typography preset (Small / Muted / H1-3 / P / Strong / Em)? Want to override its default dim / bold / color?
 → `vendor/silvery/docs/guide/typography-overrides.md` (covers the `{...rest}` spread pattern — e.g. `<Small dimColor={false}>`)
