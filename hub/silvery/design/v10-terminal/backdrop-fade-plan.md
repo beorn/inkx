@@ -36,19 +36,19 @@ measure → layout → scroll → sticky → scrollRect → notify
   - **ansi16**: stamp `dim` attribute (SGR 2) on every cell in the region. Can't blend arbitrary palette slots.
   - **mono**: passthrough — the modal's border + box-drawing characters already carry visual separation.
 
-The pass mutates the buffer in place. `renderPhase` is still deterministic; since both the incremental buffer and any fresh-render comparison run through the same pass, `SILVERY_STRICT=1` stays green (identical pre-transform → identical post-transform).
+The pass mutates a CLONE of the buffer in place. `renderPhase` remains deterministic; since both the incremental buffer and any fresh-render comparison run through the same pass, `SILVERY_STRICT=1` stays green (identical pre-transform → identical post-transform).
 
 ## Incremental correctness
 
-`SILVERY_STRICT=1` compares: `renderPhase(clone of prev)` vs `renderPhase(null)`. Both produce the same buffer (pass is deterministic on the buffer). The backdrop pass runs AFTER `renderPhase`, once, on the final buffer — identical inputs on both sides means identical outputs.
+`SILVERY_STRICT=1` compares: `renderPhase(clone of prev)` vs `renderPhase(null)`. Both produce the same buffer (renderPhase invariant). The backdrop pass runs AFTER `renderPhase`, once, on the final buffer — identical inputs on both sides means identical outputs.
 
 What must be preserved:
 - Pre-transform buffer is identical for incremental + fresh render (already true — renderPhase invariant).
-- The pass operates on the CURRENT buffer, not the previous buffer. It doesn't touch the stored `_prevBuffer` snapshot (`renderPhase` stores pre-transform buffer via `_prevBuffer = buffer` — we do NOT overwrite that or we'd lose incremental skippability on the NEXT frame).
+- The pass operates on a FRESHLY CLONED buffer, not the stored `_prevBuffer` snapshot. `_prevBuffer` must hold the **pre-transform** buffer so incremental cloning + skipping continues to work.
 
-**Subtle point:** The incremental cascade reads the prev buffer's pixels to decide whether to re-render. If the prev buffer has FADED pixels (post-transform), the clone will have faded pixels, and fresh renders on top will show non-faded content in unaffected areas — mismatch.
+**Subtle point:** The incremental cascade reads the prev buffer's pixels to decide whether to re-render. If `_prevBuffer` had FADED pixels (post-transform), the next frame's clone would have faded pixels, and fresh renders on top would show non-faded content in unaffected areas — mismatch.
 
-Solution: `_prevBuffer` must hold the **pre-transform** buffer. The backdrop pass produces a separate output buffer (clone first, transform clone). The pre-transform buffer is what gets cloned next frame for incremental.
+Solution: `_prevBuffer = buffer` in `ag.ts` stays pre-transform. The backdrop pass clones that buffer before mutating and returns the clone. The clone is what gets painted; the pre-transform buffer is what gets stored for next-frame incremental.
 
 ## API
 
