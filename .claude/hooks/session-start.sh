@@ -50,5 +50,5 @@ if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
 fi
 
 # Hook output (required by Claude Code)
-echo '{"hookSpecificOutput": {"status": "ok"}}'
+echo '{}'
 exit 0

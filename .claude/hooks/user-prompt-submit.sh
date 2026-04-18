@@ -18,7 +18,7 @@ if echo "$PROMPT" | grep -qiE '^\s*/compact'; then
   if [ -n "$CONTEXT" ]; then
     # Escape for JSON and output as additionalContext
     ESCAPED=$(echo "$CONTEXT" | jq -Rs .)
-    echo "{\"hookSpecificOutput\": {\"additionalContext\": $ESCAPED}}"
+    echo "{\"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"additionalContext\": $ESCAPED}}"
     exit 0
   fi
 fi
@@ -27,6 +27,6 @@ fi
 if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
   echo "$INPUT" | exec bun "$REPO_ROOT/vendor/bearly/tools/recall.ts" hook
 else
-  echo '{"hookSpecificOutput": {}}'
+  echo '{}'
   exit 0
 fi

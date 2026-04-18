@@ -66,7 +66,7 @@ done <<< "$(ps -eo pid,ppid,etime,command 2>/dev/null | grep 'vitest.*forks\.js'
 if [ "$KILLED" -gt 0 ]; then
   echo "{\"systemMessage\": \"Cleaned up $KILLED orphaned vitest fork worker(s) after subagent stop\"}"
 else
-  echo '{"hookSpecificOutput": {"status": "ok", "killed": 0}}'
+  echo '{}'
 fi
 
 exit 0
