@@ -1078,7 +1078,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
 
       if (mouse.ctrl) {
-        // TODO(km-tui.sel-migration): toggle pattern deferred to Phase 3
+        // Tracked by km-tui.sel-reader-migration — the Selection union doesn't
+        // directly express toggle without reading current ids first.
         // Ctrl-click → move cursor to card and toggle its selection
         opctx.sel.node.select([selectId as ID], true)
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }

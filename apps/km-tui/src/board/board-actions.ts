@@ -1162,7 +1162,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       progressiveSelectAll(ctx)
       return ok()
     case "SELECT_NODE_TOGGLE": {
-      // TODO(km-tui.sel-migration): toggle pattern deferred to Phase 3
+      // Tracked by km-tui.sel-reader-migration — toggle semantics not in Selection union
       ctx.sel.node.select([action.nodeId as import("@silvery/selection").ID], true)
       return ok()
     }
@@ -1173,6 +1173,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     }
     case "SELECT_NODE_REMOVE": {
       // TODO(km-tui.sel-migration): remove pattern deferred to Phase 3
+      // Tracked by km-tui.sel-reader-migration — remove semantics not in Selection union
       ctx.sel.node.remove(action.nodeId as import("@silvery/selection").ID)
       return ok()
     }
