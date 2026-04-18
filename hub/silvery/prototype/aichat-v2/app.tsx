@@ -26,7 +26,7 @@ import { when } from "./shims/commands.js"
 import { createClock, type Clock } from "./shims/clock.js"
 import React, { useState, useEffect, type JSX } from "react"
 import { Box, Text, Link, Spinner, ListView, TextArea, useTerminalFocused } from "@silvery/ag-react"
-import * as demo from "../../../../silvery/examples/apps/aichat/script.ts"
+import * as demo from "../../../../vendor/silvery/examples/apps/aichat/script.ts"
 
 // React bridge — withChat sets this, useChat reads it. Production: React context.
 let _chat: ChatModel

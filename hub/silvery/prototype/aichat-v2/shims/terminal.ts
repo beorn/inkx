@@ -4,7 +4,7 @@
  */
 
 import type { ReactElement } from "react"
-import { createApp, type AppHandle } from "@silvery/create/create-app"
+import { createApp, type AppHandle } from "@silvery/create"
 import type { Key } from "@silvery/ag-term/runtime"
 import { invoke, type Mapping } from "./commands.js"
 

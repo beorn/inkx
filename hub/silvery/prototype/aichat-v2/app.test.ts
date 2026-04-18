@@ -8,7 +8,7 @@ import { createChatModel, withChat, withDemoScript, type ChatModel } from "./app
 import { createInstantScope } from "./shims/scope.js"
 import { createClock } from "./shims/clock.js"
 import { pipe, create, withScope, withCommands } from "./shims/app.js"
-import { SCRIPT, RANDOM_AGENT_RESPONSES } from "../../../../silvery/examples/apps/aichat/script.ts"
+import { SCRIPT, RANDOM_AGENT_RESPONSES } from "../../../../vendor/silvery/examples/apps/aichat/script.ts"
 
 /** Test AI provider — returns a fixed response as chunks. */
 function testAI(response = RANDOM_AGENT_RESPONSES[0]!) {

@@ -20,7 +20,7 @@
  */
 
 import type { ReactElement } from "react"
-import { createApp as createSilveryApp, type AppHandle } from "@silvery/create/create-app"
+import { createApp as createSilveryApp, type AppHandle } from "@silvery/create"
 import type { Key } from "@silvery/ag-term/runtime"
 import type { Scope } from "./scope.js"
 import type { Command, Mapping } from "./commands.js"

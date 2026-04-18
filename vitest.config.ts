@@ -86,6 +86,22 @@ const projects = hasProjectFlag
 					exclude: [...alwaysExclude, "**/*.slow.*"],
 				},
 			},
+			{
+				// Design-validation prototypes under hub/. Opt-in only — must be
+				// explicitly invoked with `--project=prototype`. The always-exclude
+				// list above still blocks hub/ from default discovery.
+				plugins: [mdspec()],
+				test: {
+					name: "prototype",
+					...sharedTest,
+					include: ["hub/silvery/prototype/**/*.{test,spec}.{ts,tsx}"],
+					exclude: [
+						...alwaysExclude.filter((p) => p !== "hub/**"),
+						"**/*.slow.*",
+						"vendor/**",
+					],
+				},
+			},
 		]
 	: undefined
 
