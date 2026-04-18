@@ -12,6 +12,7 @@ import { StoreContext } from "@silvery/create"
 import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
+import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { useNodeStore, useTreeNode } from "../state/reactive.ts"
 import { useSignal } from "./use-signal.ts"
@@ -131,7 +132,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
-        state.sel.node.select([targetId as import("@silvery/selection").ID])
+        dispatchSelection({ sel: state.sel }, nodeSelect(targetId))
       } else {
         // Route through dispatchBoard SELECT so the click hint (cardNodeId =
         // the containing card) takes the embed-aware path. Clicking a sub-item

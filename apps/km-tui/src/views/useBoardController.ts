@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import { useRuntime, useBoxRect, setWindowTitle, useFocusManager, type PatchedConsole } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import { createNodeStore, type NodeStore } from "../state/reactive.ts"
+import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -423,7 +424,7 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
       const computeMatches = () => {
         const matchNodeIds = findMatchingNodeIds(ps.viewTree, query)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
-          sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
+          dispatchSelection({ sel }, nodeSelect(matchNodeIds[0]!))
         }
         setUI({
           localSearch: {
@@ -459,7 +460,7 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
         if (!latestSr) return
         const matchNodeIds = searchReplaceMatchingNodeIds(ps.viewTree, repo, searchQuery, latestSr.useRegex)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
-          sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
+          dispatchSelection({ sel }, nodeSelect(matchNodeIds[0]!))
         }
         setUI({
           searchReplace: {
