@@ -575,7 +575,7 @@ Layer 2 — Catalog
 Layer 3 — Auto-detect
 - `theme-auto-detect` — probe + fingerprint + derive, with confidence metadata
 - `theme-generators` — synthesize from partial input (fg/bg, brand, accents)
-- `scheme-rename` — ColorPalette → ColorScheme refactor
+- `scheme-rename` — ColorScheme → ColorScheme refactor
 
 Layer 4 — Invariants
 - `theme-invariants` — AA contrast + gamut mapping enforced at load

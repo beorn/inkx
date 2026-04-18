@@ -5,7 +5,7 @@
 # Theme System v2: Semantic Tokens + Progressive Enhancement
 
 > **SUPERSEDED**: This design spec predates the swatch redesign (2026-03).
-> The actual implementation uses ColorPalette (22 terminal colors) → Theme (33 shadcn-style tokens).
+> The actual implementation uses ColorScheme (22 terminal colors) → Theme (33 shadcn-style tokens).
 > See `vendor/silvery/packages/theme/CLAUDE.md` for the current architecture.
 > Token names below (`$text`, `$chromebg`, etc.) are outdated — current tokens use
 > `$fg`, `$inverse`, `$surface`, etc. See the CLAUDE.md semantic tokens table.

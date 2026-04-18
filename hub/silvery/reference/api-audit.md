@@ -341,21 +341,21 @@ Exposes all `src/` files. Notable internal files:
 ### `.` (main)
 
 **React**: `ThemeProvider`, `useTheme`
-**Core**: `COLOR_PALETTE_FIELDS`, `deriveTheme`, `resolveThemeColor`, `generateTheme`
+**Core**: `COLOR_SCHEME_FIELDS`, `deriveTheme`, `resolveThemeColor`, `generateTheme`
 **Builder**: `createTheme`, `quickTheme`, `presetTheme`
 **Generators**: `fromBase16`, `fromColors`, `fromPreset`
 **Color utilities**: `blend`, `brighten`, `darken`, `contrastFg`, `desaturate`, `complement`, `hexToRgb`, `rgbToHex`, `hexToHsl`, `hslToHex`, `rgbToHsl`
 **State**: `setActiveTheme`, `getActiveTheme`, `pushContextTheme`, `popContextTheme`
-**Validation**: `validateColorPalette`, `validateTheme`, `THEME_TOKEN_KEYS`, `checkContrast`
+**Validation**: `validateColorScheme`, `validateTheme`, `THEME_TOKEN_KEYS`, `checkContrast`
 **Aliases**: `resolveAliases`, `resolveTokenAlias`
 **CSS**: `themeToCSSVars`
 **Auto-generate**: `autoGenerateTheme`
 **Base16**: `importBase16`, `exportBase16`
-**Detection**: `detectTerminalPalette`, `detectTheme`
+**Detection**: `detectTerminalScheme`, `detectTheme`
 **Built-in themes** (6): `ansi16DarkTheme`, `ansi16LightTheme`, `defaultDarkTheme`, `defaultLightTheme`, `builtinThemes`, `getThemeByName`
-**Built-in palettes** (45 palettes from 15 families): `catppuccinMocha`, `catppuccinFrappe`, `catppuccinMacchiato`, `catppuccinLatte`, `nord`, `dracula`, `oneDark`, `solarizedDark`, `solarizedLight`, `gruvboxDark`, `gruvboxLight`, `tokyoNight`, `tokyoNightStorm`, `tokyoNightDay`, `rosePine`, `rosePineMoon`, `rosePineDawn`, `kanagawaWave`, `kanagawaDragon`, `kanagawaLotus`, `everforestDark`, `everforestLight`, `nightfox`, `dawnfox`, `monokai`, `monokaiPro`, `snazzy`, `materialDark`, `materialLight`, `palenight`, `ayuDark`, `ayuMirage`, `ayuLight`, `horizon`, `moonfly`, `nightfly`, `oxocarbonDark`, `oxocarbonLight`, `sonokai`, `edgeDark`, `edgeLight`, `modusVivendi`, `modusOperandi`, `builtinPalettes`, `getPaletteByName`
+**Built-in palettes** (45 palettes from 15 families): `catppuccinMocha`, `catppuccinFrappe`, `catppuccinMacchiato`, `catppuccinLatte`, `nord`, `dracula`, `oneDark`, `solarizedDark`, `solarizedLight`, `gruvboxDark`, `gruvboxLight`, `tokyoNight`, `tokyoNightStorm`, `tokyoNightDay`, `rosePine`, `rosePineMoon`, `rosePineDawn`, `kanagawaWave`, `kanagawaDragon`, `kanagawaLotus`, `everforestDark`, `everforestLight`, `nightfox`, `dawnfox`, `monokai`, `monokaiPro`, `snazzy`, `materialDark`, `materialLight`, `palenight`, `ayuDark`, `ayuMirage`, `ayuLight`, `horizon`, `moonfly`, `nightfly`, `oxocarbonDark`, `oxocarbonLight`, `sonokai`, `edgeDark`, `edgeLight`, `modusVivendi`, `modusOperandi`, `builtinPalettes`, `getSchemeByName`
 
-**Types**: `Theme`, `ColorPalette`, `HueName`, `AnsiPrimary`, `AnsiColorName`, `HSL`, `ThemeProviderProps`, `DetectedPalette`, `DetectThemeOptions`, `ValidationResult`, `ThemeValidationResult`, `ContrastResult`, `Base16Scheme`
+**Types**: `Theme`, `ColorScheme`, `HueName`, `AnsiPrimary`, `AnsiColorName`, `HSL`, `ThemeProviderProps`, `DetectedScheme`, `DetectThemeOptions`, `ValidationResult`, `ThemeValidationResult`, `ContrastResult`, `Base16Scheme`
 
 ### Wildcard (`@silvery/theme/*`)
 

@@ -17,7 +17,7 @@ These packages have zero framework imports. Any reconciler can drive them.
 | **@silvery/ag**       | `@silvery/ag`       | Shipping | No          | AgNode tree — structure, props, children. The host tree.        |
 | **flexily**           | `flexily`           | Shipping | No          | Pure JS flexbox layout. Yoga-compatible, 2.5x faster, no WASM.  |
 | **@silvery/color**    | `@silvery/color`    | Shipping | No          | Color math — hex/RGB/HSL conversion, blending, contrast.        |
-| **@silvery/theme**    | `@silvery/theme`    | Shipping | No          | Semantic color tokens, 38 palettes, typography presets.         |
+| **@silvery/theme**    | `@silvery/theme`    | Shipping | No          | Semantic color tokens, 84 color schemes, typography presets.         |
 | **@silvery/headless** | `@silvery/headless` | Shipping | Yes         | Pure state machines for UI components (no React, no rendering). |
 
 ### Layout Pipeline

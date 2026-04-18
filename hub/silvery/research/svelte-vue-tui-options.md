@@ -78,7 +78,7 @@ Silvery is architected as a **framework-agnostic core** (`@silvery/ag`, `@silver
 - Flexily layout (W3C-spec flexbox).
 - The canonical component library (45+ components — though these would need per-framework wrappers).
 - The SILVERY_STRICT correctness harness and termless cross-parser testing.
-- Theme system, 38 palettes, typography presets.
+- Theme system, 84 color schemes, typography presets.
 - Terminal protocol coverage (Kitty keyboard, SGR mouse, OSC 8/22/52/66/133, Kitty graphics, Sixel, capability detection).
 
 The state of the landscape means **any competent Svelte or Vue TUI reconciler built on silvery would immediately be the best option in its framework ecosystem**. OpenTUI already ships Solid and React; shipping Svelte + Vue on top of silvery is the obvious leapfrog move if we care about framework pluralism as a differentiator.

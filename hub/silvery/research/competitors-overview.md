@@ -112,7 +112,7 @@ Ranking by tier: ✅ strong, ⚠️ partial, ❌ missing, 🟥 not applicable.
 
 - Ink: Manual chalk styling ❌
 - OpenTUI: RGBA + terminal palette ⚠️
-- Silvery: 38 palettes, semantic tokens (`$primary`, `$muted`, `$success`, `$error`, `$surfacebg`), typography presets, auto-detect ✅
+- Silvery: 84 color schemes, semantic tokens (`$primary`, `$muted`, `$success`, `$error`, `$surfacebg`), typography presets, auto-detect ✅
 
 **Mouse + SGR + drag + scroll + focus + selection + find + copy-mode**
 

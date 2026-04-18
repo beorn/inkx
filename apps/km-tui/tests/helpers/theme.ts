@@ -5,7 +5,7 @@
  * to their resolved truecolor RGB values. These match what createTestApp's
  * headless driver returns in cell.fg/cell.bg.
  *
- * Source of truth: vendor/silvery/packages/theme/src/palettes/index.ts (ansi16DarkTheme)
+ * Source of truth: vendor/silvery/packages/theme/src/schemes/index.ts (ansi16DarkTheme)
  *                  Verified via createTestApp headless driver probe (2026-04-10)
  *
  * @example

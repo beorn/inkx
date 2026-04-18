@@ -13,7 +13,7 @@ import { SHOWCASES } from "./showcases/index.js"
 
 // Set theme at the earliest possible point — before any silvery rendering.
 import { setActiveTheme } from "@silvery/theme/state"
-import { catppuccinMocha } from "@silvery/theme/palettes"
+import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme } from "@silvery/theme"
 const theme = deriveTheme(catppuccinMocha)
 setActiveTheme(theme)

@@ -15,7 +15,7 @@ import { SHOWCASES } from "./showcases/index.js"
 // Must use the same module path as the pipeline (render-helpers.ts imports from @silvery/theme/state)
 // so the browser bundle resolves to the same module instance.
 import { setActiveTheme } from "@silvery/theme/state"
-import { catppuccinMocha } from "@silvery/theme/palettes"
+import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme } from "@silvery/theme"
 setActiveTheme(deriveTheme(catppuccinMocha))
 

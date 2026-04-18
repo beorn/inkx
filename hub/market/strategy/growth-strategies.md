@@ -22,7 +22,7 @@ Source: Greg Isenberg "7 Growth Strategies" podcast (The Startup Ideas Podcast)
 1. **terminfo.dev** — terminal compatibility database (already live, 206+ pages)
 2. **Termless screen recorder** — record terminal sessions, export GIF/SVG/cast
 3. **Terminal capability checker** — already exists as terminfo.dev probes
-4. **Theme explorer** — silvery.dev/themes (38 palettes, live preview)
+4. **Theme explorer** — silvery.dev/themes (84 color schemes, live preview)
 
 ### 10 more free tool ideas
 

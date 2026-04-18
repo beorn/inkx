@@ -71,7 +71,7 @@ This is the narrative version — good for blog posts, launch copy, and HN discu
 > - **@silvery/ink** / **@silvery/chalk** — drop-in compat layers for migration. 99% of Ink tests, 100% of Chalk tests.
 > - **@silvery/test** — Playwright-style locators, `press()`, bounding-box assertions. Test terminal UIs like you test web apps.
 > - **@silvery/create** — composable app builder (`pipe()` providers). React + state + focus + mouse + find + copy-mode, assembled from small pieces.
-> - **@silvery/theme** — 38 palettes, semantic tokens (`$primary`, `$success`, `$muted`). Auto-detects terminal background, WCAG-compliant contrast.
+> - **@silvery/theme** — 84 color schemes, semantic tokens (`$primary`, `$success`, `$muted`). Auto-detects terminal background, WCAG-compliant contrast.
 > - **@silvery/commander** — type-safe Commander.js with Standard Schema validation. Styles its help output **through Silvery itself**. Your CLI looks like your app because it IS your app. _Beautiful CLIs for free._
 > - **@silvery/headless** — pure state machines (SelectList, Readline). No React. Portable, testable, embeddable.
 > - **@silvery/ansi** — everything terminal: styling primitives, truecolor, SGR, detection, theme derivation.
@@ -159,7 +159,7 @@ Silvery gives you the next rung of the terminal UI ladder without leaving React.
 | Ink compat layer             | ✅ @silvery/ink passes 918/931 Ink 7.0 tests                                                                                    |
 | Chalk compat layer           | ✅ @silvery/chalk passes 32/32 Chalk tests                                                                                      |
 | Component library            | ✅ 45+ components (VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ModalDialog, TextInput, TextArea, ...) |
-| Theming                      | ✅ @silvery/theme — 38 palettes, semantic tokens                                                                                |
+| Theming                      | ✅ @silvery/theme — 84 color schemes, semantic tokens                                                                                |
 | Testing                      | ✅ @silvery/test — Playwright-style locators, press(), buffer assertions                                                        |
 | Multi-backend verification   | ✅ Termless integration (10+ parsers)                                                                                           |
 | Layout engine                | ✅ Flexily — pure TS, W3C spec, Yoga-compatible                                                                                 |

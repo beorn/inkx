@@ -315,7 +315,7 @@ Shopify CLI uses Ink for interactive prompts, project scaffolding, and dev serve
 
 2. **Input isolation for complex flows.** Multi-step wizards where a confirmation dialog shouldn't leak keystrokes to the form behind it. Ink's `useInput` is flat — every handler sees every key. Silvery's `InputLayerProvider` isolates input automatically. Open a dialog, and the parent form stops receiving keys. No manual `if (dialogOpen) return` guards.
 
-3. **Theme support.** Shopify has a strong design system. Silvery's `@silvery/theme` provides semantic color tokens (`$primary`, `$success`, `$danger`) with 38 built-in palettes and auto-detection of terminal light/dark mode. Consistent branding across terminal environments without manual chalk color management.
+3. **Theme support.** Shopify has a strong design system. Silvery's `@silvery/theme` provides semantic color tokens (`$primary`, `$success`, `$danger`) with 84 color schemes and auto-detection of terminal light/dark mode. Consistent branding across terminal environments without manual chalk color management.
 
 4. **No WASM dependency.** Simpler CI, faster cold starts, no platform-specific binary issues. Pure TypeScript all the way down.
 

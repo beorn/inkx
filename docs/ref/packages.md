@@ -76,7 +76,7 @@ Complete inventory of every package, CLI command, and tool in the km monorepo.
 | `@silvery/ag-term` | 0.5.2 | Terminal runtime, ANSI output, 5-phase pipeline |
 | `@silvery/create` | 0.5.3 | App composition — createApp, pipe(), withApp, TEA store |
 | `@silvery/headless` | 0.5.1 | Pure state machines — SelectList, Readline (no React) |
-| `@silvery/theme` | 0.5.1 | 38 palettes, ThemeProvider, useTheme, theme CLI |
+| `@silvery/theme` | 0.5.1 | 84 color schemes, ThemeProvider, useTheme, theme CLI |
 | `@silvery/test` | 0.5.3 | Testing — virtual renderer, locators, assertions |
 | `@silvery/commands` | 0.5.2 | Command registry, keymaps, invocation |
 | `@silvery/scope` | 0.5.1 | Structured concurrency — createScope, disposal |

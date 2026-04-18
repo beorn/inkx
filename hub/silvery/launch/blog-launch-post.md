@@ -28,7 +28,7 @@ Testing the renderer meant testing against real terminals. I missed Playwright -
 
 But when I started probing terminal capabilities systematically, I hit a surprising gap. Which terminals actually support Kitty keyboard? OSC 52 clipboard? Sixel graphics? Synchronized output? The answers were scattered across source code, GitHub issues, and years of accumulated trial-and-error. So I built [terminfo.dev](https://terminfo.dev) -- an empirical compatibility database covering 161 features across 19 terminals, all probed automatically via Termless.
 
-Inside Silvery itself, the same pattern repeated. The framework needed a theme system that auto-detects terminal colors and adjusts for contrast -- that became [@silvery/theme](https://silvery.dev/themes) with 38 palettes and semantic design tokens. Testing utilities that feel like the web -- that became [@silvery/test](https://silvery.dev/examples/testing) with Playwright-style locators and buffer assertions. CLI apps needed beautiful help text without a separate rendering layer -- that became [@silvery/commander](https://silvery.dev/reference/commander), which renders its help through Silvery itself. Your CLI looks like your app because it _is_ your app.
+Inside Silvery itself, the same pattern repeated. The framework needed a theme system that auto-detects terminal colors and adjusts for contrast -- that became [@silvery/theme](https://silvery.dev/themes) with 84 color schemes and semantic design tokens. Testing utilities that feel like the web -- that became [@silvery/test](https://silvery.dev/examples/testing) with Playwright-style locators and buffer assertions. CLI apps needed beautiful help text without a separate rendering layer -- that became [@silvery/commander](https://silvery.dev/reference/commander), which renders its help through Silvery itself. Your CLI looks like your app because it _is_ your app.
 
 It's a little addictive, owning the entire pipeline. Each piece you build reveals the next opportunity. Flexily questioned whether layout needs WASM. Termless questioned whether terminal testing needs a real TTY. terminfo.dev questioned whether terminal compatibility data needs to live in scattered GitHub issues. Each answer opened the next question.
 
@@ -59,7 +59,7 @@ That works on the first paint. No prop drilling, no effects, no flash of wrong c
 
 **Focus system.** Scoped focus with arrow-key directional navigation, click-to-focus, Tab/Shift-Tab cycling. Modals automatically consume input -- no guard clauses needed. It's the focus model web developers expect, adapted for how terminals actually work.
 
-**Theming.** 38 palettes with semantic tokens (`$primary`, `$muted`, `$error`, `$success`) that auto-detect the terminal's background color and adjust for WCAG-compliant contrast. Switch palettes with one line; every component respects the tokens automatically.
+**Theming.** 84 color schemes with semantic tokens (`$primary`, `$muted`, `$error`, `$success`) that auto-detect the terminal's background color and adjust for WCAG-compliant contrast. Switch palettes with one line; every component respects the tokens automatically.
 
 **Dynamic scrollback.** This one is hard to explain without seeing it. Silvery's inline mode keeps a live React zone at the bottom of your terminal, while completed items graduate to terminal-owned scrollback above. Cmd+F and text selection work natively on the graduated content. Inline mode gets fullscreen-level performance; fullscreen mode gets inline-level UX. It bridges the gap that most terminal frameworks treat as a hard either/or.
 
@@ -84,7 +84,7 @@ What Silvery does have is architectural headroom. The problems it solves -- layo
 | `silvery`                         | Components, hooks, renderer -- the one package you need            |
 | `@silvery/ink` / `@silvery/chalk` | Ink compatibility -- 918/931 Ink 7.0 tests, 32/32 Chalk tests      |
 | `@silvery/test`                   | Playwright-style testing -- locators, `press()`, buffer assertions |
-| `@silvery/theme`                  | 38 palettes, semantic tokens, auto-detect                          |
+| `@silvery/theme`                  | 84 color schemes, semantic tokens, auto-detect                          |
 | `@silvery/commander`              | Beautiful CLIs for free -- help renders through Silvery itself     |
 | `@silvery/headless`               | Pure state machines -- portable, no React                          |
 | `@silvery/ansi`                   | Terminal primitives -- styling, SGR, detection                     |

@@ -25,7 +25,7 @@ The core idea: **separate what you render (components) from which framework crea
 | `@silvery/ag-term`     | Terminal rendering target                                                                                                                                           |
 | `@silvery/ag-react/ui` | Component library (30+ React components)                                                                                                                            |
 | `@silvery/tea`         | **Deprecated (Decision 31).** TEA state machine store (zustand-based) — dissolved into `tea()` in `@silvery/create`. Commands/keymaps moved to `@silvery/commands`. |
-| `@silvery/theme`       | Theming system (semantic tokens, 38 palettes)                                                                                                                       |
+| `@silvery/theme`       | Theming system (semantic tokens, 84 color schemes)                                                                                                                       |
 | `@silvery/test`        | Testing utilities (virtual renderer, locators)                                                                                                                      |
 | `@silvery/ink`         | Ink/Chalk compatibility layer (private)                                                                                                                             |
 
@@ -206,7 +206,7 @@ Renders abstract silvery nodes to terminal output. This is today's primary (and 
 - **Output**: ANSI escape sequences (colors, positioning, cursor, incremental diff)
 - **Input**: stdin parsing (escape sequences -> abstract key/pointer events)
 - **Backend**: real terminal (stdin/stdout), xterm.js (browser), headless (tests)
-- **Theme**: OSC palette detection, 38 built-in palettes
+- **Theme**: OSC palette detection, 84 color schemes
 
 Works in real terminals AND browsers (via xterm.js).
 
