@@ -84,12 +84,20 @@ function useInlineRenderContext(): InlineRenderContext {
 /**
  * Resolve a token color against the context's colorOverride.
  * - colorOverride undefined → return token (use component's own color)
- * - colorOverride null → return undefined (strip color)
+ * - colorOverride null → return "inherit" (cascade from nearest colored ancestor).
+ *   Prior behavior was `undefined` (strip color to terminal default). `inherit`
+ *   is strictly better: when the ancestor has no color, it's still default;
+ *   when the ancestor has a color (e.g. a cursor row wrapped in $cursor fg),
+ *   the inline component naturally adopts it. Retires the string-override
+ *   path for most callers — they can wrap with a single `<Text color="$cursor">`.
  * - colorOverride string → return that string (override color)
+ *
+ * Bead: km-silvery.color-inherit
  */
 function resolveColor(ctx: InlineRenderContext, token: string): string | undefined {
   if (ctx.colorOverride === undefined) return token
-  return ctx.colorOverride ?? undefined
+  if (ctx.colorOverride === null) return "inherit"
+  return ctx.colorOverride
 }
 
 // =============================================================================
@@ -484,7 +492,14 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   // to $link if the sigil has no configured color) and add a dotted
   // underline via linkTextProps("sigil").
   const props = linkTextProps("sigil", hovered, ctx.colorOverride)
-  const color = ctx.colorOverride !== undefined ? (ctx.colorOverride ?? undefined) : (sigilColor ?? "$link")
+  // colorOverride: undefined → sigil's own color; string → that string;
+  // null → "inherit" (cascade from nearest colored ancestor via silvery).
+  const color =
+    ctx.colorOverride === undefined
+      ? (sigilColor ?? "$link")
+      : ctx.colorOverride === null
+        ? "inherit"
+        : ctx.colorOverride
   return (
     <Text
       id={linkNodeId ?? undefined}

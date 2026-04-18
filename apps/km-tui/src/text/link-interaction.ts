@@ -101,18 +101,27 @@ export interface LinkTextProps {
 
 /**
  * Kind-specific styling props for a link at rest or on hover.
- * Respects colorOverride (undefined → normal, string → override, null → strip).
+ * Respects colorOverride:
+ *   undefined → normal (link uses its own $link color)
+ *   string    → override (link paints in that color)
+ *   null      → inherit (link uses nearest colored ancestor via silvery cascade)
+ *
+ * The null→"inherit" mapping (previously null→strip) leans on silvery's
+ * color="inherit" cascade primitive: when a cursor row wraps the link in
+ * $cursor fg, the link naturally adopts $cursor without an explicit string
+ * override. See bead km-silvery.color-inherit.
  */
 export function linkTextProps(
   kind: LinkKind,
   hovered: boolean,
   colorOverride: string | null | undefined,
 ): LinkTextProps {
+  const overrideColor = colorOverride === null ? "inherit" : colorOverride
   const honorOverride = colorOverride !== undefined
   switch (kind) {
     case "url":
       return {
-        color: honorOverride ? (colorOverride ?? undefined) : "$link",
+        color: honorOverride ? overrideColor : "$link",
         underlineStyle: hovered ? "single" : "dotted",
         underlineColor: hovered ? "$link" : "$border",
       }
@@ -122,7 +131,7 @@ export function linkTextProps(
       // the dotted underline. colorOverride (e.g. cursor inverse) always wins.
       const pillBg = hovered && colorOverride === undefined ? "#404050" : undefined
       return {
-        color: honorOverride ? (colorOverride ?? undefined) : "$link",
+        color: honorOverride ? overrideColor : "$link",
         backgroundColor: pillBg,
         underlineStyle: hovered ? false : "dotted",
         underlineColor: "$link",
