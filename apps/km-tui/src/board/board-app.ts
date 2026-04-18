@@ -26,6 +26,7 @@ import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
+import { dispatchSelection } from "../state/selection.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
@@ -237,6 +238,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       set textEditHints(v) {
         _textEditHints = v
         if (set) set({ textEditHints: v } as Partial<BoardAppStore>)
+      },
+      setSelection: (selection) => {
+        dispatchSelection({ sel: s.sel }, selection)
       },
       rootId,
       rootPath: board?.rootPath ?? null,

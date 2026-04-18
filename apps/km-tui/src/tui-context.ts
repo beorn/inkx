@@ -13,6 +13,7 @@ import type { FocusManager } from "@silvery/ag-react"
 import type { SelectionStore } from "@silvery/selection"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardReducerOp } from "./board/board-types.ts"
+import type { Selection } from "./state/selection.ts"
 import { PaneUI } from "./state/ui-reducer.ts"
 import type { EditMode } from "./state/ui-reducer.ts"
 import type { GridNavigator, ViewTreeProjection } from "@km/board"
@@ -43,6 +44,17 @@ export interface OpCtx {
   /** Transient km-specific text editing hints (block index, initial cursor pos).
    * Complements sel.text() which owns nodeId + offset. */
   textEditHints: TextEditHints | null
+
+  /**
+   * Dispatch a selection change. Replaces the old three-channel coordination
+   * (`sel.text.edit` + `sel.node.select` + implicit mode) with one entry point.
+   *
+   * Migration: callers are being moved from `ctx.sel.node.select([id])` to
+   * `ctx.setSelection({type:"node", ids:[id]})`. During migration, both APIs
+   * coexist and dispatch to the same underlying @silvery/selection store.
+   * See bead km-tui.sel-migration.
+   */
+  setSelection: (selection: Selection) => void
 
   // === Board navigation (flat fields from store) ===
   rootId: string | null

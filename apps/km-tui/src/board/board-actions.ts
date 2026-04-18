@@ -45,6 +45,7 @@ import { getAllFavorites, expandLocationTemplate, isDateTemplate } from "@km/com
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
+import { nodeSelect } from "../state/selection.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
@@ -579,12 +580,16 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
       if (!cursorTarget) {
         const createdNodeId = autoCreateDateTemplateFile(action.locationKey, ctx)
         if (createdNodeId) {
-          // Navigate: zoom to parent folder, select the created file
+          // Navigate: zoom to parent folder, select the created file.
+          // Reference call site for km-all.unified-selection: migrated from
+          // the three-channel pattern `ctx.sel.node.select([id])` to the unified
+          // `ctx.setSelection(nodeSelect(id))`. Old readers (ctx.sel.node.*) stay
+          // live — only writers move. See bead km-tui.sel-migration for rollout.
           const node = ctx.repo.getNode(createdNodeId)
           if (node?.parent_id) {
             saveNavHistory(ctx)
             ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: node.parent_id })
-            ctx.sel.node.select([createdNodeId as ID])
+            ctx.setSelection(nodeSelect(createdNodeId))
             clearSelection(ctx)
           }
           return ok()
