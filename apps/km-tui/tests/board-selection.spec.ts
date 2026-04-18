@@ -418,7 +418,7 @@ describe("Selection", () => {
     // because their parent (Parent) is in the multiSelected set.
     // Multi-selected non-cursor nodes get MULTI_BG, not $selection-bg.
     // Truecolor theme: multiSelectedBg resolves to an RGB blend.
-    const MULTI_BG = { r: 72, g: 73, b: 75 }
+    const MULTI_BG = { r: 69, g: 71, b: 75 }
     app.expectNodeColor("child-1", { bg: MULTI_BG })
     app.expectNodeColor("child-2", { bg: MULTI_BG })
   })
@@ -449,7 +449,7 @@ describe("Selection", () => {
     })
 
     // Direct children should visually appear selected (multi-select bg)
-    const MULTI_BG = { r: 72, g: 73, b: 75 }
+    const MULTI_BG = { r: 69, g: 71, b: 75 }
     app.expectNodeColor("child-1", { bg: MULTI_BG })
     app.expectNodeColor("child-2", { bg: MULTI_BG })
     // Grandchildren (sub-sub-items) should ALSO be visually selected
@@ -553,7 +553,7 @@ describe("Selection", () => {
 
 describe("Multi-select visual feedback", () => {
   // multiSelectedBg() resolves to an RGB blend in the truecolor theme.
-  const MULTI_BG = { r: 72, g: 73, b: 75 }
+  const MULTI_BG = { r: 69, g: 71, b: 75 }
 
   test("multi-selected cards show multi-select bg; unselected do not", () => {
     using app = createTestApp(item("board", item("col", item("alpha"), item("beta"), item("gamma"))))

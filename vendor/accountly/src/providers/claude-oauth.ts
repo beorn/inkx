@@ -274,9 +274,10 @@ export function createClaudeOAuthProvider(): QuotaProvider {
             // codenames like `seven_day_omelette`, `iguana_necktie`). They
             // expose nothing actionable — when a real new window ships,
             // it gets a label here.
-            if (!(key in WINDOW_LABELS)) continue
+            const label = WINDOW_LABELS[key as keyof typeof WINDOW_LABELS]
+            if (!label) continue
             windows.push({
-              name: WINDOW_LABELS[key],
+              name: label,
               utilization: Math.round(value.utilization),
               resetsAt: value.resets_at,
             })
