@@ -8,7 +8,7 @@ allowed-tools: Bash
 
 **Keywords**: recall, memory, history, session, recover, find, previous session, lost conversation
 
-> **Namespace note** (@bearly/tribe 0.9.0): MCP tools moved from `lore.*` to `tribe.*` and env vars from `LORE_*` to `TRIBE_*`. Old names still work through 0.10 with a one-line stderr deprecation.
+> **Namespace** (@bearly/tribe 0.10.0): MCP tools live under `tribe.*` only; env vars under `TRIBE_*` only. The 0.9.0 deprecation aliases (`lore.*`, `tribe_*`, `LORE_*`) were removed in 0.10.0.
 
 Unified CLI for searching, managing, and recovering Claude Code session history.
 

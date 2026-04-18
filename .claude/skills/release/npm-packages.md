@@ -77,7 +77,7 @@ Last updated: 2026-04-12 (63 packages)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `@bearly/tribe` | 0.8.1 | 342 | Cross-session coordination MCP server |
+| `@bearly/tribe` | 0.10.0 | 342 | Cross-session coordination MCP server |
 | `@bearly/github` | 0.1.0 | 14 | GitHub notifications MCP server |
 | `alien-projections` | 0.1.3 | 9 | Incremental reactive collection transforms (alien-signals) |
 | `alien-resources` | 0.1.3 | 9 | Async signal bridge (alien-signals) |

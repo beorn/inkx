@@ -8,7 +8,7 @@ allowed-tools: mcp__tribe__tribe.members, mcp__tribe__tribe.send, mcp__tribe__tr
 
 Cross-session coordination. Parse the subcommand from ARGUMENTS.
 
-> **Namespace note** (@bearly/tribe 0.9.0): every MCP tool lives under the unified `tribe.*` namespace. The old `tribe_*` underscored names are deprecated aliases and will be removed in `@bearly/tribe` 0.10. See `vendor/bearly/plugins/tribe/CHANGELOG.md` for the full rename table.
+> **Namespace** (@bearly/tribe 0.10.0): every MCP tool lives under the unified `tribe.*` namespace. The old `tribe_*` underscored names were removed in 0.10.0 — calling them now returns "unknown tool". See `vendor/bearly/plugins/tribe/CHANGELOG.md` for the full purge scope.
 
 ## Command Mapping
 
@@ -84,7 +84,7 @@ Collect responses and present as a table.
 | `tribe.leadership` | Query / claim / release the chief lease |
 | `tribe.ask` / `tribe.brief` / `tribe.plan` / `tribe.session` / `tribe.workspace` / `tribe.inject_delta` | Lore (session history / memory) tools — see `.claude/skills/recall/` |
 
-Old names (`tribe_send`, `lore.ask`, etc.) still resolve through 0.10 with a one-line stderr deprecation — but new code should use the dotted form.
+As of 0.10.0, the old names (`tribe_send`, `lore.ask`, etc.) have been removed entirely. Always use the dotted form.
 
 ## CLI Tools (no MCP needed)
 
