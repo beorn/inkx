@@ -12,6 +12,21 @@ escalate-to: {render: "silvery pipeline bottleneck", arch: "algorithmic redesign
 
 Diagnose and fix performance issues across all layers: storage, board state, React rendering, silvery pipeline, and terminal output.
 
+## Read these first (MECE perf doc map)
+
+Every perf investigation starts by loading **this skill + `docs/lessons/performance.md`**. They are mutually exclusive and collectively exhaustive:
+
+| Doc | Scope | When to load |
+|---|---|---|
+| **This skill** | Operational — commands, env vars, decision tree | ALWAYS on any perf symptom |
+| [`docs/lessons/performance.md`](/docs/lessons/performance.md) | History — prior km incidents, root causes, fixes | ALWAYS on any perf symptom |
+| [`docs/lessons/reproduce-first.md`](/docs/lessons/reproduce-first.md) | Methodology — reproduce with real data first | When tempted to code-read before measuring |
+| [`docs/lessons/debugging-rendering.md`](/docs/lessons/debugging-rendering.md) | Methodology — silvery visual bug workflow | Visual/rendering symptoms |
+| [`docs/lessons/incremental-rendering.md`](/docs/lessons/incremental-rendering.md) | Reference — silvery pipeline dirty flags, fast-path | `SILVERY_STRICT` mismatch, incremental bugs |
+| [`docs/lessons/lazy-frame-creation.md`](/docs/lessons/lazy-frame-creation.md) | Reference — silvery frame lifecycle | Frame creation profile shows hot path |
+| [`docs/lessons/layout-caching.md`](/docs/lessons/layout-caching.md) | Reference — flexily caching, fuzz methodology | Layout perf or cache invalidation bugs |
+| [`docs/lessons/sticky-children-rendering.md`](/docs/lessons/sticky-children-rendering.md) | Reference — sticky-rows feature | Sticky-rows artifacts |
+
 ## Decision Tree
 
 | Symptom | Start Here |

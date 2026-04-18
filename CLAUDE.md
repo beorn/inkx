@@ -218,12 +218,14 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 **Hard rule: never edit `vendor/silvery/packages/ag-term/src/pipeline/*.ts` directly.** Spawn `Agent(subagent_type: "silvery")` — the rendering expert loads pipeline docs first and writes STRICT tests before changes. Direct pipeline edits cause incremental cascade bugs.
 
+**Perf triage rule (read FIRST when user reports slow / laggy / freeze / jank / block / stutter)**: load `.claude/skills/perf/SKILL.md` AND `docs/lessons/performance.md` before writing any code or theorizing. The skill has the instrumentation commands (TRACE, DEBUG_LOG, SILVERY_INSTRUMENT, SILVERY_STRICT); the lessons doc documents prior incidents + root causes (60s→<1s via name index cache; 10s→0 via `countDescendantsAtDepth` early-exit). Five minutes of instrumentation beats four sessions of theorizing — this has been re-learned the expensive way.
+
 | Symptom                                      | Skill                                                          |
 | -------------------------------------------- | -------------------------------------------------------------- |
 | Silvery pipeline bug (dirty flags, incremental ≠ fresh, scroll tiers, sticky) | [silvery/](.claude/skills/silvery/) |
 | km-tui visual bug (card layout, column rendering, board components) | [tui/](.claude/skills/tui/) |
 | Flexily layout bug (wrong sizes, caching, fingerprinting) | [flexily/](.claude/skills/flexily/) |
-| Performance (slow, jank, stutter, event loop blocks) | [perf/](.claude/skills/perf/) |
+| Performance (slow, jank, stutter, event loop blocks) | [perf/](.claude/skills/perf/) + [docs/lessons/performance.md](docs/lessons/performance.md) |
 | Bug hunting / fuzz testing                   | [tests/exploratory.md](.claude/skills/tests/exploratory.md) |
 
 ### External LLMs (choose the right one!)
