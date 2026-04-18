@@ -12,6 +12,7 @@
 
 import type { ID } from "@silvery/selection"
 import type { OpCtx } from "../tui-context.ts"
+import { nodeSelect, textCaret } from "../state/selection.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
@@ -51,7 +52,7 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
   switch (effect.type) {
     // Navigation effects
     case "SELECT":
-      ctx.sel.node.select([effect.nodeId as ID])
+      ctx.setSelection(nodeSelect(effect.nodeId))
       break
     case "FOLD_SET":
       ctx.setFoldDepths(effect.depths)
@@ -80,8 +81,7 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
       const nextTree = captureTree(ctx.repo, selRoot)
       ctx.sel.transform({ type: "insertNode", id: newId as ID, parent: effect.parentId as ID }, prevTree, nextTree)
       if (effect.selectAfter) {
-        ctx.sel.node.select([newId as ID])
-        ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+        ctx.setSelection(textCaret(newId, 0))
         ctx.textEditHints = { blockIndex: 0 }
       }
       break
@@ -100,7 +100,7 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
 
     // UI effects
     case "INLINE_EDIT":
-      ctx.sel.text.edit(effect.nodeId as import("@silvery/selection").ID, 0)
+      ctx.setSelection(textCaret(effect.nodeId, 0))
       ctx.textEditHints = { blockIndex: effect.blockIndex }
       break
     case "RENDER_FLUSH":

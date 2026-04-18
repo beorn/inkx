@@ -14,6 +14,7 @@ import type { SelectionStore } from "@silvery/selection"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardReducerOp } from "./board/board-types.ts"
 import type { Selection } from "./state/selection.ts"
+import { NO_SELECTION, textCaret } from "./state/selection.ts"
 import { PaneUI } from "./state/ui-reducer.ts"
 import type { EditMode } from "./state/ui-reducer.ts"
 import type { GridNavigator, ViewTreeProjection } from "@km/board"
@@ -250,13 +251,13 @@ export function enterTextMode(
   initialCursorPos?: "start" | "end" | number,
 ): void {
   const offset = initialCursorPos === "end" ? -1 : typeof initialCursorPos === "number" ? initialCursorPos : 0
-  ctx.sel.text.edit(nodeId as import("@silvery/selection").ID, offset)
+  ctx.setSelection(textCaret(nodeId, offset))
   // Store km-specific block hints
   ctx.textEditHints = { blockIndex, initialCursorPos }
 }
 
 /** Exit text editing mode (save is handled by the EditContext cleanup) */
 export function exitTextMode(ctx: OpCtx): void {
-  ctx.sel.text.deselect()
+  ctx.setSelection(NO_SELECTION)
   ctx.textEditHints = null
 }

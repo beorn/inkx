@@ -19,6 +19,7 @@ import { useRepo } from "../repo-context.tsx"
 import { ServicesProvider } from "../services-context.tsx"
 import type { GridNavigator } from "@km/board"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
+import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
@@ -130,7 +131,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
-        state.sel.node.select([targetId as import("@silvery/selection").ID])
+        dispatchSelection({ sel: state.sel }, nodeSelect(targetId))
         return
       }
 
@@ -148,7 +149,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       if (boardPane?.viewMode === "detail") {
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
-        state.sel.node.select([targetId as import("@silvery/selection").ID])
+        dispatchSelection({ sel: state.sel }, nodeSelect(targetId))
         return
       }
 
@@ -161,14 +162,14 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       }
 
       if (nav.action === "SELECT") {
-        state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+        dispatchSelection({ sel: state.sel }, nodeSelect(nav.cursorTarget))
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
-        if (nav.cursorTarget) state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+        if (nav.cursorTarget) dispatchSelection({ sel: state.sel }, nodeSelect(nav.cursorTarget))
         state.openDetailPane()
       } else if (nav.zoomTarget) {
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
-        if (nav.cursorTarget) state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
+        if (nav.cursorTarget) dispatchSelection({ sel: state.sel }, nodeSelect(nav.cursorTarget))
       }
     },
     [repo, storeApi],

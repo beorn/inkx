@@ -926,6 +926,7 @@ describe("Board.apply — combined dispatcher", () => {
 import { runBoardEffects } from "../src/board/board-effect-runner.ts"
 import type { ApplyResult, BoardEffect } from "../src/board/board-reducer.ts"
 import { createSelection } from "@silvery/selection"
+import { dispatchSelection, type Selection } from "../src/state/selection.ts"
 
 /** Minimal mock OpCtx for testing effect runner. Tracks all calls. */
 function mockCtx() {
@@ -950,6 +951,11 @@ function mockCtx() {
     setUI: (...args: unknown[]) => calls.push({ method: "setUI", args }),
     setFoldDepths: (...args: unknown[]) => calls.push({ method: "setFoldDepths", args }),
     sel,
+    // Mirror board-app.ts wiring: setSelection dispatches through @silvery/selection.
+    // Tests read sel.node.select calls via the intercepted .calls array above.
+    setSelection: (selection: Selection) => {
+      dispatchSelection({ sel }, selection)
+    },
     textEditHints: null as import("../src/tui-context.ts").TextEditHints | null,
     repo: {
       getNode: () => null,
@@ -1018,11 +1024,10 @@ describe("runBoardEffects — centralized effect interpreter", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runBoardEffects(ctx as any, result)
     expect(ctx.calls).toContainEqual({ method: "repo.addNode", args: ["p1", nodeData] })
-    expect(ctx.calls).toContainEqual({
-      method: "sel.node.select",
-      args: [["new-node-id"]],
-    })
-    // Selection migration: edit mode is now via sel.text.edit() + textEditHints
+    // Selection migration: ctx.setSelection(textCaret(newId, 0)) replaces the old
+    // paired sel.node.select + sel.text.edit. Verify edit mode is active on the
+    // new node. (The mock tree's contains() returns false so node.ids() stays
+    // empty — that's a test-mock limitation, not a real runtime outcome.)
     expect(ctx.sel.text()).not.toBeNull()
     expect(ctx.sel.text()?.nodeId).toBe("new-node-id")
     expect(ctx.textEditHints).toEqual({ blockIndex: 0 })
