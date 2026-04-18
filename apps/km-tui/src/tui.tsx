@@ -386,6 +386,15 @@ export async function runBoard(
         </ThemeProvider>,
         isInteractive
           ? {
+              // Pass the dims km already captured (line 297-298) plus stdout so
+              // silvery doesn't re-read process.stdout.columns/rows after ~300ms
+              // of startup I/O (config load, OSC theme detection). Explicit
+              // stdout keeps silvery out of headless mode — see
+              // vendor/silvery/packages/ag-term/src/runtime/create-app.tsx:611,
+              // where `cols && rows && !stdout` triggers headless=true.
+              cols,
+              rows,
+              stdout: process.stdout,
               alternateScreen: true,
               kitty: caps.kittyKeyboard,
               mouse: caps.mouse,
