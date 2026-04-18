@@ -65,8 +65,10 @@ export function OmniboxRow({
 }): React.ReactElement {
   const { icon, iconColor, title, titleDecorations, context, hint, isSelected, disabled } = data
 
-  const bg = isSelected ? "$selection-bg" : "$popover-bg"
-  const fg = disabled ? "$muted" : isSelected ? "$selection" : undefined
+  // Selected row is the omnibox cursor — use $cursorbg/$cursor (scheme's
+  // terminal cursor color) for native-feel highlight per design system.
+  const bg = isSelected ? "$cursor-bg" : "$popover-bg"
+  const fg = disabled ? "$muted" : isSelected ? "$cursor" : undefined
   // Selection rules win over everything: on a selected row ALL content —
   // including $muted icons — takes the selection fg (black).
   // For unselected muted icons (e.g. the command ':' marker), we render via
@@ -81,15 +83,7 @@ export function OmniboxRow({
           communicated entirely by the row's bg color; no cursor glyph (▸)
           and no leading padding. */}
       <Box flexGrow={0} flexShrink={0}>
-        {iconUsesFinePrint ? (
-          <Small>
-            {icon}{" "}
-          </Small>
-        ) : (
-          <Text color={iconFg}>
-            {icon}{" "}
-          </Text>
-        )}
+        {iconUsesFinePrint ? <Small>{icon} </Small> : <Text color={iconFg}>{icon} </Text>}
       </Box>
 
       {/* Title + context — flex-grow, truncates */}
