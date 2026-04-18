@@ -24,14 +24,33 @@ import { createScope, type Scope, type Task } from "./shims/scope.js"
 import { signal, computed, useSignal, useModel, type WritableSignal, type Signal } from "./shims/signals.js"
 import { when } from "./shims/commands.js"
 import { createClock, type Clock } from "./shims/clock.js"
-import React, { useState, useEffect, type JSX } from "react"
+import React, { createContext, useContext, useState, useEffect, type JSX, type ReactNode } from "react"
 import { Box, Text, Link, Spinner, ListView, TextArea, useTerminalFocused } from "@silvery/ag-react"
 import * as demo from "../../../../vendor/silvery/examples/apps/aichat/script.ts"
 
-// React bridge — withChat sets this, useChat reads it. Production: React context.
-let _chat: ChatModel
+// ── React context bridge ────────────────────────────────────────────────
+// The chat model is provided via context at the top of the React tree —
+// no module-level state. Production wiring pattern per app-composition.md:
+// `<ChatContext.Provider value={app.chat}>`. This keeps the model scoped
+// to the React subtree and lets the headless app tests skip React entirely.
+
+const ChatContext = createContext<ChatModel | null>(null)
+
+export function ChatProvider({ chat, children }: { chat: ChatModel; children: ReactNode }): JSX.Element {
+  return <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>
+}
+
 function useChat<U>(selector: (m: ChatModel) => U): U {
-  return useModel(_chat, selector)
+  const chat = useContext(ChatContext)
+  if (!chat) throw new Error("useChat() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.")
+  return useModel(chat, selector)
+}
+
+/** Escape hatch for imperative access (e.g. input onChange handlers). */
+function useChatModel(): ChatModel {
+  const chat = useContext(ChatContext)
+  if (!chat) throw new Error("useChatModel() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.")
+  return chat
 }
 
 // ============================================================================
@@ -42,16 +61,35 @@ async function main() {
   using scope = createScope()
   const demoDriver = createDemoDriver(demo.SCRIPT)
 
+  // Create the model up-front so we can pass the same reference to
+  // withChat (which wires it into app.chat + commands) AND to the
+  // <ChatProvider> that exposes it to the React tree. `onExit` uses
+  // a late-bound handle — app.quit() isn't defined until pipe() finishes.
+  let quit = () => {}
+  const chat = createChatModel({
+    ai: demoDriver,
+    scope,
+    clock: createClock(scope),
+    onExit: () => quit(),
+  })
+
   using app = pipe(
     create(),
     withScope(scope),
     withCommands(),
     withTerm({ mode: "inline" }),
-    withChat({ ai: demoDriver }),
+    withChat({ chat }),
     withKeymap(),
     withDemoScript(demoDriver),
-    withReact({ view: <ChatView /> }),
+    withReact({
+      view: (
+        <ChatProvider chat={chat}>
+          <ChatView />
+        </ChatProvider>
+      ),
+    }),
   )
+  quit = () => app.quit()
 
   await app.run()
 }
@@ -232,19 +270,27 @@ export function createChatModel({
 }
 
 /**
- * Domain plugin: wires chat model + commands into the app.
- * Model creation is delegated to createChatModel() for testability.
+ * Domain plugin: wires a pre-built chat model + commands into the app.
+ *
+ * The model is created outside the plugin (in main() / tests) so the same
+ * reference can be passed to <ChatProvider> for the React tree. This also
+ * lets headless tests build the model with a fake clock/scope and then
+ * compose the rest of the app around it.
+ *
+ * Legacy overload: `withChat({ ai })` still works — it creates the model
+ * internally. New code should pass `{ chat }` directly.
  */
-export function withChat({ ai }: { ai: AIProvider }) {
+export function withChat(options: { chat: ChatModel } | { ai: AIProvider }) {
   return <A extends AppBase & { scope: Scope } & WithCommands>(app: A) => {
-    const chat = createChatModel({
-      ai,
-      scope: app.scope,
-      clock: createClock(app.scope),
-      onExit: () => app.quit(),
-    })
-
-    _chat = chat
+    const chat =
+      "chat" in options
+        ? options.chat
+        : createChatModel({
+            ai: options.ai,
+            scope: app.scope,
+            clock: createClock(app.scope),
+            onExit: () => app.quit(),
+          })
 
     app.commands.chat = {
       submit: { fn: ({ content }: { content: string }) => chat.submit(content) },
@@ -381,6 +427,7 @@ function ChatView(): JSX.Element {
 
 function InputFooter(): JSX.Element {
   const terminalFocused = useTerminalFocused()
+  const chat = useChatModel()
   const isDone = useChat((m) => m.isDone())
   const draft = useChat((m) => m.input.draft())
   const placeholder = useChat((m) => m.input.placeholder())
@@ -401,12 +448,12 @@ function InputFooter(): JSX.Element {
         <Box flexShrink={1} flexGrow={1}>
           <TextArea
             value={draft}
-            onChange={(text: string) => _chat.input.draft(text)}
+            onChange={(text: string) => chat.input.draft(text)}
             onSubmit={(text: string) => {
               const msg = text.trim() || placeholder
               if (msg) {
-                _chat.submit(msg)
-                _chat.input.draft("")
+                chat.submit(msg)
+                chat.input.draft("")
               }
             }}
             submitKey="enter"
