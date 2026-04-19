@@ -256,29 +256,11 @@ So the sender learns immediately without a follow-up query:
 
 ### The chief's responsibility
 
-**The chief makes sure messages get delivered.** That's the real definition of the role — not "longest-connected" (that's just how it gets assigned when nobody claims it), but the member accountable for tribe follow-through.
+**The chief is an LLM, not a rules engine.** It's a Claude Code session — a member like any other — that happens to hold the chief role. Its job description is "monitor tribe health and fix things that aren't flowing." How it does that is its own judgment.
 
-Concretely:
+That means the daemon does not prescribe behavior. There is no timer, no threshold table, no escalation ladder, no "the chief MUST respond within N minutes." The chief watches the wire, queries the journal when it wants (including the trivial `delivered_to_id IS NULL` query), and uses LLM judgment to decide what to do next — nudge, reroute, ask the sender, start a sub-agent, supersede, or just wait if the recipient is obviously about to come back. Different situations call for different responses, which is the whole reason the chief is an LLM and not a state machine.
 
-- Subscribe to every `post` (chief already sees everything via `channel`).
-- Notice when a direct has `delivered: false` for any recipient.
-- Scan the journal for stragglers at any time:
-  ```sql
-  SELECT id, seq, from_name, to_name, ts, content
-    FROM messages
-    WHERE kind='direct'
-      AND delivered_to_id IS NULL
-      AND ts > (strftime('%s','now') - 86400) * 1000
-    ORDER BY ts ASC
-  ```
-- Act. How the chief acts is a convention, not a daemon feature. Reasonable patterns:
-  - Post a nudge to the sender: "bob is offline, your message sits."
-  - Reroute the work: post a replacement to whoever's online and competent.
-  - Reply-all with status.
-  - Wait and retry: query again in a few minutes once bob might be back.
-  - Supersede: post a new message referencing the old one as resolved.
-
-None of this requires daemon support. The chief-session has the journal, the wire, and its own logic. Different tribes can evolve different conventions without a daemon release.
+The daemon's entire contribution to this is: expose `delivered_to_id` on journal rows and `delivered[]` in `post` replies. That's enough. The chief does the rest.
 
 ### What the daemon does NOT do
 
