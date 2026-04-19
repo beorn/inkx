@@ -1,26 +1,27 @@
 /**
  * Stress + perf benchmarks for @km/reactive-tree.
  *
+ * Measures the default-strategy engine (sparse-ancestor-index for
+ * descendants + some/count; walk for ancestors + anything; walk for reduce).
+ * The public API doesn't let users pick strategies — the engine classifies
+ * descriptors and chooses for them — so this bench measures what users
+ * actually experience at scale.
+ *
  * Coverage:
- *   - sparse vs walk read cost across tree sizes (1K, 10K, 100K descendants)
- *   - write throughput: cursor move = one walkUp per strategy (O(depth))
- *   - rebind cost on trees with 0 / few / many truthy nodes
- *   - deep-ancestor cost (1000-level chain) — walkUp is O(depth)
- *   - wide-fan-out cost (one parent, N direct children)
- *   - multi-strategy coexistence (sparse + walkUp on different keys)
- *   - singleton vs sparse for single-select patterns
- *   - read-after-write invalidation cost
- *   - default strategy resolution
+ *   - descendants + some read cost (sparse-backed) across 1K/10K/100K
+ *   - ancestors + some read cost (walk-backed — depth-bound) across depths
+ *   - cursor move (write + read) on large columns
+ *   - deep ancestor chains (50/200/1000 depth)
+ *   - balanced tree stress (fanout=10, depth=4)
+ *   - rebind cost with 0 / few / many truthy nodes
+ *   - sequential write throughput (1000 toggles)
+ *   - multi-aggregate coexistence (descendants + ancestors)
+ *   - traversal call accounting (BENCH_VERBOSE=1 prints children/parent calls)
  *
- * Methodology: `bench()` reports ops/sec. Accounting scenarios (prefixed with
- * `ACCOUNTING:`) print call counts via `process.stderr.write` when
- * `BENCH_VERBOSE=1` is set.
- *
- * The engine's correctness contract (validated by this bench, not just the
- * test suite):
- *   - cursor move on an empty 100K-descendant column = 0 traversal calls on read
- *   - sparse writes cost O(depth) walkUp calls, reads cost O(1)
- *   - walk strategy on the same scenario = O(subtree) traversal on read
+ * Correctness contract validated here:
+ *   - reading `descendants(key).some()` on an empty 100K column = 0 children() calls
+ *   - writing a descendants(key) signal costs O(depth) parent() calls
+ *   - reading `ancestors(key).some()` costs O(depth) parent() calls
  *
  * Run: `bun vitest bench packages/reactive-tree/`.
  * Verbose: `BENCH_VERBOSE=1 bun vitest bench packages/reactive-tree/`.
@@ -28,7 +29,7 @@
 
 import { bench, describe } from "vitest"
 import { signal } from "alien-signals"
-import { reactiveTree, sparse, walk, walkUp, singleton, type Traversal } from "../src/index.ts"
+import { createTree, type Traversal } from "../src/index.ts"
 
 // ─── Tree fixtures ──────────────────────────────────────────────────────────
 
@@ -125,41 +126,8 @@ function buildBalancedTree(fanout: number, depth: number) {
 
 // ─── Store factories ────────────────────────────────────────────────────────
 
-function makeSparseStore(traversal: Traversal) {
-  return reactiveTree(
-    (tree) => ({
-      cursor: signal(false),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: sparse } as any),
-    }),
-    traversal,
-  )
-}
-
-function makeWalkStore(traversal: Traversal) {
-  return reactiveTree(
-    (tree) => ({
-      cursor: signal(false),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: walk } as any),
-    }),
-    traversal,
-  )
-}
-
-function makeSingletonStore(traversal: Traversal) {
-  return reactiveTree(
-    (tree) => ({
-      cursor: signal(false),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: singleton } as any),
-    }),
-    traversal,
-  )
-}
-
-function makeDefaultStore(traversal: Traversal) {
-  return reactiveTree(
+function makeCursorStore(traversal: Traversal) {
+  return createTree(
     (tree) => ({
       cursor: signal(false),
       cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some(),
@@ -168,37 +136,51 @@ function makeDefaultStore(traversal: Traversal) {
   )
 }
 
+function makeAncestorStore(traversal: Traversal) {
+  return createTree(
+    (tree) => ({
+      selected: signal(false),
+      selectedAncestor: tree.ancestors((x: { selected: unknown }) => x.selected).some(),
+    }),
+    traversal,
+  )
+}
+
+function makeMixedStore(traversal: Traversal) {
+  return createTree(
+    (tree) => ({
+      cursor: signal(false),
+      ownTag: signal(null as string | null),
+      cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some(),
+      tagAncestor: tree.ancestors((x: { ownTag: unknown }) => x.ownTag).some(),
+    }),
+    traversal,
+  )
+}
+
 // ─── Benchmarks ─────────────────────────────────────────────────────────────
 
-describe("read cost: sparse vs walk on empty column (worst case for walk)", () => {
+describe("descendants+some read (sparse-backed)", () => {
   for (const size of [1_000, 10_000, 100_000] as const) {
-    bench(`sparse ${size}: empty-column read`, () => {
+    bench(`${size}: empty column read (worst case pre-index)`, () => {
       const { traversal } = buildLinearTree(size)
-      const store = makeSparseStore(traversal)
+      const store = makeCursorStore(traversal)
       store.get("col").cursorDescendant()
     })
-    bench(`walk ${size}: empty-column read`, () => {
+    bench(`${size}: cursor at end, read col`, () => {
       const { traversal } = buildLinearTree(size)
-      const store = makeWalkStore(traversal)
+      const store = makeCursorStore(traversal)
+      store.get(`card${size - 1}`).cursor(true)
       store.get("col").cursorDescendant()
     })
   }
 })
 
-describe("cursor move: cross-column keystroke simulation", () => {
+describe("cursor move (keystroke simulation)", () => {
   for (const size of [1_000, 10_000, 100_000] as const) {
-    bench(`sparse ${size}: move between two leaves, read root`, () => {
+    bench(`${size}: move between two leaves + read col`, () => {
       const { traversal } = buildLinearTree(size)
-      const store = makeSparseStore(traversal)
-      store.get("card0").cursor(true)
-      // Measured section: move + read
-      store.get("card0").cursor(false)
-      store.get(`card${size - 1}`).cursor(true)
-      store.get("col").cursorDescendant()
-    })
-    bench(`walk ${size}: move between two leaves, read root`, () => {
-      const { traversal } = buildLinearTree(size)
-      const store = makeWalkStore(traversal)
+      const store = makeCursorStore(traversal)
       store.get("card0").cursor(true)
       store.get("card0").cursor(false)
       store.get(`card${size - 1}`).cursor(true)
@@ -207,65 +189,63 @@ describe("cursor move: cross-column keystroke simulation", () => {
   }
 })
 
-describe("deep ancestor chain (walkUp is O(depth))", () => {
+describe("ancestors+some read (walk-backed; O(depth))", () => {
   for (const depth of [50, 200, 1_000] as const) {
-    bench(`sparse ${depth}-deep: write at leaf`, () => {
+    bench(`${depth}-deep: selectedAncestor read from leaf`, () => {
       const { traversal, leaf } = buildDeepChain(depth)
-      const store = makeSparseStore(traversal)
-      store.get(leaf).cursor(true)
+      const store = makeAncestorStore(traversal)
+      store.get("root").selected(true)
+      store.get(leaf).selectedAncestor()
     })
-    bench(`walk ${depth}-deep: read root with cursor at leaf`, () => {
+  }
+})
+
+describe("write cost on deep chains (sparse walkUp is O(depth))", () => {
+  for (const depth of [50, 200, 1_000] as const) {
+    bench(`${depth}-deep: write cursor at leaf`, () => {
       const { traversal, leaf } = buildDeepChain(depth)
-      const store = makeWalkStore(traversal)
+      const store = makeCursorStore(traversal)
       store.get(leaf).cursor(true)
-      store.get("root").cursorDescendant()
     })
   }
 })
 
 describe("balanced tree stress (fanout=10, depth=4 ≈ 11K nodes)", () => {
-  bench("sparse: cursor on middle leaf, read root", () => {
+  bench("cursor on middle leaf, read root cursorDescendant", () => {
     const { traversal, leaves } = buildBalancedTree(10, 4)
-    const store = makeSparseStore(traversal)
-    const target = leaves[Math.floor(leaves.length / 2)]!
-    store.get(target).cursor(true)
-    store.get("root").cursorDescendant()
-  })
-  bench("walk: cursor on middle leaf, read root", () => {
-    const { traversal, leaves } = buildBalancedTree(10, 4)
-    const store = makeWalkStore(traversal)
+    const store = makeCursorStore(traversal)
     const target = leaves[Math.floor(leaves.length / 2)]!
     store.get(target).cursor(true)
     store.get("root").cursorDescendant()
   })
 })
 
-describe("rebind cost (strategies rebuild their indices)", () => {
-  bench("sparse: rebind 10K column with 100 truthy nodes", () => {
+describe("rebind cost (sparse index rebuilds)", () => {
+  bench("10K column with 100 truthy nodes, rebind same shape", () => {
     const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     for (let i = 0; i < 100; i++) store.get(ids[i * 100]!).cursor(true)
     store.rebind(traversal)
   })
 
-  bench("sparse: rebind 100K column with 0 truthy nodes (fast path)", () => {
+  bench("100K column with 0 truthy nodes (fast path)", () => {
     const { traversal } = buildLinearTree(100_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     store.rebind(traversal)
   })
 
-  bench("sparse: rebind 10K column with ALL nodes truthy (pathological)", () => {
+  bench("10K column with ALL nodes truthy (pathological)", () => {
     const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     for (const id of ids) store.get(id).cursor(true)
     store.rebind(traversal)
   })
 })
 
 describe("sequential write throughput", () => {
-  bench("sparse: 1000 cursor toggles on 10K column (single-truthy)", () => {
+  bench("1000 cursor toggles on 10K column (single-truthy at a time)", () => {
     const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     let prev: string | null = null
     for (let i = 0; i < 1_000; i++) {
       if (prev) store.get(prev).cursor(false)
@@ -275,9 +255,9 @@ describe("sequential write throughput", () => {
     }
   })
 
-  bench("walk: 1000 toggles + read after each (amplifies walk cost)", () => {
+  bench("1000 toggles + read after each (cursor-move-then-render)", () => {
     const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeWalkStore(traversal)
+    const store = makeCursorStore(traversal)
     let prev: string | null = null
     for (let i = 0; i < 1_000; i++) {
       if (prev) store.get(prev).cursor(false)
@@ -289,94 +269,38 @@ describe("sequential write throughput", () => {
   })
 })
 
-describe("singleton vs sparse for single-select", () => {
-  bench("singleton: cursor move on 10K column", () => {
+describe("multi-aggregate coexistence", () => {
+  bench("descendants + ancestors on 10K column", () => {
     const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeSingletonStore(traversal)
-    store.get(ids[0]!).cursor(true)
-    store.get(ids[0]!).cursor(false)
-    store.get(ids[5000]!).cursor(true)
-    store.get("col").cursorDescendant()
-  })
-  bench("sparse: cursor move on 10K column (control)", () => {
-    const { traversal, ids } = buildLinearTree(10_000)
-    const store = makeSparseStore(traversal)
-    store.get(ids[0]!).cursor(true)
-    store.get(ids[0]!).cursor(false)
-    store.get(ids[5000]!).cursor(true)
-    store.get("col").cursorDescendant()
-  })
-})
-
-describe("multi-strategy coexistence", () => {
-  bench("sparse (descendants) + walkUp (ancestors) on 10K column", () => {
-    const { traversal, ids } = buildLinearTree(10_000)
-    const store = reactiveTree(
-      (tree) => ({
-        cursor: signal(false),
-        ownTag: signal(null as string | null),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: sparse } as any),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tagAncestor: tree.ancestors((x: { ownTag: unknown }) => x.ownTag).some({ strategy: walkUp } as any),
-      }),
-      traversal,
-    )
+    const store = makeMixedStore(traversal)
     store.get(ids[5000]!).cursor(true)
     store.get("col").cursorDescendant()
     store.get(ids[5000]!).tagAncestor()
   })
 })
 
-describe("default strategy resolution", () => {
-  bench("default: 100K empty column read (should pick sparse)", () => {
-    const { traversal } = buildLinearTree(100_000)
-    const store = makeDefaultStore(traversal)
-    store.get("col").cursorDescendant()
-  })
-  bench("default: cursor move + read on 100K column", () => {
-    const { traversal, ids } = buildLinearTree(100_000)
-    const store = makeDefaultStore(traversal)
-    store.get(ids[0]!).cursor(true)
-    store.get(ids[0]!).cursor(false)
-    store.get(ids[99_999]!).cursor(true)
-    store.get("col").cursorDescendant()
-  })
-})
-
 describe("ACCOUNTING: traversal call counts", () => {
-  bench("sparse 100K empty: read cursorDescendant", () => {
+  bench("100K empty: read cursorDescendant", () => {
     const { traversal, calls } = buildLinearTree(100_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     calls.children = 0
     calls.parent = 0
     store.get("col").cursorDescendant()
     if (process.env.BENCH_VERBOSE) {
-      process.stderr.write(`sparse 100K empty: children()=${calls.children} parent()=${calls.parent}\n`)
+      process.stderr.write(`100K empty read: children()=${calls.children} parent()=${calls.parent}\n`)
     }
   })
 
-  bench("walk 100K empty: read cursorDescendant", () => {
-    const { traversal, calls } = buildLinearTree(100_000)
-    const store = makeWalkStore(traversal)
-    calls.children = 0
-    calls.parent = 0
-    store.get("col").cursorDescendant()
-    if (process.env.BENCH_VERBOSE) {
-      process.stderr.write(`walk 100K empty: children()=${calls.children} parent()=${calls.parent}\n`)
-    }
-  })
-
-  bench("sparse 100K cursor-move write", () => {
+  bench("100K cursor-move write (sparse walkUp)", () => {
     const { traversal, calls, ids } = buildLinearTree(100_000)
-    const store = makeSparseStore(traversal)
+    const store = makeCursorStore(traversal)
     store.get(ids[50_000]!).cursor(true)
     calls.children = 0
     calls.parent = 0
     store.get(ids[50_000]!).cursor(false)
     store.get(ids[99_999]!).cursor(true)
     if (process.env.BENCH_VERBOSE) {
-      process.stderr.write(`sparse 100K cursor-move write: children()=${calls.children} parent()=${calls.parent}\n`)
+      process.stderr.write(`100K cursor-move write: children()=${calls.children} parent()=${calls.parent}\n`)
     }
   })
 })

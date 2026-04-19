@@ -60,7 +60,7 @@ We invented `primary(false)` as a descriptor — but `signal(false)` already IS 
 signal(false)                              → writable per-node state
 tree.descendants(s => s.cursor).some()     → computed that walks the tree
 { parent, children }                       → duck-typed traversal (any structure)
-reactiveTree((tree) => schema, traversal)  → factory binding schema to structure
+createTree((tree) => schema, traversal)  → factory binding schema to structure
 ```
 
 160 LOC. Zero new concepts. Same DSL. 5-38x faster.

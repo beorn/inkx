@@ -608,7 +608,7 @@ The signal caches the result. Dirty tracking recomputes only affected regions on
 ### State definition
 
 ```ts
-const store = reactiveTree((tree) => ({
+const store = createTree((tree) => ({
   // Signals — writable per-node state
   cursor: signal(false),
   selected: signal(false),

@@ -10,9 +10,9 @@
  *
  * ```ts
  * import { signal } from "alien-signals"
- * import { reactiveTree } from "@km/reactive-tree"
+ * import { createTree } from "@km/reactive-tree"
  *
- * const store = reactiveTree(
+ * const store = createTree(
  *   (tree) => ({
  *     cursor:            signal(false),
  *     cursorDescendant:  tree.descendants(s => s.cursor).some(),
@@ -43,14 +43,16 @@
 import { signal, computed, startBatch, endBatch, getActiveSub, setActiveSub } from "alien-signals"
 import type { Sig, Descriptor, Traversal } from "./types.ts"
 import { DESC, isDescriptor } from "./types.ts"
-import type { Strategy, StrategyContext, StrategyInstance } from "./strategy.ts"
+import type { StrategyContext, StrategyInstance } from "./strategy.ts"
 import { resolveDefaultStrategy } from "./defaults.ts"
 
-// Re-export the strategy surface so consumers can `import { sparse } from "@km/reactive-tree"`
-// instead of reaching into a subpath.
-export type { Strategy, StrategyContext, StrategyInstance } from "./strategy.ts"
+// Public surface — only the types users need to consume the API.
+// Strategies, StrategyContext, the individual strategy factories, and the
+// StrategyInstance interface are internal — kept in src/strategies/ for code
+// organization but not exported from the barrel. Users don't pick strategies;
+// the engine classifies descriptors and picks for them. This follows the
+// alien-projections / alien-resources pattern: one API, one obvious way.
 export type { Traversal, Descriptor, Sig } from "./types.ts"
-export { sparse, walk, walkUp, singleton } from "./strategies/index.ts"
 
 // ─── Internal batching/untracked helpers ────────────────────────────────────
 // Expose alien-signals' low-level primitives in local, safe wrappers so the
@@ -101,8 +103,6 @@ function captureKey<T>(accessor: (s: T) => unknown): string {
 /** Shared option bag for every aggregate method. */
 interface AggregateOptions {
   includeSelf?: boolean
-  /** Override the engine's default strategy for this descriptor. */
-  strategy?: Strategy
 }
 
 interface ReduceOptions<V> extends AggregateOptions {
@@ -123,7 +123,6 @@ function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
       key,
       type: "some",
       includeSelf: opts?.includeSelf,
-      strategy: opts?.strategy,
     }),
     count: (opts) => ({
       [DESC]: true as const,
@@ -131,7 +130,6 @@ function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
       key,
       type: "count",
       includeSelf: opts?.includeSelf,
-      strategy: opts?.strategy,
     }),
     reduce: (reducer, initial, opts) => ({
       [DESC]: true as const,
@@ -142,7 +140,6 @@ function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
       initial,
       equals: opts?.equals as ((a: unknown, b: unknown) => boolean) | undefined,
       includeSelf: opts?.includeSelf,
-      strategy: opts?.strategy,
     }),
   }
 }
@@ -188,7 +185,7 @@ export type NodeAccessor<T extends SchemaDef> = {
   readonly [K in ComputedKeys<T>]: () => unknown
 }
 
-export interface ReactiveTree<T extends SchemaDef> {
+export interface TreeStore<T extends SchemaDef> {
   get(id: string): NodeAccessor<T>
   has(id: string): boolean
   clear(): void
@@ -196,10 +193,10 @@ export interface ReactiveTree<T extends SchemaDef> {
   rebind(traversal: Traversal): void
 }
 
-export function reactiveTree<T extends SchemaDef>(
+export function createTree<T extends SchemaDef>(
   factory: (tree: TreeDSL) => T,
   initialTraversal: Traversal,
-): ReactiveTree<T> {
+): TreeStore<T> {
   const dsl: TreeDSL = {
     descendants: (accessor) => dirBuilder("down", captureKey(accessor)),
     ancestors: (accessor) => dirBuilder("up", captureKey(accessor)),

@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { reactiveTree, type Traversal, type ReactiveTree } from "@km/reactive-tree"
+import { createTree, type Traversal, type TreeStore } from "@km/reactive-tree"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -52,7 +52,7 @@ function concatSigils(acc: string[], value: unknown): string[] {
 
 /** Schema factory for per-node reactive state */
 function createReducedStore(traversal: Traversal) {
-  return reactiveTree(
+  return createTree(
     (tree) => ({
       // Signals — writable per node
       cursor: signal(false),

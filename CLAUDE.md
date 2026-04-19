@@ -139,6 +139,21 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
 
+## Out-of-tree packages you also own (the `alien-*` + `bearlymade` ecosystem)
+
+**When you're about to design anything signal-related** (reactive state, collection projections, async bridges, tree aggregates, derived data), **check the alien-* family FIRST**. They live outside km and are easy to miss:
+
+| Package | Shape | Where | When it applies |
+|---|---|---|---|
+| [`alien-signals`](https://github.com/stackblitz/alien-signals) | Scalar signals (upstream, not yours) | npm | primitive reactivity |
+| [`alien-projections`](https://www.npmjs.com/package/alien-projections) | Incremental array transforms (map/filter/sort) | `github:beorn/bearlymade/packages/alien-projections` | anywhere km has `Signal<T[]>` → `Signal<U[]>` |
+| [`alien-resources`](https://www.npmjs.com/package/alien-resources) | Async → signal bridge with loading/error/refetch | `github:beorn/bearlymade/packages/alien-resources` | anywhere km does async fetch behind a signal |
+| [`alien-trees`](./packages/reactive-tree/) | Tree-scoped aggregates (some/count/reduce over ancestors/descendants) | this repo (`packages/reactive-tree/`), pending publish under name `alien-trees` | anywhere km needs "any descendant has X" or "inherited from ancestor" reactively |
+
+**The invariant**: each `alien-*` package is "signals for a specific data shape" — values / arrays / async / trees. Peer-depends on alien-signals. Single API per package (no plugin system). They're bundled by `@silvery/signals` with React integration added on top.
+
+**Discoverability rule**: before building a new reactive primitive, `grep -rn "alien-" hub/ docs/` and check `github.com/beorn/bearlymade` for prior art. The family has grown; future additions may already exist there.
+
 ## Internal Documents (`hub/`)
 
 `hub/` holds private documents that should NOT appear on public-facing sites. Each project gets its own subdirectory:

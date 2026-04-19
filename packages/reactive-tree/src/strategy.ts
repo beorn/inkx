@@ -59,7 +59,7 @@ export interface StrategyContext {
  *
  * The engine dispatches:
  *   - `onSignalChange` whenever a signal with `descriptor.key` flips on ANY node
- *   - `onRebind`        whenever `reactiveTree.rebind()` swaps the traversal
+ *   - `onRebind`        whenever `createTree.rebind()` swaps the traversal
  *   - `read(nodeId)`    once per distinct node (the result is wrapped in a computed)
  *
  * Strategies that don't care about a given event simply omit the handler.
@@ -67,16 +67,16 @@ export interface StrategyContext {
 export interface StrategyInstance {
   /** Called after a signal write when the old and new values differ. */
   onSignalChange?(nodeId: string, oldValue: unknown, newValue: unknown): void
-  /** Called when `reactiveTree.rebind()` swaps the traversal. */
+  /** Called when `createTree.rebind()` swaps the traversal. */
   onRebind?(): void
-  /** Called when `reactiveTree.clear()` wipes all nodes. */
+  /** Called when `createTree.clear()` wipes all nodes. */
   onClear?(): void
   /** Produce the per-node read. The engine wraps this in `computed()`. */
   read(nodeId: string): () => unknown
 }
 
 /**
- * Strategy factory — called once per descriptor at `reactiveTree` creation.
+ * Strategy factory — called once per descriptor at `createTree` creation.
  *
  * Implementations live in `strategies/` and are plain arrow functions. The
  * closure holds any per-descriptor state (sparse indices, caches, counters).
