@@ -1,5 +1,6 @@
 #!/bin/bash
 # Utility: Kill orphaned vitest fork workers.
+# Hook-Status: internal (not a top-level hook — invoked manually or from other hooks)
 # Can be run manually or from hooks. Uses two-pass detection:
 #   1. PPID=1 (reparented to launchd — definite orphan)
 #   2. Stale (>5min) workers whose parent is not vitest (likely orphan)

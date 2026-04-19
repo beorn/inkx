@@ -1,4 +1,5 @@
 ---
+description: Docs — Documentation Management. Use when maintaining glossaries, running doc reviews, or auditing documentation consistency.
 benefits-from: [recall, gbrain]
 escalate-to: {arch: "doc describes architecture that needs redesign"}
 ---

@@ -1,5 +1,6 @@
 #!/bin/bash
 # Hook: Pre-compact checkpoint (called by user-prompt-submit.sh on /compact)
+# Hook-Status: internal (invoked by user-prompt-submit.sh, not a top-level registration)
 # Gathers session context and outputs it as additionalContext for the compact summary.
 # The actual bead update is done by Claude via the /checkpoint skill —
 # this hook just injects context so the compact summary includes session state.
