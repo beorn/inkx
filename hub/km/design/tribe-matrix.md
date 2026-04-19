@@ -8,15 +8,15 @@
 
 **Layer 1 — Abstraction: `@bearly/room`.** km and tribe consume a substrate-agnostic `Room` interface. They never import a specific protocol SDK directly.
 
-**Layer 2 — Production adapter: Matrix.** The reference adapter implementation is `@bearly/room-matrix`, wrapping `matrix-js-sdk` and talking to a Conduit homeserver. This is what ships by default and what the rest of the DR focuses on. Alternative adapters (`room-xmpp`, `room-file`, `room-memory`, `room-slack`, `room-openclaw`, etc.) are pluggable extensions behind the same interface.
+**Layer 2 — Production adapter: Matrix.** The reference adapter implementation is `@bearly/room-matrix`, wrapping `matrix-js-sdk` and talking to a Matrix homeserver (user choice of Synapse or Conduit). This is what ships by default and what the rest of the DR focuses on. Alternative adapters (`room-xmpp`, `room-file`, `room-memory`, `room-slack`, `room-openclaw`, etc.) are pluggable extensions behind the same interface.
 
 **Matrix-specific decisions:**
-- **Server**: Conduit (Rust single-binary homeserver, ~20MB, ~50MB RAM). Bundled, user-global, localhost-bound by default.
+- **Server**: user choice at `km matrix init` between **Synapse** (default, mature) and **Conduit** (Rust single-binary, smaller). Native install preferred over Docker.
 - **Client SDK**: `matrix-js-sdk`, lean imports, consumed only by the `room-matrix` adapter — not by km or tribe directly.
-- **Mobile observability**: Element (web/desktop/iOS/Android).
-- **Structure**: km repo = Matrix Space; channels = rooms in the space; `chats/<channel>/` = materialized room history in the vault.
-- **Identity**: personas as files (`agents/<name>.md`, `users/<name>.md`); matrix users bound to personas; sessions assume personas.
-- **Scope**: user-global (one homeserver per user; all their km repos as spaces under it).
+- **Mobile observability**: Element (web/desktop/iOS/Android), reachable via chosen network mode (local / tailscale / public-TLS).
+- **Structure**: km repo = Matrix Space (when `spaces` capability available); channels = rooms; `chats/<channel>/` = projected event journal + rendered view in the vault.
+- **Identity**: durable personas (`agents/<name>.md` with stable `persona_id`) + volatile runtime state (`.state/<persona_id>.json`) + matrix users bound to personas + sessions assume personas via a lease mechanism.
+- **Scope**: user-global (one homeserver per user; all their km repos as spaces under it). `repo_id` persisted in each repo so multi-machine clones don't duplicate spaces.
 - **Integration surface**: `@bearly/tribe` MCP server loaded by Claude Code's SessionStart hook, consuming a `Room` instance (typically `room-matrix` in production).
 
 ## Why the adapter layer
@@ -51,25 +51,71 @@ On size, Matrix-with-Conduit is close enough to XMPP-with-Prosody (both ~20-30MB
 
 ## The core mapping
 
-One tree, two lenses:
+Matrix rooms are the **event log of truth**. Files under `chats/` are a **derived projection** of that log — read-rendered, not edited-then-synced:
 
 ```
-km repo                                Matrix space
-───────                                ────────────
-~/Code/pim/km/                    ⟷    !km-<id>:matrix.beorn.dev
-  docs/                           ⟷      (folder nodes, not rooms)
-  chats/                          ⟷      (rooms in the space)
-    general/                      ⟷        #general room
-      2026-04-19T14:30-<eid>.md   ⟷          m.room.message event
-    design/                       ⟷        #design room
-  agents/                         ⟷      (matrix users that are agents)
-    silvery-refactor.md           ⟷        @silvery-refactor:matrix.beorn.dev
-    chief.md                      ⟷        @chief:matrix.beorn.dev
-  users/                          ⟷      (matrix users that are humans)
-    beorn.md                      ⟷        @beorn:matrix.beorn.dev
+km repo (projection side)              Matrix space (truth side)
+─────────────────────────              ─────────────────────────
+~/Code/pim/km/                    ←    !km-<id>:matrix.beorn.dev
+  docs/                                  (folder nodes, not rooms)
+  chats/                          ←      (rooms in the space)
+    general/                      ←        #general room
+      <cursor>.md                 ←          rendered view of event stream
+      _events/                    ←          (raw event journal, append-only)
+        <ts>-<eid>.json
+    design/                       ←        #design room
+  agents/                                (matrix users that are agents)
+    silvery-refactor.md                    durable persona identity
+    .state/silvery-refactor.json           volatile runtime (separate)
+                                  ←    @silvery-refactor:matrix.beorn.dev
+  users/                                 (matrix users that are humans)
+    beorn.md                      ←    @beorn:matrix.beorn.dev
 ```
 
-Files ARE events; events ARE files. Matrix is the real-time face of km; km is the durable face of matrix.
+The room IS the source of truth. Files are projections. Editing `chats/<channel>/<msg>.md` directly does NOT publish an edit; posting goes through the `Room` API. This avoids echo loops + merge conflicts.
+
+Events are immutable. Matrix edits (`m.replace`) and redactions appear as NEW events that reference prior ones. The on-disk journal (`_events/`) mirrors this: append-only. The rendered view shows the current state derived from the event chain.
+
+## Core interface: event log with relations
+
+`@bearly/room` is **an event-log abstraction**, not a chat-app abstraction. The hidden trap both pro reviews flagged: making file/XMPP/Slack adapters pretend to be full Matrix parity will leak. The interface stays small and honest.
+
+```typescript
+interface Room {
+  readonly adapter: string                  // "matrix" | "file" | "memory" | ...
+  readonly capabilities: Set<Capability>
+  readonly repoId: string                   // stable, persisted in km repo metadata
+
+  // Core (required by all adapters)
+  send(roomId: string, draft: EventDraft): Promise<EventRef>
+  subscribe(roomId: string, fromCursor?: Cursor): AsyncIterable<EventEnvelope>
+  history(roomId: string, range: HistoryRange): Promise<EventEnvelope[]>
+  members(roomId: string): AsyncIterable<MemberSnapshot>
+  join(roomId: string): Promise<void>
+  leave(roomId: string): Promise<void>
+  resolve(ref: Reference): Promise<ResolvedId>  // #alias → opaque id, etc.
+}
+
+type Capability =
+  | "spaces"      // Matrix only; km topology layer degrades cleanly without it
+  | "presence"    // advisory, best-effort
+  | "typing"      // advisory
+  | "threads"     // relation type
+  | "reactions"   // relation type
+  | "structured"  // custom event types
+  | "dm"          // 1:1 room shortcut
+  | "admin"       // create room, invite, power levels
+```
+
+**Not in the core**: spaces, presence, typing, threads, reactions, structured events, DM. All gated by capabilities. Adapters without a given capability degrade gracefully; km UI renders what's available.
+
+**Model detail**:
+- `EventEnvelope` carries: `id` (opaque), `roomId`, `sender`, `ts`, `relatesTo?` (for edits/replies/reactions), `type`, `content`, `customType?` (for structured events).
+- `EventDraft` includes `txnId` for idempotent send.
+- Cursors are opaque tokens; adapters define their ordering semantics.
+- Edits and redactions are **new events with `relatesTo`**, never overwrites.
+
+**Room topology (spaces, per-repo hierarchy)** lives in **km's topology layer**, not in core `Room`. Core `Room` exposes a `spaces` capability for adapters that support it; km's topology uses it when present, falls back to flat `<repo-id>/<channel>` naming when absent.
 
 ## Persona model
 
@@ -77,17 +123,19 @@ Files ARE events; events ARE files. Matrix is the real-time face of km; km is th
 
 ### Persona file schema
 
-`agents/<name>.md`:
+Personas split into **durable identity** (committed, human-edited) and **volatile runtime state** (not committed, machine-written).
+
+**Durable**: `agents/<name>.md` — mission, skills, working memory. Human-authored. Filename is an alias; `persona_id` is the stable identity.
 
 ```markdown
 ---
+persona_id: "ag_3f9a1e2c"                 # stable; never changes on rename
 matrix_id: "@silvery-refactor:matrix.beorn.dev"
+aliases: ["silvery-refactor"]              # filename is one of these
 focus: ["silvery", "refactoring"]
 rooms: ["#silvery", "#design", "#general"]
 style: ["tdd", "small-commits", "recall-first"]
 created: 2026-04-15
-last_active: 2026-04-19T15:00:00Z
-last_session: sess_abc123
 ---
 
 # silvery-refactor
@@ -108,25 +156,63 @@ Short persistent description of what this agent does.
 - Pinged by [[users/beorn]] for silvery questions
 ```
 
-### Assumption lifecycle
+**Volatile**: `agents/.state/<persona_id>.json` — `last_active`, `last_session`, current lease. Gitignored by default. Regenerated from Matrix state events if lost.
 
-- **Startup** (`claude --agent silvery-refactor`): SessionStart hook reads the persona file, fetches matrix credentials, logs in as the matrix user, joins rooms, injects persona body as seed context, appends session-start entry.
-- **Shutdown** (graceful): append summary to working memory, update `last_active`, leave matrix (or keep device key for fast reconnect), commit persona file changes.
-- **Crash**: matrix user stays online until socket timeout; next session sees "was active until X, didn't log off cleanly." No special handling.
+```json
+{
+  "persona_id": "ag_3f9a1e2c",
+  "last_active": "2026-04-19T15:00:00Z",
+  "last_session": "sess_abc123",
+  "current_lease": {
+    "session_id": "sess_abc123",
+    "device_id": "beorn-laptop",
+    "epoch": 7,
+    "expires_at": "2026-04-19T15:30:00Z"
+  }
+}
+```
 
-### Default: single-holder, opt-in multi-device
+Rename = edit `aliases`, move file path. Identity (`persona_id`) is preserved. Matrix user is preserved.
 
-By default, only one session at a time can hold a persona. Others see "silvery-refactor is busy (on beorn-laptop)." Opt-in via `claude --agent silvery-refactor --device laptop` to use matrix's native multi-device support.
+### Assumption lifecycle (with lease)
+
+Single-holder is enforced via a **lease** (expiry + heartbeat + fencing token), not by presence or login alone. Presence is not a lock; Matrix login is not a lock.
+
+- **Startup** (`claude --agent silvery-refactor`):
+  1. SessionStart hook reads the persona file + current state file + latest Matrix state event.
+  2. Checks for active lease: if valid and owned by another `session_id`, refuses to assume (or warns + proceeds as advisory, per flag).
+  3. Writes a new lease (`session_id`, `device_id`, `epoch = max(prev) + 1`, `expires_at = now + 5min`).
+  4. Confirms lease via sync (read-your-write); only then assumes.
+  5. Logs in as the matrix user, joins rooms, injects persona body as seed context.
+  6. Starts heartbeat: every 2min, extend `expires_at` + bump `last_active`.
+
+- **Shutdown** (graceful): revoke lease, append summary to working memory, commit durable file changes (not state file).
+
+- **Crash**: lease expires naturally after 5min. Next session sees expired lease, can claim it. Stale holder (if it somehow comes back) sees its lease was superseded via higher `epoch`, stops sending as that persona.
+
+- **Cross-machine exclusivity**: a lease in the Matrix state event provides global coordination. Without Matrix, advisory only (documented).
+
+**v1 scope honest note**: if Phase 1 ships before the lease mechanism is fully tested, treat exclusivity as **advisory** and document it. Don't pretend otherwise.
+
+### Single-holder vs multi-device
+
+Single-holder by default (one lease at a time). Opt-in multi-device mode: `claude --agent silvery-refactor --device laptop --multi-device`. Multi-device uses Matrix's native multi-device support; all devices share persona identity but each session has its own `device_id`; the lease mechanism coordinates across devices via the fencing epoch.
 
 ### Spawning and archiving
 
-- `km agent create <name> --focus=... --room=...` — creates the persona file, provisions the matrix user, invites to rooms.
-- `km agent archive <name>` — moves to `agents/_archive/`, marks matrix user inactive.
-- `km agent revive <name>` — inverse.
+- `km agent create <name> --focus=... --room=...` — mints a new `persona_id`, creates the file, provisions the matrix user, invites to rooms.
+- `km agent archive <name>` — only if no active lease (or `--force`). Moves to `agents/_archive/`, revokes matrix credentials, tombstones identity.
+- `km agent revive <name>` — inverse; re-provisions credentials.
+- Hard delete is not a normal operation. Tombstones preserve history.
 
-### Chief
+### Chief as role lease, not persona
 
-Chief is a persona anyone can assume. Room-scoped via matrix power levels. `agents/chief-<room>.md` documents historical claimants per room (not a projection; matrix power level is the canonical truth).
+**Chief is a role, not a persona.** Personas are the who; roles are the what. Any persona can hold the chief role; multiple rooms can have different chief-holders.
+
+- Chief is a **room-scoped lease**: "@silvery-refactor holds chief in #silvery until 15:30; @chief-km holds chief in #km".
+- Lease lives in a Matrix state event (`m.km.role.chief` in the room). Power levels mirror the lease for matrix-native ACL where relevant.
+- Handoff = release + claim via a post. No election code; the lease is the source of truth.
+- `agents/chief-<room>.md` does NOT exist as a persona file. `roles/chief-<room>.md` could exist as a *role description* (what "chief" means in that context), but that's a separate concept.
 
 ## Structured event types
 
@@ -151,25 +237,56 @@ Following IRC/Matrix/Slack conventions:
 
 ## Storage & sync
 
-### Event ↔ file mapping
+### Events are immutable; files are projections
 
-- **Messages** → one file per event: `chats/<channel>/<iso-timestamp>-<event-id>.md`.
-- **Edits** (m.replace) → overwrite file + append `_history/<event-id>-<seq>.md` with prior content.
-- **Redactions** → overwrite with tombstone, preserve in `_history/` if repo policy requires.
-- **Threads** → stored flat (one file per event); rendered nested via parent references in frontmatter.
-- **Typing / presence / receipts** → ephemeral, not persisted to files.
+The Matrix room is the source of truth. `chats/` on disk is a derived, read-rendered projection of the event stream. Posting happens through the `Room` API, never by editing a file.
 
-### Git
+- **Raw event journal** → `chats/<channel>/_events/<ts>-<event-id>.json` — append-only, one file per event, never modified.
+- **Rendered view** → `chats/<channel>/<cursor>.md` — periodically regenerated from the event journal, shows the current rendered state (with edits/redactions applied).
+- **Edits (m.replace)** → NEW event in `_events/` that references the prior event via `relatesTo`. Renderer applies the edit when rebuilding the view.
+- **Redactions** → NEW event (tombstone). Renderer respects.
+- **Threads** → flat event storage; rendered nested via `relatesTo` parent chains.
+- **Typing / presence / receipts** → ephemeral, not persisted.
 
-By default, `chats/` is committed to git (history is durable, diffable, branchable). For high-volume rooms, opt into `.gitignore chats/high-volume/` and let matrix be the sole durable store.
+Operational rule: **editing `chats/<channel>/*.md` directly has no effect** on Matrix. To change a message, post an edit through the `Room` API. The renderer will update the file.
+
+### fs.watch is advisory, not authoritative
+
+Don't use `fs.watch` as delivery semantics — it coalesces and drops events platform-variant. The authoritative read path is: read from `_events/` journal + cursor + periodic poll for new events. `fs.watch` is a wakeup hint only.
+
+### Git policy per room class
+
+Two room classes, different defaults:
+
+- **Ledger rooms** (decisions, design discussions, retros): committed to git. `chats/design/` in the tracked tree.
+- **Chatter rooms** (general, stand-ups, ephemeral): gitignored by default. `.gitignore chats/general/**`. Opt-in commit via repo policy flag.
+
+Default policy: `chats/**` is gitignored unless explicitly opted-in per room. Prevents repo pollution from high-volume chatter.
+
+Individual `_events/` journals may also be gitignored entirely if the Matrix room is considered the durable store.
+
+### Repo identity persisted from Phase 0
+
+Every km repo gets a stable `repo_id` at first-run, persisted in `.km/repo.json` (or equivalent km-storage record). The Matrix space alias is derived from `repo_id` deterministically. This prevents multi-machine clones from creating duplicate spaces or de-syncing topology.
+
+### Network reachability: explicit modes
+
+Phone observability via Element REQUIRES the homeserver be reachable from the phone. Localhost-binding excludes this. Three deployment modes, chosen explicitly:
+
+1. **Local-only** (default for spike + dev): homeserver on `127.0.0.1`, no mobile access. Simplest.
+2. **Tailscale / mesh-VPN** (recommended for personal use): homeserver bound on Tailscale interface, phone joins Tailscale, Element reaches the host. TLS via Tailscale internal cert or Let's Encrypt via MagicDNS.
+3. **Public with TLS** (for small-group collaboration): reverse proxy (Caddy) with automatic TLS, homeserver bound on loopback, proxy exposes WSS externally.
+
+`km matrix init` prompts for mode; default is (1). Switching modes is a single config change.
 
 ### Encryption
 
-Start unencrypted (single-user self-hosted Conduit on localhost). Add E2E when:
-- Sharing a space/room with a collaborator across machines with untrusted network segments
+Start unencrypted in Mode 1 (trusted single-user localhost). Enable E2E when:
+- Operating in Mode 2 or 3
+- Sharing a space/room with a collaborator
 - Bridging to a public matrix network
 
-E2E complications (device verification, key sharing for bot accounts) addressed incrementally.
+E2E complications (device verification, key sharing for bot accounts, multi-session key rotation) are real and addressed incrementally. Phase 5 deliverable.
 
 ## Channel view in silvery
 
@@ -184,23 +301,26 @@ New view type alongside cards/columns/tabs: **channel view**.
 
 ## Phased rollout
 
-### Phase 0 — `Room` interface + minimal adapters (4-5 days)
-- Design the `Room` interface (`@bearly/room`): core methods + capability set.
+### Phase 0 — `Room` interface + minimal adapters + chaos conformance (5-6 days)
+- Design the `Room` interface (`@bearly/room`): event-log core + capability set + shared event/cursor/ref types.
 - Implement `@bearly/room-memory` (in-process, for tests) — ~100 LOC.
-- Implement `@bearly/room-file` (jsonl + fs.watch) — ~300 LOC.
+- Implement `@bearly/room-file` (append-only jsonl journal + polling, fs.watch as wakeup hint) — ~300 LOC.
+- **Chaos conformance wrapper** — a thin wrapper over any adapter that injects delayed delivery, duplicates, out-of-order events, dropped presence, reconnect gaps. Phase 0 adapters must pass the conformance suite under chaos.
 - Skeleton `@bearly/tribe` MCP server consuming a `Room` instance. Tools: `tribe.broadcast`, `tribe.send`, `tribe.members`, `tribe.history`.
-- Validate against `room-memory` and `room-file`: two Claude Code sessions, same room, see each other's hellos.
+- `repo_id` persistence: `.km/repo.json` written on first-run if missing.
+- Validate: two Claude Code sessions, same room, see each other's hellos. With chaos wrapper active, invariants still hold (no duplicates delivered to the consumer, ordering preserved, reconnect resumes cleanly).
 
-Deliverable: interface exists, two adapters prove it, tribe runs on either. No Matrix yet — we validate the shape first.
+Deliverable: interface exists, two adapters prove it under adversarial conditions, tribe runs on either. No Matrix yet — we validate semantics, not just API shape.
 
-### Phase 1 — Matrix adapter + Conduit (3-4 days)
-- Implement `@bearly/room-matrix` wrapping `matrix-js-sdk`. All capabilities (presence, threads, reactions, structured, dm, spaces).
-- Bundle Conduit via Docker compose in km install flow.
-- `km matrix init` command: starts Conduit on localhost, creates the space for current repo, registers the user's matrix account, writes tribe config pointing at `room-matrix`.
+### Phase 1 — Matrix adapter + homeserver (4-5 days)
+- Implement `@bearly/room-matrix` wrapping `matrix-js-sdk`. Declares all capabilities (presence, threads, reactions, structured, dm, spaces, admin).
+- Passes the same chaos conformance suite.
+- Homeserver options: **Synapse** (mature, Python, well-understood) OR **Conduit** (Rust, smaller, newer). Default to Synapse for maturity; Conduit as opt-in for users who prefer the Rust single-binary footprint. No Docker-first — prefer native install via systemd/launchd user service with the server's own install path.
+- `km matrix init` command: sets up the homeserver (user chooses Synapse or Conduit), chooses network mode (local-only / tailscale / public-TLS), creates the space for current repo, registers the user's matrix account, writes tribe config pointing at `room-matrix`.
 - Tribe works identically on `room-matrix` as it did on `room-file` in Phase 0.
-- Element connects and reads the room.
+- Element connects and reads the room (in tailscale / public-TLS mode).
 
-Deliverable: Matrix is the production adapter. Two Claude Code sessions on different machines (via Tailscale or similar) coordinate through the user's homeserver. Phone-observable from Element.
+Deliverable: Matrix is the production adapter. Two Claude Code sessions on different machines coordinate through the user's homeserver. Phone-observable from Element when network mode supports it.
 
 ### Phase 2 — personas + durable identity (3-5 days)
 - Persona file loading at SessionStart; identity binding.
@@ -245,14 +365,14 @@ Deliverable: beads and chat are the same conversation on Matrix. Adapters that c
 ## Explicit non-goals
 
 - **No OpenClaw dep yet.** Future bridge via matrix is the path; no code dep today.
-- **No custom wire daemon.** Everything rides on Matrix + Conduit.
+- **No custom wire daemon.** Everything rides on Matrix (Synapse or Conduit).
 - **No top-down orchestration.** Agents are peers in rooms; chief is a role anyone can assume, not a master.
 - **No Matrix-federation-first.** Single homeserver, localhost-bound, user-global. Federation is a later toggle.
 - **No pure-federation design**. We don't try to replicate state across untrusted peer matrix servers. One user, their homeserver, that's the scope.
 
 ## Open questions (defer to Phase 0 spike)
 
-1. **Conduit maturity check**: is Conduit production-ready in 2026-04 for our single-user single-homeserver use? Synapse fallback if not.
+1. **Server choice default**: Synapse (mature) is the Phase 1 default. Conduit is opt-in. Re-evaluate Conduit's maturity for future default status.
 2. **Matrix account registration UX**: on first `km matrix init`, does the user type a username, or do we generate?
 3. **Persona credential storage**: `~/.km/matrix/<persona>.token` (filesystem-perm-protected) or OS keychain? Platform-dependent.
 4. **Silvery channel view fidelity**: reactions, typing, thread expansion — which matter enough to build in Phase 2 vs defer?
@@ -280,11 +400,12 @@ Phase 0 done when:
 - [ ] Two Claude Code sessions in the same repo see each other's broadcasts via `room-file`
 
 Phase 1 done when:
-- [ ] `room-matrix` passes the same conformance suite, plus spaces/presence/threads
-- [ ] Bundled Conduit starts on `km matrix init`; stops cleanly on shutdown
-- [ ] A fresh km repo auto-creates its matrix space on first `claude` invocation
-- [ ] Two sessions on different machines (via Tailscale or similar) coordinate through the homeserver
-- [ ] Element Web/Desktop reads the room
+- [ ] `room-matrix` passes the same conformance suite (including chaos), plus spaces/presence/threads
+- [ ] `km matrix init` installs + starts the chosen homeserver (Synapse default, Conduit opt-in) as a user-level service; stops cleanly on shutdown
+- [ ] Network mode chosen at init (local / tailscale / public-TLS); phone observability works in tailscale + public-TLS modes
+- [ ] A fresh km repo auto-creates its matrix space on first `claude` invocation, keyed to the persisted `repo_id`
+- [ ] Two sessions on different machines coordinate through the homeserver
+- [ ] Element reads the room
 
 Phase 2 done when:
 - [ ] Persona files drive agent identity; rename and restart preserve the matrix user (via `room-matrix`)
@@ -298,7 +419,7 @@ Rough scope for Phases 0-4: **~3 weeks** of focused work.
 
 Per-phase:
 - Phase 0: 4-5 days (interface + 2 adapters + conformance tests)
-- Phase 1: 3-4 days (room-matrix + Conduit bundling)
+- Phase 1: 4-5 days (room-matrix + homeserver install flow + network modes)
 - Phase 2: 3-5 days (personas)
 - Phase 3: 1-2 weeks (silvery channel view)
 - Phase 4: 1 week (structured events + bead threading)
