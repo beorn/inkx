@@ -2,7 +2,7 @@
 
 All packages published under maintainer `beorno`. Source of truth: `registry.npmjs.org/-/v1/search?text=maintainer:beorno&size=250`
 
-Last updated: 2026-04-12 (63 packages)
+Last updated: 2026-04-19 (62 packages live)
 
 <!--
   AUDIT NOTES (run `bun npm-registry audit` for live diff)
@@ -27,11 +27,12 @@ Last updated: 2026-04-12 (63 packages)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `silvery` | 0.17.4 | 844 | Main barrel — components, hooks, runtime, theme |
-| `@silvery/ansi` | 0.17.3 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
-| `@silvery/color` | 0.17.3 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
-| `@silvery/commander` | 0.17.5 | 250 | Colorized Commander.js help |
-| `@silvery/examples` | 0.17.7 | 194 | Interactive demos — `npx @silvery/examples` |
+| `silvery` | 0.18.0 | 844 | Main barrel — components, hooks, runtime, theme |
+| `@silvery/ansi` | 0.18.0 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
+| `@silvery/color` | 0.18.0 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
+| `@silvery/commander` | 0.18.0 | 250 | Colorized Commander.js help |
+| `@silvery/examples` | 0.18.0 | 194 | Interactive demos — `npx @silvery/examples` |
+| `@silvery/theme-detect` | 0.18.0 | — | Terminal background-color detection |
 | `@silvery/create` | 0.5.3 | 253 | App composition — createApp, pipe() (will be deprecated — bundled in silvery) |
 | `@silvery/headless` | 0.5.1 | 14 | Pure state machines (will be deprecated — bundled in silvery) |
 | `@silvery/test` | 0.5.3 | 252 | Testing utilities (will be deprecated — bundled in silvery) |
@@ -71,13 +72,13 @@ Last updated: 2026-04-12 (63 packages)
 |---------|---------|----------|-------|
 | `vt100.js` | 0.1.2 | 38 | VT100 emulator — monochrome, pure TS |
 | `vt220.js` | 0.1.2 | 29 | VT220 emulator — 8 colors, pure TS |
-| `vterm.js` | 0.3.1 | 22 | Modern emulator — full VT/xterm, pure TS |
+| `vterm.js` | 0.4.0 | 22 | Modern emulator — full VT/xterm, pure TS |
 
 ### Bearly tools
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `@bearly/tribe` | 0.10.0 | 342 | Cross-session coordination MCP server |
+| `@bearly/tribe` | 0.11.1 | 342 | Cross-session coordination MCP server |
 | `@bearly/github` | 0.1.0 | 14 | GitHub notifications MCP server |
 | `alien-projections` | 0.1.3 | 9 | Incremental reactive collection transforms (alien-signals) |
 | `alien-resources` | 0.1.3 | 9 | Async signal bridge (alien-signals) |
@@ -108,7 +109,7 @@ Last updated: 2026-04-12 (63 packages)
 
 | Package | Version | Replaced by |
 |---------|---------|------------|
-| `@bearly/vitepress-enrich` | 0.3.7 | `vitepress-enrich` (unscoped) |
+| `@bearly/vitepress-enrich` | 0.3.6 | `vitepress-enrich` (unscoped) |
 | `@bearly/mdtest` | 0.3.0 | `mdspec` (renamed — `mdtest` was taken on npm) |
 | `@silvery/react` | 0.3.0 | `silvery` |
 | `@silvery/tea` | 0.4.2 | `silvery` |

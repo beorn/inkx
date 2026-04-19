@@ -10,9 +10,9 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@types/mdast": "^4.0.4",
-    "mdast-util-from-markdown": "^2.0.2",
-    "ulid": "^2.3.0",
-    "yaml": "^2.7.1"
+    "mdast-util-from-markdown": "^2.0.3",
+    "ulid": "^3.0.2",
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "mdast-util-gfm-autolink-literal": "^2.0.1",

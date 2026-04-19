@@ -55,7 +55,7 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 - [architecture.md](../architecture.md) — layer stack, data flows, top-level TreeLens pipeline. Points at canonicals for every concept.
 - [concepts.md](../concepts.md) — user-facing "what km is". Short summaries + links.
 - [principles.md](../principles.md) — design philosophy, code style, factories/DI/no classes.
-- [packages.md](../packages.md) — package roster, dependencies, CLI.
+- [packages.md](../ref/packages.md) — package roster, dependencies, CLI.
 - [README.md](../../README.md) — landing page, quick start, feature list.
 
 ## Retired — moved to archive

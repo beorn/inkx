@@ -117,7 +117,6 @@ Append-only case studies. See [lessons/](lessons/) for the full index. Highlight
 
 - [explorations/](explorations/) — active WIP investigations
 - [future/](future/) — speculation (universal editor, agents, beads integration, services)
-- [adr/](adr/) — architectural decision records
 - [archive/](archive/) — retired docs (with forward pointers to replacements)
 - [architecture-review-findings.md](archive/architecture-review-findings-2026-04.md) — point-in-time review notes
 - [vs-decker.md](archive/vs-decker.md) — architecture comparison with the Decker predecessor

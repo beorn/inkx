@@ -182,7 +182,7 @@ km ls --json                # Works on all views
 
 ## TUI Keybindings
 
-See [ref/ui.md](../ref/ui.md#keybindings) for full TUI keybinding reference.
+See [ref/commands.md](../ref/commands.md#keybindings) for full TUI keybinding reference.
 
 ---
 

@@ -8,7 +8,7 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/storage": "workspace:*",
-    "ulid": "^2.3.0",
+    "ulid": "^3.0.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
