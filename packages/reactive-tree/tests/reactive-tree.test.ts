@@ -1,12 +1,13 @@
 /**
- * reactiveTree — computed-based engine tests.
+ * @km/reactive-tree — engine tests.
  *
- * Ports all tests from reduced-signals.test.ts to verify behavioral parity.
+ * Full behavioral coverage: signals, some/count/reduce, includeSelf,
+ * rebind, lifecycle, atomicity, re-entrancy, bootstrap.
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
 import { signal, effect } from "alien-signals"
-import { reactiveTree, type Traversal, type ReactiveTree } from "../src/state/reactive-graph.ts"
+import { reactiveTree, type Traversal, type ReactiveTree } from "../src/index.ts"
 
 // ─── Test Tree ──────────────────────────────────────────────────────────────
 

@@ -141,6 +141,7 @@
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
+        "@km/reactive-tree": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -277,6 +278,12 @@
       "name": "@km/tree",
       "dependencies": {
         "@km/core": "workspace:*",
+      },
+    },
+    "packages/reactive-tree": {
+      "name": "@km/reactive-tree",
+      "dependencies": {
+        "alien-signals": "^3.1.2",
       },
     },
     "packages/silvery-selection": {
@@ -453,10 +460,10 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.17.4",
+      "version": "0.18.0",
       "dependencies": {
         "@chenglou/pretext": "^0.0.3",
-        "@silvery/commander": "0.17.3",
+        "@silvery/commander": "0.18.0",
         "css-select": "^7.0.0",
         "css-what": "^8.0.0",
         "loggily": "0.6.0",
@@ -503,18 +510,18 @@
     },
     "vendor/silvery/packages/ag": {
       "name": "@silvery/ag",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/signals": "0.17.3",
+        "@silvery/signals": "0.18.0",
       },
     },
     "vendor/silvery/packages/ag-react": {
       "name": "@silvery/ag-react",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ag": "0.17.3",
-        "@silvery/headless": "0.17.3",
-        "@silvery/theme": "0.17.3",
+        "@silvery/ag": "0.18.0",
+        "@silvery/headless": "0.18.0",
+        "@silvery/theme": "0.18.0",
       },
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
@@ -522,64 +529,64 @@
     },
     "vendor/silvery/packages/ag-term": {
       "name": "@silvery/ag-term",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ag": "0.17.3",
-        "@silvery/ag-react": "0.17.3",
-        "@silvery/ansi": "0.17.3",
-        "@silvery/create": "0.17.3",
-        "@silvery/headless": "0.17.3",
-        "@silvery/signals": "0.17.3",
-        "@silvery/test": "0.17.3",
-        "@silvery/theme": "0.17.3",
+        "@silvery/ag": "0.18.0",
+        "@silvery/ag-react": "0.18.0",
+        "@silvery/ansi": "0.18.0",
+        "@silvery/create": "0.18.0",
+        "@silvery/headless": "0.18.0",
+        "@silvery/signals": "0.18.0",
+        "@silvery/test": "0.18.0",
+        "@silvery/theme": "0.18.0",
         "flexily": "0.5.2",
       },
     },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/color": "0.17.3",
+        "@silvery/color": "0.18.0",
         "string-width": "^8.2.0",
       },
     },
     "vendor/silvery/packages/color": {
       "name": "@silvery/color",
-      "version": "0.17.3",
+      "version": "0.18.0",
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
-      "version": "0.17.5",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ansi": "0.17.3",
+        "@silvery/ansi": "0.18.0",
         "commander": ">=13.0.0",
         "zod": ">=3.0.0",
       },
     },
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
-      "version": "0.17.3",
+      "version": "0.18.0",
     },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ag": "0.17.3",
-        "@silvery/ag-react": "0.17.3",
-        "@silvery/ag-term": "0.17.3",
-        "@silvery/commands": "0.17.3",
-        "@silvery/headless": "0.17.3",
-        "@silvery/ink": "0.17.3",
-        "@silvery/test": "0.17.3",
+        "@silvery/ag": "0.18.0",
+        "@silvery/ag-react": "0.18.0",
+        "@silvery/ag-term": "0.18.0",
+        "@silvery/commands": "0.18.0",
+        "@silvery/headless": "0.18.0",
+        "@silvery/ink": "0.18.0",
+        "@silvery/test": "0.18.0",
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/headless": {
       "name": "@silvery/headless",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "peerDependencies": {
-        "@silvery/ag": "0.17.3",
-        "@silvery/ag-term": "0.17.3",
+        "@silvery/ag": "0.18.0",
+        "@silvery/ag-term": "0.18.0",
       },
       "optionalPeers": [
         "@silvery/ag",
@@ -588,52 +595,52 @@
     },
     "vendor/silvery/packages/ink": {
       "name": "@silvery/ink",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ag-react": "0.17.3",
-        "@silvery/ag-term": "0.17.3",
-        "@silvery/ansi": "0.17.3",
+        "@silvery/ag-react": "0.18.0",
+        "@silvery/ag-term": "0.18.0",
+        "@silvery/ansi": "0.18.0",
       },
     },
     "vendor/silvery/packages/model": {
       "name": "@silvery/model",
-      "version": "0.17.3",
+      "version": "0.18.0",
     },
     "vendor/silvery/packages/scope": {
       "name": "@silvery/scope",
-      "version": "0.17.3",
+      "version": "0.18.0",
     },
     "vendor/silvery/packages/signals": {
       "name": "@silvery/signals",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ag": "0.17.3",
-        "@silvery/ag-react": "0.17.3",
-        "@silvery/ag-term": "0.17.3",
-        "@silvery/create": "0.17.3",
+        "@silvery/ag": "0.18.0",
+        "@silvery/ag-react": "0.18.0",
+        "@silvery/ag-term": "0.18.0",
+        "@silvery/create": "0.18.0",
       },
     },
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ansi": "0.17.3",
-        "@silvery/color": "0.17.3",
+        "@silvery/ansi": "0.18.0",
+        "@silvery/color": "0.18.0",
       },
     },
     "vendor/silvery/packages/theme-detect": {
       "name": "@silvery/theme-detect",
-      "version": "0.17.3",
+      "version": "0.18.0",
       "dependencies": {
-        "@silvery/ansi": "0.17.3",
-        "@silvery/color": "0.17.3",
+        "@silvery/ansi": "0.18.0",
+        "@silvery/color": "0.18.0",
       },
     },
     "vendor/tap": {
@@ -1122,6 +1129,8 @@
     "@km/infra": ["@km/infra@workspace:packages/km-infra"],
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
+
+    "@km/reactive-tree": ["@km/reactive-tree@workspace:packages/reactive-tree"],
 
     "@km/repl": ["@km/repl@workspace:apps/km-repl"],
 

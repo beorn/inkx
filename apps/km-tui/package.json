@@ -13,6 +13,7 @@
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
+    "@km/reactive-tree": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*",

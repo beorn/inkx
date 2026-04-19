@@ -16,7 +16,7 @@
 
 import { bench, describe } from "vitest"
 import { signal } from "alien-signals"
-import { reactiveTree, type Traversal } from "../src/state/reactive-graph.ts"
+import { reactiveTree, type Traversal } from "../src/index.ts"
 
 function buildLinearTree(size: number): {
   traversal: Traversal
