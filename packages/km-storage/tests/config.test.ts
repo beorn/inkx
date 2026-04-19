@@ -249,8 +249,11 @@ describe("getFolderIndexConfig", () => {
         expect(config.naming).toBe("index")
         expect(config.materialization).toBe("none")
         expect(warnSpy).toHaveBeenCalledTimes(2)
-        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("naming"))
-        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("materialization"))
+        // After loggily structured-sink migration (km-loggily.browser-console),
+        // warnings are multi-arg — inspect joined call text for content assertions.
+        const calls = warnSpy.mock.calls.map((args) => args.join(" "))
+        expect(calls.some((s) => s.includes("naming"))).toBe(true)
+        expect(calls.some((s) => s.includes("materialization"))).toBe(true)
       } finally {
         warnSpy.mockRestore()
       }

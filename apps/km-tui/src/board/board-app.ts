@@ -558,14 +558,31 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       ctx.setUI({ pendingChord: null, chordTimedOut: false })
     }
 
-    // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
+    // Chord cancelled (invalid second key or Escape) — ring bell; respect
+    // which-key popup minimum display time so a too-fast cancel doesn't
+    // flash the popup on/off (km-tui.chord-invalid-bell + which-key UX).
     if (result.chordCancelled) {
       parentSpan.spanData.outcome = "chord-cancelled"
+      const elapsed = performance.now() - locals.pendingChordShownAt
+      const minDisplayElapsed = elapsed >= WHICH_KEY_MIN_DISPLAY_MS
       if (locals.chordDismissTimer !== null) {
         clearTimeout(locals.chordDismissTimer)
         locals.chordDismissTimer = null
       }
-      ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
+      if (minDisplayElapsed) {
+        ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
+      } else {
+        // Keep pendingChord visible for the remainder of min display time,
+        // then auto-dismiss. Bell fires immediately.
+        ctx.setUI({ bellState: "chord-cancelled" })
+        locals.chordDismissTimer = setTimeout(
+          () => {
+            locals.chordDismissTimer = null
+            get().setUI({ pendingChord: null, chordTimedOut: false })
+          },
+          WHICH_KEY_MIN_DISPLAY_MS - elapsed,
+        )
+      }
       process.stdout.write("\x07")
       return "consumed"
     }

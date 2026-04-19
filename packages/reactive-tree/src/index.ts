@@ -43,7 +43,7 @@
 import { signal, computed, startBatch, endBatch, getActiveSub, setActiveSub } from "alien-signals"
 import type { Sig, Descriptor, Traversal } from "./types.ts"
 import { DESC, isDescriptor } from "./types.ts"
-import type { StrategyContext, StrategyInstance } from "./strategy.ts"
+import type { Strategy, StrategyContext, StrategyInstance } from "./strategy.ts"
 import { resolveDefaultStrategy } from "./defaults.ts"
 
 // Public surface — only the types users need to consume the API.
