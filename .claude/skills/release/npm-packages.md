@@ -81,7 +81,7 @@ Last updated: 2026-04-12 (63 packages)
 | `@bearly/github` | 0.1.0 | 14 | GitHub notifications MCP server |
 | `alien-projections` | 0.1.3 | 9 | Incremental reactive collection transforms (alien-signals) |
 | `alien-resources` | 0.1.3 | 9 | Async signal bridge (alien-signals) |
-| `alien-trees` | 0.1.0 | — | Tree-scoped reactive aggregates (alien-signals) |
+| `alien-trees` | 0.1.1 | — | Tree-scoped reactive aggregates (alien-signals) |
 | `vitepress-enrich` | 0.4.1 | 300 | Glossary linking, SEO, tooltips for VitePress |
 
 ### Other
