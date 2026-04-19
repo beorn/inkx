@@ -120,32 +120,100 @@ Whatever km-tui's local Theme alias looks like, make the root import point at St
 
 ### Step 2 — batch-refactor the obvious 80%
 
+Two command families, one per reference type:
+
+**Family A: `$-token` string literals** → `pattern.replace --backend ripgrep` (they're strings, not TS symbols):
+
 ```bash
-# Command 1: focusborder → border-focus (flat + nested + $-token)
+# Obvious rename: $focusborder → $border-focus (includes both JSX and any string refs)
 bun vendor/bearly/tools/refactor.ts pattern.replace \
-  --pattern '\$focusborder\b' --replace '$border-focus' \
+  --pattern '/\$focusborder\b/' --replace '$border-focus' \
   --glob 'apps/km-tui/src/**/*.{ts,tsx}' --backend ripgrep \
-  --output /tmp/migrate-focusborder.json
-bun vendor/bearly/tools/refactor.ts editset.apply /tmp/migrate-focusborder.json
-
-# Command 2: theme.focusborder → theme["border-focus"]
-bun vendor/bearly/tools/refactor.ts pattern.replace \
-  --pattern 'theme\.focusborder\b' --replace 'theme["border-focus"]' \
-  --glob 'apps/km-tui/src/**/*.{ts,tsx}' --backend ripgrep \
-  --output /tmp/migrate-focusborder-field.json
-bun vendor/bearly/tools/refactor.ts editset.apply /tmp/migrate-focusborder-field.json
-
-# Repeat for each obvious rename (~15 commands)
-# After each: check tsc error count, expect monotonic decrease
+  --output /tmp/sterling-1-focusborder.json
+bun vendor/bearly/tools/refactor.ts editset.apply /tmp/sterling-1-focusborder.json --dry-run
+bun vendor/bearly/tools/refactor.ts editset.apply /tmp/sterling-1-focusborder.json
 ```
 
-See the substitution map above for the full command list. Each obvious rename gets one `pattern.replace` call.
+Note the regex-literal form: `/\$focusborder\b/` — the `\b` word boundary prevents over-matching into longer tokens. Plain strings are rejected by the tool.
 
-### Step 3 — judgment-required renames (targeted agent)
+**Family B: `theme.X` TypeScript identifiers** → `rename.batch` (ts-morph) when the X is a symbol, OR `pattern.replace` when it's a property access like `theme["bg-selected"]`:
 
-For `$primary`, `$muted`, `$fg`, `$selection`, `$error` and similar — spawn a silvery agent with the context of the substitution map and this spec. The agent reads each call site and picks the correct target.
+```bash
+# theme.focusborder is NOT a TS symbol rename — it's a property access change:
+# theme.focusborder → theme["border-focus"]  (bracket form because keys are kebab)
+bun vendor/bearly/tools/refactor.ts pattern.replace \
+  --pattern '/theme\.focusborder\b/' --replace 'theme["border-focus"]' \
+  --glob 'apps/km-tui/src/**/*.{ts,tsx}' --backend ripgrep \
+  --output /tmp/sterling-2-focusborder-field.json
+bun vendor/bearly/tools/refactor.ts editset.apply /tmp/sterling-2-focusborder-field.json
+```
 
-Don't batch-refactor these — the context matters.
+Repeat for each obvious rename in the substitution map above. After each `editset.apply`, run `npx tsc --noEmit 2>&1 | grep "error TS" | grep -v vendor/ | wc -l` — expect monotonic decrease.
+
+**Alternative**: for a full sequence of renames, use the `migrate` orchestrator:
+
+```bash
+# Migrate generates file-renames + symbol-renames + text-patterns editsets in one shot
+bun vendor/bearly/tools/refactor.ts migrate \
+  --from '/focusborder/i' --to 'border-focus' \
+  --glob 'apps/km-tui/src/**/*.{ts,tsx}' \
+  --output /tmp/sterling-editsets
+# Inspect: ls /tmp/sterling-editsets/
+# Apply each phase: bun ... editset.apply /tmp/sterling-editsets/0X-*.json
+```
+
+But: because Sterling's renames flip dot-access to bracket-access (`theme.foo` → `theme["kebab-foo"]`), the `migrate` orchestrator's symbol-rename phase won't handle that shape cleanly — prefer individual `pattern.replace` commands per token with the full before/after literal.
+
+### Step 3 — context-dependent renames via `pattern.migrate` (LLM-powered)
+
+For tokens where the target depends on surrounding JSX context (`$primary` → `$fg-accent` for text color props vs `$bg-accent` for background color props), use LLM-powered migration:
+
+```bash
+bun vendor/bearly/tools/refactor.ts pattern.migrate \
+  --patterns '"$primary","$muted","$fg","$error","$warning","$success","$info","$link","$cursor","$selection"' \
+  --glob 'apps/km-tui/src/**/*.{ts,tsx}' \
+  --prompt 'Migrate legacy Sterling $-tokens to channel-role-state form. Each token has a context-dependent target based on its JSX prop:
+- "$primary" on `color=` prop → "$fg-accent"
+- "$primary" on `backgroundColor=` prop → "$bg-accent"
+- "$muted" on `color=` prop → "$fg-muted"
+- "$muted" on `backgroundColor=` prop → "$bg-surface-subtle"
+- "$fg" → "$fg-default" (always default fg)
+- "$error" → "$fg-error" (always fg; if used on bg, still migrate — app may have bug)
+- "$warning" → "$fg-warning"
+- "$success" → "$fg-success"
+- "$info" → "$fg-info"
+- "$link" → "$fg-link" (alias of accent but semantically distinct)
+- "$cursor" → "$fg-on-cursor" (text on cursor-highlighted bg)
+- "$selection" → "$fg-on-selected" (text on selection-highlighted bg)
+Skip (replace: null) any reference that is inside a string that is NOT a JSX prop (e.g. error messages, docstring examples).' \
+  --output /tmp/sterling-3-context.json
+```
+
+Review the editset (`jq '.refs[:10]' /tmp/sterling-3-context.json`), patch any errors with `editset.patch`, then apply.
+
+### Step 4 — inspect + apply protocol
+
+For every editset:
+
+```bash
+# 1. Dry-run inspect
+bun vendor/bearly/tools/refactor.ts editset.apply /tmp/sterling-N.json --dry-run
+
+# 2. Inspect ref count + sample
+jq '{refs: .refs | length, edits: .edits | length}' /tmp/sterling-N.json
+jq '.refs[:5]' /tmp/sterling-N.json
+
+# 3. (Optional) Patch LLM-level decisions — skip refs or change replacements
+bun vendor/bearly/tools/refactor.ts editset.patch /tmp/sterling-N.json <<'EOF'
+{ "ref-id-to-skip": null, "ref-id-to-customize": "$bg-accent-hover" }
+EOF
+
+# 4. Apply — checksums protect drifted files (they'll be skipped, not corrupted)
+bun vendor/bearly/tools/refactor.ts editset.apply /tmp/sterling-N.json
+
+# 5. Verify monotonic tsc-error decrease
+npx tsc --noEmit 2>&1 | grep "error TS" | grep -v vendor/ | wc -l
+```
 
 ### Step 4 — edge cases
 
