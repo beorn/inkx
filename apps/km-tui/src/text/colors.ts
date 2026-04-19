@@ -9,7 +9,7 @@
  */
 
 import { createTerm, resolveThemeColor, type StyleChain } from "@silvery/ag-react"
-import { getActiveTheme } from "@silvery/theme"
+import { getActiveTheme } from "@silvery/ag-term/pipeline"
 
 /** Cached term instance for color styling. Uses default color detection. */
 let _termStyle: StyleChain | undefined

@@ -27,9 +27,11 @@ import type { ID } from "@silvery/selection"
 
 function createMockDispatch() {
   const calls: { method: string; args: unknown[] }[] = []
-  const record = (method: string) => (...args: unknown[]) => {
-    calls.push({ method, args })
-  }
+  const record =
+    (method: string) =>
+    (...args: unknown[]) => {
+      calls.push({ method, args })
+    }
   const ctx: SelectionDispatch = {
     sel: {
       node: { select: record("node.select") as never },
@@ -89,12 +91,7 @@ describe("Selection constructors", () => {
 
 describe("Selection type guards", () => {
   test("discriminate by type field", () => {
-    const selections: Selection[] = [
-      textCaret("n1", 0),
-      nodeSelect("n1"),
-      gapSelect("n1", "after"),
-      NO_SELECTION,
-    ]
+    const selections: Selection[] = [textCaret("n1", 0), nodeSelect("n1"), gapSelect("n1", "after"), NO_SELECTION]
     expect(selections.map((s) => [isText(s), isNode(s), isGap(s), isNone(s)])).toEqual([
       [true, false, false, false],
       [false, true, false, false],

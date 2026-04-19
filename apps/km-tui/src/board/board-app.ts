@@ -575,13 +575,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         // Keep pendingChord visible for the remainder of min display time,
         // then auto-dismiss. Bell fires immediately.
         ctx.setUI({ bellState: "chord-cancelled" })
-        locals.chordDismissTimer = setTimeout(
-          () => {
-            locals.chordDismissTimer = null
-            get().setUI({ pendingChord: null, chordTimedOut: false })
-          },
-          WHICH_KEY_MIN_DISPLAY_MS - elapsed,
-        )
+        locals.chordDismissTimer = setTimeout(() => {
+          locals.chordDismissTimer = null
+          get().setUI({ pendingChord: null, chordTimedOut: false })
+        }, WHICH_KEY_MIN_DISPLAY_MS - elapsed)
       }
       process.stdout.write("\x07")
       return "consumed"

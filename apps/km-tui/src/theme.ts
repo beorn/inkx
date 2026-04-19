@@ -10,8 +10,8 @@
  */
 import { ansi16DarkTheme, detectTheme } from "@silvery/ag-react"
 import type { Theme } from "@silvery/ag-react"
-// Color math: @silvery/theme re-exports blend(), brighten(), darken(), hexToRgb(), etc. from @silvery/color.
-import { blend } from "@silvery/theme"
+// Color math lives in @silvery/color.
+import { blend } from "@silvery/color"
 
 /** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme

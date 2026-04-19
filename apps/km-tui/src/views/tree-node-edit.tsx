@@ -391,10 +391,7 @@ export function BodyBlockEditor({
                     if (result) {
                       dispatchSelection(
                         { sel },
-                        textCaret(
-                          result.survivorId,
-                          typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
-                        ),
+                        textCaret(result.survivorId, typeof result.cursorOffset === "number" ? result.cursorOffset : 0),
                       )
                     }
                   } catch {

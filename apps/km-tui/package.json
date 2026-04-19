@@ -19,6 +19,7 @@
     "@silvery/ag-term": "workspace:*",
     "@silvery/create": "workspace:*",
     "@silvery/selection": "workspace:*",
+    "@silvery/color": "workspace:*",
     "@silvery/theme": "workspace:*",
     "alien-signals": "^3.1.2",
     "alien-trees": "^0.1.0",
