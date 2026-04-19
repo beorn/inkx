@@ -148,7 +148,7 @@ See [.claude/skills/git/worktree.md] for details.
 | [`alien-signals`](https://github.com/stackblitz/alien-signals) | Scalar signals (upstream, not yours) | npm | primitive reactivity |
 | [`alien-projections`](https://www.npmjs.com/package/alien-projections) | Incremental array transforms (map/filter/sort) | `github:beorn/bearlymade/packages/alien-projections` | anywhere km has `Signal<T[]>` → `Signal<U[]>` |
 | [`alien-resources`](https://www.npmjs.com/package/alien-resources) | Async → signal bridge with loading/error/refetch | `github:beorn/bearlymade/packages/alien-resources` | anywhere km does async fetch behind a signal |
-| [`alien-trees`](https://www.npmjs.com/package/alien-trees) | Tree-scoped aggregates (some/count/reduce over ancestors/descendants) | `github:beorn/bearly/packages/alien-trees` (source) · npm `alien-trees@0.1.0` | anywhere km needs "any descendant has X" or "inherited from ancestor" reactively |
+| [`alien-trees`](https://www.npmjs.com/package/alien-trees) | Tree-scoped aggregates (some/count/reduce over ancestors/descendants) | `github:beorn/bearly/packages/alien-trees` (source) · npm `alien-trees@^0.1.1` | anywhere km needs "any descendant has X" or "inherited from ancestor" reactively |
 
 **The invariant**: each `alien-*` package is "signals for a specific data shape" — values / arrays / async / trees. Peer-depends on alien-signals. Single API per package (no plugin system). They're bundled by `@silvery/signals` with React integration added on top.
 
