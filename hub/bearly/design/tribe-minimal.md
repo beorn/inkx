@@ -222,6 +222,76 @@ If no `claude_session_id` is available (plugin peers, CLI ad-hoc invocations), t
 
 This is how humans think about it: "alice is still alice, even though her Claude Code process is new." The backend bookkeeping handles the id swap transparently.
 
+## Delivery health — chief-mediated follow-up
+
+**Undelivered directs are not "write-and-forget."** If alice posts to bob and bob is offline, that message is a pending coordination task, not a dropped packet. The tribe should actively notice and address it — and the chief is the role that owns that coordination.
+
+This turns the chief from "longest-connected participant" into **"the member responsible for tribe follow-through."** That matches how humans use the role.
+
+### What the daemon tracks
+
+A `_proj_delivery` projection, updated on every `post` and every `channel` fanout:
+
+```sql
+CREATE TABLE _proj_delivery (
+  message_id   TEXT PRIMARY KEY,      -- journal row id for this recipient
+  seq          INTEGER NOT NULL,
+  to_id        TEXT NOT NULL,          -- resolved recipient id
+  to_name      TEXT NOT NULL,          -- snapshot at post time
+  from_id      TEXT NOT NULL,
+  posted_at    INTEGER NOT NULL,       -- ts
+  delivered_at INTEGER,                -- null = not yet delivered
+  status       TEXT NOT NULL           -- 'pending' | 'delivered' | 'escalated' | 'resolved'
+                                       -- default 'pending'
+);
+
+CREATE INDEX idx_delivery_pending ON _proj_delivery(status, posted_at)
+  WHERE status = 'pending';
+```
+
+For broadcasts (`to="*"`) we don't track per-recipient delivery — they're fire-and-forget. Only directs and role-address posts (`@chief`, `@observers`) get delivery rows.
+
+`delivered_at` is set by the fanout path the instant the recipient's socket accepts the write (the same place that advances `last_delivered_seq` today — we just also update the delivery row).
+
+### Thresholds & escalation
+
+The daemon runs a lightweight timer (every 30s) that scans `_proj_delivery WHERE status='pending'`:
+
+| Age | Action |
+|-----|--------|
+| < 2 min | nothing (normal latency; recipient may be on a long tool call) |
+| 2-10 min | emit `post type="delivery.pending" to="@chief"` with `{message_id, to, from, age}`. Once per pending-message. |
+| 10-60 min | emit `post type="delivery.stalled" to="@chief"` + `to` the original sender. Status → `escalated`. |
+| > 24 h | emit `post type="delivery.abandoned" to=<from>` suggesting superseding. Status stays `escalated` until resolved. |
+
+These are `post`s on the wire — which means they follow all the normal rules (appear in `channel`, drive projections, show up in watch dashboards). No separate notification mechanism.
+
+### The chief's actual job
+
+When the chief receives `delivery.pending`, they can (manually, or via automation) respond:
+
+- **Nudge the recipient**: `post to=<recipient> type="nudge" ref=<message_id>` — if the recipient is back online they see it.
+- **Reroute**: `post to=<someone-else> type=<original-type> content=<forwarded>` — gets the work done by a different member.
+- **Reply-all**: `post to=<sender>+<recipient> type="notify" content="recipient offline, your message pending"` — informs the sender.
+- **Resolve**: `post type="delivery.resolve" ref=<message_id>` — marks the pending delivery as handled. Daemon updates `_proj_delivery.status='resolved'`.
+- **Supersede**: post a replacement with `ref=<message_id>` and `type="supersede"`.
+
+`delivery.resolve` and `supersede` posts are recognised by the projection reducer and update `_proj_delivery` accordingly. Anything else is observational.
+
+### Why this needs the reframe
+
+Under the current architecture, "undelivered messages" were invisible — the daemon wrote to the journal, fanout tried once, and if the recipient was gone, nothing tracked it. The `km-tribe.delivery-correctness` fix stopped us from *deleting* undelivered directs on disconnect, which was the prerequisite for this feature. With the journal durable and a materialized `_proj_delivery` view, the chief can actually see and act on stuck work.
+
+This is also why chief matters as a *role* and not just a status flag: it's the addressable party for delivery coordination. `@chief` posts have a recipient the tribe can count on.
+
+### Retention interaction
+
+`_proj_delivery` rows are state-bearing — do NOT drop them just because the journal TTL (7 days) trims the underlying message. A resolved delivery row can be pruned after a grace window (default 30 days). Unresolved/escalated rows stick around until explicitly marked, so stale work doesn't silently disappear.
+
+The chief's daily digest (future enhancement, not this RFC) would surface "8 stalled deliveries from the last 24h" as a standup-style report.
+
+
+
 ### Why this is not the v1 formula
 
 v1 tried to make the id alone carry all continuity semantics — `sha256(claude_session_id || pid || role || project)`. Pro correctly pointed out that `pid` + `role` are not stable; including them churns ids for no benefit.
@@ -347,7 +417,10 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 - [ ] Name policy enforced at `hello`: generic patterns (`member-\d+`, `agent`, `session-*`, empty) rejected with guidance. Collisions suffix-renamed with a `nameWarnings` entry encouraging rename.
 - [ ] Name-based session adoption: a participant reconnecting with the same name takes over the dead-socket prior session's cursor (id swaps, cursor persists).
 - [ ] Id formula uses only durable inputs (project realpath + claude_session_id) OR random UUID fallback. No `pid`, no `role`, no mutable state. Id churn does NOT break user-facing continuity — name does that.
-- [ ] `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_meta` tables exist and are updated atomically with the corresponding journal writes.
+- [ ] `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_delivery`, `_proj_meta` tables exist and are updated atomically with the corresponding journal writes.
+- [ ] Delivery tracking: every direct/role-addressed post creates a `_proj_delivery` row with `status='pending'`; fanout success flips to `delivered`; `delivery.resolve` and `supersede` posts update status correctly.
+- [ ] Escalation timer (every 30s) scans pending deliveries and emits `delivery.pending` / `delivery.stalled` / `delivery.abandoned` posts to `@chief` and/or sender at the age thresholds. Each escalation fires at most once per message per tier.
+- [ ] `_proj_delivery` rows survive journal TTL (they are state-bearing); resolved rows pruned only after a separate 30-day grace window.
 - [ ] `messages.seq INTEGER` column exists and is unique; `last_delivered_seq` references it.
 - [ ] `daemon.boot` event is written on every boot with a fresh `epoch`; liveness uses it.
 - [ ] Observer host process spawns at daemon boot (unless `TRIBE_NO_OBSERVER=1`); `claims: ["observer"]` excludes it from auto-quit liveness counting.
@@ -361,7 +434,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 
 ### Phase 0 — data-model prep (no wire change)
 - Add `messages.seq INTEGER` column + unique index; backfill from `rowid`.
-- Add `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_meta` tables (empty; unused yet).
+- Add `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_delivery`, `_proj_meta` tables (empty; unused yet).
 - Add `daemon.boot` event writer on startup.
 - Switch `sessions.last_delivered_seq` references from `rowid` to `seq` in replay + fanout paths.
 - Migration v10 in `database.ts`.
@@ -380,14 +453,15 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 
 **Effort**: 2-3 days. Worktree-isolated. Old clients keep working via shims.
 
-### Phase 2 — materialized projections + read-side cleanup
+### Phase 2 — materialized projections + read-side cleanup + delivery health
 - Populate `_proj_*` tables on every relevant journal write.
 - Switch `members` / `chief` / `state.*` RPCs to read from projections.
 - Write a reducer replay routine for cold start + corruption recovery.
 - Once projections are authoritative, drop the `role` column (migration v11).
 - Delete `handleClaimChief` / `handleReleaseChief` in favor of `post type="chief.claim"` with projection reduction.
+- **Delivery health**: populate `_proj_delivery` on post + fanout; add the 30s escalation timer that emits `delivery.pending` / `delivery.stalled` / `delivery.abandoned` posts to `@chief` and the sender. Add `delivery.resolve` / `supersede` reducers.
 
-**Effort**: 3-4 days.
+**Effort**: 4-5 days (up from 3-4 — delivery health adds ~1 day).
 
 ### Phase 3 — observer host process
 - Implement `tribe-observer.ts` as a daemon-spawned peer.
