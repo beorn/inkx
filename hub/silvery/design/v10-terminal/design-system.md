@@ -711,7 +711,7 @@ Silvery will ship with `destructive` intent + `info` role. Apps that ignore thes
 
 Implementation-level decisions D1-D6 locked in [sterling-preflight.md](sterling-preflight.md) 2026-04-19. Remaining open questions:
 
-1. **Cross-design-system components** (silvery UI inside a `@silvery/design-material` ThemeProvider): fail-fast, fall back, or adapt? Current inclination: fail-fast with a clear error — mixing vocabularies is a design smell.
+1. **Cross-design-system components** (silvery UI inside a `@silvery/design-material` ThemeProvider): **LOCKED 2026-04-19 — fail-fast with a clear error.** No fallback chain, no TokenResolver, no silent adaptation. Consumers who want to mix (e.g. silvery/ui with Material's Theme) write an explicit adapter function — `materialToSterling(theme)` returning a Sterling-shaped Theme — and pass the result to `<ThemeProvider>`. The coupling stays visible, errors are loud, no runtime cost. Aligns with D6 (clean breaks, no compat shims).
 2. **Hot-swap performance**: every Theme swap invalidates every styled cell. Is memoization at the token level enough, or do we need subtree-level Theme caching?
 3. **Scheme catalog inclusion policy** — 84 today, cap? WCAG is the current filter.
 4. **Surface hierarchy for web/native** — `default` / `subtle` / `raised` / `overlay` is Sterling's v1. Material's `surfaceContainer*` ramp has 5 levels; do we need more before web lands, or refine on demand?
