@@ -15,6 +15,7 @@ import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, Small, useScrollRect } from "@silvery/ag-react"
 import { useJobRunner, useUndoHandle } from "../services-context.tsx"
+import { dispatchSelection, NO_SELECTION } from "../state/selection.ts"
 import { isDetailViewPane } from "../board/board-types.ts"
 import { type KNode, getStatusForMarker } from "@km/core"
 import { extractWipLimits } from "@km/board"
@@ -757,7 +758,7 @@ export const Column = React.memo(function Column({
 
       // No-op: value didn't change
       if (newValue === (oldContent || oldName)) {
-        sel.text.deselect()
+        dispatchSelection({ sel }, NO_SELECTION)
         return
       }
 
@@ -784,13 +785,13 @@ export const Column = React.memo(function Column({
         repoUpdate(nodeId, { content: newValue })
       }
 
-      sel.text.deselect()
+      dispatchSelection({ sel }, NO_SELECTION)
     },
     [nodeId, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    sel.text.deselect()
+    dispatchSelection({ sel }, NO_SELECTION)
   }, [setUI])
 
   // Column header is selected when cursor is directly on this column node.

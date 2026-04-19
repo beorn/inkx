@@ -9,6 +9,7 @@ import { Tree } from "@km/tree"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import type { ID } from "@silvery/selection"
+import { nodeSelect, nodesSelect } from "../state/selection.ts"
 
 /**
  * Extend selection vertically (up or down).
@@ -36,7 +37,7 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
   if (targetIdx === ctx.cardIndex) {
     // At boundary — if starting fresh, just select current card
     if (ctx.sel.node.ids().length <= 1) {
-      ctx.sel.node.select([card.id as ID])
+      ctx.setSelection(nodeSelect(card.id))
       ctx.setUI({ status: { level: "info", message: "1 item selected" } })
     }
     return
@@ -45,7 +46,7 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
   // Ensure anchor is established on current card before extending.
   // Without this, extend() has no anchor to range from.
   if (ctx.sel.node.ids().length === 0) {
-    ctx.sel.node.select([card.id as ID])
+    ctx.setSelection(nodeSelect(card.id))
   }
 
   const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
@@ -78,7 +79,7 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
     // At boundary: "pop out" to parent — select the entire card.
     const parent = Tree.parent(repo, cursorId)
     if (parent) {
-      ctx.sel.node.select([parent.id as ID])
+      ctx.setSelection(nodeSelect(parent.id))
       ctx.setUI({ status: { level: "info", message: "1 item selected" } })
     }
     return
@@ -86,7 +87,7 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
 
   // Ensure anchor is established on current node before extending.
   if (ctx.sel.node.ids().length === 0) {
-    ctx.sel.node.select([cursorId as ID])
+    ctx.setSelection(nodeSelect(cursorId))
   }
 
   const targetId = siblings[targetIdx]!.id
@@ -136,7 +137,7 @@ export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "ri
   if (newSelected.size === 0) return
   const colCount = Math.abs(targetColIdx - anchorColIdx) + 1
 
-  ctx.sel.node.select(Array.from(newSelected) as ID[])
+  ctx.setSelection(nodesSelect(Array.from(newSelected)))
   ctx.setUI({
     status: {
       level: "info",

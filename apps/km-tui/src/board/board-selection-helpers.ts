@@ -12,6 +12,7 @@ import type { KNode, Position } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { Tree } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
+import { nodesSelect } from "../state/selection.ts"
 
 /**
  * Get unique selected card indices from multi-selection, sorted ascending.
@@ -181,7 +182,7 @@ export function progressiveSelectAll(ctx: OpCtx): void {
   }
 
   const newSelected = buildSelectAllSet(ctx, scope)
-  ctx.sel.node.select(newSelected as ID[])
+  ctx.setSelection(nodesSelect(newSelected))
   ctx.setUI({
     status: {
       level: "info",

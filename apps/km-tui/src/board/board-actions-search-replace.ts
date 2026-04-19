@@ -6,13 +6,13 @@
  */
 
 import { type OpResult, boundary, ok } from "@km/commands"
-import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import { normalizeNodeName } from "@km/markdown"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
+import { NO_SELECTION, nodeSelect } from "../state/selection.ts"
 
 /** Open the search & replace dialog */
 export function handleSearchReplaceOpen(ctx: OpCtx): OpResult {
@@ -30,7 +30,7 @@ export function handleSearchReplaceOpen(ctx: OpCtx): OpResult {
     localSearch: null,
   })
   // Close inline editing
-  ctx.sel.text.deselect()
+  ctx.setSelection(NO_SELECTION)
   clearSelection(ctx)
   return ok()
 }
@@ -43,7 +43,7 @@ export function handleSearchReplaceNext(ctx: OpCtx): OpResult {
   const nextIndex = (sr.matchIndex + 1) % sr.matchCount
   const nodeId = sr.matchNodeIds[nextIndex]
   if (nodeId) {
-    ctx.sel.node.select([nodeId as ID])
+    ctx.setSelection(nodeSelect(nodeId))
   }
   ctx.setUI({
     searchReplace: { ...sr, matchIndex: nextIndex },
@@ -59,7 +59,7 @@ export function handleSearchReplacePrev(ctx: OpCtx): OpResult {
   const prevIndex = (sr.matchIndex - 1 + sr.matchCount) % sr.matchCount
   const nodeId = sr.matchNodeIds[prevIndex]
   if (nodeId) {
-    ctx.sel.node.select([nodeId as ID])
+    ctx.setSelection(nodeSelect(nodeId))
   }
   ctx.setUI({
     searchReplace: { ...sr, matchIndex: prevIndex },
@@ -84,7 +84,7 @@ export function handleSearchReplaceDoReplace(ctx: OpCtx): OpResult {
 
   // Navigate to current match position
   if (updatedMatches.length > 0 && updatedMatches[newMatchIndex]) {
-    ctx.sel.node.select([updatedMatches[newMatchIndex] as ID])
+    ctx.setSelection(nodeSelect(updatedMatches[newMatchIndex]!))
   }
 
   ctx.setUI({
@@ -138,7 +138,7 @@ export function handleSearchReplaceToggleRegex(ctx: OpCtx): OpResult {
 
   // Navigate to first match
   if (matches.length > 0 && matches[0]) {
-    ctx.sel.node.select([matches[0] as ID])
+    ctx.setSelection(nodeSelect(matches[0]))
   }
 
   ctx.setUI({
@@ -281,7 +281,7 @@ export function updateSearchReplaceMatches(ctx: OpCtx, searchQuery: string): voi
 
   // Navigate to first match if available
   if (matchCount > 0 && matchNodeIds[0]) {
-    ctx.sel.node.select([matchNodeIds[0] as ID])
+    ctx.setSelection(nodeSelect(matchNodeIds[0]))
   }
 
   ctx.setUI({

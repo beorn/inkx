@@ -8,7 +8,6 @@ import { CARD_REMAINING_DEPTH } from "@km/board"
 import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode, isOk } from "@km/core"
-import type { ID } from "@silvery/selection"
 import { extractBody } from "@km/tree"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
@@ -26,6 +25,7 @@ import {
 } from "./board-reducer.ts"
 import { runBoardEffects } from "./board-effect-runner.ts"
 import type { ViewTreeProjection } from "@km/board"
+import { nodeSelect } from "../state/selection.ts"
 
 /** Collect all visible descendant IDs from ViewTree (lens handles fold + status filter). */
 function collectTreeDescendants(tree: ViewTreeProjection, rootId: string): string[] {
@@ -55,7 +55,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
     for (const colId of colIds) {
       const cardIds = ctx.tree.children(colId)
       if (cardIds.length > 0) {
-        ctx.sel.node.select([cardIds[0] as ID])
+        ctx.setSelection(nodeSelect(cardIds[0]!))
         return ok()
       }
     }
@@ -103,7 +103,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   }
 
   // Sync detail pane when cursor moved and a detail pane exists.
-  // Navigation handlers call sel.node.select() directly (bypassing dispatchBoard("SELECT")),
+  // Navigation handlers call setSelection() directly (bypassing dispatchBoard("SELECT")),
   // so the detail pane sync in dispatchBoard never runs. Dispatch SELECT to trigger it.
   if (isOk(result) && ctx.hasDetailPane) {
     const newCursor = ctx.sel.node.cursor() as string | null
@@ -162,7 +162,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
 
   // When at leftmost card pressing h, position at column header instead of moving columns
   if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.columnId) {
-    ctx.sel.node.select([ctx.columnId as ID])
+    ctx.setSelection(nodeSelect(ctx.columnId))
     navigator.clearStickyY()
     return ok()
   }
@@ -187,7 +187,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
       // Pass cursorCardNodeId hint for symlink-aware card classification.
       // When navigating within a symlink's children, the data model parent
       // chain leads to the wrong card — the hint ensures the visual card is used.
-      ctx.sel.node.select([targetId as ID])
+      ctx.setSelection(nodeSelect(targetId))
       // In cards view, attach deferred resolve for off-screen Y-correction.
       // register() will fire it during silvery's Phase 2.7.
       if (ui.viewMode === "cards") {
@@ -211,7 +211,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
             }
             const child = children[itemIndex]
             if (child) {
-              ctx.sel.node.select([child.id as ID])
+              ctx.setSelection(nodeSelect(child.id))
             }
           }
         })
@@ -259,7 +259,7 @@ function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
   const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
   if (targetId === null) return boundary(dir)
 
-  ctx.sel.node.select([targetId as ID])
+  ctx.setSelection(nodeSelect(targetId))
   return ok()
 }
 
@@ -351,7 +351,7 @@ function handleTreeNav(ctx: OpCtx, dir: string): OpResult {
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId && targetId !== ctx.cursor) {
-    ctx.sel.node.select([targetId as ID])
+    ctx.setSelection(nodeSelect(targetId))
     return ok()
   }
   return boundary(dir)
@@ -385,7 +385,7 @@ function navigateHistory(ctx: OpCtx, delta: -1 | 1): OpResult {
 
   dispatchBoard({ type: "ZOOM_IN", nodeId: entry.rootId || null })
   const entryCursor = entry.cursor || null
-  if (entryCursor) ctx.sel.node.select([entryCursor as ID])
+  if (entryCursor) ctx.setSelection(nodeSelect(entryCursor))
 
   // Clear selection on nav restore
   clearSelection(ctx)

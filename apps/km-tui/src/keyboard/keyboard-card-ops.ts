@@ -8,6 +8,7 @@ import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import type { OpCtx } from "../tui-context.ts"
+import { nodesSelect } from "../state/selection.ts"
 import { clearSelection, getSelectedCardIndices } from "../board/board-selection-helpers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 import { captureTree } from "../state/capture-tree.ts"
@@ -97,7 +98,7 @@ function rebuildSelectionForMovedCards(ctx: OpCtx, colIndex: number, movedCardId
       }
     }
   }
-  ctx.sel.node.select(Array.from(newSelected) as import("@silvery/selection").ID[])
+  ctx.setSelection(nodesSelect(Array.from(newSelected)))
 }
 
 // =============================================================================

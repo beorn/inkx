@@ -45,6 +45,7 @@ import { getAllFavorites, expandLocationTemplate, isDateTemplate } from "@km/com
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
+import { NO_SELECTION, nodeSelect, nodesSelect, textCaret } from "../state/selection.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
@@ -579,12 +580,16 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
       if (!cursorTarget) {
         const createdNodeId = autoCreateDateTemplateFile(action.locationKey, ctx)
         if (createdNodeId) {
-          // Navigate: zoom to parent folder, select the created file
+          // Navigate: zoom to parent folder, select the created file.
+          // Reference call site for km-all.unified-selection: migrated from
+          // the three-channel pattern `ctx.sel.node.select([id])` to the unified
+          // `ctx.setSelection(nodeSelect(id))`. Old readers (ctx.sel.node.*) stay
+          // live — only writers move. See bead km-tui.sel-migration for rollout.
           const node = ctx.repo.getNode(createdNodeId)
           if (node?.parent_id) {
             saveNavHistory(ctx)
             ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: node.parent_id })
-            ctx.sel.node.select([createdNodeId as ID])
+            ctx.setSelection(nodeSelect(createdNodeId))
             clearSelection(ctx)
           }
           return ok()
@@ -678,7 +683,7 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
     case "FOLD_LEVEL": {
       // Cursor-always-visible: if cursor is inside a sub-item, nudge to its card before folding
       if (ctx.card && ctx.cursor && ctx.cursor !== ctx.card.id) {
-        ctx.sel.node.select([ctx.card.id as ID])
+        ctx.setSelection(nodeSelect(ctx.card.id))
       }
       const cardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
@@ -715,7 +720,7 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
         log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
       }
-      ctx.sel.text.edit(action.nodeId as import("@silvery/selection").ID, 0)
+      ctx.setSelection(textCaret(action.nodeId, 0))
       ctx.textEditHints = { blockIndex: action.blockIndex ?? 0 }
       return ok()
     }
@@ -865,18 +870,18 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         const content = bsTarget.getContent()
         if (content === "") {
           const prevSibling = KTree.previous(ctx.repo, nodeId)
-          ctx.sel.text.deselect()
+          ctx.setSelection(NO_SELECTION)
           // Move cursor to neighbor BEFORE delete so executeDelete's
           // cursor repair finds a valid surviving node
           if (prevSibling) {
-            ctx.sel.node.select([prevSibling.id as import("@silvery/selection").ID])
+            ctx.setSelection(nodeSelect(prevSibling.id))
           }
           executeDelete(ctx, nodeId)
           // Re-enter edit mode on previous sibling at end of content.
           // text.edit() handles node.select() internally via selectableAncestor.
           if (prevSibling) {
             const prevContent = KNode.string(prevSibling)
-            ctx.sel.text.edit(prevSibling.id as import("@silvery/selection").ID, prevContent.length)
+            ctx.setSelection(textCaret(prevSibling.id, prevContent.length))
             ctx.textEditHints = { blockIndex: 0 }
             requestRenderFlush()
           }
@@ -889,7 +894,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
             ctx.undoHandle.setCursor(ctx.cursor)
             applyDegradation(node, degradation, content)
             runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: degradation })
-            ctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+            ctx.setSelection(textCaret(nodeId, 0))
             return ok()
           }
           bsTarget.save()
@@ -909,15 +914,15 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         if (content === "" && cursor === 0) {
           const nodeId = fwdTextEdit.nodeId
           const nextSibling = KTree.next(ctx.repo, nodeId)
-          ctx.sel.text.deselect()
+          ctx.setSelection(NO_SELECTION)
           if (nextSibling) {
-            ctx.sel.node.select([nextSibling.id as import("@silvery/selection").ID])
+            ctx.setSelection(nodeSelect(nextSibling.id))
           }
           executeDelete(ctx, nodeId)
           // Re-enter edit mode on next sibling at start of content.
           // text.edit() handles node.select() internally via selectableAncestor.
           if (nextSibling) {
-            ctx.sel.text.edit(nextSibling.id as import("@silvery/selection").ID, 0)
+            ctx.setSelection(textCaret(nextSibling.id, 0))
             ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
             requestRenderFlush()
           }
@@ -930,7 +935,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
               ctx.undoHandle.setCursor(ctx.cursor)
               applyDegradation(nextNode, degradation, KNode.string(nextNode))
               runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: nextNode.id, updates: degradation })
-              ctx.sel.text.edit(fwdTextEdit.nodeId as import("@silvery/selection").ID, content.length)
+              ctx.setSelection(textCaret(fwdTextEdit.nodeId, content.length))
               return ok()
             }
           }
@@ -976,7 +981,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
     case "TEXT_CONFIRM": {
       const target = activeEditTargetRef.current
       if (target) target.save()
-      if (ctx.sel.text()) ctx.sel.text.deselect()
+      if (ctx.sel.text()) ctx.setSelection(NO_SELECTION)
       return ok()
     }
     case "TEXT_LINEBREAK_SPLIT":
@@ -1001,7 +1006,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
       const target = activeEditTargetRef.current
       if (ctx.sel.text()) {
         target?.save()
-        ctx.sel.text.deselect()
+        ctx.setSelection(NO_SELECTION)
       } else {
         target?.cancel()
       }
@@ -1027,7 +1032,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (ctx.ui.columnScrollAnchor !== null) {
         ctx.setUI({ columnScrollAnchor: null })
       }
-      ctx.sel.node.select([action.nodeId as ID])
+      ctx.setSelection(nodeSelect(action.nodeId as string))
       return ok()
     case "SET_ROOT":
     case "SET_CURSWANT":
@@ -1092,7 +1097,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
 
       ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
       if (!wasCollapsed && (ctx.cursor as string) !== collapseNodeId) {
-        ctx.sel.node.select([collapseNodeId as ID])
+        ctx.setSelection(nodeSelect(collapseNodeId))
       }
       const colName = shortName(ctx, collapseNodeId)
       ctx.setUI({
@@ -1114,7 +1119,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (result.effects.length === 0) return boundary("fold", "already fully folded")
       // Cursor-always-visible: if cursor is inside a card being folded deeper, nudge to card
       if (card && ctx.cursor && ctx.cursor !== card.id) {
-        ctx.sel.node.select([card.id as ID])
+        ctx.setSelection(nodeSelect(card.id))
       }
       applyFoldEffects(ctx, result)
       ctx.setUI({ status: { level: "info", message: `Folded: ${shortName(ctx, roots[0])}` } })
@@ -1157,15 +1162,18 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       progressiveSelectAll(ctx)
       return ok()
     case "SELECT_NODE_TOGGLE": {
+      // Tracked by km-tui.sel-reader-migration — toggle semantics not in Selection union
       ctx.sel.node.select([action.nodeId as import("@silvery/selection").ID], true)
       return ok()
     }
     case "SELECT_NODE_ADD": {
-      const ids = [...ctx.selectedIds, action.nodeId] as import("@silvery/selection").ID[]
-      ctx.sel.node.select(ids)
+      const ids = [...ctx.selectedIds, action.nodeId]
+      ctx.setSelection(nodesSelect(ids))
       return ok()
     }
     case "SELECT_NODE_REMOVE": {
+      // TODO(km-tui.sel-migration): remove pattern deferred to Phase 3
+      // Tracked by km-tui.sel-reader-migration — remove semantics not in Selection union
       ctx.sel.node.remove(action.nodeId as import("@silvery/selection").ID)
       return ok()
     }
@@ -1174,7 +1182,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       return ok()
     case "VISUAL_MODE_ENTER": {
       if (!ctx.cursor) return boundary("visual", "no cursor")
-      ctx.sel.node.select([ctx.cursor as ID])
+      ctx.setSelection(nodeSelect(ctx.cursor))
       ctx.setUI({ status: { level: "info", message: "-- VISUAL --" } })
       return ok()
     }
@@ -1304,7 +1312,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       }
       ctx.closeDetailPane()
       ctx.setUI({ showFilterDialog: !ctx.ui.showFilterDialog })
-      ctx.sel.text.deselect()
+      ctx.setSelection(NO_SELECTION)
       return ok()
     case "SET_FILTER":
       popDialogMode()
@@ -1877,11 +1885,11 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       if (ctx.sel.text() && activeEditTargetRef.current) {
         activeEditTargetRef.current.cancel()
       }
-      ctx.sel.text.deselect()
+      ctx.setSelection(NO_SELECTION)
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
       const undoCursor = result.ok && result.cursor != null ? result.cursor : ctx.cursor
-      ctx.sel.node.select([undoCursor as ID])
+      ctx.setSelection(nodeSelect(undoCursor as string))
       // Restore fold state if captured in the undo entry
       if (result.foldState) {
         ctx.setFoldDepths(result.foldState.foldDepths)
@@ -1895,10 +1903,10 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       if (ctx.sel.text() && activeEditTargetRef.current) {
         activeEditTargetRef.current.cancel()
       }
-      ctx.sel.text.deselect()
+      ctx.setSelection(NO_SELECTION)
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
       const result = ctx.undoHandle.redo()
-      ctx.sel.node.select([ctx.cursor as ID])
+      ctx.setSelection(nodeSelect(ctx.cursor as string))
       // Restore fold state if captured in the redo entry
       if (result.foldState) {
         ctx.setFoldDepths(result.foldState.foldDepths)
@@ -1991,8 +1999,7 @@ function handleLinebreakSibling(ctx: OpCtx, position: "before" | "after"): void 
 
   ctx.undoHandle.setCursor(nodeId)
   const newId = repo.addNode(parentId, newNode)
-  ctx.sel.node.select([newId as ID])
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -2047,8 +2054,7 @@ function handleLinebreakSplit(ctx: OpCtx): OpResult {
       ctx.undoHandle.startBatch("Split node")
       const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
-      ctx.sel.node.select([result.afterId as ID])
-      ctx.sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+      ctx.setSelection(textCaret(result.afterId, 0))
       ctx.textEditHints = { blockIndex: 0 }
     } else {
       boardSplit(ctx, nodeId, adjustedOffset)
@@ -2111,8 +2117,7 @@ function handleAddNodeChildFirst(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
-  ctx.sel.node.select([newId as ID])
-  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.setSelection(textCaret(newId, 0))
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
@@ -2211,7 +2216,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
   if (nextIndex >= 0 && nextIndex < blockCount) {
     // Moving between blocks within same node → save current block, change index
     activeEditTargetRef.current?.save()
-    ctx.sel.text.edit(effectiveNodeId as import("@silvery/selection").ID, 0)
+    ctx.setSelection(textCaret(effectiveNodeId, 0))
     ctx.textEditHints = {
       blockIndex: nextIndex,
       initialCursorPos: direction === "down" ? "start" : "end",
@@ -2231,8 +2236,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
     const { items } = extractBody(children)
     if (items.length > 0) {
       const firstChild = items[0]!
-      ctx.sel.node.select([firstChild.id as ID])
-      ctx.sel.text.edit(firstChild.id as import("@silvery/selection").ID, 0)
+      ctx.setSelection(textCaret(firstChild.id, 0))
       ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start", stickyX }
       requestRenderFlush()
       return ok()
@@ -2254,8 +2258,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
       const deepestNode = deepestId ? ctx.tree.node(deepestId) : null
       if (deepestNode && deepestId !== adjacentNode.id) {
         const deepBodyCount = extractBody(ctx.repo.getChildren(deepestId)).body.length
-        ctx.sel.node.select([deepestId as ID])
-        ctx.sel.text.edit(deepestId as import("@silvery/selection").ID, 0)
+        ctx.setSelection(textCaret(deepestId, 0))
         ctx.textEditHints = { blockIndex: deepBodyCount, initialCursorPos: "end", stickyX }
         requestRenderFlush()
         return ok()
@@ -2268,8 +2271,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
       if (firstChildId) {
         const firstChild = ctx.tree.node(firstChildId)
         if (firstChild) {
-          ctx.sel.node.select([firstChildId as ID])
-          ctx.sel.text.edit(firstChildId as import("@silvery/selection").ID, 0)
+          ctx.setSelection(textCaret(firstChildId, 0))
           ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start", stickyX }
           requestRenderFlush()
           return ok()
@@ -2278,8 +2280,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
     }
     const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
-    ctx.sel.node.select([adjacentNode.id as ID])
-    ctx.sel.text.edit(adjacentNode.id as import("@silvery/selection").ID, 0)
+    ctx.setSelection(textCaret(adjacentNode.id, 0))
     ctx.textEditHints = {
       blockIndex: adjBlockIndex,
       initialCursorPos: direction === "down" ? "start" : "end",
@@ -2291,7 +2292,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
 
   // No adjacent node — bell (ctrl-n/p) or exit edit mode (arrow keys)
   if (exitAtBoundary) {
-    ctx.sel.text.deselect()
+    ctx.setSelection(NO_SELECTION)
     return handleCursorMove(ctx, direction === "down" ? "down" : "up")
   }
   return boundary("edit_block_navigate", "no adjacent node")
@@ -2315,7 +2316,7 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   // Cursor-always-visible: if folding and cursor is inside the card's subtree,
   // nudge cursor up to the card itself before folding hides it.
   if (isFolding && ctx.cursor && ctx.cursor !== card.id) {
-    ctx.sel.node.select([card.id as ID])
+    ctx.setSelection(nodeSelect(card.id))
   }
 
   // Use pure reducer to compute before/after fold state for undo
@@ -2361,7 +2362,7 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
   if (cursorNode?.parent_id === to.parentId) {
     const target = Tree.nodeAt(ctx.repo, to)
     if (target) {
-      ctx.sel.node.select([target.id as ID])
+      ctx.setSelection(nodeSelect(target.id))
       clearSelection(ctx)
       // km-tui.omnibox-recents: goto via omnibox or picker = visit.
       getRecentsStore().touchNode(target.id)
@@ -2417,7 +2418,7 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
     // Leaf — zoom to parent, cursor on the leaf itself.
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.parent_id })
     ctx.sel.root.set(targetNode.parent_id as ID)
-    ctx.sel.node.select([targetNode.id as ID])
+    ctx.setSelection(nodeSelect(targetNode.id))
     // km-tui.omnibox-recents: cross-parent goto lands on targetNode.
     getRecentsStore().touchNode(targetNode.id)
   } else {
@@ -2425,7 +2426,7 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
     ctx.sel.root.set(to.parentId as ID)
     const firstChild = children[0]?.id ?? null
-    if (firstChild) ctx.sel.node.select([firstChild as ID])
+    if (firstChild) ctx.setSelection(nodeSelect(firstChild))
     // km-tui.omnibox-recents: cross-parent zoom-into records the container
     // and its first-child landing row.
     getRecentsStore().touchNode(to.parentId)
@@ -2511,7 +2512,7 @@ function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
     const cardIds = ctx.tree.children(targetColId)
     const firstCardId = cardIds[0]
     if (firstCardId) {
-      ctx.sel.node.select([firstCardId as ID])
+      ctx.setSelection(nodeSelect(firstCardId))
     }
   }
   return ok()
@@ -2539,7 +2540,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   // This is a safety fallback.
   if (ctx.sel.text()) {
     activeEditTargetRef.current?.save()
-    ctx.sel.text.deselect()
+    ctx.setSelection(NO_SELECTION)
     return ok()
   }
 
@@ -2601,7 +2602,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
 
   // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
   if (ctx.cursor !== null && ctx.card !== undefined && (ctx.cursor as string) !== ctx.card.id) {
-    ctx.sel.node.select([ctx.card.id as ID])
+    ctx.setSelection(nodeSelect(ctx.card.id))
     return ok()
   }
 
@@ -2615,7 +2616,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   // Same as clicking empty column space — fully deselect so no card/column
   // is highlighted. Another Escape from this state is a no-op (bell).
   if (ctx.cursor) {
-    ctx.sel.node.select([])
+    ctx.setSelection(NO_SELECTION)
     return ok()
   }
 
@@ -2702,7 +2703,7 @@ function handleHideNode(ctx: OpCtx): OpResult {
     const targetColId = columnIds[colIndex + 1] ?? (colIndex > 0 ? columnIds[colIndex - 1] : undefined)
     if (targetColId) {
       const targetCardIds = ctx.tree.children(targetColId)
-      ctx.sel.node.select([(targetCardIds[0] ?? targetColId) as ID])
+      ctx.setSelection(nodeSelect(targetCardIds[0] ?? targetColId))
     }
   }
 
@@ -2779,7 +2780,7 @@ function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
 
   const label = next ?? "None"
   ctx.toastQueue.info(`Priority: ${label}`)
-  ctx.sel.node.select([ctx.cursor as ID])
+  ctx.setSelection(nodeSelect(ctx.cursor as string))
   return ok()
 }
 
@@ -2902,7 +2903,7 @@ function handleDatePromptConfirm(ctx: OpCtx): OpResult {
 
   popDialogMode()
   ctx.setUI({ datePrompt: null })
-  ctx.sel.node.select([ctx.cursor as ID])
+  ctx.setSelection(nodeSelect(ctx.cursor as string))
   return ok()
 }
 
@@ -3002,7 +3003,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
 
   // Select the last pasted node by ID.
   if (lastPastedId) {
-    ctx.sel.node.select([lastPastedId as ID])
+    ctx.setSelection(nodeSelect(lastPastedId))
   }
 
   return ok()

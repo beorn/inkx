@@ -10,6 +10,7 @@ import { createGridNavigator } from "@km/board"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
 import { createToastQueue } from "@km/core"
 import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
+import { dispatchSelection, nodeSelect } from "../src/state/selection.ts"
 import React from "react"
 import { createTerm } from "@silvery/ag-react"
 import { RepoProvider } from "../src/repo-context.tsx"
@@ -176,7 +177,7 @@ async function profile() {
   function setPaneCursor(cursor: string) {
     const s = store.getState()
     const pane = getActiveBoardPane(s)!
-    pane.sel.node.select([cursor as import("@silvery/selection").ID])
+    dispatchSelection({ sel: pane.sel }, nodeSelect(cursor))
   }
 
   /** Update the active board pane's foldDepths via store.setState */

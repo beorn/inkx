@@ -19,6 +19,7 @@ import {
 import { Tree } from "@km/tree"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { OpCtx } from "../tui-context.ts"
+import { NO_SELECTION } from "../state/selection.ts"
 import { isDetailPaneId } from "./board-types.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { PaneUI } from "../state/ui-reducer.ts"
@@ -81,7 +82,7 @@ export function buildKeybindingContextFromOpCtx(ctx: OpCtx) {
   const isTextEditing = textSel !== null && activeEditTargetRef.current !== null
   if (textSel !== null && activeEditTargetRef.current === null) {
     log.debug?.("Clearing orphaned text selection (no active edit target)")
-    ctx.sel.text.deselect()
+    ctx.setSelection(NO_SELECTION)
   }
 
   return buildKeybindingContext({

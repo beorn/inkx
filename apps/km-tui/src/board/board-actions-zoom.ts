@@ -5,13 +5,13 @@
  */
 
 import type { OpResult } from "@km/commands"
-import type { ID } from "@silvery/selection"
 import { boundary, ok, precondition } from "@km/commands"
 import { KNode, type ItemData } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
+import { nodeSelect } from "../state/selection.ts"
 
 /** Short display name for a node (≤25 chars), suitable for toast messages. */
 function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
@@ -104,7 +104,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
   // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
   const inOutlineMode = ctx.cursor !== null && ctx.card !== undefined && ctx.cursor !== ctx.card.id
   if (inOutlineMode && ctx.card) {
-    ctx.sel.node.select([ctx.card.id as ID])
+    ctx.setSelection(nodeSelect(ctx.card.id))
     clearSelection(ctx)
     return ok()
   }
@@ -149,7 +149,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
       }
 
       dispatchBoard({ type: "ZOOM_IN", nodeId: parentNode.id })
-      if (cursorTarget) ctx.sel.node.select([cursorTarget as ID])
+      if (cursorTarget) ctx.setSelection(nodeSelect(cursorTarget))
       clearSelection(ctx)
       ctx.setUI({ status: { level: "info", message: "Zoomed out" } })
       return ok()
@@ -174,7 +174,7 @@ function navigateToParent(ctx: OpCtx): OpResult {
 
   // If cursor's parent is the root, navigate to board level
   if (cursorNode.parent_id === ctx.rootId) {
-    ctx.sel.node.select([ctx.rootId as ID])
+    ctx.setSelection(nodeSelect(ctx.rootId))
     return ok()
   }
 
@@ -182,7 +182,7 @@ function navigateToParent(ctx: OpCtx): OpResult {
   const parentNode = ctx.repo.getNode(cursorNode.parent_id)
   if (!parentNode) return boundary("up")
 
-  ctx.sel.node.select([parentNode.id as ID])
+  ctx.setSelection(nodeSelect(parentNode.id))
   return ok()
 }
 
@@ -208,7 +208,7 @@ export function handleZoomIn(ctx: OpCtx): OpResult {
 
   dispatchBoard({ type: "ZOOM_IN", nodeId })
   const firstCard = firstCardId(children, ctx.repo)
-  if (firstCard) ctx.sel.node.select([firstCard as ID])
+  if (firstCard) ctx.setSelection(nodeSelect(firstCard))
 
   clearSelection(ctx)
   // km-tui.omnibox-recents: zooming in is a visit of both the zoomed node
@@ -236,7 +236,7 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
 
   dispatchBoard({ type: "ZOOM_IN", nodeId })
   const firstCard = firstCardId(children, ctx.repo)
-  if (firstCard) ctx.sel.node.select([firstCard as ID])
+  if (firstCard) ctx.setSelection(nodeSelect(firstCard))
 
   clearSelection(ctx)
   // km-tui.omnibox-recents: zoom-to-node (symlink-follow, wikilink,
@@ -272,7 +272,7 @@ function zoomToTargetInContext(ctx: OpCtx, targetId: string): OpResult {
     type: "ZOOM_IN",
     nodeId: rootId,
   })
-  ctx.sel.node.select([target.id as ID])
+  ctx.setSelection(nodeSelect(target.id))
 
   clearSelection(ctx)
   ctx.setUI({ status: { level: "info", message: `Followed link: ${shortName(ctx, target.id)}` } })
@@ -372,11 +372,11 @@ export function handleFollowLink(ctx: OpCtx): OpResult {
     type: "ZOOM_IN",
     nodeId: rootId,
   })
-  ctx.sel.node.select([target.id as ID])
+  ctx.setSelection(nodeSelect(target.id))
 
   clearSelection(ctx)
 
-  // Cursor is set to target.id via sel.node.select() above.
+  // Cursor is set to target.id via setSelection(nodeSelect(...)) above.
   // Board.tsx will derive cursorCardNodeId and cursorColumnNodeId from layout.
   // If the target is a sub-item, the cursor will naturally be "in outline mode"
   // because cursor !== cursorCardNodeId.
@@ -408,7 +408,7 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
       const targetChildren = ctx.repo.getChildren(targetNode.id)
       dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id })
       const firstChild = firstCardId(targetChildren, ctx.repo)
-      if (firstChild) ctx.sel.node.select([firstChild as ID])
+      if (firstChild) ctx.setSelection(nodeSelect(firstChild))
 
       clearSelection(ctx)
       ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, targetNode.id)}` } })
@@ -451,7 +451,7 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   // to firstCardId. The user pressed 'i' while looking at a specific
   // card — zooming closer should preserve that focus.
   dispatchBoard({ type: "ZOOM_IN", nodeId: target })
-  ctx.sel.node.select([cursorId as ID])
+  ctx.setSelection(nodeSelect(cursorId))
 
   clearSelection(ctx)
   ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, target)}` } })

@@ -18,6 +18,7 @@ import type { KNode } from "@km/core"
 import { item, createDriverTest } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
+import { dispatchSelection, textCaret } from "../src/state/selection.ts"
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {
@@ -2492,7 +2493,7 @@ describe("Empty card heading: navigation keys must not corrupt data", () => {
     // Manually set an orphaned text selection (simulates a state where
     // the edit field was never mounted — e.g., card scrolled off screen)
     const pane = getActiveBoardPane(store.getState())
-    pane!.sel.text.edit("task1" as any, 0)
+    dispatchSelection({ sel: pane!.sel }, textCaret("task1", 0))
 
     // Now j should still navigate (the orphaned edit state should be cleared)
     board.press("j")

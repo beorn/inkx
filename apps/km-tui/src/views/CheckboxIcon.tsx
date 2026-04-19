@@ -25,6 +25,7 @@ import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import type { StatusIcon } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
+import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
@@ -121,7 +122,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // This mirrors handleTaskStatusCycle (board-actions-edit.ts) which
       // explicitly re-selects after toggling status.
       if (cursor && state) {
-        state.sel.node.select([cursor as import("@silvery/selection").ID])
+        dispatchSelection({ sel: state.sel }, nodeSelect(cursor))
       }
     },
     [nodeId, repo, undoHandle, storeRef],

@@ -6,13 +6,13 @@
  */
 
 import { type OpResult, boundary, ok } from "@km/commands"
-import type { ID } from "@silvery/selection"
 import { getNodeDisplayName } from "@km/tree"
 import type { KNode } from "@km/core"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
+import { NO_SELECTION, nodeSelect } from "../state/selection.ts"
 
 /**
  * Search visible nodes for a query string (case-insensitive substring).
@@ -62,7 +62,7 @@ export function handleLocalFindOpen(ctx: OpCtx): OpResult {
     },
   })
   // Close inline editing
-  ctx.sel.text.deselect()
+  ctx.setSelection(NO_SELECTION)
   clearSelection(ctx)
   return ok()
 }
@@ -75,7 +75,7 @@ export function handleLocalFindNext(ctx: OpCtx): OpResult {
   const nextIndex = (ls.matchIndex + 1) % ls.matchCount
   const nodeId = ls.matchNodeIds[nextIndex]
   if (nodeId) {
-    ctx.sel.node.select([nodeId as ID])
+    ctx.setSelection(nodeSelect(nodeId))
   }
   ctx.setUI({
     localSearch: { ...ls, matchIndex: nextIndex },
@@ -91,7 +91,7 @@ export function handleLocalFindPrev(ctx: OpCtx): OpResult {
   const prevIndex = (ls.matchIndex - 1 + ls.matchCount) % ls.matchCount
   const nodeId = ls.matchNodeIds[prevIndex]
   if (nodeId) {
-    ctx.sel.node.select([nodeId as ID])
+    ctx.setSelection(nodeSelect(nodeId))
   }
   ctx.setUI({
     localSearch: { ...ls, matchIndex: prevIndex },
@@ -110,7 +110,7 @@ export function updateLocalSearchMatches(ctx: OpCtx, query: string): void {
   // Navigate to first match if available
   const matchIndex = 0
   if (matchCount > 0 && matchNodeIds[0]) {
-    ctx.sel.node.select([matchNodeIds[0] as ID])
+    ctx.setSelection(nodeSelect(matchNodeIds[0]))
   }
 
   ctx.setUI({
@@ -146,7 +146,7 @@ export function handleLocalFindConfirm(ctx: OpCtx): OpResult {
 
   // Navigate to first match if the flush surfaced new matches.
   if (matchCount > 0 && matchNodeIds[0]) {
-    ctx.sel.node.select([matchNodeIds[0] as ID])
+    ctx.setSelection(nodeSelect(matchNodeIds[0]))
   }
 
   ctx.setUI({

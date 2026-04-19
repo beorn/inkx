@@ -13,6 +13,7 @@ import type { Repo } from "../repo-context.tsx"
 import { extractBody, split, mergeBackward } from "@km/tree"
 import type { NodeEditState } from "../state/reactive.ts"
 import type { BoardAppStore } from "../state/board-app-store.ts"
+import { dispatchSelection, NO_SELECTION, nodeSelect, textCaret } from "../state/selection.ts"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { InlineEditField } from "./InlineEditField.tsx"
@@ -127,7 +128,7 @@ export function TitleEditor({
       if (newContent === originalContent && !hasMetaUpdates) {
         // Only deselect if we're still editing THIS node — another node's
         // edit may already be in progress (e.g. edit-after-delete).
-        if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
+        if (sel.text()?.nodeId === displayNode.id) dispatchSelection({ sel }, NO_SELECTION)
         return
       }
 
@@ -161,7 +162,7 @@ export function TitleEditor({
             // violation. Re-selecting after the mutation forces normalization
             // against the fresh walkOrder.
             // See bead km-tui.rename-column-cursor-null.
-            sel.node.select([displayNode.id as import("@silvery/selection").ID])
+            dispatchSelection({ sel }, nodeSelect(displayNode.id))
           },
         })
       } else if (newContent !== originalContent) {
@@ -169,7 +170,7 @@ export function TitleEditor({
         undoHandle.setCursor(displayNode.id)
         repoUpdate(displayNode.id, { content: newContent })
         // Same defensive re-anchor as the rename branch above.
-        sel.node.select([displayNode.id as import("@silvery/selection").ID])
+        dispatchSelection({ sel }, nodeSelect(displayNode.id))
       }
 
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
@@ -183,7 +184,7 @@ export function TitleEditor({
 
       // Only deselect if we're still editing THIS node — another node's
       // edit may already be in progress (e.g. edit-after-delete).
-      if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
+      if (sel.text()?.nodeId === displayNode.id) dispatchSelection({ sel }, NO_SELECTION)
     },
     [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],
   )
@@ -191,7 +192,7 @@ export function TitleEditor({
   const handleInlineEditCancel = useCallback(() => {
     // Only deselect if we're still editing THIS node — another node's
     // edit may already be in progress (e.g. edit-after-delete).
-    if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
+    if (sel.text()?.nodeId === displayNode.id) dispatchSelection({ sel }, NO_SELECTION)
   }, [setUI])
 
   // Split at boundary: Enter in title creates a new sibling node
@@ -203,7 +204,7 @@ export function TitleEditor({
         const result = split(repo, displayNode.id, offset)
         undoHandle.endBatch()
         // Focus the new node (text after cursor) in edit mode
-        sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+        dispatchSelection({ sel }, textCaret(result.afterId, 0))
       } catch {
         undoHandle.endBatch()
         // Split failed (e.g., root node) — visual bell
@@ -222,9 +223,9 @@ export function TitleEditor({
       undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
-        sel.text.edit(
-          result.survivorId as import("@silvery/selection").ID,
-          typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
+        dispatchSelection(
+          { sel },
+          textCaret(result.survivorId, typeof result.cursorOffset === "number" ? result.cursorOffset : 0),
         )
       }
     } catch {
@@ -326,7 +327,7 @@ export function BodyBlockEditor({
   const handleInlineEditCancel = useCallback(() => {
     // Only deselect if we're still editing THIS node — another node's
     // edit may already be in progress (e.g. edit-after-delete).
-    if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
+    if (sel.text()?.nodeId === displayNode.id) dispatchSelection({ sel }, NO_SELECTION)
   }, [setUI])
 
   // Cap visible body children to prevent cards with hundreds of items from
@@ -363,7 +364,7 @@ export function BodyBlockEditor({
                 onConfirm={(v) => {
                   handleBlockSave(child.id, v)
                   // Only deselect if we're still editing THIS node
-                  if (sel.text()?.nodeId === displayNode.id) sel.text.deselect()
+                  if (sel.text()?.nodeId === displayNode.id) dispatchSelection({ sel }, NO_SELECTION)
                 }}
                 onCancel={handleInlineEditCancel}
                 onSave={(v) => handleBlockSave(child.id, v)}
@@ -375,7 +376,7 @@ export function BodyBlockEditor({
                     undoHandle.startBatch("Split block")
                     const result = split(repo, child.id, offset)
                     undoHandle.endBatch()
-                    sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+                    dispatchSelection({ sel }, textCaret(result.afterId, 0))
                   } catch {
                     undoHandle.endBatch()
                     setUI({ bellState: "split-failed" })
@@ -388,9 +389,12 @@ export function BodyBlockEditor({
                     const result = mergeBackward(repo, child.id)
                     undoHandle.endBatch()
                     if (result) {
-                      sel.text.edit(
-                        result.survivorId as import("@silvery/selection").ID,
-                        typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
+                      dispatchSelection(
+                        { sel },
+                        textCaret(
+                          result.survivorId,
+                          typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
+                        ),
                       )
                     }
                   } catch {

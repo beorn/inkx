@@ -16,6 +16,7 @@ import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { extractTags } from "../src/views/search-utils.ts"
 import { item } from "./helpers/board-test.ts"
+import { dispatchSelection, nodeSelect } from "../src/state/selection.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
@@ -83,7 +84,7 @@ function zoomAndFlush(store: StoreApi<BoardAppStore>, nodeId: string, cursor?: s
   act(() => {
     const s = store.getState()
     s.dispatchBoard({ type: "ZOOM_IN", nodeId })
-    if (cursor) s.sel.node.select([cursor as import("@silvery/selection").ID])
+    if (cursor) dispatchSelection({ sel: s.sel }, nodeSelect(cursor))
     store.setState((ss) => ss)
   })
 }
