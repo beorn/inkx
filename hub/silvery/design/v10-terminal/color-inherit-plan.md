@@ -1,6 +1,6 @@
 # color="inherit" / "currentColor" — cascade primitive
 
-Implementation plan for bead `km-silvery.color-inherit` (P6 from theme-system-v2-plan).
+Implementation plan for bead `km-silvery.color-inherit`. Parent doc: [design-system.md](design-system.md).
 
 ## Goal
 

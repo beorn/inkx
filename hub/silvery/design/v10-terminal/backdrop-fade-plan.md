@@ -2,7 +2,7 @@
 
 Bead: `km-silvery.backdrop-fade`
 Parent: `km-silvery.design-system`
-Spec: [terminal-color-strategy.md §Backdrop fade](./terminal-color-strategy.md)
+Parent: [design-system.md](design-system.md) (Phase 6).
 
 ## Principle
 

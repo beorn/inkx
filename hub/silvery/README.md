@@ -38,7 +38,7 @@ Subsystem designs, organized by horizon.
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | [design/v10-terminal/architecture.md](design/v10-terminal/architecture.md)   | Full stack reference — three projections, layers, interaction architecture |
 | [design/v10-terminal/composability.md](design/v10-terminal/composability.md) | Framework x platform matrix, adapters                                      |
-| [design/v10-terminal/terminal-color-strategy.md](design/v10-terminal/terminal-color-strategy.md) | 22-slot color schemes, `deriveTheme()`, capability tiers, detection & fingerprinting |
+| [design/v10-terminal/design-system.md](design/v10-terminal/design-system.md) | Canonical design system — tokens, schemes, derivation, theming API, package layout, phased delivery |
 
 ### v1.5 — App Architecture (tea)
 
