@@ -1,376 +1,425 @@
-# tribe-minimal — journal + fanout, everything else derived
+# tribe-minimal — canonical write protocol + journal authority
 
-**Status**: Design spike (2026-04-19). Internal / WIP. Not implementation-ready until reviewed.
-**Bead**: [km-tribe.minimal-protocol](https://github.com/beorn/km/.beads/)
-**Supersedes (if adopted)**: km-tribe.stable-identity, km-tribe.daemon-authority, km-tribe.scope-model, km-tribe.role-register-cleanup, km-tribe.plugin-boundary-tightening, km-tribe.polish-v2
-**Complements**: km-tribe.delivery-correctness (already fixed), km-tribe.testing (still needed)
+**Status**: Design spec, revised 2026-04-19 after GPT 5.4 Pro deep review. Internal / WIP.
+**Bead**: km-tribe.minimal-protocol
+**Dissolves (partially, after execution)**: km-tribe.daemon-authority, km-tribe.role-register-cleanup, km-tribe.plugin-boundary-tightening, km-tribe.polish-v2
+**Complements**: km-tribe.delivery-correctness (shipped), km-tribe.stable-identity (now subsumed here), km-tribe.testing (still needed)
+**Separate RFC (not this spec)**: km-tribe.scope-model — multi-scope / machine-global daemon is its own decision.
 
-## The problem
+## What changed from the v1 spec
 
-The daemon is currently five things:
+v1 (2026-04-19 morning) proposed "three wire forms, zero others" + lore extraction + per-machine multi-scope bundled as one change. Pro review landed two independent critiques that converged on the same findings:
 
-1. A message bus (write → fanout).
-2. A session registry (sessions table, names, roles, identity tokens).
-3. A plugin host (loadPlugins with TribePluginApi in-process surface).
-4. A memory service (lore handlers absorbed in Phase 5 — summaries, focus cache).
-5. A liveness monitor (clients Map, chief derivation, auto-rename on disconnect).
+- **Stable id was overloaded.** v1 derived `id = sha256(claudeSessionId || pid || role || project)[:16]` and tried to make the id alone carry all continuity semantics across restarts. But this system is **ad-hoc team coordination, not a distributed-systems protocol** — users refer to each other by name, not hex strings. v2 uses a simpler id formula (no `pid`, no `role`) and lets **names** carry user-facing continuity ("alice is still alice after a restart"); the id is a backend token only, and adoption-by-name swaps it transparently when a participant rejoins.
+- **Read-side bootstrap was missing.** Deleting `members`/`history`/`chief`/`retro` without a replacement snapshot/query RPC pushes N client reimplementations and breaks cold-start readers.
+- **Lore is not a mere observer.** It has synchronous query RPCs (`tribe.ask`, `tribe.brief`). Extracting it to a summary-post-only peer = product regression.
+- **Implicit SQLite `rowid` is not a durable cursor.** Rows can change rowid under `VACUUM`. Durable sequence needs explicit `seq INTEGER PRIMARY KEY`.
+- **Crash-recovery liveness gap.** Pure journal projection of "who's live" is wrong after `SIGKILL` leaves ghost `join` events.
+- **Plugin process explosion.** N peer processes on day one was over-ambitious. ONE observer host first, split only where failure isolation demands it.
+- **Cross-scope infected everything** — cursors, dedup, chief projection, retention, plugin lifecycle. Separate RFC.
 
-Each added responsibility creates a consistency surface with the others. Every
-open pro-review finding is a variant of "the five responsibilities disagree":
+The revision keeps the core insight — **journal is authority, daemon is thinner, plugins are out-of-process** — and removes the overreach.
 
-| Pro finding | Inconsistency it exposes |
-|-------------|--------------------------|
-| duplicate register vs tribe.join | bus doesn't know session exists until RPC; registry seeds it early via socket hello |
-| role-name prefix magic | registry encodes role in the `role` column AND by name prefix (`watch-*`) |
-| chief is a mutable claim on a derived view | registry holds `chiefClaim`; derivation reads clients map |
-| plugin-boundary leaks | plugin host reaches into registry + bus internals |
-| scope model unclear | is the daemon per-project or per-user? Both, partially. |
-| stable identity awkward | tribe.send by name; identity_token is in registry; name can change mid-session |
+## The reframe, restated
 
-These aren't independent bugs. They're symptoms of the daemon owning too much
-mutable state that the bus would model more simply as messages.
+**The daemon is a journal writer + fanout multiplexer + small read/admin surface. Sessions, chief, and coordination state are reducer-backed materialized views over the journal, not in-memory mutable state. Plugins live in a separate observer host process. Lore stays in-process behind a narrow query bridge until its extraction gets a dedicated RFC.**
 
-## The reframe
+This is still a significant simplification:
+- `register` vs `tribe.join` collapses to one `hello` lifecycle.
+- `tribe.send` vs `tribe.broadcast` collapses to one `post` write.
+- The `chiefClaim` mutable global becomes a reducer over join/leave/claim events.
+- Role/name-prefix magic disappears.
+- Plugins sit behind a real process boundary, not a TS interface.
 
-**The daemon is a journal + fanout multiplexer. Everything else is a
-projection of the journal or a peer participant.**
+But it keeps:
+- A small read/admin surface (`members`, `chief`, `history`, `state`, `dedup.claim`) so clients don't reimplement projections.
+- Daemon as the sole writer to SQLite (WAL single-writer model).
+- Per-project daemon (no scope sprawl).
+- Lore's current synchronous query surface.
 
-- **The wire is the API.** `hello` and `post` are the only two write verbs a
-  participant ever sends. `channel` is the only notification verb the daemon
-  ever pushes. No more register RPC vs tribe.join duplication, no more
-  in-process plugin API distinct from the wire.
-- **The journal is the only source of truth.** Sessions, roles, membership,
-  chief, lore summaries, retro lessons — all either live as messages
-  (kind='post'), as typed journal events (kind='event'), or are derived on
-  demand from the journal.
-- **Plugins are sessions.** The git/beads/github/health observers connect
-  over the socket exactly like a Claude Code session does. No in-process
-  plugin host, no `TribePluginApi`.
-- **lore is a peer.** The Phase 5 merge was a tactical consolidation —
-  the memory service re-emerges as a session that subscribes to posts and
-  writes summaries back. Unmerging for principle is clean, not a rollback.
+## The wire
 
-## The minimal protocol
+JSON-RPC over Unix socket (unchanged transport).
 
-Every participant — Claude Code session, git observer, beads observer, lore,
-watch dashboard — opens the same Unix socket and exchanges the same three
-message kinds.
+### Methods a participant may call
 
-### `hello` — join the tribe
+| Method | Purpose | Reply |
+|--------|---------|-------|
+| `hello` | Join the tribe; single-shot per connection | snapshot + replay-base + daemon epoch |
+| `post` | Append to the journal; daemon fans out to subscribers | `{id, seq, ts}` |
+| `members` | Snapshot current participants | array of `{id, name, claims, joined_at_seq}` |
+| `chief` | Current chief id (derived) | `{id, name}` or `null` |
+| `history` | Read back journal slice with filters | paged `{rows, next_seq}` |
+| `state.get` / `state.set` | Typed coordination KV (replaces `coordination` table's current RPC usage) | value / ack |
+| `dedup.claim` | Atomic first-wins claim | `{claimed: bool}` |
+| `retro` / `debug` / `health` / `reload` | Admin surface preserved | typed results |
+| `lore.*` | Lore's existing query surface — untouched in this RFC | typed results |
 
-```jsonc
-// participant → daemon, sent as the first frame on every connection
-{
-  "kind": "hello",
-  "id": "<sha256-hex-truncated-to-16>",   // stable identity (see below)
-  "name": "alice",                         // display name, metadata only
-  "pid": 12345,
-  "cwd": "/Users/beorn/Code/pim/km",
-  "claims": ["watch"]                      // optional — see "claims" below
-}
-```
+### Notifications the daemon pushes
 
-- `id` is derived by the participant from stable inputs it owns
-  (`sha256(claudeSessionId || pid || role || project)[:16]`). Not negotiated —
-  the participant asserts it.
-- The daemon records the hello as a journal row (kind='event', type='join')
-  and remembers `id → socket` in memory for fanout routing.
-- Reconnect: same `id`, same `name`. The daemon replays anything past the
-  recorded `last_delivered_seq` for this `id`.
-- If `id` clashes with a currently-connected `id`, the daemon closes the
-  new socket with an error notification. (One connection per `id` at a time.)
+- `channel` — one notification per delivered journal row for this participant. Shape below.
 
-### `post` — write to the journal
+### `hello` — join
 
 ```jsonc
 // participant → daemon
 {
-  "kind": "post",
-  "to": "*" | "bob" | "bob,charlie",       // recipient set
-  "type": "notify" | "bead.claim" | ...,   // participant-chosen type
-  "content": "hello everyone",
-  "bead_id": "km-tribe.foo",               // optional
-  "ref": "<message-id>"                    // optional reply-to
-}
-```
-
-- The daemon assigns the message a monotonic rowid and `ts`, writes it to
-  the journal synchronously, and fans out to every connected participant
-  matching `to`.
-- There is no `send` vs `broadcast` distinction — it's all `post`, differing
-  only in `to`. `to: "*"` is a broadcast.
-- Events (`kind='event'` on the journal) are posted only by the daemon in
-  response to lifecycle transitions (`join`, `leave`, `chief.changed`). The
-  wire never lets a participant post events directly.
-
-### `channel` — receive from the journal
-
-```jsonc
-// daemon → participant (async notification)
-{
-  "method": "channel",
+  "method": "hello",
   "params": {
-    "id": "<message-uuid>",
-    "from": "bob",
-    "to": "*",
-    "type": "notify",
-    "kind": "post",
-    "content": "hello everyone",
-    "bead_id": null,
-    "ref": null,
-    "rowid": 12345,
-    "ts": 1713489000000
+    "id": "<16-hex>",                    // per-connection id, see "identity" below
+    "name": "tribe-refactor",            // the primary handle — pick well, see "identity"
+    "claims": ["watch"],                  // optional capability claims (addressable as @watch)
+    "protocolVersion": 5,
+    "lastSeenSeq": 12340                  // optional: resume from here
   }
 }
 ```
 
-- Same shape for replay (on reconnect, after hello) and live fanout.
-- The daemon advances `last_delivered_seq` for the participant's `id`
-  immediately after the write succeeds, exactly as the event-bus already
-  does today.
+Daemon response:
 
-That's it. Three wire forms.
+```jsonc
+{
+  "result": {
+    "accepted": true,
+    "id": "<echo>",
+    "name": "<accepted-name>",            // daemon may suffix -2 on collision; see naming
+    "nameWarnings": [ "another tribe-refactor exists; consider renaming" ],
+    "namingNorms": "kebab-case; 2-4 tokens; describe your focus, not your identity",
+    "adopted": true | false,              // true if this hello resumed a prior session by name
+    "daemonEpoch": "<epoch-id>",          // changes every daemon boot
+    "replayBaseSeq": 12340,               // the seq AFTER which replay begins
+    "currentSeq": 12503,                  // journal tip at hello time
+    "chief": { "id": "<id>", "name": "..." } | null,
+    "members": [ /* {id, name, claims, joined_at_seq} */ ]
+  }
+}
+```
 
-## How each current feature maps
+On rejected names (too generic, e.g. `member-12345`, `agent`, `session-abc`), daemon
+responds with `{accepted: false, error: "name-too-generic", nameWarnings: [...], namingNorms: "..."}`
+and the agent retries with a better name.
 
-### Session registry → journal projection
+The `replayBaseSeq..currentSeq` range tells the participant exactly what they're about to receive via `channel` before the connection is "live." After delivering up to `currentSeq`, the daemon emits a `channel.sync` notification so the client can distinguish "replaying history" from "now live."
 
-Today: `sessions` table with id, name, role, pid, cwd, identity_token,
-claude_session_id, last_delivered_ts/seq, updated_at.
+### `post` — write
 
-Minimal: `sessions` table becomes two things:
-1. **Delivery cursor** — `(id, last_delivered_seq)`. Still a table, because
-   we need durable delivery tracking. This is the minimum residual registry.
-2. **Identity snapshot from the last hello** — derived view over the journal:
-   `SELECT id, name, pid, cwd FROM (SELECT * FROM journal WHERE type='event.join' ORDER BY rowid DESC) GROUP BY id`.
+```jsonc
+// participant → daemon
+{
+  "method": "post",
+  "params": {
+    "to": "alice" | "@chief" | "*" | ["alice", "bob"],
+    "type": "notify" | "bead.claim" | ...,
+    "content": "hello",
+    "bead_id": "km-tribe.foo",            // optional
+    "ref": "<message-id>"                 // optional
+  }
+}
+```
 
-No role column. No identity_token column (the `id` IS the token). No
-updated_at (take the journal's rowid instead).
+**Addressing is user-friendly first, id-based as backend detail.** This is team
+coordination, not a distributed-systems protocol — people and agents address each
+other by handle and role, the way you would in Slack or on IRC. The `to` field
+accepts:
 
-### `tribe.join` / rename / role change → posts
+- **`"alice"`** — by name. The primary form. Names are unique per tribe.
+- **`"@chief"`** — by role. Resolved at write time via the chief projection.
+  Other reserved role-addresses: `"@observers"`, `"@watchers"`. Any role/claim
+  a participant asserts in `hello` becomes addressable as `@role-name`.
+- **`"*"`** — broadcast.
+- **`["alice", "bob"]`** — multi-recipient; expands to one row per recipient.
 
-Today: three separate RPCs that UPDATE the sessions row.
+The daemon resolves the `to` field at write time and stores both the resolved
+`to_id` AND the `to_name` snapshot on each journal row. If alice later renames
+herself to `alice2`, historical rows still show `to_name="alice"` — conversation
+context survives rename. If there's no participant currently holding a given
+name or role, the post is rejected with a typed error (the sender learns
+immediately; no silent drop to a void).
 
-Minimal: `post` with `type="session.rename"` / `type="session.role"`. The
-journal records the fact; any derived view that cares replays from the
-journal. Rename history becomes free (it's in the log).
+Directs write one row per recipient (not a comma-joined string) so replay,
+unread counts, and per-recipient filtering stay well-indexed.
 
-### Chief → pure projection
+Daemon reply: `{ "id": "<uuid>", "seq": 12504, "ts": 1713489000000,
+"resolved": [{ "to": "alice", "to_id": "<id>" }, ...] }`.
 
-Today: `chiefClaim` global + `deriveChiefId` over clients map.
+### `channel` — receive
 
-Minimal: `chief(at=rowid)` is a pure function over the journal:
-- Eligible participants are those with a `session.join` event not followed
-  by `session.leave`.
-- Chief is the longest-connected eligible participant (lowest join rowid),
-  unless a `session.chief.claim` is the most recent, in which case that
-  participant is chief until their `leave` or `session.chief.release`.
+```jsonc
+// daemon → participant
+{
+  "method": "channel",
+  "params": {
+    "id": "<message-uuid>",
+    "seq": 12504,
+    "from_id": "<stable-id>",
+    "from_name": "bob",                   // display snapshot at write time
+    "to_id": "<id>" | "*",
+    "type": "notify",
+    "kind": "post" | "event",
+    "content": "hello",
+    "bead_id": null,
+    "ref": null,
+    "ts": 1713489000000,
+    "phase": "replay" | "live"
+  }
+}
+```
 
-No `chiefClaim` variable. No ad-hoc `claimChief` RPC — it's just a post.
-Consumers that want live chief status subscribe (they already see every
-post) and run the projection locally.
+`channel.sync` notification (no params) signals the transition from `phase="replay"` to `phase="live"`.
 
-### Plugins → peer sessions
+## Identity — name-first, role-aware, id as backend
 
-Today: `loadPlugins(tribeClientApi)` — in-process, shares the daemon's event
-loop, gets a narrowed-but-still-in-process API.
+**This is ad-hoc team coordination, not a distributed-systems protocol.** The design prioritises how humans and agents actually refer to each other — by name and by role — over theoretical stable-id purity. Think Slack/IRC, not Raft.
 
-Minimal: each plugin is a separate process that opens a socket, sends
-`hello` with `id = sha256("plugin:<name>:<pid>")`, subscribes to whatever
-it cares about by filtering `channel` notifications, and writes back via
-`post`. The daemon ships a `tribe plug <name>` launcher that starts plugin
-processes at daemon start.
+Three layers, in order of importance to users:
 
-**Benefits**:
-- Plugin boundary is not a TypeScript interface but a Unix socket — truly
-  narrow, externally testable, cross-language viable.
-- A crashing plugin can't take down the daemon.
-- `TRIBE_NO_PLUGINS=1` is no longer a special code path — it just means
-  "don't spawn the plugin launchers."
-- Third-party plugins (any language, any process model) become possible.
+### 1. Name — the primary handle
 
-**Costs**:
-- Process overhead per plugin (~30 MB RSS, ~10 ms startup for bun).
-- More moving parts to supervise. (Daemon restarts its children on crash;
-  children reconnect on daemon restart.)
+**Names are the handle everyone uses to address each other.** They are unique per tribe at any point in time (the daemon enforces uniqueness on `hello` and rename). They are meaningful, not auto-generated.
 
-### lore (memory) → peer participant
+**Getting a good name is first-class work for agents.** Today too many participants end up as `member-12345` because nothing pushes them to do better; that's the failure mode this spec fixes. An agent joining a tribe should:
 
-Today: `lore-handlers.ts` absorbed into the daemon; handlers share DB, ctx,
-and the fanout hook.
+- Pick a name that reflects its actual focus, not its PID. Examples: `tribe-refactor`, `km-tui-perf`, `docs-cleanup`, `cvss-sweep`, `chief`.
+- Derive the name from real signals: the bead it's claiming, the package it's working in, its sub-agent's task description, the user's stated goal for the session.
+- Rename itself as focus shifts — "I started as `general` but I'm now really doing the tribe refactor" → `post type="session.rename" to="@self" name="tribe-refactor"`.
+- Treat rename as cheap and normal, not a special event.
 
-Minimal: lore runs as a peer process (same launcher mechanism as plugins)
-with `id = sha256("peer:lore")`. It subscribes to `channel` to harvest
-posts, runs its summarizer, writes summaries back as posts with
-`type="lore.summary"`. The summaries go into the journal like every
-other post.
+**The daemon enforces name quality.** `hello` rejects obviously low-effort names:
 
-Participants that want lore don't call a `lore.*` RPC — they subscribe
-to `type="lore.summary"` posts, or query the journal directly.
+- `member-\d+`, `session-\d+`, `bun-\d+`, `agent` (generic), any name ending in a long number suffix, empty/whitespace-only names.
+- On reject, the daemon returns the list of current names in the tribe + a short guidance message so the agent can retry with something better.
+- On collision with a living session, the daemon suffixes (`alice` → `alice-2`) but also emits a warning in the `hello` response: "another alice exists; consider renaming."
 
-### Retro → pure function over the journal
+**The daemon publishes naming norms** in its project-scoped config (e.g. "use kebab-case; 2-4 tokens; describe focus, not identity"). Agents see these in `hello` response and can steer accordingly.
 
-Today: `retro.ts` writes to its own `retros` table; handlers compose
-lessons from it + sessions + messages.
+### 2. Role / claims — addressable capability
 
-Minimal: retro is a read-only projection. `tribe-cli retro` runs a SQL
-query over the journal's `type='event.*'` + post stream between two
-timestamps, classifies, and prints. No `retros` table. No
-`handleRetro` RPC.
+**Roles are addressable too.** `post to="@chief"` routes to whoever currently holds the chief role, resolved at write time. Claims declared in `hello` (`["watch"]`, `["observer"]`, custom roles) all become addressable as `@role-name`.
 
-### Watch TUI → subscriber
+Reserved roles: `chief`, `observer`, `watcher`. Any participant can claim any non-reserved role in `hello`; claiming a reserved role goes via the normal post-based handoff flow (`chief.claim` / `chief.release`).
 
-Today: watch is a special session (name prefix `watch-*`, role="watch"
-bypasses fanout filtering).
+### 3. id — backend continuity token
 
-Minimal: watch sends `hello` with `claims: ["watch"]`. The daemon's
-fanout rule becomes `post.to matches recipient's id OR recipient claimed
-"watch"`. No more name-prefix or role-column dual encoding.
+**The id is for the daemon's bookkeeping, not the user's mental model.** Users never see ids; they see names. But the daemon needs a stable per-session token because:
 
-Alternative: watch clients self-filter — they see every post already if
-they subscribe to broadcasts. The "watch wants to see directs too" case
-is solved by a hello claim, not a role column.
+- The delivery cursor needs to survive rename (alice renames to alice2; her cursor position shouldn't reset).
+- Historical journal rows record `from_id` + `from_name` snapshots so a replayed conversation still shows who said what, even after renames.
+- Observers/watchers need to track who is who across name changes.
 
-### Scope (per-project vs per-user) → journal-per-scope
+**Id generation rule:**
 
-Today: one daemon, one socket, one DB. The project_id column on sessions
-and the coordination table hint at multi-project but nothing enforces it.
+```
+id = sha256(project_realpath + "\0" + claude_session_id)[:16]
+```
 
-Minimal: one daemon per machine (not per project). It hosts N journals,
-one per *scope*. A scope is just a filesystem path — most commonly the
-project root. Participants in their `hello` include `scope: "/path/to/proj"`
-and the daemon routes them onto that scope's journal.
+If no `claude_session_id` is available (plugin peers, CLI ad-hoc invocations), the participant generates a random UUID per connection. The daemon never mints ids — participants assert them in `hello`.
 
-A single daemon serving multiple projects is cheaper to run (no per-project
-socket race), cleaner to reason about (scope is in the hello, not the db
-name), and makes cross-project signals expressible (post to scope="*"
-reaches every scope's subscribers). This resolves km-tribe.scope-model
-cleanly.
+**The id formula deliberately does NOT try to span Claude Code restarts.** That's what **names** are for. If alice restarts Claude Code and rejoins with name `alice`, the daemon recognises her by name:
 
-## What survives, what dissolves
+1. Is there a `_proj_participants` row with name=alice whose session's socket is currently dead (no live connection)?
+2. If yes, adopt: transfer her `last_delivered_seq` from the dead session to the new id; mark the old session as `left` in projections; welcome her back with her prior cursor intact.
+3. If no (alice is a brand-new name), seed a fresh cursor at `currentSeq`.
 
-### Survives (still needed)
+This is how humans think about it: "alice is still alice, even though her Claude Code process is new." The backend bookkeeping handles the id swap transparently.
 
-- **The `_schema_meta` versioned migrations** — structural.
-- **The `sessions(id, last_delivered_seq)` table** — durable delivery tracking.
-- **The `messages` journal** (renamed `journal`) — with `id, rowid, kind,
-  from_id, to, type, content, bead_id, ref, ts`. Drop `sender` text column;
-  use `from_id`.
-- **The `dedup(key, id, ts)` table** — atomic claim mechanism for plugins.
-  (Could fold into journal with a dedup-post type, but the perf wins of the
-  current table are worth keeping it.)
-- **The event-bus `onMessageInserted` → socket.write fanout hook** — the
-  delivery mechanism is already right.
-- **km-tribe.delivery-correctness fixes** (a12dc91, afb35e7) — the replay
-  pagination and no-DELETE-on-disconnect semantics are correct under this
-  reframe too.
+### Why this is not the v1 formula
 
-### Dissolves (removed or absorbed)
+v1 tried to make the id alone carry all continuity semantics — `sha256(claude_session_id || pid || role || project)`. Pro correctly pointed out that `pid` + `role` are not stable; including them churns ids for no benefit.
 
-- `role` column on sessions → carried in post type or derived from journal.
-- `identity_token` column → the `id` IS the token.
-- `claude_session_id` / `claude_session_name` columns → metadata in the
-  hello event, not a column.
-- `updated_at` → take `MAX(rowid) WHERE from_id = ?` from the journal.
-- `coordination` table → posts with `type="coord.set"` and a projection.
-- `retros` table → journal projection.
-- `plugins.ts` / `plugin-loader.ts` / `plugin-api.ts` (TribePluginApi,
-  TribeClientApi) → replaced by the peer-launcher.
-- `lore-handlers.ts` (absorbed in Phase 5) → re-extracted as a peer.
-- `handleJoin`, `handleRename`, `handleChief`, `handleClaimChief`,
-  `handleReleaseChief`, `handleRetro`, `handleHistory`, `handleDebug` RPCs
-  → either become posts or are deleted (projections done client-side).
-- register handler → replaced by `hello` processing.
-- chief-related globals (`chiefClaim`) → pure projection function.
-- clients Map (partially) → still needed for socket lookup by `id`, but
-  not for role, name, or session metadata.
+v2 separates concerns: **name carries user-facing continuity** (alice stays alice); **id carries within-session technical continuity** (survives rename, drives cursor). Neither has to do the other's job. That's what makes the model simple enough for humans and precise enough for the journal.
 
-### Open questions (for /pro)
+## Materialized projections (cached views)
 
-1. **Durability of projections.** If retro, chief, membership are all pure
-   functions over the journal, we pay their cost on every query. At current
-   volume (<10k msgs/day), cost is negligible. But some projections
-   (membership) are read O(N) per query. Acceptable? Or do we need cached
-   views with invalidation?
+The journal is the truth. The daemon maintains cheap-to-read, rebuildable-from-journal tables:
 
-2. **Plugin process isolation cost.** 5 plugins × ~30 MB = 150 MB RSS
-   overhead per machine. Acceptable tradeoff for boundary cleanliness?
+```sql
+CREATE TABLE _proj_participants (
+  id           TEXT PRIMARY KEY,
+  name         TEXT NOT NULL,
+  claims       TEXT NOT NULL DEFAULT '[]',
+  joined_seq   INTEGER NOT NULL,
+  left_seq     INTEGER              -- null means currently joined
+);
 
-3. **History vs journal trimming.** With retention at 7 days, projections
-   over the journal lose long-tail context (retros from 2 weeks ago). Do
-   we need a "projection snapshot" concept, or is history search
-   sufficient?
+CREATE TABLE _proj_chief (
+  singleton    INTEGER PRIMARY KEY CHECK (singleton = 0),
+  id           TEXT,                -- current chief id, nullable
+  derived_seq  INTEGER NOT NULL      -- last journal seq reflected
+);
 
-4. **`hello` collision policy.** Two sessions claiming the same `id` —
-   daemon drops the new socket. But what if the first socket is actually
-   dead (no TCP keepalive yet fired)? Hello timeouts + stale-socket
-   detection? (Or: include a nonce in the hello so the newest wins.)
+CREATE TABLE _proj_state (
+  project_id   TEXT NOT NULL,
+  key          TEXT NOT NULL,
+  value        TEXT,
+  set_by_id    TEXT,
+  set_at_seq   INTEGER NOT NULL,
+  PRIMARY KEY (project_id, key)
+);
 
-5. **Cross-scope posts.** The per-scope journal model means a post with
-   `scope="*"` needs to hit every journal. Writes fan out to each — cheap
-   for small N, expensive later. Defer until we have a use case?
+CREATE TABLE _proj_meta (
+  last_applied_seq INTEGER NOT NULL
+);
+```
 
-6. **Migration path.** A phased migration is cheaper than a rewrite. Can
-   we keep the current socket wire compatible while moving to the new
-   schema underneath? Likely yes: register → treat as hello, existing
-   session rows backfill from hello events, observability plugins get
-   migrated one at a time.
+On every `post` that advances join/leave/claim/release/state semantics, the daemon updates both the journal row and the matching projection atomically in the same transaction. On daemon boot, the projections rebuild from the journal starting at `_proj_meta.last_applied_seq` (typically zero on first boot, journal tip on clean restart).
 
-## Acceptance criteria
+**Why cached, not pure-recompute**: pro reviews argued — correctly — that pushing projection cost into every client call would regress performance and make cold-start clients reimplement the reducer logic N times. Keeping the projections in the daemon preserves the simple `members`/`chief` RPCs and makes them cheap.
 
-The reframe is done when:
+**Why still "journal is authority"**: any projection can be dropped and rebuilt from the journal. Corruption in a projection table is a routine recovery (DELETE + replay); corruption in the journal is a real outage.
 
-- [ ] Three wire forms (hello, post, channel) — zero others.
-- [ ] `role` column gone from sessions.
-- [ ] `identity_token` column gone from sessions (id is the token).
-- [ ] `coordination` table gone, replaced by journal projection.
-- [ ] `retros` table gone.
-- [ ] `handleJoin`, `handleRename`, `handleChief`, `handleClaimChief`,
-      `handleReleaseChief`, `handleRetro`, `handleHistory`, `handleDebug` —
-      all gone. Only the register-now-hello entry point remains.
-- [ ] `tools/lib/tribe/plugins.ts`, `plugin-loader.ts`, `plugin-api.ts` — gone.
-      Plugins are spawned via a separate launcher.
-- [ ] lore handlers in `lore-handlers.ts` — extracted to a peer process.
-- [ ] watch role encoded as `claims: ["watch"]` in hello, not as a name prefix.
-- [ ] Existing test suites pass: `tribe-self-heal.slow.test.ts`,
-      `tribe-durability.slow.test.ts`, `tribe-session-identity.slow.test.ts`,
-      `tribe-unified-daemon.slow.test.ts`, `tribe-plugin-boundary.test.ts`,
-      `tribe-role-typing.test.ts` (adapted to the new shape), `derive-chief.test.ts`.
-- [ ] One new test: `tribe-hello-protocol.slow.test.ts` — end-to-end of
-      the three-verb wire against a fresh daemon.
+## Durable sequence: explicit `seq`
 
-## Migration sketch (if adopted)
+SQLite's `rowid` is not a durable cursor — it can change under `VACUUM`. The `messages` table (keep the name; the rename is cosmetic and not worth migration risk) gets a new column:
 
-Phase A (in place — no breakage):
-- Add `hello` as an alias for register; keep register working. Accept
-  participant-generated `id` from hello.
-- Add `post` as an alias for tribe.send/tribe.broadcast; keep the old
-  RPCs working.
-- Extract lore back to a peer process; start it via a launcher.
+```sql
+ALTER TABLE messages ADD COLUMN seq INTEGER;
+CREATE UNIQUE INDEX idx_messages_seq ON messages(seq);
+-- Backfill: seq = rowid for existing rows.
+-- Future inserts: explicit max(seq)+1 under the single-writer lock.
+```
 
-Phase B (drop the old RPCs):
-- Delete `handleJoin`, `handleRename`, role-change RPCs; switch internal
-  callers to posts.
-- Migrate plugins to peer-launcher. Delete in-process plugin host.
-- Drop the `role` column (migration v10).
+`sessions.last_delivered_seq` now references the explicit `seq`, not rowid. Migration v10 in `database.ts` handles the backfill and switches the replay query to use `seq` instead of `rowid`.
 
-Phase C (polish):
-- Drop `coordination`, `retros` tables (migration v11).
-- Rename `messages` → `journal`.
-- Add cross-scope routing if a use case appears.
+## Plugins — observer host process
 
-Estimated: 3-5 days. Phase A is 1 day and unblocks phase B; phase B is
-the bulk of the work (2-3 days) and is worktree-isolated; phase C is
-cleanup (half a day).
+Plugins today share the daemon's event loop via `TribePluginApi`. New model:
+
+1. Daemon spawns ONE observer-host process (`bun tools/tribe-observer.ts`) at boot.
+2. Observer host connects to the daemon over the socket with `id = sha256("observer-host" + project_realpath)` and `claims: ["observer"]`.
+3. Each built-in observer (git / beads / github / health / accountly) runs inside the host process, subscribing to the daemon's channel and `post`ing back.
+4. Observer host exposes the existing plugin helpers (`dedup.claim`, `hasRecentMessage`, roster snapshot) via the daemon's read RPCs — no new in-process API surface leaks.
+
+**Why one host, not N**: pro noted that 5 separate bun processes × ~30 MB is a real cost, and launching N processes on day one multiplies operational complexity. One host gets the boundary win (daemon isolated from plugin crashes via observer-host restarts) without paying for process-per-plugin up front. If one plugin starts needing true failure isolation, it can be split out in a follow-up.
+
+The `claims: ["observer"]` marker also tells the daemon "don't count this session toward `autoQuit` liveness" — so a daemon with only the observer host connected still auto-idles correctly.
+
+## Lore — unchanged in this RFC
+
+Pro pushed back hard on extracting lore in Phase 1: its sync-query surface (`tribe.ask`, `tribe.brief`) is real product behavior, and extracting it to summary-posts-only would be a regression.
+
+Decision: **lore stays in-process behind its existing handler surface.** Its sync RPCs are kept as-is. The summarizer's *writes* into lore can flow through `post type="lore.summary"` once the wire is ready, but the *reads* (sync query) stay callable directly.
+
+Lore extraction gets its own follow-up RFC if/when the cost of in-process coupling outweighs the convenience. That's not this RFC.
+
+## What survives, what changes
+
+### Survives (untouched)
+- Per-project daemon, Unix socket, JSON-RPC transport.
+- `messages` table name and structure (plus the new `seq` column).
+- `_schema_meta` versioned migrations.
+- `sessions(id, last_delivered_ts, last_delivered_seq)` for delivery cursors.
+- `dedup`, `retros` tables and their RPCs.
+- Lore in-process + its sync query RPCs.
+- km-tribe.delivery-correctness fixes (paginated replay, no-DELETE-on-disconnect, cursors/reads drop). Load-bearing under the new design.
+- All read/admin RPCs: `members`, `chief`, `history`, `state.get/set`, `retro`, `debug`, `health`, `reload`.
+
+### Changes
+- `register` RPC → `hello` method. Same connection-level handshake, clearer response shape with snapshot + replayBase + daemonEpoch.
+- `tribe.send` + `tribe.broadcast` → `post` method with `to_ids`.
+- Directs are one row per recipient (good for indexing + unread), not comma-joined strings.
+- Ids are stable and participant-asserted; routing is id-based; names are display snapshots in `channel`.
+- `role` column on `sessions` → encoded as `claims` JSON array; observer host uses `claims: ["observer"]` (replaces watch/member/pending name-prefix and role-column dual encoding).
+- `coordination` table access moves behind `state.get`/`state.set` RPCs (unchanged semantics, tidied API).
+- Chief becomes a derived-and-cached projection instead of a mutable global.
+- Plugins move from in-process to the observer host process.
+- Explicit `seq INTEGER` column on `messages`; durable cursors reference `seq`, not rowid.
+
+### Dissolves
+- `TribePluginApi` / `TribeClientApi` / `plugin-loader.ts` — plugins use the wire, not a TS interface.
+- `role` column (migration v11 after observer host is live and the claims encoding is in).
+- `chiefClaim` mutable global — replaced by `_proj_chief.id` + a `post` with `type="chief.claim"` or `type="chief.release"`.
+- `handleClaimChief` / `handleReleaseChief` — dispatched via `post` types instead.
+
+## Crash recovery — daemon epoch
+
+Every daemon boot generates a fresh `daemon_epoch` (UUID). Returned in the `hello` response. Stored in `_schema_meta.value` under key `epoch`.
+
+Liveness rule for projections: a participant is "live" iff they have a `session.join` event *whose seq ≥ the latest `daemon.boot` event's seq* AND they have no subsequent `session.leave` event. This closes the "ghost join" gap that pure journal-projection liveness would have after `SIGKILL`.
+
+On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip before accepting any connection.
+
+## Acceptance criteria (revised)
+
+- [ ] `hello` method exists; returns snapshot (`members`, `chief`), `replayBaseSeq`, `currentSeq`, `daemonEpoch`, `adopted` flag, `namingNorms`.
+- [ ] `channel.sync` notification emitted once replay reaches `currentSeq` from the hello response.
+- [ ] `post` method exists; direct posts write one row per recipient.
+- [ ] Addressing is name-first: `to: "alice"`, `to: "@chief"`, `to: "*"`, `to: ["alice","bob"]` all resolve. `channel` payload always includes `from_id` AND `from_name` snapshot.
+- [ ] Name policy enforced at `hello`: generic patterns (`member-\d+`, `agent`, `session-*`, empty) rejected with guidance. Collisions suffix-renamed with a `nameWarnings` entry encouraging rename.
+- [ ] Name-based session adoption: a participant reconnecting with the same name takes over the dead-socket prior session's cursor (id swaps, cursor persists).
+- [ ] Id formula uses only durable inputs (project realpath + claude_session_id) OR random UUID fallback. No `pid`, no `role`, no mutable state. Id churn does NOT break user-facing continuity — name does that.
+- [ ] `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_meta` tables exist and are updated atomically with the corresponding journal writes.
+- [ ] `messages.seq INTEGER` column exists and is unique; `last_delivered_seq` references it.
+- [ ] `daemon.boot` event is written on every boot with a fresh `epoch`; liveness uses it.
+- [ ] Observer host process spawns at daemon boot (unless `TRIBE_NO_OBSERVER=1`); `claims: ["observer"]` excludes it from auto-quit liveness counting.
+- [ ] Legacy `register` / `tribe.send` / `tribe.broadcast` RPCs still work as shims during Phase 1.
+- [ ] Read/admin RPCs (`members`, `chief`, `history`, `state.get`, `state.set`, `retro`, `debug`, `health`, `reload`) are unchanged in behavior.
+- [ ] All lore RPCs continue to work.
+- [ ] Existing slow tests (`tribe-durability`, `tribe-self-heal`, `tribe-session-identity`, `tribe-unified-daemon`, `tribe-plugin-boundary`, `tribe-role-typing`, `derive-chief`) pass.
+- [ ] One new slow test: `tribe-minimal-protocol.slow.test.ts` — hello snapshot + id-based routing + replay/sync transition + daemon-epoch crash recovery.
+
+## Migration — 5 phases
+
+### Phase 0 — data-model prep (no wire change)
+- Add `messages.seq INTEGER` column + unique index; backfill from `rowid`.
+- Add `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_meta` tables (empty; unused yet).
+- Add `daemon.boot` event writer on startup.
+- Switch `sessions.last_delivered_seq` references from `rowid` to `seq` in replay + fanout paths.
+- Migration v10 in `database.ts`.
+
+**Effort**: half day. Zero user-visible change. All existing tests must pass unchanged.
+
+### Phase 1 — canonical write protocol
+- Add `hello` method. `register` calls into it as a shim.
+- Add `post` method. `tribe.send` / `tribe.broadcast` call into it as shims.
+- Directs write one row per recipient.
+- `channel` payload carries `from_id` + `from_name`.
+- `hello` response returns snapshot + seq range.
+- `channel.sync` notification on replay completion.
+- Stable id formula changes to durable inputs only (clients assert it in `hello`).
+- Observer-host-aware auto-quit counting.
+
+**Effort**: 2-3 days. Worktree-isolated. Old clients keep working via shims.
+
+### Phase 2 — materialized projections + read-side cleanup
+- Populate `_proj_*` tables on every relevant journal write.
+- Switch `members` / `chief` / `state.*` RPCs to read from projections.
+- Write a reducer replay routine for cold start + corruption recovery.
+- Once projections are authoritative, drop the `role` column (migration v11).
+- Delete `handleClaimChief` / `handleReleaseChief` in favor of `post type="chief.claim"` with projection reduction.
+
+**Effort**: 3-4 days.
+
+### Phase 3 — observer host process
+- Implement `tribe-observer.ts` as a daemon-spawned peer.
+- Migrate each plugin (git, beads, github, health, accountly) to the host.
+- Delete `plugin-api.ts`, `plugin-loader.ts`, in-process plugin registration.
+- Observer host uses the same `hello`/`post`/`channel` wire as any other participant.
+- Daemon's `autoQuit` logic excludes `claims: ["observer"]` sessions.
+
+**Effort**: 2 days.
+
+### Phase 4 — delete write-side legacy
+- Drop `register` / `tribe.send` / `tribe.broadcast` shims after a cycle of coexistence.
+- Delete dead code in `handlers.ts`.
+
+**Effort**: half day.
+
+### Phase 5 — lore decision (separate mini-RFC)
+- Reassess whether lore extraction earns its cost.
+- If yes: design the sync-query replacement (probably `lore.*` stays as RPCs on the daemon, but the summarizer process extracts).
+- If no: close the bead.
+
+**Effort**: TBD after Phase 4. Likely 2-3 days if we proceed, zero if we don't.
+
+### Separate RFC (not this spec)
+- km-tribe.scope-model (multi-scope / per-machine daemon). Revisit only after the above phases land and we have a concrete need for it.
+
+## Effort estimate
+
+Realistic total for Phases 0-4: **~1.5-2 weeks** in a worktree, not the 3-5 days v1 claimed.
+
+Phase 0 alone (half a day) gets us an explicit durable seq + projection table scaffolding — worth doing even if we pause before Phase 1.
 
 ## Recommendation
 
-Adopt after /pro review resolves the open questions. The reframe pays for
-itself by collapsing 6+ pro-review beads into one coherent change. The
-delivery-correctness work that just landed is load-bearing under this
-design too — the journal-as-source-of-truth invariant is exactly what
-P0.6's "don't delete on disconnect" already enforces.
-
-The first concrete step (if we proceed) is Phase A: implement `hello` and
-`post` alongside the existing RPCs, write `tribe-hello-protocol.slow.test.ts`,
-and ship. Phase B is where real deletion happens.
+Proceed with Phase 0 immediately. It is low-risk, prep-only, and unblocks everything else. Revisit Phase 1 after Phase 0 is in, with the slow test suite green.
