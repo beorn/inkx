@@ -348,7 +348,7 @@
     },
     "vendor/bearly/packages/alien-trees": {
       "name": "alien-trees",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "devDependencies": {
         "alien-signals": "^3.1.2",
         "tsdown": "^0.21.7",
@@ -541,6 +541,7 @@
         "@silvery/ag": "0.18.0",
         "@silvery/ag-react": "0.18.0",
         "@silvery/ansi": "0.18.0",
+        "@silvery/color": "0.18.0",
         "@silvery/create": "0.18.0",
         "@silvery/headless": "0.18.0",
         "@silvery/signals": "0.18.0",
