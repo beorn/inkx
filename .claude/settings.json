@@ -46,6 +46,17 @@
           }
         ]
       }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/worktree-create.sh"
+          }
+        ],
+        "matcher": ""
+      }
     ]
   }
 }
