@@ -271,6 +271,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
+| [claude-config/](.claude/skills/claude-config/)                     | Drift-audit + registration recipes for hooks, skills, agents, MCP. Run `bun tools/lint-claude-config.ts`. |
 | [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit, README/landing page writing |
 | ~~project-audit/~~ | Absorbed into `/sop code,sites` |
 | ~~project-cleanup/~~ | Absorbed into `/sop infra` |
