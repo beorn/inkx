@@ -141,7 +141,6 @@
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
-        "@km/reactive-tree": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -150,6 +149,7 @@
         "@silvery/selection": "workspace:*",
         "@silvery/theme": "workspace:*",
         "alien-signals": "^3.1.2",
+        "alien-trees": "^0.1.0",
         "loggily": "workspace:*",
         "react": "catalog:",
       },
@@ -352,6 +352,18 @@
         "alien-signals": ">=3.0.0",
       },
     },
+    "vendor/bearly/packages/alien-trees": {
+      "name": "alien-trees",
+      "version": "0.1.0",
+      "devDependencies": {
+        "alien-signals": "^3.1.2",
+        "tsdown": "^0.21.7",
+        "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "alien-signals": ">=3.0.0",
+      },
+    },
     "vendor/bearly/packages/vitepress-enrich": {
       "name": "vitepress-enrich",
       "version": "0.4.1",
@@ -520,6 +532,7 @@
       "version": "0.18.0",
       "dependencies": {
         "@silvery/ag": "0.18.0",
+        "@silvery/create": "0.18.0",
         "@silvery/headless": "0.18.0",
         "@silvery/theme": "0.18.0",
       },
@@ -1873,6 +1886,8 @@
     "alien-resources": ["alien-resources@workspace:vendor/bearly/packages/alien-resources"],
 
     "alien-signals": ["alien-signals@3.1.2", "", {}, "sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw=="],
+
+    "alien-trees": ["alien-trees@workspace:vendor/bearly/packages/alien-trees"],
 
     "ansi-align": ["ansi-align@3.0.1", "", { "dependencies": { "string-width": "^4.1.0" } }, "sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQoZufdQWDd19SEExbVLNXqvpzSJ/M7Za4/sCPmQ0+GRquoA7bGcINcxew6w=="],
 

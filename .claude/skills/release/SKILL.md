@@ -31,6 +31,44 @@ The intelligence lives in Claude reading diffs and writing changelogs. The mecha
 - Push only the specific tags we created
 - State tracking for partial-publish recovery (see `.release-state.json` per repo)
 
+### Per-repo release specifics
+
+| Repo | Tag scheme | CI | Internal notes |
+|---|---|---|---|
+| silvery | `v<version>` | `.github/workflows/release.yml` | All `@silvery/*` packages ship together. Coordinated version across workspace. |
+| termless | `v<version>` | `.github/workflows/release.yml` | All `@termless/*` packages together. |
+| bearly | `<pkg>-v<version>` | `.github/workflows/release.yml` (added 2026-04-19) | Per-package independent. Publishes packages/alien-* as bare npm names + plugins/tribe as `@bearly/tribe`. **Absorbed bearlymade** (archived) — alien-projections, alien-resources, alien-trees, vitest-silvery-dots all live here. |
+| loggily | `v<version>` | `.github/workflows/release.yml` | |
+| mdspec | `v<version>` | `.github/workflows/release.yml` | |
+| flexily | `v<version>` | `.github/workflows/release.yml` | |
+| vterm | manual | — | Still manual publish from monorepo; v1 tagging TBD. |
+| watcher-chaos | `v<version>` | `.github/workflows/release.yml` | |
+
+### Post-publish housekeeping (every release)
+
+1. Update [`npm-packages.md`](./npm-packages.md):
+   - New package: add row in the appropriate section
+   - Existing package: bump the version cell
+2. Run `bun npm-registry audit` to verify md matches registry state
+3. If `audit` reports drift, reconcile (md is hand-curated — edit manually)
+
+### Bearly-specific: first-publish workflow
+
+When publishing a new bearly package for the first time:
+
+1. Create directory `vendor/bearly/packages/<name>/` with standard layout (src/, tests/, package.json, tsconfig.json, README.md)
+2. `package.json` conventions:
+   - `"name"` = bare npm name (e.g. `alien-trees`) for public family packages, `@bearly/<name>` for bearly-scoped tools
+   - `"version": "0.1.0"` for first release
+   - `"files": ["dist", "README.md"]`, `"scripts": { "build": "tsc" }`
+   - `"peerDependencies"` for shared runtime deps (e.g. `alien-signals`)
+3. Run `bun install` + `bunx tsc` locally to verify build
+4. Run tests locally (create `vitest.config.ts` scoped to the package to avoid workspace cross-pollution)
+5. Commit to bearly main
+6. Tag `git tag <name>-v0.1.0 && git push origin main --follow-tags`
+7. CI publishes + creates GitHub release
+8. Run the post-publish housekeeping above
+
 ## Usage
 
 | Command | What happens |

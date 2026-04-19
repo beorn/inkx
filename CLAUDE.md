@@ -235,6 +235,43 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 Before ending: `bun fix && bun run test:all && bd dolt push && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
 Sub-agents skip this — only the top-level session runs verification.
 
+## Triage — load these first when user says X
+
+When the user's request contains any of the triggers below, **load the listed resources BEFORE theorizing, designing, or writing code**. Same load-first discipline, consolidated for discoverability:
+
+| User says (trigger keywords) | Load first |
+|---|---|
+| slow / laggy / freeze / jank / blocked / stutter | [`.claude/skills/perf/`](.claude/skills/perf/) + [`docs/lessons/performance.md`](docs/lessons/performance.md) |
+| publish / release / ship version / npm publish / bump | [`.claude/skills/release/`](.claude/skills/release/) + [`.claude/skills/npm/`](.claude/skills/npm/) + [`.claude/skills/release/npm-packages.md`](.claude/skills/release/npm-packages.md) |
+| signals / reactive / computed / derived / atom / subscription / projection / tree aggregate | check `alien-*` siblings at `github.com/beorn/bearly` before designing |
+| CVE / vulnerability / security audit / npm audit | `/sop security` + [`.claude/skills/sop/_dep-security.md`](.claude/skills/sop/_dep-security.md) |
+| DNS / domain / Cloudflare / redirect / Pages | `/sop infra cloudflare` |
+| CI failure / GitHub Actions / workflow | `/sop infra` CI Fix Workflow |
+| hook / SessionStart / PreToolUse / PreCompact | `/sop infra` Hook Debugging |
+| health check / is X outdated / do we have / maintain / groom | [`/sop`](.claude/skills/sop/) — orchestrator picks domain |
+
+**Skip the triage only when the request is narrow and obviously doesn't benefit from load-first context.** In doubt: load first. Memory entries capture the rationale behind each rule (see `feedback-perf-triage-load-first.md`, `feedback-publish-load-release-skills.md`, `reference-alien-family.md`).
+
+## Maintenance & health checks — use `/sop`
+
+`/sop` is the unified maintenance orchestrator covering 11 domains (code, packages, security, sites, infra, legal, market, growth, inbound, backlog, packaging). Run `/sop` when asked about freshness, CVEs, CI status, bundle sizes, doc drift, stale beads, or "is anything outdated?"
+
+| Domain     | Cadence          | Owns |
+|------------|------------------|------|
+| code       | every session    | typecheck, lint, tests, complexity |
+| packages   | monthly          | publishability, version drift, deps |
+| security   | weekly           | CVEs, secrets, provenance, supply chain |
+| sites      | per-release      | README / homepage / GH-desc sync, GSC |
+| infra      | monthly          | CI, hooks, accounts, Cloudflare, tools |
+| legal      | quarterly        | licenses, attribution |
+| inbound    | weekly           | issue triage, CVE intake |
+| backlog    | weekly           | stale beads, orphans, session promotion |
+| packaging  | per-release      | bundle sizes, CJS/ESM compat |
+
+Each domain maps to a dedicated skill (`/code`, `/release`, `/docs`, etc.). `/sop` handles cross-domain triggers (e.g., `packages.publish → sites.update → growth.check`).
+
+**Run `/sop update`**: when you notice a workflow gap or a pattern you had to fix by hand, `/sop update` proposes edits to the SOP itself. The SOP learns from sessions doing real maintenance work.
+
 ## Maintaining These Docs
 
 If you discover a skill doc is outdated (command changed, convention shifted, file moved), update it. These docs are living — they should reflect actual practice, not aspirational intent.

@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { createTree, type Traversal, type TreeStore } from "@km/reactive-tree"
+import { createTree, type Traversal, type TreeStore } from "alien-trees"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
