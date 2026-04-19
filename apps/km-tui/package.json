@@ -13,7 +13,6 @@
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
-    "alien-trees": "^0.1.0",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*",
@@ -22,6 +21,7 @@
     "@silvery/selection": "workspace:*",
     "@silvery/theme": "workspace:*",
     "alien-signals": "^3.1.2",
+    "alien-trees": "^0.1.0",
     "loggily": "workspace:*",
     "react": "catalog:"
   },

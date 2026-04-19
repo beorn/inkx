@@ -86,6 +86,6 @@ We spent multiple sessions investigating a "73-89% output phase bottleneck" that
 
 ## See Also
 
-- `packages/reactive-tree/src/index.ts` — the computed engine (extracted from `apps/km-tui/src/state/reactive-graph.ts` in April 2026)
+- `vendor/bearly/packages/alien-trees/src/index.ts` (published as `alien-trees` on npm) — the computed engine (extracted from `apps/km-tui/src/state/reactive-graph.ts` in April 2026)
 - `docs/design/ui/rendering.md` — design doc (API, semantics, migration)
 - `docs/design/ui/rendering.md` — visual treatment matrix

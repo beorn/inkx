@@ -280,12 +280,6 @@
         "@km/core": "workspace:*",
       },
     },
-    "packages/reactive-tree": {
-      "name": "@km/reactive-tree",
-      "dependencies": {
-        "alien-signals": "^3.1.2",
-      },
-    },
     "packages/silvery-selection": {
       "name": "@silvery/selection",
       "version": "0.1.0",
@@ -1142,8 +1136,6 @@
     "@km/infra": ["@km/infra@workspace:packages/km-infra"],
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
-
-    "@km/reactive-tree": ["@km/reactive-tree@workspace:packages/reactive-tree"],
 
     "@km/repl": ["@km/repl@workspace:apps/km-repl"],
 
