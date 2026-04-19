@@ -41,11 +41,12 @@ Real-time conversation, channeled. Implemented via Matrix as a substrate with ad
 Domain objects:
 
 - **Room** — an event-log abstraction. Rooms carry broadcasts, directs, structured events. Adapters (`room-matrix`, `room-file`, `room-xmpp`, etc.) plug in behind the same interface.
-- **Channel** — a named room within a repo's space. Maps to matrix rooms when `spaces` capability is available; flat naming otherwise.
+- **Channel** — a named room within a km repo. Maps to matrix rooms.
 - **Event** — an immutable, relatable atom. Messages, edits (as new events referencing originals), reactions, structured events, lifecycle events.
-- **Space** — a container for channels, mapping to a km repo. Topology layer sits above the `Room` interface.
 
-km repos = matrix spaces. Channels are rooms in those spaces. Agents and humans are members. History is projected as files under `chats/<channel>/` — rendered, not editable-source.
+**Space** is a topology convention (km repo ↔ Matrix space when the `spaces` capability is available), not a domain object. km's topology layer uses it when adapters support it; falls back to flat `<repo-id>/<channel>` naming otherwise.
+
+km repos are mapped to matrix spaces. Channels are rooms in those spaces. Agents and humans are members. History is projected as files under `chats/<channel>/` on disk — rendered, not editable-source. The `chats/` directory is a filesystem materialization convention; the canonical domain term for the thing it holds is a **Channel** (a named Room).
 
 Observability: Element (matrix client) on phone, desktop, web reads the rooms. Your agents' conversations become readable from anywhere.
 
@@ -189,6 +190,7 @@ These are the "what we're NOT doing" items that keep the vision focused:
 - **Not a replacement for beads-as-an-open-standard.** km bd is a compatible alternative backed by km's own data; beads remains an option.
 - **Not a custom protocol.** The communication substrate is Matrix (or whatever adapter); we don't invent wires.
 - **Not a distributed systems toolkit.** We accept single-homeserver, user-scoped, advisory-exclusivity-with-leases. No consensus protocols, no CRDTs, no federation-first design.
+- **Not a lease-queuing or lease-priority system.** A role or persona lease is held or not held. Handoff is an explicit post, not a scheduler decision. If we ever need queuing, that's a signal we're off-design (drifting toward workflow engine).
 
 ## Open questions for the vision
 
@@ -205,7 +207,7 @@ These are aspirational threads that don't need to be answered now but should be 
 This vision aligns with the principles:
 
 - **Plain domain language**: Knowledge / Communication / Agents. Each word means exactly what it says.
-- **Domain object inventory**: KNode, Vault, Board, Link, Room, Event, Space, Channel, Persona, Session, Role, User. Three domains, ~12 objects. MECE.
+- **Domain object inventory**: KNode, Vault, Board, Link, Room, Event, Channel, Persona, Session, Role, User. Three domains, ~11 objects. MECE. (Space is a topology convention, not a domain object.)
 - **Composable pieces**: Room (abstract) + adapter (concrete); Persona + Session; KNode + Board projection. Every complex thing is composed from simpler things with clean interfaces.
 - **Fail loud**: lease violations are explicit errors; adapter capability mismatches throw (or gracefully degrade per capability check, never silent).
 - **MECE**: Knowledge is what you remember; Communication is what you're saying now; Agents are who's speaking. No overlaps.
