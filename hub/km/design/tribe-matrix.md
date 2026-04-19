@@ -1,19 +1,32 @@
-# Tribe on Matrix — decision record
+# Tribe on Matrix (via a Room adapter) — decision record
 
 **Status**: Decision committed 2026-04-19 after six-alternative review + two deep-research surveys (Matrix-general + XMPP-vs-Matrix) + live scan of OpenClaw, Hermes, Nanoclaw, pi-mom, Gas Town.
 **Supersedes**: `hub/bearly/design/tribe-minimal.md` (spec v1/v2/v3 — custom-wire-daemon direction, retired).
 **Complements**: km-infra.bd-v1-compat (km-native bd; tribe's durable ledger eventually).
 
-## Decision
+## Decision (two layers)
 
-**Tribe's live wire is Matrix.** Specifically:
+**Layer 1 — Abstraction: `@bearly/room`.** km and tribe consume a substrate-agnostic `Room` interface. They never import a specific protocol SDK directly.
+
+**Layer 2 — Production adapter: Matrix.** The reference adapter implementation is `@bearly/room-matrix`, wrapping `matrix-js-sdk` and talking to a Conduit homeserver. This is what ships by default and what the rest of the DR focuses on. Alternative adapters (`room-xmpp`, `room-file`, `room-memory`, `room-slack`, `room-openclaw`, etc.) are pluggable extensions behind the same interface.
+
+**Matrix-specific decisions:**
 - **Server**: Conduit (Rust single-binary homeserver, ~20MB, ~50MB RAM). Bundled, user-global, localhost-bound by default.
-- **Client SDK**: `matrix-js-sdk`, lean imports.
+- **Client SDK**: `matrix-js-sdk`, lean imports, consumed only by the `room-matrix` adapter — not by km or tribe directly.
 - **Mobile observability**: Element (web/desktop/iOS/Android).
 - **Structure**: km repo = Matrix Space; channels = rooms in the space; `chats/<channel>/` = materialized room history in the vault.
 - **Identity**: personas as files (`agents/<name>.md`, `users/<name>.md`); matrix users bound to personas; sessions assume personas.
 - **Scope**: user-global (one homeserver per user; all their km repos as spaces under it).
-- **Integration surface**: `@bearly/tribe-matrix` MCP server loaded by Claude Code's SessionStart hook.
+- **Integration surface**: `@bearly/tribe` MCP server loaded by Claude Code's SessionStart hook, consuming a `Room` instance (typically `room-matrix` in production).
+
+## Why the adapter layer
+
+1. **Reversibility** — if Conduit stagnates, or Matrix ecosystem shifts, or a user's threat model demands XMPP, we swap adapters by config, not by rewrite.
+2. **Testing** — unit tests use `room-memory`; integration tests use `room-file`; full-loop tests use `room-matrix`. No Docker dependency for most test runs.
+3. **Decoupling** — km needs a Room for channel views + structured events. Tribe needs a Room for coordination. Either one can be used alone.
+4. **Proven pattern** — OpenClaw's 113 channel extensions are channel adapters. Matches what the industry already validates at scale.
+5. **User choice** — `room-file` for local-only dev, `room-matrix` for production, `room-xmpp` if someone prefers a smaller substrate. One interface, multiple deployments.
+6. **Future OpenClaw** — becomes `room-openclaw` when we want the bridge. Plugin, not rewrite.
 
 ## Why not the alternatives
 
@@ -171,49 +184,61 @@ New view type alongside cards/columns/tabs: **channel view**.
 
 ## Phased rollout
 
-### Phase 0 — scaffolding (2-3 days)
-- Bundle Conduit via Docker compose in km install flow
-- `km matrix init` command: starts Conduit on localhost, creates the space for current repo, registers the user's matrix account
-- `@bearly/tribe-matrix` skeleton MCP server using `matrix-js-sdk`
-- Minimum loop: Claude Code session starts → MCP server logs in, joins #general → sends a hello broadcast → other sessions see it
+### Phase 0 — `Room` interface + minimal adapters (4-5 days)
+- Design the `Room` interface (`@bearly/room`): core methods + capability set.
+- Implement `@bearly/room-memory` (in-process, for tests) — ~100 LOC.
+- Implement `@bearly/room-file` (jsonl + fs.watch) — ~300 LOC.
+- Skeleton `@bearly/tribe` MCP server consuming a `Room` instance. Tools: `tribe.broadcast`, `tribe.send`, `tribe.members`, `tribe.history`.
+- Validate against `room-memory` and `room-file`: two Claude Code sessions, same room, see each other's hellos.
 
-Deliverable: two terminal windows, two Claude Code sessions, they see each other's hellos. Readable from Element.
+Deliverable: interface exists, two adapters prove it, tribe runs on either. No Matrix yet — we validate the shape first.
 
-### Phase 1 — tool surface + personas (3-5 days)
-- MCP tools: `tribe.broadcast`, `tribe.send`, `tribe.members`, `tribe.history`, `tribe.recall`
-- Persona file loading at SessionStart; identity binding
-- `agents/` and `users/` directory materialization
-- `km agent create/archive/revive` commands
-- Working memory append-on-session-end
+### Phase 1 — Matrix adapter + Conduit (3-4 days)
+- Implement `@bearly/room-matrix` wrapping `matrix-js-sdk`. All capabilities (presence, threads, reactions, structured, dm, spaces).
+- Bundle Conduit via Docker compose in km install flow.
+- `km matrix init` command: starts Conduit on localhost, creates the space for current repo, registers the user's matrix account, writes tribe config pointing at `room-matrix`.
+- Tribe works identically on `room-matrix` as it did on `room-file` in Phase 0.
+- Element connects and reads the room.
 
-Deliverable: real persona-driven coordination. `claude --agent silvery-refactor` works across restarts.
+Deliverable: Matrix is the production adapter. Two Claude Code sessions on different machines (via Tailscale or similar) coordinate through the user's homeserver. Phone-observable from Element.
 
-### Phase 2 — km TUI integration (1-2 weeks, silvery work)
-- Channel view type in silvery
-- Directory listing → channel view when `chats/*/` detected
-- `@mention` / `#tag` resolver extended with matrix context
-- Presence indicators
+### Phase 2 — personas + durable identity (3-5 days)
+- Persona file loading at SessionStart; identity binding.
+- `agents/` and `users/` directory materialization (files mirror matrix users).
+- `km agent create/archive/revive` commands.
+- Working memory append-on-session-end.
 
-Deliverable: read and post to chat from inside km-tui.
+Deliverable: `claude --agent silvery-refactor` works across restarts. Personas persist; sessions are ephemeral.
 
-### Phase 3 — structured events + bead threading (1 week)
-- `m.km.*` custom event types
-- Bead claim → structured event → channel post
-- Per-bead thread auto-created on claim (optional per policy)
+### Phase 3 — km TUI integration (1-2 weeks, silvery work)
+- Channel view type in silvery.
+- Directory listing → channel view when `chats/*/` detected.
+- `@mention` / `#tag` resolver extended with Room context.
+- Presence indicators driven by `room.capabilities.has("presence")`.
+- Uses the `Room` interface — not matrix-specific.
 
-Deliverable: beads and chat are the same conversation.
+Deliverable: read and post to chat from inside km-tui. Works identically regardless of adapter.
 
-### Phase 4 — deferred / optional
-- E2E encryption (when we bring in a collaborator)
-- OpenClaw channel bridge (when you want cross-platform reach)
+### Phase 4 — structured events + bead threading (1 week)
+- `m.km.*` custom event types via `room.customEvent()` (guarded by `capabilities.has("structured")`).
+- Bead claim → structured event → channel post.
+- Per-bead thread auto-created on claim (optional per policy).
+- Adapters without structured-event support fall back to plain text messages.
+
+Deliverable: beads and chat are the same conversation on Matrix. Adapters that can't express structured events degrade gracefully.
+
+### Phase 5 — deferred / optional
+- E2E encryption on `room-matrix` (when we bring in a collaborator)
+- `@bearly/room-openclaw` adapter (when you want the cross-platform bridges)
+- `@bearly/room-xmpp`, `-slack`, `-discord`, `-irc` adapters (as needs arise, community contributions welcome)
 - Matrix federation (when you want to share a space with someone)
 
 ## What retires
 
-- `@bearly/tribe` daemon (8,300 LOC) → deprecated after Phase 1 lands. Tribe-matrix is the successor.
+- `@bearly/tribe` daemon (8,300 LOC) → deprecated after Phase 2 lands. The new `@bearly/tribe` (adapter-based) is the successor.
 - km-tribe.delivery-correctness shipped fixes remain correct for however long the old daemon runs; no rush.
 - km-tribe.minimal-protocol bead → closed as superseded, pointing to this DR.
-- km-tribe.stable-identity / daemon-authority / scope-model / role-register-cleanup / plugin-boundary-tightening / polish-v2 → all dissolve under the matrix model.
+- km-tribe.stable-identity / daemon-authority / scope-model / role-register-cleanup / plugin-boundary-tightening / polish-v2 → all dissolve under the adapter + persona model.
 
 `@bearly/recall` continues as-is (standalone FTS + LLM search).
 
@@ -233,32 +258,52 @@ Deliverable: beads and chat are the same conversation.
 4. **Silvery channel view fidelity**: reactions, typing, thread expansion — which matter enough to build in Phase 2 vs defer?
 5. **Default encryption policy**: off for local, on for federated. How do we detect/switch?
 
+## Package layout
+
+Split into focused packages along the adapter boundary:
+
+- **`@bearly/room`** — the `Room` interface + `Capability` enum + shared types. Zero runtime deps. ~200 LOC.
+- **`@bearly/room-memory`** — in-process adapter, for unit tests. ~100 LOC.
+- **`@bearly/room-file`** — filesystem adapter (jsonl + fs.watch). ~300 LOC.
+- **`@bearly/room-matrix`** — Matrix adapter, wraps `matrix-js-sdk`. Supports all capabilities including spaces. ~800 LOC.
+- **`@bearly/tribe`** — MCP server + persona logic + tribe tools. Consumes a `Room`; substrate-agnostic. ~800 LOC.
+- **`@bearly/room-openclaw`** / **`-xmpp`** / **`-slack`** / **`-irc`** — deferred / community.
+
+km-tui channel view lives in the silvery/km-tui codebase and consumes `@bearly/room` directly (not `@bearly/tribe`). This means km's channel view works without tribe, and tribe works without km — both orthogonal users of the same Room abstraction.
+
 ## Acceptance criteria
 
 Phase 0 done when:
-- [ ] Bundled Conduit starts on `km matrix init`; stops cleanly on shutdown
-- [ ] A fresh km repo auto-creates its matrix space on first `claude` invocation
-- [ ] Two Claude Code sessions in the same repo see each other's broadcasts
-- [ ] One of those sessions can be on a different machine (via Tailscale or similar) and still connect to the homeserver
-- [ ] Element Web/Desktop can connect and read the room
+- [ ] `@bearly/room` interface is stable and documented
+- [ ] `room-memory` + `room-file` both pass a shared conformance test suite
+- [ ] `@bearly/tribe` skeleton runs on either adapter, config-switchable
+- [ ] Two Claude Code sessions in the same repo see each other's broadcasts via `room-file`
 
 Phase 1 done when:
-- [ ] Persona files drive agent identity; rename and restart preserve the matrix user
-- [ ] Human posts from Element reach agents as MCP notifications
-- [ ] Agents can `tribe.send` to `@chief` and it routes to whoever currently holds the chief persona
-- [ ] History query works: `tribe.history --channel=#design --since="2h"` returns recent messages
+- [ ] `room-matrix` passes the same conformance suite, plus spaces/presence/threads
+- [ ] Bundled Conduit starts on `km matrix init`; stops cleanly on shutdown
+- [ ] A fresh km repo auto-creates its matrix space on first `claude` invocation
+- [ ] Two sessions on different machines (via Tailscale or similar) coordinate through the homeserver
+- [ ] Element Web/Desktop reads the room
+
+Phase 2 done when:
+- [ ] Persona files drive agent identity; rename and restart preserve the matrix user (via `room-matrix`)
+- [ ] Humans post from Element, agents see via MCP notification
+- [ ] `tribe.send to="@chief"` routes to the current chief-persona holder
+- [ ] History query works: `tribe.history --channel=#design --since="2h"`
 
 ## Budget
 
-Rough scope for Phases 0-3: **~2-3 weeks** of focused work.
+Rough scope for Phases 0-4: **~3 weeks** of focused work.
 
 Per-phase:
-- Phase 0: 2-3 days
-- Phase 1: 3-5 days
-- Phase 2: 1-2 weeks (silvery work)
-- Phase 3: 1 week
+- Phase 0: 4-5 days (interface + 2 adapters + conformance tests)
+- Phase 1: 3-4 days (room-matrix + Conduit bundling)
+- Phase 2: 3-5 days (personas)
+- Phase 3: 1-2 weeks (silvery channel view)
+- Phase 4: 1 week (structured events + bead threading)
 
-Phase 4 deferred indefinitely. Total new LOC estimated: 2500-3500 across `@bearly/tribe-matrix` + km-tui channel view + km agent CLI commands. Minus ~8000 LOC deprecated in `@bearly/tribe`.
+Phase 5 deferred indefinitely. Total new LOC estimated: ~2500 for the adapter layer + tribe + matrix adapter, ~500-1000 for km-tui channel view, ~300 for km agent CLI commands. Minus ~8000 LOC deprecated in the current `@bearly/tribe` daemon.
 
 ## Research trail
 
@@ -271,4 +316,4 @@ Phase 4 deferred indefinitely. Total new LOC estimated: 2500-3500 across `@bearl
 
 ## Next action
 
-Start Phase 0 spike. Target: two Claude Code sessions seeing each other's hellos, readable from Element, within 2-3 days.
+Start Phase 0 spike. Target: `@bearly/room` interface + `room-memory` + `room-file` + `@bearly/tribe` skeleton, within 4-5 days. Two Claude Code sessions see each other's hellos via `room-file`. Then Phase 1 (Matrix adapter + Conduit) brings the production loop.
