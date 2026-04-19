@@ -1,17 +1,14 @@
 /**
  * Handle "link:open" events from silvery Link components.
  *
- * When a Link is Cmd+clicked, it emits "link:open" via RuntimeContext.
- * This hook subscribes to that event and opens URLs using the OS default handler.
+ * When a Link is Cmd+clicked, it emits "link:open" via the silvery
+ * apply-chain's custom-events bus (see `withCustomEvents`). This hook
+ * subscribes to that event and opens URLs using the OS default handler.
  * Internal URLs (km:// scheme) are dispatched to the board for navigation.
  */
 
-import { useEffect } from "react"
-import { useRuntime, type BaseRuntimeEvents } from "@silvery/ag-react"
-
-interface LinkEvents extends BaseRuntimeEvents {
-  "link:open": [href: string]
-}
+import { useContext, useEffect } from "react"
+import { ChainAppContext } from "@silvery/ag-react/context"
 
 /** Open a URL using the OS default handler. */
 function openExternal(href: string): void {
@@ -26,16 +23,17 @@ function openExternal(href: string): void {
  *   If not provided, internal links are ignored.
  */
 export function useLinkOpen(onInternalLink?: (href: string) => void): void {
-  const rt = useRuntime<LinkEvents>()
+  const chain = useContext(ChainAppContext)
 
   useEffect(() => {
-    if (!rt) return
-    return rt.on("link:open", (href: string) => {
+    if (!chain) return
+    return chain.events.on("link:open", (href: unknown) => {
+      if (typeof href !== "string") return
       if (href.startsWith("http://") || href.startsWith("https://")) {
         openExternal(href)
       } else if (href.startsWith("km://") && onInternalLink) {
         onInternalLink(href)
       }
     })
-  }, [rt, onInternalLink])
+  }, [chain, onInternalLink])
 }
