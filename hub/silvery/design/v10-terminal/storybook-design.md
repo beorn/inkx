@@ -7,7 +7,7 @@ The Sterling Storybook is silvery's most important user-facing artifact: an inte
 1. 84 schemes + OSC 10/11 auto-detection — picks up the user's actual terminal scheme
 2. Runtime scheme swap — cycle 84 schemes, UI re-themes live
 3. Preservative + generative derivation — toggle between modes
-4. Tier quantization — truecolor → 256 → ansi16 → mono
+4. `colorLevel` quantization — truecolor → 256 → ansi16 → mono
 
 ## The three-pane layout
 
@@ -32,7 +32,7 @@ The Sterling Storybook is silvery's most important user-facing artifact: an inte
 - **Left pane — Scheme browser**: detected scheme pinned on top, then the 84-catalog. Click any scheme → every pixel re-themes.
 - **Middle pane — Canonical components**: SelectList, TextInput, Alert (each tone), ModalDialog, buttons, typography ramp. The *target* of the design system.
 - **Right pane — Token tree**: dual-view flat and nested. Click a token → see hex + derivation rule + highlight components using it.
-- **Bottom bar — Tier + derivation toggles**: flip these, watch the UI respond.
+- **Bottom bar — `colorLevel` + derivation toggles**: flip these, watch the UI respond.
 
 ## Sterling-native features
 
@@ -102,7 +102,7 @@ Same components rendered three ways: silvery/terminal, silvery/web (CSS vars emi
 - Three-pane layout (SchemeList + ComponentPreview + TokenTree)
 - Scheme swap cycles 84 catalog
 - Token click → derivation rule + highlight components
-- Tier toggle (truecolor/256/ansi16) affects rendering
+- `colorLevel` toggle (truecolor/256/ansi16) affects rendering
 
 ### Full (~3 sessions on top of MVP)
 - Derivation visualizer panel
@@ -147,7 +147,7 @@ examples/apps/storybook/
   SchemeAuthor.tsx         # feature 3 (full)
   IntentDemo.tsx           # feature 4 (full)
   UrgencyDemo.tsx          # feature 5 (full)
-  TierBar.tsx              # bottom bar
+  ColorLevelBar.tsx        # bottom bar
   shared/
     TokenChip.tsx          # reusable: token name + swatch + hover reveal
     SchemeSwatch.tsx       # reusable: scheme preview card

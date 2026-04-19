@@ -213,7 +213,7 @@ When someone asks "how do I show a *critical* error?" — the answer is "use a `
 
 ## Color scheme shape
 
-A **color scheme** is a **22-color palette** following the terminal-standard layout: ANSI 0-15 + base fg/bg + 4 semantic slots (primary, accent, muted, selection). Pure hex, platform-neutral. Valid input for terminal (tier-quantized at output) OR web/canvas (hex directly).
+A **color scheme** is a **22-color palette** following the terminal-standard layout: ANSI 0-15 + base fg/bg + 4 semantic slots (primary, accent, muted, selection). Pure hex, platform-neutral. Valid input for terminal (colorLevel-quantized at output) OR web/canvas (hex directly).
 
 Silvery ships **84 color schemes** — the famous terminal/editor palettes (Nord, Solarized, Catppuccin ×4, Dracula, Gruvbox, One Dark, Tokyo Night, Monokai, …). Users can: pick one (`scheme="nord"`), author one (supply 22 colors), or rely on auto-detection via OSC 10/11 terminal probe.
 
@@ -261,7 +261,7 @@ Fixed OKLCH deltas are a good default, **not a law of nature**. They fail on:
 ```
 Layer 1 — Primitives          design-system-agnostic
   @silvery/color              OKLCH math, blend, hex utils
-  @silvery/ansi               terminal output, tier quantization, derivation
+  @silvery/ansi               terminal output, colorLevel quantization, derivation
   @silvery/ag-term            terminal reconciler
   @silvery/ag-react           React reconciler + <ThemeProvider> + useTheme()
   @silvery/flexily            layout engine
@@ -660,7 +660,7 @@ No intermediate step. This is the cleanest target — Sterling shape = the bytes
 
 | Runtime | Consumption |
 |---|---|
-| Terminal | Structured JS → tier-quantized ANSI at output phase |
+| Terminal | Structured JS → colorLevel-quantized ANSI at output phase |
 | Canvas | Structured JS → direct fillStyle |
 | React Native | Structured JS → direct StyleSheet values |
 | DOM / Web | Structured JS → flattened to CSS custom properties at `<ThemeProvider>` root |
