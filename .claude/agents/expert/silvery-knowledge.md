@@ -1,6 +1,6 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-12
+Last updated: 2026-04-18
 
 ## References (canonical sources — don't duplicate, supplement)
 
@@ -354,6 +354,10 @@ Flexily is a pure JavaScript flexbox layout engine -- Yoga-compatible API, 1.5-2
 
 9. **`Box theme={{}}` re-resolves ALL `$tokens`.** Don't use for bg-only changes. Use `backgroundColor` directly.
 
+12. **ThemeProvider theme changes don't propagate to descendant Text nodes via dirty flags.** `markSubtreeDirty` only walks UP to ancestors, setting `SUBTREE_BIT` on them. Descendant Text nodes keep their dirty bits from the previous epoch (clean). The Level 1 collected text cache (`prepared-text.ts`) embeds ANSI-encoded `$token` colors at collection time. Without a theme-context cache key, descendant Text nodes reuse stale cached text with the old theme's ANSI codes. Fix: `getCachedCollectedText` takes `contextTheme = getActiveTheme()` as a cache key. A theme ref change (identity check, O(1)) invalidates the cache and forces re-collection with the new token values. See `tests/features/theme-provider-cascade.test.tsx`.
+
+13. **`collectTextWithBg` embeds `$token`-resolved ANSI codes into the cached text string.** This happens in `applyTextStyleAnsi` for virtual text children (raw text nodes without `layoutNode`). The ANSI codes include RGB values for `$primary`, `$muted`, etc. These are theme-context-dependent and become stale when an ancestor ThemeProvider changes its theme. `getTextStyle` at line 1434 of `render-text.ts` is called unconditionally and produces correct `style.fg`, but `mergeAnsiStyle` applies segment ANSI codes from the cached string OVER the base style — the segment override wins, restoring the old color.
+
 10. **`prevLayout` vs `layoutChangedThisFrame`.** `layoutChanged` is driven by the `layoutChangedThisFrame` flag (set by layout phase, cleared by render phase). The old `!rectEqual(prevLayout, boxRect)` was permanently stale when layout phase skipped. `prevLayout` is still used by `clearExcessArea` and `hasChildPositionChanged`.
 
 11. **`bgDirty` exists for a reason.** When `backgroundColor` changes from `"cyan"` to `undefined`, the current value is falsy but stale cyan pixels remain in the clone. `bgDirty` ensures `contentAreaAffected` fires so the region gets cleared.
@@ -634,6 +638,20 @@ Hours debugging a non-existent rendering bug. TTY MCP text extraction (`mcp__tty
 ### replayAnsiWithStyles Pending Wrap (STRICT false positives)
 
 11 test failures from missing pending-wrap semantics in internal VT100 parser. Parser wrapped immediately at last column instead of deferring. Production rendering was never affected -- only STRICT verification.
+
+### Theme Cascade Cache Bug (2026-04-18)
+
+`ThemeProvider` was using the `setActiveTheme()` global for `$token` resolution. Migration to `<Box theme={merged}>` + `pushContextTheme/popContextTheme` worked for fresh renders but NOT for incremental renders after a theme change.
+
+Root cause: `collectTextWithBg` embeds `$token`-resolved ANSI codes (e.g., `$primary` → `\x1b[38;2;0;0;255m`) into the Level 1 collected text cache. The cache checked only node-local dirty bits (`COLLECTED_TEXT_DIRTY = CONTENT_BIT | CHILDREN_BIT | STYLE_PROPS_BIT | BG_BIT | SUBTREE_BIT`). A ThemeProvider Box theme change set these bits on the ThemeProvider Box (via `host-config.ts`), but NOT on descendant Text nodes — they had no prop changes. `markSubtreeDirty` only walks UP, not DOWN.
+
+On incremental render: the ThemeProvider Box was rendered fresh (CONTENT_BIT set), pushed the new theme, but descendant Text nodes found their Level 1 cache valid (no dirty bits → cache hit). The cache returned text with old ANSI codes. `mergeAnsiStyle` applied the cached segment's fg (old theme color) OVER the `getTextStyle` result (new theme color). Wrong color written.
+
+Key diagnostic path: `theme push trace shows #008000` + `parseColor trace shows resolved=#008000` + `write trap shows fg blue` → must be ANSI codes in the cached text overriding the fresh resolution. `SILVERY_STRICT=1` did NOT catch this because both incremental and fresh renders produced the same wrong color (fresh render also hit the cache since `doFreshRender()` advances the epoch, making dirty bits stale).
+
+Fix in `prepared-text.ts`: `getCachedCollectedText` takes `contextTheme: Theme | null` as a third param. If `entry.collectedContextTheme !== contextTheme`, invalidate cache. `setCachedCollectedText` saves the theme ref. In `render-text.ts`, pass `getActiveTheme()` at the render-phase call site — by that point `pushContextTheme` has already fired, so the correct theme is on the stack.
+
+Why `SILVERY_STRICT=1` missed it: STRICT runs a "fresh render" via `doFreshRender()` which calls `ag.render({ prevBuffer: null })`. This advances the render epoch, making ALL dirty bits stale (epoch mismatch). Cache checks fire as misses for nodes that were dirty... but the INNER Text node was NEVER dirty (not even in the initial render epoch that set dirty bits on the ThemeProvider Box). So `isDirty()` returns false for the Text node in BOTH incremental and fresh renders, and both get the same cached blue text. Only after the context-theme fix does the fresh render produce green.
 
 ## Effective Debugging Strategies (Priority Order)
 
