@@ -165,11 +165,24 @@ bun llm --model ollama:mistral:7b "question"
 
 ## Gathering Context
 
+### MANDATORY: Silvery Positioning Brief
+
+Every external LLM call (`/ask`, `/pro`, `/deep`, `/llm`) MUST include the silvery positioning brief — either via `--context-file docs/silvery-positioning-brief.md` OR by pasting this paragraph into the prompt preamble:
+
+> **Silvery is a multi-target UI framework with web ambitions** — NOT "Ink but better," NOT terminal-only. Terminal is the primary shipped target today; canvas + DOM are explicit future targets. The design system is built cross-platform-first. Design trade-offs default to Polaris/Tailwind-aligned answers over TUI idioms. Hover/click/focus are first-class interactions. km is silvery's lead showcase app (terminal-first knowledge-worker tool); silvery ships what km needs AND what a multi-target framework requires.
+
+Without this brief, external LLMs default to advising as a "TUI library author" which misses the multi-target design intent. Always include it. For quick questions the single paragraph is enough; for deep research attach the full file.
+
+### Session context
+
 Before calling `bun llm`, use `/recall` to search session history for relevant prior work: `bun recall "topic"`. Read the results, extract the relevant insights, and summarize them into `--context` — don't pass raw recall output directly.
 
-**Quick questions**: Prepend brief context: `bun llm "Context: km (TypeScript TUI), [file]. Question: [q]"`
+**Quick questions**: Prepend the positioning brief + task context:
+```
+bun llm "Context: silvery is a multi-target (terminal + web + canvas) UI framework with web ambitions — NOT a TUI library; design decisions favor cross-platform/Polaris conventions. [rest of context]. Question: [q]"
+```
 
-**Deep research**: Include **full source code** — see `/deep` for detailed context gathering workflow.
+**Deep research**: Include **full source code** AND `--context-file docs/silvery-positioning-brief.md` — see `/deep` for detailed context gathering workflow.
 
 ## Execution
 

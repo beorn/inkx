@@ -2,6 +2,14 @@
 
 TypeScript, Bun, Silvery (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ Markdown files.
 
+## Positioning (read first)
+
+**Silvery is a multi-target UI framework with web ambitions** — NOT "Ink but better," NOT terminal-only. The design system (tokens, components, theming, layout) is built cross-platform-first; terminal is the primary shipped target, canvas + DOM are explicit future targets. Design trade-offs default to the cross-platform / Polaris-aligned answer, not the TUI idiom. Hover/click/focus are first-class interactions, not TUI afterthoughts. See [docs/silvery-positioning-brief.md](docs/silvery-positioning-brief.md).
+
+**km is silvery's lead showcase app.** km drives feature requirements; silvery ships them as general-purpose framework primitives. They co-evolve.
+
+Any `/pro`, `/deep`, `/llm`, `/ask` tool call MUST include this brief (via `--context-file docs/silvery-positioning-brief.md` or by pasting the "What silvery is" paragraph). Without it, external LLMs default to "advise as TUI library author" — which misses the multi-target design intent.
+
 ## Technology
 
 | Tech | Role | Canonical Reference |
