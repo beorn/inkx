@@ -154,6 +154,18 @@ See [.claude/skills/git/worktree.md] for details.
 
 **Discoverability rule**: before building a new reactive primitive, `grep -rn "alien-" hub/ docs/` and check `github.com/beorn/bearlymade` for prior art. The family has grown; future additions may already exist there.
 
+## npm publish / release — load these skills FIRST
+
+**When the user says "publish"/"release"/"npm publish"/"ship a version"** for any package, **load these two skills before touching package.json or running any publish command**:
+
+- [`.claude/skills/release/SKILL.md`](.claude/skills/release/SKILL.md) — owns the release workflow: status → diffs → verify → execute. Supports both km vendor submodules and bearlymade. AI-native changelog + bump decisions.
+- [`.claude/skills/npm/SKILL.md`](.claude/skills/npm/SKILL.md) — owns the npm registry side: name availability, status, audit, deprecate. Has the canonical registry map at [`.claude/skills/release/npm-packages.md`](.claude/skills/release/npm-packages.md) — every published package we own lives in that file.
+- CI auto-publish for bearlymade lives at `vendor/bearlymade/.github/workflows/release.yml` — tag `<pkg>-v<version>` fires the workflow. Mirror pattern for other per-package monorepos.
+
+**Why this exists**: without this pointer, sessions designing a new package skip `/npm audit` (misses registry drift), skip `/release verify` (misses pack-install-import regressions), and hand-roll a publish flow instead of using the existing tooling.
+
+**What `npm-packages.md` owns**: the authoritative list of every package under maintainer `beorno`. Update after successful publish, not before. Moving a package between sections (Active → Deprecated) is a pure-doc change; run `bun npm-registry audit` after edits.
+
 ## Internal Documents (`hub/`)
 
 `hub/` holds private documents that should NOT appear on public-facing sites. Each project gets its own subdirectory:
