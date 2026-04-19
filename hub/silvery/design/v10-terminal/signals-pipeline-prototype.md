@@ -108,7 +108,7 @@ function createNodeSignals(node: AgNode) {
 ## Design B: reactiveTree (km's DSL)
 
 ```typescript
-import { reactiveTree, signal } from "./reactive-graph"
+import { reactiveTree, signal } from "@km/reactive-tree"
 
 const pipeline = reactiveTree((tree) => ({
   // Writable state (set by reconciler)

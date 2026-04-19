@@ -351,10 +351,10 @@ function withTerminalOutput(): ScenePlugin {
 
 ## Reactive tree integration
 
-km's `reactiveTree` (from `apps/km-tui/src/state/reactive-graph.ts`) already does signals-on-trees with projections and aggregates. The same DSL pattern applies to the engine:
+km's `reactiveTree` (from `@km/reactive-tree`, `packages/reactive-tree/src/index.ts`) already does signals-on-trees with projections and aggregates. The same DSL pattern applies to the engine:
 
 ```typescript
-// Current km reactive-graph (proven in production):
+// Current km @km/reactive-tree (proven in production):
 const store = reactiveTree((tree) => ({
   cursor: signal(false),
   cursorDescendant: tree.descendants((s) => s.cursor).some(),

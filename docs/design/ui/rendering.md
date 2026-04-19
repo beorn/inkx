@@ -830,7 +830,7 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 | `cursorInDescendant` (card-only, manual sync) | `cursorDescendant` (all nodes, reduced signal) |
 | Manual `prevDescendantCardId` tracking | Automatic via `batch()` + counts |
 | `expandedEditCardId === nodeId` for expansion | `editingDescendant` (reduced signal) |
-| `tree-concerns.ts` (prototype) | `reduced-signals.ts` (production) |
+| `tree-concerns.ts` (prototype) | `@km/reactive-tree` (production, `packages/reactive-tree/src/index.ts`) |
 
 ### v2 — Remaining (km-tui.v2-reactive-tree)
 

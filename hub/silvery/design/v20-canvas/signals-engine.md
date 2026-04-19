@@ -55,9 +55,9 @@ When one child's text changes:
 
 This subsumes flexily's fingerprint cache — signals have built-in memoization via equality checks.
 
-## Proven pattern: km's reactive-graph.ts
+## Proven pattern: km's @km/reactive-tree
 
-km already has a production signal-on-tree system in `apps/km-tui/src/state/reactive-graph.ts`:
+km already has a production signal-on-tree system in `@km/reactive-tree` (`packages/reactive-tree/src/index.ts`):
 
 ```typescript
 const store = reactiveTree(
@@ -74,7 +74,7 @@ const store = reactiveTree(
 This uses alien-signals computed() for tree aggregates — projections up (ancestors) and down (descendants) with `.some()`, `.count()`, `.reduce()`. The same pattern applies to layout:
 
 ```typescript
-// Hypothetical layout-as-signals (same reactive-graph DSL pattern)
+// Hypothetical layout-as-signals (same @km/reactive-tree DSL pattern)
 const layoutTree = reactiveTree((tree) => ({
   // Leaf-up: intrinsic size
   baseSize: computed(() => measure(style(), constraints())),
@@ -93,7 +93,7 @@ const layoutTree = reactiveTree((tree) => ({
 }))
 ```
 
-The key: reactive-graph already handles the hard parts (lazy node creation, tree rebinding, efficient walk caching). Extending it to layout signals is a natural progression, not a new invention.
+The key: @km/reactive-tree already handles the hard parts (lazy node creation, tree rebinding, efficient walk caching). Extending it to layout signals is a natural progression, not a new invention.
 
 ## Overhead considerations
 
@@ -101,7 +101,7 @@ The key: reactive-graph already handles the hard parts (lazy node creation, tree
 
 **Memory per signal**: alien-signals uses ~40 bytes per signal/computed. 12,000 cell computeds = ~480KB. Current TerminalBuffer is ~240KB (12,000 × 20 bytes per cell). 2x memory for signals. Acceptable for terminal, may need optimization for canvas (spatial grouping — one signal per tile of 16 cells instead of per-cell).
 
-**reactive-graph overhead**: km's reactive-graph lazily creates per-node signal records. For a 500-node kanban, ~2000 signals (4 per node). Cost is dominated by alien-signals' internal tracking, which benchmarks at ~50ns per computed update. 2000 × 50ns = 100μs for a full-tree recompute — well under 1ms.
+**@km/reactive-tree overhead**: km's @km/reactive-tree lazily creates per-node signal records. For a 500-node kanban, ~2000 signals (4 per node). Cost is dominated by alien-signals' internal tracking, which benchmarks at ~50ns per computed update. 2000 × 50ns = 100μs for a full-tree recompute — well under 1ms.
 
 **Spatial grouping for canvas**: Instead of one signal per pixel, group cells into tiles (e.g., 16x16). One signal per tile. When a tile's dependency changes, the tile recomputes its 256 cells. Reduces signal count from 2M (1920×1080) to ~8K tiles. Each tile is a computed that renders its region from the scene graph nodes that intersect it.
 
@@ -191,7 +191,7 @@ No other terminal or canvas framework uses end-to-end signals for rendering. Rea
 ### 3. Overlapping regions — SOLVED BY SPATIAL INDEX
 
 **Original concern**: Absolute positioning + z-order mean multiple nodes affect one cell.
-**Mitigation**: Spatial index (grid/hash) as a computed signal. `cell(5,3) = computed(() => topmost(spatialIndex.at(5,3)))`. When a node moves, only affected index entries invalidate. Same pattern as km's `rectRegistry` for hit testing. Can also use the reactive-graph `.reduce()` pattern: `cellValue: tree.descendants(s => s.renderedCells).reduce(overlay, emptyCell)` — the overlay reducer takes the topmost non-transparent cell. Proven in production with km's `excludedSigils` aggregate.
+**Mitigation**: Spatial index (grid/hash) as a computed signal. `cell(5,3) = computed(() => topmost(spatialIndex.at(5,3)))`. When a node moves, only affected index entries invalidate. Same pattern as km's `rectRegistry` for hit testing. Can also use the @km/reactive-tree `.reduce()` pattern: `cellValue: tree.descendants(s => s.renderedCells).reduce(overlay, emptyCell)` — the overlay reducer takes the topmost non-transparent cell. Proven in production with km's `excludedSigils` aggregate.
 
 ### 4. Debugging — ACTUALLY BETTER THAN CURRENT
 
@@ -211,7 +211,7 @@ No other terminal or canvas framework uses end-to-end signals for rendering. Rea
 
 - **Two-tier approach**: Signals for props/style changes (frequent, fine-grained). Imperative insert/remove for structure changes (rare, amortized). SolidJS naturally provides this — its compiler uses imperative DOM operations for structure and reactive effects for values. Structure changes don't go through the signal graph.
 
-- **Granular invalidation**: Instead of invalidating everything on rebind, only invalidate computeds whose traversal path includes the mutated edge. A new sibling of node X doesn't affect X's descendants — only X's parent's children-aggregates. The reactive-graph DSL knows direction (up/down) and can scope invalidation.
+- **Granular invalidation**: Instead of invalidating everything on rebind, only invalidate computeds whose traversal path includes the mutated edge. A new sibling of node X doesn't affect X's descendants — only X's parent's children-aggregates. The @km/reactive-tree DSL knows direction (up/down) and can scope invalidation.
 
 - **Batched structural mutations**: `batch(() => { insert(a); insert(b); remove(c); })` rebuilds the affected signal graph portion once. alien-signals' `startBatch/endBatch` already handles this — subscribers fire once after the batch.
 
@@ -221,7 +221,7 @@ No other terminal or canvas framework uses end-to-end signals for rendering. Rea
 | --------------------- | ----------------- | ---------------- | ------------------------------------------- |
 | Massive rewrite       | High              | Medium           | Incremental layering avoids big bang        |
 | Flexbox freeze loop   | Medium            | **Non-issue**    | Imperative code in computed is fine         |
-| Overlapping regions   | Medium            | **Solved**       | Spatial index + reactive-graph reduce       |
+| Overlapping regions   | Medium            | **Solved**       | Spatial index + @km/reactive-tree reduce       |
 | Debugging             | High              | **Advantage**    | Signal tracing + recompute-all STRICT       |
 | rebind() invalidation | High              | **Medium**       | Two-tier + granular invalidation + batching |
 
@@ -310,9 +310,9 @@ Both compose. Both are pipe(). Both let you swap any piece. The difference is sc
 
 ## Recommendation
 
-**P4 — keep as speculative exploration.** Terminal doesn't need it (2.5-5.2x wins are sufficient). Canvas v2.0 might — evaluate after @silvery/solid ships and we have real canvas performance data. The reactive-graph pattern is proven for tree aggregates (km uses it in production); extending to layout is a natural next step IF canvas profiling shows the tree-walk pipeline as a bottleneck.
+**P4 — keep as speculative exploration.** Terminal doesn't need it (2.5-5.2x wins are sufficient). Canvas v2.0 might — evaluate after @silvery/solid ships and we have real canvas performance data. The @km/reactive-tree pattern is proven for tree aggregates (km uses it in production); extending to layout is a natural next step IF canvas profiling shows the tree-walk pipeline as a bottleneck.
 
-**First concrete step**: When canvas v2.0 profiling shows pipeline as bottleneck, prototype layout-as-signals using the reactive-graph DSL pattern on a 10K-element canvas scene. Compare with current flexily tree walk. If signals win by 5x+, proceed with full engine.
+**First concrete step**: When canvas v2.0 profiling shows pipeline as bottleneck, prototype layout-as-signals using the @km/reactive-tree DSL pattern on a 10K-element canvas scene. Compare with current flexily tree walk. If signals win by 5x+, proceed with full engine.
 
 ## Progression (each step independent)
 

@@ -130,7 +130,7 @@ const app = pipe(withSignals(), withCommands(), withScopes())
 
 **Docs/launch**: silvery.dev canvas guide, standalone canvas examples (not km-dependent), "Yoga for 2D canvas" blog post, flexily+pretext demo page, npm publish @silvery/ag-canvas.
 
-**Speculative: signals engine** — if canvas profiling shows the tree-walk pipeline as bottleneck, the rendering engine itself could become signal-based (layout dimensions, cell content, output all as computed signals). Pattern proven by km's reactive-graph.ts. Design doc: [design/v20-canvas/signals-engine.md](design/v20-canvas/signals-engine.md). Bead: km-silvery.signals-engine (P4).
+**Speculative: signals engine** — if canvas profiling shows the tree-walk pipeline as bottleneck, the rendering engine itself could become signal-based (layout dimensions, cell content, output all as computed signals). Pattern proven by km's `@km/reactive-tree`. Design doc: [design/v20-canvas/signals-engine.md](design/v20-canvas/signals-engine.md). Bead: km-silvery.signals-engine (P4).
 
 **Beads**: `bd list --label horizon:v2.0` — km-silvery.ag-canvas (epic), shared-components, ag-scene-ready, engine, km-silvery.signals-engine (speculative)
 

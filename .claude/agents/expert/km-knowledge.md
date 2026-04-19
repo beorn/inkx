@@ -274,7 +274,7 @@ Each node gets stable alien-signals: `cursor`, `selected`, `editing`, `foldOverr
 
 ### Reactive graph
 
-`apps/km-tui/src/state/reactive-graph.ts` -- `reactiveTree()` creates a tree of per-node signal stores with inheritance (e.g., excluded sigils cascade from column to cards).
+`packages/reactive-tree/src/index.ts` (`@km/reactive-tree`) -- `reactiveTree()` creates a tree of per-node signal stores with inheritance (e.g., excluded sigils cascade from column to cards). Consumed by `apps/km-tui/src/state/reactive.ts`.
 
 ### OpCtx (action context)
 
@@ -578,8 +578,7 @@ state/                       -- State management
   board-app-store.ts         -- Main store factory (BoardAppStore)
   ui-reducer.ts              -- UIState, EditMode, PaneUI, SyncEvent
   ui-context.tsx             -- TreeRenderProvider, deriveTreeConfig
-  reactive.ts                -- Per-node signal store (NodeStore)
-  reactive-graph.ts          -- reactiveTree() for signal inheritance
+  reactive.ts                -- Per-node signal store (NodeStore), wraps @km/reactive-tree
   signal-store.ts            -- Signal store implementation
   store-context.tsx          -- React context for store
   pane-signals.ts            -- Per-pane signals (visibleLens, tree projection)
