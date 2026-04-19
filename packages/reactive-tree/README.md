@@ -78,13 +78,62 @@ tree.ancestors(...)                                            // same shape, wa
 `.some()` / `.count()` accept `{ includeSelf?: boolean }`. `.reduce()` also
 accepts `equals` for cheap stability checks.
 
-## Engine classification
+## Strategies
 
-| Shape                                  | Strategy                                       | Cost                      |
-| -------------------------------------- | ---------------------------------------------- | ------------------------- |
-| `descendants(...).some()` / `.count()` | Sparse ancestor index                          | O(depth) write, O(1) read |
-| `ancestors(...).some()` / `.count()`   | Walk-up per read                               | O(depth) per read         |
-| `.reduce(...)`                         | Walk-based (needs values, not just membership) | O(subtree) per read       |
+Aggregate maintenance is a **pluggable strategy**. The engine picks a sensible
+default for every descriptor shape — but you can override it per-aggregate
+when you know your signal's density differs from the default assumption, or
+when you want stricter invariant enforcement.
+
+```ts
+import { reactiveTree, sparse, walk, walkUp, singleton } from "@km/reactive-tree"
+
+reactiveTree(
+  (tree) => ({
+    cursor: signal(false),
+    // Default: descendants + some → sparse
+    cursorDescendant: tree.descendants((s) => s.cursor).some(),
+    // Explicit walk (fine for dense signals where sparse would pay too many writes)
+    tagHit: tree.descendants((s) => s.tag).count({ strategy: walk }),
+    // Stricter: throw if more than one node becomes truthy at once
+    cursorExact: tree.descendants((s) => s.cursor).some({ strategy: singleton }),
+  }),
+  traversal,
+)
+```
+
+### Built-in strategies
+
+| Strategy    | Use when                                        | Read                  | Write    |
+| ----------- | ----------------------------------------------- | --------------------- | -------- |
+| `sparse`    | Few nodes truthy at once (cursor, editing)      | O(1)                  | O(depth) |
+| `singleton` | Exactly one truthy at a time (runtime-enforced) | O(1)                  | O(depth) |
+| `walkUp`    | Ancestors direction (always cheap, depth-bound) | O(depth)              | O(1)     |
+| `walk`      | Reference impl, any aggregate / any density     | O(subtree) / O(depth) | O(1)     |
+
+### Default resolution
+
+| Shape                                  | Default strategy | Cost                               |
+| -------------------------------------- | ---------------- | ---------------------------------- |
+| `descendants(...).some()` / `.count()` | `sparse`         | O(depth) write, O(1) read          |
+| `ancestors(...).some()` / `.count()`   | `walk`           | O(depth) per read                  |
+| `.reduce(...)`                         | `walk`           | O(subtree) per read (needs values) |
+
+### Writing a custom strategy
+
+A strategy is a plain factory function — no class, no registry. Implement
+`Strategy = (ctx) => StrategyInstance` and pass it as `{ strategy: myStrategy }`:
+
+```ts
+import type { Strategy } from "@km/reactive-tree"
+
+const noop: Strategy = (ctx) => ({
+  read: (_nodeId) => () => {
+    ctx.treeVersion()
+    return false
+  },
+})
+```
 
 The sparse-ancestor-index inversion is what makes 500K-node vaults viable: on
 cursor moves, `cursorDescendant` reads cost O(1) instead of O(subtree). See

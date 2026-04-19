@@ -18,8 +18,14 @@ engine's history and the three rewrites that got us here.
 
 **Do NOT reimplement:**
 
-- A second reactive engine next to this one. alien-signals `computed()` is the dependency tracker; this package is the tree-classification layer on top of it. If you need a new aggregate shape, add it to the descriptor classifier in `src/index.ts`, don't build a parallel engine.
-- Per-node bookkeeping Maps that shadow the existing `sparseIndices`. The sparse-ancestor index is the single source of truth for `descendants(...).some()/.count()` — extend it, don't fork it.
+- A second reactive engine next to this one. alien-signals `computed()` is the dependency tracker; this package is the tree-classification layer on top of it.
+- Per-node bookkeeping Maps that shadow an existing strategy. Strategies own their state; if the built-in `sparse` or `walk` doesn't fit, write a new strategy factory (see `strategies/`) — don't fork the engine.
+
+**Extension points** (composable, per `docs/principles.md`):
+
+- **New aggregate shape** (e.g. `topK`, `mostRecent`): write a new strategy factory in `src/strategies/`. The factory is `(ctx: StrategyContext) => StrategyInstance`. Plug it in by passing `{ strategy: myStrategy }` to the DSL — no engine changes needed.
+- **Different default**: edit `src/defaults.ts::resolveDefaultStrategy`. Document WHY the new default beats the old one in the commit message.
+- **New DSL method** (e.g. `tree.siblings(...)` alongside descendants/ancestors): add to `TreeDSL` in `src/index.ts` + extend `Descriptor.dir` to carry the new direction. Built-in strategies pattern-match on dir; update them when adding new directions.
 
 **Invariants:**
 

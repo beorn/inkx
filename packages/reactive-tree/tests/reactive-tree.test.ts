@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest"
 import { signal, effect } from "alien-signals"
-import { reactiveTree, type Traversal, type ReactiveTree } from "../src/index.ts"
+import { reactiveTree, sparse, walk, walkUp, singleton, type Traversal, type ReactiveTree } from "../src/index.ts"
 
 // ─── Test Tree ──────────────────────────────────────────────────────────────
 
@@ -511,5 +511,108 @@ describe("sparse-index: atomicity / re-entrancy / bootstrap", () => {
     sub.cursor(true)
     expect(runs - baseline).toBe(0)
     stop()
+  })
+})
+
+// ─── Phase 2b: explicit strategy selection via DSL ──────────────────────────
+//
+// Default behaviour picks `sparse` for descendants+some/count and `walk` for
+// everything else. Users can override via `{ strategy: ... }` on any
+// aggregate. These tests verify the override plumbing and the walk fallback.
+
+describe("strategy selection via DSL option", () => {
+  function makeWithStrategy(traversal: Traversal, strategy?: ReturnType<typeof sparse> extends infer S ? S : never) {
+    // `sparse` is a factory (not an instance) — but the test-helper signature
+    // here is just accepting any Strategy value. Cast to `any` to keep the DSL
+    // call readable; the engine-level test below uses the real type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s: any = strategy
+    return reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        cursorDescendant: tree.descendants((x: { cursor: unknown }) => x.cursor).some(s ? { strategy: s } : undefined),
+      }),
+      traversal,
+    )
+  }
+
+  it("explicit sparse strategy produces identical results to default", () => {
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        desc: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: sparse } as any),
+      }),
+      simpleTree(),
+    )
+    store.get("sub1").cursor(true)
+    expect(store.get("card1").desc()).toBe(true)
+    expect(store.get("col1").desc()).toBe(true)
+    expect(store.get("col2").desc()).toBe(false)
+  })
+
+  it("explicit walk strategy works end-to-end and produces same results", () => {
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        desc: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: walk } as any),
+      }),
+      simpleTree(),
+    )
+    store.get("sub1").cursor(true)
+    expect(store.get("card1").desc()).toBe(true)
+    expect(store.get("col1").desc()).toBe(true)
+    expect(store.get("col2").desc()).toBe(false)
+    // Cross-branch move clears cleanly
+    store.get("sub1").cursor(false)
+    store.get("card3").cursor(true)
+    expect(store.get("col1").desc()).toBe(false)
+    expect(store.get("col2").desc()).toBe(true)
+  })
+
+  it("singleton strategy enforces exactly-one-truthy invariant at runtime", () => {
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        desc: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: singleton } as any),
+      }),
+      simpleTree(),
+    )
+    store.get("sub1").cursor(true)
+    expect(store.get("col1").desc()).toBe(true)
+    // Second truthy while first is still truthy → throw
+    expect(() => store.get("sub2").cursor(true)).toThrow(/singleton strategy violated/)
+    // Clear first, then set second — works
+    store.get("sub1").cursor(false)
+    store.get("sub2").cursor(true)
+    expect(store.get("card1").desc()).toBe(true)
+  })
+
+  it("walkUp strategy is an alias that requires dir='up'", () => {
+    const store = reactiveTree(
+      (tree) => ({
+        selected: signal(false),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ancestorHas: tree.ancestors((x: { selected: unknown }) => x.selected).some({ strategy: walkUp } as any),
+      }),
+      simpleTree(),
+    )
+    store.get("card1").selected(true)
+    expect(store.get("sub1").ancestorHas()).toBe(true)
+    expect(store.get("sub2").ancestorHas()).toBe(true)
+    expect(store.get("card2").ancestorHas()).toBe(false)
+    // Using walkUp on a descendants() descriptor → throws at construction
+    expect(() =>
+      reactiveTree(
+        (tree) => ({
+          cursor: signal(false),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          desc: tree.descendants((x: { cursor: unknown }) => x.cursor).some({ strategy: walkUp } as any),
+        }),
+        simpleTree(),
+      ),
+    ).toThrow(/walkUp strategy requires dir='up'/)
   })
 })

@@ -3,9 +3,10 @@
  *
  * A materialized-view engine over any tree. Writable per-node state is
  * expressed with `signal()`; tree-scoped aggregates (some/count/reduce over
- * ancestors or descendants) are expressed declaratively and classified by
- * the engine. Sparse descendant booleans are indexed automatically for
- * O(depth) writes + O(1) reads instead of O(subtree) walks.
+ * ancestors or descendants) are expressed declaratively and maintained by a
+ * pluggable `Strategy`. Defaults cover the common cases (sparse ancestor index
+ * for descendants(.some/.count), walk for everything else); users can supply
+ * their own strategy when the defaults don't fit.
  *
  * ```ts
  * import { signal } from "alien-signals"
@@ -25,10 +26,13 @@
  * store.get("card1").cursorDescendant()  // true (cached computed)
  * ```
  *
- * Engine classification:
- * - `descendants(...).some()` / `.count()` → sparse ancestor index (O(depth) write, O(1) read)
- * - `ancestors(...).some()` / `.count()`   → walk-up per read (cheap; bounded by depth)
- * - `.reduce(...)`                         → walk-based (needs values, not just membership)
+ * Engine layering:
+ *
+ *   1. `types.ts`        — Descriptor, Traversal, Sig
+ *   2. `strategy.ts`     — Strategy + StrategyContext + StrategyInstance
+ *   3. `strategies/`     — sparse, walk, walkUp, singleton implementations
+ *   4. `defaults.ts`     — which strategy the engine picks when user omits one
+ *   5. `index.ts` (here) — the factory that wires everything together
  *
  * Traversal is duck-typed (`parent(id) → string|null`, `children(id) → string[]`) —
  * the engine never assumes how your tree is stored. Call `rebind(traversal)` when
@@ -37,6 +41,16 @@
  */
 
 import { signal, computed, startBatch, endBatch, getActiveSub, setActiveSub } from "alien-signals"
+import type { Sig, Descriptor, Traversal } from "./types.ts"
+import { DESC, isDescriptor } from "./types.ts"
+import type { Strategy, StrategyContext, StrategyInstance } from "./strategy.ts"
+import { resolveDefaultStrategy } from "./defaults.ts"
+
+// Re-export the strategy surface so consumers can `import { sparse } from "@km/reactive-tree"`
+// instead of reaching into a subpath.
+export type { Strategy, StrategyContext, StrategyInstance } from "./strategy.ts"
+export type { Traversal, Descriptor, Sig } from "./types.ts"
+export { sparse, walk, walkUp, singleton } from "./strategies/index.ts"
 
 // ─── Internal batching/untracked helpers ────────────────────────────────────
 // Expose alien-signals' low-level primitives in local, safe wrappers so the
@@ -64,35 +78,6 @@ function runUntracked<T>(fn: () => T): T {
   }
 }
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type Sig<T> = { (): T; (value: T): void }
-
-/** Any object with parent + children. Duck typed. */
-export interface Traversal {
-  parent(id: string): string | null
-  children(id: string): readonly string[]
-}
-
-// ─── Descriptor (DSL output) ────────────────────────────────────────────────
-
-const DESC = Symbol.for("km:tree-computed")
-
-interface Descriptor {
-  [DESC]: true
-  dir: "up" | "down"
-  key: string
-  type: "some" | "count" | "reduce"
-  reducer?: (acc: unknown, value: unknown) => unknown
-  initial?: unknown | (() => unknown)
-  equals?: (a: unknown, b: unknown) => boolean
-  includeSelf?: boolean
-}
-
-function isDescriptor(v: unknown): v is Descriptor {
-  return v != null && typeof v === "object" && DESC in v
-}
-
 // ─── Key capture ────────────────────────────────────────────────────────────
 
 function captureKey<T>(accessor: (s: T) => unknown): string {
@@ -113,20 +98,41 @@ function captureKey<T>(accessor: (s: T) => unknown): string {
 
 // ─── Tree DSL builder ───────────────────────────────────────────────────────
 
-interface DirectionBuilder {
-  some(opts?: { includeSelf?: boolean }): Descriptor
-  count(opts?: { includeSelf?: boolean }): Descriptor
-  reduce<V>(
-    reducer: (acc: V, value: unknown) => V,
-    initial: V | (() => V),
-    opts?: { includeSelf?: boolean; equals?: (a: V, b: V) => boolean },
-  ): Descriptor
+/** Shared option bag for every aggregate method. */
+interface AggregateOptions {
+  includeSelf?: boolean
+  /** Override the engine's default strategy for this descriptor. */
+  strategy?: Strategy
+}
+
+interface ReduceOptions<V> extends AggregateOptions {
+  equals?: (a: V, b: V) => boolean
+}
+
+export interface DirectionBuilder {
+  some(opts?: AggregateOptions): Descriptor
+  count(opts?: AggregateOptions): Descriptor
+  reduce<V>(reducer: (acc: V, value: unknown) => V, initial: V | (() => V), opts?: ReduceOptions<V>): Descriptor
 }
 
 function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
   return {
-    some: (opts) => ({ [DESC]: true as const, dir, key, type: "some", includeSelf: opts?.includeSelf }),
-    count: (opts) => ({ [DESC]: true as const, dir, key, type: "count", includeSelf: opts?.includeSelf }),
+    some: (opts) => ({
+      [DESC]: true as const,
+      dir,
+      key,
+      type: "some",
+      includeSelf: opts?.includeSelf,
+      strategy: opts?.strategy,
+    }),
+    count: (opts) => ({
+      [DESC]: true as const,
+      dir,
+      key,
+      type: "count",
+      includeSelf: opts?.includeSelf,
+      strategy: opts?.strategy,
+    }),
     reduce: (reducer, initial, opts) => ({
       [DESC]: true as const,
       dir,
@@ -136,6 +142,7 @@ function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
       initial,
       equals: opts?.equals as ((a: unknown, b: unknown) => boolean) | undefined,
       includeSelf: opts?.includeSelf,
+      strategy: opts?.strategy,
     }),
   }
 }
@@ -157,7 +164,7 @@ function* walkDown(t: Traversal, id: string): Iterable<string> {
   }
 }
 
-function* walkUp(t: Traversal, id: string): Iterable<string> {
+function* walkUpIter(t: Traversal, id: string): Iterable<string> {
   let cur = t.parent(id)
   while (cur !== null) {
     yield cur
@@ -193,14 +200,12 @@ export function reactiveTree<T extends SchemaDef>(
   factory: (tree: TreeDSL) => T,
   initialTraversal: Traversal,
 ): ReactiveTree<T> {
-  // Build schema via DSL
   const dsl: TreeDSL = {
     descendants: (accessor) => dirBuilder("down", captureKey(accessor)),
     ancestors: (accessor) => dirBuilder("up", captureKey(accessor)),
   }
   const schema = factory(dsl)
 
-  // Separate signals from descriptors
   const signalDefs: Array<{ name: string; init: unknown }> = []
   const computedDefs: Array<{ name: string; desc: Descriptor }> = []
   for (const [name, value] of Object.entries(schema)) {
@@ -211,84 +216,66 @@ export function reactiveTree<T extends SchemaDef>(
   let traversal = initialTraversal
   const nodes = new Map<string, NodeAccessor<T>>()
 
-  // Shared version signal — every tree-walking computed reads it to establish
-  // a dependency. rebind() bumps it to atomically invalidate all cached
-  // computeds, forcing them to re-evaluate against the new traversal.
+  // Shared version signal — every strategy reads it in its per-node computed
+  // so rebind() invalidates every tree-walking read atomically.
   const treeVersion = signal(0)
-
-  // ─── Sparse ancestor index for `descendants().some()/.count()` ─────────────
-  //
-  // Keeps each descendants + some/count descriptor O(depth) per signal write
-  // instead of O(subtree) per read. For every signal key that appears in a
-  // `descendants(...).some()` or `.count()` descriptor, we maintain:
-  //
-  //   truthyNodes    = Set of nodeIds where signal[key]() is truthy
-  //   countByAncestor = Map<ancestorId, number_of_truthy_descendants>
-  //   version        = signal bumped on any index change (drives read invalidation)
-  //
-  // Writes to indexed signals walk UP from the written node once (O(depth))
-  // and adjust countByAncestor entries. Reads of the inverted computed return
-  // `countByAncestor.get(nodeId) ?? 0` — O(1).
-  //
-  // This inverts the ~100K children() calls per cursor move on large vaults
-  // (km-tui.reactive-desc-walk-inversion). `reduce` descriptors and the
-  // ancestors direction keep their existing walk-based implementation —
-  // `reduce` needs the actual values, not just membership, and walkUp is
-  // already cheap (max O(depth)).
-  interface SparseIndex {
-    truthyNodes: Set<string>
-    countByAncestor: Map<string, number>
-    /** Signal readers depend on to invalidate when the index changes. */
-    version: Sig<number>
-    /** Plain counter — avoids read-then-write on the version signal. */
-    epoch: number
-  }
-  const sparseIndices = new Map<string, SparseIndex>()
-  for (const { desc } of computedDefs) {
-    if (desc.dir === "down" && (desc.type === "some" || desc.type === "count") && !sparseIndices.has(desc.key)) {
-      sparseIndices.set(desc.key, { truthyNodes: new Set(), countByAncestor: new Map(), version: signal(0), epoch: 0 })
-    }
-  }
-  // Plain counter for treeVersion, same reasoning as idx.epoch.
   let treeEpoch = 0
 
-  function indexIncrement(idx: SparseIndex, nodeId: string): void {
-    for (const anc of walkUp(traversal, nodeId)) {
-      idx.countByAncestor.set(anc, (idx.countByAncestor.get(anc) ?? 0) + 1)
+  // ─── Strategy bindings ────────────────────────────────────────────────────
+  // For each descriptor: resolve a strategy, build a context, mount it.
+  // Group by observed key so signal writes can dispatch to every interested
+  // strategy in O(1) per descriptor.
+
+  interface Binding {
+    name: string
+    desc: Descriptor
+    instance: StrategyInstance
+    ctx: StrategyContext
+  }
+
+  const bindings: Binding[] = []
+  const bindingsByKey = new Map<string, Binding[]>()
+
+  function getAccessorForCtx(nodeId: string): Record<string, unknown> {
+    return get(nodeId) as unknown as Record<string, unknown>
+  }
+
+  for (const { name, desc } of computedDefs) {
+    const strategyFactory: Strategy = resolveDefaultStrategy(desc)
+    const ctx: StrategyContext = {
+      descriptor: desc,
+      get: getAccessorForCtx,
+      traversal: () => traversal,
+      treeVersion: () => treeVersion(),
+      walkDown: (id) => walkDown(traversal, id),
+      walkUp: (id) => walkUpIter(traversal, id),
     }
-  }
-  function indexDecrement(idx: SparseIndex, nodeId: string): void {
-    for (const anc of walkUp(traversal, nodeId)) {
-      const n = (idx.countByAncestor.get(anc) ?? 0) - 1
-      if (n <= 0) idx.countByAncestor.delete(anc)
-      else idx.countByAncestor.set(anc, n)
+    const instance = strategyFactory(ctx)
+    const binding: Binding = { name, desc, instance, ctx }
+    bindings.push(binding)
+    let arr = bindingsByKey.get(desc.key)
+    if (!arr) {
+      arr = []
+      bindingsByKey.set(desc.key, arr)
     }
+    arr.push(binding)
   }
-  function indexSet(key: string, nodeId: string, truthy: boolean): void {
-    const idx = sparseIndices.get(key)
-    if (!idx) return
-    runBatch(() => {
-      if (truthy) {
-        if (idx.truthyNodes.has(nodeId)) return
-        idx.truthyNodes.add(nodeId)
-        indexIncrement(idx, nodeId)
-      } else {
-        if (!idx.truthyNodes.has(nodeId)) return
-        idx.truthyNodes.delete(nodeId)
-        indexDecrement(idx, nodeId)
-      }
-      idx.version(++idx.epoch)
-    })
+
+  function dispatchSignalChange(key: string, nodeId: string, oldValue: unknown, newValue: unknown): void {
+    const arr = bindingsByKey.get(key)
+    if (!arr) return
+    for (const b of arr) b.instance.onSignalChange?.(nodeId, oldValue, newValue)
   }
-  function rebuildSparseIndices(): void {
-    // Traversal may have changed — ancestor chains are different. Rebuild the
-    // countByAncestor maps for every indexed key against the new traversal.
-    for (const idx of sparseIndices.values()) {
-      idx.countByAncestor.clear()
-      for (const nid of idx.truthyNodes) indexIncrement(idx, nid)
-      idx.version(++idx.epoch)
-    }
+
+  function dispatchRebind(): void {
+    for (const b of bindings) b.instance.onRebind?.()
   }
+
+  function dispatchClear(): void {
+    for (const b of bindings) b.instance.onClear?.()
+  }
+
+  // ─── Node construction ────────────────────────────────────────────────────
 
   function get(id: string): NodeAccessor<T> {
     let node = nodes.get(id)
@@ -296,127 +283,57 @@ export function reactiveTree<T extends SchemaDef>(
 
     const accessor: Record<string, unknown> = {}
 
-    // Signals — fresh per node, cloned initial value. Signals whose key appears
-    // in a sparse-indexed descriptor are wrapped so writes update the index.
-    // Bootstrap of truthy initial values is deferred until after `nodes.set`
-    // so index maintenance can't re-enter the constructor via `get(id)`.
-    const truthyBootstrap: string[] = []
+    // Signals — wrapped to dispatch onSignalChange when the observed key
+    // is watched by at least one strategy. Bootstrap of truthy initial
+    // values is deferred until after `nodes.set` so strategy side effects
+    // can't re-enter the constructor via `get(id)`.
+    const truthyBootstrap: Array<{ name: string; value: unknown }> = []
     for (const { name, init } of signalDefs) {
       const cloned = Array.isArray(init) ? [...init] : typeof init === "object" && init !== null ? { ...init } : init
       const sig = signal(cloned) as Sig<unknown>
-      if (sparseIndices.has(name)) {
+      if (bindingsByKey.has(name)) {
         const nodeId = id
-        function indexedSig(value?: unknown) {
+        const key = name
+        function wrappedSig(value?: unknown) {
           // Read path: no args → return current value (caller's tracking applies)
           // eslint-disable-next-line prefer-rest-params
           if (arguments.length === 0) return sig()
-          // Wrap the whole write in a batch so observers see one combined
-          // update (signal flip + index version bump) instead of two.
           runBatch(() => {
             // Untracked: a caller inside a computed/effect shouldn't subscribe
             // to this signal just because the wrapper reads it to detect
-            // truthiness flips. Only explicit reads (the 0-arg branch above)
-            // should establish a dependency.
-            const oldTruthy = runUntracked(() => !!sig())
+            // value changes. Only explicit reads (the 0-arg branch) should
+            // establish a dependency.
+            const oldValue = runUntracked(() => sig())
+            // Dispatch BEFORE the signal write so strategies can veto the
+            // change by throwing (e.g., singleton's invariant enforcement).
+            // If a strategy throws, the signal stays at oldValue — the write
+            // below never runs.
+            dispatchSignalChange(key, nodeId, oldValue, value)
             sig(value)
-            const newTruthy = !!value
-            if (oldTruthy !== newTruthy) indexSet(name, nodeId, newTruthy)
           })
           return undefined
         }
-        accessor[name] = indexedSig
-        if (!!cloned) truthyBootstrap.push(name)
+        accessor[name] = wrappedSig
+        if (!!cloned) truthyBootstrap.push({ name, value: cloned })
       } else {
         accessor[name] = sig
       }
     }
 
-    // Computeds — derived from tree walks
-    for (const { name, desc } of computedDefs) {
-      const nodeId = id // capture for closure
-      const idx = sparseIndices.get(desc.key)
-      if (desc.type === "some" && desc.dir === "down" && idx) {
-        // Sparse-inverted: O(1) per read instead of O(subtree)
-        accessor[name] = computed(() => {
-          treeVersion() // rebind invalidation
-          idx.version() // index mutation invalidation
-          if (desc.includeSelf) {
-            const selfSig = (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]
-            if (selfSig?.()) return true
-          }
-          return (idx.countByAncestor.get(nodeId) ?? 0) > 0
-        })
-      } else if (desc.type === "count" && desc.dir === "down" && idx) {
-        accessor[name] = computed(() => {
-          treeVersion()
-          idx.version()
-          let n = idx.countByAncestor.get(nodeId) ?? 0
-          if (desc.includeSelf) {
-            const selfSig = (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]
-            if (selfSig?.()) n++
-          }
-          return n
-        })
-      } else if (desc.type === "some") {
-        // ancestors direction — walkUp is cheap (max O(depth))
-        accessor[name] = computed(() => {
-          treeVersion()
-          if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
-          for (const vid of walkUp(traversal, nodeId)) {
-            if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
-          }
-          return false
-        })
-      } else if (desc.type === "count") {
-        accessor[name] = computed(() => {
-          treeVersion()
-          let n = 0
-          if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
-          for (const vid of walkUp(traversal, nodeId)) {
-            if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
-          }
-          return n
-        })
-      } else {
-        // reduce — needs actual values, not just membership. Keep walk-based.
-        accessor[name] = computed(() => {
-          treeVersion()
-          const reducer = desc.reducer!
-          let acc = typeof desc.initial === "function" ? (desc.initial as () => unknown)() : desc.initial
-
-          if (desc.dir === "up") {
-            // Root-to-self order for ancestors
-            const ancestors: string[] = []
-            if (desc.includeSelf) ancestors.push(nodeId)
-            for (const vid of walkUp(traversal, nodeId)) ancestors.push(vid)
-            ancestors.reverse()
-            for (const vid of ancestors) {
-              const sig = (get(vid) as Record<string, Sig<unknown>>)[desc.key]
-              if (sig) acc = reducer(acc, sig())
-            }
-          } else {
-            if (desc.includeSelf) {
-              const sig = (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]
-              if (sig) acc = reducer(acc, sig())
-            }
-            for (const vid of walkDown(traversal, nodeId)) {
-              const sig = (get(vid) as Record<string, Sig<unknown>>)[desc.key]
-              if (sig) acc = reducer(acc, sig())
-            }
-          }
-          return acc
-        })
-      }
+    // Computeds — produced by each descriptor's strategy.
+    for (const b of bindings) {
+      accessor[b.name] = computed(b.instance.read(id))
     }
 
     node = accessor as NodeAccessor<T>
-    // Register the node BEFORE seeding index entries — if an external observer
-    // is triggered by the index update and calls `get(id)` re-entrantly, we
-    // want it to find the already-registered accessor, not recurse.
+    // Register BEFORE seeding — if a strategy's onSignalChange observer calls
+    // get(id) re-entrantly, we want it to find the already-registered accessor.
     nodes.set(id, node)
     if (truthyBootstrap.length > 0) {
       runBatch(() => {
-        for (const name of truthyBootstrap) indexSet(name, id, true)
+        for (const { name, value } of truthyBootstrap) {
+          dispatchSignalChange(name, id, undefined, value)
+        }
       })
     }
     return node
@@ -428,11 +345,7 @@ export function reactiveTree<T extends SchemaDef>(
     clear: () => {
       runBatch(() => {
         nodes.clear()
-        for (const idx of sparseIndices.values()) {
-          idx.truthyNodes.clear()
-          idx.countByAncestor.clear()
-          idx.version(++idx.epoch)
-        }
+        dispatchClear()
         treeVersion(++treeEpoch)
       })
     },
@@ -442,19 +355,14 @@ export function reactiveTree<T extends SchemaDef>(
     rebind(t: Traversal) {
       runBatch(() => {
         traversal = t
-        // Rebuild sparse indices first — parent chains are different under
-        // the new traversal, so countByAncestor entries would be wrong
-        // otherwise.
-        rebuildSparseIndices()
-        // Bump the shared version signal to invalidate every cached
-        // tree-walking computed. Without this, computeds that walked with
-        // the old traversal would keep returning their stale cached values
-        // until one of their per-node signal dependencies changed.
+        // Rebuild strategy indices first — ancestor chains are different under
+        // the new traversal.
+        dispatchRebind()
+        // Bump the shared version signal. Strategies' `read` computeds read
+        // this, so every cached aggregate is invalidated in one go.
         //
-        // We intentionally do NOT clear `nodes` here. Clearing would
-        // destroy signal instances that React components are subscribed to
-        // via useSignal, causing stale subscriptions (components would
-        // never see subsequent writes).
+        // We intentionally do NOT clear `nodes` — it would destroy signal
+        // instances that React components are subscribed to via `useSignal`.
         treeVersion(++treeEpoch)
       })
     },
