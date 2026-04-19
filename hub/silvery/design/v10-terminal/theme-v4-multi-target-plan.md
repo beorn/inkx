@@ -34,25 +34,32 @@ Acceptance:
 
 **Uses `/refactor plan` approach.** Single session, single commit per logical change, verify with vitest.
 
-### Phase 2 — Polaris-strict token rename + full state-variant matrix (migration)
+### Phase 2 — Polaris grammar + Material vocabulary (migration)
 
-**Design decision (resolved 2026-04-19):** silvery has web-ambitions → favor cross-platform (Polaris/Tailwind) naming over TUI-native idioms. AND we're actively adding mouse-hover UI (SelectList, Tabs, ListView just shipped with hover → cursor movement). This phase is no longer a mechanical rename — it's a full taxonomy alignment.
+**Design decision (resolved 2026-04-19, refined same session):** silvery has web-ambitions, but "cross-platform consensus" doesn't equal "strict Polaris." Surveyed major systems:
 
-**Target naming (Polaris-aligned):**
+- **"error" vs "critical"**: Material 3, Carbon, Tailwind, shadcn/ui, Radix, Chakra, Ant Design, Claude Design all use **error**. Polaris is the outlier.
+- **Grammar** (`fg-*`/`bg-*`/`-hover`/`-active`): Polaris, Material, Tailwind, shadcn all agree.
+- **Pair convention** (`bg-X` + `fg-on-X`): Material, Polaris, shadcn (as `-foreground`).
+- **Interactive state matrix** (`bg-fill-<role>-hover/-active`): Polaris + Material.
+
+**Target: Polaris grammar + Material/shadcn vocabulary.** Best ergonomics (familiar names) + best logic (composable grammar) + broadest ecosystem recognition.
+
+**Target naming (refined):**
 
 | Old | New |
 |---|---|
 | `primary` | `bg-fill-accent` (interactive) / `$brand` (identity) |
-| `primaryfg` | `fg-on-fill` |
-| `muted` | `fg-subdued` |
+| `primaryfg` | `fg-on-accent` (per-role, not unified) |
+| `muted` | `fg-muted` (KEEP — Material/shadcn/ecosystem use "muted") |
 | `mutedbg` | `bg-surface-secondary` |
-| `error` | `fg-critical` (text) / `bg-fill-critical` (button) |
-| `errorfg` | `fg-on-fill` |
-| `warning` | `fg-caution` / `bg-fill-caution` |
+| `error` | `fg-error` / `bg-fill-error` (KEEP "error" — industry standard) |
+| `errorfg` | `fg-on-error` |
+| `warning` | `fg-warning` / `bg-fill-warning` (KEEP "warning") |
 | `success` | `fg-success` / `bg-fill-success` |
 | `info` | `fg-info` / `bg-fill-info` |
 | `disabledfg` | `fg-disabled` |
-| `inputborder` | `border-default` (or `border-secondary`) |
+| `inputborder` | `border-default` |
 | `focusborder` | `border-focus` |
 | `selectionbg` | `bg-selected` |
 | `cursorbg` | `cursor-fill` |
