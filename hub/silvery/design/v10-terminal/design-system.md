@@ -4,7 +4,7 @@
 
 **Prerequisite**: [docs/silvery-positioning-brief.md](../../../../docs/silvery-positioning-brief.md) — silvery is multi-target (terminal + web + canvas); this design system is built cross-platform-first.
 
-**Sub-plans** (concrete implementation work): [color-inherit-plan.md](color-inherit-plan.md), [backdrop-fade-plan.md](backdrop-fade-plan.md).
+**Sub-plans** (concrete implementation work): [sterling-preflight.md](sterling-preflight.md) (D1-D6 locked), [storybook-design.md](storybook-design.md), [color-inherit-plan.md](color-inherit-plan.md), [backdrop-fade-plan.md](backdrop-fade-plan.md).
 
 ---
 
@@ -709,12 +709,12 @@ Silvery will ship with `destructive` intent + `info` role. Apps that ignore thes
 
 ## Appendix H — open questions
 
-1. **Structured vs flat tokens at runtime** — Phase 2 lands the structured shape (`theme.error.fg`). Public CSS export auto-flattens. Confirm the structured shape is workable in hot paths.
-2. **Cross-design-system components** (silvery UI inside a `@silvery/design-material` ThemeProvider): fail-fast, fall back, or adapt? Current inclination: fail-fast with a clear error — mixing vocabularies is a design smell.
-3. **Hot-swap performance**: every Theme swap invalidates every styled cell. Is memoization at the token level enough, or do we need subtree-level Theme caching?
-4. **Scheme catalog inclusion policy** — 84 today, cap? WCAG is the current filter.
-5. **Priority / importance axis naming** — which word? Scope of components that need it? Whether it's a per-component prop or part of a higher-level toast/alert context.
-6. **Surface hierarchy for web/native** — `default` / `subtle` / `raised` / `overlay` is Sterling's v1. Material's `surfaceContainer*` ramp has 5 levels; do we need more before web lands, or refine on demand?
+Implementation-level decisions D1-D6 locked in [sterling-preflight.md](sterling-preflight.md) 2026-04-19. Remaining open questions:
+
+1. **Cross-design-system components** (silvery UI inside a `@silvery/design-material` ThemeProvider): fail-fast, fall back, or adapt? Current inclination: fail-fast with a clear error — mixing vocabularies is a design smell.
+2. **Hot-swap performance**: every Theme swap invalidates every styled cell. Is memoization at the token level enough, or do we need subtree-level Theme caching?
+3. **Scheme catalog inclusion policy** — 84 today, cap? WCAG is the current filter.
+4. **Surface hierarchy for web/native** — `default` / `subtle` / `raised` / `overlay` is Sterling's v1. Material's `surfaceContainer*` ramp has 5 levels; do we need more before web lands, or refine on demand?
 
 ---
 
