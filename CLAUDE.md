@@ -139,20 +139,22 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
 
-## Out-of-tree packages you also own (the `alien-*` + `bearlymade` ecosystem)
+## The `alien-*` family — "signals for a specific shape of data"
 
-**When you're about to design anything signal-related** (reactive state, collection projections, async bridges, tree aggregates, derived data), **check the alien-* family FIRST**. They live outside km and are easy to miss:
+Four sibling packages on top of [alien-signals](https://github.com/stackblitz/alien-signals). Three are beorn-authored and live at `github.com/beorn/bearly/packages/`. Each solves one data shape well; they **compose** for real apps.
 
-| Package | Shape | Where | When it applies |
-|---|---|---|---|
-| [`alien-signals`](https://github.com/stackblitz/alien-signals) | Scalar signals (upstream, not yours) | npm | primitive reactivity |
-| [`alien-projections`](https://www.npmjs.com/package/alien-projections) | Incremental array transforms (map/filter/sort) | `github:beorn/bearlymade/packages/alien-projections` | anywhere km has `Signal<T[]>` → `Signal<U[]>` |
-| [`alien-resources`](https://www.npmjs.com/package/alien-resources) | Async → signal bridge with loading/error/refetch | `github:beorn/bearlymade/packages/alien-resources` | anywhere km does async fetch behind a signal |
-| [`alien-trees`](https://www.npmjs.com/package/alien-trees) | Tree-scoped aggregates (some/count/reduce over ancestors/descendants) | `github:beorn/bearly/packages/alien-trees` (source) · npm `alien-trees@^0.1.1` | anywhere km needs "any descendant has X" or "inherited from ancestor" reactively |
+**Pick by what your data looks like:**
 
-**The invariant**: each `alien-*` package is "signals for a specific data shape" — values / arrays / async / trees. Peer-depends on alien-signals. Single API per package (no plugin system). They're bundled by `@silvery/signals` with React integration added on top.
+| Your data is…                                          | Reach for                                                              | What it gives you                                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **A plain value** (cursor, count, toggle)              | [`alien-signals`](https://github.com/stackblitz/alien-signals) _(upstream)_ | The primitive. `signal(v)`, `computed(fn)`, `effect(fn)`. Everything below builds on this.             |
+| **A list that changes over time** (rows, cards, todos) | [`alien-projections`](https://www.npmjs.com/package/alien-projections) | `createProjection(list, { key, map, filter, sort })` — when one row changes, only that row re-computes. |
+| **An async fetch** (API call, file load, DB query)     | [`alien-resources`](https://www.npmjs.com/package/alien-resources)     | `createResource(fetcher)` — `.loading()` / `.error()` / `.refetch()` + auto-cancels stale requests.    |
+| **A tree / hierarchy** (folders, outlines, nested UI)  | [`alien-trees`](https://www.npmjs.com/package/alien-trees)             | `createTree(...)` — "any descendant has X?" / "inherit Y from an ancestor?" in O(1).                   |
 
-**Discoverability rule**: before building a new reactive primitive, `grep -rn "alien-" hub/ docs/` and check `github.com/beorn/bearlymade` for prior art. The family has grown; future additions may already exist there.
+A list of async-fetched trees of plain values uses all four together. Each package earns its place by exploiting one data shape well — collapsing them would lose the shape-specific wins (sparse ancestor index for trees, key-stable cache for arrays, abort-id race for async). React apps pull the whole family via `@silvery/signals`.
+
+**Discoverability rule for future work**: before building a new reactive primitive (derived data, sparse indexes, async bridges, collection transforms, tree-scoped queries), **check the family first**. `grep -rn "alien-" hub/ docs/ packages/` in km, then skim `github.com/beorn/bearly/packages/`. A session in April 2026 built `alien-trees` from scratch with a strategy plugin interface, then discovered afterward that the family has established conventions (one API, no plugins). The speculative surface had to be rolled back. If a new primitive is needed, design it in family style (peer-dep alien-signals, one API, ~400 LOC, Solid-inspired UX) and host it in `bearly/packages/` alongside its siblings.
 
 ## npm publish / release — load these skills FIRST
 
