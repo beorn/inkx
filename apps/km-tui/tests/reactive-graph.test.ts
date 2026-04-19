@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { signal } from "alien-signals"
+import { signal, effect } from "alien-signals"
 import { reactiveTree, type Traversal, type ReactiveTree } from "../src/state/reactive-graph.ts"
 
 // ─── Test Tree ──────────────────────────────────────────────────────────────
@@ -411,8 +411,6 @@ describe("excludedSigils multi-level propagation", () => {
 // Pro review of the sparse-ancestor-index inversion flagged five classes of
 // concerns beyond the existing 28-test suite. The tests below cover them so
 // regressions in the batching / untracking / bootstrap machinery are caught.
-
-import { effect } from "alien-signals"
 
 describe("sparse-index: atomicity / re-entrancy / bootstrap", () => {
   it("indexed write produces exactly one combined observation (no glitch)", () => {
