@@ -1,7 +1,7 @@
 ---
 description: "Tribe coordination — check sessions, send messages, view health/history. Use when user says /tribe."
 argument-hint: [sessions|send|health|history|retro|rename]
-allowed-tools: mcp__tribe__tribe.members, mcp__tribe__tribe.send, mcp__tribe__tribe.broadcast, mcp__tribe__tribe.history, mcp__tribe__tribe.rename, mcp__tribe__tribe.health, Bash(sqlite3:*)
+allowed-tools: mcp__plugin_tribe_tribe__tribe_members, mcp__plugin_tribe_tribe__tribe_send, mcp__plugin_tribe_tribe__tribe_broadcast, mcp__plugin_tribe_tribe__tribe_history, mcp__plugin_tribe_tribe__tribe_rename, mcp__plugin_tribe_tribe__tribe_health, Bash(sqlite3:*)
 ---
 
 # Tribe
