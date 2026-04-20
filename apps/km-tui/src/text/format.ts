@@ -7,8 +7,8 @@
  * Uses theme tokens via themeFg() for semantic coloring:
  * - $disabled-fg for dimmed chrome (suffixes, markers)
  * - $link for navigation elements (folders, files)
- * - $primary for headings and section names
- * - $success/$warning/$error for task status
+ * - $fg-accent for headings and section names
+ * - $fg-success/$fg-warning/$fg-error for task status
  */
 
 import { createTerm, type StyleChain } from "@silvery/ag-react"
@@ -100,10 +100,10 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
         return prefix + themeFg(name, "$link")
       case "mdsection": {
         const depth = computeSectionDepth(node, (id) => repo.getNode(id))
-        return prefix + themeFg("#".repeat(depth) + " ", "$fg-muted") + themeFg(name, "$primary")
+        return prefix + themeFg("#".repeat(depth) + " ", "$fg-muted") + themeFg(name, "$fg-accent")
       }
       default:
-        return prefix + themeFg(name, "$primary")
+        return prefix + themeFg(name, "$fg-accent")
     }
   }
 
@@ -116,11 +116,11 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
     // Only color the marker character, not the brackets
     const coloredMark =
       status === "done"
-        ? themeFg(inner, "$success")
+        ? themeFg(inner, "$fg-success")
         : status === "wip"
-          ? themeFg(inner, "$warning")
+          ? themeFg(inner, "$fg-warning")
           : status === "blocked"
-            ? themeFg(inner, "$error")
+            ? themeFg(inner, "$fg-error")
             : style.dim(inner)
     const checkbox = style.dim("[") + coloredMark + style.dim("]")
     return prefix + checkbox + " " + oneLine(node.content ?? "(no content)")
@@ -148,13 +148,13 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
 export function formatStatus(status: string): string {
   switch (status) {
     case "done":
-      return themeFg(status, "$success")
+      return themeFg(status, "$fg-success")
     case "wip":
       return themeFg(status, "$link")
     case "blocked":
-      return themeFg(status, "$error")
+      return themeFg(status, "$fg-error")
     case "waiting":
-      return themeFg(status, "$warning")
+      return themeFg(status, "$fg-warning")
     default:
       return status
   }

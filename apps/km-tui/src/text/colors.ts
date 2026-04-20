@@ -91,7 +91,7 @@ function resolveColor(color: string): string {
 
 /**
  * Apply a theme-aware foreground color to text.
- * Accepts $token strings ("$primary"), ANSI names ("red"), or hex ("#EBCB8B").
+ * Accepts $token strings ("$fg-accent"), ANSI names ("red"), or hex ("#EBCB8B").
  */
 export function themeFg(text: string, color: string, term?: StyleChain): string {
   const t = term ?? createTermStyle()

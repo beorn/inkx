@@ -184,7 +184,7 @@ export function ColumnHeader({
                 <Text bold={!isVirtual} color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
-                    {untitled ? <Text color={"$warning"}>{displayName}</Text> : displayName}
+                    {untitled ? <Text color={"$fg-warning"}>{displayName}</Text> : displayName}
                     {!isVirtual && isSigilName(node.name) && node.name && !slugsMatch(node.name, displayName) && (
                       <>
                         {" "}
@@ -195,7 +195,7 @@ export function ColumnHeader({
                   {hasBody && !isVirtual && <Text dimColor>{" ···"}</Text>}
                   {typeSuffix ? (
                     <Text
-                      color={isColumnSelected ? "$muted" : undefined}
+                      color={isColumnSelected ? "$fg-muted" : undefined}
                       dimColor={!isColumnSelected}
                     >{` ${typeSuffix}`}</Text>
                   ) : (
@@ -209,10 +209,10 @@ export function ColumnHeader({
                   <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
                     {wipExceeded ? (
                       <Text
-                        color={"$error"}
+                        color={"$fg-error"}
                       >{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                     ) : (
-                      <Text color={isColumnSelected ? headerStyle.color : "$muted"}>{` ${countDisplay}`}</Text>
+                      <Text color={isColumnSelected ? headerStyle.color : "$fg-muted"}>{` ${countDisplay}`}</Text>
                     )}
                   </Text>
                 </Box>
@@ -372,7 +372,7 @@ export function NodeCardView({
     <Box flexDirection="column" width={width}>
       {/* Parent context for symlinked tasks — Cmd+click navigable when parentNodeId is set */}
       {parentContext && parentNodeId && (
-        <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+        <Link href={`km://node/${parentNodeId}`} color="$fg-muted" underline={false}>
           <Text italic wrap="truncate">
             {"  "}
             {parentContext}
@@ -394,13 +394,13 @@ export function NodeCardView({
               text={displayContent}
               context={{ stripInlineColors: shouldStripColor || undefined, hideFields: true }}
             />
-            {subtaskBadge && <Text color={isSelected ? "$selection" : "$muted"}>{` ${subtaskBadge}`}</Text>}
+            {subtaskBadge && <Text color={isSelected ? "$selection" : "$fg-muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
           <Box flexShrink={0}>
-            <Text color={isSelected ? "$selection" : "$error"}>{" blocked"}</Text>
+            <Text color={isSelected ? "$selection" : "$fg-error"}>{" blocked"}</Text>
           </Box>
         )}
         {hasDateBadge && (
@@ -481,7 +481,7 @@ export function NodeColumnView({
           </Text>
         </Box>
         <Box flexShrink={0}>
-          <Text color={isSelected ? "$selection" : "$muted"}>{` ${count}`}</Text>
+          <Text color={isSelected ? "$selection" : "$fg-muted"}>{` ${count}`}</Text>
         </Box>
       </Box>
       {/* Separator line */}
@@ -543,7 +543,7 @@ export function NodeTabView({
       <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
-          <Text dimColor color={"$muted"}>
+          <Text dimColor color={"$fg-muted"}>
             {truncatedName}
           </Text>
         ) : (

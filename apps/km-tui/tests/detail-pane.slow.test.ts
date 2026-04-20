@@ -153,11 +153,11 @@ describe("formatDate", () => {
 
 describe("getStatusDisplay", () => {
   test.each([
-    [undefined, "todo", "$focusborder"],
-    ["done", "done", "$success"],
-    ["wip", "wip", "$warning"],
-    ["blocked", "blocked", "$error"],
-    ["dropped", "dropped", "$muted"],
+    [undefined, "todo", "$border-focus"],
+    ["done", "done", "$fg-success"],
+    ["wip", "wip", "$fg-warning"],
+    ["blocked", "blocked", "$fg-error"],
+    ["dropped", "dropped", "$fg-muted"],
   ] as const)("status %s returns text=%s color=%s", (status, expectedText, expectedColor) => {
     const result = getStatusDisplay(status)
     expect(result.text).toBe(expectedText)
@@ -2126,7 +2126,7 @@ describe("detail pane edit-mode styling", () => {
     board.press("Enter")
 
     // After editing: cursor node should NOT have selection-bg background
-    // (it should be clear/undefined) and text should use $focusborder color
+    // (it should be clear/undefined) and text should use $border-focus color
     const editBox = board.screen.nodeBox("child-a")
     expect(editBox).not.toBeNull()
 

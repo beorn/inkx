@@ -8,10 +8,10 @@ import { getStatusIcon, getTypeIcon, type StatusIcon } from "../../src/index.ts"
 describe("getStatusIcon", () => {
   it.each([
     ["todo", "□", "$fg"],
-    ["wip", "□", "$warning"],
-    ["blocked", "✗", "$error"],
-    ["done", "✓", "$success"],
-    ["dropped", "✗", "$muted"],
+    ["wip", "□", "$fg-warning"],
+    ["blocked", "✗", "$fg-error"],
+    ["done", "✓", "$fg-success"],
+    ["dropped", "✗", "$fg-muted"],
   ] as const)("returns %s icon with correct char and color", (status, char, color) => {
     const icon = getStatusIcon(status)
     expect(icon.char).toBe(char)
@@ -21,7 +21,7 @@ describe("getStatusIcon", () => {
   it.each([null, undefined])("returns red warning triangle for %s (missing status)", (val) => {
     const icon = getStatusIcon(val)
     expect(icon.char).toBe("⚠")
-    expect(icon.color).toBe("$error")
+    expect(icon.color).toBe("$fg-error")
     expect(icon.backgroundColor).toBeUndefined()
   })
 

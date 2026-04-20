@@ -115,13 +115,13 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
             <Box flexGrow={1} flexShrink={1}>
-              <H1 color={isRootEditing ? "$border-focus" : isTitleCursor ? "$cursor" : undefined} wrap="wrap">
+              <H1 color={isRootEditing ? "$border-focus" : isTitleCursor ? "$fg-cursor" : undefined} wrap="wrap">
                 {rootStatusIcon && (
                   <>
                     <CheckboxIcon
                       nodeId={effectiveId}
                       icon={rootStatusIcon}
-                      textColor={isRootEditing ? "$border-focus" : isTitleCursor ? "$cursor" : undefined}
+                      textColor={isRootEditing ? "$border-focus" : isTitleCursor ? "$fg-cursor" : undefined}
                       shouldDim={false}
                       isSelected={isTitleCursor}
                       isNodeSelected={false}
@@ -324,7 +324,7 @@ function DocNode({
   // Headings that are also tasks show a task status icon before the title.
   if (isHeading) {
     const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
-    const headingColor = isEditing ? "$border-focus" : isCursor ? "$cursor" : undefined
+    const headingColor = isEditing ? "$border-focus" : isCursor ? "$fg-cursor" : undefined
     const headingTaskIcon = isTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
     const headingIsDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
     return (
@@ -338,7 +338,7 @@ function DocNode({
                   <CheckboxIcon
                     nodeId={node.id}
                     icon={headingTaskIcon}
-                    textColor={isCursor ? "$cursor" : undefined}
+                    textColor={isCursor ? "$fg-cursor" : undefined}
                     shouldDim={false}
                     isSelected={isCursor}
                     isNodeSelected={false}
@@ -351,13 +351,13 @@ function DocNode({
               {editableContent ?? <InlineText text={content} context={cursorCtx} />}
             </Heading>
           ) : (
-            <Text bold color={headingColor ?? "$muted"} wrap="wrap">
+            <Text bold color={headingColor ?? "$fg-muted"} wrap="wrap">
               {headingTaskIcon && (
                 <>
                   <CheckboxIcon
                     nodeId={node.id}
                     icon={headingTaskIcon}
-                    textColor={isCursor ? "$cursor" : undefined}
+                    textColor={isCursor ? "$fg-cursor" : undefined}
                     shouldDim={false}
                     isSelected={isCursor}
                     isNodeSelected={false}
@@ -394,14 +394,14 @@ function DocNode({
   if (isTask) {
     const icon = getStatusIcon(node.item?.task?.status ?? "todo")
     const isDone = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-    const textColor = isEditing ? "$border-focus" : isCursor ? "$cursor" : isDone ? "$muted" : undefined
+    const textColor = isEditing ? "$border-focus" : isCursor ? "$fg-cursor" : isDone ? "$fg-muted" : undefined
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <CheckboxIcon
             nodeId={node.id}
             icon={icon}
-            textColor={isCursor ? "$cursor" : undefined}
+            textColor={isCursor ? "$fg-cursor" : undefined}
             shouldDim={false}
             isSelected={isCursor}
             isNodeSelected={false}
@@ -436,8 +436,8 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-          <Text color={isCursor ? "$cursor" : "$muted"}>{node.item?.list ?? "•"} </Text>
-          <Text color={isCursor ? "$cursor" : undefined} wrap="wrap">
+          <Text color={isCursor ? "$fg-cursor" : "$fg-muted"}>{node.item?.list ?? "•"} </Text>
+          <Text color={isCursor ? "$fg-cursor" : undefined} wrap="wrap">
             {editableContent ?? <InlineText text={content} context={cursorCtx} />}
           </Text>
         </Box>
@@ -532,7 +532,7 @@ function MetadataRow({ metaId, label, node, isSelected, width }: MetadataRowProp
   const repo = useRepo()
   const bg = isSelected ? "$selectionbg" : undefined
   const fg = isSelected ? "$selection" : undefined
-  const labelColor = isSelected ? "$selection" : "$muted"
+  const labelColor = isSelected ? "$selection" : "$fg-muted"
 
   const value = getMetadataValue(label, node, repo)
 
@@ -596,7 +596,7 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
       const dueDate = extractTaskDates(node).due?.date
       if (!dueDate) return { text: "none" }
       const { text, urgency } = formatDate(dueDate)
-      const color = urgency === "overdue" ? "$error" : urgency === "urgent" ? "$warning" : undefined
+      const color = urgency === "overdue" ? "$fg-error" : urgency === "urgent" ? "$fg-warning" : undefined
       return {
         text,
         element: color ? <Text color={color}>{text}</Text> : undefined,

@@ -450,7 +450,7 @@ export function BoardCore({
             {/* Cards, Columns, List, Detail, or Tabs view */}
             {ui.viewMode === "detail" ? (
               <ErrorBoundary
-                fallback={<Text color={"$error"}>Error loading detail view</Text>}
+                fallback={<Text color={"$fg-error"}>Error loading detail view</Text>}
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
@@ -458,7 +458,7 @@ export function BoardCore({
               </ErrorBoundary>
             ) : ui.viewMode === "cards" ? (
               <ErrorBoundary
-                fallback={<Text color={"$error"}>Error loading cards view</Text>}
+                fallback={<Text color={"$fg-error"}>Error loading cards view</Text>}
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
@@ -503,7 +503,7 @@ export function BoardCore({
               </ErrorBoundary>
             ) : ui.viewMode === "columns" ? (
               <ErrorBoundary
-                fallback={<Text color={"$error"}>Error loading columns view</Text>}
+                fallback={<Text color={"$fg-error"}>Error loading columns view</Text>}
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
@@ -516,7 +516,7 @@ export function BoardCore({
               </ErrorBoundary>
             ) : ui.viewMode === "list" ? (
               <ErrorBoundary
-                fallback={<Text color={"$error"}>Error loading list view</Text>}
+                fallback={<Text color={"$fg-error"}>Error loading list view</Text>}
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
@@ -529,7 +529,7 @@ export function BoardCore({
               </ErrorBoundary>
             ) : (
               <ErrorBoundary
-                fallback={<Text color={"$error"}>Error loading tabs view</Text>}
+                fallback={<Text color={"$fg-error"}>Error loading tabs view</Text>}
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >

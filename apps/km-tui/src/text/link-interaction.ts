@@ -117,7 +117,7 @@ export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boo
       return {
         color,
         underlineStyle: hovered ? "single" : "dotted",
-        underlineColor: hovered ? "$link" : "$border",
+        underlineColor: hovered ? "$link" : "$border-default",
       }
     case "wiki": {
       // Wikilinks are colored like URLs at rest so they're visibly
@@ -140,7 +140,7 @@ export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boo
       return {
         color: undefined, // caller wraps with its own sigil color
         underlineStyle: hovered ? "single" : "dotted",
-        underlineColor: hovered ? "$link" : "$border",
+        underlineColor: hovered ? "$link" : "$border-default",
       }
     }
   }

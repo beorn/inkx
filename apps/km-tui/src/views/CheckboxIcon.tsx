@@ -132,7 +132,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   const isHighlighted = isSelected || isNodeSelected
   const normalColor = isHighlighted ? textColor : isDoneOrDropped ? undefined : icon.color
   // Armed state: bold + primary color so icon character remains visible after toggle
-  const armedColor = isHighlighted ? textColor : "$primary"
+  const armedColor = isHighlighted ? textColor : "$fg-accent"
 
   return (
     <Text

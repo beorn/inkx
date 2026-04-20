@@ -331,7 +331,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       maxHeight={maxHeight}
       flexDirection="column"
       borderStyle="round"
-      borderColor="$border"
+      borderColor="$border-default"
       backgroundColor="$bg-surface-overlay"
       paddingX={1}
       overflow="scroll"
@@ -373,7 +373,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
               </Text>
             ),
           )}
-      {content.loading && <Spinner label="Loading" color="$muted" />}
+      {content.loading && <Spinner label="Loading" color="$fg-muted" />}
     </Box>
   )
 })

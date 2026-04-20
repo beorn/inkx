@@ -113,7 +113,7 @@ function SearchResults({
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? "$selection" : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selection" : "$fg-accent"} dimColor={!isSelected}>
                 {` #${result.tags.join(" #")}`}
               </Text>
             )}
@@ -266,7 +266,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   // Scope prompt prefix for the InputBox (e.g., "[All] " or "[in Alpha] ")
   const scopePrompt = scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
-  const scopePromptColor = scope === "all" ? "$fg" : "$primary"
+  const scopePromptColor = scope === "all" ? "$fg" : "$fg-accent"
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
@@ -304,7 +304,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       </Box>
 
       {/* Results list — flexGrow fills available height */}
-      <ErrorBoundary fallback={<Text color={"$error"}>Search error</Text>}>
+      <ErrorBoundary fallback={<Text color={"$fg-error"}>Search error</Text>}>
         <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
             <Small>

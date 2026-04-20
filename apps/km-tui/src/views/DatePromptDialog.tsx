@@ -24,21 +24,21 @@ export interface DatePromptDialogProps {
 /** Get live preview text for the current input */
 function getPreview(field: string, input: string): { text: string; color: string } {
   const trimmed = input.trim()
-  if (!trimmed) return { text: "Empty = clear value", color: "$muted" }
+  if (!trimmed) return { text: "Empty = clear value", color: "$fg-muted" }
 
   if (field === "rrule") {
     const rrule = naturalToRRule(trimmed)
-    if (rrule) return { text: rrule, color: "$success" }
-    return { text: "Invalid recurrence", color: "$error" }
+    if (rrule) return { text: rrule, color: "$fg-success" }
+    return { text: "Invalid recurrence", color: "$fg-error" }
   }
 
   const resolved = resolveRelativeDate(trimmed)
   if (resolved) {
     const timeStr = resolved.time ? ` ${resolved.time}` : ""
-    return { text: `${resolved.date}${timeStr}`, color: "$success" }
+    return { text: `${resolved.date}${timeStr}`, color: "$fg-success" }
   }
 
-  return { text: "Cannot parse date", color: "$error" }
+  return { text: "Cannot parse date", color: "$fg-error" }
 }
 
 const FIELD_TITLES: Record<string, string> = {
@@ -83,7 +83,11 @@ export function DatePromptDialog({
 
       {/* Live preview */}
       <Box>
-        {preview.color === "$muted" ? <Muted>{preview.text}</Muted> : <Text color={preview.color}>{preview.text}</Text>}
+        {preview.color === "$fg-muted" ? (
+          <Muted>{preview.text}</Muted>
+        ) : (
+          <Text color={preview.color}>{preview.text}</Text>
+        )}
       </Box>
 
       {/* Hint */}

@@ -51,9 +51,9 @@ function useFlash(message: string | undefined): boolean {
 
 const STATUS_COLORS: Record<string, string | undefined> = {
   info: undefined,
-  success: "$success",
-  warning: "$warning",
-  error: "$error",
+  success: "$fg-success",
+  warning: "$fg-warning",
+  error: "$fg-error",
 }
 
 /** Get display label for a chord suffix entry */
@@ -72,7 +72,7 @@ function FlashMessage({ message, color }: { message: string; color?: string }): 
     <Box
       flexDirection="row"
       borderStyle="round"
-      borderColor={isFlash ? "$muted" : "$border"}
+      borderColor={isFlash ? "$fg-muted" : "$border-default"}
       backgroundColor="$bg-surface-overlay"
       paddingX={1}
       overflow="hidden"
@@ -99,7 +99,7 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={dimmed ? "$fg-muted" : "$border"}
+      borderColor={dimmed ? "$fg-muted" : "$border-default"}
       backgroundColor="$bg-surface-overlay"
       paddingX={1}
       paddingY={1}
@@ -107,7 +107,7 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
     >
       {entries.map((entry) => (
         <Text key={entry.key} dimColor={dimmed}>
-          <Text color={dimmed ? "$fg-muted" : "$primary"} bold={!dimmed}>
+          <Text color={dimmed ? "$fg-muted" : "$fg-accent"} bold={!dimmed}>
             {entry.key}
           </Text>{" "}
           <Text dimColor>{entry.label}</Text>
@@ -135,11 +135,11 @@ function CommandFeedback({
   if (localSearch && localSearch.query.length > 0) {
     // Bell during search (e.g. "can't find") overrides the match count
     if (ui.bellState) {
-      return <FlashMessage message={ui.bellState} color="$error" />
+      return <FlashMessage message={ui.bellState} color="$fg-error" />
     }
     const noMatches = localSearch.matchCount === 0
     const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
-    return <FlashMessage message={text} color={noMatches ? "$error" : "$primary"} />
+    return <FlashMessage message={text} color={noMatches ? "$fg-error" : "$fg-accent"} />
   }
 
   // Priority 3: bell/status feedback (only when NOT in local search)
@@ -157,11 +157,11 @@ function CommandFeedback({
 // ---------------------------------------------------------------------------
 
 const MODE_COLORS: Record<string, string> = {
-  NORMAL: "$success",
-  INSERT: "$warning",
+  NORMAL: "$fg-success",
+  INSERT: "$fg-warning",
   VISUAL: "$selectionbg",
   MOVE: "magenta",
-  FIND: "$primary",
+  FIND: "$fg-accent",
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +226,7 @@ export function CommandBox({
   } else {
     modeLabel = "NORMAL"
   }
-  const modeColor = MODE_COLORS[modeLabel] ?? "$success"
+  const modeColor = MODE_COLORS[modeLabel] ?? "$fg-success"
 
   // Pane indicator
   const { activeId: focusedActiveId } = useFocusManager()
@@ -288,12 +288,12 @@ export function CommandBox({
               data-match-index={localSearch.matchIndex}
               data-input-active={localSearch.isInputActive || undefined}
             >
-              <Text color={localSearch.isInputActive ? undefined : "$primary"}>/</Text>
+              <Text color={localSearch.isInputActive ? undefined : "$fg-accent"}>/</Text>
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 {localSearch.isInputActive && onQueryChange ? (
                   <FindInput query={localSearch.query} onQueryChange={onQueryChange} />
                 ) : (
-                  <Text color="$primary">{localSearch.query}</Text>
+                  <Text color="$fg-accent">{localSearch.query}</Text>
                 )}
               </Box>
             </Box>
@@ -301,7 +301,7 @@ export function CommandBox({
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
               {chordSuffix && (
                 <Text
-                  color={chordActive ? "$primary" : undefined}
+                  color={chordActive ? "$fg-accent" : undefined}
                   dimColor={!chordActive}
                   bold={chordActive}
                   id="chord-prefix"

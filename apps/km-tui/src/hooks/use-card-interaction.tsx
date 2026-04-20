@@ -188,7 +188,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     }
   }, [armed, hovered, popover, repo, nodeId])
 
-  const hoverBorderColor = !isSelected && hovered ? (armed ? "$link" : "$muted") : undefined
+  const hoverBorderColor = !isSelected && hovered ? (armed ? "$link" : "$fg-muted") : undefined
 
   return {
     hovered,

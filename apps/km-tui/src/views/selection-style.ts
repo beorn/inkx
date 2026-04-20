@@ -5,6 +5,14 @@
  * order for composing cell styles in km. One place to understand, one place
  * to change. If you change any styling logic in km-tui, update this file too.
  *
+ * Note: `$selection` / `$selectionbg` / `$inverse` / `$link` are legacy theme
+ * tokens that have no direct Sterling flat-token equivalent (Sterling 0.19
+ * derives accent + status roles, but not selection / inverse / link). They
+ * remain on the legacy theme via `@silvery/ansi`'s `deriveTheme()` and are
+ * not migrated by `km-silvery.sterling-consumer-migration`. When Sterling
+ * adds equivalents (`bg-selected`, `fg-on-selected`, `bg-inverse`, etc.),
+ * migrate then.
+ *
  * ## Precedence: how a cell's final style is composed
  *
  * Four independent sources contribute to a cell's rendered output. They
@@ -135,7 +143,7 @@
  * ## Future
  *
  * When silvery ships `/ amount%` color blending (km-silvery.tint-inverse),
- * rules 2-4 become: backgroundColor="$primary / 12%" on the container Box.
+ * rules 2-4 become: backgroundColor="$fg-accent / 12%" on the container Box.
  * No helper function, no useTheme().
  */
 

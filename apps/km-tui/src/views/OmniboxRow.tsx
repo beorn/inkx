@@ -28,7 +28,7 @@ export interface OmniboxRowData {
   kind: "command" | "node"
   /** Icon character (nerd font glyph or emoji). */
   icon: string
-  /** Optional icon color token (`$primary`, `$muted`, etc.). */
+  /** Optional icon color token (`$fg-accent`, `$fg-muted`, etc.). */
   iconColor?: string
   /** Primary label — command name or node title. */
   title: string
@@ -65,16 +65,16 @@ export function OmniboxRow({
 }): React.ReactElement {
   const { icon, iconColor, title, titleDecorations, context, hint, isSelected, disabled } = data
 
-  // Selected row is the omnibox cursor — use $bg-cursor/$cursor (scheme's
+  // Selected row is the omnibox cursor — use $bg-cursor/$fg-cursor (scheme's
   // terminal cursor color) for native-feel highlight per design system.
   const bg = isSelected ? "$bg-cursor" : "$bg-surface-overlay"
-  const fg = disabled ? "$muted" : isSelected ? "$cursor" : undefined
+  const fg = disabled ? "$fg-muted" : isSelected ? "$fg-cursor" : undefined
   // Selection rules win over everything: on a selected row ALL content —
-  // including $muted icons — takes the selection fg (black).
+  // including $fg-muted icons — takes the selection fg (black).
   // For unselected muted icons (e.g. the command ':' marker), we render via
-  // the <Small> preset below (MECE: fine print = $muted + dimColor bundled).
-  const iconIsMuted = iconColor === "$muted"
-  const iconFg = disabled ? "$muted" : isSelected ? "$selection" : iconColor
+  // the <Small> preset below (MECE: fine print = $fg-muted + dimColor bundled).
+  const iconIsMuted = iconColor === "$fg-muted"
+  const iconFg = disabled ? "$fg-muted" : isSelected ? "$selection" : iconColor
   const iconUsesFinePrint = iconIsMuted && !isSelected && !disabled
 
   return (

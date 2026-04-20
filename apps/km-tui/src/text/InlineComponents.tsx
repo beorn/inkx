@@ -275,11 +275,11 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   // CURSOR-SAFE BY CONSTRUCTION: we intentionally do NOT set a foreground color
   // here, because a red fg competes with cursor-inverse styling (the cell's fg
   // gets forced to $selection on the cursor line, and inline colors get
-  // stripped via stripInlineColors=true on the subtree). The dashed $error
+  // stripped via stripInlineColors=true on the subtree). The dashed $fg-error
   // underline passes through all states unchanged because decoration attributes
   // are not composed into the fg/bg override pipeline.
   return (
-    <Text underlineStyle="dashed" underlineColor="$error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <Text underlineStyle="dashed" underlineColor="$fg-error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       {node.target}
     </Text>
   )
@@ -530,11 +530,11 @@ export function InlineText({
 function colorFieldValue(value: string): React.ReactElement {
   // Dates: success (green)
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-    return <Text color="$success">{value}</Text>
+    return <Text color="$fg-success">{value}</Text>
   }
   // Numbers: primary (yellow)
   if (/^\d+(\.\d+)?$/.test(value)) {
-    return <Text color="$primary">{value}</Text>
+    return <Text color="$fg-accent">{value}</Text>
   }
   // Default: text
   return <Text color="$fg">{value}</Text>

@@ -325,7 +325,7 @@ function KeySegment({ segment, color }: { segment: string; color?: string }): Re
         <Text bold color={color}>
           {prefix}
         </Text>
-        <Text color={"$muted"}>{"·"}</Text>
+        <Text color={"$fg-muted"}>{"·"}</Text>
         <KeySegment segment={suffix} color={color} />
       </>
     )
@@ -337,7 +337,7 @@ function KeySegment({ segment, color }: { segment: string; color?: string }): Re
       <Text bold color={color}>
         {parts.map((part, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+            {i > 0 && <Text color={"$fg-muted"}>{"/"}</Text>}
             {part}
           </React.Fragment>
         ))}
@@ -384,7 +384,7 @@ export function KeyBinding({ keys, color }: { keys: string; color?: string }): R
     <>
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$fg-muted"}>{"/"}</Text>}
           <KeySegment segment={seg} color={color} />
         </React.Fragment>
       ))}
@@ -532,12 +532,17 @@ export function NodeLine({
   const icon = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$bg-cursor" : "$bg-surface-overlay"} flexDirection="row">
+    <Box
+      width="100%"
+      height={1}
+      backgroundColor={isSelected ? "$bg-cursor" : "$bg-surface-overlay"}
+      flexDirection="row"
+    >
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-        <Text color={isSelected ? "$cursor" : undefined} wrap="truncate">
+        <Text color={isSelected ? "$fg-cursor" : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? "$cursor" : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? "$fg-cursor" : icon.color}>{icon.char} </Text>
           <InlineText
             text={title}
             decorations={decorations}
@@ -587,7 +592,7 @@ export interface ConfirmDialogProps {
 export function ConfirmDialog({
   title,
   warnings = [],
-  borderColor = "$error", // Red border for destructive actions (overrides default dialogBorder)
+  borderColor = "$fg-error", // Red border for destructive actions (overrides default dialogBorder)
   width,
 }: ConfirmDialogProps): React.ReactElement {
   return (
@@ -599,7 +604,7 @@ export function ConfirmDialog({
       footer={<Small>Enter to confirm · Esc to cancel</Small>}
     >
       {warnings.map((w, i) => (
-        <Text key={i} color={"$warning"}>
+        <Text key={i} color={"$fg-warning"}>
           {w}
         </Text>
       ))}

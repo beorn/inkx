@@ -68,7 +68,7 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(fu
       >
         {/* Scrollable content */}
         <Box flexDirection="column" height={contentHeight} overflow="scroll">
-          <ErrorBoundary fallback={<Text color="$error">Console error</Text>}>
+          <ErrorBoundary fallback={<Text color="$fg-error">Console error</Text>}>
             {visibleEntries.length === 0 ? (
               <Small>No console output yet</Small>
             ) : (
@@ -88,11 +88,11 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(fu
 function getColorForMethod(method: string): string {
   switch (method) {
     case "error":
-      return "$error"
+      return "$fg-error"
     case "warn":
-      return "$warning"
+      return "$fg-warning"
     case "info":
-      return "$primary"
+      return "$fg-accent"
     default:
       // console.log and console.debug — white for readability
       return "$fg"

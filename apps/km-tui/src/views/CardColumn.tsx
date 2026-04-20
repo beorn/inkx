@@ -461,7 +461,7 @@ const Card = React.memo(
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     // Default card border: invisible ($surface-bg). Cards are separated by
     // whitespace, not visible borders. Borders appear as interactive feedback:
-    // hover → $muted (faint), selection → $selection-bg (yellow).
+    // hover → $fg-muted (faint), selection → $selection-bg (yellow).
     // Done/dropped use the muted border role; normal cards use the default border role.
     const defaultBorder = isDoneOrDropped ? "$border-muted" : "$border-default"
     // "Board level" means cursor is on an ancestor (column or board root).
@@ -919,7 +919,11 @@ export const Column = React.memo(function Column({
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
-              <Text bold color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")} dimColor={!isColumnSelected}>
+              <Text
+                bold
+                color={isColumnSelected ? "$selection" : (ownColor ?? "$fg-muted")}
+                dimColor={!isColumnSelected}
+              >
                 {ch}
               </Text>
             </Box>
@@ -992,7 +996,7 @@ export const Column = React.memo(function Column({
             hiddenCount > 0 ? (
               <Box flexDirection="column" height={2} alignItems="center">
                 <Box height={1} />
-                <Text color="$muted">+{hiddenCount} filtered</Text>
+                <Text color="$fg-muted">+{hiddenCount} filtered</Text>
               </Box>
             ) : undefined
           }

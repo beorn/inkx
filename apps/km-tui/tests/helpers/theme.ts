@@ -78,20 +78,20 @@ const SELECTION_BG = hexToRgb(t["selectionbg"])
 const SELECTION_FG = hexToRgb(t["selection"])
 /** Primary foreground text (Nord Snow Storm 1 by default). */
 const FG = hexToRgb(t["fg"])
-/** Muted foreground text. */
-const MUTED = hexToRgb(t["muted"])
+/** Muted foreground text — prefer Sterling fg-muted, fallback to legacy. */
+const MUTED = hexToRgb(t["fg-muted"] ?? t["muted"])
 /** Disabled foreground — Sterling has no disabled slot; falls back to muted. */
 const DISABLED_FG = hexToRgb(t["fg-muted"] ?? t["disabledfg"] ?? t["muted"])
 /** Default border color (Sterling border-default → legacy border). */
 const BORDER = hexToRgb(t["border-default"] ?? t["border"])
-/** Error / destructive (Nord red by default). */
-const ERROR = hexToRgb(t["error"])
-/** Warning / caution (Nord yellow by default). */
-const WARNING = hexToRgb(t["warning"])
-/** Success / positive (Nord green by default). */
-const SUCCESS = hexToRgb(t["success"])
-/** Primary brand tint (Nord blue by default). */
-const PRIMARY = hexToRgb(t["primary"])
+/** Error / destructive — prefer Sterling fg-error. */
+const ERROR = hexToRgb(t["fg-error"] ?? t["error"])
+/** Warning / caution — prefer Sterling fg-warning. */
+const WARNING = hexToRgb(t["fg-warning"] ?? t["warning"])
+/** Success / positive — prefer Sterling fg-success. */
+const SUCCESS = hexToRgb(t["fg-success"] ?? t["success"])
+/** Primary brand tint / interactive accent — prefer Sterling fg-accent. */
+const PRIMARY = hexToRgb(t["fg-accent"] ?? t["primary"])
 /** Hyperlinks, references. */
 const LINK = hexToRgb(t["link"])
 /** Focus border (Sterling border-focus → legacy focusborder). */
@@ -108,50 +108,41 @@ const CURSOR_BG = hexToRgb(t["bg-cursor"] ?? t["cursorbg"])
 const CURSOR_FG = hexToRgb(t["fg-cursor"] ?? t["cursor"])
 
 export const TC = {
-  /** Text on selected background */
+  /** Text on selected background (legacy — Sterling has no selection role yet) */
   $selection: SELECTION_FG,
-  /** Legacy flat alias (pre-migration) — same as $selectionbg */
+  /** Legacy flat alias — same as $selectionbg */
   "$selection-bg": SELECTION_BG,
-  /** Selection highlight background */
+  /** Selection highlight background (legacy — Sterling has no selection role yet) */
   $selectionbg: SELECTION_BG,
   /** Primary foreground text */
   $fg: FG,
-  /** Muted foreground text */
-  $muted: MUTED,
+  /** Muted foreground text — Sterling */
+  "$fg-muted": MUTED,
   /** Disabled foreground text */
   "$disabled-fg": DISABLED_FG,
-  /** Sterling: foreground-muted (post-migration target) */
-  "$fg-muted": DISABLED_FG,
-  /** Dividers, borders, rules */
-  $border: BORDER,
-  /** Error/destructive */
-  $error: ERROR,
-  /** Warning/caution */
-  $warning: WARNING,
-  /** Success/positive */
-  $success: SUCCESS,
-  /** Primary brand tint */
-  $primary: PRIMARY,
-  /** Hyperlinks, references */
+  /** Dividers, borders, rules — Sterling */
+  "$border-default": BORDER,
+  /** Error/destructive — Sterling */
+  "$fg-error": ERROR,
+  /** Warning/caution — Sterling */
+  "$fg-warning": WARNING,
+  /** Success/positive — Sterling */
+  "$fg-success": SUCCESS,
+  /** Primary brand tint / interactive accent — Sterling */
+  "$fg-accent": PRIMARY,
+  /** Hyperlinks, references (legacy — Sterling has no link role; use $fg-accent) */
   $link: LINK,
-  /** Focus border */
-  $focusborder: FOCUS_BORDER,
-  /** Sterling: border-focus (post-migration target) */
+  /** Focus border — Sterling */
   "$border-focus": FOCUS_BORDER,
-  /** Interactive control borders */
+  /** Interactive control borders (legacy — same hex as $border-default in Sterling) */
   $inputborder: INPUT_BORDER,
-  /** Sterling: border-default (post-migration target) */
-  "$border-default": INPUT_BORDER,
-  /** Text on elevated surface */
+  /** Text on elevated surface (legacy — Sterling has no surface-fg pair) */
   $surface: SURFACE_FG,
-  /** Elevated surface background */
-  "$surface-bg": SURFACE_BG,
-  /** Sterling: bg-surface-default (post-migration target) */
+  /** Elevated surface background — Sterling */
   "$bg-surface-default": SURFACE_BG,
-  /** Cursor bg */
-  "$cursor-bg": CURSOR_BG,
+  /** Cursor bg — Sterling */
   "$bg-cursor": CURSOR_BG,
-  $cursor: CURSOR_FG,
+  /** Cursor fg — Sterling */
   "$fg-cursor": CURSOR_FG,
 
   // ── Backward compatibility aliases ────────────────────────────────

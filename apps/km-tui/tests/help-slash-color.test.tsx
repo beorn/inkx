@@ -108,7 +108,7 @@ describe("HelpOverlay", () => {
       return s.includes("find") && s.includes("/")
     })
     expect(findLine).toBeDefined()
-    // Keys use $mutedbg background (ANSI 16 dark: black = 40 in 4-bit or 48;5;0 in 256-color)
+    // Keys use $bg-muted background (ANSI 16 dark: black = 40 in 4-bit or 48;5;0 in 256-color)
     // and bold (1m)
     expect(findLine).toMatch(/\x1b\[1m|\x1b\[1;/)
   })

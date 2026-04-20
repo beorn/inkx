@@ -174,7 +174,7 @@ export function getHeaderStyle(
   }
 
   return {
-    color: isSelected ? "$primary" : undefined,
+    color: isSelected ? "$fg-accent" : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

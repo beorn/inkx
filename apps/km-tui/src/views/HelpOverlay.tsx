@@ -69,7 +69,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$fg-muted"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}
@@ -295,7 +295,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         marginTop={Math.max(0, Math.floor((height - 3) / 2))}
         flexDirection="column"
         borderStyle="single"
-        borderColor={"$border"}
+        borderColor={"$border-default"}
         data-dialog="help"
       >
         <Text color={"$fg"}>Terminal too small</Text>
@@ -334,7 +334,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color={"$info"}>{scrollHint}</Text>
+          <Text color={"$fg-info"}>{scrollHint}</Text>
         </>
       )}
     </Box>
@@ -354,7 +354,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         height={boxHeight}
         title="Keyboard Shortcuts"
         hotkey="?"
-        titleColor={"$primary"}
+        titleColor={"$fg-accent"}
         footer={footer}
       >
         {visibleContent}

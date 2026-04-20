@@ -577,7 +577,7 @@ export function createLayoutComponents(fw: Framework) {
     const arrow = direction === "top" ? "▲" : "▼"
     const text = `${arrow} ${count} more`
     return (
-      <Text backgroundColor={"$muted"} color={"$fg"}>
+      <Text backgroundColor={"$fg-muted"} color={"$fg"}>
         {text}
       </Text>
     )

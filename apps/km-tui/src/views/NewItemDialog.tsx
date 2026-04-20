@@ -131,7 +131,7 @@ export function NewItemDialog({
 
   return (
     <ModalDialog
-      borderColor={"$success"}
+      borderColor={"$fg-success"}
       title={`New ${isTask ? "task" : "item"} ${insertContext}`}
       width={width}
       height={Math.min(height, 12)}
@@ -140,7 +140,7 @@ export function NewItemDialog({
       {/* Input field */}
       <Box borderStyle="round" borderColor={"$border-focus"} flexShrink={0}>
         <Text>
-          <Text color={"$success"}>{isTask ? "[ ] " : "• "}</Text>
+          <Text color={"$fg-success"}>{isTask ? "[ ] " : "• "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>

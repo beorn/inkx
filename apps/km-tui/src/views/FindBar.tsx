@@ -72,23 +72,23 @@ export function FindBar({ localSearch, width, onQueryChange }: FindBarProps): Re
       width={width}
       height={1}
       flexDirection="row"
-      backgroundColor={"$muted"}
+      backgroundColor={"$fg-muted"}
       userSelect="none"
     >
-      <Text color={"$fg"} backgroundColor={"$muted"}>
+      <Text color={"$fg"} backgroundColor={"$fg-muted"}>
         {" / "}
       </Text>
       <Box flexGrow={1} overflow="hidden">
         {isInputActive ? (
           <FindBarInput query={query} onQueryChange={onQueryChange} />
         ) : (
-          <Text color={"$fg"} backgroundColor={"$muted"}>
+          <Text color={"$fg"} backgroundColor={"$fg-muted"}>
             {query}
           </Text>
         )}
       </Box>
       <Box flexShrink={0}>
-        <Text color={matchCount === 0 && query.length > 0 ? "$error" : "$warning"} backgroundColor={"$muted"}>
+        <Text color={matchCount === 0 && query.length > 0 ? "$fg-error" : "$fg-warning"} backgroundColor={"$fg-muted"}>
           {matchIndicator}
           {"  "}
         </Text>

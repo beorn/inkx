@@ -279,7 +279,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
 // only apply in outline/list mode where count is visible.
 
 describe("km-tui.date-range-color: date uses green/red when not selected", () => {
-  it("overdue date on non-selected card shows $error fg", () => {
+  it("overdue date on non-selected card shows $fg-error fg", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("overdueTask")))
     const overdueTask = nodes.find((n) => n.content === "overdueTask")!
     overdueTask.due_at = "2025-01-01" // Past date — overdue
@@ -298,10 +298,10 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     expect(janIdx, "overdue date 'Jan' should be visible").toBeGreaterThan(-1)
 
     const cell = app.screen.cell(janIdx, nodeBox.y)
-    expect(cell.fg, "overdue date fg should be $error").toEqual(TC.$error)
+    expect(cell.fg, "overdue date fg should be $fg-error").toEqual(TC["$fg-error"])
   })
 
-  it("today's due date on non-selected card shows $success fg", () => {
+  it("today's due date on non-selected card shows $fg-success fg", () => {
     const today = new Date()
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
@@ -322,7 +322,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     expect(todayIdx, "'Today' should be visible").toBeGreaterThan(-1)
 
     const cell = app.screen.cell(todayIdx, nodeBox.y)
-    expect(cell.fg, "today due date fg should be $success").toEqual(TC.$success)
+    expect(cell.fg, "today due date fg should be $fg-success").toEqual(TC["$fg-success"])
   })
 
   // FREEZE: needs createDriverTest — hardcoded ANSI palette indices (1, 2) for negative assertions
@@ -345,8 +345,8 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
 
     const cell = app.screen.cell(decIdx, nodeBox.y)
     // Future date should NOT be red or green
-    expect(colorEquals(cell.fg, TC.$error), "future date should not be red").toBe(false)
-    expect(colorEquals(cell.fg, TC.$success), "future date should not be green").toBe(false)
+    expect(colorEquals(cell.fg, TC["$fg-error"]), "future date should not be red").toBe(false)
+    expect(colorEquals(cell.fg, TC["$fg-success"]), "future date should not be green").toBe(false)
   })
 })
 

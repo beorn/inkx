@@ -438,10 +438,10 @@ export function truncateContext(context: string | null, maxLen: number): string 
 
 // Priority text colors for known P-values: P0/P1=error, P2=warning, P3=primary, P4=dim
 const PRIORITY_TEXT_COLOR_MAP: Record<string, { color: string | undefined; dim: boolean }> = {
-  P0: { color: "$error", dim: false },
-  P1: { color: "$error", dim: false },
-  P2: { color: "$warning", dim: false },
-  P3: { color: "$primary", dim: false },
+  P0: { color: "$fg-error", dim: false },
+  P1: { color: "$fg-error", dim: false },
+  P2: { color: "$fg-warning", dim: false },
+  P3: { color: "$fg-accent", dim: false },
   P4: { color: undefined, dim: true },
 }
 
@@ -514,14 +514,14 @@ function DueDateText({ dateStr, stripColor }: { dateStr: string; stripColor?: bo
   if (stripColor) return <Text>{text}</Text>
   if (diff < 0) {
     return (
-      <Text color={"$error"} bold>
+      <Text color={"$fg-error"} bold>
         {text}
       </Text>
     )
   }
-  if (diff <= 1) return <Text color={"$success"}>{text}</Text>
+  if (diff <= 1) return <Text color={"$fg-success"}>{text}</Text>
   return (
-    <Text color={"$primary"} dimColor>
+    <Text color={"$fg-accent"} dimColor>
       {text}
     </Text>
   )
@@ -532,10 +532,10 @@ function ScheduledDateText({ dateStr, stripColor }: { dateStr: string; stripColo
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
   if (stripColor) return <Text>{text}</Text>
-  if (diff >= 0 && diff <= 1) return <Text color={"$success"}>{text}</Text>
+  if (diff >= 0 && diff <= 1) return <Text color={"$fg-success"}>{text}</Text>
   if (diff > 1) {
     return (
-      <Text color={"$primary"} dimColor>
+      <Text color={"$fg-accent"} dimColor>
         {text}
       </Text>
     )

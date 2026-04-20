@@ -351,7 +351,7 @@ function TreeNodeImpl({
   const tc = isSelected
     ? style.textColor // $selection (black) for inverse
     : isParentOfCursor
-      ? "$primary" // yellow fg for parent card title
+      ? "$fg-accent" // yellow fg for parent card title
       : style.textColor
   const sd = style.shouldDim
 
@@ -677,7 +677,7 @@ function TreeNodeImpl({
       {!isOneliner && isEmbedded && parentContext && (
         <Box paddingLeft={prefix.length}>
           {parentNodeId ? (
-            <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+            <Link href={`km://node/${parentNodeId}`} color="$fg-muted" underline={false}>
               <Text italic wrap="truncate">
                 {parentContext}
               </Text>
@@ -776,11 +776,11 @@ function TreeNodeImpl({
                 bold={depth === 0 && !isBody}
                 color={
                   isBrokenEmbed && !isSelected
-                    ? "$error"
+                    ? "$fg-error"
                     : dimUntitled
-                      ? "$warning"
+                      ? "$fg-warning"
                       : isBody && !isSelected && !isNodeSelected
-                        ? "$muted"
+                        ? "$fg-muted"
                         : (tc ?? style.ownColor)
                 }
                 dimColor={sd}
@@ -813,7 +813,7 @@ function TreeNodeImpl({
                   </Text>
                 )}
                 {!childrenHidden && showInlineContext && parentNodeId && (
-                  <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+                  <Link href={`km://node/${parentNodeId}`} color="$fg-muted" underline={false}>
                     <Text italic>{contextSuffix}</Text>
                   </Link>
                 )}
@@ -838,7 +838,7 @@ function TreeNodeImpl({
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
           {isBlocked && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isSelected ? tc : "$error"}>{" blocked"}</Text>
+              <Text color={isSelected ? tc : "$fg-error"}>{" blocked"}</Text>
             </Box>
           )}
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
@@ -886,7 +886,7 @@ function TreeNodeImpl({
       {childrenVisible && (
         <ErrorBoundary
           fallback={
-            <Text color={"$error"} dim>
+            <Text color={"$fg-error"} dim>
               [error]
             </Text>
           }
@@ -1142,7 +1142,7 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={isBrokenEmbed && !isNodeSelected ? "$error" : (foldTc ?? style.ownColor)}
+            color={isBrokenEmbed && !isNodeSelected ? "$fg-error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"

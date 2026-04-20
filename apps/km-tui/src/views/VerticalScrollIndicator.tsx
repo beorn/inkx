@@ -32,7 +32,7 @@ export function VerticalScrollIndicator({
   return (
     <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden" userSelect="none">
       {active && (
-        <Text dimColor color="$muted">
+        <Text dimColor color="$fg-muted">
           {direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}
         </Text>
       )}

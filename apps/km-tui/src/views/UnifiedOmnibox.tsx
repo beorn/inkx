@@ -51,14 +51,14 @@ function GuideRow({ sigil, label }: { sigil: string; label: string }): React.Rea
       <Box width={GUIDE_SIGIL_WIDTH}>
         <Text>{sigil}</Text>
       </Box>
-      <Text color="$muted">{label}</Text>
+      <Text color="$fg-muted">{label}</Text>
     </Box>
   )
 }
 
 function GuideHeading({ children }: { children: string }): React.ReactElement {
   return (
-    <Text bold color="$muted">
+    <Text bold color="$fg-muted">
       {children}
     </Text>
   )
@@ -160,9 +160,9 @@ function BottomLeftOmnibox({
     <Box flexDirection="column" width={width}>
       <Box height={1} paddingX={1}>
         <Text>
-          <Text color="$muted">{"/"}</Text>
+          <Text color="$fg-muted">{"/"}</Text>
           <Text bold>{pane.state.buffer.slice(1)}</Text>
-          <Text color="$muted">{` · ${results.length} matches`}</Text>
+          <Text color="$fg-muted">{` · ${results.length} matches`}</Text>
         </Text>
       </Box>
     </Box>
@@ -212,7 +212,7 @@ function CenterOmnibox({
     <ModalDialog
       title={chrome.label}
       titleAlign="flex-start"
-      titleRight={<Text color="$muted">esc</Text>}
+      titleRight={<Text color="$fg-muted">esc</Text>}
       width={width}
       height={maxHeight}
       paddingX={3}
@@ -226,7 +226,7 @@ function CenterOmnibox({
           onSubmit={onConfirm}
           placeholder={chrome.placeholder}
           prompt={chrome.prompt}
-          promptColor="$primary"
+          promptColor="$fg-accent"
         />
         {/* One-line gap between the input and the results/guide — visual
             breathing room so the input doesn't abut the first row. */}

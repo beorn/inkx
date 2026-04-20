@@ -8,10 +8,10 @@
 import type { TextDecoration } from "./inline-ast-types.ts"
 import { parseToPlainText } from "./inline-parser.ts"
 /** Style for the currently focused search match */
-const CURRENT_MATCH_STYLE = { backgroundColor: "$warning", color: "$warning-fg" } as const
+const CURRENT_MATCH_STYLE = { backgroundColor: "$fg-warning", color: "$warning-fg" } as const
 
 /** Style for non-focused search matches */
-const OTHER_MATCH_STYLE = { backgroundColor: "$accent", color: "$accent-fg" } as const
+const OTHER_MATCH_STYLE = { backgroundColor: "$fg-accent", color: "$accent-fg" } as const
 
 /**
  * Compute text decorations for all occurrences of a search query in visible text.

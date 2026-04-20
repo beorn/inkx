@@ -85,9 +85,9 @@ export function SearchReplaceDialog({
   let matchRight: React.ReactNode = null
   if (searchQuery.length > 0) {
     if (matchCount === 0) {
-      matchRight = <Text color="$error">No matches</Text>
+      matchRight = <Text color="$fg-error">No matches</Text>
     } else {
-      matchRight = <Text color="$warning">{`${matchIndex + 1} of ${matchCount}`}</Text>
+      matchRight = <Text color="$fg-warning">{`${matchIndex + 1} of ${matchCount}`}</Text>
     }
   }
 

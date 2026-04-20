@@ -46,12 +46,12 @@ function eventColor(type: SyncEvent["type"]): string | undefined {
   switch (type) {
     case "sync-complete":
     case "write-complete":
-      return "$success"
+      return "$fg-success"
     case "error":
     case "write-error":
-      return "$error"
+      return "$fg-error"
     case "sync-start":
-      return "$primary"
+      return "$fg-accent"
     default:
       return undefined
   }
@@ -107,7 +107,7 @@ export function SyncPaneSummary({ events }: { events: SyncEvent[] }): React.Reac
   const errorCount = events.filter((e) => e.type === "error" || e.type === "write-error").length
   if (errorCount > 0) {
     return (
-      <Text color={"$warning"}>
+      <Text color={"$fg-warning"}>
         {" "}
         ⚠{errorCount} sync error{errorCount !== 1 ? "s" : ""}
       </Text>

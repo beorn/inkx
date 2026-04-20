@@ -35,7 +35,7 @@ export function commandToRow(
     // from content. Matches the command sigil so the glyph doubles as a
     // "this is a command" hint.
     icon: ":",
-    iconColor: "$muted",
+    iconColor: "$fg-muted",
     title: cmd.name,
     context: cmd.description,
     hint: opts.keybindingHint ?? cmd.category,
@@ -101,5 +101,5 @@ function iconForNode(node: KNode): { char: string; color: string } {
   // variants — default false is fine for omnibox rows; the bullet style
   // still conveys type, just without the "has children" filled variant.
   const bullet = getTypeBullet(node, false)
-  return bullet ?? { char: "\u00B7", color: "$muted" }
+  return bullet ?? { char: "\u00B7", color: "$fg-muted" }
 }

@@ -65,7 +65,7 @@ export function FilterDialog({
             <Text wrap="truncate">
               {/* Row label */}
               <Text
-                color={isActiveRow ? "$primary" : hasActive ? "$fg" : "$muted"}
+                color={isActiveRow ? "$fg-accent" : hasActive ? "$fg" : "$fg-muted"}
                 bold={isActiveRow || hasActive}
                 inverse={isActiveRow}
               >
@@ -77,7 +77,7 @@ export function FilterDialog({
                 <React.Fragment key={i}>
                   {i > 0 && <Text> </Text>}
                   <Text
-                    color={vp.isActive ? "$primary" : vp.isCursor ? "$fg" : "$muted"}
+                    color={vp.isActive ? "$fg-accent" : vp.isCursor ? "$fg" : "$fg-muted"}
                     bold={vp.isActive}
                     inverse={vp.isCursor}
                   >
@@ -96,7 +96,7 @@ export function FilterDialog({
           <Text> </Text>
           <Text wrap="truncate">
             <Muted>{"  text: "}</Muted>
-            <Strong color="$primary">{filterText}</Strong>
+            <Strong color="$fg-accent">{filterText}</Strong>
           </Text>
         </>
       )}

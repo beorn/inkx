@@ -183,7 +183,7 @@ export function ListView({ columnIds, width, height, columnFilters }: ListViewPr
       if (item.type === "filtered-footer") {
         return (
           <Box key={`filtered-${item.colId}-${flatIndex}`} width={width} height={1} justifyContent="center">
-            <Text color="$muted">+{item.hiddenCount} filtered</Text>
+            <Text color="$fg-muted">+{item.hiddenCount} filtered</Text>
           </Box>
         )
       }

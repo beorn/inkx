@@ -38,10 +38,10 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
   } as const
 
   const colors = {
-    info: "$primary",
-    success: "$success",
-    warning: "$warning",
-    error: "$error",
+    info: "$fg-accent",
+    success: "$fg-success",
+    warning: "$fg-warning",
+    error: "$fg-error",
   }
 
   const icon = icons[toast.level]
@@ -71,7 +71,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       flexDirection="column"
       flexShrink={0}
       borderStyle="round"
-      borderColor="$border"
+      borderColor="$border-default"
       backgroundColor={"$bg-surface-overlay"}
       paddingLeft={1}
       paddingRight={1}
