@@ -35,7 +35,14 @@ import { buildKeybindingContextFromOpCtx } from "../board/command-bridge.ts"
 import { FILTER_PANEL_WIDTH, computeOmniboxDialogWidth, OMNIBOX_MAX_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import { allCommands, getAllKeybindings, formatKeybinding } from "@km/commands"
-import { applySigilRule, dispatchOmnibox, dismissOmnibox, modeOf, type OmniboxPane } from "../state/omnibox.ts"
+import {
+  applySigilRule,
+  dispatchOmnibox,
+  dismissOmnibox,
+  modeOf,
+  omniboxCursor,
+  type OmniboxPane,
+} from "../state/omnibox.ts"
 import { commandResultsForOmnibox, nodeResultsForOmnibox } from "../state/omnibox-projection.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
 import type { OmniboxRowData } from "./OmniboxRow.tsx"
@@ -336,10 +343,14 @@ function UnifiedOmniboxConnector({
         } else {
           targetId = row.id
         }
-      } else if (p.state.selectedArgumentId != null) {
+      } else {
         // Programmatic dispatch path (dialog.confirm without a current row):
-        // treat the pre-seeded selectedArgumentId as a node target.
-        targetId = p.state.selectedArgumentId
+        // treat the omnibox's cursor as a node target. `omniboxCursor(p)`
+        // is the TEA-shim accessor per km-tui.omnibox-cursor (Phase 6) —
+        // reading the pane's `.cursor` here is the only caller outside
+        // the command executor allowed to see selectedArgumentId.
+        const cursor = omniboxCursor(p)
+        if (cursor != null) targetId = cursor
       }
 
       // km-tui.itempicker-unify: for subject-action commands, the target
