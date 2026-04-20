@@ -73,7 +73,7 @@ function FlashMessage({ message, color }: { message: string; color?: string }): 
       flexDirection="row"
       borderStyle="round"
       borderColor={isFlash ? "$muted" : "$border"}
-      backgroundColor="$popover-bg"
+      backgroundColor="$bg-surface-overlay"
       paddingX={1}
       overflow="hidden"
     >
@@ -99,15 +99,15 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={dimmed ? "$disabled-fg" : "$border"}
-      backgroundColor="$popover-bg"
+      borderColor={dimmed ? "$fg-muted" : "$border"}
+      backgroundColor="$bg-surface-overlay"
       paddingX={1}
       paddingY={1}
       overflow="hidden"
     >
       {entries.map((entry) => (
         <Text key={entry.key} dimColor={dimmed}>
-          <Text color={dimmed ? "$disabled-fg" : "$primary"} bold={!dimmed}>
+          <Text color={dimmed ? "$fg-muted" : "$primary"} bold={!dimmed}>
             {entry.key}
           </Text>{" "}
           <Text dimColor>{entry.label}</Text>
@@ -159,7 +159,7 @@ function CommandFeedback({
 const MODE_COLORS: Record<string, string> = {
   NORMAL: "$success",
   INSERT: "$warning",
-  VISUAL: "$selection-bg",
+  VISUAL: "$selectionbg",
   MOVE: "magenta",
   FIND: "$primary",
 }
@@ -251,7 +251,7 @@ export function CommandBox({
   if (!hasFeedback && !hasCommand) return null
 
   // Border color: focus ring when input-focused, text otherwise
-  const borderColor = isCommandInput ? "$focusborder" : "$fg"
+  const borderColor = isCommandInput ? "$border-focus" : "$fg"
 
   return (
     <Box
@@ -269,7 +269,7 @@ export function CommandBox({
           flexDirection="row"
           borderStyle="round"
           borderColor={borderColor}
-          backgroundColor="$popover-bg"
+          backgroundColor="$bg-surface-overlay"
           overflow="hidden"
         >
           <Text color={modeColor} bold id="mode-label">
@@ -315,7 +315,7 @@ export function CommandBox({
                 </Text>
               )}
               {multiSuffix && (
-                <Text color="$selection-bg" id="multi-count">
+                <Text color="$selectionbg" id="multi-count">
                   {multiSuffix}
                 </Text>
               )}

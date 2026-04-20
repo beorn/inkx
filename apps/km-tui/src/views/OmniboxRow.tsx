@@ -65,9 +65,9 @@ export function OmniboxRow({
 }): React.ReactElement {
   const { icon, iconColor, title, titleDecorations, context, hint, isSelected, disabled } = data
 
-  // Selected row is the omnibox cursor — use $cursorbg/$cursor (scheme's
+  // Selected row is the omnibox cursor — use $bg-cursor/$cursor (scheme's
   // terminal cursor color) for native-feel highlight per design system.
-  const bg = isSelected ? "$cursor-bg" : "$popover-bg"
+  const bg = isSelected ? "$bg-cursor" : "$bg-surface-overlay"
   const fg = disabled ? "$muted" : isSelected ? "$cursor" : undefined
   // Selection rules win over everything: on a selected row ALL content —
   // including $muted icons — takes the selection fg (black).

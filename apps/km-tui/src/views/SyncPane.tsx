@@ -75,7 +75,7 @@ export function SyncPane({ events, watcherStatus, width }: SyncPaneProps): React
       borderBottom={false}
       borderLeft={false}
       borderRight={false}
-      backgroundColor={"$surface-bg"}
+      backgroundColor={"$bg-surface-default"}
       flexShrink={0}
     >
       <Box flexDirection="row" justifyContent="space-between">

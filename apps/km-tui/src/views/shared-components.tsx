@@ -101,7 +101,7 @@ export const MemoizedTreeCard = React.memo(
     // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box outlineStyle="round" outlineColor={"$focusborder"}>
+        <Box outlineStyle="round" outlineColor={"$border-focus"}>
           {content}
         </Box>
       )
@@ -434,7 +434,7 @@ export function InputBox({
   prompt = "",
   placeholder = "",
   ghostHint = "",
-  promptColor = "$selection-bg",
+  promptColor = "$selectionbg",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -484,7 +484,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor={"$focusborder"} width="100%">
+      <Box borderStyle="round" borderColor={"$border-focus"} width="100%">
         {content}
       </Box>
     )
@@ -532,7 +532,7 @@ export function NodeLine({
   const icon = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$cursor-bg" : "$popover-bg"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$bg-cursor" : "$bg-surface-overlay"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
         <Text color={isSelected ? "$cursor" : undefined} wrap="truncate">

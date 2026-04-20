@@ -59,19 +59,19 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
 
   const name = getNodeDisplayNameBase(ca.node, (id) => repo.getChildren(id))
   if (ca.typeSuffix) {
-    return prefix + name + themeFg(` ${ca.typeSuffix}`, "$disabled-fg")
+    return prefix + name + themeFg(` ${ca.typeSuffix}`, "$fg-muted")
   }
   // No collapsed suffix - show individual type indicator based on fstype
   if (KNode.isOutline(ca.node)) {
     switch (ca.node.fstype) {
       case "folder":
-        return prefix + name + themeFg("/", "$disabled-fg")
+        return prefix + name + themeFg("/", "$fg-muted")
       case "file":
       case "mdfile":
-        return prefix + (name.endsWith(".md") ? name : name + themeFg(".md", "$disabled-fg"))
+        return prefix + (name.endsWith(".md") ? name : name + themeFg(".md", "$fg-muted"))
       case "mdsection": {
         const depth = computeSectionDepth(ca.node, (id) => repo.getNode(id))
-        return prefix + themeFg("#".repeat(depth) + " ", "$disabled-fg") + name
+        return prefix + themeFg("#".repeat(depth) + " ", "$fg-muted") + name
       }
     }
   }
@@ -94,13 +94,13 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   if (KNode.isOutline(node)) {
     switch (node.fstype) {
       case "folder":
-        return prefix + themeFg(name, "$link") + themeFg("/", "$disabled-fg")
+        return prefix + themeFg(name, "$link") + themeFg("/", "$fg-muted")
       case "file":
       case "mdfile":
         return prefix + themeFg(name, "$link")
       case "mdsection": {
         const depth = computeSectionDepth(node, (id) => repo.getNode(id))
-        return prefix + themeFg("#".repeat(depth) + " ", "$disabled-fg") + themeFg(name, "$primary")
+        return prefix + themeFg("#".repeat(depth) + " ", "$fg-muted") + themeFg(name, "$primary")
       }
       default:
         return prefix + themeFg(name, "$primary")

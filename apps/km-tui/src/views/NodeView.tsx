@@ -225,7 +225,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$selection-bg" : "$disabled-fg"}>{"\u2500".repeat(Math.max(0, width))}</Text>
+          <Text color={isColumnSelected ? "$selectionbg" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width))}</Text>
         </Box>
       )}
     </Box>
@@ -282,7 +282,7 @@ export function NodeLineView({
     })()
 
   const textColor = isSelected ? "$selection" : undefined
-  const bgColor = isSelected ? "$selection-bg" : undefined
+  const bgColor = isSelected ? "$selectionbg" : undefined
   const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
@@ -350,7 +350,7 @@ export function NodeCardView({
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
   const textColor = isSelected ? "$selection" : undefined
-  const bgColor = isSelected ? "$selection-bg" : undefined
+  const bgColor = isSelected ? "$selectionbg" : undefined
   const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
@@ -459,7 +459,7 @@ export function NodeColumnView({
   width,
 }: NodeColumnViewProps): React.ReactElement {
   const textColor = isSelected ? "$selection" : undefined
-  const bgColor = isSelected ? "$selection-bg" : undefined
+  const bgColor = isSelected ? "$selectionbg" : undefined
 
   // Icon comes from the type-bullet resolver — it owns the mdsection→§,
   // folder→, mdfile→, etc. mapping. We no longer hardcode `§ ` here
@@ -486,7 +486,7 @@ export function NodeColumnView({
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text dimColor={!isSelected} color={isSelected ? "$selection-bg" : undefined}>
+        <Text dimColor={!isSelected} color={isSelected ? "$selectionbg" : undefined}>
           {"\u2500".repeat(Math.max(0, width ?? 40))}
         </Text>
       </Box>
@@ -536,10 +536,10 @@ export function NodeTabView({
     displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
   const countStr = ` (${count})`
 
-  const textColor = isSelected ? "$selection" : isActive ? "$selection-bg" : "$fg"
+  const textColor = isSelected ? "$selection" : isActive ? "$selectionbg" : "$fg"
 
   return (
-    <Box backgroundColor={isSelected ? "$selection-bg" : undefined}>
+    <Box backgroundColor={isSelected ? "$selectionbg" : undefined}>
       <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
@@ -616,11 +616,11 @@ export function NodeDetailView({
       width={width}
       height={height}
       borderStyle="round"
-      borderColor={"$selection-bg"}
-      backgroundColor={"$popover-bg"}
+      borderColor={"$selectionbg"}
+      backgroundColor={"$bg-surface-overlay"}
     >
       {/* Title header — yellow bg */}
-      <Box flexDirection="column" width={width - 2} backgroundColor={"$selection-bg"} paddingX={1}>
+      <Box flexDirection="column" width={width - 2} backgroundColor={"$selectionbg"} paddingX={1}>
         <Text bold color={"$selection"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
           <InlineText text={displayContent} context={{ stripInlineColors: true, hideFields: true }} />
@@ -736,7 +736,7 @@ export function deriveColumnHeaderProps(
 
   const headerStyle = opts.isInlineEditing
     ? {
-        color: "$focusborder",
+        color: "$border-focus",
         backgroundColor: undefined as string | undefined,
         dimColor: false,
       }

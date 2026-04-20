@@ -14,7 +14,7 @@
  * ```
  *   1. Content intent     — leaf components (InlineWikiLink, InlineCode, InlineMention, …)
  *                           emit color/underline/dim based on what the CONTENT means
- *                           (e.g. code → $inputborder fg, broken link → dashed $error underline)
+ *                           (e.g. code → $border-default fg, broken link → dashed $fg-error underline)
  *
  *   2. Type state         — done/dropped tasks strip colors; headings get bold; body
  *                           items get dim. Applied via tree-node-helpers.computeNodeStyle().
@@ -24,7 +24,7 @@
  *                           Applied via CardColumn.tsx / Board.tsx backgroundColor.
  *
  *   4. Cursor state       — the cursor NODE gets inverse-yellow head row
- *                           ($selection-bg bg + $selection fg). This forces the fg
+ *                           ($selectionbg bg + $selection fg). This forces the fg
  *                           color across the entire cursor line, so leaves in this
  *                           cell MUST be cursor-safe (see "Cursor-safe leaves" below).
  * ```
@@ -75,7 +75,7 @@
  * ## Rules
  *
  * 1. CURSOR NODE TITLE: The node where the cursor IS gets inverse yellow
- *    on its title row only (headRowBg = $selection-bg, textColor = $selection).
+ *    on its title row only (headRowBg = $selectionbg, textColor = $selection).
  *    Inline colors are stripped for readability on the inverse bg.
  *
  * 2. CARD CONTAINER: When cursor is anywhere in the card (directly on the card
@@ -91,7 +91,7 @@
  *    (including column titles) gets the subtle bg tint.
  *
  * 5. PARENT INDICATORS: Regardless of cursor depth:
- *    - Card border: yellow ($selection-bg) when card or descendant has cursor
+ *    - Card border: yellow ($selectionbg) when card or descendant has cursor
  *    - Column title: yellow when any child has cursor
  *    - Column underline: yellow when any child has cursor
  *

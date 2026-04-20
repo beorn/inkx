@@ -298,7 +298,7 @@ const Card = React.memo(
     // access. Non-body branches also use useTheme later; React dedupes.
     const theme = useTheme()
     // Body block bg when this block is the cursor or part of a multi-select.
-    // Editing suppresses the bg — the focusborder on the card border is the
+    // Editing suppresses the bg — the border-focus on the card border is the
     // edit indicator, and the bg would compete with it. Column-level cursor
     // is NOT included either: the column container already has a cascaded
     // tint, so duplicating here would double-tint.
@@ -344,7 +344,7 @@ const Card = React.memo(
             })}
           >
             <Text
-              color={isSelected || isNodeSelected ? "$selection-bg" : undefined}
+              color={isSelected || isNodeSelected ? "$selectionbg" : undefined}
               dimColor={!isSelected && !isNodeSelected}
               wrap="truncate"
             >
@@ -402,7 +402,7 @@ const Card = React.memo(
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder =
-        isSelected || isNodeSelected || isColSelected ? "$selection-bg" : (hoverBorderColor ?? "$muted")
+        isSelected || isNodeSelected || isColSelected ? "$selectionbg" : (hoverBorderColor ?? "$muted")
       return (
         <Box
           data-view="card"
@@ -442,7 +442,7 @@ const Card = React.memo(
     // Multi-selected cards get the stronger multiSelectedBg tint so they stack
     // visually with the rest of the selection (rule 6). Cursor anywhere in card
     // (direct or descendant) gets the subtle selectedBg tint (rule 2).
-    // No custom bg during editing — the focusborder on the card border is
+    // No custom bg during editing — the border-focus on the card border is
     // enough to indicate edit mode. Normal selection tint applies when not editing.
     // Priority: selectedBg for cursor scope (direct or descendant) takes precedence
     // over multiSelectedBg. multiSelectedBg only for multi-selected cards where
@@ -463,7 +463,7 @@ const Card = React.memo(
     // whitespace, not visible borders. Borders appear as interactive feedback:
     // hover → $muted (faint), selection → $selection-bg (yellow).
     // Done/dropped use $disabled-fg for a faint but distinct border.
-    const defaultBorder = isDoneOrDropped ? "$disabled-fg" : "$surface-bg"
+    const defaultBorder = isDoneOrDropped ? "$fg-muted" : "$bg-surface-default"
     // "Board level" means cursor is on an ancestor (column or board root).
     // Read cursorDepth only for the board-level border-hiding check — this is
     // a global concern (rare change), not per-card.
@@ -471,11 +471,11 @@ const Card = React.memo(
     const globalCursor = useSignal(nodeStore.cursor)
     const isBoardLevel = selLevel === "board" && globalCursor !== null
     const borderColor = isEditing
-      ? "$focusborder"
+      ? "$border-focus"
       : isColSelected || isBoardLevel
-        ? "$surface-bg" // hide borders when column/board selected (same space, invisible)
+        ? "$bg-surface-default" // hide borders when column/board selected (same space, invisible)
         : isSelected || isNodeSelected
-          ? "$selection-bg"
+          ? "$selectionbg"
           : (hoverBorderColor ?? defaultBorder)
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -892,7 +892,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selection-bg" : "$surface-bg"
+    const borderColor = isColumnSelected ? "$selectionbg" : "$bg-surface-default"
     return (
       <Box
         id={nodeId}
@@ -914,7 +914,7 @@ export const Column = React.memo(function Column({
           borderStyle="round"
           borderColor={borderColor}
           overflow="hidden"
-          backgroundColor={isColumnSelected ? "$selection-bg" : undefined}
+          backgroundColor={isColumnSelected ? "$selectionbg" : undefined}
         >
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (

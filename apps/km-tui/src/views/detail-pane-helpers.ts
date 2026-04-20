@@ -75,7 +75,7 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
 }
 
 export function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "$focusborder" }
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "$border-focus" }
 }
 
 // =============================================================================

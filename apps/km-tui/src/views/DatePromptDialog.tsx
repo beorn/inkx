@@ -74,7 +74,7 @@ export function DatePromptDialog({
   return (
     <ModalDialog title={title} width={width} height={height} footer="Enter confirm  Esc cancel">
       {/* Input field */}
-      <Box borderStyle="round" borderColor={"$focusborder"} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$border-focus"} flexShrink={0}>
         <Text>
           <Text color={"$fg"}>{"> "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />

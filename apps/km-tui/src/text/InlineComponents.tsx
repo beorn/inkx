@@ -214,7 +214,7 @@ export function InlineStrikethrough({
 
 export function InlineCode({ node, decorations, offset }: { node: CodeNode } & DecorationProps): React.ReactElement {
   const ctx = useInlineRenderContext()
-  const codeColor = ctx.stripInlineColors ? "inherit" : "$inputborder"
+  const codeColor = ctx.stripInlineColors ? "inherit" : "$border-default"
   if (decorations?.length) {
     return (
       <Text color={codeColor}>
@@ -332,7 +332,7 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
   const styledValue = ctx.stripInlineColors ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={ctx.stripInlineColors ? "inherit" : "$inputborder"}>
+      <Text dim color={ctx.stripInlineColors ? "inherit" : "$border-default"}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>

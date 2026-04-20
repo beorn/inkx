@@ -115,17 +115,17 @@ export function getNodeStyle(
   let textColor: string | undefined
 
   if (isInlineEditing) {
-    // Edit mode: no selection highlight — editing indicated by focusborder tint + border
+    // Edit mode: no selection highlight — editing indicated by border-focus tint + border
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected) {
-    // Cursor node: $selection-bg/$selection (Nord yellow or equivalent).
+    // Cursor node: $selectionbg/$selection (Nord yellow or equivalent).
     // Kept on selection tokens (not cursor tokens) because km-tui's per-pane
     // theme dimming logic in theme.ts dims selectionbg to produce the
-    // 'unfocused pane' dimmed look. Migrating to $cursor-bg/$cursor would
+    // 'unfocused pane' dimmed look. Migrating to $bg-cursor/$fg-cursor would
     // need that dimming logic extended to cursorbg too — tracked in
     // km-silvery.theme-fake-cursor (follow-up).
-    backgroundColor = "$selection-bg"
+    backgroundColor = "$selectionbg"
     textColor = "$selection"
   }
   // isNodeSelected (multi-selection): no inverse — CardColumn handles bg tint.

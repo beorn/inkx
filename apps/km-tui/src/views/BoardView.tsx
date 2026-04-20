@@ -216,7 +216,7 @@ function PaneBoardTopBar({
   return (
     <PaneBar
       isFocused={isPaneFocused}
-      backgroundColor={isBoardSelected ? "$selection-bg" : undefined}
+      backgroundColor={isBoardSelected ? "$selectionbg" : undefined}
       paneLabel={paneLabel}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
@@ -302,7 +302,7 @@ function BoardTopBar({
   return (
     <PaneBar
       isFocused={true}
-      backgroundColor={isBoardSelected ? "$selection-bg" : undefined}
+      backgroundColor={isBoardSelected ? "$selectionbg" : undefined}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
           <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />

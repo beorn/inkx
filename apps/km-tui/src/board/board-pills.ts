@@ -168,7 +168,7 @@ export function getHeaderStyle(
   if (isActiveSelection) {
     return {
       color: "$selection",
-      backgroundColor: "$selection-bg",
+      backgroundColor: "$selectionbg",
       dimColor: false,
     }
   }

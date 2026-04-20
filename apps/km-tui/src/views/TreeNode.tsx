@@ -832,7 +832,7 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && isOneliner && (
             <Box flexShrink={0}>
-              <Text color={isSelected ? tc : "$disabled-fg"}>{` ${childCount}`}</Text>
+              <Text color={isSelected ? tc : "$fg-muted"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
@@ -845,7 +845,7 @@ function TreeNodeImpl({
           {/* Hidden in cards view — overflow indicators are enough */}
           {subtaskBadge && !isInlineEditing && isOneliner && (
             <Box flexShrink={0}>
-              <Text color={isSelected ? tc : "$disabled-fg"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isSelected ? tc : "$fg-muted"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -1164,7 +1164,7 @@ const FoldedChildRow = React.memo(
         {/* Right-aligned: child count — only in oneliner (columns) view */}
         {hasChildren && treeConfig.variant === "oneliner" && (
           <Box flexShrink={0}>
-            <Text color={"$disabled-fg"}>{` ${childCount}`}</Text>
+            <Text color={"$fg-muted"}>{` ${childCount}`}</Text>
           </Box>
         )}
       </Box>
@@ -1211,7 +1211,7 @@ interface NodeChildrenProps {
   bodyIdSet?: Set<string> | null
   /** When true, suppress cursor selection highlights on children.
    * Set by the parent TreeNode when it or a descendant is being edited —
-   * the bold focusborder is sufficient, row-level inverse is redundant. */
+   * the bold border-focus is sufficient, row-level inverse is redundant. */
   suppressCursorHighlight?: boolean
 }
 
@@ -1274,7 +1274,7 @@ function NodeChildren({
 
   // Get cursor position from NodeStore to determine which child is selected.
   // When suppressCursorHighlight is true (parent is editing or has an editing
-  // descendant), suppress cursor selection highlights — the bold focusborder
+  // descendant), suppress cursor selection highlights — the bold border-focus
   // is sufficient, row-level inverse is redundant.
   const nodeStore = useNodeStore()
   const cursor = useSignal(nodeStore.cursor)

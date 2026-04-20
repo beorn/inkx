@@ -111,17 +111,17 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             testID={effectiveId}
             focusable
             paddingX={1}
-            backgroundColor={isTitleCursor && !isRootEditing ? "$cursor-bg" : undefined}
+            backgroundColor={isTitleCursor && !isRootEditing ? "$bg-cursor" : undefined}
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
             <Box flexGrow={1} flexShrink={1}>
-              <H1 color={isRootEditing ? "$focusborder" : isTitleCursor ? "$cursor" : undefined} wrap="wrap">
+              <H1 color={isRootEditing ? "$border-focus" : isTitleCursor ? "$cursor" : undefined} wrap="wrap">
                 {rootStatusIcon && (
                   <>
                     <CheckboxIcon
                       nodeId={effectiveId}
                       icon={rootStatusIcon}
-                      textColor={isRootEditing ? "$focusborder" : isTitleCursor ? "$cursor" : undefined}
+                      textColor={isRootEditing ? "$border-focus" : isTitleCursor ? "$cursor" : undefined}
                       shouldDim={false}
                       isSelected={isTitleCursor}
                       isNodeSelected={false}
@@ -284,9 +284,9 @@ function DocNode({
   )
   const childCount = children.length
 
-  // Edit mode styling: suppress selection-bg, use $focusborder color instead.
+  // Edit mode styling: suppress selectionbg, use $border-focus color instead.
   // Matches CardColumn.tsx pattern: editing clears bg, shows cyan border/color.
-  const bg = isCursor && !isEditing ? "$cursor-bg" : undefined
+  const bg = isCursor && !isEditing ? "$bg-cursor" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
   // Strip inline colors on cursor row — blue links on gold bg are unreadable
   // During editing, no color override needed (editor handles its own styling)
@@ -324,7 +324,7 @@ function DocNode({
   // Headings that are also tasks show a task status icon before the title.
   if (isHeading) {
     const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
-    const headingColor = isEditing ? "$focusborder" : isCursor ? "$cursor" : undefined
+    const headingColor = isEditing ? "$border-focus" : isCursor ? "$cursor" : undefined
     const headingTaskIcon = isTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
     const headingIsDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
     return (
@@ -394,7 +394,7 @@ function DocNode({
   if (isTask) {
     const icon = getStatusIcon(node.item?.task?.status ?? "todo")
     const isDone = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-    const textColor = isEditing ? "$focusborder" : isCursor ? "$cursor" : isDone ? "$muted" : undefined
+    const textColor = isEditing ? "$border-focus" : isCursor ? "$cursor" : isDone ? "$muted" : undefined
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
@@ -530,7 +530,7 @@ const LABEL_WIDTH = 12
  */
 function MetadataRow({ metaId, label, node, isSelected, width }: MetadataRowProps): React.ReactElement {
   const repo = useRepo()
-  const bg = isSelected ? "$selection-bg" : undefined
+  const bg = isSelected ? "$selectionbg" : undefined
   const fg = isSelected ? "$selection" : undefined
   const labelColor = isSelected ? "$selection" : "$muted"
 

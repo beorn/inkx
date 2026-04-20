@@ -5,7 +5,7 @@
  * OSC 4/10/11 and derive a full theme. Falls back to Nord (dark) or
  * Catppuccin Latte (light) when detection fails.
  *
- * All components use $token strings (e.g., "$selection-bg", "$focusborder")
+ * All components use $token strings (e.g., "$selectionbg", "$border-focus")
  * which silvery ThemeProvider resolves at render time.
  */
 import { ansi16DarkTheme, detectTheme } from "@silvery/ag-react"
