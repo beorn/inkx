@@ -8,6 +8,35 @@ Goal: delete every legacy compat alias, ship silvery 0.19.0 with a clean Theme s
 
 ---
 
+## Actual delete audit (measured 2026-04-19 post-2c)
+
+**augmentWithSterlingFlat consumers** (7 files — all need rewrite or deletion):
+
+```
+vendor/silvery/packages/theme/src/theme.ts
+vendor/silvery/packages/theme/src/sterling/index.ts
+vendor/silvery/packages/theme/src/sterling/augment.ts         ← delete file
+vendor/silvery/packages/theme/src/schemes/index.ts
+vendor/silvery/packages/ag-term/src/pipeline/state.ts
+apps/km-tui/src/theme.ts                                       ← ~20 line rewrite: emit Sterling directly
+apps/km-tui/tests/helpers/theme.ts                             ← update to use sterling directly
+```
+
+**PRIMER_ALIASES / LEGACY_ALIASES** (3 files):
+
+```
+vendor/silvery/packages/ansi/src/style/style.ts               ← main tables
+vendor/silvery/packages/ansi/src/theme/monochrome.ts           ← mono-tier references
+vendor/silvery/packages/ansi/src/theme/derived.ts              ← derivation references
+```
+
+**Remaining legacy Theme field accesses in vendor/silvery source** (6 total):
+
+- 3× `.cursorbg` — all in vendor/silvery source (non-test files)
+- 3× `.selectionbg` — same
+
+These 6 are the full runtime scope of legacy-field deletion. km-tui runtime has 0 — clean after 2c.
+
 ## Pre-flight (verify before starting)
 
 - [ ] `sterling-2c-km-migration` closed — `rg 'theme\.(primaryfg|mutedbg|selectionbg|inputborder|focusborder|cursorbg|popoverbg|surfacebg|inversebg|disabledfg)\b' apps/km-tui/src/` → 0 hits
