@@ -79,6 +79,24 @@ idle
 busy: bead km-tui.X, ETA unknown (open-ended)
 ```
 
+### ETAs are signals, not wall-clock estimates
+
+A member's self-reported ETA ("30–45 min") comes from an LLM estimating its own work. Treat it as a hint, not a promise. Actual wall-clock times routinely drift by 2–5× in either direction — a "quick 10 min fix" becomes an hour; a "30 min refactor" finishes in 8.
+
+Use the ETA for **relative ordering** ("this session thinks it's mid-task" vs "nearly done"), not absolute scheduling. Stronger signals:
+
+- **they replied at all** — the session is alive and attentive
+- **idle vs busy** — binary, cheap, reliable
+- **category of work** — gives a real distribution:
+  - vitest run / lint / format: 1–5 min
+  - single-file refactor: 5–20 min
+  - GPT-5.4-pro review call: 3–15 min
+  - `/deep` / deep research: 10–60 min
+  - multi-file migration: 30 min – several hours (high variance)
+  - "Phase X of multi-phase plan": open-ended; surface to user
+
+When a busy member has an open-ended ETA, surface it as unknown rather than trusting the number.
+
 ### When the probe reveals active work
 
 - **busy, known ETA within 30 min**: recommend waiting. Narrow to safe targets (`caches`, maybe `worktrees` if the ETA doesn't touch them). Never `--force` past busy members without asking the user first.
