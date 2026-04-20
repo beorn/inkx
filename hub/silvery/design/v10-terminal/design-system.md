@@ -133,6 +133,14 @@ export interface DesignSystem<Input = unknown> {
   /** The Theme shape this system produces (for TypeScript). */
   readonly shape: ThemeShape
 
+  /**
+   * Framework-level opt-in for flat-projection (see §"Two first-class shapes").
+   *   - `true`        → default channel-role-state rule (Sterling style)
+   *   - `FlattenRule` → custom rule (e.g. Material `onPrimary` / camelCase)
+   *   - `false` / omitted → no auto-flatten (nested-only system)
+   */
+  readonly flatten?: boolean | FlattenRule
+
   /** Raw defaults, no input required. */
   defaults(mode?: "light" | "dark"): Theme
 
@@ -140,14 +148,30 @@ export interface DesignSystem<Input = unknown> {
   theme(partial: Partial<Theme>): Theme
 
   /** Standard derivations — each is optional. */
-  deriveFromcolofScheme?(scheme: ColorScheme): Theme
+  deriveFromScheme?(scheme: ColorScheme): Theme
   deriveFromColor?(color: string): Theme
-  deriveFromColorPair?(light: ColorScheme, dark: ColorScheme): Theme
-  deriveFromColorSchemeWithBrand?(scheme: ColorScheme, brand: string): Theme
+  deriveFromPair?(light: ColorScheme, dark: ColorScheme): { light: Theme; dark: Theme }
+  deriveFromSchemeWithBrand?(scheme: ColorScheme, brand: string): Theme
 }
 ```
 
-`defineDesignSystem(...)` validates and returns a typed `DesignSystem`. Writing a new one is publishing a package that exports `DesignSystem`.
+`defineDesignSystem(...)` wraps every derivation method in an auto-`bakeFlat` per the `flatten` flag, so Sterling-style flat-projection is a framework feature — every system that opts in gets `theme["bg-accent"]` access for free, without reimplementing the walk. Writing a new design system is publishing a package that exports a `DesignSystem` and (optionally) a `FlattenRule`.
+
+### Flat projection is a framework feature, not a Sterling feature
+
+The nested-POJO-with-hex-leaves shape is universal across design systems. Whether the tokens are Sterling's `accent`/`error`/`surface`, Material's `primary`/`secondary`/`tertiary`, or Polaris's `critical`/`caution`, the data shape is the same: a nested object whose leaves are hex strings.
+
+`@silvery/ansi` exposes two generic helpers that operate on this shape:
+
+| Helper | Takes | Returns | Use |
+|---|---|---|---|
+| `bakeFlat(theme, rule?)` | nested theme + optional `FlattenRule` | same object with flat keys written + frozen | project hex leaves as hyphen-keyed root siblings |
+| `pickColorLevel(theme, tier)` | theme + color tier | structurally identical theme with quantized leaves | pre-quantize for ANSI-16 / 256 / mono terminals |
+| `quantizeHex(hex, tier)` | single hex | hex | single-color tier quantization |
+
+All three are in `@silvery/ansi`, consumable by any DesignSystem, Sterling included. `defineDesignSystem` wires `bakeFlat` into the contract so every derivation method auto-applies it per the `flatten` flag — system authors never call `bakeFlat` themselves.
+
+Alternative-system authors can pass a custom `FlattenRule` when their convention differs (Material's `onPrimary` vs Sterling's `fg-on-accent`; camelCase vs hyphen-joined; prefix-reversed). Returning `null` from the rule skips a leaf — useful for metadata fields.
 
 ## Default design system (Sterling, in `@silvery/design`)
 
@@ -167,17 +191,20 @@ Grammar (from GitHub's Primer): `prefix-role-state-modifier`.
 **Structured shape** (TS object) rather than flat strings (CSS variables) — silvery isn't CSS-bound:
 
 ```ts
-theme.error   = { fg, bg, fgOn, hover: { fg, bg }, active: { fg, bg } }
-theme.accent  = { fg, bg, fgOn, border, hover, active }
-theme.info    = { fg, bg, fgOn, hover, active }       // may alias accent in default Sterling
-theme.success = { fg, bg, fgOn, hover, active }
-theme.warning = { fg, bg, fgOn, hover, active }
+theme.accent  = { fg, bg, fgOn, border, hover: { fg, bg }, active: { fg, bg } }   // link-like
+theme.info    = { fg, bg, fgOn, hover: { bg }, active: { bg } }  // status — bg state only
+theme.success = { fg, bg, fgOn, hover: { bg }, active: { bg } }
+theme.warning = { fg, bg, fgOn, hover: { bg }, active: { bg } }
+theme.error   = { fg, bg, fgOn, hover: { bg }, active: { bg } }
 theme.surface = { default, subtle, raised, overlay, hover }
 theme.border  = { default, focus, muted }
 theme.cursor  = { fg, bg }
+theme.muted   = { fg, bg }                                        // no state variants
 ```
 
-Web-CSS export auto-flattens (`theme.error.hover.fg` → `--fg-error-hover`) at build time.
+Only `accent` — the canonical link-like role — emits `fg.hover` / `fg.active`. Status roles (`error`/`warning`/`success`/`info`) get `bg` state variants only because their text tokens aren't interactive; text on status tokens doesn't hover. This prevents the algorithmic over-generation failure mode where high-L status-fg tokens (e.g. `catppuccin-frappe.warning.fg` at L=0.84) collapse to `#FFFFFF` under a naive upward L-shift.
+
+Web-CSS export auto-flattens (`theme.accent.hover.fg` → `--fg-accent-hover`) at build time. Note that status roles (`error`/`warning`/`success`/`info`) only emit `bg` state variants — text on status tokens is not interactive (see §"State-variant rules").
 
 ### Intent vs role — `destructive` at the component layer
 
@@ -534,21 +561,50 @@ Example round-trip:
 | **Nested** | Discoverability in IDE (autocomplete `theme.accent.` shows `fg`, `bg`, `fgOn`, `hover`, `active`), type-safety of shape, programmatic iteration (`for (const [state, pair] of Object.entries(theme.accent))`) | Verbose for simple references; hard to use in string syntax |
 | **Flat** | `$token` strings (`<Text color="$fg-accent">`), CSS var compatibility (`--bg-accent-hover`), shell-friendly logging/debugging, theme diffs | Opaque — no structural type information; `theme.flat["bg-accnt"]` typos silently fail (though TS string-literal types catch known keys) |
 
-### How Sterling exposes both
+### How Sterling (and any DesignSystem) exposes both
 
-Every `DesignSystem.deriveFrom*(…)` function returns a Theme where:
-- The nested form is a plain object (JS-native, no Proxy magic)
-- `theme.flat` is a frozen record populated at derive time (~50 keys)
-- Both views reference the same string values (shared, not duplicated in memory)
+Flat-projection is a **framework feature** — not Sterling-specific. `defineDesignSystem({ flatten: true })` wraps every derivation entry and auto-applies `bakeFlat` (from `@silvery/ansi`). The resulting Theme has both nested roles and flat hyphen keys on the **same object**, referencing the **same string** (not copies).
 
 ```ts
-const theme = design.deriveFromScheme(nord)
+import { defineDesignSystem } from "@silvery/theme"
+import { bakeFlat } from "@silvery/ansi"
 
-theme.accent.bg        // "#88C0D0" — nested
-theme.flat["bg-accent"] // "#88C0D0" — same string, same reference
+export const sterling = defineDesignSystem({
+  name: "sterling",
+  shape: STERLING_SHAPE,
+  flatten: true,                              // ← opt in to default rule
+  deriveFromScheme(scheme) { return derive(scheme) },   // returns nested-only
+  // … etc.
+})
 
-Object.keys(theme.flat).length  // ~50 — one entry per leaf token
+const theme = sterling.deriveFromScheme(nord)
+theme.accent.bg            // "#88C0D0" — nested
+theme["bg-accent"]         // "#88C0D0" — same string reference, not a copy
+theme["bg-accent-hover"]   // OKLCH +0.04L shift on accent.bg
 ```
+
+The nested form is a plain object (JS-native, no Proxy magic). Flat keys are root-level siblings of the role objects — hyphens in flat keys keep them disjoint from the role-name keys. The whole Theme is frozen at derive time.
+
+Alternative systems with different conventions pass a custom `FlattenRule`:
+
+```ts
+// Material-style: `onPrimary`, camelCase, not-Sterling-shaped
+const materialRule: FlattenRule = (path) => {
+  const last = path[path.length - 1]!
+  if (last === "fgOn") return `on${cap(path[0])}`
+  if (last === "fg" || last === "bg")
+    return `${last === "fg" ? "text" : "surface"}${cap(path[0])}`
+  return null
+}
+
+export const material = defineDesignSystem({
+  name: "material",
+  flatten: materialRule,                      // ← custom rule
+  // …
+})
+```
+
+Systems that don't want flat-projection at all set `flatten: false` (or omit it). Their Themes stay nested-only.
 
 ### How the two shapes map to targets
 
