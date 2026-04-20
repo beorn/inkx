@@ -100,7 +100,13 @@ export function dependsOn(issueA: Issue, issueB: Issue): boolean {
 }
 
 /**
- * Merge dependency props into existing node data
+ * Merge dependency props into existing node data.
+ *
+ * Always replaces the `blocked-by` key's value with what depProps carries.
+ * An empty `depProps.props` (from removing the last blocker) DROPS the
+ * `blocked-by` key entirely — important so the serialized markdown no
+ * longer renders `blocked-by:: [[...]]` and the reparse doesn't resurrect
+ * the stale dependency.
  */
 export function mergeDepProps(
   existingData: Record<string, unknown> | undefined,
@@ -110,18 +116,20 @@ export function mergeDepProps(
   },
 ): Record<string, unknown> {
   const data = existingData || {}
-  const existingProps = (data.props || {}) as Record<string, unknown>
-  const existingPropsRaw = (data.propsRaw || {}) as Record<string, string>
+  const existingProps = { ...((data.props || {}) as Record<string, unknown>) }
+  const existingPropsRaw = { ...((data.propsRaw || {}) as Record<string, string>) }
+
+  // Remove blocked-by from both maps first — the depProps shape owns it.
+  delete existingProps["blocked-by"]
+  delete existingPropsRaw["blocked-by"]
+
+  // Then layer in whatever depProps wants to assert (empty = deletion).
+  const nextProps = { ...existingProps, ...depProps.props }
+  const nextPropsRaw = { ...existingPropsRaw, ...depProps.propsRaw }
 
   return {
     ...data,
-    props: {
-      ...existingProps,
-      ...depProps.props,
-    },
-    propsRaw: {
-      ...existingPropsRaw,
-      ...depProps.propsRaw,
-    },
+    props: nextProps,
+    propsRaw: nextPropsRaw,
   }
 }
