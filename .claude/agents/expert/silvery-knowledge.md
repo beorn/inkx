@@ -418,7 +418,77 @@ visible area or indicators will be overwritten.
 content not overwritten". Positive-control: `▼N` should render, but on its
 own row with no card text on the same row.
 
-## Virtualizer Windowing Invariant (2026-04-20)
+## Virtualizer Windowing — Height-Aware, NOT Count-Based (2026-04-20)
+
+**Render window size is derived from HEIGHTS, not item counts.** A count-based window (`estimatedVisibleCount + 2*overscan` items) fails when item heights are highly variable — the symptom is a viewport partially filled with rendered content, ~30 rows of blank space, and a `▼N` overflow indicator at the bottom.
+
+### The bug shape
+
+- `count = 33` real items
+- Items 0..17: SHORT (~3 rows each, header-style cards) → 54 rows total
+- Items 18..32: TALL (~30 rows each, wrapped content + children) → 450 rows total
+- `avgHeight = 504/33 ≈ 15.3`
+- `estimatedVisibleCount = ceil(viewport/avgH) = ceil(115/15.3) = 8`
+- `renderCount = estVisCount + 2*overscan = 8 + 10 = 18`
+- Old window logic: `end = start + renderCount = 0 + 18 = 18`
+- Window `[0, 18)` covers ONLY the 18 short cards (54 rows total)
+- `trailingHeight = sumHeights(18, 33, measuredAvg) ≈ 450`
+- `contentHeight = 54 + 450 = 504 > viewport=115` → `hasOverflow = true`
+- Single trailing placeholder Box at `bottom=504 > visibleBottom=114` → `hiddenBelow++` = 1 → `▼1`
+
+User saw: 18 short cards filling rows 0..54, BLANK rows 55..114, `▼1` at row 115. Actual hidden count was 15, not 1.
+
+### The fix in useVirtualizer
+
+```typescript
+const overscanPixels = overscan * avgHeight
+const minItems = estimatedVisibleCount + 2 * overscan
+const targetHeight = viewportHeight + 2 * overscanPixels
+
+let start = Math.max(0, effectiveScrollOffset - overscan)
+
+// Expand `end` using actual heights (or estimates for unmeasured).
+let accumulated = 0
+let end = start
+while (end < count && accumulated < targetHeight) {
+  accumulated += getHeight(end, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+  end++
+}
+// Minimum item floor (guards fresh renders, tiny measured heights).
+end = Math.min(count, Math.max(end, start + minItems))
+// Apply maxRendered cap (safety bound).
+end = Math.min(end, start + maxRendered)
+
+// At end of list — pull `start` back to cover the viewport.
+if (end === count) {
+  let startFill = 0
+  let newStart = end
+  while (newStart > 0 && startFill < targetHeight) {
+    newStart--
+    startFill += getHeight(newStart, ...) + gap
+  }
+  start = Math.min(Math.max(0, newStart), Math.max(0, end - minItems))
+}
+```
+
+Adds `viewportHeight` to the useMemo deps.
+
+### Why not fix the indicator count too?
+
+The `▼N` count comes from `hiddenBelow` in layout-phase's `calculateScrollState`, which counts scroll-container CHILDREN (Boxes) whose `.top >= visibleBottom` (or partially visible at bottom + `indicatorReserve > 0`). The trailing placeholder is a SINGLE Box representing multiple hidden items, so `hiddenBelow` underreports.
+
+With the height-aware render window, fewer items end up hidden (the window now fills the viewport), and the indicator count naturally reflects the truer hidden count. The remaining off-by-one from the trailing placeholder is a much smaller UX issue than the blank-gap + phantom `▼1` was.
+
+A complete fix for the indicator count would require ListView to pass `hiddenAfter = count - endIndex` to the scroll container (or render the indicator itself), but that's a larger refactor. Left for a follow-up bead.
+
+### Test
+
+- `vendor/silvery/tests/features/listview-variable-heights.test.tsx` — 2 tests:
+  - "short-first + tall-later items: no large blank gap below last rendered card"
+  - "overflow indicator count scales with number of hidden items (not stuck at 1)"
+- `apps/km-tui/tests/column-top-disappears-realvault.slow.test.tsx` — subprocess-based real-vault test (uses `bun km view` through tty tool; exercises full pipeline including km.add:: aggregation)
+
+### Related (still applies)
 
 **Render window is derived from `effectiveScrollOffset`, NOT cursor.** Cursor's role is to drive scrollOffset (via `calcEdgeBasedScrollOffset`); it does not constrain the render window.
 
