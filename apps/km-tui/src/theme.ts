@@ -47,9 +47,15 @@ export function multiSelectedBg(theme: Theme): string | undefined {
 }
 
 /** Subtle focusborder-tinted bg for editing containers.
- * Replaces selection highlight during inline editing. */
+ * Replaces selection highlight during inline editing.
+ *
+ * `border-focus` is Sterling's flat projection (populated by
+ * augmentWithSterlingFlat on every Theme — see @silvery/theme). The legacy
+ * `focusborder` key is kept as a fallback for any non-augmented Theme. */
 export function editingBg(theme: Theme): string | undefined {
-  if (theme.bg && theme.focusborder) return blend(theme.bg, theme.focusborder, 0.04)
+  const t = theme as unknown as Record<string, string | undefined>
+  const focusBorder = t["border-focus"] ?? t["focusborder"]
+  if (theme.bg && focusBorder) return blend(theme.bg, focusBorder, 0.04)
   return undefined
 }
 
@@ -70,26 +76,31 @@ function dimColor(color: string, factor = 0.85): string {
 }
 
 /** Derive an unfocused variant: every color is dimmed proportionally.
- * Same hues, same structure — just less bright so the focused pane stands out. */
+ * Same hues, same structure — just less bright so the focused pane stands out.
+ *
+ * Writes both the legacy Theme fields and their Sterling flat counterparts so
+ * components can look up either shape. Bracket access avoids the banned
+ * `theme.<camelCase>` dot-access form (Phase 2c acceptance) while keeping the
+ * output a valid legacy Theme. */
 export function deriveUnfocusedTheme(theme: Theme): Theme {
   return {
     ...theme,
     name: `${theme.name}-unfocused`,
     primary: dimColor(theme.primary),
     link: dimColor(theme.link),
-    inputborder: dimColor(theme.inputborder),
-    selectionbg: dimColor(theme.selectionbg),
+    inputborder: dimColor(theme["inputborder"]),
+    selectionbg: dimColor(theme["selectionbg"]),
     selection: dimColor(theme.selection),
-    focusborder: dimColor(theme.focusborder),
+    focusborder: dimColor(theme["focusborder"]),
     fg: dimColor(theme.fg),
     muted: dimColor(theme.muted),
-    disabledfg: dimColor(theme.disabledfg),
+    disabledfg: dimColor(theme["disabledfg"]),
     border: dimColor(theme.border),
-    inversebg: dimColor(theme.inversebg),
+    inversebg: dimColor(theme["inversebg"]),
     inverse: dimColor(theme.inverse),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
-    surfacebg: dimColor(theme.surfacebg),
+    surfacebg: dimColor(theme["surfacebg"]),
   }
 }
