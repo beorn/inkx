@@ -255,7 +255,14 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     const isSinglePaneBoard = singlePane?.viewType === "board"
     return (
       <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
-        <Box flexDirection="column" height={storeDimensions.rows} id={singlePaneId} testID={singlePaneId} focusScope>
+        <Box
+          flexDirection="column"
+          width={storeDimensions.columns}
+          height={storeDimensions.rows}
+          id={singlePaneId}
+          testID={singlePaneId}
+          focusScope
+        >
           {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
           {bottomBar}
           {chrome}
