@@ -197,6 +197,20 @@ export function createOmniboxPane(spec: OmniboxInvocationSpec): OmniboxPane {
 }
 
 /**
+ * The omnibox's cursor — the node ID it is currently pointing at, updated
+ * as the user arrows through results. Reads `state.selectedArgumentId`.
+ *
+ * This is the single TEA-shim boundary for Phase 6 (km-tui.omnibox-cursor):
+ * the app-wide `currentCursor()` delegates here when the omnibox is open,
+ * so commands reading `ctx.currentNodeId` act on whatever row the user
+ * last highlighted. The command executor is the only caller — commands
+ * themselves must not reach into `OmniboxBaseState`.
+ */
+export function omniboxCursor(pane: OmniboxPane): string | null {
+  return pane.state.selectedArgumentId
+}
+
+/**
  * The UIState-setter signature. We inject it via DI so the omnibox helpers
  * stay independent of Zustand / signal store plumbing and can be tested
  * against a plain mock. In production this is `BoardAppStore["setUI"]`.

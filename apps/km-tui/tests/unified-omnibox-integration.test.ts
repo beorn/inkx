@@ -371,4 +371,116 @@ describe("unified omnibox — runtime integration", () => {
     app.command("zoom_outwards")
     expect(app.state.bell).toBe(prevBellCount)
   })
+
+  // Phase 6 — km-tui.omnibox-cursor — cursor unification via focus.
+  //
+  // When the omnibox is open, the app's "current cursor" is the omnibox's
+  // selectedArgumentId — the row the user is currently highlighting.
+  // Arrowing through the result list moves the cursor; commands dispatched
+  // via Enter read `ctx.currentNodeId` from that highlighted row, not from
+  // the anchor pane's frozen subject.
+  //
+  // Journey: cursor starts on task-a1, open omnibox (cmd-k), narrow
+  // results until `zephyr-target` is top-ranked, confirm. Expected: goto
+  // fires against `zephyr-target` (the omnibox cursor at Enter time), NOT
+  // task-a1 (the anchor subject at open time). The node name is chosen
+  // deliberately to avoid collisions with command ids (`zephyr-*`) and to
+  // give it children so the node is not classified as a task by the `[`
+  // sigil filter.
+  it("cmd-k → arrow → Enter dispatches goto against the omnibox's selected row (Phase 6)", () => {
+    using app = createTestApp(
+      [
+        ...item(
+          "board",
+          item("projects", item("alpha", item("task-a1")), item("beta", item("task-b1"))),
+          // Two leaves that both match the substring "zephyr" so the test
+          // can exercise the arrow-down path (change selectedArgumentId
+          // from the first match to the second).
+          item("people", item("zephyr-alpha"), item("zephyr-beta")),
+        ),
+      ],
+      { rows: 40 },
+    )
+
+    // Seed cursor somewhere OTHER than the eventual goto target so that
+    // "cursor ends up on zephyr-beta" can only be explained by the
+    // omnibox's selectedArgument, not by the frozen anchor subject.
+    app.withStore((s) => s.dispatchBoard({ type: "ZOOM_IN", nodeId: "alpha" }))
+    app.navigateTo("task-a1")
+    expect(app.state.cursor).toBe("task-a1")
+
+    // Open the unified omnibox. cmd-k opens in universal mode with an
+    // empty buffer. Typing a unique substring ("zephyr") narrows the
+    // results to the two matching leaf nodes — no command id contains
+    // that token.
+    app.press("cmd+k")
+    expect(app.withStore((s) => s.ui.omnibox)).not.toBeNull()
+    app.press("z")
+    app.press("e")
+    app.press("p")
+    app.press("h")
+    app.press("y")
+    app.press("r")
+
+    // First match is `zephyr-alpha` (top-ranked by iteration order).
+    expect(app.withStore((s) => s.ui.omnibox!.state.selectedArgumentId)).toBe("zephyr-alpha")
+
+    // Arrow down — the omnibox cursor moves to the second match. Per
+    // Phase 6, this IS the app-wide cursor; the next Enter must act on
+    // this row, not on the first match or the anchor pane's task-a1.
+    app.press("ArrowDown")
+    const argAfter = app.withStore((s) => s.ui.omnibox!.state.selectedArgumentId)
+    expect(argAfter).toBe("zephyr-beta")
+
+    // Enter confirms — fires the `default` command. Phase 6: the command
+    // executor reads `ctx.currentNodeId` from `currentCursor()`, which
+    // for an open omnibox is `selectedArgumentId` ("zephyr-beta"). The
+    // `default` command dispatches CURSOR_TO against that node.
+    app.press("Enter")
+
+    // The omnibox must dismiss, and the board cursor must land on
+    // zephyr-beta (zoomed to its parent so the leaf is visible).
+    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
+    const cursorAfter = app.withStore((s) => getActiveBoardPane(s)!.sel.node.cursor() as string | null)
+    expect(cursorAfter).toBe("zephyr-beta")
+  })
+
+  // Phase 6 acceptance (b): closing the omnibox restores the app cursor
+  // to the previously-focused pane. When the user dismisses the omnibox
+  // without confirming, the anchor pane's cursor is unchanged — because
+  // the omnibox never owned the cursor as an app-wide source-of-truth
+  // write, only as a read-side projection.
+  it("Escape restores the app cursor to the anchor pane (Phase 6)", () => {
+    using app = createTestApp(
+      [
+        ...item(
+          "board",
+          item("projects", item("alpha", item("task-a1")), item("beta", item("task-b1"))),
+          item("people", item("zephyr-alpha"), item("zephyr-beta")),
+        ),
+      ],
+      { rows: 40 },
+    )
+
+    app.withStore((s) => s.dispatchBoard({ type: "ZOOM_IN", nodeId: "alpha" }))
+    app.navigateTo("task-a1")
+    expect(app.state.cursor).toBe("task-a1")
+
+    app.press("cmd+k")
+    app.press("z")
+    app.press("e")
+    app.press("p")
+    app.press("h")
+    app.press("y")
+    app.press("r")
+    app.press("ArrowDown")
+    // Confirm the omnibox is now pointing at zephyr-beta…
+    expect(app.withStore((s) => s.ui.omnibox!.state.selectedArgumentId)).toBe("zephyr-beta")
+
+    // …then cancel. The anchor pane cursor must be untouched — the
+    // omnibox's cursor never leaked into the pane as a write.
+    app.press("Escape")
+    expect(app.withStore((s) => s.ui.omnibox)).toBeNull()
+    expect(app.state.cursor).toBe("task-a1")
+  })
 })

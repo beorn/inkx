@@ -440,19 +440,41 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
    *
    * Builds fresh OpCtx, calls executeCommand, then dispatches resulting actions.
    * Call from React callbacks (e.g., omnibox onSelect) that have store access.
+   *
+   * Phase 6 (km-tui.omnibox-cursor): the omnibox executor builds
+   * `CommandContext` from the invocation spec:
+   *
+   *   - `ctx.currentNodeId` / `ctx.selectedNodes` ← `subject` (frozen
+   *     anchor-pane snapshot; the "subject" for binary verbs like move,
+   *     add, add_link).
+   *   - `ctx.targetId` ← `selectedArgumentId` resolved at confirm time
+   *     (the "target" the user picked in the omnibox). Passed in by the
+   *     `UnifiedOmniboxConnector.runSelection` path.
+   *
+   * Commands keep reading `ctx.currentNodeId` for the subject and
+   * `ctx.targetId` for the destination — they never reach into
+   * `OmniboxBaseState` directly. See docs/design/omnibox.md for the
+   * rationale: binary verbs need both identities, so conflating them into
+   * a single `currentCursor()` would lose the subject.
    */
   function dispatchCommandById(
     commandId: string,
     get: () => BoardAppStore,
     exitApp: () => void = () => {},
     targetId?: string,
+    /**
+     * Frozen anchor-pane subject for omnibox-dispatched commands. When
+     * set: `ctx.currentNodeId` and `ctx.selectedNodes` read from this
+     * snapshot. When absent (keybinding / chord path): they read from
+     * the live focused pane.
+     */
     subject?: { cursorId: string | null; selectedIds: readonly string[] },
   ): void {
     ensureCommandSystemInitialized()
     const ctx = buildOpCtx(get, exitApp)
 
-    // Resolve subject: unified omnibox passes a frozen snapshot; legacy
-    // callers fall through to the live focused pane.
+    // Subject: omnibox-dispatched commands use the frozen spec snapshot;
+    // keybinding-dispatched commands fall through to the live pane.
     const subjectNode = subject?.cursorId ? ctx.repo.getNode(subject.cursorId) : ctx.selectedNode
     const subjectId = subject ? subject.cursorId : (ctx.selectedNode?.id ?? null)
     const subjectSelectedIds = subject ? Array.from(subject.selectedIds) : Array.from(ctx.selectedIds)
@@ -465,7 +487,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             isTask: subjectNode.item?.task?.status != null,
             children: [],
             depth: 0,
-            childCount: subjectNode ? ctx.tree.children(subjectNode.id).length : 0,
+            childCount: ctx.tree.children(subjectNode.id).length,
             childrenLoaded: true,
           } as import("@km/commands").TNode)
         : null,

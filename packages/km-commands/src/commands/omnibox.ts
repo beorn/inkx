@@ -44,7 +44,12 @@ const defaultCommand = {
   description: "Type-dispatched fallback: on a node → go to it",
   category: "Navigation",
   execute: (ctx) => {
-    const target = ctx.targetId
+    // Phase 6 (km-tui.omnibox-cursor): prefer `ctx.targetId` when an
+    // explicit target is threaded (keybinding-chord paths, row-click
+    // dispatchers). Otherwise read the current cursor — when the omnibox
+    // is open, `ctx.currentNodeId` reflects the highlighted row
+    // (`selectedArgumentId`); when closed, it's the live pane cursor.
+    const target = ctx.targetId ?? ctx.currentNodeId
     if (!target) return null
     // v1: always goto. Post-v1: switch(nodeType) { case "tag": … }
     return { type: "CURSOR_TO", locationKey: target }
