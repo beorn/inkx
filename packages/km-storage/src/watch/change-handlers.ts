@@ -204,6 +204,21 @@ export class ChangeHandlers {
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.fsTarget.writeFile(absPath, content, this.currentChangeId)
+    // Record the write as the new baseline on the file node.
+    //
+    // Why: mergeExternalDrift (called on the NEXT save) reads
+    // nodes.content_hash to decide whether the disk has drifted since
+    // km last wrote. Without this update, `content_hash` stays frozen at
+    // whatever the initial parse recorded, so every follow-up save sees
+    // "drift" vs the real-current disk and folds the just-written content
+    // back in — producing duplicated list items on each subsequent edit.
+    //
+    // The TUI's tracker.recordWrite only updates `sync_state` (a different
+    // table for watcher suppression); it does NOT touch `nodes.content_hash`.
+    // So this fix is needed on both the CLI FsWriter and the TUI withSync
+    // paths, and it lives here — in the shared ChangeHandlers.save() — to
+    // keep the invariant in one place.
+    this.updateBaselineHash(fileNode.id, hashContent(content))
     blockIds.rewriteSourceFiles(fileNode.id)
   }
 

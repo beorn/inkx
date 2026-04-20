@@ -112,10 +112,16 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
       status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
   }
 
-  // Extract priority from tags or data
-  let priority = "P2" // Default to P2 (medium)
+  // Priority resolution: node.priority (authoritative — matches the
+  // serialized `priority::` property) > data.tags (content sigils) >
+  // default. `node.priority` is kept in sync with the markdown by the
+  // parser, so it wins when the two disagree (e.g., after an update that
+  // changed priority via key:: but left stale sigil-tags in data).
   const tags = data?.tags as string[] | undefined
-  if (tags) {
+  let priority = "P2" // Default to P2 (medium)
+  if (node.priority) {
+    priority = node.priority
+  } else if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i)
       if (pMatch?.[1]) {

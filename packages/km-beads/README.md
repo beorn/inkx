@@ -21,17 +21,16 @@ The TUI detail pane shows all known fields (status, priority, due, assigned, tag
 
 ## Current State
 
-- **Read queries work**: `ready`, `list`, `show` resolve issues from the km storage layer
-- **Mutations are in-memory only**: `create`, `update`, `close` modify the in-memory tree but don't persist to disk yet
-- **Key gap**: Write-path integration with km-storage (persisting changes back to markdown files)
+- **Read queries work**: `ready`, `list`, `show` resolve issues from the km storage layer.
+- **Write persistence works**: `create`, `update`, `close`, `claim`, `drop`, `dep add/remove` round-trip through the SQLite cache and back to `.md` files via `@km/storage`. Verified by `apps/km-cli/tests/bd-persist.slow.test.ts`.
 
 ## Tiered Roadmap
 
 | Tier                 | Scope                                             | Status                              |
 | -------------------- | ------------------------------------------------- | ----------------------------------- |
-| 1. Core CRUD         | create, update, close, show, list, delete, rename | Reads work; writes need persistence |
+| 1. Core CRUD         | create, update, close, show, list, delete, rename | Reads + writes persist              |
 | 2. Workflow          | ready, blocked, stale, defer/undefer, comments    | Partial (ready/blocked reads work)  |
-| 3. Hierarchy         | children, epic, dep add/remove/list               | Not started                         |
+| 3. Hierarchy         | children, epic, dep add/remove/list               | dep add/remove persist              |
 | 4. Unified Query     | Shared query interface for km + km bd             | Design decided, not started         |
 | 5. Proxy Passthrough | Advanced bd commands (agent, slot, gate, etc.)    | Blocked on decision                 |
 

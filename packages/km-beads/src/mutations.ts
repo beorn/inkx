@@ -11,10 +11,11 @@ import type { Issue, CreateIssueOptions } from "./types.ts"
 import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
 
 /**
- * Create a new issue
+ * Create a new issue.
  *
- * Note: This creates an in-memory node structure.
- * Actual persistence requires integration with km-storage.
+ * Returns a detached KNode tree (node + optional description/notes children).
+ * Callers pass the node to `repo.addNode(parentId, node)` which persists
+ * through the `@km/storage` emitter down to the markdown file.
  */
 export function createIssueNode(
   title: string,
@@ -116,7 +117,10 @@ export function createIssueNode(
 /**
  * Update issue fields
  *
- * Returns a partial node with updated fields.
+ * Returns a partial node with updated fields. Callers merge this via
+ * repo.updateNode(id, updates) — which routes columns (content,
+ * priority, item, assigned_to) to the SQL schema and patches the `data`
+ * blob for sigil-mirrored tags/mentions.
  */
 export interface UpdateIssueChanges {
   status?: Issue["status"]
@@ -124,6 +128,10 @@ export interface UpdateIssueChanges {
   assignee?: string
   title?: string
   type?: string
+  /** Current sigil tags from the node's data blob (for in-place update). */
+  currentTags?: string[]
+  /** Current @mentions from the node's data blob. */
+  currentMentions?: string[]
 }
 
 export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Partial<KNode> {
@@ -143,7 +151,60 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
     updates.content = changes.title
   }
 
+  if (changes.assignee !== undefined) {
+    updates.assigned_to = changes.assignee
+  }
+
+  // Sync the derived `data` blob so stale sigil tags / mentions don't out-vote
+  // the authoritative column values on the next read. We only emit a `data`
+  // patch when something actually changed — otherwise other fields in the
+  // blob (short_id, props, propsRaw, …) would be erased by this partial write.
+  const dataPatch: Record<string, unknown> = {}
+  if (changes.priority !== undefined || changes.type !== undefined) {
+    // `currentTags` is mandatory for priority/type updates — the caller must
+    // read the node's `data.tags` and pass them through. Defaults to a
+    // best-guess from the Issue's known fields when not supplied.
+    const currentTags =
+      changes.currentTags ??
+      [issue.type, issue.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
+    const nextTags = rewriteTypeAndPriorityTags(currentTags, {
+      priority: changes.priority,
+      type: changes.type,
+    })
+    dataPatch.tags = nextTags
+  }
+  if (changes.assignee !== undefined) {
+    const currentMentions = changes.currentMentions ?? (issue.assignee ? [issue.assignee] : [])
+    dataPatch.mentions = rewriteAssigneeMentions(currentMentions, issue.assignee, changes.assignee)
+  }
+  if (Object.keys(dataPatch).length > 0) {
+    updates.data = dataPatch
+  }
+
   return updates
+}
+
+/**
+ * Replace any existing P0–P4 tag and/or the current type tag with the new
+ * values. Preserves unrelated tags (e.g. `frontend`, `urgent`) unchanged.
+ */
+function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; type?: string }): string[] {
+  const typeKeywords = new Set(["bug", "feature", "epic", "task", "docs", "question"])
+  const filtered = tags.filter((t) => {
+    if (next.priority !== undefined && /^P[0-4]$/i.test(t)) return false
+    if (next.type !== undefined && typeKeywords.has(t.toLowerCase())) return false
+    return true
+  })
+  if (next.type !== undefined) filtered.push(next.type)
+  if (next.priority !== undefined) filtered.push(next.priority)
+  return filtered
+}
+
+/** Swap the old assignee for the new one, leaving other mentions intact. */
+function rewriteAssigneeMentions(mentions: string[], oldAssignee: string | undefined, newAssignee: string): string[] {
+  const kept = oldAssignee ? mentions.filter((m) => m !== oldAssignee) : [...mentions]
+  if (!kept.includes(newAssignee)) kept.push(newAssignee)
+  return kept
 }
 
 /**
