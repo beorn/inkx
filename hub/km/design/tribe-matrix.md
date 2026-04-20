@@ -115,17 +115,21 @@ This is precisely Twitter's mental model: `#hashtag` → hashtag search page; `@
 
 The existing km markdown parser already extracts `@mentions` into `data.mentions` (used for task assignment). Extending to extract `#sigil` references into `data.channel_refs` is one more pattern, not a new subsystem. Both drive save-time transclusion creation.
 
-### Sigil semantics depend on content-type
+### Sigil semantics: title authoritatively classifies, body references
 
-One action — transclude the entry at the sigil's target — but the meaning at the receiver depends on what's in the entry.
+One action (sigil → transclusion at target), with a single rule for meaning:
 
-| Entry content | `@silvery-refactor` sigil means | `#design` sigil means |
+**Titles classify / assign. Bodies mention / reference.**
+
+| Where the sigil appears | `@silvery-refactor` means | `#design` means |
 |---|---|---|
-| Task (`[ ] Do X @silvery-refactor #design`) | **Assignment** — `assigned_to` set via existing km-beads parsing; also transcluded into her task inbox | Area/project association — appears in #design's timeline; backlog views filter by area |
-| Chat / journal message | **Mention / DM** — transcluded into her inbox where she sees incoming messages | Posted to #design channel |
-| Bead reference / wikilink | Notify about the bead / ref — transcluded with context | Bead is associated with #design |
+| Task's own **title** (`[ ] Do X @silvery-refactor #design`) | **Assign** — sets `assigned_to` on the task (existing km-beads behavior) | **Classify** — task is in the #design area |
+| Any other entry's title or body | **Mention / notify** — transclusion into her inbox | **Post to #design** — transclusion in #design's room |
+| Reference to another node (`[[TUI-47]] @silvery-refactor`) | **Mention** — she sees it in her inbox; the referenced TUI-47 is NOT reassigned | **Post** — this entry appears in #design; TUI-47 area unchanged |
 
-One mechanism (sigil → transclusion). Multiple user-facing behaviors based on the entry's content structure. Receivers filter their views by task-marker, bead-ref, or plain text to split work from chatter.
+**Why references don't mutate referents:** a wikilink is read-only by design. `[[TUI-47]] @silvery-refactor can you take this` expresses a *request*, not an atomic assignment. The assignment is a separate explicit action — silvery-refactor runs `km bd claim TUI-47`, or the bead's own title is edited to include her @mention. Implicit reassignment via writing a link would be too magical.
+
+This rule matches km-beads's existing parser: `@mentions` in a bead's title set `assigned_to`; `@mentions` elsewhere go into `data.mentions` as notifications without mutating ownership.
 
 ### Receiver views (queries over transcluded content)
 
