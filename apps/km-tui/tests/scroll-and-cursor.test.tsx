@@ -335,7 +335,7 @@ describe("km-tui.column-top-disappears", () => {
   // First visible card's data-card-id inside col0 (render order, top-down).
   function firstCardInCol0(app: TestApp): string | null {
     const loc = app.driver.locator('[data-col-index="0"] [data-card-id]')
-    return loc.count() > 0 ? loc.getAttribute("data-card-id") ?? null : null
+    return loc.count() > 0 ? (loc.getAttribute("data-card-id") ?? null) : null
   }
 
   // Retained for the pre-existing initial fixture — counts content lines under
@@ -755,13 +755,7 @@ describe("km-tui.column-top-disappears", () => {
       for (let i = 0; i < 30; i++) {
         if (i % 3 === 0) {
           cards.push(
-            item(
-              `tall-${i}`,
-              item(`body-${i}-a`),
-              item(`body-${i}-b`),
-              item(`body-${i}-c`),
-              item(`body-${i}-d`),
-            ),
+            item(`tall-${i}`, item(`body-${i}-a`), item(`body-${i}-b`), item(`body-${i}-c`), item(`body-${i}-d`)),
           )
         } else {
           cards.push(item(`short-${i}`))
@@ -778,7 +772,11 @@ describe("km-tui.column-top-disappears", () => {
     // Probe col0 rendered-card count at a specific cursor position.
     // Navigates from the current cursor position to `targetIndex` via
     // cursor_down presses, then measures the window.
-    function probeAtCursor(app: TestApp, targetIndex: number, currentIndex: number): { cards: number; borders: number } {
+    function probeAtCursor(
+      app: TestApp,
+      targetIndex: number,
+      currentIndex: number,
+    ): { cards: number; borders: number } {
       const delta = targetIndex - currentIndex
       if (delta > 0) {
         for (let i = 0; i < delta; i++) app.command("cursor_down")
@@ -875,6 +873,140 @@ describe("km-tui.column-top-disappears", () => {
       // 7 (well beyond OVERSCAN=5) IS rendered — proving the window extends
       // past the cursor-centric OVERSCAN boundary.
       expect(countCardsInCol0(app)).toBeGreaterThanOrEqual(7)
+    })
+  })
+
+  // ===========================================================================
+  // BOTTOM BLANK GAP: when all cards fit in the viewport, there should be no
+  // blank rows between the last card and the column's bottom chrome, and no
+  // spurious ▼N overflow indicator.
+  // ===========================================================================
+  // User-reported pattern at 200×120 TTY: col3 "Next Actions @next" renders
+  // ~18 cards (~95 rows), followed by a ~28-row blank gap and a spurious `▼1`
+  // indicator claiming 1 card is below, even though every card fits.
+  //
+  // Two invariants:
+  //   1. No `▼N` in the column's rendered output when content fits.
+  //   2. Cards visually occupy a contiguous vertical region — no large blank
+  //      gap between the last card and the column's bottom border.
+  // ===========================================================================
+
+  describe("BOTTOM BLANK GAP: no spurious overflow when content fits", () => {
+    // Build a column with ~18 mixed-height cards whose total height is well
+    // within a 120-row viewport (~95 rows of content, 114-row column viewport).
+    function buildFitsColumn() {
+      const cards: ReturnType<typeof item>[] = []
+      for (let i = 0; i < 18; i++) {
+        if (i % 3 === 0) {
+          // "Tall" card — title + 3 children, ~6 rows each.
+          cards.push(item(`task-${i}`, item(`body-${i}-a`), item(`body-${i}-b`), item(`body-${i}-c`)))
+        } else {
+          // "Short" card — title only, ~3 rows.
+          cards.push(item(`short-${i}`))
+        }
+      }
+      return item(
+        "board",
+        item("Next Actions @next", ...cards),
+        item("Ideas", item("idea1")),
+        item("Projects", item("proj1")),
+      )
+    }
+
+    test("no ▼N overflow indicator in col0 when cards fit the viewport", () => {
+      using app = createTestApp(buildFitsColumn(), {
+        rows: 120,
+        cols: 200,
+        incremental: true,
+      })
+
+      // Slice col0 horizontally out of each row (col0 occupies ~0..66 at cols=200).
+      const lines = app.text.split("\n")
+      const col0Text = lines.map((l) => l.slice(0, 66)).join("\n")
+
+      // INVARIANT: no bottom overflow indicator when every card fits.
+      expect(
+        col0Text,
+        "col0 must NOT render `▼N` indicator when all cards fit in the viewport",
+      ).not.toMatch(/▼\d+/)
+      expect(
+        col0Text,
+        "col0 must NOT render `▲N` indicator when all cards fit in the viewport",
+      ).not.toMatch(/▲\d+/)
+    })
+
+    test("no spurious overflow indicator AND all items render when content fits viewport", () => {
+      // User-accepted contract (km-tui.column-top-disappears):
+      //   "option b is acceptable as long as no fake ▼ indicator"
+      //
+      // When all cards fit in a tall viewport:
+      //   - No fake ▼N or ▲N overflow indicator in col0 (blank space below the
+      //     last card is acceptable; columns maintain fixed height for grid
+      //     alignment, so trailing blank rows are inherent to the design).
+      //   - Every card renders (18/18 top-borders visible).
+      //   - The render window is NOT cursor-centered (was the original bug,
+      //     fixed by silvery commits 5a0f50b8 + 681d19a8).
+      using app = createTestApp(buildFitsColumn(), {
+        rows: 120,
+        cols: 200,
+        incremental: true,
+      })
+
+      const lines = app.text.split("\n")
+      const col0Text = lines.map((l) => (l ?? "").slice(0, 66)).join("\n")
+
+      // INVARIANT 1: no spurious overflow indicators.
+      expect(
+        col0Text,
+        "col0 must NOT render `▼N` indicator when all cards fit (hasOverflow=false since contentHeight < viewportHeight)",
+      ).not.toMatch(/▼\d+/)
+      expect(col0Text, "col0 must NOT render `▲N` indicator at cursor=0 (no items hidden above)").not.toMatch(
+        /▲\d+/,
+      )
+
+      // INVARIANT 2: every card renders (tiny-list path: count <= minWindowSize
+      // = estimatedVisibleCount + 2*overscan). If this drops below 16, the
+      // cursor-centered window bug has regressed.
+      let topBorderCount = 0
+      let bottomBorderCount = 0
+      for (const line of lines) {
+        const slice = (line ?? "").slice(0, 66)
+        if (slice.includes("╭")) topBorderCount++
+        if (slice.includes("╰")) bottomBorderCount++
+      }
+      expect(
+        topBorderCount,
+        `all 18 cards must render their top border when they fit in viewport (got ${topBorderCount})`,
+      ).toBeGreaterThanOrEqual(16)
+      expect(
+        bottomBorderCount,
+        `all 18 cards must render their bottom border when they fit in viewport (got ${bottomBorderCount})`,
+      ).toBeGreaterThanOrEqual(16)
+    })
+
+    test("all 18 cards render when viewport is tall enough to show them", () => {
+      using app = createTestApp(buildFitsColumn(), {
+        rows: 120,
+        cols: 200,
+        incremental: true,
+      })
+
+      // INVARIANT: when the viewport can fit every card, every card should
+      // render. Today's bug: virtualizer window is cursor-centric + bounded
+      // by overscan (~5 items), so only ~7-8 of 18 cards render, leaving
+      // half the viewport blank at the bottom.
+      //
+      // Count TOP BORDERS (╭) in the col0 slice — each card starts with ╭.
+      // This matches the visual count (one ╭ per rendered card).
+      const lines = app.text.split("\n")
+      let borderTops = 0
+      for (const line of lines) {
+        if ((line ?? "").slice(0, 66).includes("╭")) borderTops++
+      }
+      expect(
+        borderTops,
+        `only ${borderTops} of 18 cards rendered in col0 — the render window fails to fill the viewport when content fits`,
+      ).toBeGreaterThanOrEqual(16)
     })
   })
 })

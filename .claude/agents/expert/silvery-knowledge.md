@@ -362,6 +362,62 @@ Flexily is a pure JavaScript flexbox layout engine -- Yoga-compatible API, 1.5-2
 
 11. **`bgDirty` exists for a reason.** When `backgroundColor` changes from `"cyan"` to `undefined`, the current value is falsy but stale cyan pixels remain in the clone. `bgDirty` ensures `contentAreaAffected` fires so the region gets cleared.
 
+## Borderless Overflow Indicator — Child Clip Reserve (2026-04-20)
+
+When a scroll container has `overflowIndicator=true` and no `borderStyle`, the
+`▲N` / `▼N` indicator renders directly in the first/last row of the viewport
+(see `renderScrollIndicators` in `render-box.ts`). That row is NOT separated
+from content area by a border — so without a matching clip, child renders
+overwrite the indicator row (or vice-versa, the indicator overwrites the
+child).
+
+**The bug**: `scrollPhase` already reserves an "indicator row" for
+`visibleBottom` (`rawViewportHeight - indicatorReserve`) when deciding which
+children are "visible". But `computeChildClipBounds` only returned the
+full viewport rect, so children whose flexbox `y` landed in the reserved row
+still rendered their pixels there — the indicator then over-painted them.
+
+User symptom (km-tui `column-top-disappears` edge): `contentHeight = viewport + 1`,
+hasOverflow=true, indicatorReserve=1. Card at `top=viewport-2, bottom=viewport+1`
+— its text row is at `y=viewport-1`, which is exactly the indicator row. The
+indicator wipes the text; the user sees a lone top-border `╭` stacked above
+`▼1` and no card content.
+
+**Fix** in `renderScrollContainerChildren` (render-phase.ts):
+
+```typescript
+const viewportClipBounds = computeChildClipBounds(layout, props, clipBounds, 0, false, true)
+
+// Reserve indicator rows from the CHILD clip (not the viewport clip used by
+// Tier 1/2/3 viewport-wide operations — those must still repaint indicators).
+const showBorderlessIndicator = props.overflowIndicator === true && !props.borderStyle
+const childClipBounds =
+  showBorderlessIndicator && (ss.hiddenAbove > 0 || ss.hiddenBelow > 0)
+    ? {
+        ...viewportClipBounds,
+        top: ss.hiddenAbove > 0 ? viewportClipBounds.top + 1 : viewportClipBounds.top,
+        bottom: ss.hiddenBelow > 0 ? viewportClipBounds.bottom - 1 : viewportClipBounds.bottom,
+      }
+    : viewportClipBounds
+```
+
+Key split: `viewportClipBounds` drives `clearY`/`clearHeight` (Tier 2 clear,
+Tier 1 shift, sticky-force-refresh pre-clear — all must span the full viewport
+INCLUDING indicator rows so indicators repaint cleanly on the next frame).
+`childClipBounds` is passed to children so their render/clipping respects
+the reserved indicator row.
+
+**Why not clip via scrollPhase's `visibleBottom`?** `visibleBottom` controls
+WHICH children render, but a rendered child's coordinates come from flexbox
+in `layout-phase.ts`, BEFORE scroll phase runs. The clip bounds are what
+actually gate writes to the buffer — they must match the scroll phase's
+visible area or indicators will be overwritten.
+
+**Test**: `vendor/silvery/tests/features/listview-overflow-fits.test.tsx` —
+"content barely exceeds viewport: indicator reserves its row — last card's
+content not overwritten". Positive-control: `▼N` should render, but on its
+own row with no card text on the same row.
+
 ## Virtualizer Windowing Invariant (2026-04-20)
 
 **Render window is derived from `effectiveScrollOffset`, NOT cursor.** Cursor's role is to drive scrollOffset (via `calcEdgeBasedScrollOffset`); it does not constrain the render window.
