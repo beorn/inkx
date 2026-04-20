@@ -55,30 +55,43 @@ This helps the reviewer verify fixes and focus on historically weak areas.
 
 ## Step 2: Launch Review
 
+**Default to `--fast`** (no `--deep`) when the context file is self-sufficient — it's ~10 min instead of ~40 min and ~$1-3 instead of ~$5-15. Reach for `--deep` only when external evidence is genuinely needed (industry prior art, framework comparison, claims requiring web verification). See SKILL.md "Fast vs Deep" for the rule of thumb.
+
+### Fast review (default for self-sufficient context)
+
 ```bash
-bun llm --deep --model gpt-5.4-pro -y --no-recover \
+bun llm --model gpt-5.4-pro -y --no-recover \
   --context-file /tmp/pro-review-<package>.md \
   "GPT 5.4 Pro code review: <package-name>. Review for correctness bugs, safety issues, API design problems, and performance. Classify findings as P0 (correctness bugs causing wrong behavior), P1 (important safety/quality), P2 (medium quality), P3 (style). For each finding include: file path, line range, classification, description, and suggested fix. Do NOT report style preferences, missing JSDoc, import ordering, or linter-handled issues."
 ```
 
-**Execution — fire-and-forget**:
+Fast reviews stream the response synchronously (TTY only) and write `/tmp/llm-*.txt` on exit. The path is printed on stderr; the JSON metadata line is on stdout.
 
-Deep research is always fire-and-forget. The command fires the request, prints the response ID, and exits immediately (~5s). No poll loop, no background tasks, no timeout.
+### Deep review (web research + extended reasoning)
+
+```bash
+bun llm --deep --model gpt-5.4-pro -y --no-recover \
+  --context-file /tmp/pro-review-<package>.md \
+  "GPT 5.4 Pro code review: <package-name>. ..."  # same prompt body
+```
+
+Deep research is fire-and-forget. The command prints the response ID and exits immediately (~5s). No poll loop, no background tasks, no timeout.
 
 1. Run the command normally (NOT in background): `bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-<pkg>.md "..."`
 2. Note the response ID from the output
 3. Move on to other work
-4. Recover later: `bun llm recover <response-id>`
+4. Recover later — see Step 3 below
 
-Launch up to 3 reviews sequentially — each exits in ~5s after firing.
+Launch up to 3 deep reviews sequentially — each exits in ~5s after firing.
 
-## Step 3: Retrieve Results
-
-After 15-30 minutes, recover the results:
+## Step 3: Retrieve Results (deep reviews only — fast reviews already wrote `/tmp/llm-*.txt`)
 
 ```bash
-bun llm recover <response-id>
+bun llm await <response-id>      # silent block, only prints final file path. Best for non-TTY callers.
+bun llm recover <response-id>    # interactive variant — TTY spinner, non-TTY 60s-gated lines.
 ```
+
+Both write `/tmp/llm-*.txt` on success and respect `LLM_RECOVER_MAX_ATTEMPTS` (default 600 = 50m ceiling at 5s/poll).
 
 If you forgot the ID: `bun llm recover` lists all partial responses.
 
@@ -98,7 +111,7 @@ These focus areas come from [history.md](history.md) pattern analysis.
 
 ## Parallel Execution
 
-When reviewing multiple packages, fire all sequentially (each exits in ~5s):
+For **deep** reviews of multiple packages, fire all sequentially (each exits in ~5s):
 
 ```bash
 bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-pkg1.md "..."
@@ -109,4 +122,6 @@ bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-revie
 # → Response ID: resp_ghi789...
 ```
 
-Recover each after 15-30 min: `bun llm recover resp_abc123...`
+Recover each after 15-30 min: `bun llm await resp_abc123` (silent) or `bun llm recover resp_abc123` (interactive).
+
+For **fast** reviews, run sequentially in a single shell — each blocks for ~5-10 min and writes `/tmp/llm-*.txt` directly. No fan-out is needed since pro is rate-limited per-account anyway.

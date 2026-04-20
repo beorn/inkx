@@ -1,6 +1,6 @@
 ---
 description: "GPT 5.4 Pro — code reviews, direct questions, architectural advice. Use when user says 'pro', '/pro', 'ask pro', or wants GPT 5.4 Pro's opinion on anything."
-argument-hint: [review [<package>] | "<question>" | --history | --dry-run]
+argument-hint: [review [<package>] [--fast | --deep] | "<question>" | --history | --dry-run]
 ---
 
 **Keywords**: pro, pro review, gpt pro, gpt 5.4, code review, automated review, ask pro, second opinion
@@ -15,13 +15,25 @@ GPT 5.4 Pro for code reviews and direct questions.
 
 | User Says | Mode | Action |
 |-----------|------|--------|
-| `/pro review` | **Code review** | Full workflow: discover → estimate → select → review → triage |
-| `/pro review <package>` | **Code review** | Review specific package(s) directly |
+| `/pro review` | **Code review (deep)** | Full workflow: discover → estimate → select → review → triage |
+| `/pro review <package>` | **Code review (deep)** | Review specific package(s) directly |
+| `/pro review --fast <package>` | **Code review (fast)** | Drop `--deep`; review with self-sufficient context only (~10m, ~$1-3) |
 | `/pro review --dry-run` | **Code review** | Discover + estimate only |
 | `/pro review --history` | **Code review** | Show review history dashboard |
 | `/pro review --stale` | **Code review** | Packages needing re-review |
-| `/pro "<question>"` | **Direct query** | Ask GPT 5.4 Pro with project context |
+| `/pro "<question>"` | **Direct query** | Ask GPT 5.4 Pro with project context (no `--deep`, fast by default) |
 | `pro, <question>` | **Direct query** | Same — casual form |
+
+### Fast vs Deep — when to pick which
+
+| Mode | Flag(s) | Cost | Wall time | Use when |
+|------|---------|------|-----------|----------|
+| **fast** | `--model gpt-5.4-pro -y --no-recover --context-file <ctx>` | ~$1-3 | ~5-10 min | Context file is self-sufficient (you've already gathered the source, principles, prior findings) and you want a focused review. Pro reasons over what you give it; no web search. |
+| **deep** | adds `--deep` to the above | ~$5-15 | ~30-50 min | You want pro to research industry prior art, verify claims against external sources, or survey alternatives the codebase doesn't already document. Triggers OpenAI's deep-research path (web search + extended reasoning), recoverable with `bun llm recover <id>` or `bun llm await <id>`. |
+
+**Rule of thumb:** if the context file already contains everything pro needs to answer, `--fast` is the right call. The 2026-04-20 backdrop-hardening review would have been ~10 min with `--fast` instead of ~40 min with `--deep` — the context (silvery pipeline source + prior bead findings) was already self-sufficient. Default to `--fast` for code reviews; reach for `--deep` when external evidence is genuinely needed.
+
+**Recovery for deep runs**: `bun llm recover <id>` (interactive — TTY spinner, falls back to one line per minute on non-TTY) or `bun llm await <id>` (silent block, only prints final file path — better for claude-code background tasks). Both write `/tmp/llm-*.txt` on success and honour `LLM_RECOVER_MAX_ATTEMPTS` (default 600 = 50 min ceiling).
 
 ### Direct Query Mode
 
