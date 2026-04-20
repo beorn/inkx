@@ -1,6 +1,6 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-18
+Last updated: 2026-04-18 (theme-v4 Phase 3)
 
 ## References (canonical sources — don't duplicate, supplement)
 
@@ -362,10 +362,52 @@ Flexily is a pure JavaScript flexbox layout engine -- Yoga-compatible API, 1.5-2
 
 11. **`bgDirty` exists for a reason.** When `backgroundColor` changes from `"cyan"` to `undefined`, the current value is falsy but stale cyan pixels remain in the clone. `bgDirty` ensures `contentAreaAffected` fires so the region gets cleared.
 
+## Virtualizer Windowing Invariant (2026-04-20)
+
+**Render window is derived from `effectiveScrollOffset`, NOT cursor.** Cursor's role is to drive scrollOffset (via `calcEdgeBasedScrollOffset`); it does not constrain the render window.
+
+### The wrong pattern (pre-fix)
+
+```typescript
+// WRONG — window centered on cursor
+const viewportCenter = selectedIndexRef.current
+const halfWindow = Math.floor(renderCount / 2)
+let start = Math.max(0, viewportCenter - halfWindow)
+let end = Math.min(count, start + renderCount)
+```
+
+Cursor-centered windows fail at edges: when cursor is at index 0 with `overscan=5`, `start = max(0, 0 - 10) = 0`, but the lower half of the window is wasted (just `overscan` items below cursor) — leaving blank viewport rows at the bottom of the column.
+
+### The right pattern
+
+```typescript
+// RIGHT — window anchored to viewport top, both-edge overscan
+let start = Math.max(0, effectiveScrollOffset - overscan)
+let end = Math.min(count, start + renderCount)  // renderCount = visible + 2*overscan
+if (end === count) {
+  start = Math.max(0, end - renderCount)  // keep size when hitting bottom
+}
+```
+
+The window layout is:
+- `start = scrollOffset - overscan` (overscan items above viewport)
+- `end = scrollOffset + visibleCount + overscan` (viewport + overscan below)
+
+The window always spans the full viewport regardless of cursor position.
+
+### User symptom the bug produced
+
+"When i start with cursor at the top there's blank space at the bottom of the column, then as i move cursor down it fills in with cards at the bottom but cards at the top disappear."
+
+Probe pattern: at cursor={0, 5, 15, 25, last}, count rendered top-borders (╭) in col0. Cursor-centered bug → variance (min at edges). Viewport-anchored fix → stable (+/- 1 card).
+
+Test: `apps/km-tui/tests/scroll-and-cursor.test.tsx` → `WINDOW-FILLS-VIEWPORT` describe block.
+
 ## Failed Approaches
 
 | Approach | Why it failed |
 |----------|---------------|
+| Cursor-centered render window in `useVirtualizer` | Blank viewport rows at edges (cursor=0 or cursor=last); half the window is wasted when cursor is near an edge. Must anchor to scrollOffset, not cursor. |
 | Broader viewport clearing for subtreeDirty | 12ms regression: re-renders ~50 children vs 2 dirty ones |
 | Using `needsOwnRepaint` for cascade decisions | Includes `stylePropsDirty`: border color changes cascade through ~200 child nodes |
 | Pre-clearing only current sticky positions | Old positions also have stale content in the buffer |
@@ -498,9 +540,9 @@ TRACE=silvery:render                        # Pipeline phase timing
 | Package | What |
 |---------|------|
 | `@silvery/ag` | Core types, layout-signals (framework-agnostic reactive layer) |
-| `@silvery/ag-react` | React reconciler, hooks (`useSignal`, `useAgNode`, `useBoxRect`), UI components |
-| `@silvery/ag-term` | Terminal runtime, ANSI output, pipeline, `syncRectSignals` bridge |
-| `@silvery/theme` | Theme tokens, 38 palettes, theme CLI |
+| `@silvery/ag-react` | React reconciler, hooks (`useSignal`, `useAgNode`, `useBoxRect`), UI components, `ThemeContext`/`useTheme` |
+| `@silvery/ag-term` | Terminal runtime, ANSI output, pipeline, `syncRectSignals` bridge; pipeline/state.ts owns `getActiveTheme`/`pushContextTheme`/`popContextTheme`/`setActiveColorLevel` |
+| `@silvery/theme` | **Scheme catalog only** (post Phase 3): 84 color schemes + CLI workbench, `createTheme`/`quickTheme`/`presetTheme`; no longer exports ThemeContext, state funcs, or color utils |
 | `@silvery/ink` | Ink/Chalk compatibility layers |
 
 ### Subpath imports from `silvery`

@@ -702,4 +702,179 @@ describe("km-tui.column-top-disappears", () => {
       `termless: column fullness shrank (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
     ).toBeGreaterThanOrEqual(initialContent - 2)
   })
+
+  // ===========================================================================
+  // WINDOWING INVARIANT: render window fills viewport regardless of cursor
+  // ===========================================================================
+  // User's real diagnosis (2026-04-20):
+  //   "columns still doesn't show all content - it shows only X cards above/below
+  //    cursor - not the entire column's worth - so when i start with cursor at
+  //    the top there's blank space at the bottom of the column, then as i move
+  //    cursor down it fills in with cards at the bottom but cards at the top
+  //    disappear"
+  //
+  // This is a VIRTUALIZER WINDOWING BUG, not a scroll-offset bug. useVirtualizer
+  // computes start = cursor - floor(renderCount/2), which centers the window
+  // on the cursor. When cursor is at 0, only the LOWER half of the window
+  // (= overscan items below) renders — not enough to fill the viewport.
+  //
+  // Correct behaviour: render window is computed from scrollOffset (viewport
+  // top), with overscan on both edges. The window should span from ~scrollOffset
+  // to ~scrollOffset+visibleCount+overscan, regardless of cursor position.
+  // The cursor only drives scrollOffset (via calcEdgeBasedScrollOffset); it
+  // does NOT directly constrain the render window.
+  //
+  // Probe at cursor = {0, 5, 15, 25, last}. In every case, col0 must render
+  // enough cards to fill the viewport. With viewport=41 and avg card height
+  // ~5, at least ceil(41/avgHeight)-1 = ~7 cards must be rendered in col0.
+  // ===========================================================================
+
+  describe("WINDOW-FILLS-VIEWPORT: render window independent of cursor position", () => {
+    // Count data-card-id inside col-index=0
+    function countCardsInCol0(app: TestApp): number {
+      return app.driver.locator('[data-col-index="0"] [data-card-id]').count()
+    }
+
+    // Count top-border rows (╭) in col0 slice — each full card starts with ╭.
+    // This matches what the user actually SEES: distinct card tops on screen.
+    function countTopBordersInCol0(app: TestApp): number {
+      const lines = app.text.split("\n")
+      let count = 0
+      for (const line of lines) {
+        const slice = line.slice(0, 60)
+        if (slice.includes("╭")) count++
+      }
+      return count
+    }
+
+    // Build the user's real column: 30 mixed-height cards.
+    // "short" = title only (~3 rows), "tall" = title + children with "+N more"
+    // (~7 rows). Avg ~5 rows per card — viewport=41 fits ~8 cards.
+    function buildLargeColumn() {
+      const cards: ReturnType<typeof item>[] = []
+      for (let i = 0; i < 30; i++) {
+        if (i % 3 === 0) {
+          cards.push(
+            item(
+              `tall-${i}`,
+              item(`body-${i}-a`),
+              item(`body-${i}-b`),
+              item(`body-${i}-c`),
+              item(`body-${i}-d`),
+            ),
+          )
+        } else {
+          cards.push(item(`short-${i}`))
+        }
+      }
+      return item(
+        "board",
+        item("Next Actions @next", ...cards),
+        item("Ideas", item("idea1"), item("idea2")),
+        item("Projects", item("proj1"), item("proj2")),
+      )
+    }
+
+    // Probe col0 rendered-card count at a specific cursor position.
+    // Navigates from the current cursor position to `targetIndex` via
+    // cursor_down presses, then measures the window.
+    function probeAtCursor(app: TestApp, targetIndex: number, currentIndex: number): { cards: number; borders: number } {
+      const delta = targetIndex - currentIndex
+      if (delta > 0) {
+        for (let i = 0; i < delta; i++) app.command("cursor_down")
+      } else if (delta < 0) {
+        for (let i = 0; i < -delta; i++) app.command("cursor_up")
+      }
+      return {
+        cards: countCardsInCol0(app),
+        borders: countTopBordersInCol0(app),
+      }
+    }
+
+    test("FAILING-REPRO: render window fills viewport at cursor=0 (top)", () => {
+      using app = createTestApp(buildLargeColumn(), {
+        rows: 45,
+        cols: 180,
+        incremental: true,
+      })
+
+      // Initial state — cursor is at index 0 (first card of first column).
+      const { cards, borders } = probeAtCursor(app, 0, 0)
+
+      // INVARIANT: with viewport height ~41 and avg card ~5 rows, at least
+      // ceil(41/5)-1 = 7 cards' top-borders should be visible in col0 at
+      // cursor=0. The BUG produces ~5 visible top-borders (cursor-centered
+      // window with overscan=5 renders only OVERSCAN items below cursor=0,
+      // leaving blank rows at the bottom of the column).
+      //
+      // User's exact quote: "when i start with cursor at the top there's
+      // blank space at the bottom of the column".
+      expect(
+        borders,
+        `cursor=0: col0 should render ≥7 card tops to fill viewport (got ${borders} visible ╭ rows, ${cards} card nodes)`,
+      ).toBeGreaterThanOrEqual(7)
+    })
+
+    test("WINDOW-INVARIANT: card-top count stable across cursor positions", () => {
+      using app = createTestApp(buildLargeColumn(), {
+        rows: 45,
+        cols: 180,
+        incremental: true,
+      })
+
+      // Probe at 5 cursor positions spanning the column: top, upper, middle,
+      // lower, bottom. The rendered-card count in col0 should be similar at
+      // all of them (the window is viewport-sized, not cursor-window-sized).
+      const probes: { label: string; target: number }[] = [
+        { label: "top", target: 0 },
+        { label: "upper", target: 5 },
+        { label: "middle", target: 15 },
+        { label: "lower", target: 25 },
+        { label: "bottom", target: 29 },
+      ]
+
+      const results: { label: string; cards: number; borders: number }[] = []
+      let currentIndex = 0
+      for (const p of probes) {
+        const r = probeAtCursor(app, p.target, currentIndex)
+        results.push({ label: p.label, ...r })
+        currentIndex = p.target
+      }
+
+      const borderCounts = results.map((r) => r.borders)
+      const maxBorders = Math.max(...borderCounts)
+      const minBorders = Math.min(...borderCounts)
+      const diag = results.map((r) => `${r.label}=${r.borders}`).join(" ")
+
+      // INVARIANT 1: min rendered-card count is close to max.
+      // A stable viewport-sized window gives +/-1 variance (card boundaries
+      // crossing the viewport edge). A cursor-centered window gives big
+      // variance: min at edges (top/bottom), max in middle.
+      expect(
+        maxBorders - minBorders,
+        `window size varies too much across cursor positions (${diag}) — cursor-centered bug`,
+      ).toBeLessThanOrEqual(2)
+
+      // INVARIANT 2: at every position, enough cards render to fill viewport.
+      // viewport=41, avg=~5 → need ≥7 cards.
+      expect(
+        minBorders,
+        `window dips below viewport-size (min=${minBorders}) at some cursor position — ${diag}`,
+      ).toBeGreaterThanOrEqual(7)
+    })
+
+    test("TOP-EDGE: cards exist below cursor at top (not just overscan)", () => {
+      using app = createTestApp(buildLargeColumn(), {
+        rows: 45,
+        cols: 180,
+        incremental: true,
+      })
+
+      // At cursor=0, the bug shows cards 0..OVERSCAN only. A viewport-sized
+      // window would show cards 0..~7. This test asserts that card at index
+      // 7 (well beyond OVERSCAN=5) IS rendered — proving the window extends
+      // past the cursor-centric OVERSCAN boundary.
+      expect(countCardsInCol0(app)).toBeGreaterThanOrEqual(7)
+    })
+  })
 })
