@@ -32,7 +32,6 @@ Last updated: 2026-04-19 (62 packages live)
 | `@silvery/color` | 0.19.0 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
 | `@silvery/commander` | 0.19.0 | 250 | Colorized Commander.js help |
 | `@silvery/examples` | 0.18.0 | 194 | Interactive demos — `npx @silvery/examples` (private as of 0.18.2) |
-| `@silvery/theme-detect` | 0.19.0 | — | Terminal background-color detection |
 | `@silvery/create` | 0.5.3 | 253 | App composition — createApp, pipe() (will be deprecated — bundled in silvery) |
 | `@silvery/headless` | 0.5.1 | 14 | Pure state machines (will be deprecated — bundled in silvery) |
 | `@silvery/test` | 0.5.3 | 252 | Testing utilities (will be deprecated — bundled in silvery) |
@@ -115,6 +114,7 @@ Last updated: 2026-04-19 (62 packages live)
 | `@silvery/tea` | 0.4.2 | `silvery` |
 | `@silvery/term` | 0.3.0 | `silvery` |
 | `@silvery/cli` | 0.4.2 | `silvery` |
+| `@silvery/theme-detect` | 0.19.0 | `@silvery/ansi` (probeColors) + `@silvery/theme` (detectScheme/detectTheme) — killed 2026-04-20, package was a thin re-export shell with zero unique code |
 | `@termless/monorepo` | 0.3.0 | `@termless/core` |
 | `termless` | 0.0.2 | `@termless/core` |
 
