@@ -237,7 +237,30 @@ Silvery ships **84 color schemes** — the famous terminal/editor palettes (Nord
 | `surface.overlay` | blend(bg, fg, 0.12) |
 | `border.focus` | `scheme.primary` |
 
-Scheme authors can override specific tokens; OKLCH defaults cover 80%+. State variants (`-hover`, `-active`) shift ±0.04L / ±0.08L OKLCH; direction auto-flips for light vs dark schemes.
+Scheme authors can override specific tokens; OKLCH defaults cover 80%+.
+
+### State-variant rules
+
+**State variants (`-hover`, `-active`) apply to interactive-surface tokens, not to text tokens in general.** Only text that is itself interactive (links, accent clickable text) gets state variants. This matches Primer / Material / shadcn / Polaris grammar — none ship `fg-<role>-hover` for non-link text.
+
+| Token | Has state variants? |
+|---|---|
+| `bg-accent`, `bg-error`, `bg-warning`, `bg-success`, `bg-info` | ✓ always (hover/active = surface states) |
+| `fg-on-<role>` | ✗ (fg-on-X text doesn't change when the bg-X under it hovers) |
+| `fg-accent`, `fg-link` | ✓ (interactive text) |
+| `fg-error`, `fg-warning`, `fg-success`, `fg-info`, `fg-muted` | ✗ (non-interactive status text) |
+| `bg-surface`, `bg-surface-subtle`, `bg-surface-raised`, `bg-surface-overlay` | ✓ (surfaces can be hovered) |
+
+**Derivation algorithm** — adaptive OKLCH L-shift:
+
+```
+if baseL > 0.6:   hover = L − 0.04, active = L − 0.08  (darken)
+else:             hover = L + 0.04, active = L + 0.08  (brighten)
+```
+
+Direction follows the **token's own luminance**, not `scheme.dark`. This prevents the white-out failure mode on intrinsically light tokens (yellows, light blues) in dark schemes, where a naive upward shift collapses to `#FFFFFF`.
+
+When `target L` would push past `0.9` or below `0.1`, reduce chroma proportionally — push toward gray rather than toward the luminance extreme. Hue is preserved on the gradient between base and gray.
 
 ### Derivation guardrails (not just formulas)
 
