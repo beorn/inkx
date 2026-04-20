@@ -47,8 +47,8 @@ function ProgressBar({ percent, width = 24 }: { percent: number; width?: number 
   const emptyBar = "─".repeat(Math.max(0, empty - (dot ? 0 : 0)))
   return (
     <Text>
-      <Text color="$success">{filledBar}</Text>
-      <Text color="$success">{dot}</Text>
+      <Text color="$fg-success">{filledBar}</Text>
+      <Text color="$fg-success">{dot}</Text>
       <Text dim>{emptyBar}</Text>
     </Text>
   )
@@ -58,16 +58,16 @@ function DashboardScreenshot() {
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           Dashboard
         </Text>
       </Box>
 
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* System Stats pane (selected) */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$primary" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$fg-accent" padding={1}>
           <Box marginBottom={1}>
-            <Text bold color="$primary">
+            <Text bold color="$fg-accent">
               System Stats
             </Text>
           </Box>
@@ -75,41 +75,41 @@ function DashboardScreenshot() {
             <Box flexDirection="row" justifyContent="space-between">
               <Text>CPU Usage</Text>
               <Box>
-                <Text bold color="$success">
+                <Text bold color="$fg-success">
                   45%
                 </Text>
-                <Text color="$success"> +2%</Text>
+                <Text color="$fg-success"> +2%</Text>
               </Box>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Memory</Text>
               <Box>
-                <Text bold color="$success">
+                <Text bold color="$fg-success">
                   8.2 GB
                 </Text>
-                <Text color="$error"> -0.3</Text>
+                <Text color="$fg-error"> -0.3</Text>
               </Box>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Disk</Text>
-              <Text bold color="$success">
+              <Text bold color="$fg-success">
                 234 GB
               </Text>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Network</Text>
               <Box>
-                <Text bold color="$success">
+                <Text bold color="$fg-success">
                   1.2 Mb/s
                 </Text>
-                <Text color="$success"> +0.5</Text>
+                <Text color="$fg-success"> +0.5</Text>
               </Box>
             </Box>
           </Box>
         </Box>
 
         {/* Recent Activity pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border-default" padding={1}>
           <Box marginBottom={1}>
             <Text bold>Recent Activity</Text>
           </Box>
@@ -123,7 +123,7 @@ function DashboardScreenshot() {
         </Box>
 
         {/* Project Progress pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border-default" padding={1}>
           <Box marginBottom={1}>
             <Text bold>Project Progress</Text>
           </Box>
@@ -200,12 +200,12 @@ function TaskListScreenshot() {
   const cursor = 2
 
   const priorityLabels = { high: "P1", medium: "P2", low: "P3" }
-  const priorityColors = { high: "$error", medium: "$warning", low: "$success" }
+  const priorityColors = { high: "$fg-error", medium: "$fg-warning", low: "$fg-success" }
 
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           Task List
         </Text>
         <Text dim>
@@ -218,7 +218,7 @@ function TaskListScreenshot() {
         flexGrow={1}
         flexDirection="column"
         borderStyle="round"
-        borderColor="$primary"
+        borderColor="$fg-accent"
         overflow="hidden"
         paddingX={1}
       >
@@ -233,7 +233,7 @@ function TaskListScreenshot() {
             <Box key={task.id} flexDirection="column">
               {isSelected ? (
                 <Text>
-                  <Text backgroundColor="$primary" color="$primary-fg">
+                  <Text backgroundColor="$fg-accent" color="$primary-fg">
                     {" "}
                     {checkbox} {task.title}{" "}
                   </Text>{" "}
@@ -334,19 +334,19 @@ function KanbanScreenshot() {
   ]
 
   const tagColors: Record<string, string> = {
-    frontend: "$info",
-    backend: "$accent",
-    design: "$warning",
-    devops: "$success",
-    docs: "$primary",
-    ux: "$muted",
-    security: "$error",
+    frontend: "$fg-info",
+    backend: "$fg-accent",
+    design: "$fg-warning",
+    devops: "$fg-success",
+    docs: "$fg-accent",
+    ux: "$fg-muted",
+    security: "$fg-error",
   }
 
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           Kanban Board
         </Text>
       </Box>
@@ -358,13 +358,13 @@ function KanbanScreenshot() {
             flexDirection="column"
             flexGrow={1}
             borderStyle="round"
-            borderColor={col.isSelected ? "$primary" : "$border"}
+            borderColor={col.isSelected ? "$fg-accent" : "$border-default"}
           >
-            <Box backgroundColor={col.isSelected ? "$primary" : undefined} paddingX={1}>
+            <Box backgroundColor={col.isSelected ? "$fg-accent" : undefined} paddingX={1}>
               <Text bold color={col.isSelected ? "black" : undefined}>
                 {col.title}
               </Text>
-              <Text color={col.isSelected ? "black" : "$muted"}> ({col.cards.length})</Text>
+              <Text color={col.isSelected ? "black" : "$fg-muted"}> ({col.cards.length})</Text>
             </Box>
 
             <Box flexDirection="column" paddingX={1} flexGrow={1} gap={1}>
@@ -373,11 +373,11 @@ function KanbanScreenshot() {
                   key={idx}
                   flexDirection="column"
                   borderStyle="round"
-                  borderColor={card.isSelected ? "$primary" : "$border"}
+                  borderColor={card.isSelected ? "$fg-accent" : "$border-default"}
                   paddingX={1}
                 >
                   {card.isSelected ? (
-                    <Text backgroundColor="$primary" color="$primary-fg" bold>
+                    <Text backgroundColor="$fg-accent" color="$primary-fg" bold>
                       {card.title}
                     </Text>
                   ) : (
@@ -385,7 +385,7 @@ function KanbanScreenshot() {
                   )}
                   <Box gap={1}>
                     {card.tags.map((tag) => (
-                      <Text key={tag} color={tagColors[tag] ?? "$muted"} dim>
+                      <Text key={tag} color={tagColors[tag] ?? "$fg-muted"} dim>
                         #{tag}
                       </Text>
                     ))}
@@ -442,18 +442,18 @@ function LayoutFeedbackScreenshot() {
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           Layout Feedback Demo
         </Text>
       </Box>
 
       <Box flexDirection="row" gap={1} height={8}>
-        <LayoutPane title="Sidebar" color="$success" grow={1} />
-        <LayoutPane title="Main Content" color="$primary" grow={2} />
-        <LayoutPane title="Detail" color="$info" grow={1} />
+        <LayoutPane title="Sidebar" color="$fg-success" grow={1} />
+        <LayoutPane title="Main Content" color="$fg-accent" grow={2} />
+        <LayoutPane title="Detail" color="$fg-info" grow={1} />
       </Box>
 
-      <Box marginTop={1} borderStyle="single" borderColor="$border" padding={1}>
+      <Box marginTop={1} borderStyle="single" borderColor="$border-default" padding={1}>
         <Box flexDirection="column">
           <Text bold>useBoxRect() — components know their size during render</Text>
           <Text dim>No ResizeObserver, no second render, no layout jank.</Text>

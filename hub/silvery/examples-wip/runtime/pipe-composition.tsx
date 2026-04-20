@@ -59,8 +59,8 @@ function Item({ item, isCursor }: { item: ListItem; isCursor: boolean }) {
   const check = item.selected ? "◉" : "○"
   return (
     <Box>
-      <Text color={isCursor ? "$primary" : "$muted"}>{isCursor ? "❯ " : "  "}</Text>
-      <Text color={item.selected ? "$success" : undefined}>
+      <Text color={isCursor ? "$fg-accent" : "$fg-muted"}>{isCursor ? "❯ " : "  "}</Text>
+      <Text color={item.selected ? "$fg-success" : undefined}>
         {check} {item.label}
       </Text>
     </Box>

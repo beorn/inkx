@@ -270,7 +270,7 @@ function Sidebar({ examples, cursor, theme }: { examples: Example[]; cursor: num
       flexDirection="column"
       width={28}
       borderStyle="round"
-      borderColor="$border"
+      borderColor="$border-default"
       overflow="scroll"
       scrollTo={scrollToChild}
     >
@@ -284,7 +284,7 @@ function Sidebar({ examples, cursor, theme }: { examples: Example[]; cursor: num
           {group.items.map(({ example, globalIdx }) => {
             const selected = globalIdx === cursor
             return (
-              <Box key={example.name} paddingX={1} backgroundColor={selected ? "$primary" : undefined}>
+              <Box key={example.name} paddingX={1} backgroundColor={selected ? "$fg-accent" : undefined}>
                 <Text color={selected ? "$text" : "$text"} bold={selected} wrap="truncate">
                   {selected ? "\u25B8 " : "  "}
                   {example.name}
@@ -500,7 +500,7 @@ function Viewer({ examples }: { examples: Example[] }) {
     return (
       <ThemeProvider theme={theme}>
         <Box padding={1}>
-          <Text color="$muted">Launching {running}...</Text>
+          <Text color="$fg-muted">Launching {running}...</Text>
         </Box>
       </ThemeProvider>
     )
@@ -514,17 +514,17 @@ function Viewer({ examples }: { examples: Example[] }) {
       <Box flexDirection="column" flexGrow={1}>
         {/* Header */}
         <Box paddingX={1}>
-          <Text bold color="$warning">
+          <Text bold color="$fg-warning">
             {" silvery"}
           </Text>
-          <Text color="$muted"> examples </Text>
-          <Text color="$muted">
+          <Text color="$fg-muted"> examples </Text>
+          <Text color="$fg-muted">
             ({cursor + 1}/{examples.length})
           </Text>
           <Spacer />
-          <Text color="$muted">
+          <Text color="$fg-muted">
             theme:{" "}
-            <Text color="$primary" bold>
+            <Text color="$fg-accent" bold>
               {theme.name}
             </Text>
           </Text>
@@ -535,21 +535,21 @@ function Viewer({ examples }: { examples: Example[] }) {
           <Sidebar examples={examples} cursor={cursor} theme={theme} />
 
           {/* Content area with tabs */}
-          <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" overflow="hidden">
+          <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border-default" overflow="hidden">
             {/* Info banner */}
             <Box paddingX={1} flexDirection="column">
               <Text wrap="truncate">
                 <Text bold color="$text">
                   {selected.name}
                 </Text>
-                <Text color="$muted"> — {selected.description}</Text>
+                <Text color="$fg-muted"> — {selected.description}</Text>
               </Text>
               {selected.features && selected.features.length > 0 && (
-                <Text color="$muted" wrap="truncate">
+                <Text color="$fg-muted" wrap="truncate">
                   {selected.features.join(" · ")}
                 </Text>
               )}
-              <Text color="$muted" dim wrap="truncate">
+              <Text color="$fg-muted" dim wrap="truncate">
                 silvery.dev/examples/{exampleKey}
               </Text>
             </Box>
@@ -557,11 +557,11 @@ function Viewer({ examples }: { examples: Example[] }) {
             {/* Tab bar */}
             <Box paddingX={1}>
               <Text>
-                <Text bold={tab === "view"} color={tab === "view" ? "$primary" : "$muted"}>
+                <Text bold={tab === "view"} color={tab === "view" ? "$fg-accent" : "$fg-muted"}>
                   View
                 </Text>
-                <Text color="$border"> | </Text>
-                <Text bold={tab === "source"} color={tab === "source" ? "$primary" : "$muted"}>
+                <Text color="$border-default"> | </Text>
+                <Text bold={tab === "source"} color={tab === "source" ? "$fg-accent" : "$fg-muted"}>
                   Source
                 </Text>
               </Text>
@@ -580,7 +580,7 @@ function Viewer({ examples }: { examples: Example[] }) {
 
         {/* Bottom bar */}
         <Box paddingX={1}>
-          <Text color="$muted">
+          <Text color="$fg-muted">
             <Text bold>{MOD_KEY}-K</Text> switch <Text bold>s</Text> settings <Text bold>Tab</Text>{" "}
             {tab === "view" ? "source" : "view"} <Text bold>Enter</Text> run <Text bold>q</Text> quit
           </Text>
@@ -593,8 +593,8 @@ function Viewer({ examples }: { examples: Example[] }) {
             placeholder="Type to search..."
             items={paletteItems}
             renderItem={(item, sel) => (
-              <Text color={sel ? "$primary" : "$text"} bold={sel}>
-                <Text color="$muted" dim>
+              <Text color={sel ? "$fg-accent" : "$text"} bold={sel}>
+                <Text color="$fg-muted" dim>
                   {item.category}
                   {" / "}
                 </Text>
@@ -620,10 +620,10 @@ function Viewer({ examples }: { examples: Example[] }) {
             renderItem={(name, sel) => {
               const t = builtinThemes[name]!
               return (
-                <Text color={sel ? "$primary" : "$text"} bold={sel}>
+                <Text color={sel ? "$fg-accent" : "$text"} bold={sel}>
                   {name === THEME_NAMES[themeIdx] ? "* " : "  "}
                   {name}
-                  <Text color="$muted" dim>
+                  <Text color="$fg-muted" dim>
                     {" "}
                     {name.includes("light") ? "light" : "dark"}
                   </Text>

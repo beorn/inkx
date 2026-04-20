@@ -15,13 +15,13 @@ import { renderToCanvas, Box, Text, useBoxRect } from "../../packages/ag-react/s
 function SizeDisplay() {
   const { width, height } = useBoxRect()
   return (
-    <Text color="$success">
+    <Text color="$fg-success">
       {Math.round(width)}px x {Math.round(height)}px
     </Text>
   )
 }
 
-function Divider({ color = "$muted" }: { color?: string }) {
+function Divider({ color = "$fg-muted" }: { color?: string }) {
   const { width } = useBoxRect()
   const line = "─".repeat(Math.max(1, Math.floor(width / 8)))
   return <Text color={color}>{line}</Text>
@@ -34,12 +34,12 @@ function Divider({ color = "$muted" }: { color?: string }) {
 function HelloWorld() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="single" borderColor="$info" padding={1}>
+      <Box borderStyle="single" borderColor="$fg-info" padding={1}>
         <Box flexDirection="column">
-          <Text bold color="$info">
+          <Text bold color="$fg-info">
             Hello from silvery!
           </Text>
-          <Text color="$muted">React components rendered to HTML5 Canvas</Text>
+          <Text color="$fg-muted">React components rendered to HTML5 Canvas</Text>
           <SizeDisplay />
         </Box>
       </Box>
@@ -54,7 +54,7 @@ function HelloWorld() {
 function TextStyles() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$warning">
+      <Text bold color="$fg-warning">
         Text Styles
       </Text>
       <Divider />
@@ -76,7 +76,7 @@ function TextStyles() {
           <Text underlineStyle="double" underline>
             Double
           </Text>
-          <Text underlineStyle="curly" underlineColor="$error" underline>
+          <Text underlineStyle="curly" underlineColor="$fg-error" underline>
             Curly Red
           </Text>
           <Text underlineStyle="dotted" underline>
@@ -107,7 +107,7 @@ function ColorsAndBackgrounds() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$warning">
+      <Text bold color="$fg-warning">
         Colors and Backgrounds
       </Text>
       <Divider />
@@ -138,40 +138,40 @@ function ColorsAndBackgrounds() {
 function FlexboxLayout() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$warning">
+      <Text bold color="$fg-warning">
         Flexbox Layout
       </Text>
       <Divider />
 
       <Box marginTop={1}>
-        <Text color="$muted">Row (gap=1):</Text>
+        <Text color="$fg-muted">Row (gap=1):</Text>
       </Box>
       <Box flexDirection="row" gap={1}>
-        <Box borderStyle="single" borderColor="$error" padding={1} flexGrow={1}>
-          <Text color="$error">Col 1</Text>
+        <Box borderStyle="single" borderColor="$fg-error" padding={1} flexGrow={1}>
+          <Text color="$fg-error">Col 1</Text>
         </Box>
-        <Box borderStyle="single" borderColor="$success" padding={1} flexGrow={2}>
-          <Text color="$success">Col 2 (grow=2)</Text>
+        <Box borderStyle="single" borderColor="$fg-success" padding={1} flexGrow={2}>
+          <Text color="$fg-success">Col 2 (grow=2)</Text>
         </Box>
-        <Box borderStyle="single" borderColor="$primary" padding={1} flexGrow={1}>
-          <Text color="$primary">Col 3</Text>
+        <Box borderStyle="single" borderColor="$fg-accent" padding={1} flexGrow={1}>
+          <Text color="$fg-accent">Col 3</Text>
         </Box>
       </Box>
 
       <Box marginTop={1}>
-        <Text color="$muted">Nested columns:</Text>
+        <Text color="$fg-muted">Nested columns:</Text>
       </Box>
       <Box flexDirection="row" gap={1}>
-        <Box borderStyle="round" borderColor="$accent" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$accent">
+        <Box borderStyle="round" borderColor="$fg-accent" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-accent">
             Panel A
           </Text>
           <Text>Item 1</Text>
           <Text>Item 2</Text>
           <Text>Item 3</Text>
         </Box>
-        <Box borderStyle="round" borderColor="$info" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$info">
+        <Box borderStyle="round" borderColor="$fg-info" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-info">
             Panel B
           </Text>
           <Text>Item A</Text>
@@ -188,15 +188,15 @@ function FlexboxLayout() {
 
 function BorderStyles() {
   const styles: Array<{ style: string; color: string }> = [
-    { style: "single", color: "$info" },
-    { style: "double", color: "$warning" },
-    { style: "round", color: "$success" },
-    { style: "bold", color: "$accent" },
+    { style: "single", color: "$fg-info" },
+    { style: "double", color: "$fg-warning" },
+    { style: "round", color: "$fg-success" },
+    { style: "bold", color: "$fg-accent" },
   ]
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$warning">
+      <Text bold color="$fg-warning">
         Border Styles
       </Text>
       <Divider />
@@ -223,40 +223,40 @@ function BorderStyles() {
 function Dashboard() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="single" borderColor="$info" padding={1}>
-        <Text bold color="$info">
+      <Box borderStyle="single" borderColor="$fg-info" padding={1}>
+        <Text bold color="$fg-info">
           System Dashboard
         </Text>
       </Box>
       <Box flexDirection="row" gap={1} marginTop={1}>
-        <Box borderStyle="round" borderColor="$success" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$success">
+        <Box borderStyle="round" borderColor="$fg-success" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-success">
             CPU
           </Text>
-          <Text color="$success">|||||||....</Text>
+          <Text color="$fg-success">|||||||....</Text>
           <Text>65%</Text>
         </Box>
-        <Box borderStyle="round" borderColor="$warning" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$warning">
+        <Box borderStyle="round" borderColor="$fg-warning" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-warning">
             Memory
           </Text>
-          <Text color="$warning">|||||||||..</Text>
+          <Text color="$fg-warning">|||||||||..</Text>
           <Text>82%</Text>
         </Box>
-        <Box borderStyle="round" borderColor="$error" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$error">
+        <Box borderStyle="round" borderColor="$fg-error" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-error">
             Disk
           </Text>
-          <Text color="$error">||||||||||.</Text>
+          <Text color="$fg-error">||||||||||.</Text>
           <Text>91%</Text>
         </Box>
       </Box>
-      <Box borderStyle="single" borderColor="$muted" padding={1} marginTop={1} flexDirection="column">
+      <Box borderStyle="single" borderColor="$fg-muted" padding={1} marginTop={1} flexDirection="column">
         <Text bold>Recent Events</Text>
-        <Text color="$success"> OK api-server healthy</Text>
-        <Text color="$success"> OK database connected</Text>
-        <Text color="$warning"> WARN cache miss rate high</Text>
-        <Text color="$error"> ERR disk space low on /var</Text>
+        <Text color="$fg-success"> OK api-server healthy</Text>
+        <Text color="$fg-success"> OK database connected</Text>
+        <Text color="$fg-warning"> WARN cache miss rate high</Text>
+        <Text color="$fg-error"> ERR disk space low on /var</Text>
       </Box>
     </Box>
   )
@@ -272,14 +272,14 @@ function Responsive() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$warning">
+      <Text bold color="$fg-warning">
         Responsive Layout
       </Text>
-      <Text color="$muted">Resize the canvas to see layout adapt ({Math.round(width)}px wide)</Text>
+      <Text color="$fg-muted">Resize the canvas to see layout adapt ({Math.round(width)}px wide)</Text>
       <Divider />
       <Box flexDirection={isWide ? "row" : "column"} gap={1} marginTop={1}>
-        <Box borderStyle="single" borderColor="$info" padding={1} flexGrow={1} flexDirection="column">
-          <Text bold color="$info">
+        <Box borderStyle="single" borderColor="$fg-info" padding={1} flexGrow={1} flexDirection="column">
+          <Text bold color="$fg-info">
             Main Content
           </Text>
           <Text>This panel takes available space.</Text>
@@ -288,12 +288,12 @@ function Responsive() {
         </Box>
         <Box
           borderStyle="single"
-          borderColor="$accent"
+          borderColor="$fg-accent"
           padding={1}
           flexDirection="column"
           {...(isWide ? { width: 180 } : {})}
         >
-          <Text bold color="$accent">
+          <Text bold color="$fg-accent">
             Sidebar
           </Text>
           <Text>Fixed width when wide,</Text>
