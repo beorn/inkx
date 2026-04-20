@@ -214,6 +214,28 @@ Single-holder by default (one lease at a time). Opt-in multi-device mode: `claud
 - Handoff = release + claim via a post. No election code; the lease is the source of truth.
 - `agents/chief-<room>.md` does NOT exist as a persona file. `roles/chief-<room>.md` could exist as a *role description* (what "chief" means in that context), but that's a separate concept.
 
+## Node types: rooms as a facet (not a directory)
+
+Rooms are **KNodes with a `room` facet** in frontmatter — not a filesystem location. Any node anywhere in the vault with a `room` facet IS a room. Filesystem convention (`com/rooms/`, `com/chats/`) is a sensible default for new rooms, not a semantic boundary.
+
+```markdown
+---
+room:
+  class: "room"            # or "chat" (ephemeral) / "session" (per-session)
+  durability: "durable"    # "durable" | "ephemeral"
+  matrix_room_id: "!abc:server"
+---
+# #design
+
+Design channel for the km project.
+```
+
+Sigil in node name (`#design`) is a human-readable convention; the `room` facet is the authoritative marker. Name resolution is uniform wikilink resolution — `#design` in a message is just a link to a node literally named `#design`.
+
+Today the facet system is informal (ad-hoc frontmatter keys). Formalization planned under `km-infra.facet-system`. The informality is OK for Phase 1 — matches km's current task/bead pattern.
+
+**Rooms attach to anything.** A bead can have a room facet → bead with discussion thread. A persona file can have a room facet → DM channel for that agent. A design doc can have a room facet → discussion lives on the doc. The mapping between Matrix rooms and km nodes is per-node, not per-directory.
+
 ## Structured event types
 
 Agents emit both human-readable text AND machine-parseable structured data, using Matrix's custom event type system. Examples:

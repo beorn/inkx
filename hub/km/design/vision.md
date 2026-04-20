@@ -32,6 +32,8 @@ km bd is the durable work ledger. Issue tracking expressed as KNodes with task f
 
 Recall is the knowledge retrieval layer. FTS5 + LLM planner/agent, indexing everything under the vault.
 
+**Facets — km's type system.** Nodes don't have a rigid "type"; they wear **facets** — optional schemaed bundles of frontmatter that add capabilities. A node may have a `task` facet (from `km-beads`), a `room` facet (from the Communication axis), a `persona` facet (from the Agents axis), or combinations (e.g., a bead with its own discussion thread has both `task` and `room` facets). Today the pattern is informal — ad-hoc frontmatter keys recognised by specific packages. Formalization (schema registry, validation, typed query, render dispatch) is planned in `km-infra.facet-system` and will follow once a second or third new facet type forces it. Sigil conventions in node names (`#`, `@`) are complementary — they're human-readable discoverability, not the authoritative type marker.
+
 **The knowledge layer's north star**: every decision, conversation, task, and artifact ends up structured, searchable, and linkable. Nothing is lost.
 
 ### 2. Communication (the new axis)
@@ -41,12 +43,19 @@ Real-time conversation, channeled. Implemented via Matrix as a substrate with ad
 Domain objects:
 
 - **Room** — an event-log abstraction. Rooms carry broadcasts, directs, structured events. Adapters (`room-matrix`, `room-file`, `room-xmpp`, etc.) plug in behind the same interface.
-- **Channel** — a named room within a km repo. Maps to matrix rooms.
+- **Channel** — a named Room within a km repo.
 - **Event** — an immutable, relatable atom. Messages, edits (as new events referencing originals), reactions, structured events, lifecycle events.
+
+Rooms split into two **classes** by durability posture:
+
+- **durable rooms** — long-lived, committed to git, part of the project's history. #design, #silvery, quarterly retros. Live under `com/rooms/` on disk.
+- **ephemeral chats** — short-lived, gitignored by default. Daily hellos, quick side-coordination, standup notes. Live under `com/chats/` on disk.
+
+Same wire, same `Room` interface, same Matrix substrate — different persistence posture. Location on disk encodes the policy; no per-room flags. A chat can be promoted to a room (`km room promote <chat>`) when it turns out to matter long-term.
 
 **Space** is a topology convention (km repo ↔ Matrix space when the `spaces` capability is available), not a domain object. km's topology layer uses it when adapters support it; falls back to flat `<repo-id>/<channel>` naming otherwise.
 
-km repos are mapped to matrix spaces. Channels are rooms in those spaces. Agents and humans are members. History is projected as files under `chats/<channel>/` on disk — rendered, not editable-source. The `chats/` directory is a filesystem materialization convention; the canonical domain term for the thing it holds is a **Channel** (a named Room).
+km repos are mapped to matrix spaces. Rooms and chats are members of those spaces. Agents and humans are members of individual rooms. History is projected as files under `com/rooms/<channel>/` or `com/chats/<channel>/` on disk — rendered, not editable-source. The `com/` directory is a filesystem materialization convention; the canonical domain term for the thing it holds is a **Channel** (a named Room).
 
 Observability: Element (matrix client) on phone, desktop, web reads the rooms. Your agents' conversations become readable from anywhere.
 
