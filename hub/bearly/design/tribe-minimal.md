@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-04-20)**: This design was retired when tribe was simplified to reuse km primitives. See [`hub/km/design/tribe-matrix.md`](../../km/design/tribe-matrix.md) for the current design. Kept here as historical context.
+
 # tribe-minimal — canonical write protocol + journal authority
 
 **Status**: Design spec, revised 2026-04-19 after GPT 5.4 Pro deep review. Internal / WIP.

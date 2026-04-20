@@ -27,16 +27,13 @@ The chosen near-term sequencing threads tribe-matrix into the existing W3-W7 wor
 ### Queued (in order)
 
 2. **`km-infra.bd-v1-compat`** — write-path persistence for `km bd`. Durable work ledger as km-native. In-progress.
-3. **`km-infra.namespaces` (small spike)** — generalize short-ID minting via the namespace facet. ~2-3 days. (Design complete; execute when short-id prominence first matters.)
-4. **`tribe-matrix` Phase 0** — `@bearly/room` interface + memory + file adapters + chaos conformance tests. 5-6 days. See [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md).
-5. **`tribe-matrix` Phase 1** — Matrix adapter + homeserver install flow. 4-5 days.
-6. **W4 — TEA in silvery + aichat showcase** (`km-silvery.tea`). Silvery 0.18.0 lockstep release.
-7. **`tribe-matrix` Phase 2** — personas + session assumption + lease mechanism. 3-5 days. Runs alongside W4/W5 as feasible.
-8. **W5 — Theme system + aichat polish** (`km-silvery.theme-mature`).
-9. **W6 — TEA in km + polish** (`km-tui.tea`).
-10. **`tribe-matrix` Phase 3** — silvery channel view + `km-tui.backlog-view`. Part of the silvery work.
-11. **W7 — Selection system** (`km-all.unified-selection`).
-12. **`tribe-matrix` Phase 4** — structured events + bead threading.
+3. **`km-all.connector-matrix` Phase 0** — Matrix homeserver install + `@km/connector-matrix` skeleton. 4-5 days. See [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md).
+4. **W4 — TEA in silvery + aichat showcase** (`km-silvery.tea`). Silvery 0.18.0 lockstep release.
+5. **`km-all.connector-matrix` Phase 1** — full sync + personas + lease pattern + save-time sigil-to-transclusion. 1-2 weeks. Runs alongside W4/W5 as feasible.
+6. **W5 — Theme system + aichat polish** (`km-silvery.theme-mature`).
+7. **W6 — TEA in km + polish** (`km-tui.tea`).
+8. **`km-all.connector-matrix` Phase 2** — chatlog view in silvery + durable/ephemeral split + DMs + bead linking. Part of the silvery/tui polish work.
+9. **W7 — Selection system** (`km-all.unified-selection`).
 
 ### Parallel (unblocked work, pick up between phases)
 
@@ -73,9 +70,13 @@ Already shipped: CalDAV/CardDAV connectors, `@km/agent` + `km agent` CLI, `km bd
 
 ### Track 4 — Communication (tribe-matrix)
 
-Design captured in [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md). Five phases; Phase 0 is the Room-interface validation on minimal adapters (memory + file + chaos tests); Phase 1 brings Matrix + homeserver; Phase 2 adds personas + lease; Phase 3 is km-tui channel view; Phase 4 structured events + bead threading. Phase 5+ (E2E, OpenClaw, federation) deferred.
+Design captured in [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md) (simplified 2026-04-20 to reuse km primitives). Three phases tracked under `km-all.connector-matrix`:
+- **Phase 0** — matrix homeserver install + `@km/connector-matrix` skeleton (4-5d)
+- **Phase 1** — full bidirectional sync + personas + lease pattern + save-time sigil→transclusion (1-2w)
+- **Phase 2** — silvery chatlog view + durable/ephemeral split + DMs + bead linking (~1w)
+- Phase 3+ deferred (E2E, Matrix federation, additional connectors)
 
-Retiring: old `@bearly/tribe` daemon (8300 LOC custom wire) after Phase 2. Related beads dissolved under the adapter+persona+lease model (`km-tribe.stable-identity`, `km-tribe.daemon-authority`, `km-tribe.scope-model`, `km-tribe.role-register-cleanup`, `km-tribe.plugin-boundary-tightening`, `km-tribe.polish-v2`).
+Retired 2026-04-20: old `@bearly/tribe` daemon (8300 LOC custom wire) will retire after Phase 1 ships. Beads dissolved under the simpler model — `km-tribe.minimal-protocol`, `km-tribe.stable-identity`, `km-tribe.daemon-authority`, `km-tribe.scope-model`, `km-tribe.role-register-cleanup`, `km-tribe.plugin-boundary-tightening`, `km-tribe.polish-v2`, `km-infra.namespaces` — all closed with cross-references.
 
 ### Track 5 — Ecosystem / side products
 
@@ -86,7 +87,7 @@ Retiring: old `@bearly/tribe` daemon (8300 LOC custom wire) after Phase 2. Relat
 - **`km-all.surface-freeze`** — no new view modes, no new node types during W1-W7. Lifts when W3 ships AND W7 closes. Facet system respects this — formalize AFTER W7.
 - **Bug rule**: fix inline if scoped (<1h); otherwise bead and schedule.
 - **No P-values on new beads** — ordering is position in [`backlog.md`](backlog.md).
-- **Short IDs** — once `km-infra.namespaces` lands, new beads can use area-scoped IDs (`TUI-47` etc.). Existing `km-xxxx` IDs stay valid.
+- **Short IDs** — `name` is the identity; short IDs ARE names (no separate `data.short_id`). Names are minted per-parent via `km-beads` generator. Area-scoped forms (`TUI-47` etc.) are optional conventions; existing `km-xxxx` names stay valid.
 
 ## Budget in calendar weeks
 
@@ -96,14 +97,12 @@ Rough estimate for the P2 sequencing, assuming ~40h/week focused work:
 |---|---|
 | W3 omnibox finish | 2-3 weeks (in-progress) |
 | bd-v1-compat write path | 1 week |
-| namespaces spike | 2-3 days |
-| tribe-matrix Phase 0 | 5-6 days |
-| tribe-matrix Phase 1 | 4-5 days |
+| connector-matrix Phase 0 (homeserver + skeleton) | 4-5 days |
 | W4 silvery TEA | 2-3 weeks |
-| tribe-matrix Phase 2 | 3-5 days |
+| connector-matrix Phase 1 (full sync + personas) | 1-2 weeks |
 | W5 theme + polish | 1-2 weeks |
 | W6 TEA in km | 1-2 weeks |
-| tribe-matrix Phase 3 (alongside silvery view) | 1-2 weeks |
+| connector-matrix Phase 2 (chatlog view + polish) | 1 week |
 | W7 selection system | 2 weeks |
 | tribe-matrix Phase 4 | 1 week |
 
