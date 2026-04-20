@@ -925,14 +925,8 @@ describe("km-tui.column-top-disappears", () => {
       const col0Text = lines.map((l) => l.slice(0, 66)).join("\n")
 
       // INVARIANT: no bottom overflow indicator when every card fits.
-      expect(
-        col0Text,
-        "col0 must NOT render `▼N` indicator when all cards fit in the viewport",
-      ).not.toMatch(/▼\d+/)
-      expect(
-        col0Text,
-        "col0 must NOT render `▲N` indicator when all cards fit in the viewport",
-      ).not.toMatch(/▲\d+/)
+      expect(col0Text, "col0 must NOT render `▼N` indicator when all cards fit in the viewport").not.toMatch(/▼\d+/)
+      expect(col0Text, "col0 must NOT render `▲N` indicator when all cards fit in the viewport").not.toMatch(/▲\d+/)
     })
 
     test("no spurious overflow indicator AND all items render when content fits viewport", () => {
@@ -960,9 +954,7 @@ describe("km-tui.column-top-disappears", () => {
         col0Text,
         "col0 must NOT render `▼N` indicator when all cards fit (hasOverflow=false since contentHeight < viewportHeight)",
       ).not.toMatch(/▼\d+/)
-      expect(col0Text, "col0 must NOT render `▲N` indicator at cursor=0 (no items hidden above)").not.toMatch(
-        /▲\d+/,
-      )
+      expect(col0Text, "col0 must NOT render `▲N` indicator at cursor=0 (no items hidden above)").not.toMatch(/▲\d+/)
 
       // INVARIANT 2: every card renders (tiny-list path: count <= minWindowSize
       // = estimatedVisibleCount + 2*overscan). If this drops below 16, the
@@ -1007,6 +999,108 @@ describe("km-tui.column-top-disappears", () => {
         borderTops,
         `only ${borderTops} of 18 cards rendered in col0 — the render window fails to fill the viewport when content fits`,
       ).toBeGreaterThanOrEqual(16)
+    })
+  })
+
+  // ===========================================================================
+  // REAL USER BUG (re-opened 2026-04-20): at 200×120 on ~/Bear/Vault, col3
+  // "Next Actions @next" shows ▼1 indicator with ~28 rows of BLANK space
+  // between the last rendered card and the indicator. Cursor at the top
+  // of the column. The window.shortfall is NOT covered by the "no ▼N when
+  // content fits" test above — here hiddenBelow > 0 (legitimate overflow),
+  // but rendered cards fail to fill the available viewport space.
+  //
+  // User-visible contract:
+  //   When hiddenBelow > 0 AND cursor is at the top of a column, rendered
+  //   cards should occupy a contiguous region from the column top down to
+  //   the row adjacent to the ▼N indicator. No large blank gap between the
+  //   last rendered card and the indicator row.
+  // ===========================================================================
+
+  describe("km-tui.column-top-disappears: WINDOW SHORTFALL with hiddenBelow > 0", () => {
+    // Build a column where content *barely* exceeds the viewport, mirroring
+    // the real-vault col3 scenario: ~24 items mixing short (3-row) and tall
+    // (7-row) cards, totaling ~120 rows for a ~114-row viewport. Cursor at
+    // index 0, scrollOffset = 0. The tail ~1-3 items get pushed below the
+    // viewport → hiddenBelow > 0 → ▼N.
+    function buildBarelyOverflowColumn() {
+      const cards: ReturnType<typeof item>[] = []
+      for (let i = 0; i < 24; i++) {
+        if (i % 2 === 0) {
+          // 7-row card (title + 4 body items)
+          cards.push(
+            item(`task-${i}`, item(`body-${i}-a`), item(`body-${i}-b`), item(`body-${i}-c`), item(`body-${i}-d`)),
+          )
+        } else {
+          // 3-row card (title only)
+          cards.push(item(`short-${i}`))
+        }
+      }
+      return item(
+        "board",
+        item("Barely-Overflows @col", ...cards),
+        item("Ideas", item("idea1")),
+        item("Projects", item("proj1")),
+      )
+    }
+
+    test("no large blank gap between last rendered card and ▼N indicator (hiddenBelow>0, cursor=0)", () => {
+      using app = createTestApp(buildBarelyOverflowColumn(), {
+        rows: 120,
+        cols: 200,
+        incremental: true,
+      })
+
+      // Slice col0 horizontally (col0 occupies ~0..66 at cols=200).
+      const lines = app.text.split("\n")
+      const col0Slices = lines.map((l) => (l ?? "").slice(0, 66))
+
+      // Find the row of the ▼N indicator.
+      let indicatorRow = -1
+      for (let i = 0; i < col0Slices.length; i++) {
+        if (/▼\d+/.test(col0Slices[i] ?? "")) {
+          indicatorRow = i
+          break
+        }
+      }
+
+      // Diagnostic dump: which rows have content in col0, + indicator position
+      const dumpLines = col0Slices
+        .map((s, i) => `${String(i).padStart(3, "0")}: ${/\S/.test(s) ? s : "<blank>"}`)
+        .join("\n")
+
+      // If there's no ▼N, the test fixture isn't producing the overflow —
+      // fail with a diagnostic rather than silently passing.
+      expect(
+        indicatorRow,
+        `Test fixture must produce a ▼N indicator (hiddenBelow > 0) to cover this bug path.\nCOL0 DUMP:\n${dumpLines}`,
+      ).toBeGreaterThan(0)
+
+      // Walk backward from the indicator row, counting blank rows until we
+      // hit a card's bottom border `╰` — those are the "blank gap" rows.
+      let blankGap = 0
+      for (let i = indicatorRow - 1; i >= 0; i--) {
+        const slice = col0Slices[i] ?? ""
+        if (slice.includes("╰") || slice.includes("│")) break
+        if (!/\S/.test(slice)) blankGap++
+        else break
+      }
+
+      // Contract: the gap between the last card and ▼N is at most a few
+      // rows (padding, spacer). A 28-row gap (user-reported) is the bug.
+      //
+      // NOTE (2026-04-20): this synthetic fixture does NOT currently
+      // reproduce the real-vault bug — blankGap is 0 here. The real bug
+      // appears to be data-dependent: likely interaction between specific
+      // card structures (embedded text vs child-item bodies, "···"
+      // ellipsis markers, measured vs estimated heights) and the
+      // virtualizer's window calculation. Ticket km-tui.column-top-disappears
+      // remains open for real-vault investigation — see bead for repro at
+      // /tmp/km-view-still-broken.png.
+      expect(
+        blankGap,
+        `[km-tui.column-top-disappears] ${blankGap} blank rows between last rendered card and ▼N indicator at row ${indicatorRow} — rendered cards should fill the viewport when hiddenBelow>0\n\nCOL0 DUMP:\n${dumpLines}`,
+      ).toBeLessThanOrEqual(3)
     })
   })
 })
