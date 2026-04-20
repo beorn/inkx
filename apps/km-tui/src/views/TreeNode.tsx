@@ -94,6 +94,21 @@ interface TreeNodeProps {
   remainingDepth?: number
   /** Body content node — render without bullet prefix, dimmed. */
   isBody?: boolean
+  /**
+   * Override the rendered content string without mutating the underlying node.
+   *
+   * Bypasses the `getDisplayContent` → `displayNode.content` lookup when
+   * provided. Used by body-card truncation (bead km-tui.column-top-disappears):
+   * CardColumn pre-clamps the content to a row budget and passes the clamped
+   * version as this override. The underlying node (and its ViewTree
+   * projection) remain untouched so editing, selection, and persistence see
+   * the real content; only the visible rendering is clamped.
+   *
+   * Scope: only affects the primary content text rendering. Task marks,
+   * embed resolution, inline formatting, and all other pipelines keep
+   * their normal behavior.
+   */
+  contentOverride?: string
 }
 
 /**
@@ -155,6 +170,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Body flag
   if (prev.isBody !== next.isBody) return false
 
+  // Content override — clamped body-card content passes through as a string
+  if (prev.contentOverride !== next.contentOverride) return false
+
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
   if (prev.childCount !== next.childCount) return false
@@ -193,6 +211,7 @@ function TreeNodeImpl({
   hideChildCount = false,
   remainingDepth = Infinity,
   isBody = false,
+  contentOverride,
 }: TreeNodeProps): React.ReactElement {
   const _tnStart = renderLog.debug ? performance.now() : 0
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
@@ -395,9 +414,12 @@ function TreeNodeImpl({
   // Memoize prefix - body nodes get empty prefix (just indentation space)
   const prefix = useMemo(() => (bulletIcon ? buildPrefix(bulletIcon) : BODY_PREFIX), [bulletIcon])
 
-  // Get content, stripping task marks for nodes with task_status
-  // The task mark is displayed via the icon, so we don't need it in the text
-  const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
+  // Get content, stripping task marks for nodes with task_status.
+  // The task mark is displayed via the icon, so we don't need it in the text.
+  // A `contentOverride` prop (body-card clamp — bead km-tui.column-top-disappears)
+  // bypasses the display pipeline and renders the provided string verbatim,
+  // without mutating the underlying node.
+  const rawContent = contentOverride ?? getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   // Strip @mentions and +projects from card title display — the info suffix already shows short names
   // Fall back to original if stripping leaves nothing (e.g., user files like @shi-delei.md)

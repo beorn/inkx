@@ -221,6 +221,26 @@ export interface TreeConfig {
   borderMode: BorderMode
   /** Inner width of a card (column width minus padding). Used for line-aware title truncation. */
   cardInnerWidth: number
+  /**
+   * Row budget for body-card content (paragraphs, code blocks, quotes rendered
+   * as body cards — content appearing before the first structural outline item).
+   *
+   * Structural cards use `maxContentLines` to cap visible children; body cards
+   * have a single content payload (e.g. a big code block) so a row budget is
+   * the right abstraction — "render at most N visual rows, then show `···`."
+   *
+   * Policy (applied in CardColumn body-card branch):
+   * - Editing this card → bypass the clamp (full content visible while editing).
+   * - Cursor on a descendant → bypass (expand for navigation).
+   * - Wrapped long lines count toward the budget the same as explicit newlines.
+   * - Exactly at budget → no indicator.
+   * - One row over → indicator shown.
+   *
+   * Default 6 is generous for summary-style body cards while keeping giant
+   * aggregated markdown/JSON/gitconfig blocks from pushing everything below
+   * out of the viewport (bead km-tui.column-top-disappears).
+   */
+  maxBodyContentRows: number
 }
 
 /**
@@ -283,6 +303,10 @@ export function deriveTreeConfig(
     iconStyle: ui.iconStyle,
     borderMode: ui.borderMode,
     cardInnerWidth,
+    // Body cards share the same "cards mode = verbose, columns mode = compact"
+    // signal as maxContentLines. In oneliner views (columns/tabs) a body card
+    // collapses to one row anyway, so budget=1 matches the existing behavior.
+    maxBodyContentRows: viewMode === "cards" ? 6 : 1,
   }
 }
 
