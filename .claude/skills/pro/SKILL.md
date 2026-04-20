@@ -40,8 +40,12 @@ GPT 5.4 Pro for code reviews and direct questions.
 When the user says `/pro "question"` or "pro, what do you think about X":
 
 1. Build a context file with relevant code (read the files, include key sections)
-2. Run: `bun llm --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-context.md "<question>"`
+2. Run: `bun llm pro -y --no-recover --context-file /tmp/pro-context.md "<question>"`
 3. Present the response, synthesize with your own analysis
+
+**What `bun llm pro` does now (as of 2026-04-20)**: fires GPT-5.4 Pro **and** Kimi K2.6 in parallel and returns a combined report with both responses labeled. Kimi K2.6 costs ~100× less than Pro and is competitive on strategy/review questions — the A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl` tracks both for retrospective comparison. K2.6 adds only ~$0.01-0.50 to a $5-15 Pro call, so it's essentially free insurance against Pro missing something.
+
+To force single-model (skip K2.6): add `--model gpt-5.4-pro`. Dual mode also auto-falls-back to single GPT-5.4 Pro if `OPENROUTER_API_KEY` is unset.
 
 Use for: architectural decisions, design review, "is this approach sound?", second opinions.
 

@@ -86,10 +86,22 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | Keyword | What | Cost |
 |---------|------|------|
 | *(none)* | Best available model (gpt-5.4 preferred) | ~$0.02 |
-| `pro` | Pro model (gpt-5.4-pro) — deep code reviews, thorough analysis | ~$5-15 |
+| `pro` | **Dual-pro**: GPT-5.4 Pro + Kimi K2.6 in parallel (A/B logged, 2-is-better-than-one) | ~$5-15 |
 | `opinion` | Second opinion from different provider | ~$0.02 |
 | `debate` | 3 models from different providers + synthesis | ~$1-3 |
 | `quick`/`cheap`/`mini`/`nano` | Fast/cheap (only if explicitly needed) | ~$0.01 |
+
+### Dual-pro mode (`pro` keyword)
+
+Invoking `bun llm pro "..."` fires **both** GPT-5.4 Pro **and** Kimi K2.6 in parallel and writes a combined report with both responses labeled. Rationale:
+
+- **2-is-better-than-one** — two strong models catch each other's misses
+- **A/B test** — every run appends to `~/.claude/projects/<project>/memory/ab-pro.jsonl` so quality can be compared retrospectively
+- **K2.6 is ~100× cheaper than Pro** for comparable quality on strategy/review prompts — use the log to decide when Pro is actually worth the premium
+
+Fallback: if `OPENROUTER_API_KEY` is unset, dual-pro degrades to single GPT-5.4 Pro silently. Explicit `--model <id>` bypasses dual mode (single-model runs the override).
+
+**K2.6 reasoning budget**: K2.6 is a thinking model — floor of 8000 output tokens is enforced via `minCompletionTokens` so the thinking phase doesn't starve the visible answer. Caller doesn't need to set anything.
 
 **WARNING**: Keywords (`pro`, `opinion`, etc.) do NOT work with `--deep` — they get absorbed
 into the topic text. To combine deep research with a specific model, use `--model`:
