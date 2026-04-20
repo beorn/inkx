@@ -1,174 +1,120 @@
-# km Roadmap
+# km Roadmap — holistic view
 
-> **TODO (km-all.roadmap-integrate)**: integrate this horizon narrative into [backlog.md](backlog.md) or retire. `backlog.md` is the live ordered queue; this doc is longer-horizon narrative and may have drifted since Mar 31. Decide: merge useful horizon framing into backlog's "Later" section, or keep as vision-level doc and cross-link.
+> This doc is the **big-picture** roadmap across all tracks. For the ordered near-term queue, see [`backlog.md`](backlog.md). For the vision informing direction, see [`hub/km/design/vision.md`](../hub/km/design/vision.md).
 
-km is a PIM/PKM engine that turns markdown files into a queryable, navigable semantic tree — rendered as a TUI. Your data stays in plain markdown. km adds structure, navigation, and task management without lock-in. The long-term vision is a full personal information manager: tasks, notes, contacts, calendar, and AI agents — all keyboard-driven, all markdown-native.
+km is becoming the environment for knowledge work with AI agents. See the [vision doc](../hub/km/design/vision.md) for the three-axis framing (Knowledge / Communication / Agents) that informs this roadmap.
 
-## Horizon 1: TUI Polish
+## Five tracks
 
-Current work. Tracked by the km-tui epic.
+| Track | Scope | Horizon | Owner epic |
+|---|---|---|---|
+| **1. km TUI** | Interactive workspace, views, editing, omnibox, selection | 1-3 months | `km-tui` |
+| **2. Silvery maturation** | TUI framework: v0.5 → v1.0 → v2.0 (canvas) | 6-12 months | `km-silvery` |
+| **3. Knowledge layer** | km bd, recall, brain/ENGRAM, connectors, facets | ongoing | `km-infra`, `km-all` |
+| **4. Communication (tribe-matrix)** | Matrix-based live wire for agent coordination | 2-3 weeks once started | `km-tribe` |
+| **5. Ecosystem** | Silvery marketing, terminfo.dev, bearly tools, vorg | parallel | `km-market`, `km-terminfo`, `km-bearly` |
 
-The board view is functional but rough. This horizon smooths the edges — every interaction should feel crisp and intentional.
+Each track has its own chain of beads; see each epic for the phased detail.
 
-- Bottom bar: move counters right, flash-on-change notifications, log display
-- Search UX: goto-result navigation, delay/debounce, truncation fixes, zoom-to-match
-- Inline edit improvements: key handling, save-on-navigate, richer editing modes
-- Console rework: scrollback, bottom-bar integration, notification count
-- View modes: outline depth control, content line preview, auto-layout for different board shapes
-- Loading states: skeleton screens, startup progress indicator
+## Near-term sequencing (option P2 — moderate reframe weave)
 
-## Horizon 2: Multi-Select & Batch Operations
+The chosen near-term sequencing threads tribe-matrix into the existing W3-W7 workstream order rather than pausing them (P1) or front-loading the reframe (P3). Gains Matrix live-wire work without starving current momentum.
 
-Tracked by km-tui sub-beads.
+### Now
 
-Single-item operations are limiting. Multi-select unlocks batch workflows: triage, bulk status changes, drag-to-column.
+1. **W3 — Omnibox v1 finish** (`km-tui.omnibox-dialog`, in-progress). Phases 2-5 of omnibox. Ship gate.
 
-- Horizontal range select: Shift+arrow to select across columns
-- Vertical range select: Shift+up/down within a column
-- Batch operations: move, set status, set priority, delete — applied to selection
-- Visual feedback: highlight color for selected items, count indicator
-- Keyboard-driven: toggle select, select-all-in-column, invert selection
+### Queued (in order)
 
-## Current State
+2. **`km-infra.bd-v1-compat`** — write-path persistence for `km bd`. Durable work ledger as km-native. In-progress.
+3. **`km-infra.namespaces` (small spike)** — generalize short-ID minting via the namespace facet. ~2-3 days. (Design complete; execute when short-id prominence first matters.)
+4. **`tribe-matrix` Phase 0** — `@bearly/room` interface + memory + file adapters + chaos conformance tests. 5-6 days. See [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md).
+5. **`tribe-matrix` Phase 1** — Matrix adapter + homeserver install flow. 4-5 days.
+6. **W4 — TEA in silvery + aichat showcase** (`km-silvery.tea`). Silvery 0.18.0 lockstep release.
+7. **`tribe-matrix` Phase 2** — personas + session assumption + lease mechanism. 3-5 days. Runs alongside W4/W5 as feasible.
+8. **W5 — Theme system + aichat polish** (`km-silvery.theme-mature`).
+9. **W6 — TEA in km + polish** (`km-tui.tea`).
+10. **`tribe-matrix` Phase 3** — silvery channel view + `km-tui.backlog-view`. Part of the silvery work.
+11. **W7 — Selection system** (`km-all.unified-selection`).
+12. **`tribe-matrix` Phase 4** — structured events + bead threading.
 
-The core engine is operational: parser, query system, bidirectional sync, SQLite storage, CLI, and a functional TUI with kanban board view. Active development is focused on TUI polish and the rendering engine (Silvery).
+### Parallel (unblocked work, pick up between phases)
 
-What works today:
+- `km-tui.omnibox-quality-plateau` — legacy-dialog deletion (in-flight).
+- `km-silvery.selection-focus-plateau` — focus-scope plateau.
+- `km-tui.cold-startup-block` — perf bug investigation.
+- `km-storage.vault-node-explosion` — 549K node investigation.
 
-- Markdown parsing with inline refs, fields, and section trees
-- Query system with search, filtering, and date shortcuts
-- Kanban board TUI with column display, detail pane, and item picker (project/tag/assignee)
-- Bidirectional sync: edits in TUI write back to markdown files
-- SQLite storage with event history (disk mode) or ephemeral in-memory (memory mode)
-- CLI for quick capture, task management, and GTD bootstrap
-- Watch mode for live file sync
-- Inline editing of task titles directly on the board
-- Command system with configurable keybindings
+### Future (committed direction, not scheduled)
 
----
+- **Silvery v1.0 stability contract** — see [`hub/silvery/horizons.md`](../hub/silvery/horizons.md).
+- **Silvery v2.0 canvas** — `km-silvery.ag-canvas`.
+- **Cross-framework reconcilers** — ag-solid, ag-vue, ag-svelte (`km-silvery.opentui-parity`).
+- **`km-infra.facet-system`** — formalize facets once 2-3 concrete types (task, room, persona) are established.
+- **Universal editor** — `km-all.universal-editor`, needs runly/docily/textily/termily packages.
+- **Brain / ENGRAM** — `docs/future/brain.md`; active design.
+- **Connectors expansion** — GitHub, Linear, Slack (CalDAV/CardDAV already shipped).
+- **Virtual Org** — `km-all.vorg`.
+- **tribe-matrix Phase 5+** — E2E encryption, OpenClaw bridge, Matrix federation for multi-human collaboration.
 
-Horizons represent increasing ambition, not strict ordering — they overlap freely. No dates; this is a direction document.
+## Track detail
 
-## Horizon 3: Task Management
+### Track 1 — km TUI
 
-Asana-grade task management in the terminal.
+Active: W3 omnibox finish. Next: TEA integration (W4/W6), theme upgrade (W5), unified selection (W7). Views expand with backlog-view (`km-tui.backlog-view`) and channel-view (tribe-matrix Phase 3, silvery work). Plus bug fixes and perf (cold-startup-block, vault-node-explosion, column-top-disappears).
 
-km currently handles status and priority. This horizon adds the fields and views that make it a real project management tool.
+### Track 2 — Silvery
 
-- Assignee management: assign/reassign, multi-assignee, avatar/initials display on cards
-- Date fields: due date, start date, scheduled date — with a date picker widget
-- Dependencies: blocked-by / blocks relationships, visualized on the board (dimmed/locked cards)
-- Custom fields: per-project field schemas beyond the built-in priority and status
-- Recurring tasks: daily/weekly/monthly recurrence with auto-create on completion
-- Subtask progress: rollup display (3/7 done) on parent cards
-- My Tasks view: filter by assignee across all projects in a single board
-- Timeline view: Gantt-style column layout showing tasks over time
-- Notifications: overdue alerts, assignment notifications, status change feed
+v0.5 (composable layout engine) near-shipped. v1.0 stability contract is the public-release target. v1.5 TEA lands in `km-silvery.tea`. v2.0 canvas path prototyped (`km-silvery.ag-canvas`). v3.0 scene-ready (`km-silvery.ag-scene-ready`). Parallel: altInline, opentui-parity gaps, cross-framework reconcilers.
 
-## Horizon 4: Links & Navigation
+### Track 3 — Knowledge layer
 
-### 
+Already shipped: CalDAV/CardDAV connectors, `@km/agent` + `km agent` CLI, `km bd` (read path). In progress: bd write path (`km-infra.bd-v1-compat`), vault-node-explosion investigation. Planned: facet system formalization (`km-infra.facet-system`), namespaces (`km-infra.namespaces`), brain/ENGRAM integration, more connectors (GitHub/Linear/Slack).
 
-Turn km into a connected knowledge base.
+### Track 4 — Communication (tribe-matrix)
 
-Markdown already supports links; km should make them first-class navigable objects.
+Design captured in [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md). Five phases; Phase 0 is the Room-interface validation on minimal adapters (memory + file + chaos tests); Phase 1 brings Matrix + homeserver; Phase 2 adds personas + lease; Phase 3 is km-tui channel view; Phase 4 structured events + bead threading. Phase 5+ (E2E, OpenClaw, federation) deferred.
 
-- Link viewing: inline preview of link targets in the detail pane
-- Link editing: fuzzy-search link insertion (like Obsidian's [[ trigger)
-- Link following: Enter on a link navigates to the target node
-- Backlink panel: "referenced by" section in the detail pane
-- Transclusion: ![[embed]] syntax renders referenced content inline
-- Block references: ^block-id for linking to specific paragraphs or list items
+Retiring: old `@bearly/tribe` daemon (8300 LOC custom wire) after Phase 2. Related beads dissolved under the adapter+persona+lease model (`km-tribe.stable-identity`, `km-tribe.daemon-authority`, `km-tribe.scope-model`, `km-tribe.role-register-cleanup`, `km-tribe.plugin-boundary-tightening`, `km-tribe.polish-v2`).
 
-## Horizon 5: Editing
+### Track 5 — Ecosystem / side products
 
-From task board to document editor.
+`km-market` covers silvery marketing, SEO, positioning. `km-terminfo` runs terminfo.dev as a side-product. `km-bearly` is the `@bearly/*` tool monorepo (tribe, recall, llm, refactor, tty). `km-all.vorg` is the Virtual Org skill framework. These proceed in parallel with the main four tracks; no hard coupling.
 
-Currently km edits task titles inline. This horizon brings rich, markdown-native editing to the detail pane and beyond.
+## Cross-cutting policies
 
-- Undo/redo: integrated across text edits and node mutations via the event log
-- 
-  - Rich text editing (markdown-native):
-  - creates/converts bulleted lists
-  - Bold, italic, code, strikethrough via inline markdown syntax
-  - Code blocks with syntax highlighting
-  - Block quotes, headings, horizontal rules
-- Block-level selection: select paragraphs, list items, or sections as units
-- Item-level selection: select cards or sections as atomic units for move/copy
-- Split/merge: split a node at cursor, merge adjacent nodes
+- **`km-all.surface-freeze`** — no new view modes, no new node types during W1-W7. Lifts when W3 ships AND W7 closes. Facet system respects this — formalize AFTER W7.
+- **Bug rule**: fix inline if scoped (<1h); otherwise bead and schedule.
+- **No P-values on new beads** — ordering is position in [`backlog.md`](backlog.md).
+- **Short IDs** — once `km-infra.namespaces` lands, new beads can use area-scoped IDs (`TUI-47` etc.). Existing `km-xxxx` IDs stay valid.
 
-## Horizon 6: Mouse & Direct Manipulation
+## Budget in calendar weeks
 
-Keyboard-first doesn't mean keyboard-only.
+Rough estimate for the P2 sequencing, assuming ~40h/week focused work:
 
-Mouse support makes km accessible to more people and enables interactions that are awkward with keys alone.
+| Item | Duration |
+|---|---|
+| W3 omnibox finish | 2-3 weeks (in-progress) |
+| bd-v1-compat write path | 1 week |
+| namespaces spike | 2-3 days |
+| tribe-matrix Phase 0 | 5-6 days |
+| tribe-matrix Phase 1 | 4-5 days |
+| W4 silvery TEA | 2-3 weeks |
+| tribe-matrix Phase 2 | 3-5 days |
+| W5 theme + polish | 1-2 weeks |
+| W6 TEA in km | 1-2 weeks |
+| tribe-matrix Phase 3 (alongside silvery view) | 1-2 weeks |
+| W7 selection system | 2 weeks |
+| tribe-matrix Phase 4 | 1 week |
 
-- Mouse infrastructure: hit registry via Silvery layout feedback (position → element mapping)
-- Click-to-select: click a card to focus it, click a column header to focus column
-- Scroll wheel: vertical scrolling in columns and detail pane
-- Double-click: edit a card title, or drill into a node
-- Drag area select: rectangle selection across cards
-- Drag-and-drop: move cards between columns, reorder within columns
-- Click to follow links: clickable links in the detail pane
+Total: ~4-6 months of sustained focused work to land everything through W7 + tribe-matrix Phase 4.
 
-## Horizon 7: Structured Data
+## How to use this doc
 
-From tasks to any kind of structured information.
+- **New task?** Find the right track and epic; check whether the work belongs in the Queued section of [`backlog.md`](backlog.md) or in the Future list here.
+- **Vision question?** Jump to [`hub/km/design/vision.md`](../hub/km/design/vision.md).
+- **Implementation detail for tribe?** See [`hub/km/design/tribe-matrix.md`](../hub/km/design/tribe-matrix.md).
+- **Silvery horizons detail?** See [`hub/silvery/horizons.md`](../hub/silvery/horizons.md).
+- **What's next?** Top of [`backlog.md`](backlog.md) Now section.
 
-Supertags (like Tana) let users define typed nodes with field schemas — turning km into a flexible database.
-
-- Supertags: typed nodes with field schemas (e.g., #meeting has date, attendees, notes)
-- Dynamic boards: saved queries with filtering and grouping (e.g., "all meetings this week")
-- Computed fields: rollups, formulas, aggregations across linked nodes
-- Templates: node templates applied via supertag or command palette
-- Custom views per supertag: different board layouts for different content types
-
-## Horizon 8: AI Agents
-
-Designed in docs/future/agents.md.
-
-Agents are AI-powered workers that claim tasks, execute sessions, and produce events — pure functions with full audit trails.
-
-- Agent orchestration: km agent CLI for spawning, running, and managing agents
-- Hub TUI: km hub dashboard for multi-agent coordination — see agents, queues, and live events
-- Kimmi: built-in assistant for task triage, content generation, and project review
-- Harness system: preconfigured tool+connector bundles that equip agents for specific roles
-- Beads integration: agents discover, claim, and close issues like human workers
-
-## Horizon 9: Connectors & Services
-
-Designed in docs/future/services.md.
-
-km becomes the hub that connects your information sources.
-
-- CalDAV/CardDAV sync: calendar events and contacts as km nodes
-- GitHub integration: issues and PRs imported and synced
-- Daily notes / journal: Roam-style daily pages with auto-created date nodes
-- Slash commands: quick capture from anywhere (inline /task, /note, /event)
-- Webhook receiver: ingest events from external services
-
-## Horizon 10: Real-time Collaboration
-
-km for teams.
-
-Moving from single-user to multi-user requires a sync layer, conflict resolution, and eventually a web frontend.
-
-- Cloud sync service: persistent sync daemon (like Decker's cloudsv)
-- CRDT layer: Yjs or similar, replacing or augmenting the SQLite event log for concurrent edits
-- Multi-user editing: presence indicators, cursor positions, live updates
-- Conflict resolution UI: when CRDTs aren't enough, show conflicts and let users resolve
-- Web frontend: share km boards in a browser — read-only initially, then editable
-
----
-
-## Foundation
-
-Cross-cutting work that supports all horizons. Tracked by dedicated epics.
-
-| Area     | Epic        | Focus                                                                     |
-| -------- | ----------- | ------------------------------------------------------------------------- |
-| Silvery  | km-silvery  | Terminal rendering engine — performance, correctness, incremental updates |
-| flexily  | km-flexily  | Flexbox layout engine for terminal UI                                     |
-| vimonkey | km-vimonkey | Test framework, benchmarks, diagnostics                                   |
-| Infra    | km-infra    | CI, monorepo packaging, linting, regression suites                        |
-
+This doc is the map. Update when a track shifts materially; don't track every bead here.
