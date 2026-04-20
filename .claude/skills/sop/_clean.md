@@ -47,15 +47,43 @@ The caller must either:
 
 ## Skill-side wrapper (what the /sop invocation does)
 
-When the user runs `/sop clean`, Claude Code should:
+When the user runs `/sop clean`, Claude Code MUST perform every step:
 
-1. Call `mcp__plugin_tribe_tribe__tribe_health` and capture the active session list
-2. For each non-idle session, optionally `tribe.send type=query` with "what are you working on, ETA?" and wait ~5s
-3. Display the consolidated active-work report (tribe + the tool's own scan) before any destructive action
-4. Invoke `bun tools/sop.ts clean [target] --active-sessions=<csv>` with the observed session names
-5. If the user approves, re-run with `--execute` (and `--force` only if the caller has truly coordinated)
+1. **List sessions** — `mcp__plugin_tribe_tribe__tribe_members` to capture live members (anything with `alive: true` and `last_seen_sec < 120`).
+2. **Probe every live member** — one `mcp__plugin_tribe_tribe__tribe_broadcast` with payload: `"sop-clean preflight: current task + ETA? (reply in 1 line, or 'idle')"`. Broadcast is one message, all receive — don't send per-member DMs for this, it creates noise.
+3. **Wait ~60 s** — `sleep 60` via Bash. Tribe members are human-scale — they may be mid-tool-use, waiting on a subagent, or mid-LLM-call when the probe arrives. Replies trickle in over ~45s in the observed tribe. 15s catches only the fastest; 30s misses stragglers. Default 60s. Bump to 90–120s for large tribes (>5 live) or when you know members are deep in slow tool calls (vitest, `/deep`, GPT Pro reviews).
+4. **Read responses** — `mcp__plugin_tribe_tribe__tribe_history` filtered to the probe's timestamp onward. Pair each reply with its sender. Also sweep any new sessions that joined during the wait (they'll show up in `tribe_members` but not the initial snapshot).
+5. **Classify** each active member as:
+   - **idle** — replied "idle" or similar. Cleanup is safe w.r.t. them.
+   - **busy** — replied with a task. Include in preflight output with their stated ETA.
+   - **silent** — live session, no reply within 15s. Treat as busy-unknown.
+6. **Display consolidated report** — tribe status table (name / state / task / ETA / reply-age) followed by the tool's own scan.
+7. **Invoke the tool** — `bun tools/sop.ts clean [target] --active-sessions=<csv>` where `<csv>` is non-idle members only (idle members don't block execute).
+8. **Confirm before `--execute`** — user reviews the preflight; if any busy/silent members, prefer waiting or narrowing target. `--force` is the escape hatch after explicit coordination.
 
-The skill owns the tribe-coordination half; the tool owns the deterministic git/process/cache half.
+Skill owns the tribe half; tool owns the deterministic git/process/cache half.
+
+### Probe message canon
+
+Keep the probe wording stable so tribe members can pattern-match and answer concisely:
+
+```
+sop-clean preflight: current task + ETA? (reply in 1 line, or 'idle')
+```
+
+Responders should keep their reply to ≤100 chars. Example good replies:
+
+```
+busy: Sterling 2e Phase F migration, ETA ~20min
+idle
+busy: bead km-tui.X, ETA unknown (open-ended)
+```
+
+### When the probe reveals active work
+
+- **busy, known ETA within 30 min**: recommend waiting. Narrow to safe targets (`caches`, maybe `worktrees` if the ETA doesn't touch them). Never `--force` past busy members without asking the user first.
+- **busy, open-ended**: surface to user, let them decide (ping the member directly, defer cleanup, or --force).
+- **silent (live but no reply)**: surface as "unknown" — usually OK to proceed on narrow targets, but flag it.
 
 ## Risk classes
 
