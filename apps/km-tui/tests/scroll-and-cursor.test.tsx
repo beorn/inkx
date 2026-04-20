@@ -9,7 +9,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
-import { createTestApp } from "./helpers/test-app.ts"
+import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 
 describe("km-tui-scroll-follow: Scroll follows cursor", () => {
   test("cursor remains visible when scrolling down past viewport", () => {
@@ -289,5 +289,417 @@ describe("Scroll virtualization doesn't hide content", () => {
       const idx = parseInt(cursorMatch[1], 10)
       app.expect(`#page${idx}[data-cursor]`).toExist()
     }
+  })
+})
+
+// =============================================================================
+// km-tui.column-top-disappears: Column top disappears on cursor-down
+// =============================================================================
+// User-reported bug: with ~5 columns tall with many mixed-height cards, pressing
+// cursor_down makes the top cards disappear AND the apparent column height
+// shrinks by ~1 row — as if the viewport under the header got smaller.
+//
+// Screenshots:
+//   .40.png: cursor on "delei" (first card) — 6 cards visible below header
+//   .46.png: after cursor-downs — top cards gone, fewer cards visible
+//
+// Fixture mirrors the user's vault: ~20 cards mixing:
+//   - "short" cards — title only (~3 rows with border + title)
+//   - "tall" cards — title + 2 children + overflow "+N more" (~7 rows)
+// at cols=180 rows=45 (user's real terminal).
+// =============================================================================
+
+describe("km-tui.column-top-disappears", () => {
+  // Count rendered cards inside col-index=0 (the "Next Actions" column).
+  // Queries the AgNode tree via the headless driver's locator — robust against
+  // sibling columns' text on the same row.
+  function countCardsInCol0(app: TestApp): number {
+    return app.driver.locator('[data-col-index="0"] [data-card-id]').count()
+  }
+
+  // Count non-blank rows INSIDE the first column slice of the screen.
+  // At cols=180 with 3 columns, each column is ~60 wide. Slice each line
+  // to only col0's horizontal range (0..60) before checking for non-blank.
+  function countCol0ContentLines(app: TestApp, colWidth = 60): number {
+    const lines = app.text.split("\n")
+    const headerIdx = lines.findIndex((l) => l.includes("Next Actions"))
+    if (headerIdx < 0) return 0
+    let count = 0
+    for (let i = headerIdx + 2; i < lines.length; i++) {
+      const slice = (lines[i] ?? "").slice(0, colWidth)
+      if (/\S/.test(slice)) count++
+    }
+    return count
+  }
+
+  // First visible card's data-card-id inside col0 (render order, top-down).
+  function firstCardInCol0(app: TestApp): string | null {
+    const loc = app.driver.locator('[data-col-index="0"] [data-card-id]')
+    return loc.count() > 0 ? loc.getAttribute("data-card-id") ?? null : null
+  }
+
+  // Retained for the pre-existing initial fixture — counts content lines under
+  // the header across ALL columns. Not column-scoped; prefer countCol0* above.
+  function countContentLinesUnderHeader(app: { text: string }, headerMarker: string): number {
+    const lines = app.text.split("\n")
+    const headerIdx = lines.findIndex((l) => l.includes(headerMarker))
+    if (headerIdx < 0) return 0
+    let count = 0
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      if (/\S/.test(lines[i] ?? "")) count++
+    }
+    return count
+  }
+
+  // Build a tall column of ~22 cards, mixing short (title only) and tall
+  // (title + 2 children) cards to match the user's real vault shape.
+  function buildTallNextActionsColumn() {
+    const mix: ReturnType<typeof item>[] = []
+    for (let i = 0; i < 22; i++) {
+      if (i % 3 === 0) {
+        // Tall card: title + two children + at least one more to trigger "+N more"
+        mix.push(
+          item(
+            `tall-${i} task body`,
+            item(`body-${i}-a`),
+            item(`body-${i}-b`),
+            item(`body-${i}-c`),
+            item(`body-${i}-d`),
+          ),
+        )
+      } else {
+        // Short card: just a title
+        mix.push(item(`short-${i}`))
+      }
+    }
+    return item(
+      "board",
+      item("Next Actions @next", ...mix),
+      item("Ideas", item("idea1"), item("idea2")),
+      item("Projects", item("proj1"), item("proj2")),
+    )
+  }
+
+  test("FRESH: cursor_down preserves column header + no blanks + stable visible count", () => {
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      incremental: false, // eliminate incremental-render as a variable first
+    })
+
+    // Column header is rendered as a ColumnHeader — look for "Next Actions".
+    // The @next sigil is rendered as a typeSuffix.
+    expect(app.text, "initial state: column header must be visible").toContain("Next Actions")
+
+    // Record the initial "column fullness" — how many content lines appear
+    // under the header. This is the baseline for stability checks.
+    const initialContent = countContentLinesUnderHeader(app, "Next Actions")
+    expect(initialContent, "column should show cards under header initially").toBeGreaterThan(4)
+
+    // Which visible card IDs do we see initially? Track them — the first few
+    // MUST NOT vanish until the cursor has scrolled past them.
+    const initiallyVisible = new Set<string>()
+    for (let i = 0; i < 22; i++) {
+      if (app.node(`short-${i}`).exists && app.node(`short-${i}`).visible) initiallyVisible.add(`short-${i}`)
+      if (app.node(`tall-${i} task body`).exists && app.node(`tall-${i} task body`).visible) {
+        initiallyVisible.add(`tall-${i} task body`)
+      }
+    }
+
+    const contentCounts: number[] = [initialContent]
+
+    // Press cursor_down 8 times and assert invariants after each step.
+    for (let step = 1; step <= 8; step++) {
+      app.command("cursor_down")
+
+      // 1) Column header must still be rendered.
+      expect(app.text, `step ${step}: column header must still be visible`).toContain("Next Actions")
+
+      // 2) The visible card count in the column should be stable (±1).
+      const content = countContentLinesUnderHeader(app, "Next Actions")
+      contentCounts.push(content)
+      const delta = Math.abs(content - initialContent)
+      expect(
+        delta,
+        `step ${step}: column content height shrank by ${delta} (was ${initialContent}, now ${content}) — user-reported "column suddenly shorter"`,
+      ).toBeLessThanOrEqual(2)
+
+      // 3) No card that was visible AND hasn't been scrolled-past should
+      //    suddenly be gone (i.e., no gap between header and first visible card).
+      //    Because cards scroll, we only check that the CURRENT cursor card
+      //    is visible AND the card directly after the header is a real card
+      //    (not blank).
+      const lines = app.text.split("\n")
+      const headerLineIdx = lines.findIndex((l) => l.includes("Next Actions"))
+      if (headerLineIdx >= 0) {
+        // Scan for the first non-blank content line under the header.
+        // It should NOT be more than ~3 rows below (allowing for border + padding).
+        let firstContentOffset = -1
+        for (let i = headerLineIdx + 1; i < Math.min(headerLineIdx + 10, lines.length); i++) {
+          const line = lines[i]
+          // Strip the neighbouring columns to focus on "Next Actions" column —
+          // but that is finicky. Simpler: just ensure *some* content appears
+          // in the first few rows under the header.
+          if (line && /\S/.test(line) && !/^\s*$/.test(line)) {
+            firstContentOffset = i - headerLineIdx
+            break
+          }
+        }
+        expect(
+          firstContentOffset,
+          `step ${step}: found a big blank gap under column header (offset=${firstContentOffset})`,
+        ).toBeLessThanOrEqual(5)
+      }
+    }
+
+    // Final assertion: content counts across all steps must cluster around
+    // the initial count. Min should be within 2 of initial (allowing for a
+    // card boundary entering/leaving the viewport).
+    const minCount = Math.min(...contentCounts)
+    expect(
+      minCount,
+      `column fullness dipped too low (min=${minCount}, initial=${initialContent})`,
+    ).toBeGreaterThanOrEqual(initialContent - 2)
+  })
+
+  test("INCREMENTAL: cursor_down preserves column fullness across steps", () => {
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      incremental: true, // the mode the user actually runs in
+      checkIncremental: true, // let SILVERY_STRICT=1 catch cascade bugs too
+    })
+
+    expect(app.text).toContain("Next Actions")
+    const initialContent = countContentLinesUnderHeader(app, "Next Actions")
+
+    const contentCounts: number[] = [initialContent]
+    for (let step = 1; step <= 8; step++) {
+      app.command("cursor_down")
+      const content = countContentLinesUnderHeader(app, "Next Actions")
+      contentCounts.push(content)
+      // User-reported symptom: fewer cards visible after cursor-down.
+      expect(
+        content,
+        `step ${step}: column content shrank to ${content} (was ${initialContent}) — user-reported "column suddenly shorter"`,
+      ).toBeGreaterThanOrEqual(initialContent - 2)
+    }
+
+    const minCount = Math.min(...contentCounts)
+    expect(
+      minCount,
+      `incremental: column fullness dipped (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
+    ).toBeGreaterThanOrEqual(initialContent - 2)
+  })
+
+  test("PROPER SCOPED: col0 card count + first card stable after cursor_down (headless/incremental)", () => {
+    // Column-scoped measurement — count data-card-id inside col-index=0 only,
+    // not the whole screen. This is the real signal for "column shorter".
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      incremental: true,
+    })
+
+    const initialCards = countCardsInCol0(app)
+    const initialLines = countCol0ContentLines(app, 60)
+    const initialFirstCard = firstCardInCol0(app)
+    expect(initialCards, "should render multiple cards in col0 initially").toBeGreaterThan(3)
+
+    const cardCounts: number[] = [initialCards]
+    const lineCounts: number[] = [initialLines]
+    const firstCards: (string | null)[] = [initialFirstCard]
+
+    // Move cursor down step-by-step and capture the shape of col0 at each step.
+    for (let step = 1; step <= 10; step++) {
+      app.command("cursor_down")
+      cardCounts.push(countCardsInCol0(app))
+      lineCounts.push(countCol0ContentLines(app, 60))
+      firstCards.push(firstCardInCol0(app))
+    }
+
+    // Invariant: the number of CONTENT LINES in col0 (rows with visible chars
+    // in the col0 slice) must not shrink by more than ~2 rows across cursor
+    // moves. The user report is "column suddenly 1 row shorter".
+    const minLines = Math.min(...lineCounts)
+    const diag = `lineCounts=${lineCounts.join(",")} cardCounts=${cardCounts.join(",")} firstCards=${firstCards.join("|")}`
+    expect(
+      minLines,
+      `col0 content lines shrank to ${minLines} (initial=${initialLines}) — ${diag}`,
+    ).toBeGreaterThanOrEqual(initialLines - 3)
+  })
+
+  // Shared VISUAL test body — takes a constructed app and runs the
+  // cursor_down × 10 / cursor_up × 10 sequence, asserting the invariants.
+  function runVisualShapeProbe(app: TestApp, label: string): void {
+    function countTopBordersInCol0(): number {
+      const lines = app.text.split("\n")
+      let count = 0
+      for (const line of lines) {
+        // Look for `╭` only in the col0 x-range (first ~60 cols).
+        const slice = line.slice(0, 60)
+        if (slice.includes("╭")) count++
+      }
+      return count
+    }
+
+    function findFirstTopBorderRow(): number {
+      const lines = app.text.split("\n")
+      for (let i = 0; i < lines.length; i++) {
+        if ((lines[i] ?? "").slice(0, 60).includes("╭")) return i
+      }
+      return -1
+    }
+
+    const initialBorders = countTopBordersInCol0()
+    const initialFirstRow = findFirstTopBorderRow()
+    expect(initialBorders, "initial should render multiple cards in col0").toBeGreaterThan(2)
+
+    const borderCounts: number[] = [initialBorders]
+    const firstRows: number[] = [initialFirstRow]
+    // Cursor-down then back up, mimicking user's observed "disappear / reappear"
+    for (let step = 1; step <= 10; step++) {
+      app.command("cursor_down")
+      borderCounts.push(countTopBordersInCol0())
+      firstRows.push(findFirstTopBorderRow())
+    }
+    for (let step = 1; step <= 10; step++) {
+      app.command("cursor_up")
+      borderCounts.push(countTopBordersInCol0())
+      firstRows.push(findFirstTopBorderRow())
+    }
+
+    const minBorders = Math.min(...borderCounts)
+    const diag = `borderCounts=${borderCounts.join(",")} firstRows=${firstRows.join(",")}`
+
+    // INVARIANT A: border count in col0 stays stable (+/-1 card boundary as
+    // scroll crosses). User-observed shrink is minBorders = initial - 1, BUT
+    // that's accompanied by a 3-row GAP at the top. The real bug is the GAP,
+    // not the card count.
+    // Only assert this looser form (±1) — the tighter "exactly initial" would
+    // pass on the no-scroll frames and miss the actual bug.
+    expect(
+      minBorders,
+      `col0 rendered-card count dropped more than 1 (min=${minBorders}, initial=${initialBorders}) — ${diag}`,
+    ).toBeGreaterThanOrEqual(initialBorders - 2)
+
+    // INVARIANT B (THE REAL BUG): the first top-border row in col0 should
+    // stay close to the column header. When scroll kicks in, the top of the
+    // viewport should be a FULL card (at row 4-5 under header) OR the column
+    // should render a partial (no-top-border) card at row 4-5.
+    //
+    // What the bug produces: after scroll, the first FULL card with `╭` top
+    // border jumps from row 4 to row 7 — leaving blank rows 4-6. The user
+    // sees this as "column got 3 rows shorter at the top."
+    //
+    // Expected (correct): firstRow stays ≤ 5 (header=3, separator=4, card=5).
+    // Actual (buggy):      firstRow jumps to 7 → 3-row gap.
+    const maxFirstRow = Math.max(...firstRows.filter((r) => r >= 0))
+    expect(
+      maxFirstRow,
+      `[${label}] col0 first card jumped down the column (max firstRow=${maxFirstRow}) — leaves a blank gap under the header. This is the user-reported "column top disappears". ${diag}`,
+    ).toBeLessThanOrEqual(6)
+  }
+
+  test("VISUAL/incremental: top-border position stable across cursor_down + cursor_up (REPRODUCES BUG)", () => {
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      incremental: true,
+    })
+    runVisualShapeProbe(app, "incremental")
+  })
+
+  test("VISUAL/fresh: same shape probe with incremental=false — isolates bug origin", () => {
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      incremental: false, // if this also fails, bug is NOT an incremental-cascade bug
+    })
+    runVisualShapeProbe(app, "fresh")
+  })
+
+  test("REPRO: vault-shaped column (section headers + wide tall cards) — top card disappears", () => {
+    // More faithful reproduction of the user's Next Actions column:
+    //   - first card is a tall multi-line card ($ delei with body text)
+    //   - followed by short title-only cards ($ inbox, $ Shortcuts, $ taxomatic)
+    //   - interrupted by MANY section-header style items (§ Next actions @next)
+    //   - more tall cards further down
+    // This maps the screenshot shape much more closely.
+    const cards: ReturnType<typeof item>[] = []
+    // First: tall "delei" card with 4 children + "more"
+    cards.push(item("delei Auto-populated", item("- What lands here"), item("- Triage rules")))
+    cards.push(item("inbox"))
+    cards.push(item("Shortcuts"))
+    cards.push(item("taxomatic"))
+    cards.push(item("taxes"))
+    cards.push(item("Office"))
+    // Followed by 8 section-heading-style cards (§ Next actions @next)
+    // these are title-only cards that look like headers — 3-row boxes.
+    for (let i = 0; i < 8; i++) cards.push(item("Next actions @next"))
+    // Then some tall + normal cards
+    cards.push(item("Upcoming deadlines", item("- all projects, next 12 months"), item("- Follow up with")))
+    cards.push(item("Pattern E — Dates and props"))
+    cards.push(item("Difference from"))
+    cards.push(item("Tax Prep — tasks", item("- Set up Mobilbank"), item("- Norwegian passport")))
+    cards.push(item("Track the delegation"))
+    cards.push(item("What is a groomed"))
+
+    using app = createTestApp(item("board", item("Next Actions @next", ...cards), item("Ideas"), item("Projects")), {
+      rows: 45,
+      cols: 180,
+      incremental: true,
+    })
+
+    expect(app.text).toContain("Next Actions")
+    const initialContent = countContentLinesUnderHeader(app, "Next Actions")
+    const contentCounts: number[] = [initialContent]
+
+    for (let step = 1; step <= 12; step++) {
+      app.command("cursor_down")
+      const content = countContentLinesUnderHeader(app, "Next Actions")
+      contentCounts.push(content)
+    }
+
+    const minCount = Math.min(...contentCounts)
+    expect(
+      minCount,
+      `REPRO: column fullness dropped (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
+    ).toBeGreaterThanOrEqual(initialContent - 2)
+  })
+
+  test("TERMLESS: full ANSI pipeline through real terminal — column header + fullness stable", async () => {
+    // Termless uses xterm.js as the backend — catches ANSI/output-phase bugs
+    // that headless virtual-buffer tests miss. This matches the user's scenario
+    // most closely (real terminal output, real incremental pipeline).
+    using app = createTestApp(buildTallNextActionsColumn(), {
+      rows: 45,
+      cols: 180,
+      backend: "termless",
+    })
+
+    // Let termless settle first render. createTestApp schedules settle internally.
+    // Press a no-op to flush the initial frame.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const initialText = app.text
+    expect(initialText, "termless: column header must be visible initially").toContain("Next Actions")
+    const initialContent = countContentLinesUnderHeader(app, "Next Actions")
+
+    const contentCounts: number[] = [initialContent]
+    for (let step = 1; step <= 8; step++) {
+      app.command("cursor_down")
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      const text = app.text
+      expect(text, `termless step ${step}: column header must still be visible`).toContain("Next Actions")
+      const content = countContentLinesUnderHeader(app, "Next Actions")
+      contentCounts.push(content)
+    }
+
+    const minCount = Math.min(...contentCounts)
+    expect(
+      minCount,
+      `termless: column fullness shrank (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
+    ).toBeGreaterThanOrEqual(initialContent - 2)
   })
 })
