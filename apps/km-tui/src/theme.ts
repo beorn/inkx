@@ -49,9 +49,10 @@ export function multiSelectedBg(theme: Theme): string | undefined {
 /** Subtle focusborder-tinted bg for editing containers.
  * Replaces selection highlight during inline editing.
  *
- * `border-focus` is Sterling's flat projection (populated by
- * augmentWithSterlingFlat on every Theme — see @silvery/theme). The legacy
- * `focusborder` key is kept as a fallback for any non-augmented Theme. */
+ * `border-focus` is Sterling's flat projection — baked into every shipped
+ * Theme at construction (see @silvery/theme schemes/index.ts). The legacy
+ * `focusborder` key is kept as a fallback for hand-crafted Themes that
+ * bypass `inlineSterlingTokens`. */
 export function editingBg(theme: Theme): string | undefined {
   const t = theme as unknown as Record<string, string | undefined>
   const focusBorder = t["border-focus"] ?? t["focusborder"]
