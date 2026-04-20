@@ -42,7 +42,6 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 | `mockups/`    | Design mockups (ANSI art, screenshots in progress).                                                    |
 | `prototype/`  | Working prototypes validating design ideas. Disposable.                                                |
 | `vision/`     | Long-horizon vision docs for the package.                                                              |
-| `horizons.md` | Version roadmap (v0.5 / v1.0 / v1.5 / etc).                                                            |
 | `CLAUDE.md`   | Internal workspace guide for agents.                                                                   |
 | `README.md`   | Internal workspace entry point.                                                                        |
 | `archive/`    | Frozen drafts and retired internal docs.                                                               |
@@ -67,7 +66,9 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 | Pre-public silvery design doc                      | `hub/silvery/design/`                          |
 | Silvery launch blog draft                          | `hub/silvery/launch/`                          |
 | Silvery competitive research (OpenTUI, Ink, etc.)  | `hub/silvery/research/`                        |
-| Silvery version roadmap                            | `hub/silvery/horizons.md`                      |
+| Silvery version roadmap (horizons)                 | `hub/roadmap.md` § Track 2                     |
+| Holistic km roadmap + all track detail             | `hub/roadmap.md`                               |
+| Ordered near-term queue (what's next)              | `hub/backlog.md`                               |
 | km pre-public design draft                         | `hub/km/`                                      |
 | bearly plugin design                               | `hub/bearly/design/`                           |
 | bearly agent memory/context                        | `hub/bearly/memory.md`                         |

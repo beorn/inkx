@@ -123,7 +123,7 @@ cd apps/km-tui/web && bunx vite@6          # terminal 2
 2. `km/docs/design/render-neutral-tui.md` — full render-neutral plan with GPT review
 3. `vendor/silvery/packages/ag-react/src/ui/canvas/index.ts` — renderToCanvas entry point
 4. `vendor/silvery/CLAUDE.md` — silvery conventions and architecture
-5. `horizons.md` — where canvas fits in the silvery roadmap
+5. `../../../roadmap.md` § Track 2 / v2.0 — where canvas fits in the silvery roadmap
 
 ### Beads
 

@@ -66,7 +66,7 @@ Bridges between the pipeline and a rendering target.
 
 Framework-agnostic, platform-agnostic state and behavior. Signals, commands, keymaps, models, scopes, op(). Zero dependency on ag, frameworks, or platforms. Design still settling — ships publicly at v1.5.
 
-The tea packages (`@silvery/tea`, `@silvery/signals`, `@silvery/commands`, `@silvery/create`, `@silvery/scope`, `@silvery/model`) work standalone with react-dom or any framework — no ag rendering required. See [horizons.md](../../horizons.md) § v1.5.
+The tea packages (`@silvery/tea`, `@silvery/signals`, `@silvery/commands`, `@silvery/create`, `@silvery/scope`, `@silvery/model`) work standalone with react-dom or any framework — no ag rendering required. See [roadmap § v1.5](../../../roadmap.md#v15--app-architecture-tea).
 
 ## How They Compose
 
@@ -277,7 +277,7 @@ The architecture is designed so these limits are explicit tradeoffs per-componen
 
 ## The Gradual Path
 
-Two products, one gradient. See [horizons.md](../../horizons.md) for the version progression.
+Two products, one gradient. See [roadmap § Track 2](../../../roadmap.md#track-2--silvery) for the version progression.
 
 **Silvery** (rendering) is the ag pipeline, components, and theme. **App-level packages** (create + scope + commands + signals + model) provide commands, keymaps, op(), plugins, structured concurrency. The app framework is optional and adopted gradually -- each step adds capability without rewriting previous work.
 

@@ -203,7 +203,7 @@ Update silvery's positioning docs based on current state of both projects.
    - Latest bench numbers (from `bench` mode)
    - Latest compat % (from `upgrade` mode)
    - Latest feature parity table (from `analyze` mode)
-   - Silvery horizons: `hub/silvery/horizons.md`
+   - Silvery horizons: `hub/roadmap.md` § Track 2
 
 2. **Update positioning bead**
    - `bd show km-silvery.positioning`
@@ -331,7 +331,7 @@ For each Ink change, answer:
 - Should any silvery-internal design docs be updated?
 
 **Update targets:**
-- `hub/silvery/horizons.md` (roadmap definitions)
+- `hub/roadmap.md` § Track 2 (roadmap definitions)
 - `hub/silvery/design/v05-layout/`, `v10-terminal/`, `v15-tea/`, `v20-canvas/`, `v30-graphics/`
 - `hub/silvery/design/v-undecided/` (new parity designs)
 - `km-silvery.*` beads (new implementation tasks)
@@ -449,5 +449,5 @@ Things to build into this skill over time:
 - `hub/silvery/design/v-undecided/*-parity.md` — per-feature design docs
 
 ### Horizons
-- `hub/silvery/horizons.md` — v0.5 / v1.0 / v1.5 / v2.0 / v3.0 roadmap
+- `hub/roadmap.md` § Track 2 — v0.5 / v1.0 / v1.5 / v2.0 / v3.0 roadmap
 - Each horizon expands silvery's moat beyond Ink's reach (canvas, multi-framework, a11y, AI mode)

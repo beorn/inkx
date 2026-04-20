@@ -19,6 +19,7 @@ This resolver covers **km's `docs/` tree only**. For cognitive/agent-level routi
 | Active WIP investigation (not design-ready, not speculation) | § 6 → `explorations/` |
 | Retired doc (superseded, out-of-scope, or closed) | § 6 → `archive/` |
 | Ecosystem marketing / non-km-product | **Not in `docs/`** → `hub/market/` |
+| Roadmap, backlog, horizons | **Not in `docs/`** → [`hub/roadmap.md`](../hub/roadmap.md), [`hub/backlog.md`](../hub/backlog.md) |
 | Hub-level (one of the 4 entry files) | § 7 → top-level |
 
 If the content is **not about km the product**, it doesn't belong in `docs/`. Route to `hub/` (see its own RESOLVER).
@@ -162,8 +163,6 @@ Exactly these 8 files live at the top level of `docs/`:
 |---|---|
 | `README.md` | Entry point — routes by audience |
 | `architecture.md` | The architecture (5-layer stack, data flows, composition) |
-| `backlog.md` | Prioritized phase list — what ships next (source of truth) |
-| `roadmap.md` | Longer-horizon narrative (horizons H1-H4); may merge into backlog |
 | `glossary.md` | Terminology A–Z |
 | `principles.md` | Code-style + design-stance principles (contributor- and agent-facing) |
 | `concepts.md` | User-facing core concepts (nodes, modes, status) |
@@ -203,7 +202,7 @@ Every time the user corrects a filing decision, record the rule here.
 - **2026-04-17** — Historical-snapshot review docs (e.g. `architecture-review-findings.md`) go to `archive/` with a date suffix (`-2026-04`), not top-level. → § 7
 - **2026-04-17** — Single-file subdirs are an anti-pattern. Collapse or move. Example: `docs/architecture/brain.md` (single-file dir) moved to `docs/future/brain.md`; `docs/adr/` removed when its contents fit under `archive/`. → § 6
 - **2026-04-17** — `packages.md` moved from top-level to `ref/packages.md` (reference-shaped, not hub-level). → § 4 + § 7
-- **2026-04-17** — `roadmap.md` added at top-level (moved from repo root `ROADMAP.md`); overlap with `backlog.md` tracked via bead `km-all.roadmap-integrate`. → § 7
+- **2026-04-20** — `roadmap.md` + `backlog.md` consolidated into `hub/roadmap.md` + `hub/backlog.md` (absorbed `hub/silvery/horizons.md`). No roadmap/backlog/horizons docs live under `docs/` anymore. Bead: `km-all.roadmap-consolidation`. → § 1
 
 ---
 

@@ -1,7 +1,7 @@
 # Matrix as km's chat substrate — decision record
 
 **Status**: Decision committed 2026-04-20 after multi-pass review (six-alternative scan, two pro-review cycles, two deep-research surveys, live scan of OpenClaw/Hermes/Nanoclaw/pi-mom/Gas Town/freema-openclaw-mcp/Enderfga-openclaw-claude-code, XMPP-vs-Matrix, ATProto/Nostr rejection). Simplified 2026-04-20 to reuse km primitives instead of inventing new abstractions.
-**Complements**: [`vision.md`](vision.md), [`docs/roadmap.md`](../../../docs/roadmap.md), `km-infra.bd-v1-compat`.
+**Complements**: [`vision.md`](vision.md), [`hub/roadmap.md`](../../roadmap.md), `km-infra.bd-v1-compat`.
 **Supersedes**: `hub/bearly/design/tribe-minimal.md` (v1/v2/v3 custom-wire chain, retired).
 
 ## Decision in one sentence
@@ -460,4 +460,4 @@ The simplifications from the morning (connector model, persona node, lease-as-ta
 
 ## Next action
 
-Start Phase 0 spike once W3 omnibox finish lands (per `docs/roadmap.md` P2 sequencing). Targets: matrix homeserver install flow + connector skeleton + first chatlog node syncing. ~4-5 days.
+Start Phase 0 spike once W3 omnibox finish lands (per [`hub/roadmap.md`](../../roadmap.md) sequencing). Targets: matrix homeserver install flow + connector skeleton + first chatlog node syncing. ~4-5 days.

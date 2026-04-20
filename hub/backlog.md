@@ -3,7 +3,7 @@
 Ordered by priority. Position is priority — top = next. Move the line to re-prioritize. No P-values on new beads; rank lives here.
 
 Related:
-- Silvery version roadmap (v0.5, v1.0, v1.5, v2.0, v3.0) lives in [`hub/silvery/horizons.md`](../hub/silvery/horizons.md). Don't duplicate — link.
+- Holistic roadmap + silvery horizons: [`roadmap.md`](roadmap.md). Don't duplicate — link.
 - Bead details: `bd show <id>`.
 
 ## Now
@@ -19,12 +19,12 @@ Related:
 
 ## W2 follow-ups (deferred from the MECE sweep — pick up between phases)
 
-See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
+See [`../docs/dev/doc-map.md`](../docs/dev/doc-map.md) for full context.
 
-- ~~**Orphan: TreeMutator ops doc**~~ — shipped 2026-04-17 as [design/model/tree-mutator.md](design/model/tree-mutator.md).
-- ~~**Orphan: Repo mutation API doc**~~ — shipped 2026-04-17 as [design/model/repo-api.md](design/model/repo-api.md).
-- ~~**Orphan: Effect type catalog**~~ — shipped 2026-04-17 as [ref/effects.md](ref/effects.md).
-- ~~**Orphan: Change type taxonomy**~~ — shipped 2026-04-17 as [ref/changes.md](ref/changes.md).
+- ~~**Orphan: TreeMutator ops doc**~~ — shipped 2026-04-17 as [design/model/tree-mutator.md](../docs/design/model/tree-mutator.md).
+- ~~**Orphan: Repo mutation API doc**~~ — shipped 2026-04-17 as [design/model/repo-api.md](../docs/design/model/repo-api.md).
+- ~~**Orphan: Effect type catalog**~~ — shipped 2026-04-17 as [ref/effects.md](../docs/ref/effects.md).
+- ~~**Orphan: Change type taxonomy**~~ — shipped 2026-04-17 as [ref/changes.md](../docs/ref/changes.md).
 - ~~**Code rename: `TreeLens.resolvedSymlink()` → `resolvedEmbed()`**~~ — shipped; codebase now uses `resolvedEmbed` exclusively (grep confirms 0 hits for old name 2026-04-17).
 - ~~**Code rename: `ViewRole` type → `ViewType`**~~ — shipped 2026-04-17 (11 files updated).
 - ~~**Code rename: `kmast/` dir → `kast/`**~~ — shipped 2026-04-17 (directory + test file renamed; 6 import-path updates).
@@ -35,10 +35,12 @@ See [`docs/dev/doc-map.md`](dev/doc-map.md) for full context.
 
 - `km-tui.omnibox-quality-plateau` — in-flight legacy-dialog deletion.
 - `km-silvery.selection-focus-plateau` — focus-scope plateau.
+- `km-tui.cold-startup-block` — perf bug investigation.
+- `km-storage.vault-node-explosion` — 549K node investigation.
 
 ## Not committed (future work, seen but not scheduled)
 
-- Silvery 1.0 stability contract (see `hub/silvery/horizons.md`).
+- Silvery 1.0 stability contract (see [`roadmap.md`](roadmap.md) § Track 2 / v1.0).
 - Cross-vault federation (`km://<vault>/...`).
 - Backlinks panel + `to_id` cache.
 - Property links / typed `rel` predicates.

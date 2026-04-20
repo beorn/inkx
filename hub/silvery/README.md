@@ -6,7 +6,7 @@ Silvery's public docs live in [`vendor/silvery/docs/`](../silvery/docs/).
 
 ## Start Here
 
-1. **[Horizons](horizons.md)** — What each version means, package evolution, strategy per horizon
+1. **[Horizons](../roadmap.md#track-2--silvery)** — What each version means, package evolution, strategy per horizon (in the km roadmap under Track 2)
 2. **[Exploration](vision/exploration.md)** — How we think about silvery: composable architecture, ag evolution, drawing library relationship
 3. **[Architecture](design/v10-terminal/architecture.md)** — Engineering reference for the current stack: three projections, layers, interaction
 
@@ -16,7 +16,7 @@ Cross-horizon strategy and direction.
 
 | File                                               | What                                                                                                        |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [horizons.md](horizons.md)                         | Version definitions, package map, strategy per horizon                                                      |
+| [../roadmap.md § Track 2](../roadmap.md#track-2--silvery) | Version definitions, package map, strategy per horizon (part of km roadmap) |
 | [vision/exploration.md](vision/exploration.md)     | What silvery is and could become — composable `pipe()` architecture, horizons, drawing library relationship |
 | [vision/packages.md](vision/packages.md)           | Complete package inventory with status markers                                                              |
 | [vision/roadmap.md](vision/roadmap.md)             | Phasing, positioning, prior art, naming                                                                     |
@@ -64,7 +64,7 @@ Subsystem designs, organized by horizon.
 
 ### v3.0 — Graphics Engine
 
-No design docs yet — see [horizons.md](horizons.md) for the vision.
+No design docs yet — see [km roadmap § Track 2](../roadmap.md#track-2--silvery) for the vision.
 
 ### Undecided
 

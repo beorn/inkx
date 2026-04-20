@@ -36,7 +36,7 @@ Two separate launches. Flexily launches on its own merits (Yoga alternative). Pr
 
 - HN: "Show HN: Silvery — React for terminals and canvas, same components, real typography"
 - silvery.dev with interactive demos
-- Blog post: "The layout engine your canvas app is missing" (from horizons.md tagline)
+- Blog post: "The layout engine your canvas app is missing" (from roadmap § v0.5 tagline)
 - Twitter/X thread showing the terminal-vs-canvas side-by-side
 
 ### Cheng Lou outreach

@@ -249,8 +249,8 @@ This will be resolved once Bun releases a fix.
 
 ## Docs
 
-- [docs/backlog.md](docs/backlog.md) — Prioritized phase list — what ships next
-- [docs/roadmap.md](docs/roadmap.md) — Longer-horizon roadmap (H1-H4)
+- [hub/backlog.md](hub/backlog.md) — Prioritized phase list — what ships next
+- [hub/roadmap.md](hub/roadmap.md) — Holistic roadmap (tracks + silvery horizons)
 - [docs/README.md](docs/README.md) — Documentation hub
 - [docs/concepts.md](docs/concepts.md) — Core concepts
 - [docs/guides/tasks.md](docs/guides/tasks.md) — Task management

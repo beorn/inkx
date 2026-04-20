@@ -10,7 +10,7 @@ This is where design work happens before it becomes code or public docs. Everyth
 
 ## When to Use
 
-- **Before implementing a feature**: Check which horizon it belongs to in [horizons.md](horizons.md), then read the relevant design doc in `design/`.
+- **Before implementing a feature**: Check which horizon it belongs to in [../roadmap.md § Track 2](../roadmap.md#track-2--silvery), then read the relevant design doc in `design/`.
 - **Before working on events, input, or composition**: Read [design/v10-terminal/app-composition.md](design/v10-terminal/app-composition.md) — the target architecture for `create()` + `pipe()` + plugins wrapping `apply()`. For the V1r apply chain prototype, see [design/v15-tea/plugin-system-v1r.ts](design/v15-tea/plugin-system-v1r.ts). Public docs (`silvery/docs/design/app-composition.md`) describe the system as-is. Superseded drafts are in `archive/tea-exploration/`.
 - **Before writing a new design doc**: Check if one already exists. Update it rather than creating a parallel doc.
 - **When prototyping**: Put prototypes in `prototype/` with their own directory.
@@ -19,7 +19,6 @@ This is where design work happens before it becomes code or public docs. Everyth
 ## Structure
 
 ```
-horizons.md           Keystone — version definitions, strategy, package evolution
 vision/               Cross-horizon strategy (exploration, packages, roadmap, manifesto)
 design/
   v05-layout/           Flexily + Pretext composable layout engine
@@ -38,7 +37,7 @@ archive/              All deprecated docs (pre-era2, era2 drafts)
 
 ## Horizons
 
-All design docs are organized by horizon (version). See [horizons.md](horizons.md) for definitions.
+All design docs are organized by horizon (version). See [../roadmap.md § Track 2](../roadmap.md#track-2--silvery) for definitions.
 
 | Horizon | Directory              | What                                                    |
 | ------- | ---------------------- | ------------------------------------------------------- |
