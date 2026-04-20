@@ -30,15 +30,13 @@
  * ```
  */
 
-import { ansi16DarkTheme as _unaugmented } from "@silvery/ag-react"
-import { augmentWithSterlingFlat } from "@silvery/theme"
-
-/** Sterling-augmented ansi16DarkTheme — mirrors what the render pipeline uses
- * as its default active theme (see @silvery/ag-term pipeline/state.ts). The
- * bare `ansi16DarkTheme` exported from @silvery/ag-react is the legacy shape
- * (no `fg-muted`, `bg-surface-default`, `border-focus` flat keys). The runtime
- * wraps it via `augmentWithSterlingFlat` to populate the flat Sterling surface. */
-const ansi16DarkTheme = augmentWithSterlingFlat(_unaugmented)
+// Import @silvery/theme's ansi16DarkTheme — it ships with Sterling flat tokens
+// baked in (see @silvery/theme/schemes/index.ts), mirroring what the render
+// pipeline uses as its default active theme. The bare `ansi16DarkTheme`
+// re-exported from @silvery/ag-react / @silvery/ansi is the legacy shape
+// without `fg-muted`, `bg-surface-default`, `border-focus` flat keys; we
+// intentionally import the pre-populated variant for lock-step with runtime.
+import { ansi16DarkTheme } from "@silvery/theme"
 
 type RGB = { r: number; g: number; b: number }
 
