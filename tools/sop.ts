@@ -22,6 +22,7 @@ import { createStyle } from "@silvery/ansi"
 import { createLogger } from "loggily"
 import { DOMAIN_TOOLS, TASK_MAP } from "./sop-tools.ts"
 import { readCachedMeta } from "./sop-runner.ts"
+import { runClean, ALL_TARGETS, type Target as CleanTarget } from "./sop-clean.ts"
 
 // ─── Styles & Logging ──────────────────────────────────────────────────────
 
@@ -563,6 +564,9 @@ program
     ["$ sop scan code backlog", "Multiple domains"],
     ["$ sop status", "What's due, last run times"],
     ["$ sop dashboard", "Render last scan results"],
+    ["$ sop clean", "Prune ephemeral state (scan only)"],
+    ["$ sop clean --execute", "Apply low-risk cleanups"],
+    ["$ sop clean worktrees", "Clean one target"],
     ["$ sop update", "Propose SOP improvements"],
   ])
 
@@ -596,6 +600,32 @@ program
     }
     renderDashboard(state)
   })
+
+program
+  .command("clean")
+  .description("Prune ephemeral repo state (branches, worktrees, caches). Coordinates with active work.")
+  .argument("[target]", `Single target: ${ALL_TARGETS.join(", ")}`)
+  .option("--execute", "Actually apply cleanups (default: scan-only)")
+  .option("--force", "Skip preflight active-work gate (caller has coordinated)")
+  .option("--active-sessions <list>", "Comma-separated tribe session names currently active")
+  .action(
+    async (
+      target: string | undefined,
+      opts: { execute?: boolean; force?: boolean; activeSessions?: string }
+    ) => {
+      if (target && !ALL_TARGETS.includes(target as CleanTarget)) {
+        console.error(`unknown target '${target}'. Valid: ${ALL_TARGETS.join(", ")}`)
+        process.exitCode = 2
+        return
+      }
+      await runClean(REPO_ROOT, {
+        target: target as CleanTarget | undefined,
+        execute: opts.execute ?? false,
+        force: opts.force ?? false,
+        activeSessions: opts.activeSessions?.split(",").map((x) => x.trim()).filter(Boolean),
+      })
+    }
+  )
 
 program
   .command("update")

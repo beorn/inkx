@@ -66,8 +66,19 @@ If any actions were executed, update the tracking bead with results.
 /sop --weekly     # Only domains with weekly+ cadence
 /sop --monthly    # Only domains with monthly+ cadence
 /sop --quarterly  # All domains (quarterly = everything)
+/sop clean        # Prune ephemeral state (branches/worktrees/procs/caches) — see _clean.md
+/sop clean --execute      # Apply low-risk cleanups
+/sop clean <target> [--execute] [--force]   # Single-target clean
 /sop update       # Meta: update SOP itself from current context
 ```
+
+### `/sop clean` — tidy ephemeral state
+
+Prunes merged branches, dead worktrees, zombie test workers, and stale `.sop-cache/` entries. **Coordination-aware**: calls `tribe.health` and scans for in-flight vitest/git/worktree activity before proposing actions. Aborts `--execute` if anyone else is working; `--force` is the escape hatch after coordination.
+
+Skill-side protocol: fetch tribe state → render preflight → invoke `bun tools/sop.ts clean --active-sessions=<csv>`. See [_clean.md](_clean.md) for the full spec, risk classes, and extension points.
+
+Not for publish/release/test-fix/bead-close — those stay in their own domains (`/sop packages`, `/sop code`, `/sop backlog`).
 
 ### Two-layer architecture
 
