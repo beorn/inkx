@@ -402,7 +402,7 @@ const Card = React.memo(
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder =
-        isSelected || isNodeSelected || isColSelected ? "$selectionbg" : (hoverBorderColor ?? "$muted")
+        isSelected || isNodeSelected || isColSelected ? "$selectionbg" : (hoverBorderColor ?? "$border-muted")
       return (
         <Box
           data-view="card"
@@ -462,8 +462,8 @@ const Card = React.memo(
     // Default card border: invisible ($surface-bg). Cards are separated by
     // whitespace, not visible borders. Borders appear as interactive feedback:
     // hover → $muted (faint), selection → $selection-bg (yellow).
-    // Done/dropped use $disabled-fg for a faint but distinct border.
-    const defaultBorder = isDoneOrDropped ? "$fg-muted" : "$bg-surface-default"
+    // Done/dropped use the muted border role; normal cards use the default border role.
+    const defaultBorder = isDoneOrDropped ? "$border-muted" : "$border-default"
     // "Board level" means cursor is on an ancestor (column or board root).
     // Read cursorDepth only for the board-level border-hiding check — this is
     // a global concern (rare change), not per-card.
@@ -892,7 +892,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selectionbg" : "$bg-surface-default"
+    const borderColor = isColumnSelected ? "$selectionbg" : "$border-default"
     return (
       <Box
         id={nodeId}
