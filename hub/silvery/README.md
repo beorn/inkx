@@ -38,7 +38,13 @@ Subsystem designs, organized by horizon.
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | [design/v10-terminal/architecture.md](design/v10-terminal/architecture.md)   | Full stack reference — three projections, layers, interaction architecture |
 | [design/v10-terminal/composability.md](design/v10-terminal/composability.md) | Framework x platform matrix, adapters                                      |
-| [design/v10-terminal/design-system.md](design/v10-terminal/design-system.md) | Canonical design system — tokens, schemes, derivation, theming API, package layout, phased delivery |
+| [design/v10-terminal/design-system.md](design/v10-terminal/design-system.md) | **Sterling** — canonical design system (tokens, schemes, derivation, theming API, package layout) |
+| [design/v10-terminal/sterling-preflight.md](design/v10-terminal/sterling-preflight.md) | Sterling pre-flight — D1-D6 decisions locked 2026-04-19 |
+| [design/v10-terminal/sterling-2c-migration-spec.md](design/v10-terminal/sterling-2c-migration-spec.md) | km-tui migration spec for Sterling Phase 2c (batch-refactor commands, substitution map) |
+| [design/v10-terminal/sterling-2d-release-checklist.md](design/v10-terminal/sterling-2d-release-checklist.md) | Sterling 2d release checklist — silvery 0.19.0 breaking release |
+| [design/v10-terminal/storybook-design.md](design/v10-terminal/storybook-design.md) | Sterling Storybook — interactive 3-pane design-system explorer (MVP shipped) |
+| [design/v10-terminal/backdrop-fade-plan.md](design/v10-terminal/backdrop-fade-plan.md) | Backdrop render-time cell transform (Phase 6 shipped + Kitty overlay for emoji) |
+| [design/v10-terminal/color-inherit-plan.md](design/v10-terminal/color-inherit-plan.md) | `color="inherit"` / `currentColor` cascade primitive |
 
 ### v1.5 — App Architecture (tea)
 
