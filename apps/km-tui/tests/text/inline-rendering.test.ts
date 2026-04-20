@@ -440,7 +440,10 @@ describe("broken wikilink rendering", () => {
     // right after (<=20 bytes past). With the fix this is the dashed underline
     // sequence (ESC[4:5m + ESC[58;5;9m) opening and ESC[24m + ESC[59m closing.
     // Before the fix the target was bare plain text, so no fresh SGR wrapped it.
-    const SLICE_BEFORE = 10
+    // Widened to 40 bytes to cover the underline-color SGR `\x1b[58;2;R;G;B m`
+    // which is ~20 bytes on its own plus the 4:5m opener in front. 10 bytes
+    // only caught the tail of the 58;… param list, missing the opener.
+    const SLICE_BEFORE = 40
     const SLICE_AFTER = 10
     const before = ansi.slice(Math.max(0, targetIdx - SLICE_BEFORE), targetIdx)
     const after = ansi.slice(targetIdx + brokenTarget.length, targetIdx + brokenTarget.length + SLICE_AFTER)

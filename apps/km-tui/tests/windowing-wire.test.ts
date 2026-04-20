@@ -43,6 +43,10 @@ import { createTestApp } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 /** $selectionbg resolved against the active test theme (Nord-derived). */
 const SELECTION_BG = TC.$selectionbg
+/** $bg-cursor resolved against the active test theme (Nord cursor color).
+ * The detail pane uses this for its row-cursor highlight, NOT $selectionbg —
+ * see DetailView.tsx, `const bg = isCursor && !isEditing ? "$bg-cursor" : …`. */
+const CURSOR_BG = TC["$bg-cursor"]
 import { createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
@@ -804,14 +808,14 @@ describe("detail pane cursor styling", () => {
       expect(detail.sel.node.cursor() as string | null).toBe("sub-a")
     })
 
-    // The text "sub-a" should have gold background ($selected=yellow=3)
+    // The text "sub-a" should have the detail-pane cursor bg ($bg-cursor).
     // Use "last" to find the detail pane's rendering (right), not board card content (left)
     const colors = findTextColors(app, "sub-a", "rightmost")
     expect(colors, "sub-a text should be visible on screen").not.toBeNull()
-    expect(colors!.bg).toEqual(SELECTION_BG) // gold background
+    expect(colors!.bg).toEqual(CURSOR_BG) // detail-pane cursor bg
   })
 
-  test("detail pane first child has gold bg when focused", () => {
+  test("detail pane first child has cursor bg when focused", () => {
     using app = createTestApp(item.root("board", item("col1", item("my-task", item("sub-a")), item("task-2"))), {
       cols: 120,
       rows: 24,
@@ -825,10 +829,10 @@ describe("detail pane cursor styling", () => {
       expect(detail.sel.node.cursor() as string | null).toBe("sub-a")
     })
 
-    // The cursored item "sub-a" should have gold background (last occurrence = detail pane)
+    // The cursored item "sub-a" should have detail-pane cursor bg (last occurrence = detail pane)
     const colors = findTextColors(app, "sub-a", "rightmost")
     expect(colors, "sub-a text should be visible on screen").not.toBeNull()
-    expect(colors!.bg).toEqual(SELECTION_BG)
+    expect(colors!.bg).toEqual(CURSOR_BG)
   })
 
   test("both panes show cursor when detail pane is open", () => {
@@ -843,17 +847,17 @@ describe("detail pane cursor styling", () => {
     // Board should still show cursor card (task-1 has $selected border)
     app.expect("#task-1[data-cursor]").toExist()
 
-    // Detail cursor starts on sub-a with gold background (rightmost = detail pane)
+    // Detail cursor starts on sub-a with cursor-bg (rightmost = detail pane)
     const focusedSubColors = findTextColors(app, "sub-a", "rightmost")
     expect(focusedSubColors).not.toBeNull()
-    expect(focusedSubColors!.bg, "cursored detail item should have gold bg when focused").toEqual(SELECTION_BG)
+    expect(focusedSubColors!.bg, "cursored detail item should have cursor bg when focused").toEqual(CURSOR_BG)
 
     // Move cursor to sub-b — detail pane should update
     app.command("cursor_down")
     app.expect("#sub-b[data-cursor]").toExist()
     const focusedSubBColors = findTextColors(app, "sub-b", "rightmost")
     expect(focusedSubBColors).not.toBeNull()
-    expect(focusedSubBColors!.bg, "cursored sub-b should have gold bg").toEqual(SELECTION_BG)
+    expect(focusedSubBColors!.bg, "cursored sub-b should have cursor bg").toEqual(CURSOR_BG)
 
     // Switch back to board — both panes should still show their cursors
     app.press("n")
