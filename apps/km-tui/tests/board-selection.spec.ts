@@ -8,6 +8,7 @@
 import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+import { TC } from "./helpers/theme.ts"
 import { Workspace, type BoardAppStore } from "../src/state/board-app-store.ts"
 
 // =============================================================================
@@ -566,9 +567,9 @@ describe("Multi-select visual feedback", () => {
     // alpha is multi-selected but NOT the cursor → multi-select bg on title row.
     app.expectNodeColor("alpha", { bg: MULTI_BG })
 
-    // beta is the cursor AND multi-selected → inverse yellow wins (rule 1).
-    // Truecolor theme: $selection-bg resolves to RGB olive.
-    app.expectNodeColor("beta", { bg: { r: 128, g: 128, b: 0 } })
+    // beta is the cursor AND multi-selected → $selectionbg wins (rule 1).
+    // Truecolor theme: $selectionbg resolves to Nord's selection bg hex.
+    app.expectNodeColor("beta", { bg: TC.$selectionbg })
 
     // gamma is not in the selection → no multi-select bg, no selection bg.
     app.expectNodeColor("gamma", { bg: null })
@@ -598,7 +599,7 @@ describe("Multi-select visual feedback", () => {
     app.expectNodeColor("child-2", { bg: MULTI_BG })
 
     // child-3 is the cursor → inverse selection bg (rule 1 wins).
-    app.expectNodeColor("child-3", { bg: { r: 128, g: 128, b: 0 } })
+    app.expectNodeColor("child-3", { bg: TC.$selectionbg })
   })
 })
 

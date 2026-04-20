@@ -40,8 +40,9 @@ import { StoreProvider } from "../src/state/store-context.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
-/** Truecolor selection background — $selection-bg resolves to olive RGB. */
-const SELECTION_BG = { r: 128, g: 128, b: 0 }
+import { TC } from "./helpers/theme.ts"
+/** $selectionbg resolved against the active test theme (Nord-derived). */
+const SELECTION_BG = TC.$selectionbg
 import { createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
