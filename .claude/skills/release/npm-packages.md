@@ -27,12 +27,12 @@ Last updated: 2026-04-19 (62 packages live)
 
 | Package | Version | Weekly DL | Notes |
 |---------|---------|----------|-------|
-| `silvery` | 0.18.0 | 844 | Main barrel — components, hooks, runtime, theme |
-| `@silvery/ansi` | 0.18.0 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
-| `@silvery/color` | 0.18.0 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
-| `@silvery/commander` | 0.18.0 | 250 | Colorized Commander.js help |
-| `@silvery/examples` | 0.18.0 | 194 | Interactive demos — `npx @silvery/examples` |
-| `@silvery/theme-detect` | 0.18.0 | — | Terminal background-color detection |
+| `silvery` | 0.19.0 | 844 | Main barrel — components, hooks, runtime, theme |
+| `@silvery/ansi` | 0.19.0 | 383 | Terminal styling, ANSI primitives, detection, theme derivation |
+| `@silvery/color` | 0.19.0 | 226 | Pure color math — hex/RGB/HSL, blending, contrast |
+| `@silvery/commander` | 0.19.0 | 250 | Colorized Commander.js help |
+| `@silvery/examples` | 0.18.0 | 194 | Interactive demos — `npx @silvery/examples` (private as of 0.18.2) |
+| `@silvery/theme-detect` | 0.19.0 | — | Terminal background-color detection |
 | `@silvery/create` | 0.5.3 | 253 | App composition — createApp, pipe() (will be deprecated — bundled in silvery) |
 | `@silvery/headless` | 0.5.1 | 14 | Pure state machines (will be deprecated — bundled in silvery) |
 | `@silvery/test` | 0.5.3 | 252 | Testing utilities (will be deprecated — bundled in silvery) |
