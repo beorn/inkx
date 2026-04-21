@@ -89,7 +89,7 @@ const INITIAL_HELP_STATE: HelpState = {
 export function isTeaHelpEnabled(): boolean {
   // Env var wins. When set, tests can also override via window flag for
   // the rare case of running in a mixed process.
-  if (typeof process !== "undefined" && process.env.KM_TEA_HELP === "1") return true
+  if (process.env.KM_TEA_HELP === "1") return true
   return false
 }
 

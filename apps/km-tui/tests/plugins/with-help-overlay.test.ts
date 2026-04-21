@@ -9,12 +9,7 @@
  * and check the actual rendered dialog live in `help-mini-cutover.spec.ts`.
  */
 import { describe, expect, test } from "vitest"
-import {
-  apply,
-  createHelpStore,
-  isTeaHelpEnabled,
-  type HelpState,
-} from "../../src/plugins/with-help-overlay.ts"
+import { apply, createHelpStore, isTeaHelpEnabled, type HelpState } from "../../src/plugins/with-help-overlay.ts"
 
 const INITIAL: HelpState = { visible: false, scrollOffset: 0 }
 
