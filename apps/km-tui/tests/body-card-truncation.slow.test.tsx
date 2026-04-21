@@ -106,11 +106,7 @@ describe("body-card row-budget truncation", () => {
     using app = createTestApp(
       item(
         "board",
-        item(
-          "col",
-          item.code("short line one\nshort line two"),
-          item.file("structuralCard", item("sc-child")),
-        ),
+        item("col", item.code("short line one\nshort line two"), item.file("structuralCard", item("sc-child"))),
       ),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
@@ -128,14 +124,7 @@ describe("body-card row-budget truncation", () => {
     // in TreeNode's maxRows clamp — exact fit is a no-op.
     const exact = giantCodeContent(6) // exactly 6 lines = budget
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code(exact),
-          item.file("structuralCard", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code(exact), item.file("structuralCard", item("sc-child")))),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
 
@@ -156,14 +145,7 @@ describe("body-card row-budget truncation", () => {
     // clamp: 5 rows of content shown, plus the overflow indicator on row 6.
     const justOver = giantCodeContent(7) // 7 lines, budget is 6
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code(justOver),
-          item.file("structuralCard", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code(justOver), item.file("structuralCard", item("sc-child")))),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
     app.press("j") // move cursor off body card

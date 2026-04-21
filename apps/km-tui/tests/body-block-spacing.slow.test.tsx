@@ -181,14 +181,7 @@ describe("body-block spacing", () => {
     // card border in this case.
     const longBody = Array.from({ length: 30 }, (_, i) => `line-${i + 1}`).join("\n")
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code(longBody),
-          item.file("structural-card", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code(longBody), item.file("structural-card", item("sc-child")))),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
     app.press("j") // move cursor off the body block so cursor styling doesn't alter layout

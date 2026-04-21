@@ -378,10 +378,10 @@ describe("Breadcrumb clamps multi-line segment content to first line", () => {
   // content includes newlines. The top bar must stay single-row and must not
   // leak body-content lines into the board area below.
   test("breadcrumb does not bleed multi-line body content into the board area", () => {
-    using app = createTestApp.fromMarkdown(
-      "# col\n\nfirst line of body\nsecond line leaks\nthird line leaks\n",
-      { cols: 80, rows: 24 },
-    )
+    using app = createTestApp.fromMarkdown("# col\n\nfirst line of body\nsecond line leaks\nthird line leaks\n", {
+      cols: 80,
+      rows: 24,
+    })
 
     const lines = app.text.split("\n")
     const topLine = lines[0] ?? ""
