@@ -547,45 +547,70 @@ Test: `apps/km-tui/tests/scroll-and-cursor.test.tsx` → `WINDOW-FILLS-VIEWPORT`
 
 **Right architectural fix (for future work)**: make the virtualizer's `scrollOffset` row-space-aware (not count-based). That's a larger refactor — the virtualizer currently derives `effectiveScrollOffset` from `calcEdgeBasedScrollOffset(cursorIndex, prevOffset, estimatedVisibleCount, count)` in item-index space. Converting to row-space would mean tracking `prevBoxScrollOffsetRef` and running edge-based logic on `sumHeights(0, cursor)` / `sumHeights(0, cursor) + getHeight(cursor)` vs viewport bounds. See bead `km-silvery.virtualizer-from-layout`.
 
-## Virtualizer ↔ Layout-Phase as SoT (Phases 1-3 landed 2026-04-20, activation deferred)
+## Virtualizer ↔ Layout-Phase as SoT (activated 2026-04-21)
 
-The infrastructure for the architectural reframe (bead `km-silvery.virtualizer-from-layout`) shipped in 3 commits:
+Infrastructure shipped in 3 commits on 2026-04-20:
 
 - `826b26b0` — `ScrollStateSnapshot` + signal in `packages/ag/src/layout-signals.ts`. Synced in `syncRectSignals` (per-field equality to stay reference-stable when nothing changes).
-- `88b93cfd` — `useScrollState(node)` hook in `packages/ag-react/src/hooks/`. Two signatures (reactive / callback), mirrors `useBoxRect` pattern.
-- `669e9f19` — `useVirtualizer` learns a steady-state mode. New optional `containerNode` param. When supplied AND layout has run AND measurements exist, walks items in pixel space using `scrollState.offset` + `measuredHeights` (helpers: `findViewportTopItem`, `findViewportBottomItem`). Bootstrap path (count-based `calcEdgeBasedScrollOffset`) preserved unchanged.
+- `88b93cfd` — `useScrollState(node)` hook. Two signatures (reactive / callback), mirrors `useBoxRect` pattern.
+- `669e9f19` — `useVirtualizer` learns a steady-state mode with a walk-based implementation.
 
-**Activation in ListView is DEFERRED.** Wiring `<Box ref={boxHandleRef}>` + `setContainerNode(box.getNode())` and passing to `useVirtualizer` works for almost every test — EXCEPT test 5 in `listview-variable-heights.test.tsx` (tall outlier: height=200 in viewport=60, scrollTo=15). That case produces:
+**Activation with `read, don't walk`** landed 2026-04-21 in 3 more commits:
 
-- STRICT incremental-vs-fresh mismatch on render #5 ("SCROLL CHANGED: offset 44 → 186" — the Box's computed offset transitions between renders as the virtualizer window shifts).
-- "classic layout loop exhausted 5 iterations" warning — the render-phase / Flexily convergence loop can't settle within its iteration budget.
+- `80d8bcdb` — `useVirtualizer` rewrite. Steady-state NO LONGER walks items in pixel space. Instead it **reads `firstVisibleChild` / `lastVisibleChild` directly** from `scrollState`, maps them through the previous frame's rendered-window structure (`prevWindowRef`) to virtual-item indices, and picks the new window as `[firstVI - overscan, lastVI + 1 + overscan)`. Removed `findViewportTopItem` / `findViewportBottomItem` helpers (no longer needed).
+- `6d74de86` — ListView wires `containerNode` via `BoxHandle` ref + `setContainerNode` in `useLayoutEffect`. Adds `trailingExtraChildren` hint (1 when `listFooter` is rendered) so the child-index → virtual-item mapping accounts for footer children sitting between real items and the trailing placeholder. **Oversized-target bypass**: when `measuredHeights.get(target) > viewportHeight`, ListView passes explicit `scrollOffset={sumHeights(0, cursor) - 1}` and `scrollTo=undefined` instead of `scrollTo={childIndex}` — sidesteps the pre-existing layout-phase oscillation for items taller than the viewport.
+- `ddb2551b` — INV-5 enabled in `listview-scroll-helpers.tsx`. Observable corollary: all rendered item IDs form a CONTIGUOUS range — any gap indicates virtualizer dropped an item layout-phase expected visible. Also fixes a pre-existing substring-match bug in `visibleIndices` (anchor with non-digit word boundaries).
 
-Also regresses km-tui `scroll-and-cursor.test.tsx`:
-- "cursor visible after G (jump to last)"
-- "cursor visible after scrolling up from bottom"
+### Feedback-loop breakage — the actual fix
 
-**Root cause of the transition flake**: when steady-state activates on render 2, the virtualizer recomputes its window from real pixel truth. That produces a different `startIndex` than the bootstrap's estimate → different placeholder height → different child positions → different `scrollState.offset` → re-render. For most layouts this converges within 1-2 iterations. For tall outliers where the item's position depends sensitively on placeholder size (which depends on start which depends on offset), the fixpoint iteration takes more than the 5-iteration budget.
+The **previous attempt** activated steady-state with the walk-based algorithm — that algorithm used `avgMeasured` to estimate heights for unmeasured items, and each new measurement shifted `avgMeasured` → shifted the walk's conclusions → shifted the window → re-render → re-measure → layout loop exhausted at 5 iterations.
 
-**Important caveat**: the `scrollOffset` return value (item index) stays count-based even in steady-state. Letting it derive from `scrollState.offset` creates a measurement-feedback loop: each `measureItem` bumps `avgMeasured`, which changes `findViewportTopItem`, which changes `scrollOffset`, which schedules `setScrollOffset` → re-render → more measurements. Steady-state drives WINDOW BOUNDS ONLY (`startIndex`/`endIndex`); the API-level `scrollOffset` stays the count-based anchor ListView uses for `boxScrollTo`.
+`read, don't walk` severs the loop **by topology**: `firstVisibleChild` / `lastVisibleChild` are child INDICES (not pixel positions), produced by layout-phase from actual measured rects. They don't depend on unmeasured-item estimates at all. `avgMeasured` is still used for placeholder heights via `sumHeights`, but placeholder-height changes don't influence the WINDOW decision — they only change the scrollable content height (which layout-phase clamps).
 
-**What else fixed the column-top-disappears bug class**: the concurrent `virtualized-overflow-indicator-counts` work (`BoxProps.hiddenAboveCount`/`hiddenBelowCount` + `representsItems` on placeholders) fixed the USER-VISIBLE symptom — the `▲N`/`▼N` indicators now report real item counts, not rendered-box counts. That's shipping in the same session. My architectural refactor is complementary foundation for invariant 5 in `listview-scroll-contract.test.tsx` (virtualizer↔scroll-phase agreement), which is marked DEFERRED until a follow-up reliably activates steady-state.
+Convergence property: when `firstVisibleChild` falls strictly inside the prev window's overscan margin, the new window equals (or is a subset of) the prev window → no re-render → pipeline converges in 1-2 iterations. When the cursor jumps to an item far outside the prev window, the cursor-anchor expansion (`if (scrollTo !== undefined) firstAnchor = min(firstAnchor, cursor)`) pulls the window to include the cursor immediately, no multi-iteration shuffle.
 
-**Follow-up work** (not this bead): stabilize the render-phase side of the window transition. Options include: (a) gate steady-state activation with a "windows match" predicate so the first render-2 switch is a no-op; (b) force the scroll container's `scrollOffset` to match the virtualizer's computation exactly (passing it as an explicit `scrollOffset={}` prop instead of `scrollTo={}`, once the `scrollOffset` itself becomes pixel-correct); (c) add a render-phase STRICT bypass for mid-transition frames.
+### Callback-form `useScrollState`
 
-**Key file pointers** (future sessions):
+`useVirtualizer` uses the **callback form** of `useScrollState`, not the reactive form. A reactive subscription would force a re-render every time `scrollState` changed — and the scroll-phase's offset can oscillate for oversized-target `scrollTo` (can't satisfy both `target.top >= visibleTop` AND `target.bottom <= visibleBottom`). Reactive form would make every oscillation a re-render, exhausting the layout-loop budget.
 
-- `packages/ag/src/layout-signals.ts` — `ScrollStateSnapshot`, `scrollState` signal, per-field equality check
-- `packages/ag-react/src/hooks/useScrollState.ts` — reactive / callback hook
-- `packages/ag-react/src/hooks/useVirtualizer.ts` — `containerNode` param, `findViewportTopItem`/`findViewportBottomItem`, `hasSteadyState` gate
-- `packages/ag-react/src/ui/components/ListView.tsx` — **not** wired up (intentional)
-- `vendor/silvery/tests/features/listview-scroll-contract.test.tsx` — seeded regression case (passes via the concurrent `representsItems` fix)
-- `vendor/silvery/tests/features/listview-variable-heights.test.tsx` — test 5 ("cursor ON tall outlier") is the canonical activation blocker
+Callback form debounce: only bump `scrollStateVersion` when the new `firstVC`/`lastVC` map to items OUTSIDE the current window. Offset-only oscillations (stable firstVC/lastVC) absorb silently.
+
+### Oversized-target bypass in ListView
+
+Layout-phase's `scrollTo` handling cannot converge for items taller than the viewport — one iteration scrolls up to satisfy `target.top >= visibleTop`, next iteration scrolls down to satisfy `target.bottom <= visibleBottom`, offset pingpongs 186 ↔ 44. Pre-existing bug; exposed as `IncrementalRenderMismatchError` once anything subscribes to scrollState.
+
+ListView sidesteps by detecting oversized targets (via `measuredHeights.get(targetKey) > height`) and passing explicit `scrollOffset={absoluteTop - 1}` + `scrollTo=undefined`. Layout-phase's `explicitOffset ?? prevOffset ?? 0` branch takes over, the scrollTo branch doesn't fire, no oscillation. Target is pinned at the top of the viewport — the expected UX for "cursor on an oversized card."
+
+### Key file pointers
+
+- `packages/ag/src/layout-signals.ts` — `ScrollStateSnapshot`, `scrollState` signal, per-field equality check.
+- `packages/ag-react/src/hooks/useScrollState.ts` — reactive / callback hook.
+- `packages/ag-react/src/hooks/useVirtualizer.ts` — `containerNode` param, `prevWindowRef`, callback-form scroll-state subscription, cursor-anchor expansion in steady-state.
+- `packages/ag-react/src/ui/components/ListView.tsx` — `boxHandleRef` + `setContainerNode` in useLayoutEffect; `trailingExtraChildren = listFooter ? 1 : 0`; oversized-target bypass (explicit `scrollOffset` for items > viewport).
+- `vendor/silvery/tests/features/listview-scroll-helpers.tsx` — `checkVirtualizerScrollAgreement` (INV-5) + word-boundary `visibleIndices`.
+- `vendor/silvery/tests/features/listview-variable-heights.test.tsx` — 14 tests green including test 5 "cursor ON tall outlier" (tall=200, viewport=60).
+- `vendor/silvery/tests/features/listview-scroll-contract.test.tsx` — 3 seeded regressions green.
+
+### Verification (2026-04-21)
+
+- 14/14 `listview-variable-heights` (including test 5, the canonical activation blocker from the prior attempt).
+- 3/3 `listview-scroll-contract` (seeded regressions).
+- 13/13 `listview-navigation` (G/Home/PgDn edge cases — guarded by cursor-anchor expansion).
+- 4/4 `listview-overflow-fits`.
+- 27/27 `apps/km-tui/tests/scroll-and-cursor.test.tsx`.
+- 2/2 `apps/km-tui/tests/column-top-disappears-realvault.slow.test.tsx` (real-vault subprocess).
+- All 30 above pass at SILVERY_STRICT=2.
+
+### Known remaining (pre-existing, out of scope)
+
+Fuzz seed `-1071789314` at case 152 (10 items with mixed heights, last few are oversized, `scrollTo=lastIndex`) triggers INV-2b violation: oversized last item extending past viewport → scroll-phase's `hiddenBelow++` fires incorrectly. This is a pre-existing bug in `calculateScrollState`'s handling of "last child extends beyond viewport bottom AND is NOT in `isPhantomReserveCut`" — phantom ▼1 when nothing is actually hidden below. Not related to virtualizer / layout-signal work. Failure exists with or without activation; caught by the INV-2 guard already in the test suite for bead `km-silvery.virtualized-overflow-indicator-counts`.
 
 ## Failed Approaches
 
 | Approach | Why it failed |
 |----------|---------------|
-| ListView `scrollOffset={sumHeights(0, virtualizer.scrollOffset)}` A2a row-space handoff | Virtualizer.scrollOffset is count-based (uses `estimatedVisibleCount`), diverges from Box's rect-based scroll. Causes km-tui column to scroll when content fits visually. Also: `sumHeights` returns floats on partial-measured lists, Flexily rounds box heights — actual placeholder height != ListView's `leadingHeight`, breaking the "by construction" equality /pro claimed. |
+| Walk-based steady-state (virtualizer WALKS pixel space using `findViewportTopItem` + `avgMeasured`) | Feedback loop: each new measurement shifts `avgMeasured` → shifts the walk's conclusions → shifts the window → re-render → re-measure → layout loop exhausts at 5 iterations on tall-outlier cases. Replaced by read-don't-walk (reads `firstVisibleChild` / `lastVisibleChild` directly from layout-phase; severs feedback loop by topology). See commits `80d8bcdb` + `6d74de86`. |
+| ListView `scrollOffset={sumHeights(0, virtualizer.scrollOffset)}` A2a row-space handoff | Virtualizer.scrollOffset is count-based (uses `estimatedVisibleCount`), diverges from Box's rect-based scroll. Causes km-tui column to scroll when content fits visually. Also: `sumHeights` returns floats on partial-measured lists, Flexily rounds box heights — actual placeholder height != ListView's `leadingHeight`, breaking the "by construction" equality /pro claimed. NOTE: partial revival for OVERSIZED targets only (`measuredHeight > viewport`) — those can't use scrollTo without scroll-phase oscillation, and pinning at top is the correct UX. |
 | Cursor-centered render window in `useVirtualizer` | Blank viewport rows at edges (cursor=0 or cursor=last); half the window is wasted when cursor is near an edge. Must anchor to scrollOffset, not cursor. |
 | Broader viewport clearing for subtreeDirty | 12ms regression: re-renders ~50 children vs 2 dirty ones |
 | Using `needsOwnRepaint` for cascade decisions | Includes `stylePropsDirty`: border color changes cascade through ~200 child nodes |
