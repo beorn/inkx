@@ -1,6 +1,6 @@
 # Silvery Design System (Sterling)
 
-**Status**: canonical (2026-04-19). Single source of truth for silvery's design system — tokens, derivation, theming API, package layout, phased delivery. Replaces the sprawl that lived across `terminal-color-strategy.md`, `theme-system-v2-plan.md`, `theme-v4-multi-target-plan.md` (all archived in `hub/silvery/archive/theme/`).
+**Status**: canonical (2026-04-19). Single source of truth for silvery's design system — tokens, derivation, theming API, package layout, phased delivery. Replaces the sprawl that lived across `terminal-color-strategy.md`, `theme-system-v2-plan.md`, `theme-v4-multi-target-plan.md` (all archived in `hub/0LD/silvery/theme/`).
 
 **Prerequisite**: [docs/silvery-positioning-brief.md](../../../../docs/silvery-positioning-brief.md) — silvery is multi-target (terminal + web + canvas); this design system is built cross-platform-first.
 
@@ -808,6 +808,6 @@ Implementation-level decisions D1-D6 locked in [sterling-preflight.md](sterling-
 
 Archived (history only, do not link from public docs):
 
-- `archive/theme/terminal-color-strategy.md`
-- `archive/theme/theme-system-v2-plan.md`
-- `archive/theme/theme-v4-multi-target-plan.md`
+- `hub/0LD/silvery/theme/terminal-color-strategy.md`
+- `hub/0LD/silvery/theme/theme-system-v2-plan.md`
+- `hub/0LD/silvery/theme/theme-v4-multi-target-plan.md`

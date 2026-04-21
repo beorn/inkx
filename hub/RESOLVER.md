@@ -15,7 +15,7 @@ For routing within km's public `docs/`, see [`../../docs/RESOLVER.md`](../../doc
 | Is it the shipped doc on `<pkg>.dev`?                           | → `vendor/<pkg>/docs/`                                                                  |
 | Is it km's canonical architecture/design?                       | → `docs/` in the km repo                                                                |
 | Is it a draft, research note, launch copy, or internal roadmap? | → `hub/` (this file routes inside)                                          |
-| Is it frozen pre-public or a superseded draft?                  | → `hub/<pkg>/archive/` or (if tied to a shipping doc) the public `archive/` |
+| Is it frozen pre-public or a superseded draft?                  | → `hub/0LD/<pkg>/` (mirrors the live hub layout) or (if tied to a shipping doc) the public `archive/` |
 
 **Rule:** public docs must never reference `hub/` content. Internal docs may reference anything (public, internal, or cross-repo).
 
@@ -44,7 +44,6 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 | `vision/`     | Long-horizon vision docs for the package.                                                              |
 | `CLAUDE.md`   | Internal workspace guide for agents.                                                                   |
 | `README.md`   | Internal workspace entry point.                                                                        |
-| `archive/`    | Frozen drafts and retired internal docs.                                                               |
 
 **Don't pre-create empty subdirs.** Only add a subdir when content justifies. Today: silvery has the full layout; km/bearly/loggily have a subset; flexily/termless/mdspec have none yet.
 
@@ -79,7 +78,7 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 | Marketing tool reference                           | `hub/market/reference/`                        |
 | Per-site blog drafts                               | `hub/market/blogs/<site>/`                     |
 | Point-in-time SEO/audit snapshots                  | `hub/market/audits/<YYYY-MM-DD>/`              |
-| Retro / post-shipped analysis of a silvery feature | `hub/silvery/archive/` (internal-only lessons) |
+| Retro / post-shipped analysis of a silvery feature | `hub/0LD/silvery/` (internal-only lessons, mirrors live hub layout) |
 
 ---
 
@@ -110,6 +109,7 @@ If you walk § 2 and nothing fits: park the draft in `hub/<pkg>/draft/` (create 
 - **2026-04-17** — `hub/market/km-ecosystem-content-strategy.md` (km repo, ecosystem marketing) should have been in `hub/market/strategy/` from the start. Corrected. → § 1
 - **2026-04-17** — `vendor/internal/` renamed to `hub/` at repo root. Silvery-internal submodule (`beorn/silvery-internal`, always private) absorbed as plain tracked files under `hub/silvery/`; the separate GitHub repo was deleted. All hub content now rides with km. → § 1 + § 4
 - **2026-04-17** — `hub/market/` top-level flattened into `strategy/`, `ideas/`, `reference/` subdirs (was 7 md files mixed in one flat dir). → § 2.2
+- **2026-04-21** — All `hub/<pkg>/archive/` subdirs consolidated under a single top-level `hub/0LD/` mirroring the hub layout (`hub/0LD/silvery/`, `hub/0LD/silvery/design/v15-tea/`, etc.). The `0LD` name sorts to the top of `ls` and reads unambiguously as "old/retired." Retired content no longer scattered inside each package's workspace. → § 2.1
 
 ---
 
