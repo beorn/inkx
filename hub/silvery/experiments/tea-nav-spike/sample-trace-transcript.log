@@ -1,0 +1,22 @@
+=== phase2:transcript === 2026-04-21T06:17:52.649Z
+[withCommandsSpike] op=input:key decision=handled effects=dispatch
+[withDialogSpike] op=dialog:open decision=handled effects=render
+[withCommandsSpike] op=dialog:open decision=passed downstream=handled-downstream(1 fx)
+[withDialogSpike] op=input:key decision=handled effects=render
+[withCommandsSpike] op=input:key decision=passed downstream=handled-downstream(1 fx)
+[withDialogSpike] op=input:key decision=handled effects=render
+[withCommandsSpike] op=input:key decision=passed downstream=handled-downstream(1 fx)
+[withDialogSpike] op=input:key decision=handled effects=render
+[withCommandsSpike] op=input:key decision=passed downstream=handled-downstream(1 fx)
+[withDialogSpike] op=input:key decision=handled effects=render
+[withCommandsSpike] op=input:key decision=passed downstream=handled-downstream(1 fx)
+[withCommandsSpike] op=input:key decision=handled effects=dispatch
+[withBoardSpike] op=cursor_down decision=handled effects=board:SELECT, render
+[withDialogSpike] op=cursor_down decision=passed downstream=handled-downstream(2 fx)
+[withCommandsSpike] op=cursor_down decision=passed downstream=handled-downstream(2 fx)
+[withDialogSpike] op=input:key decision=handled effects=render
+[withCommandsSpike] op=input:key decision=passed downstream=handled-downstream(1 fx)
+[withCommandsSpike] op=input:key decision=handled effects=dispatch
+[withBoardSpike] op=cursor_down decision=handled effects=board:SELECT, render
+[withDialogSpike] op=cursor_down decision=passed downstream=handled-downstream(2 fx)
+[withCommandsSpike] op=cursor_down decision=passed downstream=handled-downstream(2 fx)
