@@ -183,6 +183,46 @@ describe("collapse-parse: discovery integration", () => {
     expect(getChildren(db, c!.id).length).toBeGreaterThan(0)
   })
 
+  test("promoted stub no longer carries _collapsed flag — won't re-queue", () => {
+    const tmpDir = freshTmp()
+    mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
+    const chatPath = join(tmpDir, "raw", "chats", "session.md")
+    writeFileSync(chatPath, "# Chat\n\n## T1\n\n- a\n- b\n")
+
+    const db = new Database(":memory:")
+    db.run(SCHEMA)
+
+    runLoad(tmpDir, db, ["raw/chats/**"])
+    const chatNode = resolveNode(db, "raw/chats/session.md")
+    expect(chatNode).toBeDefined()
+
+    // Verify the stub has _collapsed.
+    const stubRow = db.prepare("SELECT data FROM nodes WHERE id = ?").get(chatNode!.id) as { data: string }
+    expect(JSON.parse(stubRow.data)._collapsed).toBe(true)
+
+    // Promote.
+    parseStubFile(db, chatNode!.id, chatPath, "raw/chats/session.md")
+
+    // After promotion the file node no longer matches the _stub/_collapsed
+    // LIKE queries that loader.ts uses to re-queue stubs on subsequent loads.
+    const promotedRow = db.prepare("SELECT data, parsed FROM nodes WHERE id = ?").get(chatNode!.id) as {
+      data: string
+      parsed: number
+    }
+    expect(promotedRow.parsed).toBe(1)
+    const promotedData = JSON.parse(promotedRow.data) as { _stub?: boolean; _collapsed?: boolean }
+    expect(promotedData._stub).toBeUndefined()
+    expect(promotedData._collapsed).toBeUndefined()
+
+    // The re-queue SQL (same shape as loader.ts) should return zero rows.
+    const reQueueMatches = db
+      .prepare(
+        "SELECT COUNT(*) as c FROM nodes WHERE id = ? AND parsed = 0 AND data LIKE '%_stub%' AND (data NOT LIKE '%_collapsed%')",
+      )
+      .get(chatNode!.id) as { c: number }
+    expect(reQueueMatches.c).toBe(0)
+  })
+
   test("loading without config key leaves behavior unchanged (backward compat)", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
