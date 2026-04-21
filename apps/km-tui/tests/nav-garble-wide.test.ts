@@ -1,13 +1,29 @@
 /**
- * Regression test: navigation garble at wide terminal widths (200+ cols).
+ * Regression test: navigation garble at wide terminal widths with flag-emoji titles.
  *
- * Bug: After pressing `j` then `l` at 200+ cols, the first column shows
- * duplicate card content, stale border fragments, and overlapping cards.
- * The buffer content is correct (SILVERY_STRICT passes), but ANSI output
- * to the terminal shows garble — flag emoji (🇨🇦) in the title triggers
- * cursor drift in the output phase.
+ * Original bug (fixed in a487c3288, silvery commit): After pressing `j` then `l`,
+ * the first column showed duplicate card content, stale border fragments, and
+ * overlapping cards. Flag emoji (🇨🇦) in the board title caused cursor drift in
+ * the ANSI output phase, which compounded on navigation that triggered horizontal
+ * column scroll.
  *
  * Repro: `km view --repo imports/asana launch-academy` at 220 cols, press j then l.
+ *
+ * What this file tests today:
+ *  1. No duplicate card titles after j+l (garble detection via occurrence counts).
+ *  2. No card text leaking into bottom borders (garble detection via border parse).
+ *  3. At widths ≥ 220 cols (all 6 columns fit), INBOX + UNIQUE_CARD_A remain
+ *     visible after j+l+h round-trip.
+ *  4. Incremental rendering matches fresh at every width (auto-checked by
+ *     createTestApp's `checkIncremental: true`, which is the successor to the
+ *     original `board.expectIncrementalMatchesFresh()` assertion).
+ *
+ * What this file deliberately does NOT test: that UNIQUE_CARD_A stays on-screen
+ * at narrower widths (160/200 cols). At those widths, the 6-column board cannot
+ * fit horizontally, so scrolling to the 2nd column (PROJECTS AND PHASES) legitimately
+ * pushes INBOX off the left edge — this is correct behavior, not garble.
+ * The garble check is performed via occurrence counts + border parse instead,
+ * and incremental correctness is auto-checked on every press.
  */
 import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
@@ -144,8 +160,32 @@ describe("Navigation garble at wide terminal", () => {
     using app = createTestApp(asanaLikeBoard(), { cols, rows })
     app.press("j")
     app.press("l")
-    // Verify no crash + card still visible
-    expect(app.text).toContain("UNIQUE_CARD_A")
+
+    // Garble check 1: no duplicate card titles. This is the core bug fingerprint —
+    // the original output-phase cursor drift showed duplicated card text in the
+    // first column after j+l at flag-emoji boards. With the silvery fix in place,
+    // every unique card title must appear at most once on screen.
+    const text = app.text
+    const aCount = countOccurrences(text, "UNIQUE_CARD_A")
+    const bCount = countOccurrences(text, "UNIQUE_CARD_B")
+    expect(aCount, `"UNIQUE_CARD_A" appears ${aCount} times after j+l at ${cols}x${rows}`).toBeLessThanOrEqual(1)
+    expect(bCount, `"UNIQUE_CARD_B" appears ${bCount} times after j+l at ${cols}x${rows}`).toBeLessThanOrEqual(1)
+
+    // Garble check 2: no card text leaking into bottom borders — the original
+    // garble left card-title fragments in ╰─...─╯ segments. Inner content should
+    // only be border chars, overflow indicators, or digits.
+    for (const line of text.split("\n")) {
+      for (const segment of extractBorderSegments(line)) {
+        expect(segment, `Border segment contains unexpected text at ${cols}x${rows}: "${segment}"`).not.toMatch(
+          /[a-zA-Z]{3,}/,
+        )
+      }
+    }
+
+    // Note: incremental-vs-fresh rendering correctness is auto-verified on every
+    // app.press() by createTestApp's checkIncremental: true (the successor to
+    // board.expectIncrementalMatchesFresh() in the original test). No explicit
+    // call needed here — a mismatch would throw from inside press().
   })
 })
 
