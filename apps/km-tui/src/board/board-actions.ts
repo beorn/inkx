@@ -2416,15 +2416,15 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
   const isLeaf = children.length === 0
   if (isLeaf && targetNode?.parent_id) {
     // Leaf — zoom to parent, cursor on the leaf itself.
+    // dispatchBoard → syncPaneSignals auto-mirrors sel.root to pane.rootId.
+    // See km-tui.zoomin-atomic-sync.
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.parent_id })
-    ctx.sel.root.set(targetNode.parent_id as ID)
     ctx.setSelection(nodeSelect(targetNode.id))
     // km-tui.omnibox-recents: cross-parent goto lands on targetNode.
     getRecentsStore().touchNode(targetNode.id)
   } else {
     // Non-leaf — zoom into target, cursor on its first child.
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
-    ctx.sel.root.set(to.parentId as ID)
     const firstChild = children[0]?.id ?? null
     if (firstChild) ctx.setSelection(nodeSelect(firstChild))
     // km-tui.omnibox-recents: cross-parent zoom-into records the container

@@ -325,6 +325,70 @@ describe("Zooming", () => {
   })
 })
 
+// =============================================================================
+// sel.root auto-sync after ZOOM_IN (km-tui.zoomin-atomic-sync)
+// =============================================================================
+//
+// dispatchBoard({ type: "ZOOM_IN", nodeId }) must leave sel.root.get() ===
+// pane.rootId. This is enforced by syncPaneSignals() in board-app-store.ts,
+// which runs after every dispatchBoard mutation on the focused pane. Callers
+// used to manually pair `dispatchBoard({ ZOOM_IN })` with `sel.root.set(id)`
+// as a crash-fix (see b99a81fa9); that manual pairing is now redundant. This
+// test locks in the invariant so the single-source-of-truth sync can't
+// silently regress — breaking it would surface as sel-root-matches-rootId
+// violations in the recoverable-heal path.
+
+describe("ZOOM_IN auto-syncs sel.root (km-tui.zoomin-atomic-sync)", () => {
+  test("dispatchBoard ZOOM_IN alone makes sel.root.get() === pane.rootId (no manual sel.root.set needed)", () => {
+    using app = createTestApp(item("board", item("col", item("card", item("subcard")))))
+
+    // Dispatch ZOOM_IN on its own — DO NOT manually call sel.root.set().
+    app.withStore("dispatch ZOOM_IN alone", (store) => {
+      store.dispatchBoard({ type: "ZOOM_IN", nodeId: "card" })
+    })
+
+    app.withStore("verify sel.root matches pane.rootId", (store) => {
+      const pane = getActiveBoardPane(store)!
+      expect(pane.rootId).toBe("card")
+      // The key assertion: sel.root must be in sync without manual pairing.
+      expect(pane.sel.root.id()).toBe("card")
+    })
+  })
+
+  test("successive ZOOM_IN dispatches keep sel.root in sync with pane.rootId", () => {
+    using app = createTestApp(
+      item("board", item("col", item("level1", item("level2", item("level3", item("deepest")))))),
+    )
+
+    for (const nodeId of ["level1", "level2", "level3"]) {
+      app.withStore(`zoom into ${nodeId}`, (store) => {
+        store.dispatchBoard({ type: "ZOOM_IN", nodeId })
+      })
+      app.withStore(`sel.root after ZOOM_IN ${nodeId}`, (store) => {
+        const pane = getActiveBoardPane(store)!
+        expect(pane.rootId).toBe(nodeId)
+        expect(pane.sel.root.id()).toBe(nodeId)
+      })
+    }
+  })
+
+  test("ZOOM_IN to null (zoom-to-root) also syncs sel.root", () => {
+    using app = createTestApp(item("board", item("col", item("card"))))
+
+    // First zoom into something, then zoom back to null (repo root).
+    app.withStore("zoom in then out", (store) => {
+      store.dispatchBoard({ type: "ZOOM_IN", nodeId: "card" })
+      store.dispatchBoard({ type: "ZOOM_IN", nodeId: null })
+    })
+
+    app.withStore("null rootId syncs null sel.root", (store) => {
+      const pane = getActiveBoardPane(store)!
+      expect(pane.rootId).toBe(null)
+      expect(pane.sel.root.id()).toBe(null)
+    })
+  })
+})
+
 describe("History", () => {
   test("back navigation with [ after zooming", () => {
     using app = createTestApp(item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))))

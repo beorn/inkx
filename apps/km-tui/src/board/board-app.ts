@@ -730,10 +730,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           parentSpan.spanData.invariantViolations = violations.length
 
           // Sync-drift heal: sel-root / viewTree-root don't match the pane
-          // rootId. Reached via omnibox go-to and other nav paths that
-          // bypass syncPaneSignals. Re-sync by calling sel.root.set(rootId)
-          // — this propagates through signals and rebuilds the ViewTree.
-          // See km-tui.sel-root-sync-crash.
+          // rootId. syncPaneSignals (board-app-store.ts) is the primary sync
+          // point after every dispatchBoard; this heal is a defense-in-depth
+          // for paths that mutate pane.rootId outside dispatchBoard (or for
+          // future code that forgets to call syncPaneSignals). Re-sync by
+          // calling sel.root.set(rootId) — this propagates through signals
+          // and rebuilds the ViewTree. See km-tui.sel-root-sync-crash and
+          // km-tui.zoomin-atomic-sync.
           const needsSelRootSync = violations.some(
             (v) =>
               v.recoverable === true && (v.check === "sel-root-matches-rootId" || v.check === "viewTree-root-matches"),

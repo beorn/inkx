@@ -301,9 +301,13 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 11. Selection root matches pane rootId.
   // After zoom/SET_ROOT, the sel root must be synced. Mismatch → empty walkOrder → cursor null.
-  // Marked recoverable — the caller calls sel.root.set(rootId) to re-sync.
-  // Reached via omnibox go-to and other nav paths that bypass syncPaneSignals.
-  // See km-tui.sel-root-sync-crash.
+  // Marked recoverable — the Phase 3 heal in board-app.ts calls
+  // sel.root.set(rootId) to re-sync. Primary sync point is syncPaneSignals
+  // (board-app-store.ts) which mirrors pane.sel.root to pane.rootId after
+  // every dispatchBoard; this heal is a defense against any path that
+  // bypasses dispatchBoard (e.g. direct pane field mutation, future custom
+  // state writers). See km-tui.sel-root-sync-crash and
+  // km-tui.zoomin-atomic-sync.
   if (ctx.rootId) {
     const selRoot = ctx.sel.root.id() as string | null
     if (selRoot && selRoot !== ctx.rootId && !isVirtualNodeId(selRoot)) {

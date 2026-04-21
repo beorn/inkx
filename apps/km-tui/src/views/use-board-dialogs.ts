@@ -130,10 +130,10 @@ export function useBoardDialogs({
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         // Zoom target would produce a flat list — zoom there but also open detail pane
         // so the user sees rich content instead of a single-column flat board.
+        // dispatchBoard → syncPaneSignals mirrors sel.root to pane.rootId
+        // atomically (board-app-store.ts syncPaneSignals) — no manual
+        // sel.root.set() needed. See km-tui.zoomin-atomic-sync.
         dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
-        // Mirror sel.root to pane.rootId so the sel-root-matches-rootId
-        // invariant holds — see navigateToPickedNode for the full rationale.
-        sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
         if (nav.cursorTarget) dispatchSelection({ sel }, nodeSelect(nav.cursorTarget))
         openDetailPane()
       } else {
@@ -142,7 +142,6 @@ export function useBoardDialogs({
         // batch into a single render (avoids the freeze from two separate renders).
         if (nav.zoomTarget) {
           dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
-          sel.root.set(nav.zoomTarget as import("@silvery/selection").ID)
           if (nav.cursorTarget) dispatchSelection({ sel }, nodeSelect(nav.cursorTarget))
         }
       }
