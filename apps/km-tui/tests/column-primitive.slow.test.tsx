@@ -15,7 +15,7 @@
  *
  *   bordered → bordered : 0 blank rows between (borders delimit)
  *   bordered → naked    : 1 blank row   (naked owns `paddingTop=1`)
- *   naked    → naked    : 0 blank rows  (isPrevBodyBlock=true → paddingTop=0)
+ *   naked    → naked    : 0 blank rows  (computeLeadingGap → 0)
  *   naked    → bordered : ≤1 blank rows (neither owns padding; border self-delimits)
  *
  * The fourth case has an `≤ 1` bound rather than strict `0` because
