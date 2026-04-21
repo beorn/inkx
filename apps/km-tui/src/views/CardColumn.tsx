@@ -384,13 +384,25 @@ const Card = React.memo(
           // owns the cursor) reads as one continuous surface.
           width={width}
           userSelect="none"
-          // paddingTop=1 gives a blank line above the content. Because it's
-          // padding (inside the Box), when the Box has a backgroundColor the
-          // gap row fills with it — creating a continuous highlight across
-          // a multi-select or cursor run instead of a striped one. For
-          // unselected blocks, backgroundColor is undefined and the padding
-          // row inherits the column's bg.
-          paddingTop={1}
+          // Leading blank row: applied only when the previous sibling is NOT
+          // a body block (column header, structural card, or first-in-column).
+          // Rationale:
+          //   - prev is a structural card with a visible border → its bottom
+          //     border already delimits; a paddingTop row separates the
+          //     borderless body block cleanly below it.
+          //   - prev is the column header → the header's own separator line
+          //     provides delineation, but the extra blank keeps the header
+          //     from crowding the first body paragraph.
+          //   - prev is ALSO a body block → two borderless blocks should
+          //     abut and read as stacked prose. An extra blank row between
+          //     them is phantom whitespace (bead km-tui.body-block-leading-gap).
+          //
+          // Because it's padding (inside the Box), when the Box has a
+          // backgroundColor the gap row fills with it — preserving a
+          // continuous highlight across a cursor/multi-select run. When
+          // there is no leading padding (body→body), the selection bg still
+          // forms a continuous tint because the blocks abut.
+          paddingTop={isPrevBodyBlock ? 0 : 1}
           backgroundColor={bodyBlockBg}
           {...hoverHandlers}
         >
