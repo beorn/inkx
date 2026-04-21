@@ -1095,6 +1095,7 @@ describe("md file columns (termless)", { timeout: 30000 }, () => {
       "notes.md": "# Notes\n\n## Ideas\n\n- Idea 1\n",
     })
 
+    // createTerminalFixture auto-closes via afterEach (vendor/termless/packages/viterm/src/fixture.ts)
     const term = createTerminalFixture({ cols: 120, rows: 30 })
     await term.spawn(["bun", "km", "view", vault], { cwd: KM_CWD })
     await expect(term.screen).toContainText("Task A", { timeout: 15000 }) // board rendered + background parse complete
