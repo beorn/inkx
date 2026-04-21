@@ -31,10 +31,7 @@ import { decomposeChangeItem } from "../item-helpers.ts"
 
 // Import extracted modules
 import { discoverFiles, type UnexploredDir, type CollapsedExtraction } from "../discovery.ts"
-import {
-  addCollapsedFileLinks,
-  removeCollapsedFileLinks,
-} from "../db/collapsed-file-links.ts"
+import { addCollapsedFileLinks, removeCollapsedFileLinks } from "../db/collapsed-file-links.ts"
 import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import {
   parseDeferredAsync as parseDeferredAsyncImpl,
@@ -170,6 +167,7 @@ export interface PendingLink {
  * @returns Load result with stats and errors
  */
 export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<StepYield, LoadResult, unknown> {
+  using loadSpan = log.span("load-repo")
   const start = Date.now()
   const errors: LoadError[] = []
 
@@ -218,13 +216,17 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   const collapseMatcher = resolveCollapseMatcher(repoRoot, options?.collapseMatcher)
 
   // 3. Mode-specific change source
+  using _discoverSpan = loadSpan.span(`discover-${mode}`)
   const source: ChangeSource =
     mode === "memory"
       ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth, collapseMatcher)
       : yield* discoverFromChanges(db, kmDir ?? "", options?.force ?? false, errors)
+  _discoverSpan.end()
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
+  using _applySpan = loadSpan.span("apply-changes-1")
   yield* applyChanges(db, source.changes, errors, repoRoot)
+  _applySpan.end()
 
   // 4a. Persist collapsed-file link edges. These target stub nodes that were
   // just inserted by applyChanges, so we do this after the main pipeline to
@@ -235,6 +237,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 4b. Disk mode: reconcile filesystem to detect externally added/removed files
   let reconcileDeferredFiles: DeferredFile[] = []
   if (mode === "disk") {
+    using _reconcileSpan = loadSpan.span("reconcile-filesystem")
     const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
     if (reconcileResult.changes.length > 0) {
       yield* applyChanges(db, reconcileResult.changes, errors, repoRoot)
@@ -523,10 +526,7 @@ function* discoverMemoryMode(
  * Precedence: explicit `options.collapseMatcher` > `.km/config.yaml` patterns
  * > disabled null matcher.
  */
-function resolveCollapseMatcher(
-  repoRoot: string,
-  explicit: CollapseParseMatcher | undefined,
-): CollapseParseMatcher {
+function resolveCollapseMatcher(repoRoot: string, explicit: CollapseParseMatcher | undefined): CollapseParseMatcher {
   if (explicit) return explicit
   const { patterns } = getCollapseParseConfig(repoRoot)
   if (patterns.length === 0) return createNullCollapseParseMatcher()
@@ -541,10 +541,7 @@ function resolveCollapseMatcher(
  * No-op when collapsedExtractions is empty/absent (the common case when
  * collapseParse is disabled).
  */
-function writeCollapsedExtractions(
-  db: Database,
-  extractions: readonly CollapsedExtraction[] | undefined,
-): void {
+function writeCollapsedExtractions(db: Database, extractions: readonly CollapsedExtraction[] | undefined): void {
   if (!extractions || extractions.length === 0) return
   const now = Date.now()
   db.run("BEGIN IMMEDIATE")

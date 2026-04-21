@@ -1188,11 +1188,14 @@ function detectAbsolutePaths(db: Database): string | null {
  * 3. Database has very few nodes overall (<=1, original check)
  */
 function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): string | null {
-  // Fresh init: missing or empty changes.jsonl means sync hasn't run yet — not corrupt
+  // Fresh init: missing or empty changes.jsonl means sync hasn't run yet — not corrupt.
+  // Check file size via statSync instead of reading the full file — changes.jsonl
+  // is append-only and grows to GBs on mature repos, so readFileSync here cost
+  // ~380ms on a 1.2GB vault. We only need to know it's non-empty.
   const changesPath = join(kmDir, "changes.jsonl")
   if (!existsSync(changesPath)) return null
-  const eventsContent = readFileSync(changesPath, "utf-8").trim()
-  if (eventsContent.length === 0) return null
+  const changesStat = statSync(changesPath)
+  if (changesStat.size === 0) return null
 
   // Count filesystem entries that should be indexed
   if (!existsSync(rootPath)) return null
@@ -1574,6 +1577,7 @@ function* initWithFileLoading(
   kmDir: string,
   options: CreateRepoOptions,
 ): Generator<StepYield, RepoInitResult, unknown> {
+  using initSpan = log.span("init-with-file-loading")
   // Detect mode and create database BEFORE calling loadRepo
   const hasKmDir = existsSync(kmDir) && !options.forceMemory
   const mode = hasKmDir ? "disk" : "memory"
@@ -1583,6 +1587,7 @@ function* initWithFileLoading(
 
   let db: Database
   if (mode === "disk") {
+    using _ = initSpan.span("db-open-and-migrate")
     if (!existsSync(kmDir)) {
       mkdirSync(kmDir, { recursive: true })
     }
@@ -1604,6 +1609,7 @@ function* initWithFileLoading(
   }
 
   // Now call loadRepo with OUR db (avoids singleton)
+  using _loadSpan = initSpan.span("load-repo-generator")
   // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
   const loadResult = yield* loadRepo(rootPath, {
     searchAncestors: false, // rootPath is already the repo root
@@ -1613,9 +1619,12 @@ function* initWithFileLoading(
     mode, // Pass our mode decision to loadRepo
     db, // ADR-002: pass db to avoid singleton
   })
+  _loadSpan.end()
 
   // Create DataStore - pass emitter for disk mode only
+  using _dsSpan = initSpan.span("create-data-store")
   const dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
+  _dsSpan.end()
 
   // Capture loading results
   const loadErrors = loadResult.errors
@@ -1629,6 +1638,7 @@ function* initWithFileLoading(
 
   // Health checks for disk mode
   if (mode === "disk") {
+    using _hcSpan = initSpan.span("health-checks")
     // Detect absolute fs_path values (pre-migration database)
     const hasAbsolute = detectAbsolutePaths(db)
     if (hasAbsolute) {
