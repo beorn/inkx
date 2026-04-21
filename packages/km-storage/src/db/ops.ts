@@ -134,6 +134,10 @@ export function deleteSubtree(db: Database, rootId: string): void {
   // cascade delete. See docs/design/model/klink.md.
   db.run(`DELETE FROM links WHERE host_id IN (${placeholders})`, ids)
 
+  // Cascade the same cleanup to collapsed-file edges so a deleted
+  // collapsed file stops contributing backlinks.
+  db.run(`DELETE FROM collapsed_file_links WHERE host_id IN (${placeholders})`, ids)
+
   // Delete all nodes in the subtree
   db.run(`DELETE FROM nodes WHERE id IN (${placeholders})`, ids)
 }

@@ -18,6 +18,7 @@ import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { INSERT_NODE_SQL, insertNodeRow } from "../db/insert.ts"
+import { removeCollapsedFileLinks } from "../db/collapsed-file-links.ts"
 import type { DeferredFile, PendingLink } from "../repo/loader.ts"
 
 const log = createLogger("km:storage:deferred-parsing")
@@ -139,6 +140,11 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
 
       // Mark the file node as parsed
       db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
+
+      // Promotion invalidates any regex-extracted edges for this file — the
+      // parsed-node `links` table now carries the canonical outgoing edges.
+      // No-op when the stub wasn't collapsed (no rows to delete).
+      removeCollapsedFileLinks(db, nodeId)
 
       db.run("COMMIT")
       log.debug?.(`parseStubFile: success, ${nodes.length} nodes`)

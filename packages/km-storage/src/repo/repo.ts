@@ -1249,9 +1249,22 @@ function backlinksForNodeId(db: Database, dataStore: DataStore, nodeId: string):
   if (hrefs.size === 0) return []
 
   const placeholders = Array.from(hrefs, () => "?").join(",")
-  const rows = db.query(`SELECT * FROM links WHERE href IN (${placeholders})`).all(...hrefs) as Array<
-    Record<string, unknown>
-  >
+  // UNION over parsed-node edges (`links`) and collapsed-file edges
+  // (`collapsed_file_links`). Both tables carry (host_id, href, rel) in
+  // the same normalized shape, so the caller sees a unified KLink[]
+  // regardless of whether the source file is fully parsed or opaque.
+  //
+  // Parsed edges and collapsed edges are mutually exclusive per host at
+  // any given time: a file is either under collapse-parse (rows live in
+  // collapsed_file_links, no rows in links) or promoted (rows live in
+  // links, collapsed_file_links cleared). The UNION is cheap (both
+  // tables are href-indexed) and keeps the query site uniform.
+  const sql =
+    `SELECT host_id, href, rel FROM links WHERE href IN (${placeholders}) ` +
+    `UNION ALL ` +
+    `SELECT host_id, href, rel FROM collapsed_file_links WHERE href IN (${placeholders})`
+  const params = [...hrefs, ...hrefs]
+  const rows = db.query(sql).all(...params) as Array<Record<string, unknown>>
   return rows.map((row) => ({
     host_id: row.host_id as string,
     href: row.href as string,

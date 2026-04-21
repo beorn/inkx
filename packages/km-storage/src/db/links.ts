@@ -80,9 +80,20 @@ export function getOutgoingLinks(db: Database, hostId: string): KLink[] {
  * href of each link row (e.g. `km:Project/Alpha`) rather than a cached
  * `target_id`. Callers responsible for computing the target's href
  * (typically via normalizeLinkHref("wiki", node.name)) before calling.
+ *
+ * UNIONs parsed-node edges (`links`) with collapsed-file edges
+ * (`collapsed_file_links`) so callers get a single unified view. A file
+ * matched by `collapseParse.patterns` stays opaque but its outgoing
+ * edges still surface here via the second leg of the UNION.
  */
 export function getBacklinksByHref(db: Database, href: string): KLink[] {
-  const rows = db.query("SELECT * FROM links WHERE href = ?").all(href) as Array<Record<string, unknown>>
+  const rows = db
+    .query(
+      "SELECT host_id, href, rel FROM links WHERE href = ? " +
+        "UNION ALL " +
+        "SELECT host_id, href, rel FROM collapsed_file_links WHERE href = ?",
+    )
+    .all(href, href) as Array<Record<string, unknown>>
   return rows.map(rowToLink)
 }
 
