@@ -86,7 +86,9 @@
       "Bash(sed -i '' 's|hub/silvery|hub/silvery|g' .gitmodules)",
       "Bash(rm -rf /tmp/hub-silvery-backup/.git)",
       "Bash(git submodule *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(mv /Users/beorn/.config/claude-profiles/d@delei.org/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-3plus-shared-submodule.md /Users/beorn/.config/claude-profiles/d@delei.org/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)",
+      "Read(//Users/beorn/.claude/projects/-Users-beorn-Code-pim-km/memory/**)"
     ],
     "deny": [],
     "ask": []

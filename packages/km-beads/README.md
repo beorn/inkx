@@ -26,13 +26,13 @@ The TUI detail pane shows all known fields (status, priority, due, assigned, tag
 
 ## Tiered Roadmap
 
-| Tier                 | Scope                                             | Status                              |
-| -------------------- | ------------------------------------------------- | ----------------------------------- |
-| 1. Core CRUD         | create, update, close, show, list, delete, rename | Reads + writes persist              |
-| 2. Workflow          | ready, blocked, stale, defer/undefer, comments    | Partial (ready/blocked reads work)  |
-| 3. Hierarchy         | children, epic, dep add/remove/list               | dep add/remove persist              |
-| 4. Unified Query     | Shared query interface for km + km bd             | Design decided, not started         |
-| 5. Proxy Passthrough | Advanced bd commands (agent, slot, gate, etc.)    | Blocked on decision                 |
+| Tier                 | Scope                                             | Status                             |
+| -------------------- | ------------------------------------------------- | ---------------------------------- |
+| 1. Core CRUD         | create, update, close, show, list, delete, rename | Reads + writes persist             |
+| 2. Workflow          | ready, blocked, stale, defer/undefer, comments    | Partial (ready/blocked reads work) |
+| 3. Hierarchy         | children, epic, dep add/remove/list               | dep add/remove persist             |
+| 4. Unified Query     | Shared query interface for km + km bd             | Design decided, not started        |
+| 5. Proxy Passthrough | Advanced bd commands (agent, slot, gate, etc.)    | Blocked on decision                |
 
 ## Why Not Proxy to `bd`?
 
