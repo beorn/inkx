@@ -198,7 +198,8 @@ describe("collapse-parse: discovery integration", () => {
 
     // Verify the stub has _collapsed.
     const stubRow = db.prepare("SELECT data FROM nodes WHERE id = ?").get(chatNode!.id) as { data: string }
-    expect(JSON.parse(stubRow.data)._collapsed).toBe(true)
+    const stubData = JSON.parse(stubRow.data) as { _stub?: boolean; _collapsed?: boolean }
+    expect(stubData._collapsed).toBe(true)
 
     // Promote.
     parseStubFile(db, chatNode!.id, chatPath, "raw/chats/session.md")
