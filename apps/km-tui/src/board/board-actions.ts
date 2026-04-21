@@ -26,7 +26,9 @@ import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { isTeaHelpEnabled, getHelpStore } from "../plugins/with-help-overlay.ts"
+import { helpOverlay, isTeaHelpV2Enabled } from "../plugins/help-overlay.v2.ts"
 import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
+import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -1551,9 +1553,13 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         executeBatchDelete(ctx, ctx.ui.deleteConfirm.nodeIds)
       }
       ctx.setUI({ deleteConfirm: null })
+      // Phase 1 cutover: dual-write hide to plugin store.
+      if (isTeaDeleteConfirmEnabled()) getDeleteConfirmStore().dispatch({ type: "deleteConfirm.hide" })
       return ok()
     case "DELETE_CONFIRM_CANCEL":
       ctx.setUI({ deleteConfirm: null })
+      // Phase 1 cutover: dual-write hide to plugin store.
+      if (isTeaDeleteConfirmEnabled()) getDeleteConfirmStore().dispatch({ type: "deleteConfirm.hide" })
       return ok()
     case "MANAGE_FAVORITES": {
       // Phase 5b — shift-m opens the unified omnibox scoped to favorited nodes.
@@ -1886,18 +1892,22 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       // apply-chain plugin. Dual-write keeps legacy views/tests working
       // while the React component can opt in via useHelpOverlay().
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.show" })
+      if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("show")
       ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
       return ok()
     case "HIDE_HELP":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
+      if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("hide")
       ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
       return ok()
     case "HELP_SCROLL_UP":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollUp" })
+      if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("scrollUp")
       ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
       return ok()
     case "HELP_SCROLL_DOWN":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollDown" })
+      if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("scrollDown")
       ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
     case "FOCUS_BOARD": {
@@ -2601,6 +2611,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   if (ui.showHelp) {
     // Phase 0 mini-cutover: dual-write to plugin when flag is on.
     if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
+    if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("hide")
     ctx.setUI({ showHelp: false })
     return ok()
   }
