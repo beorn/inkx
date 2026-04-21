@@ -5,6 +5,11 @@
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
  *
+ * Do NOT add a useInput handler here that calls app.dispatch() — silvery's
+ * apply-chain throws "Reentrant dispatch" for hook-driven dispatches. Route
+ * keys through @km/commands, which returns a dispatch effect handled by the
+ * runtime's drain queue. See docs/lessons/input-architecture.md.
+ *
  * Width is auto-detected via useBoxRect() — the nearest Box ancestor's
  * content width is used for visual line wrapping. This guarantees cursor
  * positions match silvery's rendered line breaks.

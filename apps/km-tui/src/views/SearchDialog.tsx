@@ -133,7 +133,7 @@ interface SearchDialogProps {
   onCancel: () => void
   width: number
   maxHeight: number
-  /** Initial input buffered before dialog's useInput registered */
+  /** Initial input buffered before the dialog's input layer registered */
   initialInput?: string
   /** Callback to clear the buffer after consuming it */
   onConsumeInitialInput?: () => void

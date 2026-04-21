@@ -46,3 +46,94 @@ The architecture wasn't documented where agents would see it. Added:
 - This document
 
 The deeper fix: **if an architectural invariant isn't written where agents read it (CLAUDE.md, skills), the invariant doesn't exist for agents.** Document design decisions in the files that get loaded into context, not just in code comments that may never be read.
+
+## React hooks never call `app.dispatch()` (TEA world)
+
+**Keywords**: TEA, plugin, dispatch, reentrant, useInput, keybinding
+
+### Why
+
+Silvery's apply-chain runtime (`@silvery/create/runtime/base-app.ts`) uses a
+single-flight `dispatching` flag. While a dispatch is in progress, any nested
+`app.dispatch(op)` call throws:
+
+```
+Error: Reentrant dispatch: <op.type>
+```
+
+The flag exists so the effect drain queue owns re-entry — effects of type
+`{ type: "dispatch", op }` are drained after the current dispatch completes,
+guaranteeing ordered, observable state transitions. Bypassing the drain
+queue (by calling `dispatch` directly from a handler that runs inside the
+dispatch lifecycle) defeats this.
+
+### Where the hazard lives
+
+Any React hook that runs **synchronously inside a dispatch cycle** will trip
+the guard if it calls `app.dispatch()`:
+
+- `useInput` handlers — run inside `term:key → apply` in the plugin chain
+- `useEffect` / `useLayoutEffect` — run after React commits a render that
+  was triggered by an effect; if the effect chain is still draining, the
+  re-entry throws
+- Synchronous subscribers on the store that dispatch back into the app
+
+Event handlers that are scheduled by something OUTSIDE the dispatch chain
+(mouse clicks from the OS event loop, timers, debounced callbacks, async
+continuations) are safe — by the time they run, the dispatch has already
+completed.
+
+### The rule
+
+**Never call `app.dispatch()` (or any silvery TEA dispatcher) from inside a
+React hook that runs during render or during event processing.** Route the
+key or event through a keybinding **plugin** that returns:
+
+```ts
+return [{ type: "dispatch", op: <op> }]
+```
+
+as an effect. The runtime's drain queue processes it after the current
+dispatch completes.
+
+This is exactly the pattern the 2026-04-21 TEA nav spike validated
+(`hub/silvery/experiments/tea-nav-spike/with-commands-spike.ts`). Bead
+`km-silvery.tea-useinput-cannot-dispatch` documents the finding.
+
+### Signals / zustand stores are a DIFFERENT layer
+
+`dispatchBoard(action)` on km's `BoardAppStore` is a zustand-flavored store
+mutation, NOT a silvery TEA `app.dispatch()`. It does not participate in
+the apply-chain dispatch queue and has no re-entrancy guard today.
+
+It is still good hygiene to keep store mutations out of render phases
+(prefer `useEffect` or event handlers over inline calls during render), but
+the specific "Reentrant dispatch" failure mode does not apply to
+`dispatchBoard`. When km-tui migrates to TEA (`km-silvery.tea` epic),
+`dispatchBoard` call sites that currently live inside `useEffect` or
+`useCallback` event handlers must either:
+
+1. Remain on the zustand store (preferred — signals layer is independent), or
+2. Move into a command/plugin that returns a dispatch effect, never call
+   `app.dispatch()` inline.
+
+### Guard against regression
+
+`packages/km-infra/scripts/check-test-patterns.sh` includes a grep for
+`app.dispatch(` calls inside files that also reference `useInput`,
+`useEffect`, or `useLayoutEffect` under `apps/km-tui/src/`. Baseline is 0;
+growth fails CI.
+
+### Audit protocol for new code
+
+Before landing any React hook in km-tui that touches input or state
+mutation, grep your diff:
+
+```bash
+grep -nE 'app\.dispatch\(|runner\.dispatch\(' <files-you-changed>
+```
+
+If any hits live inside a `useInput`, `useEffect`, or `useLayoutEffect`,
+refactor to the plugin/effect pattern before commit. `dispatchBoard` calls
+are fine (zustand layer), but document them with a comment pointing to this
+lesson so the next reader doesn't confuse the two layers.

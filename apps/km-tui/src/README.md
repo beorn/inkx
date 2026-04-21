@@ -40,9 +40,11 @@ All tree rendering uses TreeNode with variants:
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ useInput() handler in Board.tsx                                     │
-│ - Navigation commands → setState (local state)                      │
-│ - Data mutations → Storage API → emit events                        │
+│ term:key / term:mouse event handlers in board-app.ts                │
+│   → @km/commands (keybinding resolution + context predicates)       │
+│   → BoardAppStore.dispatchBoard(op) (zustand-flavored reducer)      │
+│ React components never call useInput or app.dispatch directly —     │
+│ see docs/lessons/input-architecture.md.                             │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
             ┌─────────────────────┼─────────────────────┐

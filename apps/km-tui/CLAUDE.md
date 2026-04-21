@@ -37,6 +37,7 @@ If a silvery primitive is missing a prop or behavior you need, upgrade it in `ve
 **km-tui anti-patterns:**
 
 - Manual raw-key handlers outside `@silvery/tea` or `useInput` — discrete keys must go through `@km/commands` (see [docs/lessons/input-architecture.md](../../docs/lessons/input-architecture.md))
+- **Calling `app.dispatch()` (silvery TEA) from inside a React hook handler** — `useInput`, `useEffect`, `useLayoutEffect`, `useCallback` event handlers, etc. Throws `Reentrant dispatch` at runtime. Route the key/event through a keybinding plugin that returns `[{ type: "dispatch", op }]` as an effect — the drain queue handles the re-entry. See [docs/lessons/input-architecture.md § React hooks never call app.dispatch](../../docs/lessons/input-architecture.md#react-hooks-never-call-appdispatch-tea-world).
 - `Box theme={{}}` just to change background color — re-resolves every `$token`; use `backgroundColor` directly
 - Hardcoded ANSI escapes or raw color values — use `$primary`, `$muted`, and typography presets from the theme
 - `isSelected` as a proxy for "cursor is here" — it means "cursor is anywhere inside this card"; use `cursor === nodeId` for direct matches

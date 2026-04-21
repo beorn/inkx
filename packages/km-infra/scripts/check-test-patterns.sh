@@ -67,5 +67,49 @@ if [ "$SPEC_COUNT" -gt "$BASELINE_SPEC_FILES" ]; then
   EXIT=1
 fi
 
+# --- Hard ban: app.dispatch() from inside a React hook handler -----------
+# Silvery's apply-chain dispatcher throws "Reentrant dispatch" when dispatch
+# is called while a dispatch is in flight. React hooks (useInput, useEffect,
+# useLayoutEffect) run synchronously inside the dispatch lifecycle and MUST
+# route through a keybinding plugin that returns `[{ type: "dispatch", op }]`
+# as an effect. See docs/lessons/input-architecture.md § "React hooks never
+# call app.dispatch()" and bead km-silvery.tea-useinput-cannot-dispatch.
+#
+# Scope: apps/km-tui/src/ + packages/km-commands/src/.
+# Matches: `app.dispatch(` or `runner.dispatch(` on any line in a file that
+# also imports/uses useInput, useEffect, or useLayoutEffect.
+# False positives: store.dispatchBoard (zustand layer) is a DIFFERENT
+# dispatcher — bare `dispatchBoard(` is not matched.
+HITS=0
+HIT_FILES=""
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  # File must actually CALL useInput/useEffect/useLayoutEffect (not just mention
+  # them in comments/strings) AND actually CALL app.dispatch/runner.dispatch on
+  # a non-comment line.
+  # Heuristic: match `<name>(` on a line that does not start with `*`, `//`, or
+  # contain ` * ` (block-comment continuations). Grep -v strips those lines.
+  if grep -E '\b(useInput|useEffect|useLayoutEffect)\s*\(' "$file" 2>/dev/null \
+       | grep -vE '^\s*(\*|//|/\*)|^\s*\*\s' >/dev/null \
+    && grep -E '\b(app|runner|chain)\.dispatch\s*\(' "$file" 2>/dev/null \
+       | grep -vE '^\s*(\*|//|/\*)|^\s*\*\s' >/dev/null; then
+    HITS=$((HITS + 1))
+    HIT_FILES="$HIT_FILES $file"
+  fi
+done < <(find apps/km-tui/src packages/km-commands/src -type f \( -name "*.ts" -o -name "*.tsx" \) 2>/dev/null)
+if [ "$HITS" -gt 0 ]; then
+  echo "ERROR: $HITS file(s) combine React hooks (useInput/useEffect/useLayoutEffect) with app.dispatch()/runner.dispatch()."
+  echo "  Calling silvery TEA dispatch from inside a React hook throws 'Reentrant dispatch' at runtime."
+  echo "  Route the key/event through a keybinding plugin that returns [{ type: 'dispatch', op }] as an effect."
+  echo "  See docs/lessons/input-architecture.md § 'React hooks never call app.dispatch()'."
+  echo "  Bead: km-silvery.tea-useinput-cannot-dispatch"
+  echo "  Files:"
+  for f in $HIT_FILES; do
+    echo "    $f"
+    grep -nE '(app|runner|chain)\.dispatch\(' "$f" | head -3 | sed 's/^/      /'
+  done
+  EXIT=1
+fi
+
 echo "Test pattern check complete"
 exit $EXIT
