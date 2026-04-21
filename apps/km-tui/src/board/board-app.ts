@@ -9,6 +9,7 @@
 import { createApp, type EventHandlerContext } from "@silvery/create"
 import type { Key, ParsedMouse, FocusManager, AgNode } from "@silvery/ag-react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
+import createDebug from "debug"
 import { createLogger } from "loggily"
 import type { ID } from "@silvery/selection"
 import { isErr, type KNode } from "@km/core"
@@ -58,13 +59,26 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
     },
     "term:resize": (data, ctx) => {
       const { cols, rows } = data as { cols: number; rows: number }
+      // Trace resize events for diagnosing multi-phase layout shifts
+      // (e.g. cmux tab-switch fires 2-3 SIGWINCH bursts). Enable with:
+      //   DEBUG=km:tui:resize DEBUG_LOG=/tmp/km-resize.log bun km view <path>
+      // The silvery term-provider coalesces bursts within one frame, but this
+      // still logs each coalesced event so we can see the final settled dims.
+      resizeDebug("term:resize cols=%d rows=%d t=%d", cols, rows, Math.round(performance.now()))
       ctx.get().setDimensions({ columns: cols, rows: rows })
+      resizeDebug(
+        "setDimensions done columns=%d rows=%d t=%d",
+        cols,
+        rows,
+        Math.round(performance.now()),
+      )
     },
     "term:mouse": (data, ctx) => {
       handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)
     },
     "term:focus": (data, ctx) => {
       const { focused } = data as { focused: boolean }
+      resizeDebug("term:focus focused=%s t=%d", focused, Math.round(performance.now()))
       ctx.get().setUI({ terminalFocused: focused })
       // Expose for the heartbeat interval (which runs outside the store)
       setTerminalFocused(focused)
@@ -1189,6 +1203,17 @@ export function createBoardAppLocals(): BoardAppLocals {
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 
 const perfLog = createLogger("km:perf")
+
+/**
+ * Debug namespace for resize + focus event tracing. Enable with:
+ *   DEBUG=km:tui:resize DEBUG_LOG=/tmp/km-resize.log bun km view <path>
+ *
+ * Used to diagnose multi-phase layout shifts (e.g. cmux tab-switch-back
+ * fires a burst of 2-3 SIGWINCH events as the PTY re-syncs). With the
+ * term-provider-level coalescer in silvery, bursts should produce ONE
+ * `term:resize` event carrying the final settled dimensions.
+ */
+const resizeDebug = createDebug("km:tui:resize")
 
 /**
  * TODO(km-canonical): Migrate `createBoardApp` to pipe() composition. Currently uses

@@ -17,16 +17,18 @@
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",
+    "@silvery/color": "workspace:*",
     "@silvery/create": "workspace:*",
     "@silvery/selection": "workspace:*",
-    "@silvery/color": "workspace:*",
     "@silvery/theme": "workspace:*",
     "alien-signals": "^3.1.2",
     "alien-trees": "^0.1.0",
+    "debug": "^4.4.3",
     "loggily": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/react": "catalog:",
     "string-width": "^8.1.0",
     "vimonkey": "workspace:*"
