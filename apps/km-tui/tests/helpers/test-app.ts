@@ -261,9 +261,19 @@ export interface TestApp {
    * ```
    */
   expectNotEditing(): TestApp
-  /** Assert that the screen contains the given text. Chainable. */
+  /**
+   * Assert that the screen contains the given text. Chainable.
+   *
+   * @deprecated Use `expect(app).toContainText(text)` — the canonical matcher.
+   * See `apps/km-tui/tests/CLAUDE.md` for the migration pattern.
+   */
   expectScreen(text: string): TestApp
-  /** Assert that the screen does NOT contain the given text. Chainable. */
+  /**
+   * Assert that the screen does NOT contain the given text. Chainable.
+   *
+   * @deprecated Use `expect(app).not.toContainText(text)` — the canonical matcher.
+   * See `apps/km-tui/tests/CLAUDE.md` for the migration pattern.
+   */
   expectScreenNot(text: string): TestApp
   /** Assert that row n contains text or matches a regex. Chainable. */
   expectRow(n: number, pattern: string | RegExp): TestApp

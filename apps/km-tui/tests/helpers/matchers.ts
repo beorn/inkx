@@ -19,6 +19,11 @@ import { expect } from "vitest"
 import type { AutoLocator, Rect } from "@silvery/test"
 import type { TestAppState } from "./test-app.ts"
 
+// Ensure termless's matchers register BEFORE ours, so our overrides
+// (e.g., a TestApp-aware toContainText) take final precedence.
+// vitest's expect.extend is last-write-wins per matcher name.
+import "@termless/test/matchers"
+
 // =============================================================================
 // Type Guard
 // =============================================================================
@@ -136,12 +141,73 @@ expect.extend({
   },
 
   /**
-   * Assert locator text contains substring.
+   * Assert text contains substring.
+   *
+   * Accepts a TestApp (screen-wide text — canonical replacement for the legacy
+   * `app.expectScreen(text)` helper), an AutoLocator (locator's text), or a
+   * termless RegionView (delegates to `@termless/test/matchers`).
    *
    * @example
-   * expect(locator.getByTestId('message')).toContainText('error')
+   * // TestApp — scope to the whole screen (replaces app.expectScreen)
+   * expect(app).toContainText('Buy milk')
+   *
+   * // Locator — scope to a single element
+   * expect(app.q('#task-1')).toContainText('Buy milk')
+   *
+   * // Termless RegionView — for termless-backed tests
+   * expect(term.screen).toContainText('ready')
    */
-  toContainText(received: unknown, expected: string) {
+  toContainText(received: unknown, expected: string, options?: { timeout?: number }) {
+    // TestApp form: screen-wide text assertion (canonical replacement for expectScreen)
+    if (isTestApp(received)) {
+      const app = received as unknown as { text: string }
+      const actual = app.text ?? ""
+      const pass = actual.includes(expected)
+      return {
+        pass,
+        message: () =>
+          pass ? `Expected screen not to contain "${expected}"` : `Expected screen to contain "${expected}"`,
+      }
+    }
+
+    // RegionView form: delegate to termless's matcher behavior.
+    // Detection mirrors termless's isRegionView (containsText function present).
+    if (
+      received !== null &&
+      typeof received === "object" &&
+      "containsText" in (received as Record<string, unknown>) &&
+      typeof (received as { containsText?: unknown }).containsText === "function"
+    ) {
+      const region = received as { containsText: (t: string) => boolean; getText?: () => string }
+      const assertFn = () => {
+        const pass = region.containsText(expected)
+        return {
+          pass,
+          message: () =>
+            pass
+              ? `Expected region not to contain "${expected}"`
+              : `Expected region to contain "${expected}"${region.getText ? `, got "${region.getText()}"` : ""}`,
+        }
+      }
+      // Auto-retry when timeout is specified (Playwright pattern)
+      if (options?.timeout) {
+        return new Promise<ReturnType<typeof assertFn>>((resolve) => {
+          const start = Date.now()
+          const poll = () => {
+            const result = assertFn()
+            if (result.pass || Date.now() - start >= options.timeout!) {
+              resolve(result)
+            } else {
+              setTimeout(poll, 50)
+            }
+          }
+          poll()
+        })
+      }
+      return assertFn()
+    }
+
+    // AutoLocator form: scoped text assertion
     assertAutoLocator(received, "toContainText")
     const actual = getLocatorText(received)
     const pass = actual.includes(expected)

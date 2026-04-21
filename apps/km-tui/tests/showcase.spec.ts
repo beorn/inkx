@@ -96,7 +96,7 @@ describe("Folding and Visibility", () => {
     app.command("zoom_inwards")
 
     // The focused column's content should still be visible
-    app.expectScreen("important-task")
+    expect(app).toContainText("important-task")
   })
 })
 
@@ -167,9 +167,9 @@ describe("Markdown Fixtures", () => {
     )
 
     // Board renders with columns from markdown headings
-    app.expectScreen("Write documentation")
-    app.expectScreen("Review pull request")
-    app.expectScreen("Deploy v2")
+    expect(app).toContainText("Write documentation")
+    expect(app).toContainText("Review pull request")
+    expect(app).toContainText("Deploy v2")
     expect(app.state.view).toBe("cards")
   })
 })
@@ -205,7 +205,7 @@ describe("View Modes", () => {
     expect(app.state.view).not.toBe("cards")
 
     // Content should still be visible regardless of view mode
-    app.expectScreen("card-1")
+    expect(app).toContainText("card-1")
   })
 })
 
