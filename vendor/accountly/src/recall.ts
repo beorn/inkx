@@ -521,12 +521,13 @@ function cmdHook(): void {
   }
 
   // Route through the shared injection-envelope library. Defaults to
-  // "snippet" mode (phase 0/2 behavior); set INJECTION_MODE=pointer for
-  // phase 3 ambient-awareness mode. Either way, the library handles:
-  // hardened wrapper, imperative rewrite, sanitizer, trailing footer, and
-  // turn-manifest side effect so the PreToolUse authority gate has the
-  // data it needs to block mutating tools driven by recall content.
-  const mode = (process.env.INJECTION_MODE ?? "snippet") as "snippet" | "pointer"
+  // "pointer" mode (phase 3): pointer emission starves the attack of its
+  // carrier (imperative-shaped body prose never lands in the user role).
+  // Set INJECTION_MODE=snippet for the legacy body-inline behavior —
+  // useful when the model is configured without retrieve_memory tool
+  // access. Either way, the library handles: hardened wrapper, imperative
+  // rewrite, sanitizer, trailing footer, and turn-manifest side effect.
+  const mode = (process.env.INJECTION_MODE ?? "pointer") as "snippet" | "pointer"
   const items: InjectedItem[] = deduped.map((hit) => {
     const path = (hit.file ?? "").replace(/[^\w@./:+-]/g, "")
     const snippet = hit.snippet
