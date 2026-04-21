@@ -374,6 +374,54 @@ The bead (`km-storage.vault-node-explosion`) closes on this evidence.
 
 ---
 
+## Post-implementation measurement — C3: collapsed-file link edges (2026-04-21)
+
+Shipped: `feat(km-storage): collapsed_file_links schema + discovery wiring`
+and the backlink-query UNION. After the C2 node reduction (555K → 66K),
+C3 walks collapsed files with a lightweight regex pass and records
+outgoing link edges in a new `collapsed_file_links` table.
+
+Measured against the same `~/Bear/Vault` (memory-mode, collapse-parse
+enabled with `raw/chats/**` + `archive/**`):
+
+| Metric | Value |
+|---|---:|
+| Nodes | 65,685 |
+| Parsed-node edges (`links`) | 4,048 |
+| Collapsed-file edges (`collapsed_file_links`) | **42,135** |
+| Collapsed files contributing edges | 248 |
+| UNION backlink query (top target) | **0.133 ms** |
+
+By link type:
+
+| type | count |
+|---|---:|
+| wiki | 34,175 |
+| md | 7,960 |
+
+Top 10 targets by collapsed-source fan-in are dominated by Obsidian
+block refs (`km:^703648229286920`, etc.) from chat-transcript internal
+linking, plus a handful of doc files (`beads.md`, `workflows/*`,
+`create.md`). Only ~0.3% of collapsed edges currently resolve to a
+named node — the rest are block refs whose targets don't exist as
+stand-alone nodes in this particular vault. The shape is expected:
+chat transcripts cite their own history heavily; resolution against
+the current tree will grow naturally as more of the vault gets parsed.
+
+The edge-recovery number itself is the win: without this pass, those
+42,135 outgoing links from collapsed sources would be invisible to
+every backlink query. The UNION adds them back at 0.133 ms/query —
+well within interactive-latency budgets.
+
+Artifacts:
+- `scripts/measure-collapsed-file-links-real-vault.ts`
+- `packages/km-storage/src/markdown/extract-links.ts`
+- `packages/km-storage/src/db/collapsed-file-links.ts`
+
+The bead (`km-storage.collapsed-file-links`) closes on this evidence.
+
+---
+
 ## Appendix — running the diagnostic
 
 ```bash
