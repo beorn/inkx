@@ -131,3 +131,81 @@ None of these are the "17 s event-loop block" described in the bead. The origina
   - Keep open to track the `--no-interactive` / `KM_EAGER_LOAD=1` rule-evaluation cost (~17 s). This is a real perf issue but not a cold-start block; it's an eager-load batch cost that doesn't affect the TUI journey.
   - **Do not** open new perf beads from this investigation — the scope guard says measurement only.
 - **Retain** the minimal phase instrumentation added to `apps/km-tui/src/tui.tsx` (commit accompanying this report). Six `run.span(...)` wrappers, zero runtime cost when `TRACE=1` is not set, full phase attribution available whenever perf questions resurface.
+
+---
+
+## 2026-04-21 lazy-hydration measurement
+
+**Bead**: `km-storage.lazy-hydration` (P0, architectural — validate the lazyHydrate code path landed in b1661330a + a139ed79c).
+**Status**: **VALIDATED — bead can close**.
+
+Interactive cold-start on `~/Bear/Vault` dropped from 4.0s (pre-session rebaseline) to **2.83s median** (7ms spread across 5 runs). The session's three phase optimizations (defer theme 8912170ef, stat-over-read 8031ca998, lazy-hydrate a139ed79c + b1661330a) collectively removed ~1.2s from the interactive critical path.
+
+### Methodology
+
+Same harness as the rebaseline: `tools/measure-cold-start.ts` → `bun km view ~/Bear/Vault` in a 160×48 PTY, measuring spawn → first frame containing `CARDS VIEW`. Warmup run discarded (5011ms — post-DB-mutation rule re-eval outlier), then five measured runs each config, sequential, warm disk cache.
+
+### Results
+
+| Config | Flag | Min | Median | p95 | Max | Spread |
+|---|---|---:|---:|---:|---:|---:|
+| **A. Lazy hydration ON** (current default) | none | 2825ms | **2830ms** | 2832ms | 2832ms | 7ms |
+| **B. Eager load** (disables discoverOnly + lazyHydrate) | `KM_EAGER_LOAD=1` | 20088ms | **20345ms** | 27813ms | 27813ms | 7725ms |
+
+The eager run 1 outlier (27813ms) is the "post-DB-mutation rule re-eval" leaking into the critical path that the rebaseline doc describes; it's reproducible one-time per DB mutation. Steady-state eager is ~20.3s.
+
+### Per-phase attribution (span telemetry)
+
+**Lazy (run 5, 2827ms wall-clock)**:
+```
+km:startup:repo-load                     (170ms)   ← discover-disk (3ms) + apply-changes (1ms) + health (53ms)
+km:startup:build-state                     (2ms)
+km:startup                               (262ms)
+km:tui:run-board                         (330ms)   ← incl. detect-theme (deferred post-frame)
+───── sum of logged spans: 592ms ─────
+unattributed: ~2235ms (bun boot + imports + PTY harness double-spawn)
+```
+
+**Eager (run 5, 20088ms wall-clock)**:
+```
+km:storage:repo-loader:load-repo:reconcile-filesystem    (370ms)   ← what lazyHydrate defers
+km:storage:db:rules:evaluate-add-rule × 15 sections    (15.4s)    ← what discoverOnly defers
+km:startup:repo-load                                   (17449ms)
+km:tui:run-board                                         (300ms)
+```
+
+### Isolation: pure lazy-hydration delta
+
+The eager path disables both `discoverOnly` AND `lazyHydrate` together (the CLI gates them on the same `interactive && !eagerLoad` expression). To isolate the lazyHydrate contribution alone, I could not cleanly split them without touching main code. However:
+
+- **Commit author's isolated measurement** (a139ed79c commit message): 3225ms → 2930ms, **−295ms** — measured on the same vault with stat optim already landed and discoverOnly held constant.
+- **My span telemetry** shows a 370ms `reconcile-filesystem` span on the critical path when eager, 0ms when lazy. Consistent with the −295ms wall-clock claim (wall-clock < span due to overlap with other late-load work).
+- **Combined with `migrateSchema` skip (43ce86863)**: my measured median (2830ms) is 100ms below the commit's 2930ms — consistent with the additional skip.
+
+### Verdict
+
+- **`km-storage.lazy-hydration`**: **CLOSE**. Architectural work landed, measured, behaves as designed. ~295ms isolated reduction on the user's real vault; contributes to the broader interactive critical path shrinking 4s → 2.8s this session. No regressions observed.
+- **`km-tui.cold-startup-block`**: **still CLOSEABLE**. Interactive cold start is now 2.83s median with 7ms variance on an 8.8GB / 770MB DB vault. The 17s block the bead originally described does not reproduce in interactive mode. The eager-load `evaluate-add-rule` cost (~15s) remains, but that's a separate concern (eager-load batch cost, not a cold-start UX block — it only fires under `KM_EAGER_LOAD=1` or `--no-interactive`).
+
+### Surprises / regressions
+
+1. **Variance collapsed dramatically**: rebaseline showed <60ms variance across 5 runs at 4.0s; current runs show **7ms variance across 5 runs at 2.83s**. The critical path is now so short that PTY harness overhead dominates, and it's remarkably consistent.
+2. **No regressions**: same `CARDS VIEW` first-frame content; no new error surfacing; repo-load span dropped 915ms → 170ms (−745ms) without behavior change.
+3. **Floor visible**: ~2.24s is now bun boot + JS/TS import + double-spawn PTY harness overhead. Further wins require either single-spawn harness or `bun build` compiled output — both out of scope for the lazy-hydration bead.
+
+### Raw timings
+
+```
+[lazy-1] wall-clock (spawn → CARDS VIEW): 2825ms
+[lazy-2] wall-clock (spawn → CARDS VIEW): 2832ms
+[lazy-3] wall-clock (spawn → CARDS VIEW): 2832ms
+[lazy-4] wall-clock (spawn → CARDS VIEW): 2830ms
+[lazy-5] wall-clock (spawn → CARDS VIEW): 2827ms
+
+[eager-1] wall-clock (spawn → CARDS VIEW): 27813ms  ← post-DB-mutation one-time
+[eager-2] wall-clock (spawn → CARDS VIEW): 22428ms
+[eager-3] wall-clock (spawn → CARDS VIEW): 20345ms
+[eager-4] wall-clock (spawn → CARDS VIEW): 20330ms
+[eager-5] wall-clock (spawn → CARDS VIEW): 20088ms
+```
+
