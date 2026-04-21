@@ -11,7 +11,6 @@ import {
   patchConsole,
   IncrementalRenderMismatchError,
   InputLayerProvider,
-  ThemeProvider,
   detectTerminalCaps,
 } from "@silvery/ag-react"
 import React from "react"
@@ -25,7 +24,7 @@ import { StoreProvider } from "./state/store-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { withSync, createStoreFromRepo, withReactive, type Sync } from "@km/storage"
 import { createBoardApp } from "./board/board-app.ts"
-import { detectTheme } from "./theme.ts"
+import { DeferredThemeProvider } from "./deferred-theme-provider.tsx"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
 import { createUndoableRepo } from "./undo/undoable-repo.ts"
 import { createUndoStack } from "./undo-stack.ts"
@@ -332,14 +331,11 @@ export async function runBoard(
       log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
     }
 
-    // Detect terminal theme from actual colors (OSC 4/10/11) with fallback
-    setStartupPhase("detect-theme")
-    let theme: Awaited<ReturnType<typeof detectTheme>>
-    {
-      using _ = run.span("detect-theme")
-      theme = await detectTheme({ caps })
-    }
-    log.debug?.(`Theme: ${theme.name}`)
+    // Theme detection is deferred: first paint uses the fallback theme (or a
+    // previously cached probe result), and the real OSC 4/10/11 probe kicks
+    // off inside `DeferredThemeProvider` after first render. This saves
+    // ~400ms on the critical path on terminals that support OSC probing.
+    // See apps/km-tui/src/deferred-theme-provider.tsx for the swap logic.
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
@@ -409,7 +405,10 @@ export async function runBoard(
       // "Rendering..." — the board frame appears almost immediately.
       setStartupPhase("react-mount")
       const handle = await boardApp.run(
-        <ThemeProvider theme={theme}>
+        <DeferredThemeProvider
+          caps={caps}
+          cacheKey={{ program: caps.program ?? "unknown", dark: caps.darkBackground ?? true }}
+        >
           <RepoProvider repo={undoableRepo}>
             <StoreProvider store={reactiveStore}>
               <InputLayerProvider>
@@ -417,7 +416,7 @@ export async function runBoard(
               </InputLayerProvider>
             </StoreProvider>
           </RepoProvider>
-        </ThemeProvider>,
+        </DeferredThemeProvider>,
         isInteractive
           ? {
               // Pass the dims km already captured (line 297-298) plus stdout so
