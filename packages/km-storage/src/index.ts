@@ -235,9 +235,27 @@ export type {
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
-export { loadConfig, clearConfigCache, getOriginalBeadsConfig, getFolderIndexConfig } from "./config.ts"
+export {
+  loadConfig,
+  clearConfigCache,
+  getOriginalBeadsConfig,
+  getFolderIndexConfig,
+  getCollapseParseConfig,
+} from "./config.ts"
 
-export type { KmConfig, BeadsConfig, TuiConfig, FolderIndexConfig, OriginalBeadsConfig } from "./config.ts"
+export type {
+  KmConfig,
+  BeadsConfig,
+  TuiConfig,
+  FolderIndexConfig,
+  CollapseParseConfig,
+  OriginalBeadsConfig,
+} from "./config.ts"
+
+// Collapse-parse matcher (folder-level opaque-stub rule)
+export { createCollapseParseMatcher, createNullCollapseParseMatcher } from "./markdown/collapse-parse.ts"
+
+export type { CollapseParseMatcher } from "./markdown/collapse-parse.ts"
 
 // Index file writer (pure functions for folder index files)
 export { buildIndexContent, generateIndexFileContent, indexFileName } from "./index-file-writer.ts"

@@ -11,9 +11,11 @@ import {
   clearConfigCache,
   getBeadsConfig as getRawBeadsConfig,
   getTuiConfig as getRawTuiConfig,
+  getCollapseParseConfig as getRawCollapseParseConfig,
   type KmConfig,
   type BeadsConfig,
   type TuiConfig,
+  type CollapseParseConfig,
 } from "./config.ts"
 
 const log = createLogger("km:storage:config")
@@ -34,6 +36,9 @@ export interface Config {
 
   /** TUI configuration with defaults applied */
   readonly tui: Required<TuiConfig>
+
+  /** Collapse-parse configuration with defaults applied (empty patterns = disabled) */
+  readonly collapseParse: Required<CollapseParseConfig>
 
   /** Reload configuration from disk */
   reload(): void
@@ -59,6 +64,7 @@ export function loadConfigObject(searchFrom?: string): Config {
   let path = result?.filepath
   let beads = getRawBeadsConfig(searchFrom)
   let tui = getRawTuiConfig(searchFrom)
+  let collapseParse = getRawCollapseParseConfig(searchFrom)
 
   const config: Config = {
     get path() {
@@ -77,6 +83,10 @@ export function loadConfigObject(searchFrom?: string): Config {
       return tui
     },
 
+    get collapseParse() {
+      return collapseParse
+    },
+
     reload() {
       log.debug?.("reloading config")
       clearConfigCache()
@@ -85,6 +95,7 @@ export function loadConfigObject(searchFrom?: string): Config {
       path = result?.filepath
       beads = getRawBeadsConfig(searchFrom)
       tui = getRawTuiConfig(searchFrom)
+      collapseParse = getRawCollapseParseConfig(searchFrom)
     },
   }
 

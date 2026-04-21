@@ -43,10 +43,37 @@ export interface FolderIndexConfig {
   materialization?: "none" | "metadata" | "full"
 }
 
+/**
+ * Collapse-parse configuration — folders whose markdown files should be
+ * stored as opaque stubs (title + content only, no descendant parse) until
+ * the user navigates into them.
+ *
+ * Use for import sinks: chat transcripts, Asana exports, old archives —
+ * content that lives in the vault but is rarely edited inside km's outline.
+ * See docs/design/model/knode.md and hub/km/vault-diagnostic-2026-04-21.md.
+ *
+ * Backward compat: omitted or empty `patterns` means every file is fully
+ * parsed exactly as before.
+ */
+export interface CollapseParseConfig {
+  /**
+   * Glob patterns (relative to repo root) for files that should be stored
+   * as opaque stubs. Same syntax as `.kmignore` entries.
+   *
+   * Example:
+   *   collapseParse:
+   *     patterns:
+   *       - "raw/chats/**"
+   *       - "archive/**"
+   */
+  patterns?: string[]
+}
+
 export interface KmConfig {
   beads?: BeadsConfig
   tui?: TuiConfig
   folderIndex?: FolderIndexConfig
+  collapseParse?: CollapseParseConfig
 }
 
 /** Original beads config format from .beads/config.yaml */
@@ -197,4 +224,21 @@ export function getTuiConfig(searchFrom?: string): Required<TuiConfig> {
     watch: config.tui?.watch ?? true,
     watchWorker: config.tui?.watchWorker ?? true,
   }
+}
+
+/**
+ * Get collapse-parse configuration with defaults applied.
+ *
+ * Returns an empty `patterns` array when the key is missing — this is the
+ * backward-compatible default: no folder gets collapsed, every file is parsed.
+ */
+export function getCollapseParseConfig(searchFrom?: string): Required<CollapseParseConfig> {
+  const config = loadConfig(searchFrom)
+  const raw = config.collapseParse?.patterns
+  if (!Array.isArray(raw)) {
+    return { patterns: [] }
+  }
+  // Defensive: string-coerce entries, skip non-strings and empties.
+  const patterns = raw.filter((p): p is string => typeof p === "string" && p.length > 0)
+  return { patterns }
 }

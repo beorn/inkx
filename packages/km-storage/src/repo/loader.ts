@@ -37,6 +37,12 @@ import {
   parseStubFile as parseStubFileImpl,
 } from "../markdown/deferred.ts"
 import { readSiblingOrder, applySiblingOrder } from "../sibling-order.ts"
+import {
+  createCollapseParseMatcher,
+  createNullCollapseParseMatcher,
+  type CollapseParseMatcher,
+} from "../markdown/collapse-parse.ts"
+import { getCollapseParseConfig } from "../config.ts"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -111,6 +117,12 @@ export interface LoadOptions {
    * Default: Infinity (load everything).
    */
   preloadDepth?: number
+  /**
+   * Explicit collapse-parse matcher. When omitted, the loader reads
+   * `collapseParse.patterns` from `.km/config.yaml` and constructs one.
+   * Pass an explicit matcher in tests to avoid touching disk.
+   */
+  collapseMatcher?: CollapseParseMatcher
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -195,10 +207,14 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 2a. Ensure repo root node exists (discovery needs it for parent_id)
   ensureRepoRootNode(db, repoRoot)
 
+  // 2b. Resolve collapse-parse matcher (explicit option > .km/config.yaml).
+  // Built once and shared by discovery + reconciliation.
+  const collapseMatcher = resolveCollapseMatcher(repoRoot, options?.collapseMatcher)
+
   // 3. Mode-specific change source
   const source: ChangeSource =
     mode === "memory"
-      ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth)
+      ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth, collapseMatcher)
       : yield* discoverFromChanges(db, kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
@@ -207,7 +223,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 4a. Disk mode: reconcile filesystem to detect externally added/removed files
   let reconcileDeferredFiles: DeferredFile[] = []
   if (mode === "disk") {
-    const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors)
+    const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
     if (reconcileResult.changes.length > 0) {
       yield* applyChanges(db, reconcileResult.changes, errors, repoRoot)
     }
@@ -231,9 +247,15 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     // checkpointed), those stubs survive with parsed=0. Reconciliation won't re-queue
     // them because the files already exist in the DB. Without this, zooming out shows
     // empty sibling cards forever.
+    //
+    // Collapse-parse: skip stubs tagged `_collapsed: true`. They're intentionally
+    // opaque until the user navigates in; re-queuing them would defeat the 89%
+    // node-count reduction this feature exists to provide.
     const alreadyQueued = new Set(returnDeferredFiles.map((f) => f.nodeId))
     const unparsedStubs = db
-      .prepare("SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%'")
+      .prepare(
+        "SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%' AND (data NOT LIKE '%_collapsed%')",
+      )
       .all() as { id: string; fs_path: string }[]
     let requeuedCount = 0
     for (const stub of unparsedStubs) {
@@ -255,10 +277,13 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     // leaving nodes with title=filename_stem instead of the H1-merged title.
     const allDeferred = [...reconcileDeferredFiles]
 
-    // Re-queue unparsed stubs from the replayed changes (same logic as discoverOnly path)
+    // Re-queue unparsed stubs from the replayed changes (same logic as discoverOnly path).
+    // Collapse-parse: exclude `_collapsed` stubs — they stay opaque until navigation.
     const alreadyQueued = new Set(allDeferred.map((f) => f.nodeId))
     const unparsedStubs = db
-      .prepare("SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%'")
+      .prepare(
+        "SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%' AND (data NOT LIKE '%_collapsed%')",
+      )
       .all() as { id: string; fs_path: string }[]
     for (const stub of unparsedStubs) {
       if (!alreadyQueued.has(stub.id)) {
@@ -440,12 +465,30 @@ function* discoverMemoryMode(
   db: Database,
   discoverOnly: boolean,
   preloadDepth?: number,
+  collapseMatcher?: CollapseParseMatcher,
 ): Generator<StepYield, ChangeSource, unknown> {
   return yield* discoverFiles(repoRoot, db, {
     parseMode: discoverOnly ? "stub" : "full",
     errors,
     preloadDepth,
+    collapseMatcher,
   })
+}
+
+/**
+ * Resolve the collapse-parse matcher for a repo load.
+ *
+ * Precedence: explicit `options.collapseMatcher` > `.km/config.yaml` patterns
+ * > disabled null matcher.
+ */
+function resolveCollapseMatcher(
+  repoRoot: string,
+  explicit: CollapseParseMatcher | undefined,
+): CollapseParseMatcher {
+  if (explicit) return explicit
+  const { patterns } = getCollapseParseConfig(repoRoot)
+  if (patterns.length === 0) return createNullCollapseParseMatcher()
+  return createCollapseParseMatcher(patterns)
 }
 
 // ============================================================================
@@ -600,6 +643,7 @@ function* reconcileFilesystem(
   db: Database,
   repoRoot: string,
   errors: LoadError[],
+  collapseMatcher: CollapseParseMatcher = createNullCollapseParseMatcher(),
 ): Generator<StepYield, ReconcileResult, unknown> {
   yield "Reconciling filesystem"
 
@@ -798,6 +842,9 @@ function* reconcileFilesystem(
       const isTxt = entryName.endsWith(".txt")
       const ext = isTxt ? /\.txt$/i : /\.md$/i
       const name = entryName.replace(ext, "")
+      const isCollapsed = collapseMatcher.matches(relPath)
+      const stubData: Record<string, unknown> = { _stub: true }
+      if (isCollapsed) stubData._collapsed = true
       changes.push({
         id: nodeId,
         type: "node_created",
@@ -813,10 +860,13 @@ function* reconcileFilesystem(
           fs_path: relPath,
           name,
           title: name,
-          data: { _stub: true },
+          data: stubData,
         },
       })
-      deferredFiles.push({ nodeId, fsPath: fullPath })
+      // Collapsed stubs stay unparsed until the user navigates in.
+      if (!isCollapsed) {
+        deferredFiles.push({ nodeId, fsPath: fullPath })
+      }
     } else {
       // Non-markdown file
       changes.push({

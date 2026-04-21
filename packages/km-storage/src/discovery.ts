@@ -29,6 +29,10 @@ import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loa
 import { generatePathBasedId } from "./fs/id-utils.ts"
 import { toRelativeFsPath } from "./fs/path-utils.ts"
 import { readSiblingOrder, applySiblingOrder, type SiblingOrderMap } from "./sibling-order.ts"
+import {
+  createNullCollapseParseMatcher,
+  type CollapseParseMatcher,
+} from "./markdown/collapse-parse.ts"
 
 const log = createLogger("km:storage:discovery")
 
@@ -59,6 +63,16 @@ export interface DiscoveryOptions {
   errors: LoadError[]
   /** Maximum directory depth to eagerly load. Infinity = load everything (default). */
   preloadDepth?: number
+  /**
+   * Collapse-parse matcher. When set, files whose relative path matches the
+   * matcher are stored as opaque stubs (same shape as stub mode) and are
+   * NOT added to the deferred-parse queue. They're promoted on demand when
+   * the user navigates into them (via `parseStubFile`).
+   *
+   * Omit or pass a null matcher to disable collapse-parse entirely
+   * (backward-compatible default: every file is fully parsed).
+   */
+  collapseMatcher?: CollapseParseMatcher
 }
 
 /** Result from discoverFiles */
@@ -95,6 +109,7 @@ export function* discoverFiles(
 ): Generator<StepYield, DiscoveryResult, unknown> {
   const { parseMode, errors } = options
   const preloadDepth = options.preloadDepth ?? Infinity
+  const collapseMatcher = options.collapseMatcher ?? createNullCollapseParseMatcher()
 
   yield "Discovering files"
 
@@ -321,8 +336,21 @@ export function* discoverFiles(
       changes.push(createNonMdFileChange(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), entryName, now))
       return
     }
+
+    // Collapse-parse: if this file is under a designated opaque folder,
+    // force a stub that stays unparsed until the user navigates into it.
+    // The stub looks identical to a normal `parseMode: "stub"` entry but
+    // carries `_collapsed: true` so the loader re-queue path skips it.
+    const relPath = toRelativeFsPath(repoRoot, fullPath)
+    const isCollapsed = collapseMatcher.matches(relPath)
+
+    if (isCollapsed) {
+      yield* handleStubFile(fullPath, parentId, order, entryName, isTxt, true)
+      return
+    }
+
     if (parseMode === "stub") {
-      yield* handleStubFile(fullPath, parentId, order, entryName, isTxt)
+      yield* handleStubFile(fullPath, parentId, order, entryName, isTxt, false)
     } else {
       yield* handleFullParseFile(fullPath, parentId, order, entryName, isTxt)
     }
@@ -335,14 +363,32 @@ export function* discoverFiles(
     order: number,
     entryName: string,
     isTxt: boolean = false,
+    isCollapsed: boolean = false,
   ): Generator<StepYield, void, unknown> {
     const fileId = generateId(repoRoot, fullPath)
     const ext = isTxt ? /\.txt$/i : /\.md$/i
     const name = entryName.replace(ext, "")
     const fstype = isTxt ? "txtfile" : "mdfile"
 
-    changes.push(createStubFileChange(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now, fstype))
-    deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
+    changes.push(
+      createStubFileChange(
+        fileId,
+        parentId,
+        order,
+        toRelativeFsPath(repoRoot, fullPath),
+        name,
+        now,
+        fstype,
+        isCollapsed,
+      ),
+    )
+
+    // Collapsed stubs are NOT queued for background parse. They stay opaque
+    // until the user navigates into them (parseStubFile is called eagerly
+    // by `km view <path>` when the target is a `_stub: true` node).
+    if (!isCollapsed) {
+      deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
+    }
 
     current++
     if (current % 100 === 0) {
@@ -512,7 +558,8 @@ function createFolderChange(
   }
 }
 
-/** Create stub file change (no parsing) */
+/** Create stub file change (no parsing). `isCollapsed` marks stubs under
+ * collapse-parse folders so the loader's re-queue path skips them. */
 function createStubFileChange(
   id: string,
   parentId: string | null,
@@ -521,7 +568,11 @@ function createStubFileChange(
   name: string,
   ts: number,
   fstype: "mdfile" | "txtfile" = "mdfile",
+  isCollapsed: boolean = false,
 ): Change {
+  const nodeData: Record<string, unknown> = { _stub: true }
+  if (isCollapsed) nodeData._collapsed = true
+
   return {
     id,
     type: "node_created",
@@ -537,7 +588,7 @@ function createStubFileChange(
       fs_path: fsPath,
       name,
       title: name, // Title defaults to filename until parsed
-      data: { _stub: true }, // Mark as unparsed stub
+      data: nodeData,
     },
   }
 }
