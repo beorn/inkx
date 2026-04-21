@@ -79,6 +79,72 @@ const OVERSCAN = 5
 // on tall terminals when cards are short.
 
 // =============================================================================
+// Column primitive — uniform gap contract + two overflow policies
+// =============================================================================
+//
+// CardColumn renders a vertical list of Cards. Historically there were two
+// parallel render branches inside Card — bordered structural cards and
+// unframed (naked) body blocks — each with its own spacing contract. That
+// duality made new per-item layout concerns easy to get wrong, and was the
+// root cause of the body-block-leading-gap phantom-whitespace bug (bead
+// km-tui.body-block-leading-gap).
+//
+// The Column primitive unifies the list-rendering contract:
+//
+// 1. GAP POLICY — a single pure function (`computeLeadingGap`) decides how
+//    many blank rows precede each item. The Card receives the computed gap
+//    as a `leadingGap` prop; it does NOT reason about its siblings. The rule
+//    is computed once, at the Column level, during `renderItem`.
+//
+// 2. FRAME CLASSIFICATION — each item has exactly one frame type: `bordered`
+//    (structural cards), `naked` (body blocks), or `hr` (horizontal rule).
+//    The frame drives how the item renders, but NOT how the Column lays it
+//    out — that's the gap policy's job.
+//
+// 3. OVERFLOW POLICIES (two, NOT unified). The two frames count different
+//    things:
+//      - bordered: hidden CHILDREN (+ grandchildren + title-wrap lines),
+//        rendered as a custom `╰─ +N more ─╯` bottom border row.
+//      - naked:    hidden ROWS via TreeNode's `maxRows` contract, rendered
+//        as a `···` indicator inside content.
+//    These policies are semantically distinct — they measure different
+//    things — and CANNOT be collapsed under a single contract without
+//    losing one of the two behaviours. Both are supported; each card picks
+//    the one appropriate for its frame.
+
+/** The rendering frame an item occupies inside a Column. */
+type CardFrame = "bordered" | "naked" | "hr"
+
+/** Classify a card into its rendering frame. */
+function classifyFrame(card: KNode, isBody: boolean): CardFrame {
+  const hrContent = (card.content ?? (card.type === "hr" ? "---" : "")).trim()
+  if (isHRContent(hrContent)) return "hr"
+  return isBody ? "naked" : "bordered"
+}
+
+/**
+ * Compute the leading gap (in blank rows) to render above an item, given
+ * the frames of the two siblings at the boundary.
+ *
+ * Rule: a 1-row gap appears ONLY when `next` is `naked` AND `prev` is NOT
+ * `naked`. Two borderless body blocks abut as stacked prose; two bordered
+ * cards abut via their borders; a bordered-to-naked boundary gets a single
+ * row of breathing room to prevent the body text from pressing against the
+ * card's bottom border; naked-to-bordered abuts (the bordered card's own
+ * top border self-delimits).
+ *
+ * When there is no previous sibling (the first item in the column), the
+ * rule is the same — we treat "no previous" as equivalent to "bordered
+ * above" (the column header separator, which visually acts like a border
+ * from the gap's perspective).
+ */
+function computeLeadingGap(prev: CardFrame | undefined, next: CardFrame): number {
+  if (next !== "naked") return 0
+  if (prev === "naked") return 0
+  return 1
+}
+
+// =============================================================================
 // Card Component
 // =============================================================================
 
@@ -89,8 +155,16 @@ interface CardProps {
   cardIndex: number
   /** True if this card is in a body column (renders borderless) */
   isBodyColumn?: boolean
-  /** True if the previous card is also a body block (for yield logic) */
-  isPrevBodyBlock?: boolean
+  /**
+   * Number of blank rows the card should render above its content
+   * (applied as `paddingTop` inside the card's outer Box so the card's
+   * background fills the gap — preserves selection-tint continuity).
+   *
+   * Computed by the Column via `computeLeadingGap`. The card applies it
+   * blindly; it does not reason about siblings. 0 for all bordered cards
+   * (gap handled by their own border); 0 or 1 for naked body blocks.
+   */
+  leadingGap?: number
   /** True if this is the last body block before a structural card or end of column */
   isLastBodyBlock?: boolean
   /** Additional sigils to exclude from card content (e.g., column-level sigils) */
@@ -190,7 +264,7 @@ const Card = React.memo(
     colIndex,
     cardIndex,
     isBodyColumn,
-    isPrevBodyBlock,
+    leadingGap = 0,
     isLastBodyBlock,
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
@@ -384,25 +458,19 @@ const Card = React.memo(
           // owns the cursor) reads as one continuous surface.
           width={width}
           userSelect="none"
-          // Leading blank row: applied only when the previous sibling is NOT
-          // a body block (column header, structural card, or first-in-column).
-          // Rationale:
-          //   - prev is a structural card with a visible border → its bottom
-          //     border already delimits; a paddingTop row separates the
-          //     borderless body block cleanly below it.
-          //   - prev is the column header → the header's own separator line
-          //     provides delineation, but the extra blank keeps the header
-          //     from crowding the first body paragraph.
-          //   - prev is ALSO a body block → two borderless blocks should
-          //     abut and read as stacked prose. An extra blank row between
-          //     them is phantom whitespace (bead km-tui.body-block-leading-gap).
+          // Leading blank row: driven by the Column's uniform gap contract
+          // (`computeLeadingGap`). The rule is that naked body blocks get a
+          // 1-row gap above them only when the previous sibling is not
+          // itself a naked block — i.e. body→body abuts as stacked prose
+          // (bead km-tui.body-block-leading-gap), but structural→body and
+          // header→body get breathing room.
           //
-          // Because it's padding (inside the Box), when the Box has a
+          // The gap is applied as padding INSIDE the Box (not as a
+          // column-level sibling spacer) so that when the Box has a
           // backgroundColor the gap row fills with it — preserving a
-          // continuous highlight across a cursor/multi-select run. When
-          // there is no leading padding (body→body), the selection bg still
-          // forms a continuous tint because the blocks abut.
-          paddingTop={isPrevBodyBlock ? 0 : 1}
+          // continuous selection highlight across a cursor/multi-select
+          // run.
+          paddingTop={leadingGap}
           backgroundColor={bodyBlockBg}
           {...hoverHandlers}
         >
@@ -601,7 +669,7 @@ const Card = React.memo(
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
-      prev.isPrevBodyBlock === next.isPrevBodyBlock &&
+      prev.leadingGap === next.leadingGap &&
       prev.isLastBodyBlock === next.isLastBodyBlock &&
       prev.extraExcludedSigils === next.extraExcludedSigils &&
       prev.isColumnSelected === next.isColumnSelected &&
@@ -881,20 +949,32 @@ export const Column = React.memo(function Column({
 
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from NodeStore self-subscription.
+  //
+  // The Column computes the per-item gap policy via `computeLeadingGap`
+  // over the frames of the prev+next siblings. The Card receives the gap
+  // as a plain number prop and applies it blindly — it does not reason
+  // about its siblings.
   const renderItem = useCallback(
     (card: KNode, actualIndex: number) => {
       layoutLog.trace?.(
         `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.id)} content=${card.content?.slice(0, 30) ?? "(empty)"}`,
       )
-      // For body blocks: compute neighbor info for layout stability.
-      // Only yield paddingTop when prev is also a body block (not structural).
-      // Last body block before a structural card gets paddingBottom=1.
       const cardIsBody = bodyCardIds.has(card.id)
       const isBody = isVirtual || cardIsBody
       const prevCard = actualIndex > 0 ? cardNodes[actualIndex - 1] : undefined
       const nextCard = actualIndex < cardNodes.length - 1 ? cardNodes[actualIndex + 1] : undefined
-      const isPrevBody = isVirtual || (prevCard ? bodyCardIds.has(prevCard.id) : false)
+      const prevIsBody = isVirtual || (prevCard ? bodyCardIds.has(prevCard.id) : false)
       const isLastBody = isBody && (!nextCard || !(isVirtual || bodyCardIds.has(nextCard.id)))
+
+      // Column's uniform gap contract: classify each sibling into a frame
+      // and let `computeLeadingGap` decide the inter-item spacing. The
+      // first item in the column has `prevFrame = undefined`, which the
+      // rule treats as "bordered above" — giving a naked first item its
+      // 1-row breathing gap below the column header.
+      const prevFrame: CardFrame | undefined = prevCard ? classifyFrame(prevCard, prevIsBody) : undefined
+      const thisFrame: CardFrame = classifyFrame(card, isBody)
+      const leadingGap = computeLeadingGap(prevFrame, thisFrame)
+
       return (
         <Card
           key={`${card.id}-${actualIndex}`}
@@ -904,7 +984,7 @@ export const Column = React.memo(function Column({
           cardIndex={actualIndex}
           isBodyColumn={isVirtual}
           isBodyCard={cardIsBody}
-          isPrevBodyBlock={isPrevBody}
+          leadingGap={leadingGap}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
           isColumnSelected={isColumnSelected}

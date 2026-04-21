@@ -43,12 +43,7 @@ import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
-function blankRowsBetween(
-  app: ReturnType<typeof createTestApp>,
-  prevY: number,
-  prevH: number,
-  nextY: number,
-): number {
+function blankRowsBetween(app: ReturnType<typeof createTestApp>, prevY: number, prevH: number, nextY: number): number {
   let blanks = 0
   for (let y = prevY + prevH; y < nextY; y++) {
     const row = app.screen.row(y)
@@ -61,14 +56,7 @@ describe("column primitive: gap contract between frame pairs", () => {
   test("bordered → bordered: 0 blank rows between content", () => {
     // Two structural cards abut — the card borders self-delimit.
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.file("struct-one", item("child-a")),
-          item.file("struct-two", item("child-b")),
-        ),
-      ),
+      item("board", item("col", item.file("struct-one", item("child-a")), item.file("struct-two", item("child-b")))),
       { cols: 80, rows: 30, viewMode: "cards" },
     )
     // Move cursor off struct-one so its own selection border doesn't perturb gap.
@@ -106,14 +94,7 @@ describe("column primitive: gap contract between frame pairs", () => {
     // the first body block. We assert the column header's separator row
     // leaves exactly 1 blank row before the first body block.
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code("first-body"),
-          item.file("struct-anchor", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code("first-body"), item.file("struct-anchor", item("sc-child")))),
       { cols: 80, rows: 30, viewMode: "cards" },
     )
     app.press("j") // cursor off first body
@@ -221,13 +202,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     using app = createTestApp(
       item(
         "board",
-        item(
-          "col",
-          item.code("alpha"),
-          item.code("beta"),
-          item.code("gamma"),
-          item.file("anchor", item("sc-child")),
-        ),
+        item("col", item.code("alpha"), item.code("beta"), item.code("gamma"), item.file("anchor", item("sc-child"))),
       ),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
@@ -243,14 +218,8 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     expect(anchor).not.toBeNull()
 
     // naked → naked: 0
-    expect(
-      blankRowsBetween(app, alpha!.y, alpha!.height, beta!.y),
-      "alpha→beta (naked→naked)",
-    ).toBe(0)
-    expect(
-      blankRowsBetween(app, beta!.y, beta!.height, gamma!.y),
-      "beta→gamma (naked→naked)",
-    ).toBe(0)
+    expect(blankRowsBetween(app, alpha!.y, alpha!.height, beta!.y), "alpha→beta (naked→naked)").toBe(0)
+    expect(blankRowsBetween(app, beta!.y, beta!.height, gamma!.y), "beta→gamma (naked→naked)").toBe(0)
 
     // naked → bordered (last body block → first structural): ≤ 1
     expect(
@@ -298,10 +267,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     expect(bodyFirst!.y - separatorY - 1, "header→naked").toBe(1)
 
     // naked → naked
-    expect(
-      blankRowsBetween(app, bodyFirst!.y, bodyFirst!.height, bodySecond!.y),
-      "naked→naked",
-    ).toBe(0)
+    expect(blankRowsBetween(app, bodyFirst!.y, bodyFirst!.height, bodySecond!.y), "naked→naked").toBe(0)
 
     // naked → bordered (≤1)
     expect(
@@ -310,12 +276,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     ).toBeLessThanOrEqual(1)
 
     // bordered → bordered (0 between border rows)
-    const gapBB = blankRowsBetween(
-      app,
-      structFirst!.y + structFirst!.height + 1,
-      0,
-      structSecond!.y - 1,
-    )
+    const gapBB = blankRowsBetween(app, structFirst!.y + structFirst!.height + 1, 0, structSecond!.y - 1)
     expect(gapBB, "bordered→bordered").toBe(0)
   })
 
@@ -323,16 +284,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     // Pure-prose column — the @agent.md real-vault shape. Every body block
     // must abut its neighbour; no phantom rows anywhere.
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code("alpha"),
-          item.code("beta"),
-          item.code("gamma"),
-          item.code("delta"),
-        ),
-      ),
+      item("board", item("col", item.code("alpha"), item.code("beta"), item.code("gamma"), item.code("delta"))),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
     app.press("j")
@@ -346,10 +298,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     for (const [idx, next] of boxes.slice(1).entries()) {
       const prev = boxes[idx]!
       const blanks = blankRowsBetween(app, prev.y, prev.height, next.y)
-      expect(
-        blanks,
-        `naked→naked gap between "${ids[idx]}" and "${ids[idx + 1]}": got ${blanks}`,
-      ).toBe(0)
+      expect(blanks, `naked→naked gap between "${ids[idx]}" and "${ids[idx + 1]}": got ${blanks}`).toBe(0)
     }
   })
 
@@ -359,12 +308,7 @@ describe("column primitive: frame interleaving preserves gap contract", () => {
     using app = createTestApp(
       item(
         "board",
-        item(
-          "col",
-          item.file("one", item("c1")),
-          item.file("two", item("c2")),
-          item.file("three", item("c3")),
-        ),
+        item("col", item.file("one", item("c1")), item.file("two", item("c2")), item.file("three", item("c3"))),
       ),
       { cols: 80, rows: 30, viewMode: "cards" },
     )
@@ -436,14 +380,7 @@ describe("column primitive: overflow semantics (two policies, not unified)", () 
     // area.
     const longBody = Array.from({ length: 40 }, (_, i) => `line-${i + 1} — content`).join("\n")
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code(longBody),
-          item.file("anchor-struct", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code(longBody), item.file("anchor-struct", item("sc-child")))),
       { cols: 80, rows: 40, viewMode: "cards" },
     )
     app.press("j") // move cursor off the body block so clamp applies
@@ -463,14 +400,7 @@ describe("column primitive: selection tint continuity across frame boundaries", 
     // card's Box (not as a separate Column-level spacer): padding inherits
     // the Box's bg, a sibling spacer would not.
     using app = createTestApp(
-      item(
-        "board",
-        item(
-          "col",
-          item.code("selected-body"),
-          item.file("struct-anchor", item("sc-child")),
-        ),
-      ),
+      item("board", item("col", item.code("selected-body"), item.file("struct-anchor", item("sc-child")))),
       { cols: 80, rows: 30, viewMode: "cards" },
     )
 
