@@ -1,0 +1,15 @@
+=== phase-a:A4-remount === 2026-04-21T06:50:27.322Z
+[render]   pass=0 open=false query=""
+[mount]    App mounted at pass 0
+[handler]  register scope="board"
+[key]      input="j" ctrl=false escape=false return=false leftArrow=false rightArrow=false backspace=false shift=false eventType=undefined
+[render]   pass=0 open=false query=""
+[unmount]  App unmounted at pass 0
+[handler]  dispose scope="board"
+[render]   pass=1 open=false query=""
+[mount]    App mounted at pass 1
+[handler]  register scope="board"
+[key]      input="j" ctrl=false escape=false return=false leftArrow=false rightArrow=false backspace=false shift=false eventType=undefined
+[render]   pass=1 open=false query=""
+[unmount]  App unmounted at pass 1
+[handler]  dispose scope="board"

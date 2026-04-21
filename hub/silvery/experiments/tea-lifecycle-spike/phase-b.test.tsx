@@ -91,7 +91,12 @@ function createStore<T extends object>(initializer: (set: VanillaStore<T>["setSt
   }
 }
 import type { Term } from "@silvery/ag-term/ansi/term"
-import { run, type RunHandle } from "@silvery/ag-term/runtime"
+import { run } from "@silvery/ag-term/runtime"
+// RunHandle is deliberately not re-exported from the runtime barrel
+// (see runtime/index.ts). Derive it from run()'s return type — hub/
+// is outside vendor/silvery so a relative path into packages/ won't
+// work here (see the same comment in phase-a.test.tsx).
+type RunHandle = Awaited<ReturnType<typeof run>>
 
 import { App } from "./App.tsx"
 import { get as getCounters, resetCounters } from "./lifecycle-counters.ts"

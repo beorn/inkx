@@ -106,7 +106,7 @@ export function App({ pass = 0, useStore, actions }: AppProps): React.ReactEleme
   const storeState = useStore?.()
   const [localOpen, setLocalOpen] = useState(false)
   const [localQuery, setLocalQuery] = useState("")
-  const [localCursor, setLocalCursor] = useState<string>(NODES[0])
+  const [localCursor, setLocalCursor] = useState<string>(NODES[0]!)
   const open = storeState ? storeState.open : localOpen
   const query = storeState ? storeState.query : localQuery
   const cursor = storeState ? storeState.cursor : localCursor
@@ -176,7 +176,10 @@ export function App({ pass = 0, useStore, actions }: AppProps): React.ReactEleme
     } else {
       setLocalCursor((c) => {
         const idx = NODES.indexOf(c as (typeof NODES)[number])
-        return NODES[Math.min(NODES.length - 1, idx + 1)]
+        // The bang is safe: idx is at least 0 (indexOf returns -1 -> 0 after
+        // Math.min(.length-1, -1+1) = 0), and NODES has 5 entries so any
+        // index 0..NODES.length-1 is defined.
+        return NODES[Math.min(NODES.length - 1, idx + 1)]!
       })
     }
   }, [actions])

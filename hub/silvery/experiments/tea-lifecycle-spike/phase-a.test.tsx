@@ -51,7 +51,13 @@ import React from "react"
 import { afterEach, describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import type { Term } from "@silvery/ag-term/ansi/term"
-import { run, type RunHandle } from "@silvery/ag-term/runtime"
+import { run } from "@silvery/ag-term/runtime"
+// RunHandle is deliberately not re-exported from the runtime barrel
+// (see runtime/index.ts); silvery's own tests import it via a relative
+// path into packages/ag-term/src/runtime/run.tsx. Since hub/ is not
+// inside vendor/silvery, we derive the type from the return of run()
+// itself instead of chasing a subpath that isn't in the export map.
+type RunHandle = Awaited<ReturnType<typeof run>>
 
 import { App } from "./App.tsx"
 import { get as getCounters, resetCounters } from "./lifecycle-counters.ts"
