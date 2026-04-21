@@ -80,8 +80,8 @@ describe("km-tui.uncollapse-header", () => {
     app.command("toggle_collapse")
 
     // Card content should be visible
-    app.expectScreen("task-x")
-    app.expectScreen("task-y")
+    expect(app).toContainText("task-x")
+    expect(app).toContainText("task-y")
 
     // Find the separator and card rows
     const colBox = app.screen.nodeBox("Col1")
@@ -117,7 +117,7 @@ describe("km-tui.uncollapse-header", () => {
     expect(app.q("[data-collapsed]").count()).toBe(0)
 
     // Header should be visible
-    app.expectScreen("Left")
+    expect(app).toContainText("Left")
 
     // Navigate down to first card
     app.command("cursor_down")
@@ -234,7 +234,7 @@ describe("card visibility and structural borders", () => {
 
     // card-5 is now selected and should have [data-cursor]
     app.expect("#card-5[data-cursor]").toExist()
-    app.expectScreen("card-5")
+    expect(app).toContainText("card-5")
   })
 
   test("structural cards always have borders regardless of selection", () => {
@@ -283,8 +283,8 @@ describe("uncollapse header edge cases", () => {
     }
 
     // Header should still be visible after many cycles
-    app.expectScreen("Cycle")
-    app.expectScreen("c1")
+    expect(app).toContainText("Cycle")
+    expect(app).toContainText("c1")
   })
 
   test("uncollapse column after manual collapse shows header", () => {
@@ -304,7 +304,7 @@ describe("uncollapse header edge cases", () => {
     app.command("toggle_collapse")
 
     // Header should be visible after uncollapse
-    app.expectScreen("ColToCollapse")
+    expect(app).toContainText("ColToCollapse")
   })
 })
 

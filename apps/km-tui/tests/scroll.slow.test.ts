@@ -334,7 +334,7 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
     // Should now be on e1
     app.expect("#e1[data-cursor]").toExist()
     // col-e should be visible
-    app.expectScreen("e1")
+    expect(app).toContainText("e1")
 
     // Navigate up to column header
     app.press("k")
@@ -372,8 +372,8 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
     app.press("j")
 
     // First column should be visible (it already was)
-    app.expectScreen("a1")
-    app.expectScreen("a2")
+    expect(app).toContainText("a1")
+    expect(app).toContainText("a2")
   })
 
   test("j from board header after visiting far column via h/l", () => {
@@ -608,7 +608,7 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 1: Cursor starts on first card
     app.expect("#task-0[data-cursor]").toExist()
-    app.expectScreen("task-0")
+    expect(app).toContainText("task-0")
 
     // Step 2: Navigate down past visible area
     for (let i = 0; i < 8; i++) {
@@ -617,14 +617,14 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 3: Cursor should be visible on task-8
     app.expect("#task-8[data-cursor]").toExist()
-    app.expectScreen("task-8")
+    expect(app).toContainText("task-8")
 
     // Step 4: Continue to the last task
     for (let i = 8; i < 11; i++) {
       app.command("cursor_down")
     }
     app.expect("#task-11[data-cursor]").toExist()
-    app.expectScreen("task-11")
+    expect(app).toContainText("task-11")
   })
 
   test("navigate to bottom then back to top, first card becomes visible again", async () => {
@@ -639,14 +639,14 @@ describe("Vertical Scroll Journeys", () => {
       app.command("cursor_down")
     }
     app.expect("#item-9[data-cursor]").toExist()
-    app.expectScreen("item-9")
+    expect(app).toContainText("item-9")
 
     // Step 2: Navigate back to top
     for (let i = 0; i < 9; i++) {
       app.command("cursor_up")
     }
     app.expect("#item-0[data-cursor]").toExist()
-    app.expectScreen("item-0")
+    expect(app).toContainText("item-0")
   })
 
   test("scroll at top boundary: k on first card stays put", () => {
@@ -663,8 +663,8 @@ describe("Vertical Scroll Journeys", () => {
 
     // Cursor should move to column header (standard nav behavior), not crash
     // Verify the screen is still rendering correctly
-    app.expectScreen("first")
-    app.expectScreen("second")
+    expect(app).toContainText("first")
+    expect(app).toContainText("second")
   })
 
   test("scroll at bottom boundary: j on last card stays put", () => {
@@ -681,7 +681,7 @@ describe("Vertical Scroll Journeys", () => {
     // Step 2: j on last card — should stay on last card
     app.command("cursor_down")
     app.expect("#gamma[data-cursor]").toExist()
-    app.expectScreen("gamma")
+    expect(app).toContainText("gamma")
   })
 })
 
@@ -710,7 +710,7 @@ describe("Horizontal Scroll Journeys", () => {
     app.expect("#d1[data-cursor]").toExist()
 
     // Step 3: col4 should be visible
-    app.expectScreen("d1")
+    expect(app).toContainText("d1")
 
     // Step 4: Navigate all the way back to col1
     app.command("cursor_left")
@@ -719,7 +719,7 @@ describe("Horizontal Scroll Journeys", () => {
     app.expect("#a1[data-cursor]").toExist()
 
     // Step 5: col1 should be visible again
-    app.expectScreen("a1")
+    expect(app).toContainText("a1")
   })
 
   test("horizontal scroll indicators appear and disappear correctly", () => {
@@ -770,12 +770,12 @@ describe("Horizontal Scroll Journeys", () => {
       app.command("cursor_down")
     }
     app.expect("#deep-8[data-cursor]").toExist()
-    app.expectScreen("deep-8")
+    expect(app).toContainText("deep-8")
 
     // Step 3: Navigate back left — should scroll horizontally
     app.command("cursor_left")
     app.expect("#b1[data-cursor]").toExist()
-    app.expectScreen("b1")
+    expect(app).toContainText("b1")
   })
 })
 
@@ -796,7 +796,7 @@ describe("Scroll + View Mode Journeys", () => {
     app.expect("#row-11[data-cursor]").toExist()
 
     // Step 2: The scrolled card should be visible
-    app.expectScreen("row-11")
+    expect(app).toContainText("row-11")
   })
 
   test("scroll in list view preserves cursor visibility", () => {

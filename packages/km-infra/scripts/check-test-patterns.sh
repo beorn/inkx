@@ -35,10 +35,12 @@ fi
 
 # --- Baseline guard: app.expectScreen — deprecated in favor of matchers ---
 # Canonical replacement: expect(app).toContainText(text) / .not.toContainText(text)
-# Baseline frozen at 2026-04-20 (km-all.test-system.plateau-enforcement).
-# Migrate existing callsites and lower the baseline as you go.
-# To lower: run the check, read the new count, update BASELINE_EXPECT_SCREEN.
-BASELINE_EXPECT_SCREEN=166
+# Baseline drained from 166 → 2 in km-all.test-system.plateau-enforcement
+# (2026-04-20). The remaining 2 callsites are in visual.test.ts, which
+# intentionally exercises the deprecated API as regression coverage until
+# it is removed. To fully retire the API: delete expectScreen from test-app.ts,
+# drop the visual.test.ts coverage, and set BASELINE_EXPECT_SCREEN=0.
+BASELINE_EXPECT_SCREEN=2
 HITS=$(grep -rn "\bapp\.expectScreen\b\|\bapp\.expectScreenNot\b" apps/km-tui/tests/ \
   --include="*.ts" --include="*.tsx" \
   | grep -v "helpers/" | grep -v "node_modules" | wc -l | tr -d ' ')

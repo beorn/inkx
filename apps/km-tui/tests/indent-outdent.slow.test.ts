@@ -674,7 +674,7 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     expect(app.repo.getNode("task2")?.parent_id).toBe("task1")
 
     // Visual: task2 must still be visible as a child of task1
-    app.expectScreen("task2")
+    expect(app).toContainText("task2")
   })
 
   test("indented node visible when previous sibling has no children", () => {
@@ -684,7 +684,7 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     app.command("indent_node") // Indent B under A
 
     expect(app.repo.getNode("B")?.parent_id).toBe("A")
-    app.expectScreen("B")
+    expect(app).toContainText("B")
   })
 
   test("all sibling items remain visible after indent", () => {
@@ -693,9 +693,9 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     app.command("cursor_down") // Move to second
     app.command("indent_node") // Indent second under first
 
-    app.expectScreen("first")
-    app.expectScreen("second")
-    app.expectScreen("third")
+    expect(app).toContainText("first")
+    expect(app).toContainText("second")
+    expect(app).toContainText("third")
   })
 
   test("cursor is visible after indent", () => {
@@ -722,12 +722,12 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     app.command("cursor_down")
     app.command("cursor_down") // → C
     app.command("indent_node")
-    app.expectScreen("C")
+    expect(app).toContainText("C")
 
     // Indent B (with C as child) under A
     app.command("indent_node")
-    app.expectScreen("A")
-    app.expectScreen("B")
+    expect(app).toContainText("A")
+    expect(app).toContainText("B")
   })
 })
 

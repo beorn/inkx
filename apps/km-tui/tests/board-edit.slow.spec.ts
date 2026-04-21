@@ -1100,7 +1100,7 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     app.press("Escape")
 
     // Text should be on screen
-    app.expectScreen("hello world")
+    expect(app).toContainText("hello world")
 
     // Text should be in repo
     const children = app.repo.getChildren("col")
@@ -1122,7 +1122,7 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     app.press("Enter")
 
     // "nodeA" should be visible (saved before creating B)
-    app.expectScreen("nodeA")
+    expect(app).toContainText("nodeA")
 
     // Verify in repo
     const children = app.repo.getChildren("col")
@@ -1153,7 +1153,7 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     app.press("Escape")
 
     // Verify text is saved and displayed
-    app.expectScreen("new text")
+    expect(app).toContainText("new text")
     expect(app.text).not.toContain("(untitled section)")
 
     // Verify in repo
@@ -1180,9 +1180,9 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     for (const c of "third") app.press(c)
     app.press("Escape") // save C
 
-    app.expectScreen("first")
-    app.expectScreen("second")
-    app.expectScreen("third")
+    expect(app).toContainText("first")
+    expect(app).toContainText("second")
+    expect(app).toContainText("third")
   })
 
   // === Scenario 4: extractProps data inheritance ===
@@ -1204,7 +1204,7 @@ describe("Regression: edit-save-repro — Enter + type + Enter/Escape saves text
     app.press("Escape")
 
     // The new node should show "New Text", not "Old Name"
-    app.expectScreen("New Text")
+    expect(app).toContainText("New Text")
 
     // Check that the new node's data.name is NOT inherited from task1
     const children = app.repo.getChildren("col")

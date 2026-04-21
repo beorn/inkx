@@ -165,6 +165,8 @@ expect(app.q("#col1")).toHaveHeight(10)
 
 // --- TestApp matchers (on the app object) ---
 
+expect(app).toContainText("Buy milk") // screen-wide text (replaces app.expectScreen)
+expect(app).not.toContainText("nope") // replaces app.expectScreenNot
 expect(app).toHaveCursorOn("task1") // cursor is on this node
 expect(app).toHaveSelection(["task1"]) // exact selection set (includes cursor)
 expect(app).toHaveView("cards") // current view mode
@@ -173,6 +175,11 @@ expect(app).toHaveOverlay("search") // search overlay open
 expect(app).toHaveBell() // bell fired at least once
 expect(app).toHaveNodeCount(5) // number of visible nodes
 ```
+
+**`app.expectScreen(text)` is deprecated** — use `expect(app).toContainText(text)` instead.
+The legacy helpers `app.expectScreen` / `app.expectScreenNot` are retained for backward
+compatibility only and are guarded by `check-test-patterns.sh` (baseline = 2; no new
+callsites permitted).
 
 **Note**: `toHaveCursorOn` (not `toHaveCursor`) to avoid collision with `@termless/test/matchers` which defines `toHaveCursor` for terminal cursor position. Selection includes the cursor node by default.
 
@@ -520,10 +527,13 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 `test:ci` runs `packages/km-infra/scripts/check-test-patterns.sh` after lint but before test execution. It enforces:
 
-- **No `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
-- **No `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
+- **Hard ban: `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
+- **Baseline guard: `app.expectScreen`** / `app.expectScreenNot` — deprecated; use `expect(app).toContainText(text)` / `.not.toContainText(text)`. Baseline = 2. New callsites fail CI.
+- **Baseline guard: `.spec.ts` file count** — journey tests only. Baseline = 24. New `.spec.ts` files fail CI (use `.test.ts` for internal tests).
+- **Warn: `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
 
 Pattern violations fail CI. To check locally: `bash packages/km-infra/scripts/check-test-patterns.sh`.
+When you migrate callsites and lower a baseline, update the constant in the script to lock in the progress.
 
 ## Termless TTY Regression Tests
 

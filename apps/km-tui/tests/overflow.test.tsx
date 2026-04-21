@@ -70,9 +70,9 @@ describe("child count on subitems", () => {
     )
 
     // The card should render "Parent" as a subitem inside Card1
-    app.expectScreen("Parent")
+    expect(app).toContainText("Parent")
     // Children are visible as FoldedChildRow entries
-    app.expectScreen("child-a")
+    expect(app).toContainText("child-a")
     // Child count should NOT appear on the Parent line (children are visible)
     const lines = app.text.split("\n")
     const parentLine = lines.find((l) => l.includes("Parent"))
@@ -197,11 +197,11 @@ describe("overflow indicator on cards", () => {
     )
 
     // First 3 children should be visible
-    app.expectScreen("sub-1")
-    app.expectScreen("sub-2")
-    app.expectScreen("sub-3")
+    expect(app).toContainText("sub-1")
+    expect(app).toContainText("sub-2")
+    expect(app).toContainText("sub-3")
     // Overflow indicator should show +2
-    app.expectScreen("+2")
+    expect(app).toContainText("+2")
   })
 
   test("after zoom, cards with many children show overflow indicator", () => {

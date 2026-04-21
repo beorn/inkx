@@ -25,14 +25,14 @@ describe("vd (toggle_hide_done)", () => {
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Both tasks visible initially
-    app.expectScreen("todoTask")
-    app.expectScreen("doneTask")
+    expect(app).toContainText("todoTask")
+    expect(app).toContainText("doneTask")
 
     // Press vd to hide done tasks
     app.command("toggle_hide_done")
 
-    app.expectScreen("todoTask")
-    app.expectScreenNot("doneTask")
+    expect(app).toContainText("todoTask")
+    expect(app).not.toContainText("doneTask")
   })
 
   test("vd hides done embed cards (tag/assignee view — card-level filter)", () => {
@@ -147,13 +147,13 @@ describe("vd (toggle_hide_done)", () => {
       checkIncremental: false,
     })
 
-    app.expectScreen("Todo source task")
-    app.expectScreen("Done source task")
+    expect(app).toContainText("Todo source task")
+    expect(app).toContainText("Done source task")
 
     app.command("toggle_hide_done")
 
-    app.expectScreen("Todo source task")
-    app.expectScreenNot("Done source task")
+    expect(app).toContainText("Todo source task")
+    expect(app).not.toContainText("Done source task")
   })
 
   test("vd hides done embed children within a card (tree-node-level filter)", () => {
@@ -284,15 +284,15 @@ describe("vd (toggle_hide_done)", () => {
     })
 
     // Both children visible initially
-    app.expectScreen("Todo child task")
-    app.expectScreen("Done child task")
+    expect(app).toContainText("Todo child task")
+    expect(app).toContainText("Done child task")
 
     app.command("toggle_hide_done")
 
     // Todo embed child should remain
-    app.expectScreen("Todo child task")
+    expect(app).toContainText("Todo child task")
     // Done embed child should be hidden (its source is done)
-    app.expectScreenNot("Done child task")
+    expect(app).not.toContainText("Done child task")
   })
 
   test("vd toggles back to show all tasks", () => {
@@ -303,10 +303,10 @@ describe("vd (toggle_hide_done)", () => {
     using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     app.command("toggle_hide_done")
-    app.expectScreenNot("doneTask")
+    expect(app).not.toContainText("doneTask")
 
     app.command("toggle_hide_done")
-    app.expectScreen("todoTask")
-    app.expectScreen("doneTask")
+    expect(app).toContainText("todoTask")
+    expect(app).toContainText("doneTask")
   })
 })

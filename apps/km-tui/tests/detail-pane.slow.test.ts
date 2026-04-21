@@ -1792,7 +1792,7 @@ describe("Detail Pane Journeys", () => {
     app.command("toggle_detail_pane")
     app.expect("#main-detail").toExist()
     app.expect("#main-detail[data-focused]").toExist()
-    app.expectScreen("Buy milk")
+    expect(app).toContainText("Buy milk")
 
     // Step 2: Close detail pane with D (from detail pane)
     app.command("toggle_detail_pane")
@@ -1808,16 +1808,16 @@ describe("Detail Pane Journeys", () => {
     // Step 1: Open detail pane — auto-focuses detail, shows task1
     app.command("toggle_detail_pane")
     app.expect("#main-detail").toExist()
-    app.expectScreen("task1")
+    expect(app).toContainText("task1")
 
     // Step 2: Return to board, navigate down to task2 — detail should follow
     app.command("cursor_left")
     app.command("cursor_down")
-    app.expectScreen("task2")
+    expect(app).toContainText("task2")
 
     // Step 3: Navigate down to task3 — detail should follow
     app.command("cursor_down")
-    app.expectScreen("task3")
+    expect(app).toContainText("task3")
   })
 
   test("detail pane shows folder children when cursor is on folder card", () => {
@@ -1927,7 +1927,7 @@ describe("Detail Pane Journeys", () => {
 
     // Step 4: Type to edit the title — the text should appear on screen
     for (const c of "-ok") app.press(c)
-    app.expectScreen("child-a-ok")
+    expect(app).toContainText("child-a-ok")
 
     // Step 5: Escape to confirm edit
     app.press("Escape")
@@ -1971,7 +1971,7 @@ describe("Detail Pane Journeys", () => {
     app.press("i")
     // Type to verify we're in edit mode (cursor starts at end, so ! appends)
     app.press("!")
-    app.expectScreen("child-a!")
+    expect(app).toContainText("child-a!")
     app.press("Escape")
   })
 
@@ -1996,13 +1996,13 @@ describe("Detail Pane Journeys", () => {
     app.expect("#child-a[data-cursor]").toExist()
 
     // gc-1 is visible at depth 1, but ggc-1/ggc-2 are folded (depth exceeded)
-    app.expectScreen("gc-1")
+    expect(app).toContainText("gc-1")
 
     // Step 2: Unfold child-a with L (Shift+L) — should reveal ggc-1, ggc-2
     app.command("unfold_more")
 
     // After unfold, deeper descendants should be visible
-    app.expectScreen("ggc-1")
+    expect(app).toContainText("ggc-1")
   })
 
   test("H folds a child in detail pane, hiding its sub-children", () => {
@@ -2016,14 +2016,14 @@ describe("Detail Pane Journeys", () => {
     app.expect("#main-detail[data-focused]").toExist()
 
     // gc-1 and gc-2 are visible at DETAIL_DEFAULT_DEPTH=1
-    app.expectScreen("gc-1")
+    expect(app).toContainText("gc-1")
 
     // Step 2: Fold child-a — gc-1/gc-2 should disappear from detail
     app.command("fold_more")
 
     // Step 3: Unfold — should restore
     app.command("unfold_more")
-    app.expectScreen("gc-1")
+    expect(app).toContainText("gc-1")
   })
 
   // =========================================================================
@@ -2042,8 +2042,8 @@ describe("Detail Pane Journeys", () => {
 
     // DETAIL_DEFAULT_DEPTH=1: child-a shows gc-1 (1 level), but gc-1's children
     // (ggc-1) should be folded. The detail pane should NOT show ggc-1 initially.
-    app.expectScreen("gc-1")
-    app.expectScreenNot("ggc-1")
+    expect(app).toContainText("gc-1")
+    expect(app).not.toContainText("ggc-1")
   })
 
   test("detail pane stays open when navigating between columns", () => {
@@ -2065,17 +2065,17 @@ describe("Detail Pane Journeys", () => {
     // Step 2: Navigate right to col2
     app.command("cursor_right")
     app.expect("#main-detail").toExist()
-    app.expectScreen("task-b")
+    expect(app).toContainText("task-b")
 
     // Step 3: Navigate right to col3
     app.command("cursor_right")
     app.expect("#main-detail").toExist()
-    app.expectScreen("task-c")
+    expect(app).toContainText("task-c")
 
     // Step 4: Navigate left back to col2
     app.command("cursor_left")
     app.expect("#main-detail").toExist()
-    app.expectScreen("task-b")
+    expect(app).toContainText("task-b")
   })
 
   // =========================================================================
@@ -2100,8 +2100,8 @@ describe("Detail Pane Journeys", () => {
     app.expect('[data-view="card"][data-card-id="child-b"]').toExist()
 
     // Step 3: Children should still be visible on screen
-    app.expectScreen("child-a")
-    app.expectScreen("child-b")
+    expect(app).toContainText("child-a")
+    expect(app).toContainText("child-b")
   })
 })
 

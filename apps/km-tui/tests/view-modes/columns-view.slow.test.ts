@@ -86,7 +86,7 @@ describe("Columns View", () => {
 
     test("empty board shows helpful message", () => {
       using app = createTestApp(item("board"), COLUMNS_OPTS)
-      app.expectScreen("Empty board")
+      expect(app).toContainText("Empty board")
     })
   })
 

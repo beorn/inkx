@@ -162,7 +162,7 @@ describe("Filter dialog", () => {
     )
 
     // Initially no filter panel
-    app.expectScreenNot("View Settings")
+    expect(app).not.toContainText("View Settings")
 
     // Open filter panel
     app.command("filter")
@@ -177,22 +177,22 @@ describe("Filter dialog", () => {
     app.command("filter")
 
     // Status is row 0 (first row) — cursor starts there
-    app.expectScreen("Status")
+    expect(app).toContainText("Status")
 
     // Navigate down to Priority
     app.command("cursor_down")
-    app.expectScreen("Priority")
+    expect(app).toContainText("Priority")
 
     // Navigate further down to Due
     app.command("cursor_down")
-    app.expectScreen("Due")
+    expect(app).toContainText("Due")
 
     // Navigate back up
     app.command("cursor_up")
-    app.expectScreen("Priority")
+    expect(app).toContainText("Priority")
 
     app.command("cursor_up")
-    app.expectScreen("Status")
+    expect(app).toContainText("Status")
   })
 
   test("Space toggles filter value on/off", () => {
@@ -206,11 +206,11 @@ describe("Filter dialog", () => {
 
     // Toggle todo on
     app.command("select_toggle")
-    app.expectScreen("✓ todo")
+    expect(app).toContainText("✓ todo")
 
     // Toggle todo off
     app.command("select_toggle")
-    app.expectScreen("□ todo")
+    expect(app).toContainText("□ todo")
   })
 
   test("h/l navigates between values within a filter row", () => {
@@ -222,7 +222,7 @@ describe("Filter dialog", () => {
     // Move right to wip
     app.command("cursor_right")
     app.command("select_toggle") // toggle wip on
-    app.expectScreen("✓ wip")
+    expect(app).toContainText("✓ wip")
 
     // Move left back to todo
     app.command("cursor_left")
@@ -241,8 +241,8 @@ describe("Filter dialog", () => {
     app.command("select_toggle") // todo on
     app.command("cursor_right")
     app.command("select_toggle") // wip on
-    app.expectScreen("✓ todo")
-    app.expectScreen("✓ wip")
+    expect(app).toContainText("✓ todo")
+    expect(app).toContainText("✓ wip")
 
     // Clear all
     app.command("cycle_task_status")
@@ -259,16 +259,16 @@ describe("Filter dialog", () => {
     // Open filter — Status is row 0, toggle todo
     app.command("filter")
     app.command("select_toggle") // toggle todo on
-    app.expectScreen("✓ todo")
+    expect(app).toContainText("✓ todo")
 
     // Close with Escape
     app.press("Escape")
 
     // Filter panel should be closed
-    app.expectScreenNot("View Settings")
+    expect(app).not.toContainText("View Settings")
 
     // Filter indicator should show in top bar (filter is still active)
-    app.expectScreen("[F]")
+    expect(app).toContainText("[F]")
   })
 
   test("V toggles filter panel (open then close)", () => {
@@ -276,11 +276,11 @@ describe("Filter dialog", () => {
 
     // Open
     app.command("filter")
-    app.expectScreen("View Settings")
+    expect(app).toContainText("View Settings")
 
     // Close with V again
     app.command("filter")
-    app.expectScreenNot("View Settings")
+    expect(app).not.toContainText("View Settings")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
@@ -291,11 +291,11 @@ describe("Filter dialog", () => {
 
     // Enter toggles the current value
     app.press("Enter")
-    app.expectScreen("✓ todo")
+    expect(app).toContainText("✓ todo")
 
     // Enter toggles it back off
     app.press("Enter")
-    app.expectScreen("□ todo")
+    expect(app).toContainText("□ todo")
   })
 })
 
@@ -312,7 +312,7 @@ describe("Help overlay", () => {
     expect(app.state.overlay).toBe("help")
 
     // Help content should be visible on screen
-    app.expectScreen("NAVIGATION")
+    expect(app).toContainText("NAVIGATION")
   })
 
   test("Escape closes help overlay", () => {
@@ -638,14 +638,14 @@ describe("Filter + navigation interaction", () => {
     // Open filter — Status is row 0, toggle todo
     app.command("filter")
     app.command("select_toggle") // toggle todo on
-    app.expectScreen("✓ todo")
+    expect(app).toContainText("✓ todo")
 
     // Close
     app.press("Escape")
 
     // Reopen and verify state persisted
     app.command("filter")
-    app.expectScreen("✓ todo")
+    expect(app).toContainText("✓ todo")
 
     app.press("Escape")
   })

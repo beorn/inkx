@@ -10,7 +10,7 @@
  * navigation state changes, plus onError logging for future diagnosis.
  */
 
-import { describe, test } from "vitest"
+import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
@@ -33,11 +33,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expectScreen("DETAIL VIEW")
+    expect(app).toContainText("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expectScreenNot("DETAIL VIEW")
+    expect(app).not.toContainText("DETAIL VIEW")
 
     // Navigate — this should NOT throw or show error
     app.command("cursor_down")
@@ -46,8 +46,8 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("cursor_left")
 
     // The board should render without error
-    app.expectScreenNot("Error loading cards view")
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading cards view")
+    expect(app).not.toContainText("Error loading")
   })
 
   test("zoom → detail pane → Escape close → navigate does not crash", () => {
@@ -68,11 +68,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expectScreen("DETAIL VIEW")
+    expect(app).toContainText("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expectScreenNot("DETAIL VIEW")
+    expect(app).not.toContainText("DETAIL VIEW")
 
     // Navigate — should not crash
     app.command("cursor_down")
@@ -80,8 +80,8 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("cursor_left")
     app.command("cursor_up")
 
-    app.expectScreenNot("Error loading cards view")
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading cards view")
+    expect(app).not.toContainText("Error loading")
   })
 
   test("zoom in → zoom back with Z → no error", () => {
@@ -101,8 +101,8 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("cursor_right")
     app.command("cursor_left")
 
-    app.expectScreenNot("Error loading cards view")
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading cards view")
+    expect(app).not.toContainText("Error loading")
   })
 
   test("zoom + detail pane cycle with many columns does not crash", () => {
@@ -125,11 +125,11 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
 
     // Open detail pane
     app.command("toggle_detail_pane")
-    app.expectScreen("DETAIL VIEW")
+    expect(app).toContainText("DETAIL VIEW")
 
     // Close detail pane
     app.command("toggle_detail_pane")
-    app.expectScreenNot("DETAIL VIEW")
+    expect(app).not.toContainText("DETAIL VIEW")
 
     // Navigate extensively — stress the ErrorBoundary recovery
     app.command("cursor_down")
@@ -141,8 +141,8 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("cursor_left")
     app.command("cursor_down")
 
-    app.expectScreenNot("Error loading cards view")
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading cards view")
+    expect(app).not.toContainText("Error loading")
   })
 
   test("multiple zoom + detail pane cycles do not accumulate errors", () => {
@@ -162,7 +162,7 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("toggle_detail_pane") // close detail
     app.command("cursor_down")
 
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading")
 
     // Navigate to a different column
     app.command("cursor_right")
@@ -173,6 +173,6 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     app.command("cursor_down")
     app.command("cursor_right")
 
-    app.expectScreenNot("Error loading")
+    expect(app).not.toContainText("Error loading")
   })
 })

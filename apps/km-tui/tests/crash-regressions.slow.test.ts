@@ -25,7 +25,7 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
     )
 
     // Cursor should be on first card
-    app.expectScreen("Task A")
+    expect(app).toContainText("Task A")
 
     // Press gC to ignore node — should not throw
     let threw = false
@@ -55,7 +55,7 @@ describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render
-    app.expectScreen("col1")
+    expect(app).toContainText("col1")
   })
 })
 
@@ -248,7 +248,7 @@ describe("stale-cursor-after-delete-all", () => {
     app.command("cursor_right")
 
     // C should be visible and cursor should be on it
-    app.expectScreen("C")
+    expect(app).toContainText("C")
   })
 })
 
@@ -264,7 +264,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     )
 
     // Verify board renders
-    app.expectScreen("Task A")
+    expect(app).toContainText("Task A")
 
     // Split pane: vs (creates empty pane, focus stays on board pane)
     let threw = false
@@ -285,7 +285,7 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     expect(threw).toBe(false)
 
     // Board should still be usable — close was prevented since it's the last board pane
-    app.expectScreen("Task A")
+    expect(app).toContainText("Task A")
   })
 
   test("split, focus empty pane, close empty pane works", async () => {
@@ -316,6 +316,6 @@ describe("Pane close crash (km-tui.pane-close-crash)", () => {
     expect(threw).toBe(false)
 
     // Board should return to single-pane mode with content
-    app.expectScreen("Task A")
+    expect(app).toContainText("Task A")
   })
 })

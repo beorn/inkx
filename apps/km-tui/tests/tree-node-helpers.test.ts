@@ -165,7 +165,7 @@ describe("implicit task rendering", () => {
 
     using app = createTestApp(nodes)
     // Date badge should show "Aug 15" (far future date avoids relative display)
-    app.expectScreen("Aug 15")
+    expect(app).toContainText("Aug 15")
   })
 
   it("node with priority shows priority badge", () => {
@@ -175,7 +175,7 @@ describe("implicit task rendering", () => {
     taskNode.item = { ...taskNode.item, task: undefined }
 
     using app = createTestApp(nodes)
-    app.expectScreen("P2")
+    expect(app).toContainText("P2")
   })
 
   it("node with only due_at does NOT show task icon (not a task)", () => {
@@ -186,14 +186,14 @@ describe("implicit task rendering", () => {
 
     using app = createTestApp(nodes)
     // No task icon — due_at alone doesn't make it a task
-    app.expectScreenNot("\u25A1")
+    expect(app).not.toContainText("\u25A1")
   })
 
   it("plain node without task properties has no task icon", () => {
     const nodes = item("board", item("col", item.p("plain text")))
     using app = createTestApp(nodes)
     // Should NOT have the \u25A1 task icon
-    app.expectScreenNot("\u25A1")
+    expect(app).not.toContainText("\u25A1")
   })
 
   it("node with assigned_to shows assignee in columns view", () => {
@@ -205,7 +205,7 @@ describe("implicit task rendering", () => {
     // Use columns view where assignee is shown inline (cards view only shows board pill dots)
     // shortName("beorn") → "B", so displays as "@B"
     using app = createTestApp(nodes, { viewMode: "columns" })
-    app.expectScreen("@B")
+    expect(app).toContainText("@B")
   })
 })
 
@@ -220,8 +220,8 @@ describe("short-names integration", () => {
     taskNode.assigned_to = "bjorn-stabell"
 
     using app = createTestApp(nodes, { viewMode: "columns" })
-    app.expectScreen("@BS")
-    app.expectScreenNot("bjorn-stabell")
+    expect(app).toContainText("@BS")
+    expect(app).not.toContainText("bjorn-stabell")
   })
 
   it("single-word assignee shows first letter", () => {
@@ -230,7 +230,7 @@ describe("short-names integration", () => {
     taskNode.assigned_to = "alice"
 
     using app = createTestApp(nodes, { viewMode: "columns" })
-    app.expectScreen("@A")
+    expect(app).toContainText("@A")
   })
 })
 
@@ -338,7 +338,7 @@ describe("body paragraph rendering", () => {
     const nodes = item("board", item("Column", item("card-1", item.p("dimmed body"), item("normal-item"))))
     using app = createTestApp(nodes)
     // Both should be visible
-    app.expectScreen("dimmed body")
-    app.expectScreen("normal-item")
+    expect(app).toContainText("dimmed body")
+    expect(app).toContainText("normal-item")
   })
 })

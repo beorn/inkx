@@ -775,8 +775,8 @@ describe("Merged from board-nav.slow.spec.ts", () => {
 
       app.press("Enter")
 
-      app.expectScreen("INSERT")
-      app.expectScreen("child-2")
+      expect(app).toContainText("INSERT")
+      expect(app).toContainText("child-2")
     })
 
     test("clicking each child in a card selects the correct one (hitTest)", () => {
@@ -1221,14 +1221,14 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
       const status = app.getStatus()
       expect(status?.level).toBe("warning")
       expect(status?.message).toContain("Can't move")
-      app.expectScreen("Can't move")
+      expect(app).toContainText("Can't move")
 
       app.command("cursor_up")
       app.expect("#1a[data-cursor]").toExist()
       expect(app.bell).toBe(false)
       expect(app.hasStatus).toBe(false)
       expect(app.getStatus()).toBeNull()
-      app.expectScreenNot("Can't move")
+      expect(app).not.toContainText("Can't move")
     })
 
     test("h boundary status clears after pressing j", () => {
@@ -1241,13 +1241,13 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
       expect(app.bell).toBe(true)
       expect(app.hasStatus).toBe(true)
       expect(app.getStatus()?.message).toContain("Can't move")
-      app.expectScreen("Can't move")
+      expect(app).toContainText("Can't move")
 
       app.command("cursor_down")
       app.expect("#1a[data-cursor]").toExist()
       expect(app.bell).toBe(false)
       expect(app.hasStatus).toBe(false)
-      app.expectScreenNot("Can't move")
+      expect(app).not.toContainText("Can't move")
     })
 
     test("status clears after l, h, j, k sequence", () => {
@@ -1258,26 +1258,26 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
 
       app.command("cursor_right")
       expect(app.bell).toBe(true)
-      app.expectScreen("Can't move")
+      expect(app).toContainText("Can't move")
 
       app.command("cursor_left")
       expect(app.bell).toBe(false)
-      app.expectScreenNot("Can't move")
+      expect(app).not.toContainText("Can't move")
 
       app.command("cursor_left")
       expect(app.bell).toBe(false)
 
       app.command("cursor_left")
       expect(app.bell).toBe(true)
-      app.expectScreen("Can't move")
+      expect(app).toContainText("Can't move")
 
       app.command("cursor_down")
       expect(app.bell).toBe(false)
-      app.expectScreenNot("Can't move")
+      expect(app).not.toContainText("Can't move")
 
       app.command("cursor_up")
       expect(app.bell).toBe(false)
-      app.expectScreenNot("Can't move")
+      expect(app).not.toContainText("Can't move")
     })
 
     test("navigation across multiple columns works correctly", () => {
@@ -1416,7 +1416,7 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
       app.command("cursor_right")
       app.command("cursor_down")
 
-      app.expectScreen("col2")
+      expect(app).toContainText("col2")
     })
 
     test("can navigate to any card using hjkl", () => {
@@ -1656,7 +1656,7 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
       app.expect("#1b[data-cursor]").toExist()
 
       app.command("zoom_inwards")
-      app.expectScreen("sub2")
+      expect(app).toContainText("sub2")
     })
 
     test("z zoom into third card shows its children", () => {
@@ -1668,7 +1668,7 @@ describe("Merged from keyboard-navigation.slow.test.tsx", () => {
       app.expect("#1c[data-cursor]").toExist()
 
       app.command("zoom_inwards")
-      app.expectScreen("sub3")
+      expect(app).toContainText("sub3")
     })
   })
 })
@@ -3197,7 +3197,7 @@ describe("Merged from cursor-prefetch.test.ts", () => {
       })
 
       app.expect("#1a[data-cursor]").toExist()
-      app.expectScreen("1a")
+      expect(app).toContainText("1a")
 
       act(() => {
         app.repo.touch()
@@ -3209,9 +3209,9 @@ describe("Merged from cursor-prefetch.test.ts", () => {
 
       app.press("")
 
-      app.expectScreen("1a")
-      app.expectScreen("1b")
-      app.expectScreen("2a")
+      expect(app).toContainText("1a")
+      expect(app).toContainText("1b")
+      expect(app).toContainText("2a")
     })
 
     test("touch() between navigation steps doesn't break cursor", () => {
@@ -3239,8 +3239,8 @@ describe("Merged from cursor-prefetch.test.ts", () => {
       })
       app.press("")
 
-      app.expectScreen("col1")
-      app.expectScreen("col2")
+      expect(app).toContainText("col1")
+      expect(app).toContainText("col2")
     })
 
     test("rapid touch() with no actual data changes preserves rendering", () => {
@@ -3249,9 +3249,9 @@ describe("Merged from cursor-prefetch.test.ts", () => {
         rows: 20,
       })
 
-      app.expectScreen("task-1")
-      app.expectScreen("task-2")
-      app.expectScreen("task-3")
+      expect(app).toContainText("task-1")
+      expect(app).toContainText("task-2")
+      expect(app).toContainText("task-3")
 
       act(() => {
         for (let i = 0; i < 10; i++) {
@@ -3260,9 +3260,9 @@ describe("Merged from cursor-prefetch.test.ts", () => {
       })
       app.press("")
 
-      app.expectScreen("task-1")
-      app.expectScreen("task-2")
-      app.expectScreen("task-3")
+      expect(app).toContainText("task-1")
+      expect(app).toContainText("task-2")
+      expect(app).toContainText("task-3")
     })
 
     test("touch() during horizontal navigation doesn't cause rendering issues", () => {
@@ -3280,8 +3280,8 @@ describe("Merged from cursor-prefetch.test.ts", () => {
       app.command("cursor_right")
       app.expect("#3a[data-cursor]").toExist()
 
-      app.expectScreen("col2")
-      app.expectScreen("col3")
+      expect(app).toContainText("col2")
+      expect(app).toContainText("col3")
     })
   })
 })

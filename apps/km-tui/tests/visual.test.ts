@@ -71,7 +71,13 @@ describe("visual toolbelt: screen access", () => {
 // =============================================================================
 
 describe("visual toolbelt: assertions", () => {
-  test("expectScreen/expectScreenNot check content", () => {
+  test("toContainText matcher checks screen content (canonical)", () => {
+    using app = createTestApp(item("board", item("col1", item("task1"))))
+    expect(app).toContainText("task1")
+    expect(app).not.toContainText("nonexistent")
+  })
+
+  test("expectScreen/expectScreenNot check content (deprecated — prefer toContainText)", () => {
     using app = createTestApp(item("board", item("col1", item("task1"))))
     app.expectScreen("task1")
     app.expectScreenNot("nonexistent")
@@ -310,7 +316,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     // Use Tab to expand the card outline so children are visible
     app.command("indent_node")
 
-    app.expectScreen("child1")
+    expect(app).toContainText("child1")
 
     const childBox = app.screen.nodeBox("child1")
     expect(childBox, "child1 should have a nodeBox").not.toBeNull()
