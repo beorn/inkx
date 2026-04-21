@@ -8,7 +8,9 @@ Last revised: 2026-04-21 (after dual-pro critique + user pushback on frontmatter
 
 ## 1. Truth model
 
-**Markdown files are authoritative for all user content.** SQLite, `changes.jsonl`, and every in-memory store are derived and rebuildable from `.md`. Session-local state (selection, fold, workspace layout, undo) lives in separate session storage (§5.3).
+**FS is truth. DB is a derived cache. Internal ULIDs are join keys, not identity.**
+
+Not "peers that sync" (that would require CRDT-style merge, rejected per §9). Not "DB is truth" (would require writing IDs into `.md`, rejected per no-metadata-injection). Process of elimination: FS wins when they disagree.
 
 **Non-negotiables**:
 - Obsidian interop preserved (wiki-links, block anchors, headings, tags)
@@ -16,6 +18,41 @@ Last revised: 2026-04-21 (after dual-pro critique + user pushback on frontmatter
 - Plain text portability is a hard guarantee; git history stays clean of km-generated noise
 
 **Tagline**: "If you can't read it with `cat`, km doesn't claim it. And km doesn't put anything in there either."
+
+### 1.1 The load-bearing invariant
+
+**Every DB column must be computable from (FS content + optional session.db).** If a column can't be derived from the FS, it's either a bug or a scope expansion that needs explicit justification.
+
+Consequences:
+- `km doctor rebuild` deletes `.km/state.db` and reconstructs from a fresh FS crawl. **No user-visible data loss** beyond session state.
+- Internal ULIDs (`KNode.id`) get freshly minted on rebuild. No external reference uses them, so no breakage crosses the FS boundary.
+- Backlinks, FTS, anchor index, structural metadata — all derived. Rebuild is deterministic from content.
+
+### 1.2 What "identity" means at each layer
+
+| Domain | Truth source | Identity form | Failure mode of a mistake |
+|---|---|---|---|
+| **External** (links users type, Obsidian sees, git tracks) | FS | paths + `.name` strings | Broken link — visible to user, user-fixable |
+| **FS→DB sync** (rename detection, dupe handling) | FS wins | path primary, content-hash fallback | Wrong ULID attributed internally — cosmetic, self-healing on next scan |
+| **Internal** (queries, joins, session references) | DB | ULIDs (stable within a DB lifetime) | Wrong join or lost session — cosmetic; session rebuild fixes |
+
+The "identity" users care about (`[[foo]]`, `@inbox`, `^rec`) lives entirely in the FS domain. ULIDs never leak out.
+
+### 1.3 Session state is durably-best-effort
+
+`~/.km/session.db` (§5.3) stores undo, workspace layout, last-opened. It references NodeIds where it's pragmatic, paths where it's safe. On `km doctor rebuild`:
+- entries whose NodeIds no longer resolve are silently pruned
+- path-anchored entries keep working
+- user-visible cost: cosmetic (cursor-was-here lost, recently-opened list shorter)
+
+Session state is **not authoritative**. It's a fast-path for convenience. FS is always the floor.
+
+### 1.4 Reopen triggers
+
+Revisit "FS is truth" only if:
+- Multi-device concurrent editing becomes shipping-required → forces peer-sync semantics → CRDT reopens
+- Markdown fidelity corpus shows irrecoverable round-trip loss → forces DB-authoritative for some subset
+- Plain-text portability axiom is explicitly negotiated away → all bets off
 
 ---
 
