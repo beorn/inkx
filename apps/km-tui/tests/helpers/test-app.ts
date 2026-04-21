@@ -54,6 +54,8 @@ import { StoreProvider } from "../../src/state/store-context.tsx"
 import { setLogLevel, getLogLevel } from "loggily"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { resetDialogGuard } from "../../src/dialog-guard.ts"
+import { resetHelpStore } from "../../src/plugins/with-help-overlay.ts"
+import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
 import { getChordState, type ViewMode } from "@km/commands"
 import { parseMarkdownToNodes } from "@km/markdown"
 import { hasDetailPaneFor } from "../../src/board/board-types.ts"
@@ -972,6 +974,9 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
   getChordState().cancel()
   resetDialogGuard()
   resetBoardAppState()
+  // Plugin singletons — leak across tests under isolate:false without these.
+  resetHelpStore()
+  resetSearchStore()
 
   const boardRootId = nodes[0]!.id
   const repo = createFakeRepo({ nodes })

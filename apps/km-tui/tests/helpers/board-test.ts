@@ -74,6 +74,8 @@ import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { getChordState } from "@km/commands"
 import { resetDialogGuard, installDialogGuard } from "../../src/dialog-guard.ts"
+import { resetHelpStore } from "../../src/plugins/with-help-overlay.ts"
+import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
 import { ServicesProvider } from "../../src/services-context.tsx"
 import {
@@ -539,6 +541,9 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   getChordState().cancel()
   resetDialogGuard()
   resetBoardAppState()
+  // Plugin singletons — leak across tests under isolate:false without these.
+  resetHelpStore()
+  resetSearchStore()
 
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
@@ -2002,6 +2007,8 @@ export function renderBoardWithStore(
   getChordState().cancel()
   resetDialogGuard()
   resetBoardAppState()
+  resetHelpStore()
+  resetSearchStore()
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,

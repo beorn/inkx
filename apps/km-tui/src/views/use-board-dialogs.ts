@@ -15,6 +15,7 @@ import { activeEditTargetRef } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigation/navigate-to-node.ts"
 import { dispatchSelection, nodeSelect } from "../state/selection.ts"
+import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
 
 const log = createLogger("km:tui:dialogs")
 
@@ -101,11 +102,18 @@ export function useBoardDialogs({
       log.debug?.(
         `search select: id=${targetNode.id.slice(-8)} type=${targetNode.type} rootId=${rootId?.slice(-8) ?? "null"}`,
       )
+      // Phase 1 cutover: dual-write plugin.hide alongside every setUI that closes
+      // the search dialog. Keeps plugin state in lockstep with ui.showSearchDialog
+      // without introducing reducer-side sync-render ordering bugs.
+      const dispatchPluginHide = (): void => {
+        if (isTeaSearchEnabled()) getSearchStore().dispatch({ type: "search.hide" })
+      }
       const target = repo.getNode(targetNode.id)
       if (!target) {
         const errMsg = `search: node not found in repo: ${targetNode.id}`
         log.error?.(errMsg)
         setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
+        dispatchPluginHide()
         return
       }
 
@@ -119,10 +127,12 @@ export function useBoardDialogs({
       const nav = navigateToNode(target.id, rootId, repo)
       if (!nav) {
         setUI(closeDialog)
+        dispatchPluginHide()
         return
       }
 
       setUI(closeDialog)
+      dispatchPluginHide()
 
       if (nav.action === "SELECT") {
         // Target is already visible (child/grandchild of root, or IS the root)
@@ -151,6 +161,8 @@ export function useBoardDialogs({
 
   const handleSearchCancel = useCallback(() => {
     setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
+    // Phase 1 cutover: dual-write plugin.hide alongside legacy setUI.
+    if (isTeaSearchEnabled()) getSearchStore().dispatch({ type: "search.hide" })
   }, [setUI])
 
   // Filter: apply sets filter text, cancel closes dialog without changing filter
