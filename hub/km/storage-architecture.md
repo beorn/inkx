@@ -20,16 +20,29 @@ Everything that follows (truth model, identity, recovery cascade, adapter archit
 
 ### 1.0 What km actually guarantees
 
-km's write path parses any `.md` file to an AST, mutates the AST, then serializes back. This means:
-- **Structural/semantic fidelity is preserved** — headings, list items, links, anchors, tags, frontmatter values round-trip losslessly through the AST
-- **Byte-level formatting is NOT preserved** — km normalizes list markers, frontmatter key order, whitespace, blank-line counts, etc. The file after a km-write is not byte-identical to what vim would produce
-- **Markdown-expressiveness ceiling** — every user-facing data point must fit in markdown grammar. No features that require a non-markdown storage format to exist (or they're session-state-ephemeral, never canonical content).
+km's write path parses any `.md` file to an AST, mutates the AST, then serializes back. The AST is intentionally a **curated subset of markdown** — it covers what Obsidian-typical vaults use, not the full universe of markdown.
 
-What this means practically:
+What round-trips losslessly (within the AST's coverage):
+- Headings, paragraphs, lists (incl. nested + task lists)
+- Wiki-links (`[[note]]`, `[[note#heading]]`, `[[note^anchor]]`), regular links, images
+- Frontmatter YAML (values preserved; key order is normalized, not preserved)
+- Tags (`#tag`, `@sigil`)
+- Block anchors (`^abc`)
+- Code blocks (fenced + inline), emphasis, blockquotes, horizontal rules, tables
+
+What does NOT round-trip cleanly:
+- Exotic markdown extensions (Pandoc footnotes, definition lists, custom attribute syntax)
+- Plugin-specific syntax km doesn't know about (Dataview queries, math rendering, callouts without a first-class form)
+- Raw embedded HTML in non-trivial forms
+- Byte-level formatting choices (whitespace, list marker selection, blank-line counts, frontmatter key order) — normalized by AST serialization
+
+**What this means practically**:
 - `cat foo.md` shows human-readable, Obsidian-compatible markdown — always
 - External tools (grep, git, vim, Obsidian, LSP) work — always
-- km's formatting is km-normalized (deterministic AST serialization); user's custom formatting choices are lost on first km-write
-- Feature design is constrained: if a data point can't be represented in markdown syntax, km doesn't ship it as user-facing content
+- The user's custom formatting and edge-case-markdown choices are lost on first km-write; known syntax round-trips fine
+- Feature design is constrained by **the AST's coverage**, not by markdown's full grammar. If a feature needs syntax the AST doesn't understand, either (a) extend the AST, or (b) store it as DB-only state (never serialized to `.md`).
+
+The practical rule: **"supports most of markdown"** — tuned for Obsidian-typical usage. Edge-case fidelity is a cost the user accepts in exchange for km's structural understanding of the vault.
 
 ### 1.1 FS-truth is a choice about implementation, not fidelity
 
