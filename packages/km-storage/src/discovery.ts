@@ -33,6 +33,7 @@ import {
   createNullCollapseParseMatcher,
   type CollapseParseMatcher,
 } from "./markdown/collapse-parse.ts"
+import { extractLinks, type ExtractedLink } from "./markdown/extract-links.ts"
 
 const log = createLogger("km:storage:discovery")
 
@@ -75,6 +76,16 @@ export interface DiscoveryOptions {
   collapseMatcher?: CollapseParseMatcher
 }
 
+/**
+ * Regex-extracted outgoing link edges for a single collapsed file.
+ * Paired with the host node's id so the loader can write them after the
+ * parent stub has been applied.
+ */
+export interface CollapsedExtraction {
+  hostId: string
+  extracted: ExtractedLink[]
+}
+
 /** Result from discoverFiles */
 export interface DiscoveryResult {
   changes: Change[]
@@ -83,6 +94,12 @@ export interface DiscoveryResult {
   deferredFiles?: DeferredFile[]
   /** Directories that were not explored due to depth limit */
   unexploredDirs?: UnexploredDir[]
+  /**
+   * Link edges extracted from collapsed files — one entry per collapsed stub
+   * that was encountered during the walk. Empty when collapseParse is disabled
+   * or no files matched.
+   */
+  collapsedExtractions?: CollapsedExtraction[]
 }
 
 // ============================================================================
@@ -117,6 +134,7 @@ export function* discoverFiles(
   const pendingLinks: PendingLink[] = []
   const deferredFiles: DeferredFile[] = []
   const unexploredDirs: UnexploredDir[] = []
+  const collapsedExtractions: CollapsedExtraction[] = []
   const now = Date.now()
   const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const siblingOrders = readSiblingOrder(repoRoot)
@@ -167,6 +185,7 @@ export function* discoverFiles(
   const result: DiscoveryResult =
     parseMode === "stub" ? { changes, pendingLinks: [], deferredFiles } : { changes, pendingLinks }
   if (unexploredDirs.length > 0) result.unexploredDirs = unexploredDirs
+  if (collapsedExtractions.length > 0) result.collapsedExtractions = collapsedExtractions
   return result
 
   /**
@@ -341,6 +360,12 @@ export function* discoverFiles(
     // force a stub that stays unparsed until the user navigates into it.
     // The stub looks identical to a normal `parseMode: "stub"` entry but
     // carries `_collapsed: true` so the loader re-queue path skips it.
+    //
+    // Even though the file stays opaque, we run a lightweight regex pass
+    // over its content to extract outgoing link edges. This preserves the
+    // backlink graph — targets keep seeing backlinks from the collapsed
+    // sources without having to fully parse them. See
+    // `markdown/extract-links.ts` and `db/collapsed-file-links.ts`.
     const relPath = toRelativeFsPath(repoRoot, fullPath)
     const isCollapsed = collapseMatcher.matches(relPath)
 
@@ -388,11 +413,36 @@ export function* discoverFiles(
     // by `km view <path>` when the target is a `_stub: true` node).
     if (!isCollapsed) {
       deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
+    } else if (!isTxt) {
+      // Collapsed markdown: regex-extract outgoing links so the backlink
+      // graph stays intact. Plaintext (.txt) files don't get link extraction;
+      // the parser (parsePlainTextToNodes) doesn't emit links either.
+      tryExtractCollapsedLinks(fullPath, fileId)
     }
 
     current++
     if (current % 100 === 0) {
       yield { current, total }
+    }
+  }
+
+  // --- Lightweight link extraction for a collapsed file ---
+  // Reads the file and runs the regex pass. Logs and swallows errors so a
+  // single malformed file can't abort discovery.
+  function tryExtractCollapsedLinks(fullPath: string, hostId: string): void {
+    try {
+      const content = readFileSync(fullPath, "utf-8")
+      const extracted = extractLinks(content)
+      if (extracted.length > 0) {
+        collapsedExtractions.push({ hostId, extracted })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({
+        phase: "parse",
+        path: fullPath,
+        message: `collapse-parse link extraction failed: ${message}`,
+      })
     }
   }
 

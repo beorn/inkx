@@ -30,7 +30,11 @@ import { INSERT_NODE_SQL } from "../db/insert.ts"
 import { decomposeChangeItem } from "../item-helpers.ts"
 
 // Import extracted modules
-import { discoverFiles, type UnexploredDir } from "../discovery.ts"
+import { discoverFiles, type UnexploredDir, type CollapsedExtraction } from "../discovery.ts"
+import {
+  addCollapsedFileLinks,
+  removeCollapsedFileLinks,
+} from "../db/collapsed-file-links.ts"
 import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import {
   parseDeferredAsync as parseDeferredAsyncImpl,
@@ -42,6 +46,7 @@ import {
   createNullCollapseParseMatcher,
   type CollapseParseMatcher,
 } from "../markdown/collapse-parse.ts"
+import { extractLinks } from "../markdown/extract-links.ts"
 import { getCollapseParseConfig } from "../config.ts"
 
 const log = createLogger("km:storage:repo-loader")
@@ -220,13 +225,20 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 4. Shared pipeline (normalizes parent_id: null → ".")
   yield* applyChanges(db, source.changes, errors, repoRoot)
 
-  // 4a. Disk mode: reconcile filesystem to detect externally added/removed files
+  // 4a. Persist collapsed-file link edges. These target stub nodes that were
+  // just inserted by applyChanges, so we do this after the main pipeline to
+  // avoid foreign-key-like ordering issues (no actual FK, but the host must
+  // exist for the rows to make sense).
+  writeCollapsedExtractions(db, source.collapsedExtractions)
+
+  // 4b. Disk mode: reconcile filesystem to detect externally added/removed files
   let reconcileDeferredFiles: DeferredFile[] = []
   if (mode === "disk") {
     const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
     if (reconcileResult.changes.length > 0) {
       yield* applyChanges(db, reconcileResult.changes, errors, repoRoot)
     }
+    writeCollapsedExtractions(db, reconcileResult.collapsedExtractions)
     reconcileDeferredFiles = reconcileResult.deferredFiles
   }
 
@@ -366,6 +378,11 @@ interface ChangeSource {
   pendingLinks: PendingLink[]
   deferredFiles?: DeferredFile[]
   unexploredDirs?: UnexploredDir[]
+  /**
+   * Link edges extracted from collapsed files. Written to
+   * `collapsed_file_links` after the stub nodes have been applied.
+   */
+  collapsedExtractions?: CollapsedExtraction[]
 }
 
 // ============================================================================
@@ -489,6 +506,33 @@ function resolveCollapseMatcher(
   const { patterns } = getCollapseParseConfig(repoRoot)
   if (patterns.length === 0) return createNullCollapseParseMatcher()
   return createCollapseParseMatcher(patterns)
+}
+
+/**
+ * Persist regex-extracted link edges for collapsed files. Delete-then-insert
+ * per host so reruns idempotently refresh the rows. Runs inside a single
+ * transaction for atomicity with the preceding applyChanges commit.
+ *
+ * No-op when collapsedExtractions is empty/absent (the common case when
+ * collapseParse is disabled).
+ */
+function writeCollapsedExtractions(
+  db: Database,
+  extractions: readonly CollapsedExtraction[] | undefined,
+): void {
+  if (!extractions || extractions.length === 0) return
+  const now = Date.now()
+  db.run("BEGIN IMMEDIATE")
+  try {
+    for (const { hostId, extracted } of extractions) {
+      removeCollapsedFileLinks(db, hostId)
+      addCollapsedFileLinks(db, hostId, extracted, now)
+    }
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
 }
 
 // ============================================================================
@@ -637,6 +681,7 @@ function* discoverFromChanges(
 interface ReconcileResult {
   changes: Change[]
   deferredFiles: DeferredFile[]
+  collapsedExtractions: CollapsedExtraction[]
 }
 
 function* reconcileFilesystem(
@@ -649,6 +694,7 @@ function* reconcileFilesystem(
 
   const changes: Change[] = []
   const deferredFiles: DeferredFile[] = []
+  const collapsedExtractions: CollapsedExtraction[] = []
   const now = Date.now()
   const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const siblingOrders = readSiblingOrder(repoRoot)
@@ -664,7 +710,7 @@ function* reconcileFilesystem(
   if (dbRows.some((row) => isAbsolute(row.fs_path))) {
     log.debug?.("reconcileFilesystem: skipping — DB contains absolute fs_path values")
     yield { current: 0, total: 0 }
-    return { changes, deferredFiles }
+    return { changes, deferredFiles, collapsedExtractions }
   }
 
   const dbPathSet = new Set<string>()
@@ -683,7 +729,7 @@ function* reconcileFilesystem(
   } catch {
     errors.push({ phase: "discover", message: `Cannot resolve repo root: ${repoRoot}` })
     yield { current: 0, total: 0 }
-    return { changes, deferredFiles }
+    return { changes, deferredFiles, collapsedExtractions }
   }
 
   const visitedDirs = new Set<string>([repoRealpath])
@@ -866,6 +912,24 @@ function* reconcileFilesystem(
       // Collapsed stubs stay unparsed until the user navigates in.
       if (!isCollapsed) {
         deferredFiles.push({ nodeId, fsPath: fullPath })
+      } else if (!isTxt) {
+        // Even though the file stays opaque, extract its outgoing link
+        // edges so the backlink graph stays intact. Mirrors the same
+        // handling in `discoverFiles` for memory-mode loads.
+        try {
+          const rawContent = readFileSync(fullPath, "utf-8")
+          const extracted = extractLinks(rawContent)
+          if (extracted.length > 0) {
+            collapsedExtractions.push({ hostId: nodeId, extracted })
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err)
+          errors.push({
+            phase: "parse",
+            path: fullPath,
+            message: `collapse-parse link extraction failed: ${message}`,
+          })
+        }
       }
     } else {
       // Non-markdown file
@@ -903,11 +967,11 @@ function* reconcileFilesystem(
   }
 
   log.debug?.(
-    `reconcileFilesystem: ${changes.length} changes, ${deferredFiles.length} deferred (fs=${fsPathSet.size} db=${dbPathSet.size})`,
+    `reconcileFilesystem: ${changes.length} changes, ${deferredFiles.length} deferred, ${collapsedExtractions.length} collapsed-link extractions (fs=${fsPathSet.size} db=${dbPathSet.size})`,
   )
   yield { current: changes.length, total: changes.length }
 
-  return { changes, deferredFiles }
+  return { changes, deferredFiles, collapsedExtractions }
 }
 
 // ============================================================================

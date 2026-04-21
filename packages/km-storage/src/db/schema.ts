@@ -200,6 +200,47 @@ CREATE TABLE IF NOT EXISTS sync_state (
   last_seen_mtime_ns INTEGER,
   dirty INTEGER NOT NULL DEFAULT 0
 );
+
+-- Collapsed-file link edges.
+--
+-- Files matched by collapseParse.patterns stay as opaque stubs (no children
+-- parsed into the nodes tree), but we still want their outgoing links to
+-- appear as backlinks on their targets. This table caches a lightweight
+-- regex extraction of link edges for each collapsed file.
+--
+-- Columns mirror the canonical links table so the backlink query can
+-- UNION over both without schema-specific branching:
+--   host_id : the collapsed files node id (same role as in links)
+--   href    : canonical, parsed target locator (km:Note, #Section, https URL)
+--   rel     : link | embed
+--
+-- Additional fields carry enough context for future UI (see snippet back-nav
+-- from a target to a collapsed source):
+--   target_path    : authored target text (before normalize)
+--   target_heading : section anchor or caret blockid, without the hash
+--   link_text      : display text (alias, anchor text)
+--   link_type      : wiki | md | mention | tag -- which notation
+--   source_offset  : byte offset into the file content
+--   created_at     : insertion timestamp (ms)
+--
+-- Invalidation: delete-then-insert per host_id (same protocol as links).
+--   - File mtime changed during reconciliation -> re-extract.
+--   - File promoted out of collapse-parse (parseStubFile) -> DELETE rows so
+--     the parsed-node links table becomes the sole edge source.
+CREATE TABLE IF NOT EXISTS collapsed_file_links (
+  host_id        TEXT NOT NULL,
+  href           TEXT NOT NULL,
+  rel            TEXT NOT NULL,
+  target_path    TEXT NOT NULL,
+  target_heading TEXT,
+  link_text      TEXT,
+  link_type      TEXT NOT NULL,
+  source_offset  INTEGER,
+  created_at     INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cfl_host ON collapsed_file_links(host_id);
+CREATE INDEX IF NOT EXISTS idx_cfl_href ON collapsed_file_links(href);
 `
 
 /**
