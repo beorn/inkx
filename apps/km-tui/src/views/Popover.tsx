@@ -151,8 +151,6 @@ export function computePointPosition(
 interface PopoverStoreState {
   content: PopoverContent | null
   anchor: PopoverAnchor | null
-  /** True when mouse is inside the popover box */
-  popoverHovered: boolean
   show(content: PopoverContent, anchor: PopoverAnchor): void
   update(content: PopoverContent): void
   hide(): void
@@ -185,15 +183,9 @@ function createPopoverStore() {
   return createSignalStore<PopoverStoreState>((set, get) => ({
     content: null,
     anchor: null,
-    popoverHovered: false,
 
     show(content, anchor) {
       clearHide()
-
-      // Mouse is inside the popover and this is a link-hover (lines, no render callback):
-      // suppress to prevent links inside the popover from replacing the node detail.
-      // Card hovers (with render callback) are always allowed through.
-      if (get().popoverHovered && !content.render) return
 
       // Already visible → debounced swap to coalesce rapid mouse movement.
       // Without this, moving the mouse across cards with Cmd held causes each
@@ -202,7 +194,7 @@ function createPopoverStore() {
         clearShow()
         showTimer = setTimeout(() => {
           showTimer = null
-          set({ content, anchor, popoverHovered: false })
+          set({ content, anchor })
         }, SWAP_DELAY)
         return
       }
@@ -231,10 +223,8 @@ function createPopoverStore() {
       if (hideTimer) return // already hiding
       hideTimer = setTimeout(() => {
         hideTimer = null
-        // Re-check: if mouse entered popover during the delay, don't hide
-        if (get().popoverHovered) return
         lastHideTime = Date.now()
-        set({ content: null, anchor: null, popoverHovered: false })
+        set({ content: null, anchor: null })
       }, HIDE_DELAY)
     },
 
@@ -341,12 +331,14 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
         e.stopPropagation()
-        store.setState({ popoverHovered: true })
+        // Silvery's geometry-based hit test correctly fires mouseEnter on
+        // this absolute overlay even when the overlay is outside its
+        // provider's bounding rect. Cancel any pending hide from the card
+        // that was just left (HIDE_DELAY grace window, Tippy.js pattern).
         cancelHide()
       }}
       onMouseLeave={(e: SilveryMouseEvent) => {
         e.stopPropagation()
-        store.setState({ popoverHovered: false })
         hide()
       }}
       onClick={(e: SilveryMouseEvent) => e.stopPropagation()}
