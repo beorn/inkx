@@ -32,6 +32,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 import { captureTree } from "../state/capture-tree.ts"
 import { nodeSelect, textCaret } from "../state/selection.ts"
+import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 
 /**
  * Find the nearest surviving node to `target` in the new tree.
@@ -130,15 +131,18 @@ export function handleDeleteNode(ctx: OpCtx): void {
     if (!firstCard) return
     const title =
       cards.length > 1 ? `${cards.length} selected nodes` : (firstCard.name ?? firstCard.content ?? firstCard.id)
-    ctx.setUI({
-      deleteConfirm: {
-        nodeIds: cards.map((c) => c.id),
-        title,
-        childCount: totalChildCount,
-        backlinkCount: totalBacklinkCount,
-        hasMetadata: anyHasMetadata,
-      },
-    })
+    const payload = {
+      nodeIds: cards.map((c) => c.id),
+      title,
+      childCount: totalChildCount,
+      backlinkCount: totalBacklinkCount,
+      hasMetadata: anyHasMetadata,
+    }
+    ctx.setUI({ deleteConfirm: payload })
+    // Phase 1 cutover: dual-write show to plugin store.
+    if (isTeaDeleteConfirmEnabled()) {
+      getDeleteConfirmStore().dispatch({ type: "deleteConfirm.show", payload })
+    }
     return
   }
 
@@ -187,14 +191,17 @@ function handleDeleteColumn(
     return
   }
 
-  ctx.setUI({
-    deleteConfirm: {
-      nodeIds: [nodeId],
-      title: col.node.name ?? col.node.content ?? nodeId,
-      childCount: totalDescendants,
-      backlinkCount: impact.backlinks.length,
-    },
-  })
+  const payload = {
+    nodeIds: [nodeId],
+    title: col.node.name ?? col.node.content ?? nodeId,
+    childCount: totalDescendants,
+    backlinkCount: impact.backlinks.length,
+  }
+  ctx.setUI({ deleteConfirm: payload })
+  // Phase 1 cutover: dual-write show to plugin store.
+  if (isTeaDeleteConfirmEnabled()) {
+    getDeleteConfirmStore().dispatch({ type: "deleteConfirm.show", payload })
+  }
 }
 
 /**

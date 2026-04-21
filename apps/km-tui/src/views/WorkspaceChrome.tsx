@@ -22,10 +22,10 @@ import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { HelpOverlayBridge } from "../plugins/HelpOverlayBridge.tsx"
 import { SearchDialogBridge } from "../plugins/SearchDialogBridge.tsx"
+import { DeleteConfirmDialogBridge } from "../plugins/DeleteConfirmDialogBridge.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
 import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
-import { ConfirmDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
@@ -127,33 +127,8 @@ function TopRightDialog({
   )
 }
 
-function DeleteConfirmDialogBox({
-  termWidth,
-  contentHeight,
-  deleteConfirm: dc,
-}: {
-  termWidth: number
-  contentHeight: number
-  deleteConfirm: { nodeIds: string[]; title: string; childCount: number; backlinkCount: number; hasMetadata?: boolean }
-}): React.ReactElement {
-  const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
-  const warnings: string[] = []
-  if (dc.childCount > 0) warnings.push(`${dc.childCount} child${dc.childCount !== 1 ? "ren" : ""} will be deleted`)
-  if (dc.backlinkCount > 0) warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
-  if (dc.hasMetadata) warnings.push("Has metadata (frontmatter)")
-  return (
-    <Box
-      position="absolute"
-      marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-      marginTop={Math.floor(contentHeight / 3)}
-      data-dialog="delete-confirm"
-      data-child-count={dc.childCount}
-      data-backlink-count={dc.backlinkCount}
-    >
-      <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
-    </Box>
-  )
-}
+// DeleteConfirmDialogBox was inlined here; its positioning + render is now
+// owned by `plugins/DeleteConfirmDialogBridge.tsx` (Phase 1 TEA cutover).
 
 // =============================================================================
 // Cursor-Aware Dialog Wrappers
@@ -613,10 +588,10 @@ export function WorkspaceChrome({
           />
         </TopRightDialog>
       )}
-      {/* Delete confirmation dialog */}
-      {ui.deleteConfirm && (
-        <DeleteConfirmDialogBox termWidth={termWidth} contentHeight={contentHeight} deleteConfirm={ui.deleteConfirm} />
-      )}
+      {/* Delete confirmation dialog — routed through DeleteConfirmDialogBridge
+          for the KM_TEA_DELETE_CONFIRM=1 cutover. Bridge reads from the plugin
+          store when the flag is on, otherwise from the legacy ui field. */}
+      <DeleteConfirmDialogBridge legacyPayload={ui.deleteConfirm} termWidth={termWidth} contentHeight={contentHeight} />
       {/* Date prompt dialog */}
       {ui.datePrompt && (
         <CenterDialog

@@ -37,6 +37,7 @@ import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts
 import type { PaneUI } from "../state/ui-reducer.ts"
 import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
+import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
@@ -993,6 +994,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
         if (ui.deleteConfirm) {
           opctx.setUI({ deleteConfirm: null })
+          // Phase 1 cutover: dual-write hide to plugin store.
+          if (isTeaDeleteConfirmEnabled()) getDeleteConfirmStore().dispatch({ type: "deleteConfirm.hide" })
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return
         }

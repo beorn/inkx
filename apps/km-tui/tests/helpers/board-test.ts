@@ -76,6 +76,7 @@ import { getChordState } from "@km/commands"
 import { resetDialogGuard, installDialogGuard } from "../../src/dialog-guard.ts"
 import { resetHelpStore } from "../../src/plugins/with-help-overlay.ts"
 import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
+import { resetDeleteConfirmStore } from "../../src/plugins/with-delete-confirm.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
 import { ServicesProvider } from "../../src/services-context.tsx"
 import {
@@ -544,6 +545,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   // Plugin singletons — leak across tests under isolate:false without these.
   resetHelpStore()
   resetSearchStore()
+  resetDeleteConfirmStore()
 
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
@@ -2009,6 +2011,7 @@ export function renderBoardWithStore(
   resetBoardAppState()
   resetHelpStore()
   resetSearchStore()
+  resetDeleteConfirmStore()
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,

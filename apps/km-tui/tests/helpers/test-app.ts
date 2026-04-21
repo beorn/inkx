@@ -56,6 +56,7 @@ import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.t
 import { resetDialogGuard } from "../../src/dialog-guard.ts"
 import { resetHelpStore } from "../../src/plugins/with-help-overlay.ts"
 import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
+import { resetDeleteConfirmStore } from "../../src/plugins/with-delete-confirm.ts"
 import { getChordState, type ViewMode } from "@km/commands"
 import { parseMarkdownToNodes } from "@km/markdown"
 import { hasDetailPaneFor } from "../../src/board/board-types.ts"
@@ -977,6 +978,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
   // Plugin singletons — leak across tests under isolate:false without these.
   resetHelpStore()
   resetSearchStore()
+  resetDeleteConfirmStore()
 
   const boardRootId = nodes[0]!.id
   const repo = createFakeRepo({ nodes })
