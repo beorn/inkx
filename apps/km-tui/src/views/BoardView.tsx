@@ -37,7 +37,7 @@ import { ColumnsView } from "./ColumnsView.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { DetailView } from "./DetailView.tsx"
-import { renderPath } from "../layout/index.ts"
+import { renderPath, clampSegmentLabels } from "../layout/index.ts"
 import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
@@ -130,9 +130,12 @@ function TopBarBreadcrumb({
   segments: PathSegment[]
   boardColor?: string
 }): React.ReactElement {
-  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
+  // Defensive re-clamp: the breadcrumb must always render on a single row. The caller already
+  // clamps before passing segments through renderPath, but this guards any future call site.
+  const clamped = clampSegmentLabels(segments)
+  const firstWithinBoardIdx = clamped.findIndex((s) => s.isWithinBoard)
   const boardRootIdx =
-    firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? segments.length - 1 : 0
+    firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? clamped.length - 1 : 0
 
   return (
     <>
@@ -146,7 +149,7 @@ function TopBarBreadcrumb({
       ) : (
         " "
       )}
-      {segments.map((seg, i) => {
+      {clamped.map((seg, i) => {
         const isBoardRoot = i === boardRootIdx
         const sepEl = seg.sep ? (
           <Text key={`sep-${i}`} dimColor>
@@ -273,10 +276,13 @@ function BoardTopBar({
     rawPathNodeId && (rawPathNodeId.startsWith("__body__") || rawPathNodeId.startsWith("__meta__"))
       ? rootId
       : rawPathNodeId
-  // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
+  // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths.
+  // Clamp multi-line segment labels to a single line — body cards (paragraphs, tasks) can hold multi-line content,
+  // and raw newlines in the breadcrumb break the top bar across multiple rows (km-tui.breadcrumb-multiline-content).
   const filterIndicator = formatFilterIndicator(filterProperties, filterText) ?? undefined
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
-  const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, rootId), termWidth - 4 - reservedWidth)
+  const rawPathSegments = clampSegmentLabels(getPathSegments(repo, pathNodeId, rootId))
+  const selectedPathSegments = renderPath(rawPathSegments, termWidth - 4 - reservedWidth)
 
   const rootNode = rootId ? repo.getNode(rootId) : null
   const boardColor = rootNode

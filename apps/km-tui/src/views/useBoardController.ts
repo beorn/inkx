@@ -33,6 +33,7 @@ import { usePaneId } from "../pane-context.tsx"
 import { computeColumnWidths } from "./board-layout.ts"
 import { usePaneUI, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../state/ui-context.tsx"
 import { getPathSegments } from "./board-top-bar.ts"
+import { clampSegmentLabel } from "../layout/index.ts"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -530,10 +531,12 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   useEffect(() => {
     if (!boardFocused || !cursor) return
     const segments = getPathSegments(repo, cursor, rootId)
-    // Skip the repo root segment (folder icon) and build a plain breadcrumb
+    // Skip the repo root segment (folder icon) and build a plain breadcrumb.
+    // Clamp each segment to a single line — body cards (paragraphs, tasks) can hold multi-line
+    // content, and embedded newlines break OSC 2 window titles.
     const breadcrumb = segments
       .slice(1)
-      .map((seg) => seg.name.trim())
+      .map((seg) => clampSegmentLabel(seg.name).trim())
       .filter(Boolean)
       .join(" > ")
     if (breadcrumb) {

@@ -24,7 +24,14 @@
 export { wrapText, truncateText, padText, constrainText, displayLength, calcScrollOffset } from "./factory.tsx"
 
 // Path rendering (km-ink specific)
-export { renderPath, renderParentPath, calcPathLength, type PathSegment } from "./path.ts"
+export {
+  renderPath,
+  renderParentPath,
+  calcPathLength,
+  clampSegmentLabel,
+  clampSegmentLabels,
+  type PathSegment,
+} from "./path.ts"
 
 // Constraint components and hooks (silvery-bound by default)
 export {

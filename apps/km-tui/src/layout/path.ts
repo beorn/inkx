@@ -27,6 +27,38 @@ export function calcPathLength(segments: PathSegment[]): number {
 }
 
 /**
+ * Clamp a segment label to a single line.
+ *
+ * Body cards (paragraphs, tasks, quotes) can hold multi-line content. When
+ * their content is used verbatim as a breadcrumb segment, embedded `\n`s cause
+ * the top bar to span multiple rows and bleed into the board area. The
+ * breadcrumb must always be a single row, so segment labels must never contain
+ * newlines. If the label is clamped, append an ellipsis so the user can see it
+ * was truncated.
+ */
+export function clampSegmentLabel(name: string): string {
+  const newlineIdx = name.search(/\r\n|\r|\n/)
+  if (newlineIdx === -1) return name
+  const firstLine = name.slice(0, newlineIdx)
+  return firstLine + "\u2026"
+}
+
+/**
+ * Apply {@link clampSegmentLabel} to every segment. Safe to call with an
+ * already-clamped segment list (idempotent).
+ */
+export function clampSegmentLabels(segments: PathSegment[]): PathSegment[] {
+  let changed = false
+  const out = segments.map((seg) => {
+    const clamped = clampSegmentLabel(seg.name)
+    if (clamped === seg.name) return seg
+    changed = true
+    return { ...seg, name: clamped }
+  })
+  return changed ? out : segments
+}
+
+/**
  * Render a path with smart truncation to fit within maxWidth.
  * Truncates from start of within-board segments first, then root path.
  *

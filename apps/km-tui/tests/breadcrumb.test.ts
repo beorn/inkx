@@ -346,6 +346,65 @@ describe("Breadcrumb path when zoomed deep", () => {
 })
 
 // =============================================================================
+// Multi-line body content must not leak into breadcrumb (km-tui.breadcrumb-multiline-content)
+// =============================================================================
+
+describe("Breadcrumb clamps multi-line segment content to first line", () => {
+  // Unit test on the pure helper — fast, deterministic, and completely
+  // independent of render-pipeline quirks (ANSI, hyperlink URLs, stringWidth).
+  test("clampSegmentLabel keeps single-line names unchanged and clamps multi-line with ellipsis", async () => {
+    const { clampSegmentLabel, clampSegmentLabels } = await import("../src/layout/path.ts")
+
+    expect(clampSegmentLabel("single line")).toBe("single line")
+    expect(clampSegmentLabel("")).toBe("")
+    expect(clampSegmentLabel("first\nsecond")).toBe("first\u2026")
+    expect(clampSegmentLabel("first\r\nsecond")).toBe("first\u2026")
+    expect(clampSegmentLabel("first\rsecond")).toBe("first\u2026")
+    expect(clampSegmentLabel("a\nb\nc")).toBe("a\u2026")
+
+    const segs = [
+      { id: null, name: "clean", sep: "", isWithinBoard: false, node: null },
+      { id: "x", name: "multi\nline", sep: ">", isWithinBoard: true, node: null },
+    ]
+    const clamped = clampSegmentLabels(segs)
+    expect(clamped[0]?.name).toBe("clean") // untouched segment preserved
+    expect(clamped[1]?.name).toBe("multi\u2026")
+    // Separator and other fields preserved
+    expect(clamped[1]?.sep).toBe(">")
+    expect(clamped[1]?.isWithinBoard).toBe(true)
+  })
+
+  // Integration test — render a board where cursor lands on a body card whose
+  // content includes newlines. The top bar must stay single-row and must not
+  // leak body-content lines into the board area below.
+  test("breadcrumb does not bleed multi-line body content into the board area", () => {
+    using app = createTestApp.fromMarkdown(
+      "# col\n\nfirst line of body\nsecond line leaks\nthird line leaks\n",
+      { cols: 80, rows: 24 },
+    )
+
+    const lines = app.text.split("\n")
+    const topLine = lines[0] ?? ""
+    const secondLine = lines[1] ?? ""
+    const thirdLine = lines[2] ?? ""
+
+    // First line of the body appears in the breadcrumb (at least partially)
+    expect(topLine).toContain("first line of body")
+    // …but subsequent body lines must never show up in the breadcrumb row
+    expect(topLine).not.toContain("second line leaks")
+    expect(topLine).not.toContain("third line leaks")
+
+    // The rows directly below the top bar are board chrome / card content,
+    // NOT an overflow of the breadcrumb. Body-content fragments must not leak
+    // into them as a consequence of the breadcrumb segment.
+    // (The card body itself renders lower down, so the first few rows after
+    // the top bar should not echo the extra body lines.)
+    expect(secondLine).not.toContain("second line leaks")
+    expect(thirdLine).not.toContain("third line leaks")
+  })
+})
+
+// =============================================================================
 // Multi-line paragraph text bleed (km-silvery.zoom-mismatch)
 // =============================================================================
 
