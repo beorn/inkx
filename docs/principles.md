@@ -55,6 +55,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Match State Lifetime to Component Lifetime](#match-state-lifetime-to-component-lifetime)
   - [Atomic Updates to Coupled State](#atomic-updates-to-coupled-state)
   - [Signal Ownership](#signal-ownership)
+  - [No Parallel Derivation](#no-parallel-derivation)
   - [API Boundaries](#api-boundaries)
   - [Type Safety](#type-safety)
   - [Error Handling](#error-handling)
@@ -1256,6 +1257,28 @@ effect(() => { agNode.selected = sel.selection().has(agNode.id) })
 - [ ] One writer per signal — only the owning store's methods write it / not external `effect()` calls
 - [ ] `computed` over `effect` for cross-store reads — derive, don't sync
 - [ ] Store methods are the boundary — pure logic inside, signal write at the end / not scattered writes
+
+---
+
+### No Parallel Derivation
+
+**The rule**: Two systems must not independently compute the same derived quantity. Either share the source, or enforce runtime equality with a STRICT invariant.
+
+When two subsystems need the same derived value (e.g., "which items are visible in this viewport"), pick one:
+
+1. **SHARE** — one system computes it, the other consumes it via signal / prop / return value. Preferred.
+2. **ENFORCE** — both compute, but a `SILVERY_STRICT` invariant asserts they agree every frame. Use only when sharing costs more than the equality check.
+
+Never: let two systems arrive at the same answer by independent math and hope they agree. Every edge case becomes a silent divergence bug, and patching one pocket just relocates the next one.
+
+**Canonical incident**: `column-top-disappears` — 5 fix rounds before the architectural fix. React `useVirtualizer` (count-space, estimated heights) and ag-term `calculateScrollState` (pixel-space, measured heights) both computed "what's visible" from the same tree. Each fix closed one divergence pocket; the next terminal size × data shape combination opened another. Only unifying them via `layout-signals` eliminated the class. See [lessons/no-parallel-derivation.md](lessons/no-parallel-derivation.md).
+
+**Why**: Two systems computing the same quantity is a false redundancy — it looks defensive but every edge case is a bug. Consolidate or assert.
+
+**Guidelines:**
+- [ ] One derivation per quantity — if two systems need X, one computes and the other consumes
+- [ ] When sharing isn't feasible, add a STRICT invariant asserting equality — not "usually agrees"
+- [ ] Before patching a math bug, check: is this a single-owner bug or a divergence between two owners? If the latter, fix the divergence source, not the math
 
 ---
 
