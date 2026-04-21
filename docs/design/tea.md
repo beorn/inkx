@@ -1,9 +1,11 @@
 # TEA State Machines
 
-> Every interactive subsystem is a pure state machine: `(state, op) → [state, effects]`.
+> Every interactive subsystem's **inner reducer** is a pure state machine: `(state, op) → [state, effects]`.
 
 **Bead:** km-all.tea-machines
 **Status:** Partially implemented (Phase 2a navigation reducer shipped; see [phases.md](phases.md) for roadmap)
+
+> **Scope note (2026-04-21)**: this doc describes the **inner** layer — pure domain reducers. The silvery apply-chain (outer plugin bus) uses a different, complementary signature: `apply(op) → false | Effect[]`. A plugin is typically an outer `apply(op)` wrapper owning a slice of state (via closure over zustand `set`) that optionally calls an inner `(state, op) → [state, effects]` reducer to compute the next slice state. See `km-all.tea-discuss` §3 for the outer contract and the two-layer framing. Earlier text in this doc said the inner signature was universal "no exceptions" — that is correct *for inner domain reducers* but does not describe the outer plugin bus, which has a different contract by design.
 
 ## The Principle
 
@@ -129,7 +131,8 @@ event → command/handler → op → apply(state, op) → [state, effects]
 ## Why This Shape
 
 ```ts
-// The universal signature — every .apply() follows this shape:
+// The inner-reducer signature — every domain reducer's .apply() follows this shape.
+// (The outer plugin bus uses a different signature; see km-all.tea-discuss §3.)
 type Apply<State, Op, Eff> = (state: State, op: Op) → [State, Eff[]]
 ```
 
@@ -334,21 +337,23 @@ km adopts this pattern with ID-based addressing:
 | `TreeOp` | `TreeOp` | Same 8 types, `nodeId` replaces `path` |
 | `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]` |
 
-### `.apply()` — The Universal Verb
+### `.apply()` — The Universal Verb (inner reducer layer)
 
-Every machine uses `.apply()` as the single state transition entry point:
+Every **inner domain machine** uses `.apply()` as the single state transition entry point:
 
 ```ts
 // SlateJS (mutable):
 editor.apply(op)                                  // mutates editor in place
 
-// km (pure, every layer):
+// km inner reducers (pure, every layer):
 PlainText.apply(state, op)  → [PlainTextState, Effect[]]   // character editing
 Tree.apply(tree, op)        → [TreeState, Effect[]]         // document tree
 Board.apply(state, op)      → [BoardState, Effect[]]        // app coordination
 ```
 
-`.apply()` is always a pure function taking exactly two arguments and returning `[newState, effects]`. No exceptions. No extra parameters. Effects are data. The runtime applies them.
+The inner `.apply()` is always a pure function taking exactly two arguments and returning `[newState, effects]`. Effects are data. The runtime applies them.
+
+**Outer plugin bus (different signature by design)**: the silvery apply-chain that wires plugins together uses `apply(op) → false | Effect[]` — slice state is owned privately inside the plugin (via closure over zustand `set`), so it is not threaded through the cross-plugin signature. See `km-all.tea-discuss` §3 and the `@silvery/create/runtime/` substrate for the outer contract. A single plugin typically has an outer `apply(op)` wrapper that internally calls an inner `(state, op) → [state, effects]` reducer to compute next slice state, then returns `Effect[]` (handled) or `false` (delegate to `prev(op)`).
 
 ### ID-Based Addressing (the "++" in SlateJS++)
 

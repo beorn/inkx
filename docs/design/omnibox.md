@@ -975,7 +975,7 @@ Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `I
 Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **km-tui.picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
 
 ### Phase 3 — command-tree projection (TEA shim)
-Build a read-only projection function that returns the `@km/commands` registry as `KNode`-shaped rows. No schema change to `CommandDef` — the projection is pure adapter. The synthetic `commands/` view is computed on demand. When TEA lands, this projection retargets at `app.commands.*` without touching the row renderer. Tests: every registered `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
+Build a read-only projection function that returns the `@km/commands` registry as `KNode`-shaped rows. No schema change to `CommandDef` — the projection is pure adapter. The synthetic `commands/` view is computed on demand. When TEA lands, this projection retargets at the silvery command proxy (canonical spelling `app.cmd.<id>` — formerly referred to as `app.commands.*` in design-era docs) without touching the row renderer. Tests: every registered `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
 
 ### Phase 4 — predicate-function availability
 Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
@@ -1069,9 +1069,9 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 ### Four direct mappings
 
 1. **Commands-as-nodes → projection of the TEA command tree.**
-   TEA already specifies a canonical command tree where every surface projects from `app.commands.*` ([commands.md § "One Command, Every Surface"](../../hub/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
+   TEA already specifies a canonical command tree where every surface projects from the silvery command proxy — canonical spelling `app.cmd.<id>` (a.k.a. `app.commands.*` in design-era docs; same concept) ([commands.md § "One Command, Every Surface"](../../hub/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
    - **Pre-TEA**: project the current `CommandDef` registry (`@km/commands`, 172 entries) into `KNode`-shaped rows.
-   - **Post-TEA**: retarget the projection at `app.commands.*`. Row renderer unchanged; only the source changes.
+   - **Post-TEA**: retarget the projection at the silvery command proxy. Row renderer unchanged; only the source changes.
    The omnibox row renderer doesn't see the difference.
 
 2. **`when`-clause DSL → `when()` + `resolveInvocation()` with signal predicates.**
@@ -1128,7 +1128,7 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 - **km-silvery.focus** — the omnibox is a single focusable component (dialog or pane), not five near-duplicate dialogs, making the focus system's job simpler.
 - **km-silvery.selection-focus-plateau** — 5 fewer components to keep in sync across selection/focus state.
 - **km-tui.tea** — the `OmniboxBaseState` reducer is an obvious TEA machine candidate. **Build the design in the shape TEA wants from day one** (see § TEA alignment above). `open_omnibox` in `withDialogs()` should be renamed `omnibox.open` and moved to a new `withOmnibox()` plugin; `withDialogs()` still provides the overlay slot for the dialog form.
-- **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the `app.commands.*` tree. Validating the omnibox validates those primitives.
+- **km-silvery.tea** — the omnibox is the first non-trivial consumer of `when()`, `resolveInvocation()`, signal-defaulted args, and the silvery command tree (canonical `app.cmd.<id>`; `app.commands.*` in design-era docs). Validating the omnibox validates those primitives.
 - **km-tui.atomic-tree-ops** — the omnibox is the main producer of structural ops that aren't "edit current node" (goto, move, add, create_at, reparent).
 - **km-tui.detail-unify-real** — same shape: unify `detail` pane as a board view-mode rather than a special pane class. The omnibox unification follows the same pattern.
 - **km-all.unified-selection** — the omnibox's selected argument row IS a `NodeSelection`; this design assumes the unified selection type lands first (or is implemented alongside).
