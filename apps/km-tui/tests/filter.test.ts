@@ -1126,16 +1126,7 @@ describe("filter hidden count indicator", () => {
     // indicator appears. The hidden count footer is at the end of scrollable
     // content (not visible when scrolled to top).
     const cards = [
-      item("Fix bug 1"),
-      item("Fix bug 2"),
-      item("Fix bug 3"),
-      item("Fix bug 4"),
-      item("Fix bug 5"),
-      item("Fix bug 6"),
-      item("Fix bug 7"),
-      item("Fix bug 8"),
-      item("Fix bug 9"),
-      item("Fix bug 10"),
+      ...Array.from({ length: 20 }, (_, i) => item(`Fix bug ${i + 1}`)),
       item("Buy milk"),
       item("Buy bread"),
       item("Buy eggs"),
@@ -1147,13 +1138,13 @@ describe("filter hidden count indicator", () => {
       rows: 24,
     })
 
-    // Apply text filter — 10 "Fix" cards visible, 5 others hidden
+    // Apply text filter — 20 "Fix" cards visible, 5 others hidden
     app.withStore((s) => s.setUI({ filterText: "Fix" }))
     flushFilter(app)
 
     const screen = app.text
 
-    // VirtualList overflow indicator ▼ should appear since 10 cards
+    // VirtualList overflow indicator ▼ should appear since 20 cards
     // won't fit in 24 rows
     expect(screen).toContain("▼")
 

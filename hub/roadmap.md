@@ -50,7 +50,7 @@ The full ordered queue — with parallel work, deferred items, and done-log — 
 
 ## Track 1 — km TUI
 
-Active: W3 omnibox finish. Next: TEA integration (W4/W6), theme upgrade (W5), unified selection (W7). Views expand with backlog-view (`km-tui.backlog-view`) and channel-view (connector-matrix Phase 2). Plus bug fixes and perf (cold-startup-block, vault-node-explosion, column-top-disappears).
+Active: W3 omnibox finish. Next: TEA integration (W4/W6), theme upgrade (W5), unified selection (W7). Views expand with backlog-view (`km-tui.backlog-view`) and channel-view (connector-matrix Phase 2). Plus bug fixes and perf (cold-startup-block, vault-node-explosion).
 
 ## Track 2 — Silvery
 
