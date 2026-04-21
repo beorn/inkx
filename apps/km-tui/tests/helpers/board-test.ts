@@ -84,6 +84,8 @@ import {
   type CreateBoardAppStoreParams,
 } from "../../src/state/board-app-store.ts"
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board/board-app.ts"
+import { createUndoableRepo } from "../../src/undo/undoable-repo.ts"
+import { createUndoStack } from "../../src/undo-stack.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
 
@@ -544,8 +546,16 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
+  // Wrap the repo once so `useRepo()` returns the SAME undoable proxy as
+  // `state.repo`. Without this, components that mutate via `useRepo()`
+  // (title + body inline edits) bypass the undo stack — see bead
+  // km-tui.title-edit-no-undo.
+  const undoStack = createUndoStack()
+  const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(repo, undoStack)
+
   const storeParams: CreateBoardAppStoreParams = {
-    repo,
+    repo: undoableRepo,
+    undoInfra: { handle: undoHandle, stack: undoStack },
     toastQueue,
     navigator: registry,
     initialBoardState: createBoardState(rootId, repo.path, collapsedNodeIds),
@@ -557,7 +567,9 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
 
   const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
-  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
+  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion).
+  // Subscribes to the raw repo — the Proxy passes `subscribe` through so
+  // mutations still fire listeners.
   const reactiveStore = withReactive(createStoreFromRepo(repo))
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
@@ -576,6 +588,10 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     initialViewMode: viewMode,
     toastQueue,
     navigator: registry,
+    // Legacy driver tests rely on fixed-row screen coordinates; suppress the
+    // memory-mode banner so it doesn't shift content down by one row.
+    // Bead: km-tui.memory-mode-silent-loss
+    showMemoryModeBanner: false,
   })
   // SILVERY_STRICT throws IncrementalRenderMismatchError synchronously during
   // the initial render. The km-infra vitest setup catches those via
@@ -594,7 +610,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
           h(
             FocusManagerContext.Provider,
             { value: focusManager },
-            h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+            h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo: undoableRepo, children: boardAppElement })),
           ),
         ),
       ),
@@ -617,7 +633,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
             h(
               FocusManagerContext.Provider,
               { value: focusManager },
-              h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+              h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo: undoableRepo, children: boardAppElement })),
             ),
           ),
         ),

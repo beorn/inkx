@@ -27,6 +27,8 @@ import { withSync, createStoreFromRepo, withReactive, type Sync } from "@km/stor
 import { createBoardApp } from "./board/board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
+import { createUndoableRepo } from "./undo/undoable-repo.ts"
+import { createUndoStack } from "./undo-stack.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
 import { terminalFocused, lastKey, startupPhase, setStartupPhase } from "./diagnostics.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
@@ -336,8 +338,16 @@ export async function runBoard(
     const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
     const initialCursor = firstCardId ?? firstColId ?? null
 
+    // Wrap the repo once so the SAME undoable proxy is installed in the
+    // store AND in `RepoProvider`. Components that read `useRepo()` then
+    // record onto the same stack as structural ops (fixes title/body edits
+    // silently skipping undo — bead km-tui.title-edit-no-undo).
+    const undoStack = createUndoStack()
+    const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(options.repo, undoStack)
+
     const storeParams: CreateBoardAppStoreParams = {
-      repo: options.repo,
+      repo: undoableRepo,
+      undoInfra: { handle: undoHandle, stack: undoStack },
       toastQueue,
       navigator: createGridNavigator(),
       initialBoardState: createBoardState(rootId, rootPath, collapsedNodeIds),
@@ -348,7 +358,9 @@ export async function runBoard(
       savedWorkspace,
     }
 
-    // Create reactive store from repo: wrap Repo as Store, then add signal reactivity
+    // Create reactive store from repo: wrap Repo as Store, then add signal reactivity.
+    // Subscribes to the raw repo — the Proxy passes `subscribe` through so
+    // mutations still fire listeners.
     setStartupPhase("reactive-store")
     using reactiveStore = withReactive(createStoreFromRepo(options.repo))
     log.debug?.("reactive store created for fine-grained per-node reactivity")
@@ -376,7 +388,7 @@ export async function runBoard(
       setStartupPhase("react-mount")
       const handle = await boardApp.run(
         <ThemeProvider theme={theme}>
-          <RepoProvider repo={options.repo}>
+          <RepoProvider repo={undoableRepo}>
             <StoreProvider store={reactiveStore}>
               <InputLayerProvider>
                 <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />

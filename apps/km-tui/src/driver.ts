@@ -76,6 +76,8 @@ import {
 } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
 import { handleKey } from "./board/board-app.ts"
+import { createUndoableRepo } from "./undo/undoable-repo.ts"
+import { createUndoStack } from "./undo-stack.ts"
 
 // =============================================================================
 // Types
@@ -154,6 +156,15 @@ export interface CreateBoardDriverOptions {
   viewMode?: ViewMode
   /** Enable incremental rendering (required for withDiagnostics checkIncremental) */
   incremental?: boolean
+  /**
+   * Render the memory-mode banner when the repo has no `.km/` directory.
+   * Default: `false` — driver-level tests rely on fixed-row screen
+   * coordinates, so adding a top banner by default shifts content and
+   * breaks existing assertions. Set `true` explicitly to test banner
+   * behaviour.
+   * Bead: km-tui.memory-mode-silent-loss
+   */
+  showMemoryModeBanner?: boolean
 }
 
 // =============================================================================
@@ -172,7 +183,13 @@ export interface CreateBoardDriverOptions {
  * @param options - Driver configuration options
  */
 export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoardDriverOptions = {}): BoardDriver {
-  const { columns = 80, rows = 24, viewMode = "cards", incremental = false } = options
+  const {
+    columns = 80,
+    rows = 24,
+    viewMode = "cards",
+    incremental = false,
+    showMemoryModeBanner = false,
+  } = options
 
   // Initialize command system and reset dialog guard for clean state
   ensureCommandSystemInitialized()
@@ -198,9 +215,17 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const navigator = createGridNavigator()
   const toastQueue = createToastQueue()
 
+  // Wrap the repo once so `useRepo()` returns the SAME undoable proxy as
+  // `state.repo`. Without this, components that mutate via `useRepo()`
+  // (title + body inline edits) bypass the undo stack — see bead
+  // km-tui.title-edit-no-undo.
+  const undoStack = createUndoStack()
+  const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(repo, undoStack)
+
   // Create the BoardAppStore (same type as production createBoardApp)
   const storeParams: CreateBoardAppStoreParams = {
-    repo,
+    repo: undoableRepo,
+    undoInfra: { handle: undoHandle, stack: undoStack },
     toastQueue,
     navigator,
     initialBoardState: createBoardState(rootId, repo.path, collapsedNodeIds),
@@ -212,7 +237,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
 
   const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
-  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
+  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion).
+  // Subscribes to the raw repo — the Proxy passes `subscribe` through so
+  // mutations still fire listeners.
   const reactiveStore = withReactive(createStoreFromRepo(repo))
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
@@ -238,6 +265,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     initialViewMode: viewMode,
     toastQueue,
     navigator,
+    showMemoryModeBanner,
   })
   const baseApp = render(
     React.createElement(
@@ -249,7 +277,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         React.createElement(StoreProvider, {
           store: reactiveStore,
           children: React.createElement(RepoProvider, {
-            repo,
+            repo: undoableRepo,
             children: boardAppElement,
           }),
         }),

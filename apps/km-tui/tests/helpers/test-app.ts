@@ -39,6 +39,8 @@ import type { Term } from "@silvery/ag-term"
 import type { AgNode } from "@silvery/ag/types"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { createBoardApp, resetBoardAppState, dispatchCommandById, handleMouse } from "../../src/board/board-app.ts"
+import { createUndoableRepo } from "../../src/undo/undoable-repo.ts"
+import { createUndoStack } from "../../src/undo-stack.ts"
 import type { EventHandlerContext } from "@silvery/create"
 import type { ParsedMouse } from "@silvery/ag-react"
 import { Workspace, type BoardAppStore, type CreateBoardAppStoreParams } from "../../src/state/board-app-store.ts"
@@ -442,6 +444,15 @@ export interface TestAppOptions {
   incremental?: boolean
   /** Initial view mode (default: "cards") */
   viewMode?: "cards" | "columns" | "list" | "tabs"
+  /**
+   * Render the memory-mode banner at the top of the workspace.
+   * Default: `false` — legacy tests rely on fixed-row coordinates, so the
+   * default driver suppresses the banner. Set `true` to opt in and verify
+   * banner behaviour. Only takes effect when the underlying fake repo's
+   * mode is "memory" (which is the default for createFakeRepo).
+   * Bead: km-tui.memory-mode-silent-loss
+   */
+  showMemoryModeBanner?: boolean
 }
 
 // =============================================================================
@@ -961,6 +972,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
       rows,
       viewMode: opts.viewMode ?? "cards",
       incremental: opts.incremental !== false,
+      showMemoryModeBanner: opts.showMemoryModeBanner ?? false,
     }),
     {
       checkIncremental: opts.checkIncremental !== false,
@@ -1665,10 +1677,18 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
   const navigator = createGridNavigator()
   const toastQueue = createToastQueue()
   const term = createTermless({ cols, rows })
+
+  // Wrap the repo once so `useRepo()` returns the SAME undoable proxy as
+  // `state.repo` (fixes km-tui.title-edit-no-undo).
+  const undoStack = createUndoStack()
+  const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(repo, undoStack)
+  // Reactive store subscribes to the raw repo — the Proxy passes `subscribe`
+  // through so mutations still fire listeners.
   const reactiveStore = withReactive(createStoreFromRepo(repo))
 
   const storeParams: CreateBoardAppStoreParams = {
-    repo,
+    repo: undoableRepo,
+    undoInfra: { handle: undoHandle, stack: undoStack },
     toastQueue,
     navigator,
     initialBoardState: createBoardState(boardRootId, repo.path, collapsedNodeIds),
@@ -1681,13 +1701,14 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
   const boardApp = createBoardApp(storeParams)
   const handlePromise = boardApp.run(
     React.createElement(RepoProvider, {
-      repo,
+      repo: undoableRepo,
       children: React.createElement(StoreProvider, {
         store: reactiveStore,
         children: React.createElement(BoardApp, {
           initialViewMode: viewMode,
           toastQueue,
           navigator,
+          showMemoryModeBanner: _opts.showMemoryModeBanner ?? false,
         }),
       }),
     }),

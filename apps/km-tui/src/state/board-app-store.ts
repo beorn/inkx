@@ -277,7 +277,26 @@ export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: u
 // =============================================================================
 
 export interface CreateBoardAppStoreParams {
+  /**
+   * The repo used by board actions and signals.
+   *
+   * Preferred: pass the undoable-wrapped repo AND its `undoInfra` so that
+   * the SAME proxy is installed in `RepoProvider` (via `useRepo()`) and in
+   * `state.repo`. That way title/body edits routed through `useRepo()` land
+   * on the same undo stack as structural ops (delete/move/duplicate). See
+   * `tui.tsx` for the canonical wiring.
+   *
+   * Legacy: pass the raw repo without `undoInfra`. The store wraps it
+   * internally — structural ops record fine via `state.repo`, but edits
+   * routed through `useRepo()` bypass undo. Tests that don't exercise
+   * `useRepo()` can safely keep this form.
+   */
   repo: Repo
+  /**
+   * Pre-built undo infrastructure. When provided, `params.repo` MUST be the
+   * undoable-wrapped repo that records to `undoInfra.handle.stack`.
+   */
+  undoInfra?: { handle: UndoableRepoHandle; stack: UndoStack }
   toastQueue: ToastQueue
   navigator: GridNavigator
   initialBoardState: BoardState
@@ -461,6 +480,32 @@ function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string |
 }
 
 /**
+ * Resolve undo infrastructure from store params.
+ *
+ * Preferred path: caller pre-wrapped `params.repo` with `createUndoableRepo`
+ * and passed the resulting `{handle, stack}` in `params.undoInfra`. We reuse
+ * both so every component that reads `useRepo()` (the same proxy) records
+ * to the same stack as board actions, and batching/cursor APIs are shared.
+ *
+ * Fallback path (legacy callers, some tests): wrap in place. Mutations
+ * routed through `ctx.repo` (board actions) record, but edits that use
+ * `useRepo()` bypass undo — the same gap km-tui.title-edit-no-undo
+ * described. New call sites must prefer `undoInfra`.
+ */
+function resolveUndoInfra(params: CreateBoardAppStoreParams): {
+  repo: Repo
+  handle: UndoableRepoHandle
+  stack: UndoStack
+} {
+  if (params.undoInfra) {
+    return { repo: params.repo, handle: params.undoInfra.handle, stack: params.undoInfra.stack }
+  }
+  const stack = createUndoStack()
+  const { repo, handle } = createUndoableRepo(params.repo, stack)
+  return { repo, handle, stack }
+}
+
+/**
  * Create the initial store state for the board app.
  * Used as the store StateCreator in createApp().
  */
@@ -476,9 +521,13 @@ export function createBoardAppStoreState(
   const initialFoldDepths = computeDefaultFoldDepths(bs.rootId, bs.foldDepths)
 
   return (set, _get) => {
-    // Create undo system: wrap repo so mutations are auto-recorded
-    const undoStack = createUndoStack()
-    const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
+    // Create undo system: wrap repo so mutations are auto-recorded.
+    // If the caller pre-wrapped the repo and passed an `undoStack`, reuse
+    // it — so `useRepo()` and `state.repo` are the SAME proxy instance and
+    // every mutation (structural + inline title/body edits) records once.
+    // Otherwise wrap here for backward compat; legacy callers still record
+    // structural ops they route through `state.repo` / `ctx.repo`.
+    const { repo: undoableRepo, handle: undoHandle, stack: undoStack } = resolveUndoInfra(params)
 
     // Load sticky folds from disk — one .km/sticky-folds.json per repo, shared by all panes.
     // Writes are debounced to avoid thrashing the filesystem on rapid toggles.
