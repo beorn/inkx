@@ -1,200 +1,175 @@
 # km Storage Architecture
 
-Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence underlying these decisions, see `hub/km/research/`.
+Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last consolidated: 2026-04-21.
+Last revised: 2026-04-21 (after dual-pro critique + user pushback on frontmatter pollution).
 
 ---
 
 ## 1. Truth model
 
-**Markdown files are authoritative for all user content.** SQLite, `changes.jsonl`, and every in-memory store are derived and rebuildable from `.md`. Session-local state (selection, fold, workspace layout, undo) lives in separate session storage (see §5.3), not scope debt under this contract.
+**Markdown files are authoritative for all user content.** SQLite, `changes.jsonl`, and every in-memory store are derived and rebuildable from `.md`. Session-local state (selection, fold, workspace layout, undo) lives in separate session storage (§5.3).
 
-**Tagline**: "If you can't read it with `cat`, km doesn't claim it."
+**Non-negotiables**:
+- Obsidian interop preserved (wiki-links, block anchors, headings, tags)
+- **Zero metadata injection into user files** — km writes no IDs, no frontmatter additions, nothing. If `cat foo.md` shows something, the user put it there or it was already there.
+- Plain text portability is a hard guarantee; git history stays clean of km-generated noise
 
-Deferred: any move of canonical state off markdown. Reopen triggers:
-- Multi-device concurrent editing becomes shipping-required
-- Markdown fidelity corpus shows irrecoverable round-trip loss
-- Plain-text portability axiom is explicitly negotiated away
-
----
-
-## 2. Identity primitives
-
-Two branded types total — everything else is derived.
-
-```ts
-type NodeId = string & { __brand: "NodeId" }  // brand the existing KNode.id ULID
-type RepoId = string & { __brand: "RepoId" }  // per-mounted-repo, stored in .km/config.toml
-```
-
-`KNode.name?` stays but is **reclassified as display slug** (filename / heading-slug / embed-alias). Not identity. Regenerable from content.
-
-`KNode.block_id?` field is **deleted**. Block references are derived via `hashBlockId(node.id)`.
-
-### 2.1 File identity in markdown
-
-Every indexed `.md` gets `id:` in YAML frontmatter on first scan:
-
-```yaml
----
-id: 01HKXB2W7K9M1X4Y2Z3ABCDEFG
----
-# Note title
-```
-
-Obsidian-compat: if a file already has `id:` with a different value (e.g., from an Obsidian plugin), adopt it verbatim as the NodeId. User's file wins.
-
-### 2.2 Block references in markdown
-
-Lazy — only written when a block is actually referenced:
-
-```markdown
-Referenced paragraph. ^abc
-
-Unreferenced paragraph. (no marker)
-
-See also [[other-file^xyz]] for details.
-```
-
-Format: `^<hash>` where `hash = hashBlockId(node.id)`. Pure function of the ULID — no separate storage.
-
-- Default length: **3 chars base62** (62³ ≈ 238K). Essentially zero collision at typical file sizes.
-- **Per-ref auto-extend on collision**: new refs get N+1 chars if a shorter prefix would collide. Existing refs stay at their current length. No global file rewrite (preserves external backlinks).
-- Parser uses **longest-prefix match** within the file's block pool. Ambiguous match → warning + tiebreak by oldest.
-- Mixed-length refs in one file are supported.
-
-### 2.3 Wiki-links
-
-```
-[[note-title]]                       — resolves via name-index
-[[note-title#heading-slug]]          — scoped to file's children
-[[note-title^abc]]                   — file + block ref
-[[km:/vault/subfolder/note.md#abc]]  — cross-repo URL-addressable
-```
-
-`name` (filename/heading slug) is a **derived display cache**, not identity. A rename changes the slug but not the ULID. Wiki-links using `name` slugs resolve via the cache.
-
-### 2.4 Cross-repo URLs
-
-```
-km:/vault/notes/foo.md#abc
-km:/gdrive/projects/bar.md
-```
-
-Repo alias (`vault`, `gdrive`) is mapped to `RepoId` (UUID in `.km/config.toml`) by the workspace. Repo rename or mount-path change → workspace config updates; URLs remain valid. `RepoId` is stable across clones.
-
-RepoId is never in markdown. Only human-readable aliases are user-facing.
+**Tagline**: "If you can't read it with `cat`, km doesn't claim it. And km doesn't put anything in there either."
 
 ---
 
-## 3. Identity recovery cascade (Rank 1–6)
+## 2. Identity model
 
-**No single offline FS change can cause identity loss.** km is robust when users edit files offline with vim / Obsidian / any external tool.
+### 2.1 Two layers — external vs internal
 
-| Rank | Signal | Source | Survives | Breaks on |
-|---|---|---|---|---|
-| 1 | Embedded `id:` in frontmatter | file itself | rename, move, copy, cross-device, restore | user manually deletes the line |
-| 2 | Inode (`fs_ino`) | `stat()` | rename within same filesystem | move across FS, restore from backup |
-| 3 | Path (`fs_path`) | file location | content edits | rename, move |
-| 4 | Body content hash | sha256 of body | rename, move | any content edit |
-| 5 | Structural hash | heading tree + block count + sizes | minor text edits | structural reorg |
-| 6 | Position + sibling context | line + surrounding content | unchanged file layout | reorder, major edits |
-
-All six signals are already available on `KNode` today (`fs_ino`, `fs_mtime`, `fs_path` in `packages/km-core/src/types.ts:273-295`). What was missing is **systematic combined use during recovery**.
-
-### 3.1 File-level cascade
-
-```
-for each fresh-scanned file F:
-  if F has frontmatter id              → match known[id]                         (Rank 1)
-  elif F.inode matches known.fs_ino    → match, update path                      (Rank 2)
-  elif F.path matches known.fs_path    → match, mint id, write frontmatter       (Rank 3)
-  elif sha256(body) matches known[*]   → candidate-match; auto-adopt if missing  (Rank 4)
-  elif structural_hash matches within threshold → suggest match                  (Rank 5)
-  else                                 → new file, mint id, write frontmatter
-```
-
-### 3.2 Block-level cascade
-
-For each `^<hash>` reference in body:
-1. scan blocks-in-file, find one where `hashBlockId(b.id).startsWith(hash)` is unique
-2. if ambiguous, auto-extend hash length on next write
-3. if no match → position + sibling-context fallback (low confidence)
-
-### 3.3 Performance
-
-Ranks 1–2 are O(1) per file (index lookup). Rank 3 is first-time indexing. Ranks 4+ are lazy — only computed for unresolved files. For a 10k vault with 99% Rank-1/2 match, only ~100 files get body-hashed.
-
----
-
-## 4. Adapter architecture
-
-**Core km is unaware of filesystem / sync / external-protocol specifics.** Identity cascade, inode tracking, frontmatter write-back, markdown parsing, `^<hash>` block-ref encoding, CardDAV sync, Automerge peer protocol — all features of **adapters**, not of `@km/core` or `@km/storage`.
-
-### 4.1 Adapter contract
-
-```ts
-interface Adapter {
-  id: AdapterId
-  kind: "fs" | "sync" | "connector" | "import"
-  ingest(): AsyncIterable<Op[]>          // external → core
-  egress(ops: Op[]): Promise<void>        // core → external
-  reconcile(): Promise<ReconcileReport>   // detect + resolve divergence
-  watch(): AsyncIterable<Op[]>            // continuous change stream (empty for one-shot adapters)
-  start(): Promise<void>
-  stop(): Promise<void>
-}
-```
-
-Uniform contract borrowed from:
-- **Kimmi's RemoteRegistry + Connector pattern** (`kimmi-sync.md:57-95`): Connector owns Cache + Lock + runs a three-phase sync against a pure Repo exposing `getOps(clock) / applyOp(op)`. Core has no CardDAV knowledge.
-- **Cloudi's unstorage + driver pattern** (`cloudi/docs/architecture/overview.md:403-418`): `gmailDriver({ mailProvider })` adapts Gmail to a uniform KV-shaped interface. Core has no Gmail-API knowledge.
-
-### 4.2 Adapter catalog
-
-| Adapter | Kind | Mediates | Status |
+| Layer | Where | Who sees it | Purpose |
 |---|---|---|---|
-| `FsAdapter` | `fs` | Filesystem ↔ core | **P1 — ships first, as `@km/fs-adapter`** |
-| `SyncAdapter` | `sync` | Peer-to-peer ↔ core | Future |
-| `CardDavAdapter` | `connector` | CardDAV server ↔ core | Future |
-| `CalDavAdapter` | `connector` | CalDAV server ↔ core | Future |
-| `NotionImportAdapter` | `import` | Notion export → core | Future |
+| **External** | `.md` on disk | users + other tools (Obsidian, nvim, git) | wiki-links, anchors, tags — human-readable, Obsidian-native |
+| **Internal** | `.km/state.db` | km only | DB joins, indexes, session state — opaque ULID handle |
 
-### 4.3 Package layering
+**Internally, the DB resolves paths-of-`.name` to ULIDs.** Externally, markdown contains only `.name` values — there are no ULIDs anywhere in `.md` files.
+
+### 2.2 Tree-of-names model
+
+A markdown file is a tree of named nodes. Every external reference in markdown is a **path through that tree** where each segment is a `.name`:
 
 ```
-@km/fs-adapter   (+ future @km/sync-adapter, @km/carddav-adapter, ...)
-   │ emits Op[]
-   ↓
-@km/storage      — RepoStore (atomic doc store) + AdapterRegistry
-   │ defines ops
-   ↓
-@km/core         — NodeId, KNode, Op types. Pure domain. Zero FS imports.
-
-@km/markdown     — parse/serialize. Consumed by adapters, NOT by core/storage.
+workspace
+└── repo              name="vault"
+    └── file          name="notes/foo"       ← derived from filename
+        ├── heading   name="my-heading"      ← derived from "## My Heading"
+        │             name="rec"             ← if "## My Heading ^rec"
+        └── block     name="abc"             ← if paragraph ends with "^abc"
 ```
 
-**Build-enforced**: any FS import into `@km/core` or `@km/storage` fails typecheck.
+Resolution examples:
+- `[[foo]]` → `[file:"foo"]`
+- `[[foo#my-heading]]` → `[file:"foo", child:"my-heading"]`
+- `[[foo^rec]]` → `[file:"foo", child:"rec"]`
+- `@inbox` → `[tag:"inbox"]`
+- `#project` → `[tag:"project"]`
 
-### 4.4 FsAdapter scope
+Names are **locally unique** (within parent scope) — not globally unique. A file has unique child-names; a directory has unique filenames.
 
-`@km/fs-adapter` owns:
-- File watcher (chokidar / node:fs.watch)
-- Markdown parser integration (`@km/markdown`)
-- Markdown serializer integration
-- Inode tracking (fs_ino, fs_mtime, fs_path → Op metadata)
-- Identity recovery cascade (§3)
-- Frontmatter `id:` write-back on first index
-- `^<hash>` block-ref encoding (default 3 chars, per-ref auto-extend)
-- Self-write suppression (don't re-ingest own writes)
-- Markdown fidelity preservation
+### 2.3 The `.name` rule
 
-Does NOT own:
-- Repo / doc store — `@km/storage`
-- Node types / KNode shape — `@km/core`
-- Op types — `@km/core`
-- Parsing algorithm itself — `@km/markdown`
+A node's `.name` is the **string that appears in external references** to it. For each node kind:
+
+| Node kind | `.name` is | Example |
+|---|---|---|
+| File | derived from filename (path stripped of `.md`) | `"notes/foo"` |
+| Heading WITH anchor | the **anchor literal** (persisted wins over derived) | `## My Heading ^rec` → `name="rec"` |
+| Heading WITHOUT anchor | derived from heading text slug | `## My Heading` → `name="my-heading"` |
+| Block WITH anchor | the anchor literal | `...paragraph text. ^abc` → `name="abc"` |
+| Block WITHOUT anchor | no `.name` — not externally addressable | (nothing) |
+| Tag | the literal slug after the sigil | `@inbox` → `name="inbox"` |
+
+**Rule**: if a `^anchor` is present in markdown, it IS the node's name. Otherwise the name is content-derived. **No separate `block_id` / `anchor` field.** One `.name` per node, whichever the markdown literally contains or would canonically render.
+
+**Anchor format (km-minted)**: 6-char lowercase alphanumeric, random — matches Obsidian exactly. Generated on first reference; collision-checked within parent scope; regenerate on collision (namespace 36⁶ ≈ 2.2B; retries near-instant). User-written anchors (`^my-custom-name`) preserved verbatim.
+
+### 2.4 Internal identity
+
+```ts
+type NodeId = string & { __brand: "NodeId" }   // brand the existing KNode.id ULID
+type RepoId = string & { __brand: "RepoId" }   // per-mount, stored in .km/config.toml
+```
+
+- `NodeId` — internal-only opaque ULID. **Never written to markdown. Never user-visible.** Like SQLite rowid.
+- `RepoId` — workspace mount identifier. Stored in `.km/config.toml`.
+
+`KNode` fields (after this revision):
+- `id: NodeId` — internal handle
+- `name?: string` — the locally-resolvable external identifier (per §2.3 rule)
+- `fs_path: string`, `fs_ino: number`, `fs_mtime: number` — file location metadata (unchanged)
+
+**Removed from KNode**: `block_id?`. Its role is subsumed into `name`. Migration: existing `block_id` values move to `name` where `name` is currently null OR where the heading has both a slug AND an anchor (anchor wins per §2.3).
+
+### 2.5 Anchor vs heading-slug when both exist
+
+For an anchored heading (`## My Heading ^rec`), `.name = "rec"` by the §2.3 rule. This means:
+- `[[file^rec]]` → direct `name` lookup → hits
+- `[[file#rec]]` → direct `name` lookup → hits (`#` and `^` are the same resolution path)
+
+If a user writes `[[file#my-heading]]` referring to the anchored heading, resolution falls through to a **content-derived slug index** (built from heading text across all nodes in the file — computed/cached, not stored per-node). Since km already builds an FTS index for search, this is essentially free. If the derived slug uniquely matches, it resolves; otherwise unresolved.
+
+Simple rule: **anchor wins when both exist**. If users want the heading-slug form to work, they don't anchor the heading. If they anchor it, the anchor is the canonical external name.
+
+---
+
+## 3. Identity recovery (git-style, no metadata injection)
+
+When km scans the filesystem and compares to its DB, it needs to match files despite offline changes (renames, moves, edits). **No frontmatter IDs** — identity comes from git-style content + path matching.
+
+### 3.1 The algorithm
+
+```
+for each file F on disk:
+  F.contentHash = sha256(F.bytes)    # cached via fs_mtime, only re-hash on change
+  if known row exists where path == F.path:
+    → preserve NodeId, update contentHash if changed  (edit-in-place)
+  else if known orphan row exists where contentHash == F.contentHash:
+    → preserve NodeId, update path                     (rename / move, unchanged content)
+  else:
+    → mint new NodeId                                  (new file, or rename-with-edit — see §3.3)
+
+for each DB row with path not on disk:
+  → mark orphan (candidate for rename-match above)
+  → if unmatched after scan, mark deleted (tombstone for backlinks integrity)
+```
+
+### 3.2 Cost
+
+- sha256 on 5,500 files of ~1kB-50kB averages 200-500ms on M5
+- Cached via `fs_mtime` — unchanged mtime skips the hash
+- Steady state: only modified files get rehashed
+
+### 3.3 Ambiguous case — rename + edit simultaneously
+
+If path changed AND content changed, the algorithm can't tell "moved-and-edited" from "deleted-and-created." Start with: treat as delete + new. Lose identity on this edge case.
+
+**Future upgrade** (if real-world hits): diff-chunk similarity like git's rename-with-edit detection (>50% line overlap → rename). Out of scope until evidence demands.
+
+### 3.4 What mistaken identity costs (unreferenced content)
+
+If km confuses two unreferenced files or blocks, the damage is confined to km's internal bookkeeping:
+
+| What breaks | Severity |
+|---|---|
+| Backlink graph (externally) | **Unaffected** — links resolve by path/slug/literal, not by NodeId |
+| Session state (cursor, fold, recent) | Wrong state restored; cosmetic; user reopens |
+| Undo history | Wrong file gets undo — but undo has content preconditions, so fails cleanly rather than silently corrupting |
+| Search hits | Click-to-open uses path; no effect |
+| Markdown itself | Unaffected — markdown is truth; DB rebuild → correct identity |
+
+**Self-healing**: next correct rescan (edit, path change) catches the mismatch and reassigns. No permanent damage.
+
+### 3.5 What mistaken identity costs (referenced content)
+
+For blocks WITH `^abc` labels, identity is by **literal string match** — not hash, not similarity. Can't accidentally collide.
+
+Corruption scenarios that DO exist:
+1. User manually deletes `^abc` line marker in nvim → block loses external identity; `[[file^abc]]` refs become unresolved (same as Obsidian).
+2. User renames `^abc` → `^xyz` offline → dead ref + new orphan anchor; surfaced as broken/unresolved in km's backlinks panel.
+
+Neither is silent corruption. Both surface as visible "unresolved" states, user-repairable.
+
+---
+
+## 4. @sigil tags and other prefixed identifiers
+
+km parses sigil prefixes (`@`, `#`, `[[]]`, `^`) as namespace selectors for the name index. **No ULID leakage ever**.
+
+| Sigil | Example | Stored as | Identity scheme |
+|---|---|---|---|
+| `@` | `@inbox`, `@project/foo` | literal slug in markdown | `name` lookup scoped by sigil |
+| `#` | `#tag`, `#project/tag` | literal | same |
+| `[[]]` | `[[note-title]]` | literal | `name` lookup (file slug) |
+| `[[#]]` | `[[note-title#heading]]` | literal | heading-slug lookup within file |
+| `[[^]]` | `[[note-title^abc]]` | literal | `name` string match within file (same path as `[[...#abc]]`) |
+
+Renames of tags/files/headings are the same problem as in Obsidian — slugs change, references drift. Solved at the editor layer (optional "update backlinks on rename"), independent of the identity model.
 
 ---
 
@@ -206,171 +181,208 @@ One `.km/state.db` per mounted repo. Workspace = set of mounted adapter instance
 
 `.km/config.toml`:
 ```toml
-repo_id = "01HKXB2W7K9M1X4Y2Z3"
-block_hash_length = 3        # optional; default 3
+repo_id = "01HKXB2W7K9M1X4Y2Z3"       # stable per-clone
 ```
 
 ### 5.2 Workspace composition
 
+Concrete class `FsMount` for now — uniform `Adapter` interface extracted only when a second real consumer exists (see §6).
+
 ```ts
-interface AdapterRegistry {
-  mount(instance: Adapter): Promise<void>
-  unmount(id: AdapterId): Promise<void>
-  list(): Adapter[]
-  get(id: AdapterId): Adapter | null
-  federatedQuery(q: Query): Result[]  // map-reduce across adapters
+interface Workspace {
+  mount(path: string): Promise<FsMount>
+  unmount(id: RepoId): void
+  mounts(): FsMount[]
+  resolve(url: string): Ref | null        // km:/<alias>/<path>#<anchor>
 }
 ```
 
-Workspace config example:
+Workspace config maps repo-aliases → RepoIds:
 ```toml
-[[adapters]]
-id = "vault"
-kind = "fs"
+[mounts.vault]
+repo_id = "01HKXB2W7K9M1X4Y2Z3"
 path = "~/Bear/Vault"
 
-[[adapters]]
-id = "gdrive"
-kind = "fs"
+[mounts.gdrive]
+repo_id = "01HKYD3X8L2R9V1Z"
 path = "~/gdrive-mirror"
-
-[[adapters]]
-id = "icloud-contacts"
-kind = "connector"
-protocol = "carddav"
-url = "https://contacts.icloud.com"
 ```
+
+Cross-repo URL: `km:/vault/notes/foo.md#^abc`. Parser resolves `vault` → RepoId → FsMount → path-within-repo.
 
 ### 5.3 Three durability tiers
 
 | Tier | Example | Store |
 |---|---|---|
-| Content (per repo) | Nodes, bodies, links | RepoStore + MarkdownAdapter |
+| Content (per repo) | Files, headings, blocks, tags | `.km/state.db` per repo + `.md` on disk |
 | Session (per workspace) | Workspace layout, undo, recently-opened | `~/.km/session.db` |
-| Ephemeral (memory) | Cursor position, hover, transient focus | In-memory only |
+| Ephemeral (memory) | Cursor, hover, transient focus | In-memory only |
 
 ### 5.4 Memory-only mode preserved
 
-Current km mode where you point at a directory, crawl `.md` files, build in-memory SQLite, no `.km/` written — **works unchanged under federation**. `FsAdapter` picks memory-mode vs disk-mode based on presence of `.km/config.toml`. `bun km view /tmp/some-dir` still works exactly as today.
+Point km at any directory without `.km/`: in-memory DB, no files written. `bun km view /tmp/scratch` works unchanged. FsMount picks memory vs disk based on `.km/config.toml` presence.
 
 ---
 
-## 6. Cross-cutting concerns
+## 6. FsMount (storage engine) — concrete, not abstracted yet
 
-### 6.1 Path is not identity
+### 6.1 Scope
 
-Rename / move / copy never break identity. Wiki-links within-vault resolve via `name`-index (derived). Cross-repo refs carry `RepoId` scope.
+Owns all filesystem-specific behavior:
+- File watcher (chokidar / node:fs.watch)
+- Markdown parse/serialize integration (`@km/markdown`)
+- Path + inode + mtime tracking
+- Content-hash rename detection (§3)
+- Block-anchor literal preservation (§2.2)
+- Safe-writeback with content-as-CAS (§7)
+- Self-write suppression (don't re-ingest own writes)
+- Markdown fidelity: minimal patching, preserve user formatting
 
-### 6.2 Watchers are hints, not truth
+Does NOT own:
+- RepoStore / in-memory tree — `@km/storage` (derived index over FsMount content)
+- Node types, Op types — `@km/core`
+- Parsing algorithm itself — `@km/markdown`
 
-File watcher events are unreliable (debounce races, swap files, partial writes). Under any adapter:
-- watcher event → hint that a file *may* have changed
-- hash/stat reconcile → determines if it *actually* changed
-- periodic / full reconcile on focus regain
+### 6.2 Package boundary
 
-Lives under `FsAdapter.scanExternal()`.
+```
+@km/fs-mount     — concrete class; owns watcher/parser/serializer/CAS
+   │ emits Op[] to consumers
+   ↓
+@km/storage      — RepoStore (derived index over FsMount) + workspace mount registry
+   │
+   ↓
+@km/core         — NodeId, RepoId, KNode, Op types. Pure domain. Zero FS imports.
+@km/markdown     — parse/serialize. Consumed by FsMount + future adapters.
+```
 
-### 6.3 Markdown fidelity test corpus
+**No premature `Adapter` interface.** When a second consumer (CardDAV, Notion import, Automerge sync) actually ships, extract commonality at that point. Pro's warning about "false unification" is taken seriously — Notion imports, paginated connectors, and peer-to-peer sync have genuinely different shapes than filesystem scan.
 
-Regardless of adapter, km needs a fidelity corpus for import/export round-trip. Gate: round-trip preserves
-- whitespace (tabs vs spaces, trailing, indentation)
-- frontmatter ordering + nested YAML
-- HTML comments (Obsidian-style `<!-- -->`)
-- code fences with exotic language IDs
-- wiki-links with display text + embeds
-- `^blockid` preservation
-- broken/incomplete markdown
-- large notes (>100KB)
+### 6.3 Build-enforced separation
 
-### 6.4 Internal modules ≠ external plugins
-
-If km ever gets third-party extensions, the extension model is **capability-based** (contribute command / keybinding / panel / query provider), NOT "arbitrary state with effects." Internal composition (silvery's `pipe()` + `with*()`) stays separate from any future extension API.
+Typecheck fails if `@km/core` or `@km/storage` imports from `node:fs`. This is the load-bearing guarantee that core stays FS-agnostic, which is what enables a future web/canvas km to swap the engine.
 
 ---
 
-## 7. Implementation sequence
+## 7. Safe markdown writeback
 
-Five work packages, roughly chronological. Each is one focused sprint.
+**The #1 unspoken risk** per pro review. km must never silently overwrite user edits.
 
-### P1. Identity primitives + recovery cascade (`km-storage.identity-recovery-cascade`)
-- Brand `NodeId` + `RepoId` types in `@km/core`
-- `hashBlockId()` pure function + auto-extend serializer + longest-prefix parser
-- Frontmatter `id:` backfill migration (one-shot background job, idempotent)
-- Rank 1-6 recovery cascade in-file (lives inside FsAdapter once split)
-- Delete `block_id?` field after grace period
-- Tests: property-based offline-edit + recovery scenarios
+### 7.1 Content-as-CAS contract
 
-**Why first**: every other layer reads identity. Unblocks everything.
+Every in-memory file state carries `expectedContentHash`. On write:
+1. Read current file on disk
+2. Compute `actualContentHash = sha256(file)`
+3. If `actual !== expected`:
+   - Re-parse disk content
+   - Replay the intended change against the fresh state
+   - If conflict detected → surface to user (never silent overwrite)
+4. Atomic write (temp file + rename)
+5. Update `expectedContentHash` to reflect new on-disk state
 
-### P2. `@km/fs-adapter` package split (`km-storage.adapter-architecture`)
-- Define `Adapter` contract + `AdapterRegistry` in `@km/storage`
-- Extract watcher/parser/serializer/cascade into new `@km/fs-adapter` package
-- Build-fail any `fs` import into `@km/core` or `@km/storage`
-- Integration test with mock adapter proving swappability
-- Migrate all existing FS code behind the boundary
+### 7.2 Minimal patching
 
-**Why second**: locks in the decoupling so future adapters are additive, not refactor.
+Serializer preserves what it doesn't touch:
+- Whitespace (trailing, indentation, blank lines)
+- Frontmatter key order
+- List marker choice (`-` vs `*`)
+- Line endings
+- User-style preferences (tabs vs spaces)
 
-### P3. Federation (`km-storage.federation`)
+Rewrites only the exact byte ranges that changed. Noisy git diffs are a user-trust event.
+
+### 7.3 Multi-file atomicity
+
+For operations spanning multiple files (rename + backlink update cascade):
+- Write operations stored in a local journal (`.km/journal/pending/`)
+- Journal applied with best-effort + resumable-on-crash
+- `bun km doctor` inspects journal + surfaces unresolved items
+
+### 7.4 Watcher echo suppression
+
+FsMount writes produce events the watcher sees. Suppression strategies:
+- Tag writes with an origin cookie; watcher filters
+- Short-term path+digest cache: "I just wrote this, ignore first change"
+- Stateless approach: on watch event, hash-compare against expected — if match, skip
+
+---
+
+## 8. Implementation sequence (revised)
+
+Five work packages. **Lazy-hydration ships first** per pro + K2.6 — the scale-bench failure is the real product risk; identity work is orthogonal scaffolding.
+
+### P1. Lazy hydration (`km-storage.lazy-hydration`, P0) — ship first
+- Stop loading full JS object graph on startup
+- Move navigation/backlinks to SQLite-on-demand queries
+- Target: <500ms cold start on 10x vault (100k files)
+- Covered-target: breaks the benchmarked 2x failure mode today
+- Doesn't require any identity or adapter changes
+
+### P2. FsMount concrete class + content-hash rename detection (`km-storage.fs-mount`) — second
+- Extract FS code from `@km/storage` into new `@km/fs-mount` package
+- Build-enforce: `@km/core` + `@km/storage` never import `node:fs`
+- Implement content-hash rename detection on scan (§3)
+- Fold `KNode.block_id?` values into `.name` (anchor wins over slug when both exist; §2.3)
+- Introduce branded `NodeId`, `RepoId` types in `@km/core`
+
+### P3. Safe writeback (`km-storage.writeback-cas`)
+- Content-as-CAS contract (§7.1)
+- Minimal patching serializer (§7.2)
+- Watcher echo suppression (§7.4)
+- Multi-file journal (§7.3)
+
+### P4. Federation (`km-storage.federation`) — P2, not P1
 - `.km/config.toml` per repo with stable `RepoId`
-- Per-repo `.km/state.db` (not monolithic workspace DB)
-- Workspace composition layer mounts multiple FsAdapter instances
+- Workspace mount config
 - Cross-repo URL resolution (`km:/<alias>/<path>`)
-- Workspace config (aliases → RepoIds)
-- Memory-mode preserved
-
-**Why third**: addresses scale-bench 2x failure via per-repo scope. Enables future cross-device sync.
-
-### P4. Lazy hydration (`km-storage.lazy-hydration`, P0)
-- `RepoStore` implements demand-driven hydration of subtree / query results
-- `FsAdapter.ingest()` yields chunked Op streams
-- Viewport-aware loading (not load-all-then-render)
-- Benchmark target: <500ms cold start on 10x vault
-
-**Why fourth**: now lives inside `RepoStore` semantics (not a parallel port) because §4 landed.
+- Orthogonal to scale fix (P1 already solved); do this when multi-repo workflows actually bite
 
 ### P5. Markdown fidelity corpus (`km-storage.markdown-fidelity-corpus`)
-- Test corpus covering every round-trip case (§6.3)
-- CI gate on regressions
-- Required before any future truth-model re-evaluation
+- Regression corpus for round-trip integrity
+- Gate for any future writeback change
 
-**Parallel track**: `km-storage.session-state-split` (P2) — move undo + workspace layout to `~/.km/session.db`. Not blocking.
-
----
-
-## 8. Key evidence underlying the design
-
-- **Scale bench** (`hub/km/research/scale-bench-results-2026-04-21.md`): full-load-into-memory fails at 2x (20k files, 102s cold-load). Per-query perf is fine at 10x. Bottleneck is load, not query. Federation + lazy hydration = direct fix.
-- **Kimmi deep-dive** (`hub/km/research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins come from stable IDs + op-based reconciliation + materialized indexes — NOT from Automerge specifically. Automerge has concrete gaps (no diff API, sync broken for CardDAV, Text type churned v1→v3).
-- **Cloudi deep-dive** (`hub/km/research/cloudi-architecture-deep-dive.md`): Gmail-as-truth has critical ID instability + ~500-item ceiling. F378 cautionary tale: built audit-log-in-external-system, realized reinventing external feature, deleted.
-- **Dual-pro review** (GPT-5.4 Pro + Kimi K2.6, 2026-04-21): convergent on stable-IDs as highest-leverage move + three-seam (→ adapter) boundary + federation-now + defer-CRDT.
-- **User pushbacks** (this session): (a) FS is inherently messy — solve the boundary lower down; (b) federation is eventually necessary; (c) identity must be recoverable from FS changes alone; (d) core must be unaware of FS specifics.
+### Parallel: session state split (`km-storage.session-state-split`, P2)
+- Move undo + workspace layout to `~/.km/session.db`
+- Not blocking; can ship any time
 
 ---
 
-## 9. Explicit non-decisions (out of scope until reopened)
+## 9. Explicit non-decisions / deferred
 
-- **CRDT substrate**: kimmi's Automerge experience + cloudi's Gmail-as-truth cracks both argue against. Reopen only when multi-device sync is shipping-required.
-- **Sync protocol**: only after CRDT question is reopened.
-- **Undo / event-sourcing**: separate concern. Session-state split (§5.3) provides a durable-undo foundation; semantic undo design stays open.
-- **Cross-machine name resume**: tribe's F1-D covers local case. Cross-machine = future `km-bearly.tribe-session-resume` re-open.
-- **Second RepoStore implementation**: the `Adapter` contract exists; SQLite is the only `FsAdapter` backend today. A second backend (Automerge, LMDB, native indexer) is a scale-architecture outcome, not this phase.
+- **CRDT substrate** — kimmi's Automerge experience says don't. Reopen if multi-device concurrent sync becomes shipping-required.
+- **Sync protocol** — only after CRDT question is reopened.
+- **Undo semantics across files** — session-state split provides durable-undo; semantic policy stays open.
+- **Frontmatter `id:` injection** — **rejected**. User requirement: zero metadata pollution of user files.
+- **Rank 4-6 recovery cascade** (structural/positional heuristics) — rejected per "ID-scattering is a no-go." Keep only path match + content-hash rename detection.
+- **Uniform Adapter interface** — deferred until second real consumer exists. Today: concrete `FsMount`.
+- **Diff-chunk similarity for rename+edit** — deferred until real-world hits the edge case.
 
 ---
 
-## 10. Bead tracking (current state)
+## 10. Evidence underlying this design
 
-Active beads for this design:
+- **Scale bench** (`research/scale-bench-results-2026-04-21.md`): full-load-into-memory breaks at 2x. Per-query perf stays good at 10x. → lazy-hydration first.
+- **Kimmi deep-dive** (`research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins are stable-IDs + op-reconciliation + materialized indexes. Automerge has concrete gaps. → internal ULIDs fine, CRDT deferred.
+- **Cloudi deep-dive** (`research/cloudi-architecture-deep-dive.md`): external-system-as-truth has critical ID instability. → Family A holds.
+- **Dual-pro review** (2026-04-21 PM): caught frontmatter-id-injection as user-trust risk, block-hash collision math, uniform-adapter over-generalization, missing safe-writeback.
+- **User pushbacks** (2026-04-21): (a) FS messiness → solve lower in stack; (b) federation eventually necessary; (c) identity robust against offline FS changes; (d) core unaware of FS; (e) **no metadata injection**; (f) **no ID scattering beyond what's inherently needed**; (g) Obsidian-native block anchors.
+
+---
+
+## 11. Current bead tracking
+
+Active:
 
 | Bead | Priority | Scope |
 |---|---|---|
-| `km-storage.adapter-architecture` | P1 epic | §4 full arc |
-| `km-storage.identity-recovery-cascade` | P1 | §2 + §3 — NodeId/RepoId + Rank 1-6 + block-hash + frontmatter backfill (all folded here) |
-| `km-storage.fs-adapter` | P1 | §4.4 — package split, Adapter contract, FsAdapter impl |
-| `km-storage.federation` | P1 | §5 |
-| `km-storage.markdown-fidelity-corpus` | P1 | §6.3 |
-| `km-storage.lazy-hydration` | P0 | §7.P4 |
+| `km-storage.lazy-hydration` | P0, ships first | §8.P1 |
+| `km-storage.fs-mount` (renaming from `km-storage.fs-adapter`) | P1 | §6, §8.P2 |
+| `km-storage.identity-recovery-cascade` | P1, narrowed | §3 path + content-hash only (no Rank 4-6) |
+| `km-storage.writeback-cas` (new) | P1 | §7 |
+| `km-storage.markdown-fidelity-corpus` | P1 | §8.P5 |
+| `km-storage.federation` | P2, demoted | §8.P4 |
 | `km-storage.session-state-split` | P2 | §5.3 |
-| `km-all.shared-substrate-review` | P0 | cross-project extraction review (due 2026-05-05) |
+| `km-storage.crdt-trigger` | P3 | reopen conditions |
+| `km-all.shared-substrate-review` | P0 | cross-project extraction (due 2026-05-05) |
 
-Closed as superseded: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-benchmarks` (shipped), `km-storage.scale-architecture` (superseded by adapter-architecture + lazy-hydration + federation).
+Closed as superseded: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs` (folded → never needed per user rejection), `km-storage.frontmatter-id-migration` (folded → never needed per user rejection).
