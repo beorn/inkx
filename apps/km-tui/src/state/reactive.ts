@@ -141,16 +141,47 @@ export function createNodeStore() {
     return reduced.get(nodeId).excludedSigils as () => string[]
   }
 
-  /** Collect all descendant IDs of a node into the target set. */
+  /**
+   * Collect all descendant IDs of a node into the target set.
+   *
+   * Uses an iterative walk (stack + `target` as the visited set) rather than
+   * recursion. Guards against two failure modes:
+   *
+   * 1. **Stack overflow on deep trees** — a recursive walk of a 5000-level-deep
+   *    subtree blows the JS stack. Iterative walk handles any depth.
+   * 2. **Infinite loops on parent_id cycles** — if a repo mutation (e.g. a
+   *    rename race with concurrent edits) produces `A → B → A` in `getChildren`,
+   *    a naive recursion would stack-overflow and a naive iteration would loop
+   *    forever. The `target` set doubles as a visited guard: we only enqueue a
+   *    child once, so cycles terminate cleanly.
+   *
+   * See bead `km-tui.zoom-stack-overflow` — prior RangeError in the zoom-out
+   * path after a rename was most likely caused by this function's previous
+   * recursive form hitting a transient cycle during the rename cascade.
+   */
   function collectDescendantsInto(
     repo: { getChildren(parentId: string | null): { id: string }[] },
     nodeId: string,
     target: Set<string>,
   ): void {
-    const children = repo.getChildren(nodeId)
-    for (const child of children) {
-      target.add(child.id)
-      collectDescendantsInto(repo, child.id, target)
+    // Iterative DFS. Start with the direct children of nodeId; push each
+    // child's children onto the stack after adding them to `target`. A node
+    // already in `target` is skipped, so a `parent_id` cycle cannot re-enter
+    // a node we've already processed.
+    const stack: string[] = []
+    for (const child of repo.getChildren(nodeId)) {
+      if (!target.has(child.id)) {
+        target.add(child.id)
+        stack.push(child.id)
+      }
+    }
+    while (stack.length > 0) {
+      const id = stack.pop()!
+      for (const child of repo.getChildren(id)) {
+        if (target.has(child.id)) continue // cycle guard
+        target.add(child.id)
+        stack.push(child.id)
+      }
     }
   }
 

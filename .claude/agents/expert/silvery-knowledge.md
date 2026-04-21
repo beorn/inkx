@@ -624,6 +624,51 @@ Fuzz seed `-1071789314` at case 152 (10 items with mixed heights, last few are o
 
 ## Regression Patterns
 
+### termless Term disposal — CI worker OOM (2026-04-20)
+
+**Symptom**: Vitest fork workers running termless tests accumulated 18-28 GB RSS over
+10-15 minute CI runs. Three workers exhausted 98% of 128 GB RAM. Bead
+`km-silvery.termless-memleak`.
+
+**Root cause**: Several test files created termless Term instances via
+`const term = createTermless({ cols, rows })` without `using` or an explicit
+`term[Symbol.dispose]()` in an `afterEach` / `afterAll`. Each call allocates an
+`@xterm/headless` Terminal with 1000-line scrollback (~1 MB). The Term's
+`Symbol.dispose` → `emulator.close()` → `backend.destroy()` → xterm
+`Terminal.dispose()` chain is wired correctly; the leak was purely test
+discipline. Heap GC reclaimed JS objects quickly enough, but xterm's internal
+scrollback buffer lived long enough to swell worker RSS across hundreds of
+tests. Under vitest's stdout/stderr interception + console spy, baseline per-test
+retention was also ~3× higher than plain bun.
+
+**Fix**: Converted `const term = createTermless(...)` to `using term = ...` (or
+added `term[Symbol.dispose]()` to the shared `afterEach` for describe-level
+`let term: Term` patterns) across all silvery tests that created termless
+instances:
+
+- `tests/regressions/status-bar-stale-text.test.tsx`
+- `tests/features/termless-coverage.test.tsx`
+- `tests/features/inline-scrollback-promotion.test.tsx`
+- `tests/features/scrollback-promotion.test.tsx`
+- `tests/features/test-sendinput-debug2.test.tsx`
+- `tests/features/key-release.test.tsx`
+- `tests/examples/ai-chat.test.tsx`
+
+**Defense in depth**: `@silvery/test`'s `createTermless()` now registers a
+`WeakRef` to every Term it returns. When >128 are simultaneously alive (a
+clear sign of un-disposed instances accumulating), it emits a one-shot
+`console.warn` identifying the leak early.
+
+**Regression guard**: `vendor/silvery/tests/perf/termless-memleak-harness.test.tsx`
+runs 120 iterations of `createTermless` + `run` + unmount with `using` and
+asserts steady-state RSS growth is bounded (<300 KB/iter median-of-thirds).
+The fix baseline measures ~30 KB/iter. A genuine leak pushes past 800 KB/iter.
+
+**Takeaway**: Any factory that returns a disposable resource (Term, App,
+Scope, EditContext) MUST be used with `using` OR paired with an explicit
+dispose in the test's cleanup hook. `handle.unmount()` alone is not enough
+when the handle was created from a separately-allocated `term`.
+
 ### Changes that commonly cause regressions
 
 | Change type | Typical regression |
