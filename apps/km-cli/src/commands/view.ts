@@ -91,10 +91,15 @@ export const viewCommand = new Command("view")
       // ancestor does either), the repo would otherwise silently fall into
       // memory mode. Prompt BEFORE patching console / entering alt screen so
       // the warning is actually visible on the user's normal terminal.
-      // Skip the prompt for non-interactive mode (--no-interactive) and
-      // non-TTY stdin (pipes, CI, tests) — those paths never see the banner
-      // either and should not hang waiting for input.
-      if (interactive && process.stdin.isTTY) {
+      // Skip the prompt for:
+      //   - non-interactive mode (--no-interactive)
+      //   - non-TTY stdin (pipes, CI, some tests)
+      //   - KM_SKIP_INIT_PROMPT=1 (termless PTY tests — the env sees a real
+      //     TTY on the spawned pty-side, so isTTY alone doesn't gate them;
+      //     the env var is the explicit opt-out. Tests default to memory
+      //     mode without user intervention.)
+      const skipInitPrompt = !interactive || !process.stdin.isTTY || process.env.KM_SKIP_INIT_PROMPT === "1"
+      if (!skipInitPrompt) {
         const hasKmDir = existsSync(join(resolved.repoRoot, ".km"))
         const ancestorKm = hasKmDir ? null : findKmRootFromPath(resolved.repoRoot)
         if (!hasKmDir && !ancestorKm) {

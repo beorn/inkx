@@ -35,7 +35,7 @@ async function spawnKm(vaultContent: string, opts?: { cols?: number; rows?: numb
   const term = createTerminalFixture({ cols: opts?.cols ?? 80, rows: opts?.rows ?? 24 })
   await term.spawn(["bun", "km", "view", vault], {
     cwd: KM_CWD,
-    env: { KM_EAGER_LOAD: "1" },
+    env: { KM_EAGER_LOAD: "1", KM_SKIP_INIT_PROMPT: "1" },
   })
   expect(term.screen).toContainText("helloworld", { timeout: 15000 })
   return { term, vault }
