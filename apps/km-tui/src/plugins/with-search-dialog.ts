@@ -131,10 +131,7 @@ export function apply(op: SearchOp, state: SearchState): [SearchState, SearchEff
       ]
     case "search.hide":
       if (!state.visible) return [state, []]
-      return [
-        { visible: false, initialInput: "", scope: "all", scopeNodeIds: [] },
-        [],
-      ]
+      return [{ visible: false, initialInput: "", scope: "all", scopeNodeIds: [] }, []]
     case "search.toggleScope":
       if (!state.visible) return [state, []]
       return [{ ...state, scope: state.scope === "all" ? "selected" : "all" }, []]

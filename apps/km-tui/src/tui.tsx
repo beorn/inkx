@@ -287,10 +287,13 @@ export async function runBoard(
     // Derive initial collapsed nodes from repo data (rules.collapse + data.collapsed)
     setStartupPhase("collapsed-derive")
     const collapsedNodeIds = new Set<string>()
-    if (rootId) {
-      for (const child of options.repo.getChildren(rootId)) {
-        if (child.rules?.collapse || child.data?.collapsed === true) {
-          collapsedNodeIds.add(child.id)
+    {
+      using _ = run.span("collapsed-derive")
+      if (rootId) {
+        for (const child of options.repo.getChildren(rootId)) {
+          if (child.rules?.collapse || child.data?.collapsed === true) {
+            collapsedNodeIds.add(child.id)
+          }
         }
       }
     }
@@ -304,19 +307,26 @@ export async function runBoard(
     // Load locations config (favorites, system locations, journal template)
     setStartupPhase("load-config")
     const vaultPath = options.repo.path
-    if (vaultPath) {
-      const config = loadConfig(vaultPath)
-      initLocations(config.locations)
-      // Persist favorites changes back to config
-      onFavoritesChange(() => {
-        saveConfig(vaultPath, { locations: getAllLocations() })
-      })
+    {
+      using _ = run.span("load-config")
+      if (vaultPath) {
+        const config = loadConfig(vaultPath)
+        initLocations(config.locations)
+        // Persist favorites changes back to config
+        onFavoritesChange(() => {
+          saveConfig(vaultPath, { locations: getAllLocations() })
+        })
+      }
     }
 
     // Restore saved workspace (layout, view mode, filters, zoom location).
     // Falls back gracefully if the saved state can't be resolved (deleted nodes, etc.).
     setStartupPhase("load-workspace")
-    const savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
+    let savedWorkspace: ReturnType<typeof loadWorkspace> = null
+    {
+      using _ = run.span("load-workspace")
+      savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
+    }
 
     if (savedWorkspace) {
       log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
@@ -324,19 +334,27 @@ export async function runBoard(
 
     // Detect terminal theme from actual colors (OSC 4/10/11) with fallback
     setStartupPhase("detect-theme")
-    const theme = await detectTheme({ caps })
+    let theme: Awaited<ReturnType<typeof detectTheme>>
+    {
+      using _ = run.span("detect-theme")
+      theme = await detectTheme({ caps })
+    }
     log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
     setStartupPhase("init-lens")
-    const initLens = createVisibleLens(createViewLens(options.repo, { rootId, foldDepths: new Map() }), {
-      collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
-    })
-    const initColIds = rootId ? initLens.children(rootId) : []
-    const firstColId = initColIds[0]
-    const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
-    const initialCursor = firstCardId ?? firstColId ?? null
+    let initialCursor: string | null = null
+    {
+      using _ = run.span("init-lens")
+      const initLens = createVisibleLens(createViewLens(options.repo, { rootId, foldDepths: new Map() }), {
+        collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
+      })
+      const initColIds = rootId ? initLens.children(rootId) : []
+      const firstColId = initColIds[0]
+      const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
+      initialCursor = firstCardId ?? firstColId ?? null
+    }
 
     // Wrap the repo once so the SAME undoable proxy is installed in the
     // store AND in `RepoProvider`. Components that read `useRepo()` then
@@ -378,7 +396,11 @@ export async function runBoard(
     //     withDomEvents(),
     //   )
     setStartupPhase("create-board-app")
-    const boardApp = createBoardApp(storeParams)
+    let boardApp: ReturnType<typeof createBoardApp>
+    {
+      using _ = run.span("create-board-app")
+      boardApp = createBoardApp(storeParams)
+    }
 
     {
       using _ = run.span("render-setup")
