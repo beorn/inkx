@@ -25,6 +25,7 @@ import { ownerPaneId, detailPaneIdFor } from "./board-types.ts"
 import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
+import { isTeaHelpEnabled, getHelpStore } from "../plugins/with-help-overlay.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -1853,15 +1854,22 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       return ok()
     }
     case "SHOW_HELP":
+      // Phase 0 mini-cutover: when KM_TEA_HELP=1, also dispatch to the TEA
+      // apply-chain plugin. Dual-write keeps legacy views/tests working
+      // while the React component can opt in via useHelpOverlay().
+      if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.show" })
       ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
       return ok()
     case "HIDE_HELP":
+      if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
       ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
       return ok()
     case "HELP_SCROLL_UP":
+      if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollUp" })
       ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
       return ok()
     case "HELP_SCROLL_DOWN":
+      if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollDown" })
       ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
     case "FOCUS_BOARD": {
@@ -2563,6 +2571,8 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
 
   // --- Layer 3: Dialog open -> close topmost dialog ---
   if (ui.showHelp) {
+    // Phase 0 mini-cutover: dual-write to plugin when flag is on.
+    if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
     ctx.setUI({ showHelp: false })
     return ok()
   }

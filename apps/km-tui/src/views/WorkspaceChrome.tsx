@@ -20,7 +20,7 @@ import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
-import { HelpOverlay } from "./HelpOverlay.tsx"
+import { HelpOverlayBridge } from "../plugins/HelpOverlayBridge.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
@@ -688,8 +688,15 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Help overlay */}
-      {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} scrollOffset={ui.helpScrollOffset} />}
+      {/* Help overlay — bridged through TEA plugin when KM_TEA_HELP=1.
+          Phase 0 mini-cutover: the bridge reads from either the legacy
+          `ui.showHelp` field or the `withHelpOverlay` plugin store. */}
+      <HelpOverlayBridge
+        legacyVisible={ui.showHelp}
+        legacyScrollOffset={ui.helpScrollOffset}
+        width={termWidth}
+        height={contentHeight}
+      />
       {/* Console now uses screen switching (pause/resume) instead of overlay */}
     </>
   )
