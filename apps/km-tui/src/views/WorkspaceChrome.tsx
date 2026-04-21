@@ -21,8 +21,8 @@ import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { HelpOverlayBridge } from "../plugins/HelpOverlayBridge.tsx"
+import { SearchDialogBridge } from "../plugins/SearchDialogBridge.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
-import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog } from "./FilterDialog.tsx"
 import { UnifiedOmnibox } from "./UnifiedOmnibox.tsx"
 import { ConfirmDialog } from "./shared-components.tsx"
@@ -585,29 +585,20 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Search dialog modal */}
-      {ui.showSearchDialog && (
-        <CenterDialog
-          termWidth={termWidth}
-          contentHeight={contentHeight}
-          maxWidth={90}
-          widthFraction={2 / 3}
-          topFraction={1 / 6}
-          data-dialog="search"
-          focusScope
-        >
-          <SearchDialog
-            onSelect={dialogHandlers.handleSearchSelect}
-            onCancel={dialogHandlers.handleSearchCancel}
-            width={Math.min(90, Math.floor((termWidth * 2) / 3))}
-            maxHeight={Math.floor((contentHeight * 2) / 3)}
-            initialInput={ui.searchDialogInitialInput}
-            onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
-            scope={ui.searchScope}
-            scopeNodeIds={ui.searchScopeNodeIds}
-          />
-        </CenterDialog>
-      )}
+      {/* Search dialog modal — routed through SearchDialogBridge for the
+          KM_TEA_SEARCH=1 cutover. Bridge reads from the plugin store when the
+          flag is on, otherwise from the legacy ui fields. */}
+      <SearchDialogBridge
+        legacyVisible={ui.showSearchDialog}
+        legacyInitialInput={ui.searchDialogInitialInput}
+        legacyScope={ui.searchScope}
+        legacyScopeNodeIds={ui.searchScopeNodeIds}
+        onSelect={dialogHandlers.handleSearchSelect}
+        onCancel={dialogHandlers.handleSearchCancel}
+        onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
+        termWidth={termWidth}
+        contentHeight={contentHeight}
+      />
       {/* Filter panel — top-right corner, below top bar */}
       {ui.showFilterDialog && (
         <TopRightDialog termWidth={termWidth} width={FILTER_PANEL_WIDTH} data-dialog="filter" focusScope>
