@@ -26,6 +26,7 @@ import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { isTeaHelpEnabled, getHelpStore } from "../plugins/with-help-overlay.ts"
+import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -1294,17 +1295,23 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       ctx.toastQueue.info("Task dialog not yet implemented")
       ctx.setUI({})
       return ok()
-    case "SHOW_SEARCH_DIALOG":
+    case "SHOW_SEARCH_DIALOG": {
       pushDialogMode("dialog:search")
       ctx.closeDetailPane()
+      const scopeIds = ctx.cursor ? [ctx.cursor as string] : []
+      // Phase 1 cutover: when KM_TEA_SEARCH=1, dual-write to the TEA plugin
+      // store. The legacy `ui.showSearchDialog` path keeps working so existing
+      // isInDialog(), tests, and non-bridge consumers observe the same state.
+      if (isTeaSearchEnabled()) getSearchStore().dispatch({ type: "search.show", scopeNodeIds: scopeIds })
       ctx.setUI({
         showSearchDialog: true,
         searchDialogInitialInput: "",
         searchScope: "all",
-        searchScopeNodeIds: ctx.cursor ? [ctx.cursor as string] : [],
+        searchScopeNodeIds: scopeIds,
       })
       clearSelection(ctx)
       return ok()
+    }
     case "SHOW_FILTER_DIALOG":
       if (ctx.ui.showFilterDialog) {
         popDialogMode()
@@ -1481,6 +1488,14 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       }
       markDialogConfirmed()
       popDialogMode()
+      // Phase 1 cutover: dual-write close to plugin when KM_TEA_SEARCH=1. The
+      // dialogTargetRef.confirm() eventually calls handleSearchSelect which
+      // calls setUI({showSearchDialog: false}); the plugin dispatch here
+      // mirrors that close atomically so the bridge observer sees visible=false
+      // in the same frame.
+      if (ctx.ui.showSearchDialog && isTeaSearchEnabled()) {
+        getSearchStore().dispatch({ type: "search.hide" })
+      }
       if (dialogTargetRef.current) {
         dialogTargetRef.current.confirm()
       } else if (activeEditTargetRef.current) {
@@ -1501,6 +1516,10 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         return ok()
       }
       popDialogMode()
+      // Phase 1 cutover: dual-write cancel to plugin when KM_TEA_SEARCH=1.
+      if (ctx.ui.showSearchDialog && isTeaSearchEnabled()) {
+        getSearchStore().dispatch({ type: "search.hide" })
+      }
       if (dialogTargetRef.current) {
         dialogTargetRef.current.cancel()
       } else if (activeEditTargetRef.current) {
@@ -1514,6 +1533,8 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       }
       return ok()
     case "TOGGLE_SEARCH_SCOPE":
+      // Phase 1 cutover: dual-write scope toggle to plugin store.
+      if (isTeaSearchEnabled()) getSearchStore().dispatch({ type: "search.toggleScope" })
       ctx.setUI((prev) => ({
         searchScope: prev.searchScope === "all" ? "selected" : "all",
       }))
@@ -2591,6 +2612,8 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   }
   if (ui.showSearchDialog) {
     popDialogMode()
+    // Phase 1 cutover: dual-write to plugin when KM_TEA_SEARCH=1.
+    if (isTeaSearchEnabled()) getSearchStore().dispatch({ type: "search.hide" })
     dialogTargetRef.current?.cancel()
     return ok()
   }
