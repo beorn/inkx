@@ -41,6 +41,7 @@ import {
   sanitize as envelopeSanitize,
   type InjectedItem,
 } from "../../bearly/plugins/injection-envelope/src/index.ts"
+import { emitInjectionDebugEvent } from "../../bearly/plugins/injection-envelope/src/debug.ts"
 
 const HOME = homedir()
 const SESSIONS_DIR = process.env.RECALL_SESSIONS_DIR ?? `${HOME}/Bear/Vault/raw/chats`
@@ -481,6 +482,13 @@ function cmdHook(): void {
   const prompt = (input.prompt ?? "").trim()
   // Skip short prompts and slash commands — no value in injecting memory.
   if (!prompt || prompt.length < 12 || prompt.startsWith("/")) {
+    emitInjectionDebugEvent({
+      source: "qmd",
+      sessionId: input.session_id,
+      action: "skip",
+      reason: !prompt ? "empty" : prompt.startsWith("/") ? "slash_command" : "short",
+      prompt: prompt.slice(0, 200),
+    })
     process.stdout.write(envelopeEmitHookJson("UserPromptSubmit"))
     return
   }
@@ -497,6 +505,13 @@ function cmdHook(): void {
     /* bad JSON = no hits */
   }
   if (hits.length === 0) {
+    emitInjectionDebugEvent({
+      source: "qmd",
+      sessionId: input.session_id,
+      action: "skip",
+      reason: "no_results",
+      prompt: prompt.slice(0, 200),
+    })
     process.stdout.write(envelopeEmitHookJson("UserPromptSubmit"))
     return
   }
@@ -516,6 +531,13 @@ function cmdHook(): void {
     .slice(0, 3)
 
   if (deduped.length === 0) {
+    emitInjectionDebugEvent({
+      source: "qmd",
+      sessionId: input.session_id,
+      action: "skip",
+      reason: "all_dedup",
+      prompt: prompt.slice(0, 200),
+    })
     process.stdout.write(envelopeEmitHookJson("UserPromptSubmit"))
     return
   }
