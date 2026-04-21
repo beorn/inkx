@@ -66,10 +66,7 @@ describe("resolveAnchor: collapsed file with referenced anchor", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "chats"), { recursive: true })
 
-    writeFileSync(
-      join(tmpDir, "chats", "s.md"),
-      "# Chat\n\n## Turn 0\n\nbody0\n\n## Turn 5\n\nbody5\n",
-    )
+    writeFileSync(join(tmpDir, "chats", "s.md"), "# Chat\n\n## Turn 0\n\nbody0\n\n## Turn 5\n\nbody5\n")
     writeFileSync(join(tmpDir, "notes.md"), "# N\n\n[[s#Turn 5]] is interesting.\n")
 
     const db = new Database(":memory:")

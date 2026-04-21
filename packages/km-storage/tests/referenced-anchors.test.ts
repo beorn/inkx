@@ -44,12 +44,8 @@ describe("referenced_anchors: writes", () => {
   })
 
   test("removeReferencedAnchors clears a single file's rows", () => {
-    addReferencedAnchors(db, "file-1", [
-      { anchor: "A", source_offset: 0, heading_level: 1, ref_count: 1 },
-    ])
-    addReferencedAnchors(db, "file-2", [
-      { anchor: "B", source_offset: 0, heading_level: 1, ref_count: 1 },
-    ])
+    addReferencedAnchors(db, "file-1", [{ anchor: "A", source_offset: 0, heading_level: 1, ref_count: 1 }])
+    addReferencedAnchors(db, "file-2", [{ anchor: "B", source_offset: 0, heading_level: 1, ref_count: 1 }])
     expect(countReferencedAnchors(db)).toBe(2)
 
     removeReferencedAnchors(db, "file-1")
@@ -60,24 +56,16 @@ describe("referenced_anchors: writes", () => {
   })
 
   test("UNIQUE(file_id, anchor) prevents duplicates", () => {
-    addReferencedAnchors(db, "file-1", [
-      { anchor: "Plans", source_offset: 100, heading_level: 2, ref_count: 1 },
-    ])
+    addReferencedAnchors(db, "file-1", [{ anchor: "Plans", source_offset: 100, heading_level: 2, ref_count: 1 }])
     expect(() => {
-      addReferencedAnchors(db, "file-1", [
-        { anchor: "Plans", source_offset: 100, heading_level: 2, ref_count: 1 },
-      ])
+      addReferencedAnchors(db, "file-1", [{ anchor: "Plans", source_offset: 100, heading_level: 2, ref_count: 1 }])
     }).toThrow()
   })
 
   test("delete-then-insert protocol (refresh)", () => {
-    addReferencedAnchors(db, "file-1", [
-      { anchor: "Old", source_offset: 50, heading_level: 1, ref_count: 2 },
-    ])
+    addReferencedAnchors(db, "file-1", [{ anchor: "Old", source_offset: 50, heading_level: 1, ref_count: 2 }])
     removeReferencedAnchors(db, "file-1")
-    addReferencedAnchors(db, "file-1", [
-      { anchor: "New", source_offset: 80, heading_level: 2, ref_count: 5 },
-    ])
+    addReferencedAnchors(db, "file-1", [{ anchor: "New", source_offset: 80, heading_level: 2, ref_count: 5 }])
     const rows = getReferencedAnchorsForFile(db, "file-1")
     expect(rows).toHaveLength(1)
     expect(rows[0]?.anchor).toBe("New")
@@ -125,10 +113,7 @@ describe("referenced_anchors: reads", () => {
 
 describe("referenced_anchors: toReferencedAnchorInsert", () => {
   test("heading → heading_level preserved", () => {
-    const insert = toReferencedAnchorInsert(
-      { anchor: "Plans", rawText: "Plans", headingLevel: 2, offset: 50 },
-      4,
-    )
+    const insert = toReferencedAnchorInsert({ anchor: "Plans", rawText: "Plans", headingLevel: 2, offset: 50 }, 4)
     expect(insert).toEqual({
       anchor: "Plans",
       source_offset: 50,
@@ -138,10 +123,7 @@ describe("referenced_anchors: toReferencedAnchorInsert", () => {
   })
 
   test("block ref → heading_level null", () => {
-    const insert = toReferencedAnchorInsert(
-      { anchor: "^abc", rawText: "^abc", offset: 200 },
-      1,
-    )
+    const insert = toReferencedAnchorInsert({ anchor: "^abc", rawText: "^abc", offset: 200 }, 1)
     expect(insert).toEqual({
       anchor: "^abc",
       source_offset: 200,

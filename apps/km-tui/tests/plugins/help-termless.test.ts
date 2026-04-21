@@ -80,10 +80,10 @@ describe("help overlay — termless (real terminal emulator)", () => {
         // Extract presence of key section headers — exact pixel-for-pixel
         // equivalence isn't required (backend differences are fine); the
         // invariant is that both paths render the same content.
-        return [
-          app.toContainText ? "" : "", // placeholder; we'll use state.overlay
-          String(app.state.overlay),
-        ].join("|")
+        // Both paths must end up with overlay === "help" after show_help.
+        // (Exact pixel-level output may differ across backends; the
+        // invariant is that state mirrors across legacy + plugin paths.)
+        return String(app.state.overlay)
       } finally {
         if (prev === undefined) delete process.env.KM_TEA_HELP
         else process.env.KM_TEA_HELP = prev

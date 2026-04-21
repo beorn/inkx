@@ -126,6 +126,15 @@ export interface LoadOptions {
    * Pass an explicit matcher in tests to avoid touching disk.
    */
   collapseMatcher?: CollapseParseMatcher
+  /**
+   * km-storage.lazy-hydration: when true, skip filesystem reconciliation on
+   * the critical path. Caller is responsible for invoking
+   * `reconcileFilesystemAsync` post-first-frame to catch externally added /
+   * removed files. Also set via `KM_LAZY_HYDRATE=1`.
+   *
+   * Default: false (eager reconcile preserves pre-lazy behavior).
+   */
+  lazyHydrate?: boolean
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -234,9 +243,16 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // exist for the rows to make sense).
   writeCollapsedExtractions(db, source.collapsedExtractions)
 
-  // 4b. Disk mode: reconcile filesystem to detect externally added/removed files
+  // 4b. Disk mode: reconcile filesystem to detect externally added/removed files.
+  //
+  // KM_LAZY_HYDRATE=1: skip reconciliation on the critical path. The watcher
+  // (when enabled) will detect any external changes on its first scan, and
+  // `reconcileFilesystem` can be invoked post-first-frame if needed.
+  //
+  // Default (KM_LAZY_HYDRATE!=1): eager reconcile preserves pre-lazy behavior.
   let reconcileDeferredFiles: DeferredFile[] = []
-  if (mode === "disk") {
+  const lazyHydrate = options?.lazyHydrate ?? process.env.KM_LAZY_HYDRATE === "1"
+  if (mode === "disk" && !lazyHydrate) {
     using _reconcileSpan = loadSpan.span("reconcile-filesystem")
     const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
     if (reconcileResult.changes.length > 0) {
@@ -994,6 +1010,80 @@ function* reconcileFilesystem(
   yield { current: changes.length, total: changes.length }
 
   return { changes, deferredFiles, collapsedExtractions }
+}
+
+// ============================================================================
+// STANDALONE RECONCILIATION (lazy-hydration path)
+// ============================================================================
+
+/**
+ * Result from reconcileFilesystemPostFrame.
+ */
+export interface ReconcileFilesystemResult {
+  /** Number of changes generated and applied */
+  changes: number
+  /** Files queued for deferred background parsing */
+  deferredFiles: DeferredFile[]
+  /** Errors encountered during reconciliation */
+  errors: LoadError[]
+  /** Wall-clock duration in ms */
+  duration: number
+}
+
+/**
+ * km-storage.lazy-hydration: background-friendly reconciliation + apply,
+ * callable post-first-frame. Mirrors the work `loadRepo` does inline in the
+ * eager path — detect externally added / removed files, generate
+ * node_created/node_deleted changes, and apply them to the DB.
+ *
+ * Returns after applying. Caller is responsible for busting the repo's
+ * children cache (`repo.touch()`) so subscribers re-query.
+ *
+ * When KM_LAZY_HYDRATE=1 and reconciliation is skipped on startup, call this
+ * function on a microtask after the first frame renders. The cost is the same
+ * as the eager path — this just moves it off the critical path.
+ */
+export async function reconcileFilesystemPostFrame(
+  db: Database,
+  repoRoot: string,
+  options?: { collapseMatcher?: CollapseParseMatcher; isAborted?: () => boolean },
+): Promise<ReconcileFilesystemResult> {
+  const start = Date.now()
+  const errors: LoadError[] = []
+  const collapseMatcher = options?.collapseMatcher ?? createNullCollapseParseMatcher()
+
+  // Walk the generator synchronously (post-frame we no longer need incremental yields).
+  const gen = reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
+  let result: ReconcileResult | undefined
+  for (;;) {
+    if (options?.isAborted?.()) {
+      return { changes: 0, deferredFiles: [], errors, duration: Date.now() - start }
+    }
+    const step = gen.next()
+    if (step.done) {
+      result = step.value
+      break
+    }
+  }
+
+  let changesApplied = 0
+  if (result && result.changes.length > 0) {
+    // Run applyChanges generator to completion
+    const applyGen = applyChanges(db, result.changes, errors, repoRoot)
+    for (;;) {
+      const step = applyGen.next()
+      if (step.done) break
+    }
+    writeCollapsedExtractions(db, result.collapsedExtractions)
+    changesApplied = result.changes.length
+  }
+
+  return {
+    changes: changesApplied,
+    deferredFiles: result?.deferredFiles ?? [],
+    errors,
+    duration: Date.now() - start,
+  }
 }
 
 // ============================================================================

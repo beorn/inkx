@@ -326,9 +326,7 @@ export function migrateSchema(db: import("bun:sqlite").Database): MigrateResult 
   // slow path — they genuinely need the migrations.
   const hasMeta = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get()
   if (hasMeta) {
-    const row = db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as
-      | { value: string }
-      | null
+    const row = db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string } | null
     const recorded = row ? parseInt(row.value, 10) : NaN
     if (Number.isFinite(recorded) && recorded >= SCHEMA_VERSION) {
       return { ftsDropped: false }

@@ -94,10 +94,7 @@ describe("resolveInboundAnchors: ref counting", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "chats"), { recursive: true })
 
-    writeFileSync(
-      join(tmpDir, "chats", "session.md"),
-      "# Chat\n\n## Turn 0\n\nbody0\n\n## Turn 1\n\nbody1\n",
-    )
+    writeFileSync(join(tmpDir, "chats", "session.md"), "# Chat\n\n## Turn 0\n\nbody0\n\n## Turn 1\n\nbody1\n")
 
     writeFileSync(
       join(tmpDir, "notes.md"),
@@ -126,14 +123,8 @@ describe("resolveInboundAnchors: inbound from another collapsed file", () => {
     mkdirSync(join(tmpDir, "chats"), { recursive: true })
 
     // Two collapsed chat files; one links to a section in the other.
-    writeFileSync(
-      join(tmpDir, "chats", "session-a.md"),
-      "# Chat A\n\n## Intro\n\nSee [[session-b#Conclusions]].\n",
-    )
-    writeFileSync(
-      join(tmpDir, "chats", "session-b.md"),
-      "# Chat B\n\n## Conclusions\n\nThe end.\n",
-    )
+    writeFileSync(join(tmpDir, "chats", "session-a.md"), "# Chat A\n\n## Intro\n\nSee [[session-b#Conclusions]].\n")
+    writeFileSync(join(tmpDir, "chats", "session-b.md"), "# Chat B\n\n## Conclusions\n\nThe end.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)
@@ -197,10 +188,7 @@ describe("resolveInboundAnchors: block refs", () => {
       join(tmpDir, "chats", "session.md"),
       "# Chat\n\nFirst paragraph. ^para-1\n\nSecond paragraph. ^para-2\n",
     )
-    writeFileSync(
-      join(tmpDir, "notes.md"),
-      "# Notes\n\nSee [[session^para-1]] for context.\n",
-    )
+    writeFileSync(join(tmpDir, "notes.md"), "# Notes\n\nSee [[session^para-1]] for context.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)

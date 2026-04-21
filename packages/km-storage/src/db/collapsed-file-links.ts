@@ -81,15 +81,12 @@ export function removeCollapsedFileLinks(db: Database, hostId: string): void {
  * Fetch rows matching any of the supplied hrefs. Used by the backlink
  * UNION in repo.ts. Returns [] when called with no hrefs.
  */
-export function getCollapsedFileBacklinks(
-  db: Database,
-  hrefs: readonly string[],
-): CollapsedFileLinkRow[] {
+export function getCollapsedFileBacklinks(db: Database, hrefs: readonly string[]): CollapsedFileLinkRow[] {
   if (hrefs.length === 0) return []
   const placeholders = hrefs.map(() => "?").join(",")
-  const rows = db
-    .query(`SELECT * FROM collapsed_file_links WHERE href IN (${placeholders})`)
-    .all(...hrefs) as Array<Record<string, unknown>>
+  const rows = db.query(`SELECT * FROM collapsed_file_links WHERE href IN (${placeholders})`).all(...hrefs) as Array<
+    Record<string, unknown>
+  >
   return rows.map(rowToLink)
 }
 

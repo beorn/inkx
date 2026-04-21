@@ -26,10 +26,7 @@ import { loadRepo, parseStubFile } from "../src/repo/loader.ts"
 import { resolveNode } from "../src/db/db.ts"
 import { createCollapseParseMatcher } from "../src/markdown/collapse-parse.ts"
 import { getBacklinksByHref } from "../src/db/links.ts"
-import {
-  getCollapsedFileBacklinks,
-  removeCollapsedFileLinks,
-} from "../src/db/collapsed-file-links.ts"
+import { getCollapsedFileBacklinks, removeCollapsedFileLinks } from "../src/db/collapsed-file-links.ts"
 import { normalizeLinkHref } from "@km/markdown"
 import { deleteSubtree } from "../src/db/ops.ts"
 
@@ -116,10 +113,7 @@ describe("collapsed_file_links: backlink UNION", () => {
     // The target node gets an actual file so it's resolvable.
     writeFileSync(join(tmpDir, "Alpha.md"), "# Alpha\n\nA knowledge node.\n")
     // The source is collapsed; its outgoing links should surface.
-    writeFileSync(
-      join(tmpDir, "raw", "chats", "session.md"),
-      "# Session\n\nRefers to [[Alpha]] in many places.\n",
-    )
+    writeFileSync(join(tmpDir, "raw", "chats", "session.md"), "# Session\n\nRefers to [[Alpha]] in many places.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)
@@ -140,10 +134,7 @@ describe("collapsed_file_links: backlink UNION", () => {
     mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
     writeFileSync(join(tmpDir, "Alpha.md"), "# Alpha\n")
     writeFileSync(join(tmpDir, "refs-a.md"), "# Refs A\n\nLinks [[Alpha]].\n")
-    writeFileSync(
-      join(tmpDir, "raw", "chats", "chat.md"),
-      "# Chat\n\nAlso mentions [[Alpha]] casually.\n",
-    )
+    writeFileSync(join(tmpDir, "raw", "chats", "chat.md"), "# Chat\n\nAlso mentions [[Alpha]] casually.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)
@@ -155,13 +146,9 @@ describe("collapsed_file_links: backlink UNION", () => {
 
     // Count rows contributed by each side so we can assert the UNION
     // covers both.
-    const linksCount = (
-      db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get("km:Alpha") as { c: number }
-    ).c
+    const linksCount = (db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get("km:Alpha") as { c: number }).c
     const cflCount = (
-      db
-        .query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE href = ?")
-        .get("km:Alpha") as { c: number }
+      db.query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE href = ?").get("km:Alpha") as { c: number }
     ).c
     expect(linksCount).toBeGreaterThan(0)
     expect(cflCount).toBeGreaterThan(0)
@@ -244,9 +231,7 @@ describe("collapsed_file_links: invalidation", () => {
 
     // Collapsed edges gone.
     const leftover = (
-      db
-        .query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE host_id = ?")
-        .get(session!.id) as { c: number }
+      db.query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE host_id = ?").get(session!.id) as { c: number }
     ).c
     expect(leftover).toBe(0)
 
@@ -271,10 +256,7 @@ describe("collapsed_file_links: invalidation", () => {
   test("deleteSubtree cascades to collapsed_file_links", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
-    writeFileSync(
-      join(tmpDir, "raw", "chats", "session.md"),
-      "# Chat\n\nLinks [[Alpha]] and [[Beta]].\n",
-    )
+    writeFileSync(join(tmpDir, "raw", "chats", "session.md"), "# Chat\n\nLinks [[Alpha]] and [[Beta]].\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)

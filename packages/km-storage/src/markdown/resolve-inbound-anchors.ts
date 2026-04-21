@@ -26,11 +26,7 @@ import type { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
 
 import { extractAnchors } from "./extract-anchors.ts"
-import {
-  addReferencedAnchors,
-  removeReferencedAnchors,
-  toReferencedAnchorInsert,
-} from "../db/referenced-anchors.ts"
+import { addReferencedAnchors, removeReferencedAnchors, toReferencedAnchorInsert } from "../db/referenced-anchors.ts"
 
 const log = createLogger("km:storage:resolve-inbound-anchors")
 
@@ -220,7 +216,11 @@ function buildTargetSet(
   // Build a basename index once.
   const byBasename = new Map<string, { fileId: string; fsPath: string }>()
   for (const entry of collapsedFiles.values()) {
-    const basename = entry.fsPath.split("/").pop()?.replace(/\.(md|txt)$/i, "") ?? ""
+    const basename =
+      entry.fsPath
+        .split("/")
+        .pop()
+        ?.replace(/\.(md|txt)$/i, "") ?? ""
     const key = basename.toLowerCase()
     // First match wins (ambiguity is rare for collapse-parse folders, and
     // the link resolver follows the same convention).
@@ -257,7 +257,11 @@ function buildTargetSet(
     // Resolve path to a collapsed file. Try basename match first (most
     // common for wiki links); fall back to full fs_path match (for md-link
     // relative paths).
-    const basename = path.split("/").pop()?.replace(/\.(md|txt)$/i, "") ?? ""
+    const basename =
+      path
+        .split("/")
+        .pop()
+        ?.replace(/\.(md|txt)$/i, "") ?? ""
     const hit =
       byBasename.get(basename.toLowerCase()) ??
       collapsedFiles.get(path) ??

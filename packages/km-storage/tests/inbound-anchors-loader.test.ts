@@ -19,10 +19,7 @@ import { tmpdir } from "os"
 
 import { SCHEMA } from "../src/db/schema.ts"
 import { loadRepo } from "../src/repo/loader.ts"
-import {
-  countReferencedAnchors,
-  getReferencedAnchorsForFile,
-} from "../src/db/referenced-anchors.ts"
+import { countReferencedAnchors, getReferencedAnchorsForFile } from "../src/db/referenced-anchors.ts"
 import { resolveNode } from "../src/db/db.ts"
 import { createCollapseParseMatcher } from "../src/markdown/collapse-parse.ts"
 
@@ -42,14 +39,8 @@ describe("loadRepo: auto-runs inbound anchor resolution", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "chats"), { recursive: true })
 
-    writeFileSync(
-      join(tmpDir, "chats", "s.md"),
-      "# Chat\n\n## Intro\n\n## Turn 1\n\n## Turn 2\n\n## Turn 3\n",
-    )
-    writeFileSync(
-      join(tmpDir, "notes.md"),
-      "# N\n\n[[s#Turn 1]] and [[s#Turn 3]] — both interesting.\n",
-    )
+    writeFileSync(join(tmpDir, "chats", "s.md"), "# Chat\n\n## Intro\n\n## Turn 1\n\n## Turn 2\n\n## Turn 3\n")
+    writeFileSync(join(tmpDir, "notes.md"), "# N\n\n[[s#Turn 1]] and [[s#Turn 3]] — both interesting.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)

@@ -55,7 +55,9 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
     if (cacheKey) {
       const cached = loadCachedTheme(cacheKey)
       if (cached) {
-        log.debug?.(`theme: loaded cached theme ${cached.name} for ${cacheKey.program}/${cacheKey.dark ? "dark" : "light"}`)
+        log.debug?.(
+          `theme: loaded cached theme ${cached.name} for ${cacheKey.program}/${cacheKey.dark ? "dark" : "light"}`,
+        )
         return cached
       }
     }

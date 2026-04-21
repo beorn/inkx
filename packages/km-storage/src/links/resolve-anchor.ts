@@ -86,9 +86,9 @@ export function resolveAnchor(db: Database, input: ResolveAnchorInput): AnchorRe
   // computing from `parsed=0` because unparsed non-collapsed stubs still
   // resolve via the parsed strategy (their content gets parsed on demand
   // before any UI navigation).
-  const meta = db
-    .prepare("SELECT data, parsed FROM nodes WHERE id = ?")
-    .get(fileId) as { data: string | null; parsed: number | null } | undefined
+  const meta = db.prepare("SELECT data, parsed FROM nodes WHERE id = ?").get(fileId) as
+    | { data: string | null; parsed: number | null }
+    | undefined
 
   const isCollapsed = meta?.data ? isCollapsedMarker(meta.data) : false
 

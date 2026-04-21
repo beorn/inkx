@@ -6,10 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  createCollapseParseMatcher,
-  createNullCollapseParseMatcher,
-} from "../src/markdown/collapse-parse.ts"
+import { createCollapseParseMatcher, createNullCollapseParseMatcher } from "../src/markdown/collapse-parse.ts"
 
 describe("createCollapseParseMatcher", () => {
   test("empty patterns → matches nothing", () => {

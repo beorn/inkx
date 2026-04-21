@@ -67,9 +67,7 @@ export interface CollapseParseMatcher {
  */
 export function createCollapseParseMatcher(patterns: readonly string[]): CollapseParseMatcher {
   // Filter blanks + comments (same policy as .kmignore reader).
-  const cleaned = patterns
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0 && !p.startsWith("#"))
+  const cleaned = patterns.map((p) => p.trim()).filter((p) => p.length > 0 && !p.startsWith("#"))
 
   if (cleaned.length === 0) {
     return {

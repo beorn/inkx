@@ -29,10 +29,7 @@ import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loa
 import { generatePathBasedId } from "./fs/id-utils.ts"
 import { toRelativeFsPath } from "./fs/path-utils.ts"
 import { readSiblingOrder, applySiblingOrder, type SiblingOrderMap } from "./sibling-order.ts"
-import {
-  createNullCollapseParseMatcher,
-  type CollapseParseMatcher,
-} from "./markdown/collapse-parse.ts"
+import { createNullCollapseParseMatcher, type CollapseParseMatcher } from "./markdown/collapse-parse.ts"
 import { extractLinks, type ExtractedLink } from "./markdown/extract-links.ts"
 
 const log = createLogger("km:storage:discovery")

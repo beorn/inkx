@@ -125,10 +125,7 @@ describe("collapse-parse: discovery integration", () => {
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
     const chatPath = join(tmpDir, "raw", "chats", "session.md")
-    writeFileSync(
-      chatPath,
-      "# Chat Session\n\n## Section One\n\nHello.\n\n## Section Two\n\nWorld.\n",
-    )
+    writeFileSync(chatPath, "# Chat Session\n\n## Section One\n\nHello.\n\n## Section Two\n\nWorld.\n")
 
     const db = new Database(":memory:")
     db.run(SCHEMA)

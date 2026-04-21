@@ -85,11 +85,7 @@ export function removeReferencedAnchors(db: Database, fileId: string): void {
  * Look up one specific `(file_id, anchor)` row, or null if absent. Used by
  * `resolveAnchor` during link resolution.
  */
-export function getReferencedAnchor(
-  db: Database,
-  fileId: string,
-  anchor: string,
-): ReferencedAnchorRow | null {
+export function getReferencedAnchor(db: Database, fileId: string, anchor: string): ReferencedAnchorRow | null {
   const row = db
     .query(
       "SELECT id, file_id, anchor, source_offset, heading_level, ref_count, created_at " +
@@ -102,10 +98,7 @@ export function getReferencedAnchor(
 /**
  * All referenced anchors for a file (useful for tests and diagnostic tools).
  */
-export function getReferencedAnchorsForFile(
-  db: Database,
-  fileId: string,
-): ReferencedAnchorRow[] {
+export function getReferencedAnchorsForFile(db: Database, fileId: string): ReferencedAnchorRow[] {
   const rows = db
     .query(
       "SELECT id, file_id, anchor, source_offset, heading_level, ref_count, created_at " +
@@ -120,9 +113,7 @@ export function getReferencedAnchorsForFile(
  * (hub/km/vault-diagnostic-*) to report the pruning ratio vs total headings.
  */
 export function countReferencedAnchors(db: Database): number {
-  const row = db.query("SELECT COUNT(*) AS cnt FROM referenced_anchors").get() as
-    | { cnt: number }
-    | null
+  const row = db.query("SELECT COUNT(*) AS cnt FROM referenced_anchors").get() as { cnt: number } | null
   return row?.cnt ?? 0
 }
 
@@ -147,10 +138,7 @@ function rowToAnchor(row: Record<string, unknown>): ReferencedAnchorRow {
  * supplied by the caller (the two-pass discovery aggregates inbound
  * references first, then calls the extractor on each collapsed file).
  */
-export function toReferencedAnchorInsert(
-  extracted: ExtractedAnchor,
-  refCount: number,
-): ReferencedAnchorInsert {
+export function toReferencedAnchorInsert(extracted: ExtractedAnchor, refCount: number): ReferencedAnchorInsert {
   return {
     anchor: extracted.anchor,
     source_offset: extracted.offset,

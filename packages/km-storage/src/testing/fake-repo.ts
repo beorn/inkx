@@ -226,6 +226,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     async *expandAll() {
       // No-op for fake repo
     },
+    async reconcileAsync() {
+      // No-op for fake repo — tests don't manage a real filesystem to reconcile.
+      return { changes: 0, deferredFiles: [], errors: [], duration: 0 }
+    },
     withDeferredFs(fn) {
       return fn()
     },
