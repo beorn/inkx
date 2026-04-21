@@ -101,7 +101,7 @@ Invoking `bun llm pro "..."` fires **both** GPT-5.4 Pro **and** Kimi K2.6 in par
 
 Fallback: if `OPENROUTER_API_KEY` is unset, dual-pro degrades to single GPT-5.4 Pro silently. Explicit `--model <id>` bypasses dual mode (single-model runs the override).
 
-**K2.6 reasoning budget**: K2.6 is a thinking model — 64K output cap is set via `Model.reasoning.maxOutputTokens` so reasoning + content have room. Non-reasoning chat models leave the field unset (provider default applies). Caller doesn't need to set anything.
+**K2.6 reasoning budget**: K2.6 is a thinking model — the output cap is computed dynamically per query via `Model.reasoning.contextWindow` (262144 combined input+output). `queryModel` sizes `max_tokens` as `contextWindow − estimatedInput − 2048` so every query gets the maximum usable headroom without tripping the combined-context limit. Non-reasoning chat models leave the reasoning block unset (provider default applies). Caller doesn't need to set anything.
 
 **WARNING**: Keywords (`pro`, `opinion`, etc.) do NOT work with `--deep` — they get absorbed
 into the topic text. To combine deep research with a specific model, use `--model`:
