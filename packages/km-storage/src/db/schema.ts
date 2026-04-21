@@ -312,6 +312,29 @@ export function migrateSchema(db: import("bun:sqlite").Database): MigrateResult 
   const columns = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
   if (columns.length === 0) return { ftsDropped: false }
 
+  // Fast-path: when `meta` exists AND records the current schema_version, the
+  // DB has already been through every migration below, so we can skip the
+  // O(N) scans. The hasOldTypes `COUNT(*) ... WHERE type IN ('oi','li','link')`
+  // query hits all ~555k rows on mature vaults and costs ~130ms every startup
+  // even when the result is always zero; the column-rename guards each do a
+  // PRAGMA table_info lookup. All of those can be skipped once migrations have
+  // settled.
+  //
+  // `readSchemaVersion` returns SCHEMA_VERSION when `meta` is absent (fresh
+  // DB SCHEMA will create it), so we explicitly check `hasMeta` here to keep
+  // pre-v1 DBs (where `meta` exists but `schema_version` is unset) on the
+  // slow path — they genuinely need the migrations.
+  const hasMeta = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get()
+  if (hasMeta) {
+    const row = db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as
+      | { value: string }
+      | null
+    const recorded = row ? parseInt(row.value, 10) : NaN
+    if (Number.isFinite(recorded) && recorded >= SCHEMA_VERSION) {
+      return { ftsDropped: false }
+    }
+  }
+
   const columnNames = new Set(columns.map((c) => c.name))
 
   // Add missing columns (schema evolution)

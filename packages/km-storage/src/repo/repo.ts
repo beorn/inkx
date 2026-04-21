@@ -53,7 +53,16 @@ import type { FileTree } from "../fs/file-tree.ts"
 import { createDiskFileTree } from "../fs/file-tree.ts"
 import { executeQuery, parseQuery } from "../query.ts"
 import { type MutationContext, type RepoHooks } from "./hooks.ts"
-import { loadRepo, type DeferredFile, type LoadError, type PendingLink, type StepYield } from "./loader.ts"
+import {
+  loadRepo,
+  reconcileFilesystemPostFrame,
+  type DeferredFile,
+  type LoadError,
+  type PendingLink,
+  type StepYield,
+} from "./loader.ts"
+import { getCollapseParseConfig } from "../config.ts"
+import { createCollapseParseMatcher, createNullCollapseParseMatcher } from "../markdown/collapse-parse.ts"
 import { type UnexploredDir } from "../discovery.ts"
 import { createIgnoreMatcher, shouldIgnore } from "../fs/ignore.ts"
 import { generatePathBasedId } from "../fs/id-utils.ts"
@@ -847,6 +856,27 @@ export interface Repo extends Disposable {
   /** Load all remaining unexplored directories (for background indexing) */
   expandAll(): AsyncGenerator<ExpandProgress>
 
+  /**
+   * km-storage.lazy-hydration: reconcile the filesystem against the DB off
+   * the critical path. Callable after the first frame renders when
+   * `createRepo({ lazyHydrate: true })` skipped the inline reconciliation.
+   *
+   * Detects externally added / removed files and applies the differences.
+   * Busts the children cache and bumps the repo version on completion so
+   * subscribers re-render. Safe to call multiple times — idempotent when no
+   * filesystem changes occurred since the last reconciliation.
+   *
+   * Returns the number of changes applied and any deferred files that need
+   * background parsing (typically empty — real-vault post-frame reconciles
+   * find nothing to change).
+   */
+  reconcileAsync(options?: { isAborted?: () => boolean }): Promise<{
+    changes: number
+    deferredFiles: DeferredFile[]
+    errors: LoadError[]
+    duration: number
+  }>
+
   /** Change emitter for this repo (owns kmDir, changeHub, fsSync) */
   readonly emitter: Emitter
 
@@ -1592,13 +1622,27 @@ function* initWithFileLoading(
       mkdirSync(kmDir, { recursive: true })
     }
     const dbPath = join(kmDir, "state.db")
-    db = openDiskDatabase(dbPath)
-    const migrateResult = migrateSchema(db)
+    {
+      using _o = initSpan.span("db-open")
+      db = openDiskDatabase(dbPath)
+    }
+    let migrateResult: ReturnType<typeof migrateSchema>
+    {
+      using _m = initSpan.span("migrate-schema")
+      migrateResult = migrateSchema(db)
+    }
     // Data migration: run BEFORE SCHEMA (same as migrateSchema) so that
     // readDataVersion sees the pre-SCHEMA meta state — fresh DBs have no
     // meta table yet → returns DATA_VERSION (no migration needed).
-    const dataResult = migrateData(db)
-    db.run(SCHEMA)
+    let dataResult: ReturnType<typeof migrateData>
+    {
+      using _d = initSpan.span("migrate-data")
+      dataResult = migrateData(db)
+    }
+    {
+      using _s = initSpan.span("schema-run")
+      db.run(SCHEMA)
+    }
     if (migrateResult.ftsDropped) rebuildFtsIndex(db)
     if (dataResult.needsRebuild) {
       log.debug?.("Data version upgrade — rebuilding database from source files...")
@@ -1616,6 +1660,7 @@ function* initWithFileLoading(
     skipLinkResolution: options.skipLinkResolution,
     discoverOnly: options.discoverOnly,
     preloadDepth: options.preloadDepth,
+    lazyHydrate: options.lazyHydrate,
     mode, // Pass our mode decision to loadRepo
     db, // ADR-002: pass db to avoid singleton
   })
@@ -1755,6 +1800,14 @@ export interface CreateRepoOptions {
    * Default: Infinity (load everything).
    */
   preloadDepth?: number
+  /**
+   * km-storage.lazy-hydration: when true, skip filesystem reconciliation on
+   * the critical path. Call `repo.reconcileAsync()` after the first frame
+   * renders to catch externally added / removed files.
+   *
+   * Also set via `KM_LAZY_HYDRATE=1`. Default: false (eager reconcile).
+   */
+  lazyHydrate?: boolean
   /** Lifecycle hooks for mutation interception */
   hooks?: RepoHooks
 }
@@ -1968,6 +2021,35 @@ export function* createRepo(
           remaining: remainingUnexplored.length,
         }
       }
+    },
+
+    async reconcileAsync(reconcileOptions?) {
+      ensureOpen()
+      if (mode === "memory") {
+        return { changes: 0, deferredFiles: [], errors: [], duration: 0 }
+      }
+
+      // Resolve the collapse matcher from config (matches loadRepo's behavior)
+      const { patterns } = getCollapseParseConfig(rootPath)
+      const collapseMatcher =
+        patterns.length > 0 ? createCollapseParseMatcher(patterns) : createNullCollapseParseMatcher()
+
+      const result = await reconcileFilesystemPostFrame(db, rootPath, {
+        collapseMatcher,
+        isAborted: reconcileOptions?.isAborted,
+      })
+
+      // Bust children cache + bump version so subscribers re-query. Safe even
+      // when zero changes were applied — cheap operation.
+      if (result.changes > 0) {
+        childrenCache.clear()
+        clearNameIndex()
+        clearResolveCache()
+        state.version++
+        state.notify()
+      }
+
+      return result
     },
 
     emitter,
@@ -2202,6 +2284,10 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
     async *expandAll(): AsyncGenerator<ExpandProgress> {
       // No-op: bare repos have no unexplored directories
+    },
+    async reconcileAsync() {
+      // Bare repos have no filesystem to reconcile against.
+      return { changes: 0, deferredFiles: [], errors: [], duration: 0 }
     },
     get emitter() {
       ensureOpen()
