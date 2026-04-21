@@ -1,6 +1,6 @@
 # Silvery competitive research — index
 
-_Internal. Living index for the `research/` folder. Last reviewed 2026-04-15._
+_Internal. Living index for the `research/` folder. Last reviewed 2026-04-20._
 
 Silvery is positioning as a modern, correctness-first TUI framework. This folder is where we track what else is out there — frameworks, agents, companies, market signals — so our positioning stays honest and our bets stay informed.
 
@@ -42,6 +42,7 @@ Public guide doc (for reference, not internal): [`../../silvery/docs/guide/silve
 - **`anomalyco/opentui`** — releases, feature additions, native binary updates. They're our nearest peer.
 - **`anthropics/claude-code`** and **`google-gemini/gemini-cli`** — both on Ink today. Silvery's biggest potential migration targets.
 - **Rust agent cohort** — `openai/codex`, `block/goose`, `charmbracelet/crush`. Benchmark claims and framework choices.
+- **`badlogic/pi-mono`** — pi-coding-agent and `@mariozechner/pi-tui`. Watch for pi-tui graduating from in-monorepo dep to a standalone TS TUI framework.
 - **`charmbracelet/`** — Bubble Tea, Lip Gloss, Glow, VHS, Crush. The Go TUI incumbent.
 - **`Aider-AI/aider`** — benchmark methodology. When we eventually ship our own agent-adjacent thing, Aider is the bar for benchmark discipline.
 - **Commercial shifts** — Cursor, Windsurf, Zed, Devin. Not direct competitors but they define the market shape agents are pushed into.

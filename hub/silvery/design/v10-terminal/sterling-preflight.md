@@ -97,6 +97,15 @@ Two separate rules that happen to produce the same value in the default catalog.
 
 ## D5 — OSC 10/11 probe: reuse `@silvery/theme-detect` unchanged
 
+> **Update 2026-04-20 (post-decision):** `@silvery/theme-detect` was killed in
+> the run-up to 0.20.0 — the package was always a thin re-export shell of
+> `@silvery/ansi` with zero unique code. Probe primitive (`probeColors`,
+> formerly `detectTerminalScheme`) lives in `@silvery/ansi`; scheme +
+> Sterling-aware theme detection (`detectScheme`, `detectSchemeTheme`,
+> `detectTheme`) lives in `@silvery/theme`. The decision below to "reuse the
+> probe unchanged" still stands — Sterling consumes `ColorScheme` exactly as
+> before; only the import path changed.
+
 **Question**: silvery already has `@silvery/theme-detect` that probes OSC 10/11. Reuse as-is for Sterling, or rewrite for the new Theme shape?
 
 **Decision**: **reuse unchanged.** The probe returns a `ColorScheme` (22 colors) — exactly the same input shape Sterling consumes. No changes needed.
