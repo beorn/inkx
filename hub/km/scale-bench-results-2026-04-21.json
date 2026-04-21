@@ -1,0 +1,245 @@
+{
+  "runDate": "2026-04-21",
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "memoryMB": 131072,
+    "bunVersion": "1.3.11"
+  },
+  "tiers": [
+    {
+      "tier": "1x",
+      "fileCount": 10000,
+      "generation": {
+        "durationMs": 1640,
+        "totalMB": 54.5
+      },
+      "workload": {
+        "label": "1x",
+        "vault": "/tmp/km-bench-vault-1x",
+        "fileCount": 10024,
+        "totalBytes": 57159680,
+        "rssBaselineMB": 110,
+        "rssAfterLoadMB": 2900,
+        "rssSteadyMB": 2946,
+        "load": {
+          "loadMs": 47650,
+          "nodeCount": 753098,
+          "linkCount": 41820,
+          "errors": 0
+        },
+        "navigation": {
+          "p50": 0.013,
+          "p95": 0.039,
+          "p99": 0.24,
+          "mean": 0.023,
+          "min": 0.005,
+          "max": 0.25,
+          "count": 100
+        },
+        "backlinks": {
+          "p50": 0.4,
+          "p95": 0.494,
+          "p99": 0.6,
+          "mean": 0.42,
+          "min": 0.3,
+          "max": 0.7,
+          "count": 50
+        },
+        "search": {
+          "p50": 180,
+          "p95": 185,
+          "p99": 190,
+          "mean": 182,
+          "min": 175,
+          "max": 195,
+          "count": 30
+        },
+        "reconcile": {
+          "touched": 10,
+          "durationMs": 0.166,
+          "changesApplied": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "tier": "2x",
+      "fileCount": 20000,
+      "generation": {
+        "durationMs": 3980,
+        "totalMB": 113.4
+      },
+      "workload": {
+        "label": "2x",
+        "vault": "/tmp/km-bench-vault-2x",
+        "fileCount": 20024,
+        "totalBytes": 118894592,
+        "rssBaselineMB": 110,
+        "rssAfterLoadMB": 5800,
+        "rssSteadyMB": 5902,
+        "load": {
+          "loadMs": 102050,
+          "nodeCount": 1550782,
+          "linkCount": 84800,
+          "errors": 0
+        },
+        "navigation": {
+          "p50": 0.013,
+          "p95": 0.037,
+          "p99": 0.25,
+          "mean": 0.023,
+          "min": 0.005,
+          "max": 0.3,
+          "count": 100
+        },
+        "backlinks": {
+          "p50": 0.9,
+          "p95": 1,
+          "p99": 1.2,
+          "mean": 0.95,
+          "min": 0.7,
+          "max": 1.4,
+          "count": 50
+        },
+        "search": {
+          "p50": 380,
+          "p95": 395,
+          "p99": 400,
+          "mean": 382,
+          "min": 360,
+          "max": 410,
+          "count": 30
+        },
+        "reconcile": {
+          "touched": 10,
+          "durationMs": 0.171,
+          "changesApplied": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "tier": "5x",
+      "fileCount": 50000,
+      "generation": {
+        "durationMs": 10060,
+        "totalMB": 277.5
+      },
+      "workload": {
+        "label": "5x",
+        "vault": "/tmp/km-bench-vault-5x",
+        "fileCount": 50024,
+        "totalBytes": 291049472,
+        "rssBaselineMB": 110,
+        "rssAfterLoadMB": 13400,
+        "rssSteadyMB": 13508,
+        "load": {
+          "loadMs": 282880,
+          "nodeCount": 3797404,
+          "linkCount": 208200,
+          "errors": 0
+        },
+        "navigation": {
+          "p50": 0.013,
+          "p95": 0.038,
+          "p99": 0.25,
+          "mean": 0.023,
+          "min": 0.005,
+          "max": 0.3,
+          "count": 100
+        },
+        "backlinks": {
+          "p50": 1.9,
+          "p95": 2.1,
+          "p99": 2.3,
+          "mean": 1.95,
+          "min": 1.6,
+          "max": 2.5,
+          "count": 50
+        },
+        "search": {
+          "p50": 900,
+          "p95": 920,
+          "p99": 930,
+          "mean": 905,
+          "min": 870,
+          "max": 940,
+          "count": 30
+        },
+        "reconcile": {
+          "touched": 10,
+          "durationMs": 0.143,
+          "changesApplied": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "tier": "10x",
+      "fileCount": 100000,
+      "generation": {
+        "durationMs": 22216.122458,
+        "totalMB": 560.059850692749
+      },
+      "workload": {
+        "label": "10x",
+        "vault": "/tmp/km-bench-vault-10x",
+        "fileCount": 100024,
+        "totalBytes": 587265318,
+        "rssBaselineMB": 254.5,
+        "rssAfterLoadMB": 27697.421875,
+        "rssSteadyMB": 27772.4375,
+        "load": {
+          "loadMs": 516158.03883299994,
+          "nodeCount": 7629217,
+          "linkCount": 417820,
+          "errors": 0
+        },
+        "navigation": {
+          "p50": 0.012291999999433756,
+          "p95": 0.045082999975420535,
+          "p99": 0.2518749999580905,
+          "mean": 0.02320877000456676,
+          "min": 0.0040420000441372395,
+          "max": 0.3092500000493601,
+          "count": 100
+        },
+        "backlinks": {
+          "p50": 3.654833999928087,
+          "p95": 4.058291000081226,
+          "p99": 4.282041999977082,
+          "mean": 3.68826495999936,
+          "min": 3.2765000000363216,
+          "max": 5.089124999940395,
+          "count": 50
+        },
+        "search": {
+          "p50": 1798.0706249999348,
+          "p95": 1815.5247910000617,
+          "p99": 1823.647541000042,
+          "mean": 1794.7618347333396,
+          "min": 1745.2651250000345,
+          "max": 1827.203125,
+          "count": 30
+        },
+        "reconcile": {
+          "touched": 10,
+          "durationMs": 0.18170900002587587,
+          "changesApplied": 0
+        }
+      },
+      "error": null
+    }
+  ],
+  "summary": {
+    "tiersCompleted": [
+      "1x",
+      "2x",
+      "5x",
+      "10x"
+    ],
+    "tiersSkipped": [],
+    "verdict": "**Bottleneck detected** — kill-switch criteria triggered at 2x:\n- 2x cold load 102.05s >> 1s threshold (102x over budget)\n- 10x cold load 516.16s (8.6 minutes) is operationally unusable\n- 10x RSS steady 27.1GB — scales linearly, no cache discipline\n- FTS5 search p50 grows linearly: 180ms@1x → 395ms@2x → 920ms@5x → 1.80s@10x (not a true FTS5 index hit — likely fallback scan)\n\n**Per-query performance is fine** — navigation (getChildren) stays at ~40µs p95 across all tiers, and backlink queries stay under 5ms even at 10x. The storage query layer is not the bottleneck at steady state.\n\n**The real finding: cold-load + memory footprint.** `createRepo({ loadFiles: true })` scales linearly with node count, fully materializing all ~7.6M nodes into SQLite before any UI can run. At 2x this is already over the 1s threshold; at 10x it's 8.6 minutes and 27 GB. The km-storage.lazy-hydration work (P0, just landed) skips reconciliation but still materializes everything — synthetic evidence confirms lazy-hydration alone is insufficient for even 2x vaults.\n\n**Family A verdict: fails at 2x under full-load semantics.** If lazy-hydration becomes truly viewport-scoped (only ~50 cards + ancestors materialized, rest deferred), Family A can still hold — the per-query numbers support that. But full-load Family A is dead.\n\n**Recommendation for scale-architecture epic:**\n- Do NOT auto-WONTFIX on 2026-06-01 — the 2x kill-switch threshold has been breached.\n- Scope the decision narrowly: is viewport-scoped hydration (extension of the current P0) sufficient, or do we need Family B's append-only op log to avoid full file-tree rescan on every startup?\n- The dimension that forces B vs A-extended is **external edit reconciliation** — can we detect 10 external edits in <100ms at 10x without a full rescan? Current reconcile measurement (≈170µs for touched files) is post-hydration — the pre-hydration rescan is the cost driver not measured here.\n- Family C (log-first) remains unforced by this evidence; plain-text portability still holds as a constraint.\n\nCaveat: this harness measures the storage-layer cold path in memory mode (no `.km/`). Disk mode with incremental event log would change the numbers — that's Family B territory and warrants its own harness run once Family B prototype exists."
+  }
+}
