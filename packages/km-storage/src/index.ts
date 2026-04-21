@@ -97,18 +97,11 @@ export type { LoadError as RepoLoaderError } from "./repo/loader.ts"
 // Inbound anchor resolution for collapsed files (C4)
 export { resolveAnchor } from "./links/resolve-anchor.ts"
 
-export type {
-  AnchorResolution,
-  AnchorResolutionKind,
-  ResolveAnchorInput,
-} from "./links/resolve-anchor.ts"
+export type { AnchorResolution, AnchorResolutionKind, ResolveAnchorInput } from "./links/resolve-anchor.ts"
 
 export { resolveInboundAnchors } from "./markdown/resolve-inbound-anchors.ts"
 
-export type {
-  ResolveInboundAnchorsOptions,
-  ResolveInboundAnchorsResult,
-} from "./markdown/resolve-inbound-anchors.ts"
+export type { ResolveInboundAnchorsOptions, ResolveInboundAnchorsResult } from "./markdown/resolve-inbound-anchors.ts"
 
 export { extractAnchors } from "./markdown/extract-anchors.ts"
 export type { ExtractedAnchor } from "./markdown/extract-anchors.ts"

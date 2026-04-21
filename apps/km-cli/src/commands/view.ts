@@ -137,6 +137,11 @@ export const viewCommand = new Command("view")
           createdRepo = yield* createRepo(resolved.repoRoot, {
             loadFiles: true,
             discoverOnly: interactive && !eagerLoad,
+            // Defer filesystem reconciliation off the critical path for interactive
+            // cold starts. The watcher catches live changes; external edits made
+            // while km was offline appear a beat after first paint via the
+            // post-frame reconcile in the background task below.
+            lazyHydrate: interactive && !eagerLoad,
           })
           return createdRepo
         },
@@ -196,7 +201,11 @@ export const viewCommand = new Command("view")
       }
 
       // km-fast-md.7: Extract deferred files for background parsing
-      const deferredFiles = createdRepo.deferredFiles
+      // When lazyHydrate is on, reconcileFilesystemPostFrame runs in the
+      // background task below and may add more deferred files discovered on
+      // disk — those are queued dynamically via the pending-parse mechanism.
+      const deferredFiles = [...createdRepo.deferredFiles]
+      const lazyHydrateActive = interactive && !eagerLoad
 
       const viewMode = VIEW_MODES.includes(options.as as ViewMode) ? (options.as as ViewMode) : "cards"
 
@@ -219,14 +228,50 @@ export const viewCommand = new Command("view")
       // This keeps startup instant while eventually completing content parsing
       let aborted = false
 
-      if (deferredFiles.length > 0) {
-        debug.debug?.(`scheduling background parsing for ${deferredFiles.length} files`)
+      // Even if there are no deferredFiles today, lazyHydrate mode still needs
+      // a post-frame reconcile to catch externally added files. Kick off the
+      // background task when either there are files to parse OR we deferred
+      // reconciliation on the critical path.
+      if (deferredFiles.length > 0 || lazyHydrateActive) {
+        debug.debug?.(
+          `scheduling background parsing for ${deferredFiles.length} files (lazyHydrate=${lazyHydrateActive})`,
+        )
         void (async () => {
           // Small delay to let the board render first
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 100)
           })
           if (aborted) return
+
+          // km-storage.lazy-hydration: reconcile filesystem now — detects files
+          // that were added/removed externally while km was not running. Any
+          // new files go through the regular deferred parsing path below.
+          if (lazyHydrateActive && createdRepo) {
+            try {
+              const reconcileResult = await createdRepo.reconcileAsync({ isAborted: () => aborted })
+              if (reconcileResult.deferredFiles.length > 0) {
+                debug.debug?.(
+                  `post-frame reconcile: queued ${reconcileResult.deferredFiles.length} new files for parsing`,
+                )
+                deferredFiles.push(...reconcileResult.deferredFiles)
+              }
+              if (reconcileResult.changes > 0) {
+                debug.debug?.(`post-frame reconcile: applied ${reconcileResult.changes} changes`)
+                // repo.reconcileAsync already bumps the version on non-zero changes.
+              }
+            } catch (err) {
+              if (!aborted) {
+                debug.debug?.(`post-frame reconcile failed: ${String(err)}`)
+              }
+            }
+          }
+
+          if (aborted) return
+          if (deferredFiles.length === 0) {
+            // Nothing to parse — just mark ready and exit the background task.
+            tuiModule.tuiEvents.emit("watcher-status", { state: "ready", pendingPaths: 0 })
+            return
+          }
 
           // Signal TUI to show skeleton loading while background parsing runs.
           // Uses dedicated "background-parse" event so the file watcher's status
