@@ -15,11 +15,13 @@ if [ -n "$ALL_VITEST" ]; then
   echo "$ALL_VITEST" | xargs kill -9 2>/dev/null
 fi
 
-# Immediately prune this session from tribe (don't wait for 30s heartbeat timeout)
-TRIBE_DB="$REPO_ROOT/.beads/tribe.db"
-if [ -f "$TRIBE_DB" ] && [ -n "$CLAUDE_SESSION_ID" ]; then
-  sqlite3 "$TRIBE_DB" "UPDATE sessions SET pruned_at = $(date +%s)000 WHERE claude_session_id = '$CLAUDE_SESSION_ID'" 2>/dev/null
-fi
+# Note: previously this hook wrote `pruned_at = now()` to `.beads/tribe.db`,
+# but the DB moved to `~/.local/share/tribe/tribe.db` (user-global since
+# 2026-04-18) AND the schema has NO `pruned_at` column. The hook was
+# silently failing. Intentionally removed — dead rows are handled via
+# F1-B (tribe.rename reclaims dead names on liveness check) and F1-D
+# (auto-adopt non-auto-named dead session at same cwd+role on join).
+# See beads km-bearly.tribe-session-resume + km-bearly.tribe-claude-rename-sync.
 
 # Fork the actual work to background
 if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
