@@ -1,21 +1,25 @@
 /**
  * HelpOverlayBridge — feature-flagged adapter between km's help overlay
- * and either the legacy `ui.showHelp` state or the TEA plugin store.
+ * and one of three plugin stores (v1 singleton, v2 definePlugin, v3 pipe).
  *
- * When `KM_TEA_HELP=1`, reads state from the plugin via
- * `useHelpOverlay()`. Otherwise, reads from the props passed down from
- * the legacy UI state. This lets a single render path in
- * WorkspaceChrome render either source without branching logic outside
- * this file.
+ * Branch selection (first match wins):
+ *   KM_TEA_HELP_V3=1 → `HelpOverlayV3Bridge` (pipe + with-plugin + createSlice wrapper)
+ *   KM_TEA_HELP_V2=1 → `helpOverlay` definePlugin store
+ *   KM_TEA_HELP=1    → v1 zustand singleton (`useHelpOverlay()`)
+ *   else             → legacy `ui.showHelp` / `ui.helpScrollOffset`
  *
- * Phase 0 mini-cutover scope: the bridge exists for one dialog only
- * (help). Phase 1 (`withDialogs`) will replace it with a generic
- * dialog-host plugin that owns all overlays uniformly.
+ * All three plugin paths stay alive so the parity test matrix can drive
+ * identical user journeys through every store and assert matching state.
+ * Cleanup (removing v1 + v2) is a separate cutover — bead
+ * km-tui.tea-help-overlay-v3.
  */
 import React from "react"
 import { HelpOverlay } from "../views/HelpOverlay.tsx"
 import { useHelpOverlay } from "./use-help-overlay.ts"
 import { isTeaHelpEnabled } from "./with-help-overlay.ts"
+import { helpOverlay, isTeaHelpV2Enabled } from "./help-overlay.v2.ts"
+import { isTeaHelpV3Enabled } from "./help-overlay.v3.ts"
+import { HelpOverlayV3Bridge } from "./HelpOverlayV3Bridge.tsx"
 
 export interface HelpOverlayBridgeProps {
   /** Legacy path: ui.showHelp from the board-app store. */
@@ -29,10 +33,12 @@ export interface HelpOverlayBridgeProps {
 }
 
 /**
- * Renders the help overlay when visibility is on. Reads from the plugin
- * store when the TEA flag is set, otherwise from the passed-in legacy
- * props. HelpOverlay itself stays completely unchanged — only the
- * visibility-and-offset pair switches sources.
+ * Renders the help overlay when visibility is on. The store that owns
+ * visibility-and-offset is chosen by feature flag (see module header);
+ * `<HelpOverlay />` itself is unchanged across all paths.
+ *
+ * Flags are read per-render so tests can flip them between cases without
+ * a process restart.
  */
 export function HelpOverlayBridge({
   legacyVisible,
@@ -40,21 +46,27 @@ export function HelpOverlayBridge({
   width,
   height,
 }: HelpOverlayBridgeProps): React.ReactElement | null {
-  return isTeaHelpEnabled() ? (
-    <TeaHelpOverlay width={width} height={height} />
-  ) : legacyVisible ? (
-    <HelpOverlay width={width} height={height} scrollOffset={legacyScrollOffset} />
-  ) : null
+  if (isTeaHelpV3Enabled()) return <HelpOverlayV3Bridge width={width} height={height} />
+  if (isTeaHelpV2Enabled()) return <V2HelpOverlay width={width} height={height} />
+  if (isTeaHelpEnabled()) return <V1HelpOverlay width={width} height={height} />
+  if (!legacyVisible) return null
+  return <HelpOverlay width={width} height={height} scrollOffset={legacyScrollOffset} />
 }
 
-/**
- * TEA-path render: subscribes to the plugin store via
- * `useSyncExternalStore` (the Phase B pattern from tea-lifecycle-spike).
- * The hook MUST be called unconditionally — hence the separate
- * component rather than inlining a ternary with the hook.
- */
-function TeaHelpOverlay({ width, height }: { width: number; height: number }): React.ReactElement | null {
+/** v1 path — zustand singleton via `useHelpOverlay()` / `useSyncExternalStore`. */
+function V1HelpOverlay({ width, height }: { width: number; height: number }): React.ReactElement | null {
   const { visible, scrollOffset } = useHelpOverlay()
+  if (!visible) return null
+  return <HelpOverlay width={width} height={height} scrollOffset={scrollOffset} />
+}
+
+/** v2 path — definePlugin store. Subscribes via its own `subscribe()`/`getState()`. */
+function V2HelpOverlay({ width, height }: { width: number; height: number }): React.ReactElement | null {
+  const { visible, scrollOffset } = React.useSyncExternalStore(
+    helpOverlay.subscribe,
+    helpOverlay.getState,
+    helpOverlay.getState,
+  )
   if (!visible) return null
   return <HelpOverlay width={width} height={height} scrollOffset={scrollOffset} />
 }

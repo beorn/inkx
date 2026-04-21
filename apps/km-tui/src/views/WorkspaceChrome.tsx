@@ -654,9 +654,11 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Help overlay — bridged through TEA plugin when KM_TEA_HELP=1.
-          Phase 0 mini-cutover: the bridge reads from either the legacy
-          `ui.showHelp` field or the `withHelpOverlay` plugin store. */}
+      {/* Help overlay — bridged through a TEA plugin when any of
+          KM_TEA_HELP_V3 / KM_TEA_HELP_V2 / KM_TEA_HELP is set (v3 wins if
+          multiple are on). Phase 0 mini-cutover: each plugin maintains its
+          own state store; the bridge picks the source. Legacy path reads
+          `ui.showHelp` + `ui.helpScrollOffset` as today. */}
       <HelpOverlayBridge
         legacyVisible={ui.showHelp}
         legacyScrollOffset={ui.helpScrollOffset}

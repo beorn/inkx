@@ -27,6 +27,7 @@ import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { isTeaHelpEnabled, getHelpStore } from "../plugins/with-help-overlay.ts"
 import { helpOverlay, isTeaHelpV2Enabled } from "../plugins/help-overlay.v2.ts"
+import { isTeaHelpV3Enabled, getHelpV3App } from "../plugins/help-overlay.v3.ts"
 import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
 import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
@@ -1888,26 +1889,30 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       return ok()
     }
     case "SHOW_HELP":
-      // Phase 0 mini-cutover: when KM_TEA_HELP=1, also dispatch to the TEA
-      // apply-chain plugin. Dual-write keeps legacy views/tests working
-      // while the React component can opt in via useHelpOverlay().
+      // Phase 0 mini-cutover: when a TEA flag is set, also dispatch to the
+      // corresponding plugin. Dual-write keeps legacy views/tests working
+      // while React components can opt in via the per-version hooks.
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.show" })
       if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("show")
+      if (isTeaHelpV3Enabled()) getHelpV3App().dispatch({ type: "help.show" })
       ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
       return ok()
     case "HIDE_HELP":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
       if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("hide")
+      if (isTeaHelpV3Enabled()) getHelpV3App().dispatch({ type: "help.hide" })
       ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
       return ok()
     case "HELP_SCROLL_UP":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollUp" })
       if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("scrollUp")
+      if (isTeaHelpV3Enabled()) getHelpV3App().dispatch({ type: "help.scrollUp" })
       ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
       return ok()
     case "HELP_SCROLL_DOWN":
       if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.scrollDown" })
       if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("scrollDown")
+      if (isTeaHelpV3Enabled()) getHelpV3App().dispatch({ type: "help.scrollDown" })
       ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
     case "FOCUS_BOARD": {
@@ -2612,6 +2617,7 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
     // Phase 0 mini-cutover: dual-write to plugin when flag is on.
     if (isTeaHelpEnabled()) getHelpStore().dispatch({ type: "help.hide" })
     if (isTeaHelpV2Enabled()) helpOverlay.dispatchOp("hide")
+    if (isTeaHelpV3Enabled()) getHelpV3App().dispatch({ type: "help.hide" })
     ctx.setUI({ showHelp: false })
     return ok()
   }
