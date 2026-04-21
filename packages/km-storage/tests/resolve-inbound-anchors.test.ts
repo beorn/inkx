@@ -256,16 +256,49 @@ describe("resolveInboundAnchors: scoped to specific files", () => {
     runLoad(tmpDir, db, ["chats/**"])
 
     const aNode = resolveNode(db, "chats/a.md")!
-    // Only process file A.
+    const bNode = resolveNode(db, "chats/b.md")!
+
+    // loadRepo's auto-pass populated rows for both files.
+    expect(getReferencedAnchorsForFile(db, aNode.id)).toHaveLength(1)
+    expect(getReferencedAnchorsForFile(db, bNode.id)).toHaveLength(1)
+
+    // Simulate: file A's content changed on disk but B didn't.
+    // A scoped re-run should refresh A's rows and leave B's intact.
     const result = resolveInboundAnchors(db, { repoRoot: tmpDir, fileIds: [aNode.id] })
 
     expect(result.filesScanned).toBe(1)
     expect(result.anchorsWritten).toBe(1)
-    const rows = getReferencedAnchorsForFile(db, aNode.id)
-    expect(rows.map((r) => r.anchor)).toEqual(["AA"])
 
-    const bNode = resolveNode(db, "chats/b.md")!
-    expect(getReferencedAnchorsForFile(db, bNode.id)).toHaveLength(0)
+    const aRows = getReferencedAnchorsForFile(db, aNode.id)
+    expect(aRows.map((r) => r.anchor)).toEqual(["AA"])
+
+    // B's rows are preserved — the scoped call didn't touch them.
+    const bRows = getReferencedAnchorsForFile(db, bNode.id)
+    expect(bRows.map((r) => r.anchor)).toEqual(["BB"])
+  })
+
+  test("fileIds with a file whose referrers vanished → rows cleared", () => {
+    const tmpDir = freshTmp()
+    mkdirSync(join(tmpDir, "chats"), { recursive: true })
+
+    writeFileSync(join(tmpDir, "chats", "a.md"), "# A\n\n## AA\n")
+    writeFileSync(join(tmpDir, "notes.md"), "# N\n\n[[a#AA]] exists.\n")
+
+    const db = new Database(":memory:")
+    db.run(SCHEMA)
+    runLoad(tmpDir, db, ["chats/**"])
+
+    const aNode = resolveNode(db, "chats/a.md")!
+    expect(getReferencedAnchorsForFile(db, aNode.id)).toHaveLength(1)
+
+    // Simulate: the only referrer file was deleted. Wipe the outbound rows
+    // and re-scope the resolver to file A.
+    db.run("DELETE FROM links")
+    db.run("DELETE FROM collapsed_file_links")
+
+    const result = resolveInboundAnchors(db, { repoRoot: tmpDir, fileIds: [aNode.id] })
+    expect(result.anchorsWritten).toBe(0)
+    expect(getReferencedAnchorsForFile(db, aNode.id)).toHaveLength(0)
   })
 })
 
