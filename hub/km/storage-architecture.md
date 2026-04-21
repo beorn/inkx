@@ -44,23 +44,37 @@ What does NOT round-trip cleanly:
 
 The practical rule: **"supports most of markdown"** — tuned for Obsidian-typical usage. Edge-case fidelity is a cost the user accepts in exchange for km's structural understanding of the vault.
 
-### 1.1 FS-truth is a choice about implementation, not fidelity
+### 1.1 FS-truth for now — DB-truth likely later
 
-**FS is truth. DB is a derived cache.** But "truth" here is a **convention about where edits originate + who wins on conflict**, not a claim that FS preserves more of the user's intent than DB would.
+**FS is truth, DB is a derived cache** — for the current implementation. Not a permanent architectural claim. The honest framing:
 
-Both architectures could preserve the same structural fidelity (AST round-trip). The reason km picks FS-truth is:
-- Simpler implementation: no ingest pipeline, no regen loop, no echo suppression loop — watcher + AST-reconcile is enough
-- Matches today's code path (km already parses .md → AST → writes .md)
-- No sync requirement yet — so DB-truth's sync benefits aren't earned
+- **Today: FS-truth is correct** because (a) the implementation is simpler (no ingest pipeline / regen loop), (b) it matches today's code path, (c) catastrophic-failure blast radius is smaller (DB corruption → rebuild from FS, contained), (d) we don't yet ship features that require beyond-markdown representation.
+- **Likely later: DB-truth becomes correct** because (a) cross-peer sync is a probable future product requirement, (b) richer per-block metadata + typed queryable fields likely emerge as km grows, (c) multi-file atomicity is easier via SQLite transactions than via a bespoke journal, (d) kimmi-style DB-first is the direction the PIM ecosystem trends.
 
-If km's feature horizon grows to need:
-- Beyond-markdown representation (typed fields not fitting in frontmatter, per-block metadata with no inline syntax, computed/derived fields surfaced to users)
-- Rich cross-peer sync with shared undo or real-time collab
-- Streaming/op-log semantics that surface in the UI
+This isn't "deferred edge case." It's "current pragma, known evolution path."
 
-…then DB-truth reopens as the natural architecture. Plain-text round-trip quality is independently achievable at that tier (same AST-normalized output).
+**Prerequisites for a DB-truth flip** (applicable whenever we get there):
+- Stable internal ULIDs across migrations (part of current plan, §2)
+- AST round-trip fidelity via a test corpus (part of current plan, §8.P5)
+- Content-as-CAS writes (part of current plan, §7)
+- **Versioning + backup + rollback** at the DB layer — periodic snapshots, retention policy, rollback CLI/UI. This is what makes DB-truth acceptable at the trust-level FS-truth provides today. Not yet planned; would be scope-in at flip time.
+- Multi-peer sync protocol choice (Tier 2+ per §9)
 
-### 1.2 Policy statement
+Each item is independently useful under FS-truth and makes the eventual flip smaller. Several are already in §8.
+
+Both architectures preserve the same structural fidelity (AST round-trip). The choice is really:
+- **FS-truth**: user's content lives in `.md`; DB is fast cache; sync happens at file level (git/rsync/custom).
+- **DB-truth**: user's content's canonical form is the DB; `.md` is a faithful projection; sync happens at DB level (ops, snapshots); catastrophic failures are mitigated by versioning.
+
+Framework for deciding timing:
+- If a feature needs beyond-AST representation → flip now
+- If cross-device sync quality becomes a user complaint → flip now (richer sync story)
+- If catastrophic failure insurance (versioning/rollback on content changes) becomes desired regardless → flip opportunity
+- Otherwise → keep FS-truth, continue executing §8.P1-P5 (which build prerequisites)
+
+### 1.2 Policy statement (near-term)
+
+For the current implementation phase:
 
 - **FS is the canonical storage for user content.** `.md` files are where the data lives.
 - **DB is a derived cache** over the FS. Everything in DB can be regenerated from FS (modulo session state — see §1.3).
@@ -69,7 +83,9 @@ If km's feature horizon grows to need:
 - **Zero metadata injection into user files.** km writes no hidden IDs, no frontmatter additions, no inline ID tags, no HTML comments.
 - **Obsidian interop preserved.** Wiki-links, block anchors, headings, tags all work as Obsidian expects.
 
-**Tagline**: "If you can't read it with `cat`, km doesn't claim it."
+**Tagline (near-term)**: "If you can't read it with `cat`, km doesn't claim it."
+
+**Tagline (post-flip)**: "If km shows it, it's real — regardless of whether `cat` can reach it." The flip happens when the feature set demands it; see §1.1 for triggers.
 
 ### 1.1 The load-bearing invariant
 
@@ -469,24 +485,44 @@ km's sync story upgrades in tiers as reliability demands grow. Each tier stays w
 
 **Current plan targets Tier 1 (federation bead, §8.P4) when the product needs it.** Tiers 2-4 are further future work.
 
-### Deferred items
+### Probable future direction: DB-as-truth flip
 
-- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required.
+**Not deferred as an edge case — more like "expected eventual evolution."** km's feature horizon (cross-device sync, typed/queryable per-block metadata, richer agent state, Tana/Logseq-style typed blocks) most likely pushes us toward DB-as-truth. The question is WHEN, not IF.
+
+**Triggers to flip (any one is sufficient)**:
+- A feature ships that can't be represented in AST → markdown
+- Cross-device sync quality becomes a user-visible pain point (Tier 1 identity sidecar insufficient)
+- Multi-file atomicity under FS-truth (via custom journal, §7.3) becomes a maintenance burden
+- Agent state / live annotations / rich embeds become first-class product features
+- We decide versioning + rollback of content changes is a product guarantee we want to provide
+
+**Implementation cost for the flip** (estimated after analysis in §1.1):
+- Core refactor: ~300-400 LOC (net — reduces after deleting journal + sidecar machinery)
+- **Plus required scope-in**: versioning + backup + rollback layer (~500-800 LOC) — snapshot management, retention policy, rollback CLI/UI, snapshot diff tool. Non-optional for DB-truth to match FS-truth's trust properties.
+- Plus: document + migrate users' mental model ("your markdown is now a projection, updated automatically from DB")
+
+**Prerequisites already in current plan** (§8.P1-P5):
+- Stable internal ULIDs → §2, §8.P2
+- AST round-trip fidelity corpus → §8.P5
+- Content-as-CAS → §7, §8.P3
+- Watcher + parse pipeline → §8.P2 (the ingest pipeline under FS-truth IS the ingest pipeline under DB-truth — identical shape)
+
+Several prereqs are already in-plan. Flip cost shrinks as P1-P5 land.
+
+### Deferred sync items (independent from DB-truth)
+
+- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required. **Independent of DB-vs-FS truth** — CRDT can live under either.
 - **Op-log sync (Tier 2)** — deferred until Tier 1's file-level sync quality becomes a user-visible issue.
 - **Custom bidirectional protocol (Tier 3)** — deferred with Tier 4.
-- **Undo semantics across files** — session-state split provides durable-undo; semantic policy stays open.
-- **Frontmatter `id:` injection** — **rejected**. User requirement: zero metadata pollution of user files.
-- **Inline `^<hash>` derived from ULIDs** — rejected; block anchors are literal strings stored as `.name`, not hash-derived.
-- **Rank 4-6 rigid recovery cascade** — rejected per "ID-scattering is a no-go." §3 is paths-of-`.name` (primary) + cheap heuristics (secondary). No forced multi-rank ladder.
+
+### Rejected / scope-out
+
+- **Frontmatter `id:` injection** — rejected. Zero metadata pollution of user files.
+- **Inline `^<hash>` derived from ULIDs** — rejected. Block anchors are literal strings stored as `.name`, not hash-derived.
+- **Rank 4-6 rigid recovery cascade** — rejected per "ID-scattering is a no-go." §3 is paths-of-`.name` + cheap heuristics. No forced multi-rank ladder.
 - **Uniform Adapter interface** — deferred until second real consumer exists. Today: concrete `FsMount`.
 - **Diff-chunk similarity for rename+edit** — deferred until real-world hits the edge case.
-- **DB-as-truth flip** — deferred. The trigger is "a feature needs to ship that can't be represented in the AST + markdown output" (not "more peers" or "richer sync"). Implementation-wise it's a ~300-400 LOC refactor (mostly reducing, since multi-file journal + identity sidecar go away).
-
-  **Catastrophic-failure mitigation**: DB-as-truth's main risk is that a DB corruption / serializer bug is harder to recover from than under FS-truth. The mitigation is **native versioning + backup + rollback** — snapshot the DB automatically (periodically + on schema migration), keep N recent versions, support `km doctor rollback <timestamp>`. This is how Dolt, git, and git-like DBs work; the same design pattern applies. With versioning-first DB-truth, catastrophic failures become recoverable at DB snapshot granularity, approaching FS-truth's blast-radius guarantees while keeping the DB-truth benefits (cross-peer sync, beyond-markdown features, multi-file atomicity, richer metadata).
-
-  **If/when we flip**, plan must include: periodic DB snapshots (every N minutes / on every sync / on schema migration), retention policy (keep 7d / 30d / all), rollback UI/CLI, snapshot diff tool for "what changed since yesterday." This is additional scope over the 300-400 LOC refactor, but it's what makes DB-truth acceptable at the trust-level FS-truth provides today.
-
-  Re-evaluate if km grows toward Tana/Logseq-style typed data.
+- **Undo semantics across files** — session-state split provides durable-undo; semantic policy stays open.
 
 ---
 
