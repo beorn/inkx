@@ -610,7 +610,11 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
           h(
             FocusManagerContext.Provider,
             { value: focusManager },
-            h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo: undoableRepo, children: boardAppElement })),
+            h(
+              StoreProvider,
+              { store: reactiveStore },
+              h(RepoProvider, { repo: undoableRepo, children: boardAppElement }),
+            ),
           ),
         ),
       ),
@@ -633,7 +637,11 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
             h(
               FocusManagerContext.Provider,
               { value: focusManager },
-              h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo: undoableRepo, children: boardAppElement })),
+              h(
+                StoreProvider,
+                { store: reactiveStore },
+                h(RepoProvider, { repo: undoableRepo, children: boardAppElement }),
+              ),
             ),
           ),
         ),

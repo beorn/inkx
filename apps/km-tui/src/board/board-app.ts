@@ -66,12 +66,7 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
       // still logs each coalesced event so we can see the final settled dims.
       resizeDebug("term:resize cols=%d rows=%d t=%d", cols, rows, Math.round(performance.now()))
       ctx.get().setDimensions({ columns: cols, rows: rows })
-      resizeDebug(
-        "setDimensions done columns=%d rows=%d t=%d",
-        cols,
-        rows,
-        Math.round(performance.now()),
-      )
+      resizeDebug("setDimensions done columns=%d rows=%d t=%d", cols, rows, Math.round(performance.now()))
     },
     "term:mouse": (data, ctx) => {
       handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)

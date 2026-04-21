@@ -183,13 +183,7 @@ export interface CreateBoardDriverOptions {
  * @param options - Driver configuration options
  */
 export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoardDriverOptions = {}): BoardDriver {
-  const {
-    columns = 80,
-    rows = 24,
-    viewMode = "cards",
-    incremental = false,
-    showMemoryModeBanner = false,
-  } = options
+  const { columns = 80, rows = 24, viewMode = "cards", incremental = false, showMemoryModeBanner = false } = options
 
   // Initialize command system and reset dialog guard for clean state
   ensureCommandSystemInitialized()

@@ -42,10 +42,7 @@ import { loadRepo } from "../load-repo.ts"
  * @param options    { withGtd?: boolean } — scaffold GTD files (default: true).
  * @returns          { kmDir: string } — absolute path to the new `.km/`.
  */
-export function initKmDirectory(
-  targetDir: string,
-  options: { withGtd?: boolean } = {},
-): { kmDir: string } {
+export function initKmDirectory(targetDir: string, options: { withGtd?: boolean } = {}): { kmDir: string } {
   const kmDir = join(targetDir, ".km")
   if (!existsSync(kmDir)) {
     mkdirSync(kmDir, { recursive: true })

@@ -262,9 +262,7 @@ export function BoardApp({
   // Suppressible via `showMemoryModeBanner={false}` for driver-level tests
   // that rely on fixed-row screen coordinates.
   const memoryBanner =
-    showMemoryModeBanner && repo.mode === "memory" ? (
-      <MemoryModeBanner width={storeDimensions.columns} />
-    ) : null
+    showMemoryModeBanner && repo.mode === "memory" ? <MemoryModeBanner width={storeDimensions.columns} /> : null
 
   // Single pane (common case) — render Board directly, no wrapper overhead.
   // Use workspace.focusedPaneId instead of hardcoded "main" — after closing

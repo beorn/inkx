@@ -38,10 +38,7 @@ export interface PromptOptions {
  * @param options     Optional stdin/stdout overrides (tests).
  * @returns           User's choice — see `MemoryModeChoice`.
  */
-export async function promptMemoryModeInit(
-  targetPath: string,
-  options: PromptOptions = {},
-): Promise<MemoryModeChoice> {
+export async function promptMemoryModeInit(targetPath: string, options: PromptOptions = {}): Promise<MemoryModeChoice> {
   const stdin = options.stdin ?? process.stdin
   const stdout = options.stdout ?? process.stdout
   const term = createTerm(process)
