@@ -320,6 +320,60 @@ count in the 50–80K range, which unblocks the perf work downstream.
 
 ---
 
+## Post-implementation measurement — 2026-04-21
+
+Shipped: `feat(km-storage): collapse-parse rule` (commit `e2f3eee33`) +
+verification tooling (`8402edba5`). Measured against a fresh memory-mode
+load of `~/Bear/Vault` (bypassing the cached `changes.jsonl`, which
+contains historical parse events that would mask the effect):
+
+| Pass | Total nodes |
+|---|---:|
+| before (no collapse-parse) | **540,496** |
+| after (`raw/chats/**` + `archive/**`) | **65,682** |
+| **reduction** | **87.8%** |
+
+Top-level attribution after collapse-parse:
+
+| top-level | nodes | % |
+|---|---:|---:|
+| `ref/` | 25,696 | 39.1% |
+| `journals/` | 12,236 | 18.6% |
+| `projects/` | 9,149 | 13.9% |
+| `.jj/` | 3,760 | 5.7% |
+| `@inbox/` | 3,731 | 5.7% |
+| `.claude/` | 2,581 | 3.9% |
+| `areas/` | 2,522 | 3.8% |
+| `archive/` | 1,836 | 2.8% |
+| `(top-level file)` | 1,571 | 2.4% |
+| `raw/` | 226 | 0.3% |
+
+`raw/` and `archive/` collapse from 68% + 20% of the vault down to 0.3%
++ 2.8% respectively. The residuals are folder nodes + stub entries for
+each collapsed file — intentional, needed to preserve navigation.
+
+Enable with `.km/config.yaml`:
+
+```yaml
+collapseParse:
+  patterns:
+    - "raw/chats/**"
+    - "archive/**"
+```
+
+Or pass an explicit matcher via `loadRepo({ collapseMatcher })`.
+Backward compat: default behavior unchanged when the key is absent.
+
+Files promote to fully-parsed on first navigation via the existing
+`parseStubFile` path — no new mechanism needed. See
+`packages/km-storage/src/markdown/collapse-parse.ts` for the matcher
+contract and `packages/km-storage/tests/collapse-parse-discovery.test.ts`
+for the integration tests.
+
+The bead (`km-storage.vault-node-explosion`) closes on this evidence.
+
+---
+
 ## Appendix — running the diagnostic
 
 ```bash
