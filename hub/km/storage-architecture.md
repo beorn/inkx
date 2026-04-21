@@ -8,16 +8,45 @@ Last revised: 2026-04-21 (after dual-pro critique + user pushback on frontmatter
 
 ## 1. Truth model
 
-**FS is truth. DB is a derived cache. Internal ULIDs are join keys, not identity.**
+### 1.0 What km actually guarantees
 
-Not "peers that sync" (that would require CRDT-style merge, rejected per §9). Not "DB is truth" (would require writing IDs into `.md`, rejected per no-metadata-injection). Process of elimination: FS wins when they disagree.
+km's write path parses any `.md` file to an AST, mutates the AST, then serializes back. This means:
+- **Structural/semantic fidelity is preserved** — headings, list items, links, anchors, tags, frontmatter values round-trip losslessly through the AST
+- **Byte-level formatting is NOT preserved** — km normalizes list markers, frontmatter key order, whitespace, blank-line counts, etc. The file after a km-write is not byte-identical to what vim would produce
+- **Markdown-expressiveness ceiling** — every user-facing data point must fit in markdown grammar. No features that require a non-markdown storage format to exist (or they're session-state-ephemeral, never canonical content).
 
-**Non-negotiables**:
-- Obsidian interop preserved (wiki-links, block anchors, headings, tags)
-- **Zero metadata injection into user files** — km writes no IDs, no frontmatter additions, nothing. If `cat foo.md` shows something, the user put it there or it was already there.
-- Plain text portability is a hard guarantee; git history stays clean of km-generated noise
+What this means practically:
+- `cat foo.md` shows human-readable, Obsidian-compatible markdown — always
+- External tools (grep, git, vim, Obsidian, LSP) work — always
+- km's formatting is km-normalized (deterministic AST serialization); user's custom formatting choices are lost on first km-write
+- Feature design is constrained: if a data point can't be represented in markdown syntax, km doesn't ship it as user-facing content
 
-**Tagline**: "If you can't read it with `cat`, km doesn't claim it. And km doesn't put anything in there either."
+### 1.1 FS-truth is a choice about implementation, not fidelity
+
+**FS is truth. DB is a derived cache.** But "truth" here is a **convention about where edits originate + who wins on conflict**, not a claim that FS preserves more of the user's intent than DB would.
+
+Both architectures could preserve the same structural fidelity (AST round-trip). The reason km picks FS-truth is:
+- Simpler implementation: no ingest pipeline, no regen loop, no echo suppression loop — watcher + AST-reconcile is enough
+- Matches today's code path (km already parses .md → AST → writes .md)
+- No sync requirement yet — so DB-truth's sync benefits aren't earned
+
+If km's feature horizon grows to need:
+- Beyond-markdown representation (typed fields not fitting in frontmatter, per-block metadata with no inline syntax, computed/derived fields surfaced to users)
+- Rich cross-peer sync with shared undo or real-time collab
+- Streaming/op-log semantics that surface in the UI
+
+…then DB-truth reopens as the natural architecture. Plain-text round-trip quality is independently achievable at that tier (same AST-normalized output).
+
+### 1.2 Policy statement
+
+- **FS is the canonical storage for user content.** `.md` files are where the data lives.
+- **DB is a derived cache** over the FS. Everything in DB can be regenerated from FS (modulo session state — see §1.3).
+- **Internal ULIDs are join keys, not identity.** They never appear in markdown.
+- **On conflict, FS wins.** External edits (vim, Obsidian, git pull) are trusted; km's in-flight DB state is disposable.
+- **Zero metadata injection into user files.** km writes no hidden IDs, no frontmatter additions, no inline ID tags, no HTML comments.
+- **Obsidian interop preserved.** Wiki-links, block anchors, headings, tags all work as Obsidian expects.
+
+**Tagline**: "If you can't read it with `cat`, km doesn't claim it."
 
 ### 1.1 The load-bearing invariant
 
