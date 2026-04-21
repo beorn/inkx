@@ -187,40 +187,57 @@ Simple rule: **anchor wins when both exist**. If users want the heading-slug for
 
 ---
 
-## 3. Identity recovery (git-style, no metadata injection)
+## 3. Identity recovery: paths-of-`.name` + heuristics → ULID
 
-When km scans the filesystem and compares to its DB, it needs to match files despite offline changes (renames, moves, edits). **No frontmatter IDs** — identity comes from git-style content + path matching.
+When km scans the filesystem, it needs to map each node's external identity (path of `.name` values) to its internal ULID. No ULIDs are in the markdown; reconciliation is purely heuristic.
 
-### 3.1 The algorithm
+### 3.1 The model
 
-```
-for each file F on disk:
-  F.contentHash = sha256(F.bytes)    # cached via fs_mtime, only re-hash on change
-  if known row exists where path == F.path:
-    → preserve NodeId, update contentHash if changed  (edit-in-place)
-  else if known orphan row exists where contentHash == F.contentHash:
-    → preserve NodeId, update path                     (rename / move, unchanged content)
-  else:
-    → mint new NodeId                                  (new file, or rename-with-edit — see §3.3)
+Every node in the tree has:
+- **External identity**: `path-of-.names` — for a block that's `[repo, "notes/foo", "my-heading", "rec"]`; for a heading that's `[repo, "notes/foo", "my-heading"]`; for a file that's `[repo, "notes/foo"]`
+- **Internal identity**: a ULID in the DB
 
-for each DB row with path not on disk:
-  → mark orphan (candidate for rename-match above)
-  → if unmatched after scan, mark deleted (tombstone for backlinks integrity)
-```
+Reconciliation is the process of mapping fresh-scanned external identities to existing ULIDs (preserving internal state) vs minting new ULIDs (genuinely new nodes).
 
-### 3.2 Cost
+### 3.2 Primary signal: path-of-`.name` match
 
-- sha256 on 5,500 files of ~1kB-50kB averages 200-500ms on M5
-- Cached via `fs_mtime` — unchanged mtime skips the hash
-- Steady state: only modified files get rehashed
+For each fresh-scanned node, attempt to match against DB rows with the **same path-of-`.name`**:
 
-### 3.3 Ambiguous case — rename + edit simultaneously
+- File: `[repo, "notes/foo"]` → match by repo_id + path
+- Heading: `[repo, "notes/foo", "my-heading"]` → match by parent_file_id + `.name`
+- Block: `[repo, "notes/foo", "rec"]` → match by parent_file_id + `.name` (anchor literal)
+- Tag: `[repo, "inbox"]` → match by sigil_kind + `.name`
 
-If path changed AND content changed, the algorithm can't tell "moved-and-edited" from "deleted-and-created." Start with: treat as delete + new. Lose identity on this edge case.
+If a path-of-`.name` matches uniquely, **preserve that ULID**. This covers the 90%+ case: files unchanged, edits in place, no rename.
 
-**Future upgrade** (if real-world hits): diff-chunk similarity like git's rename-with-edit detection (>50% line overlap → rename). Out of scope until evidence demands.
+### 3.3 Secondary heuristics when path changes
 
-### 3.4 What mistaken identity costs (unreferenced content)
+When a path-of-`.name` doesn't match (file renamed, heading text edited, block anchor missing), fall through to heuristics that all resolve to ULIDs:
+
+| Heuristic | When it fires | Signal strength |
+|---|---|---|
+| **Content hash** (sha256 of bytes) | Path changed, body byte-identical → rename/move detection | Strong; near-zero false positive |
+| **Inode** (`fs_ino`) | Path changed within same filesystem, inode preserved | Strong for intra-FS moves; unreliable across devices or with some editors |
+| **Structural similarity** | Rename + edit (path + content both changed); heading text edit | Weak; heuristic, may misattribute |
+| **Position among siblings** | Unnamed block edited; order preserved | Weak; for cosmetic session state only |
+| **Parent-scope uniqueness** | Heading with no anchor; text slug roughly preserved | Medium; works if within-parent scope |
+
+Heuristics only matter when the primary `.name` match fails. For referenced content (files, anchored blocks, tagged things), `.name` is usually stable and heuristics rarely fire.
+
+### 3.4 Cost
+
+- File-level: sha256 only when `fs_mtime` changed (cached). On M5 Max, full 5,500-file vault hashes in <500ms; steady-state is single-digit files.
+- Heading/block-level: happens during AST reconcile on any file edit. Cheap — N is small per-file.
+
+### 3.5 Ambiguous cases
+
+**Rename + edit simultaneously** (file path + content both changed): primary match fails, content-hash fails. Falls through to structural-similarity heuristic OR treated as delete+new.
+
+Current plan: delete+new. Loses internal ULID on this case. User sees no external breakage (links still point by path — they're also broken if the path moved, same as without reconciliation).
+
+**Future upgrade** if real-world pressure demands: diff-chunk similarity like git's rename-with-edit detection (>50% line overlap → rename). Out of scope until evidence.
+
+### 3.6 What mistaken identity costs (unreferenced content)
 
 If km confuses two unreferenced files or blocks, the damage is confined to km's internal bookkeeping:
 
@@ -234,7 +251,7 @@ If km confuses two unreferenced files or blocks, the damage is confined to km's 
 
 **Self-healing**: next correct rescan (edit, path change) catches the mismatch and reassigns. No permanent damage.
 
-### 3.5 What mistaken identity costs (referenced content)
+### 3.7 What mistaken identity costs (referenced content)
 
 For blocks WITH `^abc` labels, identity is by **literal string match** — not hash, not similarity. Can't accidentally collide.
 
@@ -438,13 +455,38 @@ Five work packages. **Lazy-hydration ships first** per pro + K2.6 — the scale-
 
 ## 9. Explicit non-decisions / deferred
 
-- **CRDT substrate** — kimmi's Automerge experience says don't. Reopen if multi-device concurrent sync becomes shipping-required.
-- **Sync protocol** — only after CRDT question is reopened.
+### Sync reliability tiers
+
+km's sync story upgrades in tiers as reliability demands grow. Each tier stays within FS-truth (except Tier 4), and none require putting ULIDs in markdown.
+
+| Tier | Approach | Handles | Ships when |
+|---|---|---|---|
+| 0 | Git as sync layer | Basic offline edit, multi-device occasional push/pull | Today's default |
+| 1 | Tier 0 + identity sidecar (`.km/identity.toml` tracked) | Cross-peer stable ULIDs; rename survives cleanly | When multi-device + renames are common |
+| 2 | Tier 1 + op log alongside files | Multi-file atomicity in sync; semantic-level merge | When file-level sync corruption becomes painful |
+| 3 | Custom bidirectional sync protocol (WSS) | Real-time-ish sync with vector clocks; conflicts surfaced, not auto-merged | When peer-to-peer sync is a shipping feature |
+| 4 | CRDT substrate | Auto-merge of concurrent fine-grained edits; real-time collab | Only if real-time collab is a product goal (still deferred; question mark) |
+
+**Current plan targets Tier 1 (federation bead, §8.P4) when the product needs it.** Tiers 2-4 are further future work.
+
+### Deferred items
+
+- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required.
+- **Op-log sync (Tier 2)** — deferred until Tier 1's file-level sync quality becomes a user-visible issue.
+- **Custom bidirectional protocol (Tier 3)** — deferred with Tier 4.
 - **Undo semantics across files** — session-state split provides durable-undo; semantic policy stays open.
 - **Frontmatter `id:` injection** — **rejected**. User requirement: zero metadata pollution of user files.
-- **Rank 4-6 recovery cascade** (structural/positional heuristics) — rejected per "ID-scattering is a no-go." Keep only path match + content-hash rename detection.
+- **Inline `^<hash>` derived from ULIDs** — rejected; block anchors are literal strings stored as `.name`, not hash-derived.
+- **Rank 4-6 rigid recovery cascade** — rejected per "ID-scattering is a no-go." §3 is paths-of-`.name` (primary) + cheap heuristics (secondary). No forced multi-rank ladder.
 - **Uniform Adapter interface** — deferred until second real consumer exists. Today: concrete `FsMount`.
 - **Diff-chunk similarity for rename+edit** — deferred until real-world hits the edge case.
+- **DB-as-truth flip** — deferred. The trigger is "a feature needs to ship that can't be represented in the AST + markdown output" (not "more peers" or "richer sync"). Implementation-wise it's a ~300-400 LOC refactor (mostly reducing, since multi-file journal + identity sidecar go away).
+
+  **Catastrophic-failure mitigation**: DB-as-truth's main risk is that a DB corruption / serializer bug is harder to recover from than under FS-truth. The mitigation is **native versioning + backup + rollback** — snapshot the DB automatically (periodically + on schema migration), keep N recent versions, support `km doctor rollback <timestamp>`. This is how Dolt, git, and git-like DBs work; the same design pattern applies. With versioning-first DB-truth, catastrophic failures become recoverable at DB snapshot granularity, approaching FS-truth's blast-radius guarantees while keeping the DB-truth benefits (cross-peer sync, beyond-markdown features, multi-file atomicity, richer metadata).
+
+  **If/when we flip**, plan must include: periodic DB snapshots (every N minutes / on every sync / on schema migration), retention policy (keep 7d / 30d / all), rollback UI/CLI, snapshot diff tool for "what changed since yesterday." This is additional scope over the 300-400 LOC refactor, but it's what makes DB-truth acceptable at the trust-level FS-truth provides today.
+
+  Re-evaluate if km grows toward Tana/Logseq-style typed data.
 
 ---
 
@@ -466,7 +508,7 @@ Active:
 |---|---|---|
 | `km-storage.lazy-hydration` | P0, ships first | §8.P1 |
 | `km-storage.fs-mount` (renaming from `km-storage.fs-adapter`) | P1 | §6, §8.P2 |
-| `km-storage.identity-recovery-cascade` | P1, narrowed | §3 path + content-hash only (no Rank 4-6) |
+| `km-storage.identity-recovery-cascade` | P1, narrowed | §3 paths-of-`.name` (primary) + content-hash / inode / structural heuristics (secondary). No markdown pollution. |
 | `km-storage.writeback-cas` (new) | P1 | §7 |
 | `km-storage.markdown-fidelity-corpus` | P1 | §8.P5 |
 | `km-storage.federation` | P2, demoted | §8.P4 |
