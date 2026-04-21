@@ -5,6 +5,7 @@
  * Press 'v' to cycle between views interactively.
  */
 
+import { existsSync } from "fs"
 import { join } from "path"
 import { Command } from "@silvery/commander"
 import { createLogger, KNode } from "@km/core"
@@ -12,6 +13,9 @@ import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 import { restoreTerminalState } from "@silvery/ag-term/runtime"
 import type { FullLogger } from "../logger-types.ts"
+import { promptMemoryModeInit } from "../memory-mode-prompt.ts"
+import { initKmDirectory } from "./init.ts"
+import { findKmRootFromPath } from "@km/storage"
 
 const debug = createLogger("km:cli:view") as FullLogger
 const log = createLogger("km") as FullLogger
@@ -82,6 +86,32 @@ export const viewCommand = new Command("view")
       // KM_EAGER_LOAD=1 disables discoverOnly for testing (avoids stub→full race)
       const interactive = options.interactive !== false
       const eagerLoad = process.env.KM_EAGER_LOAD === "1"
+
+      // km-tui.memory-mode-silent-loss: if the target has no .km/ (and no
+      // ancestor does either), the repo would otherwise silently fall into
+      // memory mode. Prompt BEFORE patching console / entering alt screen so
+      // the warning is actually visible on the user's normal terminal.
+      // Skip the prompt for non-interactive mode (--no-interactive) and
+      // non-TTY stdin (pipes, CI, tests) — those paths never see the banner
+      // either and should not hang waiting for input.
+      if (interactive && process.stdin.isTTY) {
+        const hasKmDir = existsSync(join(resolved.repoRoot, ".km"))
+        const ancestorKm = hasKmDir ? null : findKmRootFromPath(resolved.repoRoot)
+        if (!hasKmDir && !ancestorKm) {
+          const choice = await promptMemoryModeInit(resolved.repoRoot)
+          if (choice === "cancel") {
+            // Clean exit — user declined. Non-zero so scripts can detect.
+            process.exit(130)
+          }
+          if (choice === "init") {
+            initKmDirectory(resolved.repoRoot, { withGtd: true })
+            process.stdout.write(`\n✓ Initialized .km/ at ${resolved.repoRoot}\n\n`)
+          }
+          // choice === "memory" — proceed without creating .km/. The TUI's
+          // prominent top-of-screen banner (BoardApp.showMemoryModeBanner)
+          // makes the ephemeral state unmissable.
+        }
+      }
 
       // Patch console early so startup warnings (stale events, etc.) are captured
       // in the TUI console panel instead of being lost to stderr before alt screen.

@@ -26,6 +26,41 @@ import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 
 // ============================================
+// Exported helper — shared with `km view` startup prompt
+// ============================================
+
+/**
+ * Create `.km/` in `targetDir` plus an empty `changes.jsonl`, and optionally
+ * scaffold the GTD folder structure (inbox/, archive/, @next.md, @someday.md).
+ *
+ * Does NOT walk up ancestor directories — callers have already decided the
+ * exact path to initialize. No ancestor-collision warning, no `--force`
+ * semantics; callers that need those should drive the full `km init`
+ * command instead.
+ *
+ * @param targetDir  Directory to initialize.
+ * @param options    { withGtd?: boolean } — scaffold GTD files (default: true).
+ * @returns          { kmDir: string } — absolute path to the new `.km/`.
+ */
+export function initKmDirectory(
+  targetDir: string,
+  options: { withGtd?: boolean } = {},
+): { kmDir: string } {
+  const kmDir = join(targetDir, ".km")
+  if (!existsSync(kmDir)) {
+    mkdirSync(kmDir, { recursive: true })
+  }
+  const changesPath = join(kmDir, "changes.jsonl")
+  if (!existsSync(changesPath)) {
+    writeFileSync(changesPath, "")
+  }
+  if (options.withGtd !== false) {
+    createGtdStructure(targetDir, false)
+  }
+  return { kmDir }
+}
+
+// ============================================
 // Main Export - Init Command
 // ============================================
 
