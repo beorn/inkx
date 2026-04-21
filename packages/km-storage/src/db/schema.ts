@@ -241,6 +241,54 @@ CREATE TABLE IF NOT EXISTS collapsed_file_links (
 
 CREATE INDEX IF NOT EXISTS idx_cfl_host ON collapsed_file_links(host_id);
 CREATE INDEX IF NOT EXISTS idx_cfl_href ON collapsed_file_links(href);
+
+-- Collapsed-file referenced anchors (inbound).
+--
+-- Complement to collapsed_file_links (which tracks OUTBOUND edges from a
+-- collapsed file). This table caches the set of anchors INSIDE collapsed
+-- files that are referenced BY other files — e.g. when doc-Y contains
+-- [[chat-X#turn-5]], we record (file_id=chat-X, anchor="turn-5",
+-- source_offset=<byte>) here so clicking the link can scroll chat-X to the
+-- right position without fully parsing the file.
+--
+-- Pruning: only anchors that are ACTUALLY referenced from somewhere are
+-- recorded. A collapsed file with 200 headings but only 3 inbound refs
+-- produces 3 rows, not 200. This keeps the table proportional to the
+-- backlink graph, not the heading graph.
+--
+-- Columns:
+--   id            : surrogate primary key (AUTOINCREMENT).
+--   file_id       : the collapsed file's node id (the TARGET of the refs).
+--   anchor        : the anchor text as it appears in the href fragment
+--                   (e.g. "Plans", "^abc123"). Matched against the
+--                   fragment extracted from inbound link hrefs.
+--   source_offset : byte offset of the anchor in the file content. Used by
+--                   the UI to show a snippet or scroll-to-position.
+--   heading_level : 1-6 for ATX headings; NULL for block refs.
+--   ref_count     : number of inbound references pointing at this anchor
+--                   at the time the row was last recorded. Incremental
+--                   updates adjust this; a GC pass can delete rows where
+--                   ref_count drops to 0 (deferred to a later session).
+--   created_at    : insertion timestamp (ms).
+--
+-- Invalidation: delete-then-insert per file_id on file-content change (the
+-- anchor SET inside the file may have changed). When a file is promoted
+-- out of collapse-parse, DELETE rows so the parsed-node lookup becomes the
+-- sole source of anchor resolution for that file.
+--
+-- See km-storage.collapsed-file-anchors and docs/design/model/klink.md.
+CREATE TABLE IF NOT EXISTS referenced_anchors (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  file_id        TEXT NOT NULL,
+  anchor         TEXT NOT NULL,
+  source_offset  INTEGER NOT NULL,
+  heading_level  INTEGER,
+  ref_count      INTEGER NOT NULL DEFAULT 0,
+  created_at     INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ra_file_anchor ON referenced_anchors(file_id, anchor);
+CREATE INDEX IF NOT EXISTS idx_ra_file ON referenced_anchors(file_id);
 `
 
 /**
