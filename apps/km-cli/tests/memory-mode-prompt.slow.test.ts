@@ -18,9 +18,15 @@ import { promptMemoryModeInit } from "../src/memory-mode-prompt.ts"
 import { PassThrough } from "stream"
 
 /**
- * Helper — feed a sequence of lines into a mock stdin, capture stdout writes.
+ * Helper — feed one line per prompt into a mock stdin, capture stdout writes.
+ *
+ * Each entry in `lines` is written in response to a prompt (we hook stdout to
+ * detect "Initialize?" prompts and inject the next line). This keeps the
+ * stream alive across multiple `rl.question()` calls — if we just `.end()`
+ * the whole buffer up-front, readline closes before the second question is
+ * attached and throws "readline was closed".
  */
-function mockIO(input: string): {
+function mockIO(lines: string[]): {
   stdin: PassThrough
   stdout: PassThrough
   output: { value: string }
@@ -28,19 +34,32 @@ function mockIO(input: string): {
   const stdin = new PassThrough()
   const stdout = new PassThrough()
   const output = { value: "" }
+  let answered = 0
+  const PROMPT_TOKEN = "Initialize?"
+
   stdout.on("data", (chunk: Buffer | string) => {
-    output.value += typeof chunk === "string" ? chunk : chunk.toString()
-  })
-  // Schedule the input after the prompt is rendered
-  setImmediate(() => {
-    stdin.end(input)
+    const text = typeof chunk === "string" ? chunk : chunk.toString()
+    output.value += text
+    if (text.includes(PROMPT_TOKEN) && answered < lines.length) {
+      const nextLine = lines[answered]!
+      answered++
+      // Use setImmediate so the stdout handler returns before we push.
+      setImmediate(() => {
+        const isLast = answered === lines.length
+        if (isLast) {
+          stdin.end(nextLine + "\n")
+        } else {
+          stdin.write(nextLine + "\n")
+        }
+      })
+    }
   })
   return { stdin, stdout, output }
 }
 
 describe("promptMemoryModeInit", () => {
   test("default (empty answer + newline) = initialize", async () => {
-    const { stdin, stdout, output } = mockIO("\n")
+    const { stdin, stdout, output } = mockIO([""])
     const result = await promptMemoryModeInit("/tmp/not-a-real-vault", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
@@ -51,7 +70,7 @@ describe("promptMemoryModeInit", () => {
   })
 
   test("y = initialize", async () => {
-    const { stdin, stdout, output: _output } = mockIO("y\n")
+    const { stdin, stdout, output: _output } = mockIO(["y"])
     const result = await promptMemoryModeInit("/tmp/not-a-real-vault", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
@@ -60,7 +79,7 @@ describe("promptMemoryModeInit", () => {
   })
 
   test("m = view in memory", async () => {
-    const { stdin, stdout, output: _output } = mockIO("m\n")
+    const { stdin, stdout, output: _output } = mockIO(["m"])
     const result = await promptMemoryModeInit("/tmp/not-a-real-vault", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
@@ -69,7 +88,7 @@ describe("promptMemoryModeInit", () => {
   })
 
   test("n = cancel", async () => {
-    const { stdin, stdout, output: _output } = mockIO("n\n")
+    const { stdin, stdout, output: _output } = mockIO(["n"])
     const result = await promptMemoryModeInit("/tmp/not-a-real-vault", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
@@ -78,7 +97,7 @@ describe("promptMemoryModeInit", () => {
   })
 
   test("prompt mentions the target path so the user confirms what gets initialized", async () => {
-    const { stdin, stdout, output } = mockIO("n\n")
+    const { stdin, stdout, output } = mockIO(["n"])
     await promptMemoryModeInit("/tmp/some/specific/vault-path", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
@@ -88,7 +107,7 @@ describe("promptMemoryModeInit", () => {
 
   test("unrecognized answer re-prompts (doesn't silently default)", async () => {
     // "zz" then "n" — expect a re-prompt before accepting cancel
-    const { stdin, stdout, output } = mockIO("zz\nn\n")
+    const { stdin, stdout, output } = mockIO(["zz", "n"])
     const result = await promptMemoryModeInit("/tmp/not-a-real-vault", {
       stdin: stdin as unknown as NodeJS.ReadableStream,
       stdout: stdout as unknown as NodeJS.WritableStream,
