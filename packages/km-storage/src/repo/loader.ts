@@ -47,6 +47,7 @@ import {
   type CollapseParseMatcher,
 } from "../markdown/collapse-parse.ts"
 import { extractLinks } from "../markdown/extract-links.ts"
+import { resolveInboundAnchors } from "../markdown/resolve-inbound-anchors.ts"
 import { getCollapseParseConfig } from "../config.ts"
 
 const log = createLogger("km:storage:repo-loader")
@@ -320,6 +321,30 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     }
 
     yield* materializeRules(db)
+  }
+
+  // 5b. Inbound anchor resolution for collapsed files (C4).
+  //
+  // Must run AFTER outbound link rows are written (both parsed and
+  // collapsed) because it consults those tables to determine which anchors
+  // are actually referenced. Skipped in discoverOnly mode — outbound link
+  // extraction for parsed files hasn't happened yet; deferredParseAsync's
+  // completion handler is the natural place to re-run this pass (future).
+  //
+  // Off-by-default when no files are collapsed (the function returns
+  // immediately in that case).
+  if (!discoverOnly) {
+    try {
+      const anchorResult = resolveInboundAnchors(db, { repoRoot })
+      if (anchorResult.filesScanned > 0) {
+        log.debug?.(
+          `inbound anchors: ${anchorResult.anchorsWritten} rows across ${anchorResult.filesScanned} collapsed files`,
+        )
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "resolve", message: `inbound anchor resolution failed: ${message}` })
+    }
   }
 
   // 6. Finalize

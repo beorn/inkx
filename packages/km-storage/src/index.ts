@@ -94,6 +94,35 @@ export { readChanges, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensu
 export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo/loader.ts"
 export type { LoadError as RepoLoaderError } from "./repo/loader.ts"
 
+// Inbound anchor resolution for collapsed files (C4)
+export { resolveAnchor } from "./links/resolve-anchor.ts"
+
+export type {
+  AnchorResolution,
+  AnchorResolutionKind,
+  ResolveAnchorInput,
+} from "./links/resolve-anchor.ts"
+
+export { resolveInboundAnchors } from "./markdown/resolve-inbound-anchors.ts"
+
+export type {
+  ResolveInboundAnchorsOptions,
+  ResolveInboundAnchorsResult,
+} from "./markdown/resolve-inbound-anchors.ts"
+
+export { extractAnchors } from "./markdown/extract-anchors.ts"
+export type { ExtractedAnchor } from "./markdown/extract-anchors.ts"
+
+// Referenced-anchor DB reads (for diagnostic scripts)
+export {
+  countReferencedAnchors,
+  getReferencedAnchor,
+  getReferencedAnchorsForFile,
+  removeReferencedAnchors,
+} from "./db/referenced-anchors.ts"
+
+export type { ReferencedAnchorRow } from "./db/referenced-anchors.ts"
+
 // Change compaction & store health diagnostics
 export { identifyStaleChanges, compactChanges, vacuumDb, getStoreHealth } from "./change-compaction.ts"
 
