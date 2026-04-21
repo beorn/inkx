@@ -94,7 +94,10 @@ const projects = hasProjectFlag
 				test: {
 					name: "prototype",
 					...sharedTest,
-					include: ["hub/silvery/prototype/**/*.{test,spec}.{ts,tsx}"],
+					include: [
+						"hub/silvery/prototype/**/*.{test,spec}.{ts,tsx}",
+						"hub/silvery/experiments/**/*.{test,spec}.{ts,tsx}",
+					],
 					exclude: [
 						...alwaysExclude.filter((p) => p !== "hub/**"),
 						"**/*.slow.*",
