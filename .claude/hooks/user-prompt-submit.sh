@@ -23,9 +23,10 @@ if echo "$PROMPT" | grep -qiE '^\s*/compact'; then
   fi
 fi
 
-# Default: run recall hook
-if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
-  echo "$INPUT" | exec bun "$REPO_ROOT/vendor/bearly/tools/recall.ts" hook
+# Default: delta context injection via tribe (formerly `recall hook`,
+# moved in @bearly/tribe 0.10.0 — `recall hook` now errors out).
+if [ -f "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" ]; then
+  echo "$INPUT" | exec bun "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" hook prompt
 else
   echo '{}'
   exit 0
