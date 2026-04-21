@@ -121,4 +121,59 @@ describe("body-card row-budget truncation", () => {
     // No truncation indicator for content that fits within the budget.
     expect(text).not.toContain("···")
   })
+
+  test("exact-budget body card (rows === maxBodyContentRows) renders without ··· indicator", () => {
+    // Content exactly at the 6-row budget should render in full with NO
+    // overflow indicator. This exercises the `rows === maxRows` edge case
+    // in TreeNode's maxRows clamp — exact fit is a no-op.
+    const exact = giantCodeContent(6) // exactly 6 lines = budget
+    using app = createTestApp(
+      item(
+        "board",
+        item(
+          "col",
+          item.code(exact),
+          item.file("structuralCard", item("sc-child")),
+        ),
+      ),
+      { cols: 80, rows: 40, viewMode: "cards" },
+    )
+
+    // Move cursor off the body card so breadcrumbs don't pollute the screen
+    app.press("j")
+
+    const text = app.text
+    // All 6 lines present
+    for (let i = 1; i <= 6; i++) {
+      expect(text, `line-${i} should be visible at exact budget`).toContain(`line-${i}`)
+    }
+    // No overflow indicator when content fits exactly
+    expect(text, "exact-budget content must not show ··· indicator").not.toContain("···")
+  })
+
+  test("one-row-over budget triggers ··· indicator", () => {
+    // Content that is ONE row over the 6-row budget should trigger the
+    // clamp: 5 rows of content shown, plus the overflow indicator on row 6.
+    const justOver = giantCodeContent(7) // 7 lines, budget is 6
+    using app = createTestApp(
+      item(
+        "board",
+        item(
+          "col",
+          item.code(justOver),
+          item.file("structuralCard", item("sc-child")),
+        ),
+      ),
+      { cols: 80, rows: 40, viewMode: "cards" },
+    )
+    app.press("j") // move cursor off body card
+
+    const text = app.text
+    // First line of content is visible; last line is not
+    expect(text).toContain("line-1")
+    expect(text, "line-7 should be clamped out at one-over-budget").not.toContain("line-7")
+    // Indicator is shown with the hidden-row count
+    expect(text, "clamp boundary must show ··· indicator").toContain("···")
+    expect(text, "indicator includes hidden-row count").toMatch(/\+\d+ more/)
+  })
 })

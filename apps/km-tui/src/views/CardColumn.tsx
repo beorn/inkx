@@ -13,7 +13,7 @@ import { useApp as useAppStore } from "@silvery/create"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
-import { Box, Text, Small, useScrollRect, wrapText } from "@silvery/ag-react"
+import { Box, Text, Small, useScrollRect } from "@silvery/ag-react"
 import { useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { dispatchSelection, NO_SELECTION } from "../state/selection.ts"
 import { isDetailViewPane } from "../board/board-types.ts"
@@ -356,42 +356,23 @@ const Card = React.memo(
     }
 
     if (isBodyColumn || isBodyCard) {
-      // Body-card row budget (bead km-tui.column-top-disappears).
+      // Body-card row budget (bead km-tui.column-top-disappears / km-silvery.treenode-max-rows).
       //
       // Body cards own a single text payload (paragraph / code block / quote)
       // rather than a list of structural children, so the "cap children at N"
       // overflow logic used by structural cards does not apply. Instead we
-      // give the body content a *row budget*: render at most N visual rows,
-      // then show `···` to signal there is more.
+      // give the body content a *row budget* via TreeNode's `maxRows` prop
+      // — a cross-target primitive that maps to line-clamp in the terminal
+      // today and will map to CSS `-webkit-line-clamp` in a future DOM
+      // target. See TreeNode's `maxRows` JSDoc for the contract.
       //
       // Bypass the clamp when:
       //   1. The card is being edited — the user needs to see the full
       //      content to edit it.
       //   2. The cursor is on a descendant inside this card — treat the
       //      card as "expanded for navigation", same as structural cards.
-      //
-      // Wrapping: `wrapText` honors both explicit `\n` newlines and
-      // soft-wrapping at `cardInnerWidth`, so a 40-char line on a 20-col
-      // card counts as 2 rows, matching what the terminal will actually
-      // render. Exact-budget content renders without an indicator; one row
-      // over triggers the indicator.
       const bypassClamp = isEditing || cursorInDescendant
-      const innerWidth = Math.max(10, treeConfig.cardInnerWidth - 2) // matches TreeNode prefix width
-      const budget = Math.max(1, treeConfig.maxBodyContentRows)
-      const rawContent = card.content ?? ""
-      // Collapse blank lines the same way TreeNode does when compactContent
-      // is set — keeps our row count in sync with the rendered footprint.
-      const compactedContent = rawContent.replace(/\n\s*\n/g, "\n")
-      const wrappedLines = bypassClamp || !rawContent ? null : wrapText(compactedContent, innerWidth, true, false)
-      const needsClamp = wrappedLines !== null && wrappedLines.length > budget
-      // When clamping, slice to (budget - 1) rows and reserve the last row
-      // for the `···` indicator. When budget is 1 we still show one line of
-      // content to avoid an entirely blank card — the indicator then goes
-      // below, yielding a 2-row card by design.
-      const clampedContent = needsClamp
-        ? wrappedLines!.slice(0, Math.max(1, budget - 1)).join("\n")
-        : undefined
-      const hiddenRows = needsClamp ? wrappedLines!.length - Math.max(1, budget - 1) : 0
+      const bodyMaxRows = bypassClamp ? 0 : Math.max(1, treeConfig.maxBodyContentRows)
 
       return (
         <Box
@@ -428,15 +409,8 @@ const Card = React.memo(
             extraExcludedSigils={extraExcludedSigils}
             compactContent
             hideChildCount
-            contentOverride={clampedContent}
+            maxRows={bodyMaxRows}
           />
-          {needsClamp && (
-            <Box width={width} height={1} flexShrink={0}>
-              <Text color="$fg-muted" wrap="truncate">
-                {` ··· +${hiddenRows} more`}
-              </Text>
-            </Box>
-          )}
         </Box>
       )
     }

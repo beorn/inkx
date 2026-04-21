@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"
 import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Text, useScrollRect, useTheme } from "@silvery/ag-react"
+import { Box, ErrorBoundary, Link, Text, useScrollRect, useTheme, wrapText } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -51,6 +51,13 @@ import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { ErrorInfo } from "react"
 
 // ============================================================================
+
+/**
+ * Default overflow indicator for `maxRows` clamp — a muted ellipsis plus the
+ * hidden-row count. Exposed as a constant so callers can prepend/append
+ * context (e.g., structural-card chrome) or replace with a custom node.
+ */
+export const DEFAULT_OVERFLOW_INDICATOR = "···"
 
 /** Log NodeChildren rendering errors via loggily instead of silently swallowing them.
  * The ErrorBoundary shows [error] fallback text; this ensures the actual error is logged
@@ -95,20 +102,45 @@ interface TreeNodeProps {
   /** Body content node — render without bullet prefix, dimmed. */
   isBody?: boolean
   /**
-   * Override the rendered content string without mutating the underlying node.
+   * Cross-target presentation primitive: maximum number of **wrapped visual
+   * rows** the primary content text may occupy. 0 (default) disables the
+   * clamp — content renders in full.
    *
-   * Bypasses the `getDisplayContent` → `displayNode.content` lookup when
-   * provided. Used by body-card truncation (bead km-tui.column-top-disappears):
-   * CardColumn pre-clamps the content to a row budget and passes the clamped
-   * version as this override. The underlying node (and its ViewTree
-   * projection) remain untouched so editing, selection, and persistence see
-   * the real content; only the visible rendering is clamped.
+   * Semantics:
+   * - Counts wrapped rows the same way `wrapText` does — explicit newlines
+   *   AND soft-wraps at the available inner width both count as one row.
+   *   A 40-char line on a 20-col card is 2 rows.
+   * - Exact fit renders without an indicator (`rows === maxRows`).
+   * - One row over triggers the indicator. The component keeps at most
+   *   `max(1, maxRows - 1)` content rows and appends `overflowIndicator`
+   *   as the last visible row — so the total visible footprint is at most
+   *   `max(2, maxRows)` rows.
+   * - Only the primary content text is clamped. Task marks, embed
+   *   resolution, inline formatting, the head row, children, and all other
+   *   pipelines keep their normal behaviour — the underlying node is not
+   *   mutated, so editing / selection / persistence see the real content.
    *
-   * Scope: only affects the primary content text rendering. Task marks,
-   * embed resolution, inline formatting, and all other pipelines keep
-   * their normal behavior.
+   * Cross-target positioning: the TUI renderer clips to wrapped rows. A
+   * future DOM target would map the same prop to CSS `-webkit-line-clamp`
+   * / `line-clamp`. Callers express *intent* (clamp to N rows), not the
+   * rendering mechanism.
+   *
+   * Bypass is the caller's responsibility — `CardColumn` passes `maxRows=0`
+   * when the card is being edited or the cursor is on a descendant, so
+   * the user sees the full payload in those contexts.
    */
-  contentOverride?: string
+  maxRows?: number
+  /**
+   * The indicator rendered on the final row when `maxRows` triggers a clamp.
+   *
+   * Defaults to `DEFAULT_OVERFLOW_INDICATOR` (a muted `···`). Pass a string
+   * for a plain indicator or a React node for full styling control — the
+   * node is rendered in its own single-row `<Box>` and is responsible for
+   * truncation / colour / alignment.
+   *
+   * Ignored when `maxRows` is 0 or the content fits within the budget.
+   */
+  overflowIndicator?: React.ReactNode
 }
 
 /**
@@ -170,8 +202,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Body flag
   if (prev.isBody !== next.isBody) return false
 
-  // Content override — clamped body-card content passes through as a string
-  if (prev.contentOverride !== next.contentOverride) return false
+  // Row-budget clamp — re-render on budget or indicator identity change
+  if (prev.maxRows !== next.maxRows) return false
+  if (prev.overflowIndicator !== next.overflowIndicator) return false
 
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
@@ -211,7 +244,8 @@ function TreeNodeImpl({
   hideChildCount = false,
   remainingDepth = Infinity,
   isBody = false,
-  contentOverride,
+  maxRows = 0,
+  overflowIndicator,
 }: TreeNodeProps): React.ReactElement {
   const _tnStart = renderLog.debug ? performance.now() : 0
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
@@ -416,10 +450,10 @@ function TreeNodeImpl({
 
   // Get content, stripping task marks for nodes with task_status.
   // The task mark is displayed via the icon, so we don't need it in the text.
-  // A `contentOverride` prop (body-card clamp — bead km-tui.column-top-disappears)
-  // bypasses the display pipeline and renders the provided string verbatim,
-  // without mutating the underlying node.
-  const rawContent = contentOverride ?? getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
+  // Row-budget truncation (the `maxRows` prop) happens further down, after
+  // `compactContent` has collapsed blank lines — so `wrapText` counts the
+  // same visual rows the renderer will actually paint.
+  const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   // Strip @mentions and +projects from card title display — the info suffix already shows short names
   // Fall back to original if stripping leaves nothing (e.g., user files like @shi-delei.md)
@@ -485,9 +519,33 @@ function TreeNodeImpl({
 
   // Memoize content for display - collapse blank lines for compact body cards
   const isVerbatim = node.type === "code" || node.type === "table"
-  const processedContent = useMemo(() => {
+  const processedContentRaw = useMemo(() => {
     return compactContent ? displayContent.replace(/\n\s*\n/g, "\n") : displayContent
   }, [displayContent, compactContent])
+
+  // Row-budget clamp (the `maxRows` prop). Cross-target presentation primitive
+  // — see the prop JSDoc. We run `wrapText` at the same `innerWidth` the
+  // renderer will use so explicit newlines and soft-wraps both count toward
+  // the budget. When the content fits exactly, nothing is clamped. One row
+  // over triggers the indicator: we slice to `max(1, maxRows - 1)` content
+  // rows and reserve the last visible row for `overflowIndicator`, yielding
+  // a total footprint of at most `max(2, maxRows)` rows.
+  const { processedContent, clampHiddenRows } = useMemo(() => {
+    if (!maxRows || maxRows <= 0 || !processedContentRaw) {
+      return { processedContent: processedContentRaw, clampHiddenRows: 0 }
+    }
+    const innerWidth = Math.max(1, treeConfig.cardInnerWidth - prefix.length)
+    const wrapped = wrapText(processedContentRaw, innerWidth, true, false)
+    if (wrapped.length <= maxRows) {
+      return { processedContent: processedContentRaw, clampHiddenRows: 0 }
+    }
+    const keep = Math.max(1, maxRows - 1)
+    return {
+      processedContent: wrapped.slice(0, keep).join("\n"),
+      clampHiddenRows: wrapped.length - keep,
+    }
+  }, [processedContentRaw, maxRows, treeConfig.cardInnerWidth, prefix.length])
+  const needsOverflowIndicator = clampHiddenRows > 0
 
   // Shared inline render context (wikilink/blockref resolution, sigil exclusion)
   const inlineContext = useTreeInlineContext(
@@ -933,6 +991,30 @@ function TreeNodeImpl({
             suppressCursorHighlight={isInlineEditing || editingDescendant}
           />
         </ErrorBoundary>
+      )}
+
+      {/* Row-budget overflow indicator (`maxRows` prop). Rendered as its own
+           single-row Box with the same paddingLeft as the head content so the
+           indicator visually aligns with the clamped text above.
+           - React node: rendered as-is (caller owns styling).
+           - Explicit string: muted text, no auto-appended count (caller
+             decides phrasing — lets ` + ${hiddenRows}` tokens be inlined).
+           - Default (undefined): `···  +N more` — matches the legacy body-card
+             chrome so callers who opt into `maxRows` get the count for free. */}
+      {needsOverflowIndicator && (
+        <Box width="100%" height={1} flexShrink={0} paddingLeft={depth}>
+          {React.isValidElement(overflowIndicator) ? (
+            overflowIndicator
+          ) : typeof overflowIndicator === "string" ? (
+            <Text color="$fg-muted" wrap="truncate">
+              {` ${overflowIndicator}`}
+            </Text>
+          ) : (
+            <Text color="$fg-muted" wrap="truncate">
+              {` ${DEFAULT_OVERFLOW_INDICATOR} +${clampHiddenRows} more`}
+            </Text>
+          )}
+        </Box>
       )}
     </Box>
   )
