@@ -19,16 +19,21 @@ import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Memory-mode banner", () => {
   test("fake repo (memory mode) renders prominent banner", () => {
-    using app = createTestApp(item("board", item("Todo", item("Task"))))
+    using app = createTestApp(item("board", item("Todo", item("Task"))), {
+      showMemoryModeBanner: true,
+    })
 
     // Banner is visible and contains the explicit "memory mode" warning
     app.expect("#memory-mode-banner").toExist()
-    app.expect("#memory-mode-banner").toContainText("Memory mode")
-    app.expect("#memory-mode-banner").toContainText("NOT be saved")
+    const text = app.q("#memory-mode-banner").textContent()
+    expect(text).toContain("Memory mode")
+    expect(text).toContain("NOT be saved")
   })
 
   test("banner appears above board content", () => {
-    using app = createTestApp(item("board", item("Todo", item("First-card"))))
+    using app = createTestApp(item("board", item("Todo", item("First-card"))), {
+      showMemoryModeBanner: true,
+    })
 
     const banner = app.q("#memory-mode-banner")
     const col = app.q("#Todo")
@@ -36,7 +41,9 @@ describe("Memory-mode banner", () => {
   })
 
   test("banner survives navigation and editing", () => {
-    using app = createTestApp(item("board", item("Todo", item("task-a"), item("task-b"))))
+    using app = createTestApp(item("board", item("Todo", item("task-a"), item("task-b"))), {
+      showMemoryModeBanner: true,
+    })
 
     // Still visible after cursor movement
     app.command("cursor_down")
@@ -49,13 +56,22 @@ describe("Memory-mode banner", () => {
   })
 
   test("banner uses warning color (not just dim muted text)", () => {
-    using app = createTestApp(item("board", item("Todo", item("Task"))))
+    using app = createTestApp(item("board", item("Todo", item("Task"))), {
+      showMemoryModeBanner: true,
+    })
 
     // The banner should be rendered — a prominent, non-dim element.
     // We assert presence + the key warning copy; concrete color tokens
     // are validated by the silvery theme system at render time.
     const banner = app.q("#memory-mode-banner")
     expect(banner).toBeVisible()
-    expect(banner).toContainText("⚠") // warning glyph (⚠)
+    expect(banner.textContent()).toContain("⚠") // warning glyph
+  })
+
+  test("banner is suppressed by default in driver-level tests", () => {
+    // Legacy tests rely on fixed-row coordinates; the driver defaults
+    // `showMemoryModeBanner` to `false` to keep those tests stable.
+    using app = createTestApp(item("board", item("Todo", item("Task"))))
+    app.expect("#memory-mode-banner").not.toExist()
   })
 })

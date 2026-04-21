@@ -25,6 +25,7 @@ import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
+import { MemoryModeBanner } from "./MemoryModeBanner.tsx"
 import { useLinkOpen } from "../hooks/use-link-open.ts"
 import type { ToastQueue } from "@km/core"
 import { navigateToNode } from "../navigation/navigate-to-node.ts"
@@ -89,13 +90,27 @@ export interface BoardAppProps {
   navigator?: GridNavigator
   /** Patched console for capturing console output (optional) */
   patchedConsole?: PatchedConsole | null
+  /**
+   * Render the top-of-screen "MEMORY MODE" banner when the repo is not
+   * persisted. Default: `true` (production behavior). Tests that assert on
+   * fixed-row screen coordinates usually want this off so the banner doesn't
+   * shift content down by one row.
+   * Bead: km-tui.memory-mode-silent-loss
+   */
+  showMemoryModeBanner?: boolean
 }
 
 /**
  * Production entry component with external integrations.
  * Gets repo, dimensions, exit from context/hooks.
  */
-export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
+export function BoardApp({
+  initialViewMode = "cards",
+  toastQueue,
+  navigator,
+  patchedConsole,
+  showMemoryModeBanner = true,
+}: BoardAppProps) {
   const { exit } = useApp()
   const repo = useRepo()
   const storeApi = React.useContext(StoreContext) as
@@ -241,6 +256,16 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
   const bottomBar = <WorkspaceBottomBar consoleStats={consoleStats} />
 
+  // Memory-mode banner — prominent warning when the repo has no `.km/`.
+  // Rendered ABOVE all pane content so users cannot miss that edits are
+  // ephemeral. The tiny "MEM" indicator in StatusCounters is too subtle.
+  // Suppressible via `showMemoryModeBanner={false}` for driver-level tests
+  // that rely on fixed-row screen coordinates.
+  const memoryBanner =
+    showMemoryModeBanner && repo.mode === "memory" ? (
+      <MemoryModeBanner width={storeDimensions.columns} />
+    ) : null
+
   // Single pane (common case) — render Board directly, no wrapper overhead.
   // Use workspace.focusedPaneId instead of hardcoded "main" — after closing
   // the main pane via vw, the remaining pane may have a different ID.
@@ -263,6 +288,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
           testID={singlePaneId}
           focusScope
         >
+          {memoryBanner}
           {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
           {bottomBar}
           {chrome}
@@ -275,6 +301,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   return (
     <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
       <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
+        {memoryBanner}
         <WorkspaceView
           layout={workspace.layout}
           panes={workspace.panes}
