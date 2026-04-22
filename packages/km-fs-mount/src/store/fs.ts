@@ -96,15 +96,14 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
   const tracker: OwnershipTracker = createOwnershipTracker(db)
 
   // Write queue for debounced FS writes.
-  // Hash-based conflict detection: compare on-disk content against the
-  // baseline km last observed/projected. If they differ, an external edit
-  // happened — WriteQueue will write a .conflict.<ts>.md backup before
-  // overwriting the file, so the external change is never silently lost.
+  // The FS store uses the default (unguarded) write implementation — it's
+  // an in-memory SQLite projection, not a long-running TUI session, and
+  // doesn't need safe-write's external-edit detection. Callers that want
+  // CAS-guarded writes go through `withSync`.
   const writeQueue = new WriteQueue({
     debounceMs: debounceWrite,
     onWrite: (path, content) => tracker.recordWrite(path, content),
     onDelete: (path) => tracker.recordDelete(path),
-    getBaselineHash: (absPath) => tracker.getSyncState().get(absPath)?.baseline_hash ?? null,
   })
 
   // File watcher

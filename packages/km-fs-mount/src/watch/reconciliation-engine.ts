@@ -27,6 +27,7 @@ import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import type { Emitter, ParsePoolService } from "@km/storage"
 import type { PatternMatcher } from "../fs/ignore.ts"
+import type { EchoGuard } from "./echo-guard.ts"
 
 export interface ReconciliationEngineConfig {
   db: Database
@@ -34,6 +35,14 @@ export interface ReconciliationEngineConfig {
   tracker: OwnershipTracker
   writeQueue: WriteQueue
   reconcileEmitter: Emitter
+  /**
+   * Optional echo-guard (§7.4). When provided, reconcile ops are filtered
+   * against expected echoes as a fast-path before falling through to the
+   * tracker's content-hash check. Complements rather than replaces the
+   * existing owned-write filter — the guard has a 5s TTL, tracker is
+   * durable across restarts.
+   */
+  echoGuard?: EchoGuard
 }
 
 export interface ReconciliationResult {
@@ -50,7 +59,7 @@ export interface ReconciliationResult {
  * - Observation recording after successful ops
  */
 export function createReconciliationEngine(config: ReconciliationEngineConfig) {
-  const { db, repoPath, tracker, writeQueue, reconcileEmitter } = config
+  const { db, repoPath, tracker, writeQueue, reconcileEmitter, echoGuard } = config
 
   /**
    * Check if a delete op was caused by us. Delete ops use relative paths,
@@ -98,7 +107,15 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
       if (op.type === "delete") {
         return !isOwnedDelete(op.path)
       }
-      // Create/update/rename ops use absolute paths
+      // Create/update/rename ops use absolute paths.
+      //
+      // Layer 0 — EchoGuard fast-path (§7.4): if the op's (mtime, size)
+      // matches an expectation km armed when it wrote this path, the event
+      // is our own echo. Consume the expectation and drop the op.
+      if (echoGuard && op.mtime != null && op.size != null) {
+        const verdict = echoGuard.consume(op.path, op.mtime, op.size)
+        if (verdict === "echo") return false
+      }
       return !tracker.isOwnedWrite(op.path) && !pendingPaths.has(op.path)
     })
     const skipped = ops.length - filtered.length

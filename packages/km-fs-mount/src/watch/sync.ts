@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from "loggily"
-import { mkdirSync, renameSync } from "fs"
+import { mkdirSync, renameSync, statSync } from "fs"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
@@ -16,11 +16,19 @@ import { FileSystemWatcher } from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import { createParsePool, type ParsePoolService, type Emitter, type EmitOptions, type StepYield } from "@km/storage"
-import { WriteQueue, type ConflictInfo } from "./writequeue.ts"
+import {
+  createParsePool,
+  getNodeByPath,
+  type ParsePoolService,
+  type Emitter,
+  type EmitOptions,
+  type StepYield,
+} from "@km/storage"
+import { WriteQueue, type ConflictInfo, type WriteImpl, type WriteImplResult } from "./writequeue.ts"
 export type { ConflictInfo } from "./writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "./ownership-tracker.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
+import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { type Change } from "@km/core"
 import { ChangeHandlers, type FsWriteTarget } from "./change-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
@@ -28,6 +36,8 @@ import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
 import type { BulkSyncDeps, SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"
 export type { SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"
 import { createHeartbeat, DEFAULT_HEARTBEAT, type Heartbeat, type HeartbeatConfig } from "./heartbeat.ts"
+import { safeWriteFile } from "./safe-write.ts"
+import { createEchoGuard, type EchoGuard } from "./echo-guard.ts"
 
 export type { HeartbeatConfig } from "./heartbeat.ts"
 
@@ -73,10 +83,11 @@ export interface SyncCallbacks {
   onWriteComplete?: (data: { count: number; errors: number }) => void
   onWriteErrors?: (errors: Array<{ path: string; error: Error; errorClass?: string }>) => void
   /**
-   * Fired when the writer detects that the on-disk content no longer matches
-   * the baseline km loaded. For `last_write_wins` / `db_wins` this is
-   * informational — the TUI typically shows a toast pointing at
-   * `backupPath` so the user can reconcile the external edit manually.
+   * Fired when `safeWriteFile` detects that the on-disk bytes no longer
+   * match the hash km last observed for the file (external edit since
+   * km loaded). The write is discarded — disk bytes preserved intact,
+   * a `conflict_created` change is emitted, and this callback fires so
+   * the TUI can surface a toast asking the user to reconcile manually.
    */
   onConflicts?: (conflicts: ConflictInfo[]) => void
   onWatcherStatus?: (status: WatcherStatus) => void
@@ -153,23 +164,119 @@ export function withSync(config?: Partial<SyncConfig>) {
       watcher = new FileSystemWatcher({ debounceMs: cfg.debounceFs })
     }
 
+    // ── EchoGuard ──────────────────────────────────────────────────────────
+    //
+    // Two-tier watcher echo suppression (§7.4). `expect()` records our own
+    // write's post-stat + content hash; `consume()` classifies incoming
+    // watcher events as "echo" (our write coming back) or "external" (a
+    // genuine outside edit). Complements the markInFlight fast-path and
+    // the reconciliation-engine's owned-write filter — this tier is what
+    // catches echoes whose mtime/size shifted after `clearInFlight` fired.
+
+    const echoGuard: EchoGuard = createEchoGuard()
+
     // ── WriteQueue ─────────────────────────────────────────────────────────
+    //
+    // `writeImpl` is the CAS-guarded safe-write backend. On every write:
+    //   1. Look up the fs_content_hash km last observed for this file (baseline).
+    //   2. Call safeWriteFile — atomic write iff current disk bytes match baseline.
+    //   3. On "wrote":    update fs_content_hash in the DB + arm echo-guard.
+    //      On "noop":     disk is already what we intended; arm echo-guard from disk stat.
+    //      On "conflict": DO NOT overwrite. Emit `conflict_created` via the
+    //                     emitter so the user sees the divergence, and surface
+    //                     ConflictInfo to the "conflicts" event.
+
+    const cfgWriteImpl: WriteImpl = (absPath, content, sourceEventId): WriteImplResult => {
+      const relPath = toRelativeFsPath(repoPath, absPath)
+      const node = getNodeByPath(db, relPath)
+      const expectedHash = node?.fs_content_hash ?? null
+
+      const result = safeWriteFile(absPath, content, { expectedHash })
+
+      if (result.outcome === "conflict") {
+        log.warn?.(
+          `safe-write conflict: ${absPath} (expected=${expectedHash ?? "<none>"}, actual=${result.actualHashBefore ?? "<missing>"})`,
+        )
+        // Fire a `conflict_created` change so the emitter persists an audit
+        // record and anyone listening to changes sees the divergence. Use
+        // source=fs-import so this meta-change isn't re-projected to disk.
+        try {
+          emitter.apply(
+            {
+              type: "conflict_created",
+              actor: "system",
+              data: {
+                fs_path: relPath,
+                reason: "external_edit_detected",
+                expected_hash: expectedHash,
+                actual_hash: result.actualHashBefore,
+                change_id: sourceEventId,
+              },
+            },
+            { source: "fs-import" },
+          )
+        } catch (err) {
+          log.warn?.(
+            `failed to emit conflict_created for ${relPath}: ${err instanceof Error ? err.message : String(err)}`,
+          )
+        }
+        return {
+          outcome: "conflict",
+          expectedHash,
+          actualHashBefore: result.actualHashBefore,
+        }
+      }
+
+      // "wrote" or "noop" — disk is consistent with `content`. Refresh
+      // fs_content_hash so the next safe-write guard uses the post-write
+      // hash as its baseline (step 5 of §7.1's CAS contract). Without
+      // this, every legitimate sequential write would conflict because
+      // the DB's baseline would lag the actual disk bytes.
+      const finalHash = result.newHash ?? result.actualHashBefore
+      if (finalHash) {
+        try {
+          db.run("UPDATE nodes SET fs_content_hash = ? WHERE fs_path = ?", [finalHash, relPath])
+        } catch (err) {
+          log.warn?.(
+            `failed to update fs_content_hash for ${relPath}: ${err instanceof Error ? err.message : String(err)}`,
+          )
+        }
+      }
+
+      // Arm the echo-guard with the post-write stat + content-hash so the
+      // watcher event caused by our own write gets classified as "echo"
+      // and skipped. Fast-path uses (mtime, size); slow-path falls back
+      // to hashing. The 5s TTL self-cleans expired expectations.
+      try {
+        const stat = statSync(absPath)
+        echoGuard.expect(absPath, stat.mtimeMs, stat.size, finalHash ?? content, finalHash != null)
+      } catch {
+        // If stat fails post-write something is odd, but we can still
+        // protect the echo window using the content hash alone. Record
+        // with (0, content.length) so the slow-path hash match still
+        // fires for the inbound event.
+        echoGuard.expect(absPath, 0, content.length, finalHash ?? content, finalHash != null)
+      }
+
+      return {
+        outcome: result.outcome,
+        expectedHash,
+        actualHashBefore: result.actualHashBefore,
+        newHash: result.newHash,
+      }
+    }
 
     const writeQueue = new WriteQueue({
       debounceMs: cfg.debounceApply,
       retry: cfg.retry,
-      conflictStrategy: cfg.conflictStrategy,
       clearInFlightDelayMs: cfg.clearInFlightDelayMs,
+      writeImpl: cfgWriteImpl,
       onWrite: (path, content) => {
         tracker.recordWrite(path, content)
       },
       onDelete: (path) => {
         tracker.recordDelete(path)
       },
-      // Hash-based conflict detection: before overwriting a file, ask the
-      // OwnershipTracker what hash km last observed/projected for it. If
-      // the disk hash differs, an external edit happened behind our back.
-      getBaselineHash: (absPath) => tracker.getSyncState().get(absPath)?.baseline_hash ?? null,
     })
     writeQueue.setWatcher(watcher)
 
@@ -182,6 +289,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       tracker,
       writeQueue,
       reconcileEmitter,
+      echoGuard,
     })
 
     // ── Mutable state ──────────────────────────────────────────────────────

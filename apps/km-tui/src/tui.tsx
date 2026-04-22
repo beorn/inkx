@@ -198,24 +198,14 @@ export async function runBoard(
             })
           }
         },
-        // Surface conflict backups as toasts: km detected an external edit
-        // before overwriting, preserved the disk version at `backupPath`, and
-        // is asking the user to review it.
+        // Surface CAS-guarded conflicts as toasts: km detected an external
+        // edit and preserved the disk bytes (never overwrites). The user
+        // should review the file and re-apply their intended change.
         onConflicts: (conflicts) => {
           for (const c of conflicts) {
-            // fs_wins conflicts have no backup (nothing was overwritten) —
-            // surface them as sync-errors so the user still sees something.
-            if (c.resolution === "discarded") {
-              kmEvents.emit("sync-error", {
-                path: c.path,
-                message: `External edit detected — km's pending write was discarded`,
-              })
-              continue
-            }
-            kmEvents.emit("sync-conflict", {
+            kmEvents.emit("sync-error", {
               path: c.path,
-              backupPath: c.backupPath ?? null,
-              strategy: c.strategy,
+              message: `External edit detected — km's pending write was discarded`,
             })
           }
         },

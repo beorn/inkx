@@ -6,9 +6,8 @@
 
 import { createLogger } from "loggily"
 import * as fs from "fs"
-import { dirname, basename, join } from "path"
+import { dirname } from "path"
 import { EventEmitter } from "events"
-import { hashContent } from "../fs/cas.ts"
 
 const log = createLogger("km:storage:watch:writequeue")
 
@@ -227,12 +226,37 @@ export interface InFlightTracker {
 }
 
 /**
- * Conflict resolution strategies
+ * Default WriteImpl: direct fs.writeFileSync without CAS.
+ *
+ * Used when the caller doesn't supply a custom `writeImpl` — notably for
+ * bulk-sync and test harnesses that don't care about conflict detection.
+ * Always returns `outcome: "wrote"` on success (no guard) and throws on
+ * I/O error (the retry loop handles that).
  */
-export type ConflictStrategy =
-  | "last_write_wins" // Always write (current behavior)
-  | "fs_wins" // If file changed, discard pending write
-  | "db_wins" // If file changed, still write but emit warning
+function makeDefaultWriteImpl(fsOps: FileSystemOps): WriteImpl {
+  return (absPath: string, content: string): WriteImplResult => {
+    const dir = dirname(absPath)
+    if (!fsOps.existsSync(dir)) {
+      fsOps.mkdirSync(dir, { recursive: true })
+    }
+    // Direct write — preserves inode identity so the reconciler doesn't
+    // see a spurious inode change on every save.
+    fsOps.writeFileSync(absPath, content, "utf-8")
+    return { outcome: "wrote" }
+  }
+}
+
+/**
+ * Conflict resolution strategy.
+ *
+ * Since `km-storage.writeback-cas-adopt-in-withsync` (April 2026) the
+ * WriteQueue no longer performs conflict detection itself — a pluggable
+ * `writeImpl` owns that, typically delegating to `safeWriteFile` which
+ * NEVER overwrites external edits. The strategy field is kept on
+ * ConflictInfo only for callback back-compat (TUI); the effective
+ * resolution is always "discarded" (disk bytes preserved intact).
+ */
+export type ConflictStrategy = "last_write_wins" | "fs_wins" | "db_wins"
 
 /**
  * Write operation types using discriminated union
@@ -243,8 +267,6 @@ export type WriteTreeOp =
       path: string
       content: string
       sourceEventId: string
-      /** mtime when the write was queued (for conflict detection) */
-      baseMtime?: number
     }
   | { type: "delete"; path: string; sourceEventId: string }
   | {
@@ -259,68 +281,80 @@ export interface PendingWrite {
   path: string
   content: string
   sourceEventId: string
-  /** mtime when the write was queued (for conflict detection) */
-  baseMtime?: number
 }
 
 /**
- * Conflict information when detected.
+ * Conflict information surfaced on the "conflicts" event.
  *
- * A conflict means the on-disk content no longer matches what km last
- * observed/projected for the file — someone (or something) else modified
- * the file externally since km loaded it.
- *
- * Detection is content-hash-based when a baseline is available (via
- * `getBaselineHash` in WriteQueueConfig) and falls back to mtime-based
- * comparison otherwise. Hash-based is strictly preferred because editors
- * frequently touch mtime without changing content.
+ * In the content-as-CAS model a conflict means the on-disk bytes no longer
+ * match the hash km last observed for the file — someone (or something)
+ * else modified it externally. `safeWriteFile` then refuses to overwrite,
+ * so the disk version is always preserved intact (no backup file needed).
  */
 export interface ConflictInfo {
   path: string
-  /** Baseline mtime captured when the write was queued (legacy mtime-only detection) */
-  baseMtime: number
-  /** Current file mtime at flush time (legacy mtime-only detection) */
-  currentMtime: number
   /** Hash km expected to find on disk (null if no baseline was available) */
   baselineHash?: string | null
-  /** Hash actually found on disk (null if file was unreadable) */
+  /** Hash actually found on disk (null if file was unreadable / missing) */
   currentHash?: string | null
+  /** Kept for SyncCallbacks back-compat — always "last_write_wins" in the safe-write world. */
   strategy: ConflictStrategy
-  resolution: "written" | "discarded"
   /**
-   * If a conflict backup was written, this is the absolute path of the
-   * `.conflict.<timestamp>.md` file containing the disk version that would
-   * otherwise have been silently overwritten.
+   * Always "discarded": safe-write never overwrites. The disk bytes win by
+   * construction; km's pending write is dropped and a `conflict_created`
+   * change is emitted so the user can reconcile manually.
    */
-  backupPath?: string
+  resolution: "discarded"
 }
+
+/**
+ * Result of a pluggable write implementation.
+ *
+ * `safeWriteFile` is the canonical backing: it returns (outcome, hashes)
+ * and leaves the file untouched on conflict. WriteQueue uses this to know
+ * whether to surface a conflict event; it no longer inspects disk state
+ * itself.
+ */
+export interface WriteImplResult {
+  outcome: "wrote" | "conflict" | "noop"
+  /** Hash km expected to find on disk before the write (baseline). */
+  expectedHash?: string | null
+  /** Hash actually on disk before the write (differs from expected on conflict). */
+  actualHashBefore?: string | null
+  /** Hash of newly-written content. Undefined on conflict. */
+  newHash?: string | null
+}
+
+/**
+ * Pluggable write implementation. Called by WriteQueue for every "write"
+ * op instead of raw fs.writeFileSync, so callers can layer the CAS guard,
+ * atomic write, emitter notifications, and echo-guard recording without
+ * WriteQueue needing to know about any of them.
+ */
+export type WriteImpl = (absPath: string, content: string, sourceEventId: string) => WriteImplResult
 
 export interface WriteQueueConfig {
   debounceMs: number
   fs?: FileSystemOps
   /** Retry configuration for transient failures */
   retry?: Partial<RetryConfig>
-  /** Conflict resolution strategy (default: last_write_wins) */
-  conflictStrategy?: ConflictStrategy
-  /** Called after a successful writeFileSync with the path and content actually written */
+  /**
+   * Pluggable write backend. Defaults to a direct fs.writeFileSync that
+   * always reports outcome "wrote" (no CAS guard, no conflict detection).
+   * withSync supplies a safe-write backed implementation that honors the
+   * content-as-CAS contract and emits `conflict_created` on divergence.
+   */
+  writeImpl?: WriteImpl
+  /** Called after a successful write with the path and content actually written. Not called on conflict/noop. */
   onWrite?: (path: string, content: string) => void
   /** Called after a successful delete (unlinkSync/rmSync) with the path deleted */
   onDelete?: (path: string) => void
   /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
   clearInFlightDelayMs?: number
-  /**
-   * Return the content-hash baseline km expects to find on disk for this path,
-   * or null if km has no record of the file. Used for hash-based conflict
-   * detection — when provided, it takes precedence over mtime-only detection.
-   *
-   * Typically wired to the OwnershipTracker's SyncState baseline_hash.
-   */
-  getBaselineHash?: (absPath: string) => string | null
 }
 
 const DEFAULT_CONFIG: WriteQueueConfig = {
   debounceMs: 3000,
-  conflictStrategy: "last_write_wins",
 }
 
 /**
@@ -346,12 +380,11 @@ export class WriteQueue extends EventEmitter {
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private config: WriteQueueConfig
   private retryConfig: RetryConfig
-  private conflictStrategy: ConflictStrategy
   private watcher: InFlightTracker | null = null
   private fs: FileSystemOps
+  private writeImpl: WriteImpl
   private onWrite: ((path: string, content: string) => void) | undefined
   private onDelete: ((path: string) => void) | undefined
-  private getBaselineHash: ((absPath: string) => string | null) | undefined
   private clearInFlightDelayMs: number
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
@@ -363,11 +396,10 @@ export class WriteQueue extends EventEmitter {
     super()
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config.retry }
-    this.conflictStrategy = config.conflictStrategy ?? "last_write_wins"
     this.fs = config.fs ?? realFs
+    this.writeImpl = config.writeImpl ?? makeDefaultWriteImpl(this.fs)
     this.onWrite = config.onWrite
     this.onDelete = config.onDelete
-    this.getBaselineHash = config.getBaselineHash
     this.clearInFlightDelayMs = config.clearInFlightDelayMs ?? 1000
   }
 
@@ -380,21 +412,14 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
-   * Queue a write operation
+   * Queue a write operation.
+   *
+   * The CAS guard + conflict detection happen inside the injected
+   * `writeImpl` at flush time, not here — queue() is now pure intent
+   * ("please eventually write these bytes to this path").
    */
   queue(write: PendingWrite): void {
     log.debug?.(`queuing write: ${write.path} (${write.content.length} bytes)`)
-
-    // Get current mtime for conflict detection (if file exists)
-    let baseMtime = write.baseMtime
-    if (baseMtime === undefined && this.fs.statSync) {
-      try {
-        const stat = this.fs.statSync(write.path)
-        baseMtime = stat.mtimeMs
-      } catch {
-        // File doesn't exist yet, no conflict possible
-      }
-    }
 
     // Coalesce writes to same file
     this.pending.set(write.path, {
@@ -402,7 +427,6 @@ export class WriteQueue extends EventEmitter {
       path: write.path,
       content: write.content,
       sourceEventId: write.sourceEventId,
-      baseMtime,
     })
     this.scheduleFlush()
   }
@@ -448,9 +472,13 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
-   * Execute a single filesystem operation (no retry)
+   * Execute a single non-write filesystem operation (no retry, no CAS).
+   *
+   * Writes have their own path via `writeImpl` because conflict detection
+   * and notification policy are decided upstream (safe-write + emitter
+   * in withSync, plain writeFileSync in the default backend).
    */
-  private executeOp(op: WriteTreeOp): void {
+  private executeNonWriteOp(op: WriteTreeOp & { type: "delete" | "rename" }): void {
     switch (op.type) {
       case "delete":
         if (this.fs.existsSync(op.path)) {
@@ -475,178 +503,49 @@ export class WriteQueue extends EventEmitter {
           this.fs.renameSync(op.path, op.newPath)
         }
         break
-      case "write": {
-        log.info?.(`fs: write ${op.path} (${op.content.length} bytes)`)
-        const dir = dirname(op.path)
-        if (!this.fs.existsSync(dir)) {
-          this.fs.mkdirSync(dir, { recursive: true })
-        }
-        // Direct write — preserves inode identity so the reconciler
-        // doesn't see a spurious inode change on every save.
-        this.fs.writeFileSync(op.path, op.content, "utf-8")
-        this.onWrite?.(op.path, op.content)
-        break
-      }
     }
   }
 
   /**
-   * Check for conflict before writing.
+   * Execute operation with retry logic for transient failures.
    *
-   * Prefers content-hash comparison (via `getBaselineHash`) over mtime comparison:
-   * editors frequently touch mtime without changing content, and mtime-only
-   * detection can be fooled by clock skew or touch-without-change.
-   *
-   * Hash-based path (preferred when baseline is available):
-   *   1. Look up the baseline hash km recorded when it last observed/projected this file
-   *   2. Read the current on-disk content and hash it
-   *   3. If the hashes differ, the file was modified externally → conflict
-   *
-   * Mtime-based path (fallback when no baseline):
-   *   Compare the mtime captured at queue() time with the current mtime.
-   */
-  private checkForConflict(op: WriteTreeOp): ConflictInfo | null {
-    if (op.type !== "write") return null
-
-    // Try hash-based detection first (preferred — robust against editor mtime touches)
-    const baselineHash = this.getBaselineHash?.(op.path) ?? null
-    if (baselineHash) {
-      let currentContent: string
-      let currentMtime = 0
-      try {
-        if (!this.fs.statSync || !this.fs.readFileSync) return null
-        currentContent = this.fs.readFileSync(op.path, "utf-8")
-        const stat = this.fs.statSync(op.path)
-        currentMtime = stat.mtimeMs
-      } catch {
-        // File doesn't exist on disk — no conflict (new file or deleted)
-        return null
-      }
-
-      // New: if km is about to write the same content that's already on disk,
-      // it's trivially a no-op even if the baseline differs. Skip the conflict.
-      if (currentContent === op.content) return null
-
-      const currentHash = hashContent(currentContent)
-      if (currentHash === baselineHash) return null
-
-      // External modification detected — file hash no longer matches baseline
-      const resolution = this.conflictStrategy === "fs_wins" ? "discarded" : "written"
-
-      log.info?.(
-        `external edit detected path=${op.path} baselineHash=${baselineHash.slice(0, 8)} currentHash=${currentHash.slice(0, 8)} strategy=${this.conflictStrategy} resolution=${resolution}`,
-      )
-
-      return {
-        path: op.path,
-        baseMtime: op.baseMtime ?? 0,
-        currentMtime,
-        baselineHash,
-        currentHash,
-        strategy: this.conflictStrategy,
-        resolution,
-      }
-    }
-
-    // Fallback: mtime-based detection (legacy path, no baseline available)
-    if (op.baseMtime === undefined) return null
-
-    let currentMtime: number
-    try {
-      if (!this.fs.statSync) return null
-      const stat = this.fs.statSync(op.path)
-      currentMtime = stat.mtimeMs
-    } catch {
-      // File doesn't exist - no conflict
-      return null
-    }
-
-    if (currentMtime !== op.baseMtime) {
-      const resolution = this.conflictStrategy === "fs_wins" ? "discarded" : "written"
-
-      log.debug?.(
-        `conflict detected (mtime) path=${op.path} baseMtime=${op.baseMtime} currentMtime=${currentMtime} strategy=${this.conflictStrategy} resolution=${resolution}`,
-      )
-
-      return {
-        path: op.path,
-        baseMtime: op.baseMtime,
-        currentMtime,
-        strategy: this.conflictStrategy,
-        resolution,
-      }
-    }
-
-    return null
-  }
-
-  /**
-   * Write the on-disk content to a `.conflict.<timestamp>.md` sibling file so
-   * the external change is not lost when km overwrites the file.
-   *
-   * Returns the backup path on success, or null if the backup could not be
-   * written (in which case we still proceed with the write but surface the
-   * conflict without a backup — better to have an incomplete warning than to
-   * lose data AND fail silently).
-   */
-  private writeConflictBackup(op: WriteTreeOp & { type: "write" }): string | null {
-    try {
-      if (!this.fs.readFileSync) return null
-      const diskContent = this.fs.readFileSync(op.path, "utf-8")
-      const dir = dirname(op.path)
-      const name = basename(op.path)
-      // ISO-8601 compact, filesystem-safe: 20260406T135530Z
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[-:]/g, "")
-        .replace(/\.\d{3}/, "")
-      // Insert .conflict.<timestamp> before the extension: foo.md → foo.conflict.<ts>.md
-      const dotIdx = name.lastIndexOf(".")
-      const backupName =
-        dotIdx === -1
-          ? `${name}.conflict.${timestamp}`
-          : `${name.slice(0, dotIdx)}.conflict.${timestamp}${name.slice(dotIdx)}`
-      const backupPath = join(dir, backupName)
-      this.fs.writeFileSync(backupPath, diskContent, "utf-8")
-      log.info?.(`conflict backup written: ${backupPath} (${diskContent.length} bytes)`)
-      return backupPath
-    } catch (err) {
-      log.error?.(`conflict backup failed path=${op.path}: ${err instanceof Error ? err.message : String(err)}`)
-      return null
-    }
-  }
-
-  /**
-   * Execute operation with retry logic for transient failures
+   * Writes delegate to `writeImpl` which owns conflict detection. On a
+   * `conflict` outcome we short-circuit the retry loop: the disk bytes
+   * diverged from km's baseline, overwriting them would destroy user
+   * edits, so we surface a ConflictInfo and move on. Transient errors
+   * still retry with exponential backoff.
    */
   private async executeWithRetry(op: WriteTreeOp): Promise<TreeOpResult> {
     let lastError: (Error & { code?: string }) | undefined
     let attempts = 0
 
-    // Check for conflict before attempting write
-    const conflict = this.checkForConflict(op)
-    if (conflict) {
-      if (conflict.resolution === "discarded") {
-        // fs_wins: don't write, return success with conflict info
-        return { op, success: true, attempts: 0, conflict }
-      }
-      // last_write_wins / db_wins: write a backup of the disk version BEFORE
-      // we overwrite it, so the external change isn't silently lost.
-      // (Only meaningful for write ops — checkForConflict already guards type.)
-      if (op.type === "write") {
-        const backupPath = this.writeConflictBackup(op)
-        if (backupPath) {
-          conflict.backupPath = backupPath
-        }
-      }
-    }
-
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
       attempts = attempt + 1
 
       try {
-        this.executeOp(op)
-        return { op, success: true, attempts, conflict: conflict ?? undefined }
+        if (op.type === "write") {
+          log.info?.(`fs: write ${op.path} (${op.content.length} bytes)`)
+          const result = this.writeImpl(op.path, op.content, op.sourceEventId)
+          if (result.outcome === "conflict") {
+            // safe-write refused — disk bytes diverged. Surface the conflict
+            // without retry; retrying would still hit the same guard.
+            const conflict: ConflictInfo = {
+              path: op.path,
+              baselineHash: result.expectedHash ?? null,
+              currentHash: result.actualHashBefore ?? null,
+              strategy: "last_write_wins",
+              resolution: "discarded",
+            }
+            return { op, success: true, attempts, conflict }
+          }
+          // "wrote" or "noop" — disk is consistent with what km intended.
+          if (result.outcome === "wrote") {
+            this.onWrite?.(op.path, op.content)
+          }
+          return { op, success: true, attempts }
+        }
+        this.executeNonWriteOp(op)
+        return { op, success: true, attempts }
       } catch (err) {
         lastError = err as Error & { code?: string }
         const errorClass = classifyError(lastError)
@@ -840,7 +739,7 @@ export class WriteQueue extends EventEmitter {
 
     if (conflicts.length > 0) {
       log.debug?.(
-        `flush conflicts: ${JSON.stringify(conflicts.map((c) => ({ path: c.path, baseMtime: c.baseMtime, currentMtime: c.currentMtime, strategy: c.strategy, resolution: c.resolution })))}`,
+        `flush conflicts: ${JSON.stringify(conflicts.map((c) => ({ path: c.path, baselineHash: c.baselineHash?.slice(0, 8), currentHash: c.currentHash?.slice(0, 8), resolution: c.resolution })))}`,
       )
       this.emit("conflicts", conflicts)
     }

@@ -1061,6 +1061,10 @@ describe("File & Folder Renames", () => {
 
     test("deleted node does NOT reappear when file is externally touched before write flushes (km-tui.delete-noop)", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        // This test deliberately creates an external-edit race after the
+        // delete — safe-write surfaces the divergence as a "safe-write
+        // conflict" warning (expected), so silence it here.
+        vi.spyOn(console, "warn").mockImplementation(() => {})
         const { repo, emitter: repoEmitter } = createTestEnvRepo({
           db,
           repoPath: repoDir,
