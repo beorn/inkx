@@ -412,7 +412,7 @@ Like a database WAL + checkpointing — the snapshot is the baseline, recent log
 - **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing ([services.md](../future/services.md))
 - **Agent runtime** — `@km/agent` package with harnesses, work queues ([agents.md](../future/agents.md))
 - **Chat recall** — FTS5-indexed search across Claude Code chat history (`bun recall`)
-- **CAS** — Content-addressable store for large content and binaries (`@km/storage`)
+- **CAS** — Content-addressable store for large content and binaries (`@km/fs-mount`)
 
 **Planned** (described in this document):
 - Log-based event architecture (currently: changes.jsonl, planned: per-log JSONL files)

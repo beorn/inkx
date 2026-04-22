@@ -16,8 +16,7 @@ import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
 import { createEmitter, readChanges, SCHEMA, ensureRepoRootNode } from "@km/storage"
-import { withSync } from "@km/fs-mount"
-import { type SyncableRepo, findKmRootFromPath } from "@km/fs-mount"
+import { withSync, findKmRootFromPath, type SyncableRepo } from "@km/fs-mount"
 import { formatPath } from "../utils/format-path.ts"
 
 // ============================================

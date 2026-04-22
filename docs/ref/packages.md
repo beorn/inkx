@@ -46,7 +46,8 @@ Complete inventory of every package, CLI command, and tool in the km monorepo.
 | `@km/core` | `packages/km-core` | Types, events, config | loggily |
 | `@km/tree` | `packages/km-tree` | Node tree structure, queries | @km/core |
 | `@km/markdown` | `packages/km-markdown` | Parse/serialize markdown ↔ nodes | @km/core, mdast |
-| `@km/storage` | `packages/km-storage` | SQLite DB, sync engine, file watcher | @km/core, @km/markdown |
+| `@km/storage` | `packages/km-storage` | SQLite DB, queries, reactive store, emitter, federation | @km/core, @km/markdown |
+| `@km/fs-mount` | `packages/km-fs-mount` | Filesystem adapter — watcher, sync, CAS, ignore patterns, path utils, reconciliation, safe-write, echo-guard | @km/core, @km/markdown, @km/storage |
 | `@km/board` | `packages/km-board` | Board state — cursor, selection, fold, zoom | @km/core, @km/tree |
 | `@km/commands` | `packages/km-commands` | Command registry, keybindings, parsing | @km/board |
 | `@km/beads` | `packages/km-beads` | bd-compatible issue tracking on km data | @km/core, @km/storage |

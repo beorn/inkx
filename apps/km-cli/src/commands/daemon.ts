@@ -17,10 +17,8 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { Database } from "bun:sqlite"
 import { createEmitter } from "@km/storage"
-import { withSync } from "@km/fs-mount"
-import { findKmRootFromPath } from "@km/fs-mount"
+import { withSync, findKmRootFromPath, type Sync, type SyncableRepo } from "@km/fs-mount"
 import type { Emitter } from "@km/storage"
-import { type Sync, type SyncableRepo } from "@km/fs-mount"
 import type { Change } from "@km/core"
 import { EventEmitter } from "events"
 
