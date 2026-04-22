@@ -328,6 +328,27 @@ export { loadConfigObject } from "./config-object.ts"
 
 export type { Config } from "./config-object.ts"
 
+// Federation scaffolding — per-repo RepoId, workspace mount registry, km: URI
+// resolution. See hub/km/storage-architecture.md §5. Phase A: parse + resolve
+// only; multi-repo Repo lifecycle is a later bead.
+export { readOrMintRepoId, mintRepoId, writeRepoConfigToml, CONFIG_TOML_NAME } from "./federation/repo-id.ts"
+
+export type { RepoConfigToml } from "./federation/repo-id.ts"
+
+export {
+  loadWorkspace,
+  buildWorkspace,
+  readMountsFromToml,
+  resolveWorkspaceTomlPath,
+  WORKSPACE_TOML_NAME,
+} from "./federation/workspace.ts"
+
+export type { Workspace, WorkspaceMount, WorkspaceUriResolution, LoadWorkspaceOptions } from "./federation/workspace.ts"
+
+export { parseKmUri } from "./federation/km-uri.ts"
+
+export type { ParsedKmUri } from "./federation/km-uri.ts"
+
 // Commit taxonomy — types for the reactive store layer
 export { ResourceState, computeDelta, mergeDeltas, withLinkDelta } from "./store/commit-types.ts"
 
