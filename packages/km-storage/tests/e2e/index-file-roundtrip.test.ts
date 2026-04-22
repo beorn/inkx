@@ -662,37 +662,55 @@ describe("index file roundtrip", () => {
   describe("H. race conditions & event reliability", () => {
     test("H1: externally modified index file + FsWriter → no crash", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        writeConfig(repoDir, "full")
-        const manager = createTestSyncHelper(db, repoDir)
-        wireFsWriter(db, repoDir, emitter)
-        const fp = join(repoDir, "project")
-        mkdirSync(join(fp, "alpha"), { recursive: true })
-        mkdirSync(join(fp, "beta"), { recursive: true })
-        writeFileSync(join(fp, "index.md"), "# P\n\n![[./alpha]]\n![[./beta]]\n")
-        await manager.syncFromFs()
-        writeFileSync(join(fp, "index.md"), "# Modified\n\n![[./beta]]\n![[./alpha]]\n")
-        emitNodeUpdated(emitter, "test", findFolder(db, "project")!.id, {
-          data: { description: "test" },
-        })
-        expect(existsSync(join(fp, "index.md"))).toBe(true)
-        expect(readFileSync(join(fp, "index.md"), "utf-8")).toContain("# ")
+        // Expected: the fs-writer safe-write guard logs a 'conflict' warning
+        // when it detects that disk bytes no longer match our baseline hash
+        // (hub/km/storage-architecture.md §7.1). That's the whole point of
+        // the CAS contract — surface, don't clobber. Suppress the warning
+        // here so the standard "no console output" setup doesn't fail the
+        // test; we still assert the file exists and holds a heading.
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+        try {
+          writeConfig(repoDir, "full")
+          const manager = createTestSyncHelper(db, repoDir)
+          wireFsWriter(db, repoDir, emitter)
+          const fp = join(repoDir, "project")
+          mkdirSync(join(fp, "alpha"), { recursive: true })
+          mkdirSync(join(fp, "beta"), { recursive: true })
+          writeFileSync(join(fp, "index.md"), "# P\n\n![[./alpha]]\n![[./beta]]\n")
+          await manager.syncFromFs()
+          writeFileSync(join(fp, "index.md"), "# Modified\n\n![[./beta]]\n![[./alpha]]\n")
+          emitNodeUpdated(emitter, "test", findFolder(db, "project")!.id, {
+            data: { description: "test" },
+          })
+          expect(existsSync(join(fp, "index.md"))).toBe(true)
+          expect(readFileSync(join(fp, "index.md"), "utf-8")).toContain("# ")
+        } finally {
+          warnSpy.mockRestore()
+        }
       }))
 
     test("H2: folder update + external edit → consistent", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        writeConfig(repoDir, "full")
-        const manager = createTestSyncHelper(db, repoDir)
-        wireFsWriter(db, repoDir, emitter)
-        const fp = join(repoDir, "project")
-        mkdirSync(join(fp, "alpha"), { recursive: true })
-        writeFileSync(join(fp, "index.md"), "# P\n\n![[./alpha]]\n")
-        await manager.syncFromFs()
-        writeFileSync(join(fp, "index.md"), "# P Edited\n\n![[./alpha]]\n")
-        emitNodeUpdated(emitter, "test", findFolder(db, "project")!.id, {
-          data: { description: "x" },
-        })
-        await manager.syncFromFs()
-        expect(getChildren(db, findFolder(db, "project")!.id).find((c) => c.name === "alpha")).toBeDefined()
+        // Expected warning — see H1. The external edit + in-app save combo
+        // is the canonical safe-write conflict path.
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+        try {
+          writeConfig(repoDir, "full")
+          const manager = createTestSyncHelper(db, repoDir)
+          wireFsWriter(db, repoDir, emitter)
+          const fp = join(repoDir, "project")
+          mkdirSync(join(fp, "alpha"), { recursive: true })
+          writeFileSync(join(fp, "index.md"), "# P\n\n![[./alpha]]\n")
+          await manager.syncFromFs()
+          writeFileSync(join(fp, "index.md"), "# P Edited\n\n![[./alpha]]\n")
+          emitNodeUpdated(emitter, "test", findFolder(db, "project")!.id, {
+            data: { description: "x" },
+          })
+          await manager.syncFromFs()
+          expect(getChildren(db, findFolder(db, "project")!.id).find((c) => c.name === "alpha")).toBeDefined()
+        } finally {
+          warnSpy.mockRestore()
+        }
       }))
 
     test("H3: heartbeat catches missed file change at repo root", () =>

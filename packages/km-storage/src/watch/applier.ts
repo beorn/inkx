@@ -18,6 +18,7 @@ import { join } from "path"
 import { createLinkResolver } from "../markdown/link-resolver.ts"
 import type { FileSystemOps } from "./writequeue.ts"
 import { realFs } from "./writequeue.ts"
+import { hashContent } from "../fs/cas.ts"
 import type { ReconcileOp } from "./reconcile.ts"
 import type { ParseResult } from "../markdown/parse-pool.ts"
 import type { ParseSource } from "../markdown/pipeline.ts"
@@ -351,13 +352,41 @@ function finalizeBatchLinks(
         if (existingIndex?.fs_path) {
           const absPath = toAbsoluteFsPath(repoRoot, existingIndex.fs_path)
           fs.writeFileSync(absPath, content)
+          // Keep fs_content_hash in lockstep with the bytes we just wrote
+          // (safe-write CAS contract, hub/km/storage-architecture.md §7.1 step 5).
+          // Without this, the next in-app write sees a stale expected hash
+          // and trips the conflict guard even though the disk is consistent
+          // with our own materialization.
+          updateFsContentHashById(db, existingIndex.id, hashContent(content))
         } else if (config.materialization === "full") {
           // Only "full" mode auto-creates index files
           const filename = indexFileName(folder.name ?? "", config.naming)
           const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
           fs.writeFileSync(absPath, content)
+          // The newly created index file's DB node (if any already exists)
+          // should track the post-write hash. For fresh files the reconcile
+          // pass below will pick them up; for existing nodes we refresh here.
+          updateFsContentHashByPath(db, join(folder.fs_path, filename), hashContent(content))
         }
       }
     }
+  }
+}
+
+/** Record post-write raw-file hash on a node, looked up by node id. */
+function updateFsContentHashById(db: Database, nodeId: string, hash: string): void {
+  try {
+    db.run("UPDATE nodes SET fs_content_hash = ? WHERE id = ?", [hash, nodeId])
+  } catch (err) {
+    log.warn?.(`applier: failed to update fs_content_hash for ${nodeId}: ${String(err)}`)
+  }
+}
+
+/** Record post-write raw-file hash on a node, looked up by repo-relative fs_path. */
+function updateFsContentHashByPath(db: Database, relPath: string, hash: string): void {
+  try {
+    db.run("UPDATE nodes SET fs_content_hash = ? WHERE fs_path = ?", [hash, relPath])
+  } catch (err) {
+    log.warn?.(`applier: failed to update fs_content_hash for ${relPath}: ${String(err)}`)
   }
 }

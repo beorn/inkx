@@ -66,3 +66,13 @@ export type { OwnershipTracker } from "./ownership-tracker.ts"
 export { createSyncState } from "./sync-state.ts"
 
 export type { SyncState, SyncStateEntry } from "./sync-state.ts"
+
+// Safe writeback — content-as-CAS contract (Phase A, §7.1)
+export { safeWriteFile, writeFileAtomic } from "./safe-write.ts"
+
+export type { SafeWriteOptions, SafeWriteOutcome, SafeWriteResult } from "./safe-write.ts"
+
+// Watcher echo suppression (Phase A, §7.4)
+export { createEchoGuard } from "./echo-guard.ts"
+
+export type { EchoGuard, EchoGuardOptions, EchoVerdict } from "./echo-guard.ts"

@@ -48,9 +48,9 @@ describe("identity-schema v5", () => {
 
   test("fresh DB has composite (fs_dev, fs_ino) index", () => {
     const db = freshDb()
-    const idx = db
-      .query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='nodes'")
-      .all() as { name: string }[]
+    const idx = db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='nodes'").all() as {
+      name: string
+    }[]
     expect(idx.some((r) => r.name === "idx_nodes_fs_dev_ino")).toBe(true)
   })
 
@@ -78,9 +78,7 @@ describe("identity-schema v5", () => {
     expect(roundTripped.fs_ino).toBe(12345678)
     expect(roundTripped.fs_mtime).toBe(1700000000000)
     expect(roundTripped.fs_size).toBe(4096)
-    expect(roundTripped.fs_content_hash).toBe(
-      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    )
+    expect(roundTripped.fs_content_hash).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
     expect(roundTripped.name).toBe("foo")
   })
 
@@ -122,19 +120,7 @@ describe("identity-schema v5", () => {
     // Seed one row to verify it survives migration.
     db.run(
       "INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, fs_ino, name, data, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        "01HKXB2W7K9M1X4Y2Z3PREV5",
-        "p",
-        null,
-        0,
-        "notes/foo.md",
-        555,
-        "foo",
-        "{}",
-        0,
-        0,
-        "",
-      ],
+      ["01HKXB2W7K9M1X4Y2Z3PREV5", "p", null, 0, "notes/foo.md", 555, "foo", "{}", 0, 0, ""],
     )
 
     migrateSchema(db)
@@ -159,9 +145,7 @@ describe("identity-schema v5", () => {
     migrateSchema(db)
     migrateSchema(db)
 
-    const version = (
-      db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string }
-    ).value
+    const version = (db.query("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string }).value
     expect(parseInt(version, 10)).toBe(SCHEMA_VERSION)
   })
 })

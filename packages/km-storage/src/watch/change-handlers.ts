@@ -244,10 +244,12 @@ export class ChangeHandlers {
     const diskContent = readDiskContentIfChanged(this.db, fileNode, absPath)
     if (diskContent === null) return subtreeNodes
 
-    // Update the tracker + DB baseline to the current disk content so the
+    // Update the tracker + DB baselines to the current disk content so the
     // subsequent write is not flagged as a spurious conflict by the
-    // WriteQueue's baseline-hash check. We've already read and folded the
-    // disk state into the in-memory subtree, so it is the new baseline.
+    // WriteQueue's baseline-hash check OR by safe-write's CAS guard. We've
+    // already read and folded the disk state into the in-memory subtree,
+    // so it is the new baseline for both the parsed-content hash
+    // (`content_hash`) and the raw-file hash (`fs_content_hash`, §7.1).
     this.fsTarget.recordExternalObservation?.(absPath, diskContent, fileNode.id)
     this.updateBaselineHash(fileNode.id, hashContent(diskContent))
 
@@ -263,7 +265,13 @@ export class ChangeHandlers {
 
   private updateBaselineHash(nodeId: string, diskHash: string): void {
     try {
-      this.db.run("UPDATE nodes SET content_hash = ? WHERE id = ?", [diskHash, nodeId])
+      // Keep both baselines aligned. content_hash is the parsed-content
+      // baseline used by readDiskContentIfChanged (drift detection on next
+      // save); fs_content_hash is the raw-file baseline used by safe-write's
+      // CAS guard (§7.1). They must move together whenever we observe a new
+      // on-disk state — otherwise the next write either misses drift
+      // detection or trips a spurious conflict.
+      this.db.run("UPDATE nodes SET content_hash = ?, fs_content_hash = ? WHERE id = ?", [diskHash, diskHash, nodeId])
     } catch (err) {
       log.warn?.(
         `mergeExternalDrift: failed to update content_hash for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,

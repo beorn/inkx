@@ -65,15 +65,15 @@ describe("parseStubFile: canonical links population", () => {
 
     // Precondition: stub form — collapsed_file_links has the edge, links doesn't.
     const cflBefore = (
-      db.query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE host_id = ? AND href = ?").get(stubNode!.id, href) as {
+      db
+        .query("SELECT COUNT(*) as c FROM collapsed_file_links WHERE host_id = ? AND href = ?")
+        .get(stubNode!.id, href) as {
         c: number
       }
     ).c
     expect(cflBefore).toBeGreaterThan(0)
 
-    const linksBefore = (
-      db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(href) as { c: number }
-    ).c
+    const linksBefore = (db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(href) as { c: number }).c
     expect(linksBefore).toBe(0)
 
     // Promote.
@@ -134,12 +134,8 @@ describe("parseStubFile: canonical links population", () => {
     const alphaHref = normalizeLinkHref("wiki", "Alpha")
     const betaHref = normalizeLinkHref("wiki", "Beta")
 
-    const alphaCount = (
-      db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(alphaHref) as { c: number }
-    ).c
-    const betaCount = (
-      db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(betaHref) as { c: number }
-    ).c
+    const alphaCount = (db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(alphaHref) as { c: number }).c
+    const betaCount = (db.query("SELECT COUNT(*) as c FROM links WHERE href = ?").get(betaHref) as { c: number }).c
 
     // Two occurrences of [[Alpha]], one of [[Beta]].
     expect(alphaCount).toBe(2)
