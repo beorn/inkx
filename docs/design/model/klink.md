@@ -335,7 +335,7 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 | `links.target_id`            | Dropped — resolved at runtime            |
 | `links.embedded` (bool)      | `links.rel = 'embed'`                    |
 | `links.relationship`         | `links.rel`                              |
-| `links.section`, `.block_id` | Fragment inside `links.href`             |
+| `links.section`, `.block_id` | Fragment inside `links.href` (anchor-as-`.name` since schema v6) |
 | `Link`, `normalizeRefHref`   | `KLink`, `normalizeLinkHref`             |
 | `MdForm = 'mention'\|'tag'\|'project'` | `MdForm = 'bare'` (sigil inline is bare form) |
 

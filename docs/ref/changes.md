@@ -105,10 +105,12 @@ export interface NodeCreatedData {
   fstype?: FsType
   embed_of?: string | null
   fs_path?: string
+  fs_dev?: number
   fs_ino?: number
   fs_mtime?: number
+  fs_size?: number
+  fs_content_hash?: string
   name?: string
-  block_id?: string
   md_pos?: number
   md_line?: number
   assigned_to?: string

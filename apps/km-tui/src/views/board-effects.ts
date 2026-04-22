@@ -163,15 +163,12 @@ export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
   })
 
   // External-edit conflicts: file changed on disk before km could save.
-  // km already wrote a .conflict.<ts>.md backup — point the user at it.
+  // km's write is discarded per the content-as-CAS contract (storage §7.1);
+  // the on-disk bytes remain the user's version untouched.
   const unsubSyncConflict = kmEvents.on("sync-conflict", (e) => {
     const filename = e.path.split("/").pop() ?? e.path
-    const backupName = e.backupPath ? (e.backupPath.split("/").pop() ?? e.backupPath) : null
-    const description = backupName
-      ? `External changes saved to ${backupName} — please review`
-      : `External changes detected but backup could not be written — check ${filename}`
     toastQueue?.warning(`File changed externally: ${filename}`, {
-      description,
+      description: `Your edit was discarded to preserve the on-disk version — reopen to pick up the external changes`,
       batchKey: "sync-conflict",
     })
     notify(process.stdout, `File changed externally: ${filename}`, { title: "km" })

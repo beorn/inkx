@@ -26,11 +26,14 @@ export interface KmEvents {
   "sync-error": (e: { path: string; message: string }) => void
   /**
    * External edit detected at write time. The on-disk file no longer matched
-   * the baseline km loaded, so the disk version was preserved at `backupPath`
-   * before km's change was written. The TUI surfaces this as a toast pointing
-   * at the backup so the user can reconcile the edits manually.
+   * the baseline km loaded, so km's write was discarded and the disk version
+   * was preserved untouched (see hub/km/storage-architecture.md §7.1 —
+   * content-as-CAS contract). The TUI surfaces this as a toast so the user
+   * can reconcile manually. `strategy` names the resolution policy
+   * ("last_write_wins" has been replaced by discard-on-conflict since
+   * writeback-cas adoption).
    */
-  "sync-conflict": (e: { path: string; backupPath: string | null; strategy: string }) => void
+  "sync-conflict": (e: { path: string; strategy: string }) => void
   "validation-warning": (e: { nodeId: string; message: string }) => void
 
   // Debug events (→ debug() log)

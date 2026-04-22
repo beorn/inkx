@@ -255,8 +255,10 @@ Three reference scopes:
 - **`[[#^id]]`** — block in the current file (file-local)
 - **`[[^id]]`** — globally unique block (resolved across all files)
 
-Block IDs are generated on-demand during serialization when an embed references
-an inline node that doesn't yet have one. Stored in `node.block_id` (without `^`).
+Block anchors are generated on-demand during serialization when an embed references
+an inline node that doesn't yet have one. Stored in `node.name` (without `^`) —
+since schema v6, the anchor literal IS the node's name (see
+`hub/km/storage-architecture.md` §2.3).
 
 ### Parsed Representation
 
