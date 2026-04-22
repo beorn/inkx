@@ -149,14 +149,18 @@ describe("Zoom-out rendering at wide terminal", () => {
     // Move cursor down to select a different card (j moves to next card)
     app.press("j")
 
-    // Find the bounding box of the currently selected card via [data-cursor]
+    // Find the bounding box of the currently selected CARD (not just the
+    // title row). Cursor-on-card paints the whole card with $selectionbg,
+    // so "bleed" means selection-bg showing up outside the card's own Box.
     const cursorLoc = app.q("[data-cursor]")
     expect(cursorLoc.count(), "cursor element should exist after pressing j").toBeGreaterThan(0)
     const selectedNodeId = cursorLoc.getAttribute("id")
     expect(selectedNodeId, "cursor element should have an id attribute").toBeTruthy()
 
-    const selectedBox = cursorLoc.boundingBox()
-    expect(selectedBox, `selected node "${selectedNodeId}" should have a bounding box`).not.toBeNull()
+    const cardLoc = app.q(`[data-card-id="${selectedNodeId}"]`)
+    expect(cardLoc.count(), `card [data-card-id="${selectedNodeId}"] should exist`).toBeGreaterThan(0)
+    const selectedBox = cardLoc.boundingBox()
+    expect(selectedBox, `selected card "${selectedNodeId}" should have a bounding box`).not.toBeNull()
     if (!selectedBox) return
 
     // Sample the selection background color from a cell within the selected card.

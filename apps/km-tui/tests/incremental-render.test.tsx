@@ -124,24 +124,27 @@ describe("incremental rendering", () => {
       app.command("cursor_down")
 
       const afterCursorText = app.q("[data-cursor]").textContent()
-      const afterBox = app.q("[data-cursor]").boundingBox()!
+      const cursorNodeId = app.q("[data-cursor]").getAttribute("id")
+      // Cursor-on-card paints the whole CARD with $selected bg, so measure
+      // against the card's outer Box — not just the title row.
+      const afterBox = app.q(`[data-card-id="${cursorNodeId}"]`).boundingBox()!
 
       // Cursor element should exist and have moved
       expect(afterBox).not.toBeNull()
 
       // Scan the ENTIRE visible area for stale $selected bg
-      // Only cells within the current cursor's bounds should have $selected bg.
+      // Only cells within the current cursor CARD's bounds should have $selected bg.
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 80; x++) {
           const cell = app.screen.cell(x, y)
           if (colorEquals(cell.bg, TC.$selected)) {
-            // This cell has $selected bg - it should be within the cursor bounds
+            // This cell has $selected bg - it should be within the cursor card's bounds
             const inCursorArea =
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursorArea) {
               expect.fail(
                 `Stale $selected bg at (${x},${y}) after moving cursor from "${cursorText}" to "${afterCursorText}"` +
-                  `, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
+                  `, cursor card at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
               )
             }
           }
@@ -161,9 +164,10 @@ describe("incremental rendering", () => {
     for (let i = 0; i < 4; i++) {
       app.command("cursor_down")
 
-      const afterBox = app.q("[data-cursor]").boundingBox()!
+      const cursorNodeId = app.q("[data-cursor]").getAttribute("id")
+      const afterBox = app.q(`[data-card-id="${cursorNodeId}"]`).boundingBox()!
 
-      // Full scan: no $selected bg outside current cursor bounds
+      // Full scan: no $selected bg outside current cursor card bounds
       for (let y = 0; y < 12; y++) {
         for (let x = 0; x < 80; x++) {
           const cell = app.screen.cell(x, y)
@@ -172,7 +176,7 @@ describe("incremental rendering", () => {
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursor) {
               expect.fail(
-                `Stale $selected bg at (${x},${y}) step=${i}, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
+                `Stale $selected bg at (${x},${y}) step=${i}, cursor card at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
               )
             }
           }

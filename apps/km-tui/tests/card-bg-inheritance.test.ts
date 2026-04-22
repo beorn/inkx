@@ -86,7 +86,12 @@ function renderBoardWithTruecolor(options: {
   const focusManager = createFocusManager()
 
   const theme = defaultDarkTheme
-  const expectedCardBg = selectedBg(theme)
+  // When cursor is directly on a card, the card uses the theme's full
+  // $selectionbg (primary accent) so the whole card reads as one unified
+  // highlight. When cursor is on a descendant of the card, the card uses
+  // the softer `selectedBg(theme)` 6% tint.
+  const expectedCardBg = theme.selectionbg ?? selectedBg(theme)
+  const expectedDescendantCardBg = selectedBg(theme)
 
   const render = createRenderer({ cols, rows, singlePassLayout: true })
   const boardAppElement = React.createElement(BoardApp, {
@@ -281,9 +286,9 @@ describe("card bg inheritance (zebra pattern bug)", () => {
       expect(
         maxDiff,
         `Sub-item bg (${actual.r},${actual.g},${actual.b}) does not match ` +
-          `selectedBg=${hex} (${expectedR},${expectedG},${expectedB}), diff=${maxDiff}. ` +
-          `If bg is (72,73,75)=#48494B, that's multiSelectedBg (14% blend) ` +
-          `instead of selectedBg (6%) — isNodeSelected may be incorrectly true.`,
+          `$selectionbg=${hex} (${expectedR},${expectedG},${expectedB}), diff=${maxDiff}. ` +
+          `Cursor-on-card now paints the whole card with $selectionbg so the card reads ` +
+          `as one unified highlight (see CardColumn.tsx cardBg logic).`,
       ).toBeLessThanOrEqual(2)
     }
   })

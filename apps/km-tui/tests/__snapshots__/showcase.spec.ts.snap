@@ -7,8 +7,8 @@ exports[`Visual Regression > kanban board layout is stable across renders > afte
  ────────────────────────────────────── ──────────────────────────────────────
 
  □ Buy groceries                        □ File taxes
- □ Call dentist
 
+ □ Call dentist
 
 
 
@@ -25,8 +25,8 @@ exports[`Visual Regression > kanban board layout is stable across renders > init
  ────────────────────────────────────── ──────────────────────────────────────
 
  □ Buy groceries                        □ File taxes
- □ Call dentist
 
+ □ Call dentist
 
 
 

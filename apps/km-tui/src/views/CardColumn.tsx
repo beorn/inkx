@@ -126,12 +126,15 @@ function classifyFrame(card: KNode, isBody: boolean): CardFrame {
  * Compute the leading gap (in blank rows) to render above an item, given
  * the frames of the two siblings at the boundary.
  *
- * Rule: a 1-row gap appears ONLY when `next` is `naked` AND `prev` is NOT
- * `naked`. Two borderless body blocks abut as stacked prose; two bordered
- * cards abut via their borders; a bordered-to-naked boundary gets a single
- * row of breathing room to prevent the body text from pressing against the
- * card's bottom border; naked-to-bordered abuts (the bordered card's own
- * top border self-delimits).
+ * Rule: every boundary touching a naked body block gets a 1-row gap.
+ * - naked → naked: blank row separates stacked prose blocks.
+ * - bordered → naked: blank row prevents body text from pressing against
+ *   the neighbour's bottom border.
+ * - naked → bordered: blank row separates the body block from the next
+ *   card's top border.
+ *
+ * Two bordered cards still abut via their borders (gap 0); the `hr` frame
+ * is treated like bordered for this rule.
  *
  * When there is no previous sibling (the first item in the column), the
  * rule is the same — we treat "no previous" as equivalent to "bordered
@@ -139,9 +142,8 @@ function classifyFrame(card: KNode, isBody: boolean): CardFrame {
  * from the gap's perspective).
  */
 function computeLeadingGap(prev: CardFrame | undefined, next: CardFrame): number {
-  if (next !== "naked") return 0
-  if (prev === "naked") return 0
-  return 1
+  if (next === "naked" || prev === "naked") return 1
+  return 0
 }
 
 // =============================================================================
@@ -376,13 +378,18 @@ const Card = React.memo(
     // edit indicator, and the bg would compete with it. Column-level cursor
     // is NOT included either: the column container already has a cascaded
     // tint, so duplicating here would double-tint.
+    // Mirror the cardBg rule on naked body blocks so a single card and a
+    // body block read with the same highlight strength when cursor is on
+    // them directly.
     const bodyBlockBg = isEditing
       ? undefined
-      : isSelected
-        ? selectedBg(theme)
-        : isNodeSelected
-          ? multiSelectedBg(theme)
-          : undefined
+      : isCursorOnThis
+        ? "$selectionbg"
+        : cursorInDescendant
+          ? selectedBg(theme)
+          : isNodeSelected
+            ? multiSelectedBg(theme)
+            : undefined
 
     // HR nodes render as borderless centered content (unless being edited,
     // in which case they fall through to normal bordered card with InlineEditField).
@@ -537,23 +544,25 @@ const Card = React.memo(
 
     // Direct cursor match: cursor is ON this card (not on a descendant).
     // isCursorOnThis = per-node cursor signal (avoids global cursor read).
-    // isSelected = cursor anywhere in this card scope (cursor || cursorDescendant).
-    // Multi-selected cards get the stronger multiSelectedBg tint so they stack
-    // visually with the rest of the selection (rule 6). Cursor anywhere in card
-    // (direct or descendant) gets the subtle selectedBg tint (rule 2).
-    // No custom bg during editing — the border-focus on the card border is
-    // enough to indicate edit mode. Normal selection tint applies when not editing.
-    // Priority: selectedBg for cursor scope (direct or descendant) takes precedence
-    // over multiSelectedBg. multiSelectedBg only for multi-selected cards where
-    // cursor is elsewhere. This prevents the cursor card from getting the stronger
-    // 14% tint when it should get the subtle 6% tint.
+    // Direct cursor on this card → full-strength $selectionbg across the
+    // whole card (title + body + padding). A single unified highlight, not
+    // a two-tone split between a bright title row and a tinted body.
+    //
+    // Cursor on a descendant (cursorInDescendant only) → subtle selectedBg
+    // tint to signal "this card contains the cursor" without competing with
+    // the descendant's own highlight.
+    //
+    // Card is part of a multi-selection (not cursor) → stronger multiSelectedBg.
+    // No custom bg during editing — the border-focus is enough.
     const cardBg = isEditing
       ? undefined
-      : isSelected
-        ? selectedBg(theme)
-        : isNodeSelected
-          ? multiSelectedBg(theme)
-          : undefined
+      : isCursorOnThis
+        ? "$selectionbg"
+        : cursorInDescendant
+          ? selectedBg(theme)
+          : isNodeSelected
+            ? multiSelectedBg(theme)
+            : undefined
 
     // Border: cyan when editing, yellow when card selected, hidden when column selected
     // Done/dropped tasks get a darker border to visually de-emphasize them
