@@ -2,7 +2,7 @@
 
 Canonical design for km's storage, identity, reconciliation, and markdown writeback. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-22 (v3, round-3 polish). Key shifts vs. earlier drafts: inode primary + path-of-`.name` secondary; ULIDs never generated into markdown but resolved if seen; Phase A→E pathway named (FS-truth → op log → DB-truth → CRDT → sync platform); multi-file journal dropped for Phase A; op-vocabulary audit flagged as Phase B prereq. Change log archived in commits and `research/storage-arch-pro-review-round-{2,3}-2026-04-22.md`.
+Last revised: 2026-04-22 (v3, round-4 polish). Key shifts vs. earlier drafts: inode primary + path-of-`.name` secondary; ULIDs never generated into markdown but resolved if seen; Phase A→E pathway named (FS-truth → op log → DB-truth → CRDT → sync platform); multi-file journal dropped for Phase A; op-vocabulary audit flagged as Phase B prereq; work packages labelled WP0-WP4 (distinct from bead priorities P0-P4). Change log archived in commits and `research/storage-arch-pro-review-round-{2,3,4}-2026-04-22.md`.
 
 ---
 
@@ -461,7 +461,7 @@ Serializer preserves what it doesn't touch, within the AST's coverage (§1.2):
 
 Rewrites only the exact byte ranges of changed regions. Noisy git diffs are a user-trust event, but the ceiling is AST coverage — the serializer cannot preserve byte detail it did not parse.
 
-**Gating rule**: the minimal-patching serializer ships only after the fidelity corpus (§8.P3 step 1) proves round-trip stability.
+**Gating rule**: the minimal-patching serializer ships only after the fidelity corpus (§8.WP3 step 1) proves round-trip stability.
 
 ### 7.3 Multi-file atomicity (deferred to Phase B)
 
@@ -494,16 +494,16 @@ Why stateless over origin cookies or a short-term write cache: the hash is alrea
 
 ## 8. Implementation sequence
 
-Five work packages (P0-P4) plus one parallel. **Schema shape first, then lazy-hydration, then FsMount, then corpus-gated writeback, then federation.** Critical dependencies: identity schema (§2) must land before lazy-hydration queries are written against it; the fidelity corpus gates all writeback work.
+Five work packages (WP0-WP4) plus one parallel. WP labels name work packages; bead priorities (P0-P4) are separate — see §11. **Schema shape first, then lazy-hydration, then FsMount, then corpus-gated writeback, then federation.** Critical dependencies: identity schema (§2) must land before lazy-hydration queries are written against it; the fidelity corpus gates all writeback work.
 
-### P0 (prereq, ~1-2 days). Identity schema migration (`km-storage.identity-schema`)
+### WP0 (prereq, ~1-2 days). Identity schema migration (`km-storage.identity-schema`)
 Lands ahead of P1 to avoid re-doing SQLite queries. Scope:
 - Fold `KNode.block_id?` values into `.name` (anchor wins over slug; §2.3)
 - Introduce branded `NodeId`, `RepoId` types in `@km/core`
 - Split file `.name` (basename) from `path` (repo-relative); update resolver
 - One migration, one set of query shape changes
 
-### P1. Lazy hydration (`km-storage.lazy-hydration`) — the scale fix
+### WP1. Lazy hydration (`km-storage.lazy-hydration`) — the scale fix
 
 Today's `peekNode` / `peekChildIds` read from a full in-memory JS object graph that's built on startup (the 2x failure mode). Lazy-hydration swaps that source to SQLite-on-demand. **The reactive layer above does not change shape** — `withReactive()` (`packages/km-storage/src/store/reactive.ts`) already exists and is delta-driven + lazy-signal-creating. It keeps working unchanged; only the underlying `peek*` source shifts.
 
@@ -517,7 +517,7 @@ Scope:
 
 Queries must target the `BaseStore` interface (what §6 formalizes as the backend-agnostic public face of `@km/storage`), not monolith internals — this keeps the hydration layer backend-agnostic if a future backend ends up being event-sourced materialized views (Phase B+).
 
-### P2. FsMount + reconciliation (`km-storage.fs-mount`)
+### WP2. FsMount + reconciliation (`km-storage.fs-mount`)
 
 Formalize the existing FS split (see §6.1) into a package boundary:
 - Move `fs/` + `watch/` + `store/fs.ts` from `@km/storage` into new `@km/fs-mount` package
@@ -533,15 +533,15 @@ Formalize the existing FS split (see §6.1) into a package boundary:
 
 Harness bead scope: add scenario fixtures for inode-primary cascade cases (same-FS rename with inode preserved; cross-FS rename with inode reassigned; inode reuse after deletion; directory rename; split-file; merge-file), and extend the chaos verifier with ULID-stability invariants. Net: ~30% new test infrastructure, ~70% extending existing fuzz + chaos suites.
 
-### P3. Fidelity corpus → safe writeback (merged `km-storage.writeback-cas` + `km-storage.markdown-fidelity-corpus`)
-Corpus ships first; serializer only lands once corpus is green. Order within P3:
-1. **Fidelity corpus** (was P5): regression corpus proving round-trip stability for the AST's declared coverage (§1.2). Includes hand-curated adversarial cases and fuzzed-from-real-vault samples.
+### WP3. Fidelity corpus → safe writeback (merged `km-storage.writeback-cas` + `km-storage.markdown-fidelity-corpus`)
+Corpus ships first; serializer only lands once corpus is green. Order within WP3:
+1. **Fidelity corpus**: regression corpus proving round-trip stability for the AST's declared coverage (§1.2). Includes hand-curated adversarial cases and fuzzed-from-real-vault samples.
 2. **Minimal patching serializer** (§7.2) — gated on corpus
 3. **Content-as-CAS contract** (§7.1) — gated on serializer
-4. **Watcher echo suppression** (§7.4) — hash-compare only
+4. **Watcher echo suppression** (§7.4) — mtime+size fast-path then stateless hash-compare
 5. **No multi-file journal in Phase A** — see §7.3.
 
-### P4. Federation (`km-storage.federation`)
+### WP4. Federation (`km-storage.federation`)
 - `.km/config.toml` per repo with stable `RepoId`
 - Workspace mount config
 - Cross-repo URL resolution (`km:/<alias>/<path>`)
@@ -581,7 +581,7 @@ km's sync story upgrades in tiers as reliability demands grow. Each tier stays w
 
 **Open question flagged by round-2 review — does Tier 1 earn its keep?** The sidecar's only real job is "stabilize ULIDs across peers" — but Tier 0 + file-content-hash (§3.3) already handles renames within a single peer's history, and cross-peer rename conflicts (peer A renames foo→bar while peer B renames foo→baz) create a merge-conflict surface in the sidecar itself. If the sidecar just replays the same conflict the filesystem would have, it is net negative. The stronger case for Tier 1 is **empty files / byte-identical duplicates** (where content-hash is useless as a rename signal) and **cross-peer ULID continuity for agent state** (which cares about NodeId stability, not just link stability).
 
-**Current plan**: stay at Tier 0 by default. Tier 1 is only scope-in if an actual sync-reliability incident shows content-hash isn't enough. Tier 2 is a bigger upgrade (semantic ops + multi-file atomicity) and may be where we go next, not Tier 1. Federation (§8.P4) ships the `RepoId` groundwork that either tier would need. Tiers 3-4 remain further future work.
+**Current plan**: stay at Tier 0 by default. Tier 1 is only scope-in if an actual sync-reliability incident shows content-hash isn't enough. Tier 2 is a bigger upgrade (semantic ops + multi-file atomicity) and may be where we go next, not Tier 1. Federation (§8.WP4) ships the `RepoId` groundwork that either tier would need. Tiers 3-4 remain further future work.
 
 Honest caveat: **Tier 2 under FS-truth is a DB-truth gateway drug.** If the op log becomes the authoritative record of semantic edits, FS starts looking like a projection of the op log. When we reach for Tier 2, re-read the Phase B/C pathway below first.
 
@@ -706,7 +706,8 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 - **Kimmi deep-dive** (`research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins are stable-IDs + op-reconciliation + materialized indexes. Automerge has concrete gaps. → internal ULIDs fine, CRDT deferred.
 - **Cloudi deep-dive** (`research/cloudi-architecture-deep-dive.md`): external-system-as-truth has critical ID instability. → Family A holds.
 - **Dual-pro review round 1** (2026-04-21 PM): caught frontmatter-id-injection as user-trust risk, block-hash collision math, uniform-adapter over-generalization, missing safe-writeback.
-- **Dual-pro review round 3** (2026-04-22, GPT-5.4 Pro + Kimi K2.6 both landed — `research/storage-arch-pro-review-round-3-2026-04-22.md`): both models converged on "doc is basically solid, no structural rewrite needed." Concrete fixes: inode-primary rename+edit wording (§3.3/§3.5), `[[file#heading]]` resolution path (§2.2/§2.5), ULID language (§2.4), `fs_dev` schema gap, multi-file atomicity DRY collapse (§7.3 + §8.P3 step 5), `km doctor` claim tightening (§7.3), watcher mtime+size fast-path (§7.4), tier↔phase mapping (§9). Surfaced the **op-vocabulary audit** as the hidden Phase B tar pit (`km-storage.op-vocabulary-audit` P0).
+- **Dual-pro review round 4** (2026-04-22, GPT-5.4 Pro + Kimi K2.6 both landed — `research/storage-arch-pro-review-round-4-2026-04-22.md`): final check on docs + beads. Convergent findings applied: reparented `km-tree.outliner-reshape` + `km-tree.refs` out of `km-storage` into new `km-tree` scope epic; closed `km-storage.automerge-store` (superseded by `pathway-db-crdt` Phase D) + `km-storage.typed-event-categories` (speculation without driver); wired dependencies `writeback-cas → markdown-fidelity-corpus + fs-mount` and `federation → identity-schema + fs-mount`; lowered `federation` to P2 to match §8.WP4 ordering; renamed §8 work-package labels P0-P4 → WP0-WP4 to disambiguate from bead priorities; fixed §8.WP3 step 4 wording (was "hash-compare only," now "mtime+size fast-path then hash-compare" matching §7.4); §11 scoped as "architecture-path beads only" with a note that cleanup/bug beads are out-of-band. Both models: "ship it."
+- **Dual-pro review round 3** (2026-04-22, GPT-5.4 Pro + Kimi K2.6 both landed — `research/storage-arch-pro-review-round-3-2026-04-22.md`): both models converged on "doc is basically solid, no structural rewrite needed." Concrete fixes: inode-primary rename+edit wording (§3.3/§3.5), `[[file#heading]]` resolution path (§2.2/§2.5), ULID language (§2.4), `fs_dev` schema gap, multi-file atomicity DRY collapse (§7.3 + §8.WP3 step 5), `km doctor` claim tightening (§7.3), watcher mtime+size fast-path (§7.4), tier↔phase mapping (§9). Surfaced the **op-vocabulary audit** as the hidden Phase B tar pit (`km-storage.op-vocabulary-audit` P0).
 - **Dual-pro review round 2** (2026-04-22, Kimi K2.6; GPT-5.4 Pro failed — `research/storage-arch-pro-review-round-2-2026-04-22.md`): caught duplicate section numbering, frontmatter key-order contradiction (§1.2 vs §7.2), file `.name` basename/path ambiguity, `#` vs `^` namespace collapse, diff-chunk similarity contradiction (§3.5 vs §9), content-hash scope undefined, structural similarity hand-waving, cross-file block-move claim too strong, directory-as-node missing, tier 1 weakly motivated, DB-truth cost estimates likely off-by-10x, P3-before-P5 ordering risk (CAS without proven fidelity), schema churn risk (P1 against P2's old schema), multi-file journal "best-effort" as user data-loss risk.
 - **User pushbacks** (2026-04-21): (a) FS messiness → solve lower in stack; (b) federation eventually necessary; (c) identity robust against offline FS changes; (d) core unaware of FS; (e) **no metadata injection**; (f) **no ID scattering beyond what's inherently needed**; (g) Obsidian-native block anchors; (h) DB-truth probable future, not deferred-forever; (i) if DB-truth, versioning/rollback is scope-in.
 
@@ -714,19 +715,19 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 
 ## 11. Current bead tracking
 
-Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`).
+Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`). **This section lists architecture-path beads only**; standing cleanup/bug beads (e.g. `parse-stub-links-gap`, `remove-skipfssync`) live under the same epic but are out-of-band from this doc's scope.
 
 ```
 km-storage (scope epic, never closes)
-├── km-storage.identity-schema              [P0] §8.P0 — blocks lazy-hydration
-├── km-storage.lazy-hydration               [P0] §8.P1 — the scale fix
-├── km-storage.fs-mount                     [P1] §6, §8.P2 — FsMount package
-│   ├── km-storage.reconciliation-harness   [P1] property + scenario tests (blocks fs-mount)
-│   ├── km-storage.identity-recovery-cascade [P1] §3 inode→name→composite
-│   └── km-storage.markdown-fidelity-corpus [P1] §8.P3 step 1 (gates writeback)
-├── km-storage.writeback-cas                [P1] §8.P3 — corpus gates serializer gates CAS
-├── km-storage.federation                   [P2] §8.P4
-├── km-storage.session-state-split          [P2] §5.3
+├── km-storage.identity-schema              [P0] §8.WP0 — blocks lazy-hydration
+├── km-storage.lazy-hydration               [P0] §8.WP1 — depends on identity-schema
+├── km-storage.fs-mount                     [P1] §6, §8.WP2 — FsMount package
+│   ├── km-storage.reconciliation-harness   [P1] blocks fs-mount
+│   ├── km-storage.identity-recovery-cascade [P1] §3 cascade impl
+│   └── km-storage.markdown-fidelity-corpus [P1] §8.WP3 step 1 (gates writeback-cas)
+├── km-storage.writeback-cas                [P1] §8.WP3 — blocked by markdown-fidelity-corpus AND fs-mount
+├── km-storage.federation                   [P2] §8.WP4 — blocked by identity-schema (for RepoId) + fs-mount
+├── km-storage.session-state-split          [P2] §5.3 — parallel; not blocking
 └── km-storage.pathway-db-crdt              [P3 epic] §9 Phase B→E tracker
     └── km-storage.op-vocabulary-audit      [P0] gates Phase B cost estimate
 ```
@@ -734,6 +735,8 @@ km-storage (scope epic, never closes)
 Adjacent (not under km-storage):
 - `km-all.shared-substrate-review` [P0] — cross-project extraction (due 2026-05-05)
 
-**Closed this session**: `km-storage.adapter-architecture` (superseded by v3 doc — "adapter" framing dropped in favor of concrete FsMount), `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`).
+**Closed this session**: `km-storage.adapter-architecture` (superseded by v3 doc), `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`), `km-storage.automerge-store` (Phase 6 plan superseded by `pathway-db-crdt` Phase D), `km-storage.typed-event-categories` (speculation, no concrete driver — reopen if event-routing pain emerges).
+
+Also reparented this session: `km-tree.outliner-reshape` + `km-tree.refs` moved out of `km-storage` to `km-tree` (wrong scope — they are tree/outliner UX, not storage mechanics).
 
 Earlier supersessions: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`.
