@@ -266,6 +266,21 @@ If fs-watch ops were re-applied during replay, they'd produce DB mutations that 
 
 **Audit closure requirement**: before Phase B ships, every `emitter.apply()` / `emitter.commit()` call site must pass an explicit `origin`. Default-to-`"user"` is **not** acceptable — an un-tagged op must be a loud typecheck error. Tracked under audit Gap G3's replacement bead (`km-storage.op-surface-rename-path`) since the journalRename bypass already needs origin stamping.
 
+### 4.5 Reconcile-origin discoveries: journal them
+
+Follow-up from the route-scanner bead (`km-storage.op-surface-route-scanner`, commit `c121aa8e0`): post-replay FS reconciliation discovers files on disk that the DB has never seen (externally added between sessions). Today these go through `emitter.commit({ skipPersist: true, source: "fs-import" })` — they hit the DB but not the journal.
+
+**Decision: reconcile-origin `node_created` events ARE journaled, tagged `origin: "fs-reconcile"`.**
+
+Rationale:
+
+- The op-surface stream is more valuable than the disk-write savings. An oplog missing "when did this file first appear to km?" loses history that matters for debugging sync anomalies and replay diffs.
+- Reconcile ops already flow through the emitter today — dropping `skipPersist` is a one-line change at the callsite, not a new machinery.
+- On replay: `origin: "fs-reconcile"` is treated like `origin: "fs-watch"` — skipped, because the post-replay FS scan will re-observe the file and produce an equivalent op fresh. This avoids the pump-replay problem while preserving the audit trail when the system is running live.
+- Retention: reconcile-origin ops are excellent compaction candidates. The "file was first discovered at T" fact doesn't need to survive past the next snapshot, since the snapshot captures post-reconcile state. Compaction policy (§7) folds them into the snapshot.
+
+**Implementation trigger**: when the op-surface closure work (G1–G9) lands, flip `skipPersist: true` → `skipPersist: false` in `repo.ts` (scanner path) and `loader.ts` (initial replay keeps `skipPersist: true` — it IS the replay, re-journaling is circular). Add a fourth `origin` value (`"fs-reconcile"`) to the `CommitSource` union. Distinct from `"fs-watch"` so compaction can treat them differently if needed.
+
 ---
 
 ## 5. Task ops: alias vs fold (DQ4)
