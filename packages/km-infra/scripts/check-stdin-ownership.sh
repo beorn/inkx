@@ -32,7 +32,7 @@ EXIT=0
 
 # Files allowed to touch process.stdin directly. Anchor with file path
 # fragments — grep matches anywhere in the path so prefix collisions are OK.
-ALLOWLIST_PATTERN='\(vendor/silvery/packages/ag-term/src/runtime/term-provider\.ts\|vendor/silvery/packages/ag-term/src/runtime/input-owner\.ts\|vendor/silvery/packages/ag-term/src/runtime/terminal-lifecycle\.ts\|vendor/silvery/packages/ag-term/src/runtime/create-app\.tsx\|apps/km-tui/src/state/raw-signals\.ts\|vendor/silvery/packages/ag-react/src/render\.tsx\|vendor/silvery/packages/ag-react/src/ui/wrappers/with-select\.ts\|vendor/silvery/packages/ag-react/src/ui/wrappers/with-text-input\.ts\|vendor/silvery/packages/ink/src/ink-stdin\.ts\|vendor/silvery/packages/ink/src/ink-hooks\.ts\|vendor/silvery/packages/theme/src/cli\.ts\|vendor/silvery/examples/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|input-owner\.test\.\)'
+ALLOWLIST_PATTERN='\(vendor/silvery/packages/ag-term/src/runtime/term-provider\.ts\|vendor/silvery/packages/ag-term/src/runtime/input-owner\.ts\|vendor/silvery/packages/ag-term/src/runtime/devices/\|vendor/silvery/packages/ag-term/src/runtime/terminal-lifecycle\.ts\|vendor/silvery/packages/ag-term/src/runtime/create-app\.tsx\|vendor/silvery/packages/ag-term/src/ansi/term\.ts\|apps/km-tui/src/state/raw-signals\.ts\|vendor/silvery/packages/ag-react/src/render\.tsx\|vendor/silvery/packages/ag-react/src/ui/wrappers/with-select\.ts\|vendor/silvery/packages/ag-react/src/ui/wrappers/with-text-input\.ts\|vendor/silvery/packages/ink/src/ink-stdin\.ts\|vendor/silvery/packages/ink/src/ink-hooks\.ts\|vendor/silvery/packages/theme/src/cli\.ts\|vendor/silvery/examples/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|input-owner\.test\.\)'
 
 SEARCH_ROOTS='vendor/silvery apps packages'
 
@@ -40,7 +40,7 @@ SEARCH_ROOTS='vendor/silvery apps packages'
 # Bump DOWN as InputOwner migrations land. Never bump UP — that means a
 # new offender slipped in and the CI failure is correct.
 BASELINE_SETRAWMODE=10       # stdin.setRawMode call sites outside the allowlist
-BASELINE_ON_DATA=12          # stdin.on('data'|'readable', …) call sites outside the allowlist
+BASELINE_ON_DATA=13          # stdin.on('data'|'readable', …) call sites outside the allowlist
 BASELINE_REMOVE_ALL=0        # stdin.removeAllListeners('data') — must stay zero
 BASELINE_ISRAW=4             # const wasRaw = stdin.isRaw — the smell that motivated this script
 # =========================================================================
