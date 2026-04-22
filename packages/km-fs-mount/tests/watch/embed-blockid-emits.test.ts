@@ -203,7 +203,7 @@ describe("change-handlers — anchor minting routes through emitter (G4/G7)", ()
       const emitter = createEmitter({ kmDir, db, skipPersist: false })
       const handlers = new ChangeHandlers(db, repoDir, emitter, createRealFsTarget())
 
-      const { assign } = handlers.createBlockIdAssigner("test-change")
+      const { assign } = handlers.createAnchorAssigner("test-change")
       assign("blk1", "abc12345")
 
       // Journal: one node_updated for blk1, data.name = "abc12345"

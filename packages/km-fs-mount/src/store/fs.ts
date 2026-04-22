@@ -235,7 +235,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       repoPath,
       writeQueue,
       emitter,
-      createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
+      createAnchorAssigner: (eventId: string) => handlers.createAnchorAssigner(eventId),
       tracker,
     }
   }

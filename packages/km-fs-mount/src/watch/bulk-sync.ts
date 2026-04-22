@@ -49,12 +49,12 @@ export interface SyncFromFsResult {
 }
 
 /**
- * Block ID assigner — assigns anchor literals (`^abc`) during serialization.
+ * Anchor assigner — assigns anchor literals (`^abc`) during serialization.
  * Post-v6 the anchor is written to `.name` (storage-architecture §2.3);
  * `rewriteSourceFiles` propagates the new anchor to source files.
  */
-export interface BlockIdAssigner {
-  assign: (nodeId: string, blockId: string) => void
+export interface AnchorAssigner {
+  assign: (nodeId: string, anchor: string) => void
   rewriteSourceFiles: (excludeFileId?: string) => void
 }
 
@@ -64,7 +64,7 @@ export interface BulkSyncDeps {
   repoPath: string
   writeQueue: WriteQueue
   emitter: Emitter
-  createBlockIdAssigner: (eventId: string) => BlockIdAssigner
+  createAnchorAssigner: (eventId: string) => AnchorAssigner
   /**
    * OwnershipTracker for recording sync_state baselines after reconciliation.
    * When provided, BulkSync.fromFs records the hash of each file it reconciles
@@ -125,7 +125,7 @@ export const BulkSync = {
    * Yields progress updates as StepYield values.
    */
   async *fromFsWithProgress(deps: BulkSyncDeps): AsyncGenerator<StepYield, SyncFromFsResult> {
-    const { db, repoPath, writeQueue, emitter, createBlockIdAssigner, tracker } = deps
+    const { db, repoPath, writeQueue, emitter, createAnchorAssigner, tracker } = deps
     log.debug?.(`fromFs: scanning ${repoPath}`)
     const start = Date.now()
 
@@ -272,16 +272,16 @@ export const BulkSync = {
 
         const fileNode = getAllNodes(db).find((n) => n.fs_path === filePath)
         if (fileNode) {
-          const blockIds = createBlockIdAssigner("rule-evaluation")
+          const anchors = createAnchorAssigner("rule-evaluation")
           const absPath = toAbsoluteFsPath(repoPath, filePath)
           const subtree = getSubtree(db, fileNode.id)
-          const content = nodesToMarkdown(subtree, getAllNodes(db), blockIds.assign)
+          const content = nodesToMarkdown(subtree, getAllNodes(db), anchors.assign)
           writeQueue.queue({
             path: absPath,
             content,
             sourceEventId: "rule-evaluation",
           })
-          blockIds.rewriteSourceFiles(fileNode.id)
+          anchors.rewriteSourceFiles(fileNode.id)
         }
       }
       await writeQueue.forceFlush()
@@ -297,7 +297,7 @@ export const BulkSync = {
    * Sync from DB to filesystem — write all file nodes to disk.
    */
   async toFs(deps: BulkSyncDeps): Promise<{ written: number }> {
-    const { db, repoPath, writeQueue, createBlockIdAssigner } = deps
+    const { db, repoPath, writeQueue, createAnchorAssigner } = deps
     log.debug?.("toFs: starting")
     const start = Date.now()
 
@@ -310,17 +310,17 @@ export const BulkSync = {
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
-      const blockIds = createBlockIdAssigner("sync-to-fs")
+      const anchors = createAnchorAssigner("sync-to-fs")
       const absPath = toAbsoluteFsPath(repoPath, fileNode.fs_path)
       const subtree = getSubtree(db, fileNode.id)
-      const content = nodesToMarkdown(subtree, nodes, blockIds.assign)
+      const content = nodesToMarkdown(subtree, nodes, anchors.assign)
 
       writeQueue.queue({
         path: absPath,
         content,
         sourceEventId: "sync-to-fs",
       })
-      blockIds.rewriteSourceFiles(fileNode.id)
+      anchors.rewriteSourceFiles(fileNode.id)
     }
 
     await writeQueue.forceFlush()

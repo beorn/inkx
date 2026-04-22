@@ -451,7 +451,7 @@ export function withSync(config?: Partial<SyncConfig>) {
         repoPath: repoPath,
         writeQueue,
         emitter,
-        createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
+        createAnchorAssigner: (eventId: string) => handlers.createAnchorAssigner(eventId),
         tracker,
       }
     }

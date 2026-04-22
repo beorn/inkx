@@ -64,7 +64,7 @@ export type { Sync, SyncConfig, SyncCallbacks, SyncFromFsResult, SyncableRepo } 
 
 export { BulkSync, wrapEmitterForReconcile } from "./watch/bulk-sync.ts"
 
-export type { BulkSyncDeps, SyncProgressCallback, SyncProgress, BlockIdAssigner } from "./watch/bulk-sync.ts"
+export type { BulkSyncDeps, SyncProgressCallback, SyncProgress, AnchorAssigner } from "./watch/bulk-sync.ts"
 
 export {
   reconcileDirectory,

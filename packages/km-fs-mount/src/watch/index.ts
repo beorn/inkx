@@ -20,7 +20,7 @@ export type { Sync, SyncConfig, SyncCallbacks, SyncFromFsResult, SyncableRepo } 
 // Bulk sync (standalone FS<->DB sync, usable from TUI and CLI)
 export { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
 
-export type { BulkSyncDeps, SyncProgressCallback, SyncProgress, BlockIdAssigner } from "./bulk-sync.ts"
+export type { BulkSyncDeps, SyncProgressCallback, SyncProgress, AnchorAssigner } from "./bulk-sync.ts"
 
 // Reconcile
 export { reconcileDirectory, applyReconcileOps, applyReconcileOpsAsync, getParentNodeId } from "./reconcile.ts"

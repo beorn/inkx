@@ -146,13 +146,13 @@ export class ChangeHandlers {
    *   Pass explicitly when calling from outside the change handler lifecycle
    *   (e.g. syncFromFs, syncToFs).
    */
-  createBlockIdAssigner(changeId?: string): {
-    assign: (nodeId: string, blockId: string) => void
+  createAnchorAssigner(changeId?: string): {
+    assign: (nodeId: string, anchor: string) => void
     rewriteSourceFiles: (excludeFileId?: string) => void
   } {
     const assigned = new Map<string, string>() // nodeId → anchor literal
     return {
-      assign: (nodeId: string, blockId: string) => {
+      assign: (nodeId: string, anchor: string) => {
         // Route the anchor back-write through emitter.commit so DB + journal
         // are paired per row (op-vocabulary audit G4/G7). commit() (not apply())
         // because this runs during FS-origin serialization; apply() would echo
@@ -161,22 +161,22 @@ export class ChangeHandlers {
           type: "node_updated",
           target: nodeId,
           actor: "fs-watch",
-          data: { name: blockId },
+          data: { name: anchor },
         })
-        assigned.set(nodeId, blockId)
+        assigned.set(nodeId, anchor)
       },
       rewriteSourceFiles: (excludeFileId?: string) => {
         if (assigned.size === 0) return
         // Group by containing file
         const fileIds = new Set<string>()
-        for (const [nodeId, blockId] of assigned) {
+        for (const [nodeId, anchor] of assigned) {
           const node = getNode(this.db, nodeId)
           if (!node) {
             log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after anchor assignment`)
             continue
           }
           // Update in-memory node for serialization (anchor is now the name)
-          node.name = blockId
+          node.name = anchor
           const file = findFileNode(this.db, node)
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
         }
@@ -201,7 +201,7 @@ export class ChangeHandlers {
    * save(node) — the core domain verb for DB→FS sync.
    *
    * Finds the containing file, serializes its subtree to markdown,
-   * writes to disk, and cascades block ID rewrites to other files.
+   * writes to disk, and cascades anchor rewrites to other files.
    * This is the single primitive that all change handlers use.
    *
    * Before writing, this method performs a drift-aware merge: if the
@@ -219,11 +219,11 @@ export class ChangeHandlers {
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) return
 
-    const blockIds = this.createBlockIdAssigner()
+    const anchors = this.createAnchorAssigner()
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     let subtreeNodes = getSubtree(this.db, fileNode.id)
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), anchors.assign)
     this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     // Record the write as the new parsed-content baseline on the file node.
     //
@@ -245,7 +245,7 @@ export class ChangeHandlers {
     // would spuriously trip. On conflict (disk diverged from our
     // baseline) the write path correctly leaves fs_content_hash alone.
     this.updateContentBaseline(fileNode.id, hashContent(content))
-    blockIds.rewriteSourceFiles(fileNode.id)
+    anchors.rewriteSourceFiles(fileNode.id)
   }
 
   /**
