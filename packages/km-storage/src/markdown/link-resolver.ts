@@ -26,7 +26,8 @@ export interface LinkResolver {
   /** Resolve a section reference within a file */
   resolveSection(fileId: string, sectionName: string): string | null
 
-  /** Resolve a block_id reference to a node ID */
+  /** Resolve an anchor literal (`^abc`) reference to a node ID. Anchors
+   *  are stored in `.name` post-v6 (storage-architecture §2.3). */
   resolveBlockId(blockId: string): string | null
 
   /** Add a newly created file to the lookup map */
@@ -89,8 +90,10 @@ export function createLinkResolver(db: Database): LinkResolver {
   // Prepare statement for node ID fallback (used for ![[ULID]] embeds)
   const nodeIdStmt = db.prepare("SELECT id FROM nodes WHERE id = ? LIMIT 1")
 
-  // Prepare statement for block_id lookups (stable across content edits)
-  const blockIdStmt = db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1")
+  // Anchor lookups target `.name` post-v6 — anchor literals are folded into
+  // name per storage-architecture.md §2.3. Stable across content edits when
+  // users preserve the anchor.
+  const anchorByNameStmt = db.prepare("SELECT id FROM nodes WHERE name = ? LIMIT 1")
 
   return {
     resolveTarget(targetName: string): string | null {
@@ -122,7 +125,7 @@ export function createLinkResolver(db: Database): LinkResolver {
     },
 
     resolveBlockId(blockId: string): string | null {
-      const row = blockIdStmt.get(blockId) as { id: string } | null
+      const row = anchorByNameStmt.get(blockId) as { id: string } | null
       return row?.id ?? null
     },
 

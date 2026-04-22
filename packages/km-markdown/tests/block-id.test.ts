@@ -1,137 +1,149 @@
 /**
- * Block ID Tests
+ * Anchor (`^abc`) Tests — formerly block_id.
  *
- * Tests for the ^block-id feature:
- * - Parser: extracting block IDs from markdown content
- * - Serializer: appending block IDs to output
+ * Post-v6 (storage-architecture §2.3), anchor literals are folded into
+ * `.name`. The parser still extracts ` ^id` off content and the serializer
+ * still re-emits it, but the field on the node is `.name` — not a separate
+ * `block_id` column.
+ *
+ * Tests covered:
+ * - Parser: extracting anchors from markdown content into `.name`
+ * - Serializer: appending anchors to output when `.name` carries an anchor
  * - On-demand generation: assignBlockId callback for embeds
- * - Round-trip: block IDs survive parse -> serialize cycles
- * - Embed references: block IDs used in ![[file#^id]] syntax
+ * - Round-trip: anchors survive parse -> serialize cycles
+ * - Embed references: anchors used in ![[file#^id]] syntax
  */
 
 import { describe, test, expect } from "vitest"
-import type { KNode } from "@km/core"
-import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { roundtrip, parse, makeTestNode, normalizeMarkdown } from "./helpers/test-utils.ts"
 
 // ---------------------------------------------------------------------------
-// 1. Parser: ^block-id suffix extraction
+// 1. Parser: ^anchor suffix extraction (into `.name`)
 // ---------------------------------------------------------------------------
 
-describe("Parser: block_id extraction", () => {
-  test("task with block_id", () => {
+describe("Parser: anchor → .name extraction", () => {
+  test("task with anchor", () => {
     const nodes = parse(`- [ ] Buy groceries ^k7m2`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBe("k7m2")
+    expect(task!.name).toBe("k7m2")
     expect(task!.content).toBe("Buy groceries")
   })
 
-  test("task with metadata and block_id", () => {
+  test("task with metadata and anchor", () => {
     const nodes = parse(`- [ ] Buy groceries 📅 2025-03-15 ^k7m2`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBe("k7m2")
+    expect(task!.name).toBe("k7m2")
     // Content should be clean (metadata stripped to node fields), and no ^id
     expect(task!.content).toBe("Buy groceries")
     expect(task!.due_at).toBe("2025-03-15")
     expect(task!.content).not.toContain("^k7m2")
   })
 
-  test("unordered list item with block_id", () => {
+  test("unordered list item with anchor", () => {
     const nodes = parse(`- Some item ^abc1`)
     const ul = nodes.find((n) => n.type === "p" && n.item != null && !n.item?.task?.marker)
 
     expect(ul).toBeDefined()
-    expect(ul!.block_id).toBe("abc1")
+    expect(ul!.name).toBe("abc1")
     expect(ul!.content).toBe("Some item")
   })
 
-  test("paragraph with block_id", () => {
+  test("paragraph with anchor", () => {
     const nodes = parse(`Some paragraph text ^xyz9`)
     const para = nodes.find((n) => n.type === "p")
 
     expect(para).toBeDefined()
-    expect(para!.block_id).toBe("xyz9")
+    expect(para!.name).toBe("xyz9")
     expect(para!.content).toBe("Some paragraph text")
   })
 
-  test("heading/section with block_id", () => {
+  test("heading/section with anchor (anchor wins over slug per §2.3)", () => {
     const nodes = parse(`# Doc\n\n## My Section ^def3\n\nContent here.`)
     const section = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(section).toBeDefined()
-    expect(section!.block_id).toBe("def3")
-    // The content field preserves the original heading text (including ^block-id for round-trip)
-    // but the title should be clean
+    // Anchor literal wins over the slug-derived name.
+    expect(section!.name).toBe("def3")
+    // The content field preserves the original heading text (cleaned)
     expect(section!.title).toBe("My Section")
   })
 
-  test("no block_id when ^ has no space before it (math expression)", () => {
+  test("heading without anchor gets slug-derived .name", () => {
+    const nodes = parse(`# Doc\n\n## My Section\n\nContent.`)
+    const section = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+
+    expect(section).toBeDefined()
+    expect(section!.name).toBe("My Section")
+    expect(section!.title).toBe("My Section")
+  })
+
+  test("no .name when ^ has no space before it (math expression)", () => {
     const nodes = parse(`- [ ] Math: x^2 + y^2`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBeUndefined()
+    expect(task!.name).toBeUndefined()
     expect(task!.content).toContain("x^2")
   })
 
-  test("no block_id when ^word is not at end of line", () => {
+  test("no .name when ^word is not at end of line", () => {
     const nodes = parse(`- [ ] Use ^caret in text then more words`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBeUndefined()
+    expect(task!.name).toBeUndefined()
     expect(task!.content).toContain("^caret")
   })
 
-  test("no block_id when none present", () => {
+  test("list items have no .name when no anchor is present", () => {
     const nodes = parse(`- [ ] Just a task`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBeUndefined()
+    expect(task!.name).toBeUndefined()
     expect(task!.content).toBe("Just a task")
   })
 
-  test("block_id with hyphens and underscores", () => {
+  test("anchor with hyphens and underscores", () => {
     const nodes = parse(`- [ ] Task ^my-block_id`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBe("my-block_id")
+    expect(task!.name).toBe("my-block_id")
     expect(task!.content).toBe("Task")
   })
 
-  test("completed task with block_id", () => {
+  test("completed task with anchor", () => {
     const nodes = parse(`- [x] Done task ^d0n3`)
     const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.block_id).toBe("d0n3")
+    expect(task!.name).toBe("d0n3")
     expect(task!.item?.task?.status).toBe("done")
     expect(task!.content).toBe("Done task")
   })
 
-  test("ordered list item with block_id", () => {
+  test("ordered list item with anchor", () => {
     const nodes = parse(`1. First item ^ol01`)
     const ol = nodes.find((n) => n.type === "p" && n.item != null && n.item?.list === "1.")
 
     expect(ol).toBeDefined()
-    expect(ol!.block_id).toBe("ol01")
+    expect(ol!.name).toBe("ol01")
     expect(ol!.content).toBe("First item")
   })
 })
 
 // ---------------------------------------------------------------------------
-// 2. Serializer: ^block-id suffix output
+// 2. Serializer: ^anchor suffix output
 // ---------------------------------------------------------------------------
 
-describe("Serializer: block_id output", () => {
-  test("task with block_id appends ^id to output", () => {
+describe("Serializer: anchor output from .name", () => {
+  test("task with .name appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -147,14 +159,14 @@ describe("Serializer: block_id output", () => {
       parent_id: "file-1",
       parent_idx: 1,
       content: "Buy groceries",
-      block_id: "k7m2",
+      name: "k7m2",
     })
 
     const md = nodesToMarkdown([fileNode, task])
     expect(md).toContain("- [ ] Buy groceries ^k7m2")
   })
 
-  test("ul with block_id appends ^id to output", () => {
+  test("ul with .name appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -170,14 +182,14 @@ describe("Serializer: block_id output", () => {
       parent_id: "file-1",
       parent_idx: 1,
       content: "Some item",
-      block_id: "abc1",
+      name: "abc1",
     })
 
     const md = nodesToMarkdown([fileNode, ul])
     expect(md).toContain("- Some item ^abc1")
   })
 
-  test("paragraph with block_id appends ^id to output", () => {
+  test("paragraph with .name appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -192,14 +204,42 @@ describe("Serializer: block_id output", () => {
       parent_id: "file-1",
       parent_idx: 1,
       content: "Some paragraph text",
-      block_id: "xyz9",
+      name: "xyz9",
     })
 
     const md = nodesToMarkdown([fileNode, para])
     expect(md).toContain("Some paragraph text ^xyz9")
   })
 
-  test("section/heading with block_id appends ^id to heading line", () => {
+  test("section/heading with anchor-as-name appends ^id to heading line", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "h",
+      item: {},
+      fstype: "mdfile",
+      fs_path: "test.md",
+      content: "Doc",
+    })
+    // For headings, the anchor is distinguishable from a slug at serialize
+    // time iff name !== normalizeNodeName(title). "def3" is clearly not the
+    // slug of "My Section".
+    const section = makeTestNode({
+      id: "sec-1",
+      type: "h",
+      item: {},
+      fstype: "mdsection",
+      parent_id: "file-1",
+      parent_idx: 1,
+      content: "My Section",
+      title: "My Section",
+      name: "def3",
+    })
+
+    const md = nodesToMarkdown([fileNode, section])
+    expect(md).toContain("## My Section ^def3")
+  })
+
+  test("heading with slug-derived name does NOT emit ^", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -217,14 +257,16 @@ describe("Serializer: block_id output", () => {
       parent_idx: 1,
       content: "My Section",
       title: "My Section",
-      block_id: "def3",
+      // Slug equals normalized title — treated as derived, not anchor.
+      name: "My Section",
     })
 
     const md = nodesToMarkdown([fileNode, section])
-    expect(md).toContain("## My Section ^def3")
+    expect(md).toContain("## My Section")
+    expect(md).not.toMatch(/\^My Section/)
   })
 
-  test("node without block_id has no ^ suffix", () => {
+  test("list item without .name has no ^ suffix", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -247,7 +289,7 @@ describe("Serializer: block_id output", () => {
     expect(md).not.toContain("^")
   })
 
-  test("ol with block_id appends ^id to output", () => {
+  test("ol with .name appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -263,7 +305,7 @@ describe("Serializer: block_id output", () => {
       parent_id: "file-1",
       parent_idx: 1,
       content: "Numbered item",
-      block_id: "n1m2",
+      name: "n1m2",
     })
 
     const md = nodesToMarkdown([fileNode, ol])
@@ -272,11 +314,11 @@ describe("Serializer: block_id output", () => {
 })
 
 // ---------------------------------------------------------------------------
-// 3. On-demand block ID generation
+// 3. On-demand anchor generation
 // ---------------------------------------------------------------------------
 
-describe("On-demand block ID generation", () => {
-  test("assignBlockId callback is called for target without block_id", () => {
+describe("On-demand anchor generation", () => {
+  test("assignBlockId callback is called for target without .name", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -325,7 +367,7 @@ describe("On-demand block ID generation", () => {
     expect(md).toContain(`![[inbox#^${calls[0]!.blockId}]]`)
   })
 
-  test("assignBlockId callback is NOT called when target has block_id", () => {
+  test("assignBlockId callback is NOT called when target already has an anchor .name", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -348,7 +390,7 @@ describe("On-demand block ID generation", () => {
       parent_id: "target-file",
       content: "Buy groceries",
       item: { task: { status: "todo", marker: "[ ]" } },
-      block_id: "existing1",
+      name: "existing1",
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -366,9 +408,9 @@ describe("On-demand block ID generation", () => {
 
     const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask], undefined, assignBlockId)
 
-    // Should NOT call the callback since target already has block_id
+    // Should NOT call the callback since target already has an anchor
     expect(calls).toHaveLength(0)
-    // Should use the existing block_id
+    // Should use the existing anchor
     expect(md).toContain("![[inbox#^existing1]]")
   })
 
@@ -413,7 +455,7 @@ describe("On-demand block ID generation", () => {
     expect(md).not.toMatch(/\^[a-z0-9]{4}/)
   })
 
-  test("generated block_id avoids collisions with existing IDs", () => {
+  test("generated anchor avoids collisions with existing ones", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -430,16 +472,16 @@ describe("On-demand block ID generation", () => {
       fs_path: "inbox.md",
       content: "Inbox",
     })
-    // First task has an existing block_id
+    // First task has an existing anchor
     const task1 = makeTestNode({
       id: "task-1",
       type: "p",
       parent_id: "target-file",
       content: "Task one",
       item: { task: { status: "todo", marker: "[ ]" }, list: "-" },
-      block_id: "abcd",
+      name: "abcd",
     })
-    // Second task needs a generated block_id
+    // Second task needs a generated anchor
     const task2 = makeTestNode({
       id: "task-2",
       type: "p",
@@ -471,7 +513,7 @@ describe("On-demand block ID generation", () => {
 
     nodesToMarkdown([fileNode, embed1, embed2, targetFileNode, task1, task2], undefined, assignBlockId)
 
-    // Only task-2 should get a generated ID (task-1 already has one)
+    // Only task-2 should get a generated anchor (task-1 already has one)
     expect(calls).toHaveLength(1)
     expect(calls[0]!.nodeId).toBe("task-2")
     // The generated ID should differ from the existing one
@@ -483,33 +525,33 @@ describe("On-demand block ID generation", () => {
 // 4. Round-trip tests
 // ---------------------------------------------------------------------------
 
-describe("Round-trip: block_id preservation", () => {
-  test("task with block_id survives round-trip", () => {
+describe("Round-trip: anchor preservation", () => {
+  test("task with anchor survives round-trip", () => {
     const output = roundtrip(`- [ ] Buy groceries ^k7m2`)
     expect(output).toContain("^k7m2")
     expect(output).toContain("Buy groceries")
   })
 
-  test("section with block_id survives round-trip", () => {
+  test("section with anchor survives round-trip", () => {
     const output = roundtrip(`# Doc\n\n## Section Title ^abc1\n\nContent here`)
     expect(output).toContain("^abc1")
     expect(output).toContain("Section Title")
     expect(output).toContain("Content here")
   })
 
-  test("unordered list item with block_id survives round-trip", () => {
+  test("unordered list item with anchor survives round-trip", () => {
     const output = roundtrip(`- Item text ^xy12`)
     expect(output).toContain("^xy12")
     expect(output).toContain("Item text")
   })
 
-  test("paragraph with block_id survives round-trip", () => {
+  test("paragraph with anchor survives round-trip", () => {
     const output = roundtrip(`Some paragraph ^z99a`)
     expect(output).toContain("^z99a")
     expect(output).toContain("Some paragraph")
   })
 
-  test("double round-trip stability with block_id", () => {
+  test("double round-trip stability with anchor", () => {
     const original = `- [ ] Buy groceries ^k7m2`
     const md1 = roundtrip(original)
     const md2 = roundtrip(md1)
@@ -518,7 +560,7 @@ describe("Round-trip: block_id preservation", () => {
     expect(md2).toContain("^k7m2")
   })
 
-  test("task with metadata and block_id survives round-trip", () => {
+  test("task with metadata and anchor survives round-trip", () => {
     const output = roundtrip(`- [ ] Task 📅 2025-12-25 ⏫ ^m3n4`)
     expect(output).toContain("^m3n4")
     // Emoji dates migrated to key:: value on roundtrip
@@ -529,7 +571,7 @@ describe("Round-trip: block_id preservation", () => {
     expect(output).toContain("Task")
   })
 
-  test("mixed document with some nodes having block_ids and some not", () => {
+  test("mixed document with some nodes having anchors and some not", () => {
     const original = `# Document
 
 ## Section ^s1
@@ -545,7 +587,7 @@ Another paragraph without ID`
 
     const output = roundtrip(original)
 
-    // Block IDs preserved
+    // Anchors preserved
     expect(output).toContain("^s1")
     expect(output).toContain("^t1")
     expect(output).toContain("^i1")
@@ -558,7 +600,7 @@ Another paragraph without ID`
     expect(output).toContain("Some paragraph")
     expect(output).toContain("Another paragraph without ID")
 
-    // No spurious block IDs added to nodes without them
+    // No spurious anchors added to nodes without them
     const lines = output.split("\n")
     const taskWithoutIdLine = lines.find((l) => l.includes("Task without ID"))
     expect(taskWithoutIdLine).not.toContain("^")
@@ -580,7 +622,7 @@ Paragraph ^p1`
     expect(normalizeMarkdown(md1)).toBe(normalizeMarkdown(md2))
   })
 
-  test("block_id with various character types survives round-trip", () => {
+  test("anchor with various character types survives round-trip", () => {
     const output = roundtrip(`- [ ] Task with hyphen ^my-id`)
     expect(output).toContain("^my-id")
 
@@ -591,14 +633,14 @@ Paragraph ^p1`
     expect(output3).toContain("^a1-b2_c3")
   })
 
-  test("completed task with block_id survives round-trip", () => {
+  test("completed task with anchor survives round-trip", () => {
     const output = roundtrip(`- [x] Done task ^done1`)
     expect(output).toContain("^done1")
     expect(output).toContain("[x]")
     expect(output).toContain("Done task")
   })
 
-  test("wip task with block_id survives round-trip", () => {
+  test("wip task with anchor survives round-trip", () => {
     const output = roundtrip(`- [/] In progress ^wip1`)
     expect(output).toContain("^wip1")
     expect(output).toContain("[/]")
@@ -606,11 +648,11 @@ Paragraph ^p1`
 })
 
 // ---------------------------------------------------------------------------
-// 5. Block ID in embed references
+// 5. Anchor in embed references
 // ---------------------------------------------------------------------------
 
-describe("Embed references with block_id", () => {
-  test("task with block_id produces ![[filename#^blockid]] embed", () => {
+describe("Embed references with anchors", () => {
+  test("task with anchor produces ![[filename#^anchor]] embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -633,7 +675,7 @@ describe("Embed references with block_id", () => {
       parent_id: "target-file",
       content: "Buy groceries",
       item: { task: { status: "todo", marker: "[ ]" } },
-      block_id: "k7m2",
+      name: "k7m2",
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -650,7 +692,7 @@ describe("Embed references with block_id", () => {
     expect(md).not.toContain("- [ ] Buy groceries")
   })
 
-  test("section with block_id produces ![[filename#^blockid]] embed", () => {
+  test("section with anchor produces ![[filename#^anchor]] embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -676,7 +718,7 @@ describe("Embed references with block_id", () => {
       parent_idx: 1,
       title: "My Section",
       content: "My Section",
-      block_id: "s1a2",
+      name: "s1a2",
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -691,7 +733,7 @@ describe("Embed references with block_id", () => {
     expect(md).toContain("![[notes#^s1a2]]")
   })
 
-  test("ul with block_id produces embed with ^blockid", () => {
+  test("ul with anchor produces embed with ^anchor", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -713,7 +755,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "target-file",
       content: "Important item",
-      block_id: "ul01",
+      name: "ul01",
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -728,7 +770,7 @@ describe("Embed references with block_id", () => {
     expect(md).toContain("![[notes#^ul01]]")
   })
 
-  test("embed prefers block_id over content-based reference", () => {
+  test("embed prefers anchor over content-based reference", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -751,7 +793,7 @@ describe("Embed references with block_id", () => {
       parent_id: "target-file",
       content: "Buy groceries",
       item: { task: { status: "todo", marker: "[ ]" } },
-      block_id: "k7m2",
+      name: "k7m2",
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -764,12 +806,12 @@ describe("Embed references with block_id", () => {
 
     const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask])
 
-    // Should use block_id reference, not content-based
+    // Should use anchor reference, not content-based
     expect(md).toContain("![[inbox#^k7m2]]")
     expect(md).not.toContain("![[inbox#Buy groceries]]")
   })
 
-  test("embed without block_id and no callback uses content-based reference", () => {
+  test("embed without anchor and no callback uses content-based reference", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -792,7 +834,7 @@ describe("Embed references with block_id", () => {
       parent_id: "target-file",
       content: "Buy groceries",
       item: { task: { status: "todo", marker: "[ ]" } },
-      // No block_id
+      // No anchor
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -809,7 +851,7 @@ describe("Embed references with block_id", () => {
     expect(md).toContain("![[inbox#Buy groceries]]")
   })
 
-  test("multiple embeds: some targets with block_id, some without", () => {
+  test("multiple embeds: some targets with anchor, some without", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -832,7 +874,7 @@ describe("Embed references with block_id", () => {
       parent_id: "target-file",
       content: "Task with ID",
       item: { task: { status: "todo", marker: "[ ]" }, list: "-" },
-      block_id: "has1",
+      name: "has1",
     })
     const taskWithoutId = makeTestNode({
       id: "task-2",
@@ -860,7 +902,7 @@ describe("Embed references with block_id", () => {
 
     const md = nodesToMarkdown([fileNode, embed1, embed2, targetFileNode, taskWithId, taskWithoutId])
 
-    // First embed uses block_id
+    // First embed uses anchor
     expect(md).toContain("![[inbox#^has1]]")
     // Second embed uses content-based reference (no callback provided)
     expect(md).toContain("![[inbox#Task without ID]]")

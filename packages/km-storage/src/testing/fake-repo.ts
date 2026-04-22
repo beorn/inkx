@@ -431,11 +431,12 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         if (node.fs_path === query) return node
       }
 
-      // Try block_id match (strip ^ prefix for block references)
-      const blockQuery = query.startsWith("^") ? query.slice(1) : query
-      if (/^\d{5,}$/.test(blockQuery)) {
+      // Try anchor match (strip ^ prefix for block references). Post-v6,
+      // anchor literals live in `.name` per storage-architecture §2.3.
+      const anchorQuery = query.startsWith("^") ? query.slice(1) : query
+      if (query.startsWith("^") || /^\d{5,}$/.test(anchorQuery)) {
         for (const node of nodes.values()) {
-          if (node.block_id === blockQuery) return node
+          if (node.name === anchorQuery) return node
         }
       }
 

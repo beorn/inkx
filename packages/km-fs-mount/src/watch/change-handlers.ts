@@ -133,9 +133,13 @@ export class ChangeHandlers {
   }
 
   /**
-   * Create an assignBlockId callback that collects newly assigned IDs.
-   * After serialization, call rewriteSourceFiles to write ^block-id
-   * suffixes into the files that contain the referenced nodes.
+   * Create an assignBlockId callback that collects newly assigned anchors.
+   * After serialization, call rewriteSourceFiles to write `^anchor` suffixes
+   * into the files that contain the referenced nodes.
+   *
+   * Post-v6: anchor literals are folded into `.name` per storage-architecture
+   * §2.3 — the callback writes to `name`, overriding any prior content-derived
+   * slug (anchor wins).
    *
    * @param changeId — optional override for the change ID used in writes.
    *   When omitted, uses `this.currentChangeId` (set during applyChangeToFs).
@@ -146,10 +150,10 @@ export class ChangeHandlers {
     assign: (nodeId: string, blockId: string) => void
     rewriteSourceFiles: (excludeFileId?: string) => void
   } {
-    const assigned = new Map<string, string>() // nodeId → blockId
+    const assigned = new Map<string, string>() // nodeId → anchor literal
     return {
       assign: (nodeId: string, blockId: string) => {
-        // Route the block_id back-write through emitter.commit so DB + journal
+        // Route the anchor back-write through emitter.commit so DB + journal
         // are paired per row (op-vocabulary audit G4/G7). commit() (not apply())
         // because this runs during FS-origin serialization; apply() would echo
         // back into the FS projection subscribers.
@@ -157,7 +161,7 @@ export class ChangeHandlers {
           type: "node_updated",
           target: nodeId,
           actor: "fs-watch",
-          data: { block_id: blockId },
+          data: { name: blockId },
         })
         assigned.set(nodeId, blockId)
       },
@@ -168,11 +172,11 @@ export class ChangeHandlers {
         for (const [nodeId, blockId] of assigned) {
           const node = getNode(this.db, nodeId)
           if (!node) {
-            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
+            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after anchor assignment`)
             continue
           }
-          // Update in-memory node for serialization
-          node.block_id = blockId
+          // Update in-memory node for serialization (anchor is now the name)
+          node.name = blockId
           const file = findFileNode(this.db, node)
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
         }
@@ -221,7 +225,7 @@ export class ChangeHandlers {
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.fsTarget.writeFile(absPath, content, this.currentChangeId)
-    // Record the write as the new baseline on the file node.
+    // Record the write as the new parsed-content baseline on the file node.
     //
     // Why: mergeExternalDrift (called on the NEXT save) reads
     // nodes.content_hash to decide whether the disk has drifted since
@@ -230,12 +234,17 @@ export class ChangeHandlers {
     // "drift" vs the real-current disk and folds the just-written content
     // back in — producing duplicated list items on each subsequent edit.
     //
-    // The TUI's tracker.recordWrite only updates `sync_state` (a different
-    // table for watcher suppression); it does NOT touch `nodes.content_hash`.
-    // So this fix is needed on both the CLI FsWriter and the TUI withSync
-    // paths, and it lives here — in the shared ChangeHandlers.save() — to
-    // keep the invariant in one place.
-    this.updateBaselineHash(fileNode.id, hashContent(content))
+    // NOTE (`km-storage.writeback-cas-adopt-in-withsync`, 2026-04): We
+    // update ONLY `content_hash` here, NOT `fs_content_hash`. The write
+    // path (safeWriteFile via fs-writer / withSync's writeImpl) owns
+    // fs_content_hash and updates it atomically with the actual disk
+    // state. Touching it here too would race with the async WriteQueue
+    // flush: if save() queued a write and then pre-emptively set
+    // fs_content_hash to hash(intended content), the subsequent flush
+    // would read a baseline that never matched disk and the CAS guard
+    // would spuriously trip. On conflict (disk diverged from our
+    // baseline) the write path correctly leaves fs_content_hash alone.
+    this.updateContentBaseline(fileNode.id, hashContent(content))
     blockIds.rewriteSourceFiles(fileNode.id)
   }
 
@@ -280,15 +289,17 @@ export class ChangeHandlers {
     return appendUnmatchedDiskChildren(withMergedFrontmatter, fileNode, diskFile, diskNodes)
   }
 
+  /**
+   * Align BOTH baselines (content_hash + fs_content_hash) with a known
+   * on-disk state. Callers must have just read `diskContent` from disk and
+   * verified (or observed) that it IS the current on-disk bytes — otherwise
+   * fs_content_hash will desynchronize from the CAS guard.
+   *
+   * Used by mergeExternalDrift after reading disk: both baselines advance
+   * together because we just observed disk.
+   */
   private updateBaselineHash(nodeId: string, diskHash: string): void {
     try {
-      // Keep both baselines aligned. content_hash is the parsed-content
-      // baseline used by readDiskContentIfChanged (drift detection on next
-      // save); fs_content_hash is the raw-file baseline used by safe-write's
-      // CAS guard (§7.1). They must move together whenever we observe a new
-      // on-disk state — otherwise the next write either misses drift
-      // detection or trips a spurious conflict.
-      //
       // Route through emitter.commit so DB + journal are paired per row
       // (op-vocabulary audit G9). commit() (not apply()) because this is
       // FS-origin — the disk moved, we're realigning in-memory state.
@@ -301,7 +312,29 @@ export class ChangeHandlers {
       })
     } catch (err) {
       log.warn?.(
-        `mergeExternalDrift: failed to update content_hash for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,
+        `mergeExternalDrift: failed to update baselines for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+  }
+
+  /**
+   * Update ONLY `content_hash` (the parsed-content drift baseline used by
+   * the next save()'s mergeExternalDrift). Leaves `fs_content_hash` alone
+   * so the write path (safeWriteFile) retains sole ownership of the CAS
+   * guard baseline — critical because the WriteQueue is async and the
+   * write may not have reached disk yet when this runs.
+   */
+  private updateContentBaseline(nodeId: string, contentHash: string): void {
+    try {
+      this.emitter.commit({
+        type: "node_updated",
+        target: nodeId,
+        actor: "fs-watch",
+        data: { content_hash: contentHash },
+      })
+    } catch (err) {
+      log.warn?.(
+        `save: failed to update content_hash for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   }
@@ -856,7 +889,7 @@ function mergeFileFrontmatter(subtreeNodes: KNode[], fileNodeId: string, diskFil
 
 /**
  * Identify child nodes on disk that are not represented in the DB subtree
- * (matched by block_id or by type+content), and append them to the subtree
+ * (matched by `.name` or by type+content), and append them to the subtree
  * re-parented to the file node. Existing children keep their DB state — the
  * in-app mutation that triggered the save has already been committed and
  * must not be reverted here.
@@ -871,10 +904,12 @@ function appendUnmatchedDiskChildren(
   const diskChildren = diskNodes.filter((n) => n !== diskFile)
   if (diskChildren.length === 0) return subtreeNodes
 
-  const dbBlockIds = new Set<string>()
+  // Post-v6: anchor literals live in `.name` (storage-architecture §2.3).
+  // Matching by name covers both anchored blocks and slug-derived headings.
+  const dbNames = new Set<string>()
   const dbContentKeys = new Set<string>()
   for (const n of dbChildren) {
-    if (n.block_id) dbBlockIds.add(n.block_id)
+    if (n.name) dbNames.add(n.name)
     if (n.content) dbContentKeys.add(`${n.type}:${n.content}`)
   }
 
@@ -883,7 +918,7 @@ function appendUnmatchedDiskChildren(
   const appended: KNode[] = []
 
   for (const disk of diskChildren) {
-    if (isDiskChildMatched(disk, dbBlockIds, dbContentKeys)) continue
+    if (isDiskChildMatched(disk, dbNames, dbContentKeys)) continue
     appended.push({
       ...disk,
       id: ulid(),
@@ -897,8 +932,8 @@ function appendUnmatchedDiskChildren(
   return [...subtreeNodes, ...appended]
 }
 
-function isDiskChildMatched(disk: KNode, dbBlockIds: Set<string>, dbContentKeys: Set<string>): boolean {
-  if (disk.block_id && dbBlockIds.has(disk.block_id)) return true
+function isDiskChildMatched(disk: KNode, dbNames: Set<string>, dbContentKeys: Set<string>): boolean {
+  if (disk.name && dbNames.has(disk.name)) return true
   if (disk.content && dbContentKeys.has(`${disk.type}:${disk.content}`)) return true
   return false
 }

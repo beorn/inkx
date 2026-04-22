@@ -94,7 +94,7 @@ export function resolveAnchor(db: Database, input: ResolveAnchorInput): AnchorRe
 
   if (!isCollapsed) {
     // Fully-parsed path: look up heading node by content.
-    // findChildByContent handles block refs (by block_id) and headings.
+    // findChildByContent handles anchor refs (by `.name`, post-v6 §2.3) and headings.
     const child = findChildByContent(db, fileId, anchor)
     if (child) {
       return { kind: "parsed", nodeId: child.id }

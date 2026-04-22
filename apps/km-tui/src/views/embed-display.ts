@@ -84,7 +84,7 @@ export function cleanContentForDisplay(content: string | undefined): string {
   )
 }
 
-/** Try to resolve an embed reference (block_id or filename) to a human-readable title.
+/** Try to resolve an embed reference (anchor or filename) to a human-readable title.
  * Only returns a result if the resolved node has real content (not itself an embed). */
 export function tryResolveEmbedRef(repo: EmbedRepo, ref: string): string | null {
   if (!repo.resolveByName && !repo.resolveNode) return null

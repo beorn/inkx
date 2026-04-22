@@ -148,7 +148,6 @@ describe("KNode namespace", () => {
         created_at: 1000,
         updated_at: 2000,
         version: "v1",
-        block_id: "blk1",
         fs_path: "/some/path",
         fs_ino: 12345,
         fs_mtime: 99999,
@@ -165,7 +164,6 @@ describe("KNode namespace", () => {
       expect(props.created_at).toBeUndefined()
       expect(props.updated_at).toBeUndefined()
       expect(props.version).toBeUndefined()
-      expect(props.block_id).toBeUndefined()
       expect(props.fs_path).toBeUndefined()
       expect(props.fs_ino).toBeUndefined()
       expect(props.fs_mtime).toBeUndefined()

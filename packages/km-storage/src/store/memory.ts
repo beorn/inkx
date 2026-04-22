@@ -311,7 +311,8 @@ export class MemoryStore extends BaseStore {
       if (embedded) {
         let targetNode: { id: string } | null = null
         if (link.blockId) {
-          const row = this.db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1").get(link.blockId) as {
+          // Post-v6: anchor literals are folded into `.name` (§2.3). Look up by name.
+          const row = this.db.prepare("SELECT id FROM nodes WHERE name = ? LIMIT 1").get(link.blockId) as {
             id: string
           } | null
           if (row) targetNode = row
@@ -386,11 +387,11 @@ export class MemoryStore extends BaseStore {
       `INSERT INTO nodes (
         id, type, fstype, parent_id, parent_idx, item, embed_of,
         fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
-        md_pos, md_line, name, block_id,
+        md_pos, md_line, name,
         content, content_hash, title, list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
         data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -408,7 +409,6 @@ export class MemoryStore extends BaseStore {
         node.md_pos ?? null,
         node.md_line ?? null,
         node.name ?? null,
-        node.block_id ?? null,
         node.content ?? null,
         node.content_hash ?? null,
         node.title ?? null,

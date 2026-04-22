@@ -23,7 +23,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       fs_path: "/repo/File1.md",
       content: "File1",
-      block_id: "abc",
+      name: "abc",
     }),
     makeTestNode({
       id: "target-2",
@@ -32,7 +32,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       fs_path: "/repo/File2.md",
       content: "File2",
-      block_id: "def",
+      name: "def",
     }),
     makeTestNode({
       id: "target-3",
@@ -41,7 +41,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       fs_path: "/repo/File3.md",
       content: "File3",
-      block_id: "ghi",
+      name: "ghi",
     }),
   ]
 

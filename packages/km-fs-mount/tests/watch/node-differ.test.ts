@@ -734,8 +734,8 @@ describe("diffNodes", () => {
     })
   })
 
-  describe("block_id matching", () => {
-    test("block_id takes priority over ordinal position", () => {
+  describe(".name (anchor) matching", () => {
+    test(".name takes priority over ordinal position", () => {
       const existing = [
         makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
@@ -744,7 +744,7 @@ describe("diffNodes", () => {
           item: {},
           parent_id: "file-1",
           parent_idx: 0,
-          block_id: "bid-alpha",
+          name: "bid-alpha",
           content: "Alpha",
         }),
         makeNode({
@@ -752,11 +752,11 @@ describe("diffNodes", () => {
           type: "p",
           parent_id: "file-1",
           parent_idx: 1,
-          block_id: "bid-beta",
+          name: "bid-beta",
           content: "Beta",
         }),
       ]
-      // Nodes reordered — block_id should anchor them
+      // Nodes reordered — .name (anchor) should anchor them
       const newNodes = [
         makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
@@ -764,7 +764,7 @@ describe("diffNodes", () => {
           type: "p",
           parent_id: "file-new",
           parent_idx: 0, // Was at index 1, now at 0
-          block_id: "bid-beta",
+          name: "bid-beta",
           content: "Beta",
         }),
         makeNode({
@@ -772,14 +772,14 @@ describe("diffNodes", () => {
           type: "p",
           parent_id: "file-new",
           parent_idx: 1, // Was at index 0, now at 1
-          block_id: "bid-alpha",
+          name: "bid-alpha",
           content: "Alpha",
         }),
       ]
 
       const result = diffNodes(existing, newNodes)
 
-      // block_id matching ignores ordinal
+      // .name matching ignores ordinal
       expect(result.idMap.get("task-a-new")).toBe("task-a")
       expect(result.idMap.get("task-b-new")).toBe("task-b")
 
@@ -790,7 +790,7 @@ describe("diffNodes", () => {
       expect(deleted).toHaveLength(0)
     })
 
-    test("block_id match even when content changes", () => {
+    test(".name match even when content changes", () => {
       const existing = [
         makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
@@ -799,7 +799,7 @@ describe("diffNodes", () => {
           item: {},
           parent_id: "file-1",
           parent_idx: 0,
-          block_id: "bid-1",
+          name: "bid-1",
           content: "Original text",
         }),
       ]
@@ -810,7 +810,7 @@ describe("diffNodes", () => {
           type: "p",
           parent_id: "file-new",
           parent_idx: 0,
-          block_id: "bid-1",
+          name: "bid-1",
           content: "Updated text",
         }),
       ]
@@ -825,7 +825,7 @@ describe("diffNodes", () => {
   })
 
   describe("content hash matching", () => {
-    test("content hash matches nodes without block_id", () => {
+    test("content hash matches nodes without .name", () => {
       const existing = [
         makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({

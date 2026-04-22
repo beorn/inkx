@@ -149,11 +149,13 @@ const KM_PATTERNS = [
     re: /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi,
     make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1] ?? "", value: (m[2] ?? "").trim() }),
   },
-  // Bare ^numericId (10+ digits) — block identifier metadata, stripped from display.
+  // Bare ^numericId (10+ digits) — anchor metadata, stripped from display.
   // Only [[^ID]] wikilinks create visible cross-references; bare ^ID is metadata only.
+  // (Post-v6 the anchor literal lives in `.name`; the display-side field key
+  // retains the `anchor` label to reflect what it represents.)
   {
     re: /\^(\d{10,})/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: "block_id", value: m[1] ?? "" }),
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: "anchor", value: m[1] ?? "" }),
     // Skip if inside a wikilink
     skipIf: (m: RegExpExecArray, text: string) => {
       const before = text.slice(0, m.index ?? 0)

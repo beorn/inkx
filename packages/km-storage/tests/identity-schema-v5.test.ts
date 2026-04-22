@@ -33,8 +33,12 @@ function freshDb(): Database {
 }
 
 describe("identity-schema v5", () => {
-  test("SCHEMA_VERSION is 5", () => {
-    expect(SCHEMA_VERSION).toBe(5)
+  // SCHEMA_VERSION was bumped to 6 by the block_id → name fold (see
+  // identity-schema-v6.test.ts). The v5 invariants (fs_dev + fs_size +
+  // fs_content_hash columns, composite fs_dev_ino index, rowToNode round-trip)
+  // still hold — v6 only removed block_id.
+  test("SCHEMA_VERSION is at least 5", () => {
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(5)
   })
 
   test("fresh DB has fs_dev / fs_size / fs_content_hash columns", () => {

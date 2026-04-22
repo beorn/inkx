@@ -361,7 +361,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       }
 
       // All heading data extracted by kmast transforms:
-      // - blockId: kmBlockIdTransform (strips ^id suffix)
+      // - blockId: kmBlockIdTransform (strips ^id suffix) — folded into `.name` per §2.3
       // - taskMark: kmHeadingTaskMarkTransform (strips [x] prefix)
       // - props/cleanText: kmInlinePropTransform (extracts key:: value)
       // - tags/mentions/projects: kmRefsTransform
@@ -393,7 +393,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
       const parentSection = sectionStack[sectionStack.length - 1]
       const nodeId = ulid()
       // Capture verbatim inline source for round-trip formatting fidelity (km-markdown.inline-format-loss).
-      // _mdSource holds the raw source slice (including any block_id / inline props that were
+      // _mdSource holds the raw source slice (including any ^anchor / inline props that were
       // stripped from cleanText), and _mdSourceContent is the cleanText baseline used to detect edits.
       //
       // For headings, kmHeadingTaskMarkTransform strips the [x] prefix from text.value but
@@ -440,10 +440,12 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
         fstype: "mdsection",
         parent_id: parentSection ? parentSection.node.id : fileNode.id,
         parent_idx: sortOrder++,
-        name: sectionName, // Slug/identifier derived from heading
+        // Anchor wins over slug (storage-architecture §2.3): if the heading
+        // carries `^anchor`, that literal is the node's externally-addressable
+        // name; otherwise the content-derived slug fills that role.
+        name: sectionBlockId ?? sectionName,
         md_pos: heading.position?.start.offset,
-        block_id: sectionBlockId,
-        content: cleanText, // Clean content (block-id, task mark, and props stripped by transforms)
+        content: cleanText, // Clean content (anchor, task mark, and props stripped by transforms)
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
@@ -533,7 +535,10 @@ function convertListItem(
   // A task has a task mark (set by the km tokenizer for all marks: space, x, X, /, -, !)
   const isTask = taskMark !== undefined
 
-  // Block ID already extracted by kmBlockIdTransform (in item.data.blockId)
+  // Anchor already extracted by kmBlockIdTransform (in item.data.blockId).
+  // Post-v6: anchor literal becomes `.name` per storage-architecture §2.3 —
+  // list items without anchors have no content-derived slug, so `.name`
+  // stays undefined for them.
   const blockId = item.data?.blockId as string | undefined
 
   const taskMarker: TaskMarker | undefined = isTask ? markToMarker(taskMark) : undefined
@@ -625,7 +630,8 @@ function convertListItem(
     parent_idx: sortOrder,
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
-    block_id: blockId,
+    // Anchor literal → `.name` (§2.3). List items have no slug fallback.
+    name: blockId,
     content: displayContent,
     content_hash: undefined,
     due_at: metadata.dueAt,
@@ -726,7 +732,8 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, body
   let content: string | null = null
   const data: Record<string, unknown> = {}
 
-  // Block ID already extracted by kmBlockIdTransform (in block.data.blockId)
+  // Anchor already extracted by kmBlockIdTransform (in block.data.blockId).
+  // Post-v6: anchor literal → `.name` per storage-architecture §2.3.
   const blockId = block.data?.blockId as string | undefined
 
   switch (block.type) {
@@ -797,7 +804,8 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, body
     parent_id: parent.id,
     parent_idx: sortOrder,
     md_pos: block.position?.start.offset,
-    block_id: blockId,
+    // Anchor literal → `.name` (§2.3). Un-anchored blocks have no `.name`.
+    name: blockId,
     content: content ?? undefined,
     content_hash: undefined,
     data,
@@ -907,8 +915,11 @@ function mergeH1IntoFileNode(
   fileNode.title = h1Section.title
   fileNode.content = h1Section.content
   fileNode.md_pos = h1Section.md_pos
-  if (h1Section.block_id) {
-    fileNode.block_id = h1Section.block_id
+  // Anchor wins over basename when an H1 carries `^anchor` (storage-architecture
+  // §2.3). File-by-name lookups still resolve via fs_path basename in the link
+  // resolver (see createLinkResolver), so overriding `.name` here is safe.
+  if (h1Section.name && h1Section.name !== normalizeNodeName(h1Section.title ?? "")) {
+    fileNode.name = h1Section.name
   }
   if (h1Section.rules) {
     fileNode.rules = h1Section.rules
@@ -1000,6 +1011,9 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
  */
 function wikiLinkToHref(link: WikiLink): string {
   let label = link.target
+  // WikiLink.blockId is the parsed `^anchor` fragment in the link — distinct
+  // from the (removed) nodes.block_id column; we still need it at parse time
+  // to build the href.
   if (link.blockId) label += `^${link.blockId}`
   else if (link.section) label += `#${link.section}`
   return normalizeLinkHref("wiki", label)

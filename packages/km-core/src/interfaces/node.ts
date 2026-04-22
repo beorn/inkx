@@ -35,7 +35,6 @@ const SYSTEM_KEYS: ReadonlySet<string> = new Set([
   "created_at",
   "updated_at",
   "version", // lifecycle
-  "block_id", // identity
   "fs_path",
   "fs_dev",
   "fs_ino",

@@ -359,24 +359,29 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   return null
 }
 
-/** Strategy 3b: Block ID lookup (^numericId or bare numericId) */
+/** Strategy 3b: Anchor lookup (^id or bare numeric id).
+ *
+ * Pre-v6 this hit a separate `block_id` column; post-v6 anchor literals are
+ * folded into `.name` (storage-architecture §2.3), so lookups target `name`
+ * instead. The ^-prefix heuristic and numeric-bare fallback remain — they
+ * disambiguate anchor intent from a free-form name query. */
 function resolveBlockId(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getOne } = ctx
 
   // Explicit `^id` form (e.g. `^testid`, `^apr15-ca-ftb`): the caret is an
-  // unambiguous block-id marker — match the exact stripped string against
-  // the indexed block_id column, regardless of shape.
+  // unambiguous anchor marker — match the exact stripped string against
+  // the indexed name column, regardless of shape.
   if (q.startsWith("^")) {
-    const blockId = q.slice(1)
-    if (!blockId) return null
-    return getOne(`SELECT * FROM nodes WHERE block_id = ?${filterClause}`, blockId, ...params)
+    const anchor = q.slice(1)
+    if (!anchor) return null
+    return getOne(`SELECT * FROM nodes WHERE name = ?${filterClause}`, anchor, ...params)
   }
 
   // Bare form: only opportunistically match numeric strings (Asana GIDs,
   // etc.) to avoid false positives when a user types a plain name. With
-  // non-numeric block ids this would swallow name-based searches.
+  // non-numeric anchors this would swallow name-based searches.
   if (!/^\d{5,}$/.test(q)) return null
-  return getOne(`SELECT * FROM nodes WHERE block_id = ?${filterClause}`, q, ...params)
+  return getOne(`SELECT * FROM nodes WHERE name = ?${filterClause}`, q, ...params)
 }
 
 /** Strategy 4: Fuzzy ID matching (prefix/suffix) */

@@ -49,8 +49,9 @@ export interface SyncFromFsResult {
 }
 
 /**
- * Block ID assigner — assigns block_id values during serialization
- * and rewrites source files that reference re-assigned blocks.
+ * Block ID assigner — assigns anchor literals (`^abc`) during serialization.
+ * Post-v6 the anchor is written to `.name` (storage-architecture §2.3);
+ * `rewriteSourceFiles` propagates the new anchor to source files.
  */
 export interface BlockIdAssigner {
   assign: (nodeId: string, blockId: string) => void

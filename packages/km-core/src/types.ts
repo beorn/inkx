@@ -334,9 +334,19 @@ export interface KNode {
   fs_size?: number // File size in bytes — watcher fast-path (§7.4)
   fs_content_hash?: string // SHA-256 of file bytes; lazy / invalidated on mtime change — secondary reconciliation signal (§3.3)
 
-  // Identity
-  name?: string // Universal: slug/heading-slug/embed-alias/filename. Not fs-only.
-  block_id?: string // On-demand block identifier (^block-id) for stable embed references
+  // Identity — universal: slug/heading-slug/embed-alias/filename/anchor.
+  //
+  // Per hub/km/storage-architecture.md §2.3, this is the single field that
+  // holds "the string that appears in external references" to the node:
+  //   - File  → basename (e.g. "foo" for "notes/foo.md")
+  //   - Heading with anchor  → the anchor literal (e.g. "rec" for "## My Heading ^rec")
+  //   - Heading without anchor → the content-derived slug
+  //   - Block with anchor → the anchor literal
+  //   - Block without anchor → no `.name` (not externally addressable)
+  //
+  // The former `block_id` column was folded into this field at schema v6;
+  // there is no separate anchor / block-id field.
+  name?: string
 
   // Markdown source mapping
   md_pos?: number // Byte offset in file
@@ -442,7 +452,6 @@ export interface NodeCreatedData {
   fs_size?: number
   fs_content_hash?: string
   name?: string
-  block_id?: string
   md_pos?: number
   md_line?: number
   assigned_to?: string

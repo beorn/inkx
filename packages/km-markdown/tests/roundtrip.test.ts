@@ -1897,11 +1897,12 @@ describe("Bug fix A2: Root H1 task marks, rules, and block IDs roundtrip", () =>
     expect(output).toContain("# [ ] Todo Item ^zz99")
   })
 
-  test("block_id is copied to file node during H1 merge", () => {
+  test("H1 anchor is copied to file node .name during H1 merge (post-v6 §2.3)", () => {
     const md = `# Heading ^ab12\n\nSome content.\n`
     const nodes = parse(md)
     const fileNode = nodes.find((n) => n.fstype === "mdfile")
-    expect(fileNode?.block_id).toBe("ab12")
+    // Anchor wins over content-derived slug — file's .name is the anchor.
+    expect(fileNode?.name).toBe("ab12")
   })
 })
 

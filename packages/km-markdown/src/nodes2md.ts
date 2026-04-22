@@ -9,7 +9,34 @@ import { stringify as stringifyYaml } from "yaml"
 import type { TaskStatus } from "@km/core"
 import { KNode, getMarkerForStatus, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
-import { serializeRules } from "./parser.ts"
+import { serializeRules, normalizeNodeName } from "./parser.ts"
+
+/**
+ * Determine the anchor literal to re-emit as ` ^name`, if any.
+ *
+ * Post schema v6 (storage-architecture §2.3), a node has a single `.name`
+ * that is either the anchor literal (`^abc`) or the content-derived slug —
+ * we need to distinguish them at serialize time. Rule:
+ *
+ *   - Item nodes (list items, blocks) have no slug fallback, so ANY `.name`
+ *     is an anchor literal.
+ *   - Heading/file nodes (those carrying `.title`) may have a content-derived
+ *     slug. The anchor is identifiable as "`.name` differs from the title's
+ *     normalized slug".
+ *
+ * Returns the anchor string to emit, or `undefined` when the name is a
+ * content-derived slug (nothing to emit).
+ */
+function anchorLiteralFor(node: KNode): string | undefined {
+  if (!node.name) return undefined
+  // List items / blocks: name is always the anchor.
+  if (node.type !== "h") return node.name
+  // Headings: anchor wins when `.name` doesn't equal the slug derived from
+  // the heading's display text. The title is the clean heading text
+  // post-strip; fall back to content if absent.
+  const slugSource = node.title ?? node.content ?? ""
+  return node.name === normalizeNodeName(slugSource) ? undefined : node.name
+}
 
 const log = createLogger("km:markdown:nodes2md")
 
@@ -98,10 +125,13 @@ export function nodesToMarkdown(
   const mapSource = lookupNodes ?? nodes
   const nodeMap = new Map(mapSource.map((n) => [n.id, n]))
 
-  // Collect existing block IDs to avoid collisions
+  // Collect existing anchor literals to avoid collisions when minting new
+  // anchors during serialization. Post-v6 anchors live in `.name`; we
+  // include slug-derived names too — worst case we dodge a collision that
+  // wouldn't have happened. Safe-conservative.
   const existingBlockIds = new Set<string>()
   for (const n of mapSource) {
-    if (n.block_id) existingBlockIds.add(n.block_id)
+    if (n.name) existingBlockIds.add(n.name)
   }
 
   const ctx: SerializeContext = {
@@ -203,7 +233,7 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   // H1 heading (merged into file node) — use same logic as serializeSection for fidelity
   if (node.content) {
     // km-markdown.inline-format-loss: prefer verbatim source when unedited
-    // (source already contains any block_id / inline props, so skip the
+    // (source already contains any anchor / inline props, so skip the
     // reconstructed appendings in that branch).
     const source = getUneditedInlineSource(node)
     if (source !== undefined) {
@@ -217,9 +247,10 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
       const ruleStr = node.rules ? serializeRules(node.rules) : ""
       const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
       let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
-      if (node.embed_of || node.block_id) headingLine = headingLine.trimEnd()
+      const anchor = anchorLiteralFor(node)
+      if (node.embed_of || anchor) headingLine = headingLine.trimEnd()
       if (node.embed_of) headingLine += ` ![[${node.embed_of}]]`
-      if (node.block_id) headingLine += ` ^${node.block_id}`
+      if (anchor) headingLine += ` ^${anchor}`
       md += headingLine + "\n\n"
     }
   }
@@ -273,14 +304,15 @@ function serializeNode(
   switch (node.type) {
     case "p": {
       // km-markdown.inline-format-loss: prefer verbatim source when unedited.
-      // The source slice already contains the ^block_id if it was present in
+      // The source slice already contains the ^anchor if it was present in
       // the original, so we skip the reconstructed append in that branch.
       const source = getUneditedInlineSource(node)
       if (source !== undefined) {
         return source + "\n\n"
       }
       let paraContent = node.content ?? ""
-      if (node.block_id) paraContent += ` ^${node.block_id}`
+      const anchor = anchorLiteralFor(node)
+      if (anchor) paraContent += ` ^${anchor}`
       return paraContent + "\n\n"
     }
 
@@ -315,7 +347,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
 
   // km-markdown.inline-format-loss: prefer verbatim inline source when unedited.
-  // The source slice already contains any block_id / inline props that would
+  // The source slice already contains any anchor / inline props that would
   // otherwise be appended separately, so we skip those reconstructions.
   const source = getUneditedInlineSource(node)
   let headingLine: string
@@ -328,11 +360,12 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
     const title = node.title || node.content || ""
     const ruleStr = node.rules ? serializeRules(node.rules) : ""
     headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
-    // Trim trailing whitespace before appending embed/block_id to avoid double spaces
+    // Trim trailing whitespace before appending embed/anchor to avoid double spaces
     // (e.g., when title is empty and markerPrefix ends with space)
-    if (node.embed_of || node.block_id) headingLine = headingLine.trimEnd()
+    const anchor = anchorLiteralFor(node)
+    if (node.embed_of || anchor) headingLine = headingLine.trimEnd()
     if (node.embed_of) headingLine += ` ![[${node.embed_of}]]`
-    if (node.block_id) headingLine += ` ^${node.block_id}`
+    if (anchor) headingLine += ` ^${anchor}`
   }
   let md = headingLine + "\n\n"
 
@@ -390,10 +423,11 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
   if (target.name || target.title) {
     const displayName = target.title ?? target.name!
     const filePath = findAncestorFilePath(target, ctx)
-    // If section has a block_id, prefer it for stability
-    if (target.block_id) {
-      if (filePath) return `${filePath}#^${target.block_id}`
-      return `^${target.block_id}`
+    // If section has an anchor (distinct from slug), prefer it for stability.
+    const anchor = anchorLiteralFor(target)
+    if (anchor) {
+      if (filePath) return `${filePath}#^${anchor}`
+      return `^${anchor}`
     }
     if (filePath) {
       return `${filePath}#${displayName}`
@@ -402,23 +436,26 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
     return displayName
   }
 
-  // Task or other inline node — prefer block_id for stable references
+  // Task or other inline node — prefer anchor for stable references
   const filePath = findAncestorFilePath(target, ctx)
 
-  // Use existing block_id
-  if (target.block_id) {
-    if (filePath) return `${filePath}#^${target.block_id}`
-    return `^${target.block_id}`
+  // Use existing anchor literal (lives in `.name` for un-headings)
+  const anchor = anchorLiteralFor(target)
+  if (anchor) {
+    if (filePath) return `${filePath}#^${anchor}`
+    return `^${anchor}`
   }
 
-  // Generate block_id on-demand if callback is available
+  // Generate an anchor on-demand if callback is available. The assigned
+  // value overwrites `.name` (anchor wins over any content-derived slug
+  // that might otherwise have populated it).
   if (ctx.assignBlockId) {
-    const blockId = generateBlockId(ctx.existingBlockIds)
-    ctx.existingBlockIds.add(blockId)
-    ctx.assignBlockId(target.id, blockId)
-    target.block_id = blockId // Local mutation for this serialization pass
-    if (filePath) return `${filePath}#^${blockId}`
-    return `^${blockId}`
+    const newAnchor = generateBlockId(ctx.existingBlockIds)
+    ctx.existingBlockIds.add(newAnchor)
+    ctx.assignBlockId(target.id, newAnchor)
+    target.name = newAnchor // Local mutation for this serialization pass
+    if (filePath) return `${filePath}#^${newAnchor}`
+    return `^${newAnchor}`
   }
 
   // Fallback: content-based reference
@@ -517,9 +554,9 @@ function serializeLi(
   const indentStr = "  ".repeat(indent)
 
   // km-markdown.inline-format-loss: prefer verbatim inline source when unedited.
-  // The source slice already contains any ^block_id, task metadata (due::, etc.),
+  // The source slice already contains any ^anchor, task metadata (due::, etc.),
   // and inline properties (key:: value) that would otherwise be reconstructed
-  // via appendTaskMetadata and the ^block_id suffix. Skip those in the source path.
+  // via appendTaskMetadata and the ^anchor suffix. Skip those in the source path.
   const source = getUneditedInlineSource(node)
   // Preserve original bullet marker char (*, +, -, or ordered like "1.") for
   // unedited list items. mdast normalizes all bullets to the same AST, so the
@@ -547,8 +584,11 @@ function serializeLi(
     line = `${indentStr}${listMarker} ${body}`
   }
 
-  // Only append ^block_id if we didn't already emit via source (source includes it).
-  if (source === undefined && node.block_id) line += ` ^${node.block_id}`
+  // Only append ^anchor if we didn't already emit via source (source includes it).
+  if (source === undefined) {
+    const anchor = anchorLiteralFor(node)
+    if (anchor) line += ` ^${anchor}`
+  }
   let md = line + "\n"
 
   // Child nodes: list items nested, block content indented under this item

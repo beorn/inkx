@@ -183,7 +183,8 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
 
   // Get the board root (parent of section) to check board-wide deduplication
   // Dedup by embed target path (stable across re-parses) instead of node ID (ULID, changes every parse)
-  // Embed paths: "filename" for file nodes, "filename#^block_id" for intra-file nodes
+  // Embed paths: "filename" for file nodes, "filename#^name" for intra-file nodes
+  // (post-v6, anchor literals live in `.name` — see storage-architecture §2.3)
   const boardRootId = section.parent_id
   // Single SQL query replaces N+1 getChildren loop (was: 1 query per section on the board)
   const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = getEmbedPathsOnBoard(
@@ -269,8 +270,8 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
 /**
  * Get the embed path for a node.
  * - File nodes: filename without .md extension (stable across re-parses)
- * - Intra-file nodes with block_id: filename#^block_id (stable)
- * - Intra-file nodes without block_id: filename#^short_id (unstable — last resort)
+ * - Intra-file nodes with anchor name: filename#^name (stable — name carries the anchor literal per §2.3)
+ * - Intra-file nodes without a name: filename#^short_id (unstable — last resort)
  *
  * @param fileAncestorCache - Optional pre-built cache to avoid per-node tree walks
  */
@@ -282,20 +283,20 @@ function getEmbedPath(node: KNode, db?: Database, fileAncestorCache?: Map<string
     return filename.replace(/\.md$/, "")
   }
 
-  // For intra-file nodes, find the parent file and use file#^block_id
+  // For intra-file nodes, find the parent file and use file#^name
   if (db && node.parent_id) {
     const fileNode = fileAncestorCache ? (fileAncestorCache.get(node.id) ?? null) : findFileAncestorSimple(db, node.id)
     if (fileNode?.fs_path) {
       const parts = fileNode.fs_path.split("/")
       const filename = (parts[parts.length - 1] || "").replace(/\.md$/, "")
-      if (node.block_id) {
-        return `${filename}#^${node.block_id}`
+      if (node.name) {
+        return `${filename}#^${node.name}`
       }
     }
   }
 
-  // Fallback: use block_id if available, otherwise short ID (unstable)
-  if (node.block_id) return `#^${node.block_id}`
+  // Fallback: use name if available, otherwise short ID (unstable)
+  if (node.name) return `#^${node.name}`
   return node.id.slice(-8)
 }
 

@@ -1200,7 +1200,6 @@ function* applyChanges(
               (data.fs_size as number) ?? null,
               (data.fs_content_hash as string) ?? null,
               (data.name as string) ?? null,
-              (data.block_id as string) ?? null,
               (data.title as string) ?? null,
               (data.md_pos as number) ?? null,
               (data.md_line as number) ?? null,

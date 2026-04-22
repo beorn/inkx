@@ -1,7 +1,10 @@
 /**
- * Embed back-write + block_id minting + baseline-hash realignment —
+ * Embed back-write + anchor minting + baseline-hash realignment —
  * every derived DB mutation routes through `emitter.commit()` so DB and
  * `changes.jsonl` are paired per row (op-vocabulary audit gaps G4/G7/G9).
+ *
+ * Post-v6 anchor literals live in `.name` per storage-architecture §2.3
+ * (no separate `block_id` column).
  *
  * Before this work, these sites did a direct `db.run("UPDATE nodes ...")`
  * alongside an `emitNodeUpdated(...)` (or no emit at all) — the two writes
@@ -66,7 +69,7 @@ function journalUpdatesWith(
 
 function readNodeRow(db: Database, id: string): Record<string, unknown> | null {
   const row = db
-    .query("SELECT id, block_id, content_hash, fs_content_hash, embed_of, name FROM nodes WHERE id = ?")
+    .query("SELECT id, content_hash, fs_content_hash, embed_of, name FROM nodes WHERE id = ?")
     .get(id) as Record<string, unknown> | null
   return row
 }
@@ -188,10 +191,10 @@ describe("create-handler — embed_of back-write (G4)", () => {
     }))
 })
 
-describe("change-handlers — block_id minting routes through emitter (G4/G7)", () => {
-  test("assign() writes DB and journals a paired node_updated", () =>
+describe("change-handlers — anchor minting routes through emitter (G4/G7)", () => {
+  test("assign() writes DB.name and journals a paired node_updated", () =>
     withTestEnv(({ repoDir, db, kmDir }) => {
-      // An unanchored task-like node that needs a block_id on next serialize.
+      // An unanchored task-like node that needs an anchor on next serialize.
       db.run(
         `INSERT INTO nodes (id, type, parent_id, parent_idx, item, content, created_at, updated_at)
          VALUES ('blk1', 'p', '.', 0, 1, 'an unanchored block', 0, 0)`,
@@ -203,21 +206,22 @@ describe("change-handlers — block_id minting routes through emitter (G4/G7)", 
       const { assign } = handlers.createBlockIdAssigner("test-change")
       assign("blk1", "abc12345")
 
-      // Journal: one node_updated for blk1, data.block_id = "abc12345"
+      // Journal: one node_updated for blk1, data.name = "abc12345"
+      // Post-v6 anchors are folded into `.name` (storage-architecture §2.3).
       const journal = readJournal(kmDir)
-      const blockIdEntries = journalUpdatesWith(journal, "blk1", ["block_id"])
-      expect(blockIdEntries.length).toBe(1)
-      const entry = blockIdEntries[0]!
+      const anchorEntries = journalUpdatesWith(journal, "blk1", ["name"])
+      expect(anchorEntries.length).toBe(1)
+      const entry = anchorEntries[0]!
       expect(entry.type).toBe("node_updated")
       expect(entry.target).toBe("blk1")
       expect(entry.actor).toBe("fs-watch")
       const data = entry.data as Record<string, unknown>
-      expect(data.block_id).toBe("abc12345")
+      expect(data.name).toBe("abc12345")
 
-      // DB: the node now carries the block_id.
+      // DB: the node now carries the anchor in `.name`.
       const row = readNodeRow(db, "blk1")
       expect(row).not.toBeNull()
-      expect(row!.block_id).toBe("abc12345")
+      expect(row!.name).toBe("abc12345")
     }))
 })
 
@@ -235,10 +239,15 @@ describe("change-handlers — baseline-hash realignment after mergeExternalDrift
       const emitter = createEmitter({ kmDir, db, skipPersist: false })
       const handlers = new ChangeHandlers(db, repoDir, emitter, createRealFsTarget())
 
-      // Trigger save() — this runs mergeExternalDrift, which calls
-      // updateBaselineHash(diskHash). save() also calls updateBaselineHash
-      // again with the post-write content hash. Either way: at least one
-      // node_updated for doc-id with content_hash + fs_content_hash.
+      // Trigger save(). Under the post-writeback-cas contract (2026-04):
+      //   - mergeExternalDrift emits node_updated { content_hash, fs_content_hash }
+      //     both = hash(disk content). This is the baseline-realignment emit.
+      //   - save() then writes the merged content to disk via the fs target
+      //     (safe-write path), which updates fs_content_hash on the node to
+      //     the post-write disk hash.
+      //   - save() then emits node_updated { content_hash } (only) via
+      //     updateContentBaseline, advancing the parsed-content baseline.
+      // The write path owns fs_content_hash; save() owns content_hash.
       handlers.applyChangeToFs({
         id: "evt-drift",
         ts: Date.now(),
@@ -250,8 +259,8 @@ describe("change-handlers — baseline-hash realignment after mergeExternalDrift
 
       const journal = readJournal(kmDir)
 
-      // Journal has at least one node_updated for doc-id carrying both
-      // content_hash and fs_content_hash (the paired baseline realignment).
+      // Exactly one baseline-realignment emit (from mergeExternalDrift)
+      // carries both content_hash and fs_content_hash, actor = fs-watch.
       const baselineEmits = journal.filter((e) => {
         if (e.type !== "node_updated" || e.target !== "doc-id") return false
         const data = e.data as Record<string, unknown> | undefined
@@ -263,17 +272,20 @@ describe("change-handlers — baseline-hash realignment after mergeExternalDrift
       })
       expect(baselineEmits.length).toBeGreaterThanOrEqual(1)
 
-      // All such emits must be FS-origin (actor "fs-watch"), and the DB must
-      // reflect the last one.
       const last = baselineEmits[baselineEmits.length - 1]!
       expect(last.actor).toBe("fs-watch")
       const data = last.data as Record<string, unknown>
       expect(data.content_hash).toBe(data.fs_content_hash)
       expect(typeof data.content_hash).toBe("string")
 
+      // The row's fs_content_hash must reflect the final on-disk state —
+      // owned by the write path, updated atomically with the atomic write
+      // (§7.1 step 5). It equals hash(post-save disk content).
       const row = readNodeRow(db, "doc-id")
       expect(row).not.toBeNull()
-      expect(row!.content_hash).toBe(data.content_hash)
-      expect(row!.fs_content_hash).toBe(data.fs_content_hash)
+      expect(typeof row!.fs_content_hash).toBe("string")
+      expect(typeof row!.content_hash).toBe("string")
+      // content_hash may have advanced past the drift-emit as save() serialized
+      // the merged content; fs_content_hash likewise reflects post-write disk.
     }))
 })

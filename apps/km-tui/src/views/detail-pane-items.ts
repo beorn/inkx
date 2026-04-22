@@ -19,7 +19,9 @@ export const KNOWN_DATA_KEYS = new Set([
   "short_id",
   "props",
   "propsRaw",
-  "block_id",
+  // `anchor` is the inline-parser key used for bare ^id (post-v6 fold,
+  // storage-architecture §2.3). Historically called "block_id".
+  "anchor",
   "metadata",
   "name",
   "title",

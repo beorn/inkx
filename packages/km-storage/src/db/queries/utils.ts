@@ -84,7 +84,6 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     fs_size: (row.fs_size ?? undefined) as number | undefined,
     fs_content_hash: (row.fs_content_hash ?? undefined) as string | undefined,
     name: (row.name ?? undefined) as string | undefined,
-    block_id: (row.block_id ?? undefined) as string | undefined,
     md_pos: (row.md_pos ?? undefined) as number | undefined,
     md_line: (row.md_line ?? undefined) as number | undefined,
     assigned_to: (row.assigned_to ?? undefined) as string | undefined,

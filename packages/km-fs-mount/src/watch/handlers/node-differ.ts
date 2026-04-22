@@ -68,7 +68,7 @@ function makeStructuralKey(parentId: string | null, ordinal: number, type: strin
 }
 
 /**
- * Simple content hash for matching nodes without block_id.
+ * Simple content hash for matching nodes without a `.name`.
  * Uses content + type as identity within a parent group.
  */
 function contentHash(node: KNode): string {
@@ -78,9 +78,12 @@ function contentHash(node: KNode): string {
 /**
  * Diff existing nodes against new nodes
  *
- * Uses a three-phase matching strategy:
- * 1. Match by block_id (strongest anchor — stable across reordering)
- * 2. Match by content hash within same parent+type (for nodes without block_id)
+ * Uses a three-phase matching strategy per storage-architecture §3.2:
+ * 1. Match by `.name` (strongest anchor — stable across reordering; folds
+ *    the pre-v6 block_id path plus the content-derived heading-slug path
+ *    into a single lookup since anchor literals and slugs now both live
+ *    in `.name`).
+ * 2. Match by content hash within same parent+type (for nodes without a name)
  * 3. Match by structural key / ordinal (last resort)
  *
  * Returns changes and a map from new IDs to existing IDs (for link remapping).
@@ -114,19 +117,28 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   )
   const newChildren = newNodes.filter((n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")))
 
-  // --- Phase 1: Match by block_id (strongest anchor) ---
-  const existingByBlockId = new Map<string, KNode>()
+  // --- Phase 1: Match by `.name` (strongest anchor) ---
+  //
+  // Keyed by (parent_id, type, name) to avoid cross-file or cross-type
+  // false positives — two siblings named "Introduction" under different
+  // parents are distinct identities.
+  const existingByName = new Map<string, KNode>()
   for (const node of existingChildren) {
-    if (node.block_id) existingByBlockId.set(node.block_id, node)
+    if (!node.name) continue
+    const key = `${node.parent_id ?? "root"}:${node.type}:${node.name}`
+    existingByName.set(key, node)
   }
 
   for (const node of newChildren) {
-    if (node.block_id && existingByBlockId.has(node.block_id)) {
-      const match = existingByBlockId.get(node.block_id)!
+    if (!node.name) continue
+    const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
+    const key = `${remappedParentId ?? "root"}:${node.type}:${node.name}`
+    const match = existingByName.get(key)
+    if (match) {
       idMap.set(node.id, match.id)
       matchedExistingIds.add(match.id)
       matchedNewIds.add(node.id)
-      existingByBlockId.delete(node.block_id)
+      existingByName.delete(key)
     }
   }
 
@@ -283,24 +295,14 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
 
 /** Fields to compare for child nodes.
  *
- * block_id must be here — when a user edits an existing file to add ` ^id`
- * to a task, kmBlockIdTransform strips the marker into node.block_id during
- * parse, but without this field in the diff, the update event never carries
- * the new block_id to the DB. See km-markdown.block-id-prod-sync. */
-const CHILD_DIFF_FIELDS = [
-  "content",
-  "md_pos",
-  "due_at",
-  "start_at",
-  "priority",
-  "embed_of",
-  "name",
-  "title",
-  "block_id",
-] as const
+ * `name` must be here — when a user edits an existing file to add ` ^id`
+ * to a task, kmBlockIdTransform strips the marker into `.name` during parse
+ * (storage-architecture §2.3), but without this field in the diff, the
+ * update event never carries the new anchor to the DB. */
+const CHILD_DIFF_FIELDS = ["content", "md_pos", "due_at", "start_at", "priority", "embed_of", "name", "title"] as const
 
 /** Fields to compare for file nodes */
-const FILE_DIFF_FIELDS = ["content", "title", "block_id"] as const
+const FILE_DIFF_FIELDS = ["content", "title"] as const
 
 /**
  * Compare specific fields between two nodes and return a changes record.

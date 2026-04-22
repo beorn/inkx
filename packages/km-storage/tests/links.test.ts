@@ -444,16 +444,16 @@ describe("Links and Backlinks", () => {
       const task = store.getAllNodes().find((n) => n.item?.task?.status != null && n.content?.includes("Task"))
       expect(task).toBeDefined()
 
-      // block_id should be stored on the node
-      expect(task!.block_id).toBe("k7m2")
+      // Anchor literal should be stored on the node's `.name` (post-v6 §2.3)
+      expect(task!.name).toBe("k7m2")
     })
 
-    test("content should not include block_id suffix", () => {
+    test("content should not include anchor suffix", () => {
       const testDir = createTestDir()
       writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Task ^k7m2")
 
       using store = new MemoryStore(testDir)
-      const task = store.getAllNodes().find((n) => n.item?.task?.status != null && n.block_id === "k7m2")
+      const task = store.getAllNodes().find((n) => n.item?.task?.status != null && n.name === "k7m2")
       expect(task).toBeDefined()
 
       // Content should have the ^k7m2 stripped

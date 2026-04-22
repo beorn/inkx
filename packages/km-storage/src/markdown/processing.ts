@@ -168,7 +168,8 @@ export function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): Resol
 
   let embedTargetId: string | null = null
   if (embedded) {
-    // Prefer block_id resolution (stable across content edits).
+    // Prefer anchor resolution (stable across content edits).
+    // Anchors (`^abc`) are folded into `.name` post-v6 — see storage §2.3.
     if (link.blockId) embedTargetId = resolver.resolveBlockId(link.blockId)
 
     if (!embedTargetId) {

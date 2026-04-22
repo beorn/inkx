@@ -54,7 +54,7 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
        |-- parse .md files in parallel (parse pool)
        |-- for each op, dispatch to handler:
        |     create-handler  -> emit node_created for file + child nodes
-       |     update-handler  -> three-phase diff (block_id → content hash → ordinal)
+       |     update-handler  -> three-phase diff (`.name` → content hash → ordinal)
        |     delete-handler  -> emit node_deleted (subtree)
        |     rename (delete) -> emit node_updated with new fs_path
        |
@@ -127,17 +127,17 @@ CREATE TABLE sync_state (
 
 ### FS → DB
 
-| Module                       | Single Responsibility                                            |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `watcher.ts`                 | Chokidar wrapper: FSEvents, debounced batching, in-flight set    |
-| `worker-bridge.ts`           | Main-thread proxy: postMessage to worker, forward events back    |
-| `worker-thread.ts`           | Worker thread: runs chokidar off main thread (avoids 20s block)  |
-| `reconcile.ts`               | Pure diff: compare FS entries to DB nodes, produce ReconcileOps  |
-| `applier.ts`                 | Dispatch ops to handlers, batch link resolution, index sync      |
-| `handlers/create-handler.ts` | Parse new .md file, emit node_created for all nodes              |
-| `handlers/update-handler.ts` | Diff old vs new nodes, emit minimal node_updated                 |
-| `handlers/delete-handler.ts` | Emit node_deleted (subtree), handle rename via path update       |
-| `handlers/node-differ.ts`    | Three-phase matching: block_id → content hash → ordinal fallback |
+| Module                       | Single Responsibility                                           |
+| ---------------------------- | --------------------------------------------------------------- |
+| `watcher.ts`                 | Chokidar wrapper: FSEvents, debounced batching, in-flight set   |
+| `worker-bridge.ts`           | Main-thread proxy: postMessage to worker, forward events back   |
+| `worker-thread.ts`           | Worker thread: runs chokidar off main thread (avoids 20s block) |
+| `reconcile.ts`               | Pure diff: compare FS entries to DB nodes, produce ReconcileOps |
+| `applier.ts`                 | Dispatch ops to handlers, batch link resolution, index sync     |
+| `handlers/create-handler.ts` | Parse new .md file, emit node_created for all nodes             |
+| `handlers/update-handler.ts` | Diff old vs new nodes, emit minimal node_updated                |
+| `handlers/delete-handler.ts` | Emit node_deleted (subtree), handle rename via path update      |
+| `handlers/node-differ.ts`    | Three-phase matching: `.name` → content hash → ordinal fallback |
 
 ### DB → FS
 
@@ -205,7 +205,7 @@ All changes carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance t
 
 - Each directory reconciled independently; one bad directory doesn't abort the rest.
 - Parse errors skip the file (no permanent stubs), logged at WARN.
-- `node-differ.ts`: three-phase matching (block_id → content hash → ordinal fallback)
+- `node-differ.ts`: three-phase matching (`.name` → content hash → ordinal fallback)
   prevents identity drift when paragraphs are inserted or reordered.
 - Displaced node detection verifies inode before deletion (prevents accidental content loss
   on concurrent renames).

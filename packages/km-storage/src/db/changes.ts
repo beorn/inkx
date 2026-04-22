@@ -73,16 +73,14 @@ function applyNodeCreated(db: Database, change: Change): void {
 
   // INSERT OR IGNORE as safety net for duplicate path-based IDs
   // This can happen if both discovery and watch handler create the same node.
-  // Must include block_id — fs-watch creates from a parsed KNode where
-  // kmBlockIdTransform already extracted ^id into node.block_id. Omitting
-  // it here drops block_id on all nodes created via the watch path.
-  // See km-markdown.block-id-prod-sync.
+  // Anchor literals (`^abc`) are folded into `name` per storage-architecture
+  // §2.3 — there is no separate block_id column since schema v6.
   const result = db.run(
     `
     INSERT OR IGNORE INTO nodes (
       id, type, fstype, parent_id, item, embed_of, parent_idx,
       fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
-      name, block_id, title, md_pos, md_line,
+      name, title, md_pos, md_line,
       list_marker, task_marker,
       task_status, assigned_to, due_at, start_at, priority,
       content, content_hash, data,
@@ -90,7 +88,7 @@ function applyNodeCreated(db: Database, change: Change): void {
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?,
       ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?,
@@ -112,7 +110,6 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.fs_size as number) ?? null,
       (data.fs_content_hash as string) ?? null,
       (data.name as string) ?? null,
-      (data.block_id as string) ?? null,
       (data.title as string) ?? null,
       (data.md_pos as number) ?? null,
       (data.md_line as number) ?? null,

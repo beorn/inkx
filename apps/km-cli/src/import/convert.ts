@@ -361,7 +361,8 @@ function itemToNodes(
         id: item.sourceId,
         type: "hr",
         parent_id: parentId,
-        block_id: item.sourceId,
+        // External source ID → `.name` (post-v6 fold, storage-architecture §2.3).
+        name: item.sourceId,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
@@ -417,7 +418,9 @@ function itemToNodes(
     item: { task: { marker: getMarkerForStatus(status), status } },
     parent_id: parentId,
     content: buildTaskContent(item, currentProject, userSlugMap),
-    block_id: item.sourceId,
+    // External source ID (Asana GID etc.) → `.name` post-v6 (storage §2.3).
+    // For anchored headings, anchor wins over slug — same rule applies here.
+    name: item.sourceId,
     assigned_to: item.assignee
       ? `@${userSlugMap ? resolveUserSlug(item.assignee, userSlugMap) : slugify(item.assignee)}`
       : undefined,
@@ -918,10 +921,11 @@ function linkRecurringInstances(project: ImportProject, nodes: KNode[]): void {
 
   if (recurringItems.length === 0) return
 
-  // Build a map from sourceId → KNode for fast lookup
+  // Build a map from sourceId → KNode for fast lookup. Source IDs live in
+  // `.name` post-v6 (storage-architecture §2.3).
   const nodeById = new Map<string, KNode>()
   for (const node of nodes) {
-    if (node.block_id) nodeById.set(node.block_id, node)
+    if (node.name) nodeById.set(node.name, node)
   }
 
   // Group instances by template GID

@@ -1,25 +1,26 @@
 /**
- * E2E roundtrip test for km-markdown.block-id-prod-sync.
+ * E2E roundtrip test for anchor (`^id`) persistence via fs-watch.
  *
- * The fs-watch update path (user edits a file to add ` ^id` to a task)
- * went through node-differ + applyNodeCreated/applyNodeUpdated, both of
- * which silently dropped block_id. Fixed 2026-04-14:
+ * Historically the fs-watch update path (user edits a file to add ` ^id`
+ * to a task) went through node-differ + applyNodeCreated/applyNodeUpdated,
+ * both of which silently dropped the anchor. Schema v6 folds `block_id`
+ * into `.name` per storage-architecture §2.3; this test guards the same
+ * pipeline but asserts the anchor ends up on `node.name`.
  *
- * - node-differ.ts CHILD_DIFF_FIELDS now includes block_id
- * - db/changes.ts applyNodeCreated now writes block_id in the INSERT
- *
- * This test exercises the actual broken path: writeFile → syncFromFs →
- * verify the DB has block_id populated.
+ * Coverage:
+ * - node-differ.ts CHILD_DIFF_FIELDS includes `name`
+ * - db/changes.ts applyNodeCreated writes `name` in the INSERT
+ * - fs-watch: writeFile → syncFromFs → verify DB has `.name` populated
  */
 
 import { describe, test, expect } from "vitest"
-import { writeFileSync, mkdirSync } from "fs"
+import { writeFileSync } from "fs"
 import { join } from "path"
 import { getAllNodes, withTestEnv } from "@km/storage"
 import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
-describe("block-id roundtrip via fs-watch", () => {
-  test("create file with task ^id → block_id persisted in DB", () =>
+describe("anchor roundtrip via fs-watch (name field)", () => {
+  test("create file with task ^id → anchor persisted as .name in DB", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const manager = createTestSync(db, repoDir, {
         debounceFs: 0,
@@ -42,13 +43,13 @@ describe("block-id roundtrip via fs-watch", () => {
       const aprTask = nodes.find((n) => n.content === "apr15 ca ftb payment")
 
       expect(taskOne, "task one node should exist").toBeDefined()
-      expect(taskOne?.block_id, `task one should have block_id='testid', got ${taskOne?.block_id}`).toBe("testid")
+      expect(taskOne?.name, `task one should have name='testid', got ${taskOne?.name}`).toBe("testid")
 
       expect(aprTask, "apr15 task should exist").toBeDefined()
-      expect(aprTask?.block_id).toBe("apr15-ca-ftb")
+      expect(aprTask?.name).toBe("apr15-ca-ftb")
     }))
 
-  test("edit existing file to add ^id → block_id persisted via update path", () =>
+  test("edit existing file to add ^id → anchor persisted via update path", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const manager = createTestSync(db, repoDir, {
         debounceFs: 0,
@@ -60,11 +61,11 @@ describe("block-id roundtrip via fs-watch", () => {
       writeFileSync(path, "# Tasks\n\n- [ ] existing task\n")
       await manager.syncFromFs()
 
-      // Verify initial state: task exists, no block_id
+      // Verify initial state: task exists, no anchor name
       let nodes = getAllNodes(db)
       let task = nodes.find((n) => n.content === "existing task")
       expect(task).toBeDefined()
-      expect(task?.block_id ?? null).toBeNull()
+      expect(task?.name ?? null).toBeNull()
 
       // Edit to add ^id suffix
       writeFileSync(path, "# Tasks\n\n- [ ] existing task ^added-later\n")
@@ -73,10 +74,10 @@ describe("block-id roundtrip via fs-watch", () => {
       nodes = getAllNodes(db)
       task = nodes.find((n) => n.content === "existing task")
       expect(task, "task should still exist after edit").toBeDefined()
-      expect(task?.block_id, "block_id should be updated via diff path").toBe("added-later")
+      expect(task?.name, "name should be updated via diff path").toBe("added-later")
     }))
 
-  test("hyphenated and numeric block ids both persist", () =>
+  test("hyphenated and numeric anchors both persist as .name", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const manager = createTestSync(db, repoDir, {
         debounceFs: 0,
@@ -97,9 +98,9 @@ describe("block-id roundtrip via fs-watch", () => {
       await manager.syncFromFs()
 
       const byContent = (c: string) => getAllNodes(db).find((n) => n.content === c)
-      expect(byContent("alpha")?.block_id).toBe("simple")
-      expect(byContent("beta")?.block_id).toBe("hyphenated-id")
-      expect(byContent("gamma")?.block_id).toBe("with_underscore")
-      expect(byContent("delta")?.block_id).toBe("123456789")
+      expect(byContent("alpha")?.name).toBe("simple")
+      expect(byContent("beta")?.name).toBe("hyphenated-id")
+      expect(byContent("gamma")?.name).toBe("with_underscore")
+      expect(byContent("delta")?.name).toBe("123456789")
     }))
 })

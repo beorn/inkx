@@ -37,8 +37,15 @@
  *       fs_content_hash is the secondary reconciliation signal (§3.3). All
  *       three are additive / nullable — existing rows stay valid until the
  *       reconciler fills them in on the next scan.
+ *   6 — nodes: fold `block_id` into `name` per §2.3 of the storage
+ *       architecture doc ("one `.name` per node, whichever the markdown
+ *       literally contains or would canonically render"). Migration rule:
+ *       anchor wins over content-derived slug — `UPDATE nodes SET name =
+ *       block_id WHERE block_id IS NOT NULL AND block_id != ''` before
+ *       `ALTER TABLE nodes DROP COLUMN block_id`. Also drops
+ *       `idx_nodes_block_id`. No separate block-id / anchor field remains.
  */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -80,7 +87,6 @@ CREATE TABLE IF NOT EXISTS nodes (
 
   -- Identity
   name TEXT,
-  block_id TEXT,  -- On-demand stable block ID (^block-id)
   title TEXT,
 
   -- Markdown
@@ -128,7 +134,6 @@ CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
-CREATE INDEX IF NOT EXISTS idx_nodes_block_id ON nodes(block_id);
 
 -- Full-text search
 -- unicode61 tokenchars keeps @#+~ as part of tokens so sigil queries like
@@ -491,8 +496,51 @@ function migrateVersioned(db: import("bun:sqlite").Database): MigrateResult {
   // creates the new-shape table). Nothing to do here beyond recording the
   // version bump; the DATA_VERSION=2 rebuild populates rows from re-parse.
 
+  // v5 → v6: fold `block_id` into `name` per storage-architecture.md §2.3.
+  // "if a ^anchor is present in markdown, it IS the node's name." Anchor
+  // wins over the content-derived slug — existing block_id values move to
+  // name (overwriting any prior content-derived slug) before the column is
+  // dropped. Idempotent via column-existence probe.
+  if (current < 6) {
+    migrateBlockIdToName(db)
+  }
+
   writeSchemaVersion(db, SCHEMA_VERSION)
   return result
+}
+
+/**
+ * Fold `block_id` into `name` (v5 → v6).
+ *
+ * Per hub/km/storage-architecture.md §2.3: there is one `.name` per node,
+ * the string that appears in external references. Anchored blocks/headings
+ * (`... ^abc`) store the anchor literal as `.name`; un-anchored nodes store
+ * the content-derived slug. Pre-v6 these were split across `name` + `block_id`;
+ * v6 drops the second column and lets anchor win per §2.4 migration rule.
+ *
+ * SQLite 3.35+ supports `ALTER TABLE ... DROP COLUMN` natively. Bun bundles a
+ * recent SQLite, so the native path is used. Idempotent — probe the column
+ * list and skip the whole function when `block_id` is already gone.
+ */
+function migrateBlockIdToName(db: import("bun:sqlite").Database): void {
+  const nodesExists = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes'").get()
+  if (!nodesExists) return
+
+  const cols = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  const hasBlockId = cols.some((c) => c.name === "block_id")
+  if (!hasBlockId) return // Already migrated
+
+  db.run("BEGIN IMMEDIATE")
+  try {
+    // Anchor wins over content-derived slug (§2.3).
+    db.run("UPDATE nodes SET name = block_id WHERE block_id IS NOT NULL AND block_id != ''")
+    db.run("DROP INDEX IF EXISTS idx_nodes_block_id")
+    db.run("ALTER TABLE nodes DROP COLUMN block_id")
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
 }
 
 /**
@@ -673,7 +721,6 @@ export const NODE_COLUMNS = new Set([
   "fs_size",
   "fs_content_hash",
   "name",
-  "block_id",
   "title",
   "md_pos",
   "md_line",
