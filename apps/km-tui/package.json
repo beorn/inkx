@@ -12,6 +12,7 @@
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
+    "@km/fs-mount": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",

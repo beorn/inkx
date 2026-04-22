@@ -20,7 +20,8 @@ import {
   type Agent,
   type AgentStatus,
 } from "@km/agent"
-import { resolvePathArg, findKmRootFromPath } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
+import { findKmRootFromPath } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 

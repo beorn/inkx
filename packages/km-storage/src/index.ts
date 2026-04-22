@@ -57,12 +57,6 @@ export type {
   StoreChange,
 } from "./data-store.ts"
 
-// FileTree interface and factories (simple file I/O abstraction)
-// See: docs/00-principles.md
-export { createDiskFileTree, createMemFileTree } from "@km/fs-mount"
-
-export type { FileTree } from "@km/fs-mount"
-
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
 export {
@@ -126,10 +120,8 @@ export type { KLink, KLinkRel, SearchResult, QueryAST, DbOps, EmbedChildOpts } f
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store/store.ts"
 export { createSQLiteStore } from "./store/sqlite.ts"
-export { createFsStore } from "@km/fs-mount"
 
 export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
-export type { FsStore, FsStoreOptions } from "@km/fs-mount"
 
 // Unified repo loading
 export { readChanges, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
@@ -180,18 +172,6 @@ export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, crea
 
 export type { RulesProgress, RuleContext } from "./db/rules.ts"
 
-// Content-addressable store
-export {
-  getBlobsPath,
-  hashContent,
-  storeContent,
-  loadContent,
-  hasContent,
-  shouldStoreInCas,
-  storeContentAuto,
-  loadContentAuto,
-} from "@km/fs-mount"
-
 // Query language
 export { parseQuery, resolveDateQuery } from "./query.ts"
 
@@ -235,66 +215,6 @@ export {
 } from "./markdown/pipeline.ts"
 
 export type { ParseSource, ParsedFile, AppliedFile, PipelineOptions } from "./markdown/pipeline.ts"
-
-// Path utilities for filesystem-based node resolution
-export {
-  isExplicitPath,
-  findKmRootFromPath,
-  resolveFsPath,
-  getEffectiveRoot,
-  resolvePathArg,
-  toRelativeFsPath,
-  toAbsoluteFsPath,
-} from "@km/fs-mount"
-
-export type { PathResolution, ResolvedPathArg } from "@km/fs-mount"
-
-// ID utilities for consistent node ID generation
-export { generatePathBasedId } from "@km/fs-mount"
-
-// Watch and sync (re-exported from @km/fs-mount for backwards compatibility)
-export {
-  FileSystemWatcher,
-  scanDirectory,
-  scanDirectoryRecursive,
-  withSync,
-  withFsWriter,
-  reconcileDirectory,
-  applyReconcileOps,
-  applyReconcileOpsAsync,
-  getParentNodeId,
-  DEFAULT_IGNORE_PATTERNS,
-  HIDDEN_FILE_PATTERN,
-  readGitignore,
-  readKmignore,
-  readObsidianIgnore,
-  getIgnorePatterns,
-  createIgnoreMatcher,
-  matchesPattern,
-  shouldIgnore,
-  isHiddenFile,
-  WriteQueue,
-} from "@km/fs-mount"
-
-export type {
-  WatcherConfig,
-  FileChange,
-  Sync,
-  SyncConfig,
-  SyncCallbacks,
-  SyncableRepo,
-  ReconcileOp,
-  PendingWrite,
-  WriteQueueConfig,
-  ConflictInfo,
-  WatcherStatus,
-  WatcherState,
-  WatcherInterface,
-  SyncData,
-  SyncFromFsResult,
-  PatternMatcher,
-  PatternMatcherOptions,
-} from "@km/fs-mount"
 
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"

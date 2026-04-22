@@ -12,7 +12,8 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { resolvePathArg, findProject } from "@km/storage"
+import { findProject } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"

@@ -406,7 +406,8 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
     // → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, withSync } = await import("@km/storage")
+    const { withTestEnv, getAllNodes } = await import("@km/storage")
+    const { withSync } = await import("@km/fs-mount")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
@@ -469,7 +470,8 @@ describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)
   // This test was written against an older contract. Re-enable when withSync's
   // observability story is redesigned (see km-storage.*).
   test.skip("withSync wraps emitter.apply (apply !== commit after decoration)", async () => {
-    const { withTestEnv, withSync: withSyncFn } = await import("@km/storage")
+    const { withTestEnv } = await import("@km/storage")
+    const { withSync: withSyncFn } = await import("@km/fs-mount")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Before wiring, apply and commit are the same function

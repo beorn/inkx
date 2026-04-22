@@ -8,7 +8,7 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { resolvePathArg } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../../load-repo.ts"
 import { getMarkerForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"

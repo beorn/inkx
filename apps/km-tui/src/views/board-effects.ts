@@ -4,7 +4,7 @@
 import type { UIState, SyncEvent } from "../state/ui-reducer.ts"
 import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
-import type { WatcherStatus } from "@km/storage"
+import type { WatcherStatus } from "@km/fs-mount"
 import { kmEvents, type ToastQueue } from "@km/core"
 import { notify } from "@silvery/ag-react"
 

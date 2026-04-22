@@ -15,7 +15,7 @@ import { restoreTerminalState } from "@silvery/ag-term/runtime"
 import type { FullLogger } from "../logger-types.ts"
 import { promptMemoryModeInit } from "../memory-mode-prompt.ts"
 import { initKmDirectory } from "./init.ts"
-import { findKmRootFromPath } from "@km/storage"
+import { findKmRootFromPath } from "@km/fs-mount"
 
 const debug = createLogger("km:cli:view") as FullLogger
 const log = createLogger("km") as FullLogger
@@ -72,14 +72,19 @@ export const viewCommand = new Command("view")
 
       // Import modules
       let storageModule: typeof import("@km/storage")
+      let fsMountModule: typeof import("@km/fs-mount")
       let tuiModule: typeof import("@km/tui")
       {
         using _ = startup.span("import-modules")
-        ;[storageModule, tuiModule] = await Promise.all([import("@km/storage"), import("@km/tui")])
+        ;[storageModule, fsMountModule, tuiModule] = await Promise.all([
+          import("@km/storage"),
+          import("@km/fs-mount"),
+          import("@km/tui"),
+        ])
       }
 
       // Resolve path and set debug root
-      const resolved = storageModule.resolvePathArg(root, getRootPath())
+      const resolved = fsMountModule.resolvePathArg(root, getRootPath())
       setDebugRepoRoot(resolved.repoRoot)
 
       // km-fast-md.7: Use discoverOnly for interactive mode (instant render)

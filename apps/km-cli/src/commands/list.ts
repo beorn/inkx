@@ -14,7 +14,8 @@ import { Command, intRange } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { resolvePathArg, type Repo } from "@km/storage"
+import { type Repo } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"

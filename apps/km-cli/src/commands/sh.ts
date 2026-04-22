@@ -18,7 +18,8 @@ import { homedir } from "os"
 import { join } from "path"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
-import { resolvePathArg, type Repo } from "@km/storage"
+import { type Repo } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 // Bound version with store dependency (closure will be set after repo init)

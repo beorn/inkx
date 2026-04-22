@@ -9,7 +9,8 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { join } from "path"
-import { parseTaskMetadata, extractTags, extractMentions, resolvePathArg } from "@km/storage"
+import { parseTaskMetadata, extractTags, extractMentions } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 

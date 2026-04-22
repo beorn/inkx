@@ -16,7 +16,7 @@ export interface SyncEvent {
  */
 
 import type { ViewMode } from "../types.ts"
-import type { WatcherStatus } from "@km/storage"
+import type { WatcherStatus } from "@km/fs-mount"
 import type { PerPaneUIFields } from "../board/board-types.ts"
 
 // =============================================================================

@@ -12,7 +12,7 @@ import { Command, type OptionValues } from "@silvery/commander"
 import { existsSync, statSync } from "fs"
 import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
-import { findKmRootFromPath } from "@km/storage"
+import { findKmRootFromPath } from "@km/fs-mount"
 
 const term = createTerm(process)
 

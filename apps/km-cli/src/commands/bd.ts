@@ -24,7 +24,8 @@ import {
   type Issue,
   type IssueFilter,
 } from "@km/beads"
-import { resolvePathArg, loadConfigObject } from "@km/storage"
+import { loadConfigObject } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"

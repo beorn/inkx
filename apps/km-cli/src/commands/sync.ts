@@ -15,15 +15,9 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
-import {
-  withSync,
-  type SyncableRepo,
-  createEmitter,
-  findKmRootFromPath,
-  readChanges,
-  SCHEMA,
-  ensureRepoRootNode,
-} from "@km/storage"
+import { createEmitter, readChanges, SCHEMA, ensureRepoRootNode } from "@km/storage"
+import { withSync } from "@km/fs-mount"
+import { type SyncableRepo, findKmRootFromPath } from "@km/fs-mount"
 import { formatPath } from "../utils/format-path.ts"
 
 // ============================================

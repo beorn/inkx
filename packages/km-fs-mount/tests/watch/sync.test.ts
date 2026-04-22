@@ -10,7 +10,8 @@ import { describe, test, expect } from "vitest"
 import { mkdirSync, existsSync, writeFileSync, readFileSync, readdirSync } from "fs"
 import { join, relative } from "path"
 
-import { getNodeByPath, getAllNodes, getAncestors, type ConflictInfo } from "@km/storage"
+import { getNodeByPath, getAllNodes, getAncestors } from "@km/storage"
+import type { ConflictInfo } from "../../src/index.ts"
 import { createSyncState } from "../../src/watch/sync-state.ts"
 
 /** Convert absolute path to relative (matching DB storage format) */

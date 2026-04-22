@@ -18,7 +18,8 @@ import {
 } from "@km/beads"
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
-import { resolvePathArg, loadConfigObject, getOriginalBeadsConfig } from "@km/storage"
+import { loadConfigObject, getOriginalBeadsConfig } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 
 /** Real filesystem implementation for BeadsFs DI */
 const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }

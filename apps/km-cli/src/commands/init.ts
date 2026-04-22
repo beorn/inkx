@@ -21,7 +21,8 @@ const term = createTerm(process)
 import { steps } from "@silvery/ag-react/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
-import { withSync, findKmRootFromPath } from "@km/storage"
+import { withSync } from "@km/fs-mount"
+import { findKmRootFromPath } from "@km/fs-mount"
 import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 

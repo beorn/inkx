@@ -15,13 +15,9 @@ import { bench, describe, beforeAll, afterAll } from "vitest"
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import {
-  reconcileDirectory,
-  applyReconcileOps,
-  scanDirectory,
-  createEmitter,
-  SCHEMA,
-} from "@km/storage"
+import { createEmitter, SCHEMA } from "@km/storage"
+import { reconcileDirectory } from "@km/fs-mount"
+import { applyReconcileOps, scanDirectory } from "@km/fs-mount"
 import { Database } from "bun:sqlite"
 
 // ============================================================================

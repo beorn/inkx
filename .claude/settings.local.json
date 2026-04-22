@@ -88,7 +88,15 @@
       "Bash(git submodule *)",
       "Bash(git rm *)",
       "Bash(mv /Users/beorn/.config/claude-profiles/d@delei.org/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-3plus-shared-submodule.md /Users/beorn/.config/claude-profiles/d@delei.org/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)",
-      "Read(//Users/beorn/.claude/projects/-Users-beorn-Code-pim-km/memory/**)"
+      "Read(//Users/beorn/.claude/projects/-Users-beorn-Code-pim-km/memory/**)",
+      "Bash(hf:*)",
+      "Bash(hf download:*)",
+      "Bash(mlx_lm:*)",
+      "Bash(mlx_lm.generate:*)",
+      "Bash(mlx_lm.server:*)",
+      "Bash(mlx_lm.chat:*)",
+      "Bash(mlx_lm.manage:*)",
+      "Bash(mkdir -p /Users/beorn/.lmstudio/models/mlx-community)"
     ],
     "deny": [],
     "ask": []

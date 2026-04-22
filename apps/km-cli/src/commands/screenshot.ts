@@ -36,8 +36,9 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = (options.format ?? "text") as OutputFormat
 
     // Import modules
-    const [storageModule, coreModule, cliModule, tuiModule, silverytModule] = await Promise.all([
+    const [storageModule, fsMountModule, coreModule, cliModule, tuiModule, silverytModule] = await Promise.all([
       import("@km/storage"),
+      import("@km/fs-mount"),
       import("@km/core"),
       import("../program.ts"),
       import("@km/tui"),
@@ -45,7 +46,7 @@ export const screenshotCommand = new Command("screenshot")
     ])
 
     // Resolve path and load repo
-    const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
+    const resolved = fsMountModule.resolvePathArg(root, cliModule.getRootPath())
     setDebugRepoRoot(resolved.repoRoot)
 
     // Load repo (full parse for accurate screenshot)

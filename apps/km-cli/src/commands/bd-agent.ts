@@ -19,7 +19,7 @@ import {
   type Agent,
 } from "@km/agent"
 import { queryReady, getIssue } from "@km/beads"
-import { resolvePathArg } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 

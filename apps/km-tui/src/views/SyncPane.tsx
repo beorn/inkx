@@ -8,7 +8,7 @@
 import React from "react"
 import { Box, Text, Small } from "@silvery/ag-react"
 import type { SyncEvent } from "../state/ui-reducer.ts"
-import type { WatcherStatus } from "@km/storage"
+import type { WatcherStatus } from "@km/fs-mount"
 
 const PANE_HEIGHT = 6
 

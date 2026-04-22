@@ -150,6 +150,7 @@ export async function createBoardTest(
 
   // Import storage module
   const storageModule = await import("@km/storage")
+  const fsMountModule = await import("@km/fs-mount")
 
   // Load repo based on input type
   let repo: Repo
@@ -170,7 +171,7 @@ export async function createBoardTest(
   let rootNodeId: string | undefined
   if (file && typeof repoOrPath === "string") {
     // File references only work with real repos (not fake repos)
-    const resolved = storageModule.resolvePathArg(file, repoPath)
+    const resolved = fsMountModule.resolvePathArg(file, repoPath)
     if (resolved.nodeRef) {
       // resolveNode converts filename/path/ID to actual node
       const node = repo.resolveNode(resolved.nodeRef)

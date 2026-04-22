@@ -9,7 +9,8 @@ import { createTerm } from "@silvery/ag-react"
 import { join } from "path"
 
 const term = createTerm(process)
-import { resolvePathArg, type Repo, type KLink } from "@km/storage"
+import { type Repo, type KLink } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"

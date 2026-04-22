@@ -13,7 +13,8 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
+import { getNextOccurrence, naturalToRRule } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getMarkerForStatus } from "@km/core"

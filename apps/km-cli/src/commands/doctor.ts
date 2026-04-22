@@ -17,15 +17,8 @@ import { dirname, join, resolve } from "path"
 const log = createLogger("km:cli:doctor")
 
 import { Database } from "bun:sqlite"
-import {
-  compactChanges,
-  createRepo,
-  findKmRootFromPath,
-  getStoreHealth,
-  parseDeferredAsync,
-  type Repo,
-  vacuumDb,
-} from "@km/storage"
+import { compactChanges, createRepo, getStoreHealth, parseDeferredAsync, type Repo, vacuumDb } from "@km/storage"
+import { findKmRootFromPath } from "@km/fs-mount"
 import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 import { getBrokenLinks, getBrokenLinkCount, printBrokenLinks } from "./broken-links.ts"

@@ -8,7 +8,8 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { resolvePathArg, loadConfigObject } from "@km/storage"
+import { loadConfigObject } from "@km/storage"
+import { resolvePathArg } from "@km/fs-mount"
 
 export const configCommand = new Command("config").description("View and modify beads configuration")
 
