@@ -2,7 +2,7 @@
 
 Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-22 (v3 — dual-pro round-2 consistency pass + named Phase A→E pathway: FS-truth → op log → DB-truth → CRDT → sync platform. Inode reordered to primary Step 1, path-of-`.name` to Step 2 per user direction).
+Last revised: 2026-04-22 (v3 — dual-pro round-2 consistency pass + named Phase A→E pathway: FS-truth → op log → DB-truth → CRDT → sync platform. Inode reordered to primary Step 1, path-of-`.name` to Step 2 per user direction. Content-hash + parent-position combined for disambiguation. ULID-in-markdown softened from "never" to "not generated; recognized if written by hand." Phase A multi-file journal dropped — wait for Phase B op log. Phase B clarified as "persist the existing apply() stream.").
 
 ---
 
@@ -72,7 +72,7 @@ For the current implementation phase:
 
 - **FS is the canonical storage for user content.** `.md` files are where the data lives.
 - **DB is a derived cache** over the FS. Everything in DB can be regenerated from FS (modulo session state — see §1.3).
-- **Internal ULIDs are join keys, not identity.** They never appear in markdown.
+- **Internal ULIDs are join keys, not identity.** km never *generates* a ULID into markdown during writeback — new content that km authors has no ULIDs, because it doesn't need them (reconciliation handles identity via inode + `.name`). If a user or external tool writes a ULID-shaped reference (e.g., `[[01HKXB2W...]]`) by hand, km will recognize and resolve it directly as a NodeId lookup — they are permissible, just not produced. Markdown stays as pure as it can without actively rejecting input.
 - **On conflict, FS wins.** External edits (vim, Obsidian, git pull) are trusted; km's in-flight DB state is disposable.
 - **Zero metadata injection into user files.** km writes no hidden IDs, no frontmatter additions, no inline ID tags, no HTML comments.
 - **Obsidian interop preserved.** Wiki-links, block anchors, headings, tags all work as Obsidian expects.
@@ -120,7 +120,7 @@ Session state is **not authoritative**. It's a fast-path for convenience. FS is 
 | **External** | `.md` on disk | users + other tools (Obsidian, nvim, git) | wiki-links, anchors, tags — human-readable, Obsidian-native |
 | **Internal** | `.km/state.db` | km only | DB joins, indexes, session state — opaque ULID handle |
 
-**Internally, the DB resolves paths-of-`.name` to ULIDs.** Externally, markdown contains only `.name` values — there are no ULIDs anywhere in `.md` files.
+**Internally, the DB resolves paths-of-`.name` to ULIDs.** Externally, markdown normally contains only `.name` values. km never emits ULIDs during writeback — the identity mechanism doesn't need them in the file. But if a user writes a ULID-shaped reference by hand (`[[01HKXB2W...]]`), km recognizes and resolves it as a direct NodeId lookup. The rule is "don't generate them; handle them when seen; keep markdown pure by default," not "reject them."
 
 ### 2.2 Tree-of-names model
 
@@ -239,13 +239,16 @@ Between Step 1 and Step 2 we cover the 90%+ case: files unchanged, files edited 
 
 ### 3.3 Secondary signals when primaries don't match
 
-When neither inode nor path-of-`.name` finds a DB row, fall through in this order:
+When neither inode nor path-of-`.name` finds a DB row, fall through in this order. **Content-hash and position are combined** to disambiguate — either alone is weaker than the pair:
 
 | Signal | Scope | Fires when | Strength | Transport fragility |
 |---|---|---|---|---|
-| **File content hash** (sha256 of full file bytes) | File-level | Path + inode both changed, body byte-identical → cross-FS or post-git rename | Strong; survives git + cross-FS | Fails on rename-with-any-edit + on empty/duplicate files |
-| **Parent-scope uniqueness** | Within-file, heading | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged | Intra-file only |
-| **Position among siblings** | Within-file, block | Unnamed block edited; order preserved | Weak; cosmetic session-state only | Intra-file only |
+| **Content-hash + parent-position** (composite) | File-level | Path + inode both changed, but byte-identical file sits at similar position in the tree → cross-FS or post-git rename | Strong when both match; disambiguates byte-identical duplicates | Fails on rename-with-any-edit |
+| **Content hash alone** (sha256 of full file bytes) | File-level | Path + inode both changed, body byte-identical, position ambiguous | Medium — can collide on duplicate/empty files | Fails on rename-with-any-edit |
+| **Parent-scope uniqueness** (heading with no anchor) | Within-file, heading | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged | Intra-file only |
+| **Position among siblings** (unnamed block) | Within-file, block | Unnamed block edited; order preserved | Weak; cosmetic session-state only | Intra-file only |
+
+**Why combine content-hash with position**: a byte-identical empty file, or two short notes that happen to match, confuse content-hash alone. Tying it to parent-directory + sibling position makes the match specific: "same content AND same slot in the tree" is strong; "same content, different slot" is a coincidence to ignore.
 
 **Why `.name` isn't primary-primary** despite surviving every transport: when we *do* have inode, inode is stronger (it's OS identity, not a name that could collide). `.name` is the fallback that's always available; inode is the fast path that's often available.
 
@@ -437,12 +440,16 @@ Rewrites only the exact byte ranges of changed regions. Noisy git diffs are a us
 
 **Gating rule**: the minimal-patching serializer ships only after the fidelity corpus (§8.P5) proves round-trip stability. See §8 for the revised package ordering.
 
-### 7.3 Multi-file atomicity
+### 7.3 Multi-file atomicity (deferred to Phase B)
 
-For operations spanning multiple files (rename + backlink update cascade):
-- Write operations stored in a local journal (`.km/journal/pending/`)
-- Journal applied with best-effort + resumable-on-crash
-- `bun km doctor` inspects journal + surfaces unresolved items
+**Decision**: Phase A (today) does NOT ship a resumable-on-crash multi-file journal. Operations spanning multiple files (rename + backlink update cascade) apply per-file; if a crash interrupts a cascade mid-way, the FS is left in a partial state until `km doctor rebuild-backlinks` repairs it.
+
+Rationale:
+- A resumable write-ahead log for markdown is a solo-dev tar pit (round-2 review) — the failure modes are many and the test surface is huge.
+- Phase B (§9) introduces a semantic op log that handles multi-file atomicity *properly* via op replay — not a journal-alongside-markdown, but a semantic record that the existing state-machine code already produces.
+- `km doctor rebuild-backlinks` is a cheap and sufficient recovery for Phase A's scenarios (backlink index is derived; regeneration is deterministic).
+
+If real-world Phase A usage surfaces partial-cascade corruption that `doctor` can't reason about, reopen this decision before Phase B lands. Decision recorded at `km-storage.multi-file-atomicity-decision` (closed).
 
 ### 7.4 Watcher echo suppression
 
@@ -481,9 +488,7 @@ Corpus ships first; serializer only lands once corpus is green. Order within P3:
 2. **Minimal patching serializer** (§7.2) — gated on corpus
 3. **Content-as-CAS contract** (§7.1) — gated on serializer
 4. **Watcher echo suppression** (§7.4) — hash-compare only
-5. **Multi-file atomicity** (§7.3) — see open design question below
-
-**Open design question (flagged, needs user decision)**: the reviewer argues multi-file journal / resumable-on-crash is a solo-dev distraction and recommends v1 ship without multi-file atomicity (tolerate partial cascades + provide `km doctor rebuild-backlinks`). The alternative keeps the journal but with smaller scope. No decision made yet.
+5. **No multi-file journal in Phase A** (§7.3) — decided. Multi-file atomicity waits for Phase B's op log. Phase A tolerates partial cascades + uses `km doctor rebuild-backlinks` for recovery.
 
 ### P4. Federation (`km-storage.federation`)
 - `.km/config.toml` per repo with stable `RepoId`
@@ -538,7 +543,7 @@ Shipping Phase A gives: a working km that is Obsidian-compatible, scales to 100k
 
 #### Phase B — Semantic op log alongside FS (Tier 2)
 
-Add an append-only semantic op log (`.km/oplog/`) that records edits as (insert heading, delete block, move subtree, set anchor, …) ops in addition to the markdown write. FS remains truth; the log is a parallel authoritative record of *intent*.
+**Phase B is "persist the existing `apply()` stream."** km already reduces `(action, state) → [state, effects]` via TEA-style state machines (see `docs/design/tea.md`); every user edit is already an op flowing through `apply()` before it touches the serializer. Phase B adds an append-only `.km/oplog/` that records those same ops to disk in addition to reducing them into state. FS remains truth; the log is a parallel authoritative record of *intent*.
 
 | Unlock | Why |
 |---|---|
@@ -546,9 +551,9 @@ Add an append-only semantic op log (`.km/oplog/`) that records edits as (insert 
 | Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff |
 | Cleaner sync merge | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
 
-Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus.
+Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, **and the op vocabulary itself** (already exists via the commands/state-machine layer — Phase B doesn't invent it, just persists it).
 
-**New work for B**: op vocabulary, op-log format + compaction, op-to-serializer codepath (already exists — ops drive the serializer today), op-log replay for recovery.
+**New work for B**: op-log file format + compaction strategy, op-log append path wired alongside serializer write, op-log replay for recovery, op-log dedup/ordering semantics.
 
 **Caveat surfaced in round-2 review**: Phase B under FS-truth is a "DB-truth gateway drug." Once ops are the authoritative intent record, FS starts looking like a projection. That's fine — that's literally the pathway. Phase B makes the Phase C flip *smaller*, not larger.
 
@@ -660,7 +665,7 @@ Active (revised ordering per §8):
 | `km-storage.identity-recovery-cascade` | P1, narrowed | §3 paths-of-`.name` (primary) + file-level heuristics (secondary). Structural similarity removed from scope. No markdown pollution. |
 | `km-storage.writeback-cas` (merged with corpus) | P1 | §8.P3 — corpus gates serializer gates CAS |
 | `km-storage.markdown-fidelity-corpus` | P1 (subsumed into `writeback-cas` P3) | §8.P3 step 1 — must land before serializer |
-| `km-storage.multi-file-atomicity-decision` (new, flagged) | P1 | §8.P3 open question: ship v1 without multi-file journal? |
+| `km-storage.multi-file-atomicity-decision` | closed | Decided 2026-04-22: Phase A ships without the journal; multi-file atomicity waits for Phase B's op log |
 | `km-storage.federation` | P2 | §8.P4 |
 | `km-storage.session-state-split` | P2 | §5.3 |
 | `km-storage.pathway-db-crdt` (new) | P3 | §9 Phase B/C/D named pathway — tracks trigger evidence + keeps Phase-A decisions compatible |
