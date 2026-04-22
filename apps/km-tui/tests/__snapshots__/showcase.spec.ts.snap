@@ -15,7 +15,7 @@ exports[`Visual Regression > kanban board layout is stable across renders > afte
 
 
 
-                                                             MEM /fake/repo 📋6"
+                                                            MEM /fake/repo 📋 6"
 `;
 
 exports[`Visual Regression > kanban board layout is stable across renders > initial-kanban 1`] = `
@@ -33,5 +33,5 @@ exports[`Visual Regression > kanban board layout is stable across renders > init
 
 
 
-                                                             MEM /fake/repo 📋6"
+                                                            MEM /fake/repo 📋 6"
 `;

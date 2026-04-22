@@ -294,7 +294,8 @@ describe("StatusCounters", () => {
   it("shows node count with clipboard icon", () => {
     const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={123} />)
     const output = app.text
-    expect(output).toContain("📋123")
+    // Space between emoji and number (fix for km-tui.status-bar-stray-chars)
+    expect(output).toContain("📋 123")
   })
 
   it("shows storage path (DISK + shortened path)", () => {
@@ -315,7 +316,8 @@ describe("StatusCounters", () => {
     }
     const app = render(<StatusCounters ui={uiWithWatcher} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
     const output = app.text
-    expect(output).toContain("📄5")
+    // Space between emoji and number (fix for km-tui.status-bar-stray-chars)
+    expect(output).toContain("📄 5")
   })
 
   it("shows memory storage mode indicator", () => {
