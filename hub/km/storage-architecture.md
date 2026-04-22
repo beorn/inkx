@@ -2,7 +2,7 @@
 
 Canonical design for km's storage, identity, reconciliation, and markdown writeback. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-22 (v3). Key shifts vs. earlier drafts: inode primary + path-of-`.name` secondary; ULIDs never generated into markdown but resolved if seen; Phase A→E pathway named (FS-truth → op log → DB-truth → CRDT → sync platform); multi-file journal dropped for Phase A. Full change log archived in commits and `research/storage-arch-pro-review-round-2-2026-04-22.md`.
+Last revised: 2026-04-22 (v3, round-3 polish). Key shifts vs. earlier drafts: inode primary + path-of-`.name` secondary; ULIDs never generated into markdown but resolved if seen; Phase A→E pathway named (FS-truth → op log → DB-truth → CRDT → sync platform); multi-file journal dropped for Phase A; op-vocabulary audit flagged as Phase B prereq. Change log archived in commits and `research/storage-arch-pro-review-round-{2,3}-2026-04-22.md`.
 
 ---
 
@@ -141,8 +141,8 @@ File `.name` is the **basename** (filename without `.md`), matching Obsidian's l
 Resolution examples:
 - `[[foo]]` → basename-index lookup → `[file:"foo"]` (if unambiguous)
 - `[[notes/foo]]` → path lookup → specific file (disambiguates across duplicate basenames)
-- `[[foo#my-heading]]` → basename lookup + child `.name` → `[file:"foo", heading:"my-heading"]`
-- `[[foo^rec]]` → basename lookup + child `.name` → `[file:"foo", block:"rec"]`
+- `[[foo#my-heading]]` → basename lookup + heading-slug-index lookup within file (§2.5) → `[file:"foo", heading:"my-heading"]`
+- `[[foo^rec]]` → basename lookup + child `.name` match → `[file:"foo", block:"rec"]`
 - `@inbox` → `[tag:"inbox"]`
 - `#project` → `[tag:"project"]`
 
@@ -178,13 +178,13 @@ type NodeId = string & { __brand: "NodeId" }   // brand the existing KNode.id UL
 type RepoId = string & { __brand: "RepoId" }   // per-mount, stored in .km/config.toml
 ```
 
-- `NodeId` — internal-only opaque ULID. **Never written to markdown. Never user-visible.** Like SQLite rowid.
+- `NodeId` — internal-only opaque ULID. **km never emits them during writeback and never depends on them being in markdown.** Like SQLite rowid. If a user hand-writes a ULID-shaped reference, km resolves it (§2.1); km itself does not produce or require them externally.
 - `RepoId` — workspace mount identifier. Stored in `.km/config.toml`.
 
 `KNode` fields (after this revision):
 - `id: NodeId` — internal handle
 - `name?: string` — the locally-resolvable external identifier (per §2.3 rule)
-- `fs_path: string`, `fs_ino: number`, `fs_mtime: number` — file location metadata (unchanged)
+- `fs_path: string`, `fs_dev: number`, `fs_ino: number`, `fs_mtime: number`, `fs_size: number`, `fs_content_hash?: string` — file location + identity metadata. `fs_dev` pairs with `fs_ino` for reconciliation (§3.2); cross-device inode reuse is otherwise likely. `fs_size` + `fs_mtime` support the watcher fast-path (§7.4). `fs_content_hash` is lazily populated / invalidated on mtime change.
 
 **Removed from KNode**: `block_id?`. Its role is subsumed into `name`. Migration: existing `block_id` values move to `name` where `name` is currently null OR where the heading has both a slug AND an anchor (anchor wins per §2.3).
 
@@ -222,11 +222,14 @@ Reconciliation picks which DB ULID an incoming scanned node belongs to.
 
 Reconciliation on scan tries signals in order of certainty. For each fresh-scanned node:
 
-**Step 1 — inode, when we have it.** If the current scan reports an inode and the DB row with that same inode is in the expected repo + same-filesystem device, it is the same file, full stop. Inode is the most trustworthy single signal — it is OS-level identity. This is the fast path for "user renamed the file in nvim or Finder" and "user edited in place" — both scenarios where inode is stable.
+**Step 1 — inode, when we have it.** If the current scan reports `(fs_dev, fs_ino)` matching a DB row in the expected repo, this is a **presumed match**. Inode is the strongest single signal — OS-level identity — and is the fast path for "user renamed the file in nvim or Finder" and "user edited in place."
 
-Rules for using inode as primary:
-- Must be same FS device (km stores `fs_dev` alongside `fs_ino`; cross-device inode collisions are otherwise likely)
-- If inode matches but path + content also clearly identify a *different* file (e.g., inode reuse after deletion + new file creation across a km-down period), disambiguate via content hash
+**Inode validation rule** (handles inode reuse after deletion):
+- Presumed match is confirmed if any of (path, stored content hash, stored mtime) also agrees
+- If inode matches but ALL THREE of path / stored content hash / mtime disagree, treat as inode reuse: tombstone the old DB row, mint a fresh ULID for the scanned node
+- This prevents silent misattribution after `git clean`, temp-file cycles, or disk restore that reuses inodes
+
+The km schema stores `fs_dev` alongside `fs_ino` (§2.4) — cross-device inode collisions would otherwise be likely.
 
 **Step 2 — path-of-`.name` match**, when inode is absent, unavailable, or stale (fresh git clone, cross-FS copy, Dropbox sync, disk restore — inode reassigned on every file). This is the cross-transport lingua franca: it survives git, rsync, cloud drives, and copy-rename-save editors.
 
@@ -254,7 +257,7 @@ When neither inode nor path-of-`.name` finds a DB row, fall through in this orde
 
 **Explicit non-goals**:
 - **Cross-file block moves are not reconciled.** If a user cuts a paragraph (with or without `^anchor`) from `foo.md` and pastes it into `bar.md` offline, km sees "deletion in foo" + "insertion in bar" and assigns a fresh ULID. User-visible cost: internal-only (broken backlinks manifest the same way Obsidian would show them).
-- **Rename + edit combined** (path changed AND content changed) falls through all heuristics and is treated as delete + new. See §3.5.
+- **Rename + edit combined without inode** (path changed AND content changed AND inode unavailable/invalid, e.g., post-git-clone): no heuristic resolves this case; treated as delete + new. See §3.5. When inode *is* available (same-FS rename+edit), Step 1 resolves it normally.
 - **Structural similarity** (Levenshtein on heading text, Jaccard on line-set) is deliberately out of scope — a solo-dev tar pit without a concrete definition + property-based test harness. Reintroduce via §9 Deferred if evidence arrives.
 
 Secondary signals only fire when Step 1 (inode) and Step 2 (`.name` path) both miss. For referenced content (files, anchored blocks, tagged things), inode + `.name` resolve the case and secondaries rarely run.
@@ -266,11 +269,11 @@ Secondary signals only fire when Step 1 (inode) and Step 2 (`.name` path) both m
 
 ### 3.5 Ambiguous cases
 
-**Rename + edit simultaneously** (file path + content both changed): primary match fails, file content-hash fails. Falls through to inode if available, else treated as delete+new.
+**Rename + edit simultaneously**:
+- **Same-FS, inode available** (user renamed + edited in nvim / Finder): **Step 1 (inode) resolves it**. ULID preserved.
+- **Cross-FS or post-git-clone** (inode reassigned): path changed + content changed + inode lost → all reconciliation signals miss → treated as delete + new. Internal ULID is lost on this case only; user sees no external breakage (links still point by path — same as without reconciliation).
 
-Current plan: delete+new on rename+edit. Loses internal ULID on this case only. User sees no external breakage (links still point by path — they're also broken without reconciliation).
-
-**Scope-in trigger**: diff-chunk similarity (git-style >50% line overlap → rename) is listed in §9 Deferred. Reopen only if the fidelity corpus or user reports show this case becoming common.
+**Scope-in trigger**: diff-chunk similarity (git-style >50% line overlap → rename) is listed in §9 Deferred. Reopen only if the fidelity corpus or user reports show the cross-FS rename+edit case becoming common.
 
 ### 3.6 What mistaken identity costs (unreferenced content)
 
@@ -303,7 +306,7 @@ None is silent corruption. All surface as visible "unresolved" states, user-repa
 
 ## 4. @sigil tags and other prefixed identifiers
 
-km parses sigil prefixes (`@`, `#`, `[[]]`, `^`) as namespace selectors for the name index. **km never emits ULIDs during writeback** (§1.4, §2.1); ULID-shaped references written by hand resolve directly.
+km parses sigil prefixes (`@`, `#`, `[[]]`, `^`) as namespace selectors for the name index. ULID-handling per §2.1.
 
 | Sigil | Example | Stored as | Identity scheme |
 |---|---|---|---|
@@ -444,18 +447,28 @@ Rewrites only the exact byte ranges of changed regions. Noisy git diffs are a us
 
 ### 7.3 Multi-file atomicity (deferred to Phase B)
 
-**Decision**: Phase A (today) does NOT ship a resumable-on-crash multi-file journal. Operations spanning multiple files (rename + backlink update cascade) apply per-file; if a crash interrupts a cascade mid-way, the FS is left in a partial state until `km doctor rebuild-backlinks` repairs it.
+**Decision**: Phase A (today) does NOT ship a resumable-on-crash multi-file journal. Operations spanning multiple files (rename + backlink update cascade) apply per-file; if a crash interrupts a cascade mid-way, the FS is left in a partial state.
+
+**What `km doctor` can and cannot do in Phase A**:
+- **Can**: rebuild the derived backlinks *index* (DB-side; fully deterministic from current FS content).
+- **Can**: surface unresolved references (`[[old-name]]` pointing nowhere because a rename cascade stopped mid-way).
+- **Cannot**: automatically *repair* the partial markdown cascade. A half-applied "rename foo → bar + update 40 backlinks" leaves some files pointing at `foo` (the renamed-away name) and some at `bar`; from current FS state alone, there's no deterministic way to know which links the user wanted. The user sees the unresolved-reference list and fixes the remaining files manually (or `rm` the new name if they want to undo).
 
 Rationale:
-- A resumable write-ahead log for markdown is a solo-dev tar pit (round-2 review) — the failure modes are many and the test surface is huge.
-- Phase B (§9) introduces a semantic op log that handles multi-file atomicity *properly* via op replay — not a journal-alongside-markdown, but a semantic record that the existing state-machine code already produces.
-- `km doctor rebuild-backlinks` is a cheap and sufficient recovery for Phase A's scenarios (backlink index is derived; regeneration is deterministic).
+- A resumable write-ahead log for markdown is a solo-dev tar pit (round-2 review) — many failure modes, large test surface.
+- Phase B's op log (§9) handles multi-file atomicity *properly* via semantic replay, a cleaner mechanism than a journal-alongside-markdown.
+- For Phase A's scenarios (rare cascade crashes), "surface the breakage, let the user repair" is an honest interim.
 
-If real-world Phase A usage surfaces partial-cascade corruption that `doctor` can't reason about, reopen this decision before Phase B lands. Decision recorded at `km-storage.multi-file-atomicity-decision` (closed).
+If real-world Phase A usage surfaces partial cascades frequently enough to demand repair automation, reopen this decision before Phase B lands. Decision recorded at `km-storage.multi-file-atomicity-decision` (closed).
 
 ### 7.4 Watcher echo suppression
 
-FsMount writes produce events the watcher sees. Strategy is **stateless hash-compare**: on each watch event, compute sha256 of the on-disk content and compare to the `expectedContentHash` tracked per file (§7.1). If they match, the event was km's own echo — skip. If they differ, it's a real external change.
+FsMount writes produce events the watcher sees. Strategy is **mtime+size fast-path with stateless hash-compare**:
+
+1. On each watch event, compare `(mtime, size)` to the stored `(fs_mtime, fs_size)` (§2.4). If both match, the event is a no-op — no hash, no read. **(Fast path — handles the 99% case.)**
+2. If `(mtime, size)` differs, read the file and compute sha256. Compare to `expectedContentHash` (§7.1). If it matches, it's km's own echo — skip. If it differs, it's a real external change — trigger FS→DB reconcile.
+
+The fast-path matters under batch changes (`git checkout` of 5,000 files would otherwise force 5,000 full-file hashes). The hash is still the final gate for correctness; mtime/size just skips work we don't need.
 
 Why stateless over origin cookies or a short-term write cache: the hash is already computed for CAS. A cookie or cache adds a coordination surface that breaks on crashes, on multi-process writers, and on editors that replace-then-rename. Hash-compare has no such failure mode — if the hash matches what we expect, the content is what we expect, period.
 
@@ -490,7 +503,7 @@ Corpus ships first; serializer only lands once corpus is green. Order within P3:
 2. **Minimal patching serializer** (§7.2) — gated on corpus
 3. **Content-as-CAS contract** (§7.1) — gated on serializer
 4. **Watcher echo suppression** (§7.4) — hash-compare only
-5. **No multi-file journal in Phase A** (§7.3) — decided. Multi-file atomicity waits for Phase B's op log. Phase A tolerates partial cascades + uses `km doctor rebuild-backlinks` for recovery.
+5. **No multi-file journal in Phase A** — see §7.3.
 
 ### P4. Federation (`km-storage.federation`)
 - `.km/config.toml` per repo with stable `RepoId`
@@ -505,6 +518,18 @@ Corpus ships first; serializer only lands once corpus is green. Order within P3:
 ---
 
 ## 9. Explicit non-decisions / deferred
+
+§9 has two distinct axes — they're orthogonal but often mapped:
+
+| Storage pathway | Typical sync tier at that phase |
+|---|---|
+| Phase A (FS-truth) | Tier 0 (git) |
+| Phase B (op log) | Tier 2 (op-log-based sync) |
+| Phase C (DB-truth) | Tier 2 or Tier 3 |
+| Phase D (CRDT) | Tier 4 |
+| Phase E (sync platform) | beyond tiers — infrastructure layer |
+
+Tiers 1 and 3 are **optional side paths**, not mandatory pathway phases. A product might go Phase A→B→D and skip some tiers; the tiers are reliability stopgaps, phases are value-unlock milestones.
 
 ### Sync reliability tiers
 
@@ -544,9 +569,13 @@ What Phase A ships: an Obsidian-compatible km that scales to 100k files, has dis
 | Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff |
 | Cleaner sync merge | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
 
-Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, **and the op vocabulary itself** (already exists via the commands/state-machine layer — Phase B doesn't invent it, just persists it).
+Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, **and (pending audit) the op vocabulary itself**.
 
-**New work for B**: op-log file format + compaction strategy, op-log append path wired alongside serializer write, op-log replay for recovery, op-log dedup/ordering semantics.
+⚠ **Phase B depends on an un-verified assumption**: that km's current TEA-style `apply()` stream already produces discrete, serializable ops that reference only stable NodeIds (no ephemeral UI state, no process-local assumptions). If that's true, Phase B is persistence + replay. If it's not, Phase B is a ground-up rewrite of the command layer first. This is the single biggest risk to Phase B's cost estimate. Tracked as `km-storage.op-vocabulary-audit` (P0) — run this audit *before* scheduling Phase B.
+
+**New work for B** (assuming audit passes): op-log file format + compaction strategy, op-log append path wired alongside serializer write, op-log replay for recovery, op-log dedup/ordering semantics.
+
+**Unlock scope honest**: "cleaner sync merge" via op exchange between peers assumes ops are **repo-stable and serialization-safe** (no pointers to in-memory state). The audit above is a prerequisite for this claim. Local oplog for recovery + semantic undo is cheaper and more certain than cross-peer exchange.
 
 **Caveat surfaced in round-2 review**: Phase B under FS-truth is a "DB-truth gateway drug." Once ops are the authoritative intent record, FS starts looking like a projection. That's fine — that's literally the pathway. Phase B makes the Phase C flip *smaller*, not larger.
 
@@ -641,6 +670,7 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 - **Kimmi deep-dive** (`research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins are stable-IDs + op-reconciliation + materialized indexes. Automerge has concrete gaps. → internal ULIDs fine, CRDT deferred.
 - **Cloudi deep-dive** (`research/cloudi-architecture-deep-dive.md`): external-system-as-truth has critical ID instability. → Family A holds.
 - **Dual-pro review round 1** (2026-04-21 PM): caught frontmatter-id-injection as user-trust risk, block-hash collision math, uniform-adapter over-generalization, missing safe-writeback.
+- **Dual-pro review round 3** (2026-04-22, GPT-5.4 Pro + Kimi K2.6 both landed — `research/storage-arch-pro-review-round-3-2026-04-22.md`): both models converged on "doc is basically solid, no structural rewrite needed." Concrete fixes: inode-primary rename+edit wording (§3.3/§3.5), `[[file#heading]]` resolution path (§2.2/§2.5), ULID language (§2.4), `fs_dev` schema gap, multi-file atomicity DRY collapse (§7.3 + §8.P3 step 5), `km doctor` claim tightening (§7.3), watcher mtime+size fast-path (§7.4), tier↔phase mapping (§9). Surfaced the **op-vocabulary audit** as the hidden Phase B tar pit (`km-storage.op-vocabulary-audit` P0).
 - **Dual-pro review round 2** (2026-04-22, Kimi K2.6; GPT-5.4 Pro failed — `research/storage-arch-pro-review-round-2-2026-04-22.md`): caught duplicate section numbering, frontmatter key-order contradiction (§1.2 vs §7.2), file `.name` basename/path ambiguity, `#` vs `^` namespace collapse, diff-chunk similarity contradiction (§3.5 vs §9), content-hash scope undefined, structural similarity hand-waving, cross-file block-move claim too strong, directory-as-node missing, tier 1 weakly motivated, DB-truth cost estimates likely off-by-10x, P3-before-P5 ordering risk (CAS without proven fidelity), schema churn risk (P1 against P2's old schema), multi-file journal "best-effort" as user data-loss risk.
 - **User pushbacks** (2026-04-21): (a) FS messiness → solve lower in stack; (b) federation eventually necessary; (c) identity robust against offline FS changes; (d) core unaware of FS; (e) **no metadata injection**; (f) **no ID scattering beyond what's inherently needed**; (g) Obsidian-native block anchors; (h) DB-truth probable future, not deferred-forever; (i) if DB-truth, versioning/rollback is scope-in.
 
@@ -662,6 +692,7 @@ Active:
 | `km-storage.federation` | P2 | §8.P4 |
 | `km-storage.session-state-split` | P2 | §5.3 |
 | `km-storage.pathway-db-crdt` | P3 | §9 pathway tracker (Phase B/C/D/E) |
+| `km-storage.op-vocabulary-audit` | P0 | Audit whether current `apply()` ops are serializable + repo-stable. Gates Phase B cost estimate. |
 | `km-all.shared-substrate-review` | P0 | cross-project extraction (due 2026-05-05) |
 
 Closed this session: `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal; Phase B op log handles real atomicity), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`).
