@@ -8,11 +8,11 @@
 import { EventEmitter } from "events"
 import {
   createTerm,
-  patchConsole,
   IncrementalRenderMismatchError,
   InputLayerProvider,
   detectTerminalCaps,
 } from "@silvery/ag-react"
+import { createConsole } from "@silvery/ag-term"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { InvariantViolationError } from "./invariants.ts"
@@ -263,11 +263,14 @@ export async function runBoard(
   process.on("unhandledRejection", handleRejection)
   process.once("SIGTERM", handleSigterm)
 
-  // Use pre-created patchedConsole if provided (counts startup warnings),
-  // otherwise create one now. capture: true = store entries for exit dump.
-  const patched = isInteractive
-    ? (options?.patchedConsole ?? patchConsole(console, { capture: true, suppress: true }))
-    : null
+  // Use pre-created console owner if provided (counts startup warnings),
+  // otherwise create one now and start capturing. The Term also constructs its
+  // own `term.console` eagerly, but we honor the caller-provided one when
+  // present so CLI-buffered startup warnings aren't orphaned.
+  const consoleOwner = isInteractive ? (options?.patchedConsole ?? createConsole()) : null
+  if (consoleOwner && !consoleOwner.capturing) {
+    consoleOwner.capture({ suppress: true })
+  }
 
   try {
     // Stop CLI spinner - TUI is about to take over the screen
@@ -403,7 +406,7 @@ export async function runBoard(
           <RepoProvider repo={undoableRepo}>
             <StoreProvider store={reactiveStore}>
               <InputLayerProvider>
-                <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
+                <BoardApp initialViewMode={viewMode} patchedConsole={consoleOwner} toastQueue={toastQueue} />
               </InputLayerProvider>
             </StoreProvider>
           </RepoProvider>
@@ -438,7 +441,7 @@ export async function runBoard(
 
       // Now that alternate screen is active, notify caller (CLI uses this
       // to flush buffered debug output to Console component)
-      if (patched) options?.onReady?.()
+      if (consoleOwner) options?.onReady?.()
 
       // React mount is done; we're past startup. Any further event-loop block
       // is a post-mount issue (first keypress, sync reconciliation, etc.) —
@@ -482,8 +485,9 @@ export async function runBoard(
 
     // toastQueue is cleaned up automatically via `using` (Symbol.dispose)
 
-    // Dispose patched console (restores original console methods)
-    patched?.[Symbol.dispose]()
+    // Restore original console methods before we replay — otherwise replay's
+    // stream.write would still hit the patched forwarders and swallow output.
+    consoleOwner?.restore()
 
     // Clean up heartbeat interval (runs every 200ms to detect event loop blocks)
     if (heartbeatInterval) {
@@ -498,26 +502,19 @@ export async function runBoard(
     // Replay captured console entries on exit so they're visible in scrollback.
     // During the TUI session, console output goes to the alt screen buffer
     // which is lost on exit. Re-emit all entries to the normal terminal.
-    if (patched) {
-      const entries = patched.getSnapshot()
+    if (consoleOwner) {
+      const entries = consoleOwner.getSnapshot()
       if (entries.length > 0) {
-        for (const entry of entries) {
-          const stream = entry.stream === "stderr" ? process.stderr : process.stdout
-          const args = entry.args
-            .map((a) =>
-              typeof a === "string" ? a : a instanceof Error ? `${a.name}: ${a.message}` : JSON.stringify(a),
-            )
-            .join(" ")
-          stream.write(args + "\n")
-        }
+        consoleOwner.replay(process.stdout, process.stderr)
         // Summary only for noisy sessions
-        const stats = patched.getStats()
+        const stats = consoleOwner.getStats()
         if (stats.total > 10) {
           process.stderr.write(
             `[session] ${stats.total} log entries (${stats.errors} errors, ${stats.warnings} warnings)\n`,
           )
         }
       }
+      consoleOwner.dispose()
     }
   }
 }

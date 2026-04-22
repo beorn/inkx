@@ -125,9 +125,9 @@ export const viewCommand = new Command("view")
 
       // Patch console early so startup warnings (stale events, etc.) are captured
       // in the TUI console panel instead of being lost to stderr before alt screen.
-      const { patchConsole } = await import("@silvery/ag-react")
-      const patchedConsole =
-        interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
+      const { createConsole } = await import("@silvery/ag-term")
+      const patchedConsole = interactive && process.stdin.isTTY ? createConsole() : null
+      patchedConsole?.capture({ suppress: true })
 
       // Load repo + build state with unified progress display
       const { steps } = await import("@silvery/ag-react/ui/progress")

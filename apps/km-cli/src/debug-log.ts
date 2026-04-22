@@ -41,10 +41,10 @@ let consoleEnabled = false
 
 /**
  * Enable routing debug output to console.debug (for TUI's <Console> component).
- * Call this after patchConsole is set up. Flushes any buffered output.
+ * Call this after term.console.capture() is active. Flushes any buffered output.
  *
  * When DEBUG_LOG is set, suppresses console output from both the debug package
- * (customLog) and @beorn/logger (writeLog) to prevent patchConsole → React
+ * (customLog) and @beorn/logger (writeLog) to prevent Console capture → React
  * re-render → layout cascade. File output continues via writers.
  */
 export function enableConsoleDebug(): void {
@@ -216,13 +216,13 @@ function customLog(...args: unknown[]): void {
     console.error(line)
   } else if (stream) {
     // DEBUG_LOG is set — file output only, skip console to prevent
-    // patchConsole → React re-render → layout cascade in TUI
+    // Console capture → React re-render → layout cascade in TUI
   } else if (consoleEnabled) {
-    // TUI mode with patchConsole active - route to console.debug
+    // TUI mode with Console capture active - route to console.debug
     // This makes debug output appear in the <Console> component
     console.debug(line)
   } else {
-    // TTY but patchConsole not ready yet - buffer for later
+    // TTY but Console capture not ready yet - buffer for later
     consoleBuffer.push(line)
   }
 }

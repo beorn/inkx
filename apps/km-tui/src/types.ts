@@ -82,14 +82,15 @@ export interface TuiOptions {
    */
   repo?: Repo
   /**
-   * Called after alternate screen is active and patchConsole is set up.
+   * Called after alternate screen is active and the Console owner is capturing.
    * CLI uses this to flush buffered debug output to Console component.
    */
   onReady?: () => void
   /**
-   * Pre-created PatchedConsole instance.
-   * When provided, runBoard uses this instead of creating its own.
-   * Set up early (before loadRepo) to capture startup warnings.
+   * Pre-created Console owner.
+   * When provided, runBoard uses this instead of creating its own so that
+   * startup warnings captured by the CLI before the TUI starts survive into
+   * the session's Console view.
    */
   patchedConsole?: import("@silvery/ag-react").PatchedConsole
   /**
