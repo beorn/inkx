@@ -6,12 +6,7 @@
  */
 
 import { EventEmitter } from "events"
-import {
-  createTerm,
-  IncrementalRenderMismatchError,
-  InputLayerProvider,
-  detectTerminalCaps,
-} from "@silvery/ag-react"
+import { createTerm, IncrementalRenderMismatchError, InputLayerProvider, detectTerminalCaps } from "@silvery/ag-react"
 import { createConsole } from "@silvery/ag-term"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
@@ -268,7 +263,7 @@ export async function runBoard(
   // own `term.console` eagerly, but we honor the caller-provided one when
   // present so CLI-buffered startup warnings aren't orphaned.
   const consoleOwner = isInteractive ? (options?.patchedConsole ?? createConsole()) : null
-  if (consoleOwner && !consoleOwner.capturing) {
+  if (consoleOwner && !consoleOwner.capturing()) {
     consoleOwner.capture({ suppress: true })
   }
 
