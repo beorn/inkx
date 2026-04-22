@@ -183,6 +183,8 @@ export interface StatResult {
   ino: number
   mtimeMs: number
   size: number
+  /** Device id — optional so FakeFileSystem / minimal shims don't need to expose it */
+  dev?: number
   isDirectory(): boolean
   isFile(): boolean
 }

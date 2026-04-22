@@ -37,11 +37,7 @@ import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier, snapshotUlidsByPath, verifyUlidStability, verifyUlidFreshness } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/db/schema.ts"
-import {
-  reconcileDirectoryRecursive,
-  applyReconcileOps,
-  type DirectoryScanner,
-} from "../../../src/watch/reconcile.ts"
+import { reconcileDirectoryRecursive, applyReconcileOps, type DirectoryScanner } from "../../../src/watch/reconcile.ts"
 import { getAllNodes, getNodeByPath } from "../../../src/index.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,11 +94,21 @@ function setupEnv(files: Array<{ path: string; content: string }>): CascadeEnv {
     })
   }
 
-  const initial = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
+  // Reader for the cascade's content-hash signal (Step 3). Falls back to
+  // null so the cascade's "file unreadable" path exercises gracefully.
+  const readFile = (p: string): string | null => {
+    try {
+      return mockFs.readFileSync(p, "utf-8")
+    } catch {
+      return null
+    }
+  }
+
+  const initial = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner, undefined, readFile)
   applyReconcileOps(db, initial, repoDir, emitter, mockFs)
 
   const reconcile = () => {
-    const ops = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
+    const ops = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner, undefined, readFile)
     applyReconcileOps(db, ops, repoDir, emitter, mockFs)
   }
 
@@ -135,23 +141,36 @@ describe("Reconciliation cascade — Step 1: inode-primary", () => {
       expect(initialUlid).toBeDefined()
 
       // Same-FS rename: FakeFileSystem.renameSync preserves inode.
-      env.mockFs.renameSync(
-        join(env.repoDir, "notes/alpha.md"),
-        join(env.repoDir, "notes/alpha-renamed.md"),
-      )
+      env.mockFs.renameSync(join(env.repoDir, "notes/alpha.md"), join(env.repoDir, "notes/alpha-renamed.md"))
       env.reconcile()
 
       const final = snapshotUlidsByPath(env.db)
-      const stability = verifyUlidStability(
-        initial,
-        final,
-        new Map([["notes/alpha.md", "notes/alpha-renamed.md"]]),
-      )
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "notes/alpha-renamed.md"]]))
       expect(stability.passed, stability.errors.join("\n")).toBe(true)
 
       // Sanity: old path gone, new path present.
       expect(getNodeByPath(env.db, "notes/alpha.md")).toBeNull()
       expect(getNodeByPath(env.db, "notes/alpha-renamed.md")?.id).toBe(initialUlid)
+    } finally {
+      env.db.close()
+    }
+  })
+
+  test("cross-directory rename with inode preserved → ULID preserved (Step 1 hit)", () => {
+    const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n" }])
+    try {
+      const initial = snapshotUlidsByPath(env.db)
+      const initialUlid = initial.get("notes/alpha.md")
+
+      // Cross-directory rename preserves inode on real FS.
+      env.mockFs.mkdirSync(join(env.repoDir, "tasks"), { recursive: true })
+      env.mockFs.renameSync(join(env.repoDir, "notes/alpha.md"), join(env.repoDir, "tasks/alpha.md"))
+      env.reconcile()
+
+      const final = snapshotUlidsByPath(env.db)
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "tasks/alpha.md"]]))
+      expect(stability.passed, stability.errors.join("\n")).toBe(true)
+      expect(final.get("tasks/alpha.md")).toBe(initialUlid)
     } finally {
       env.db.close()
     }
@@ -163,168 +182,116 @@ describe("Reconciliation cascade — Step 1: inode-primary", () => {
       const initial = snapshotUlidsByPath(env.db)
 
       // Rewrite content — inode and path unchanged.
-      env.mockFs.writeFileSync(
-        join(env.repoDir, "notes/alpha.md"),
-        "# Alpha\n\nrewritten body\n",
-      )
+      env.mockFs.writeFileSync(join(env.repoDir, "notes/alpha.md"), "# Alpha\n\nrewritten body\n")
       env.reconcile()
 
       const final = snapshotUlidsByPath(env.db)
-      const stability = verifyUlidStability(
-        initial,
-        final,
-        new Map([["notes/alpha.md", "notes/alpha.md"]]),
-      )
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "notes/alpha.md"]]))
       expect(stability.passed, stability.errors.join("\n")).toBe(true)
     } finally {
       env.db.close()
     }
   })
 
-  test.skip(
-    "inode reuse after delete (path AND hash differ) → tombstone + fresh ULID",
-    // gated by km-storage.identity-recovery-cascade — implementation lands after harness
-    () => {
-      const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\noriginal\n" }])
-      try {
-        const initial = snapshotUlidsByPath(env.db)
-        const reusedIno = getIno(env, "notes/alpha.md")
+  test("inode reuse after delete (path AND hash differ) → tombstone + fresh ULID", () => {
+    const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\noriginal\n" }])
+    try {
+      const initial = snapshotUlidsByPath(env.db)
+      const reusedIno = getIno(env, "notes/alpha.md")
 
-        // Delete alpha.
-        env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
-        env.reconcile()
+      // Delete alpha.
+      env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
+      env.reconcile()
 
-        // Create an unrelated new file; force its inode to the one alpha had.
-        env.mockFs.writeFileSync(
-          join(env.repoDir, "notes/beta.md"),
-          "# Beta\n\nentirely different\n",
-        )
-        env.overrideIno(join(env.repoDir, "notes/beta.md"), reusedIno)
-        env.reconcile()
+      // Create an unrelated new file; force its inode to the one alpha had.
+      env.mockFs.writeFileSync(join(env.repoDir, "notes/beta.md"), "# Beta\n\nentirely different\n")
+      env.overrideIno(join(env.repoDir, "notes/beta.md"), reusedIno)
+      env.reconcile()
 
-        const final = snapshotUlidsByPath(env.db)
+      const final = snapshotUlidsByPath(env.db)
 
-        // Identity must NOT be preserved — alpha was tombstoned, beta got a new ULID.
-        const freshness = verifyUlidFreshness(
-          initial,
-          final,
-          new Map([["notes/alpha.md", "notes/beta.md"]]),
-        )
-        expect(freshness.passed, freshness.errors.join("\n")).toBe(true)
-
-        // TODO(km-storage.identity-recovery-cascade):
-        // current reconciler fires a rename (alpha→beta) on inode match,
-        // preserving identity incorrectly. Production fix: validate inode
-        // match via path/hash/mtime and tombstone+mint when all three disagree.
-      } finally {
-        env.db.close()
-      }
-    },
-  )
+      // Identity must NOT be preserved — alpha was tombstoned in reconcile #1,
+      // beta got a fresh ULID in reconcile #2. The inode-reuse §3.2 spec is
+      // satisfied by the delete-in-pass-N / create-in-pass-N+1 workflow:
+      // pass 1 tombstones alpha; pass 2 sees no DB row with reusedIno so it
+      // creates beta fresh.
+      const freshness = verifyUlidFreshness(initial, final, new Map([["notes/alpha.md", "notes/beta.md"]]))
+      expect(freshness.passed, freshness.errors.join("\n")).toBe(true)
+    } finally {
+      env.db.close()
+    }
+  })
 })
 
 describe("Reconciliation cascade — Step 2: path-of-.name fallback", () => {
-  test.skip(
-    "cross-FS rename: inode reassigned, path stable → ULID preserved",
-    // gated by km-storage.identity-recovery-cascade — implementation lands after harness
-    () => {
-      const env = setupEnv([
-        { path: "notes/alpha.md", content: "# Alpha\n\nbody\n" },
-      ])
-      try {
-        const initial = snapshotUlidsByPath(env.db)
+  test("cross-FS rename: inode reassigned, path stable → ULID preserved", () => {
+    const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\nbody\n" }])
+    try {
+      const initial = snapshotUlidsByPath(env.db)
 
-        // Simulate cross-FS reassignment by forcing a fresh inode for the
-        // same path (a real cross-device move via rsync-like copy would
-        // produce this). Same basename, same parent path.
-        env.overrideIno(join(env.repoDir, "notes/alpha.md"), 999999)
-        env.reconcile()
+      // Simulate cross-FS reassignment by forcing a fresh inode for the
+      // same path (a real cross-device move via rsync-like copy would
+      // produce this). Same basename, same parent path.
+      env.overrideIno(join(env.repoDir, "notes/alpha.md"), 999999)
+      env.reconcile()
 
-        const final = snapshotUlidsByPath(env.db)
-        const stability = verifyUlidStability(
-          initial,
-          final,
-          new Map([["notes/alpha.md", "notes/alpha.md"]]),
-        )
-        expect(stability.passed, stability.errors.join("\n")).toBe(true)
+      const final = snapshotUlidsByPath(env.db)
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "notes/alpha.md"]]))
+      expect(stability.passed, stability.errors.join("\n")).toBe(true)
+    } finally {
+      env.db.close()
+    }
+  })
 
-        // TODO(km-storage.identity-recovery-cascade):
-        // Step 2 fallback (path+basename) is not implemented — current
-        // reconciler may treat this as delete+create since ino mismatched.
-      } finally {
-        env.db.close()
-      }
-    },
-  )
+  test("cross-FS file rename: inode reassigned AND path changed within same dir → ULID preserved via name", () => {
+    const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\nbody\n" }])
+    try {
+      const initial = snapshotUlidsByPath(env.db)
 
-  test.skip(
-    "cross-FS file rename: inode reassigned AND path changed within same dir → ULID preserved via name",
-    // gated by km-storage.identity-recovery-cascade — implementation lands after harness
-    () => {
-      const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\nbody\n" }])
-      try {
-        const initial = snapshotUlidsByPath(env.db)
+      // Delete and recreate at new path with new inode (cross-FS + rename).
+      env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
+      env.mockFs.writeFileSync(join(env.repoDir, "notes/alpha-moved.md"), "# Alpha\n\nbody\n")
+      env.reconcile()
 
-        // Delete and recreate at new path with new inode (cross-FS + rename).
-        env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
-        env.mockFs.writeFileSync(
-          join(env.repoDir, "notes/alpha-moved.md"),
-          "# Alpha\n\nbody\n",
-        )
-        env.reconcile()
+      const final = snapshotUlidsByPath(env.db)
 
-        const final = snapshotUlidsByPath(env.db)
-
-        // Per §3 Step 2/3 — name-stable content-stable should recover identity.
-        // TODO(km-storage.identity-recovery-cascade): Step 2/3 fallback not yet wired.
-        const stability = verifyUlidStability(
-          initial,
-          final,
-          new Map([["notes/alpha.md", "notes/alpha-moved.md"]]),
-        )
-        expect(stability.passed, stability.errors.join("\n")).toBe(true)
-      } finally {
-        env.db.close()
-      }
-    },
-  )
+      // Per §3 Step 3 — content-hash + parent-dir composite recovers identity
+      // when inode and basename both change but bytes are preserved.
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "notes/alpha-moved.md"]]))
+      expect(stability.passed, stability.errors.join("\n")).toBe(true)
+    } finally {
+      env.db.close()
+    }
+  })
 })
 
 describe("Reconciliation cascade — Step 3: content-hash + parent-position composite", () => {
-  test.skip(
-    "post-git restore: file reappears with new inode + new mtime but identical content → ULID preserved",
-    // gated by km-storage.identity-recovery-cascade — implementation lands after harness
-    () => {
-      const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\nstable content\n" }])
-      try {
-        const initial = snapshotUlidsByPath(env.db)
+  test.skip("post-git restore: file reappears with new inode + new mtime but identical content → ULID preserved", () => {
+    // Still gated: this scenario requires soft-deletion / a tombstone
+    // retention window. The Step 3 hash lookup works only when the source
+    // DB row is still present, but the intervening reconcile here tombstones
+    // it. Recovering across a hard-delete would require pairing Step 3 with
+    // an undo-log / tombstone table (out of scope for this bead).
+    const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n\nstable content\n" }])
+    try {
+      const initial = snapshotUlidsByPath(env.db)
 
-        // Delete (simulating a `git checkout` wipe), then restore identical content.
-        env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
-        env.reconcile()
+      // Delete (simulating a `git checkout` wipe), then restore identical content.
+      env.mockFs.unlinkSync(join(env.repoDir, "notes/alpha.md"))
+      env.reconcile()
 
-        env.mockFs.writeFileSync(
-          join(env.repoDir, "notes/alpha.md"),
-          "# Alpha\n\nstable content\n",
-        )
-        env.reconcile()
+      env.mockFs.writeFileSync(join(env.repoDir, "notes/alpha.md"), "# Alpha\n\nstable content\n")
+      env.reconcile()
 
-        const final = snapshotUlidsByPath(env.db)
+      const final = snapshotUlidsByPath(env.db)
 
-        // Step 3: content hash + parent-position matches → recover identity.
-        // TODO(km-storage.identity-recovery-cascade): Step 3 not implemented;
-        // current behaviour mints a fresh ULID.
-        const stability = verifyUlidStability(
-          initial,
-          final,
-          new Map([["notes/alpha.md", "notes/alpha.md"]]),
-        )
-        expect(stability.passed, stability.errors.join("\n")).toBe(true)
-      } finally {
-        env.db.close()
-      }
-    },
-  )
+      // Step 3: content hash + parent-position matches → recover identity.
+      const stability = verifyUlidStability(initial, final, new Map([["notes/alpha.md", "notes/alpha.md"]]))
+      expect(stability.passed, stability.errors.join("\n")).toBe(true)
+    } finally {
+      env.db.close()
+    }
+  })
 })
 
 describe("Reconciliation cascade — directory rename cascade", () => {
@@ -402,10 +369,7 @@ describe("Reconciliation cascade — non-goal edge cases", () => {
 
       env.mockFs.unlinkSync(join(env.repoDir, "notes/a.md"))
       env.mockFs.unlinkSync(join(env.repoDir, "notes/b.md"))
-      env.mockFs.writeFileSync(
-        join(env.repoDir, "notes/combined.md"),
-        "# Combined\n\n## A\n\n## B\n",
-      )
+      env.mockFs.writeFileSync(join(env.repoDir, "notes/combined.md"), "# Combined\n\n## A\n\n## B\n")
       env.reconcile()
 
       const final = snapshotUlidsByPath(env.db)
@@ -413,11 +377,7 @@ describe("Reconciliation cascade — non-goal edge cases", () => {
       expect(final.has("notes/b.md")).toBe(false)
       expect(final.has("notes/combined.md")).toBe(true)
 
-      const freshness = verifyUlidFreshness(
-        initial,
-        final,
-        new Map([["notes/a.md", "notes/combined.md"]]),
-      )
+      const freshness = verifyUlidFreshness(initial, final, new Map([["notes/a.md", "notes/combined.md"]]))
       expect(freshness.passed, freshness.errors.join("\n")).toBe(true)
 
       const dupes = env.verifier.verifyNoDuplicates()
@@ -434,10 +394,7 @@ describe("Reconciliation cascade — tree invariants after cascade ops", () => {
   test("no duplicate fs_path after rename + recreate sequence", () => {
     const env = setupEnv([{ path: "notes/alpha.md", content: "# Alpha\n" }])
     try {
-      env.mockFs.renameSync(
-        join(env.repoDir, "notes/alpha.md"),
-        join(env.repoDir, "notes/beta.md"),
-      )
+      env.mockFs.renameSync(join(env.repoDir, "notes/alpha.md"), join(env.repoDir, "notes/beta.md"))
       env.reconcile()
 
       env.mockFs.writeFileSync(join(env.repoDir, "notes/alpha.md"), "# Alpha recreated\n")

@@ -62,9 +62,10 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
       content,
       fs_mtime: op.mtime ?? stat.mtimeMs,
     }
-    if (op.ino !== undefined) {
-      updates.fs_ino = op.ino
-    }
+    if (op.ino !== undefined) updates.fs_ino = op.ino
+    if (op.dev !== undefined) updates.fs_dev = op.dev
+    if (op.size !== undefined) updates.fs_size = op.size
+    if (op.contentHash !== undefined) updates.fs_content_hash = op.contentHash
     emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
     return
   }
@@ -72,9 +73,10 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   // For non-.md, non-.txt files, just update mtime/ino tracking
   if (!op.path.endsWith(".md")) {
     const updates: Record<string, unknown> = { fs_mtime: op.mtime }
-    if (op.ino !== undefined) {
-      updates.fs_ino = op.ino
-    }
+    if (op.ino !== undefined) updates.fs_ino = op.ino
+    if (op.dev !== undefined) updates.fs_dev = op.dev
+    if (op.size !== undefined) updates.fs_size = op.size
+    if (op.contentHash !== undefined) updates.fs_content_hash = op.contentHash
     emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
     return
   }
@@ -110,9 +112,12 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   const existingHash = getNodeContentHash(db, op.nodeId)
   if (existingHash === hash) {
     const mtimeUpdates: Record<string, unknown> = { fs_mtime: mtime }
-    if (ino !== undefined) {
-      mtimeUpdates.fs_ino = ino
-    }
+    if (ino !== undefined) mtimeUpdates.fs_ino = ino
+    if (op.dev !== undefined) mtimeUpdates.fs_dev = op.dev
+    if (op.size !== undefined) mtimeUpdates.fs_size = op.size
+    // Keep the fs-bytes hash in lock-step with mtime so cascade Step 1
+    // validation (content-hash signal) has an up-to-date value.
+    mtimeUpdates.fs_content_hash = op.contentHash ?? hash
     emitNodeUpdated(emitter, "fs-watch", op.nodeId, mtimeUpdates)
     return
   }
@@ -132,10 +137,11 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     const baselineUpdates: Record<string, unknown> = {
       fs_mtime: mtime,
       content_hash: hash,
+      fs_content_hash: op.contentHash ?? hash,
     }
-    if (ino !== undefined) {
-      baselineUpdates.fs_ino = ino
-    }
+    if (ino !== undefined) baselineUpdates.fs_ino = ino
+    if (op.dev !== undefined) baselineUpdates.fs_dev = op.dev
+    if (op.size !== undefined) baselineUpdates.fs_size = op.size
     emitNodeUpdated(emitter, "fs-watch", op.nodeId, baselineUpdates)
     return
   }
@@ -162,10 +168,11 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   const updates: Record<string, unknown> = {
     fs_mtime: mtime,
     content_hash: hash,
+    fs_content_hash: op.contentHash ?? hash,
   }
-  if (ino !== undefined) {
-    updates.fs_ino = ino
-  }
+  if (ino !== undefined) updates.fs_ino = ino
+  if (op.dev !== undefined) updates.fs_dev = op.dev
+  if (op.size !== undefined) updates.fs_size = op.size
   emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
 
   // Update wikilinks: remove old links from EXISTING nodes

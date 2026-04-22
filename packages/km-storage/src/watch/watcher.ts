@@ -230,6 +230,11 @@ export interface SymlinkInfo {
  * Scan a directory for files, applying ignore patterns.
  * Symlinks are skipped to avoid potential infinite loops from circular symlinks.
  *
+ * `dev` + `size` are included for the inode-primary reconciliation cascade
+ * (hub/km/storage-architecture.md §3). Both are optional — FakeFileSystem and
+ * stat backends that don't expose them (or pre-v5 callers) can omit them and
+ * the cascade falls back to ino alone, then path, then content hash.
+ *
  * @param ignorePatterns - Either string[] (legacy, slow) or PatternMatcher (fast)
  */
 export function scanDirectory(
@@ -241,6 +246,8 @@ export function scanDirectory(
   mtime: number
   isDirectory: boolean
   isEmbed?: boolean
+  dev?: number
+  size?: number
 }> {
   const results: Array<{
     path: string
@@ -248,6 +255,8 @@ export function scanDirectory(
     mtime: number
     isDirectory: boolean
     isEmbed?: boolean
+    dev?: number
+    size?: number
   }> = []
 
   if (!existsSync(dirPath)) {
@@ -279,6 +288,8 @@ export function scanDirectory(
           mtime: stat.mtimeMs,
           isDirectory: stat.isDirectory(),
           isEmbed: true,
+          dev: stat.dev,
+          size: stat.size,
         })
       } catch {
         log.debug?.(`broken symlink, skipping: ${fullPath}`)
@@ -293,6 +304,8 @@ export function scanDirectory(
         ino: stat.ino,
         mtime: stat.mtimeMs,
         isDirectory: entry.isDirectory(),
+        dev: stat.dev,
+        size: stat.size,
       })
     } catch {
       // Skip inaccessible files
@@ -316,6 +329,8 @@ export async function scanDirectoryAsync(
     mtime: number
     isDirectory: boolean
     isEmbed?: boolean
+    dev?: number
+    size?: number
   }>
 > {
   const results: Array<{
@@ -324,6 +339,8 @@ export async function scanDirectoryAsync(
     mtime: number
     isDirectory: boolean
     isEmbed?: boolean
+    dev?: number
+    size?: number
   }> = []
 
   try {
@@ -354,6 +371,8 @@ export async function scanDirectoryAsync(
               mtime: stat.mtimeMs,
               isDirectory: stat.isDirectory(),
               isEmbed: true,
+              dev: stat.dev,
+              size: stat.size,
             })
             return undefined
           })
@@ -373,6 +392,8 @@ export async function scanDirectoryAsync(
             ino: stat.ino,
             mtime: stat.mtimeMs,
             isDirectory: entry.isDirectory(),
+            dev: stat.dev,
+            size: stat.size,
           })
           return undefined
         })
@@ -392,6 +413,10 @@ export interface ScanEntry {
   ino: number
   mtime: number
   isDirectory: boolean
+  /** Device id (cross-device inode-collision guard). Present for real FS scans; undefined for FakeFileSystem. */
+  dev?: number
+  /** File size in bytes — watcher fast-path signal. Undefined for directories. */
+  size?: number
 }
 
 /**

@@ -128,6 +128,73 @@ export function getNodeByPath(db: Database, fsPath: string): KNode | null {
 }
 
 /**
+ * Get a node by (fs_dev, fs_ino). Used by the inode-primary reconciliation
+ * cascade (Step 1 of hub/km/storage-architecture.md §3.2).
+ *
+ * When `dev` is provided, matches strictly on (fs_dev, fs_ino) — cross-device
+ * inode collisions (same inode on different volumes, e.g., /home vs /Volumes/X)
+ * cannot accidentally associate. When `dev` is undefined (FakeFileSystem,
+ * stat backends without dev, pre-v5 rows), the lookup falls back to
+ * fs_ino alone, matching any DB row with that ino regardless of dev.
+ *
+ * Returns at most one row; if multiple rows share the same (dev, ino) — which
+ * shouldn't happen in a consistent DB but can during mid-migration — returns
+ * the first.
+ */
+export function getNodeByInode(db: Database, dev: number | undefined, ino: number): KNode | null {
+  const row =
+    dev !== undefined
+      ? (db.query("SELECT * FROM nodes WHERE fs_dev = ? AND fs_ino = ? LIMIT 1").get(dev, ino) as Record<
+          string,
+          unknown
+        > | null)
+      : (db.query("SELECT * FROM nodes WHERE fs_ino = ? LIMIT 1").get(ino) as Record<string, unknown> | null)
+
+  if (!row) return null
+  return rowToNode(row)
+}
+
+/**
+ * Get a node by (fs_content_hash, parent path prefix). Used by the Step 3
+ * cascade fallback (hub/km/storage-architecture.md §3.3) — recovers identity
+ * for cross-FS renames + post-git-restore where inode is reassigned and path
+ * differs, but content bytes are identical.
+ *
+ * `parentDirPath` is the repo-relative parent directory of the scanned entry
+ * (e.g., `"notes"` for `notes/alpha.md`, or `"."` for repo-root files). The
+ * match is restricted to the same parent so a byte-identical file elsewhere
+ * in the vault doesn't steal identity.
+ *
+ * Returns null when no match, or when the single match doesn't satisfy the
+ * parent constraint.
+ */
+export function getNodeByContentHashUnderParent(
+  db: Database,
+  contentHash: string,
+  parentDirPath: string,
+): KNode | null {
+  const rows = db
+    .query(
+      `SELECT * FROM nodes
+       WHERE fs_content_hash = ?
+         AND type = 'h' AND item = 1
+         AND fs_path IS NOT NULL
+       LIMIT 16`,
+    )
+    .all(contentHash) as Record<string, unknown>[]
+
+  for (const row of rows) {
+    const node = rowToNode(row)
+    if (!node.fs_path) continue
+    // Match when the DB node's parent directory matches the scanned entry's parent.
+    const slash = node.fs_path.lastIndexOf("/")
+    const nodeParentDir = slash === -1 ? "." : node.fs_path.slice(0, slash)
+    if (nodeParentDir === parentDirPath) return node
+  }
+  return null
+}
+
+/**
  * Get all folder/file nodes under a directory path (for reconciliation)
  */
 export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {

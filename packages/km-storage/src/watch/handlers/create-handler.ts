@@ -102,7 +102,9 @@ export function handleCreate(options: CreateHandlerOptions): void {
       fstype: "folder",
       fs_path: folderRelPath,
       fs_ino: op.ino,
+      fs_dev: op.dev,
       fs_mtime: op.mtime ?? stat.mtimeMs,
+      fs_size: op.size,
       parent_id: parentId,
       name: folderName, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
       content: folderName,
@@ -132,7 +134,10 @@ export function handleCreate(options: CreateHandlerOptions): void {
       fstype: "file",
       fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
+      fs_dev: op.dev,
       fs_mtime: op.mtime ?? stat.mtimeMs,
+      fs_size: op.size,
+      fs_content_hash: op.contentHash,
       parent_id: parentId,
       name: basename(op.path),
       content: basename(op.path),
@@ -192,6 +197,13 @@ function handleMarkdownCreate(
     fileNode.fs_path = toRelativeFsPath(repoRoot, op.path)
     if (ino !== undefined) fileNode.fs_ino = ino
     fileNode.fs_mtime = mtime
+    if (op.dev !== undefined) fileNode.fs_dev = op.dev
+    if (op.size !== undefined) fileNode.fs_size = op.size
+    // fs_content_hash is the raw file-bytes hash for the identity cascade
+    // (hub/km/storage-architecture.md §3.3). Prefer the scanner-computed value
+    // (op.contentHash) when present, otherwise fall back to the parser hash
+    // (`hash` here) which is already the sha256 of the file bytes.
+    fileNode.fs_content_hash = op.contentHash ?? hash
   }
 
   // Emit creation events for all nodes
@@ -272,6 +284,9 @@ function handleTxtCreate(
     fileNode.fs_path = toRelativeFsPath(repoRoot, op.path)
     if (op.ino !== undefined) fileNode.fs_ino = op.ino
     fileNode.fs_mtime = op.mtime ?? fileStat.mtimeMs
+    if (op.dev !== undefined) fileNode.fs_dev = op.dev
+    if (op.size !== undefined) fileNode.fs_size = op.size
+    if (op.contentHash !== undefined) fileNode.fs_content_hash = op.contentHash
   }
 
   for (const node of nodes) {
@@ -355,7 +370,9 @@ function ensureFolderHierarchy(
       fstype: "folder",
       fs_path: relPath,
       fs_ino: stat.ino,
+      fs_dev: stat.dev,
       fs_mtime: stat.mtimeMs,
+      fs_size: stat.size,
       parent_id: grandparentId,
       name: folderName, // Folder name for link resolution
       content: folderName,

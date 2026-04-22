@@ -561,18 +561,14 @@ export function verifyUlidStability(
   const errors: string[] = []
   const warnings: string[] = []
 
-  const mapping = expectedStable instanceof Set
-    ? new Map([...expectedStable].map((p) => [p, p]))
-    : expectedStable
+  const mapping = expectedStable instanceof Set ? new Map([...expectedStable].map((p) => [p, p])) : expectedStable
 
   for (const [initialPath, finalPath] of mapping) {
     const initialUlid = initial.get(initialPath)
     const finalUlid = final.get(finalPath)
 
     if (!initialUlid) {
-      warnings.push(
-        `ULID stability: no initial ULID for ${initialPath} — cannot verify stability for ${finalPath}`,
-      )
+      warnings.push(`ULID stability: no initial ULID for ${initialPath} — cannot verify stability for ${finalPath}`)
       continue
     }
     if (!finalUlid) {
@@ -629,9 +625,7 @@ export function verifyUlidFreshness(
       continue
     }
     if (!initialUlid) {
-      warnings.push(
-        `ULID freshness: no initial ULID for ${initialPath} — trivially fresh at ${finalPath}`,
-      )
+      warnings.push(`ULID freshness: no initial ULID for ${initialPath} — trivially fresh at ${finalPath}`)
       continue
     }
     if (initialUlid === finalUlid) {

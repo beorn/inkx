@@ -178,6 +178,37 @@ export const BulkSync = {
       allOps.push(...ops)
     }
 
+    // De-duplicate cross-directory rename + delete pairs.
+    //
+    // The per-directory reconcile loop above doesn't share state across
+    // directories, so a cross-dir rename detected via inode-primary in one
+    // dir's reconcile can collide with a stale "Remaining = deleted" op in
+    // the source dir's reconcile (the source dir sees the file is missing
+    // and emits delete; the destination dir sees the inode and emits rename).
+    // Both ops target the same DB nodeId — the rename should win, the
+    // delete must be dropped.
+    //
+    // reconcileDirectoryRecursive avoids this via shared ReconcileState
+    // (claimedNodeIds), but bulk-sync uses the flat per-dir loop because the
+    // scan was done up-front; threading state would require restructuring.
+    // De-duping post-hoc is the pragmatic fix.
+    const renamedNodeIds = new Set<string>()
+    for (const op of allOps) {
+      if (op.type === "rename" && op.nodeId) renamedNodeIds.add(op.nodeId)
+    }
+    if (renamedNodeIds.size > 0) {
+      const filtered: ReconcileOp[] = []
+      for (const op of allOps) {
+        if (op.type === "delete" && op.nodeId && renamedNodeIds.has(op.nodeId)) {
+          log.debug?.(`bulk-sync: dropping delete op for renamed node ${op.nodeId} (path=${op.path})`)
+          continue
+        }
+        filtered.push(op)
+      }
+      allOps.length = 0
+      allOps.push(...filtered)
+    }
+
     const BATCH_SIZE = 25
     const totalOps = allOps.length || 1
     let opsProcessed = 0

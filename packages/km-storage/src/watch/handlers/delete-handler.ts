@@ -34,6 +34,11 @@ export function handleRename(
     fs_path: newRelPath,
     name: newName,
   }
+  if (op.ino !== undefined) updates.fs_ino = op.ino
+  if (op.mtime !== undefined) updates.fs_mtime = op.mtime
+  if (op.dev !== undefined) updates.fs_dev = op.dev
+  if (op.size !== undefined) updates.fs_size = op.size
+  if (op.contentHash !== undefined) updates.fs_content_hash = op.contentHash
 
   if (db) {
     const node = getNode(db, op.nodeId)
