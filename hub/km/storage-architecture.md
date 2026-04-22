@@ -429,6 +429,16 @@ When a second consumer (CardDAV, Notion import, Automerge sync) actually ships, 
 
 Typecheck fails if `@km/core` or `@km/storage` imports from `node:fs`. This is the load-bearing guarantee that core + backend-agnostic storage stay FS-free, which is what enables a future web/canvas km to swap the engine.
 
+### 6.6 Known constraint — source-level cycle (option d stopgap)
+
+After the initial fs-mount extraction, `@km/storage` source still imports from `@km/fs-mount` in 10 files (notably `store/memory.ts`, `store/base.ts`, `repo/repo.ts`, `repo/loader.ts`, `discovery.ts`, `watcher.ts`, `markdown/processing.ts`, `markdown/collapse-parse.ts`, `db/queries/smart-resolver.ts`, `change-compaction.ts`), while `@km/storage`'s `package.json` does not declare `@km/fs-mount` as a dep. `@km/fs-mount` declares `@km/storage` — so the two form a source-level cycle that only resolves via Bun workspace hoisting.
+
+**Current state (option d):** both packages are `"private": true` and a CI gate + vitest assertion keep them that way. Neither ships to npm until the cycle is broken. See `packages/km-storage/CLAUDE.md` and `packages/km-fs-mount/CLAUDE.md` for the detailed notes and guardrail.
+
+**Long-term resolution (option c, future bead):** extract the shared surface (Emitter, query helpers, common types) into a new dep-free `@km/runtime` package that both sides depend on. That breaks the cycle and unblocks npm publishing. Attempting to publish before then would give end users a broken install.
+
+Option (c) is the correct shape; option (d) is the defensive stopgap that prevents accidental publish while (c) is still pending.
+
 ---
 
 ## 7. Safe markdown writeback

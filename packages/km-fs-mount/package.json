@@ -17,5 +17,6 @@
   "devDependencies": {
     "@beorn/watcher-chaos": "workspace:*",
     "vimonkey": "workspace:*"
-  }
+  },
+  "_note": "MUST stay private until the @km/fs-mount ↔ @km/storage source-level cycle is resolved (option c: extract a dep-free @km/runtime package). See packages/km-fs-mount/CLAUDE.md § Known constraint and hub/km/storage-architecture.md §6."
 }

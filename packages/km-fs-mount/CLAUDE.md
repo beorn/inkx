@@ -32,3 +32,15 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 - Reading `.md` files directly instead of going through `@km/markdown`
 - Swallowing filesystem errors — every failure must log and surface via the emitter / toast channel
 - Leaking `node:fs` types across the `@km/storage` boundary — fs-mount is the containment boundary for filesystem concerns
+
+## Known constraint: @km/fs-mount ↔ @km/storage source cycle
+
+**Status:** `@km/fs-mount`'s `package.json` declares `@km/storage` as a dependency (correct), but `@km/storage`'s source imports from `@km/fs-mount` in 10 files **without** declaring the dep in its own `package.json`. Workspace hoisting papers over this at dev time; npm install outside the monorepo would not.
+
+**Implication:** Neither package can be published to npm in its current shape. Publishing either half alone would leave consumers with unresolvable imports.
+
+**Guardrail:** both `package.json` files carry `"private": true` and a `"_note"` field. A CI gate (`packages/km-infra/scripts/check-no-publish-private.sh`, wired into `test:ci`) fails if either package loses its private flag. A vitest assertion (`packages/km-infra/tests/no-publish-private.test.ts`) enforces the same at test time.
+
+**Resolution path (future bead, not this one):** extract the shared surface (Emitter, query helpers, small types that both sides need) into a new dep-free `@km/runtime` package that both `@km/storage` and `@km/fs-mount` depend on. Once the cycle is broken, both packages can drop `"private": true` and ship to npm.
+
+**Do not "fix" this by deleting the imports.** The cycle is load-bearing until the runtime package is extracted — deleting imports will break the workspace build. See [`packages/km-storage/CLAUDE.md`](../km-storage/CLAUDE.md) for the matching note.

@@ -32,3 +32,15 @@ See the repo root [CLAUDE.md](../../CLAUDE.md) and [docs/architecture.md](../../
 - Reading or writing `.md` files directly — go through `@km/markdown` and the sync layer
 - Embedding business logic (what's a "task"? what's "done"?) in SQL — that belongs in `@km/core` or `@km/board`
 - Swallowing SQLite errors — every failure must log and surface to the user (see memory "no silent failures")
+
+## Known constraint: @km/fs-mount ↔ @km/storage source cycle
+
+**Status:** `@km/storage` source currently imports from `@km/fs-mount` in 10 files (e.g. `src/store/memory.ts`, `src/repo/repo.ts`, `src/repo/loader.ts`, `src/discovery.ts`, `src/watcher.ts`, `src/store/base.ts`, …) while `@km/storage`'s `package.json` does **not** declare `@km/fs-mount` as a dependency. Conversely, `@km/fs-mount`'s `package.json` **does** declare `@km/storage`. This is a source-level package cycle that only resolves because Bun's workspace hoisting makes every workspace package importable from every other workspace package.
+
+**Implication:** Neither package can be published to npm in its current shape. If either were installed outside this monorepo (via npm/pnpm without workspace linking), the other half of the cycle would fail to resolve.
+
+**Guardrail:** both `package.json` files carry `"private": true` and a `"_note"` field. A CI gate (`packages/km-infra/scripts/check-no-publish-private.sh`, wired into `test:ci`) fails if either package loses its private flag. A vitest assertion (`packages/km-infra/tests/no-publish-private.test.ts`) enforces the same at test time.
+
+**Resolution path (future bead, not this one):** extract the shared surface (Emitter, query helpers, small types that both sides need) into a new dep-free `@km/runtime` package that both `@km/storage` and `@km/fs-mount` can depend on. Once the cycle is broken, both packages can drop `"private": true` and ship to npm. Attempting to publish before that refactor will produce a broken install on end-user machines.
+
+**Do not "fix" this by deleting the imports.** The cycle is load-bearing until the runtime package is extracted — deleting imports will break the workspace build.
