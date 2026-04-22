@@ -2,7 +2,7 @@
 
 Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-22 (v3 — dual-pro round-2 consistency pass + named Phase A→B→C→D pathway to DB-truth + CRDT, with value-unlock framing; inode clarified as strongest secondary signal but not primary).
+Last revised: 2026-04-22 (v3 — dual-pro round-2 consistency pass + named Phase A→E pathway: FS-truth → op log → DB-truth → CRDT → sync platform. Inode reordered to primary Step 1, path-of-`.name` to Step 2 per user direction).
 
 ---
 
@@ -51,7 +51,8 @@ The practical rule: **"supports most of markdown"** — tuned for Obsidian-typic
 - **Phase A (current)** — FS-truth + git sync. Ships a working Obsidian-compatible km.
 - **Phase B** — semantic op log alongside FS. Unlocks semantic undo/redo + multi-file atomicity via replay. FS still truth.
 - **Phase C** — DB-as-truth flip. Unlocks versioning/snapshots/rollback, typed queryable metadata, agent state as first class.
-- **Phase D** — CRDT substrate under DB. Unlocks real-time collaboration and clean offline-online merge.
+- **Phase D** — CRDT substrate under DB. Unlocks real-time collaboration and clean offline-online merge. Likely paired with a Rust/Zig native-storage rewrite for perf.
+- **Phase E** — km as a large-scale file sync platform (Dropbox/gdrive/iCloud-class). Built on Phase D's CRDT substrate; adds binary blobs, selective sync, sharing, cloud infra.
 
 Each phase is a shippable product on its own; each unlocks real user value; each requires the prior phase's artifacts. We're not scheduling B/C/D today, but we're naming them so today's decisions don't rule them out.
 
@@ -589,6 +590,23 @@ Prereqs from Phase C: DB is truth; ops are already the mutation path. Adding CRD
 **Caveats (kept from round-2)**: kimmi's Automerge experience showed the complexity tax is real — perf cost, schema rigidity, debuggability all take hits. Phase D is triggered by real-time collab becoming a shipping requirement, not by "CRDTs are cool." Reopen when user feedback or product direction demands it.
 
 **Phase D perf escape hatch**: if Automerge-on-JS perf becomes the blocker (kimmi precedent says it will at non-trivial scale), the likely answer is to rewrite core storage in Rust or Zig and host Automerge natively at that layer — with the TS/Bun surface calling into it via FFI. This is almost certainly what "Phase D done properly" looks like eventually. Treat it as an expected escalation, not as a surprise. Keeping the storage layer's public interface small + op-shaped (per "Phase A pathway implications") means the native rewrite is a swap, not a rebuild of everything above it.
+
+#### Phase E — km as a large-scale file sync platform
+
+Dropbox / Google Drive / iCloud-class sync built on the CRDT substrate of Phase D. km stops being "a local-first editor that can sync" and becomes "a sync platform with km on top."
+
+| Unlock | Why |
+|---|---|
+| Million-file workspaces across devices | CRDT gives merge semantics; infrastructure gives scale |
+| Binary blobs (images, PDFs, audio, video, attachments) as first-class | Markdown alone doesn't handle these; DB-truth already treats files as addressable units |
+| Selective sync / partial hydration / on-demand fetch | Most users don't need the whole vault on every device |
+| Sharing primitives — folder sharing, permissions, invites | Phase D gives safe concurrent edits; Phase E gives the access model |
+| Storage tiering (hot/cold/archive) + true offline support | Sync platform responsibilities, not editor responsibilities |
+| Conflict-free sync across arbitrary transports (not just git) | Current Tier 0 (git) is a hack at this scale; CRDT + cloud storage is the real answer |
+
+Prereqs from Phase D: CRDT substrate is live; the native-rewrite perf path (Phase D escape hatch) is probably already done or concurrent — Phase E's throughput requirements push the same direction.
+
+**Scope honest**: Phase E is a product platform, not an architecture tweak. The prior phases give it a shot at being buildable (DB addressability, CRDT merge, native-perf storage); Phase E itself is primarily infra + product work (cloud services, blob store, sync protocol, auth, billing). Treat it as a direction this architecture *enables*, not as something this architecture plans.
 
 #### Non-prerequisites (deliberately keeping open)
 
