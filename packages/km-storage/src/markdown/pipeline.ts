@@ -32,7 +32,7 @@ import { basename } from "path"
 import type { KNode } from "@km/core"
 import type { ParsePoolService } from "./parse-pool.ts"
 import type { Emitter } from "../emitter.ts"
-import { emitNodeCreated, emitNodeUpdated } from "../emitter.ts"
+import { emitNodeCreated } from "../emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
 import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./processing.ts"
 import { INSERT_NODE_PLAIN_SQL, insertNodeRow } from "../db/insert.ts"
@@ -178,6 +178,17 @@ export async function* applyNodes(
   const BATCH_SIZE = 5
   let batchStart = 0
 
+  // Collect metadata back-writes for post-batch emission. When an emitter is
+  // provided, updateFileMetadata queues the update here instead of writing
+  // directly — so DB + changes.jsonl are paired per row via emitter.commit
+  // (op-vocabulary audit G9). An outer SQL txn cannot help: appendFileSync is
+  // not part of SQLite and cannot be rolled back, so emitting inside BEGIN
+  // IMMEDIATE would leave an orphan journal entry if the batch rolled back.
+  const pendingMetadataEmits: Array<{
+    nodeId: string
+    data: { fs_mtime: number; fs_ino: number; content_hash: string }
+  }> = []
+
   while (batchStart < files.length) {
     if (signal?.aborted) return
 
@@ -192,13 +203,29 @@ export async function* applyNodes(
         if (file.isCreate) {
           insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now)
         } else {
-          updateFileMetadata(file, db, emitter, now)
+          updateFileMetadata(file, db, emitter, now, pendingMetadataEmits)
         }
       }
       db.run("COMMIT")
     } catch (error) {
       db.run("ROLLBACK")
       throw error
+    }
+
+    // After the batch commits, route queued metadata updates through
+    // emitter.commit so DB + journal pair per row. commit() (not apply())
+    // because this is FS-origin — the disk moved, we're realigning in-memory
+    // state. apply() would fire onApply subscribers and re-project back to FS.
+    if (emitter && pendingMetadataEmits.length > 0) {
+      for (const update of pendingMetadataEmits) {
+        emitter.commit({
+          type: "node_updated",
+          target: update.nodeId,
+          actor: "fs-watch",
+          data: update.data,
+        })
+      }
+      pendingMetadataEmits.length = 0
     }
 
     // Yield applied files for next stage
@@ -464,16 +491,48 @@ function insertFileNodes(
   }
 }
 
-/** Update file-level metadata for an existing file. */
-function updateFileMetadata(file: ParsedFile, db: Database, emitter: Emitter | undefined, now: number): void {
+/**
+ * Update file-level metadata for an existing file.
+ *
+ * When `emitter` is provided, queues the update into `pendingEmits` so the
+ * caller can route it through `emitter.commit()` after the batch transaction
+ * commits — DB + changes.jsonl paired per row (op-vocabulary audit G9).
+ * Using `commit` (not `apply`) avoids firing onApply subscribers — same
+ * carve-out as the sibling back-writes in change-handlers.ts.
+ *
+ * When `emitter` is absent (bootstrap / initial repo-load), falls back to a
+ * direct UPDATE inside the batch txn — same carve-out as the embed_of back-
+ * writes in applyLinks and the scanner/loader op-surface.
+ */
+function updateFileMetadata(
+  file: ParsedFile,
+  db: Database,
+  emitter: Emitter | undefined,
+  now: number,
+  pendingEmits: Array<{
+    nodeId: string
+    data: { fs_mtime: number; fs_ino: number; content_hash: string }
+  }>,
+): void {
   if (!file.nodes[0]) return
 
-  const updates: Record<string, unknown> = {
-    fs_mtime: file.mtime,
-    fs_ino: file.ino,
-    content_hash: file.hash,
+  if (emitter) {
+    // Queue for post-batch emission. The single emitter.commit call will
+    // perform the UPDATE via applyChangeWithDb AND append to changes.jsonl.
+    pendingEmits.push({
+      nodeId: file.nodeId,
+      data: {
+        fs_mtime: file.mtime,
+        fs_ino: file.ino,
+        content_hash: file.hash,
+      },
+    })
+    return
   }
 
+  // Bootstrap / initial-load fallback: no emitter, write directly inside the
+  // current batch transaction. Journaling is not meaningful here because the
+  // repo is being loaded from scratch.
   db.run(`UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`, [
     file.mtime,
     file.ino,
@@ -481,11 +540,6 @@ function updateFileMetadata(file: ParsedFile, db: Database, emitter: Emitter | u
     now,
     file.nodeId,
   ])
-
-  // Emit update change if emitter provided
-  if (emitter) {
-    emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
-  }
 }
 
 // ============================================================================
