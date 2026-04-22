@@ -275,11 +275,17 @@ export async function* pipelineResolveLinks(
 /**
  * Batch insert resolved links into database.
  * Exhausts upstream, then inserts in single transaction.
+ *
+ * When `emitter` is provided, embed_of back-writes route through
+ * `emitter.commit()` — DB + journal paired per row (op-vocabulary audit G4).
+ * Without emitter, falls back to a direct UPDATE inside the links batch txn
+ * (initial repo-load path where journaling is bootstrap-noise).
  */
 export async function* applyLinks(
   upstream: AsyncGenerator<ResolvedLink>,
   db: Database,
   signal?: AbortSignal,
+  emitter?: Emitter,
 ): AsyncGenerator<void> {
   // Collect all links
   const links: ResolvedLink[] = []
@@ -307,7 +313,7 @@ export async function* applyLinks(
 
   log.debug?.(`applyLinks: inserting ${links.length} links`)
 
-  // Batch insert in single transaction
+  // Batch insert links in a single transaction.
   db.run("BEGIN IMMEDIATE")
   try {
     const insertStmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
@@ -316,8 +322,9 @@ export async function* applyLinks(
       yield // Progress indication
     }
 
-    // Batch UPDATE for embedded links (update source node's embed_of)
-    if (embeddedUpdates.length > 0) {
+    // When no emitter is provided, the embed_of back-writes also live in
+    // this batch txn — bootstrap/initial-load path, journaling not needed.
+    if (embeddedUpdates.length > 0 && !emitter) {
       const now = Date.now()
       const updateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
       for (const update of embeddedUpdates) {
@@ -330,6 +337,22 @@ export async function* applyLinks(
   } catch (error) {
     db.run("ROLLBACK")
     throw error
+  }
+
+  // When an emitter is provided, route the embed_of back-writes outside the
+  // links batch transaction so DB + journal pair per row (op-vocabulary
+  // audit G4). An outer SQL txn would not help — appendFileSync is not part
+  // of SQLite and cannot be rolled back. commit() (not apply()) avoids
+  // echoing these derived updates back to the FS projection subscribers.
+  if (embeddedUpdates.length > 0 && emitter) {
+    for (const update of embeddedUpdates) {
+      emitter.commit({
+        type: "node_updated",
+        target: update.host_id,
+        actor: "fs-watch",
+        data: { embed_of: update.embed_of, name: update.alias },
+      })
+    }
   }
 }
 
@@ -515,8 +538,9 @@ export async function runDeferredPipeline(
   // Collect resolved links (don't apply yet - let caller decide)
   const pendingLinks = await collect(resolved)
 
-  // Apply links - wrap array as async generator
-  const linkGen = applyLinks(toAsyncGenerator(pendingLinks), db, signal)
+  // Apply links - wrap array as async generator. Pass emitter so embed_of
+  // back-writes route through emitter.commit (DB + journal paired).
+  const linkGen = applyLinks(toAsyncGenerator(pendingLinks), db, signal, options.emitter)
   await runPipeline(linkGen)
 
   const parsedCount = stubInfo.size

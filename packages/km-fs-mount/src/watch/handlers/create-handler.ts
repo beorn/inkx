@@ -15,7 +15,6 @@ import { generatePathBasedId } from "../../fs/id-utils.ts"
 import type { KNode } from "@km/core"
 import {
   emitNodeCreated,
-  emitNodeUpdated,
   type Emitter,
   getNodeByPath,
   addLink,
@@ -231,18 +230,20 @@ function handleMarkdownCreate(
     // For embed rows, mirror embed_of onto the host node so the in-memory
     // store stays in sync. The links table itself no longer carries
     // target_id — we resolved it transiently via the LinkResolver.
+    //
+    // Route through emitter.commit so DB + journal are paired per row
+    // (op-vocabulary audit G4). commit() (not apply()) because this is
+    // FS-origin — we just parsed a newly-created file and are back-writing
+    // derived fields; apply() would fire onApply subscribers and echo to FS.
     if (link.rel === "embed" && link.embedTargetId) {
-      // Persist embed_of + alias on the node row directly (links.addLink
-      // no longer does this — the v4 schema has no target_id column).
-      db.run(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`, [
-        link.embedTargetId,
-        link.alias,
-        Date.now(),
-        link.host_id,
-      ])
-      emitNodeUpdated(emitter, "fs-watch", link.host_id, {
-        embed_of: link.embedTargetId,
-        name: link.alias,
+      emitter.commit({
+        type: "node_updated",
+        target: link.host_id,
+        actor: "fs-watch",
+        data: {
+          embed_of: link.embedTargetId,
+          name: link.alias ?? null,
+        },
       })
     }
   }

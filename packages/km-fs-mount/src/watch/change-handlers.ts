@@ -149,7 +149,16 @@ export class ChangeHandlers {
     const assigned = new Map<string, string>() // nodeId → blockId
     return {
       assign: (nodeId: string, blockId: string) => {
-        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+        // Route the block_id back-write through emitter.commit so DB + journal
+        // are paired per row (op-vocabulary audit G4/G7). commit() (not apply())
+        // because this runs during FS-origin serialization; apply() would echo
+        // back into the FS projection subscribers.
+        this.emitter.commit({
+          type: "node_updated",
+          target: nodeId,
+          actor: "fs-watch",
+          data: { block_id: blockId },
+        })
         assigned.set(nodeId, blockId)
       },
       rewriteSourceFiles: (excludeFileId?: string) => {
@@ -279,7 +288,17 @@ export class ChangeHandlers {
       // CAS guard (§7.1). They must move together whenever we observe a new
       // on-disk state — otherwise the next write either misses drift
       // detection or trips a spurious conflict.
-      this.db.run("UPDATE nodes SET content_hash = ?, fs_content_hash = ? WHERE id = ?", [diskHash, diskHash, nodeId])
+      //
+      // Route through emitter.commit so DB + journal are paired per row
+      // (op-vocabulary audit G9). commit() (not apply()) because this is
+      // FS-origin — the disk moved, we're realigning in-memory state.
+      // apply() would fire onApply subscribers and re-project back to FS.
+      this.emitter.commit({
+        type: "node_updated",
+        target: nodeId,
+        actor: "fs-watch",
+        data: { content_hash: diskHash, fs_content_hash: diskHash },
+      })
     } catch (err) {
       log.warn?.(
         `mergeExternalDrift: failed to update content_hash for ${nodeId}: ${err instanceof Error ? err.message : String(err)}`,

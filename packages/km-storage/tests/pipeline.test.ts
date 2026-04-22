@@ -458,6 +458,60 @@ describe("applyLinks()", () => {
     const count = await runPipeline(applyLinks(fromArray([]), db))
     expect(count).toBe(0)
   })
+
+  test("routes embed_of back-writes through emitter.commit when emitter is provided (G4)", async () => {
+    const { mkdtempSync, existsSync, readFileSync } = await import("fs")
+    const { join } = await import("path")
+    const { tmpdir } = await import("os")
+    const { createEmitter } = await import("../src/emitter.ts")
+
+    const db = createTestDb()
+
+    // Insert source node that will get its embed_of updated.
+    db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, data, created_at, updated_at, version)
+       VALUES ('src1', 'paragraph', 'file1', 0, '{}', 1000, 1000, '')`,
+    )
+
+    const links = [
+      createResolvedLink("src1", "embed", {
+        rel: "embed",
+        embedTargetId: "tgt1",
+        alias: "My Alias",
+      }),
+    ]
+
+    const tmpKm = mkdtempSync(join(tmpdir(), "applylinks-emitter-"))
+    const emitter = createEmitter({ kmDir: tmpKm, db, skipPersist: false })
+
+    await runPipeline(applyLinks(fromArray(links), db, undefined, emitter))
+
+    // DB: embed_of + name populated via the emitter's applyChangeWithDb.
+    const node = db.query("SELECT embed_of, name FROM nodes WHERE id = ?").get("src1") as {
+      embed_of: string
+      name: string
+    }
+    expect(node.embed_of).toBe("tgt1")
+    expect(node.name).toBe("My Alias")
+
+    // Journal: exactly one node_updated for src1 carrying embed_of + name.
+    const changesPath = join(tmpKm, "changes.jsonl")
+    expect(existsSync(changesPath)).toBe(true)
+    const entries = readFileSync(changesPath, "utf-8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+    const matching = entries.filter((e) => {
+      if (e.type !== "node_updated" || e.target !== "src1") return false
+      const data = e.data as Record<string, unknown>
+      return data?.embed_of === "tgt1"
+    })
+    expect(matching.length).toBe(1)
+    const entry = matching[0]!
+    expect(entry.actor).toBe("fs-watch")
+    const entryData = entry.data as Record<string, unknown>
+    expect(entryData.name).toBe("My Alias")
+  })
 })
 
 // ============================================================================

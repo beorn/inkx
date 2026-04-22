@@ -206,16 +206,20 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     // the in-memory store stays in sync. The v4 links schema has no
     // target_id column — embed_of is resolved transiently and materialized
     // on `nodes` here.
+    //
+    // Route through emitter.commit so DB + journal are paired per row
+    // (op-vocabulary audit G4). commit() (not apply()) because this is
+    // FS-origin — we just parsed the file and are back-writing derived
+    // fields; apply() would fire onApply subscribers and echo to FS.
     if (link.rel === "embed" && link.embedTargetId) {
-      db.run(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`, [
-        link.embedTargetId,
-        link.alias,
-        Date.now(),
-        hostId,
-      ])
-      emitNodeUpdated(emitter, "fs-watch", hostId, {
-        embed_of: link.embedTargetId,
-        name: link.alias ?? undefined,
+      emitter.commit({
+        type: "node_updated",
+        target: hostId,
+        actor: "fs-watch",
+        data: {
+          embed_of: link.embedTargetId,
+          name: link.alias ?? null,
+        },
       })
     }
   }
