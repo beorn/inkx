@@ -43,6 +43,8 @@ BASELINE_SETRAWMODE=10       # stdin.setRawMode call sites outside the allowlist
 BASELINE_ON_DATA=13          # stdin.on('data'|'readable', …) call sites outside the allowlist
 BASELINE_REMOVE_ALL=0        # stdin.removeAllListeners('data') — must stay zero
 BASELINE_ISRAW=4             # const wasRaw = stdin.isRaw — the smell that motivated this script
+BASELINE_TERM_STDIO=0        # term.stdin / term.stdout member access — must stay zero
+                             # (use term.input / term.output / term.modes / term.size sub-owners)
 # =========================================================================
 
 # Sum hits across one or more fixed-string patterns (simpler than juggling
@@ -100,6 +102,10 @@ check_baseline REMOVE_ALL "$BASELINE_REMOVE_ALL" \
 check_baseline ISRAW "$BASELINE_ISRAW" \
   "The wasRaw capture is the smell that motivated this script — see km-silvery.input-owner." \
   "const wasRaw = stdin.isRaw"
+
+check_baseline TERM_STDIO "$BASELINE_TERM_STDIO" \
+  "term.stdin / term.stdout were removed in Phase 8 of km-silvery.term-sub-owners. Use term.input / term.output / term.modes / term.size sub-owners. Silvery runtime adapters use getInternalStreams(term) from runtime/term-internal.ts." \
+  "term.stdin" "term.stdout"
 
 if [ "$EXIT" -eq 0 ]; then
   echo "OK: stdin ownership clean (no new wasRaw race surface)"
