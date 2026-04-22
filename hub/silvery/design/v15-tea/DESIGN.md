@@ -2,7 +2,7 @@
 
 > **Canonical.** Iterate here. Don't start new design docs for this topic. Other docs in this folder (`commands.md`, `signals.md`, `headless.md`, `selection.md`) are historical reference; they get updated at rollout.
 
-**Prototypes** (must always match current decisions): `prototypes/minimal.ts`, `prototypes/middle.ts`, `prototypes/canonical.ts`, `prototypes/q1-nested-commands.ts`, `prototypes/q2-input-dispatch.ts`, `prototypes/q3-effects.ts`.
+**Prototypes** (must always match current decisions): `prototypes/minimal.ts`, `prototypes/middle.ts`, `prototypes/canonical.ts`, `prototypes/q1-nested-commands.ts`, `prototypes/q2-input-dispatch.ts`, `prototypes/q3-effects.ts`, `prototypes/q8-cross-plugin-dispatch.ts`, `prototypes/q15-serialization.ts`.
 
 ---
 
@@ -31,12 +31,12 @@
 ### Input & Dispatch
 
 - [x] **D10** — Input seam is unified `dispatch(event: Event)` with discriminated union. All user interactions (key, mouse, paste, focus, resize) are events. Enables event sourcing, replay, undo, AI automation. *2026-04-22*
-- [ ] **Q8** — Cross-plugin dispatch: direct reference call, effect, or `dispatch({kind:"command"})` event.
+- [x] **D12** — Cross-plugin dispatch uses dual approach: direct calls for tight coupling (type-enforced compose order), event dispatch for loose coupling. Direct calls are synchronous and type-safe; dispatch events are replayable and decouple domains. *2026-04-22*
 
 ### Effects & Side Effects
 
 - [x] **D11** — Effects are queued and executed via a dedicated plugin: `withEffects()`. Commands invoke cleanly (no tuple returns). Effects can be mocked, retried, batched. Flushed after state updates. *2026-04-22*
-- [ ] **Q15** — Serialization: how command names flow out to CLI/YAML/MCP when the in-memory form is object references. Derived at boundary?
+- [x] **D13** — Command serialization uses dual registry: in-memory nested tree (app.commands) for type safety, flat CommandRegistry for boundaries. Registry auto-flattens tree, provides pathOf()/commandAt() for config/CLI/MCP. *2026-04-22*
 
 ### Rendering & Output
 
@@ -47,6 +47,8 @@
 
 - [ ] **Q9** — Test harness shape: same pipe with swapped providers + `withMockEffects` (current prototype) — confirm.
 - [ ] **Q16** — Lifecycle: async dispose, plugin init phases (before/after tree mount), error boundaries.
+- ~~[ ] **Q8** — Cross-plugin dispatch: direct reference call, effect, or `dispatch({kind:"command"})` event.~~ **→ D12** *2026-04-22*
+- ~~[ ] **Q15** — Serialization: how command names flow out to CLI/YAML/MCP when the in-memory form is object references. Derived at boundary?~~ **→ D13** *2026-04-22*
 
 ### Advanced Features
 
@@ -75,5 +77,7 @@
 
 ## Changelog
 
+- **2026-04-22** — Resolved Q8 (cross-plugin dispatch: direct + event dual approach) and Q15 (command serialization: dual registry). 13 decisions locked, 12 open questions.
+- **2026-04-22** — Resolved Q8 (cross-plugin dispatch: dual direct + event approach). 12 decisions locked, 13 open questions.
 - **2026-04-22** — Restructured as layer-by-layer design matrix. Resolved Q1 (nested command tree), Q2 (unified dispatch), Q3 (effects queue). 11 decisions, 14 open questions.
 - **2026-04-22** — Draft 0. Consolidated from scattered designs. 8 decisions, 17 questions. Prototypes moved into `prototypes/`.
