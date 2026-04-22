@@ -7,11 +7,20 @@
  */
 
 import { createLogger } from "loggily"
+import { createWorkerConsoleHandler, isWorkerConsoleMessage } from "loggily/worker"
 import { cpus } from "os"
 import type { ServiceStatus } from "../watcher.ts"
 import type { ParseRequest, WorkerMessage, WorkerResponse } from "./parse-worker.ts"
 
 const log = createLogger("km:storage:parse-pool")
+
+// parse-worker.ts installs `forwardConsole` so every logger in the worker
+// (its own + @km/markdown's transitive loggers) posts its output here via
+// structured console messages. Routing through the main-thread loggily
+// pipeline makes the worker logs participate in km-cli's DEBUG_LOG file
+// writer + patchConsole suppression, instead of landing on stdout and
+// corrupting the host TUI's alt-screen buffer.
+const handleWorkerConsole = createWorkerConsoleHandler()
 
 export interface ParseResult {
   nodeId: string
@@ -219,7 +228,14 @@ function createParsePoolInternal(options?: ParsePoolOptions): ParsePoolInternal 
   }
 
   // Internal helper function
-  function handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
+  function handleWorkerMessage(worker: Worker, raw: unknown): void {
+    // Route forwarded console.* messages through the main-thread loggily
+    // pipeline (so DEBUG_LOG + patchConsole apply).
+    if (isWorkerConsoleMessage(raw)) {
+      handleWorkerConsole(raw)
+      return
+    }
+    const message = raw as WorkerResponse
     if (message.type === "parsed") {
       const pending = pendingRequests.get(message.id)
       if (pending) {
