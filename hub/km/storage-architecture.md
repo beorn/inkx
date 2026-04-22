@@ -2,7 +2,7 @@
 
 Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-22 (after dual-pro round-2 critique: consistency cleanup, file-basename/path split, reconciliation scope honest, P3 gated on corpus, DB-truth cost estimates removed).
+Last revised: 2026-04-22 (v3 — dual-pro round-2 consistency pass + named Phase A→B→C→D pathway to DB-truth + CRDT, with value-unlock framing; inode clarified as strongest secondary signal but not primary).
 
 ---
 
@@ -44,33 +44,26 @@ What does NOT round-trip cleanly:
 
 The practical rule: **"supports most of markdown"** — tuned for Obsidian-typical usage. Edge-case fidelity is a cost the user accepts in exchange for km's structural understanding of the vault.
 
-### 1.1 FS-truth for now — DB-truth likely later
+### 1.1 FS-truth today; pathway to DB-truth + CRDT
 
-**FS is truth, DB is a derived cache** — for the current implementation. Not a permanent architectural claim. The honest framing:
+**FS is truth, DB is a derived cache** — for Phase A (today). Not a permanent architectural claim. The full pathway with value unlocks lives in §9:
 
-- **Today: FS-truth is correct** because (a) the implementation is simpler (no ingest pipeline / regen loop), (b) it matches today's code path, (c) catastrophic-failure blast radius is smaller (DB corruption → rebuild from FS, contained), (d) we don't yet ship features that require beyond-markdown representation.
-- **Likely later: DB-truth becomes correct** because (a) cross-peer sync is a probable future product requirement, (b) richer per-block metadata + typed queryable fields likely emerge as km grows, (c) multi-file atomicity is easier via SQLite transactions than via a bespoke journal, (d) kimmi-style DB-first is the direction the PIM ecosystem trends.
+- **Phase A (current)** — FS-truth + git sync. Ships a working Obsidian-compatible km.
+- **Phase B** — semantic op log alongside FS. Unlocks semantic undo/redo + multi-file atomicity via replay. FS still truth.
+- **Phase C** — DB-as-truth flip. Unlocks versioning/snapshots/rollback, typed queryable metadata, agent state as first class.
+- **Phase D** — CRDT substrate under DB. Unlocks real-time collaboration and clean offline-online merge.
 
-This isn't "deferred edge case." It's "current pragma, known evolution path."
+Each phase is a shippable product on its own; each unlocks real user value; each requires the prior phase's artifacts. We're not scheduling B/C/D today, but we're naming them so today's decisions don't rule them out.
 
-**Prerequisites for a DB-truth flip** (applicable whenever we get there):
-- Stable internal ULIDs across migrations (part of current plan, §2)
-- AST round-trip fidelity via a test corpus (part of current plan, §8.P5)
-- Content-as-CAS writes (part of current plan, §7)
-- **Versioning + backup + rollback** at the DB layer — periodic snapshots, retention policy, rollback CLI/UI. This is what makes DB-truth acceptable at the trust-level FS-truth provides today. Not yet planned; would be scope-in at flip time.
-- Multi-peer sync protocol choice (Tier 2+ per §9)
+**Why FS-truth for Phase A**: (a) simpler implementation (no ingest pipeline / regen loop), (b) catastrophic-failure blast radius is smaller (DB corruption → rebuild from FS, contained), (c) no beyond-AST features shipping yet to force the issue, (d) matches today's code path.
 
-Each item is independently useful under FS-truth and makes the eventual flip smaller. Several are already in §8.
+**What today's work contributes to later phases** (all already in §8):
+- Stable internal ULIDs → used in every phase
+- AST round-trip fidelity corpus → needed for any FS↔DB mapping
+- Content-as-CAS writeback → required for Phase C's "FS is a projection" semantics
+- Op-vocabulary shape (edits are ops, not text diffs) → this is the Phase B prerequisite most worth keeping in mind during P2/P3 implementation
 
-Both architectures preserve the same structural fidelity (AST round-trip). The choice is really:
-- **FS-truth**: user's content lives in `.md`; DB is fast cache; sync happens at file level (git/rsync/custom).
-- **DB-truth**: user's content's canonical form is the DB; `.md` is a faithful projection; sync happens at DB level (ops, snapshots); catastrophic failures are mitigated by versioning.
-
-Framework for deciding timing:
-- If a feature needs beyond-AST representation → flip now
-- If cross-device sync quality becomes a user complaint → flip now (richer sync story)
-- If catastrophic failure insurance (versioning/rollback on content changes) becomes desired regardless → flip opportunity
-- Otherwise → keep FS-truth, continue executing §8.P1-P5 (which build prerequisites)
+See §9 for the full pathway, triggers, and gaps-to-be-specified.
 
 ### 1.2 Policy statement (near-term)
 
@@ -83,9 +76,9 @@ For the current implementation phase:
 - **Zero metadata injection into user files.** km writes no hidden IDs, no frontmatter additions, no inline ID tags, no HTML comments.
 - **Obsidian interop preserved.** Wiki-links, block anchors, headings, tags all work as Obsidian expects.
 
-**Tagline (near-term)**: "If you can't read it with `cat`, km doesn't claim it."
+**Tagline (Phase A)**: "If you can't read it with `cat`, km doesn't claim it."
 
-**Tagline (post-flip)**: "If km shows it, it's real — regardless of whether `cat` can reach it." The flip happens when the feature set demands it; see §1.1 for triggers.
+**Tagline (Phase C onward)**: "If km shows it, it's real — regardless of whether `cat` can reach it." The flip happens when product value unlocks outweigh the cost; see §9 for the pathway.
 
 ### 1.3 The load-bearing invariant
 
@@ -224,27 +217,36 @@ Every node in the tree has:
 
 Reconciliation is the process of mapping fresh-scanned external identities to existing ULIDs (preserving internal state) vs minting new ULIDs (genuinely new nodes).
 
-### 3.2 Primary signal: path-of-`.name` match
+### 3.2 Primary signals: inode (when available) then path-of-`.name`
 
-For each fresh-scanned node, attempt to match against DB rows with the **same path-of-`.name`**:
+Reconciliation on scan tries signals in order of certainty. For each fresh-scanned node:
 
-- File: `[repo, "notes/foo"]` → match by repo_id + path
-- Heading: `[repo, "notes/foo", "my-heading"]` → match by parent_file_id + `.name`
-- Block: `[repo, "notes/foo", "rec"]` → match by parent_file_id + `.name` (anchor literal)
+**Step 1 — inode, when we have it.** If the current scan reports an inode and the DB row with that same inode is in the expected repo + same-filesystem device, it is the same file, full stop. Inode is the most trustworthy single signal — it is OS-level identity. This is the fast path for "user renamed the file in nvim or Finder" and "user edited in place" — both scenarios where inode is stable.
+
+Rules for using inode as primary:
+- Must be same FS device (km stores `fs_dev` alongside `fs_ino`; cross-device inode collisions are otherwise likely)
+- If inode matches but path + content also clearly identify a *different* file (e.g., inode reuse after deletion + new file creation across a km-down period), disambiguate via content hash
+
+**Step 2 — path-of-`.name` match**, when inode is absent, unavailable, or stale (fresh git clone, cross-FS copy, Dropbox sync, disk restore — inode reassigned on every file). This is the cross-transport lingua franca: it survives git, rsync, cloud drives, and copy-rename-save editors.
+
+- File: `[repo, "notes/foo.md"]` → match by repo_id + path
+- Heading: `[repo, "notes/foo.md", "my-heading"]` → match by parent_file_id + `.name`
+- Block: `[repo, "notes/foo.md", "rec"]` → match by parent_file_id + `.name` (anchor literal)
 - Tag: `[repo, "inbox"]` → match by sigil_kind + `.name`
 
-If a path-of-`.name` matches uniquely, **preserve that ULID**. This covers the 90%+ case: files unchanged, edits in place, no rename.
+Between Step 1 and Step 2 we cover the 90%+ case: files unchanged, files edited in place, files renamed intra-FS (inode), or files touched via git (path/name).
 
-### 3.3 Secondary heuristics when path changes
+### 3.3 Secondary signals when primaries don't match
 
-When a path-of-`.name` doesn't match (file renamed, heading text edited, block anchor missing), fall through to these heuristics (all of which resolve to ULIDs):
+When neither inode nor path-of-`.name` finds a DB row, fall through in this order:
 
-| Heuristic | Scope | When it fires | Signal strength |
-|---|---|---|---|
-| **File content hash** (sha256 of full file bytes) | File-level only | File path changed, file body byte-identical → intra-file rename/move | Strong; near-zero false positive |
-| **Inode** (`fs_ino`) | File-level only | Path changed within same filesystem, inode preserved | Strong for intra-FS moves; unreliable across devices or with some editors |
-| **Position among siblings** | Within-file, block-level | Unnamed block edited; order preserved | Weak; cosmetic (session-state) use only |
-| **Parent-scope uniqueness** | Within-file, heading-level | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged |
+| Signal | Scope | Fires when | Strength | Transport fragility |
+|---|---|---|---|---|
+| **File content hash** (sha256 of full file bytes) | File-level | Path + inode both changed, body byte-identical → cross-FS or post-git rename | Strong; survives git + cross-FS | Fails on rename-with-any-edit + on empty/duplicate files |
+| **Parent-scope uniqueness** | Within-file, heading | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged | Intra-file only |
+| **Position among siblings** | Within-file, block | Unnamed block edited; order preserved | Weak; cosmetic session-state only | Intra-file only |
+
+**Why `.name` isn't primary-primary** despite surviving every transport: when we *do* have inode, inode is stronger (it's OS identity, not a name that could collide). `.name` is the fallback that's always available; inode is the fast path that's often available.
 
 **Explicit non-goals**:
 - **Cross-file block moves are not reconciled.** If a user cuts a paragraph (with or without `^anchor`) from `foo.md` and pastes it into `bar.md` offline, km sees "deletion in foo" + "insertion in bar" and assigns a fresh ULID. User-visible cost: internal-only (broken backlinks manifest the same way Obsidian would show them).
@@ -514,43 +516,92 @@ km's sync story upgrades in tiers as reliability demands grow. Each tier stays w
 
 Honest caveat: **Tier 2 under FS-truth is a DB-truth gateway drug.** If the op log becomes the authoritative record of semantic edits, FS starts looking like a projection of the op log. When we reach for Tier 2, re-read §9 "Probable future direction" first.
 
-### Probable future direction: DB-as-truth flip
+### Pathway to DB-truth + CRDT — named, not scheduled
 
-**Framing honestly**: FS-truth is the architecture we're executing. DB-truth is a direction we think we'll probably want — cross-device sync, typed/queryable per-block metadata, agent state, Tana/Logseq-style typed blocks all trend that way — but "probably want" is not "inevitable," and we don't architect today for tomorrow's shape.
+**Value thesis**: FS-truth is the floor, not the ceiling. Reaching DB-truth unlocks first-class versioning/snapshots/rollback as a product feature (not just "use git"), typed queryable per-block metadata, and agent state as a first-class citizen. Reaching CRDT unlocks real-time collaboration and clean offline-online merge without custom conflict UI. These are big unlocks — worth naming a pathway even if we don't schedule it.
 
-**Triggers to revisit the decision (any one is sufficient)**:
-- A feature ships that fundamentally can't be represented in AST → markdown (note: §1.0 provides a DB-only escape hatch that delays this trigger)
-- Cross-device sync quality becomes a user-visible pain point, and §9 Tier 1/Tier 2 aren't enough
-- Multi-file atomicity under FS-truth (via custom journal, §7.3) becomes a maintenance burden
-- Agent state / live annotations / rich embeds become first-class product features
-- We decide versioning + rollback of content changes is a product guarantee we want to provide
+**What "pathway" means here**: the phases below are ordered, each leaves a shippable product, and each phase's artifacts are prerequisites for the next. Phase A is today; phases B/C/D are triggered by product need, not by calendar. We don't over-engineer today for phase D, but we prefer decisions today that don't *rule out* D.
 
-If and only if a trigger fires, we reopen this section and do the full DB-truth design with the gaps listed below. Until then, the flip is not planned, not scheduled, and not subtly steering architecture decisions.
+#### Phase A — FS-truth (current, §8)
 
-**Cost of the flip — deliberately un-estimated.** An earlier draft of this doc offered LOC estimates (~300-400 core + ~500-800 versioning). Round-2 review flagged these as likely off by an order of magnitude: the flip inverts the write path (DB → projection → FS, not FS → parse → DB), promotes three-way merge from an edge case to the default, and requires a one-shot migration of every existing vault. Those are product earthquakes, not refactors. We avoid pretending otherwise.
+| Item | What it unlocks |
+|---|---|
+| Stable internal ULIDs (§2) | Join keys that survive rebuild |
+| Path-of-`.name` reconciliation (§3) | Offline FS edits don't destroy internal identity |
+| Fidelity corpus (§8.P3) | Round-trip proof for every AST-covered markdown shape |
+| Content-as-CAS writeback (§7) | "Never silently overwrite user edits" guarantee |
+| Federation / RepoId (§8.P4) | Multi-repo workspace, cross-repo URLs |
+| Sync Tier 0 (git) | Offline multi-device; conflict UX = git's conflict UX |
 
-**Prerequisites that remain useful regardless of whether we flip** (each is in §8):
-- Stable internal ULIDs → §2, §8.P0 + §8.P2
-- AST round-trip fidelity corpus → §8.P3 step 1
-- Content-as-CAS → §7, §8.P3
-- Watcher + parse pipeline → §8.P2
+Shipping Phase A gives: a working km that is Obsidian-compatible, scales to 100k files, and has disciplined writeback. It is a complete product without any of B/C/D.
 
-**What is NOT yet specified** (and must be, if and when the flip becomes live):
-- Conflict-resolution UX — what does the user see when Obsidian edits a file while km has unsaved DB state?
-- FS projection strategy — full project on every commit? Dirty-file projection? Deletion handling?
+#### Phase B — Semantic op log alongside FS (Tier 2)
+
+Add an append-only semantic op log (`.km/oplog/`) that records edits as (insert heading, delete block, move subtree, set anchor, …) ops in addition to the markdown write. FS remains truth; the log is a parallel authoritative record of *intent*.
+
+| Unlock | Why |
+|---|---|
+| Semantic multi-file atomicity | Replay a group of ops on recovery; no custom journal (§7.3) |
+| Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff |
+| Cleaner sync merge | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
+
+Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus.
+
+**New work for B**: op vocabulary, op-log format + compaction, op-to-serializer codepath (already exists — ops drive the serializer today), op-log replay for recovery.
+
+**Caveat surfaced in round-2 review**: Phase B under FS-truth is a "DB-truth gateway drug." Once ops are the authoritative intent record, FS starts looking like a projection. That's fine — that's literally the pathway. Phase B makes the Phase C flip *smaller*, not larger.
+
+#### Phase C — DB-as-truth flip
+
+DB becomes the canonical store. FS is a deterministic projection of DB state. Ops from Phase B drive DB mutations directly instead of going through the markdown text round-trip.
+
+| Unlock | Why |
+|---|---|
+| Versioning + snapshots + rollback as product | DB-level history; not "use git, sorry" |
+| Typed per-block metadata (tags, status, priority, embeds) | Persists in DB without polluting markdown |
+| Agent state, live annotations, rich embeds as first-class | Not representable in AST → markdown |
+| Cross-device sync at op-granularity | More robust than file-level |
+
+Prereqs from Phase B: op vocabulary, op log, semantic replay. Prereqs from Phase A: ULIDs, fidelity corpus, CAS.
+
+**Gaps that MUST be specified before Phase C becomes live** (un-estimated — these are product-earthquake-scale):
+- Conflict-resolution UX when Obsidian edits a file while km has unsaved DB state
+- FS projection strategy — full, dirty-file, deletion handling
 - DB-query → FS-patch mapping — a block referenced in two files: which file owns its projected form?
-- Versioning + backup + rollback — non-optional for DB-truth to match FS-truth's trust floor
-- Bootstrap migration — a one-way door that must be perfect
+- Versioning + backup + rollback UI — non-optional; DB-truth must match FS-truth's trust floor
+- Bootstrap migration — one-way door from FS-truth users to DB-truth
 - Product communication — "your markdown is now a projection, updated automatically from DB"
 
-Several prereqs land as part of §8. None of §8's work is wasted if we never flip; but none of §8's work commits us to the flip either.
+Earlier drafts of this doc offered LOC estimates (~300-400 core + ~500-800 versioning). Round-2 review flagged these as likely off by an order of magnitude. Removed; Phase C is a quarter, not a sprint.
 
-### Deferred sync items (independent from DB-truth)
+#### Phase D — CRDT substrate under DB
 
-- **Identity sidecar (Tier 1)** — deferred. See open question in §9 sync tiers table. Unless evidence shows content-hash rename detection is insufficient or agent state needs cross-peer NodeId continuity, skip Tier 1 entirely.
-- **Op-log sync (Tier 2)** — deferred until file-level sync quality becomes a user-visible issue. When reached for, also reopen §9 DB-truth discussion (gateway-drug caveat).
-- **Custom bidirectional protocol (Tier 3)** — deferred with Tier 4.
-- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required. **Independent of DB-vs-FS truth** — CRDT can live under either.
+DB state is a CRDT (Yjs-style, Automerge-style, or a custom log of ordered ops). Concurrent edits from multiple peers or multiple agents auto-merge without custom conflict UX.
+
+| Unlock | Why |
+|---|---|
+| Real-time multi-user collaboration | Peer-to-peer over any transport |
+| Offline-online merge without surfaced conflicts | CRDT math handles most merges |
+| Safe concurrent multi-agent edits | Agents as additional "peers" |
+
+Prereqs from Phase C: DB is truth; ops are already the mutation path. Adding CRDT is "make the DB mutations CRDT-reconcilable."
+
+**Caveats (kept from round-2)**: kimmi's Automerge experience showed the complexity tax is real — perf cost, schema rigidity, debuggability all take hits. Phase D is triggered by real-time collab becoming a shipping requirement, not by "CRDTs are cool." Reopen when user feedback or product direction demands it.
+
+**Phase D perf escape hatch**: if Automerge-on-JS perf becomes the blocker (kimmi precedent says it will at non-trivial scale), the likely answer is to rewrite core storage in Rust or Zig and host Automerge natively at that layer — with the TS/Bun surface calling into it via FFI. This is almost certainly what "Phase D done properly" looks like eventually. Treat it as an expected escalation, not as a surprise. Keeping the storage layer's public interface small + op-shaped (per "Phase A pathway implications") means the native rewrite is a swap, not a rebuild of everything above it.
+
+#### Non-prerequisites (deliberately keeping open)
+
+- Sync Tier 1 (identity sidecar): flagged as probably dead weight (§9 sync tiers table). Content-hash already covers intra-peer rename; cross-peer NodeId continuity might motivate it if agent-state sync becomes a thing, but it's not on any pathway phase.
+- Tier 3 custom bidirectional protocol: orthogonal — could live under Phase B/C/D with different shapes. Not claiming a slot.
+
+#### What this pathway changes about today's work
+
+Very little, on purpose. Phase A (§8) is what we're executing. But knowing the pathway exists means:
+- Prefer an op-log-friendly op vocabulary in P2/P3 (edits should already be expressible as discrete ops — they mostly are)
+- Keep the serializer driven by ops, not by raw text diffing (aligns with P3)
+- Don't architect around "FS is forever truth" (e.g., don't hard-code assumptions that writing to FS first is the only path — leave room for DB-first later)
+- When we reach for Tier 2 sync, recognize we are entering Phase B
 
 ### Rejected (not on any roadmap)
 
@@ -594,7 +645,8 @@ Active (revised ordering per §8):
 | `km-storage.multi-file-atomicity-decision` (new, flagged) | P1 | §8.P3 open question: ship v1 without multi-file journal? |
 | `km-storage.federation` | P2 | §8.P4 |
 | `km-storage.session-state-split` | P2 | §5.3 |
-| `km-storage.crdt-trigger` | P3 | reopen conditions |
+| `km-storage.pathway-db-crdt` (new) | P3 | §9 Phase B/C/D named pathway — tracks trigger evidence + keeps Phase-A decisions compatible |
+| `km-storage.crdt-trigger` | P3 | superseded by `pathway-db-crdt` (CRDT = Phase D) — consolidate |
 | `km-all.shared-substrate-review` | P0 | cross-project extraction (due 2026-05-05) |
 
 Closed as superseded: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs` (folded → never needed per user rejection), `km-storage.frontmatter-id-migration` (folded → never needed per user rejection).
