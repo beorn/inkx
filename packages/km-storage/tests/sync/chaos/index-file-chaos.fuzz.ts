@@ -20,7 +20,7 @@ import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { findIndexFile, extractSlotTargets } from "@km/core"
-import { createTestSync } from "../../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

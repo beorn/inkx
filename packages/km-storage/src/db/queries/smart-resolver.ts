@@ -13,7 +13,7 @@ import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"
 import { realpathSync, existsSync } from "fs"
-import { isExplicitPath, toRelativeFsPath } from "../../fs/path-utils.ts"
+import { isExplicitPath, toRelativeFsPath } from "@km/fs-mount"
 import { rowToNode } from "./utils.ts"
 
 const log = createLogger("km:storage:db:queries")

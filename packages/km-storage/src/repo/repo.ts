@@ -49,8 +49,15 @@ import {
   getSubtreeShallow as dbGetSubtreeShallow,
 } from "../db/queries/tree-traversal.ts"
 import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
-import type { FileTree } from "../fs/file-tree.ts"
-import { createDiskFileTree } from "../fs/file-tree.ts"
+import {
+  type FileTree,
+  createDiskFileTree,
+  createIgnoreMatcher,
+  shouldIgnore,
+  generatePathBasedId,
+  toRelativeFsPath,
+  withFsWriter,
+} from "@km/fs-mount"
 import { executeQuery, parseQuery } from "../query.ts"
 import { type MutationContext, type RepoHooks } from "./hooks.ts"
 import {
@@ -64,15 +71,11 @@ import {
 import { getCollapseParseConfig } from "../config.ts"
 import { createCollapseParseMatcher, createNullCollapseParseMatcher } from "../markdown/collapse-parse.ts"
 import { type UnexploredDir } from "../discovery.ts"
-import { createIgnoreMatcher, shouldIgnore } from "../fs/ignore.ts"
-import { generatePathBasedId } from "../fs/id-utils.ts"
-import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes, normalizeNodeName } from "@km/markdown"
 import { resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
 import { SCHEMA, migrateSchema, migrateData, rebuildFtsIndex } from "../db/schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "../watcher.ts"
-import { withFsWriter } from "../watch/fs-writer.ts"
 
 const log = createLogger("km:storage:repo")
 

@@ -28,7 +28,9 @@
 | `formatDate(d)`               | Date formatting for assertions    |
 | `today()`, `offsetDate(days)` | Date factory helpers              |
 
-### `watch/sync-test-helpers.ts`
+### `sync-test-helpers` (from `@km/fs-mount`)
+
+Lives at `packages/km-fs-mount/tests/watch/sync-test-helpers.ts` (moved out with the `watch/` subsystem). Tests import it via relative path `../../../km-fs-mount/tests/watch/sync-test-helpers.ts`.
 
 | Helper                                | Purpose                                            |
 | ------------------------------------- | -------------------------------------------------- |

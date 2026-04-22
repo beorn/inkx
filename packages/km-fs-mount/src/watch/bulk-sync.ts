@@ -16,17 +16,18 @@ import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
 import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./reconcile.ts"
 import { createIgnoreMatcher } from "../fs/ignore.ts"
-import type { Emitter, EmitOptions } from "../emitter.ts"
-import type { WriteQueue } from "./writequeue.ts"
-import type { OwnershipTracker } from "./ownership-tracker.ts"
 import {
+  type Emitter,
+  type EmitOptions,
   getAllNodes,
   getSubtree,
   nodesToMarkdown,
   evaluateAllRules,
   createRuleContext,
   type StepYield,
-} from "../index.ts"
+} from "@km/storage"
+import type { WriteQueue } from "./writequeue.ts"
+import type { OwnershipTracker } from "./ownership-tracker.ts"
 
 const log = createLogger("km:storage:watch:bulk-sync")
 

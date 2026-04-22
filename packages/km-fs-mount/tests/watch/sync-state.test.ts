@@ -8,7 +8,7 @@
 
 import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../../src/db/schema.ts"
+import { SCHEMA } from "@km/storage"
 import { createSyncState } from "../../src/watch/sync-state.ts"
 
 function createTestDb(): Database {

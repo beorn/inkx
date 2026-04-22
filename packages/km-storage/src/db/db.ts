@@ -11,6 +11,8 @@ export {
   getNodeByIdPrefix,
   getTaskByIdPrefix,
   getNodeByPath,
+  getNodeByInode,
+  getNodeByContentHashUnderParent,
   getNodesUnderPath,
   getFileWithChildren,
   getNodeContentHash,

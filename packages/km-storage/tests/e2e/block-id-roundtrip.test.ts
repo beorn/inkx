@@ -16,7 +16,7 @@ import { describe, test, expect } from "vitest"
 import { writeFileSync, mkdirSync } from "fs"
 import { join } from "path"
 import { getAllNodes, withTestEnv } from "@km/storage"
-import { createTestSync } from "../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 describe("block-id roundtrip via fs-watch", () => {
   test("create file with task ^id → block_id persisted in DB", () =>

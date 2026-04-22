@@ -17,15 +17,19 @@ import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync, openSync, readSync, closeSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
-import { toRelativeFsPath } from "../fs/path-utils.ts"
+import {
+  toRelativeFsPath,
+  findKmRootFromPath,
+  createIgnoreMatcher,
+  shouldIgnore,
+  isHiddenFile,
+  generatePathBasedId,
+} from "@km/fs-mount"
 import type { Change } from "@km/core"
 import { SCHEMA } from "../db/schema.ts"
 import { applyChangeWithDb } from "../db/changes.ts"
 import { evaluateAllRules, createRuleContext } from "../db/rules.ts"
-import { findKmRootFromPath } from "../fs/path-utils.ts"
 import { MemoryStore, type NodeStore } from "../store/store.ts"
-import { createIgnoreMatcher, shouldIgnore, isHiddenFile } from "../fs/ignore.ts"
-import { generatePathBasedId } from "../fs/id-utils.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
 import { decomposeChangeItem } from "../item-helpers.ts"
 

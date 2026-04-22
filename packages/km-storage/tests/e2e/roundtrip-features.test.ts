@@ -14,7 +14,7 @@ import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { getAllNodes, getSubtree, nodesToMarkdown, applyChangeWithDb, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
-import { createTestSync } from "../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 /** Create sync with test defaults */
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {

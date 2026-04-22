@@ -8,7 +8,7 @@
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs"
 import { join, isAbsolute } from "path"
-import { toRelativeFsPath } from "../fs/path-utils.ts"
+import { toRelativeFsPath } from "@km/fs-mount"
 import { getMarkerForStatus } from "@km/core"
 import type { KNode, TaskStatus } from "@km/core"
 import type { NodeStore } from "./types.ts"

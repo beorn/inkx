@@ -13,7 +13,7 @@ import { existsSync, readdirSync, statSync, writeFileSync } from "fs"
 import { join } from "path"
 import { readChanges } from "./repo/loader.ts"
 import { getNodeCount, getLastEventId } from "./db/db.ts"
-import { createIgnoreMatcher, shouldIgnore } from "./fs/ignore.ts"
+import { createIgnoreMatcher, shouldIgnore } from "@km/fs-mount"
 
 /** Result of identifying or compacting stale changes */
 export interface CompactionResult {

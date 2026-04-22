@@ -24,10 +24,14 @@ import { join } from "path"
 import type { Change } from "@km/core"
 import { createLogger } from "loggily"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
-import { createIgnoreMatcher, shouldIgnore, type PatternMatcher } from "./fs/ignore.ts"
+import {
+  createIgnoreMatcher,
+  shouldIgnore,
+  type PatternMatcher,
+  generatePathBasedId,
+  toRelativeFsPath,
+} from "@km/fs-mount"
 import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loader.ts"
-import { generatePathBasedId } from "./fs/id-utils.ts"
-import { toRelativeFsPath } from "./fs/path-utils.ts"
 import { readSiblingOrder, applySiblingOrder, type SiblingOrderMap } from "./sibling-order.ts"
 import { createNullCollapseParseMatcher, type CollapseParseMatcher } from "./markdown/collapse-parse.ts"
 import { extractLinks, type ExtractedLink } from "./markdown/extract-links.ts"

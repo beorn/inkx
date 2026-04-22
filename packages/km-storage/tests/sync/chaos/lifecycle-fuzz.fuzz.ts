@@ -18,9 +18,8 @@ import type { Picker, PickerContext, SeededRandom } from "vimonkey"
 import { generateFileContent } from "./event-picker.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
-import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/db/schema.ts"
-import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
+import { createEmitter, SCHEMA } from "@km/storage"
+import { reconcileDirectoryRecursive, applyReconcileOps } from "@km/fs-mount"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Operation types

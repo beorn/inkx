@@ -9,9 +9,9 @@
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { join } from "path"
-import { withSync, type SyncableRepo, type SyncConfig } from "./watch/index.ts"
+import { withSync, type SyncableRepo, type SyncConfig } from "@km/fs-mount"
 import { createEmitter } from "./emitter.ts"
-import type { FileChange } from "./watch/index.ts"
+import type { FileChange } from "@km/fs-mount"
 
 const log = createLogger("km:storage:watcher")
 
@@ -194,4 +194,4 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
 }
 
 // Re-export FileChange type for consumers
-export type { FileChange } from "./watch/index.ts"
+export type { FileChange } from "@km/fs-mount"

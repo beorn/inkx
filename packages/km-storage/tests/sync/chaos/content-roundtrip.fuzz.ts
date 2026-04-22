@@ -21,7 +21,7 @@ import { join } from "path"
 import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 import { getAllNodes, getChildren, withTestEnv, createTestEnvRepo } from "@km/storage"
-import { createTestSync } from "../../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 import type { KNode } from "@km/core"
 
 // ─────────────────────────────────────────────────────────────────────────────

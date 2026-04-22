@@ -7,8 +7,7 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
-import { createWatcher } from "../src/index.ts"
-import { withTestEnv } from "@km/storage"
+import { createWatcher, withTestEnv } from "@km/storage"
 
 describe("createWatcher", () => {
   test("creates watcher with stopped status", () =>

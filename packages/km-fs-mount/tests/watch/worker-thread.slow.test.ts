@@ -16,9 +16,8 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { withSync, type SyncableRepo } from "../../src/watch/sync.ts"
-import { getAllNodes, createRepo, createEmitter } from "../../src/index.ts"
+import { getAllNodes, createRepo, createEmitter, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import type { Repo } from "../../src/repo/repo.ts"
 
 const TEST_DIR = "/tmp/kmtest-worker-thread"
 const REPO_DIR = join(TEST_DIR, "repo")

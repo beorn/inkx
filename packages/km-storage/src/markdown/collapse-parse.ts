@@ -27,7 +27,7 @@
  */
 
 import { createLogger } from "loggily"
-import { matchesPattern } from "../fs/ignore.ts"
+import { matchesPattern } from "@km/fs-mount"
 
 const log = createLogger("km:storage:collapse-parse")
 

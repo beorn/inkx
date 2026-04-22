@@ -5,7 +5,7 @@
 import type { Database } from "bun:sqlite"
 import { join } from "path"
 
-import { createEmitter, type Emitter } from "../../src/emitter.ts"
+import { createEmitter, type Emitter } from "@km/storage"
 import { withSync, type Sync, type SyncConfig, type SyncableRepo, type SyncCallbacks } from "../../src/watch/sync.ts"
 
 /** Default sync config for tests - fast debounces, no worker */

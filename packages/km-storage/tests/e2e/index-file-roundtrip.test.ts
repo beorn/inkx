@@ -14,14 +14,19 @@
 import { describe, test, expect, vi } from "vitest"
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, renameSync, utimesSync } from "fs"
 import { join } from "path"
-import type { Sync } from "../../src/watch/sync.ts"
-import { withFsWriter } from "../../src/watch/fs-writer.ts"
-import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
-import type { Emitter } from "../../src/emitter.ts"
-import { emitNodeUpdated } from "../../src/emitter.ts"
-import { indexFileName } from "../../src/index-file-writer.ts"
+import {
+  getAllNodes,
+  getChildren,
+  getNode,
+  withTestEnv,
+  clearConfigCache,
+  emitNodeUpdated,
+  indexFileName,
+  type Emitter,
+} from "@km/storage"
+import { withFsWriter, type Sync } from "@km/fs-mount"
 import { findIndexFile } from "@km/core"
-import { createTestSync } from "../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 /** Wire FsWriter decorator to an emitter for test FS write-back */
 function wireFsWriter(db: import("bun:sqlite").Database, repoDir: string, emitter: Emitter) {
@@ -1476,7 +1481,7 @@ describe("index file roundtrip", () => {
         // For cross-folder moves, this happens during watcher events or when the
         // reconciler scope includes both source and target. We test it directly
         // via applyReconcileOps with a synthetic rename op.
-        const { applyReconcileOps } = await import("../../src/watch/reconcile.ts")
+        const { applyReconcileOps } = await import("@km/fs-mount")
 
         const manager = createTestSyncHelper(db, repoDir)
         mkdirSync(join(repoDir, "a"), { recursive: true })

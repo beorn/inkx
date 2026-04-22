@@ -252,7 +252,7 @@ describe("km init: withSync creates nodes under root '.'", () => {
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
     // Sync from filesystem (this is what km init does)
-    const { withSync } = await import("../../src/watch/sync.ts")
+    const { withSync } = await import("@km/fs-mount")
     const manager = withSync({
       debounceFs: 0,
       debounceApply: 0,

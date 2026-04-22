@@ -127,6 +127,7 @@
     "@km/commands": "workspace:*",
     "@km/connector-caldav": "workspace:*",
     "@km/core": "workspace:*",
+    "@km/fs-mount": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/repl": "workspace:*",
     "@km/storage": "workspace:*",

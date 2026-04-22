@@ -27,12 +27,7 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"
-import {
-  getNodesUnderPath,
-  getNodeByPath,
-  getNodeByInode,
-  getNodeByContentHashUnderParent,
-} from "../db/queries/core-lookup.ts"
+import { getNodesUnderPath, getNodeByPath, getNodeByInode, getNodeByContentHashUnderParent } from "@km/storage"
 import { scanDirectory, scanDirectoryAsync } from "./watcher.ts"
 import type { PatternMatcher } from "../fs/ignore.ts"
 import { toRelativeFsPath } from "../fs/path-utils.ts"

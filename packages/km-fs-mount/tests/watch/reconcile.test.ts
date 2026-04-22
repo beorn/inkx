@@ -15,10 +15,7 @@ import {
   getParentNodeId,
   type DirectoryScanner,
 } from "../../src/watch/reconcile.ts"
-import { getNodeByPath } from "../../src/db/queries/core-lookup.ts"
-import { getChildren } from "../../src/db/queries/tree-traversal.ts"
-import { withTestEnv, clearConfigCache } from "@km/storage"
-import type { Emitter } from "../../src/emitter.ts"
+import { getNodeByPath, getChildren, withTestEnv, clearConfigCache, type Emitter } from "@km/storage"
 
 // ============================================================================
 // Test Helpers
@@ -425,7 +422,7 @@ describe("reconcile.ts", () => {
         const openSection = sections.find((s) => s.content?.includes("Open"))!
         expect(getChildrenOfType(db, openSection.id, "task").length).toBe(2)
 
-        const { getNodeCount } = await import("../../src/db/queries/index.ts")
+        const { getNodeCount } = await import("@km/storage")
         const originalNodeCount = getNodeCount(db)
 
         touchFile(filePath)
@@ -573,7 +570,7 @@ describe("reconcile.ts", () => {
         expect((db.query(countQuery).get() as { cnt: number }).cnt).toBe(1)
 
         // Simulate watch handler and discovery both running
-        const { applyChangeWithDb } = await import("../../src/db/changes.ts")
+        const { applyChangeWithDb } = await import("@km/storage")
         const { generatePathBasedId } = await import("../../src/fs/id-utils.ts")
 
         const folderId = generatePathBasedId(repoDir, folderPath)
@@ -662,7 +659,7 @@ describe("reconcile.ts", () => {
 
         // Manually insert a node at target.md WITHOUT an inode (simulates
         // a concurrent creation that hasn't been fully reconciled yet)
-        const { applyChangeWithDb } = await import("../../src/db/changes.ts")
+        const { applyChangeWithDb } = await import("@km/storage")
         applyChangeWithDb(db, {
           id: "target.md",
           type: "node_created",

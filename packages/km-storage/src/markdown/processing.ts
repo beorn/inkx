@@ -22,7 +22,7 @@
 import { createLogger } from "loggily"
 import type { Change, KNode } from "@km/core"
 import { parseMarkdownWithLinks, normalizeLinkHref, type ParseResult } from "@km/markdown"
-import { hashContent } from "../fs/cas.ts"
+import { hashContent } from "@km/fs-mount"
 import type { KLink } from "../db/links.ts"
 import type { LinkResolver } from "./link-resolver.ts"
 

@@ -35,10 +35,8 @@ import { join, dirname } from "path"
 
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier, snapshotUlidsByPath, verifyUlidStability, verifyUlidFreshness } from "./verifier.ts"
-import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/db/schema.ts"
-import { reconcileDirectoryRecursive, applyReconcileOps, type DirectoryScanner } from "../../../src/watch/reconcile.ts"
-import { getAllNodes, getNodeByPath } from "../../../src/index.ts"
+import { createEmitter, SCHEMA, getAllNodes, getNodeByPath } from "@km/storage"
+import { reconcileDirectoryRecursive, applyReconcileOps, type DirectoryScanner } from "@km/fs-mount"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Environment

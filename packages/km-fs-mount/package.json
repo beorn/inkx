@@ -1,0 +1,21 @@
+{
+  "name": "@km/fs-mount",
+  "private": true,
+  "description": "Filesystem mount layer for km — extracts fs/, watch/, and fs-backed stores from @km/storage so web/canvas targets can consume @km/storage without node:fs.",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@km/core": "workspace:*",
+    "@km/markdown": "workspace:*",
+    "@km/storage": "workspace:*",
+    "alien-signals": "^3.1.2",
+    "ulid": "^3.0.2"
+  },
+  "devDependencies": {
+    "@beorn/watcher-chaos": "workspace:*",
+    "vimonkey": "workspace:*"
+  }
+}

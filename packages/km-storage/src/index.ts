@@ -59,9 +59,9 @@ export type {
 
 // FileTree interface and factories (simple file I/O abstraction)
 // See: docs/00-principles.md
-export { createDiskFileTree, createMemFileTree } from "./fs/file-tree.ts"
+export { createDiskFileTree, createMemFileTree } from "@km/fs-mount"
 
-export type { FileTree } from "./fs/file-tree.ts"
+export type { FileTree } from "@km/fs-mount"
 
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
@@ -71,6 +71,8 @@ export {
   getNodeByIdPrefix,
   getTaskByIdPrefix,
   getNodeByPath,
+  getNodeByInode,
+  getNodeByContentHashUnderParent,
   getNodesUnderPath,
   getFileWithChildren,
   getNodeContentHash,
@@ -124,10 +126,10 @@ export type { KLink, KLinkRel, SearchResult, QueryAST, DbOps, EmbedChildOpts } f
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store/store.ts"
 export { createSQLiteStore } from "./store/sqlite.ts"
-export { createFsStore } from "./store/fs.ts"
+export { createFsStore } from "@km/fs-mount"
 
 export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
-export type { FsStore, FsStoreOptions } from "./store/fs.ts"
+export type { FsStore, FsStoreOptions } from "@km/fs-mount"
 
 // Unified repo loading
 export { readChanges, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
@@ -188,7 +190,7 @@ export {
   shouldStoreInCas,
   storeContentAuto,
   loadContentAuto,
-} from "./fs/cas.ts"
+} from "@km/fs-mount"
 
 // Query language
 export { parseQuery, resolveDateQuery } from "./query.ts"
@@ -219,7 +221,7 @@ export {
   getFileNode,
 } from "./markdown/processing.ts"
 
-export type { ProcessedMarkdown, ResolvedLink } from "./markdown/processing.ts"
+export type { ProcessedMarkdown, ResolvedLink, WikilinkRef } from "./markdown/processing.ts"
 
 // Async generator pipeline (composable stages for loading/syncing)
 export {
@@ -243,14 +245,14 @@ export {
   resolvePathArg,
   toRelativeFsPath,
   toAbsoluteFsPath,
-} from "./fs/path-utils.ts"
+} from "@km/fs-mount"
 
-export type { PathResolution, ResolvedPathArg } from "./fs/path-utils.ts"
+export type { PathResolution, ResolvedPathArg } from "@km/fs-mount"
 
 // ID utilities for consistent node ID generation
-export { generatePathBasedId } from "./fs/id-utils.ts"
+export { generatePathBasedId } from "@km/fs-mount"
 
-// Watch and sync (merged from @km/watch)
+// Watch and sync (re-exported from @km/fs-mount for backwards compatibility)
 export {
   FileSystemWatcher,
   scanDirectory,
@@ -272,7 +274,7 @@ export {
   shouldIgnore,
   isHiddenFile,
   WriteQueue,
-} from "./watch/index.ts"
+} from "@km/fs-mount"
 
 export type {
   WatcherConfig,
@@ -292,7 +294,7 @@ export type {
   SyncFromFsResult,
   PatternMatcher,
   PatternMatcherOptions,
-} from "./watch/index.ts"
+} from "@km/fs-mount"
 
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
@@ -374,7 +376,7 @@ export type { SiblingOrderMap } from "./sibling-order.ts"
 export type { Reactive, ReadonlySignal } from "./store/reactive.ts"
 
 // Emitter domain object - owns change emission lifecycle
-export { createEmitter } from "./emitter.ts"
+export { createEmitter, emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "./emitter.ts"
 
 export type { Emitter, EmitterOptions, EmitOptions, ChangeHub } from "./emitter.ts"
 

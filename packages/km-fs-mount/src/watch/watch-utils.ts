@@ -4,7 +4,7 @@
 
 import type { Database } from "bun:sqlite"
 import { KNode } from "@km/core"
-import { getNode } from "../index.ts"
+import { getNode } from "@km/storage"
 
 /**
  * Find the file node that contains a given node (walk up parent chain).

@@ -13,10 +13,8 @@ import { generateFileContent } from "./event-picker.ts"
 import { chaos, drop, reorder, atomicSave, duplicate, type ChaosTransformerConfig } from "./transformers.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
-import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/db/schema.ts"
-import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
-import { getAllNodes, getChildren } from "../../../src/index.ts"
+import { createEmitter, SCHEMA, getAllNodes, getChildren } from "@km/storage"
+import { reconcileDirectoryRecursive, applyReconcileOps } from "@km/fs-mount"
 import type { FsEvent } from "./types.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────

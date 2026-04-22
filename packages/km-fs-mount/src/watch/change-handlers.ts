@@ -11,18 +11,25 @@ import { basename, dirname, join, relative } from "path"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import { type Change, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
-import type { Emitter } from "../emitter.ts"
+import {
+  type Emitter,
+  getAllNodes,
+  getChildren,
+  getNode,
+  getSubtree,
+  nodesToMarkdown,
+  getNodeContentHash,
+  getFolderIndexConfig,
+  buildIndexContent,
+  indexFileName,
+  writeSiblingOrder,
+} from "@km/storage"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
-import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
-import { getNodeContentHash } from "../db/queries/core-lookup.ts"
 import { hashContent } from "../fs/cas.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 // reconcileIfChanged removed — DB is authority for user-origin changes
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
-import { getFolderIndexConfig } from "../config.ts"
-import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
-import { writeSiblingOrder } from "../sibling-order.ts"
 
 const log = createLogger("km:storage:watch:change-handlers")
 

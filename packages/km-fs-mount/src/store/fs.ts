@@ -16,12 +16,21 @@ import { mkdirSync, renameSync, existsSync } from "fs"
 import { join } from "path"
 
 import type { KNode, Change } from "@km/core"
-import type { Store, Observable } from "./store.ts"
-import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
-import { computeDelta, mergeDeltas } from "./commit-types.ts"
-import { rowToNode } from "../db/queries/utils.ts"
-import { SCHEMA } from "../db/schema.ts"
-import { createEmitter, type Emitter } from "../emitter.ts"
+import {
+  type Store,
+  type Observable,
+  type CommitMeta,
+  type CommitResult,
+  type RepoDelta,
+  computeDelta,
+  mergeDeltas,
+  rowToNode,
+  SCHEMA,
+  createEmitter,
+  type Emitter,
+  createParsePool,
+  type ParsePoolService,
+} from "@km/storage"
 import { ChangeHandlers, type FsWriteTarget } from "../watch/change-handlers.ts"
 import { WriteQueue } from "../watch/writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "../watch/ownership-tracker.ts"
@@ -30,7 +39,6 @@ import { wrapEmitterForReconcile, BulkSync } from "../watch/bulk-sync.ts"
 import type { BulkSyncDeps, SyncFromFsResult } from "../watch/bulk-sync.ts"
 import { FileSystemWatcher } from "../watch/watcher.ts"
 import { createIgnoreMatcher, type PatternMatcher } from "../fs/ignore.ts"
-import { createParsePool, type ParsePoolService } from "../markdown/parse-pool.ts"
 import { ulid } from "ulid"
 
 const log = createLogger("km:storage:fs-store")

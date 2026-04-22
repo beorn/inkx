@@ -10,9 +10,8 @@ import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "fs"
 import { join } from "path"
 
-import { withTestEnv } from "@km/storage"
+import { withTestEnv, createEmitter } from "@km/storage"
 import { ChangeHandlers, type FsWriteTarget } from "../../src/watch/change-handlers.ts"
-import { createEmitter } from "../../src/emitter.ts"
 
 /** Minimal FsWriteTarget that tracks recorded tokens and rename calls */
 function createMockFsTarget() {

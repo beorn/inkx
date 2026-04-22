@@ -36,10 +36,8 @@ import type { Picker, PickerContext } from "vimonkey"
 
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier, snapshotUlidsByPath, verifyUlidStability, verifyUlidFreshness } from "./verifier.ts"
-import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/db/schema.ts"
-import { reconcileDirectoryRecursive, applyReconcileOps, type DirectoryScanner } from "../../../src/watch/reconcile.ts"
-import { getAllNodes } from "../../../src/index.ts"
+import { createEmitter, SCHEMA, getAllNodes } from "@km/storage"
+import { reconcileDirectoryRecursive, applyReconcileOps, type DirectoryScanner } from "@km/fs-mount"
 import { generateFileContent } from "./event-picker.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────

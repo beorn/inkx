@@ -10,7 +10,7 @@ import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 
 import { getAllNodes, withTestEnv } from "@km/storage"
-import { createTestSync, setupSync } from "../../watch/sync-test-helpers.ts"
+import { createTestSync, setupSync } from "../../../../km-fs-mount/tests/watch/sync-test-helpers.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Suite

@@ -24,8 +24,7 @@ import {
 } from "./reconcile.ts"
 import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
-import type { Emitter } from "../emitter.ts"
-import type { ParsePoolService } from "../markdown/parse-pool.ts"
+import type { Emitter, ParsePoolService } from "@km/storage"
 import type { PatternMatcher } from "../fs/ignore.ts"
 
 export interface ReconciliationEngineConfig {

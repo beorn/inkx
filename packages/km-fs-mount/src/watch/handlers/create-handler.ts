@@ -8,26 +8,28 @@
 
 import { basename, dirname } from "path"
 import { createLogger } from "loggily"
-import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
+import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { generatePathBasedId } from "../../fs/id-utils.ts"
 import type { KNode } from "@km/core"
-import { emitNodeCreated, emitNodeUpdated, type Emitter } from "../../emitter.ts"
-import { getNodeByPath } from "../../db/queries/core-lookup.ts"
-import { addLink } from "../../db/links.ts"
-import type { LinkResolver } from "../../markdown/link-resolver.ts"
 import {
+  emitNodeCreated,
+  emitNodeUpdated,
+  type Emitter,
+  getNodeByPath,
+  addLink,
+  type LinkResolver,
   processMarkdownFile,
   toResolvedLinks,
   type ProcessedMarkdown,
   type WikilinkRef,
-} from "../../markdown/processing.ts"
+  type PoolParseResult as ParseResult,
+} from "@km/storage"
 import { parsePlainTextToNodes } from "@km/markdown"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 import { handleUpdate } from "./update-handler.ts"
-import type { ParseResult } from "../../markdown/parse-pool.ts"
 
 const log = createLogger("km:storage:watch:create")
 

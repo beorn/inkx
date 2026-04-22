@@ -18,9 +18,8 @@ import { writeFileSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { EventEmitter } from "events"
 import FakeTimers, { type Clock } from "@sinonjs/fake-timers"
-import type { WatcherInterface, SyncData } from "../../../src/watch/types.ts"
 import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
-import { withSync, type Sync, type SyncableRepo } from "../../../src/watch/sync.ts"
+import { withSync, type Sync, type SyncableRepo, type WatcherInterface, type SyncData } from "@km/fs-mount"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TestWatcher - Controllable watcher for deterministic testing

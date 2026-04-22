@@ -33,6 +33,7 @@
         "@km/commands": "workspace:*",
         "@km/connector-caldav": "workspace:*",
         "@km/core": "workspace:*",
+        "@km/fs-mount": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/repl": "workspace:*",
         "@km/storage": "workspace:*",
@@ -224,6 +225,20 @@
       "dependencies": {
         "loggily": "workspace:*",
         "nanoevents": "^9.1.0",
+      },
+    },
+    "packages/km-fs-mount": {
+      "name": "@km/fs-mount",
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/markdown": "workspace:*",
+        "@km/storage": "workspace:*",
+        "alien-signals": "^3.1.2",
+        "ulid": "^3.0.2",
+      },
+      "devDependencies": {
+        "@beorn/watcher-chaos": "workspace:*",
+        "vimonkey": "workspace:*",
       },
     },
     "packages/km-infra": {
@@ -1129,6 +1144,8 @@
     "@km/connector-caldav": ["@km/connector-caldav@workspace:packages/km-connector-caldav"],
 
     "@km/core": ["@km/core@workspace:packages/km-core"],
+
+    "@km/fs-mount": ["@km/fs-mount@workspace:packages/km-fs-mount"],
 
     "@km/infra": ["@km/infra@workspace:packages/km-infra"],
 

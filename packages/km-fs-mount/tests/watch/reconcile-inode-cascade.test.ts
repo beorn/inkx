@@ -30,9 +30,7 @@ import {
   type DirectoryScanner,
 } from "../../src/watch/reconcile.ts"
 import { scanDirectory } from "../../src/watch/watcher.ts"
-import { getNodeByPath } from "../../src/db/queries/core-lookup.ts"
-import { withTestEnv } from "@km/storage"
-import type { Emitter } from "../../src/emitter.ts"
+import { getNodeByPath, withTestEnv, type Emitter } from "@km/storage"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
