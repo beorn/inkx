@@ -2,7 +2,7 @@
 
 > **Canonical.** Iterate here. Don't start new design docs for this topic. Other docs in this folder (`commands.md`, `signals.md`, `headless.md`, `selection.md`) are historical reference; they get updated at rollout.
 
-**Prototypes** (must always match current decisions): `prototypes/minimal.ts`, `prototypes/middle.ts`, `prototypes/canonical.ts`, `prototypes/q1-nested-commands.ts`, `prototypes/q2-input-dispatch.ts`, `prototypes/q3-effects.ts`, `prototypes/q8-cross-plugin-dispatch.ts`, `prototypes/q15-serialization.ts`.
+**Prototypes** (must always match current decisions): `prototypes/minimal.ts`, `prototypes/middle.ts`, `prototypes/canonical.ts`, `prototypes/q1-nested-commands.ts`, `prototypes/q2-input-dispatch.ts`, `prototypes/q3-effects.ts`, `prototypes/q5-args-schema.ts`, `prototypes/q8-cross-plugin-dispatch.ts`, `prototypes/q15-serialization.ts`.
 
 ---
 
@@ -25,7 +25,7 @@
 - [x] **D5** — Commands are object references, not strings. `app.commands.task.toggle_done` is a value; strings exist only for serialization (CLI, MCP, keymap config). *2026-04-22*
 - [x] **D9** — Commands are nested object references: `app.commands.domain.action`. Each plugin contributes to a domain namespace. Serialization at boundaries (CLI, MCP, config) uses path strings. *2026-04-22*
 - [x] **D6** — Layer-by-layer legibility: each plugin understandable in isolation. No role lanes, no shared-string op unions. *2026-04-22*
-- [ ] **Q5** — Args schema: Zod / Standard Schema + `.parse()` for runtime (CLI/MCP/YAML) vs pure TS inference. Likely both (TS type + optional schema).
+- [x] **D14** — Args schema is dual (pragmatic): pure TS types for simple commands, optional Zod/Standard Schema attached for CLI/YAML/MCP validation. Registry holds schema for boundary validation. *2026-04-22*
 - [ ] **Q6** — Keymap location: separate `app.keymap({x: app.commands.task.toggle_done})` block vs `key: "x"` on the command def.
 
 ### Input & Dispatch
@@ -77,6 +77,7 @@
 
 ## Changelog
 
+- **2026-04-22** — Resolved Q5 (args schema: dual TS+optional schema). 14 decisions locked, 11 open questions. Complete command story now ready (Q1, Q9, Q15 with Q5 serialization).
 - **2026-04-22** — Resolved Q8 (cross-plugin dispatch: direct + event dual approach) and Q15 (command serialization: dual registry). 13 decisions locked, 12 open questions.
 - **2026-04-22** — Resolved Q8 (cross-plugin dispatch: dual direct + event approach). 12 decisions locked, 13 open questions.
 - **2026-04-22** — Restructured as layer-by-layer design matrix. Resolved Q1 (nested command tree), Q2 (unified dispatch), Q3 (effects queue). 11 decisions, 14 open questions.
