@@ -19,6 +19,8 @@ import { runDeferredPipeline } from "./pipeline.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { INSERT_NODE_SQL, insertNodeRow } from "../db/insert.ts"
 import { removeCollapsedFileLinks } from "../db/collapsed-file-links.ts"
+import { createLinkResolver } from "./link-resolver.ts"
+import { resolveWikilink } from "./processing.ts"
 import type { DeferredFile, PendingLink } from "../repo/loader.ts"
 
 const log = createLogger("km:storage:deferred-parsing")
@@ -76,7 +78,9 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
     const isTxt = fsPath.endsWith(".txt")
     // Use relative path for the parser so fs_path in nodes is relative to repo root
     const parserPath = relativePath ?? fsPath
-    const { nodes } = isTxt ? parsePlainTextToNodes(content, parserPath) : parseMarkdownWithLinks(content, parserPath)
+    const { nodes, wikilinks } = isTxt
+      ? parsePlainTextToNodes(content, parserPath)
+      : parseMarkdownWithLinks(content, parserPath)
 
     const stubRow = db.prepare("SELECT parent_id, parent_idx, parsed FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
@@ -129,6 +133,14 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
             node.parent_id = nodeId
           }
         }
+
+        // Wikilinks reference the parser-assigned file node id; rewrite to
+        // the stub id so link rows land under the real host.
+        if (originalFileId) {
+          for (const wl of wikilinks) {
+            if (wl.nodeId === originalFileId) wl.nodeId = nodeId
+          }
+        }
       }
 
       const insertStmt = db.prepare(INSERT_NODE_SQL)
@@ -145,6 +157,24 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
       // parsed-node `links` table now carries the canonical outgoing edges.
       // No-op when the stub wasn't collapsed (no rows to delete).
       removeCollapsedFileLinks(db, nodeId)
+
+      // Populate the canonical `links` table from the wikilinks returned by
+      // the parser. The non-stub load path does this via the pipeline's
+      // applyLinks stage; the single-file synchronous promotion path
+      // mirrors it inline so backlinks surface immediately rather than
+      // waiting for a full state.db rebuild.
+      if (wikilinks.length > 0) {
+        const resolver = createLinkResolver(db)
+        const linkInsertStmt = db.prepare(`INSERT INTO links (host_id, href, rel) VALUES (?, ?, ?)`)
+        const embedUpdateStmt = db.prepare(`UPDATE nodes SET embed_of = ?, name = ?, updated_at = ? WHERE id = ?`)
+        for (const wl of wikilinks) {
+          const resolved = resolveWikilink(wl, resolver)
+          linkInsertStmt.run(resolved.host_id, resolved.href, resolved.rel)
+          if (resolved.rel === "embed" && resolved.embedTargetId) {
+            embedUpdateStmt.run(resolved.embedTargetId, resolved.alias, now, resolved.host_id)
+          }
+        }
+      }
 
       db.run("COMMIT")
       log.debug?.(`parseStubFile: success, ${nodes.length} nodes`)

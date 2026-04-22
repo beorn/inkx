@@ -197,16 +197,13 @@ describe("collapsed_file_links: invalidation", () => {
     expect(after).toBe(0)
   })
 
-  test("promotion drops collapsed edges; target loses the pre-promotion backlink", () => {
-    // Contract: parseStubFile promotes a stub to fully-parsed nodes and
-    // clears its `collapsed_file_links` rows. The descendants it creates
-    // DO NOT repopulate the `links` table — that's a separate pipeline
-    // (resolveLinksGen) that runs during full-load only. After promotion,
-    // the file's outgoing edges disappear from the backlink view until
-    // either a re-sync runs or a content edit triggers the write path.
-    // This test documents that behavior so a regression would surface.
-    //
-    // Follow-up: parseStubFile should also populate `links` — bead TBD.
+  test("promotion drops collapsed edges and repopulates canonical links", () => {
+    // Contract: parseStubFile promotes a stub to fully-parsed nodes,
+    // clears its `collapsed_file_links` rows, AND populates the canonical
+    // `links` table with the outgoing edges parsed from the file. This
+    // keeps backlinks visible across the promotion boundary — the edge
+    // just moves from the collapsed table to the canonical one. See
+    // bead km-storage.parse-stub-links-gap.
     const tmpDir = freshTmp()
     mkdirSync(join(tmpDir, "raw", "chats"), { recursive: true })
     writeFileSync(join(tmpDir, "Alpha.md"), "# Alpha\n")
@@ -235,10 +232,8 @@ describe("collapsed_file_links: invalidation", () => {
     ).c
     expect(leftover).toBe(0)
 
-    // Pre-existing limitation: `links` not populated by parseStubFile, so
-    // the Alpha backlink from this host disappears until a full resync.
-    // When that limitation is fixed, the assertion below will flip to
-    // "postBacklinks contains a host within session's subtree".
+    // Canonical links now carries the edge — backlinks survive the
+    // collapsed→promoted transition without a full resync.
     const postBacklinks = getBacklinksByHref(db, href)
     const descendants = new Set(
       (
@@ -250,7 +245,7 @@ describe("collapsed_file_links: invalidation", () => {
       ).map((r) => r.id),
     )
     const fromSession = postBacklinks.filter((bl) => descendants.has(bl.host_id))
-    expect(fromSession.length).toBe(0)
+    expect(fromSession.length).toBeGreaterThan(0)
   })
 
   test("deleteSubtree cascades to collapsed_file_links", () => {
