@@ -28,6 +28,7 @@ import {
 import type { Change } from "@km/core"
 import { SCHEMA } from "../db/schema.ts"
 import { applyChangeWithDb } from "../db/changes.ts"
+import type { Emitter } from "../emitter.ts"
 import { evaluateAllRules, createRuleContext } from "../db/rules.ts"
 import { MemoryStore, type NodeStore } from "../store/store.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
@@ -139,6 +140,25 @@ export interface LoadOptions {
    * Default: false (eager reconcile preserves pre-lazy behavior).
    */
   lazyHydrate?: boolean
+  /**
+   * Emitter used to route replay changes through the op surface.
+   *
+   * When provided, `applyChanges` commits each change via
+   * `emitter.commit({..., skipPersist: true, skipBroadcast: true, source: "fs-import"})`
+   * instead of calling `applyChangeWithDb` / `INSERT_NODE_SQL` directly.
+   *
+   * `commit()` (as opposed to `apply()`) structurally bypasses `onApply`
+   * subscribers, preventing replay from writing back to the filesystem —
+   * the journal IS the source of truth during replay, so re-projecting
+   * would create an echo loop.
+   *
+   * `skipPersist: true` avoids double-journaling: changes read from
+   * `changes.jsonl` must not be re-appended to the same file.
+   *
+   * If omitted (e.g. tests, memory mode), `applyChanges` falls back to
+   * direct SQL inserts — preserves the pre-op-surface behavior.
+   */
+  emitter?: Emitter
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -237,8 +257,13 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   _discoverSpan.end()
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
+  //
+  // Replay goes through emitter.commit() (when an emitter is provided) so
+  // the op surface stays uniform: same DB side-effect as fresh commits, but
+  // skipPersist (no double-journal) and no onApply (no echo to filesystem).
+  // See `applyChanges` for rationale.
   using _applySpan = loadSpan.span("apply-changes-1")
-  yield* applyChanges(db, source.changes, errors, repoRoot)
+  yield* applyChanges(db, source.changes, errors, repoRoot, options?.emitter)
   _applySpan.end()
 
   // 4a. Persist collapsed-file link edges. These target stub nodes that were
@@ -260,7 +285,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     using _reconcileSpan = loadSpan.span("reconcile-filesystem")
     const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors, collapseMatcher)
     if (reconcileResult.changes.length > 0) {
-      yield* applyChanges(db, reconcileResult.changes, errors, repoRoot)
+      yield* applyChanges(db, reconcileResult.changes, errors, repoRoot, options?.emitter)
     }
     writeCollapsedExtractions(db, reconcileResult.collapsedExtractions)
     reconcileDeferredFiles = reconcileResult.deferredFiles
@@ -1050,7 +1075,7 @@ export interface ReconcileFilesystemResult {
 export async function reconcileFilesystemPostFrame(
   db: Database,
   repoRoot: string,
-  options?: { collapseMatcher?: CollapseParseMatcher; isAborted?: () => boolean },
+  options?: { collapseMatcher?: CollapseParseMatcher; isAborted?: () => boolean; emitter?: Emitter },
 ): Promise<ReconcileFilesystemResult> {
   const start = Date.now()
   const errors: LoadError[] = []
@@ -1073,7 +1098,7 @@ export async function reconcileFilesystemPostFrame(
   let changesApplied = 0
   if (result && result.changes.length > 0) {
     // Run applyChanges generator to completion
-    const applyGen = applyChanges(db, result.changes, errors, repoRoot)
+    const applyGen = applyChanges(db, result.changes, errors, repoRoot, options?.emitter)
     for (;;) {
       const step = applyGen.next()
       if (step.done) break
@@ -1100,6 +1125,7 @@ function* applyChanges(
   changes: Change[],
   errors: LoadError[],
   repoRoot: string,
+  emitter?: Emitter,
 ): Generator<StepYield, void, unknown> {
   yield "Applying changes"
 
@@ -1134,45 +1160,67 @@ function* applyChanges(
           const fsPath = rawFsPath && isAbsolute(rawFsPath) ? toRelativeFsPath(repoRoot, rawFsPath) : rawFsPath
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
-          // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
-          const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
-          // INSERT OR IGNORE: in disk mode, state.db may already have nodes
-          // from km sync that changes.jsonl also references (last_event cursor
-          // may not cover all changes). Matches applyChangeWithDb behavior.
-          // Expected duplicates are silently ignored (no exception thrown).
-          insertStmt.run(
-            data.id as string,
-            data.type as string,
-            (data.fstype as string) ?? null,
-            parentId,
-            data.item ? 1 : 0,
-            (data.embed_of as string) ?? null,
-            (data.parent_idx as number) ?? 0,
-            fsPath,
-            (data.fs_dev as number) ?? null,
-            (data.fs_ino as number) ?? null,
-            (data.fs_mtime as number) ?? null,
-            (data.fs_size as number) ?? null,
-            (data.fs_content_hash as string) ?? null,
-            (data.name as string) ?? null,
-            (data.block_id as string) ?? null,
-            (data.title as string) ?? null,
-            (data.md_pos as number) ?? null,
-            (data.md_line as number) ?? null,
-            listMarker,
-            taskMarker,
-            taskStatus,
-            (data.assigned_to as string) ?? null,
-            (data.due_at as string) ?? null,
-            (data.start_at as string) ?? null,
-            (data.priority as string) ?? null,
-            (data.content as string) ?? null,
-            (data.content_hash as string) ?? null,
-            JSON.stringify(data.data ?? {}),
-            change.ts,
-            change.ts,
-            change.id,
-          )
+
+          if (emitter) {
+            // Route through the emitter for op-surface uniformity.
+            // commit() bypasses onApply (so the fs-writer does NOT re-project
+            // replayed changes back to the filesystem — the journal IS the
+            // source during replay, re-projecting would echo-loop).
+            // skipPersist: true avoids double-journaling (the change was just
+            // read from changes.jsonl, re-appending would duplicate it).
+            // source: "fs-import" is a defensive marker; commit() already
+            // bypasses onApply but the tag aids observability.
+            emitter.commit(
+              {
+                type: "node_created",
+                actor: change.actor,
+                data: { ...data, fs_path: fsPath, parent_id: parentId },
+              },
+              { db, skipPersist: true, skipBroadcast: true, source: "fs-import" },
+            )
+          } else {
+            // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
+            const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
+            // INSERT OR IGNORE: in disk mode, state.db may already have nodes
+            // from km sync that changes.jsonl also references (last_event cursor
+            // may not cover all changes). Matches applyChangeWithDb behavior.
+            // Expected duplicates are silently ignored (no exception thrown).
+            insertStmt.run(
+              data.id as string,
+              data.type as string,
+              (data.fstype as string) ?? null,
+              parentId,
+              data.item ? 1 : 0,
+              (data.embed_of as string) ?? null,
+              (data.parent_idx as number) ?? 0,
+              fsPath,
+              (data.fs_dev as number) ?? null,
+              (data.fs_ino as number) ?? null,
+              (data.fs_mtime as number) ?? null,
+              (data.fs_size as number) ?? null,
+              (data.fs_content_hash as string) ?? null,
+              (data.name as string) ?? null,
+              (data.block_id as string) ?? null,
+              (data.title as string) ?? null,
+              (data.md_pos as number) ?? null,
+              (data.md_line as number) ?? null,
+              listMarker,
+              taskMarker,
+              taskStatus,
+              (data.assigned_to as string) ?? null,
+              (data.due_at as string) ?? null,
+              (data.start_at as string) ?? null,
+              (data.priority as string) ?? null,
+              (data.content as string) ?? null,
+              (data.content_hash as string) ?? null,
+              JSON.stringify(data.data ?? {}),
+              change.ts,
+              change.ts,
+              change.id,
+            )
+          }
+        } else if (emitter) {
+          emitter.commit(change, { db, skipPersist: true, skipBroadcast: true, source: "fs-import" })
         } else {
           applyChangeWithDb(db, change)
         }

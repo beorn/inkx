@@ -1332,7 +1332,7 @@ function expandUnexploredDirectory(
   db: Database,
   repoRoot: string,
   dir: UnexploredDir,
-  options: { parseMode: "stub" | "full"; preloadDepth?: number },
+  options: { parseMode: "stub" | "full"; preloadDepth?: number; emitter?: Emitter },
 ): ExpandInternalResult {
   const fullPath = join(repoRoot, dir.path)
   if (!existsSync(fullPath)) return { nodeCount: 0, pendingLinks: [], newUnexploredDirs: [] }
@@ -1356,46 +1356,70 @@ function expandUnexploredDirectory(
   scanDir(fullPath, dir.id, 0)
 
   // Apply changes to database
+  //
+  // Route through emitter.apply({..., source: "fs-import"}) so:
+  //  1. Each scanned node produces a node_created entry in changes.jsonl
+  //     (op-surface uniformity — Phase B oplog can reconstruct state from
+  //     the journal; see hub/km/research/op-vocabulary-audit-2026-04-22.md G1)
+  //  2. onApply subscribers (fs-writer) filter source === "fs-import" and
+  //     skip projection — structurally prevents echo loops.
+  // Fall back to direct INSERT if no emitter is provided (tests, memory mode).
   if (changes.length > 0) {
     db.run("BEGIN IMMEDIATE")
     try {
-      const insertStmt = db.prepare(INSERT_NODE_SQL)
-      for (const change of changes) {
-        if (change.type === "node_created") {
-          const data = change.data as Record<string, unknown>
-          insertStmt.run(
-            data.id as string,
-            data.type as string,
-            (data.fstype as string) ?? null,
-            (data.parent_id as string) ?? ".",
-            data.item ? 1 : 0,
-            (data.embed_of as string) ?? null,
-            (data.parent_idx as number) ?? 0,
-            (data.fs_path as string) ?? null,
-            (data.fs_dev as number) ?? null,
-            (data.fs_ino as number) ?? null,
-            (data.fs_mtime as number) ?? null,
-            (data.fs_size as number) ?? null,
-            (data.fs_content_hash as string) ?? null,
-            (data.name as string) ?? null,
-            (data.block_id as string) ?? null,
-            (data.title as string) ?? null,
-            (data.md_pos as number) ?? null,
-            (data.md_line as number) ?? null,
-            (data.list_marker as string) ?? null,
-            (data.task_marker as string) ?? null,
-            (data.task_status as string) ?? null,
-            (data.assigned_to as string) ?? null,
-            (data.due_at as string) ?? null,
-            (data.start_at as string) ?? null,
-            (data.priority as string) ?? null,
-            (data.content as string) ?? null,
-            (data.content_hash as string) ?? null,
-            JSON.stringify(data.data ?? {}),
-            change.ts,
-            change.ts,
-            change.id,
-          )
+      const emitter = options.emitter
+      if (emitter) {
+        for (const change of changes) {
+          if (change.type === "node_created") {
+            emitter.apply(
+              {
+                type: "node_created",
+                actor: change.actor,
+                data: change.data,
+              },
+              { db, source: "fs-import" },
+            )
+          }
+        }
+      } else {
+        const insertStmt = db.prepare(INSERT_NODE_SQL)
+        for (const change of changes) {
+          if (change.type === "node_created") {
+            const data = change.data as Record<string, unknown>
+            insertStmt.run(
+              data.id as string,
+              data.type as string,
+              (data.fstype as string) ?? null,
+              (data.parent_id as string) ?? ".",
+              data.item ? 1 : 0,
+              (data.embed_of as string) ?? null,
+              (data.parent_idx as number) ?? 0,
+              (data.fs_path as string) ?? null,
+              (data.fs_dev as number) ?? null,
+              (data.fs_ino as number) ?? null,
+              (data.fs_mtime as number) ?? null,
+              (data.fs_size as number) ?? null,
+              (data.fs_content_hash as string) ?? null,
+              (data.name as string) ?? null,
+              (data.block_id as string) ?? null,
+              (data.title as string) ?? null,
+              (data.md_pos as number) ?? null,
+              (data.md_line as number) ?? null,
+              (data.list_marker as string) ?? null,
+              (data.task_marker as string) ?? null,
+              (data.task_status as string) ?? null,
+              (data.assigned_to as string) ?? null,
+              (data.due_at as string) ?? null,
+              (data.start_at as string) ?? null,
+              (data.priority as string) ?? null,
+              (data.content as string) ?? null,
+              (data.content_hash as string) ?? null,
+              JSON.stringify(data.data ?? {}),
+              change.ts,
+              change.ts,
+              change.id,
+            )
+          }
         }
       }
       db.run("COMMIT")
@@ -1618,8 +1642,11 @@ function* initWithFileLoading(
   const hasKmDir = existsSync(kmDir) && !options.forceMemory
   const mode = hasKmDir ? "disk" : "memory"
 
-  // Create emitter early - needed for disk mode DataStore
-  const emitter = createEmitter({ kmDir })
+  // Create emitter early - needed for disk mode DataStore.
+  // In memory mode there's no .km/ directory — skipPersist avoids creating
+  // changes.jsonl for ephemeral scans (forceMemory tests, lazy-expand without
+  // a real vault). In disk mode the emitter writes to .km/changes.jsonl.
+  const emitter = createEmitter({ kmDir, skipPersist: mode === "memory" })
 
   let db: Database
   if (mode === "disk") {
@@ -1669,6 +1696,10 @@ function* initWithFileLoading(
     lazyHydrate: options.lazyHydrate,
     mode, // Pass our mode decision to loadRepo
     db, // ADR-002: pass db to avoid singleton
+    // Route replay + reconcile changes through the emitter so the op surface
+    // stays uniform (the loader commits via emitter.commit, which bypasses
+    // onApply — the journal IS the source during replay).
+    emitter,
   })
   _loadSpan.end()
 
@@ -1730,8 +1761,10 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
   const hasKmDir = existsSync(kmDir) && !options.forceMemory
   const mode = hasKmDir ? "disk" : "memory"
 
-  // Create emitter early - needed for disk mode DataStore
-  const emitter = createEmitter({ kmDir })
+  // Create emitter early - needed for disk mode DataStore.
+  // In memory mode, skipPersist avoids creating changes.jsonl files under
+  // an ephemeral .km/ that doesn't really exist.
+  const emitter = createEmitter({ kmDir, skipPersist: mode === "memory" })
 
   log.debug?.(`detected mode: ${mode} (hasKmDir=${hasKmDir})`)
 
@@ -1987,9 +2020,12 @@ export function* createRepo(
 
       // Run a targeted discovery on just this directory, using the original
       // repo root for consistent ID generation and relative paths.
+      // Pass emitter so scanner emits node_created through the op surface
+      // (journal + onApply with source: "fs-import" for echo prevention).
       const result = expandUnexploredDirectory(db, rootPath, dir, {
         parseMode: options.discoverOnly ? "stub" : "full",
         preloadDepth: options.preloadDepth,
+        emitter,
       })
 
       // Add any newly discovered unexplored dirs to the remaining list
