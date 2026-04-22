@@ -139,6 +139,57 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
     app.expect("#2b[data-cursor]").toExist()
     app.expect("#2a[data-cursor]").not.toExist()
   })
+
+  // km-tui.cursor-stuck-col-0-h-scrolls — horizontal nav must NOT scroll the
+  // board on every keypress. Only scroll when the cursor lands off-screen.
+  test("cursor_right keeps already-visible columns visible (no premature scroll)", () => {
+    // 8 columns. At cols=120, ~3 columns fit on screen at once.
+    using app = createTestApp(
+      item(
+        "board",
+        item("c1", item("c1_t1")),
+        item("c2", item("c2_t1")),
+        item("c3", item("c3_t1")),
+        item("c4", item("c4_t1")),
+        item("c5", item("c5_t1")),
+        item("c6", item("c6_t1")),
+        item("c7", item("c7_t1")),
+        item("c8", item("c8_t1")),
+      ),
+      { cols: 120, rows: 30 },
+    )
+
+    app.command("cursor_down")
+    app.expect("#c1_t1[data-cursor]").toExist()
+
+    // Move right — c2 is already in view at startup, so no scroll needed.
+    app.command("cursor_right")
+    app.expect("#c2_t1[data-cursor]").toExist()
+    expect(app, "after one cursor_right, c1 should still be on screen").toContainText("c1")
+  })
+
+  test("cursor_right twice keeps c1+c2 visible at 120 cols (room for 3+ cols)", () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("c1", item("c1_t1")),
+        item("c2", item("c2_t1")),
+        item("c3", item("c3_t1")),
+        item("c4", item("c4_t1")),
+        item("c5", item("c5_t1")),
+      ),
+      { cols: 120, rows: 30 },
+    )
+
+    app.command("cursor_down")
+    app.command("cursor_right") // c1 → c2
+    app.command("cursor_right") // c2 → c3
+
+    app.expect("#c3_t1[data-cursor]").toExist()
+    // 120 cols / ~35 col-width = 3 cols fit. c1, c2, c3 should all be visible.
+    expect(app, "after two cursor_right, c1 still on screen").toContainText("c1")
+    expect(app, "after two cursor_right, c2 still on screen").toContainText("c2")
+  })
 })
 
 describe("km-tui-empty-cards: Card content rendering", () => {
