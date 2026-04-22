@@ -69,6 +69,14 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
   // (not through store.commit), we still need to fire onCommit so signals update.
   let inCommit = false
 
+  // Pre-bind a prepared SQL statement for child-id lookups when the repo
+  // exposes a real database (not FakeRepo, which sets `database: null`).
+  // This is the lazy-hydration hot path: O(log N) indexed read instead of
+  // fetching full KNode rows for every child just to project their ids.
+  const childIdsStmt = repo.database
+    ? repo.database.prepare("SELECT id FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at")
+    : null
+
   const unsubRepo = repo.subscribe(() => {
     if (inCommit) return // Already notified via store.commit()
     // Repo was mutated directly (e.g., repo.moveNode/addNode/updateNode).
@@ -91,6 +99,12 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
     },
 
     peekChildIds(parentId) {
+      if (childIdsStmt) {
+        const rows = childIdsStmt.all(parentId) as { id: string }[]
+        return rows.map((r) => r.id)
+      }
+      // Fallback for FakeRepo / bare repos without a SQLite handle —
+      // goes through the DataStore / in-memory map implementation.
       return repo.getChildren(parentId).map((n) => n.id)
     },
 

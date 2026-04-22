@@ -14,6 +14,7 @@
  */
 
 import type { Database } from "bun:sqlite"
+import { normalizeLinkHref } from "@km/markdown"
 
 // =============================================================================
 // Types
@@ -107,4 +108,61 @@ function rowToLink(row: Record<string, unknown>): KLink {
     href: row.href as string,
     rel: row.rel as KLinkRel,
   }
+}
+
+// =============================================================================
+// Backlink resolution (SQL-only, no DataStore required)
+// =============================================================================
+
+/**
+ * Compute all plausible target hrefs for a node (used for backlink queries).
+ *
+ * A node can be reached under multiple hrefs — its primary `name` and, for
+ * files, a path-style `km:Project/Alpha` variant. Callers query the links
+ * table with all of them so either authored notation surfaces as a backlink.
+ */
+export function computeHrefsForNode(node: { name?: string | null; fs_path?: string | null }): string[] {
+  const hrefs = new Set<string>()
+  if (node.name) hrefs.add(normalizeLinkHref("wiki", node.name))
+  if (node.fs_path) {
+    const stem = node.fs_path.replace(/^\.\//, "").replace(/\.md$/, "")
+    if (stem) hrefs.add(normalizeLinkHref("wiki", stem))
+  }
+  return [...hrefs]
+}
+
+/**
+ * Lookup a node's (name, fs_path) with a single indexed query. Used by
+ * backlink resolution paths that don't have a full DataStore handle —
+ * e.g. the reactive layer's `backlinksState`.
+ */
+function getNodeNameAndPath(db: Database, nodeId: string): { name: string | null; fs_path: string | null } | null {
+  const row = db.query("SELECT name, fs_path FROM nodes WHERE id = ?").get(nodeId) as {
+    name: string | null
+    fs_path: string | null
+  } | null
+  return row
+}
+
+/**
+ * Find backlink rows that target the given node (SQL-only version).
+ *
+ * UNIONs parsed-node edges (`links`) with collapsed-file edges
+ * (`collapsed_file_links`) so a single call returns the unified view.
+ * Returns an empty array when the node is unknown or has no href-able
+ * identity (no name, no fs_path).
+ */
+export function getBacklinksForNode(db: Database, nodeId: string): KLink[] {
+  const node = getNodeNameAndPath(db, nodeId)
+  if (!node) return []
+  const hrefs = computeHrefsForNode(node)
+  if (hrefs.length === 0) return []
+
+  const placeholders = hrefs.map(() => "?").join(",")
+  const sql =
+    `SELECT host_id, href, rel FROM links WHERE href IN (${placeholders}) ` +
+    `UNION ALL ` +
+    `SELECT host_id, href, rel FROM collapsed_file_links WHERE href IN (${placeholders})`
+  const rows = db.query(sql).all(...hrefs, ...hrefs) as Array<Record<string, unknown>>
+  return rows.map(rowToLink)
 }

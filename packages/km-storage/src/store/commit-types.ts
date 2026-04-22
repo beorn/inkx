@@ -37,6 +37,29 @@ export interface RepoDelta {
   parentIds: readonly string[]
   /** Nodes that were deleted */
   deletedNodeIds: readonly string[]
+  /**
+   * Link-table changes: hosts whose outgoing link rows were (re)written
+   * and/or target hrefs whose backlink set may have changed.
+   * Optional — older callers / backends that don't track link mutations
+   * may omit this. The reactive layer treats absence as "no link change"
+   * and relies on `nodeIds` for content-level invalidation.
+   */
+  linkChanges?: LinkDelta
+}
+
+/**
+ * LinkDelta — link-table changes flowing through the commit delta.
+ *
+ * Separated from the node delta so consumers that only care about
+ * forward reads (node content + child lists) stay zero-cost when
+ * link-only mutations happen (reconciliation rewriting link rows for
+ * an unchanged file, etc).
+ */
+export interface LinkDelta {
+  /** Host nodes whose outgoing links were (re)written */
+  hostIds: readonly string[]
+  /** Target hrefs whose backlink set may have changed (e.g. km:Note) */
+  targetHrefs: readonly string[]
 }
 
 // =============================================================================
@@ -130,6 +153,23 @@ export function mergeDeltas(changes: readonly Change[]): RepoDelta {
     nodeIds: [...nodeIds],
     parentIds: [...parentIds],
     deletedNodeIds: [...deletedNodeIds],
+  }
+}
+
+/**
+ * Merge a LinkDelta into an existing RepoDelta (immutable — returns a new delta).
+ * Used by stores that emit link-table invalidation alongside the node delta.
+ */
+export function withLinkDelta(delta: RepoDelta, link: LinkDelta): RepoDelta {
+  const existing = delta.linkChanges
+  if (!existing) return { ...delta, linkChanges: link }
+  const hostIds = new Set<string>(existing.hostIds)
+  for (const id of link.hostIds) hostIds.add(id)
+  const targetHrefs = new Set<string>(existing.targetHrefs)
+  for (const h of link.targetHrefs) targetHrefs.add(h)
+  return {
+    ...delta,
+    linkChanges: { hostIds: [...hostIds], targetHrefs: [...targetHrefs] },
   }
 }
 

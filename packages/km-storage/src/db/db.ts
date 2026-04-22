@@ -52,7 +52,14 @@ export type { QueryAST } from "../query.ts"
 
 // Re-export db-accepting link operations (canonical 3-column schema —
 // see docs/design/model/klink.md).
-export { addLink, removeLinksFromSource, getOutgoingLinks, getBacklinksByHref } from "./links.ts"
+export {
+  addLink,
+  removeLinksFromSource,
+  getOutgoingLinks,
+  getBacklinksByHref,
+  getBacklinksForNode,
+  computeHrefsForNode,
+} from "./links.ts"
 
 export type { KLink, KLinkRel } from "./links.ts"
 
