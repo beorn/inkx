@@ -605,11 +605,13 @@ What Phase A ships: an Obsidian-compatible km that scales to 100k files, has dis
 | Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff |
 | Cleaner sync merge | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
 
-Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, **and (pending audit) the op vocabulary itself**.
+Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, and the op vocabulary itself (audited 2026-04-22).
 
-⚠ **Phase B depends on an un-verified assumption**: that km's current TEA-style `apply()` stream already produces discrete, serializable ops that reference only stable NodeIds (no ephemeral UI state, no process-local assumptions). If that's true, Phase B is persistence + replay. If it's not, Phase B is a ground-up rewrite of the command layer first. This is the single biggest risk to Phase B's cost estimate. Tracked as `km-storage.op-vocabulary-audit` (P0) — run this audit *before* scheduling Phase B.
+**Op vocabulary audit** (`research/op-vocabulary-audit-2026-04-22.md`): verdict (a) — Phase B is persist + replay + ~2–3 person-weeks of normalization. km has serializable `ChangeType` ops flowing through `emitter.apply()`; the risk is op-surface *closure*, not op *shape*. 11 gaps identified; high-severity op-surface closures (G1, G3, G4, G7, G9) are shipped. See the audit for the gap map and the four follow-up beads created.
 
-**New work for B** (assuming audit passes): op-log file format + compaction strategy, op-log append path wired alongside serializer write, op-log replay for recovery, op-log dedup/ordering semantics.
+**Phase B replay contract spec** (`phase-b-replay-contract-2026-04-22.md`): DQ1–DQ5 answered. Key decisions: extend `changes.jsonl` in-place (no dual-write sinks), snapshot + ops-since replay model (not replay-from-epoch — `node_deleted` semantics make that unsafe), origin-tagged fs-watch ops skipped on replay, `task_*` kept as tagged aliases of `node_updated`, oplog boundary at schema-stable.
+
+**Remaining work for B**: op-log compaction + snapshot format implementation, replay tooling (`km doctor replay-from-snapshot`, `verify-oplog-integrity`), retention policy, property-test hardening.
 
 **Unlock scope honest**: "cleaner sync merge" via op exchange between peers assumes ops are **repo-stable and serialization-safe** (no pointers to in-memory state). The audit above is a prerequisite for this claim. Local oplog for recovery + semantic undo is cheaper and more certain than cross-peer exchange.
 
@@ -702,6 +704,8 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 
 ## 10. Evidence underlying this design
 
+- **Op-vocabulary audit** (`research/op-vocabulary-audit-2026-04-22.md`): km's ChangeType is serializable; risk is op-surface closure, not op shape. 11 gaps; high-severity closures shipped. Underwrites Phase B cost estimate (2–3 person-weeks normalization).
+- **Phase B replay contract spec** (`phase-b-replay-contract-2026-04-22.md`): DQ1–DQ5 answered. Settles snapshot+ops replay model, fs-watch-op handling, `task_*` aliasing, migration boundary.
 - **Scale bench** (`research/scale-bench-results-2026-04-21.md`): full-load-into-memory breaks at 2x. Per-query perf stays good at 10x. → lazy-hydration first.
 - **Kimmi deep-dive** (`research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins are stable-IDs + op-reconciliation + materialized indexes. Automerge has concrete gaps. → internal ULIDs fine, CRDT deferred.
 - **Cloudi deep-dive** (`research/cloudi-architecture-deep-dive.md`): external-system-as-truth has critical ID instability. → Family A holds.
@@ -715,28 +719,35 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 
 ## 11. Current bead tracking
 
-Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`). **This section lists architecture-path beads only**; standing cleanup/bug beads (e.g. `parse-stub-links-gap`, `remove-skipfssync`) live under the same epic but are out-of-band from this doc's scope.
+Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`). **This section lists architecture-path beads only**; standing cleanup/bug beads live under the same epic but are out-of-band from this doc's scope.
+
+**Phase A architecture-path beads — all shipped (2026-04-22 session)**:
 
 ```
 km-storage (scope epic, never closes)
-├── km-storage.identity-schema              [P0] §8.WP0 — blocks lazy-hydration
-├── km-storage.lazy-hydration               [P0] §8.WP1 — depends on identity-schema
-├── km-storage.fs-mount                     [P1] §6, §8.WP2 — FsMount package
-│   ├── km-storage.reconciliation-harness   [P1] blocks fs-mount
-│   ├── km-storage.identity-recovery-cascade [P1] §3 cascade impl
-│   └── km-storage.markdown-fidelity-corpus [P1] §8.WP3 step 1 (gates writeback-cas)
-├── km-storage.writeback-cas                [P1] §8.WP3 — blocked by markdown-fidelity-corpus AND fs-mount
-├── km-storage.federation                   [P2] §8.WP4 — blocked by identity-schema (for RepoId) + fs-mount
-├── km-storage.session-state-split          [P2] §5.3 — parallel; not blocking
-└── km-storage.pathway-db-crdt              [P3 epic] §9 Phase B→E tracker
-    └── km-storage.op-vocabulary-audit      [P0] gates Phase B cost estimate
+├── ✓ km-storage.identity-schema              [P0] §8.WP0 — schema v5, branded NodeId/RepoId
+├── ✓ km-storage.lazy-hydration               [P0] §8.WP1 — SQLite-on-demand peek*, backlinks signal
+├── ✓ km-storage.fs-mount                     [P1] §6, §8.WP2 — @km/fs-mount package extracted
+│   ├── ✓ km-storage.reconciliation-harness   [P1] chaos+fuzz harness for cascade
+│   ├── ✓ km-storage.identity-recovery-cascade [P1] §3.2/§3.3 cascade implemented
+│   └── ✓ km-storage.markdown-fidelity-corpus [P1] 36 fixtures / 11 categories
+├── ✓ km-storage.writeback-cas                [P1] §7.1/§7.4 — CAS + atomic + echo guard
+├── ✓ km-storage.federation                   [P2] §5 — RepoId + workspace + km-URI (parse only)
+├── ✓ km-storage.session-state-split          [P2] §5.3 — ~/.km/session.db
+└── ○ km-storage.pathway-db-crdt              [P3 epic] §9 Phase B→E tracker
+    ├── ✓ km-storage.op-vocabulary-audit      [P0] — verdict: Phase B = persist + replay
+    └── ✓ km-storage.phase-b-replay-contract-spec [P1] — DQ1–DQ5 answered
+```
+
+**Op-surface closure beads created from the op-vocabulary audit — all shipped same session**:
+
+```
+├── ✓ km-storage.op-surface-rename-path       [P0] G3 — journalRename replaced by emitter.commit
+├── ✓ km-storage.op-surface-route-scanner     [P1] G1 — scanner + loader-replay routed through emitter
+└── ✓ km-storage.op-surface-embed-blockid-standardize [P2] G4/G7/G9 — embed_of/block_id/content_hash unified
 ```
 
 Adjacent (not under km-storage):
 - `km-all.shared-substrate-review` [P0] — cross-project extraction (due 2026-05-05)
 
-**Closed this session**: `km-storage.adapter-architecture` (superseded by v3 doc), `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`), `km-storage.automerge-store` (Phase 6 plan superseded by `pathway-db-crdt` Phase D), `km-storage.typed-event-categories` (speculation, no concrete driver — reopen if event-routing pain emerges).
-
-Also reparented this session: `km-tree.outliner-reshape` + `km-tree.refs` moved out of `km-storage` to `km-tree` (wrong scope — they are tree/outliner UX, not storage mechanics).
-
-Earlier supersessions: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`.
+**Earlier supersessions**: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`, `km-storage.adapter-architecture` (v3 doc), `km-storage.multi-file-atomicity-decision` (Phase A ships without journal), `km-storage.crdt-trigger` (absorbed into `pathway-db-crdt`), `km-storage.automerge-store` (absorbed into `pathway-db-crdt` Phase D), `km-storage.typed-event-categories` (speculation, no driver).
