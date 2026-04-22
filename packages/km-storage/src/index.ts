@@ -1,6 +1,45 @@
 // Database schema (for testing with in-memory databases)
 export { SCHEMA, migrateSchema, migrateData, DATA_VERSION } from "./db/schema.ts"
 
+// Session state (~/.km/session.db) — user-local, cross-repo tier per
+// hub/km/storage-architecture.md §5.3. Undo, last cursor, recent, collapsed,
+// pane layouts — anything that must survive `.km/state.db` rebuilds.
+export {
+  openSessionDb,
+  resolveSessionDbPath,
+  SESSION_SCHEMA,
+  SESSION_SCHEMA_VERSION,
+  readSessionMeta,
+  writeSessionMeta,
+  getSessionCursor,
+  setSessionCursor,
+  clearSessionCursor,
+  addSessionRecent,
+  getSessionRecent,
+  trimSessionRecent,
+  setCollapsed,
+  isCollapsed,
+  getCollapsedSet,
+  savePaneLayout,
+  loadPaneLayout,
+  listPaneLayouts,
+  deletePaneLayout,
+  appendUndo,
+  getUndoEntries,
+  truncateUndoUpTo,
+  clearSessionForRepo,
+  migrateSessionStateFromStateDb,
+} from "./session/session-db.ts"
+
+export type {
+  OpenSessionDbOptions,
+  SessionCursor,
+  SessionRecentEntry,
+  SessionPaneLayout,
+  SessionUndoEntry,
+  SessionMigrationCounts,
+} from "./session/session-db.ts"
+
 // Link resolver (for benchmarks and testing)
 export { createLinkResolver, type LinkResolver } from "./markdown/link-resolver.ts"
 
@@ -70,6 +109,8 @@ export {
   removeLinksFromSource,
   getOutgoingLinks,
   getBacklinksByHref,
+  getBacklinksForNode,
+  computeHrefsForNode,
   // Mutation operations (factory pattern - use createDbOps())
   createDbOps,
   buildEmbedChild,
@@ -288,12 +329,21 @@ export { loadConfigObject } from "./config-object.ts"
 export type { Config } from "./config-object.ts"
 
 // Commit taxonomy — types for the reactive store layer
-export { ResourceState, computeDelta, mergeDeltas } from "./store/commit-types.ts"
+export { ResourceState, computeDelta, mergeDeltas, withLinkDelta } from "./store/commit-types.ts"
 
-export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope } from "./store/commit-types.ts"
+export type {
+  CommitMeta,
+  CommitSource,
+  CommitResult,
+  RepoDelta,
+  LinkDelta,
+  ChangeEnvelope,
+} from "./store/commit-types.ts"
 
 // Reactive signals layer — per-node signals driven by RepoDelta
 export { withReactive } from "./store/reactive.ts"
+
+export type { WithReactiveOptions } from "./store/reactive.ts"
 
 // Sibling order persistence (survives state.db rebuilds)
 export { readSiblingOrder, writeSiblingOrder, applySiblingOrder } from "./sibling-order.ts"
