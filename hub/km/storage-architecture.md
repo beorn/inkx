@@ -2,7 +2,7 @@
 
 Canonical design for km's storage + identity + adapter model. **Evergreen — describes current state, not decision history.** For research evidence, see `hub/km/research/`.
 
-Last revised: 2026-04-21 (after dual-pro critique + user pushback on frontmatter pollution).
+Last revised: 2026-04-22 (after dual-pro round-2 critique: consistency cleanup, file-basename/path split, reconciliation scope honest, P3 gated on corpus, DB-truth cost estimates removed).
 
 ---
 
@@ -87,7 +87,7 @@ For the current implementation phase:
 
 **Tagline (post-flip)**: "If km shows it, it's real — regardless of whether `cat` can reach it." The flip happens when the feature set demands it; see §1.1 for triggers.
 
-### 1.1 The load-bearing invariant
+### 1.3 The load-bearing invariant
 
 **Every DB column must be computable from (FS content + optional session.db).** If a column can't be derived from the FS, it's either a bug or a scope expansion that needs explicit justification.
 
@@ -96,7 +96,7 @@ Consequences:
 - Internal ULIDs (`KNode.id`) get freshly minted on rebuild. No external reference uses them, so no breakage crosses the FS boundary.
 - Backlinks, FTS, anchor index, structural metadata — all derived. Rebuild is deterministic from content.
 
-### 1.2 What "identity" means at each layer
+### 1.4 What "identity" means at each layer
 
 | Domain | Truth source | Identity form | Failure mode of a mistake |
 |---|---|---|---|
@@ -106,7 +106,7 @@ Consequences:
 
 The "identity" users care about (`[[foo]]`, `@inbox`, `^rec`) lives entirely in the FS domain. ULIDs never leak out.
 
-### 1.3 Session state is durably-best-effort
+### 1.5 Session state is durably-best-effort
 
 `~/.km/session.db` (§5.3) stores undo, workspace layout, last-opened. It references NodeIds where it's pragmatic, paths where it's safe. On `km doctor rebuild`:
 - entries whose NodeIds no longer resolve are silently pruned
@@ -114,13 +114,6 @@ The "identity" users care about (`[[foo]]`, `@inbox`, `^rec`) lives entirely in 
 - user-visible cost: cosmetic (cursor-was-here lost, recently-opened list shorter)
 
 Session state is **not authoritative**. It's a fast-path for convenience. FS is always the floor.
-
-### 1.4 Reopen triggers
-
-Revisit "FS is truth" only if:
-- Multi-device concurrent editing becomes shipping-required → forces peer-sync semantics → CRDT reopens
-- Markdown fidelity corpus shows irrecoverable round-trip loss → forces DB-authoritative for some subset
-- Plain-text portability axiom is explicitly negotiated away → all bets off
 
 ---
 
@@ -142,20 +135,27 @@ A markdown file is a tree of named nodes. Every external reference in markdown i
 ```
 workspace
 └── repo              name="vault"
-    └── file          name="notes/foo"       ← derived from filename
+    └── file          name="foo"             ← basename only (Obsidian-compatible)
+                      path="notes/foo.md"    ← separate field for disambiguation + FS locate
         ├── heading   name="my-heading"      ← derived from "## My Heading"
         │             name="rec"             ← if "## My Heading ^rec"
         └── block     name="abc"             ← if paragraph ends with "^abc"
 ```
 
+File `.name` is the **basename** (filename without `.md`), matching Obsidian's link semantics: `[[foo]]` resolves to any file whose basename is `foo`. The file's full repo-relative `path` is a separate field used for FS location and disambiguation when two files share a basename.
+
 Resolution examples:
-- `[[foo]]` → `[file:"foo"]`
-- `[[foo#my-heading]]` → `[file:"foo", child:"my-heading"]`
-- `[[foo^rec]]` → `[file:"foo", child:"rec"]`
+- `[[foo]]` → basename-index lookup → `[file:"foo"]` (if unambiguous)
+- `[[notes/foo]]` → path lookup → specific file (disambiguates across duplicate basenames)
+- `[[foo#my-heading]]` → basename lookup + child `.name` → `[file:"foo", heading:"my-heading"]`
+- `[[foo^rec]]` → basename lookup + child `.name` → `[file:"foo", block:"rec"]`
 - `@inbox` → `[tag:"inbox"]`
 - `#project` → `[tag:"project"]`
 
-Names are **locally unique** (within parent scope) — not globally unique. A file has unique child-names; a directory has unique filenames.
+**Name-scope rules** (basis for reconciliation in §3):
+- File `.name` (basename) is **not** required to be globally unique — Obsidian allows duplicate basenames across folders. Ambiguity resolves by nearest-path match or link specificity; path is the final arbiter.
+- Heading/block/tag `.name` is locally unique within parent scope.
+- Primary reconciliation match (§3.2) uses **path** for files (unambiguous) and **parent + `.name`** for children.
 
 ### 2.3 The `.name` rule
 
@@ -163,12 +163,15 @@ A node's `.name` is the **string that appears in external references** to it. Fo
 
 | Node kind | `.name` is | Example |
 |---|---|---|
-| File | derived from filename (path stripped of `.md`) | `"notes/foo"` |
+| Directory | basename of the directory | `notes/archive/` → `name="archive"` |
+| File | **basename** only (Obsidian link form) | `notes/foo.md` → `name="foo"`, `path="notes/foo.md"` |
 | Heading WITH anchor | the **anchor literal** (persisted wins over derived) | `## My Heading ^rec` → `name="rec"` |
 | Heading WITHOUT anchor | derived from heading text slug | `## My Heading` → `name="my-heading"` |
 | Block WITH anchor | the anchor literal | `...paragraph text. ^abc` → `name="abc"` |
 | Block WITHOUT anchor | no `.name` — not externally addressable | (nothing) |
 | Tag | the literal slug after the sigil | `@inbox` → `name="inbox"` |
+
+Directories are nodes in the tree (they carry their basename in `.name`) but are not user-addressable via wiki-links — they appear only as path segments of their children. Reconciliation for directories uses FS path + inode (§3.3).
 
 **Rule**: if a `^anchor` is present in markdown, it IS the node's name. Otherwise the name is content-derived. **No separate `block_id` / `anchor` field.** One `.name` per node, whichever the markdown literally contains or would canonically render.
 
@@ -193,13 +196,19 @@ type RepoId = string & { __brand: "RepoId" }   // per-mount, stored in .km/confi
 
 ### 2.5 Anchor vs heading-slug when both exist
 
-For an anchored heading (`## My Heading ^rec`), `.name = "rec"` by the §2.3 rule. This means:
-- `[[file^rec]]` → direct `name` lookup → hits
-- `[[file#rec]]` → direct `name` lookup → hits (`#` and `^` are the same resolution path)
+In Obsidian, `#` and `^` are distinct namespaces: `#heading` looks up headings by slug, `^anchor` looks up blocks by literal anchor. km preserves this distinction at lookup time, but the `.name` rule (§2.3) collapses one case — an **anchored heading** stores its anchor as `.name`, so the heading-slug index for that node is derived separately.
 
-If a user writes `[[file#my-heading]]` referring to the anchored heading, resolution falls through to a **content-derived slug index** (built from heading text across all nodes in the file — computed/cached, not stored per-node). Since km already builds an FTS index for search, this is essentially free. If the derived slug uniquely matches, it resolves; otherwise unresolved.
+Lookup algorithm for `[[file<sigil><ident>]]`:
 
-Simple rule: **anchor wins when both exist**. If users want the heading-slug form to work, they don't anchor the heading. If they anchor it, the anchor is the canonical external name.
+| Link form | First-pass | Fallback | Notes |
+|---|---|---|---|
+| `[[file^rec]]` | `.name` lookup among blocks+anchored-headings with `name="rec"` | none | Obsidian-native block-anchor semantics |
+| `[[file#slug]]` | heading-slug index (content-derived from heading text) lookup for `slug` | `.name` lookup for `name="slug"` if no slug hits | Obsidian-native heading semantics; fallback picks up anchored headings people still reference as `#rec` |
+| `[[file]]` | basename index | path lookup if ambiguous | file-level |
+
+The heading-slug index is content-derived from each heading's text and cached alongside the FTS index — not stored per-node. Since km already indexes heading text for FTS, the incremental cost is near-zero.
+
+Rule: `#` and `^` are **separate sigils with separate primary indexes**; a `.name` fallback on `#` exists for the edge case where users reference an anchored heading by its anchor via `#`. If users want heading-slug resolution to work, they leave the heading unanchored; if they anchor it, the anchor is the canonical external name and the slug form still resolves via fallback.
 
 ---
 
@@ -228,15 +237,19 @@ If a path-of-`.name` matches uniquely, **preserve that ULID**. This covers the 9
 
 ### 3.3 Secondary heuristics when path changes
 
-When a path-of-`.name` doesn't match (file renamed, heading text edited, block anchor missing), fall through to heuristics that all resolve to ULIDs:
+When a path-of-`.name` doesn't match (file renamed, heading text edited, block anchor missing), fall through to these heuristics (all of which resolve to ULIDs):
 
-| Heuristic | When it fires | Signal strength |
-|---|---|---|
-| **Content hash** (sha256 of bytes) | Path changed, body byte-identical → rename/move detection | Strong; near-zero false positive |
-| **Inode** (`fs_ino`) | Path changed within same filesystem, inode preserved | Strong for intra-FS moves; unreliable across devices or with some editors |
-| **Structural similarity** | Rename + edit (path + content both changed); heading text edit | Weak; heuristic, may misattribute |
-| **Position among siblings** | Unnamed block edited; order preserved | Weak; for cosmetic session state only |
-| **Parent-scope uniqueness** | Heading with no anchor; text slug roughly preserved | Medium; works if within-parent scope |
+| Heuristic | Scope | When it fires | Signal strength |
+|---|---|---|---|
+| **File content hash** (sha256 of full file bytes) | File-level only | File path changed, file body byte-identical → intra-file rename/move | Strong; near-zero false positive |
+| **Inode** (`fs_ino`) | File-level only | Path changed within same filesystem, inode preserved | Strong for intra-FS moves; unreliable across devices or with some editors |
+| **Position among siblings** | Within-file, block-level | Unnamed block edited; order preserved | Weak; cosmetic (session-state) use only |
+| **Parent-scope uniqueness** | Within-file, heading-level | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged |
+
+**Explicit non-goals**:
+- **Cross-file block moves are not reconciled.** If a user cuts a paragraph (with or without `^anchor`) from `foo.md` and pastes it into `bar.md` offline, km sees "deletion in foo" + "insertion in bar" and assigns a fresh ULID. User-visible cost: internal-only (broken backlinks manifest the same way Obsidian would show them).
+- **Rename + edit combined** (path changed AND content changed) falls through all heuristics and is treated as delete + new. See §3.5.
+- **Structural similarity** (Levenshtein on heading text, Jaccard on line-set) is deliberately out of scope — a solo-dev tar pit without a concrete definition + property-based test harness. Reintroduce via §9 Deferred if evidence arrives.
 
 Heuristics only matter when the primary `.name` match fails. For referenced content (files, anchored blocks, tagged things), `.name` is usually stable and heuristics rarely fire.
 
@@ -247,11 +260,11 @@ Heuristics only matter when the primary `.name` match fails. For referenced cont
 
 ### 3.5 Ambiguous cases
 
-**Rename + edit simultaneously** (file path + content both changed): primary match fails, content-hash fails. Falls through to structural-similarity heuristic OR treated as delete+new.
+**Rename + edit simultaneously** (file path + content both changed): primary match fails, file content-hash fails. Falls through to inode if available, else treated as delete+new.
 
-Current plan: delete+new. Loses internal ULID on this case. User sees no external breakage (links still point by path — they're also broken if the path moved, same as without reconciliation).
+Current plan: delete+new on rename+edit. Loses internal ULID on this case only. User sees no external breakage (links still point by path — they're also broken without reconciliation).
 
-**Future upgrade** if real-world pressure demands: diff-chunk similarity like git's rename-with-edit detection (>50% line overlap → rename). Out of scope until evidence.
+**Scope-in trigger**: diff-chunk similarity (git-style >50% line overlap → rename) is listed in §9 Deferred. Reopen only if the fidelity corpus or user reports show this case becoming common.
 
 ### 3.6 What mistaken identity costs (unreferenced content)
 
@@ -269,13 +282,16 @@ If km confuses two unreferenced files or blocks, the damage is confined to km's 
 
 ### 3.7 What mistaken identity costs (referenced content)
 
-For blocks WITH `^abc` labels, identity is by **literal string match** — not hash, not similarity. Can't accidentally collide.
+For blocks WITH `^abc` labels, identity **within a file** is by literal string match — not hash, not similarity. Cannot collide inside the same file (anchor uniqueness is enforced by km and by Obsidian at write time).
+
+**Scoped caveat — cross-file moves.** If a user cuts `^abc` from `foo.md` and pastes it into `bar.md` offline, the anchor string is intact but the parent scope changed. Per §3.3's non-goal, km treats this as "delete in foo + insert in bar with fresh ULID." No misattribution occurs (literal match within each file succeeds on its own terms), but cross-file continuity is lost. Backlinks pointing to `[[foo^abc]]` become unresolved; this is identical to the Obsidian behaviour.
 
 Corruption scenarios that DO exist:
 1. User manually deletes `^abc` line marker in nvim → block loses external identity; `[[file^abc]]` refs become unresolved (same as Obsidian).
 2. User renames `^abc` → `^xyz` offline → dead ref + new orphan anchor; surfaced as broken/unresolved in km's backlinks panel.
+3. User moves `^abc` across files (see scoped caveat above) → ref to old location breaks; new location gets fresh ULID.
 
-Neither is silent corruption. Both surface as visible "unresolved" states, user-repairable.
+None is silent corruption. All surface as visible "unresolved" states, user-repairable.
 
 ---
 
@@ -286,10 +302,10 @@ km parses sigil prefixes (`@`, `#`, `[[]]`, `^`) as namespace selectors for the 
 | Sigil | Example | Stored as | Identity scheme |
 |---|---|---|---|
 | `@` | `@inbox`, `@project/foo` | literal slug in markdown | `name` lookup scoped by sigil |
-| `#` | `#tag`, `#project/tag` | literal | same |
-| `[[]]` | `[[note-title]]` | literal | `name` lookup (file slug) |
-| `[[#]]` | `[[note-title#heading]]` | literal | heading-slug lookup within file |
-| `[[^]]` | `[[note-title^abc]]` | literal | `name` string match within file (same path as `[[...#abc]]`) |
+| `#tag` | `#tag`, `#project/tag` | literal | `name` lookup scoped by sigil |
+| `[[]]` | `[[note-title]]` | literal | basename index (files) + path disambiguation |
+| `[[#]]` | `[[note-title#heading]]` | literal | heading-slug index → `.name` fallback within file (§2.5) |
+| `[[^]]` | `[[note-title^abc]]` | literal | `.name` string match within file |
 
 Renames of tags/files/headings are the same problem as in Obsidian — slugs change, references drift. Solved at the editor layer (optional "update backlinks on rename"), independent of the identity model.
 
@@ -404,14 +420,19 @@ Every in-memory file state carries `expectedContentHash`. On write:
 
 ### 7.2 Minimal patching
 
-Serializer preserves what it doesn't touch:
-- Whitespace (trailing, indentation, blank lines)
-- Frontmatter key order
-- List marker choice (`-` vs `*`)
+Serializer preserves what it doesn't touch, within the AST's coverage (§1.0):
+- Whitespace in regions the serializer isn't rewriting (trailing, indentation, blank lines)
+- List marker choice (`-` vs `*`) for unchanged lists
 - Line endings
 - User-style preferences (tabs vs spaces)
 
-Rewrites only the exact byte ranges that changed. Noisy git diffs are a user-trust event.
+**Not preserved** — normalized on any write to the file:
+- Frontmatter key order (normalized on parse per §1.0; write emits canonical order)
+- Byte-level formatting inside any region the AST re-serializes
+
+Rewrites only the exact byte ranges of changed regions. Noisy git diffs are a user-trust event, but the ceiling is AST coverage — the serializer cannot preserve byte detail it did not parse.
+
+**Gating rule**: the minimal-patching serializer ships only after the fidelity corpus (§8.P5) proves round-trip stability. See §8 for the revised package ordering.
 
 ### 7.3 Multi-file atomicity
 
@@ -422,48 +443,52 @@ For operations spanning multiple files (rename + backlink update cascade):
 
 ### 7.4 Watcher echo suppression
 
-FsMount writes produce events the watcher sees. Suppression strategies:
-- Tag writes with an origin cookie; watcher filters
-- Short-term path+digest cache: "I just wrote this, ignore first change"
-- Stateless approach: on watch event, hash-compare against expected — if match, skip
+FsMount writes produce events the watcher sees. Strategy is **stateless hash-compare**: on each watch event, compute sha256 of the on-disk content and compare to the `expectedContentHash` tracked per file (§7.1). If they match, the event was km's own echo — skip. If they differ, it's a real external change.
+
+Why stateless over origin cookies or a short-term write cache: the hash is already computed for CAS. A cookie or cache adds a coordination surface that breaks on crashes, on multi-process writers, and on editors that replace-then-rename. Hash-compare has no such failure mode — if the hash matches what we expect, the content is what we expect, period.
 
 ---
 
 ## 8. Implementation sequence (revised)
 
-Five work packages. **Lazy-hydration ships first** per pro + K2.6 — the scale-bench failure is the real product risk; identity work is orthogonal scaffolding.
+Four work packages after round-2 review collapsed the old five. **Schema shape first, then lazy-hydration, then corpus-gated writeback, then federation.** The critical dependency: identity schema (§2) must land before lazy-hydration queries are written against it, and the fidelity corpus must gate all writeback work.
 
-### P1. Lazy hydration (`km-storage.lazy-hydration`, P0) — ship first
+### P0 (prereq, ~1-2 days). Identity schema migration (`km-storage.identity-schema`)
+Lands ahead of P1 to avoid re-doing SQLite queries. Scope:
+- Fold `KNode.block_id?` values into `.name` (anchor wins over slug; §2.3)
+- Introduce branded `NodeId`, `RepoId` types in `@km/core`
+- Split file `.name` (basename) from `path` (repo-relative); update resolver
+- One migration, one set of query shape changes
+
+### P1. Lazy hydration (`km-storage.lazy-hydration`) — the scale fix
 - Stop loading full JS object graph on startup
-- Move navigation/backlinks to SQLite-on-demand queries
+- Move navigation/backlinks to SQLite-on-demand queries (against P0's final schema)
 - Target: <500ms cold start on 10x vault (100k files)
 - Covered-target: breaks the benchmarked 2x failure mode today
-- Doesn't require any identity or adapter changes
 
-### P2. FsMount concrete class + content-hash rename detection (`km-storage.fs-mount`) — second
+### P2. FsMount + reconciliation (`km-storage.fs-mount`)
 - Extract FS code from `@km/storage` into new `@km/fs-mount` package
 - Build-enforce: `@km/core` + `@km/storage` never import `node:fs`
-- Implement content-hash rename detection on scan (§3)
-- Fold `KNode.block_id?` values into `.name` (anchor wins over slug when both exist; §2.3)
-- Introduce branded `NodeId`, `RepoId` types in `@km/core`
+- Implement file-content-hash + inode reconciliation on scan (§3)
+- **Reconciliation test harness** (`km-storage.reconciliation-harness`, blocking sub-task): property-based + scenario-based suite. Generate file trees, apply mutations (edit-in-place, rename, rename+edit, split, merge, git-pull merge, directory rename), assert ULID stability against §3's promised behaviour. Heuristic classifiers without a test harness are bug farms.
 
-### P3. Safe writeback (`km-storage.writeback-cas`)
-- Content-as-CAS contract (§7.1)
-- Minimal patching serializer (§7.2)
-- Watcher echo suppression (§7.4)
-- Multi-file journal (§7.3)
+### P3. Fidelity corpus → safe writeback (merged `km-storage.writeback-cas` + `km-storage.markdown-fidelity-corpus`)
+Corpus ships first; serializer only lands once corpus is green. Order within P3:
+1. **Fidelity corpus** (was P5): regression corpus proving round-trip stability for the AST's declared coverage (§1.0). Includes hand-curated adversarial cases and fuzzed-from-real-vault samples.
+2. **Minimal patching serializer** (§7.2) — gated on corpus
+3. **Content-as-CAS contract** (§7.1) — gated on serializer
+4. **Watcher echo suppression** (§7.4) — hash-compare only
+5. **Multi-file atomicity** (§7.3) — see open design question below
 
-### P4. Federation (`km-storage.federation`) — P2, not P1
+**Open design question (flagged, needs user decision)**: the reviewer argues multi-file journal / resumable-on-crash is a solo-dev distraction and recommends v1 ship without multi-file atomicity (tolerate partial cascades + provide `km doctor rebuild-backlinks`). The alternative keeps the journal but with smaller scope. No decision made yet.
+
+### P4. Federation (`km-storage.federation`)
 - `.km/config.toml` per repo with stable `RepoId`
 - Workspace mount config
 - Cross-repo URL resolution (`km:/<alias>/<path>`)
-- Orthogonal to scale fix (P1 already solved); do this when multi-repo workflows actually bite
+- Orthogonal to scale fix; ships when multi-repo workflows actually bite
 
-### P5. Markdown fidelity corpus (`km-storage.markdown-fidelity-corpus`)
-- Regression corpus for round-trip integrity
-- Gate for any future writeback change
-
-### Parallel: session state split (`km-storage.session-state-split`, P2)
+### Parallel: session state split (`km-storage.session-state-split`)
 - Move undo + workspace layout to `~/.km/session.db`
 - Not blocking; can ship any time
 
@@ -478,51 +503,67 @@ km's sync story upgrades in tiers as reliability demands grow. Each tier stays w
 | Tier | Approach | Handles | Ships when |
 |---|---|---|---|
 | 0 | Git as sync layer | Basic offline edit, multi-device occasional push/pull | Today's default |
-| 1 | Tier 0 + identity sidecar (`.km/identity.toml` tracked) | Cross-peer stable ULIDs; rename survives cleanly | When multi-device + renames are common |
+| 1 | Tier 0 + identity sidecar (`.km/identity.toml` tracked) | Cross-peer stable ULIDs; survives renames across peers | When multi-device + renames are common |
 | 2 | Tier 1 + op log alongside files | Multi-file atomicity in sync; semantic-level merge | When file-level sync corruption becomes painful |
 | 3 | Custom bidirectional sync protocol (WSS) | Real-time-ish sync with vector clocks; conflicts surfaced, not auto-merged | When peer-to-peer sync is a shipping feature |
 | 4 | CRDT substrate | Auto-merge of concurrent fine-grained edits; real-time collab | Only if real-time collab is a product goal (still deferred; question mark) |
 
-**Current plan targets Tier 1 (federation bead, §8.P4) when the product needs it.** Tiers 2-4 are further future work.
+**Open question flagged by round-2 review — does Tier 1 earn its keep?** The sidecar's only real job is "stabilize ULIDs across peers" — but Tier 0 + file-content-hash (§3.3) already handles renames within a single peer's history, and cross-peer rename conflicts (peer A renames foo→bar while peer B renames foo→baz) create a merge-conflict surface in the sidecar itself. If the sidecar just replays the same conflict the filesystem would have, it is net negative. The stronger case for Tier 1 is **empty files / byte-identical duplicates** (where content-hash is useless as a rename signal) and **cross-peer ULID continuity for agent state** (which cares about NodeId stability, not just link stability).
+
+**Current plan**: stay at Tier 0 by default. Tier 1 is only scope-in if an actual sync-reliability incident shows content-hash isn't enough. Tier 2 is a bigger upgrade (semantic ops + multi-file atomicity) and may be where we go next, not Tier 1. Federation (§8.P4) ships the `RepoId` groundwork that either tier would need. Tiers 3-4 remain further future work.
+
+Honest caveat: **Tier 2 under FS-truth is a DB-truth gateway drug.** If the op log becomes the authoritative record of semantic edits, FS starts looking like a projection of the op log. When we reach for Tier 2, re-read §9 "Probable future direction" first.
 
 ### Probable future direction: DB-as-truth flip
 
-**Not deferred as an edge case — more like "expected eventual evolution."** km's feature horizon (cross-device sync, typed/queryable per-block metadata, richer agent state, Tana/Logseq-style typed blocks) most likely pushes us toward DB-as-truth. The question is WHEN, not IF.
+**Framing honestly**: FS-truth is the architecture we're executing. DB-truth is a direction we think we'll probably want — cross-device sync, typed/queryable per-block metadata, agent state, Tana/Logseq-style typed blocks all trend that way — but "probably want" is not "inevitable," and we don't architect today for tomorrow's shape.
 
-**Triggers to flip (any one is sufficient)**:
-- A feature ships that can't be represented in AST → markdown
-- Cross-device sync quality becomes a user-visible pain point (Tier 1 identity sidecar insufficient)
+**Triggers to revisit the decision (any one is sufficient)**:
+- A feature ships that fundamentally can't be represented in AST → markdown (note: §1.0 provides a DB-only escape hatch that delays this trigger)
+- Cross-device sync quality becomes a user-visible pain point, and §9 Tier 1/Tier 2 aren't enough
 - Multi-file atomicity under FS-truth (via custom journal, §7.3) becomes a maintenance burden
 - Agent state / live annotations / rich embeds become first-class product features
 - We decide versioning + rollback of content changes is a product guarantee we want to provide
 
-**Implementation cost for the flip** (estimated after analysis in §1.1):
-- Core refactor: ~300-400 LOC (net — reduces after deleting journal + sidecar machinery)
-- **Plus required scope-in**: versioning + backup + rollback layer (~500-800 LOC) — snapshot management, retention policy, rollback CLI/UI, snapshot diff tool. Non-optional for DB-truth to match FS-truth's trust properties.
-- Plus: document + migrate users' mental model ("your markdown is now a projection, updated automatically from DB")
+If and only if a trigger fires, we reopen this section and do the full DB-truth design with the gaps listed below. Until then, the flip is not planned, not scheduled, and not subtly steering architecture decisions.
 
-**Prerequisites already in current plan** (§8.P1-P5):
-- Stable internal ULIDs → §2, §8.P2
-- AST round-trip fidelity corpus → §8.P5
+**Cost of the flip — deliberately un-estimated.** An earlier draft of this doc offered LOC estimates (~300-400 core + ~500-800 versioning). Round-2 review flagged these as likely off by an order of magnitude: the flip inverts the write path (DB → projection → FS, not FS → parse → DB), promotes three-way merge from an edge case to the default, and requires a one-shot migration of every existing vault. Those are product earthquakes, not refactors. We avoid pretending otherwise.
+
+**Prerequisites that remain useful regardless of whether we flip** (each is in §8):
+- Stable internal ULIDs → §2, §8.P0 + §8.P2
+- AST round-trip fidelity corpus → §8.P3 step 1
 - Content-as-CAS → §7, §8.P3
-- Watcher + parse pipeline → §8.P2 (the ingest pipeline under FS-truth IS the ingest pipeline under DB-truth — identical shape)
+- Watcher + parse pipeline → §8.P2
 
-Several prereqs are already in-plan. Flip cost shrinks as P1-P5 land.
+**What is NOT yet specified** (and must be, if and when the flip becomes live):
+- Conflict-resolution UX — what does the user see when Obsidian edits a file while km has unsaved DB state?
+- FS projection strategy — full project on every commit? Dirty-file projection? Deletion handling?
+- DB-query → FS-patch mapping — a block referenced in two files: which file owns its projected form?
+- Versioning + backup + rollback — non-optional for DB-truth to match FS-truth's trust floor
+- Bootstrap migration — a one-way door that must be perfect
+- Product communication — "your markdown is now a projection, updated automatically from DB"
+
+Several prereqs land as part of §8. None of §8's work is wasted if we never flip; but none of §8's work commits us to the flip either.
 
 ### Deferred sync items (independent from DB-truth)
 
-- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required. **Independent of DB-vs-FS truth** — CRDT can live under either.
-- **Op-log sync (Tier 2)** — deferred until Tier 1's file-level sync quality becomes a user-visible issue.
+- **Identity sidecar (Tier 1)** — deferred. See open question in §9 sync tiers table. Unless evidence shows content-hash rename detection is insufficient or agent state needs cross-peer NodeId continuity, skip Tier 1 entirely.
+- **Op-log sync (Tier 2)** — deferred until file-level sync quality becomes a user-visible issue. When reached for, also reopen §9 DB-truth discussion (gateway-drug caveat).
 - **Custom bidirectional protocol (Tier 3)** — deferred with Tier 4.
+- **CRDT substrate (Tier 4)** — deferred with a question mark. Kimmi's Automerge experience says the complexity tax is real + current km features don't need auto-merge. Reopen only if real-time collab becomes shipping-required. **Independent of DB-vs-FS truth** — CRDT can live under either.
 
-### Rejected / scope-out
+### Rejected (not on any roadmap)
 
 - **Frontmatter `id:` injection** — rejected. Zero metadata pollution of user files.
 - **Inline `^<hash>` derived from ULIDs** — rejected. Block anchors are literal strings stored as `.name`, not hash-derived.
 - **Rank 4-6 rigid recovery cascade** — rejected per "ID-scattering is a no-go." §3 is paths-of-`.name` + cheap heuristics. No forced multi-rank ladder.
-- **Uniform Adapter interface** — deferred until second real consumer exists. Today: concrete `FsMount`.
-- **Diff-chunk similarity for rename+edit** — deferred until real-world hits the edge case.
-- **Undo semantics across files** — session-state split provides durable-undo; semantic policy stays open.
+
+### Deferred (scope-in if evidence arrives)
+
+- **Uniform Adapter interface** — second real consumer required. Today: concrete `FsMount` (§6).
+- **Diff-chunk similarity for rename+edit** — see §3.5. Scope-in only if the fidelity corpus or user reports show offline rename+edit becoming common enough to matter.
+- **Structural-similarity heuristic** — see §3.3. Currently removed from the cascade; reintroduce only with a concrete definition (Levenshtein on heading text? Jaccard on line-set?) and a scenario-based test suite.
+- **Undo semantics across files** — session-state split provides durable-undo; cross-file semantic policy open.
 
 ---
 
@@ -531,23 +572,27 @@ Several prereqs are already in-plan. Flip cost shrinks as P1-P5 land.
 - **Scale bench** (`research/scale-bench-results-2026-04-21.md`): full-load-into-memory breaks at 2x. Per-query perf stays good at 10x. → lazy-hydration first.
 - **Kimmi deep-dive** (`research/kimmi-crdt-sync-id-deep-dive.md`): architectural wins are stable-IDs + op-reconciliation + materialized indexes. Automerge has concrete gaps. → internal ULIDs fine, CRDT deferred.
 - **Cloudi deep-dive** (`research/cloudi-architecture-deep-dive.md`): external-system-as-truth has critical ID instability. → Family A holds.
-- **Dual-pro review** (2026-04-21 PM): caught frontmatter-id-injection as user-trust risk, block-hash collision math, uniform-adapter over-generalization, missing safe-writeback.
-- **User pushbacks** (2026-04-21): (a) FS messiness → solve lower in stack; (b) federation eventually necessary; (c) identity robust against offline FS changes; (d) core unaware of FS; (e) **no metadata injection**; (f) **no ID scattering beyond what's inherently needed**; (g) Obsidian-native block anchors.
+- **Dual-pro review round 1** (2026-04-21 PM): caught frontmatter-id-injection as user-trust risk, block-hash collision math, uniform-adapter over-generalization, missing safe-writeback.
+- **Dual-pro review round 2** (2026-04-22, Kimi K2.6; GPT-5.4 Pro failed): caught duplicate section numbering, frontmatter key-order contradiction (§1.0 vs §7.2), file `.name` basename/path ambiguity, `#` vs `^` namespace collapse, diff-chunk similarity contradiction (§3.5 vs §9), content-hash scope undefined, structural similarity hand-waving, cross-file block-move claim too strong, directory-as-node missing, tier 1 weakly motivated, DB-truth cost estimates likely off-by-10x, P3-before-P5 ordering risk (CAS without proven fidelity), schema churn risk (P1 against P2's old schema), multi-file journal "best-effort" as user data-loss risk.
+- **User pushbacks** (2026-04-21): (a) FS messiness → solve lower in stack; (b) federation eventually necessary; (c) identity robust against offline FS changes; (d) core unaware of FS; (e) **no metadata injection**; (f) **no ID scattering beyond what's inherently needed**; (g) Obsidian-native block anchors; (h) DB-truth probable future, not deferred-forever; (i) if DB-truth, versioning/rollback is scope-in.
 
 ---
 
 ## 11. Current bead tracking
 
-Active:
+Active (revised ordering per §8):
 
 | Bead | Priority | Scope |
 |---|---|---|
-| `km-storage.lazy-hydration` | P0, ships first | §8.P1 |
-| `km-storage.fs-mount` (renaming from `km-storage.fs-adapter`) | P1 | §6, §8.P2 |
-| `km-storage.identity-recovery-cascade` | P1, narrowed | §3 paths-of-`.name` (primary) + content-hash / inode / structural heuristics (secondary). No markdown pollution. |
-| `km-storage.writeback-cas` (new) | P1 | §7 |
-| `km-storage.markdown-fidelity-corpus` | P1 | §8.P5 |
-| `km-storage.federation` | P2, demoted | §8.P4 |
+| `km-storage.identity-schema` | P0, ships first | §8.P0 — block_id→name fold + branded types + file basename/path split |
+| `km-storage.lazy-hydration` | P0 | §8.P1 — scale fix, queries P0's final schema |
+| `km-storage.fs-mount` (renamed from `km-storage.fs-adapter`) | P1 | §6, §8.P2 — FS extraction + reconciliation |
+| `km-storage.reconciliation-harness` (new, blocks `fs-mount`) | P1 | §8.P2 — property-based + scenario-based test suite for §3 |
+| `km-storage.identity-recovery-cascade` | P1, narrowed | §3 paths-of-`.name` (primary) + file-level heuristics (secondary). Structural similarity removed from scope. No markdown pollution. |
+| `km-storage.writeback-cas` (merged with corpus) | P1 | §8.P3 — corpus gates serializer gates CAS |
+| `km-storage.markdown-fidelity-corpus` | P1 (subsumed into `writeback-cas` P3) | §8.P3 step 1 — must land before serializer |
+| `km-storage.multi-file-atomicity-decision` (new, flagged) | P1 | §8.P3 open question: ship v1 without multi-file journal? |
+| `km-storage.federation` | P2 | §8.P4 |
 | `km-storage.session-state-split` | P2 | §5.3 |
 | `km-storage.crdt-trigger` | P3 | reopen conditions |
 | `km-all.shared-substrate-review` | P0 | cross-project extraction (due 2026-05-05) |
