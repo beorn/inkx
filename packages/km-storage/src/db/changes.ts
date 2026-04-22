@@ -81,14 +81,16 @@ function applyNodeCreated(db: Database, change: Change): void {
     `
     INSERT OR IGNORE INTO nodes (
       id, type, fstype, parent_id, item, embed_of, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
+      fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
+      name, block_id, title, md_pos, md_line,
       list_marker, task_marker,
       task_status, assigned_to, due_at, start_at, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?,
       ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?,
@@ -104,8 +106,11 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.embed_of as string) ?? null,
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
+      (data.fs_dev as number) ?? null,
       (data.fs_ino as number) ?? null,
       (data.fs_mtime as number) ?? null,
+      (data.fs_size as number) ?? null,
+      (data.fs_content_hash as string) ?? null,
       (data.name as string) ?? null,
       (data.block_id as string) ?? null,
       (data.title as string) ?? null,

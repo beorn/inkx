@@ -21,11 +21,12 @@ import { decomposeItem } from "../item-helpers.ts"
 export const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
     id, type, fstype, parent_id, item, embed_of, parent_idx,
-    fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
+    fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
+    name, block_id, title, md_pos, md_line,
     list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 /**
@@ -44,8 +45,11 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
     node.embed_of ?? null,
     node.parent_idx ?? 0,
     node.fs_path ?? null,
+    node.fs_dev ?? null,
     node.fs_ino ?? null,
     node.fs_mtime ?? null,
+    node.fs_size ?? null,
+    node.fs_content_hash ?? null,
     node.name ?? null,
     node.block_id ?? null,
     node.title ?? null,
@@ -76,9 +80,10 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
 export const INSERT_NODE_PLAIN_SQL = `
   INSERT INTO nodes (
     id, type, fstype, parent_id, item, embed_of, parent_idx,
-    fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
+    fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
+    name, block_id, title, md_pos, md_line,
     list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `

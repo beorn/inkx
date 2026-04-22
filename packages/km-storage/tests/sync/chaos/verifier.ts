@@ -510,3 +510,147 @@ function quickVerify(db: Database): VerificationResult {
   const verifier = new Verifier(db)
   return verifier.verifyTreeConsistency()
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ULID Stability Helper (km-storage.reconciliation-harness)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Snapshot of (fs_path → ULID id) for nodes with an fs_path. Captured
+ * before and after a reconciliation event to verify identity preservation.
+ */
+export type UlidSnapshot = Map<string, string>
+
+/**
+ * Capture a ULID snapshot keyed by fs_path for all file / mdfile / folder nodes.
+ *
+ * The snapshot captures ULID by *current* fs_path — callers who care about
+ * before/after identity across a rename should map paths manually (see
+ * `verifyUlidStability`'s `expectedStable` mapping).
+ */
+export function snapshotUlidsByPath(db: Database): UlidSnapshot {
+  const snap: UlidSnapshot = new Map()
+  for (const node of getAllNodes(db)) {
+    if (node.type !== "h") continue
+    if (!node.fs_path) continue
+    if (node.fstype !== "file" && node.fstype !== "mdfile" && node.fstype !== "folder") continue
+    snap.set(node.fs_path, node.id)
+  }
+  return snap
+}
+
+/**
+ * Verify ULID stability across a reconciliation step.
+ *
+ * `expectedStable` maps (initial fs_path) → (final fs_path) for nodes whose
+ * identity should be preserved. If the final path has a different ULID than
+ * the initial path had, that's an identity loss and produces an error.
+ *
+ * For nodes NOT listed in `expectedStable`, this helper does not opine — the
+ * caller is expected to check "should have been minted" invariants separately
+ * (a new node at an unexpected path naturally gets a fresh ULID).
+ *
+ * Returns a VerificationResult shaped like other verifier methods so it
+ * composes with existing invariant checks.
+ */
+export function verifyUlidStability(
+  initial: UlidSnapshot,
+  final: UlidSnapshot,
+  expectedStable: Map<string, string> | Set<string>,
+): VerificationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  const mapping = expectedStable instanceof Set
+    ? new Map([...expectedStable].map((p) => [p, p]))
+    : expectedStable
+
+  for (const [initialPath, finalPath] of mapping) {
+    const initialUlid = initial.get(initialPath)
+    const finalUlid = final.get(finalPath)
+
+    if (!initialUlid) {
+      warnings.push(
+        `ULID stability: no initial ULID for ${initialPath} — cannot verify stability for ${finalPath}`,
+      )
+      continue
+    }
+    if (!finalUlid) {
+      errors.push(
+        `ULID stability: final state missing node at ${finalPath} (expected to inherit ULID ${initialUlid} from ${initialPath})`,
+      )
+      continue
+    }
+    if (initialUlid !== finalUlid) {
+      errors.push(
+        `ULID stability: identity lost for ${initialPath} → ${finalPath}: ULID changed ${initialUlid} → ${finalUlid}`,
+      )
+    }
+  }
+
+  return {
+    passed: errors.length === 0,
+    errors,
+    warnings,
+    stats: {
+      expectedFiles: mapping.size,
+      actualFiles: final.size,
+      duplicateNodes: 0,
+      orphanedNodes: 0,
+      missingParents: 0,
+    },
+  }
+}
+
+/**
+ * Verify that a set of fs_paths have ULIDs that are DIFFERENT from
+ * their corresponding initial ULIDs (i.e., identity was correctly
+ * NOT preserved — fresh ULID minted).
+ *
+ * Use this for inode-reuse / tombstone scenarios where preserving
+ * identity would be incorrect.
+ */
+export function verifyUlidFreshness(
+  initial: UlidSnapshot,
+  final: UlidSnapshot,
+  expectedFresh: Map<string, string>,
+): VerificationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  for (const [initialPath, finalPath] of expectedFresh) {
+    const initialUlid = initial.get(initialPath)
+    const finalUlid = final.get(finalPath)
+
+    if (!finalUlid) {
+      errors.push(
+        `ULID freshness: final state missing node at ${finalPath} (expected fresh ULID, not the old ${initialUlid ?? "<none>"})`,
+      )
+      continue
+    }
+    if (!initialUlid) {
+      warnings.push(
+        `ULID freshness: no initial ULID for ${initialPath} — trivially fresh at ${finalPath}`,
+      )
+      continue
+    }
+    if (initialUlid === finalUlid) {
+      errors.push(
+        `ULID freshness: identity incorrectly preserved for ${initialPath} → ${finalPath}: ULID ${initialUlid} (expected fresh)`,
+      )
+    }
+  }
+
+  return {
+    passed: errors.length === 0,
+    errors,
+    warnings,
+    stats: {
+      expectedFiles: expectedFresh.size,
+      actualFiles: final.size,
+      duplicateNodes: 0,
+      orphanedNodes: 0,
+      missingParents: 0,
+    },
+  }
+}

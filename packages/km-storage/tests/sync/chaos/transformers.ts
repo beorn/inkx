@@ -15,7 +15,7 @@ export { drop, reorder, duplicate, type ChaosConfig } from "vimonkey/chaos"
 
 /** Configuration for a chaos scenario in the transformer pipeline */
 export interface ChaosTransformerConfig {
-  type: ChaosScenarioType | "duplicate_events"
+  type: ChaosScenarioType | "duplicate_events" | "inode_reuse" | "cross_fs_move"
   params: Record<string, unknown>
 }
 
@@ -82,6 +82,58 @@ async function* partialWrite(source: AsyncIterable<FsEvent>, rate: number, rng: 
   }
 }
 
+/**
+ * Inode reuse transformer.
+ *
+ * For every unlink event, probabilistically yield a follow-up add event at
+ * the same path — simulating a fresh file being created after a delete that
+ * happens to reuse the previous inode. Inode reuse is signalled implicitly:
+ * the downstream `applyEventToFs` (or equivalent) must invoke `writeFileSync`
+ * on a FakeFileSystem *without* manual inode bumping — FakeFileSystem's
+ * ino-counter model means a new write under a previously-unlinked path will
+ * get a fresh ino, so the transformer pairs with a custom applicator that
+ * force-reuses the inode via `reuseInode()`.
+ *
+ * This is the stream-level shape; tests that want actual inode reuse should
+ * use `reuseInodeOnce()` (below) to patch the fake fs state directly.
+ */
+export async function* inodeReuse(
+  source: AsyncIterable<FsEvent>,
+  rate: number,
+  rng: SeededRandom,
+): AsyncGenerator<FsEvent> {
+  for await (const event of source) {
+    yield event
+    if (event.type === "unlink" && rng.bool(rate)) {
+      yield { ...event, type: "add" }
+    }
+  }
+}
+
+/**
+ * Cross-FS move transformer.
+ *
+ * For add events, probabilistically yield a preceding unlink at a different
+ * path — simulating the "move across filesystem boundaries" pattern where
+ * the inode changes. Unlike atomicSave, the paths differ.
+ */
+export async function* crossFsMove(
+  source: AsyncIterable<FsEvent>,
+  rate: number,
+  rng: SeededRandom,
+): AsyncGenerator<FsEvent> {
+  let lastPath: string | null = null
+  for await (const event of source) {
+    if (event.type === "add" && lastPath && rng.bool(rate)) {
+      yield { ...event, type: "unlink", path: lastPath }
+      yield event
+    } else {
+      yield event
+    }
+    lastPath = event.path
+  }
+}
+
 /** For add events, expand into a chain of renames */
 async function* renameChain(source: AsyncIterable<FsEvent>, depth: number, rng: SeededRandom): AsyncGenerator<FsEvent> {
   for await (const event of source) {
@@ -121,6 +173,9 @@ const FS_CHAOS_REGISTRY: ChaosRegistry<FsEvent> = {
   fsevents_coalesce: (s, p, rng) => coalesce(s, (p.threshold as number) ?? 10, rng),
   partial_writes: (s, p, rng) => partialWrite(s, (p.rate as number) ?? 0.3, rng),
   rename_storm: (s, p, rng) => renameChain(s, (p.depth as number) ?? 3, rng),
+  // Reconciliation-cascade transformers (km-storage.reconciliation-harness)
+  inode_reuse: (s, p, rng) => inodeReuse(s, (p.rate as number) ?? 0.5, rng),
+  cross_fs_move: (s, p, rng) => crossFsMove(s, (p.rate as number) ?? 0.5, rng),
   rapid_succession: async function* (s) {
     for await (const e of s) yield e
   },

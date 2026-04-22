@@ -30,8 +30,15 @@
  *       index; `href` carries the parsed target locator. See
  *       docs/design/model/klink.md. Migration drops the old table; DATA_VERSION=2
  *       rebuilds rows from re-parsing content.
+ *   5 — nodes: add fs_dev + fs_size + fs_content_hash columns for the
+ *       inode-primary reconciliation cascade (hub/km/storage-architecture.md
+ *       §3.2). fs_dev pairs with fs_ino to guard against cross-device inode
+ *       collision; fs_size + mtime support the watcher fast-path (§7.4);
+ *       fs_content_hash is the secondary reconciliation signal (§3.3). All
+ *       three are additive / nullable — existing rows stay valid until the
+ *       reconciler fills them in on the next scan.
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /**
  * Data version — bump when application-logic changes invalidate derived data
@@ -65,8 +72,11 @@ CREATE TABLE IF NOT EXISTS nodes (
 
   -- Filesystem
   fs_path TEXT,
+  fs_dev INTEGER,    -- Device id; pairs with fs_ino for the inode reconciliation signal (§3.2)
   fs_ino INTEGER,
   fs_mtime INTEGER,  -- File modification time at last sync (milliseconds)
+  fs_size INTEGER,   -- File size in bytes; watcher fast-path with mtime (§7.4)
+  fs_content_hash TEXT,  -- SHA-256 of file bytes; lazy secondary reconciliation signal (§3.3)
 
   -- Identity
   name TEXT,
@@ -109,6 +119,9 @@ CREATE INDEX IF NOT EXISTS idx_nodes_parent_order ON nodes(parent_id, parent_idx
 CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_path ON nodes(fs_path);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_ino ON nodes(fs_ino);
+-- Composite (fs_dev, fs_ino) — primary reconciliation signal (§3.2).
+-- Cross-device inode collisions would misattribute without fs_dev.
+CREATE INDEX IF NOT EXISTS idx_nodes_fs_dev_ino ON nodes(fs_dev, fs_ino);
 CREATE INDEX IF NOT EXISTS idx_nodes_fstype ON nodes(fstype);
 CREATE INDEX IF NOT EXISTS idx_nodes_type_item ON nodes(type, item);
 CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
@@ -345,6 +358,11 @@ export function migrateSchema(db: import("bun:sqlite").Database): MigrateResult 
   missing("item", "INTEGER DEFAULT 0")
   missing("embed_of")
   missing("parsed", "INTEGER DEFAULT 0")
+  // v5 identity-schema columns — see SCHEMA_VERSION history.
+  // Additive only; null-safe for existing rows until the reconciler fills them in.
+  missing("fs_dev", "INTEGER")
+  missing("fs_size", "INTEGER")
+  missing("fs_content_hash", "TEXT")
 
   // Rename embed_source → embed_of (column rename migration)
   if (columnNames.has("embed_source") && !columnNames.has("embed_of")) {
@@ -649,8 +667,11 @@ export const NODE_COLUMNS = new Set([
   "embed_of",
   "parent_idx",
   "fs_path",
+  "fs_dev",
   "fs_ino",
   "fs_mtime",
+  "fs_size",
+  "fs_content_hash",
   "name",
   "block_id",
   "title",

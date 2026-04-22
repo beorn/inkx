@@ -244,6 +244,44 @@ export interface NodeRules {
 }
 
 // =============================================================================
+// Branded identity types (storage-architecture.md §2.4)
+// =============================================================================
+
+/**
+ * NodeId — internal opaque ULID handle for a node. Phase-A brand is structural
+ * only (no runtime check); callers assign via `asNodeId()` to make intent
+ * explicit. km never emits NodeIds into markdown; if a user hand-writes one,
+ * km resolves it as a direct lookup (§2.1).
+ *
+ * In Phase A, most callers still work with plain `string` for backwards
+ * compatibility. New APIs that want to signal "this is an id, not a slug"
+ * should accept/return `NodeId`.
+ */
+export type NodeId = string & { readonly __brand: "NodeId" }
+
+/**
+ * RepoId — workspace mount identifier. Stored in `.km/config.toml` per repo.
+ * One per mounted adapter instance; stable across clones of the same repo.
+ */
+export type RepoId = string & { readonly __brand: "RepoId" }
+
+/**
+ * Cast a string to a NodeId. No runtime validation in Phase A — the brand is
+ * structural-only. Prefer this helper over `as NodeId` so call sites are
+ * grep-able for a later tightening pass.
+ */
+export function asNodeId(s: string): NodeId {
+  return s as NodeId
+}
+
+/**
+ * Cast a string to a RepoId. See `asNodeId`.
+ */
+export function asRepoId(s: string): RepoId {
+  return s as RepoId
+}
+
+// =============================================================================
 // KNode - Unified Node Type
 // =============================================================================
 
@@ -286,9 +324,15 @@ export interface KNode {
   embed_of?: string | null // Target node ID whose content is transcluded (null = unresolved)
 
   // Filesystem mapping (for outline items with fstype folder/file/mdfile)
+  // For file nodes, `.name` is the basename (Obsidian link form, e.g. "foo"),
+  // while `fs_path` is the repo-relative path for disambiguation + FS locate
+  // (e.g. "notes/foo.md"). See hub/km/storage-architecture.md §2.2.
   fs_path?: string
-  fs_ino?: number // Inode for rename detection
+  fs_dev?: number // Device id — pairs with fs_ino; guards against cross-device inode collision (§3.2)
+  fs_ino?: number // Inode for rename detection (primary reconciliation signal §3.2)
   fs_mtime?: number // File modification time at last sync (milliseconds)
+  fs_size?: number // File size in bytes — watcher fast-path (§7.4)
+  fs_content_hash?: string // SHA-256 of file bytes; lazy / invalidated on mtime change — secondary reconciliation signal (§3.3)
 
   // Identity
   name?: string // Universal: slug/heading-slug/embed-alias/filename. Not fs-only.
@@ -392,8 +436,11 @@ export interface NodeCreatedData {
   fstype?: FsType
   embed_of?: string | null
   fs_path?: string
+  fs_dev?: number
   fs_ino?: number
   fs_mtime?: number
+  fs_size?: number
+  fs_content_hash?: string
   name?: string
   block_id?: string
   md_pos?: number

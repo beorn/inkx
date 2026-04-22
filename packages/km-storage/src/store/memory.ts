@@ -386,11 +386,12 @@ export class MemoryStore extends BaseStore {
     this.db.run(
       `INSERT INTO nodes (
         id, type, fstype, parent_id, parent_idx, item, embed_of,
-        fs_path, md_pos, md_line, name, block_id,
+        fs_path, fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash,
+        md_pos, md_line, name, block_id,
         content, content_hash, title, list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
         data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -400,6 +401,11 @@ export class MemoryStore extends BaseStore {
         ic.item,
         node.embed_of ?? null,
         node.fs_path ?? null,
+        node.fs_dev ?? null,
+        node.fs_ino ?? null,
+        node.fs_mtime ?? null,
+        node.fs_size ?? null,
+        node.fs_content_hash ?? null,
         node.md_pos ?? null,
         node.md_line ?? null,
         node.name ?? null,

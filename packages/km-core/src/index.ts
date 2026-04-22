@@ -30,7 +30,13 @@ export type {
   SessionEndedData,
   NotificationLevel,
   Reminder,
+  NodeId,
+  RepoId,
 } from "./types.ts"
+
+// Identity helpers — brand-cast helpers for NodeId / RepoId.
+// See hub/km/storage-architecture.md §2.4.
+export { asNodeId, asRepoId } from "./types.ts"
 
 // Build info (auto-generated)
 export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"

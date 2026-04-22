@@ -37,8 +37,11 @@ const SYSTEM_KEYS: ReadonlySet<string> = new Set([
   "version", // lifecycle
   "block_id", // identity
   "fs_path",
+  "fs_dev",
   "fs_ino",
-  "fs_mtime", // filesystem (derived)
+  "fs_mtime",
+  "fs_size",
+  "fs_content_hash", // filesystem (derived)
   "fstype", // derived from context via deriveFsType
   "content",
   "name",
