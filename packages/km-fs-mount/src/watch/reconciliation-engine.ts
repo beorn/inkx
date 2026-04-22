@@ -22,6 +22,7 @@ import {
   applyReconcileOpsAsync,
   type ReconcileOp,
 } from "./reconcile.ts"
+import type { ApplyResult } from "./applier.ts"
 import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import type { Emitter, ParsePoolService } from "@km/storage"
@@ -159,17 +160,20 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
 
     /**
      * Apply reconciled ops to the DB synchronously and record observations.
+     * Returns link-table deltas so callers can forward a linkChanges commit.
      */
-    applyOps(ops: ReconcileOp[]): void {
-      applyReconcileOps(db, ops, repoPath, reconcileEmitter)
+    applyOps(ops: ReconcileOp[]): ApplyResult {
+      const result = applyReconcileOps(db, ops, repoPath, reconcileEmitter)
       recordObservationsForOps(ops)
+      return result
     },
 
     /**
      * Apply reconciled ops to the DB asynchronously and record observations.
+     * Returns link-table deltas so callers can forward a linkChanges commit.
      */
-    async applyOpsAsync(ops: ReconcileOp[], parsePool: ParsePoolService): Promise<void> {
-      await applyReconcileOpsAsync({
+    async applyOpsAsync(ops: ReconcileOp[], parsePool: ParsePoolService): Promise<ApplyResult> {
+      const result = await applyReconcileOpsAsync({
         db,
         ops,
         repoRoot: repoPath,
@@ -177,6 +181,7 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
         parsePool,
       })
       recordObservationsForOps(ops)
+      return result
     },
 
     /**

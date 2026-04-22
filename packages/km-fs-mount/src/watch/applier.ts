@@ -53,6 +53,30 @@ interface ApplyAsyncOptions extends ApplyOptions {
 }
 
 /**
+ * Result of applying reconcile ops — surfaces link-table mutations so
+ * callers (e.g. FsStore) can forward a `linkChanges` delta through the
+ * reactive commit pipeline. Every caller pre-return still ignored these;
+ * the return type was `void` before the km-storage.lazy-hydration-linkchanges-emit
+ * bead added this extension. Backwards compatible: callers that don't
+ * destructure the return value keep working unchanged.
+ */
+export interface ApplyResult {
+  /** Host nodes whose outgoing links were (re)written during this apply pass. */
+  hostIds: readonly string[]
+  /** Canonical hrefs whose backlink set may have changed. */
+  targetHrefs: readonly string[]
+}
+
+/** Empty result — returned when no link-table mutations happened. */
+const EMPTY_APPLY_RESULT: ApplyResult = { hostIds: [], targetHrefs: [] }
+
+function ctxToApplyResult(ctx: ReconcileContext): ApplyResult {
+  const lc = ctx.linkChanges
+  if (!lc || (lc.hostIds.size === 0 && lc.targetHrefs.size === 0)) return EMPTY_APPLY_RESULT
+  return { hostIds: [...lc.hostIds], targetHrefs: [...lc.targetHrefs] }
+}
+
+/**
  * Apply reconciliation operations synchronously
  *
  * Parses markdown files inline during application.
@@ -67,7 +91,7 @@ export function applyReconcileOps(
   repoRoot?: string,
   emitter?: Emitter,
   fs?: FileSystemOps,
-): void {
+): ApplyResult {
   // Normalize to options object
   let options: ApplyOptions
   if (typeof dbOrOptions === "object" && "db" in dbOrOptions) {
@@ -108,6 +132,8 @@ export function applyReconcileOps(
 
   // Batch resolve links and sync index files for all new files at once
   finalizeBatchLinks(db, ctx, emit, root, fileOps)
+
+  return ctxToApplyResult(ctx)
 }
 
 /**
@@ -129,7 +155,7 @@ export async function applyReconcileOpsAsync(
   emitter?: Emitter,
   parsePool?: ParsePoolService,
   fs?: FileSystemOps,
-): Promise<void> {
+): Promise<ApplyResult> {
   // Normalize to options object
   let options: ApplyAsyncOptions
   if (typeof dbOrOptions === "object" && "db" in dbOrOptions) {
@@ -174,6 +200,8 @@ export async function applyReconcileOpsAsync(
   finalizeBatchLinks(db, ctx, emit, root, fileOps)
 
   log.debug?.(`applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`)
+
+  return ctxToApplyResult(ctx)
 }
 
 /**

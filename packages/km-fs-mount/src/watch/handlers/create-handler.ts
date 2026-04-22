@@ -49,6 +49,26 @@ export interface ReconcileContext {
   foldersToRefresh?: Set<string>
   /** Folder IDs whose index files were deleted — need re-materialization */
   foldersNeedingIndexUpdate?: Set<string>
+  /**
+   * Link-table changes emitted during this reconcile pass. Handlers
+   * populate this whenever they INSERT/DELETE rows in `links` so the
+   * FsStore can forward a `linkChanges` delta to `backlinksState`
+   * subscribers.
+   *
+   * `hostIds` — host nodes whose outgoing links were (re)written.
+   * `targetHrefs` — canonical hrefs whose backlink set may have changed
+   *                  (both newly-inserted and removed hrefs, conservatively).
+   */
+  linkChanges?: { hostIds: Set<string>; targetHrefs: Set<string> }
+}
+
+/** Ensure ctx.linkChanges exists and return it (lazy init). */
+export function ensureLinkChanges(ctx: ReconcileContext): {
+  hostIds: Set<string>
+  targetHrefs: Set<string>
+} {
+  ctx.linkChanges ??= { hostIds: new Set(), targetHrefs: new Set() }
+  return ctx.linkChanges
 }
 
 /**
@@ -224,8 +244,13 @@ function handleMarkdownCreate(
     warnings: [],
   }
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+  const linkChanges = resolvedLinks.length > 0 ? ensureLinkChanges(ctx) : undefined
   for (const link of resolvedLinks) {
     addLink(db, { host_id: link.host_id, href: link.href, rel: link.rel })
+    if (linkChanges) {
+      linkChanges.hostIds.add(link.host_id)
+      linkChanges.targetHrefs.add(link.href)
+    }
 
     // For embed rows, mirror embed_of onto the host node so the in-memory
     // store stays in sync. The links table itself no longer carries

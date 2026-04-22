@@ -29,7 +29,7 @@ import {
 } from "@km/storage"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
-import type { ReconcileContext } from "./create-handler.ts"
+import { ensureLinkChanges, type ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 
 const log = createLogger("km:storage:watch:reconcile")
@@ -181,8 +181,14 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   if (op.size !== undefined) updates.fs_size = op.size
   emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
 
-  // Update wikilinks: remove old links from EXISTING nodes
+  // Update wikilinks: capture previous outgoing hrefs first so backlink
+  // signals for targets that LOSE an inbound link still invalidate, then
+  // remove old links from EXISTING nodes.
+  const linkChanges = ensureLinkChanges(ctx)
   for (const node of existingNodes) {
+    const prior = db.query("SELECT href FROM links WHERE host_id = ?").all(node.id) as Array<{ href: string }>
+    for (const row of prior) linkChanges.targetHrefs.add(row.href)
+    if (prior.length > 0) linkChanges.hostIds.add(node.id)
     removeLinksFromSource(db, node.id)
   }
 
@@ -201,6 +207,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   for (const link of resolvedLinks) {
     const hostId = idMap.get(link.host_id) ?? link.host_id
     addLink(db, { host_id: hostId, href: link.href, rel: link.rel })
+    linkChanges.hostIds.add(hostId)
+    linkChanges.targetHrefs.add(link.href)
 
     // For embed rows, mirror embed_of + alias back onto the host node so
     // the in-memory store stays in sync. The v4 links schema has no

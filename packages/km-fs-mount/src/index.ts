@@ -77,6 +77,8 @@ export {
 
 export type { ReconcileOp, DirectoryScanner } from "./watch/reconcile.ts"
 
+export type { ApplyResult } from "./watch/applier.ts"
+
 export { WriteQueue } from "./watch/writequeue.ts"
 
 export type { PendingWrite, WriteQueueConfig, ConflictInfo } from "./watch/writequeue.ts"

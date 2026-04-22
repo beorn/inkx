@@ -167,6 +167,8 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     const nodeIds = new Set<string>()
     const parentIds = new Set<string>()
     const deletedNodeIds = new Set<string>()
+    const linkHostIds = new Set<string>()
+    const linkTargetHrefs = new Set<string>()
 
     for (const dir of data.directories) {
       if (stopped) break
@@ -177,7 +179,9 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
             parsePool = createParsePool()
             await parsePool.start()
           }
-          await engine.applyOpsAsync(ops, parsePool)
+          const applyResult = await engine.applyOpsAsync(ops, parsePool)
+          for (const id of applyResult.hostIds) linkHostIds.add(id)
+          for (const href of applyResult.targetHrefs) linkTargetHrefs.add(href)
 
           // Build delta from ops
           for (const op of ops) {
@@ -195,15 +199,24 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       }
     }
 
-    if (nodeIds.size > 0 || deletedNodeIds.size > 0) {
+    const hasNodeChanges = nodeIds.size > 0 || deletedNodeIds.size > 0
+    const hasLinkChanges = linkHostIds.size > 0 || linkTargetHrefs.size > 0
+    if (hasNodeChanges || hasLinkChanges) {
+      const delta: RepoDelta = {
+        nodeIds: [...nodeIds],
+        parentIds: [...parentIds],
+        deletedNodeIds: [...deletedNodeIds],
+      }
+      if (hasLinkChanges) {
+        delta.linkChanges = {
+          hostIds: [...linkHostIds],
+          targetHrefs: [...linkTargetHrefs],
+        }
+      }
       const commitResult: CommitResult = {
         meta: { commitId: ulid(), source: "fs-import" },
         changes: [], // FS reconciliation doesn't produce discrete events
-        delta: {
-          nodeIds: [...nodeIds],
-          parentIds: [...parentIds],
-          deletedNodeIds: [...deletedNodeIds],
-        },
+        delta,
       }
       for (const cb of listeners) cb(commitResult)
     }

@@ -8,7 +8,7 @@ import { basename, dirname } from "path"
 import { emitNodeUpdated, emitNodeDeleted, type Emitter, getNode, getNodeByPath } from "@km/storage"
 import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import type { ReconcileOp } from "../reconcile.ts"
-import type { ReconcileContext } from "./create-handler.ts"
+import { ensureLinkChanges, type ReconcileContext } from "./create-handler.ts"
 import type { Database } from "bun:sqlite"
 import { isIndexFile } from "@km/core"
 
@@ -99,6 +99,28 @@ export function handleDelete(emitter: Emitter, op: ReconcileOp, db?: Database, c
           ctx.foldersNeedingIndexUpdate ??= new Set()
           ctx.foldersNeedingIndexUpdate.add(parent.id)
         }
+      }
+    }
+
+    // Capture outgoing-link hrefs for the subtree being deleted so backlink
+    // signals for those targets invalidate. `deleteSubtree` (via
+    // applyChangeWithDb → applyNodeDeleted) cascades DELETE FROM links for
+    // all descendants — we read them first, then emit the delete.
+    const rows = db
+      .query(
+        "WITH RECURSIVE subtree(id) AS (" +
+          "SELECT id FROM nodes WHERE id = ? " +
+          "UNION ALL " +
+          "SELECT n.id FROM nodes n JOIN subtree s ON n.parent_id = s.id" +
+          ") " +
+          "SELECT l.host_id, l.href FROM links l JOIN subtree s ON l.host_id = s.id",
+      )
+      .all(op.nodeId) as Array<{ host_id: string; href: string }>
+    if (rows.length > 0) {
+      const linkChanges = ensureLinkChanges(ctx)
+      for (const row of rows) {
+        linkChanges.hostIds.add(row.host_id)
+        linkChanges.targetHrefs.add(row.href)
       }
     }
   }
