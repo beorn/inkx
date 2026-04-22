@@ -678,23 +678,26 @@ Very little, on purpose. Phase A (§8) is what we're executing. But knowing the 
 
 ## 11. Current bead tracking
 
-Active:
+Single tracking tree under the permanent scope epic **`km-storage`** (`bd show km-storage`).
 
-| Bead | Priority | Scope |
-|---|---|---|
-| `km-storage.identity-schema` | P0 | §8.P0 — schema prereq; blocks lazy-hydration |
-| `km-storage.lazy-hydration` | P0 | §8.P1 — the scale fix |
-| `km-storage.fs-mount` | P1 | §6, §8.P2 — FsMount package + reconciliation |
-| `km-storage.reconciliation-harness` | P1 | §8.P2 — property + scenario test suite; blocks `fs-mount` |
-| `km-storage.identity-recovery-cascade` | P1 | §3 inode→name→composite-heuristic cascade |
-| `km-storage.writeback-cas` | P1 | §8.P3 — corpus gates serializer gates CAS |
-| `km-storage.markdown-fidelity-corpus` | P1 | §8.P3 step 1 |
-| `km-storage.federation` | P2 | §8.P4 |
-| `km-storage.session-state-split` | P2 | §5.3 |
-| `km-storage.pathway-db-crdt` | P3 | §9 pathway tracker (Phase B/C/D/E) |
-| `km-storage.op-vocabulary-audit` | P0 | Audit whether current `apply()` ops are serializable + repo-stable. Gates Phase B cost estimate. |
-| `km-all.shared-substrate-review` | P0 | cross-project extraction (due 2026-05-05) |
+```
+km-storage (scope epic, never closes)
+├── km-storage.identity-schema              [P0] §8.P0 — blocks lazy-hydration
+├── km-storage.lazy-hydration               [P0] §8.P1 — the scale fix
+├── km-storage.fs-mount                     [P1] §6, §8.P2 — FsMount package
+│   ├── km-storage.reconciliation-harness   [P1] property + scenario tests (blocks fs-mount)
+│   ├── km-storage.identity-recovery-cascade [P1] §3 inode→name→composite
+│   └── km-storage.markdown-fidelity-corpus [P1] §8.P3 step 1 (gates writeback)
+├── km-storage.writeback-cas                [P1] §8.P3 — corpus gates serializer gates CAS
+├── km-storage.federation                   [P2] §8.P4
+├── km-storage.session-state-split          [P2] §5.3
+└── km-storage.pathway-db-crdt              [P3 epic] §9 Phase B→E tracker
+    └── km-storage.op-vocabulary-audit      [P0] gates Phase B cost estimate
+```
 
-Closed this session: `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal; Phase B op log handles real atomicity), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`).
+Adjacent (not under km-storage):
+- `km-all.shared-substrate-review` [P0] — cross-project extraction (due 2026-05-05)
 
-Earlier supersessions (kept for audit): `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`.
+**Closed this session**: `km-storage.adapter-architecture` (superseded by v3 doc — "adapter" framing dropped in favor of concrete FsMount), `km-storage.multi-file-atomicity-decision` (Phase A ships without the journal), `km-storage.crdt-trigger` (superseded by `pathway-db-crdt`).
+
+Earlier supersessions: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`.
