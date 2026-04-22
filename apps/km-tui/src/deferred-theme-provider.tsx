@@ -12,9 +12,18 @@
  *
  * Flash avoidance: if a previous session cached a detected theme, we load it
  * synchronously on mount for a zero-flash startup.
+ *
+ * Cache-hit shortcut: when the cache already holds a theme for the
+ * (program, dark) pair, we skip the OSC probe entirely. probeColors issues
+ * 18 OSC 4/10/11 roundtrips serially (~400ms, 150ms timeout each) and holds
+ * the stdin raw-mode toggle for that window — pure waste when we already
+ * have a theme that matches the pair. The probe only runs on first-ever
+ * launch or when the cache misses. Set `KM_FORCE_THEME_PROBE=1` in the env
+ * to force a re-probe (e.g. debugging palette drift after a terminal-side
+ * theme change — next run will backfill the cache).
  */
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, type Theme } from "@silvery/ag-react"
 import { detectTheme } from "./theme.ts"
 import { loadCachedTheme, saveCachedTheme, type ThemeCacheKey } from "./theme-cache.ts"
@@ -50,13 +59,22 @@ function pickFallbackTheme(caps: DeferredThemeProviderProps["caps"]): Theme {
 export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThemeProviderProps): React.ReactElement {
   // Start with cached theme if available, else the synchronous fallback.
   // The cache survives across runs keyed by terminal program + mode so
-  // repeat launches see zero theme flash.
+  // repeat launches see zero theme flash. The cached theme is already
+  // matched to this (program, dark) pair, so the 18-OSC-roundtrip probe on
+  // useEffect would just redo work and pay ~400ms of stdin contention for
+  // no user-visible change — `cacheHit` gates the probe off in that case.
+  //
+  // One disk read: the ref is set inside the lazy useState initialiser, and
+  // both the initial theme choice and the probe gate read it. Using a ref
+  // (not state) keeps the useEffect dep list at [] so the effect runs once.
+  const cacheHit = useRef<boolean>(false)
   const [theme, setTheme] = useState<Theme>(() => {
     if (cacheKey) {
       const cached = loadCachedTheme(cacheKey)
       if (cached) {
+        cacheHit.current = true
         log.debug?.(
-          `theme: loaded cached theme ${cached.name} for ${cacheKey.program}/${cacheKey.dark ? "dark" : "light"}`,
+          `theme: loaded cached theme ${cached.name} for ${cacheKey.program}/${cacheKey.dark ? "dark" : "light"} — skipping probe`,
         )
         return cached
       }
@@ -66,7 +84,17 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
 
   // Kick off the OSC probe after first paint. useEffect runs AFTER the first
   // render commits, so the board is already on screen by the time this fires.
+  //
+  // Skip the probe when: (a) we had a cache hit (the cached theme is already
+  // matched to this (program, dark) pair — re-probing is waste), unless
+  // (b) KM_FORCE_THEME_PROBE=1 in env forces a re-probe (debug escape hatch
+  // for palette drift after a terminal-side theme swap).
   useEffect(() => {
+    const forceProbe = process.env.KM_FORCE_THEME_PROBE === "1"
+    if (cacheHit.current && !forceProbe) {
+      log.debug?.("theme: cache hit — probe skipped (set KM_FORCE_THEME_PROBE=1 to force)")
+      return
+    }
     let cancelled = false
     detectTheme({ caps })
       .then((detected) => {
