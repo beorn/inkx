@@ -8,6 +8,7 @@
 
 import { KNode, type Change } from "@km/core"
 import { normalizeLinkHref } from "@km/markdown"
+import { mintRepoId } from "../federation/repo-id.ts"
 import type { Repo, RepoStats } from "../repo/repo.ts"
 import type { LoadError } from "../repo/loader.ts"
 import type { KLink } from "../db/db.ts"
@@ -192,6 +193,8 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const repo: FakeRepo = {
     path,
     mode: "memory" as const,
+    // Transient in-memory RepoId — fake repos never persist.
+    repoId: mintRepoId(),
     loadErrors,
 
     get version() {

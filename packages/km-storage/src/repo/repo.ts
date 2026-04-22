@@ -19,7 +19,8 @@ import { createLogger } from "loggily"
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
-import type { Change, KNode, TaskStatus } from "@km/core"
+import type { Change, KNode, RepoId, TaskStatus } from "@km/core"
+import { mintRepoId, readOrMintRepoId } from "../federation/repo-id.ts"
 import { composeItem } from "../item-helpers.ts"
 import type { Config } from "../config-object.ts"
 import { loadConfigObject } from "../config-object.ts"
@@ -810,6 +811,17 @@ export interface Repo extends Disposable {
 
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   readonly mode: "memory" | "disk"
+
+  /**
+   * Stable per-clone RepoId (federation — see hub/km/storage-architecture.md §5.1).
+   *
+   * Persisted to `.km/config.toml` for disk-mode repos — mints on first open
+   * and round-trips on subsequent opens. Memory-mode / bare repos mint a
+   * transient RepoId in-memory; it's valid for the life of the Repo but not
+   * persisted. Always defined so consumers (session-db, workspace lookups)
+   * can unconditionally key by repoId.
+   */
+  readonly repoId: RepoId
 
   /** Indexed storage - always present */
   readonly data: DataStore
@@ -1620,6 +1632,12 @@ interface RepoInitResult {
   stats: RepoStats
   deferredFiles: DeferredFile[]
   unexploredDirs: UnexploredDir[]
+  /**
+   * Stable RepoId for this repo. Disk-mode repos persist this to
+   * `.km/config.toml` via `readOrMintRepoId`; memory-mode repos mint a
+   * transient in-memory RepoId.
+   */
+  repoId: RepoId
 }
 
 /**
@@ -1649,11 +1667,16 @@ function* initWithFileLoading(
   const emitter = createEmitter({ kmDir, skipPersist: mode === "memory" })
 
   let db: Database
+  let repoId: RepoId
   if (mode === "disk") {
     using _ = initSpan.span("db-open-and-migrate")
     if (!existsSync(kmDir)) {
       mkdirSync(kmDir, { recursive: true })
     }
+    // Federation §5.1 — persist/read the stable RepoId from .km/config.toml
+    // immediately after the directory is confirmed, before any DB work.
+    // Idempotent: first open mints + writes, subsequent opens round-trip.
+    repoId = readOrMintRepoId(kmDir)
     const dbPath = join(kmDir, "state.db")
     {
       using _o = initSpan.span("db-open")
@@ -1683,6 +1706,9 @@ function* initWithFileLoading(
   } else {
     db = new Database(":memory:")
     db.run(SCHEMA)
+    // Memory mode: no .km/ directory to persist into. Mint a transient RepoId
+    // so `repo.repoId` is always defined; it lives only for this Repo's lifetime.
+    repoId = mintRepoId()
   }
 
   // Now call loadRepo with OUR db (avoids singleton)
@@ -1738,7 +1764,7 @@ function* initWithFileLoading(
 
   log.debug?.(`loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`)
 
-  return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs }
+  return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs, repoId }
 }
 
 /**
@@ -1773,11 +1799,16 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
 
   let db: Database
   let dataStore: DataStore & HasDatabase
+  let repoId: RepoId
   if (mode === "disk") {
     // Ensure .km directory exists
     if (!existsSync(kmDir)) {
       mkdirSync(kmDir, { recursive: true })
     }
+
+    // Federation §5.1 — persist/read the stable RepoId from .km/config.toml
+    // immediately after the directory is confirmed, before any DB work.
+    repoId = readOrMintRepoId(kmDir)
 
     const dbPath = join(kmDir, "state.db")
     db = openDiskDatabase(dbPath)
@@ -1794,6 +1825,8 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
     db = new Database(":memory:")
     db.run(SCHEMA)
     dataStore = createDBDataStore(db)
+    // Transient RepoId — no .km/ to persist into; lives only with this Repo.
+    repoId = mintRepoId()
   }
 
   // Step 3: Scan files (for full repo)
@@ -1808,6 +1841,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
     stats: { nodeCount: 0, linkCount: 0, duration: 0 },
     deferredFiles: [],
     unexploredDirs: [],
+    repoId,
   }
 }
 
@@ -1899,7 +1933,7 @@ export function* createRepo(
   const kmDir = join(rootPath, ".km")
 
   // Delegate to the appropriate initialization helper
-  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs } = options.loadFiles
+  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs, repoId } = options.loadFiles
     ? yield* initWithFileLoading(rootPath, kmDir, options)
     : yield* initEmptyDb(kmDir, options)
 
@@ -1961,6 +1995,7 @@ export function* createRepo(
   const repo: Repo = {
     path: rootPath,
     mode,
+    repoId,
     get version() {
       return state.version
     },
@@ -2256,6 +2291,11 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
   const emitter = options.emitter ?? createEmitter({ kmDir, db, skipPersist: options.skipPersist })
   const hooks = options.hooks
 
+  // Bare repos never own a guaranteed on-disk `.km/` directory (the caller
+  // manages the DataStore and may or may not have one). Mint a transient
+  // RepoId so `repo.repoId` is always defined; it doesn't round-trip.
+  const repoId: RepoId = mintRepoId()
+
   let closed = false
   function ensureOpen() {
     if (closed) throw new Error("Repo is closed")
@@ -2284,6 +2324,7 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
   const repo: Repo = {
     path: repoPath,
     mode: "memory" as const,
+    repoId,
     get version() {
       return state.version
     },
