@@ -498,7 +498,7 @@ export async function runBoard(
     // During the TUI session, console output goes to the alt screen buffer
     // which is lost on exit. Re-emit all entries to the normal terminal.
     if (consoleOwner) {
-      const entries = consoleOwner.getSnapshot()
+      const entries = consoleOwner.entries()
       if (entries.length > 0) {
         consoleOwner.replay(process.stdout, process.stderr)
         // Summary only for noisy sessions

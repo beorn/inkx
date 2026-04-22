@@ -12,6 +12,7 @@
  */
 import React, { useCallback, useEffect, useState } from "react"
 import { Box, useApp, FocusManagerContext, type PatchedConsole } from "@silvery/ag-react"
+import { effect } from "@silvery/signals"
 import { installDialogGuard, resetDialogGuard } from "../dialog-guard.ts"
 import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import type { ViewMode } from "../types.ts"
@@ -212,7 +213,9 @@ export function BoardApp({
     let prevTotal = initial.total
     if (initial.total > 0) setConsoleStats(initial)
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    const unsub = patchedConsole.subscribe(() => {
+    const stop = effect(() => {
+      // Read the entries signal to subscribe; we only need it as a change trigger.
+      patchedConsole.entries()
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         debounceTimer = null
@@ -223,7 +226,7 @@ export function BoardApp({
       }, 200)
     })
     return () => {
-      unsub()
+      stop()
       if (debounceTimer) clearTimeout(debounceTimer)
     }
   }, [patchedConsole])

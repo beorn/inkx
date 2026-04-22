@@ -14,13 +14,7 @@
  * which then passes the result to BoardView.
  */
 import React, { useCallback, useEffect, useMemo, useRef } from "react"
-import {
-  useRuntime,
-  useBoxRect,
-  setWindowTitle,
-  useFocusManager,
-  type PatchedConsole,
-} from "@silvery/ag-react"
+import { useRuntime, useBoxRect, setWindowTitle, useFocusManager, type PatchedConsole } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import { createNodeStore, type NodeStore } from "../state/reactive.ts"
 import { dispatchSelection, nodeSelect } from "../state/selection.ts"
@@ -260,7 +254,7 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
     if (!onPause || !onResume) return
     onPause() // Leaves alt screen + shows cursor
     if (patchedConsole) {
-      const entries = patchedConsole.getSnapshot()
+      const entries = patchedConsole.entries()
       for (const entry of entries) {
         const stream = entry.stream === "stderr" ? process.stderr : process.stdout
         const args = entry.args.map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
