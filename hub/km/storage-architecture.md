@@ -375,41 +375,59 @@ Point km at any directory without `.km/`: in-memory DB, no files written. `bun k
 
 ## 6. FsMount — the storage engine
 
-### 6.1 Scope
+### 6.1 Status — the split already exists, mostly
 
-Owns all filesystem-specific behavior:
-- File watcher (chokidar / node:fs.watch)
-- Markdown parse/serialize integration (`@km/markdown`)
-- Path + inode + mtime tracking
-- Content-hash rename detection (§3)
-- Block-anchor literal preservation (§2.2)
-- Safe-writeback with content-as-CAS (§7)
-- Self-write suppression (don't re-ingest own writes)
-- Markdown fidelity: minimal patching, preserve user formatting
+`@km/storage` already has substantial FS separation — this section describes what's there and what the `km-storage.fs-mount` bead formalizes into a package boundary. It is a ~2-day refactor, not a green-field build.
 
-Does NOT own:
-- RepoStore / in-memory tree — `@km/storage` (derived index over FsMount content)
-- Node types, Op types — `@km/core`
-- Parsing algorithm itself — `@km/markdown`
+**What's already separated inside `@km/storage`**:
+- `store/base.ts` — abstract `BaseStore` with all read ops (getNode, getChildren, search, ancestors, …)
+- `store/memory.ts`, `store/fs.ts`, `store/sqlite.ts` — three concrete backends. `SqliteStore` is already FS-free (what a web/canvas km would use).
+- `fs/` (~1100 LOC) — CAS, file-tree, ignore, path-utils
+- `watch/` (~5000 LOC) — watcher + reconcile + sync + writequeue + bulk-sync
 
-### 6.2 Package boundary
+### 6.2 What the fs-mount bead actually does
+
+Moves the FS-touching code out of `@km/storage` into a new `@km/fs-mount` package, leaving the backend-agnostic pieces behind:
 
 ```
-@km/fs-mount     — concrete class; owns watcher/parser/serializer/CAS
-   │ emits Op[] to consumers
+@km/fs-mount     — watcher + CAS + parser integration + writeback + reconciliation
+   │              (moves from @km/storage/src/fs/ + watch/ + store/fs.ts)
+   │ emits Op[] / commits to consumers
    ↓
-@km/storage      — RepoStore (derived index over FsMount) + workspace mount registry
-   │
+@km/storage      — BaseStore + MemoryStore + SqliteStore + query layer
+   │              (backend-agnostic; web/canvas-ready)
    ↓
 @km/core         — NodeId, RepoId, KNode, Op types. Pure domain. Zero FS imports.
 @km/markdown     — parse/serialize. Consumed by FsMount + future adapters.
 ```
 
-**No premature `Adapter` interface.** When a second consumer (CardDAV, Notion import, Automerge sync) actually ships, extract commonality at that point. Pro's warning about "false unification" is taken seriously — Notion imports, paginated connectors, and peer-to-peer sync have genuinely different shapes than filesystem scan.
+### 6.3 Scope owned by each layer
 
-### 6.3 Build-enforced separation
+**`@km/fs-mount`** owns:
+- File watcher (chokidar / `node:fs.watch`)
+- Path + `(fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash)` tracking
+- Content-hash rename detection + inode reconciliation (§3)
+- Block-anchor literal preservation on write
+- Safe-writeback with content-as-CAS (§7)
+- Watcher echo suppression via mtime+size fast-path
+- Markdown fidelity serializer (minimal patching, corpus-gated)
 
-Typecheck fails if `@km/core` or `@km/storage` imports from `node:fs`. This is the load-bearing guarantee that core stays FS-agnostic, which is what enables a future web/canvas km to swap the engine.
+**`@km/storage`** owns:
+- RepoStore + query layer (derived index over commits)
+- `withReactive()` reactive decorator (§P1 lazy-hydration builds on this)
+- Workspace mount registry
+
+**Does NOT belong to either**:
+- Node types, Op types — `@km/core`
+- Markdown parse algorithm — `@km/markdown`
+
+### 6.4 No premature Adapter interface
+
+When a second consumer (CardDAV, Notion import, Automerge sync) actually ships, extract commonality at that point. Pro's warning about "false unification" is taken seriously — Notion imports, paginated connectors, and peer-to-peer sync have genuinely different shapes than filesystem scan.
+
+### 6.5 Build-enforced separation
+
+Typecheck fails if `@km/core` or `@km/storage` imports from `node:fs`. This is the load-bearing guarantee that core + backend-agnostic storage stay FS-free, which is what enables a future web/canvas km to swap the engine.
 
 ---
 
@@ -486,16 +504,34 @@ Lands ahead of P1 to avoid re-doing SQLite queries. Scope:
 - One migration, one set of query shape changes
 
 ### P1. Lazy hydration (`km-storage.lazy-hydration`) — the scale fix
-- Stop loading full JS object graph on startup
-- Move navigation/backlinks to SQLite-on-demand queries (against P0's final schema)
-- Target: <500ms cold start on 10x vault (100k files)
-- Covered-target: breaks the benchmarked 2x failure mode today
+
+Today's `peekNode` / `peekChildIds` read from a full in-memory JS object graph that's built on startup (the 2x failure mode). Lazy-hydration swaps that source to SQLite-on-demand. **The reactive layer above does not change shape** — `withReactive()` (`packages/km-storage/src/store/reactive.ts`) already exists and is delta-driven + lazy-signal-creating. It keeps working unchanged; only the underlying `peek*` source shifts.
+
+Scope:
+- Swap `peekNode` / `peekChildIds` to SQLite-on-demand (indexed lookups, microseconds each)
+- Extend the reactive surface with `backlinksState(nodeId)` — subscribes to link-table changes through the commit delta; only visible nodes keep live signals
+- Ensure the commit delta carries link changes (so backlink signals invalidate targetedly, not via broad refresh)
+- Target: <500ms cold start on 10x vault (100k files); breaks the benchmarked 2x failure mode
+
+**Reactivity scale pattern**: only visible nodes have live signals (lazy creation). Offscreen → signal map entry GCs when nothing subscribes. `alien-projections` can wrap the visible-nodes-×-backlinks list if we want per-row reactivity; not needed for Phase A. No materialized views, no differential dataflow — SQLite indexed lookups + delta-driven invalidation is sufficient at 100k files.
+
+Queries must target the `BaseStore` interface (what §6 formalizes as the backend-agnostic public face of `@km/storage`), not monolith internals — this keeps the hydration layer backend-agnostic if a future backend ends up being event-sourced materialized views (Phase B+).
 
 ### P2. FsMount + reconciliation (`km-storage.fs-mount`)
-- Extract FS code from `@km/storage` into new `@km/fs-mount` package
+
+Formalize the existing FS split (see §6.1) into a package boundary:
+- Move `fs/` + `watch/` + `store/fs.ts` from `@km/storage` into new `@km/fs-mount` package
+- Leave `BaseStore` + `MemoryStore` + `SqliteStore` + `withReactive()` in `@km/storage` (backend-agnostic)
 - Build-enforce: `@km/core` + `@km/storage` never import `node:fs`
-- Implement file-content-hash + inode reconciliation on scan (§3)
-- **Reconciliation test harness** (`km-storage.reconciliation-harness`, blocking sub-task): property-based + scenario-based suite. Generate file trees, apply mutations (edit-in-place, rename, rename+edit, split, merge, git-pull merge, directory rename), assert ULID stability against §3's promised behaviour. Heuristic classifiers without a test harness are bug farms.
+- Update the in-place reconciliation algorithm to the inode-primary cascade (§3) — most of the primary/secondary signals already exist in `watch/reconcile.ts` + `watch/node-differ.*`; this is a revision, not a rewrite
+
+**Reconciliation test harness** (`km-storage.reconciliation-harness`, blocking sub-task): extends the existing chaos + fuzz test suite, doesn't replace it. Relevant existing infrastructure:
+- `tests/sync/chaos/` — `chaos-fuzz.fuzz.ts`, `content-roundtrip.fuzz.ts`, `lifecycle-fuzz.fuzz.ts`, `concurrent.slow.test.ts`, `db-to-fs.slow.test.ts`
+- `tests/sync/chaos/fake-fs.ts`, `fake-repo.ts`, `fake-watcher.ts` — test doubles
+- `tests/sync/chaos/verifier.ts`, `transformers.ts`, `event-picker.ts` — property-test machinery
+- `tests/watch/` — `reconcile.test.ts`, `node-differ.fuzz.ts`, `bidirectional-sync.slow.test.ts`, `storage-bugs.slow.test.ts`
+
+Harness bead scope: add scenario fixtures for inode-primary cascade cases (same-FS rename with inode preserved; cross-FS rename with inode reassigned; inode reuse after deletion; directory rename; split-file; merge-file), and extend the chaos verifier with ULID-stability invariants. Net: ~30% new test infrastructure, ~70% extending existing fuzz + chaos suites.
 
 ### P3. Fidelity corpus → safe writeback (merged `km-storage.writeback-cas` + `km-storage.markdown-fidelity-corpus`)
 Corpus ships first; serializer only lands once corpus is green. Order within P3:
