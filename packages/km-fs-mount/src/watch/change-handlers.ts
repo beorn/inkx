@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from "loggily"
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs"
+import { existsSync, readFileSync, readdirSync } from "fs"
 import { basename, dirname, join, relative } from "path"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
@@ -30,6 +30,7 @@ import { hashContent } from "../fs/cas.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 // reconcileIfChanged removed — DB is authority for user-origin changes
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
+import { computeRenameCascade } from "./rename-cascade.ts"
 
 const log = createLogger("km:storage:watch:change-handlers")
 
@@ -413,18 +414,17 @@ export class ChangeHandlers {
 
             this.fsTarget.renameFile(oldAbsPath, newAbsPath)
 
-            // Update fs_path in DB
+            // Route fs_path updates through emitter.commit so each UPDATE is
+            // paired with a changes.jsonl entry. commit() (not apply()) avoids
+            // re-firing onApply subscribers — we're already inside one.
             const newRelPath = relative(this.repoPath, newAbsPath)
-            this.db.run("UPDATE nodes SET fs_path = ? WHERE id = ?", [newRelPath, node.id])
+            const oldRelPath = node.fs_path
+            this.commitRename(node.id, { fs_path: newRelPath, old_fs_path: oldRelPath })
 
-            // Cascade fs_path updates for folder descendants
+            // Cascade fs_path updates for folder descendants, one op per
+            // descendant so DB + journal stay paired per row.
             if (node.fstype === "folder") {
-              const oldRelPath = node.fs_path
-              this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?) WHERE fs_path LIKE ? || '/%'`, [
-                newRelPath,
-                oldRelPath.length + 1,
-                oldRelPath,
-              ])
+              this.commitRenameCascade(oldRelPath, newRelPath)
             }
 
             this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
@@ -625,36 +625,22 @@ export class ChangeHandlers {
       this.recordTokensRecursive(newAbsPath)
     }
 
-    // Update DB paths
-    const oldPrefix = oldFsPath + "/"
-    const newPrefix = newFsPath + "/"
-    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
-      newFsPath,
-      newName,
-      Date.now(),
-      node.id,
-    ])
-    this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`, [
-      newPrefix,
-      oldPrefix.length + 1,
-      Date.now(),
-      oldPrefix + "%",
-    ])
+    // Update DB paths through the emitter so each UPDATE is paired with a
+    // changes.jsonl entry (DB + journal atomic per row). commit() is used
+    // (not apply()) because this runs inside an onApply callback — apply()
+    // would recursively fire projection and risk an echo loop.
+    this.commitRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
 
-    // Journal the folder rename for change-sourcing completeness
-    this.journalRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
+    // Cascade descendant fs_path rewrites as individual node_updated ops
+    // (one per row). Per-row atomicity is the invariant; cascade completeness
+    // is best-effort — a crash mid-loop leaves some descendants pending for
+    // a later reconciliation pass.
+    this.commitRenameCascade(oldFsPath, newFsPath)
 
     // Only update the index file's name and fs_path in DB if the FS rename succeeded
     if (indexNeedsRename && indexFile && indexRenameSucceeded) {
       const newIndexFsPath = join(newFsPath, newName + ".md")
-      this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
-        newIndexFsPath,
-        newName,
-        Date.now(),
-        indexFile.id,
-      ])
-      // Journal the index file rename
-      this.journalRename(indexFile.id, { fs_path: newIndexFsPath, name: newName })
+      this.commitRename(indexFile.id, { fs_path: newIndexFsPath, name: newName })
     }
 
     // Refresh index file content with new title (node already updated in DB)
@@ -707,18 +693,11 @@ export class ChangeHandlers {
       }
     }
 
-    // Update DB: fs_path, name, and title (title is used by nodesToMarkdown for H1 heading)
+    // Update DB fs_path + name + title through the emitter so the UPDATE is
+    // paired with a changes.jsonl entry (DB + journal atomic per row).
+    // title is used by nodesToMarkdown for the H1 heading.
     const newName = newFileName.replace(/\.md$/i, "")
-    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, title = ?, updated_at = ? WHERE id = ?", [
-      newFsPath,
-      newName,
-      newTitle,
-      Date.now(),
-      fileNode.id,
-    ])
-
-    // Journal the file rename for change-sourcing completeness
-    this.journalRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
+    this.commitRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
 
     // Mutate node so caller writes content at new path
     fileNode.fs_path = newFsPath
@@ -735,25 +714,44 @@ export class ChangeHandlers {
   }
 
   /**
-   * Journal a rename operation to changes.jsonl.
-   * The DB is already updated by direct mutation (for atomicity with the FS rename),
-   * so this only persists to the journal for change-sourcing completeness.
+   * Commit a rename DB update paired with a journal entry.
+   *
+   * Routes through `emitter.commit()` — which applies to the DB via
+   * `applyChangeWithDb` and appends to `changes.jsonl` in one call — so the
+   * two writes are paired per row (emitter contract). Uses `commit()` rather
+   * than `apply()` because this runs inside an `onApply` callback; firing
+   * more `onApply` subscribers from here risks an echo loop back to the FS.
+   *
+   * `fs_path`, `name`, `title` are real `nodes` columns. `old_fs_path` is
+   * audit metadata and lands in the node's `data` blob via json_patch.
    */
-  private journalRename(nodeId: string, changes: Record<string, unknown>): void {
-    const change: Change = {
-      id: ulid(),
-      ts: Date.now(),
+  private commitRename(nodeId: string, changes: Record<string, unknown>): void {
+    this.emitter.commit({
       type: "node_updated",
       target: nodeId,
       actor: "user",
       data: changes,
-    }
-    try {
-      const dir = dirname(this.emitter.changesPath)
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-      appendFileSync(this.emitter.changesPath, JSON.stringify(change) + "\n")
-    } catch (err) {
-      log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
+    })
+  }
+
+  /**
+   * Cascade a folder rename to every descendant whose fs_path is nested
+   * under the old folder path, issuing one `node_updated` op per row.
+   *
+   * Per-row DB + journal atomicity is the invariant. Cascade completeness
+   * is best-effort: if the process dies mid-loop, some descendants are
+   * updated (DB + journal in sync) and the rest lag their parent — the
+   * reconciliation path catches those up on next boot.
+   */
+  private commitRenameCascade(oldFsPath: string, newFsPath: string): void {
+    const descendants = computeRenameCascade(this.db, oldFsPath, newFsPath)
+    for (const d of descendants) {
+      this.emitter.commit({
+        type: "node_updated",
+        target: d.id,
+        actor: "user",
+        data: { fs_path: d.newFsPath, old_fs_path: d.oldFsPath },
+      })
     }
   }
 
