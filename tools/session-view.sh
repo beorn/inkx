@@ -183,12 +183,24 @@ jq_prog=$(cat <<'JQ'
     end;
 
   # Process each line
-  select(.type == "user" or .type == "assistant" or .type == "system")
+  select(.type == "user" or .type == "assistant" or .type == "system" or .type == "attachment")
   | if $since != "" then select(.timestamp >= $since) else . end
-  | if $injections_only == "1" and (.message.content | tostring | test("<system-reminder>|<recall-memory|UserPromptSubmit hook") | not) then empty else . end
+  | if $injections_only == "1" and (tostring | test("<system-reminder>|<recall-memory|UserPromptSubmit hook|hook_success") | not) then empty else . end
   | . as $ev
   | .timestamp as $ts
-  | if .type == "system" then
+  | if .type == "attachment" then
+      # Hook output: attachment.hookName + attachment.content (= hook stdout
+      # that Claude Code injects into the next user turn). This is the
+      # *source* of recall-memory / additionalContext injections. Show the
+      # hook name so it's obvious WHICH hook fired.
+      (.attachment) as $att
+      | ($att.hookName // "?") as $hn
+      | if ($att.type == "hook_success") then
+          ["hook", $ts, $hn, (($att.content // $att.stdout // "") | trunc($max_chars))] | @tsv
+        elif ($att.type == "hook_failure") then
+          ["hook_fail", $ts, $hn, (($att.stderr // $att.content // "") | trunc($max_chars))] | @tsv
+        else empty end
+    elif .type == "system" then
       ["system", $ts, "", (.content // . | tostring | trunc($max_chars))] | @tsv
     elif .type == "user" then
       # User events can be: plain text prompt, tool_result, or injected system-reminder
@@ -273,6 +285,12 @@ jq -r \
           break
         case "inject":
           printf "%s[%s]%s %s⚠ INJECTION%s  %s\n\n", cts, ts(t), rst, ci, rst, body
+          break
+        case "hook":
+          printf "%s[%s]%s %s◆ HOOK:%s%s%s  %s\n\n", cts, ts(t), rst, ci, tool, rst, rst, body
+          break
+        case "hook_fail":
+          printf "%s[%s]%s %s✗ HOOK-FAIL:%s%s%s  %s\n\n", cts, ts(t), rst, ci, tool, rst, rst, body
           break
         case "system":
           printf "%s[%s]%s %sSYSTEM%s  %s\n\n", cts, ts(t), rst, cs, rst, body
