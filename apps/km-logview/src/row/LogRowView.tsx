@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 /** Main row renderer: header (pills + inline fields) on one line, optional body below with collapsible preview + click-to-toggle expansion. */
-import React, { useCallback } from "react"
+import React, { useCallback, useState } from "react"
 import { Box, Text, useWindowSize } from "silvery"
 import type { SilveryMouseEvent } from "silvery/term"
 import { colorize } from "../colorize.tsx"
@@ -12,6 +12,17 @@ import { highlightQuery } from "./highlight.tsx"
 import { HoverTarget } from "./HoverTarget.tsx"
 import { Pill } from "./Pill.tsx"
 import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
+
+/**
+ * Default body-text color when the row is NOT hovered and NOT the cursor.
+ *
+ * Rationale: all rows showing their `bodyColor(kind)` at full saturation makes
+ * the screen look like a christmas tree — every row shouts for attention. Pills
+ * already carry kind categorization; the long body text only needs to be
+ * readable, not colorful. On hover we promote the body back to `bodyColor(kind)`
+ * so the user can still pull semantic color on demand.
+ */
+const BODY_COLOR_MUTED = "$fg-muted"
 
 function resolve<T>(
   v: T | ((value: unknown, row: LogRowData) => T) | undefined,
@@ -70,8 +81,13 @@ function computeInlineFit({ allLines, headerCharWidth, columns }: InlineFitInput
 
 type SegmentContext = {
   isCursor: boolean
+  isHovered: boolean
   cursorFg: string
   searchQuery: string
+  /** Kind-specific body color — used when the row is hovered OR cursor for the
+   * inline-body segment. When not hovered and not cursor, the inline body
+   * falls back to `$fg-muted`. */
+  kindBodyColor: string
 }
 
 /** Build the pill segment for a header field (kind/label). */
@@ -95,7 +111,11 @@ function renderPillSegment(
   return withHover(popContent, field.key, pill)
 }
 
-/** Build an inline-body header segment (single-line body that fits). */
+/** Build an inline-body header segment (single-line body that fits).
+ *
+ * Body color cascade: cursor wins (inverse cursor-fg), then hover (kind body
+ * color), else muted. Matches the "christmas tree" fix applied to the
+ * below-body renderings. */
 function renderInlineBodySegment(
   field: FieldSpec,
   inlineBody: string,
@@ -105,8 +125,9 @@ function renderInlineBodySegment(
   const content = hasMatch(inlineBody, ctx.searchQuery)
     ? highlightQuery(inlineBody, ctx.searchQuery)
     : colorize(inlineBody)
+  const color = ctx.isCursor ? ctx.cursorFg : ctx.isHovered ? ctx.kindBodyColor : BODY_COLOR_MUTED
   const segment = (
-    <Text key={field.key} color={ctx.isCursor ? ctx.cursorFg : "$fg-muted"}>
+    <Text key={field.key} color={color}>
       {content}
     </Text>
   )
@@ -254,6 +275,18 @@ function BodyLines({
   )
 }
 
+/** Resolve the kind-specific body color by running the `body` field's `color`
+ * function against the row. Falls back to `$fg-muted` when the config has no
+ * `body` field or the color resolver returns undefined — semantically
+ * identical to "no categorical tint" (the hover state degrades gracefully to
+ * the default). */
+function resolveKindBodyColor(row: LogRowData, fields: FieldSpec[]): string {
+  const bodyField = fields.find((f) => f.key === "body" && f.multiLine === "below")
+  if (!bodyField) return BODY_COLOR_MUTED
+  const resolved = resolve(bodyField.color, row.fields.body, row)
+  return typeof resolved === "string" && resolved.length > 0 ? resolved : BODY_COLOR_MUTED
+}
+
 /**
  * Row shape:
  *   Line 1 (header):   [time]  [ KIND-pill ]  [ label-pill ]  [ inline-body? ]
@@ -305,10 +338,16 @@ export function LogRowView({
 }) {
   const { columns } = useWindowSize()
   const cursorFg = "$fg-cursor"
+  const [isHovered, setIsHovered] = useState(false)
 
-  const ctx: SegmentContext = { isCursor, cursorFg, searchQuery }
+  // Resolve the kind-specific body color ONCE — used for the hovered state of
+  // all body renderings (inline, collapsed preview, below). When not hovered
+  // and not cursor, body text falls back to $fg-muted.
+  const kindBodyColor = resolveKindBodyColor(row, fields)
+
+  const ctx: SegmentContext = { isCursor, isHovered, cursorFg, searchQuery, kindBodyColor }
   const { segments: headerSegments, bodyLines, bodyFieldKey } = buildHeader(row, fields, columns, ctx)
-  const bodyColor = isCursor ? cursorFg : "$fg-muted"
+  const bodyColor = isCursor ? cursorFg : isHovered ? kindBodyColor : BODY_COLOR_MUTED
   const { hasBody, isCollapsible, trimmedBodyLines, collapsedLines, collapsedRemainder } = computeBodyState(bodyLines)
 
   // No body-level popover — body is shown inline. bodyFieldKey is unused
@@ -325,6 +364,11 @@ export function LogRowView({
     [isCollapsible, onToggleExpand],
   )
 
+  // Row-level hover: promotes body text from muted → kind body color.
+  // Cursor row is unaffected (cursor styling wins in the color cascade).
+  const onBoxMouseEnter = useCallback(() => setIsHovered(true), [])
+  const onBoxMouseLeave = useCallback(() => setIsHovered(false), [])
+
   // Show expanded body (with subtle bg) only when body is collapsible AND expanded.
   const showExpanded = isCollapsible && expanded
   const showCollapsed = isCollapsible && !expanded
@@ -337,7 +381,15 @@ export function LogRowView({
   const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-subtle" : undefined
 
   return (
-    <Box flexDirection="column" paddingX={1} width="100%" backgroundColor={rowBackground} onClick={onBoxClick}>
+    <Box
+      flexDirection="column"
+      paddingX={1}
+      width="100%"
+      backgroundColor={rowBackground}
+      onClick={onBoxClick}
+      onMouseEnter={onBoxMouseEnter}
+      onMouseLeave={onBoxMouseLeave}
+    >
       <Text wrap="truncate-end">{headerSegments}</Text>
       {showCollapsed && (
         <CollapsedBodyPreview
