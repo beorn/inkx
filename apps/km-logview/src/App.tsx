@@ -34,12 +34,17 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
   const [rows, setRows] = useState(initialRows)
   const [cursor, setCursor] = useState(initialRows.length - 1)
   const [detail, setDetail] = useState<LogRow | null>(null)
+  const [follow, setFollow] = useState(true)
   const search = useSearch()
 
   const cursorRef = useRef(cursor)
   cursorRef.current = cursor
   const rowsLenRef = useRef(rows.length)
   rowsLenRef.current = rows.length
+  // `gg` chord: first `g` primes, a second within the window triggers top-jump.
+  const pendingG = useRef<number>(0)
+  const followRef = useRef(follow)
+  followRef.current = follow
 
   // 1 (status bar) + (1 if SearchBar active else 0)
   const chrome = 1 + (search.isActive ? 1 : 0)
@@ -73,10 +78,14 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
       try {
         const fresh = loadRows(path, config)
         const prevLen = rowsLenRef.current
-        const wasAtEnd = cursorRef.current >= prevLen - 1
+        // Follow-mode semantics:
+        //   follow=true  → always jump to the new end on refresh (explicit
+        //                  vim-F toggle; tail -f behavior)
+        //   follow=false → cursor stays put regardless of where it is (user
+        //                  has paused to read; don't yank them)
         setRows(fresh)
         rowsLenRef.current = fresh.length
-        if (wasAtEnd && fresh.length !== prevLen) {
+        if (followRef.current && fresh.length !== prevLen) {
           const nextCursor = Math.max(0, fresh.length - 1)
           cursorRef.current = nextCursor
           setCursor(nextCursor)
@@ -104,7 +113,34 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
       return
     }
     if (search.isActive) return
-    if (input === "/") {
+
+    // `gg` chord — first `g` primes, second `g` within 1s triggers top-jump.
+    // Any other key resets the chord.
+    if (input === "g" && !key.shift) {
+      const now = Date.now()
+      if (pendingG.current && now - pendingG.current < 1000) {
+        handleCursor(0)
+        pendingG.current = 0
+        return
+      }
+      pendingG.current = now
+      return
+    }
+    pendingG.current = 0
+
+    // Full-page nav (vim Ctrl+F/Ctrl+B + less Space/b) — viewport-sized jumps.
+    const page = Math.max(1, listHeight - 1)
+    if ((key.ctrl && input === "f") || input === " ") {
+      handleCursor(Math.min(rowsLenRef.current - 1, cursorRef.current + page))
+      return
+    }
+    if ((key.ctrl && input === "b") || input === "b") {
+      handleCursor(Math.max(0, cursorRef.current - page))
+      return
+    }
+
+    // Search — `/` forward, `?` also opens (direction is Shift+Enter within bar).
+    if (input === "/" || input === "?") {
       search.open()
       return
     }
@@ -116,6 +152,13 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
       search.prev()
       return
     }
+
+    // Follow-mode toggle — vim-F / less-F convention.
+    if (input === "F") {
+      setFollow((f) => !f)
+      return
+    }
+
     if (input === "q") return "exit"
     if (key.escape) return "exit"
   })
@@ -133,6 +176,7 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
         cursor={cursor}
         matches={search.matches.length}
         searchActive={search.isActive}
+        follow={follow}
       />
       <ListView
         items={rows}
@@ -158,6 +202,7 @@ function StatusBar({
   cursor,
   matches,
   searchActive,
+  follow,
 }: {
   path: string
   configName: string
@@ -165,22 +210,24 @@ function StatusBar({
   cursor: number
   matches: number
   searchActive: boolean
+  follow: boolean
 }) {
   const short = path.length > 60 ? `…${path.slice(-58)}` : path
-  // Match count shows when active — a find-in-progress signal, not a keybind hint.
-  const suffix = searchActive
+  // Status suffixes — state indicators, not key hints.
+  const findSuffix = searchActive
     ? " · find…"
     : matches > 0
       ? ` · ${matches} match${matches === 1 ? "" : "es"}`
       : ""
-  // Inverse strip: $fg (terminal default fg, usually light) as bg; $bg
-  // (terminal default bg, usually black) as text → true inverse look at
-  // every terminal theme.
+  // follow=true is the default; only surface the off state (user explicitly
+  // paused tailing via F — they'll want the reminder).
+  const followSuffix = follow ? "" : " · ⏸ paused"
   return (
     <Box flexDirection="row" paddingX={1} width="100%" backgroundColor="$fg">
       <Text color="$bg" bold>
         {configName} · {cursor + 1}/{rowCount} · {short}
-        {suffix}
+        {findSuffix}
+        {followSuffix}
       </Text>
     </Box>
   )
