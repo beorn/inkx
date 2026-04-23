@@ -261,12 +261,29 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
     ctx.sel.transform({ type: "deleteNode", id: nodeId as ID }, prevTree, nextTree)
   }
 
-  // If all selected nodes were deleted, transform leaves cursor null.
-  // Recover by finding the nearest surviving node to the original cursor.
-  if (ctx.sel.node.cursor() === null && prevCursor !== null) {
+  // Cursor repair after delete. Two cases fall through transformSelection:
+  //
+  //   1. All selected nodes were deleted ⇒ transform leaves cursor=null.
+  //   2. ctx.cursor (the node the user sees the caret on, derived from the
+  //      visible lens) is one of the deleted ids but sel.cursor is a
+  //      different node (column/ancestor) that survived. transformDelete
+  //      returns the selection unchanged because `deletedId` is not in
+  //      sel.ids — which means sel.cursor sticks on an ancestor the user
+  //      was NOT on, producing the "cursor jumped to column header after
+  //      delete" symptom.
+  //
+  // In both cases, use the walk-order survivor of ctx.cursor (what the
+  // user actually sees) as the target.
+  const liveCursor = ctx.sel.node.cursor()
+  const cursorLost = liveCursor === null
+  const cursorReferent = (ctx.cursor ?? prevCursor) as ID | null
+  const deletedSet = new Set(nodeIds as ID[])
+  const cursorStaleToDeletion =
+    cursorReferent !== null && deletedSet.has(cursorReferent) && liveCursor !== cursorReferent
+  if ((cursorLost || cursorStaleToDeletion) && cursorReferent !== null) {
     const prevOrder = prevTree.walkOrder(selRoot)
     const nextOrder = nextTree.walkOrder(selRoot)
-    const nearestId = findNearestSurvivor(prevCursor, prevOrder, nextOrder)
+    const nearestId = findNearestSurvivor(cursorReferent, prevOrder, nextOrder)
     if (nearestId !== null) {
       ctx.setSelection(nodeSelect(nearestId))
     }
