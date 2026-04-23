@@ -201,12 +201,28 @@ jq_prog=$(cat <<'JQ'
           ["hook_fail", $ts, $hn, (($att.stderr // $att.content // "") | trunc($max_chars))] | @tsv
         else empty end
     elif .type == "system" then
-      ["system", $ts, "", (.content // . | tostring | trunc($max_chars))] | @tsv
+      # Suppress stop_hook_summary — it's an invocation-metadata duplicate
+      # of the `attachment` hook row (same timestamp, same hook). The
+      # attachment already carries the hook's actual OUTPUT (e.g. "OK");
+      # the stop_hook_summary only adds durationMs and command path, which
+      # is noise in the chat view. Keep other system subtypes (turn_duration,
+      # compact_boundary, scheduled_task_fire, away_summary).
+      if .subtype == "stop_hook_summary" then empty
+      else ["system", $ts, (.subtype // ""), (.content // . | tostring | trunc($max_chars))] | @tsv
+      end
     elif .type == "user" then
-      # User events can be: plain text prompt, tool_result, or injected system-reminder
+      # User events can be: plain text prompt, tool_result, injected
+      # system-reminder, or a <channel> message from the tribe daemon.
+      # Channel messages arrive as user-role events in the JSONL but the
+      # user didn't actually type anything — label them distinctly so
+      # tribe noise is visually separable from real prompts.
       (.message.content) as $c
       | if ($c | type) == "string" then
-          if ($c | test("<system-reminder>|<recall-memory|UserPromptSubmit hook")) then
+          if ($c | test("^<channel ")) then
+            # Extract channel type (e.g. "health:cpu:warning", "status") for display
+            ($c | capture("type=\"(?<t>[^\"]+)\"") // {t:""}) as $ctype
+            | ["channel", $ts, ($ctype.t // ""), ($c | trunc($max_chars))] | @tsv
+          elif ($c | test("<system-reminder>|<recall-memory|UserPromptSubmit hook")) then
             ["inject", $ts, "", ($c | trunc($max_chars))] | @tsv
           else
             ["user", $ts, "", ($c | trunc($max_chars))] | @tsv
@@ -216,7 +232,10 @@ jq_prog=$(cat <<'JQ'
             if .type == "tool_result" then
               ["tool_result", $ts, (.tool_use_id // ""), (.content | tostring | trunc($max_chars))] | @tsv
             elif .type == "text" then
-              if (.text | test("<system-reminder>|<recall-memory|UserPromptSubmit hook")) then
+              if (.text | test("^<channel ")) then
+                ((.text | capture("type=\"(?<t>[^\"]+)\"") // {t:""}) as $ctype
+                 | ["channel", $ts, ($ctype.t // ""), (.text | trunc($max_chars))] | @tsv)
+              elif (.text | test("<system-reminder>|<recall-memory|UserPromptSubmit hook")) then
                 ["inject", $ts, "", (.text | trunc($max_chars))] | @tsv
               else
                 ["user", $ts, "", (.text | trunc($max_chars))] | @tsv
@@ -260,6 +279,17 @@ jq -r \
       # Trim "2026-04-23T00:48:42.419Z" → "00:48:42"
       return substr(t, 12, 8)
     }
+    # Hooks fire AFTER their trigger event (UserPromptSubmit after the user
+    # prompt, Stop after assistant, PreToolUse after tool_use, etc.). We
+    # buffer hook rows and flush them indented under the immediately
+    # preceding non-hook event, so each hook visually attaches to what it
+    # processed. A "channel ... cpu warning" row is then followed by its
+    # Stop hook output; a real USER prompt by its UserPromptSubmit output;
+    # a → Bash by its PreToolUse:Bash output.
+    function flush_hooks(   i) {
+      for (i = 1; i <= hook_n; i++) print hook_buf[i]
+      hook_n = 0
+    }
     {
       kind=$1; t=$2; tool=$3; body=$4
       # unescape literal \n emitted by @tsv into real newlines for readability
@@ -267,9 +297,33 @@ jq -r \
       gsub(/\\t/, " ",  body)
       gsub(/\\"/, "\"", body)
       gsub(/\\\\/, "\\", body)
+
+      # Hooks: defer. They flush under the NEXT non-hook row.
+      if (kind == "hook" || kind == "hook_fail") {
+        # Skip trivial "OK" bodies — hook fired, emitted nothing meaningful.
+        # These are just Claude Code’s success reminder and add no signal.
+        if (kind == "hook" && (body == "OK" || body == "")) next
+        prefix = (kind == "hook") ? "◆ hook:" : "✗ hook-fail:"
+        # Indent to visually attach to the preceding event.
+        hook_buf[++hook_n] = sprintf("%s    ↳ %s%s%s  %s%s", cts rst, ci, prefix tool, rst, body, rst)
+        next
+      }
+
+      # Any non-hook row: flush pending hooks THEN print this row.
+      flush_hooks()
+
       switch (kind) {
         case "user":
           printf "%s[%s]%s %sUSER%s  %s\n\n", cts, ts(t), rst, cu, rst, body
+          break
+        case "channel":
+          # Short header line + (optional) channel subtype, then the body.
+          # The body already contains the <channel ...> tag; we keep it so
+          # message IDs and structure remain inspectable.
+          label = (tool == "") ? "CHANNEL" : ("CHANNEL/" tool)
+          printf "%s[%s]%s %s▶ %s%s  %s\n", cts, ts(t), rst, cs, label, rst, body
+          # No trailing blank line — hooks will land directly underneath
+          # when they exist, keeping the channel + its hook tight.
           break
         case "assistant":
           printf "%s[%s]%s %sASSISTANT%s  %s\n\n", cts, ts(t), rst, ca, rst, body
@@ -286,15 +340,12 @@ jq -r \
         case "inject":
           printf "%s[%s]%s %s⚠ INJECTION%s  %s\n\n", cts, ts(t), rst, ci, rst, body
           break
-        case "hook":
-          printf "%s[%s]%s %s◆ HOOK:%s%s%s  %s\n\n", cts, ts(t), rst, ci, tool, rst, rst, body
-          break
-        case "hook_fail":
-          printf "%s[%s]%s %s✗ HOOK-FAIL:%s%s%s  %s\n\n", cts, ts(t), rst, ci, tool, rst, rst, body
-          break
         case "system":
-          printf "%s[%s]%s %sSYSTEM%s  %s\n\n", cts, ts(t), rst, cs, rst, body
+          # tool slot holds the subtype (turn_duration, compact_boundary, ...)
+          label = (tool == "") ? "SYSTEM" : ("SYSTEM/" tool)
+          printf "%s[%s]%s %s%s%s  %s\n\n", cts, ts(t), rst, cs, label, rst, body
           break
       }
     }
+    END { flush_hooks() }
   '
