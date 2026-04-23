@@ -219,46 +219,51 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
   return []
 }
 
+// Per Silvery styling guide: $color0-$color15 (the user's terminal palette,
+// verbatim) are the canonical tokens for *categorical* data differentiation.
+// Status tokens ($fg-success / $fg-info / $fg-warning / $fg-error) mean
+// success / info / warning / error — not "category A vs category B". We use
+// them only for intrinsically status-shaped kinds (inject = warning,
+// hook_fail = error). Everything else picks from the palette so kinds stay
+// distinct without overloading the semantic system.
 function kindColor(kind: string): string | undefined {
   switch (kind) {
     case "user":
-      return "$fg-accent"
+      return "$color4" // blue — the human
     case "assistant":
-      return "$fg-success"
+      return "$color2" // green — the agent
     case "thinking":
-      return "$fg-muted"
+      return "$color8" // bright-black — dim thought
     case "tool_use":
-      return "$fg-info"
+      return "$color6" // cyan — tool invocation
     case "tool_result":
-      return "$fg-muted"
-    case "inject":
-      return "$fg-warning"
+      return "$color14" // bright-cyan — tool output (echo of 6)
     case "hook":
-      return "$fg-warning"
+      return "$color5" // magenta — hook machinery
+    case "inject":
+      return "$fg-warning" // intrinsically a warning
     case "hook_fail":
-      return "$fg-error"
+      return "$fg-error" // intrinsically an error
     case "system":
-      return "$fg-warning"
+      return "$color3" // yellow — system
     default:
       return undefined
   }
 }
 
-/** Subtler than kindColor — tints the bulk of body text without shouting.
- * Default to $fg-muted so even unclassified content reads muted (never
- * default terminal fg, which can clash with the bg-cursor selection row). */
+/** Subtler than kindColor — tints body text without shouting. Falls back to
+ * $fg-muted so unclassified content reads muted rather than default terminal
+ * fg (which can clash with the bg-cursor selection row). */
 function bodyColor(kind: string): string {
   switch (kind) {
     case "user":
-      return "$fg-accent"
+      return "$color4"
     case "tool_use":
-      return "$fg-info"
+      return "$color6"
     case "inject":
       return "$fg-warning"
     case "hook_fail":
       return "$fg-error"
-    // assistant, thinking, tool_result, hook, system, and everything else
-    // fall through to the quiet baseline.
     default:
       return "$fg-muted"
   }

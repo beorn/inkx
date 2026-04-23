@@ -125,7 +125,7 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
   }
 
   return (
-    <Box flexDirection="column" height={termRows}>
+    <Box flexDirection="column" height={termRows} width="100%">
       <StatusBar
         path={path}
         configName={config.name}
