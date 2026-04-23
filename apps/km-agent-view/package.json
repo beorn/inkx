@@ -1,0 +1,25 @@
+{
+  "name": "@km/agent-view",
+  "version": "0.1.0",
+  "private": true,
+  "description": "iMessage-style chat viewer for Claude Code session JSONL. Silvery showcase; sibling to km-logview.",
+  "bin": {
+    "km-agent-view": "./src/bootstrap.ts"
+  },
+  "type": "module",
+  "module": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@km/logview": "workspace:*",
+    "@silvery/ag-react": "workspace:*",
+    "@silvery/ag-term": "workspace:*",
+    "@silvery/theme": "workspace:*",
+    "react": "catalog:",
+    "silvery": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:"
+  }
+}

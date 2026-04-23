@@ -97,6 +97,24 @@
         "yoga-wasm-web": "^0.3.3",
       },
     },
+    "apps/km-agent-view": {
+      "name": "@km/agent-view",
+      "version": "0.1.0",
+      "bin": {
+        "km-agent-view": "./src/bootstrap.ts",
+      },
+      "dependencies": {
+        "@km/logview": "workspace:*",
+        "@silvery/ag-react": "workspace:*",
+        "@silvery/ag-term": "workspace:*",
+        "@silvery/theme": "workspace:*",
+        "react": "catalog:",
+        "silvery": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/react": "catalog:",
+      },
+    },
     "apps/km-cli": {
       "name": "@km/cli-app",
       "version": "0.1.0",
@@ -1151,6 +1169,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@km/agent": ["@km/agent@workspace:packages/km-agent"],
+
+    "@km/agent-view": ["@km/agent-view@workspace:apps/km-agent-view"],
 
     "@km/beads": ["@km/beads@workspace:packages/km-beads"],
 

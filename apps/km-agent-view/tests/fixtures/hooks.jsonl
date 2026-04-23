@@ -1,0 +1,5 @@
+{"type":"user","timestamp":"2026-04-23T05:00:00.000Z","message":{"content":"go"}}
+{"type":"attachment","timestamp":"2026-04-23T05:00:01.000Z","attachment":{"type":"hook_success","hookName":"PreToolUse","command":"/usr/bin/check-1","content":"ok 1"}}
+{"type":"attachment","timestamp":"2026-04-23T05:00:02.000Z","attachment":{"type":"hook_success","hookName":"PreToolUse","command":"/usr/bin/check-2","content":"ok 2"}}
+{"type":"attachment","timestamp":"2026-04-23T05:00:03.000Z","attachment":{"type":"hook_success","hookName":"PreToolUse","command":"/usr/bin/check-3","content":"ok 3"}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:04.000Z","message":{"content":[{"type":"text","text":"done"}]}}
