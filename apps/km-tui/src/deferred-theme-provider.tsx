@@ -102,8 +102,9 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
         setTheme(detected)
         if (cacheKey) saveCachedTheme(cacheKey, detected)
         log.debug?.(`theme: probe resolved → ${detected.name}`)
+        return
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         log.debug?.(`theme: probe failed — ${err instanceof Error ? err.message : String(err)}`)
       })
     return () => {

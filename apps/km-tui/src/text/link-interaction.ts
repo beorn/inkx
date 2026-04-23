@@ -71,6 +71,7 @@ export function useLinkInteraction(opts: UseLinkInteractionOpts): LinkInteractio
         void fetchUrlMetadata(url).then((meta) => {
           if (!hoveredRef.current) return
           popover.update(meta ? richUrlPopoverContent(url, meta) : urlPopoverContent(url))
+          return
         })
         return
       }

@@ -845,7 +845,11 @@ bdCommand
       if (other.blockedBy?.includes(opts.oldId)) {
         const otherNode = repo.getNode(other.id)
         const otherData = (otherNode?.data as Record<string, unknown>) ?? {}
-        const props = otherData.props as Record<string, any> | undefined
+        // Shape mirrors nodeToIssue in @km/beads/queries — km front-matter deps
+        // serialize as either {type:"link",target} or {type:"list",values:[{target}]}
+        const props = otherData.props as
+          | Record<string, { type: string; target?: string; values?: Array<{ target: string }> }>
+          | undefined
         if (props?.["blocked-by"]) {
           const bp = props["blocked-by"]
           if (bp.type === "link" && bp.target === opts.oldId) {

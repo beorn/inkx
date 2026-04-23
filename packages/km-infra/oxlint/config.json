@@ -206,6 +206,12 @@
         "no-promise-executor-return": "off",
         "@typescript-eslint/no-require-imports": "off",
         "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/no-misused-promises": "off",
+        "@typescript-eslint/no-empty-object-type": "off",
+        "@typescript-eslint/no-this-alias": "off",
+        "@typescript-eslint/no-unsafe-declaration-merging": "off",
+        "promise/always-return": "off",
+        "promise/catch-or-return": "off",
         "no-unreachable": "off",
         "promise/param-names": "off",
         "curly": "off"

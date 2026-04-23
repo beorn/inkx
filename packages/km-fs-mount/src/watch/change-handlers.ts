@@ -191,7 +191,7 @@ export class ChangeHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.fsTarget.writeFile(absPath, content, writeChangeId)
+          void this.fsTarget.writeFile(absPath, content, writeChangeId)
         }
       },
     }
@@ -224,7 +224,7 @@ export class ChangeHandlers {
     let subtreeNodes = getSubtree(this.db, fileNode.id)
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), anchors.assign)
-    this.fsTarget.writeFile(absPath, content, this.currentChangeId)
+    void this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     // Record the write as the new parsed-content baseline on the file node.
     //
     // Why: mergeExternalDrift (called on the NEXT save) reads
@@ -378,10 +378,10 @@ export class ChangeHandlers {
 
     if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
-      this.fsTarget.mkdir(absPath)
+      void this.fsTarget.mkdir(absPath)
     } else if (data.type === "h" && data.item && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
-      this.fsTarget.writeFile(absPath, "", this.currentChangeId)
+      void this.fsTarget.writeFile(absPath, "", this.currentChangeId)
     } else if (data.parent_id && data.parent_id !== ".") {
       // Non-file node (task, section, etc.) created under a file → save
       const parent = getNode(this.db, data.parent_id)
@@ -413,7 +413,7 @@ export class ChangeHandlers {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.repoPath, fsPath)
       if (existsSync(absPath)) {
-        this.fsTarget.deleteFile(absPath, this.currentChangeId)
+        void this.fsTarget.deleteFile(absPath, this.currentChangeId)
       }
 
       // If deleted node's parent is a folder, regenerate index file
@@ -464,7 +464,7 @@ export class ChangeHandlers {
             // Drop any pending writes to the old path before renaming
             this.fsTarget.dropPending?.(oldAbsPath)
 
-            this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+            void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
 
             // Route fs_path updates through emitter.commit so each UPDATE is
             // paired with a changes.jsonl entry. commit() (not apply()) avoids
@@ -596,14 +596,14 @@ export class ChangeHandlers {
     if (existingIndex?.fs_path) {
       // Update existing index file
       const absPath = toAbsoluteFsPath(this.repoPath, existingIndex.fs_path)
-      this.fsTarget.writeFile(absPath, content, this.currentChangeId)
+      void this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     } else if (config.materialization === "full") {
       // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones —
       // the user creates the index file manually, materialization keeps it in sync.
       const filename = indexFileName(node.name ?? "", config.naming)
       const newFsPath = join(folderPath, filename)
       const absPath = toAbsoluteFsPath(this.repoPath, newFsPath)
-      this.fsTarget.writeFile(absPath, content, this.currentChangeId)
+      void this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     }
   }
 
@@ -638,7 +638,7 @@ export class ChangeHandlers {
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)
       this.fsTarget.markInFlight?.(newAbsPath)
-      this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+      void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
     }
@@ -656,7 +656,7 @@ export class ChangeHandlers {
             log.info?.(`index file rename: ${oldIndexName} → ${newIndexName}`)
             this.fsTarget.markInFlight?.(oldIndexAbsPath)
             this.fsTarget.markInFlight?.(newIndexAbsPath)
-            this.fsTarget.renameFile(oldIndexAbsPath, newIndexAbsPath)
+            void this.fsTarget.renameFile(oldIndexAbsPath, newIndexAbsPath)
             this.fsTarget.clearInFlight?.(oldIndexAbsPath, 1000)
             this.fsTarget.clearInFlight?.(newIndexAbsPath, 1000)
             indexRenameSucceeded = true
@@ -732,7 +732,7 @@ export class ChangeHandlers {
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)
       this.fsTarget.markInFlight?.(newAbsPath)
-      this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+      void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
 

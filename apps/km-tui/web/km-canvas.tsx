@@ -581,7 +581,7 @@ function toColumns(columns: ColumnSnapshot[], repo: RepoLike): Column[] {
         title: nodeName(card),
         status: card.item?.task?.status as string | undefined,
         childCount: children.length || undefined,
-        hasBody: (card as any).hasBodyChildren || undefined,
+        hasBody: (card as { hasBodyChildren?: unknown }).hasBodyChildren || undefined,
       }
     }),
   }))

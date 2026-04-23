@@ -32,6 +32,7 @@ watcher
   .start()
   .then(() => {
     log.info?.("File watcher started — edits to .md files will sync to browser")
+    return
   })
   .catch((err: unknown) => {
     log.warn?.(`File watcher failed to start: ${err instanceof Error ? err.message : err}`)
@@ -44,7 +45,7 @@ async function shutdown() {
   log.info?.("Shutting down...")
   await watcher[Symbol.asyncDispose]()
   repo.close()
-  server.stop()
+  await server.stop()
   process.exit(0)
 }
 process.on("SIGINT", () => void shutdown())

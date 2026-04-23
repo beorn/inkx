@@ -75,6 +75,7 @@ export function buildQueryString(
  *
  * Returns the command for chaining.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Command's generic slot is unconstrained; narrowing to `unknown` breaks inference downstream for `.option()` chains that need any[] variadic args.
 export function addSharedQueryOptions<T extends Command<any>>(cmd: T) {
   return cmd
     .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
