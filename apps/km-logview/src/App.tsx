@@ -128,9 +128,11 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
     }
     pendingG.current = 0
 
-    // Full-page nav (vim Ctrl+F/Ctrl+B + less Space/b) — viewport-sized jumps.
+    // Full-page nav (less Space/b + vim Ctrl+B). Ctrl+F is NOT bound — it
+    // collides with silvery's SearchProvider (Ctrl+F opens find). Space is
+    // the conventional less-style forward page; `b` is back.
     const page = Math.max(1, listHeight - 1)
-    if ((key.ctrl && input === "f") || input === " ") {
+    if (input === " ") {
       handleCursor(Math.min(rowsLenRef.current - 1, cursorRef.current + page))
       return
     }
