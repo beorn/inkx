@@ -27,6 +27,21 @@ for arg in "$@"; do
   fi
 done
 
-if grep -q "Found .* and [1-9][0-9]* error" "$TMPFILE"; then
-  exit 1
-fi
+# xargs may split the file list into multiple oxlint invocations, each
+# emitting its own "Found N warnings and M errors." summary. Aggregate
+# counts across ALL summary lines so we report the true totals and exit
+# correctly even when only the first chunk had errors.
+awk '
+  /^Found [0-9]+ warnings? and [0-9]+ errors?\.$/ {
+    # "Found 40 warnings and 1 error."
+    w += $2
+    e += $5
+    n++
+  }
+  END {
+    if (n > 1) {
+      printf "\nAggregate across %d oxlint chunks: %d warnings, %d errors.\n", n, w, e
+    }
+    exit (e > 0) ? 1 : 0
+  }
+' "$TMPFILE"
