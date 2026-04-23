@@ -16,11 +16,15 @@ export function CollapsedBodyPreview({
   remainder,
   bodyColor,
   searchQuery,
+  colorized,
 }: {
   lines: string[]
   remainder: number
   bodyColor: string
   searchQuery: string
+  /** When false, skip `colorize()` — see BodyLines for rationale. Pass
+   * `isCursor || isHovered` from the row. */
+  colorized: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const onMouseEnter = useCallback(() => setHovered(true), [])
@@ -36,7 +40,7 @@ export function CollapsedBodyPreview({
             color={bodyColor}
             wrap="wrap"
           >
-            {showHighlight ? highlightQuery(line, searchQuery) : colorize(line)}
+            {showHighlight ? highlightQuery(line, searchQuery) : colorized ? colorize(line) : line}
           </Text>
         )
       })}

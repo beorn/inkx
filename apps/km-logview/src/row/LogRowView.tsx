@@ -122,9 +122,18 @@ function renderInlineBodySegment(
   popContent: PopoverContent | null,
   ctx: SegmentContext,
 ): React.ReactElement {
+  // Syntax highlighting (`colorize`) emits nested <Text> nodes with explicit
+  // bright colors (C_TAG, C_VAL, etc.) — those override the outer muted
+  // color because inner Text wins Silvery's color cascade. To keep the body
+  // actually muted when not hovered, skip colorize entirely in the non-hover
+  // / non-cursor state and render plain text. Highlights (search matches)
+  // still apply because they carry their own bg and dominate regardless.
+  const useColorize = ctx.isHovered || ctx.isCursor
   const content = hasMatch(inlineBody, ctx.searchQuery)
     ? highlightQuery(inlineBody, ctx.searchQuery)
-    : colorize(inlineBody)
+    : useColorize
+      ? colorize(inlineBody)
+      : inlineBody
   const color = ctx.isCursor ? ctx.cursorFg : ctx.isHovered ? ctx.kindBodyColor : BODY_COLOR_MUTED
   const segment = (
     <Text key={field.key} color={color}>
@@ -250,11 +259,16 @@ function BodyLines({
   keyPrefix,
   bodyColor,
   searchQuery,
+  colorized,
 }: {
   lines: string[]
   keyPrefix: string
   bodyColor: string
   searchQuery: string
+  /** When false, skip `colorize()` syntax highlighting — the inner nested Text
+   * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
+   * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
+  colorized: boolean
 }) {
   return (
     <Box flexDirection="column" paddingLeft={BODY_INDENT}>
@@ -267,7 +281,7 @@ function BodyLines({
             color={bodyColor}
             wrap="wrap"
           >
-            {showHighlight ? highlightQuery(line, searchQuery) : colorize(line)}
+            {showHighlight ? highlightQuery(line, searchQuery) : colorized ? colorize(line) : line}
           </Text>
         )
       })}
@@ -397,10 +411,27 @@ export function LogRowView({
           remainder={collapsedRemainder}
           bodyColor={bodyColor}
           searchQuery={searchQuery}
+          colorized={isCursor || isHovered}
         />
       )}
-      {showExpanded && <BodyLines lines={bodyLines} keyPrefix="b" bodyColor={bodyColor} searchQuery={searchQuery} />}
-      {showFlat && <BodyLines lines={trimmedBodyLines} keyPrefix="f" bodyColor={bodyColor} searchQuery={searchQuery} />}
+      {showExpanded && (
+        <BodyLines
+          lines={bodyLines}
+          keyPrefix="b"
+          bodyColor={bodyColor}
+          searchQuery={searchQuery}
+          colorized={isCursor || isHovered}
+        />
+      )}
+      {showFlat && (
+        <BodyLines
+          lines={trimmedBodyLines}
+          keyPrefix="f"
+          bodyColor={bodyColor}
+          searchQuery={searchQuery}
+          colorized={isCursor || isHovered}
+        />
+      )}
     </Box>
   )
 }
