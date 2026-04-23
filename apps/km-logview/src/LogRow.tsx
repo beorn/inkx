@@ -92,6 +92,7 @@ export function LogRowView({
           // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
           key={`b${i}`}
           color={bodyColor}
+          dim={!isCursor}
           wrap="truncate-end"
         >
           <Text>{"  "}</Text>

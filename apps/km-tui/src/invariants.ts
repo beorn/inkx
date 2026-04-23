@@ -44,6 +44,7 @@ export interface InvariantViolation {
  *
  * Throws InvariantViolationError if any violation is found.
  */
+// oxlint-disable-next-line complexity/complexity -- invariant-checker: ~12 independent checks (cursor validity, selection integrity, focus pane consistency, mode/state agreement, etc.), each a tight conditional block; flat list by design — splitting would obscure the checklist structure that makes the contract auditable
 export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
 

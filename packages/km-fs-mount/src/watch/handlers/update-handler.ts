@@ -53,6 +53,7 @@ export interface UpdateHandlerOptions {
  *
  * Unified handler that works with both filesystem parsing and pre-parsed content.
  */
+// oxlint-disable-next-line complexity/complexity -- file-change reconciliation: .txt direct-write path + markdown re-parse path, each with stat/metadata/title/content/frontmatter/tags/anchors/child-edges update branches; flat sequential dispatch over the KNode fields a single file write might touch
 export function handleUpdate(options: UpdateHandlerOptions): void {
   const { db, op, repoRoot, emitter, fs, ctx, parsed } = options
 

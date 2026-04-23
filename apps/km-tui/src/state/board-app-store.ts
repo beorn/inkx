@@ -521,6 +521,7 @@ export function createBoardAppStoreState(
   // Compute initial fold depths: set root depth to 1 for instant startup.
   const initialFoldDepths = computeDefaultFoldDepths(bs.rootId, bs.foldDepths)
 
+  // oxlint-disable-next-line complexity/complexity -- store-state initializer: complexity driven by nested action/selector closures (+51 from Zustand state-creator pattern); each closure is a small independent handler that must share `set`/`get`
   return (set, _get) => {
     // Create undo system: wrap repo so mutations are auto-recorded.
     // If the caller pre-wrapped the repo and passed an `undoStack`, reuse

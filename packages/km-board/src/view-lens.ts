@@ -307,6 +307,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   // Index file expansion — folder with an index.md expands slot children first
   // =========================================================================
 
+  // oxlint-disable-next-line complexity/complexity -- index-file expansion: slot-target resolution, dedupe against already-included children, order preservation, symlink expansion, parent-chain membership checks; each branch resolves a distinct view-lens invariant
   function expandIndexFile(indexFile: KNode, deduped: KNode[], resultIds: string[]): void {
     const indexChildren = repo.getChildren(indexFile.id)
     const { body: indexBody } = extractBody(indexChildren)

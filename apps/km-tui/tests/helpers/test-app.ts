@@ -1,3 +1,4 @@
+/* oxlint-disable complexity/complexity -- test harness: createHeadlessTestApp / createTermlessTestApp compose ~50 named helper closures (press, type, expect, resize, tick, snapshot, ...) over a shared backend; runDisposeInvariants fans out to every end-of-test invariant. Splitting fragments the single TestApp surface that tests depend on. */
 /**
  * TestApp -- Unified test driver abstraction for km board tests.
  *

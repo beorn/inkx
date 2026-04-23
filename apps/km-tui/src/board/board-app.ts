@@ -623,6 +623,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
    * Route key through the command system and handle resulting actions.
    * When a dialog is open, only dialog.* and text.* commands are processed.
    */
+  // oxlint-disable-next-line complexity/complexity -- key-route pipeline: dispatch → action classification → effect handling per ActionResult variant (dispatch, redraw, scroll, console, exit, etc.); each branch is a flat concern, not tangled logic
   function routeThroughCommandSystem(
     parentSpan: SpanLogger,
     input: string,

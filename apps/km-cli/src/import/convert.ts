@@ -1,3 +1,4 @@
+/* oxlint-disable complexity/complexity -- import→KNode converter: each ImportItem field (title, body, status, priority, due, assignee, tags, parent, block refs, custom metadata) maps into its own conditional branch; itemToNodes / projectToNodes / buildPrimaryMap are flat dispatch over a wide domain schema, not tangled logic. Splitting fragments the sequential narrative that keeps field-mapping auditable. */
 /**
  * Import Pipeline — Stage 2: Convert
  *

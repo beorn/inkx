@@ -1340,6 +1340,7 @@ interface ExpandInternalResult {
  * - No file counting step
  * - Respects preloadDepth for nested directories
  */
+// oxlint-disable-next-line complexity/complexity -- directory expansion: per-entry discrimination (ignore patterns, dir vs file, .md vs other, depth budget, stub vs full parse, symlink target, pending link resolution) — each branch preserves a storage invariant that deleting or splitting would leak
 function expandUnexploredDirectory(
   db: Database,
   repoRoot: string,

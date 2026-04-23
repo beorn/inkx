@@ -45,6 +45,7 @@ export const listCommand = new Command("list")
   .option("-i, --id", "Show node IDs")
   .option("-f, --flat", "Flat output with path prefixes")
   .option("--json", "Output as JSON")
+  // oxlint-disable-next-line complexity/complexity -- CLI action dispatch: each flag (--broken, --json, --flat, --context, --id, filter combos) adds a conditional branch; refactoring into sub-commands would change public CLI surface
   .action(async (queryOrPath, options) => {
     // Check if argument looks like a path
     let repoRoot: string

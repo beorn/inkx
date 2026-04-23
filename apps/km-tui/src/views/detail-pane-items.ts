@@ -52,6 +52,23 @@ export const KNOWN_DATA_KEYS = new Set([
   "blocks",
 ])
 
+/** Push capitalized keys from `source` that aren't already in `used` or filtered out. */
+function pushExtraKeys(
+  source: Record<string, unknown> | undefined,
+  used: Set<string>,
+  keys: string[],
+  skip?: (k: string) => boolean,
+): void {
+  if (!source || typeof source !== "object") return
+  for (const k of Object.keys(source)) {
+    if (skip?.(k)) continue
+    const key = capitalize(k)
+    if (used.has(key)) continue
+    used.add(key)
+    keys.push(key)
+  }
+}
+
 /**
  * Compute metadata keys present on a node.
  * Returns the list of navigable metadata row keys in display order.
@@ -93,41 +110,12 @@ export function computeMetadataKeys(node: KNode): string[] {
     if (parseDepsRefs(data, "blocks").length > 0) keys.push("Blocks")
   }
 
-  // Extra data.metadata entries (excluding created/completed already shown)
+  // Extra data.metadata entries (excluding created/completed already shown),
+  // data.propsRaw entries, and extra data fields not in KNOWN_DATA_KEYS.
   const usedKeys = new Set(keys)
-  if (data?.metadata && typeof data.metadata === "object") {
-    for (const k of Object.keys(data.metadata as Record<string, unknown>)) {
-      if (k === "created" || k === "completed") continue
-      const key = capitalize(k)
-      if (!usedKeys.has(key)) {
-        usedKeys.add(key)
-        keys.push(key)
-      }
-    }
-  }
-
-  // data.propsRaw entries
-  if (data?.propsRaw && typeof data.propsRaw === "object") {
-    for (const k of Object.keys(data.propsRaw as Record<string, unknown>)) {
-      const key = capitalize(k)
-      if (!usedKeys.has(key)) {
-        usedKeys.add(key)
-        keys.push(key)
-      }
-    }
-  }
-
-  // Extra data fields not in KNOWN_DATA_KEYS
-  if (data) {
-    for (const k of Object.keys(data)) {
-      if (KNOWN_DATA_KEYS.has(k)) continue
-      const key = capitalize(k)
-      if (!usedKeys.has(key)) {
-        usedKeys.add(key)
-        keys.push(key)
-      }
-    }
-  }
+  pushExtraKeys(data?.metadata as Record<string, unknown> | undefined, usedKeys, keys, (k) => k === "created" || k === "completed")
+  pushExtraKeys(data?.propsRaw as Record<string, unknown> | undefined, usedKeys, keys)
+  pushExtraKeys(data, usedKeys, keys, (k) => KNOWN_DATA_KEYS.has(k))
 
   return keys
 }

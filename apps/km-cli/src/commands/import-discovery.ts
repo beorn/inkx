@@ -30,133 +30,130 @@ export function formatProjectMeta(proj: AsanaProjectInfo, maxGid: number): strin
   return parts.join("")
 }
 
-/** Print help + account listing + download history + quickstart */
-export async function printDiscovery(
-  cmd: { outputHelp(): void },
-  artifactsDir: string,
-  authToken?: string,
-  workspaceFilter?: string,
-): Promise<void> {
-  cmd.outputHelp()
-  console.log()
+type Workspace = {
+  name: string
+  gid: string
+  projects: AsanaProjectInfo[]
+  users: { name: string }[]
+  tags: { name: string }[]
+}
 
-  const { token, workspace } = await ensureAsanaSetup(authToken)
-  const { listAsanaStructure } = await import("../import/adapters/asana/asana-api.ts")
-  const structure = await listAsanaStructure(token, workspaceFilter ?? workspace)
+/** Group projects by team name, with "(no team)" for unassigned. */
+function groupProjectsByTeam(projects: AsanaProjectInfo[]): Map<string, AsanaProjectInfo[]> {
+  const byTeam = new Map<string, AsanaProjectInfo[]>()
+  for (const proj of projects) {
+    const team = proj.team ?? "(no team)"
+    const existing = byTeam.get(team)
+    if (existing) existing.push(proj)
+    else byTeam.set(team, [proj])
+  }
+  return byTeam
+}
 
-  // Account -> Workspace -> Team -> Active/Archived
-  console.log(term.bold(`${structure.user.name}`), term.dim(`(${structure.user.email})`))
-  console.log()
-
-  for (const ws of structure.workspaces) {
-    const active = ws.projects.filter((p) => !p.archived)
-    const archived = ws.projects.filter((p) => p.archived)
-    const countText =
-      archived.length > 0 ? `${active.length} active, ${archived.length} archived` : `${active.length} projects`
-    const maxGid = Math.max(...ws.projects.map((p) => p.gid.length), 0)
-
-    console.log(`  ${term.cyan(ws.name)} ${term.dim(`(${ws.gid}) — ${countText}`)}`)
-
-    // Group by team, sort teams alphabetically
-    const byTeam = new Map<string, typeof ws.projects>()
-    for (const proj of ws.projects) {
-      const team = proj.team ?? "(no team)"
-      const existing = byTeam.get(team)
-      if (existing) {
-        existing.push(proj)
-      } else {
-        byTeam.set(team, [proj])
-      }
+/** Print one team's active + archived projects. */
+function printTeamProjects(
+  teamActive: AsanaProjectInfo[],
+  teamArchived: AsanaProjectInfo[],
+  indent: string,
+  maxGid: number,
+): void {
+  for (const proj of teamActive) {
+    console.log(`${indent}${formatProjectMeta(proj, maxGid)}`)
+  }
+  if (teamArchived.length > 0) {
+    if (teamActive.length > 0) console.log()
+    console.log(`${indent}${term.dim("Archived:")}`)
+    for (const proj of teamArchived) {
+      console.log(`${indent}${formatProjectMeta(proj, maxGid)}`)
     }
-    const teamNames = [...byTeam.keys()].sort((a, b) =>
-      a === "(no team)" ? 1 : b === "(no team)" ? -1 : a.localeCompare(b),
-    )
-    const hasTeams = byTeam.size > 1 || !byTeam.has("(no team)")
+  }
+}
 
-    for (const team of teamNames) {
-      const projects = byTeam.get(team) ?? []
-      const teamActive = projects.filter((p) => !p.archived).sort((a, b) => a.name.localeCompare(b.name))
-      const teamArchived = projects.filter((p) => p.archived).sort((a, b) => a.name.localeCompare(b.name))
+/** Print one workspace's projects grouped by team, plus users and tags. */
+function printWorkspace(ws: Workspace): void {
+  const active = ws.projects.filter((p) => !p.archived)
+  const archived = ws.projects.filter((p) => p.archived)
+  const countText =
+    archived.length > 0 ? `${active.length} active, ${archived.length} archived` : `${active.length} projects`
+  const maxGid = Math.max(...ws.projects.map((p) => p.gid.length), 0)
 
-      if (hasTeams) {
-        console.log()
-        console.log(`    ${term.bold(team)}`)
-      }
-      const indent = hasTeams ? "      " : "    "
+  console.log(`  ${term.cyan(ws.name)} ${term.dim(`(${ws.gid}) — ${countText}`)}`)
 
-      for (const proj of teamActive) {
-        const meta = formatProjectMeta(proj, maxGid)
-        console.log(`${indent}${meta}`)
-      }
-      if (teamArchived.length > 0) {
-        if (teamActive.length > 0) console.log()
-        console.log(`${indent}${term.dim("Archived:")}`)
-        for (const proj of teamArchived) {
-          const meta = formatProjectMeta(proj, maxGid)
-          console.log(`${indent}${meta}`)
-        }
-      }
-    }
-    if (ws.projects.length > 50) {
+  const byTeam = groupProjectsByTeam(ws.projects)
+  const teamNames = [...byTeam.keys()].sort((a, b) =>
+    a === "(no team)" ? 1 : b === "(no team)" ? -1 : a.localeCompare(b),
+  )
+  const hasTeams = byTeam.size > 1 || !byTeam.has("(no team)")
+
+  for (const team of teamNames) {
+    const projects = byTeam.get(team) ?? []
+    const teamActive = projects.filter((p) => !p.archived).sort((a, b) => a.name.localeCompare(b.name))
+    const teamArchived = projects.filter((p) => p.archived).sort((a, b) => a.name.localeCompare(b.name))
+
+    if (hasTeams) {
       console.log()
-      console.log(term.dim(`  Use --project <gid> to fetch a specific project`))
+      console.log(`    ${term.bold(team)}`)
     }
-
-    // Users (My Tasks)
-    if (ws.users.length > 0) {
-      console.log()
-      console.log(`    ${term.bold("Users")}`)
-      for (const user of ws.users.sort((a, b) => a.name.localeCompare(b.name))) {
-        const slug = `@${user.name.replace(/\s+/g, "-").toLowerCase()}`
-        console.log(`      ${slug}  ${term.dim("(My Tasks)")}`)
-      }
-    }
-
-    // Tags
-    if (ws.tags.length > 0) {
-      console.log()
-      console.log(`    ${term.bold("Tags")}`)
-      for (const tag of ws.tags.sort((a, b) => a.name.localeCompare(b.name))) {
-        const slug = `#${tag.name.replace(/\s+/g, "-").toLowerCase()}`
-        console.log(`      ${slug}`)
-      }
-    }
-
+    printTeamProjects(teamActive, teamArchived, hasTeams ? "      " : "    ", maxGid)
+  }
+  if (ws.projects.length > 50) {
     console.log()
+    console.log(term.dim(`  Use --project <gid> to fetch a specific project`))
   }
 
-  // Download history
-  if (existsSync(artifactsDir)) {
-    const downloads = readdirSync(artifactsDir)
-      .filter((f) => f.startsWith("asana-") && statSync(join(artifactsDir, f)).isDirectory())
-      .sort()
-      .reverse()
-    if (downloads.length > 0) {
-      console.log(term.bold("Downloads:"), term.dim(".km/imports/"))
-      console.log()
-      for (const dl of downloads.slice(0, 5)) {
-        const dirPath = join(artifactsDir, dl)
-        const projectFiles = readdirSync(dirPath)
-          .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
-          .sort()
-        const tsMatch = dl.match(/asana-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/)
-        const ts = tsMatch ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]} ${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}` : dl
-        console.log(`  ${term.dim(ts)}  ${projectFiles.length} projects`)
-        for (const pf of projectFiles.slice(0, 8)) {
-          console.log(`    ${term.dim(pf.replace(/\.json$/, ""))}`)
-        }
-        if (projectFiles.length > 8) {
-          console.log(term.dim(`    ... and ${projectFiles.length - 8} more`))
-        }
-      }
-      if (downloads.length > 5) {
-        console.log(term.dim(`  ... and ${downloads.length - 5} older downloads`))
-      }
-      console.log()
+  if (ws.users.length > 0) {
+    console.log()
+    console.log(`    ${term.bold("Users")}`)
+    for (const user of ws.users.sort((a, b) => a.name.localeCompare(b.name))) {
+      console.log(`      @${user.name.replace(/\s+/g, "-").toLowerCase()}  ${term.dim("(My Tasks)")}`)
     }
   }
 
-  // Quickstart
+  if (ws.tags.length > 0) {
+    console.log()
+    console.log(`    ${term.bold("Tags")}`)
+    for (const tag of ws.tags.sort((a, b) => a.name.localeCompare(b.name))) {
+      console.log(`      #${tag.name.replace(/\s+/g, "-").toLowerCase()}`)
+    }
+  }
+
+  console.log()
+}
+
+/** Print the most recent Asana download directories + their project files. */
+function printDownloadHistory(artifactsDir: string): void {
+  if (!existsSync(artifactsDir)) return
+  const downloads = readdirSync(artifactsDir)
+    .filter((f) => f.startsWith("asana-") && statSync(join(artifactsDir, f)).isDirectory())
+    .sort()
+    .reverse()
+  if (downloads.length === 0) return
+
+  console.log(term.bold("Downloads:"), term.dim(".km/imports/"))
+  console.log()
+  for (const dl of downloads.slice(0, 5)) {
+    const dirPath = join(artifactsDir, dl)
+    const projectFiles = readdirSync(dirPath)
+      .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
+      .sort()
+    const tsMatch = dl.match(/asana-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/)
+    const ts = tsMatch ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]} ${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}` : dl
+    console.log(`  ${term.dim(ts)}  ${projectFiles.length} projects`)
+    for (const pf of projectFiles.slice(0, 8)) {
+      console.log(`    ${term.dim(pf.replace(/\.json$/, ""))}`)
+    }
+    if (projectFiles.length > 8) {
+      console.log(term.dim(`    ... and ${projectFiles.length - 8} more`))
+    }
+  }
+  if (downloads.length > 5) {
+    console.log(term.dim(`  ... and ${downloads.length - 5} older downloads`))
+  }
+  console.log()
+}
+
+/** Print the quickstart cheatsheet at the bottom of `km import asana` help. */
+function printQuickstart(): void {
   console.log(term.bold("Quickstart:"))
   console.log()
   console.log(term.dim("  Fetches everything: all projects, completed tasks, comments, attachments"))
@@ -174,4 +171,27 @@ export async function printDiscovery(
   console.log(`  ${term.cyan("km import asana data.json")}`)
   console.log(term.dim("    Convert a specific file or directory → imports/asana/*.md"))
   console.log()
+}
+
+/** Print help + account listing + download history + quickstart */
+export async function printDiscovery(
+  cmd: { outputHelp(): void },
+  artifactsDir: string,
+  authToken?: string,
+  workspaceFilter?: string,
+): Promise<void> {
+  cmd.outputHelp()
+  console.log()
+
+  const { token, workspace } = await ensureAsanaSetup(authToken)
+  const { listAsanaStructure } = await import("../import/adapters/asana/asana-api.ts")
+  const structure = await listAsanaStructure(token, workspaceFilter ?? workspace)
+
+  console.log(term.bold(`${structure.user.name}`), term.dim(`(${structure.user.email})`))
+  console.log()
+
+  for (const ws of structure.workspaces) printWorkspace(ws)
+
+  printDownloadHistory(artifactsDir)
+  printQuickstart()
 }

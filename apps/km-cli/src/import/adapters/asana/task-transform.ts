@@ -70,6 +70,7 @@ const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/
 const BLOCKREF_INLINE_RE = /\s*→\s*\^\d+/g
 
 /** Convert Asana task to ImportItem */
+// oxlint-disable-next-line complexity/complexity -- domain mapping: each Asana field (html_notes, notes, due dates, assignee, followers, custom fields, tags, projects, parent refs, blockrefs) is an independent optional conditional; the branches are flat data extraction, not tangled logic
 export function toImportItem(task: AsanaApiTask): ImportItem {
   // Strip → ^numericId suffix from task name (Asana recurring task parent reference)
   const blockRefMatch = task.name.match(BLOCKREF_SUFFIX_RE)

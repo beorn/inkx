@@ -140,6 +140,7 @@ export interface SyncableRepo {
  * await syncedRepo.stop()
  */
 export function withSync(config?: Partial<SyncConfig>) {
+  // oxlint-disable-next-line complexity/complexity -- sync-decorator factory: composes OwnershipTracker, WriteQueue, EchoGuard, Watcher, Reconciler, heartbeat, emitter wiring, FS→DB handlers, DB→FS handlers — each a separate nested closure that must share `cfg`/`db`/`repo` context
   return <R extends SyncableRepo>(repo: R): R & Sync => {
     const cfg = { ...DEFAULT_CONFIG, ...config } as SyncConfig
     const callbacks = cfg.callbacks
@@ -430,7 +431,9 @@ export function withSync(config?: Partial<SyncConfig>) {
       })
     }
 
-    writeQueue.on("flushed", (data) => callbacks?.onWriteComplete?.(data))
+    writeQueue.on("flushed", (data) =>
+      callbacks?.onWriteComplete?.(data as { count: number; errors: number }),
+    )
     writeQueue.on("errors", (errors) => {
       callbacks?.onWriteErrors?.(errors as Array<{ path: string; error: Error; errorClass?: string }>)
       for (const err of errors as Array<{ path: string; errorClass?: string }>) {

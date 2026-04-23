@@ -259,8 +259,8 @@ function PopoverRectRegistrar({
   return null
 }
 
-// oxlint-disable-next-line complexity/complexity -- React card renderer: conditional styling per board state (selected/cursor/body/column-selected/folded/sticky/edit/move/drag), each a single ternary or &&; flat render-time branching, not tangled logic
 const Card = React.memo(
+  // oxlint-disable-next-line complexity/complexity -- React card renderer: conditional styling per board state (selected/cursor/body/column-selected/folded/sticky/edit/move/drag), each a single ternary or &&; flat render-time branching, not tangled logic
   function Card({
     card,
     width,

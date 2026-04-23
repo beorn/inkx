@@ -32,6 +32,7 @@ function timer(label: string) {
   }
 }
 
+// oxlint-disable-next-line complexity/complexity -- sequential profiling script: one timer block per startup phase (repo load, column derivation, board state, nav, UI state, React mount, render, input), each a small local closure; flat narrative by design for readable profile output
 async function profile() {
   out("=== km view startup profile ===\n")
 

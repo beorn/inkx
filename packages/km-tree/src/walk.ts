@@ -72,6 +72,7 @@ export const KTree = {
    * KTree.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
    * ```
    */
+  // oxlint-disable-next-line complexity/complexity -- tree traversal generator: direction (forward/reverse) × descent policy (into) × match predicate × mode (all/highest/lowest) × starting position (at) × skip-root behavior — each combination yields a different traversal order; splitting loses the single-walk invariant
   *nodes(tree: TreeMutator, rootId: string, opts?: NodesOptions): Generator<NodeEntry> {
     const root = tree.getNode(rootId)
     if (!root) return
@@ -186,6 +187,7 @@ export const KTree = {
  * "lowest" mode: yield only the deepest match in each branch.
  * Uses iterative DFS with a pending-match stack.
  */
+// oxlint-disable-next-line complexity/complexity -- iterative DFS with pending-match stack: descent policy, match predicate, reverse order, start position, parent-descendant suppression — single-pass bottom-up emission requires the branches to share state
 function* lowestNodes(
   tree: TreeMutator,
   root: KNode,

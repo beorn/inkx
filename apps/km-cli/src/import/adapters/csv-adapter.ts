@@ -238,6 +238,7 @@ function csvRowToItem(row: string[], columns: Map<number, ColumnRole>, counter: 
   return item
 }
 
+// oxlint-disable-next-line complexity/complexity -- CSV header detection + per-column mapping: separate branches for each detected column kind (id, title, status, priority, due, assignee, notes, tags, parent) plus fallback heuristics — flat dispatch, splitting would duplicate detection state
 export function parseCSVToImportData(text: string, filename?: string): ImportData {
   const nextId = { value: 0 }
 

@@ -124,6 +124,7 @@ export const BulkSync = {
    * Sync from filesystem to DB as an async generator (3-phase: scan, reconcile, rules).
    * Yields progress updates as StepYield values.
    */
+  // oxlint-disable-next-line complexity/complexity -- 3-phase sync generator: scan (ignore matching, file discovery), reconcile (per-file parse + DB upsert, anchor assignment, echo guard), rules (projection, emit); each phase has independent error paths — splitting would lose the yielded progress contract
   async *fromFsWithProgress(deps: BulkSyncDeps): AsyncGenerator<StepYield, SyncFromFsResult> {
     const { db, repoPath, writeQueue, emitter, createAnchorAssigner, tracker } = deps
     log.debug?.(`fromFs: scanning ${repoPath}`)

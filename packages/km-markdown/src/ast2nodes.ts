@@ -507,6 +507,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
 /**
  * Convert a list item to nodes (may include nested items)
  */
+// oxlint-disable-next-line complexity/complexity -- mdast→km-ast list-item conversion: each list-item shape (task marker, checked, ordered/unordered, heading-inside-item, child list, body-paragraph preservation, blockquote, nested lists) is a distinct mdast variant that maps to a different km-ast node family. Splitting would fragment the round-trip invariant
 function convertListItem(
   item: ListItem,
   parent: KNode,

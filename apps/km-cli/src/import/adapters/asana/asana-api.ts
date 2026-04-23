@@ -346,6 +346,7 @@ function partitionFiles(downloadDir: string): {
 /** Fetch projects and tasks from Asana API */
 export async function fetchFromAsana(options: FetchOptions & { record: true }): Promise<FetchResult>
 export async function fetchFromAsana(options: FetchOptions): Promise<ImportData>
+// oxlint-disable-next-line complexity/complexity -- top-level Asana orchestration: workspace resolution, resume detection, parallel metadata fetching, per-project pagination, comments/attachments fanout, users + tags -- each branch is an independent concern; extracting helpers would fragment the sequential narrative that makes resume logic auditable
 export async function fetchFromAsana(
   options: FetchOptions & { _testMode?: boolean },
 ): Promise<ImportData | FetchResult> {
@@ -592,7 +593,7 @@ export async function fetchFromAsana(
           sourceId: `user-${user.gid}`,
           slug: `@${userSlug}`,
           title: `@${user.name}`,
-          fetchTasks: async () => allUserTasks,
+          fetchTasks: () => Promise.resolve(allUserTasks),
           // Use assignee_section for My Tasks grouping (API doesn't support /user_task_lists/sections)
           useAssigneeSection: true,
           workspace: workspace.name,
@@ -643,7 +644,7 @@ export async function fetchFromAsana(
           sourceId: `tag-${tag.gid}`,
           slug: `#${tagSlug}`,
           title: `#${tag.name}`,
-          fetchTasks: async () => orphanTasks,
+          fetchTasks: () => Promise.resolve(orphanTasks),
           workspace: workspace.name,
         },
         enrichOpts,

@@ -32,7 +32,7 @@ import { isTeaHelpV3Enabled, getHelpV3App } from "../plugins/help-overlay.v3.ts"
 import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
 import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
+import { activeEditTargetRef, activeEditContextRef, createOsc52Backend } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
@@ -1816,6 +1816,7 @@ function handlePaneAction(ctx: OpCtx, action: PaneOp): OpResult {
 }
 
 /** ViewOp: lifecycle, view modes, help, console, history, misc (23 cases). */
+// oxlint-disable-next-line complexity/complexity -- discriminated-union action dispatcher: one case per ViewOp variant, each a straightforward effect call; cyclomatic count = case count, not tangled control flow
 function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
   switch (action.type) {
     case "QUIT":
@@ -2982,7 +2983,7 @@ function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): OpResult {
 
   // Copy content to system clipboard via OSC 52
   const text = cards.map((c) => c.content ?? c.id).join("\n")
-  copyToClipboard(process.stdout, text)
+  createOsc52Backend(process.stdout).write({ text })
 
   const label = mode === "cut" ? "Cut" : "Copied"
   ctx.toastQueue.info(`${label} ${nodeIds.length} node${nodeIds.length > 1 ? "s" : ""}`)
