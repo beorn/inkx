@@ -844,7 +844,11 @@ function TreeNodeImpl({
                 />
               </Text>
             ) : isHR ? (
-              <Text color={tc} dimColor={sd} wrap="truncate">
+              // Unselected HRs render dim (separator chrome, not content) —
+              // matches the contract asserted by tests/hr.test.ts. When
+              // selected the cursor's inverse theming wins (dim off), so we
+              // OR the base dim flag with !isSelected instead of forcing.
+              <Text color={tc} dimColor={sd || !isSelected} wrap="truncate">
                 {cleanContent.trim()}
               </Text>
             ) : (

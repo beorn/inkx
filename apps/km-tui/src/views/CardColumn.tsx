@@ -427,6 +427,7 @@ const Card = React.memo(
           >
             <Text
               color={isSelected || isNodeSelected ? "$selectionbg" : "$muted"}
+              dimColor={!isSelected && !isNodeSelected}
               wrap="truncate"
             >
               {hrContent}

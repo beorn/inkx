@@ -331,18 +331,24 @@ describe("StatusCounters", () => {
   // ===========================================================================
 
   describe("flash-on-update", () => {
-    it("node count starts dim (no flash on initial render)", () => {
+    // StatusCounters signals "resting" (no flash) with `color="$muted"` and
+    // "flashing" (value just changed) with no color override. After the
+    // migration away from the deprecated `dimColor` prop, the assertion
+    // surface is the color attribute — muted = muted-style, missing = bright.
+    const MUTED = "$muted"
+
+    it("node count starts muted (no flash on initial render)", () => {
       const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.count()).toBeGreaterThan(0)
-      expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
+      expect(nodeCountEl.getAttribute("color")).toBe(MUTED)
     })
 
     it("node count flashes bright when value changes", () => {
       const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       app.rerender(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={43} />)
       const nodeCountEl = app.locator("#node-count")
-      expect(nodeCountEl.getAttribute("dimColor")).toBe("false")
+      expect(nodeCountEl.getAttribute("color")).not.toBe(MUTED)
     })
 
     it("console indicator flashes when log count changes", () => {
@@ -366,7 +372,7 @@ describe("StatusCounters", () => {
       )
       const consoleEl = app.locator("#console-indicator")
       expect(consoleEl.count()).toBeGreaterThan(0)
-      expect(consoleEl.getAttribute("dimColor")).toBe("false")
+      expect(consoleEl.getAttribute("color")).not.toBe(MUTED)
     })
 
     it("watcher file count flashes when watched paths change", () => {
@@ -392,14 +398,14 @@ describe("StatusCounters", () => {
       app.rerender(<StatusCounters ui={uiWithMoreFiles} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const watcherEl = app.locator("#watcher-status")
       expect(watcherEl.count()).toBeGreaterThan(0)
-      expect(watcherEl.getAttribute("dimColor")).toBe("false")
+      expect(watcherEl.getAttribute("color")).not.toBe(MUTED)
     })
 
     it("no flash when value stays the same", () => {
       const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       app.rerender(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const nodeCountEl = app.locator("#node-count")
-      expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
+      expect(nodeCountEl.getAttribute("color")).toBe(MUTED)
     })
 
     it("console indicator shows warning icon when errors present", () => {
