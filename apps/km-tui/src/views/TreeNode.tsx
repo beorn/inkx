@@ -972,11 +972,7 @@ function TreeNodeImpl({
       {/* Children: during editing show only structural (body is rendered as editable blocks above) */}
       {childrenVisible && (
         <ErrorBoundary
-          fallback={
-            <Text color={"$fg-error"}>
-              [error]
-            </Text>
-          }
+          fallback={<Text color={"$fg-error"}>[error]</Text>}
           resetKeys={[node.id, depth, children.length]}
           onError={handleNodeChildrenError}
         >
@@ -1256,11 +1252,7 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={
-              isBrokenEmbed && !isNodeSelected
-                ? "$fg-error"
-                : (foldTc ?? (foldSd ? "$fg-muted" : style.ownColor))
-            }
+            color={isBrokenEmbed && !isNodeSelected ? "$fg-error" : (foldTc ?? (foldSd ? "$fg-muted" : style.ownColor))}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
           >

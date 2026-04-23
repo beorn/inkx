@@ -488,9 +488,7 @@ export function NodeColumnView({
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text color={isSelected ? "$selectionbg" : "$fg-muted"}>
-          {"\u2500".repeat(Math.max(0, width ?? 40))}
-        </Text>
+        <Text color={isSelected ? "$selectionbg" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width ?? 40))}</Text>
       </Box>
     </Box>
   )
