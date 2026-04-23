@@ -12,8 +12,8 @@
  * children). No virtual KNode objects are created.
  */
 
-import React, { useMemo } from "react"
-import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR, useScrollRect } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { extractTaskDates } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
@@ -33,6 +33,40 @@ import { parseDepsRefs } from "./tree-node-helpers.tsx"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
 import { TitleEditor } from "./tree-node-edit.tsx"
+
+// =============================================================================
+// Scroll-to-cursor plumbing
+// =============================================================================
+//
+// DetailView renders a recursive DocNode tree inside a scroll container. When
+// the cursor moves to a row outside the viewport, we need to adjust
+// scrollOffset so the cursor stays visible — just like CardColumn does via
+// ListView, but for a tree rather than a flat list.
+//
+// Strategy: the cursor DocNode mounts a `<CursorScrollRegistrar>` child which
+// calls `useScrollRect` to get its own y-position relative to the scroll
+// container. That position is pushed to DetailView via a React context
+// callback; DetailView adjusts `scrollOffset` in a useLayoutEffect so the
+// cursor row sits inside the viewport (with a small margin).
+
+interface CursorScrollCtx {
+  /** Report cursor y-position relative to the scroll container. */
+  report(y: number, height: number): void
+}
+
+const CursorScrollContext = createContext<CursorScrollCtx | null>(null)
+
+/** Rendered as a child of the cursor DocNode's Box. Uses useScrollRect to
+ *  observe the cursor's scroll-container-relative y-position and pushes it
+ *  up to DetailView through context. Re-mounts whenever the cursor moves
+ *  (because the parent Box with isCursor=true changes identity). */
+function CursorScrollRegistrar(): null {
+  const ctx = useContext(CursorScrollContext)
+  useScrollRect((rect) => {
+    ctx?.report(rect.y, rect.height)
+  })
+  return null
+}
 
 // =============================================================================
 // DetailView Component
@@ -107,9 +141,55 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const titleFg = isRootEditing ? "$border-focus" : isTitleCursor ? "$selection" : undefined
   const titleInlineCtx = isTitleCursor && !isRootEditing ? { stripInlineColors: true as const } : undefined
 
+  // Scroll-to-cursor: the doc-tree is rendered inside a scroll container, and
+  // when the cursor moves to a row outside the viewport we adjust scrollOffset
+  // so the cursor stays visible. The cursor row itself reports its y-position
+  // via CursorScrollRegistrar + CursorScrollContext.
+  const [scrollOffset, setScrollOffset] = useState(0)
+  const cursorRectRef = useRef<{ y: number; height: number } | null>(null)
+  const pendingAdjustRef = useRef(false)
+  const cursorCtx = useMemo<CursorScrollCtx>(
+    () => ({
+      report(y, h) {
+        cursorRectRef.current = { y, height: h }
+        pendingAdjustRef.current = true
+      },
+    }),
+    [],
+  )
+  // Estimate the scrollable viewport: total height minus the non-scrolling
+  // chrome (title row ~1-2, HR row, metadata rows if any). We don't know the
+  // exact chrome height at render time, so use a conservative 4-row deduction.
+  const CHROME_RESERVE = 4 + (metaKeys.length > 0 ? metaKeys.length + 1 : 0)
+  const viewportHeight = Math.max(4, height - CHROME_RESERVE)
+
+  useLayoutEffect(() => {
+    if (!pendingAdjustRef.current) return
+    pendingAdjustRef.current = false
+    const rect = cursorRectRef.current
+    if (!rect) return
+    // rect.y is the cursor's y relative to the scroll container AFTER
+    // scrollOffset is applied. If the row is off the top (y < 0), pull the
+    // viewport up; if it runs past the bottom, push it down. Leave a 1-row
+    // margin so the cursor doesn't sit right at the edge.
+    const MARGIN = 1
+    if (rect.y < MARGIN) {
+      setScrollOffset((prev) => Math.max(0, prev + rect.y - MARGIN))
+    } else if (rect.y + rect.height > viewportHeight - MARGIN) {
+      setScrollOffset((prev) => prev + (rect.y + rect.height - (viewportHeight - MARGIN)))
+    }
+  }, [cursorCardNodeId, viewportHeight])
+
+  // Reset scroll when the pane's root changes (zoom in/out, open a different file).
+  useEffect(() => {
+    setScrollOffset(0)
+    cursorRectRef.current = null
+  }, [effectiveId])
+
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden" userSelect="contain">
       <InlineRenderProvider value={inlineCtx}>
+        <CursorScrollContext.Provider value={cursorCtx}>
         <Box flexDirection="column" flexGrow={1} overflow="hidden">
           {/* Document title — H1 (selectable) + node badge */}
           <Box
@@ -120,6 +200,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             backgroundColor={titleBg}
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
+            {isTitleCursor && <CursorScrollRegistrar />}
             <Box flexGrow={1} flexShrink={1}>
               <H1 color={titleFg} wrap="wrap">
                 {rootStatusIcon && (
@@ -187,10 +268,14 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           )}
 
           {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1.
-             paddingX so prose breathes on both sides; maxWidth caps measure in wide panes
-             (reading a 120-col line of prose is unpleasant — ~72 is the Polaris sweet spot). */}
+             Wrapped in a scroll container so j/k navigation past the visible
+             area brings the cursor row into view (scroll-to-cursor via
+             CursorScrollRegistrar + useLayoutEffect). paddingX so prose
+             breathes on both sides; maxWidth caps measure in wide panes
+             (reading a 120-col line of prose is unpleasant — ~72 is the
+             Polaris sweet spot). */}
           {children.length > 0 ? (
-            <Box paddingX={1} flexDirection="column">
+            <Box flexGrow={1} flexShrink={1} overflow="scroll" scrollOffset={scrollOffset} paddingX={1}>
               <Box flexDirection="column" maxWidth={width > 90 ? 80 : undefined}>
                 <DocContent nodes={children} depth={1} repo={repo} cursor={cursorCardNodeId} undoHandle={undoHandle} />
               </Box>
@@ -201,6 +286,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             </Box>
           ) : null}
         </Box>
+        </CursorScrollContext.Provider>
       </InlineRenderProvider>
     </Box>
   )
@@ -351,6 +437,7 @@ function DocNode({
       <Box flexDirection="column">
         {leadingGap > 0 && <Box height={leadingGap} />}
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+          {isCursor && <CursorScrollRegistrar />}
           {Heading ? (
             <Heading color={cursorFg} wrap="wrap">
               {headingTaskIcon && (
@@ -423,6 +510,7 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+          {isCursor && <CursorScrollRegistrar />}
           <CheckboxIcon
             nodeId={node.id}
             icon={icon}
@@ -461,6 +549,7 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+          {isCursor && <CursorScrollRegistrar />}
           <Text color={cursorFg ?? "$fg-muted"}>{node.item?.list ?? "•"} </Text>
           <Text color={cursorFg} wrap="wrap">
             {editableContent ?? <InlineText text={content} context={cursorCtx} />}
@@ -506,6 +595,7 @@ function DocNode({
         backgroundColor={bg}
         {...cursorProps}
       >
+        {isCursor && <CursorScrollRegistrar />}
         <Blockquote>{editableContent ?? <InlineText text={content} context={cursorCtx} />}</Blockquote>
       </Box>
     )
@@ -521,6 +611,7 @@ function DocNode({
         backgroundColor={bg}
         {...cursorProps}
       >
+        {isCursor && <CursorScrollRegistrar />}
         {editableContent ? editableContent : <CodeBlock>{content}</CodeBlock>}
       </Box>
     )
@@ -528,6 +619,7 @@ function DocNode({
   // Paragraph
   return (
     <Box id={node.id} testID={node.id} focusable paddingLeft={0} marginBottom={1} backgroundColor={bg} {...cursorProps}>
+      {isCursor && <CursorScrollRegistrar />}
       <Text color={cursorFg} wrap="wrap">
         {editableContent ?? <InlineText text={content} context={cursorCtx} />}
       </Text>
