@@ -284,6 +284,40 @@ tags: [a, b, c]
       expect(links[0]!.embedded).toBe(true)
     })
 
+    test("skips empty-target wikilinks [[]] (km-bug-05)", () => {
+      // An empty wikilink has no valid link target. parseWikiLinks used to
+      // emit it with target="", which then crashed normalizeLinkHref downstream
+      // and aborted entire vault sync.
+      const text = "Before [[]] and after, but [[Real]] is fine."
+      const links = parseWikiLinks(text)
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("Real")
+    })
+
+    test("skips whitespace-only wikilinks [[ ]]", () => {
+      const text = "Before [[   ]] after"
+      const links = parseWikiLinks(text)
+      // Whitespace-only target carries no routing information — skip.
+      expect(links.length).toBe(0)
+    })
+
+    test("keeps self-section wikilinks [[#Section]] (target empty, section non-empty)", () => {
+      // [[#Section]] is a valid self-reference — skip rule must only fire
+      // when target, section, AND blockId are all empty.
+      const text = "See [[#Overview]]"
+      const links = parseWikiLinks(text)
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("")
+      expect(links[0]!.section).toBe("Overview")
+    })
+
+    test("keeps self-blockId wikilinks [[^id]]", () => {
+      const text = "See [[^abc123]]"
+      const links = parseWikiLinks(text)
+      expect(links.length).toBe(1)
+      expect(links[0]!.blockId).toBe("abc123")
+    })
+
     test("should distinguish embeddings from regular links in same text", () => {
       const text = "See [[Regular Link]] and embed ![[Embedded Link]]"
       const links = parseWikiLinks(text)

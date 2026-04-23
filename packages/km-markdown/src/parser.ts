@@ -127,7 +127,13 @@ export function parseWikiLinks(text: string): WikiLink[] {
   let match
   while ((match = WIKILINK_REGEX.exec(text)) !== null) {
     const isEmbedded = match[1] === "!"
-    const rawTarget = match[2] ?? ""
+    const rawTarget = (match[2] ?? "").trim()
+    // km-bug-05: skip empty wikilinks like [[]] or [[ ]]. A wikilink with
+    // only section (#Section) or block (^id) is a valid self-reference and
+    // must be kept — only skip when target, section, AND blockId are all
+    // empty. Leaking an empty target crashes normalizeLinkHref downstream
+    // and aborts the entire vault sync.
+    if (!rawTarget && !match[3] && !match[4]) continue
     const isRelative = rawTarget.startsWith("./")
     links.push({
       type: "wikiLink",
