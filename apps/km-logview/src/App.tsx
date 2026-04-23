@@ -154,6 +154,15 @@ export function App({
         getKey={(r) => r.id}
         onCursor={handleCursor}
         onSelect={handleSelect}
+        // Providing onItemHover/onItemClick wires ListView's mouse wrapper.
+        // Without these props, ListView skips the wrapper entirely and the
+        // row stays inert to hover — so hover-to-focus + click-to-open
+        // only work once they're declared.
+        onItemHover={handleCursor}
+        onItemClick={(i) => {
+          handleCursor(i)
+          handleSelect(i)
+        }}
         search={{ getText }}
         renderItem={renderItem}
       />
@@ -184,16 +193,13 @@ function StatusBar({
       ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev`
       : "/ find · Enter detail · q quit"
   return (
-    <Box
-      flexDirection="row"
-      paddingX={1}
-      backgroundColor="$bg-muted"
-      justifyContent="space-between"
-    >
-      <Text color="$fg-muted">
+    <Box flexDirection="row" paddingX={1} justifyContent="space-between">
+      <Text inverse bold>
         {configName} · {cursor + 1}/{rowCount} · {short}
       </Text>
-      <Text color="$fg-muted">{hint}</Text>
+      <Text inverse bold>
+        {hint}
+      </Text>
     </Box>
   )
 }

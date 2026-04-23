@@ -36,10 +36,13 @@ function timeOf(parsed: JSON): string {
 }
 
 function truncate(s: string, max: number): string {
-  if (s.length <= max) return s
+  if (max <= 0 || s.length <= max) return s
   return `${s.slice(0, max)}…(+${s.length - max})`
 }
 
+/** Pretty-print tool input. Multi-line output is OK — rendered as overflow
+ * lines beneath the row header. Short, fast-scan format for common tools;
+ * JSON pretty-print as fallback so nothing is lost. */
 function formatToolInput(name: string, input: JSON): string {
   if (name === "Bash") {
     return asString(input.command) ?? ""
@@ -50,10 +53,16 @@ function formatToolInput(name: string, input: JSON): string {
     const limit = input.limit != null ? ` limit=${String(input.limit)}` : ""
     return `read ${path}${offset}${limit}`
   }
-  if (name === "Edit") return `edit ${asString(input.file_path) ?? "?"}`
+  if (name === "Edit") {
+    const path = asString(input.file_path) ?? "?"
+    const oldS = asString(input.old_string) ?? ""
+    const newS = asString(input.new_string) ?? ""
+    return `edit ${path}\n─── old ───\n${oldS}\n─── new ───\n${newS}`
+  }
   if (name === "Write") {
+    const path = asString(input.file_path) ?? "?"
     const content = asString(input.content) ?? ""
-    return `write ${asString(input.file_path) ?? "?"} (${content.length} chars)`
+    return `write ${path}\n${content}`
   }
   if (name === "Grep") {
     const glob = asString(input.glob)
@@ -61,11 +70,11 @@ function formatToolInput(name: string, input: JSON): string {
   }
   if (name === "Glob") return `glob ${asString(input.pattern) ?? "?"}`
   if (name === "Task") {
-    return `task ${asString(input.subagent_type) ?? "general"}: ${asString(input.description) ?? ""}`
+    const prompt = asString(input.prompt) ?? ""
+    return `task ${asString(input.subagent_type) ?? "general"}: ${asString(input.description) ?? ""}\n${prompt}`
   }
-  // Fallback — one-line stringify of the input
   try {
-    return JSON.stringify(input)
+    return JSON.stringify(input, null, 2)
   } catch {
     return String(input)
   }
@@ -100,18 +109,18 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
       const body = asString(att.content) ?? asString(att.stdout) ?? ""
       // Hooks are noisy; only surface when they actually produced output.
       if (!body.trim() && !cmdBase) return []
-      return [mkRow(lineNo, "att", "hook", { time, label, body: truncate(body, 500) }, obj)]
+      return [mkRow(lineNo, "att", "hook", { time, label, body: truncate(body, 8000) }, obj)]
     }
     if (attType === "hook_failure") {
       const body = asString(att.stderr) ?? asString(att.content) ?? ""
-      return [mkRow(lineNo, "att", "hook_fail", { time, label, body: truncate(body, 500) }, obj)]
+      return [mkRow(lineNo, "att", "hook_fail", { time, label, body: truncate(body, 8000) }, obj)]
     }
     return []
   }
 
   if (topType === "system") {
     const content = asString(obj.content) ?? JSON.stringify(obj)
-    return [mkRow(lineNo, "sys", "system", { time, label: "", body: truncate(content, 500) }, obj)]
+    return [mkRow(lineNo, "sys", "system", { time, label: "", body: truncate(content, 8000) }, obj)]
   }
 
   if (topType === "user") {
@@ -121,7 +130,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
 
     if (typeof content === "string") {
       const injected = INJECTION_PATTERN.test(content)
-      out.push(mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 500) }, obj))
+      out.push(mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 8000) }, obj))
       return out
     }
 
@@ -141,7 +150,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
               {
                 time,
                 label: asString(item.tool_use_id) ?? "",
-                body: truncate(body, 500),
+                body: truncate(body, 8000),
               },
               item,
             ),
@@ -150,7 +159,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
           const text = asString(item.text) ?? ""
           const injected = INJECTION_PATTERN.test(text)
           out.push(
-            mkRow(lineNo, `u${i}`, injected ? "inject" : "user", { time, label: "", body: truncate(text, 500) }, item),
+            mkRow(lineNo, `u${i}`, injected ? "inject" : "user", { time, label: "", body: truncate(text, 8000) }, item),
           )
         }
       }
@@ -174,7 +183,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
             lineNo,
             `a${i}`,
             "assistant",
-            { time, label: "", body: truncate(asString(item.text) ?? "", 500) },
+            { time, label: "", body: truncate(asString(item.text) ?? "", 8000) },
             item,
           ),
         )
@@ -184,7 +193,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
             lineNo,
             `a${i}`,
             "thinking",
-            { time, label: "", body: truncate(asString(item.thinking) ?? "", 500) },
+            { time, label: "", body: truncate(asString(item.thinking) ?? "", 8000) },
             item,
           ),
         )
@@ -196,7 +205,7 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
             lineNo,
             `a${i}`,
             "tool_use",
-            { time, label: name, body: truncate(formatToolInput(name, input), 500) },
+            { time, label: name, body: truncate(formatToolInput(name, input), 8000) },
             item,
           ),
         )
@@ -233,27 +242,23 @@ function kindColor(kind: string): string | undefined {
   }
 }
 
-/** Subtler than kindColor — tints the bulk of body text without shouting. */
-function bodyColor(kind: string): string | undefined {
+/** Subtler than kindColor — tints the bulk of body text without shouting.
+ * Default to $fg-muted so even unclassified content reads muted (never
+ * default terminal fg, which can clash with the bg-cursor selection row). */
+function bodyColor(kind: string): string {
   switch (kind) {
     case "user":
       return "$fg-accent"
-    case "thinking":
-      return "$fg-muted"
     case "tool_use":
       return "$fg-info"
-    case "tool_result":
-      return "$fg-muted"
     case "inject":
       return "$fg-warning"
-    case "hook":
-      return "$fg-muted"
     case "hook_fail":
       return "$fg-error"
-    case "system":
-      return "$fg-muted"
+    // assistant, thinking, tool_result, hook, system, and everything else
+    // fall through to the quiet baseline.
     default:
-      return undefined
+      return "$fg-muted"
   }
 }
 
