@@ -29,15 +29,7 @@ function defaultSearchText(row: LogRow): string {
     .join(" ")
 }
 
-export function App({
-  path,
-  config,
-  rows: initialRows,
-}: {
-  path: string
-  config: ViewConfig
-  rows: LogRow[]
-}) {
+export function App({ path, config, rows: initialRows }: { path: string; config: ViewConfig; rows: LogRow[] }) {
   const { rows: termRows } = useWindowSize()
   const [rows, setRows] = useState(initialRows)
   const [cursor, setCursor] = useState(initialRows.length - 1)
@@ -53,10 +45,7 @@ export function App({
   const chrome = 1 + (search.isActive ? 1 : 0)
   const listHeight = Math.max(5, termRows - chrome)
 
-  const getText = useMemo(
-    () => config.searchText ?? defaultSearchText,
-    [config],
-  )
+  const getText = useMemo(() => config.searchText ?? defaultSearchText, [config])
 
   const handleCursor = useCallback((i: number) => {
     cursorRef.current = i
@@ -154,15 +143,6 @@ export function App({
         getKey={(r) => r.id}
         onCursor={handleCursor}
         onSelect={handleSelect}
-        // Providing onItemHover/onItemClick wires ListView's mouse wrapper.
-        // Without these props, ListView skips the wrapper entirely and the
-        // row stays inert to hover — so hover-to-focus + click-to-open
-        // only work once they're declared.
-        onItemHover={handleCursor}
-        onItemClick={(i) => {
-          handleCursor(i)
-          handleSelect(i)
-        }}
         search={{ getText }}
         renderItem={renderItem}
       />
@@ -193,13 +173,17 @@ function StatusBar({
       ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev`
       : "/ find · Enter detail · q quit"
   return (
-    <Box flexDirection="row" paddingX={1} justifyContent="space-between">
-      <Text inverse bold>
+    <Box
+      flexDirection="row"
+      paddingX={1}
+      width="100%"
+      backgroundColor="$bg-muted"
+      justifyContent="space-between"
+    >
+      <Text bold>
         {configName} · {cursor + 1}/{rowCount} · {short}
       </Text>
-      <Text inverse bold>
-        {hint}
-      </Text>
+      <Text bold>{hint}</Text>
     </Box>
   )
 }

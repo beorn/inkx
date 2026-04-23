@@ -130,7 +130,9 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
 
     if (typeof content === "string") {
       const injected = INJECTION_PATTERN.test(content)
-      out.push(mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 8000) }, obj))
+      out.push(
+        mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 8000) }, obj),
+      )
       return out
     }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 import React from "react"
 import { Box, Text } from "silvery"
 import type { FieldSpec, LogRow as LogRowData } from "./view-config.ts"
@@ -34,15 +35,7 @@ function valueToString(v: unknown): string {
  * contrast is readable. Following Silvery Omnibox — no cursor glyph, bg
  * communicates selection.
  */
-export function LogRowView({
-  row,
-  fields,
-  isCursor,
-}: {
-  row: LogRowData
-  fields: FieldSpec[]
-  isCursor: boolean
-}) {
+export function LogRowView({ row, fields, isCursor }: { row: LogRowData; fields: FieldSpec[]; isCursor: boolean }) {
   const segments: React.ReactNode[] = []
   let overflowLines: string[] = []
   const cursorFg = "$fg-cursor"
@@ -78,12 +71,7 @@ export function LogRowView({
   }
 
   return (
-    <Box
-      flexDirection="column"
-      paddingX={1}
-      width="100%"
-      backgroundColor={isCursor ? "$bg-cursor" : undefined}
-    >
+    <Box flexDirection="column" paddingX={1} width="100%" backgroundColor={isCursor ? "$bg-cursor" : undefined}>
       <Text wrap="truncate-end">{segments}</Text>
       {overflowLines.map((line, i) => (
         <Text
