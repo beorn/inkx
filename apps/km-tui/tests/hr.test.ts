@@ -97,7 +97,7 @@ describe("HR borderless rendering", () => {
     }
   })
 
-  test("unselected HR is dimmed", () => {
+  test("unselected HR is muted", () => {
     using app = createTestApp(item("board", item("col", item("task1"), item.hr("my-hr"))))
     const hrBox = app.screen.nodeBox("my-hr")
     expect(hrBox, "HR node should be visible").not.toBeNull()
@@ -111,7 +111,9 @@ describe("HR borderless rendering", () => {
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = app.screen.cell(dashX, hrBox.y)
-      expect(cell.dim, "unselected HR should be dim").toBe(true)
+      // $fg-muted replaces deprecated dim attribute — same visual intent,
+      // resolves to pre-dimmed hex at truecolor. Tracking: km-silvery.delete-dim-dimcolor.
+      expect(colorEquals(cell.fg, TC["$fg-muted"]), "unselected HR should be $fg-muted").toBe(true)
     }
   })
 })
