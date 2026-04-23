@@ -70,25 +70,26 @@ export async function runBoard(
   using toastQueue = createToastQueue()
   using term = createTerm()
   const interactive = options?.interactive !== false
-  const isInteractive = interactive && term.hasInput()
+  const isInteractive = interactive && term.caps.input
 
   // Detect terminal capabilities for degraded mode.
-  // Post km-silvery.plateau-delete-legacy-shims (H6): `term.caps` is the
-  // single source of truth; `term.profile.caps` is the same view. We used to
-  // call `detectTerminalCaps()` here as a separate detection pass — that's
-  // the shim the plateau work deleted.
+  // Post km-silvery.caps-restructure (Phase 7): `caps`, `identity`, and
+  // `heuristics` are three sibling views on `term.profile` — caps carries
+  // protocol flags, identity holds program/version/termName, heuristics
+  // holds the subjective darkBackground/nerdfont/textEmojiWide guesses.
   const caps = term.caps
-  const isLimitedTerminal = caps.program === "Apple_Terminal"
+  const { identity, heuristics } = term
+  const isLimitedTerminal = identity.program === "Apple_Terminal"
 
   if (isInteractive && isLimitedTerminal) {
-    const themeInfo = caps.darkBackground ? "dark" : "light"
+    const themeInfo = heuristics.darkBackground ? "dark" : "light"
     process.stderr.write(
       `\x1b[33m⚠ Terminal.app detected (${themeInfo} theme, basic icons). For best experience, use Ghostty, iTerm2, or Kitty.\x1b[0m\n`,
     )
   }
 
   log.debug?.(
-    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive} caps=${caps.program}/${caps.colorLevel} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} dark=${caps.darkBackground} nerdfont=${caps.nerdfont}`,
+    `TTY detection interactive=${interactive} hasInput=${caps.input} isInteractive=${isInteractive} caps=${identity.program}/${caps.colorTier} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} dark=${heuristics.darkBackground} nerdfont=${heuristics.nerdfont}`,
   )
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
@@ -329,7 +330,7 @@ export async function runBoard(
     // off inside `DeferredThemeProvider` after first render. This saves
     // ~400ms on the critical path on terminals that support OSC probing.
     // See apps/km-tui/src/deferred-theme-provider.tsx for the swap logic.
-    const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
+    const defaultIconStyle = heuristics.nerdfont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
     setStartupPhase("init-lens")
@@ -400,7 +401,9 @@ export async function runBoard(
       const handle = await boardApp.run(
         <DeferredThemeProvider
           caps={caps}
-          cacheKey={{ program: caps.program ?? "unknown", dark: caps.darkBackground ?? true }}
+          identity={identity}
+          heuristics={heuristics}
+          cacheKey={{ program: identity.program || "unknown", dark: heuristics.darkBackground }}
         >
           <RepoProvider repo={undoableRepo}>
             <StoreProvider store={reactiveStore}>

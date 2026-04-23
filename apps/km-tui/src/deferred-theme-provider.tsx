@@ -35,11 +35,15 @@ const log = createLogger("km:tui:theme")
 interface DeferredThemeProviderProps {
   caps: {
     // Silvery canonicalized the TYPE to `ColorTier` (2026-04-23) but kept
-    // the field name `colorLevel` on TerminalCaps for source compatibility.
-    colorLevel?: ColorTier
-    darkBackground?: boolean
-    program?: string
+    // the field name `colorTier` on TerminalCaps for source compatibility.
+    colorTier?: ColorTier
   }
+  /** Terminal identity — post Phase 7 (caps-restructure), program / version /
+   * termName live on the profile's identity layer, not on caps. */
+  identity?: { program?: string }
+  /** Subjective heuristics — post Phase 7 (caps-restructure), darkBackground /
+   * nerdfont / textEmojiWide live on the profile's heuristics layer. */
+  heuristics?: { darkBackground?: boolean }
   cacheKey?: ThemeCacheKey
   children: React.ReactNode
 }
@@ -47,19 +51,25 @@ interface DeferredThemeProviderProps {
 /**
  * Pick a synchronous fallback theme based on the probed capabilities.
  *
- * - `colorLevel === "mono" | "ansi16"` → the ANSI 16 theme (matches what
+ * - `colorTier === "mono" | "ansi16"` → the ANSI 16 theme (matches what
  *   `detectTheme` would have returned synchronously anyway).
- * - Otherwise → ANSI 16 dark/light depending on `caps.darkBackground`.
+ * - Otherwise → ANSI 16 dark/light depending on `heuristics.darkBackground`.
  *   ANSI 16 themes use hex values but only 16 colors, which paint on any
  *   terminal without looking wrong; truecolor terminals still render them
  *   literally. The real palette swap happens when the probe completes.
  */
-function pickFallbackTheme(caps: DeferredThemeProviderProps["caps"]): Theme {
-  const isDark = caps.darkBackground ?? true
+function pickFallbackTheme(heuristics: DeferredThemeProviderProps["heuristics"]): Theme {
+  const isDark = heuristics?.darkBackground ?? true
   return isDark ? ansi16DarkTheme : ansi16LightTheme
 }
 
-export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThemeProviderProps): React.ReactElement {
+export function DeferredThemeProvider({
+  caps,
+  identity,
+  heuristics,
+  cacheKey,
+  children,
+}: DeferredThemeProviderProps): React.ReactElement {
   // Start with cached theme if available, else the synchronous fallback.
   // The cache survives across runs keyed by terminal program + mode so
   // repeat launches see zero theme flash. The cached theme is already
@@ -82,7 +92,7 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
         return cached
       }
     }
-    return pickFallbackTheme(caps)
+    return pickFallbackTheme(heuristics)
   })
 
   // Kick off the OSC probe after first paint. useEffect runs AFTER the first
@@ -99,7 +109,10 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
       return
     }
     let cancelled = false
-    detectTheme({ caps })
+    // detectTheme accepts a structural `{ colorTier?, darkBackground? }` — the
+    // darkBackground heuristic moved to `heuristics` in Phase 7, so we flatten
+    // the two layers back into the one-shot argument detectTheme expects.
+    detectTheme({ caps: { colorTier: caps.colorTier, darkBackground: heuristics?.darkBackground } })
       .then((detected) => {
         if (cancelled) return
         setTheme(detected)
