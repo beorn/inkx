@@ -14,5 +14,5 @@ export const BODY_COLLAPSED_MAX_LINES = 3
 export const INLINE_BODY_FIT_MARGIN = 2
 
 /** Field keys rendered as "pills" — colored bold text carrying the visual
- * grouping for structured categories (e.g. kind, label). */
-export const PILL_FIELDS = new Set(["kind", "label"])
+ * grouping for structured categories (e.g. kind, label, token metrics). */
+export const PILL_FIELDS = new Set(["kind", "label", "tokens"])

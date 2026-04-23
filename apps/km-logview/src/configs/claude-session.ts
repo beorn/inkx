@@ -213,6 +213,34 @@ function deriveUserRows(obj: JSON, lineNo: number, time: string): LogRow[] {
   return out
 }
 
+/** Compact number: 1234 → "1.2k", 1_000_000 → "1.0M". Drops trailing .0. */
+function compactNum(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+}
+
+/**
+ * Extract Anthropic `message.usage` → compact pill string.
+ * Shape: "↓1.2k ↑345" (input → output), plus "◐2.3k" (cache-read) or "+4.5k"
+ * (cache-creation) when non-zero. Returns "" when no usage data.
+ */
+function formatUsage(message: JSON | null): string {
+  const usage = asObject(message?.usage)
+  if (!usage) return ""
+  const inTokens = typeof usage.input_tokens === "number" ? usage.input_tokens : 0
+  const outTokens = typeof usage.output_tokens === "number" ? usage.output_tokens : 0
+  const cacheRead = typeof usage.cache_read_input_tokens === "number" ? usage.cache_read_input_tokens : 0
+  const cacheCreate = typeof usage.cache_creation_input_tokens === "number" ? usage.cache_creation_input_tokens : 0
+  if (inTokens === 0 && outTokens === 0 && cacheRead === 0 && cacheCreate === 0) return ""
+  const parts: string[] = []
+  parts.push(`↓${compactNum(inTokens)}`)
+  parts.push(`↑${compactNum(outTokens)}`)
+  if (cacheRead > 0) parts.push(`◐${compactNum(cacheRead)}`)
+  if (cacheCreate > 0) parts.push(`+${compactNum(cacheCreate)}`)
+  return parts.join(" ")
+}
+
 /** One row from a single assistant content-array item (text / thinking / tool_use). */
 function assistantRowFromItem(item: JSON, idx: number, lineNo: number, time: string): LogRow | null {
   const itemType = asString(item.type)
@@ -258,6 +286,13 @@ function deriveAssistantRows(obj: JSON, lineNo: number, time: string): LogRow[] 
     if (!item) continue
     const row = assistantRowFromItem(item, i, lineNo, time)
     if (row) out.push(row)
+  }
+  // Attach the message's token usage to the FIRST emitted row only — the
+  // usage is per-message in the Anthropic API, not per content-block, so
+  // repeating it on every row (thinking + text + tool_use) would be noise.
+  const tokens = formatUsage(message)
+  if (tokens && out.length > 0) {
+    out[0]!.fields.tokens = tokens
   }
   return out
 }
@@ -372,6 +407,15 @@ export const claudeSessionConfig: ViewConfig = {
       key: "label",
       width: "auto",
       color: (_v, row) => kindColor(row.kind ?? "") ?? "$fg-muted",
+    },
+    {
+      // Per-message token usage (input/output/cache) for assistant turns.
+      // Only attached to the FIRST row of each assistant message; blank for
+      // everything else (user, tool_result, attachments, system, or
+      // subsequent content-blocks within the same message).
+      key: "tokens",
+      width: "auto",
+      color: "$color8", // bright-black — metadata, subordinate to content
     },
     {
       key: "body",

@@ -158,6 +158,40 @@ describe("claude-session deriveRows", () => {
     expect(body.length).toBeLessThan(40) // compact summary
   })
 
+  test("assistant row attaches compact tokens pill from message.usage (first row only)", () => {
+    const rows = derive({
+      type: "assistant",
+      timestamp: "2026-04-23T05:14:00.000Z",
+      message: {
+        usage: {
+          input_tokens: 6,
+          output_tokens: 2456,
+          cache_read_input_tokens: 89_000,
+          cache_creation_input_tokens: 63_645,
+        },
+        content: [
+          { type: "thinking", thinking: "plan" },
+          { type: "text", text: "answer" },
+          { type: "tool_use", name: "Bash", input: { command: "ls" } },
+        ],
+      },
+    })
+    expect(rows).toHaveLength(3)
+    // First row gets the tokens; subsequent rows do not (per-message, not per-block).
+    expect(rows[0]!.fields.tokens).toBe("↓6 ↑2.5k ◐89k +64k")
+    expect(rows[1]!.fields.tokens).toBeUndefined()
+    expect(rows[2]!.fields.tokens).toBeUndefined()
+  })
+
+  test("assistant without usage → no tokens field", () => {
+    const rows = derive({
+      type: "assistant",
+      timestamp: "2026-04-23T05:14:05.000Z",
+      message: { content: [{ type: "text", text: "hello" }] },
+    })
+    expect(rows[0]!.fields.tokens).toBeUndefined()
+  })
+
   test("tool_result with mixed text + image blocks joins summaries", () => {
     const rows = derive({
       type: "user",
