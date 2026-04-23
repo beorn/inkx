@@ -1,12 +1,14 @@
 # Hook Router Design
 
-**Status**: Proposal. Tracking bead: [`km-infra.hook-router`](../../.beads/) (P3).
+**Status**: Implemented (lives in bearly). Tracking bead: `km-infra.hook-router` (P3).
 
-Unified hook dispatch for km integrations. Inspired by Cline Kanban's hook protocol. Replaces the current "each integration wires its own Claude Code hooks" model.
+Unified Claude Code hook dispatch. Implemented in **bearly** (`vendor/bearly/tools/lib/hooks/`) — the canonical home for Claude Code coordination infrastructure alongside tribe, recall, autostart, and friends. Invoked via `tribe hook ingest` / `tribe hook notify`.
+
+This doc captures the *why* and the *shape*. API and source live in bearly.
 
 ## Problem
 
-km's Claude Code integrations (recall, tribe, bead-prime, cmux, future: kanban-bridge, GitHub-event-forward, etc.) each wire their own entries in `~/.claude/settings.json`. Consequences:
+Claude Code integrations (recall, tribe, bead-prime, cmux, future: kanban-bridge, GitHub-event-forward, etc.) wire their own entries in `~/.claude/settings.json`. Consequences:
 
 - **settings.json sprawl**: multiple integrations on the same hook event = multiple shell commands queued per event. Adding or removing one requires surgical JSON edits.
 - **Implicit contracts**: each integration makes its own assumptions about stdin/env/args passed by Claude Code. Nothing enforces uniformity.
@@ -14,39 +16,29 @@ km's Claude Code integrations (recall, tribe, bead-prime, cmux, future: kanban-b
 - **Untestable**: hook behavior only observable by running Claude Code with side effects.
 - **Brittle onboarding**: adding a new integration means updating ~7 settings.json entries; forgetting one silently breaks that event.
 
-Current surface (illustrative, from `~/.claude/settings.json`):
-
-```
-"SessionStart": [ {...recall...}, {...tribe...}, {...bead prime...} ]
-"UserPromptSubmit": [ {...bearly injection...}, {...tribe...} ]
-"PreToolUse": [ {...cmux claude-hook...} ]
-"Stop": [ {...cmux claude-hook...} ]
-...
-```
-
-Every new integration multiplies the entries.
-
-## Proposed architecture
+## Architecture
 
 Single router + normalized event vocabulary + pluggable listeners.
 
-### One router command, two modes
+### One router, two modes (exposed via `tribe hook`)
 
 ```bash
-km hooks ingest --event <event> --source <source> [flags]   # synchronous, errors propagate
-km hooks notify --event <event> --source <source> [flags]   # best-effort, never throws, returns fast
+tribe hook ingest --event <event> --source <source> [flags]   # synchronous, 5s listener timeout
+tribe hook notify --event <event> --source <source> [flags]   # best-effort, 100ms timeout, never throws
 ```
 
-`notify` forks+detaches so PreToolUse etc. return within ~10ms. `ingest` waits for listeners and surfaces failures.
+Both exit 0 regardless of listener status — non-zero exit from a Claude Code hook can block the session. Listener failures are isolated (one broken listener does not kill siblings).
+
+Existing `tribe hook session-start` / `session-end` / `prompt` / `pre-compact` named subcommands continue to work unchanged — they dispatch directly to recall handlers. The new `ingest`/`notify` pattern is additive, for listener-based integrations.
 
 ### Normalized event vocabulary
 
-Mirrors Claude Code's hooks but designed to be source-agnostic (same vocab used by future Codex/Gemini/km-self sources).
+Source-agnostic (same vocab used by Claude, Codex, Gemini, OpenCode, km-self, or any future source):
 
 | Event | Fires on |
 |---|---|
-| `session_start` | Claude Code session init |
-| `session_end` | Claude Code session teardown |
+| `session_start` | Session init |
+| `session_end` | Session teardown |
 | `user_prompt_submit` | User pressed enter on a prompt |
 | `pre_tool_use` | About to run a tool |
 | `post_tool_use` | Tool finished successfully |
@@ -58,7 +50,7 @@ Mirrors Claude Code's hooks but designed to be source-agnostic (same vocab used 
 
 ### Enrichment flags
 
-Same vocabulary as kanban's (interop + future bridge):
+Same vocabulary as Cline Kanban's hook protocol — interop is a first-class goal:
 
 ```
 --source            claude | codex | gemini | opencode | km | ...
@@ -68,124 +60,117 @@ Same vocabulary as kanban's (interop + future bridge):
 --hook-event-name   original Claude Code event name (e.g. PreToolUse)
 --notification-type permission_prompt | idle | ...
 --metadata-base64   arbitrary JSON payload
+--project-path      project path for loading project-local listeners
+--session-id        session identifier
 ```
 
 ### Listener registry
 
-Listeners live in `~/.km/hooks.d/` (user-level) and `./km.hooks.d/` (project-level). Each listener is a TS module:
+Listeners live in `~/.claude/hooks.d/` (user-level) and `<project>/.claude/hooks.d/` (project-local). Each listener is a TS module that default-exports either a `defineListener({...})` call (for typed DX) or a plain object with the shape `{ name, events?, sources?, timeoutMs?, handle(ctx) }`:
 
 ```ts
-// ~/.km/hooks.d/tribe.ts
-import { defineListener } from '@km/hooks';
-
-export default defineListener({
-  name: 'tribe',
-  events: ['session_start', 'session_end', 'user_prompt_submit'],
-  sources: ['claude'],  // optional filter
-  async handle(event, ctx) {
-    // ctx provides: activityText, toolName, finalMessage, metadata, sessionId, etc.
-    await ctx.tribe.broadcast(...);
+// ~/.claude/hooks.d/my-listener.ts
+export default {
+  name: "my-listener",
+  events: ["session_start", "stop"],
+  sources: ["claude"],
+  async handle(ctx) {
+    // ctx: { event, source, activityText?, toolName?, finalMessage?, metadata?, sessionId?, projectPath?, now, ... }
+    console.error(`[my-listener] ${ctx.event} from ${ctx.source}`)
   },
-});
+}
 ```
+
+Plain-object form needs no imports — works out of the box. Users who want type safety can `import { defineListener } from "bearly/hook-router"` once bearly exports it on npm.
 
 The router:
-1. Loads all listener modules at startup (cached across invocations in fork-per-event mode; warm in daemon mode)
-2. On each incoming event, filters listeners by `events` and `sources`
-3. Invokes each matching listener with a timeout (default 5s for `ingest`, 100ms total budget for `notify`)
-4. Collects results; surfaces errors in `ingest`, drops them in `notify`
+1. Loads all listener modules each invocation (fork-per-event in v1)
+2. Filters by `events` and `sources`
+3. Invokes each matching listener with a timeout
+4. Collects results; surfaces errors via exit-code 0 + stderr-debug
 
-### Settings.json after migration
+### Settings.json shape (reference)
+
+Existing integrations today (no migration required):
 
 ```
-"SessionStart":     [ cmd: "km hooks ingest --event session_start --source claude" ]
-"SessionEnd":       [ cmd: "km hooks ingest --event session_end --source claude" ]
-"UserPromptSubmit": [ cmd: "km hooks ingest --event user_prompt_submit --source claude" ]
-"PreToolUse":       [ cmd: "km hooks notify --event pre_tool_use --source claude" ]
-"PostToolUse":      [ cmd: "km hooks notify --event post_tool_use --source claude" ]
-...
+"SessionStart": [ cmd: "bun vendor/bearly/tools/tribe-cli.ts hook session-start" ]
+"SessionEnd":   [ cmd: "bun vendor/bearly/tools/tribe-cli.ts hook session-end" ]
+"UserPromptSubmit": [ cmd: "bun vendor/bearly/tools/tribe-cli.ts hook prompt" ]
 ```
 
-Exactly one entry per Claude Code hook. Adding the 12th integration is a listener file, not a settings.json edit.
+Future listener-based integrations (opt-in):
 
-## Migration plan
+```
+"Stop":        [ cmd: "bun vendor/bearly/tools/tribe-cli.ts hook ingest --event stop --source claude" ]
+"PreToolUse":  [ cmd: "bun vendor/bearly/tools/tribe-cli.ts hook notify --event pre_tool_use --source claude --tool-name ..." ]
+```
 
-Existing integrations migrate one at a time, behind a feature flag (`KM_HOOKS_ROUTER=1`).
+The `ingest`/`notify` path loads listeners from `~/.claude/hooks.d/`; adding a new integration is *one file*, no settings.json edit.
 
-1. **Ship the router + both commands**. `km hooks ingest|notify` exist, no-ops if no listeners match. Backward compatible: existing direct-hook entries still work.
-2. **Migrate `bead prime`** → `~/.km/hooks.d/bead.ts`. Test in isolation. Once validated, remove direct entries from settings.json.
-3. **Migrate `recall`** → `~/.km/hooks.d/recall.ts`.
-4. **Migrate `tribe`** → `~/.km/hooks.d/tribe.ts` (tribe has its own daemon; listener just forwards events to it).
-5. **Migrate `cmux claude-hook`** → `~/.km/hooks.d/cmux.ts`.
-6. **Add new listeners as planned**: `kanban-bridge.ts`, `bead-sync.ts`, etc.
+## Design decisions
 
-Each step is independently shippable and reversible.
+### Home: bearly, not km
 
-## Design decisions (defaults)
+Bearly owns Claude Code tooling (tribe, recall, autostart, worktree, llm, refactor). Putting the hook router anywhere else creates duplicate hook-dispatch territory and a second CLI surface for the same job. Bearly is also (intended to be) reusable outside km, which the router naturally is.
 
-### Listener language: TypeScript
+### Language: TypeScript
 
-Pro: matches km codebase, typed handler signatures, shared utility imports.
-Con: startup cost (per-fork module load).
+Matches bearly and km codebases, typed handler signatures, shared utility imports. Listeners are `.ts` files. Bun loads them via dynamic import.
 
-Mitigation: bundle listeners into a single esbuild bundle on first run; cache in `~/.km/hooks.d/.cache/` with content-hash.
+### Dispatch model: fork-per-event (v1)
 
-### Dispatch model: fork-per-event (v1) → daemon (v2)
-
-v1: spawn a fresh Node process per hook event. Simple, no state management, handles crashes cleanly.
-
-v2 (future): long-lived daemon over Unix socket. Enables cross-event state (per-session counters, rate limits across events, batched telemetry). Only build when the need is concrete.
+Spawn a fresh process per hook event. Simple, no state management, crash-isolated. A long-lived daemon over Unix socket (v2) is deferred — build only when cross-event state (per-session counters, rate limits, batched telemetry) has a concrete consumer.
 
 ### Failure isolation
 
-Each listener runs with its own timeout and error boundary. A broken listener logs and drops; it does NOT fail siblings. The router surfaces aggregate status via `KM_HOOKS_DEBUG=1`.
+Each listener runs with its own timeout + error boundary. A broken listener logs to stderr and drops; siblings run unaffected. `BEARLY_HOOKS_DEBUG=1` (or `KM_HOOKS_DEBUG=1`) surfaces aggregate dispatch status.
 
-### Observability
+### Additive, not migratory
 
-Every invocation logs to `~/.km/hooks.log` (rotated). `KM_HOOKS_DEBUG=1` pipes to stderr. Structure:
+The new `ingest`/`notify` subcommands coexist with existing `tribe hook session-start` / `session-end` / `prompt` / `pre-compact`. Existing settings.json entries are untouched and keep working. Migration to the listener model is per-integration, opt-in, not forced.
 
-```
-[2026-04-22T18:30:15Z] event=user_prompt_submit source=claude session=abc123
-  listener=bead result=ok duration=12ms
-  listener=tribe result=ok duration=45ms
-  listener=recall result=error duration=5000ms error="timeout"
-```
+## Composability with Cline Kanban
 
-## Composability with kanban
-
-The kanban-bridge listener is ~50 LOC: watch bead state changes in its `handle`, shell out to `kanban hooks notify`:
+The kanban-bridge listener is ~50 LOC: watch events, shell out to `kanban hooks notify`:
 
 ```ts
-// ~/.km/hooks.d/kanban-bridge.ts
-export default defineListener({
-  name: 'kanban-bridge',
-  events: ['session_start', 'user_prompt_submit', 'stop'],
-  async handle(event, ctx) {
-    const kanbanEvent = mapToKanban(event);  // session_start→to_in_progress, stop→to_review
-    await exec(`kanban hooks notify --event ${kanbanEvent} --source km --activity-text "${ctx.activityText}"`);
+// ~/.claude/hooks.d/kanban-bridge.ts
+export default {
+  name: "kanban-bridge",
+  events: ["session_start", "user_prompt_submit", "stop"],
+  async handle(ctx) {
+    const kanbanEvent = mapToKanban(ctx.event) // session_start→to_in_progress, stop→to_review
+    await Bun.spawn(["kanban", "hooks", "notify", "--event", kanbanEvent, "--source", "km", "--activity-text", ctx.activityText ?? ""]).exited
   },
-});
+}
 ```
 
-The router IS the substrate for kanban integration — see [`hub/km/integrations/kanban-bridge.md`](../../hub/km/integrations/kanban-bridge.md).
+km appears as a first-class runtime on any Cline Kanban board without touching km's codebase. See [`hub/km/integrations/kanban-bridge.md`](../../hub/km/integrations/kanban-bridge.md) for the full strategy.
 
-## Out of scope for v1
+## Out of scope
 
 - Listener manifest / package system (listeners are just files for now)
 - Remote listeners (listeners run locally only)
 - Event replay / backfill
-- Multi-source support beyond Claude (Codex/Gemini/OpenCode adapters — add when there's a real second consumer)
+- Codex/Gemini/OpenCode adapter implementations (they can emit via `tribe hook ingest --source codex` etc.; dedicated wrappers come when there's a real consumer)
 - Daemon mode (v2)
+- Automatic migration of existing `~/.claude/settings.json` entries (additive only; users opt in per integration)
 
 ## Open questions
 
-- Listener language — TS only, or allow shell/Python via a thin adapter? Start TS-only; add shell adapter if integrations need it.
-- Project-level vs user-level precedence — when both exist, does project override or augment user? Default: both run; user listeners first.
-- Can listeners cancel an event? (e.g. prevent a tool call.) Not in v1 — listeners are observers only. Veto semantics would require a different contract.
+- **Listener language**: TS only, or allow shell/Python via a thin adapter? Start TS-only; add shell adapter if integrations need it.
+- **Precedence**: when both user and project listeners exist, do they augment or override? Default: both run; user listeners first.
+- **Veto semantics**: can listeners cancel an event (e.g. prevent a tool call)? Not in v1 — listeners are observers only. Veto would require a different contract.
 
 ## References
 
-- Kanban hook protocol: [`~/Bear/Journal/ref/coding-agents/kanban-hook-protocol.md`](../../../../Bear/Journal/ref/coding-agents/kanban-hook-protocol.md)
+- Source: `vendor/bearly/tools/lib/hooks/` (bearly)
+- CLI wiring: `vendor/bearly/tools/tribe-cli.ts` — `hook ingest` + `hook notify` subcommands
+- Kanban hook protocol (reference spec): [`~/Bear/Journal/ref/coding-agents/kanban-hook-protocol.md`](../../../../Bear/Journal/ref/coding-agents/kanban-hook-protocol.md)
 - General hook patterns: [`~/Bear/Journal/ref/patterns/agent-orchestration-hooks.md`](../../../../Bear/Journal/ref/patterns/agent-orchestration-hooks.md)
 - km integration strategy: [`hub/km/integrations/kanban-bridge.md`](../../hub/km/integrations/kanban-bridge.md)
-- Existing hook surface: `~/.claude/settings.json` + `.claude/hooks/`
+
+## History
+
+Original Phase 1 landed as `packages/km-hooks/` in km commit `10c95617d` (2026-04-23). During the post-ship /big audit, bearly was discovered to already own the hook-dispatch territory (`tools/lib/tribe/hook-dispatch.ts`, `tools/tribe-cli.ts hook <event>` subcommand, wired into `~/.claude/settings.json`). Original commit reverted; router re-landed in bearly at `vendor/bearly/tools/lib/hooks/`.

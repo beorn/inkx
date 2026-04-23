@@ -62,7 +62,7 @@ Orthogonal but worth naming: km could integrate via Matrix chat rooms instead of
 All four options become cleaner after `km-infra.hook-router` is shipped. The router treats kanban-bridge as *one listener* among many:
 
 ```
-~/.km/hooks.d/
+~/.claude/hooks.d/
 ├── recall.ts           # session-history search
 ├── tribe.ts            # multi-session coordination
 ├── bead.ts             # bead lifecycle auto-claim

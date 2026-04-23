@@ -36,7 +36,6 @@ import { agentCommand } from "./commands/agent.ts"
 import { bdCommand } from "./commands/bd.ts"
 import { daemonCommand } from "./commands/daemon.ts"
 import { doctorCommand } from "./commands/doctor.ts"
-import { hooksCommand } from "./commands/hooks.ts"
 import { importCommand } from "./commands/import.ts"
 import { inboxCommand } from "./commands/inbox.ts"
 import { initCommand } from "./commands/init.ts"
@@ -262,7 +261,6 @@ export function configureProgram(): Command {
   program.addCommand(syncCommand) // km sync [--watch] - sync filesystem (with optional continuous watch)
   program.addCommand(watchCommand) // km watch - deprecated, use 'km sync --watch' instead
   program.addCommand(doctorCommand) // km doctor - diagnose and repair stores
-  program.addCommand(hooksCommand()) // km hooks {ingest,notify} - unified hook dispatch
   program.addCommand(daemonCommand) // km daemon {start,stop,status} - background daemon
   program.addCommand(shCommand) // km sh [root] - scripting shell for TUI2 debugging
   program.addCommand(bdCommand) // km bd - issue tracking (beads-compatible)

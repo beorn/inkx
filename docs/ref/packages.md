@@ -52,7 +52,6 @@ Complete inventory of every package, CLI command, and tool in the km monorepo.
 | `@km/commands` | `packages/km-commands` | Command registry, keybindings, parsing | @km/board |
 | `@km/beads` | `packages/km-beads` | bd-compatible issue tracking on km data | @km/core, @km/storage |
 | `@km/agent` | `packages/km-agent` | Claude SDK agent integration | @km/core, @km/storage |
-| `@km/hooks` | `packages/km-hooks` | Unified hook dispatch router + listener registry | — |
 | `@km/connector-caldav` | `packages/km-connector-caldav` | CalDAV/CardDAV sync | — |
 | `@km/infra` | `packages/km-infra` | Shared config: oxlint, oxfmt, vitest setup | — |
 | `@silvery/selection` | `packages/silvery-selection` | Pure selection state machine | alien-signals |
