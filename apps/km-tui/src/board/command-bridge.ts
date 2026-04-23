@@ -17,7 +17,7 @@ import {
   type TNode,
 } from "@km/commands"
 import { Tree } from "@km/tree"
-import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
+import { createTerminalProfile, activeEditTargetRef } from "@silvery/ag-react"
 import type { OpCtx } from "../tui-context.ts"
 import { NO_SELECTION } from "../state/selection.ts"
 import { isDetailPaneId } from "./board-types.ts"
@@ -30,8 +30,10 @@ const log = createLogger("km:command-bridge")
 
 /** Cached Kitty keyboard protocol detection (static — doesn't change at runtime).
  * In test environments, Kitty is disabled so bare y/d/p bindings work (tests don't
- * use real Kitty protocol sequences). */
-const kittySupported = process.env.VITEST ? false : detectTerminalCaps().kittyKeyboard
+ * use real Kitty protocol sequences). Post km-silvery.plateau-delete-legacy-shims
+ * (H6): reads through `createTerminalProfile()` — the canonical single-source-
+ * of-truth entry point — instead of the removed `detectTerminalCaps` shim. */
+const kittySupported = process.env.VITEST ? false : createTerminalProfile().caps.kittyKeyboard
 
 let commandSystemInitialized = false
 export function ensureCommandSystemInitialized(): void {

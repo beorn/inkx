@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, IncrementalRenderMismatchError, InputLayerProvider, detectTerminalCaps } from "@silvery/ag-react"
+import { createTerm, IncrementalRenderMismatchError, InputLayerProvider } from "@silvery/ag-react"
 import { createConsole } from "@silvery/ag-term"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
@@ -72,8 +72,12 @@ export async function runBoard(
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
 
-  // Detect terminal capabilities for degraded mode
-  const caps = detectTerminalCaps()
+  // Detect terminal capabilities for degraded mode.
+  // Post km-silvery.plateau-delete-legacy-shims (H6): `term.caps` is the
+  // single source of truth; `term.profile.caps` is the same view. We used to
+  // call `detectTerminalCaps()` here as a separate detection pass — that's
+  // the shim the plateau work deleted.
+  const caps = term.caps
   const isLimitedTerminal = caps.program === "Apple_Terminal"
 
   if (isInteractive && isLimitedTerminal) {
