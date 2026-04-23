@@ -1,0 +1,8 @@
+{"type":"user","timestamp":"2026-04-23T05:00:00.000Z","message":{"content":"cursor-anchor"}}
+{"type":"user","timestamp":"2026-04-23T05:00:01.000Z","message":{"content":"hi"}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:02.000Z","message":{"content":[{"type":"thinking","thinking":"hmm"}]}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:03.000Z","message":{"content":[{"type":"text","text":"ok"}]}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:04.000Z","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"user","timestamp":"2026-04-23T05:00:05.000Z","message":{"content":[{"type":"tool_result","tool_use_id":"tu1","content":"out"}]}}
+{"type":"attachment","timestamp":"2026-04-23T05:00:06.000Z","attachment":{"type":"hook_success","hookName":"PreToolUse:Bash","command":"/tmp/hk","stdout":"hook out"}}
+{"type":"system","timestamp":"2026-04-23T05:00:07.000Z","content":"system msg"}
