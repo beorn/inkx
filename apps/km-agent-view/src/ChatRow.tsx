@@ -119,9 +119,7 @@ export function ChatRow({ row, isCursor, cols }: { row: LogRow; isCursor: boolea
           {time ? (
             <>
               <Text>{"  "}</Text>
-              <Text color={isCursor ? "$fg-cursor" : "$fg-muted"} dim={!isCursor}>
-                {time}
-              </Text>
+              <Text color={isCursor ? "$fg-cursor" : "$fg-muted"}>{time}</Text>
             </>
           ) : null}
         </Box>
@@ -135,7 +133,6 @@ export function ChatRow({ row, isCursor, cols }: { row: LogRow; isCursor: boolea
             // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
             key={`b${i}`}
             color={isCursor ? "$fg-cursor" : "$fg-muted"}
-            dim={!isCursor}
             wrap="wrap"
           >
             {colorize(line)}
@@ -171,15 +168,13 @@ export function ClusterRow({
         {`◆ ${count} hooks`}
       </Pill>
       <Text>{"  "}</Text>
-      <Text color={isCursor ? "$fg-cursor" : "$fg-muted"} dim={!isCursor}>
+      <Text color={isCursor ? "$fg-cursor" : "$fg-muted"}>
         {expanded ? "[expanded — Enter to collapse]" : "[Enter to expand]"}
       </Text>
       {time ? (
         <>
           <Text>{"  "}</Text>
-          <Text color={isCursor ? "$fg-cursor" : "$fg-muted"} dim={!isCursor}>
-            {time}
-          </Text>
+          <Text color={isCursor ? "$fg-cursor" : "$fg-muted"}>{time}</Text>
         </>
       ) : null}
     </Box>
