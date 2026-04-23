@@ -6,8 +6,8 @@
  * with a 150ms-per-query timeout). Blocking first paint on it pushes cold
  * start from <100ms to ~500ms. Most users on dark-terminal defaults never
  * notice the swap because the fallback picks the correct light/dark polarity
- * from `heuristics.darkBackground` (synchronous kernel/env detection). By the time
- * the probe resolves, we re-render with the accurate scheme — usually
+ * from `caps.maybeDarkBackground` (synchronous kernel/env detection). By the
+ * time the probe resolves, we re-render with the accurate scheme — usually
  * imperceptible because the first frame is already on screen.
  *
  * Flash avoidance: if a previous session cached a detected theme, we load it
@@ -34,16 +34,15 @@ const log = createLogger("km:tui:theme")
 
 interface DeferredThemeProviderProps {
   caps: {
-    // Silvery canonicalized the TYPE to `ColorTier` (2026-04-23) but kept
-    // the field name `colorTier` on TerminalCaps for source compatibility.
     colorTier?: ColorTier
+    /** Heuristic guess: terminal renders on a dark background. Uncertainty
+     * flag (`maybe*`) signals this is a fallible env sniff, not a protocol
+     * fact. Lives on caps post km-silvery.plateau-naming-polish. */
+    maybeDarkBackground?: boolean
   }
-  /** Terminal identity — post Phase 7 (caps-restructure), program / version /
-   * termName live on the profile's identity layer, not on caps. */
-  identity?: { program?: string }
-  /** Subjective heuristics — post Phase 7 (caps-restructure), darkBackground /
-   * nerdfont / textEmojiWide live on the profile's heuristics layer. */
-  heuristics?: { darkBackground?: boolean }
+  /** Terminal emulator identity (program/version/TERM). Post
+   * km-silvery.plateau-naming-polish: was `identity`, renamed `emulator`. */
+  emulator?: { program?: string }
   cacheKey?: ThemeCacheKey
   children: React.ReactNode
 }
@@ -53,23 +52,17 @@ interface DeferredThemeProviderProps {
  *
  * - `colorTier === "mono" | "ansi16"` → the ANSI 16 theme (matches what
  *   `detectTheme` would have returned synchronously anyway).
- * - Otherwise → ANSI 16 dark/light depending on `heuristics.darkBackground`.
+ * - Otherwise → ANSI 16 dark/light depending on `caps.maybeDarkBackground`.
  *   ANSI 16 themes use hex values but only 16 colors, which paint on any
  *   terminal without looking wrong; truecolor terminals still render them
  *   literally. The real palette swap happens when the probe completes.
  */
-function pickFallbackTheme(heuristics: DeferredThemeProviderProps["heuristics"]): Theme {
-  const isDark = heuristics?.darkBackground ?? true
+function pickFallbackTheme(caps: DeferredThemeProviderProps["caps"]): Theme {
+  const isDark = caps.maybeDarkBackground ?? true
   return isDark ? ansi16DarkTheme : ansi16LightTheme
 }
 
-export function DeferredThemeProvider({
-  caps,
-  identity,
-  heuristics,
-  cacheKey,
-  children,
-}: DeferredThemeProviderProps): React.ReactElement {
+export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThemeProviderProps): React.ReactElement {
   // Start with cached theme if available, else the synchronous fallback.
   // The cache survives across runs keyed by terminal program + mode so
   // repeat launches see zero theme flash. The cached theme is already
@@ -92,7 +85,7 @@ export function DeferredThemeProvider({
         return cached
       }
     }
-    return pickFallbackTheme(heuristics)
+    return pickFallbackTheme(caps)
   })
 
   // Kick off the OSC probe after first paint. useEffect runs AFTER the first
@@ -109,10 +102,12 @@ export function DeferredThemeProvider({
       return
     }
     let cancelled = false
-    // detectTheme accepts a structural `{ colorTier?, darkBackground? }` — the
-    // darkBackground heuristic moved to `heuristics` in Phase 7, so we flatten
-    // the two layers back into the one-shot argument detectTheme expects.
-    detectTheme({ caps: { colorTier: caps.colorTier, darkBackground: heuristics?.darkBackground } })
+    // detectTheme accepts a structural `{ colorTier?, darkBackground? }`.
+    // The heuristic lives on caps as `maybeDarkBackground` post
+    // km-silvery.plateau-naming-polish; we adapt field names here.
+    detectTheme({
+      caps: { colorTier: caps.colorTier, darkBackground: caps.maybeDarkBackground },
+    })
       .then((detected) => {
         if (cancelled) return
         setTheme(detected)

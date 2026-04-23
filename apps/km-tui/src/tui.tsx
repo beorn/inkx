@@ -73,23 +73,21 @@ export async function runBoard(
   const isInteractive = interactive && term.caps.input
 
   // Detect terminal capabilities for degraded mode.
-  // Post km-silvery.caps-restructure (Phase 7): `caps`, `identity`, and
-  // `heuristics` are three sibling views on `term.profile` — caps carries
-  // protocol flags, identity holds program/version/termName, heuristics
-  // holds the subjective darkBackground/nerdfont/textEmojiWide guesses.
-  const caps = term.caps
-  const { identity, heuristics } = term
-  const isLimitedTerminal = identity.program === "Apple_Terminal"
+  // Post km-silvery.plateau-naming-polish: 2-layer profile — `term.caps`
+  // carries protocol flags + `maybe*` heuristic guesses; `term.emulator`
+  // carries program/version/TERM identity.
+  const { caps, emulator } = term
+  const isLimitedTerminal = emulator.program === "Apple_Terminal"
 
   if (isInteractive && isLimitedTerminal) {
-    const themeInfo = heuristics.darkBackground ? "dark" : "light"
+    const themeInfo = caps.maybeDarkBackground ? "dark" : "light"
     process.stderr.write(
       `\x1b[33m⚠ Terminal.app detected (${themeInfo} theme, basic icons). For best experience, use Ghostty, iTerm2, or Kitty.\x1b[0m\n`,
     )
   }
 
   log.debug?.(
-    `TTY detection interactive=${interactive} hasInput=${caps.input} isInteractive=${isInteractive} caps=${identity.program}/${caps.colorTier} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} dark=${heuristics.darkBackground} nerdfont=${heuristics.nerdfont}`,
+    `TTY detection interactive=${interactive} hasInput=${caps.input} isInteractive=${isInteractive} caps=${emulator.program}/${caps.colorTier} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} maybe-dark=${caps.maybeDarkBackground} maybe-nerdfont=${caps.maybeNerdFont}`,
   )
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
@@ -330,7 +328,7 @@ export async function runBoard(
     // off inside `DeferredThemeProvider` after first render. This saves
     // ~400ms on the critical path on terminals that support OSC probing.
     // See apps/km-tui/src/deferred-theme-provider.tsx for the swap logic.
-    const defaultIconStyle = heuristics.nerdfont ? "nerdfont" : "workflowy"
+    const defaultIconStyle = caps.maybeNerdFont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
     setStartupPhase("init-lens")
@@ -401,9 +399,8 @@ export async function runBoard(
       const handle = await boardApp.run(
         <DeferredThemeProvider
           caps={caps}
-          identity={identity}
-          heuristics={heuristics}
-          cacheKey={{ program: identity.program || "unknown", dark: heuristics.darkBackground }}
+          emulator={emulator}
+          cacheKey={{ program: emulator.program || "unknown", dark: caps.maybeDarkBackground }}
         >
           <RepoProvider repo={undoableRepo}>
             <StoreProvider store={reactiveStore}>
