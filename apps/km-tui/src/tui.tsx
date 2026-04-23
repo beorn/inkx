@@ -286,9 +286,9 @@ export async function runBoard(
       }
     }
 
-    // term.cols/rows are undefined when not a TTY; fall back to stdout then defaults
-    const cols = term.cols ?? process.stdout.columns ?? 80
-    const rows = term.rows ?? process.stdout.rows ?? 24
+    // term.size.cols()/rows() handles TTY + stdout fallback + 80/24 defaults internally
+    const cols = term.size.cols()
+    const rows = term.size.rows()
 
     const viewMode = options?.initialViewMode ?? "cards"
 
