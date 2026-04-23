@@ -59,7 +59,7 @@ export function readSiblingOrder(repoRoot: string): SiblingOrderMap {
     }
     return result
   } catch (e) {
-    log.warn?.(`failed to read sibling-order.json: ${e}`)
+    log.warn?.(`failed to read sibling-order.json: ${String(e)}`)
     return {}
   }
 }

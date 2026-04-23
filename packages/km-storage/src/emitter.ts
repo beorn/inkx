@@ -148,7 +148,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
         ensureKmDir()
         appendFileSync(changesPath, JSON.stringify(change) + "\n")
       } catch (err) {
-        log.error?.(`changes.jsonl append failed for ${change.type}: ${err}`)
+        log.error?.(`changes.jsonl append failed for ${change.type}: ${String(err)}`)
       }
     }
 
@@ -157,7 +157,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
       try {
         changeHub.broadcast(change)
       } catch (err) {
-        log.error?.(`broadcast failed for ${change.type}: ${err}`)
+        log.error?.(`broadcast failed for ${change.type}: ${String(err)}`)
       }
     }
 
@@ -179,7 +179,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
         try {
           cb(change, emitOptions)
         } catch (err) {
-          log.error?.(`onApply callback failed for ${change.type}: ${err}`)
+          log.error?.(`onApply callback failed for ${change.type}: ${String(err)}`)
         }
       }
       return change

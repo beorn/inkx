@@ -786,7 +786,7 @@ async function init() {
       const remote = await createRemoteRepo({ url: wsUrl })
       remoteRepo = remote.repo
     } catch (err) {
-      status.textContent = `Connection failed: ${err instanceof Error ? err.message : err}. Using mock data.`
+      status.textContent = `Connection failed: ${err instanceof Error ? err.message : String(err)}. Using mock data.`
     }
   }
   await document.fonts.ready

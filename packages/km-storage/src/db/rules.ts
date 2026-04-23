@@ -126,7 +126,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Rule-created children are outline items, which can only nest inside outline parents.
   if (!KNode.isOutline(section)) {
     throw new Error(
-      `km.add:: rule on non-outline node (type=${section.type}, item=${section.item}). Rules are only supported on section headings.`,
+      `km.add:: rule on non-outline node (type=${section.type}, item=${String(section.item)}). Rules are only supported on section headings.`,
     )
   }
 
