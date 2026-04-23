@@ -22,7 +22,12 @@ import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
  * readable, not colorful. On hover we promote the body back to `bodyColor(kind)`
  * so the user can still pull semantic color on demand.
  */
-const BODY_COLOR_MUTED = "$fg-muted"
+// Non-hovered, non-cursor body text. `$fg-muted` is only a 40% blend toward
+// bg — still quite visible ("white" on dark themes per user report). `$color8`
+// is the terminal's bright-black palette slot — a genuinely subdued gray that
+// carries presence without competing with active rows. Hovering a row promotes
+// body to its kind-specific (colorful) color; cursor row uses `$fg-cursor`.
+const BODY_COLOR_MUTED = "$color8"
 
 function resolve<T>(
   v: T | ((value: unknown, row: LogRowData) => T) | undefined,
