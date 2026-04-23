@@ -210,8 +210,13 @@
         "@typescript-eslint/no-empty-object-type": "off",
         "@typescript-eslint/no-this-alias": "off",
         "@typescript-eslint/no-unsafe-declaration-merging": "off",
+        "@typescript-eslint/prefer-optional-chain": "off",
         "promise/always-return": "off",
         "promise/catch-or-return": "off",
+        "prefer-const": "off",
+        "no-useless-constructor": "off",
+        "unicorn/no-useless-spread": "off",
+        "complexity/complexity": "off",
         "no-unreachable": "off",
         "promise/param-names": "off",
         "curly": "off"

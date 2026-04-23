@@ -260,9 +260,13 @@ export const viewCommand = new Command("view")
               const reconcileResult = await createdRepo.reconcileAsync({ isAborted: () => aborted })
               const reconcileMs = Date.now() - tReconcile
               if (reconcileMs > 1000) {
-                debug.warn?.(`post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`)
+                debug.warn?.(
+                  `post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`,
+                )
               } else {
-                debug.debug?.(`post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`)
+                debug.debug?.(
+                  `post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`,
+                )
               }
               if (reconcileResult.deferredFiles.length > 0) {
                 deferredFiles.push(...reconcileResult.deferredFiles)
