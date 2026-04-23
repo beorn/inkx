@@ -246,7 +246,7 @@ export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
     <Link
       href={node.url}
       color={props.color}
-      underlineStyle={props.underlineStyle}
+      underline={props.underlineStyle}
       underlineColor={props.underlineColor}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -274,7 +274,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
         id={linkNodeId ?? undefined}
         color={props.color}
         backgroundColor={props.backgroundColor}
-        underlineStyle={props.underlineStyle}
+        underline={props.underlineStyle}
         underlineColor={props.underlineColor}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -292,7 +292,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   // underline passes through all states unchanged because decoration attributes
   // are not composed into the fg/bg override pipeline.
   return (
-    <Text underlineStyle="dashed" underlineColor="$fg-error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <Text underline="dashed" underlineColor="$fg-error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       {node.target}
     </Text>
   )
@@ -360,7 +360,7 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
     <Link
       href={node.url}
       color={props.color}
-      underlineStyle={props.underlineStyle}
+      underline={props.underlineStyle}
       underlineColor={props.underlineColor}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -493,7 +493,7 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
     <Text
       id={linkNodeId ?? undefined}
       color={color}
-      underlineStyle={props.underlineStyle}
+      underline={props.underlineStyle}
       underlineColor={props.underlineColor}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
