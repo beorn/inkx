@@ -12,7 +12,23 @@ import { Command, type OptionValues } from "@silvery/commander"
 import { existsSync, statSync } from "fs"
 import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
+import { homedir } from "os"
 import { findKmRootFromPath } from "@km/fs-mount"
+
+/**
+ * Expand a leading `~` to the user's home directory.
+ *
+ * `resolve("~/foo")` would return `<cwd>/~/foo` — the Node path API treats `~`
+ * as a literal segment. Shells expand `~` to `$HOME` before exec, so this
+ * matters only when the caller (a test harness or programmatic invocation)
+ * passes `~/...` through without shell expansion — which is exactly what the
+ * `--repo ~/<path>` CLI contract promises to accept.
+ */
+function expandHome(p: string): string {
+  if (p === "~") return homedir()
+  if (p.startsWith("~/")) return join(homedir(), p.slice(2))
+  return p
+}
 
 const term = createTerm(process)
 
@@ -199,14 +215,14 @@ export function configureProgram(): Command {
 
     let rootPath: string
     if (rootFlag) {
-      rootPath = resolve(rootFlag)
+      rootPath = resolve(expandHome(rootFlag))
       rootExplicitlySet = true
     } else if (rootEnv) {
-      rootPath = resolve(rootEnv)
+      rootPath = resolve(expandHome(rootEnv))
       rootExplicitlySet = true
     } else if (pathArg) {
       // Auto-detect from path argument
-      rootPath = resolve(pathArg)
+      rootPath = resolve(expandHome(pathArg))
       // Check if it's a file (use its parent) or directory
       try {
         const stats = statSync(rootPath)
@@ -222,12 +238,19 @@ export function configureProgram(): Command {
       rootExplicitlySet = false
     }
 
-    // Walk up parent directories to find .km/ (like git finds .git/)
-    const kmDir = join(rootPath, ".km")
-    if (!existsSync(kmDir)) {
-      const found = findKmRootFromPath(rootPath)
-      if (found) {
-        rootPath = dirname(found)
+    // Walk up parent directories to find .km/ (like git finds .git/).
+    // Skip when --repo / KM_ROOT was set explicitly: the user picked that
+    // directory intentionally (often a memory-mode read or a directory that
+    // doesn't have a .km/ yet), so walking up would silently bind the session
+    // to a different vault — a surprise that the `km --repo ~/foo` contract
+    // promises not to deliver.
+    if (!rootExplicitlySet) {
+      const kmDir = join(rootPath, ".km")
+      if (!existsSync(kmDir)) {
+        const found = findKmRootFromPath(rootPath)
+        if (found) {
+          rootPath = dirname(found)
+        }
       }
     }
 

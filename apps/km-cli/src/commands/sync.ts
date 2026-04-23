@@ -15,7 +15,7 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
-import { createEmitter, readChanges, SCHEMA, ensureRepoRootNode } from "@km/storage"
+import { createEmitter, readChanges, SCHEMA, ensureRepoRootNode, migrateSchema, migrateData } from "@km/storage"
 import { withSync, findKmRootFromPath, type SyncableRepo } from "@km/fs-mount"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -45,9 +45,16 @@ export const syncCommand = new Command("sync")
     const repoPath = dirname(kmRoot)
     log.debug?.(`resolved repo path: ${repoPath} (from kmRoot: ${kmRoot})`)
 
-    // Open database directly from kmRoot and ensure schema exists
+    // Open database directly from kmRoot and ensure schema exists.
+    //
+    // Migration order: migrateSchema (ALTER TABLE in place) → SCHEMA (create
+    // missing tables including meta) → migrateData (records data_version so
+    // later createRepo() calls don't misread missing meta as version=0 and
+    // wipe the nodes we just synced).
     const db = new Database(join(kmRoot, "state.db"))
+    migrateSchema(db)
     db.run(SCHEMA)
+    migrateData(db)
 
     // Ensure repo root folder node exists
     ensureRepoRootNode(db, repoPath)

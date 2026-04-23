@@ -1687,17 +1687,17 @@ function* initWithFileLoading(
       using _m = initSpan.span("migrate-schema")
       migrateResult = migrateSchema(db)
     }
-    // Data migration: run BEFORE SCHEMA (same as migrateSchema) so that
-    // readDataVersion sees the pre-SCHEMA meta state — fresh DBs have no
-    // meta table yet → returns DATA_VERSION (no migration needed).
+    {
+      using _s = initSpan.span("schema-run")
+      db.run(SCHEMA)
+    }
+    // Data migration: runs AFTER SCHEMA so meta table exists. migrateData is
+    // idempotent: on an up-to-date DB it just records DATA_VERSION so the
+    // next open doesn't misread the missing row as version=0 and wipe nodes.
     let dataResult: ReturnType<typeof migrateData>
     {
       using _d = initSpan.span("migrate-data")
       dataResult = migrateData(db)
-    }
-    {
-      using _s = initSpan.span("schema-run")
-      db.run(SCHEMA)
     }
     if (migrateResult.ftsDropped) rebuildFtsIndex(db)
     if (dataResult.needsRebuild) {

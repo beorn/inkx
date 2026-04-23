@@ -621,7 +621,16 @@ export interface DataMigrateResult {
  */
 export function migrateData(db: import("bun:sqlite").Database): DataMigrateResult {
   const current = readDataVersion(db)
-  if (current >= DATA_VERSION) return { needsRebuild: false }
+  if (current >= DATA_VERSION) {
+    // Already at or past current version. If the meta table exists, record the
+    // current version so that downstream callers that open the same DB with
+    // a fresh `readDataVersion()` (e.g. `createRepo` after `km sync` wrote
+    // rows directly) don't misread the absent meta row as version=0 and
+    // trigger a destructive rebuild.
+    const hasMeta = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get()
+    if (hasMeta) writeDataVersion(db, DATA_VERSION)
+    return { needsRebuild: false }
+  }
 
   // Any version behind DATA_VERSION triggers a full rebuild.
   // Future: if a data migration can be done incrementally (e.g., UPDATE
