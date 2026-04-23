@@ -9,7 +9,12 @@
   "type": "module",
   "module": "src/index.tsx",
   "exports": {
-    ".": "./src/index.tsx"
+    ".": "./src/index.tsx",
+    "./parse-jsonl": "./src/parse-jsonl.ts",
+    "./view-config": "./src/view-config.ts",
+    "./colorize": "./src/colorize.tsx",
+    "./configs/claude-session": "./src/configs/claude-session.ts",
+    "./configs/generic-jsonl": "./src/configs/generic-jsonl.ts"
   },
   "dependencies": {
     "@silvery/ag-react": "workspace:*",
