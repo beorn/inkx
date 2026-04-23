@@ -40,6 +40,61 @@ function truncate(s: string, max: number): string {
   return `${s.slice(0, max)}…(+${s.length - max})`
 }
 
+/** Human-readable size for image payloads (base64 → decoded byte estimate). */
+function humanBytes(b: number): string {
+  if (b < 1024) return `${b}B`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)}kB`
+  return `${(b / (1024 * 1024)).toFixed(1)}MB`
+}
+
+/**
+ * Summarize a single Anthropic content-block (text / image / other) to a compact
+ * display string. The critical case: tool_result content can be an array of blocks
+ * where one block is `{type:"image",source:{type:"base64",media_type:...,data:<MB of base64>}}`.
+ * Dumping that raw via JSON.stringify produces ~hundreds of kB of garbage per row.
+ */
+function summarizeContentBlock(block: JSON): string {
+  const t = asString(block.type)
+  if (t === "text") return asString(block.text) ?? ""
+  if (t === "image") {
+    const src = asObject(block.source)
+    const media = asString(src?.media_type) ?? "image"
+    const data = asString(src?.data) ?? ""
+    // base64 decodes to ~3/4 of encoded length
+    const approxBytes = Math.round((data.length * 3) / 4)
+    return data.length > 0 ? `[${media}, ${humanBytes(approxBytes)}]` : `[${media}]`
+  }
+  if (t === "tool_use") {
+    const name = asString(block.name) ?? "?"
+    return `[tool_use: ${name}]`
+  }
+  if (t === "tool_result") {
+    // Nested tool_result blocks in a content array — rare but possible.
+    const nested = block.content
+    if (typeof nested === "string") return nested
+    if (Array.isArray(nested)) return summarizeContent(nested)
+    return "[tool_result]"
+  }
+  // Unknown block type — don't dump raw JSON; render a compact tag.
+  return t ? `[${t}]` : ""
+}
+
+/** Summarize tool_result / message content that is a string OR an array of content blocks. */
+function summarizeContent(content: unknown): string {
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    const parts: string[] = []
+    for (const item of content) {
+      const obj = asObject(item)
+      if (!obj) continue
+      const s = summarizeContentBlock(obj)
+      if (s) parts.push(s)
+    }
+    return parts.join("\n")
+  }
+  return ""
+}
+
 /** Pretty-print tool input. Multi-line output is OK — rendered as overflow
  * lines beneath the row header. Short, fast-scan format for common tools;
  * JSON pretty-print as fallback so nothing is lost. */
@@ -125,7 +180,7 @@ function userRowFromString(content: string, obj: JSON, lineNo: number, time: str
 function userRowFromItem(item: JSON, idx: number, lineNo: number, time: string): LogRow | null {
   const itemType = asString(item.type)
   if (itemType === "tool_result") {
-    const body = typeof item.content === "string" ? item.content : JSON.stringify(item.content)
+    const body = summarizeContent(item.content)
     return mkRow(
       lineNo,
       `u${idx}`,

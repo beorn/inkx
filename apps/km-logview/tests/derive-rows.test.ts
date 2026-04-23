@@ -134,6 +134,50 @@ describe("claude-session deriveRows", () => {
     expect(rows[0]!.kind).toBe("tool_result")
     expect(rows[0]!.fields.label).toBe("toolu_xyz")
   })
+
+  test("tool_result with image block → summarized, NOT raw base64", () => {
+    // A realistic screenshot payload — ~130KB of base64 was being dumped into the body.
+    const big = "A".repeat(130_000)
+    const rows = derive({
+      type: "user",
+      timestamp: "2026-04-23T05:13:35.000Z",
+      message: {
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: "toolu_img",
+            content: [{ type: "image", source: { type: "base64", media_type: "image/png", data: big } }],
+          },
+        ],
+      },
+    })
+    expect(rows).toHaveLength(1)
+    const body = String(rows[0]!.fields.body)
+    expect(body).not.toContain(big.slice(0, 100)) // no raw base64
+    expect(body).toMatch(/^\[image\/png, \d+(\.\d+)?kB\]$/)
+    expect(body.length).toBeLessThan(40) // compact summary
+  })
+
+  test("tool_result with mixed text + image blocks joins summaries", () => {
+    const rows = derive({
+      type: "user",
+      timestamp: "2026-04-23T05:13:36.000Z",
+      message: {
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: "toolu_mix",
+            content: [
+              { type: "text", text: "here's the screenshot:" },
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "B".repeat(4096) } },
+            ],
+          },
+        ],
+      },
+    })
+    const body = String(rows[0]!.fields.body)
+    expect(body).toBe("here's the screenshot:\n[image/jpeg, 3.0kB]")
+  })
 })
 
 describe("detectConfig", () => {
