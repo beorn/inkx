@@ -26,18 +26,57 @@ function valueToString(v: unknown): string {
 }
 
 /**
- * Row layout:
- *   Line 1 (header):  fields flow inline with ` · ` separators, truncated right.
- *   Lines 2+ (body):  one row per body line, muted, indented 2, with inline
- *                     tag/JSON colorization via colorize().
+ * Row shape:
+ *   Line 1 (header):   [time]  [ KIND-pill ]  [ label-pill ]
+ *   Lines 2+ (body):   one row per body line, dim muted, indented 2, with inline
+ *                      tag/JSON colorization via colorize().
  *
- * When a `multiLine: "below"` field contains ANY newline, the *entire* body
- * (including the first line) is pushed below the header so body lines are
- * left-aligned with each other — not jutting out inline.
+ * Pills: fields named in PILL_FIELDS render as inverse-bg chips using the
+ * field's color as the pill background. Enter on the row opens the detail
+ * pane (serves as the popover: full JSON of the row). Other inline fields
+ * (time) render as plain bold colored text. Separators: a single space,
+ * not a middot — pill shape provides its own visual boundary.
  *
- * Selection (Omnibox pattern): outer Box gets $bg-cursor; all Text uses
- * $fg-cursor for contrast against the bright bg.
+ * When a `multiLine: "below"` field contains ANY newline, the whole body
+ * pushes below the header (first line included). Body lines are dim.
+ *
+ * Selection (Omnibox pattern): row Box gets $bg-cursor; Text falls back to
+ * $fg-cursor for contrast. Pill bgs collapse to cursor fg for unity.
  */
+
+const PILL_FIELDS = new Set(["kind", "label"])
+
+function Pill({
+  color,
+  bold,
+  isCursor,
+  children,
+}: {
+  color: string | undefined
+  bold: boolean
+  isCursor: boolean
+  children: React.ReactNode
+}) {
+  // On cursor rows, defer to the outer $bg-cursor — just render the text
+  // inverse-free, trusting the row's bg + fg to carry the highlight.
+  if (isCursor) {
+    return (
+      <Text color="$fg-cursor" bold={bold || undefined}>
+        {" "}
+        {children}{" "}
+      </Text>
+    )
+  }
+  // Off-cursor: classic pill — color becomes bg via `inverse`, text reads as
+  // the terminal's default bg (contrast-safe at any theme).
+  return (
+    <Text color={color} bold={bold || undefined} inverse>
+      {" "}
+      {children}{" "}
+    </Text>
+  )
+}
+
 export function LogRowView({
   row,
   fields,
@@ -50,29 +89,51 @@ export function LogRowView({
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i]!
     const raw = row.fields[field.key]
-    const color = isCursor ? cursorFg : resolve(field.color, raw, row)
-    const bold = isCursor || (resolve(field.bold, raw, row) ?? false)
+    const color = resolve(field.color, raw, row)
+    const bold = resolve(field.bold, raw, row) ?? false
     const content = field.render ? field.render(raw, row) : valueToString(raw)
     const asStr = typeof content === "string" ? content : null
 
-    // Multi-line body → all lines below. First line no longer inline.
-    if (field.multiLine === "below" && asStr !== null && asStr.includes("\n")) {
+    // Fields marked `multiLine: "below"` always render below the header,
+    // muted + dim, with inline tag/JSON colorization — single-line bodies
+    // too, so the visual language is uniform (body is always the quiet
+    // extra detail, header is always the punchy metadata).
+    if (field.multiLine === "below" && asStr !== null && asStr.length > 0) {
       bodyLines = asStr.split("\n")
       continue
     }
 
     if (content == null || content === "") continue
 
-    headerSegments.push(
-      <Text key={field.key} color={color} bold={bold || undefined}>
-        {content}
-      </Text>,
-    )
+    // Pills vs plain inline.
+    if (PILL_FIELDS.has(field.key)) {
+      headerSegments.push(
+        <Pill
+          key={field.key}
+          color={color}
+          bold={bold}
+          isCursor={isCursor}
+        >
+          {content}
+        </Pill>,
+      )
+    } else {
+      headerSegments.push(
+        <Text
+          key={field.key}
+          color={isCursor ? cursorFg : color}
+          bold={bold || isCursor || undefined}
+        >
+          {content}
+        </Text>,
+      )
+    }
+
+    // Separator: single space. Pill shape itself provides the boundary; no
+    // middot needed. For non-pill → pill transitions keep a space too.
     if (i < fields.length - 1) {
       headerSegments.push(
-        <Text key={`sep-${field.key}`} color={isCursor ? cursorFg : "$fg-muted"}>
-          {" · "}
-        </Text>,
+        <Text key={`sep-${field.key}`}>{" "}</Text>,
       )
     }
   }
