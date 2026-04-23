@@ -57,22 +57,12 @@ function Pill({
   isCursor: boolean
   children: React.ReactNode
 }) {
-  // On cursor rows, defer to the outer $bg-cursor — just render the text
-  // inverse-free, trusting the row's bg + fg to carry the highlight.
-  if (isCursor) {
-    return (
-      <Text color="$fg-cursor" bold={bold || undefined}>
-        {" "}
-        {children}{" "}
-      </Text>
-    )
-  }
-  // Off-cursor: classic pill — color becomes bg via `inverse`, text reads as
-  // the terminal's default bg (contrast-safe at any theme).
+  // Pills are "groupings with a name" — rendered as plain colored bold text.
+  // No inverse fill (tried it, too loud). Shape carries meaning via the
+  // content itself (KIND, label) + surrounding spacing.
   return (
-    <Text color={color} bold={bold || undefined} inverse>
-      {" "}
-      {children}{" "}
+    <Text color={isCursor ? "$fg-cursor" : color} bold={bold || undefined}>
+      {children}
     </Text>
   )
 }
