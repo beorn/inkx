@@ -481,19 +481,20 @@ function DocNode({
         <Box height={1} />
         {shouldExpand ? (
           childCount > 0 && (
-            // Heading children get a 2-col left indent so sections read as
-            // groups rather than a flat run of rows. Matches document-tool
-            // convention (Notion, Linear, Obsidian reading view).
-            <Box paddingLeft={2} flexDirection="column">
-              <DocContent
-                nodes={children}
-                depth={depth}
-                repo={repo}
-                cursor={cursor}
-                maxExpandDepth={maxExpandDepth}
-                undoHandle={undoHandle}
-              />
-            </Box>
+            // Document-style flow: section content is NOT indented under its
+            // heading. Headings establish hierarchy via weight/color/leading
+            // gap only, the way markdown reading views (popover, Obsidian,
+            // Bear, Notion's rendered page) lay out prose. Per-item indent
+            // (bullets, nested list items) is still handled by list items
+            // themselves at their own layer.
+            <DocContent
+              nodes={children}
+              depth={depth}
+              repo={repo}
+              cursor={cursor}
+              maxExpandDepth={maxExpandDepth}
+              undoHandle={undoHandle}
+            />
           )
         ) : (
           <CollapsedIndicator />
