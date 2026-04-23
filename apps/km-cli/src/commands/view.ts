@@ -253,17 +253,21 @@ export const viewCommand = new Command("view")
           // new files go through the regular deferred parsing path below.
           if (lazyHydrateActive && createdRepo) {
             try {
+              // km-storage.cold-startup-idle-block: wall-time each post-mount
+              // phase so we can attribute 30s cold-start blocks to the right
+              // stage (fs walk vs. parse vs. resolve vs. rules).
+              const tReconcile = Date.now()
               const reconcileResult = await createdRepo.reconcileAsync({ isAborted: () => aborted })
+              const reconcileMs = Date.now() - tReconcile
+              if (reconcileMs > 1000) {
+                debug.warn?.(`post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`)
+              } else {
+                debug.debug?.(`post-frame reconcile: ${reconcileMs}ms (deferred=${reconcileResult.deferredFiles.length} changes=${reconcileResult.changes})`)
+              }
               if (reconcileResult.deferredFiles.length > 0) {
-                debug.debug?.(
-                  `post-frame reconcile: queued ${reconcileResult.deferredFiles.length} new files for parsing`,
-                )
                 deferredFiles.push(...reconcileResult.deferredFiles)
               }
-              if (reconcileResult.changes > 0) {
-                debug.debug?.(`post-frame reconcile: applied ${reconcileResult.changes} changes`)
-                // repo.reconcileAsync already bumps the version on non-zero changes.
-              }
+              // repo.reconcileAsync already bumps the version on non-zero changes.
             } catch (err) {
               if (!aborted) {
                 debug.debug?.(`post-frame reconcile failed: ${String(err)}`)
@@ -288,6 +292,7 @@ export const viewCommand = new Command("view")
           })
 
           try {
+            const tParse = Date.now()
             const { parsed, pendingLinks } =
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
               await storageModule!.parseDeferredAsync(
@@ -303,16 +308,27 @@ export const viewCommand = new Command("view")
                   },
                 },
               )
-            debug.debug?.(`background parsing complete: ${parsed} parsed`)
+            const parseMs = Date.now() - tParse
+            if (parseMs > 1000) {
+              debug.warn?.(`background parse: ${parseMs}ms (${parsed} parsed, ${pendingLinks.length} pending links)`)
+            } else {
+              debug.debug?.(`background parse: ${parseMs}ms (${parsed} parsed, ${pendingLinks.length} pending links)`)
+            }
 
             if (aborted) return
 
             // Now resolve links from the parsed content
             if (pendingLinks.length > 0) {
+              const tResolve = Date.now()
               const resolved =
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 await storageModule!.resolveLinksAsync(createdRepo.database, pendingLinks)
-              debug.debug?.(`background link resolution complete: ${resolved} resolved`)
+              const resolveMs = Date.now() - tResolve
+              if (resolveMs > 1000) {
+                debug.warn?.(`background link resolution: ${resolveMs}ms (${resolved} resolved)`)
+              } else {
+                debug.debug?.(`background link resolution: ${resolveMs}ms (${resolved} resolved)`)
+              }
             }
 
             if (aborted) return
@@ -322,11 +338,18 @@ export const viewCommand = new Command("view")
             // @next.md's Inbox add= rules never materialize dated tasks as embeds.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const ruleCtx = storageModule!.createRuleContext()
+            const tRules = Date.now()
+            let rulesCount = 0
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             for (const _ of storageModule!.evaluateAllRules(createdRepo.database, ruleCtx)) {
-              /* exhaust generator */
+              rulesCount++
             }
-            debug.debug?.("background rule evaluation complete")
+            const rulesMs = Date.now() - tRules
+            if (rulesMs > 1000) {
+              debug.warn?.(`background rule evaluation: ${rulesMs}ms (${rulesCount} rules)`)
+            } else {
+              debug.debug?.(`background rule evaluation: ${rulesMs}ms (${rulesCount} rules)`)
+            }
 
             // Bump repo version so TUI re-derives layout from fresh DB data.
             // Background ops write directly to SQLite bypassing repo mutation API,
