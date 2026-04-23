@@ -11,7 +11,7 @@ import type { KNode } from "@km/core"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
+import { pushDialogMode } from "../dialog-guard.ts"
 import { NO_SELECTION, nodeSelect } from "../state/selection.ts"
 
 /**

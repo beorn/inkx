@@ -36,7 +36,7 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = (options.format ?? "text") as OutputFormat
 
     // Import modules
-    const [storageModule, fsMountModule, coreModule, cliModule, tuiModule, silverytModule] = await Promise.all([
+    const [storageModule, fsMountModule, coreModule, cliModule, _tuiModule, silverytModule] = await Promise.all([
       import("@km/storage"),
       import("@km/fs-mount"),
       import("@km/core"),

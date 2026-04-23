@@ -2233,7 +2233,6 @@ function findAdjacentEditNode(
 }
 
 function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBoundary = false): OpResult {
-  const { ui } = ctx
   const edit = ctx.sel.text()
   if (!edit) return ok()
 

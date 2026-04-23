@@ -23,7 +23,6 @@ import {
   type CommitMeta,
   type CommitResult,
   type RepoDelta,
-  computeDelta,
   mergeDeltas,
   rowToNode,
   SCHEMA,

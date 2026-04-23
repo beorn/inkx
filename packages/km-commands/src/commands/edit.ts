@@ -83,7 +83,7 @@ const enterInlineEdit = {
  * Leaf cards (no children) enter inline edit. This prevents accidentally
  * entering edit mode on section headings where the intent is navigation.
  */
-const enterOrZoom = {
+const _enterOrZoom = {
   id: "enter_or_zoom",
   name: "Enter / Zoom",
   description: "Zoom into cards with children, edit leaf cards",

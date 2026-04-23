@@ -28,7 +28,7 @@ import type { RepoId } from "@km/core"
 import { createLogger } from "loggily"
 
 import { parseKmUri } from "./km-uri.ts"
-import { CONFIG_TOML_NAME, readOrMintRepoId } from "./repo-id.ts"
+import { readOrMintRepoId } from "./repo-id.ts"
 
 const log = createLogger("km:storage:federation:workspace")
 

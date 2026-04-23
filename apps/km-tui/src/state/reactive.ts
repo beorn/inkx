@@ -8,7 +8,7 @@
  */
 
 import { signal } from "alien-signals"
-import { createTree, type Traversal, type TreeStore } from "alien-trees"
+import { createTree, type Traversal } from "alien-trees"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -16,9 +16,6 @@ import { getNodeDisplayName } from "../state.ts"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:hydrate")
-
-/** Writable alien-signal — call with no args to read, with arg to write. */
-type Signal<T> = ReturnType<typeof signal<T>>
 
 // =============================================================================
 // Types

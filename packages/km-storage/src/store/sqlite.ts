@@ -6,9 +6,9 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, Change } from "@km/core"
+import type { Change } from "@km/core"
 import type { Store, Observable } from "./store.ts"
-import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
+import type { CommitResult } from "./commit-types.ts"
 import { mergeDeltas } from "./commit-types.ts"
 import { applyChangeWithDb } from "../db/changes.ts"
 import { rowToNode } from "../db/queries/utils.ts"

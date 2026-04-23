@@ -268,7 +268,7 @@ const Card = React.memo(
     cardIndex,
     isBodyColumn,
     leadingGap = 0,
-    isLastBodyBlock,
+    isLastBodyBlock: _isLastBodyBlock,
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
     prevCardNodeId,
@@ -301,7 +301,7 @@ const Card = React.memo(
     const prevTreeNode = useTreeNode(prevCardNodeId ?? nodeId) // fallback to self when no prev
     const prevCursor = useSignal(prevTreeNode.cursor)
     const prevCursorDesc = useSignal(prevTreeNode.cursorDescendant) as boolean
-    const isPrevAtCursor = prevCardNodeId != null && (prevCursor || prevCursorDesc)
+    const _isPrevAtCursor = prevCardNodeId != null && (prevCursor || prevCursorDesc)
 
     // Check if this card is in inline edit mode (for border color).
     // Also matches when a sub-item of this card is being edited (editingDescendant).

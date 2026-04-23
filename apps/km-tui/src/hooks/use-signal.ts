@@ -8,16 +8,16 @@
  * read-only computed `() => T` via TypeScript overloads.
  */
 
-import { useCallback, useMemo, useRef, useSyncExternalStore } from "react"
+import { useCallback, useRef, useSyncExternalStore } from "react"
 import { effect } from "alien-signals"
 import type { KNode } from "@km/core"
-import { ResourceState, type Observable, type Reactive, type ReadonlySignal } from "@km/storage"
+import { ResourceState, type Observable, type Reactive } from "@km/storage"
 import { useApp as useAppStore } from "@silvery/create"
 import { usePaneId } from "../pane-context.tsx"
 import type { PaneSignals } from "../state/pane-signals.ts"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { isBoardPane, type BoardPaneState } from "../board/board-types.ts"
-import type { ViewTreeProjection, ProjectedViewNode, ViewNodeState } from "@km/board"
+import type { ViewTreeProjection, ProjectedViewNode } from "@km/board"
 
 /**
  * Subscribe to an alien-signals signal in React.

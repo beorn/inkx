@@ -25,8 +25,7 @@ import { fromMarkdown } from "mdast-util-from-markdown"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
 import { km, kmFromMarkdown } from "./extensions/index.ts"
 import { extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
-import { PROP_REGEX, extractKVProperties } from "@km/core"
-import type { ExtractedProp } from "@km/core"
+import { extractKVProperties } from "@km/core"
 import type { NodeRules } from "@km/core"
 
 // Re-export types

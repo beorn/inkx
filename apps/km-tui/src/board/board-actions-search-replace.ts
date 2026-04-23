@@ -12,7 +12,7 @@ import { normalizeNodeName } from "@km/markdown"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
-import { pushDialogMode, popDialogMode } from "../dialog-guard.ts"
+import { pushDialogMode } from "../dialog-guard.ts"
 import { NO_SELECTION, nodeSelect } from "../state/selection.ts"
 
 /** Open the search & replace dialog */

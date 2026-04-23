@@ -2,7 +2,6 @@ import type { CommandMode, TNode, CommandContext, KmOp } from "./types.ts"
 import type { ResolvedBinding } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
 import {
-  hasCursor,
   textInputFocused,
   isInDetailPane,
   isInlineEditing,

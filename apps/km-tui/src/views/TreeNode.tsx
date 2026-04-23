@@ -19,7 +19,7 @@ import {
   getParentContext as getParentContextFromState,
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
-import { extractBody, Tree, type TreeReader } from "@km/tree"
+import { extractBody } from "@km/tree"
 import { isCollapsedChild } from "@km/board"
 import { isSigilName, InlineText } from "../text/index.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../state/ui-context.tsx"
@@ -46,8 +46,6 @@ import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { selectedBg, multiSelectedBg } from "../theme.ts"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
-import { useApp as useAppStore } from "@silvery/create"
-import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { ErrorInfo } from "react"
 
 // ============================================================================
@@ -225,6 +223,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   return true
 })
 
+// oxlint-disable-next-line complexity/complexity -- React tree-node renderer: type × role × state × view-mode matrix (section/task/file/folder × heading/body/card × cursor/selected/focused/dim × cards/outline/tabs); each branch is a presentational conditional that inherits shared layout computation — splitting would duplicate props threading
 function TreeNodeImpl({
   node,
   depth,
@@ -511,7 +510,7 @@ function TreeNodeImpl({
   // Strip inline colors when a text color override is active (cursor inverse)
   // or for done/dropped tasks (colored dates/priorities aren't meaningful).
   // When textColor is set, competing inline colors would clash with the forced fg.
-  const isHighlighted = isSelected || isNodeSelected
+  const _isHighlighted = isSelected || isNodeSelected
   const shouldStripColor = (isSelected && tc != null) || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
@@ -1459,7 +1458,3 @@ function NodeChildren({
   )
 }
 
-/** Check if `ancestorId` is an ancestor of `nodeId` via Tree.ancestors(). */
-function isAncestorOf(repo: TreeReader, ancestorId: string, nodeId: string): boolean {
-  return Tree.ancestors(repo, nodeId).some((a) => a.id === ancestorId)
-}

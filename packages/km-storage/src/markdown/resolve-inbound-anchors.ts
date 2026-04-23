@@ -136,7 +136,7 @@ export function resolveInboundAnchors(
       }
     }
 
-    for (const [fileId, fts] of targetSet) {
+    for (const [, fts] of targetSet) {
       const written = scanAndInsert(db, repoRoot, fts)
       filesScanned++
       anchorsWritten += written

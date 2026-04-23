@@ -16,7 +16,7 @@
  */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs"
-import { join, basename, dirname } from "node:path"
+import { join } from "node:path"
 import { execSync } from "node:child_process"
 
 const ROOT = join(import.meta.dir, "..", "..", "..")
@@ -78,7 +78,6 @@ function discoverPackages(): PkgInfo[] {
     if (!existsSync(pkgPath)) continue
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, "utf8"))
-      const exports = pkg.exports || {}
       const files = pkg.files || []
       const bin = pkg.bin || {}
       const publishConfig = pkg.publishConfig || {}

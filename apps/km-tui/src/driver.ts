@@ -384,7 +384,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const s = store.getState()
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
-    const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
     // Derive layout from tree on demand
     const ni = board?.signals

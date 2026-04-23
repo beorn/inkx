@@ -13,8 +13,8 @@ export { MemoryStore } from "./memory.ts"
 // =============================================================================
 
 import type { KNode, Change } from "@km/core"
-import type { CommitMeta, CommitResult, RepoDelta, ChangeEnvelope } from "./commit-types.ts"
-import { computeDelta, mergeDeltas } from "./commit-types.ts"
+import type { CommitMeta, CommitResult, ChangeEnvelope } from "./commit-types.ts"
+import { mergeDeltas } from "./commit-types.ts"
 import type { Repo } from "../repo/repo.ts"
 import { ulid } from "ulid"
 

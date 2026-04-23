@@ -10,8 +10,6 @@
  */
 
 import type {
-  ID,
-  Modifiers,
   PointerEvent,
   PointerHelpers,
   PointerOrigin,
