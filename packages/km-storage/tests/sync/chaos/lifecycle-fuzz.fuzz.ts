@@ -254,13 +254,13 @@ function createLifecyclePicker(initialFiles: string[]): Picker<FsOp> {
         // Update all child paths
         state.folders.delete(oldPath)
         state.folders.add(newPath)
-        for (const f of [...state.folders]) {
+        for (const f of Array.from(state.folders)) {
           if (f.startsWith(oldPath + "/")) {
             state.folders.delete(f)
             state.folders.add(newPath + f.slice(oldPath.length))
           }
         }
-        for (const f of [...state.files]) {
+        for (const f of Array.from(state.files)) {
           if (f.startsWith(oldPath + "/")) {
             state.files.delete(f)
             state.files.add(newPath + f.slice(oldPath.length))

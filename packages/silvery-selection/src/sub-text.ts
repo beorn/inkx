@@ -35,13 +35,13 @@ export function createTextAccessor(
 
   read.select = function select(cursor?: number, anchor?: number): void {
     const sub = $sub()
-    if (sub === null || sub.kind !== "text") return
+    if (sub?.kind !== "text") return
     doSelect(cursor, anchor)
   }
 
   read.deselect = function deselect(): void {
     const sub = $sub()
-    if (sub === null || sub.kind !== "text") return
+    if (sub?.kind !== "text") return
     doDeselect()
   }
 

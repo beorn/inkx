@@ -131,7 +131,7 @@ export function buildWorkspace(mounts: readonly WorkspaceMount[]): Workspace {
     },
     resolveKmUri(uri: string): WorkspaceUriResolution | null {
       const parsed = parseKmUri(uri)
-      if (parsed === null || parsed.kind !== "km-uri") return null
+      if (parsed?.kind !== "km-uri") return null
       const mount = byAlias.get(parsed.alias)
       if (!mount) return null
       return { mount, relPath: parsed.relPath, fragment: parsed.fragment }
