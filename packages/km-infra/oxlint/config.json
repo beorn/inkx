@@ -177,6 +177,17 @@
       }
     },
     {
+      "files": [
+        "**/apps/km-tui/web/**/*.ts",
+        "**/apps/km-tui/web/**/*.tsx",
+        "**/apps/km-web/src/**/*.ts",
+        "**/apps/km-web/src/**/*.tsx"
+      ],
+      "env": {
+        "browser": true
+      }
+    },
+    {
       "files": ["**/vendor/**/*.ts", "**/vendor/**/*.tsx"],
       "rules": {
         "@typescript-eslint/no-non-null-assertion": "off",

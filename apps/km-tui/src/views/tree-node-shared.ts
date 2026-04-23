@@ -91,10 +91,15 @@ function PopoverNodeBody({
   const nodeIsTask = KNode.isTask(node)
   const statusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
   const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
+  // Lazy-require is intentional — see PopoverNodeBody's jsdoc above. Bun
+  // supports require() in ESM at runtime; converting to a top-level `import`
+  // would re-introduce the render-path cost we're specifically avoiding.
+  /* eslint-disable @typescript-eslint/no-require-imports, no-undef -- see note above */
   const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
   const { CheckboxIcon } = require("../views/CheckboxIcon.tsx") as typeof import("../views/CheckboxIcon.tsx")
   const { InlineText, InlineRenderProvider } =
     require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
+  /* eslint-enable @typescript-eslint/no-require-imports, no-undef */
   return React.createElement(
     InlineRenderProvider,
     { value: inlineCtx },
