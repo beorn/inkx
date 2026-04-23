@@ -2,7 +2,7 @@
 /** Main row renderer: header (pills + inline fields) on one line, optional body below with collapsible preview + click-to-toggle expansion. */
 import React, { useCallback } from "react"
 import { Box, Text, useSearch, useWindowSize } from "silvery"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { SilveryMouseEvent } from "silvery/term"
 import { colorize } from "../colorize.tsx"
 import type { FieldSpec, LogRow as LogRowData } from "../view-config.ts"
 import { CollapsedBodyPreview } from "./CollapsedBodyPreview.tsx"

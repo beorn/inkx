@@ -1,7 +1,7 @@
 /** Hover-to-popover glue: `usePopoverHandlers` hook + `HoverTarget` wrapper that delay-shows a popover on mouse dwell and hides it on leave. */
 import React, { useCallback, useRef } from "react"
 import { Text } from "silvery"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { SilveryMouseEvent } from "silvery/term"
 import { usePopover, type PopoverContent } from "../Popover.tsx"
 
 /** Hover dwell before showing a popover — short enough to feel responsive,

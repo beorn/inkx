@@ -25,7 +25,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { Box, Text, useWindowSize } from "silvery"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { SilveryMouseEvent } from "silvery/term"
 
 // =============================================================================
 // Types
