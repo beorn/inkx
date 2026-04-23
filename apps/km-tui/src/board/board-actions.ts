@@ -2983,7 +2983,8 @@ function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): OpResult {
 
   // Copy content to system clipboard via OSC 52
   const text = cards.map((c) => c.content ?? c.id).join("\n")
-  createOsc52Backend(process.stdout).write({ text })
+  // OSC 52 write is synchronous for stdout — write() returns void in that path. Wrap for promise API.
+  void createOsc52Backend(process.stdout).write({ text })
 
   const label = mode === "cut" ? "Cut" : "Copied"
   ctx.toastQueue.info(`${label} ${nodeIds.length} node${nodeIds.length > 1 ? "s" : ""}`)
