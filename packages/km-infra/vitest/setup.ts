@@ -46,8 +46,8 @@ if (typeof process.connected === "boolean") {
       process.exit(1)
     }
   }, 5000)
-  // @ts-expect-error — setInterval returns Timer (Node) not number (browser); unref is always available
-  orphanCheck.unref() // don't keep process alive just for this timer
+  // setInterval returns Timer (Node) not number (browser); unref is always available
+  ;(orphanCheck as unknown as { unref: () => void }).unref() // don't keep process alive just for this timer
 }
 
 // Suppress logger output during tests (info would trip console detection)

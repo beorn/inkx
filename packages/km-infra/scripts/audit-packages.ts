@@ -73,40 +73,59 @@ function discoverPackages(): PkgInfo[] {
       .map((d) => join(ROOT, "vendor/bearly/packages", d.name)),
   ]
 
+  interface RawPkg {
+    name?: string
+    version?: string
+    private?: boolean
+    author?: string | { name?: string }
+    license?: string
+    description?: string
+    homepage?: string
+    exports?: unknown
+    tsdown?: unknown
+    publishConfig?: Record<string, unknown>
+    files?: string[]
+    bin?: string | Record<string, string>
+    dependencies?: Record<string, string>
+    peerDependencies?: Record<string, string>
+  }
+
   for (const dir of dirs) {
     const pkgPath = join(dir, "package.json")
     if (!existsSync(pkgPath)) continue
     try {
-      const pkg = JSON.parse(readFileSync(pkgPath, "utf8"))
-      const files = pkg.files || []
-      const bin = pkg.bin || {}
-      const publishConfig = pkg.publishConfig || {}
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as RawPkg
+      const files = pkg.files ?? []
+      const bin = pkg.bin ?? {}
+      const publishConfig = pkg.publishConfig ?? {}
       const silveryCrossDeps: Record<string, string> = {}
       for (const [k, v] of Object.entries({ ...pkg.dependencies, ...pkg.peerDependencies })) {
         if (k.startsWith("@silvery/") || k === "silvery" || k === "loggily" || k === "flexily") {
-          silveryCrossDeps[k] = v as string
+          silveryCrossDeps[k] = v
         }
       }
 
       let npmVersion = ""
       try {
-        npmVersion = execSync(`npm view ${pkg.name} version 2>/dev/null`, { encoding: "utf8" }).trim()
+        npmVersion = execSync(`npm view ${pkg.name ?? ""} version 2>/dev/null`, { encoding: "utf8" }).trim()
       } catch {}
 
-      const binValues = typeof bin === "string" ? [bin] : (Object.values(bin) as string[])
-      const binPointsToDist = binValues.length === 0 || binValues.every((b: string) => b.includes("/dist/"))
+      const binValues = typeof bin === "string" ? [bin] : Object.values(bin)
+      const binPointsToDist = binValues.length === 0 || binValues.every((b) => b.includes("/dist/"))
+
+      const authorStr = typeof pkg.author === "string" ? pkg.author : (pkg.author?.name ?? "")
 
       packages.push({
-        name: pkg.name,
-        version: pkg.version,
+        name: pkg.name ?? "",
+        version: pkg.version ?? "",
         dir: dir.replace(ROOT + "/", ""),
-        private: pkg.private || false,
+        private: pkg.private ?? false,
         hasReadme: existsSync(join(dir, "README.md")),
         hasLicense: existsSync(join(dir, "LICENSE")),
-        author: pkg.author || "",
-        license: pkg.license || "",
-        description: pkg.description || "",
-        homepage: pkg.homepage || "",
+        author: authorStr,
+        license: pkg.license ?? "",
+        description: pkg.description ?? "",
+        homepage: pkg.homepage ?? "",
         hasExports: !!pkg.exports,
         hasTsdown: !!pkg.tsdown,
         hasPublishConfig: "exports" in publishConfig,
@@ -119,7 +138,7 @@ function discoverPackages(): PkgInfo[] {
         silveryCrossDeps,
       })
     } catch (e) {
-      console.error(`Error reading ${pkgPath}: ${e}`)
+      console.error(`Error reading ${pkgPath}: ${String(e)}`)
     }
   }
 

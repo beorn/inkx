@@ -236,7 +236,7 @@ export function serveRepo(repo: Repo, opts: ServeRepoOptions) {
             wsData._mutation = mut
           }
 
-          const result = fn.apply(repo, args as unknown[])
+          const result: unknown = (fn as (...a: unknown[]) => unknown).apply(repo, args as unknown[])
 
           // For addNode, capture the returned nodeId
           if (method === "addNode" && wsData._mutation) {

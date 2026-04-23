@@ -35,7 +35,7 @@ watcher
     return
   })
   .catch((err: unknown) => {
-    log.warn?.(`File watcher failed to start: ${err instanceof Error ? err.message : err}`)
+    log.warn?.(`File watcher failed to start: ${err instanceof Error ? err.message : String(err)}`)
   })
 
 const server = serveRepo(repo, { port })

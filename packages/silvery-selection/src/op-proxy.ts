@@ -43,12 +43,13 @@ export function op<T extends object>(target: T, apply: OpApply): T {
       const val = Reflect.get(obj, prop, receiver)
 
       if (typeof val === "function") {
+        const fn = val as (...a: unknown[]) => unknown
         return (...args: unknown[]) =>
           apply({
             type: "model-op",
             path: [prop],
             args,
-            run: () => val.apply(obj, args),
+            run: () => fn.apply(obj, args),
           })
       }
 
