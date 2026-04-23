@@ -101,6 +101,39 @@ describe("isolate.sh — cp -c submodule isolation", () => {
     expect(sourceHead).toHaveLength(40)
   }, 60_000)
 
+  test("clone starts clean — source's uncommitted WIP is wiped to HEAD", async () => {
+    const source = join(sandbox, "main")
+    const clone = join(sandbox, "clone")
+
+    await initRepo(source)
+    writeFileSync(join(source, "tracked.txt"), "committed\n")
+    await commitAll(source, "init")
+
+    // Simulate user WIP in the source BEFORE cloning
+    writeFileSync(join(source, "tracked.txt"), "DIRTY-wip\n")
+    writeFileSync(join(source, "staged.txt"), "staged-new\n")
+    await $`cd ${source} && git add staged.txt`.quiet()
+    writeFileSync(join(source, "untracked.txt"), "untracked-new\n")
+    // Simulate a nested agent clone in the source's .claude/worktrees/
+    mkdirSync(join(source, ".claude/worktrees/agent-prev"), { recursive: true })
+    writeFileSync(join(source, ".claude/worktrees/agent-prev/marker"), "cascade\n")
+
+    await $`bash ${ISOLATE} ${source} ${clone}`.quiet()
+
+    // Tracked modification — should be reset to HEAD content
+    expect(readFileSync(join(clone, "tracked.txt"), "utf8")).toBe("committed\n")
+    // Staged new file — should be gone (git reset --hard + clean)
+    expect(existsSync(join(clone, "staged.txt"))).toBe(false)
+    // Untracked file — should be gone (git clean)
+    expect(existsSync(join(clone, "untracked.txt"))).toBe(false)
+    // Cascade — no nested worktrees carried over
+    expect(existsSync(join(clone, ".claude/worktrees/agent-prev"))).toBe(false)
+
+    // Source still has its WIP (clone didn't mutate it)
+    expect(readFileSync(join(source, "tracked.txt"), "utf8")).toBe("DIRTY-wip\n")
+    expect(existsSync(join(source, ".claude/worktrees/agent-prev/marker"))).toBe(true)
+  }, 60_000)
+
   test("refuses to overwrite existing target", async () => {
     const source = join(sandbox, "src")
     const target = join(sandbox, "existing")

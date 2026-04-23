@@ -66,6 +66,34 @@ isolate_worktree() {
 
   _fix_submodule_gitdirs "$source" "$target"
   _remove_stale_locks "$target"
+  _reset_to_head "$target"
+}
+
+# Reset the clone's working tree to HEAD state in the main repo and every
+# submodule. cp copied the source's uncommitted WIP verbatim; without this,
+# the Agent sees the user's unstaged modifications (and could commit them as
+# its own work) and also inherits whatever .claude/worktrees/* clones the
+# source had (cascade). The clone starts from a known baseline.
+_reset_to_head() {
+  local target="$1"
+
+  # Main repo — wipe tracked modifications + staged changes, then remove
+  # untracked (but keep ignored dirs like node_modules/, .beads/dolt-*).
+  (
+    cd "$target" 2>/dev/null || exit 0
+    git reset --hard HEAD >/dev/null 2>&1 || true
+    git clean -fd >/dev/null 2>&1 || true
+    # Prevent clone cascade — don't inherit the source's agent worktrees.
+    /bin/rm -rf .claude/worktrees 2>/dev/null || true
+  )
+
+  # Submodules — same drill. foreach --recursive covers nested submodules.
+  (
+    cd "$target" 2>/dev/null || exit 0
+    git submodule foreach --recursive --quiet \
+      'git reset --hard HEAD >/dev/null 2>&1; git clean -fd >/dev/null 2>&1' \
+      >/dev/null 2>&1 || true
+  )
 }
 
 # Rewrite every submodule .git file in the clone so its `gitdir:` points to

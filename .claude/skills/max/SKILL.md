@@ -127,6 +127,7 @@ Checklist before launching the Agent calls:
 - Count: how many agents in this `/max` batch will write to `vendor/<same-pkg>/`?
 - If ≥ 2: add `isolation: "worktree"` to **every one of them** that touches that submodule, and append the CRITICAL commit block below
 - After launching: verify with `ls .claude/worktrees/` that each clone directory actually exists. `isolation: "worktree"` invokes `.claude/hooks/worktree-create.sh` which calls `.claude/lib/isolate.sh` (APFS `cp -c -R`) to materialize the clone. The hook blocks until the clone is ready (~20-25s on the km repo).
+- **Clones start from HEAD, not your WIP.** isolate.sh runs `git reset --hard HEAD && git clean -fd` (main repo + recursive submodules) after cp -c. If an agent needs to work on top of your uncommitted changes, commit them first. This prevents agents from accidentally committing your WIP as their own work.
 - Canonical memory: [feedback-worktree-shared-submodule.md](/Users/beorn/.config/claude-profiles/bjorns@gmail.com/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)
 
 ### Blast-radius classification (applies when the submodule rule doesn't force isolation)
