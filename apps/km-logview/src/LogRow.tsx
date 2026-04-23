@@ -23,46 +23,17 @@ function valueToString(v: unknown): string {
   }
 }
 
-function FieldCell({
-  field,
-  row,
-  isCursor,
-}: {
-  field: FieldSpec
-  row: LogRowData
-  isCursor: boolean
-}) {
-  const raw = row.fields[field.key]
-  // Omnibox pattern: selection wins over per-field color — everything on the
-  // cursor row reads in $fg-cursor (black on $bg-cursor), bold. This is why
-  // Omnibox row looks like a native-terminal cursor highlight.
-  const color = isCursor
-    ? "$fg-cursor"
-    : resolve(field.color, raw, row)
-  const bold = isCursor || (resolve(field.bold, raw, row) ?? false)
-  const wrap = field.multiLine === "wrap"
-  const content = field.render ? field.render(raw, row) : valueToString(raw)
-
-  const width = field.width
-  const isFlex = width === "flex"
-  const isAuto = width === "auto"
-  const fixed = typeof width === "number" ? width : undefined
-
-  return (
-    <Box
-      width={fixed}
-      flexGrow={isFlex ? 1 : 0}
-      flexShrink={isFlex || isAuto ? 1 : 0}
-      overflow="hidden"
-      marginRight={1}
-    >
-      <Text color={color} bold={bold || undefined} wrap={wrap ? "wrap" : "truncate-end"}>
-        {content}
-      </Text>
-    </Box>
-  )
-}
-
+/**
+ * Row layout:
+ *   Line 1: all fields flow inline with ` · ` separators, truncated at right.
+ *   Lines 2+: for fields with `multiLine: "below"`, continuation lines render
+ *   underneath in muted colour, indented 2.
+ *
+ * Selection (Omnibox pattern): the outer Box gets `$bg-cursor` backgroundColor
+ * (full terminal width), and every field Text is overridden to `$fg-cursor` so
+ * contrast is readable. Following Silvery Omnibox — no cursor glyph, bg
+ * communicates selection.
+ */
 export function LogRowView({
   row,
   fields,
@@ -72,16 +43,58 @@ export function LogRowView({
   fields: FieldSpec[]
   isCursor: boolean
 }) {
-  // Cursor row: $bg-cursor background fills the row. No leading ▸ glyph —
-  // selection is communicated entirely by the bg (per Silvery Omnibox pattern).
+  const segments: React.ReactNode[] = []
+  let overflowLines: string[] = []
+  const cursorFg = "$fg-cursor"
+
+  for (let i = 0; i < fields.length; i++) {
+    const field = fields[i]!
+    const raw = row.fields[field.key]
+    const color = isCursor ? cursorFg : resolve(field.color, raw, row)
+    const bold = isCursor || (resolve(field.bold, raw, row) ?? false)
+    const content = field.render ? field.render(raw, row) : valueToString(raw)
+
+    let firstLine: React.ReactNode = content
+    if (typeof content === "string" && field.multiLine === "below" && content.includes("\n")) {
+      const lines = content.split("\n").filter((l) => l.length > 0)
+      firstLine = lines[0] ?? ""
+      overflowLines = lines.slice(1)
+    }
+
+    if (firstLine == null || firstLine === "") continue
+
+    segments.push(
+      <Text key={field.key} color={color} bold={bold || undefined}>
+        {firstLine}
+      </Text>,
+    )
+    if (i < fields.length - 1) {
+      segments.push(
+        <Text key={`sep-${field.key}`} color={isCursor ? cursorFg : "$fg-muted"}>
+          {" · "}
+        </Text>,
+      )
+    }
+  }
+
   return (
     <Box
-      flexDirection="row"
+      flexDirection="column"
       paddingX={1}
+      width="100%"
       backgroundColor={isCursor ? "$bg-cursor" : undefined}
     >
-      {fields.map((f) => (
-        <FieldCell key={f.key} field={f} row={row} isCursor={isCursor} />
+      <Text wrap="truncate-end">{segments}</Text>
+      {overflowLines.map((line, i) => (
+        <Text
+          // biome-ignore lint/suspicious/noArrayIndexKey: index is stable for static content
+          key={`overflow-${i}`}
+          color={isCursor ? cursorFg : "$fg-muted"}
+          wrap="truncate-end"
+        >
+          {"  "}
+          {line}
+        </Text>
       ))}
     </Box>
   )

@@ -32,9 +32,10 @@ export interface FieldSpec {
    * Multi-line behavior:
    * - "truncate" (default): single-line, truncated with ellipsis
    * - "wrap": preserve newlines, wrap naturally
-   * - "collapsed": truncated inline, expand on Enter (v1 — v0 renders as truncate)
+   * - "below": first line inline, remaining lines rendered under the row in
+   *   muted colour indented 2 (good for tool_result output, hook stdout)
    */
-  multiLine?: "truncate" | "wrap" | "collapsed"
+  multiLine?: "truncate" | "wrap" | "below"
   /** Max chars for truncation (default 500). */
   maxChars?: number
 }

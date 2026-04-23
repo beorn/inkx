@@ -282,22 +282,22 @@ export const claudeSessionConfig: ViewConfig = {
     { key: "time", width: 8, color: "$fg-muted" },
     {
       key: "kind",
-      width: 10,
+      width: 8,
       color: (_v, row) => kindColor(row.kind ?? ""),
-      bold: (_v, row) => row.kind === "user" || row.kind === "inject",
+      bold: true,
       render: (_v, row) => KIND_LABEL[row.kind ?? ""] ?? row.kind ?? "",
     },
     {
       key: "label",
-      width: 14,
+      width: "auto",
       color: (_v, row) => kindColor(row.kind ?? "") ?? "$fg-muted",
     },
     {
       key: "body",
       width: "flex",
-      multiLine: "truncate",
-      // Tint bulk content by kind — subtle but visible across the row.
+      multiLine: "below",
       color: (_v, row) => bodyColor(row.kind ?? ""),
+      bold: (_v, row) => row.kind === "user",
     },
   ],
   searchText(row) {
