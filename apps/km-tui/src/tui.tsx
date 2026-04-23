@@ -51,8 +51,8 @@ tuiEvents.setMaxListeners(200)
  * Initial cursor and collapsed nodes are derived from the lens — no pre-computed state needed.
  *
  * Uses term.caps.input to detect TTY capability:
- * - hasInput() = true → interactive mode with keyboard
- * - hasInput() = false → static mode, render once and exit
+ * - `caps.input === true` → interactive mode with keyboard
+ * - `caps.input === false` → static mode, render once and exit
  */
 // oxlint-disable-next-line complexity/complexity -- async setup with nested callbacks, not worth extracting
 export async function runBoard(
