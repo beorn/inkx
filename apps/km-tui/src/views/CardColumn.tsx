@@ -427,6 +427,12 @@ const Card = React.memo(
           >
             <Text
               color={isSelected || isNodeSelected ? "$selectionbg" : "$muted"}
+              // HR dividers are separator chrome, not content. The unselected
+              // state reads as dim per tests/hr.test.ts; selected state wins
+              // via the color switch above. dimColor is the right primitive
+              // here because the target attribute is a rendering detail, not
+              // a semantic token. Deletion tracked by km-silvery.delete-dim-dimcolor.
+              // eslint-disable-next-line @typescript-eslint/no-deprecated
               dimColor={!isSelected && !isNodeSelected}
               wrap="truncate"
             >
