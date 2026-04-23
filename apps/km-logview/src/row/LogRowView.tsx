@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 /** Main row renderer: header (pills + inline fields) on one line, optional body below with collapsible preview + click-to-toggle expansion. */
 import React, { useCallback } from "react"
-import { Box, Text, useSearch, useWindowSize } from "silvery"
+import { Box, Text, useWindowSize } from "silvery"
 import type { SilveryMouseEvent } from "silvery/term"
 import { colorize } from "../colorize.tsx"
 import type { PopoverContent } from "../Popover.tsx"
 import type { FieldSpec, LogRow as LogRowData } from "../view-config.ts"
 import { CollapsedBodyPreview } from "./CollapsedBodyPreview.tsx"
 import { BODY_COLLAPSED_MAX_LINES, BODY_INDENT, INLINE_BODY_FIT_MARGIN, PILL_FIELDS } from "./constants.ts"
-import { highlight } from "./highlight.tsx"
+import { highlightQuery } from "./highlight.tsx"
 import { HoverTarget } from "./HoverTarget.tsx"
 import { Pill } from "./Pill.tsx"
 import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
@@ -85,7 +85,7 @@ function renderPillSegment(
 ): React.ReactElement {
   const content =
     typeof rendered === "string" && hasMatch(rendered, ctx.searchQuery)
-      ? highlight(rendered, ctx.searchQuery)
+      ? highlightQuery(rendered, ctx.searchQuery)
       : rendered
   const pill = (
     <Pill key={field.key} color={color} bold={bold} isCursor={ctx.isCursor}>
@@ -102,9 +102,11 @@ function renderInlineBodySegment(
   popContent: PopoverContent | null,
   ctx: SegmentContext,
 ): React.ReactElement {
-  const content = hasMatch(inlineBody, ctx.searchQuery) ? highlight(inlineBody, ctx.searchQuery) : colorize(inlineBody)
+  const content = hasMatch(inlineBody, ctx.searchQuery)
+    ? highlightQuery(inlineBody, ctx.searchQuery)
+    : colorize(inlineBody)
   const segment = (
-    <Text key={field.key} color={ctx.isCursor ? ctx.cursorFg : "$fg-muted"} dim={!ctx.isCursor}>
+    <Text key={field.key} color={ctx.isCursor ? ctx.cursorFg : "$fg-muted"}>
       {content}
     </Text>
   )
@@ -122,7 +124,7 @@ function renderPlainSegment(
 ): React.ReactElement {
   const content =
     typeof rendered === "string" && hasMatch(rendered, ctx.searchQuery)
-      ? highlight(rendered, ctx.searchQuery)
+      ? highlightQuery(rendered, ctx.searchQuery)
       : rendered
   const segment = (
     <Text key={field.key} color={ctx.isCursor ? ctx.cursorFg : color} bold={bold || ctx.isCursor || undefined}>
@@ -225,13 +227,11 @@ function computeBodyState(bodyLines: string[]): BodyState {
 function BodyLines({
   lines,
   keyPrefix,
-  isCursor,
   bodyColor,
   searchQuery,
 }: {
   lines: string[]
   keyPrefix: string
-  isCursor: boolean
   bodyColor: string
   searchQuery: string
 }) {
@@ -244,10 +244,9 @@ function BodyLines({
             // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
             key={`${keyPrefix}${i}`}
             color={bodyColor}
-            dim={!isCursor}
             wrap="wrap"
           >
-            {showHighlight ? highlight(line, searchQuery) : colorize(line)}
+            {showHighlight ? highlightQuery(line, searchQuery) : colorize(line)}
           </Text>
         )
       })}
@@ -288,18 +287,23 @@ export function LogRowView({
   isCursor,
   expanded,
   onToggleExpand,
+  searchQuery = "",
 }: {
   row: LogRowData
   fields: FieldSpec[]
   isCursor: boolean
   expanded: boolean
   onToggleExpand: () => void
+  /**
+   * Active search query propagated from `ListView`'s `renderItem` meta.
+   * Empty string when no search is active. Used to compute per-segment
+   * highlight ranges via `computeMatchRanges`. Defaults to "" so the
+   * component is still renderable outside a ListView (e.g. in tests or
+   * alternate surfaces).
+   */
+  searchQuery?: string
 }) {
   const { columns } = useWindowSize()
-  // Active search query — highlights matching substrings in every rendered
-  // string (pill labels, inline body, body lines). Empty when no search.
-  const searchCtx = useSearch()
-  const searchQuery = searchCtx?.query ?? ""
   const cursorFg = "$fg-cursor"
 
   const ctx: SegmentContext = { isCursor, cursorFg, searchQuery }
@@ -339,29 +343,12 @@ export function LogRowView({
         <CollapsedBodyPreview
           lines={collapsedLines}
           remainder={collapsedRemainder}
-          isCursor={isCursor}
           bodyColor={bodyColor}
           searchQuery={searchQuery}
         />
       )}
-      {showExpanded && (
-        <BodyLines
-          lines={bodyLines}
-          keyPrefix="b"
-          isCursor={isCursor}
-          bodyColor={bodyColor}
-          searchQuery={searchQuery}
-        />
-      )}
-      {showFlat && (
-        <BodyLines
-          lines={trimmedBodyLines}
-          keyPrefix="f"
-          isCursor={isCursor}
-          bodyColor={bodyColor}
-          searchQuery={searchQuery}
-        />
-      )}
+      {showExpanded && <BodyLines lines={bodyLines} keyPrefix="b" bodyColor={bodyColor} searchQuery={searchQuery} />}
+      {showFlat && <BodyLines lines={trimmedBodyLines} keyPrefix="f" bodyColor={bodyColor} searchQuery={searchQuery} />}
     </Box>
   )
 }

@@ -190,16 +190,13 @@ function PopoverOverlay({
           // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable for a given popover content
           key={`l${i}`}
           color="$fg-muted"
-          dim
           wrap="truncate-end"
         >
           {line}
         </Text>
       ))}
       {content.lines.length > bodyLines && (
-        <Text color="$fg-muted" dim>
-          {`…(+${content.lines.length - bodyLines} more lines)`}
-        </Text>
+        <Text color="$fg-muted">{`…(+${content.lines.length - bodyLines} more lines)`}</Text>
       )}
     </Box>
   )

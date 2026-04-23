@@ -73,13 +73,14 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
   }, [])
 
   const renderItem = useCallback(
-    (row: LogRow, _i: number, meta: { isCursor: boolean }) => (
+    (row: LogRow, _i: number, meta: { isCursor: boolean; searchQuery: string }) => (
       <LogRowView
         row={row}
         fields={config.fields}
         isCursor={meta.isCursor}
         expanded={expanded.has(row.id)}
         onToggleExpand={() => toggleExpand(row.id)}
+        searchQuery={meta.searchQuery}
       />
     ),
     [config.fields, expanded, toggleExpand],

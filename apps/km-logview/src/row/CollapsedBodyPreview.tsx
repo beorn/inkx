@@ -3,7 +3,7 @@ import React, { useCallback, useState } from "react"
 import { Box, Text } from "silvery"
 import { colorize } from "../colorize.tsx"
 import { BODY_INDENT } from "./constants.ts"
-import { highlight } from "./highlight.tsx"
+import { highlightQuery } from "./highlight.tsx"
 
 /** Inline component: collapsed multi-line body preview. Lines wrap
  * naturally; a "+N more (click to expand)" tail indicates hidden content.
@@ -14,13 +14,11 @@ import { highlight } from "./highlight.tsx"
 export function CollapsedBodyPreview({
   lines,
   remainder,
-  isCursor,
   bodyColor,
   searchQuery,
 }: {
   lines: string[]
   remainder: number
-  isCursor: boolean
   bodyColor: string
   searchQuery: string
 }) {
@@ -36,10 +34,9 @@ export function CollapsedBodyPreview({
             // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
             key={`c${i}`}
             color={bodyColor}
-            dim={!isCursor}
             wrap="wrap"
           >
-            {showHighlight ? highlight(line, searchQuery) : colorize(line)}
+            {showHighlight ? highlightQuery(line, searchQuery) : colorize(line)}
           </Text>
         )
       })}
@@ -47,7 +44,7 @@ export function CollapsedBodyPreview({
         // Only the "+N more" indicator brightens on hover — body lines stay
         // subdued so the call-to-action stands out. Bright default fg + bold
         // on hover; no underline (per user spec).
-        <Text color={hovered ? "$fg" : "$fg-muted"} dim={!isCursor && !hovered} bold={hovered || undefined}>
+        <Text color={hovered ? "$fg" : "$fg-muted"} bold={hovered || undefined}>
           {`⋯ +${remainder} more (click to expand)`}
         </Text>
       )}
