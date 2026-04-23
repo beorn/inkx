@@ -47,11 +47,13 @@
   },
   "bin": {
     "km": "./apps/km-cli/src/index.ts",
+    "km-logview": "./apps/km-logview/src/bootstrap.ts",
     "debug": "./scripts/debug"
   },
   "scripts": {
     "setup": "bun run scripts/setup.ts",
     "km": "bun run ./apps/km-cli/src/index.ts",
+    "km-logview": "bun run ./apps/km-logview/src/bootstrap.ts",
     "km:strict": "SILVERY_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "termless": "bun vendor/termless/packages/cli/src/cli.ts",

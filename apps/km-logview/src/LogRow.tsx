@@ -25,21 +25,10 @@ function valueToString(v: unknown): string {
 
 function FieldCell({ field, row }: { field: FieldSpec; row: LogRowData }) {
   const raw = row.fields[field.key]
-
-  let node: React.ReactNode
-  if (field.render) {
-    node = field.render(raw, row)
-  } else {
-    const str = valueToString(raw)
-    const color = resolve(field.color, raw, row)
-    const bold = resolve(field.bold, raw, row) ?? false
-    const wrap = field.multiLine === "wrap"
-    node = (
-      <Text color={color} bold={bold || undefined} wrap={wrap ? "wrap" : "truncate-end"}>
-        {str}
-      </Text>
-    )
-  }
+  const color = resolve(field.color, raw, row)
+  const bold = resolve(field.bold, raw, row) ?? false
+  const wrap = field.multiLine === "wrap"
+  const content = field.render ? field.render(raw, row) : valueToString(raw)
 
   const width = field.width
   const isFlex = width === "flex"
@@ -54,7 +43,9 @@ function FieldCell({ field, row }: { field: FieldSpec; row: LogRowData }) {
       overflow="hidden"
       marginRight={1}
     >
-      {node}
+      <Text color={color} bold={bold || undefined} wrap={wrap ? "wrap" : "truncate-end"}>
+        {content}
+      </Text>
     </Box>
   )
 }

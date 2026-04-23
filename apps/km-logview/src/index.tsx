@@ -29,18 +29,19 @@ Usage:
 
 Keybindings:
   j/k, arrows   Navigate rows
-  /             Start find (Enter to confirm, n/N next/prev)
-  Enter         Open detail view for selected row
-  Esc           Close detail / cancel find / quit
+  /   or Ctrl+F Start find
+  Enter (in find) Next match;  Shift+Enter = prev match
+  n / N         Next / previous match (outside find bar)
+  Enter (row)   Open detail view
+  Esc           Close find / close detail / quit
   q             Quit
 
 Auto-detected configs:
   - claude-session   for ~/.claude/projects/*/*.jsonl
   - generic-jsonl    for any other .jsonl/.ndjson/.log
 
-Examples:
-  km-logview ~/.claude/projects/-Users-*/*.jsonl | head
-  km-logview ./app.log
+Env:
+  LOG_LEVEL=warn   Re-enable silvery/loggily output (default: error, to keep UI clean)
 `)
 }
 

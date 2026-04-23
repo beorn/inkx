@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react"
-import { Box, ListView, SearchBar, Text, useWindowSize } from "silvery"
+import React, { useCallback, useMemo, useState } from "react"
+import { Box, ListView, SearchBar, Text, useSearch, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { LogRowView } from "./LogRow.tsx"
 import type { LogRow, ViewConfig } from "./view-config.ts"
@@ -10,14 +10,44 @@ function defaultSearchText(row: LogRow): string {
     .join(" ")
 }
 
-export function App({ path, config, rows }: { path: string; config: ViewConfig; rows: LogRow[] }) {
+export function App({
+  path,
+  config,
+  rows,
+}: {
+  path: string
+  config: ViewConfig
+  rows: LogRow[]
+}) {
   const { rows: termRows } = useWindowSize()
   const [cursor, setCursor] = useState(0)
   const [detail, setDetail] = useState<LogRow | null>(null)
+  const search = useSearch()
 
   const listHeight = Math.max(5, termRows - 3)
 
-  const getText = config.searchText ?? defaultSearchText
+  const getText = useMemo(
+    () => config.searchText ?? defaultSearchText,
+    [config],
+  )
+
+  // Stable — does not depend on cursor, so ListView doesn't rebuild each keypress.
+  const isCacheable = useCallback((_r: LogRow, i: number) => i < rows.length - 1, [rows.length])
+
+  const handleSelect = useCallback(
+    (i: number) => {
+      const r = rows[i]
+      if (r) setDetail(r)
+    },
+    [rows],
+  )
+
+  const renderItem = useCallback(
+    (row: LogRow, _i: number, meta: { isCursor: boolean }) => (
+      <LogRowView row={row} fields={config.fields} isCursor={meta.isCursor} />
+    ),
+    [config.fields],
+  )
 
   useInput((input, key) => {
     if (detail) {
@@ -27,12 +57,26 @@ export function App({ path, config, rows }: { path: string; config: ViewConfig; 
       }
       return
     }
+    // When search is active, let SearchProvider handle keys (Ctrl+F/Enter/Esc/…).
+    if (search.isActive) return
+    if (input === "/") {
+      search.open()
+      return
+    }
+    if (input === "n") {
+      search.next()
+      return
+    }
+    if (input === "N") {
+      search.prev()
+      return
+    }
     if (input === "q") return "exit"
     if (key.escape) return "exit"
   })
 
   if (detail) {
-    return <DetailPane row={detail} onClose={() => setDetail(null)} height={termRows} />
+    return <DetailPane row={detail} height={termRows} />
   }
 
   return (
@@ -44,45 +88,60 @@ export function App({ path, config, rows }: { path: string; config: ViewConfig; 
         nav
         getKey={(r) => r.id}
         onCursor={setCursor}
-        onSelect={(i) => {
-          const r = rows[i]
-          if (r) setDetail(r)
-        }}
-        cache={{ mode: "virtual", isCacheable: (_r, i) => i < cursor - 10 }}
+        onSelect={handleSelect}
+        cache={{ mode: "virtual", isCacheable }}
         search={{ getText }}
-        renderItem={(row, _i, meta) => <LogRowView row={row} fields={config.fields} isCursor={meta.isCursor} />}
+        renderItem={renderItem}
       />
       <SearchBar />
-      <StatusBar rowCount={rows.length} cursor={cursor} />
+      <StatusBar rowCount={rows.length} cursor={cursor} matches={search.matches.length} />
     </Box>
   )
 }
 
-function HeaderBar({ path, configName, rowCount }: { path: string; configName: string; rowCount: number }) {
-  const short = path.length > 60 ? `…${path.slice(-58)}` : path
+function HeaderBar({
+  path,
+  configName,
+  rowCount,
+}: {
+  path: string
+  configName: string
+  rowCount: number
+}) {
+  const short = path.length > 50 ? `…${path.slice(-48)}` : path
+  return (
+    <Box paddingX={1} flexDirection="row">
+      <Text color="$fg-muted">
+        {configName} · {rowCount} rows · {short}
+      </Text>
+    </Box>
+  )
+}
+
+function StatusBar({
+  rowCount,
+  cursor,
+  matches,
+}: {
+  rowCount: number
+  cursor: number
+  matches: number
+}) {
+  const hint =
+    matches > 0
+      ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev · /clear: Esc`
+      : "/ find · Enter detail · q quit"
   return (
     <Box paddingX={1} flexDirection="row" justifyContent="space-between">
-      <Text bold color="$fg-accent">
-        {short}
-      </Text>
       <Text color="$fg-muted">
-        [{configName}] {rowCount} rows
+        {cursor + 1}/{rowCount}
       </Text>
+      <Text color="$fg-muted">{hint}</Text>
     </Box>
   )
 }
 
-function StatusBar({ rowCount, cursor }: { rowCount: number; cursor: number }) {
-  return (
-    <Box paddingX={1}>
-      <Text color="$fg-muted">
-        {cursor + 1}/{rowCount} · j/k nav · / find · Enter detail · q quit
-      </Text>
-    </Box>
-  )
-}
-
-function DetailPane({ row, onClose, height }: { row: LogRow; onClose: () => void; height: number }) {
+function DetailPane({ row, height }: { row: LogRow; height: number }) {
   const formatted = useMemo(() => {
     try {
       return JSON.stringify(row.raw, null, 2)
@@ -90,15 +149,11 @@ function DetailPane({ row, onClose, height }: { row: LogRow; onClose: () => void
       return String(row.raw)
     }
   }, [row])
-  // onClose is invoked via useInput in parent; this is layout-only.
-  void onClose
   return (
     <Box flexDirection="column" height={height} paddingX={1}>
-      <Box paddingY={0}>
-        <Text bold color="$fg-accent">
-          row #{row.lineNo} · kind={row.kind ?? "—"} · Esc/q to close
-        </Text>
-      </Box>
+      <Text bold color="$fg-accent">
+        row #{row.lineNo} · {row.kind ?? "—"} · Esc/q to close
+      </Text>
       <Box flexGrow={1} flexDirection="column" marginTop={1}>
         <Text>{formatted}</Text>
       </Box>
