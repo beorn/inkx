@@ -6,7 +6,9 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ## Writing new tests
 
-New tests MUST use `createTestApp()` from `./helpers/test-app.ts`. The `createDriverTest`/`createDriverTestWithRepo` API is for driver-level integration tests that genuinely need low-level access (raw buffer comparison, direct driver creation, registry, cell attribute inspection). See the FREEZE bucket in `km-all.test-system` bead.
+New tests MUST use `createTestApp()` from `./helpers/create-test-app.ts` — the single canonical entry point. It re-exports `item()`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers every fixture shape (inline, markdown, fixture vault, real vault). The `createDriverTest`/`createDriverTestWithRepo` API is for driver-level integration tests that genuinely need low-level access (raw buffer comparison, direct driver creation, registry, cell attribute inspection). See the FREEZE bucket in `km-all.test-system` bead.
+
+Legacy imports from `./helpers/test-app.ts`, `./helpers/board-test.ts`, and `./helpers/real-board.ts` still work (those files back the consolidated API), but new code should prefer `./helpers/create-test-app.ts`.
 
 ## MECE — No Gaps, No Overlaps
 
@@ -27,18 +29,22 @@ Tests must be **Mutually Exclusive, Collectively Exhaustive** (see [docs/princip
 
 ## Key Helpers
 
-### `helpers/test-app.ts` — **PREFERRED** for new tests (createTestApp)
+### `helpers/create-test-app.ts` — **PREFERRED** for new tests (createTestApp)
 
-Backend-agnostic test API. Write once, run on headless (default) or termless (`TEST_BACKEND=termless`).
+Single canonical entry point. Backend-agnostic test API — write once, run on headless (default) or termless (`TEST_BACKEND=termless`). Re-exports `item`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers the full fixture menu.
 
-| Helper                        | Purpose                                                   |
-| ----------------------------- | --------------------------------------------------------- |
-| `createTestApp(nodes, opts?)` | Create test app with headless or termless backend         |
-| `realisticBoard()`            | Pre-built fixture: multi-column board with varied content |
+| Helper                                     | Purpose                                                      |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| `createTestApp(nodes, opts?)`              | Create test app with headless or termless backend            |
+| `createTestApp.fromMarkdown(md, opts?)`    | Markdown → TestApp                                           |
+| `createTestApp.fromVault(path, opts?)`     | Fixture vault dir (parses .md files) → TestApp               |
+| `createTestApp.fromRealVault(path, opts?)` | Real on-disk vault via `createRepo` → async TestBoardResult  |
+| `realisticBoard()`                         | Pre-built fixture: multi-column board with varied content    |
+| `item(...)`                                | Inline tree fixture builder                                  |
+| `createDriverTest(...)`                    | Low-level driver for white-box / cell-attribute tests        |
 
 ```typescript
-import { item } from "./helpers/board-test.ts"
-import { createTestApp } from "./helpers/test-app.ts"
+import { item, createTestApp } from "./helpers/create-test-app.ts"
 
 test("buy milk task", async () => {
   using app = createTestApp(item("board", item("Todo", item("Buy milk")), item("Done")))
