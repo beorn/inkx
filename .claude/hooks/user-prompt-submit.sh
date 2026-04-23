@@ -69,13 +69,20 @@ fi
 # Default: delta context injection via tribe (formerly `recall hook`,
 # moved in @bearly/tribe 0.10.0 — `recall hook` now errors out).
 #
-# NOTE: `exec` hands stdout off to tribe-cli, which itself must emit the
-# required JSON shape. If tribe-cli ever starts silent-exiting, the
-# strict-invariant violation moves downstream. Either keep tribe-cli
-# compliant or stop `exec`ing and read its output into emit_and_exit
-# instead.
+# IMPORTANT: do NOT use `echo | exec cmd` here — `exec` inside a pipeline
+# only replaces the subshell, not this script, so after tribe-cli writes
+# its JSON the outer script continues and would emit a SECOND payload
+# (producing the double "hook success: ..." lines that users see in the
+# transcript). Run the pipeline normally and `exit $?` so there is
+# exactly ONE payload on stdout.
+#
+# tribe-cli `hook prompt` is responsible for emitting the required JSON
+# shape on its own (it does — see tribe's hook-dispatch). If it ever
+# silent-exits the strict invariant is violated downstream; treat that
+# as a bearly bug, not a reason to re-emit here.
 if [ -f "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" ]; then
-  echo "$INPUT" | exec bun "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" hook prompt
+  echo "$INPUT" | bun "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" hook prompt
+  exit $?
 fi
 
 # Fallback: tribe-cli not found — emit legal empty payload
