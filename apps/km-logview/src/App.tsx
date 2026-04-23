@@ -1,6 +1,6 @@
 import { watch } from "node:fs"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Box, ListView, SearchBar, Text, useSearch, useWindowSize } from "silvery"
+import { Box, Em, ListView, SearchBar, Small, Strong, Text, useSearch, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { LogRowView } from "./LogRow.tsx"
 import { loadRows } from "./parse-jsonl.ts"
@@ -218,18 +218,35 @@ function StatusBar({
   follow: boolean
 }) {
   const short = path.length > 60 ? `…${path.slice(-58)}` : path
-  // Status suffixes — state indicators, not key hints.
-  const findSuffix = searchActive ? " · find…" : matches > 0 ? ` · ${matches} match${matches === 1 ? "" : "es"}` : ""
+  // Status suffixes — state indicators, not key hints. Literal text must
+  // match test expectations ("find…", "N match(es)", "paused").
+  const findText = searchActive ? "find…" : matches > 0 ? `${matches} match${matches === 1 ? "" : "es"}` : ""
   // follow=true is the default; only surface the off state (user explicitly
   // paused tailing via F — they'll want the reminder).
-  const followSuffix = follow ? "" : " · ⏸ paused"
   return (
-    <Box flexDirection="row" paddingX={1} width="100%" backgroundColor="$fg">
-      <Text color="$bg" bold>
-        {configName} · {cursor + 1}/{rowCount} · {short}
-        {findSuffix}
-        {followSuffix}
+    // Inverted chrome: $fg bg + $bg fg so the bar visually separates from the
+    // log body. Children use typography presets with color="inherit" to keep
+    // the inverted foreground instead of their default semantic tokens.
+    <Box flexDirection="row" paddingX={1} width="100%" backgroundColor="$fg" color="$bg">
+      <Strong>{configName}</Strong>
+      <Text> · </Text>
+      <Text>
+        {cursor + 1}/{rowCount}
       </Text>
+      <Text> · </Text>
+      <Small color="inherit">{short}</Small>
+      {findText ? (
+        <>
+          <Text> · </Text>
+          <Em color="inherit">{findText}</Em>
+        </>
+      ) : null}
+      {!follow ? (
+        <>
+          <Text> · </Text>
+          <Em color="inherit">⏸ paused</Em>
+        </>
+      ) : null}
     </Box>
   )
 }
