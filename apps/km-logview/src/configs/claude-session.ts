@@ -89,134 +89,143 @@ function mkRow(lineNo: number, suffix: string, kind: string, fields: Record<stri
   return { id: `${lineNo}.${suffix}`, lineNo, kind, raw, fields }
 }
 
+function deriveAttachmentRows(obj: JSON, lineNo: number, time: string): LogRow[] {
+  const att = asObject(obj.attachment)
+  if (!att) return []
+  const hookName = asString(att.hookName) ?? "?"
+  const cmd = asString(att.command) ?? ""
+  const cmdBase = cmd ? basename(cmd) : ""
+  const label = cmdBase ? `${hookName} (${cmdBase})` : hookName
+  const attType = asString(att.type)
+  if (attType === "hook_success") {
+    const body = asString(att.content) ?? asString(att.stdout) ?? ""
+    // Hooks are noisy; only surface when they actually produced output.
+    if (!body.trim() && !cmdBase) return []
+    return [mkRow(lineNo, "att", "hook", { time, label, body: truncate(body, 8000) }, obj)]
+  }
+  if (attType === "hook_failure") {
+    const body = asString(att.stderr) ?? asString(att.content) ?? ""
+    return [mkRow(lineNo, "att", "hook_fail", { time, label, body: truncate(body, 8000) }, obj)]
+  }
+  return []
+}
+
+function deriveSystemRows(obj: JSON, lineNo: number, time: string): LogRow[] {
+  const content = asString(obj.content) ?? JSON.stringify(obj)
+  return [mkRow(lineNo, "sys", "system", { time, label: "", body: truncate(content, 8000) }, obj)]
+}
+
+/** Single user row when message.content is a bare string (injection-aware kind). */
+function userRowFromString(content: string, obj: JSON, lineNo: number, time: string): LogRow {
+  const injected = INJECTION_PATTERN.test(content)
+  return mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 8000) }, obj)
+}
+
+/** One row from a single user content-array item (tool_result or text; other types skipped). */
+function userRowFromItem(item: JSON, idx: number, lineNo: number, time: string): LogRow | null {
+  const itemType = asString(item.type)
+  if (itemType === "tool_result") {
+    const body = typeof item.content === "string" ? item.content : JSON.stringify(item.content)
+    return mkRow(
+      lineNo,
+      `u${idx}`,
+      "tool_result",
+      { time, label: asString(item.tool_use_id) ?? "", body: truncate(body, 8000) },
+      item,
+    )
+  }
+  if (itemType === "text") {
+    const text = asString(item.text) ?? ""
+    const injected = INJECTION_PATTERN.test(text)
+    return mkRow(lineNo, `u${idx}`, injected ? "inject" : "user", { time, label: "", body: truncate(text, 8000) }, item)
+  }
+  return null
+}
+
+function deriveUserRows(obj: JSON, lineNo: number, time: string): LogRow[] {
+  const message = asObject(obj.message)
+  const content = message?.content
+  if (typeof content === "string") return [userRowFromString(content, obj, lineNo, time)]
+  const items = asArray(content)
+  if (!items) return []
+  const out: LogRow[] = []
+  for (let i = 0; i < items.length; i++) {
+    const item = asObject(items[i])
+    if (!item) continue
+    const row = userRowFromItem(item, i, lineNo, time)
+    if (row) out.push(row)
+  }
+  return out
+}
+
+/** One row from a single assistant content-array item (text / thinking / tool_use). */
+function assistantRowFromItem(item: JSON, idx: number, lineNo: number, time: string): LogRow | null {
+  const itemType = asString(item.type)
+  if (itemType === "text") {
+    return mkRow(
+      lineNo,
+      `a${idx}`,
+      "assistant",
+      { time, label: "", body: truncate(asString(item.text) ?? "", 8000) },
+      item,
+    )
+  }
+  if (itemType === "thinking") {
+    return mkRow(
+      lineNo,
+      `a${idx}`,
+      "thinking",
+      { time, label: "", body: truncate(asString(item.thinking) ?? "", 8000) },
+      item,
+    )
+  }
+  if (itemType === "tool_use") {
+    const name = asString(item.name) ?? "?"
+    const input = asObject(item.input) ?? {}
+    return mkRow(
+      lineNo,
+      `a${idx}`,
+      "tool_use",
+      { time, label: name, body: truncate(formatToolInput(name, input), 8000) },
+      item,
+    )
+  }
+  return null
+}
+
+function deriveAssistantRows(obj: JSON, lineNo: number, time: string): LogRow[] {
+  const message = asObject(obj.message)
+  const items = asArray(message?.content)
+  if (!items) return []
+  const out: LogRow[] = []
+  for (let i = 0; i < items.length; i++) {
+    const item = asObject(items[i])
+    if (!item) continue
+    const row = assistantRowFromItem(item, i, lineNo, time)
+    if (row) out.push(row)
+  }
+  return out
+}
+
 function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
   const obj = asObject(parsed)
   if (!obj) return []
   const topType = asString(obj.type)
   if (!topType) return []
-
   const time = timeOf(obj)
 
-  if (topType === "attachment") {
-    const att = asObject(obj.attachment)
-    if (!att) return []
-    const hookName = asString(att.hookName) ?? "?"
-    const cmd = asString(att.command) ?? ""
-    const cmdBase = cmd ? basename(cmd) : ""
-    const label = cmdBase ? `${hookName} (${cmdBase})` : hookName
-    const attType = asString(att.type)
-    if (attType === "hook_success") {
-      const body = asString(att.content) ?? asString(att.stdout) ?? ""
-      // Hooks are noisy; only surface when they actually produced output.
-      if (!body.trim() && !cmdBase) return []
-      return [mkRow(lineNo, "att", "hook", { time, label, body: truncate(body, 8000) }, obj)]
-    }
-    if (attType === "hook_failure") {
-      const body = asString(att.stderr) ?? asString(att.content) ?? ""
-      return [mkRow(lineNo, "att", "hook_fail", { time, label, body: truncate(body, 8000) }, obj)]
-    }
-    return []
+  switch (topType) {
+    case "attachment":
+      return deriveAttachmentRows(obj, lineNo, time)
+    case "system":
+      return deriveSystemRows(obj, lineNo, time)
+    case "user":
+      return deriveUserRows(obj, lineNo, time)
+    case "assistant":
+      return deriveAssistantRows(obj, lineNo, time)
+    default:
+      return []
   }
-
-  if (topType === "system") {
-    const content = asString(obj.content) ?? JSON.stringify(obj)
-    return [mkRow(lineNo, "sys", "system", { time, label: "", body: truncate(content, 8000) }, obj)]
-  }
-
-  if (topType === "user") {
-    const message = asObject(obj.message)
-    const content = message?.content
-    const out: LogRow[] = []
-
-    if (typeof content === "string") {
-      const injected = INJECTION_PATTERN.test(content)
-      out.push(
-        mkRow(lineNo, "u", injected ? "inject" : "user", { time, label: "", body: truncate(content, 8000) }, obj),
-      )
-      return out
-    }
-
-    const items = asArray(content)
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
-        const item = asObject(items[i])
-        if (!item) continue
-        const itemType = asString(item.type)
-        if (itemType === "tool_result") {
-          const body = typeof item.content === "string" ? item.content : JSON.stringify(item.content)
-          out.push(
-            mkRow(
-              lineNo,
-              `u${i}`,
-              "tool_result",
-              {
-                time,
-                label: asString(item.tool_use_id) ?? "",
-                body: truncate(body, 8000),
-              },
-              item,
-            ),
-          )
-        } else if (itemType === "text") {
-          const text = asString(item.text) ?? ""
-          const injected = INJECTION_PATTERN.test(text)
-          out.push(
-            mkRow(lineNo, `u${i}`, injected ? "inject" : "user", { time, label: "", body: truncate(text, 8000) }, item),
-          )
-        }
-      }
-      return out
-    }
-    return []
-  }
-
-  if (topType === "assistant") {
-    const message = asObject(obj.message)
-    const items = asArray(message?.content)
-    if (!items) return []
-    const out: LogRow[] = []
-    for (let i = 0; i < items.length; i++) {
-      const item = asObject(items[i])
-      if (!item) continue
-      const itemType = asString(item.type)
-      if (itemType === "text") {
-        out.push(
-          mkRow(
-            lineNo,
-            `a${i}`,
-            "assistant",
-            { time, label: "", body: truncate(asString(item.text) ?? "", 8000) },
-            item,
-          ),
-        )
-      } else if (itemType === "thinking") {
-        out.push(
-          mkRow(
-            lineNo,
-            `a${i}`,
-            "thinking",
-            { time, label: "", body: truncate(asString(item.thinking) ?? "", 8000) },
-            item,
-          ),
-        )
-      } else if (itemType === "tool_use") {
-        const name = asString(item.name) ?? "?"
-        const input = asObject(item.input) ?? {}
-        out.push(
-          mkRow(
-            lineNo,
-            `a${i}`,
-            "tool_use",
-            { time, label: name, body: truncate(formatToolInput(name, input), 8000) },
-            item,
-          ),
-        )
-      }
-    }
-    return out
-  }
-
-  return []
 }
 
 // Per Silvery styling guide: $color0-$color15 (the user's terminal palette,
