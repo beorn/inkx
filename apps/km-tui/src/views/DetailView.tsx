@@ -13,7 +13,22 @@
  */
 
 import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR, useScrollRect } from "@silvery/ag-react"
+import {
+  Box,
+  Text,
+  Small,
+  H1,
+  H2,
+  H3,
+  H4,
+  H5,
+  H6,
+  Muted,
+  Blockquote,
+  CodeBlock,
+  HR,
+  useScrollRect,
+} from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { extractTaskDates } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
@@ -191,7 +206,13 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
       <InlineRenderProvider value={inlineCtx}>
         <CursorScrollContext.Provider value={cursorCtx}>
         <Box flexDirection="column" flexGrow={1} overflow="hidden">
-          {/* Document title — H1 (selectable) + node badge */}
+          {/* Document title — custom bold + inverse on cursor, with the node
+             badge to its right. Explicitly NOT an H1: H1 is reserved for the
+             first in-document heading (### depth=1), so the depth→H<N>
+             mapping inside DocNode stays aligned with the markdown source.
+             The title already gets maximum emphasis via $selection inverse +
+             bold; duplicating H1 here would just dim-wash the accent color
+             against the cursor highlight. */}
           <Box
             id={effectiveId}
             testID={effectiveId}
@@ -202,7 +223,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           >
             {isTitleCursor && <CursorScrollRegistrar />}
             <Box flexGrow={1} flexShrink={1}>
-              <H1 color={titleFg} wrap="wrap">
+              <Text bold color={titleFg} wrap="wrap">
                 {rootStatusIcon && (
                   <>
                     <CheckboxIcon
@@ -234,7 +255,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
                 ) : (
                   <InlineText text={title} context={titleInlineCtx} />
                 )}
-              </H1>
+              </Text>
             </Box>
             <NodeBadge node={rootNode} />
           </Box>
@@ -422,61 +443,48 @@ function DocNode({
     )
   }
 
-  // ── Heading ── H2/H3/muted-bold with spacing
-  // Headings do NOT indent their children — content flows at current indent level.
-  // Leading air: 2 rows above H2 (major section break), 1 row above H3.
-  // Skipped entirely when this is the first child so we don't double-gap after
-  // the HR that separates the title row from body content.
+  // ── Heading ── H1–H6 typography with spacing
+  // Depth → silvery heading component:
+  //   depth 1 (## in markdown, the top-of-document section) → H1
+  //   depth 2 → H2, depth 3 → H3, …, depth 6+ → H6 (cap)
+  // The detail pane's *title* row (the file node) does NOT use H1 — it has
+  // its own inverse-highlight styling — so H1 here lines up with the first
+  // visible in-document heading. That keeps the silvery hierarchy aligned
+  // with markdown heading levels in the source file.
+  //
+  // Leading air: 2 rows above top-level headings (H1/H2 major section
+  // breaks), 1 row deeper. Skipped on the first child so we don't
+  // double-gap after the HR separating title from body.
   // Headings that are also tasks show a task status icon before the title.
   if (isHeading) {
-    const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
+    const HEADINGS = [H1, H2, H3, H4, H5, H6] as const
+    const Heading = HEADINGS[Math.min(Math.max(depth, 1), 6) - 1]!
     const headingTaskIcon = isTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
     const headingIsDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-    const leadingGap = isFirst ? 0 : depth <= 1 ? 2 : 1
+    const leadingGap = isFirst ? 0 : depth <= 2 ? 2 : 1
     return (
       <Box flexDirection="column">
         {leadingGap > 0 && <Box height={leadingGap} />}
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {isCursor && <CursorScrollRegistrar />}
-          {Heading ? (
-            <Heading color={cursorFg} wrap="wrap">
-              {headingTaskIcon && (
-                <>
-                  <CheckboxIcon
-                    nodeId={node.id}
-                    icon={headingTaskIcon}
-                    textColor={cursorFg}
-                    shouldDim={false}
-                    isSelected={isCursor}
-                    isNodeSelected={false}
-                    isDoneOrDropped={headingIsDoneOrDropped}
-                    undoHandle={undoHandle}
-                  />
-                  <Text> </Text>
-                </>
-              )}
-              {editableContent ?? <InlineText text={content} context={cursorCtx} />}
-            </Heading>
-          ) : (
-            <Text bold color={cursorFg ?? "$fg-muted"} wrap="wrap">
-              {headingTaskIcon && (
-                <>
-                  <CheckboxIcon
-                    nodeId={node.id}
-                    icon={headingTaskIcon}
-                    textColor={cursorFg}
-                    shouldDim={false}
-                    isSelected={isCursor}
-                    isNodeSelected={false}
-                    isDoneOrDropped={headingIsDoneOrDropped}
-                    undoHandle={undoHandle}
-                  />
-                  <Text> </Text>
-                </>
-              )}
-              {editableContent ?? <InlineText text={content} context={cursorCtx} />}
-            </Text>
-          )}
+          <Heading color={cursorFg} wrap="wrap">
+            {headingTaskIcon && (
+              <>
+                <CheckboxIcon
+                  nodeId={node.id}
+                  icon={headingTaskIcon}
+                  textColor={cursorFg}
+                  shouldDim={false}
+                  isSelected={isCursor}
+                  isNodeSelected={false}
+                  isDoneOrDropped={headingIsDoneOrDropped}
+                  undoHandle={undoHandle}
+                />
+                <Text> </Text>
+              </>
+            )}
+            {editableContent ?? <InlineText text={content} context={cursorCtx} />}
+          </Heading>
         </Box>
         <Box height={1} />
         {shouldExpand ? (
