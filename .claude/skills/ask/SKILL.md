@@ -11,7 +11,9 @@ Models evolve fast. Re-check available models every 2 weeks:
 - Run: `bun llm --list` to see current models
 - Check leaderboards: whatllm.org, vellum.ai/llm-leaderboard, artificialanalysis.ai
 - Update types.ts with new models, remove deprecated ones
-- Last updated: 2026-04-03
+- Last updated: 2026-04-23
+
+**GPT-5.5 "Spud" (announced 2026-04-23)**: Registry entries `gpt-5.5` ($5/$30 per M) and `gpt-5.5-pro` ($30/$180) are wired in. ChatGPT/Codex first; API access rolling out. Once OpenAI exposes the model IDs, opt in with `--model gpt-5.5` or `--model gpt-5.5-pro`. Default (`bun llm "..."`) and dual-pro defaults remain on 5.4 until the API is confirmed live — no code changes needed when it ships.
 
 **Keywords**: gpt, chatgpt, openai, gemini, grok, deep research, thinkdeep, second opinion, consensus, research, ask, quick question, fast answer, LLM query
 

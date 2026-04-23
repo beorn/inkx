@@ -18,6 +18,8 @@ bun llm --deep -y --with-history "<topic>"
 **Pro model**: Use `--model gpt-5.4-pro` for thorough analysis. The `pro` keyword does NOT
 work with `--deep` (gets absorbed into topic text). Always use `--model gpt-5.4-pro`.
 
+**GPT-5.5 Pro (2026-04-23)**: `gpt-5.5-pro` ($30/$180 per M) is registered. Once the OpenAI API exposes it, swap to `--model gpt-5.5-pro`. Until then `gpt-5.5-pro` over `--deep` may 404 — stick with `gpt-5.4-pro`.
+
 See `/llm` for output format, flags, and fire-and-forget pattern.
 
 **Note**: This is OpenAI's deep research (NOT DeepSeek). Takes 2-15 minutes; interrupted calls auto-recover.

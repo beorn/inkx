@@ -3,11 +3,13 @@ description: "GPT 5.4 Pro — code reviews, direct questions, architectural advi
 argument-hint: [review [<package>] [--fast | --deep] | "<question>" | --history | --dry-run]
 ---
 
-**Keywords**: pro, pro review, gpt pro, gpt 5.4, code review, automated review, ask pro, second opinion
+**Keywords**: pro, pro review, gpt pro, gpt 5.4, gpt 5.5, code review, automated review, ask pro, second opinion
 
 # Pro — GPT 5.4 Pro
 
 GPT 5.4 Pro for code reviews and direct questions.
+
+> **GPT-5.5 "Spud" note (2026-04-23)**: GPT-5.5 Pro announced ($30/$180 per M tokens). ChatGPT/Codex first; API rollout pending. Once the OpenAI API exposes `gpt-5.5-pro`, opt in with `--model gpt-5.5-pro`; defaults here stay on 5.4 Pro until the API is confirmed live.
 
 **Cost**: ~$5-15 per package review, ~$1-3 per direct question.
 
@@ -46,6 +48,14 @@ When the user says `/pro "question"` or "pro, what do you think about X":
 **What `bun llm pro` does now (as of 2026-04-20)**: fires GPT-5.4 Pro **and** Kimi K2.6 in parallel and returns a combined report with both responses labeled. Kimi K2.6 costs ~100× less than Pro and is competitive on strategy/review questions — the A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl` tracks both for retrospective comparison. K2.6 adds only ~$0.01-0.50 to a $5-15 Pro call, so it's essentially free insurance against Pro missing something.
 
 To force single-model (skip K2.6): add `--model gpt-5.4-pro`. Dual mode also auto-falls-back to single GPT-5.4 Pro if `OPENROUTER_API_KEY` is unset.
+
+**Swap leg B (head-to-head sprints)**: set `LLM_DUAL_PRO_B=<modelId>` to replace Kimi K2.6 with any other registered model. Example once `gpt-5.5-pro` goes API-live:
+```bash
+export LLM_DUAL_PRO_B=gpt-5.5-pro   # 5.4-pro vs 5.5-pro frontier A/B (~$10-30 per call)
+bun llm pro "question"
+unset LLM_DUAL_PRO_B                # revert to K2.6 default
+```
+The A/B log keeps recording both legs under the existing `gpt`/`kimi` buckets — `kimi.model` disambiguates mixed windows when you grep later. Both OpenAI Pros route through the Responses API so a head-to-head call is recoverable with `bun llm recover <id>`.
 
 Use for: architectural decisions, design review, "is this approach sound?", second opinions.
 
