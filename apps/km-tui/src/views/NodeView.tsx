@@ -44,7 +44,9 @@ import { getTypeBullet } from "../icons.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
-import { styledUnderline } from "@silvery/ag-term/ansi"
+// Post km-silvery.underline-on-style Phase 6 (2026-04-23): styledUnderline
+// is now a method on Term (via StyleChain). Caps are bound at Term
+// construction so the call site stays clean.
 import { useTerm } from "@silvery/ag-react"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
@@ -160,9 +162,9 @@ export function ColumnHeader({
 
   // Build count display
   const countDisplay = wipLimit !== undefined ? `${cardCount}/${wipLimit}` : `${cardCount}`
-  // Thread caps through to the underline helper. Post unicode-plateau Phase 5
-  // (2026-04-23) these helpers no longer read env — callers supply caps.
-  const termCaps = useTerm((t) => t.caps)
+  // Post unicode-plateau Phase 6 (2026-04-23): underline helpers live on
+  // Term itself — caps are bound at Term construction, no threading needed.
+  const term = useTerm()
   const warningIndicator = wipExceeded ? " \u26A0" : ""
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
@@ -215,7 +217,7 @@ export function ColumnHeader({
                     {wipExceeded ? (
                       <Text
                         color={"$fg-error"}
-                      >{` ${styledUnderline("curly", [255, 80, 80], countDisplay, termCaps)}${warningIndicator}`}</Text>
+                      >{` ${term.styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                     ) : (
                       <Text color={isColumnSelected ? headerStyle.color : "$fg-muted"}>{` ${countDisplay}`}</Text>
                     )}

@@ -35,20 +35,14 @@ export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } fr
 // Term primitives (re-exported from silvery)
 export { createTerm, term, type Term, type StyleChain } from "@silvery/ag-react"
 
-// Extended ANSI features (from @silvery/ag-term/ansi). Extended-underline
-// capability gating is owned by createTerminalProfile().caps — consumers read
-// caps.underlineStyles / caps.underlineColor instead of a standalone detector.
-// (km-silvery.unicode-plateau Phase 1, 2026-04-23.)
-export {
-  curlyUnderline,
-  dottedUnderline,
-  dashedUnderline,
-  doubleUnderline,
-  underlineColor,
-  styledUnderline,
-  hyperlink,
-  type UnderlineStyle,
-} from "@silvery/ag-term/ansi"
+// Extended ANSI features (from @silvery/ag-term/ansi).
+//
+// Post km-silvery.underline-on-style (Phase 6 of the unicode plateau,
+// 2026-04-23): the bare `curlyUnderline()` / `styledUnderline()` / etc.
+// exports were folded into methods on `Term` (via `StyleChain`). Consumers
+// write `term.curlyUnderline(x)` / `term.styledUnderline(...)` — caps are
+// bound at Term construction.
+export { hyperlink, type UnderlineStyle } from "@silvery/ag-term/ansi"
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"
