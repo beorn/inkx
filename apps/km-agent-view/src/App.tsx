@@ -52,12 +52,10 @@ export function App({ path: _path, title, rows }: { path: string; title: string;
   itemsLenRef.current = items.length
   const pendingG = useRef<number>(0)
 
-  // Chrome: 1 row top tabs = 1 row reserved. The composer is rendered as
-  // ListView's `listFooter` so it sits inside the scroll surface and can't
-  // be pushed off the bottom by flex accounting drift. (Attempted top-level
-  // flex composition with explicit heights; ListView's scroll container
-  // consumed all rows below SessionTabs regardless of its `height` prop.)
-  const listHeight = Math.max(1, termRows - 1)
+  // Chrome: 1 row top tabs + 1 row bottom composer = 2 rows reserved.
+  // Composer is a proper sibling (flexShrink=0 height=1) so it always pins
+  // to the bottom of the viewport, independent of the chat-stream scroll.
+  const listHeight = Math.max(1, termRows - 2)
 
   const handleCursor = useCallback((i: number) => {
     cursorRef.current = i
@@ -161,8 +159,8 @@ export function App({ path: _path, title, rows }: { path: string; title: string;
         onCursor={handleCursor}
         onSelect={handleSelect}
         renderItem={renderItem}
-        listFooter={<Composer />}
       />
+      <Composer />
     </Box>
   )
 }
