@@ -82,7 +82,7 @@ const MUTATING_TOOLS: ReadonlySet<string> = new Set(["Write", "Edit", "MultiEdit
 
 /** Regex tokens in a bash command that count as destructive / mutating. */
 const DESTRUCTIVE_BASH_RE =
-  /\b(rm\s+-r?f?|rmdir|mv\s+[^\s]+\s+[^\s]+|cp\s+[^\s]+\s+[^\s]+|dd\s+|truncate\s+|>\s*\/|>>\s*\/|tee\s+|chmod\s+|chown\s+|mkfs\b|dd\s+of=|git\s+(?:reset\s+--hard|checkout\s+\.|clean\s+-[fdx]|push\s+--force|stash\b)|npm\s+publish\b|pnpm\s+publish\b|curl\s+[^|]*\|\s*(sh|bash|zsh)\b|wget\s+[^|]*\|\s*(sh|bash|zsh)\b)/i
+  /\b(rm\s+-r?f?|rmdir|mv\s+[^\s]+\s+[^\s]+|cp\s+[^\s]+\s+[^\s]+|dd\s+|truncate\s+|>>?\s*\/(?!dev\/(?:null|stderr|stdout)\b|tmp\/)|tee\s+|chmod\s+|chown\s+|mkfs\b|dd\s+of=|git\s+(?:reset\s+--hard|checkout\s+\.|clean\s+-[fdx]|push\s+--force|stash\b)|npm\s+publish\b|pnpm\s+publish\b|curl\s+[^|]*\|\s*(sh|bash|zsh)\b|wget\s+[^|]*\|\s*(sh|bash|zsh)\b)/i
 
 function isMutatingTool(toolName: string, toolInput: Record<string, unknown>): boolean {
   if (MUTATING_TOOLS.has(toolName)) return true
