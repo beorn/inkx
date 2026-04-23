@@ -254,7 +254,7 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
     if (!onPause || !onResume) return
     onPause() // Leaves alt screen + shows cursor
     if (patchedConsole) {
-      const entries = patchedConsole.entries()
+      const entries = patchedConsole.entriesSnapshot()
       for (const entry of entries) {
         const stream = entry.stream === "stderr" ? process.stderr : process.stdout
         const args = entry.args.map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")

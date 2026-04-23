@@ -214,8 +214,9 @@ export function BoardApp({
     if (initial.total > 0) setConsoleStats(initial)
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
     const stop = effect(() => {
-      // Read the entries signal to subscribe; we only need it as a change trigger.
-      patchedConsole.entries()
+      // Read the count signal to subscribe — cheap per-log notification.
+      // We don't need the full entries list here; getStats() is enough.
+      patchedConsole.count()
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         debounceTimer = null
