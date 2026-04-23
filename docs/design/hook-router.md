@@ -165,6 +165,7 @@ km appears as a first-class runtime on any Cline Kanban board without touching k
 
 ## References
 
+- Authoring guide: [`.claude/skills/claude-config/hooks.md`](../../.claude/skills/claude-config/hooks.md) — how to write, test, and wire a listener
 - Source: `vendor/bearly/tools/lib/hooks/` (bearly)
 - CLI wiring: `vendor/bearly/tools/tribe-cli.ts` — `hook ingest` + `hook notify` subcommands
 - Kanban hook protocol (reference spec): [`~/Bear/Journal/ref/coding-agents/kanban-hook-protocol.md`](../../../../Bear/Journal/ref/coding-agents/kanban-hook-protocol.md)
