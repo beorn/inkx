@@ -155,10 +155,14 @@ function serializeAST(ast: QueryAST): string {
   }
 
   // Paths
+  //
+  // The parser stores the raw pattern verbatim (parseTreeGlob handles
+  // recursion detection downstream in the executor). `path.recursive` is a
+  // derived flag — true iff `path.pattern` already contains `**`. Appending
+  // `/**` here would double up, so we serialize the pattern as-is.
   for (const path of ast.paths) {
     const neg = path.negated ? "-" : ""
-    const suffix = path.recursive ? "/**" : ""
-    parts.push(`${neg}${path.pattern}${suffix}`)
+    parts.push(`${neg}${path.pattern}`)
   }
 
   // Prop conditions

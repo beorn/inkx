@@ -13,7 +13,7 @@
  * 3. To get deterministic behavior, we manually trigger sync events after writes
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { EventEmitter } from "events"
@@ -292,39 +292,55 @@ describe("Concurrent Edit Tests", () => {
   })
 
   describe("Conflict Scenarios", () => {
+    // These tests intentionally exercise the safe-write conflict path — the
+    // sync layer SHOULD log a warning when it detects a DB edit colliding
+    // with an out-of-band FS edit. The project-wide vitest setup fails any
+    // test that emits console output, so we must mute the expected warning
+    // via a spy. (The spy still records the calls so the behaviour is
+    // observable if we ever want to assert on it.)
     test("same task edited in DB and FS resolves without crash", () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Contested task\n")
-        const task = tasks[0]
-        expect(task).toBeDefined()
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+        try {
+          const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Contested task\n")
+          const task = tasks[0]
+          expect(task).toBeDefined()
 
-        // Simultaneous edits
-        ctx.data.updateNode(task!.id, { content: "DB version" })
-        ctx.writeAndTrigger(filePath, "# Tasks\n\n- [ ] FS version\n")
+          // Simultaneous edits
+          ctx.data.updateNode(task!.id, { content: "DB version" })
+          ctx.writeAndTrigger(filePath, "# Tasks\n\n- [ ] FS version\n")
 
-        await ctx.advanceTime(500)
-        await ctx.flushTimers()
-        await ctx.flushTimers()
+          await ctx.advanceTime(500)
+          await ctx.flushTimers()
+          await ctx.flushTimers()
 
-        const finalTask = getAllTasks(ctx)[0]
-        expect(finalTask).toBeDefined()
-        expect(["DB version", "FS version"]).toContain(finalTask!.content ?? "")
+          const finalTask = getAllTasks(ctx)[0]
+          expect(finalTask).toBeDefined()
+          expect(["DB version", "FS version"]).toContain(finalTask!.content ?? "")
+        } finally {
+          warnSpy.mockRestore()
+        }
       }))
 
     test("task deleted in FS while edited in DB handles gracefully", { timeout: 15000 }, () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task to delete\n")
-        const taskId = tasks[0]!.id
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+        try {
+          const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task to delete\n")
+          const taskId = tasks[0]!.id
 
-        ctx.data.updateNode(taskId, { content: "Edited task" })
-        ctx.writeAndTrigger(filePath, "# Tasks\n\n")
+          ctx.data.updateNode(taskId, { content: "Edited task" })
+          ctx.writeAndTrigger(filePath, "# Tasks\n\n")
 
-        await ctx.advanceTime(500)
-        await ctx.syncManager.waitForInflight()
-        await ctx.flushTimers()
+          await ctx.advanceTime(500)
+          await ctx.syncManager.waitForInflight()
+          await ctx.flushTimers()
 
-        // No crash = success
-        expect(true).toBe(true)
+          // No crash = success
+          expect(true).toBe(true)
+        } finally {
+          warnSpy.mockRestore()
+        }
       }),
     )
   })
