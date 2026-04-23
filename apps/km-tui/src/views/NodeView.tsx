@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-deprecated -- NodeView holds the unified column-header / tab / list style matrix. ColumnHeaderStyle is a public-ish data-model with a `dimColor` field that is threaded through ~17 JSX elements and computed by deriveColumnHeaderProps. Untangling is coordinated with the upstream dim/dimColor removal — tracking bead km-silvery.delete-dim-dimcolor. The dim attribute at ANSI 16/mono still resolves to SGR 2, so the deprecated API remains behaviourally meaningful until silvery deletes it. */
 /**
  * NodeView - Unified node rendering at different style levels.
  *
@@ -85,7 +84,6 @@ function slugsMatch(a: string, b: string): boolean {
 export interface ColumnHeaderStyle {
   color: string | undefined
   backgroundColor: string | undefined
-  dimColor: boolean
 }
 
 export interface ColumnHeaderProps {
@@ -97,7 +95,7 @@ export interface ColumnHeaderProps {
   untitled: boolean
   /** Node's own color (not inherited) */
   ownColor: string | undefined
-  /** Pre-computed header style (color, bg, dim) */
+  /** Pre-computed header style (color, backgroundColor) */
   headerStyle: ColumnHeaderStyle
   /** Icon to display */
   icon: StatusIcon
@@ -188,32 +186,25 @@ export function ColumnHeader({
           ) : (
             <>
               <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-                <Text bold={!isVirtual} color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
+                <Text bold={!isVirtual} color={headerStyle.color} wrap="truncate">
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
                     {untitled ? <Text color={"$fg-warning"}>{displayName}</Text> : displayName}
                     {!isVirtual && isSigilName(node.name) && node.name && !slugsMatch(node.name, displayName) && (
                       <>
                         {" "}
-                        <Text dimColor>{node.name}</Text>
+                        <Text color="$fg-muted">{node.name}</Text>
                       </>
                     )}
                   </Text>
-                  {hasBody && !isVirtual && <Text dimColor>{" ···"}</Text>}
-                  {typeSuffix ? (
-                    <Text
-                      color={isColumnSelected ? "$fg-muted" : undefined}
-                      dimColor={!isColumnSelected}
-                    >{` ${typeSuffix}`}</Text>
-                  ) : (
-                    ""
-                  )}
+                  {hasBody && !isVirtual && <Text color="$fg-muted">{" ···"}</Text>}
+                  {typeSuffix ? <Text color="$fg-muted">{` ${typeSuffix}`}</Text> : ""}
                   {collapsedIndicator}
                 </Text>
               </Box>
               {wipLimit !== undefined && (
                 <Box flexShrink={0}>
-                  <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
+                  <Text color={headerStyle.color}>
                     {wipExceeded ? (
                       <Text
                         color={"$fg-error"}
@@ -288,14 +279,16 @@ export function NodeLineView({
       return nodeIsTask ? stripTaskMark(rawContent) : rawContent
     })()
 
-  const textColor = isSelected ? "$selection" : undefined
+  // Dimmed items (done/dropped or has a done ancestor) use $fg-muted when no
+  // explicit textColor is set. Selection color wins over muted.
+  const textColor = isSelected ? "$selection" : shouldDim ? "$fg-muted" : undefined
   const bgColor = isSelected ? "$selectionbg" : undefined
   const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
     <Box width={width} height={1} backgroundColor={bgColor} paddingRight={2}>
-      <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
+      <Text color={textColor} strikethrough={false} wrap="truncate">
         {indentStr}
         <Text color={iconColor}>{icon.char}</Text> <InlineText text={titleText} context={{ hideFields: true }} />
       </Text>
@@ -356,7 +349,9 @@ export function NodeCardView({
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-  const textColor = isSelected ? "$selection" : undefined
+  // When dimmed (done/dropped or done ancestor) and not selected, use muted
+  // foreground. Selection color wins.
+  const textColor = isSelected ? "$selection" : shouldDim ? "$fg-muted" : undefined
   const bgColor = isSelected ? "$selectionbg" : undefined
   const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
@@ -387,7 +382,7 @@ export function NodeCardView({
         </Link>
       )}
       {parentContext && !parentNodeId && (
-        <Text dimColor italic wrap="truncate">
+        <Text color="$fg-muted" italic wrap="truncate">
           {"  "}
           {parentContext}
         </Text>
@@ -395,14 +390,14 @@ export function NodeCardView({
       {/* Title line */}
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-          <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
+          <Text bold color={textColor} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineText
               text={displayContent}
               context={{ stripInlineColors: shouldStripColor || undefined, hideFields: true }}
             />
             {subtaskBadge && <Text color={isSelected ? "$selection" : "$fg-muted"}>{` ${subtaskBadge}`}</Text>}
-            {hasBody && <Text dimColor>{" ···"}</Text>}
+            {hasBody && <Text color="$fg-muted">{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
@@ -493,7 +488,7 @@ export function NodeColumnView({
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text dimColor={!isSelected} color={isSelected ? "$selectionbg" : undefined}>
+        <Text color={isSelected ? "$selectionbg" : "$fg-muted"}>
           {"\u2500".repeat(Math.max(0, width ?? 40))}
         </Text>
       </Box>
@@ -543,20 +538,17 @@ export function NodeTabView({
     displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
   const countStr = ` (${count})`
 
-  const textColor = isSelected ? "$selection" : isActive ? "$selectionbg" : "$fg"
+  // Inactive + non-selected tabs get muted fg when dimInactive is set. Active
+  // selected tab fg wins over muted.
+  const inactiveMuted = !isActive && !isSelected && dimInactive
+  const textColor = isSelected ? "$selection" : isActive ? "$selectionbg" : inactiveMuted ? "$fg-muted" : "$fg"
 
   return (
     <Box backgroundColor={isSelected ? "$selectionbg" : undefined}>
-      <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
+      <Text bold color={textColor}>
         {" "}
-        {untitled ? (
-          <Text dimColor color={"$fg-muted"}>
-            {truncatedName}
-          </Text>
-        ) : (
-          truncatedName
-        )}
-        <Text dimColor={!isSelected}>{countStr}</Text>{" "}
+        {untitled ? <Text color={"$fg-muted"}>{truncatedName}</Text> : truncatedName}
+        <Text color={isSelected ? undefined : "$fg-muted"}>{countStr}</Text>{" "}
       </Text>
     </Box>
   )
@@ -635,7 +627,7 @@ export function NodeDetailView({
       </Box>
 
       {/* Separator */}
-      <Text dimColor>{" " + "\u2500".repeat(contentWidth) + " "}</Text>
+      <Text color="$fg-muted">{" " + "\u2500".repeat(contentWidth) + " "}</Text>
 
       {/* Scrollable content */}
       <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
@@ -654,7 +646,7 @@ export function NodeDetailView({
         )}
 
         {/* Separator between metadata and content */}
-        {metadataRows.length > 0 && <Text dimColor>{"\u2500".repeat(contentWidth)}</Text>}
+        {metadataRows.length > 0 && <Text color="$fg-muted">{"\u2500".repeat(contentWidth)}</Text>}
 
         {/* Body content */}
         {bodyChildren.map((child, i) => (
@@ -671,7 +663,7 @@ export function NodeDetailView({
           <Box flexDirection="column" marginTop={bodyChildren.length > 0 ? 1 : 0}>
             {visibleCards.map((child, i) => (
               <Box key={`${child.id}-${i}`} flexDirection="column">
-                {i > 0 && <Text dimColor>{"\u2500".repeat(contentWidth)}</Text>}
+                {i > 0 && <Text color="$fg-muted">{"\u2500".repeat(contentWidth)}</Text>}
                 <NodeLineView node={child} />
               </Box>
             ))}
@@ -683,7 +675,7 @@ export function NodeDetailView({
         {/* Backlinks */}
         {backlinks.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
-            <Text bold dimColor>
+            <Text bold color="$fg-muted">
               Backlinks ({backlinks.length})
             </Text>
             {backlinks.slice(0, maxBacklinks).map((bl) => (
@@ -741,16 +733,21 @@ export function deriveColumnHeaderProps(
   const ownColor = isVirtual ? undefined : getOwnColor(node)
   const typeSuffix = getCollapsedTypeSuffix(repo, node) || undefined
 
-  const headerStyle = opts.isInlineEditing
+  const headerStyle: ColumnHeaderStyle = opts.isInlineEditing
     ? {
         color: "$border-focus",
-        backgroundColor: undefined as string | undefined,
-        dimColor: false,
+        backgroundColor: undefined,
       }
     : getHeaderStyle(ownColor, opts.isSelected, opts.isColumnSelected)
 
-  // Virtual body columns: dim header unless cursor is on column header
-  if (isVirtual && !opts.isColumnSelected) headerStyle.dimColor = true
+  // Virtual body columns: muted header unless cursor is on column header.
+  // Folds what was previously `dimColor: true` into the foreground color —
+  // $fg-muted is the canonical "secondary text" token, so dim + color would
+  // be redundant. Don't override an explicit selection color ($selection /
+  // $fg-accent), only the undefined (default fg) case.
+  if (isVirtual && !opts.isColumnSelected && headerStyle.color === undefined) {
+    headerStyle.color = "$fg-muted"
+  }
 
   const icon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
 

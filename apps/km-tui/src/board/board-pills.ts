@@ -161,7 +161,7 @@ export function getHeaderStyle(
   _ownColor: string | undefined,
   isSelected: boolean,
   isActiveSelection: boolean,
-): { color: string | undefined; backgroundColor: string | undefined; dimColor: boolean } {
+): { color: string | undefined; backgroundColor: string | undefined } {
   // Column selected (cursor at column level): inverse yellow (like selected card title)
   // Cursor in child card: yellow fg only (no bg)
   // Cursor elsewhere: default fg
@@ -169,13 +169,11 @@ export function getHeaderStyle(
     return {
       color: "$selection",
       backgroundColor: "$selectionbg",
-      dimColor: false,
     }
   }
 
   return {
     color: isSelected ? "$fg-accent" : undefined,
     backgroundColor: undefined,
-    dimColor: false,
   }
 }
