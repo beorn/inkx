@@ -45,6 +45,7 @@ import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../s
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "@silvery/ag-term/ansi"
+import { useTerm } from "@silvery/ag-react"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 import { NodeStoreContext } from "../state/reactive.ts"
@@ -159,6 +160,9 @@ export function ColumnHeader({
 
   // Build count display
   const countDisplay = wipLimit !== undefined ? `${cardCount}/${wipLimit}` : `${cardCount}`
+  // Thread caps through to the underline helper. Post unicode-plateau Phase 5
+  // (2026-04-23) these helpers no longer read env — callers supply caps.
+  const termCaps = useTerm((t) => t.caps)
   const warningIndicator = wipExceeded ? " \u26A0" : ""
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
@@ -211,7 +215,7 @@ export function ColumnHeader({
                     {wipExceeded ? (
                       <Text
                         color={"$fg-error"}
-                      >{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
+                      >{` ${styledUnderline("curly", [255, 80, 80], countDisplay, termCaps)}${warningIndicator}`}</Text>
                     ) : (
                       <Text color={isColumnSelected ? headerStyle.color : "$fg-muted"}>{` ${countDisplay}`}</Text>
                     )}
