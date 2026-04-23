@@ -94,8 +94,8 @@ fi
 if [ "$do_list" -eq 1 ]; then
   printf "%-40s  %8s  %s\n" "SESSION" "LINES" "MTIME"
   for f in "${sessions[@]}"; do
-    # BSD stat; %Sm applies the format in -t
-    mtime=$(stat -t '%Y-%m-%d %H:%M' -f '%Sm' "$f" 2>/dev/null || echo "?")
+    # `date -r FILE` is portable across BSD (macOS) and Linux coreutils.
+    mtime=$(date -r "$f" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "?")
     lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
     base=$(basename "$f" .jsonl)
     printf "%-40s  %8s  %s\n" "$base" "$lines" "$mtime"
