@@ -166,25 +166,21 @@ function StatusBar({
   matches: number
   searchActive: boolean
 }) {
-  const short = path.length > 40 ? `…${path.slice(-38)}` : path
-  const hint = searchActive
-    ? "Esc close · Enter/Shift+Enter next/prev"
+  const short = path.length > 60 ? `…${path.slice(-58)}` : path
+  // Match count shows when active — a find-in-progress signal, not a keybind hint.
+  const suffix = searchActive
+    ? " · find…"
     : matches > 0
-      ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev`
-      : "/ find · Enter detail · q quit"
+      ? ` · ${matches} match${matches === 1 ? "" : "es"}`
+      : ""
+  // Inverse strip: $fg (terminal default fg, usually light) as bg; $bg
+  // (terminal default bg, usually black) as text → true inverse look at
+  // every terminal theme.
   return (
-    <Box
-      flexDirection="row"
-      paddingX={1}
-      width="100%"
-      backgroundColor="$bg-accent"
-      justifyContent="space-between"
-    >
-      <Text color="$fg-on-accent" bold>
+    <Box flexDirection="row" paddingX={1} width="100%" backgroundColor="$fg">
+      <Text color="$bg" bold>
         {configName} · {cursor + 1}/{rowCount} · {short}
-      </Text>
-      <Text color="$fg-on-accent" bold>
-        {hint}
+        {suffix}
       </Text>
     </Box>
   )
