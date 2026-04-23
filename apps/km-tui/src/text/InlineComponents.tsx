@@ -214,15 +214,28 @@ export function InlineStrikethrough({
 
 export function InlineCode({ node, decorations, offset }: { node: CodeNode } & DecorationProps): React.ReactElement {
   const ctx = useInlineRenderContext()
-  const codeColor = ctx.stripInlineColors ? "inherit" : "$border-default"
+  // Silvery's "code" variant gives inline code a $bg-muted tint — identifiers
+  // read as proper chips instead of getting lost in prose. Under the cursor
+  // (stripInlineColors) we fall back to a plain Text so the selection inverse
+  // still wins the fg/bg battle.
+  if (ctx.stripInlineColors) {
+    if (decorations?.length) {
+      return (
+        <Text color="inherit">
+          <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
+        </Text>
+      )
+    }
+    return <Text color="inherit">{node.code}</Text>
+  }
   if (decorations?.length) {
     return (
-      <Text color={codeColor}>
+      <Text variant="code">
         <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
       </Text>
     )
   }
-  return <Text color={codeColor}>{node.code}</Text>
+  return <Text variant="code">{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {

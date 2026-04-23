@@ -100,6 +100,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const isTitleCursor = cursorCardNodeId === effectiveId
   const rootIsTask = KNode.isTask(rootNode)
   const rootStatusIcon = rootIsTask ? getStatusIcon(rootNode.item?.task?.status ?? "todo") : null
+  // Selection model (see apps/km-tui/src/views/selection-style.ts rule 1):
+  // cursor node title → $selectionbg / $selection. Shared with TreeNode,
+  // NodeView, CardColumn so the detail pane reads the same as the board.
+  const titleBg = isTitleCursor && !isRootEditing ? "$selectionbg" : undefined
+  const titleFg = isRootEditing ? "$border-focus" : isTitleCursor ? "$selection" : undefined
+  const titleInlineCtx = isTitleCursor && !isRootEditing ? { stripInlineColors: true as const } : undefined
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden" userSelect="contain">
@@ -111,17 +117,17 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             testID={effectiveId}
             focusable
             paddingX={1}
-            backgroundColor={isTitleCursor && !isRootEditing ? "$bg-cursor" : undefined}
+            backgroundColor={titleBg}
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
             <Box flexGrow={1} flexShrink={1}>
-              <H1 color={isRootEditing ? "$border-focus" : isTitleCursor ? "$fg-cursor" : undefined} wrap="wrap">
+              <H1 color={titleFg} wrap="wrap">
                 {rootStatusIcon && (
                   <>
                     <CheckboxIcon
                       nodeId={effectiveId}
                       icon={rootStatusIcon}
-                      textColor={isRootEditing ? "$border-focus" : isTitleCursor ? "$fg-cursor" : undefined}
+                      textColor={titleFg}
                       shouldDim={false}
                       isSelected={isTitleCursor}
                       isNodeSelected={false}
@@ -145,7 +151,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
                     undoHandle={undoHandle}
                   />
                 ) : (
-                  <InlineText text={title} />
+                  <InlineText text={title} context={titleInlineCtx} />
                 )}
               </H1>
             </Box>
@@ -180,10 +186,14 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             </Box>
           )}
 
-          {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
+          {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1.
+             paddingX so prose breathes on both sides; maxWidth caps measure in wide panes
+             (reading a 120-col line of prose is unpleasant — ~72 is the Polaris sweet spot). */}
           {children.length > 0 ? (
-            <Box paddingLeft={1} flexDirection="column">
-              <DocContent nodes={children} depth={1} repo={repo} cursor={cursorCardNodeId} undoHandle={undoHandle} />
+            <Box paddingX={1} flexDirection="column">
+              <Box flexDirection="column" maxWidth={width > 90 ? 80 : undefined}>
+                <DocContent nodes={children} depth={1} repo={repo} cursor={cursorCardNodeId} undoHandle={undoHandle} />
+              </Box>
             </Box>
           ) : metaKeys.length === 0 ? (
             <Box paddingX={1}>
@@ -228,7 +238,7 @@ export function DocContent({
   const truncated = nodes.length - visible.length
   return (
     <Box flexDirection="column">
-      {visible.map((node) => (
+      {visible.map((node, i) => (
         <DocNode
           key={node.id}
           node={node}
@@ -237,6 +247,7 @@ export function DocContent({
           cursor={cursor}
           maxExpandDepth={effectiveMaxDepth}
           undoHandle={undoHandle}
+          isFirst={i === 0}
         />
       ))}
       {truncated > 0 && (
@@ -255,6 +266,7 @@ function DocNode({
   cursor,
   maxExpandDepth,
   undoHandle,
+  isFirst,
 }: {
   node: KNodeType
   depth: number
@@ -262,6 +274,9 @@ function DocNode({
   cursor?: string | null
   maxExpandDepth?: number
   undoHandle?: import("../undo/undoable-repo.ts").UndoableRepoHandle
+  /** True when this is the first child of its parent — suppresses the
+   *  leading blank row that headings would otherwise insert after an HR. */
+  isFirst?: boolean
 }): React.ReactElement {
   const content = node.content ?? node.name ?? ""
   const isHeading = KNode.isOutline(node)
@@ -284,12 +299,15 @@ function DocNode({
   )
   const childCount = children.length
 
-  // Edit mode styling: suppress selectionbg, use $border-focus color instead.
-  // Matches CardColumn.tsx pattern: editing clears bg, shows cyan border/color.
-  const bg = isCursor && !isEditing ? "$bg-cursor" : undefined
+  // Selection model — aligned with selection-style.ts rule 1 (shared with
+  // TreeNode / NodeView / CardColumn). Using $bg-cursor/$fg-cursor here
+  // produced white-on-white in themes where the terminal cursor color is
+  // near-white. $selectionbg / $selection are the canonical inverse tokens.
+  // Edit mode suppresses the selection bg and uses $border-focus instead.
+  const bg = isCursor && !isEditing ? "$selectionbg" : undefined
+  const cursorFg = isEditing ? "$border-focus" : isCursor ? "$selection" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
-  // Strip inline colors on cursor row — blue links on gold bg are unreadable
-  // During editing, no color override needed (editor handles its own styling)
+  // Strip inline colors on cursor row — blue links on inverse bg are unreadable
   const cursorCtx = isCursor && !isEditing ? { stripInlineColors: true as const } : undefined
 
   // Editing content: when editing, render TitleEditor instead of InlineText
@@ -320,25 +338,27 @@ function DocNode({
 
   // ── Heading ── H2/H3/muted-bold with spacing
   // Headings do NOT indent their children — content flows at current indent level.
-  // A blank line after the heading provides visual separation.
+  // Leading air: 2 rows above H2 (major section break), 1 row above H3.
+  // Skipped entirely when this is the first child so we don't double-gap after
+  // the HR that separates the title row from body content.
   // Headings that are also tasks show a task status icon before the title.
   if (isHeading) {
     const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
-    const headingColor = isEditing ? "$border-focus" : isCursor ? "$fg-cursor" : undefined
     const headingTaskIcon = isTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
     const headingIsDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
+    const leadingGap = isFirst ? 0 : depth <= 1 ? 2 : 1
     return (
       <Box flexDirection="column">
-        <Box height={1} />
+        {leadingGap > 0 && <Box height={leadingGap} />}
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
-            <Heading color={headingColor} wrap="wrap">
+            <Heading color={cursorFg} wrap="wrap">
               {headingTaskIcon && (
                 <>
                   <CheckboxIcon
                     nodeId={node.id}
                     icon={headingTaskIcon}
-                    textColor={isCursor ? "$fg-cursor" : undefined}
+                    textColor={cursorFg}
                     shouldDim={false}
                     isSelected={isCursor}
                     isNodeSelected={false}
@@ -351,13 +371,13 @@ function DocNode({
               {editableContent ?? <InlineText text={content} context={cursorCtx} />}
             </Heading>
           ) : (
-            <Text bold color={headingColor ?? "$fg-muted"} wrap="wrap">
+            <Text bold color={cursorFg ?? "$fg-muted"} wrap="wrap">
               {headingTaskIcon && (
                 <>
                   <CheckboxIcon
                     nodeId={node.id}
                     icon={headingTaskIcon}
-                    textColor={isCursor ? "$fg-cursor" : undefined}
+                    textColor={cursorFg}
                     shouldDim={false}
                     isSelected={isCursor}
                     isNodeSelected={false}
@@ -394,14 +414,14 @@ function DocNode({
   if (isTask) {
     const icon = getStatusIcon(node.item?.task?.status ?? "todo")
     const isDone = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-    const textColor = isEditing ? "$border-focus" : isCursor ? "$fg-cursor" : isDone ? "$fg-muted" : undefined
+    const textColor = cursorFg ?? (isDone ? "$fg-muted" : undefined)
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <CheckboxIcon
             nodeId={node.id}
             icon={icon}
-            textColor={isCursor ? "$fg-cursor" : undefined}
+            textColor={cursorFg}
             shouldDim={false}
             isSelected={isCursor}
             isNodeSelected={false}
@@ -436,8 +456,8 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-          <Text color={isCursor ? "$fg-cursor" : "$fg-muted"}>{node.item?.list ?? "•"} </Text>
-          <Text color={isCursor ? "$fg-cursor" : undefined} wrap="wrap">
+          <Text color={cursorFg ?? "$fg-muted"}>{node.item?.list ?? "•"} </Text>
+          <Text color={cursorFg} wrap="wrap">
             {editableContent ?? <InlineText text={content} context={cursorCtx} />}
           </Text>
         </Box>
@@ -460,9 +480,11 @@ function DocNode({
   }
 
   // ── Block content (paragraph, quote, code, hr) ──
+  // Block prose gets marginBottom=1 so adjacent paragraphs breathe. Tasks and
+  // list items stay tight (checklist rhythm). Headings manage their own gaps.
   if (node.type === "hr") {
     return (
-      <Box id={node.id} testID={node.id} focusable paddingLeft={0}>
+      <Box id={node.id} testID={node.id} focusable paddingLeft={0} marginBottom={1}>
         <HR />
       </Box>
     )
@@ -470,22 +492,40 @@ function DocNode({
   if (!content) return <Box id={node.id} testID={node.id} focusable paddingLeft={0} />
   if (node.type === "quote") {
     return (
-      <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+      <Box
+        id={node.id}
+        testID={node.id}
+        focusable
+        paddingLeft={0}
+        marginBottom={1}
+        backgroundColor={bg}
+        {...cursorProps}
+      >
         <Blockquote>{editableContent ?? <InlineText text={content} context={cursorCtx} />}</Blockquote>
       </Box>
     )
   }
   if (node.type === "code") {
     return (
-      <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
+      <Box
+        id={node.id}
+        testID={node.id}
+        focusable
+        paddingLeft={0}
+        marginBottom={1}
+        backgroundColor={bg}
+        {...cursorProps}
+      >
         {editableContent ? editableContent : <CodeBlock>{content}</CodeBlock>}
       </Box>
     )
   }
   // Paragraph
   return (
-    <Box id={node.id} testID={node.id} focusable paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-      <Text wrap="wrap">{editableContent ?? <InlineText text={content} context={cursorCtx} />}</Text>
+    <Box id={node.id} testID={node.id} focusable paddingLeft={0} marginBottom={1} backgroundColor={bg} {...cursorProps}>
+      <Text color={cursorFg} wrap="wrap">
+        {editableContent ?? <InlineText text={content} context={cursorCtx} />}
+      </Text>
     </Box>
   )
 }
