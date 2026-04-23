@@ -126,7 +126,7 @@ Checklist before launching the Agent calls:
 
 - Count: how many agents in this `/max` batch will write to `vendor/<same-pkg>/`?
 - If ≥ 2: add `isolation: "worktree"` to **every one of them** that touches that submodule, and append the CRITICAL commit block below
-- After launching: verify with `git worktree list --porcelain` that each worktree entry actually exists. `isolation: "worktree"` can fail silently.
+- After launching: verify with `ls .claude/worktrees/` that each clone directory actually exists. `isolation: "worktree"` invokes `.claude/hooks/worktree-create.sh` which calls `.claude/lib/isolate.sh` (APFS `cp -c -R`) to materialize the clone. The hook blocks until the clone is ready (~20-25s on the km repo).
 - Canonical memory: [feedback-worktree-shared-submodule.md](/Users/beorn/.config/claude-profiles/bjorns@gmail.com/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)
 
 ### Blast-radius classification (applies when the submodule rule doesn't force isolation)
@@ -139,19 +139,19 @@ Checklist before launching the Agent calls:
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
 **Worktree commit rules (CRITICAL):**
-- Agents in worktrees **MUST commit** their changes (worktrees are cleaned up when no commits exist, losing all work)
+- Agents in worktrees **MUST commit** their changes. Clones live at `.claude/worktrees/<name>/`; the WorktreeRemove hook preserves the directory on finish (it logs uncommitted-change count) but the clone is no longer on main's branch graph — without a commit, the work stays orphaned.
 - **Every worktree agent prompt MUST end with explicit commit instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
 
-  > CRITICAL: You are in a worktree. You MUST commit before finishing.
-  > Uncommitted work is DESTROYED when the worktree is cleaned up.
-  > Commit early and often with conventional commits. Your final message
-  > MUST include the commit SHA as proof.
+  > CRITICAL: You are in a worktree at `.claude/worktrees/<your-name>/`.
+  > You MUST commit before finishing. Uncommitted work is invisible to
+  > the parent session. Commit early and often with conventional
+  > commits. Your final message MUST include the commit SHA as proof.
 
-  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. The worktree cleanup destroyed hours of work. General "commit incrementally" guidance is not enough — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
+  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. Since the 2026-04-23 cp-c rewrite the clone directory survives cleanup, but the parent session still can't see uncommitted work — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
 
-- Use `bun worktree merge <name>` from main to integrate after
+- Integrate clone commits back to main via the branch the agent committed on (e.g. `git fetch .claude/worktrees/<name> main:<branch>` or `git cherry-pick -X theirs <sha>` from main). `bun worktree merge` only applies to `bun worktree`-created branches.
 
-**If `isolation: "worktree"` fails** (e.g., WorktreeCreate hook error, uncommitted changes): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently.
+**If `isolation: "worktree"` fails** (hook error, target already exists, non-APFS + tar failure): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently. Check `/tmp/worktree-create-hook.log` for the failure reason.
 
 ## Anti-Patterns
 

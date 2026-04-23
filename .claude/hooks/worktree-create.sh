@@ -1,18 +1,26 @@
 #!/bin/bash
 # Hook: WorktreeCreate
-# Runs when Claude Code creates a temporary agent worktree (isolation: "worktree").
-# Sets up submodules, dependencies, and direnv in the new worktree.
+# Fires when Claude Code spawns an Agent with isolation: "worktree".
+# Claude Code passes the intended worktree name via JSON stdin; this hook
+# is responsible for creating the clone directory at
+#   $PROJECT_DIR/.claude/worktrees/$NAME
+# before the Agent starts working in it.
 #
-# IMPORTANT — this hook fires BEFORE `git worktree add` finishes writing the
-# directory to disk. We spawn a detached background setup process and exit
-# immediately so Claude Code doesn't stall waiting for us.
+# Mechanism: APFS copy-on-write via .claude/lib/isolate.sh
 #
-# Claude Code sends JSON via stdin with fields:
-#   session_id, transcript_path, cwd, hook_event_name, name
-# `name` is the worktree dir name (e.g. "agent-a1b2c3d4").
-# Full path: $CLAUDE_PROJECT_DIR/.claude/worktrees/<name>.
+# The original design polled for a directory that git-worktree-add would
+# populate — but Claude Code's Agent runtime never invokes git worktree,
+# so the poll timed out after 60s and the Agent wrote to main instead.
+# The 2026-04-23 rewrite has the hook CREATE the clone directly.
+#
+# Timing on the km repo: ~20-25s for the cp -c -R. Hook blocks until done
+# so the Agent starts on a ready directory. Setup work that isn't
+# correctness-critical (direnv allow) is backgrounded after return.
+#
+# See bead km-infra.worktree-isolation-apfs for the full design.
 
 LOG="/tmp/worktree-create-hook.log"
+LIB_DIR="$(dirname "$0")/../lib"
 INPUT=$(cat)
 echo "$(date '+%H:%M:%S') INPUT: $INPUT" >> "$LOG"
 
@@ -23,51 +31,43 @@ if [ -z "$PROJECT_DIR" ]; then
 fi
 
 if [ -z "$NAME" ]; then
-  echo "$(date '+%H:%M:%S') No name field in JSON — exiting silently" >> "$LOG"
+  echo "$(date '+%H:%M:%S') No name field — exiting" >> "$LOG"
   echo '{"continue": true}'
   exit 0
 fi
 
 WORKTREE_PATH="$PROJECT_DIR/.claude/worktrees/$NAME"
-echo "$(date '+%H:%M:%S') Scheduling background setup: $WORKTREE_PATH" >> "$LOG"
+echo "$(date '+%H:%M:%S') [$NAME] creating clone at $WORKTREE_PATH" >> "$LOG"
 
-# Detach setup to background so the hook returns immediately.
-# Claude Code's hook timeout doesn't wait for this.
+# Source isolate.sh and run the clone SYNCHRONOUSLY.
+# Agent starts as soon as we return — target must be ready.
+# shellcheck source=../lib/isolate.sh
+if ! source "$LIB_DIR/isolate.sh"; then
+  echo "$(date '+%H:%M:%S') [$NAME] FAILED to source isolate.sh" >> "$LOG"
+  echo '{"continue": false, "stopReason": "isolate.sh not found"}'
+  exit 1
+fi
+
+START=$(date +%s)
+if ! isolate_worktree "$PROJECT_DIR" "$WORKTREE_PATH" 2>>"$LOG"; then
+  echo "$(date '+%H:%M:%S') [$NAME] isolate_worktree FAILED" >> "$LOG"
+  echo '{"continue": false, "stopReason": "worktree isolation failed"}'
+  exit 1
+fi
+ELAPSED=$(( $(date +%s) - START ))
+echo "$(date '+%H:%M:%S') [$NAME] clone complete (${ELAPSED}s)" >> "$LOG"
+
+# Background the non-critical setup (direnv, etc).
+# node_modules is already correct via CoW; no bun install needed.
+# Submodule .git paths are correct via isolate.sh fixups; no submodule update needed.
 (
-  # Poll for the worktree to exist — can take 10-30s for git worktree add to finish
-  for i in $(seq 1 60); do
-    if [ -d "$WORKTREE_PATH/.git" ] || [ -f "$WORKTREE_PATH/.git" ]; then break; fi
-    sleep 1
-  done
-
-  if ! cd "$WORKTREE_PATH" 2>/dev/null; then
-    echo "$(date '+%H:%M:%S') [$NAME] worktree never appeared — giving up" >> "$LOG"
-    exit 0
-  fi
-
-  echo "$(date '+%H:%M:%S') [$NAME] setting up: $WORKTREE_PATH" >> "$LOG"
-
-  # Initialize submodules
-  if [ -f .gitmodules ]; then
-    git submodule update --init --recursive 2>&1 | tail -3 >> "$LOG"
-  fi
-
-  # Install dependencies
-  if [ -f bun.lock ] || [ -f bun.lockb ]; then
-    bun install --frozen-lockfile 2>&1 | tail -3 >> "$LOG"
-  elif [ -f package-lock.json ]; then
-    npm ci 2>&1 | tail -3 >> "$LOG"
-  fi
-
-  # Allow direnv
+  cd "$WORKTREE_PATH" 2>/dev/null || exit 0
   if [ -f .envrc ] && command -v direnv &>/dev/null; then
     direnv allow 2>&1 >> "$LOG"
   fi
-
-  echo "$(date '+%H:%M:%S') [$NAME] setup complete" >> "$LOG"
+  echo "$(date '+%H:%M:%S') [$NAME] bg setup done" >> "$LOG"
 ) </dev/null >/dev/null 2>&1 &
 disown
 
-# Tell Claude Code we succeeded (non-blocking)
 echo '{"continue": true}'
 exit 0
