@@ -63,7 +63,7 @@ describe("km-logview body rendering", () => {
     handle.unmount()
   })
 
-  test("multi-line body renders each line below the header", async () => {
+  test("multi-line body renders each line on its own row (honors newlines)", async () => {
     using term = createTermless({ cols: 120, rows: 20 })
     const rows = loadRows(FIXTURE, claudeSessionConfig)
     const handle = await run(
@@ -74,15 +74,20 @@ describe("km-logview body rendering", () => {
     )
     const lines = term.screen.getLines()
 
-    // Row 4: header only for the 3-line row.
+    // Row 4: header only — no body text on the header row.
     expect(lines[4]).toContain("05:00:02")
     expect(lines[4]).toContain("USER")
     expect(lines[4]).not.toContain("line one")
 
-    // Rows 5-7: each line rendered below, indented.
+    // Body renders across multiple rows — one line per source newline. The
+    // fixture has 3 body lines (≤ BODY_COLLAPSED_MAX_LINES=3) so all render
+    // inline, no "+N more" needed. This is the bug-3 fix: inline preview
+    // honors newlines like the popover does.
     expect(lines[5]).toContain("line one")
     expect(lines[6]).toContain("line two")
     expect(lines[7]).toContain("line three")
+    // No "+N more" indicator since all lines fit within the collapsed window.
+    expect((lines[5] ?? "") + (lines[6] ?? "") + (lines[7] ?? "")).not.toContain("+0 more")
     handle.unmount()
   })
 

@@ -32,8 +32,9 @@ Keybindings:
   /   or Ctrl+F Start find
   Enter (in find) Next match;  Shift+Enter = prev match
   n / N         Next / previous match (outside find bar)
-  Enter (row)   Open detail view
-  Esc           Close find / close detail / quit
+  Click (row)   Toggle expand/collapse multi-line body
+  Hover (pill)  Popover with full field value
+  Esc           Close find / quit
   q             Quit
 
 Auto-detected configs:

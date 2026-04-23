@@ -4,6 +4,7 @@ import { Box, ListView, SearchBar, Text, useSearch, useWindowSize } from "silver
 import { useInput } from "silvery/runtime"
 import { LogRowView } from "./LogRow.tsx"
 import { loadRows } from "./parse-jsonl.ts"
+import { PopoverProvider } from "./Popover.tsx"
 import type { LogRow, ViewConfig } from "./view-config.ts"
 
 /**
@@ -13,6 +14,11 @@ import type { LogRow, ViewConfig } from "./view-config.ts"
  *   [ SearchBar (only when active)     ]  0 or 1 row
  *
  * No bottom status bar — everything collapses into the top strip.
+ *
+ * Interactions (redesigned 2026-04-23):
+ *   - Hover a pill / segment → popover shows that field's full value
+ *   - Click a row body → toggles per-row expand for multi-line body
+ *   No full-screen detail pane; the popover + inline expansion subsume it.
  *
  * No `cache={{ mode: "virtual" }}` — that freezes older items to a ring buffer
  * and is right for chat (top-to-bottom reading), wrong for a log viewer where
@@ -33,7 +39,7 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
   const { rows: termRows } = useWindowSize()
   const [rows, setRows] = useState(initialRows)
   const [cursor, setCursor] = useState(initialRows.length - 1)
-  const [detail, setDetail] = useState<LogRow | null>(null)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
   const [follow, setFollow] = useState(true)
   const search = useSearch()
 
@@ -57,19 +63,26 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
     setCursor(i)
   }, [])
 
-  const handleSelect = useCallback(
-    (i: number) => {
-      const r = rows[i]
-      if (r) setDetail(r)
-    },
-    [rows],
-  )
+  const toggleExpand = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
 
   const renderItem = useCallback(
     (row: LogRow, _i: number, meta: { isCursor: boolean }) => (
-      <LogRowView row={row} fields={config.fields} isCursor={meta.isCursor} />
+      <LogRowView
+        row={row}
+        fields={config.fields}
+        isCursor={meta.isCursor}
+        expanded={expanded.has(row.id)}
+        onToggleExpand={() => toggleExpand(row.id)}
+      />
     ),
-    [config.fields],
+    [config.fields, expanded, toggleExpand],
   )
 
   useEffect(() => {
@@ -105,13 +118,6 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
   }, [path, config])
 
   useInput((input, key) => {
-    if (detail) {
-      if (key.escape || input === "q") {
-        setDetail(null)
-        return
-      }
-      return
-    }
     if (search.isActive) return
 
     // `gg` chord — first `g` primes, second `g` within 1s triggers top-jump.
@@ -165,35 +171,32 @@ export function App({ path, config, rows: initialRows }: { path: string; config:
     if (key.escape) return "exit"
   })
 
-  if (detail) {
-    return <DetailPane row={detail} height={termRows} />
-  }
-
   return (
-    <Box flexDirection="column" height={termRows} width="100%">
-      <StatusBar
-        path={path}
-        configName={config.name}
-        rowCount={rows.length}
-        cursor={cursor}
-        matches={search.matches.length}
-        searchActive={search.isActive}
-        follow={follow}
-      />
-      <ListView
-        items={rows}
-        height={listHeight}
-        maxRendered={200}
-        nav
-        cursorKey={cursor}
-        getKey={(r) => r.id}
-        onCursor={handleCursor}
-        onSelect={handleSelect}
-        search={{ getText }}
-        renderItem={renderItem}
-      />
-      <SearchBar />
-    </Box>
+    <PopoverProvider>
+      <Box flexDirection="column" height={termRows} width="100%">
+        <StatusBar
+          path={path}
+          configName={config.name}
+          rowCount={rows.length}
+          cursor={cursor}
+          matches={search.matches.length}
+          searchActive={search.isActive}
+          follow={follow}
+        />
+        <ListView
+          items={rows}
+          height={listHeight}
+          maxRendered={200}
+          nav
+          cursorKey={cursor}
+          getKey={(r) => r.id}
+          onCursor={handleCursor}
+          search={{ getText }}
+          renderItem={renderItem}
+        />
+        <SearchBar />
+      </Box>
+    </PopoverProvider>
   )
 }
 
@@ -216,11 +219,7 @@ function StatusBar({
 }) {
   const short = path.length > 60 ? `…${path.slice(-58)}` : path
   // Status suffixes — state indicators, not key hints.
-  const findSuffix = searchActive
-    ? " · find…"
-    : matches > 0
-      ? ` · ${matches} match${matches === 1 ? "" : "es"}`
-      : ""
+  const findSuffix = searchActive ? " · find…" : matches > 0 ? ` · ${matches} match${matches === 1 ? "" : "es"}` : ""
   // follow=true is the default; only surface the off state (user explicitly
   // paused tailing via F — they'll want the reminder).
   const followSuffix = follow ? "" : " · ⏸ paused"
@@ -231,26 +230,6 @@ function StatusBar({
         {findSuffix}
         {followSuffix}
       </Text>
-    </Box>
-  )
-}
-
-function DetailPane({ row, height }: { row: LogRow; height: number }) {
-  const formatted = useMemo(() => {
-    try {
-      return JSON.stringify(row.raw, null, 2)
-    } catch {
-      return String(row.raw)
-    }
-  }, [row])
-  return (
-    <Box flexDirection="column" height={height} paddingX={1}>
-      <Text bold color="$fg-accent">
-        row #{row.lineNo} · {row.kind ?? "—"} · Esc/q to close
-      </Text>
-      <Box flexGrow={1} flexDirection="column" marginTop={1}>
-        <Text>{formatted}</Text>
-      </Box>
     </Box>
   )
 }

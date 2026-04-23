@@ -67,8 +67,7 @@ export function tokenize(input: string): Token[] {
     const om = TAG_OPEN_RE.exec(input)
 
     // Pick the nearer of the two.
-    const nextTag =
-      cm && (!om || cm.index <= om.index) ? cm : om
+    const nextTag = cm && (!om || cm.index <= om.index) ? cm : om
     const nextTagIndex = nextTag ? nextTag.index : -1
 
     if (nextTag && nextTagIndex === pos) {
@@ -170,13 +169,13 @@ export function colorize(input: string): React.ReactNode[] {
           {tok.attrs.map((a, j) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: attr position stable within its parent tag
             <Text key={`a${j}`}>
-              <Text>{" "}</Text>
+              <Text> </Text>
               <Text color={C_ATTR}>{a.name}</Text>
               {a.value !== undefined && (
                 <>
-                  <Text color={C_BRK}>{"=\""}</Text>
+                  <Text color={C_BRK}>{'="'}</Text>
                   <Text color={C_VAL}>{a.value}</Text>
-                  <Text color={C_BRK}>{"\""}</Text>
+                  <Text color={C_BRK}>{'"'}</Text>
                 </>
               )}
             </Text>
@@ -195,9 +194,9 @@ export function colorize(input: string): React.ReactNode[] {
     } else if (tok.kind === "json-key") {
       nodes.push(
         <Text key={key}>
-          <Text color={C_BRK}>{"\""}</Text>
+          <Text color={C_BRK}>{'"'}</Text>
           <Text color={C_KEY}>{tok.key}</Text>
-          <Text color={C_BRK}>{"\":"}</Text>
+          <Text color={C_BRK}>{'":'}</Text>
         </Text>,
       )
     } else if (tok.kind === "json-lit") {
