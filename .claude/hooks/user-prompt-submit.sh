@@ -73,17 +73,21 @@ fi
 # only replaces the subshell, not this script, so after tribe-cli writes
 # its JSON the outer script continues and would emit a SECOND payload
 # (producing the double "hook success: ..." lines that users see in the
-# transcript). Run the pipeline normally and `exit $?` so there is
-# exactly ONE payload on stdout.
+# transcript).
 #
-# tribe-cli `hook prompt` is responsible for emitting the required JSON
-# shape on its own (it does — see tribe's hook-dispatch). If it ever
-# silent-exits the strict invariant is violated downstream; treat that
-# as a bearly bug, not a reason to re-emit here.
+# Capture tribe-cli's stdout. tribe-cli emits valid JSON for most prompts
+# (recall hits → full context), but SILENTLY emits nothing when recall
+# skips (e.g. short prompts: `[recall hook] skipped: short`). If we pass
+# an empty body through, Claude Code falls back to the bare "hook
+# success: OK" reminder — exactly what this script exists to prevent.
+# So: empty → emit legal-empty payload via emit_and_exit.
 if [ -f "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" ]; then
-  echo "$INPUT" | bun "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" hook prompt
-  exit $?
+  TRIBE_OUT=$(echo "$INPUT" | bun "$REPO_ROOT/vendor/bearly/tools/tribe-cli.ts" hook prompt 2>/dev/null)
+  if [ -n "$TRIBE_OUT" ]; then
+    printf '%s\n' "$TRIBE_OUT"
+    exit 0
+  fi
 fi
 
-# Fallback: tribe-cli not found — emit legal empty payload
+# Fallback: tribe-cli not found OR emitted nothing — emit legal empty payload
 emit_and_exit ""
