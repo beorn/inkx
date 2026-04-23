@@ -1,0 +1,24 @@
+{
+  "name": "@km/logview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Silverized log viewer — VTerm/virtual-terminal view with per-path ViewConfig, find, and multi-line field support.",
+  "bin": {
+    "km-logview": "./src/bootstrap.ts"
+  },
+  "type": "module",
+  "module": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@silvery/ag-react": "workspace:*",
+    "@silvery/ag-term": "workspace:*",
+    "@silvery/theme": "workspace:*",
+    "react": "catalog:",
+    "silvery": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:"
+  }
+}

@@ -1,0 +1,5 @@
+{"type":"user","timestamp":"2026-04-23T05:00:00.000Z","message":{"content":"hello"}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:01.000Z","message":{"content":[{"type":"text","text":"hi there"}]}}
+{"type":"assistant","timestamp":"2026-04-23T05:00:02.000Z","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls /tmp"}}]}}
+{"type":"user","timestamp":"2026-04-23T05:00:03.000Z","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_x","content":"file1\nfile2"}]}}
+{"type":"queue-operation","timestamp":"2026-04-23T05:00:04.000Z","content":"this should be skipped"}

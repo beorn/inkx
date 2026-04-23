@@ -123,6 +123,23 @@
         "@types/react": "catalog:",
       },
     },
+    "apps/km-logview": {
+      "name": "@km/logview",
+      "version": "0.1.0",
+      "bin": {
+        "km-logview": "./src/bootstrap.ts",
+      },
+      "dependencies": {
+        "@silvery/ag-react": "workspace:*",
+        "@silvery/ag-term": "workspace:*",
+        "@silvery/theme": "workspace:*",
+        "react": "catalog:",
+        "silvery": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/react": "catalog:",
+      },
+    },
     "apps/km-repl": {
       "name": "@km/repl",
       "dependencies": {
@@ -1150,6 +1167,8 @@
     "@km/fs-mount": ["@km/fs-mount@workspace:packages/km-fs-mount"],
 
     "@km/infra": ["@km/infra@workspace:packages/km-infra"],
+
+    "@km/logview": ["@km/logview@workspace:apps/km-logview"],
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
