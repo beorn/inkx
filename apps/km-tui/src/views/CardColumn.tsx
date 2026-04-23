@@ -126,22 +126,22 @@ function classifyFrame(card: KNode, isBody: boolean): CardFrame {
  * Compute the leading gap (in blank rows) to render above an item, given
  * the frames of the two siblings at the boundary.
  *
- * Rule: every boundary touching a naked body block gets a 1-row gap.
- * - naked → naked: blank row separates stacked prose blocks.
- * - bordered → naked: blank row prevents body text from pressing against
- *   the neighbour's bottom border.
- * - naked → bordered: blank row separates the body block from the next
- *   card's top border.
+ * Rule (per bead km-tui.body-block-leading-gap and
+ * apps/km-tui/tests/column-primitive.slow.test.tsx):
  *
- * Two bordered cards still abut via their borders (gap 0); the `hr` frame
- * is treated like bordered for this rule.
+ * - naked → naked: 0 — stacked prose blocks abut with no phantom
+ *   whitespace. Markdown paragraphs in the same "run" read as one block.
+ * - bordered → naked: 1 — blank row prevents body text from pressing
+ *   against the neighbour's bottom border.
+ * - naked → bordered: 1 — blank row separates the body block from the
+ *   next card's top border.
+ * - bordered ↔ bordered / hr: 0 — borders provide their own separation.
  *
- * When there is no previous sibling (the first item in the column), the
- * rule is the same — we treat "no previous" as equivalent to "bordered
- * above" (the column header separator, which visually acts like a border
- * from the gap's perspective).
+ * First item in the column behaves like "bordered above" (the column
+ * header separator visually acts as a border for gap purposes).
  */
 function computeLeadingGap(prev: CardFrame | undefined, next: CardFrame): number {
+  if (next === "naked" && prev === "naked") return 0
   if (next === "naked" || prev === "naked") return 1
   return 0
 }

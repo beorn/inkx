@@ -390,15 +390,14 @@ describe("column primitive: overflow semantics (two policies, not unified)", () 
 })
 
 describe("column primitive: selection tint continuity across frame boundaries", () => {
-  test("naked block's leading gap row inherits body bg when body is cursor", () => {
-    // Invariant at the header→naked boundary: the naked block's leading
-    // paddingTop=1 row fills with the body's bg. When the cursor is on the
-    // body card, the selection tint forms a single continuous surface
-    // including the gap row — no visual break between gap and content.
-    //
-    // This is why the leading gap is applied as padding INSIDE the body
-    // card's Box (not as a separate Column-level spacer): padding inherits
-    // the Box's bg, a sibling spacer would not.
+  test("naked block's leading gap row is untinted — bg traces the block outline, not the gap", () => {
+    // Contract (2026-04-22): the leading gap is applied as `marginTop` —
+    // OUTSIDE the Box — so the card's `backgroundColor` (cursor / selection
+    // highlight) colors only the block itself, not the spacer row above.
+    // The earlier design bled the selection bg across the gap to keep a
+    // multi-select run visually continuous; feedback 2026-04-22 reversed
+    // that — the clean "bg = block outline" read wins. See
+    // apps/km-tui/src/views/CardColumn.tsx comment around marginTop.
     using app = createTestApp(
       item("board", item("col", item.code("selected-body"), item.file("struct-anchor", item("sc-child")))),
       { cols: 80, rows: 30, viewMode: "cards" },
@@ -411,13 +410,12 @@ describe("column primitive: selection tint continuity across frame boundaries", 
     const naked = app.screen.nodeBox("selected-body")
     expect(naked, "selected-body must be registered").not.toBeNull()
 
-    // The leading gap row is at (naked.y - 1). When body is cursor, that row
-    // should inherit the body block's selection bg — i.e. NOT be uniformly
-    // the default bg. We sample several columns on that row and require at
-    // least one to have a non-default bg.
     const gapY = naked!.y - 1
     expect(gapY, "gap row must be above the naked content").toBeGreaterThanOrEqual(0)
 
+    // The gap row must NOT inherit the body's selection tint — the tint
+    // stops at the block boundary. We sample several columns on that row
+    // and require none to carry a body-tinted bg.
     let tintedCells = 0
     for (let dx = 0; dx < Math.min(naked!.width, 20); dx++) {
       const cell = app.screen.cell(naked!.x + dx, gapY)
@@ -425,7 +423,7 @@ describe("column primitive: selection tint continuity across frame boundaries", 
     }
     expect(
       tintedCells,
-      `gap row at y=${gapY} should inherit body bg when body is cursor (got ${tintedCells} tinted cells)`,
-    ).toBeGreaterThan(0)
+      `gap row at y=${gapY} must not inherit body bg (got ${tintedCells} tinted cells)`,
+    ).toBe(0)
   })
 })
