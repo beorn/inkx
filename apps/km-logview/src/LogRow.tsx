@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 import React, { useCallback, useRef, useState } from "react"
-import { Box, Text } from "silvery"
+import { Box, Text, useWindowSize } from "silvery"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { colorize } from "./colorize.tsx"
 import { usePopover, type PopoverContent } from "./Popover.tsx"
@@ -45,8 +45,11 @@ function valueToString(v: unknown): string {
  * from raw (e.g. USER vs user).
  * Separator: a single space — pill shape + color carries the visual boundary.
  *
- * When a `multiLine: "below"` field contains ANY newline OR exceeds
- * INLINE_BODY_MAX_CHARS, the whole body pushes below the header.
+ * When a `multiLine: "below"` field contains ANY newline, or its single
+ * line doesn't fit alongside the header in the current terminal width, the
+ * whole body pushes below. Fit is measured against actual `columns`, not
+ * a fixed character threshold — so a 40-char body inlines on a 200-col
+ * terminal but pushes below on an 80-col one.
  *
  * Selection (Omnibox pattern): row Box gets $bg-cursor; Text falls back to
  * $fg-cursor for contrast. Pill bgs collapse to cursor fg for unity.
@@ -54,9 +57,10 @@ function valueToString(v: unknown): string {
 
 const PILL_FIELDS = new Set(["kind", "label"])
 
-/** Inline single-line body threshold. Below this many chars → inline with
- * the header; at/above, or any multi-line content → push below muted+dim. */
-const INLINE_BODY_MAX_CHARS = 30
+/** Safety margin (cols) when deciding whether a single-line body fits on
+ * the same line as the header. Absorbs slight rendering width differences
+ * (emoji, bidi, double-width chars) that a raw `.length` doesn't capture. */
+const INLINE_BODY_FIT_MARGIN = 2
 
 /** Produce popover content for a field value. */
 function fieldPopoverContent(
@@ -172,12 +176,17 @@ function Pill({
   )
 }
 
+/** Body-line indent (cols). Applied via `paddingLeft` on the body Box so
+ * wrapped visual lines stay aligned — NOT via an inline " " prefix in the
+ * Text (which only offsets the first visual line of each logical line). */
+const BODY_INDENT = 2
+
 /** Inline component: collapsed multi-line body preview. Lines wrap
  * naturally; a "+N more (click to expand)" tail indicates hidden content.
  *
  * Hover: entering anywhere on the preview brightens ONLY the "+more"
- * indicator (un-dim + underline) — the body lines stay subdued so the call
- * to action doesn't visually drown the content. */
+ * indicator (bright fg + bold) — body lines stay subdued so the call to
+ * action stands out without visually drowning the content. */
 function CollapsedBodyPreview({
   lines,
   remainder,
@@ -193,7 +202,12 @@ function CollapsedBodyPreview({
   const onMouseEnter = useCallback(() => setHovered(true), [])
   const onMouseLeave = useCallback(() => setHovered(false), [])
   return (
-    <Box flexDirection="column" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <Box
+      flexDirection="column"
+      paddingLeft={BODY_INDENT}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {lines.map((line, i) => (
         <Text
           // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
@@ -202,7 +216,6 @@ function CollapsedBodyPreview({
           dim={!isCursor}
           wrap="wrap"
         >
-          <Text>{"  "}</Text>
           {colorize(line)}
         </Text>
       ))}
@@ -210,12 +223,8 @@ function CollapsedBodyPreview({
         // Only the "+N more" indicator brightens on hover — body lines stay
         // subdued so the call-to-action stands out. Bright default fg + bold
         // on hover; no underline (per user spec).
-        <Text
-          color={hovered ? "$fg" : "$fg-muted"}
-          dim={!isCursor && !hovered}
-          bold={hovered || undefined}
-        >
-          {`  ⋯ +${remainder} more (click to expand)`}
+        <Text color={hovered ? "$fg" : "$fg-muted"} dim={!isCursor && !hovered} bold={hovered || undefined}>
+          {`⋯ +${remainder} more (click to expand)`}
         </Text>
       )}
     </Box>
@@ -239,6 +248,14 @@ export function LogRowView({
   let bodyLines: string[] = []
   let bodyFieldKey: string | null = null
   const cursorFg = "$fg-cursor"
+  const { columns } = useWindowSize()
+
+  // Running count of characters consumed by header segments so far.
+  // Used to decide whether a single-line body can fit on the same line
+  // as the header, vs push below. Updated after each segment is pushed.
+  let headerCharWidth = 0
+  // Outer Box uses paddingX={1} → 2 cols reserved (left + right).
+  const PADDING_X = 2
 
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i]!
@@ -248,16 +265,25 @@ export function LogRowView({
     const rendered = field.render ? field.render(raw, row) : valueToString(raw)
     const asStr = typeof rendered === "string" ? rendered : null
 
-    // Body-like fields (multiLine:"below"): go below when there are 2+
-    // non-empty lines OR the single line is ≥ INLINE_BODY_MAX_CHARS. Short
-    // single-liners render inline beside the header. Keep the styling
-    // uniform: body is always dim-muted + colorized, never per-kind.
+    // Body-like fields (multiLine:"below"): multi-line content always
+    // pushes below. For single-line bodies we inline ONLY when the line
+    // still fits within the terminal width (header + separator + body
+    // + padding + safety margin). This replaces the old fixed
+    // INLINE_BODY_MAX_CHARS=30 heuristic — now a 40-char body inlines
+    // fine on a 200-col terminal but pushes below on an 80-col one.
     let inlineBody: string | null = null
     if (field.multiLine === "below" && asStr !== null && asStr.length > 0) {
       const allLines = asStr.split("\n")
       const nonEmpty = allLines.filter((l) => l.trim().length > 0)
       const single = nonEmpty[0] ?? ""
-      if (nonEmpty.length > 1 || single.length >= INLINE_BODY_MAX_CHARS) {
+      if (nonEmpty.length > 1) {
+        bodyLines = allLines
+        bodyFieldKey = field.key
+        continue
+      }
+      const sepBeforeBody = headerCharWidth > 0 ? 1 : 0
+      const availableWidth = Math.max(0, columns - PADDING_X - headerCharWidth - sepBeforeBody - INLINE_BODY_FIT_MARGIN)
+      if (single.length > availableWidth) {
         bodyLines = allLines
         bodyFieldKey = field.key
         continue
@@ -334,8 +360,15 @@ export function LogRowView({
       )
     }
 
+    // Track the rendered width so the next field's inline-fit check sees
+    // the correct column offset. inlineBody was the single body line;
+    // otherwise use the rendered string (asStr) or stringified non-string.
+    const segmentWidth =
+      inlineBody !== null ? inlineBody.length : asStr !== null ? asStr.length : String(rendered ?? "").length
+    headerCharWidth += segmentWidth
     if (i < fields.length - 1) {
       headerSegments.push(<Text key={`sep-${field.key}`}> </Text>)
+      headerCharWidth += 1
     }
   }
 
@@ -356,12 +389,8 @@ export function LogRowView({
   }
   // Collapse only when hiding > 1 line would be saved. Otherwise show all.
   const isCollapsible = trimmedBodyLines.length > BODY_COLLAPSED_MAX_LINES + 1
-  const collapsedLines = isCollapsible
-    ? trimmedBodyLines.slice(0, BODY_COLLAPSED_MAX_LINES)
-    : trimmedBodyLines
-  const collapsedRemainder = isCollapsible
-    ? trimmedBodyLines.length - BODY_COLLAPSED_MAX_LINES
-    : 0
+  const collapsedLines = isCollapsible ? trimmedBodyLines.slice(0, BODY_COLLAPSED_MAX_LINES) : trimmedBodyLines
+  const collapsedRemainder = isCollapsible ? trimmedBodyLines.length - BODY_COLLAPSED_MAX_LINES : 0
 
   // No body-level popover — body is shown inline. Click toggles expand
   // only when the body is actually collapsible. bodyFieldKey is unused
@@ -392,20 +421,10 @@ export function LogRowView({
   //   expanded row   → $bg-surface-subtle (whole-row tint signals
   //                    "expanded" state, carries through header + body)
   //   otherwise      → terminal default (no bg)
-  const rowBackground = isCursor
-    ? "$bg-cursor"
-    : showExpanded
-      ? "$bg-surface-subtle"
-      : undefined
+  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-subtle" : undefined
 
   return (
-    <Box
-      flexDirection="column"
-      paddingX={1}
-      width="100%"
-      backgroundColor={rowBackground}
-      onClick={onBoxClick}
-    >
+    <Box flexDirection="column" paddingX={1} width="100%" backgroundColor={rowBackground} onClick={onBoxClick}>
       <Text wrap="truncate-end">{headerSegments}</Text>
       {showCollapsed && (
         <CollapsedBodyPreview
@@ -415,32 +434,36 @@ export function LogRowView({
           bodyColor={bodyColor}
         />
       )}
-      {showExpanded &&
-        bodyLines.map((line, i) => (
-          <Text
-            // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-            key={`b${i}`}
-            color={bodyColor}
-            dim={!isCursor}
-            wrap="wrap"
-          >
-            <Text>{"  "}</Text>
-            {colorize(line)}
-          </Text>
-        ))}
-      {showFlat &&
-        trimmedBodyLines.map((line, i) => (
-          <Text
-            // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-            key={`f${i}`}
-            color={bodyColor}
-            dim={!isCursor}
-            wrap="wrap"
-          >
-            <Text>{"  "}</Text>
-            {colorize(line)}
-          </Text>
-        ))}
+      {showExpanded && (
+        <Box flexDirection="column" paddingLeft={BODY_INDENT}>
+          {bodyLines.map((line, i) => (
+            <Text
+              // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+              key={`b${i}`}
+              color={bodyColor}
+              dim={!isCursor}
+              wrap="wrap"
+            >
+              {colorize(line)}
+            </Text>
+          ))}
+        </Box>
+      )}
+      {showFlat && (
+        <Box flexDirection="column" paddingLeft={BODY_INDENT}>
+          {trimmedBodyLines.map((line, i) => (
+            <Text
+              // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+              key={`f${i}`}
+              color={bodyColor}
+              dim={!isCursor}
+              wrap="wrap"
+            >
+              {colorize(line)}
+            </Text>
+          ))}
+        </Box>
+      )}
     </Box>
   )
 }

@@ -14,13 +14,16 @@ const FIXTURE = resolve(HERE, "fixtures/body-shapes.jsonl")
 
 /**
  * body-shapes.jsonl has three rows:
- *   1. "short line" (10 chars, single line)   → inline beside header
- *   2. "this is a long single line body ..."  (≥30 chars)      → below muted
- *   3. "line one\nline two\nline three"        (3 lines)       → below muted
+ *   1. "short line" (10 chars, single line)              → inline beside header
+ *   2. "this is a long single line body ..." (>60 chars) → depends on terminal width
+ *   3. "line one\nline two\nline three"      (3 lines)   → below muted (multi-line)
  *
- * INLINE_BODY_MAX_CHARS = 30 in LogRow.tsx controls the inline/below split.
+ * Inline/below split is terminal-width-aware: single-line bodies inline
+ * when header + separator + body + padding fit within `columns`, else
+ * push below. Tests use narrow (cols=40) for push-below assertions and
+ * wide (cols=200) for inline assertions.
  *
- * Renders into a 120x20 screen. Row 0 = status bar, rows 1+ = list items.
+ * Row 0 = status bar, rows 1+ = list items.
  */
 describe("km-logview body rendering", () => {
   test("short single-line body renders inline with the header", async () => {
@@ -41,7 +44,9 @@ describe("km-logview body rendering", () => {
     handle.unmount()
   })
 
-  test("long single-line body (>=30 chars) renders below the header", async () => {
+  test("long single-line body pushes below when it doesn't fit alongside the header", async () => {
+    // Fixture body #2 is deliberately >120 chars — longer than cols, so it
+    // pushes below regardless of how wide this terminal is.
     using term = createTermless({ cols: 120, rows: 20 })
     const rows = loadRows(FIXTURE, claudeSessionConfig)
     const handle = await run(
@@ -55,15 +60,17 @@ describe("km-logview body rendering", () => {
     // Row 2: header only — time + kind, no body text on same line.
     expect(lines[2]).toContain("05:00:01")
     expect(lines[2]).toContain("USER")
-    expect(lines[2]).not.toContain("this is a long single line body")
+    expect(lines[2]).not.toContain("this is a very long single line body")
 
     // Row 3: body line rendered below, indented by 2 spaces.
     expect(lines[3]).toMatch(/^\s{2,}/)
-    expect(lines[3]).toContain("this is a long single line body")
+    expect(lines[3]).toContain("this is a very long single line body")
     handle.unmount()
   })
 
   test("multi-line body renders each line on its own row (honors newlines)", async () => {
+    // cols=40 ensures the preceding long-body row also pushes below so
+    // row indices are stable across the test suite.
     using term = createTermless({ cols: 120, rows: 20 })
     const rows = loadRows(FIXTURE, claudeSessionConfig)
     const handle = await run(
@@ -74,24 +81,24 @@ describe("km-logview body rendering", () => {
     )
     const lines = term.screen.getLines()
 
-    // Row 4: header only — no body text on the header row.
-    expect(lines[4]).toContain("05:00:02")
-    expect(lines[4]).toContain("USER")
-    expect(lines[4]).not.toContain("line one")
+    // Long body (row 2) wraps across 2 visual rows → multi-line row shifts
+    // to lines[5]. Row 5 = header only; rows 6-8 = each body line.
+    expect(lines[5]).toContain("05:00:02")
+    expect(lines[5]).toContain("USER")
+    expect(lines[5]).not.toContain("line one")
 
-    // Body renders across multiple rows — one line per source newline. The
-    // fixture has 3 body lines (≤ BODY_COLLAPSED_MAX_LINES=3) so all render
-    // inline, no "+N more" needed. This is the bug-3 fix: inline preview
-    // honors newlines like the popover does.
-    expect(lines[5]).toContain("line one")
-    expect(lines[6]).toContain("line two")
-    expect(lines[7]).toContain("line three")
-    // No "+N more" indicator since all lines fit within the collapsed window.
-    expect((lines[5] ?? "") + (lines[6] ?? "") + (lines[7] ?? "")).not.toContain("+0 more")
+    // Body renders across 3 rows — one line per source newline. The fixture
+    // has 3 body lines (≤ BODY_COLLAPSED_MAX_LINES+1) so all render flat,
+    // no "+N more" needed.
+    expect(lines[6]).toContain("line one")
+    expect(lines[7]).toContain("line two")
+    expect(lines[8]).toContain("line three")
+    expect((lines[6] ?? "") + (lines[7] ?? "") + (lines[8] ?? "")).not.toContain("+0 more")
     handle.unmount()
   })
 
   test("body-below lines render dim + muted (not cursor-colored)", async () => {
+    // Narrow cols forces all bodies below → consistent row indices.
     using term = createTermless({ cols: 120, rows: 20 })
     const rows = loadRows(FIXTURE, claudeSessionConfig)
     const handle = await run(
@@ -123,7 +130,9 @@ describe("km-logview body rendering", () => {
     expect(rowBody1).not.toBeNull()
     expect(rowBody1!.fg).not.toBeNull()
 
-    const rowBody2 = firstCellOnBody(5)
+    // Row 6: multi-body "line one" (long body wraps onto rows 3-4,
+    // multi header on row 5, multi body lines begin at 6).
+    const rowBody2 = firstCellOnBody(6)
     expect(rowBody2).not.toBeNull()
     expect(rowBody2!.fg).not.toBeNull()
 
