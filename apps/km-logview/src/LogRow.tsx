@@ -46,6 +46,10 @@ function valueToString(v: unknown): string {
 
 const PILL_FIELDS = new Set(["kind", "label"])
 
+/** Inline single-line body threshold. Below this many chars → inline with
+ * the header; at/above, or any multi-line content → push below muted+dim. */
+const INLINE_BODY_MAX_CHARS = 30
+
 function Pill({
   color,
   bold,
@@ -81,31 +85,45 @@ export function LogRowView({
     const raw = row.fields[field.key]
     const color = resolve(field.color, raw, row)
     const bold = resolve(field.bold, raw, row) ?? false
-    const content = field.render ? field.render(raw, row) : valueToString(raw)
-    const asStr = typeof content === "string" ? content : null
+    const rendered = field.render ? field.render(raw, row) : valueToString(raw)
+    const asStr = typeof rendered === "string" ? rendered : null
 
-    // Fields marked `multiLine: "below"` always render below the header,
-    // muted + dim, with inline tag/JSON colorization — single-line bodies
-    // too, so the visual language is uniform (body is always the quiet
-    // extra detail, header is always the punchy metadata).
+    // Body-like fields (multiLine:"below"): go below when there are 2+
+    // non-empty lines OR the single line is ≥ INLINE_BODY_MAX_CHARS. Short
+    // single-liners render inline beside the header. Keep the styling
+    // uniform: body is always dim-muted + colorized, never per-kind.
+    let inlineBody: string | null = null
     if (field.multiLine === "below" && asStr !== null && asStr.length > 0) {
-      bodyLines = asStr.split("\n")
-      continue
+      const allLines = asStr.split("\n")
+      const nonEmpty = allLines.filter((l) => l.trim().length > 0)
+      const single = nonEmpty[0] ?? ""
+      if (nonEmpty.length > 1 || single.length >= INLINE_BODY_MAX_CHARS) {
+        bodyLines = allLines
+        continue
+      }
+      inlineBody = single
+      if (inlineBody === "") continue
     }
 
-    if (content == null || content === "") continue
+    if (inlineBody === null && (rendered == null || rendered === "")) continue
 
-    // Pills vs plain inline.
+    // Pills → pill rendering. Body inline → dim-muted + colorize. Other
+    // inline fields → plain colored bold.
     if (PILL_FIELDS.has(field.key)) {
       headerSegments.push(
-        <Pill
-          key={field.key}
-          color={color}
-          bold={bold}
-          isCursor={isCursor}
-        >
-          {content}
+        <Pill key={field.key} color={color} bold={bold} isCursor={isCursor}>
+          {rendered}
         </Pill>,
+      )
+    } else if (inlineBody !== null) {
+      headerSegments.push(
+        <Text
+          key={field.key}
+          color={isCursor ? cursorFg : "$fg-muted"}
+          dim={!isCursor}
+        >
+          {colorize(inlineBody)}
+        </Text>,
       )
     } else {
       headerSegments.push(
@@ -114,17 +132,13 @@ export function LogRowView({
           color={isCursor ? cursorFg : color}
           bold={bold || isCursor || undefined}
         >
-          {content}
+          {rendered}
         </Text>,
       )
     }
 
-    // Separator: single space. Pill shape itself provides the boundary; no
-    // middot needed. For non-pill → pill transitions keep a space too.
     if (i < fields.length - 1) {
-      headerSegments.push(
-        <Text key={`sep-${field.key}`}>{" "}</Text>,
-      )
+      headerSegments.push(<Text key={`sep-${field.key}`}>{" "}</Text>)
     }
   }
 
