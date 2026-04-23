@@ -239,7 +239,7 @@ path = "${tempRoot}/alt"
 })
 
 describe("WorkspaceMount.repoId() — lazy discovery", () => {
-  test("repoId() reads .km/config.toml inside the mount on first call", () => {
+  test("repoId() mints + writes `.km/config.yaml` inside the mount on first call", () => {
     const mountPath = join(tempRoot, "myrepo")
     mkdirSync(join(mountPath, ".km"), { recursive: true })
     writeFileSync(
@@ -254,22 +254,22 @@ path = "${mountPath}"
     const mount = ws.resolveAlias("myrepo")
     expect(mount).not.toBeNull()
 
-    // No config.toml inside mount/.km yet — load must not have touched it.
-    expect(existsSync(join(mountPath, ".km", "config.toml"))).toBe(false)
+    // No config.yaml inside mount/.km yet — load must not have touched it.
+    expect(existsSync(join(mountPath, ".km", "config.yaml"))).toBe(false)
 
     const id1 = mount!.repoId()
     expect(String(id1)).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/)
-    expect(existsSync(join(mountPath, ".km", "config.toml"))).toBe(true)
+    expect(existsSync(join(mountPath, ".km", "config.yaml"))).toBe(true)
 
     // Second call must return the cached id (and not remint).
     const id2 = mount!.repoId()
     expect(String(id2)).toBe(String(id1))
   })
 
-  test("repoId() reads an existing repo_id without overwriting it", () => {
+  test("repoId() reads an existing repo.id without overwriting it", () => {
     const mountPath = join(tempRoot, "existing")
     mkdirSync(join(mountPath, ".km"), { recursive: true })
-    writeFileSync(join(mountPath, ".km", "config.toml"), `repo_id = "01HKXB2W7K9M1X4Y2Z3ABCDEFG"\n`, "utf-8")
+    writeFileSync(join(mountPath, ".km", "config.yaml"), `repo:\n  id: "01HKXB2W7K9M1X4Y2Z3ABCDEFG"\n`, "utf-8")
 
     writeFileSync(
       workspaceToml,
@@ -280,11 +280,35 @@ path = "${mountPath}"
       "utf-8",
     )
     const ws = loadWorkspace({ workspacePath: workspaceToml })
+    const before = readFileSync(join(mountPath, ".km", "config.yaml"), "utf-8")
     const id = ws.resolveAlias("existing")!.repoId()
     expect(String(id)).toBe("01HKXB2W7K9M1X4Y2Z3ABCDEFG")
-    // File contents not rewritten.
-    const after = readFileSync(join(mountPath, ".km", "config.toml"), "utf-8")
-    expect(after).toContain(`repo_id = "01HKXB2W7K9M1X4Y2Z3ABCDEFG"`)
+    // File contents not rewritten (idempotent read path).
+    const after = readFileSync(join(mountPath, ".km", "config.yaml"), "utf-8")
+    expect(after).toBe(before)
+  })
+
+  test("repoId() migrates a legacy .km/config.toml into .km/config.yaml", () => {
+    const mountPath = join(tempRoot, "legacy")
+    mkdirSync(join(mountPath, ".km"), { recursive: true })
+    writeFileSync(join(mountPath, ".km", "config.toml"), `repo_id = "01HKXB2W7K9M1X4Y2Z3LEGACY99"\n`, "utf-8")
+
+    writeFileSync(
+      workspaceToml,
+      `[[mount]]
+alias = "legacy"
+path = "${mountPath}"
+`,
+      "utf-8",
+    )
+    const ws = loadWorkspace({ workspacePath: workspaceToml })
+    const id = ws.resolveAlias("legacy")!.repoId()
+    expect(String(id)).toBe("01HKXB2W7K9M1X4Y2Z3LEGACY99")
+    // Migration deleted the legacy toml.
+    expect(existsSync(join(mountPath, ".km", "config.toml"))).toBe(false)
+    // YAML now carries the id.
+    const yaml = readFileSync(join(mountPath, ".km", "config.yaml"), "utf-8")
+    expect(yaml).toContain("01HKXB2W7K9M1X4Y2Z3LEGACY99")
   })
 })
 

@@ -246,9 +246,7 @@ export type { Config } from "./config-object.ts"
 // Federation scaffolding — per-repo RepoId, workspace mount registry, km: URI
 // resolution. See hub/km/storage-architecture.md §5. Phase A: parse + resolve
 // only; multi-repo Repo lifecycle is a later bead.
-export { readOrMintRepoId, mintRepoId, writeRepoConfigToml, CONFIG_TOML_NAME } from "./federation/repo-id.ts"
-
-export type { RepoConfigToml } from "./federation/repo-id.ts"
+export { readOrMintRepoId, mintRepoId, writeRepoConfigYaml, CONFIG_YAML_NAME } from "./federation/repo-id.ts"
 
 export {
   loadWorkspace,
