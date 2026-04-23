@@ -1,0 +1,297 @@
+{
+  "__migration_header__": {
+    "title": "settings.json migration preview — tribe direct subcommands → pluggable ingest router",
+    "generated": "2026-04-22",
+    "bead": "km-bearly.migrate-to-listener",
+    "source_file": "/Users/beorn/.claude/settings.json",
+    "what_changed": [
+      "Replaced 3 tribe-cli direct-subcommand hook entries with equivalent 'hook ingest' calls that route through the new bearly listener registry at vendor/bearly/tools/lib/hooks/.",
+      "PreCompact  : 'tribe-cli.ts hook pre-compact'     → 'tribe-cli.ts hook ingest --event notification    --source claude --notification-type pre-compact'",
+      "SessionStart: 'tribe-cli.ts hook session-start'   → 'tribe-cli.ts hook ingest --event session_start   --source claude'",
+      "SessionEnd  : 'tribe-cli.ts hook session-end'     → 'tribe-cli.ts hook ingest --event session_end     --source claude'",
+      "All other entries (recall export --catchup --hook, recall export --hook, dcg, injection-gate.ts, bd-prime PreCompact) are untouched — they are not tribe entries and stay as-is.",
+      "UserPromptSubmit has no tribe entry in the current settings.json — nothing to migrate there. If you later want tribe's prompt hook to fire, add: 'tribe-cli.ts hook ingest --event user_prompt_submit --source claude' under UserPromptSubmit."
+    ],
+    "why": [
+      "The listener registry (vendor/bearly/tools/lib/hooks/) decouples the tribe pipeline from settings.json: new listeners (kanban-bridge, future telemetry, etc.) drop into ~/.claude/hooks.d/*.ts without editing settings.json.",
+      "Behaviour stays identical: tribe.ts listener forwards session_start → dispatchHook('session-start'), user_prompt_submit → dispatchHook('prompt'), session_end → dispatchHook('session-end'), notification(pre-compact) → dispatchHook('pre-compact').",
+      "Failure isolated: the listener swallows dispatchHook errors so a tribe issue never blocks the hook session."
+    ],
+    "how_to_apply": [
+      "1. Back up the current live settings:",
+      "   cp ~/.claude/settings.json ~/.claude/settings.json.bak",
+      "2. Copy (or symlink) the tribe listener into the user-global hooks.d:",
+      "   mkdir -p ~/.claude/hooks.d",
+      "   cp /Users/beorn/Code/pim/km/vendor/bearly/tools/lib/hooks/listeners/tribe.ts ~/.claude/hooks.d/tribe.ts",
+      "   # OR (preferred — picks up in-repo edits automatically):",
+      "   ln -sf /Users/beorn/Code/pim/km/vendor/bearly/tools/lib/hooks/listeners/tribe.ts ~/.claude/hooks.d/tribe.ts",
+      "3. Apply the 3 command replacements shown in settings-migration-preview.diff (either by hand or via the jq one-liner below).",
+      "4. Start a fresh Claude Code session and verify tribe broadcasts still fire end-to-end. Useful sanity probes:",
+      "   - SessionStart:  'bd prime' catchup runs, tribe daemon autostarts, no errors in terminal.",
+      "   - SessionEnd:    session close is broadcast via tribe.send.",
+      "   - PreCompact:    /compact works; tribe receives the checkpoint ping.",
+      "   Tail dispatch logs to confirm the listener fired: BEARLY_HOOKS_DEBUG=1 is honoured by the tribe-cli hook subcommand.",
+      "5. Rollback (if anything breaks):",
+      "   cp ~/.claude/settings.json.bak ~/.claude/settings.json",
+      "   rm ~/.claude/hooks.d/tribe.ts"
+    ],
+    "jq_apply_oneliner": "BUN=/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun; CLI=/Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts; jq --arg bun \"$BUN\" --arg cli \"$CLI\" '(.hooks.PreCompact[]?.hooks[]? | select(.command | test(\"tribe-cli.ts hook pre-compact\")) | .command) |= \"\\($bun) \\($cli) hook ingest --event notification --source claude --notification-type pre-compact\" | (.hooks.SessionStart[]?.hooks[]? | select(.command | test(\"tribe-cli.ts hook session-start\")) | .command) |= \"\\($bun) \\($cli) hook ingest --event session_start --source claude\" | (.hooks.SessionEnd[]?.hooks[]? | select(.command | test(\"tribe-cli.ts hook session-end\")) | .command) |= \"\\($bun) \\($cli) hook ingest --event session_end --source claude\"' ~/.claude/settings.json > ~/.claude/settings.json.migrated && mv ~/.claude/settings.json.migrated ~/.claude/settings.json",
+    "non_destructive_note": "This file is a PREVIEW only — it does NOT modify ~/.claude/settings.json. Apply by hand or with the jq one-liner above. See settings-migration-preview.diff for the exact unified diff."
+  },
+  "viewMode": "focus",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Update",
+      "Edit",
+      "Write",
+      "WebSearch",
+      "WebFetch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "mcp__pal__chat",
+      "mcp__pal__clink",
+      "mcp__pal__thinkdeep",
+      "mcp__pal__planner",
+      "mcp__pal__consensus",
+      "mcp__pal__codereview",
+      "mcp__pal__precommit",
+      "mcp__pal__debug",
+      "mcp__pal__challenge",
+      "mcp__pal__apilookup",
+      "mcp__pal__listmodels",
+      "mcp__pal__version",
+      "SlashCommand(/speckit.tasks)",
+      "SlashCommand(/speckit.implement)",
+      "Skill(pm)",
+      "Skill(git-commit)",
+      "Skill(dev)",
+      "SlashCommand(/max)",
+      "SlashCommand(/dev:*)",
+      "SlashCommand(/ci)",
+      "Skill(claude)",
+      "Skill(review)",
+      "Skill(ops)",
+      "SlashCommand(/consult)",
+      "SlashCommand(/ops)",
+      "SlashCommand(/ops deploy)",
+      "SlashCommand(/ops:*)",
+      "mcp__pal__analyze",
+      "Bash:*",
+      "Bash(bun km:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(curl*publish.twitter.com*)",
+      "Bash(curl*api.github.com*)",
+      "Bash(curl*news.ycombinator.com*)",
+      "Bash(curl*ycombinator.com*)",
+      "Bash(python3*publish.twitter.com*)",
+      "mcp__peekaboo__list",
+      "mcp__peekaboo__see",
+      "mcp__peekaboo__permissions",
+      "mcp__peekaboo__image",
+      "mcp__peekaboo__app",
+      "mcp__peekaboo__sleep",
+      "mcp__peekaboo__hotkey",
+      "mcp__peekaboo__type",
+      "mcp__peekaboo__click",
+      "mcp__peekaboo__agent",
+      "Skill(fix-tui)",
+      "mcp__peekaboo__window",
+      "mcp__peekaboo__scroll",
+      "mcp__peekaboo__dock",
+      "mcp__termless__start",
+      "mcp__termless__stop",
+      "mcp__termless__press",
+      "mcp__termless__type",
+      "mcp__termless__text",
+      "mcp__termless__screenshot",
+      "mcp__termless__wait",
+      "mcp__termless__list",
+      "Skill(architect-review)",
+      "Skill(architect-review:*)",
+      "Edit(//Users/beorn/.claude)**",
+      "Write(//Users/beorn/.claude)**",
+      "Edit(//Users/beorn/Code/pim)**",
+      "Write(//Users/beorn/Code/pim)**",
+      "Edit(//Users/beorn/Code/DZ)**",
+      "Write(//Users/beorn/Code/DZ)**",
+      "Glob",
+      "Grep",
+      "Skill(commit)",
+      "Skill(git)",
+      "Skill(git:*)",
+      "Skill(code)",
+      "Skill(tui)",
+      "Skill(tests)",
+      "Skill(explore)",
+      "Skill(max)",
+      "Skill(max:*)",
+      "Skill(recall)",
+      "Skill(discuss)",
+      "Skill(complete)",
+      "Skill(logging)",
+      "Skill(silvery)",
+      "Skill(flexily)",
+      "Skill(fresh)",
+      "Skill(llm)",
+      "Skill(deep)",
+      "Skill(playwright-cli)",
+      "mcp__tty__start",
+      "mcp__tty__screenshot",
+      "mcp__tty__press",
+      "mcp__tty__reset",
+      "mcp__tty__wait",
+      "mcp__tty__list",
+      "mcp__tty__stop",
+      "mcp__tty__type",
+      "mcp__tty__text",
+      "Skill(project-cleanup)",
+      "Skill(npm)",
+      "Skill(open)",
+      "mcp__plugin_telegram_telegram__reply",
+      "mcp__tribe__*",
+      "mcp__plugin_tribe_tribe__*",
+      "Skill(tribe)",
+      "Skill(update-config)",
+      "Skill(release)",
+      "Skill(project-audit)",
+      "Skill(browse)",
+      "Skill(refactor)",
+      "Edit(.claude/skills/**)",
+      "Write(.claude/skills/**)",
+      "mcp__figma__whoami",
+      "mcp__figma__create_new_file",
+      "mcp__figma__use_figma",
+      "mcp__figma__get_screenshot"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/run-hook.sh bd-prime:PreCompact bd prime"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event notification --source claude --notification-type pre-compact"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/beorn/.local/bin/recall export --catchup --hook"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event session_start --source claude"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/beorn/.local/bin/recall export --hook"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event session_end --source claude"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/beorn/.local/bin/dcg"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun /Users/beorn/Code/pim/km/tools/injection-gate.ts"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash /Users/beorn/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "compound-engineering@every-marketplace": false,
+    "telegram@claude-plugins-official": true,
+    "tribe@bearly": true
+  },
+  "extraKnownMarketplaces": {
+    "bearly": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/beorn/Code/pim/km/vendor/bearly"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true,
+  "mcpServers": {
+    "qmd": {
+      "command": "bunx",
+      "args": [
+        "@tobilu/qmd",
+        "mcp"
+      ]
+    }
+  },
+  "additionalDirectories": [
+    "//Users/beorn/Code",
+    "//Users/beorn/.claude"
+  ],
+  "feedbackSurveyState": {
+    "lastShownTime": 1754267724822
+  },
+  "teammateMode": "auto",
+  "skipAutoPermissionPrompt": true
+}

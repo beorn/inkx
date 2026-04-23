@@ -1,0 +1,29 @@
+--- /Users/beorn/.claude/settings.json	2026-04-22 18:25:58.858107028 -0700
++++ /tmp/preview-clean.json	2026-04-22 19:47:37.195273123 -0700
+@@ -150,7 +150,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook pre-compact"
++            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event notification --source claude --notification-type pre-compact"
+           }
+         ]
+       }
+@@ -170,7 +170,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook session-start"
++            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event session_start --source claude"
+           }
+         ]
+       }
+@@ -190,7 +190,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook session-end"
++            "command": "/nix/store/4ry96w6s7jql71336lfm31m7fwn3ri2d-bun-1.3.11/bin/bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts hook ingest --event session_end --source claude"
+           }
+         ]
+       }
