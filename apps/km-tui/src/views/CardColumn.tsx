@@ -251,7 +251,7 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
 function PopoverRectRegistrar({
   rectRef,
 }: {
-  rectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
+  rectRef: React.RefObject<{ x: number; y: number; width: number; height: number } | null>
 }): null {
   useScrollRect((rect) => {
     rectRef.current = rect
@@ -259,6 +259,7 @@ function PopoverRectRegistrar({
   return null
 }
 
+// oxlint-disable-next-line complexity/complexity -- React card renderer: conditional styling per board state (selected/cursor/body/column-selected/folded/sticky/edit/move/drag), each a single ternary or &&; flat render-time branching, not tangled logic
 const Card = React.memo(
   function Card({
     card,

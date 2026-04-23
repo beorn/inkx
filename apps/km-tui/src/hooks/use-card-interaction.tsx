@@ -67,7 +67,7 @@ interface CardInteraction {
   hoverBorderColor: string | undefined
   /** Ref to track the card's screen-space bounding box for popover overlap positioning.
    *  Populate via useScrollRect inside the card's Box. */
-  cardRectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
+  cardRectRef: React.RefObject<{ x: number; y: number; width: number; height: number } | null>
   handlers: {
     onMouseEnter: (e: SilveryMouseEvent) => void
     onMouseMove: (e: SilveryMouseEvent) => void

@@ -17,7 +17,6 @@ import { findKmRootFromPath } from "@km/fs-mount"
 const term = createTerm(process)
 
 import { type LogLevel } from "@km/core"
-import { setLogLevel } from "loggily"
 
 /** Global options available on the root program */
 interface GlobalOptions extends OptionValues {
@@ -173,7 +172,8 @@ export function configureProgram(): Command {
       }
       logLevel = LOG_LEVELS[targetIndex] ?? "warn"
     }
-    setLogLevel(logLevel)
+    // loggily reads LOG_LEVEL from env; set it before any logger is created.
+    process.env.LOG_LEVEL = logLevel
 
     // Resolve root path
     // Precedence: --repo flag > KM_ROOT env var > first positional arg (if path) > cwd

@@ -45,7 +45,7 @@ export function sid(id: string): string {
  * log.error("always logged")                  // Always works (no ?. needed)
  *
  * // Child loggers are also conditional:
- * const nodeLog = log.logger(sid(node.id))
+ * const nodeLog = log.child(sid(node.id))
  * nodeLog.debug?.("children=%d", count)
  *
  * // Spans require TRACE env:
@@ -61,7 +61,7 @@ export const log: ConditionalLogger = createLogger("km:tui")
 // ============================================================
 
 /** Render logging (high frequency, use sparingly) */
-export const renderLog = log.logger("render")
+export const renderLog = log.child("render")
 
 /** Layout logging */
-export const layoutLog = log.logger("layout")
+export const layoutLog = log.child("layout")

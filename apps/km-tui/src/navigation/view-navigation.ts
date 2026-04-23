@@ -17,7 +17,7 @@ import { log, sid } from "../log.ts"
 // computeDetailMetadataKeys/DETAIL_META_PREFIX removed — detail navigation
 // now skips virtual __meta__ IDs (not in sel walkOrder).
 
-const detailNavLog = log.logger("detail-nav")
+const detailNavLog = log.child("detail-nav")
 
 // =============================================================================
 // ViewNavigation interface
@@ -308,6 +308,7 @@ function visibleCardIds(tree: ViewTreeProjection, colId: string): readonly strin
  * Uses the ViewTreeProjection to determine navigation targets.
  * The tree already encodes visual roles via track().viewType().
  */
+// oxlint-disable-next-line complexity/complexity -- grid navigation: view-mode variants (cards, columns, tabs) × direction × wrap/clamp/detail-pane edge cases; each branch is a distinct navigation rule, not tangled logic
 function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
   const { cursor, tree } = state
   const rootId = state.rootId!
@@ -445,6 +446,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
  *
  * Cross-column movement using the ViewTreeProjection.
  */
+// oxlint-disable-next-line complexity/complexity -- grid navigation: cross-column targeting with sticky-Y, column gaps, card vs outline vs tab variants, detail-pane handoff; each branch encodes a navigation rule
 function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
   const { cursor, tree } = state
   const rootId = state.rootId!

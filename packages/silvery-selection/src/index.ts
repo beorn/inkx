@@ -21,6 +21,7 @@ export type {
   SelectionEffect,
   SelectionKind,
   SelectionSnapshot,
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- barrel re-export of deprecated alias preserved for external consumers; removed when SubSelection is deleted upstream
   SubSelection,
   SubSelectionBase,
   TextSelection,

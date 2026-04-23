@@ -172,6 +172,7 @@ export {
   getSystemLocation,
   initLocations,
   onFavoritesChange,
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- barrel re-export of deprecated alias preserved for backwards compat; callers should prefer DEFAULT_LOCATIONS
   DEFAULT_SYSTEM_LOCATIONS,
   SYSTEM_LOCATION_KEYS,
   RESERVED_KEYS,
