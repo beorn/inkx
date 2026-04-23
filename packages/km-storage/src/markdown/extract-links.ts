@@ -3,7 +3,7 @@
  *
  * Regex-based pass over a markdown file's raw content to find link edges
  * WITHOUT running the full mdast parser. Used for collapsed-file edge
- * preservation: files matched by `collapseParse.patterns` stay opaque stubs
+ * preservation: files matched by the `inactive:` glob list stay opaque stubs
  * (no descendant nodes), but we still want their outgoing links to show up
  * as backlinks on the targets they reference.
  *

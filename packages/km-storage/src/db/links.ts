@@ -84,7 +84,7 @@ export function getOutgoingLinks(db: Database, hostId: string): KLink[] {
  *
  * UNIONs parsed-node edges (`links`) with collapsed-file edges
  * (`collapsed_file_links`) so callers get a single unified view. A file
- * matched by `collapseParse.patterns` stays opaque but its outgoing
+ * matched by the `inactive:` glob list stays opaque but its outgoing
  * edges still surface here via the second leg of the UNION.
  */
 export function getBacklinksByHref(db: Database, href: string): KLink[] {

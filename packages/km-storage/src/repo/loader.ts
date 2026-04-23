@@ -126,8 +126,8 @@ export interface LoadOptions {
    */
   preloadDepth?: number
   /**
-   * Explicit collapse-parse matcher. When omitted, the loader reads
-   * `collapseParse.patterns` from `.km/config.yaml` and constructs one.
+   * Explicit collapse-parse matcher. When omitted, the loader reads the
+   * `inactive:` glob list from `.km/config.yaml` and constructs one.
    * Pass an explicit matcher in tests to avoid touching disk.
    */
   collapseMatcher?: CollapseParseMatcher
@@ -584,7 +584,7 @@ function resolveCollapseMatcher(repoRoot: string, explicit: CollapseParseMatcher
  * transaction for atomicity with the preceding applyChanges commit.
  *
  * No-op when collapsedExtractions is empty/absent (the common case when
- * collapseParse is disabled).
+ * no `inactive:` patterns are configured).
  */
 function writeCollapsedExtractions(db: Database, extractions: readonly CollapsedExtraction[] | undefined): void {
   if (!extractions || extractions.length === 0) return

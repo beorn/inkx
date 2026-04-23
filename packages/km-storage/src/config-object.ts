@@ -11,11 +11,10 @@ import {
   clearConfigCache,
   getBeadsConfig as getRawBeadsConfig,
   getTuiConfig as getRawTuiConfig,
-  getCollapseParseConfig as getRawCollapseParseConfig,
+  getCollapseParseConfig as getRawInactiveGlobs,
   type KmConfig,
   type BeadsConfig,
   type TuiConfig,
-  type CollapseParseConfig,
 } from "./config.ts"
 
 const log = createLogger("km:storage:config")
@@ -37,8 +36,14 @@ export interface Config {
   /** TUI configuration with defaults applied */
   readonly tui: Required<TuiConfig>
 
-  /** Collapse-parse configuration with defaults applied (empty patterns = disabled) */
-  readonly collapseParse: Required<CollapseParseConfig>
+  /**
+   * Inactive file glob patterns (user-facing `inactive:` key). Empty array
+   * when the config key is absent — every file is fully parsed.
+   *
+   * Files matching these globs are stored as opaque stubs and do NOT
+   * contribute tasks, dates, sigils, or inline props to aggregation views.
+   */
+  readonly inactive: readonly string[]
 
   /** Reload configuration from disk */
   reload(): void
@@ -64,7 +69,7 @@ export function loadConfigObject(searchFrom?: string): Config {
   let path = result?.filepath
   let beads = getRawBeadsConfig(searchFrom)
   let tui = getRawTuiConfig(searchFrom)
-  let collapseParse = getRawCollapseParseConfig(searchFrom)
+  let inactive: readonly string[] = getRawInactiveGlobs(searchFrom).patterns
 
   const config: Config = {
     get path() {
@@ -83,8 +88,8 @@ export function loadConfigObject(searchFrom?: string): Config {
       return tui
     },
 
-    get collapseParse() {
-      return collapseParse
+    get inactive() {
+      return inactive
     },
 
     reload() {
@@ -95,7 +100,7 @@ export function loadConfigObject(searchFrom?: string): Config {
       path = result?.filepath
       beads = getRawBeadsConfig(searchFrom)
       tui = getRawTuiConfig(searchFrom)
-      collapseParse = getRawCollapseParseConfig(searchFrom)
+      inactive = getRawInactiveGlobs(searchFrom).patterns
     },
   }
 

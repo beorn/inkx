@@ -2,7 +2,7 @@
  * Inbound Anchor Resolution — End-to-End Loader Integration
  *
  * Confirms `loadRepo()` automatically runs the inbound-anchor pass when
- * collapseParse is configured. Tests the full pipeline — discovery,
+ * `inactive:` globs are configured. Tests the full pipeline — discovery,
  * reconciliation, outbound extraction, inbound resolution — producing
  * queryable referenced_anchors rows without any explicit follow-up call.
  *

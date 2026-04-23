@@ -97,7 +97,7 @@ export interface DiscoveryResult {
   unexploredDirs?: UnexploredDir[]
   /**
    * Link edges extracted from collapsed files — one entry per collapsed stub
-   * that was encountered during the walk. Empty when collapseParse is disabled
+   * that was encountered during the walk. Empty when no `inactive:` globs configured
    * or no files matched.
    */
   collapsedExtractions?: CollapsedExtraction[]

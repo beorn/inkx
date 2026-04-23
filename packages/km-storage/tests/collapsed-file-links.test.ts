@@ -1,7 +1,7 @@
 /**
  * Collapsed File Links — Integration Tests
  *
- * End-to-end: a file matched by `collapseParse.patterns` becomes an opaque
+ * End-to-end: a file matched by the `inactive:` glob list becomes an opaque
  * stub AND its outgoing link edges are preserved in `collapsed_file_links`.
  * Backlink queries UNION parsed-node edges (`links`) with collapsed-file
  * edges so the target sees them regardless of which source is collapsed.

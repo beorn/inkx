@@ -12,13 +12,14 @@
  * keeping FTS search over file titles and preserving on-demand expansion.
  *
  * Configuration (`.km/config.yaml`):
- *   collapseParse:
- *     patterns:
- *       - "raw/chats/**"
- *       - "archive/**"
+ *   inactive:
+ *     - "raw/**"
+ *     - "archive/**"
  *
- * Backward compat: off by default. Empty `patterns` list (or missing config)
- * means every file is fully parsed exactly as before.
+ * Default: off. Missing or empty `inactive:` list means every file is fully
+ * parsed. The internal matcher name (`collapseParseMatcher`) is preserved
+ * because it describes the MECHANISM; the public config surface is named
+ * after the INTENT (`inactive`).
  *
  * Promotion: collapsed stubs live in the DB with `data.{ _stub: true,
  * _collapsed: true }` and `parsed=0`. When the user targets one via

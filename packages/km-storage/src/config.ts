@@ -43,37 +43,28 @@ export interface FolderIndexConfig {
   materialization?: "none" | "metadata" | "full"
 }
 
-/**
- * Collapse-parse configuration — folders whose markdown files should be
- * stored as opaque stubs (title + content only, no descendant parse) until
- * the user navigates into them.
- *
- * Use for import sinks: chat transcripts, Asana exports, old archives —
- * content that lives in the vault but is rarely edited inside km's outline.
- * See docs/design/model/knode.md and hub/km/vault-diagnostic-2026-04-21.md.
- *
- * Backward compat: omitted or empty `patterns` means every file is fully
- * parsed exactly as before.
- */
-export interface CollapseParseConfig {
-  /**
-   * Glob patterns (relative to repo root) for files that should be stored
-   * as opaque stubs. Same syntax as `.kmignore` entries.
-   *
-   * Example:
-   *   collapseParse:
-   *     patterns:
-   *       - "raw/chats/**"
-   *       - "archive/**"
-   */
-  patterns?: string[]
-}
-
 export interface KmConfig {
   beads?: BeadsConfig
   tui?: TuiConfig
   folderIndex?: FolderIndexConfig
-  collapseParse?: CollapseParseConfig
+  /**
+   * Inactive file globs — files matching these patterns are stored as opaque
+   * stubs (title + content only, no descendant parse) and do NOT contribute
+   * tasks, dates, sigils, or inline props to aggregation views. They remain
+   * searchable and backlink-able; on-demand `km view <path>` promotes them.
+   *
+   * Use for import sinks: chat transcripts, Asana exports, old archives —
+   * content that lives in the vault but is rarely edited inside km's outline.
+   * Same glob syntax as `.kmignore` entries.
+   *
+   * Example:
+   *   inactive:
+   *     - "raw/**"
+   *     - "archive/**"
+   *
+   * Default: undefined / empty — every file is fully parsed.
+   */
+  inactive?: string[]
 }
 
 /** Original beads config format from .beads/config.yaml */
@@ -227,14 +218,18 @@ export function getTuiConfig(searchFrom?: string): Required<TuiConfig> {
 }
 
 /**
- * Get collapse-parse configuration with defaults applied.
+ * Get inactive-file glob patterns.
  *
- * Returns an empty `patterns` array when the key is missing — this is the
- * backward-compatible default: no folder gets collapsed, every file is parsed.
+ * Returns an empty array when the key is missing — the default: no file gets
+ * stubbed, every file is fully parsed.
+ *
+ * Internal name preserved as `getCollapseParseConfig` because the mechanism
+ * (opaque-stub / collapse-parse) keeps the old name; only the public config
+ * surface was renamed to `inactive` (the user-facing intent).
  */
-export function getCollapseParseConfig(searchFrom?: string): Required<CollapseParseConfig> {
+export function getCollapseParseConfig(searchFrom?: string): { patterns: string[] } {
   const config = loadConfig(searchFrom)
-  const raw = config.collapseParse?.patterns
+  const raw = config.inactive
   if (!Array.isArray(raw)) {
     return { patterns: [] }
   }

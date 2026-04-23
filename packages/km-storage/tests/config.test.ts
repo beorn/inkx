@@ -13,7 +13,13 @@ import { describe, test, expect, vi } from "vitest"
 import { join } from "path"
 import { mkdirSync, writeFileSync } from "fs"
 
-import { loadConfig, clearConfigCache, getOriginalBeadsConfig, getFolderIndexConfig } from "../src/config.ts"
+import {
+  loadConfig,
+  clearConfigCache,
+  getOriginalBeadsConfig,
+  getFolderIndexConfig,
+  getCollapseParseConfig,
+} from "../src/config.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("loadConfig", () => {
@@ -278,5 +284,65 @@ describe("getFolderIndexConfig", () => {
       } finally {
         warnSpy.mockRestore()
       }
+    }))
+})
+
+describe("getCollapseParseConfig (inactive: key)", () => {
+  test("returns empty patterns when no inactive key configured", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      const { patterns } = getCollapseParseConfig(testDir)
+      expect(patterns).toEqual([])
+    }))
+
+  test("reads flat string array from `inactive:` key", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `inactive:
+  - "raw/**"
+  - "archive/**"
+`,
+      )
+
+      const { patterns } = getCollapseParseConfig(testDir)
+      expect(patterns).toEqual(["raw/**", "archive/**"])
+    }))
+
+  test("legacy `collapseParse.patterns` key is NOT read (no compat shim)", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `collapseParse:
+  patterns:
+    - "raw/chats/**"
+`,
+      )
+
+      const { patterns } = getCollapseParseConfig(testDir)
+      // Old key is silently ignored — users must rename to `inactive:`.
+      expect(patterns).toEqual([])
+    }))
+
+  test("skips non-string entries defensively", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `inactive:
+  - "raw/**"
+  - 42
+  - ""
+  - "archive/**"
+`,
+      )
+
+      const { patterns } = getCollapseParseConfig(testDir)
+      expect(patterns).toEqual(["raw/**", "archive/**"])
     }))
 })

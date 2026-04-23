@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS sync_state (
 
 -- Collapsed-file link edges.
 --
--- Files matched by collapseParse.patterns stay as opaque stubs (no children
+-- Files matched by the inactive: glob list stay as opaque stubs (no children
 -- parsed into the nodes tree), but we still want their outgoing links to
 -- appear as backlinks on their targets. This table caches a lightweight
 -- regex extraction of link edges for each collapsed file.

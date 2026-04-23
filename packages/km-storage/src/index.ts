@@ -228,14 +228,7 @@ export {
   getCollapseParseConfig,
 } from "./config.ts"
 
-export type {
-  KmConfig,
-  BeadsConfig,
-  TuiConfig,
-  FolderIndexConfig,
-  CollapseParseConfig,
-  OriginalBeadsConfig,
-} from "./config.ts"
+export type { KmConfig, BeadsConfig, TuiConfig, FolderIndexConfig, OriginalBeadsConfig } from "./config.ts"
 
 // Collapse-parse matcher (folder-level opaque-stub rule)
 export { createCollapseParseMatcher, createNullCollapseParseMatcher } from "./markdown/collapse-parse.ts"
