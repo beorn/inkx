@@ -71,15 +71,7 @@ function bodyLines(s: unknown): string[] {
   return s.split("\n")
 }
 
-export function ChatRow({
-  row,
-  isCursor,
-  cols,
-}: {
-  row: LogRow
-  isCursor: boolean
-  cols: number
-}) {
+export function ChatRow({ row, isCursor, cols }: { row: LogRow; isCursor: boolean; cols: number }) {
   const kind = row.kind ?? ""
   const isUser = kind === "user"
   const color = kindFg(kind)
@@ -118,7 +110,7 @@ export function ChatRow({
           </Pill>
           {toolLabel ? (
             <>
-              <Text>{" "}</Text>
+              <Text> </Text>
               <Pill color={isCursor ? undefined : color} bold={false} isCursor={isCursor}>
                 {toolLabel}
               </Pill>

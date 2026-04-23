@@ -89,26 +89,14 @@ export function App({ path: _path, title, rows }: { path: string; title: string;
         const first = item.rows[0]!
         const time = typeof first.fields.time === "string" ? first.fields.time : ""
         if (!isExpanded) {
-          return (
-            <ClusterRow
-              count={item.rows.length}
-              time={time}
-              isCursor={meta.isCursor}
-              expanded={false}
-            />
-          )
+          return <ClusterRow count={item.rows.length} time={time} isCursor={meta.isCursor} expanded={false} />
         }
         // Expanded: render the cluster header PLUS all children inline. The
         // cluster still owns the cursor — children render non-cursor so users
         // can scan the pile without per-child navigation gymnastics.
         return (
           <Box flexDirection="column" width="100%">
-            <ClusterRow
-              count={item.rows.length}
-              time={time}
-              isCursor={meta.isCursor}
-              expanded={true}
-            />
+            <ClusterRow count={item.rows.length} time={time} isCursor={meta.isCursor} expanded={true} />
             {item.rows.map((row) => (
               <ChatRow key={row.id} row={row} isCursor={false} cols={termCols} />
             ))}
