@@ -466,18 +466,17 @@ const Card = React.memo(
           width={width}
           userSelect="none"
           // Leading blank row: driven by the Column's uniform gap contract
-          // (`computeLeadingGap`). The rule is that naked body blocks get a
-          // 1-row gap above them only when the previous sibling is not
-          // itself a naked block — i.e. body→body abuts as stacked prose
-          // (bead km-tui.body-block-leading-gap), but structural→body and
-          // header→body get breathing room.
+          // (`computeLeadingGap`). Every boundary touching a naked block
+          // gets a 1-row gap (naked→naked for prose separation, structural
+          // ↔ naked for breathing room around bordered siblings).
           //
-          // The gap is applied as padding INSIDE the Box (not as a
-          // column-level sibling spacer) so that when the Box has a
-          // backgroundColor the gap row fills with it — preserving a
-          // continuous selection highlight across a cursor/multi-select
-          // run.
-          paddingTop={leadingGap}
+          // The gap is applied as `marginTop` — OUTSIDE the Box — so the
+          // block's `backgroundColor` (cursor / selection highlight)
+          // colors only the block itself, not the spacer row above. The
+          // earlier design bled the selection bg across the gap to keep a
+          // multi-select run visually continuous; feedback 2026-04-22
+          // reversed that — the clean "bg = block outline" read wins.
+          marginTop={leadingGap}
           backgroundColor={bodyBlockBg}
           {...hoverHandlers}
         >
