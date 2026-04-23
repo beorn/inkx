@@ -12,8 +12,11 @@ import type { Repo } from "@km/storage"
 import type { GridNavigator, ViewTreeProjection, ViewType } from "@km/board"
 import { classifyCursorFromLens, createViewLens } from "@km/board"
 import type { ViewMode } from "../types.ts"
+import { log, sid } from "../log.ts"
 // computeDetailMetadataKeys/DETAIL_META_PREFIX removed — detail navigation
 // now skips virtual __meta__ IDs (not in sel walkOrder).
+
+const detailNavLog = log.logger("detail-nav")
 
 // =============================================================================
 // ViewNavigation interface
@@ -113,31 +116,46 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       // Cursor is the H1 (root)
       if (cursor === rootId) {
-        if (dir === "down") return allChildren[0]?.id ?? null
+        if (dir === "down") {
+          const target = allChildren[0]?.id ?? null
+          detailNavLog.debug?.(`root ${sid(rootId ?? "")} → first child ${target ? sid(target) : "null"}`)
+          return target
+        }
         return null // k on H1 = boundary
       }
 
       // Cursor is a child node
       const cursorNode = repo.getNode(cursor)
-      if (!cursorNode) return null
+      if (!cursorNode) {
+        detailNavLog.debug?.(`cursor ${sid(cursor)} not found in repo — boundary`)
+        return null
+      }
       const parentId = cursorNode.parent_id ?? rootId
 
       if (dir === "down") {
         // j on a heading/item with children → enter first child
         if (cursorNode.item) {
           const nodeChildren = repo.getChildren(cursor)
+          detailNavLog.debug?.(`j on item ${sid(cursor)} (type=${cursorNode.type}) — children=${nodeChildren.length}`)
           if (nodeChildren.length > 0) return nodeChildren[0]!.id
         }
         // j on a leaf or item with no children → next sibling
         const siblings = repo.getChildren(parentId)
         const sibIdx = siblings.findIndex((c) => c.id === cursor)
+        detailNavLog.debug?.(
+          `j on ${sid(cursor)} — siblings=${siblings.length} sibIdx=${sibIdx} parent=${sid(parentId ?? "")}`,
+        )
         if (sibIdx >= 0 && sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
         // Past last sibling → go to parent's next sibling (bubble up)
-        if (parentId === rootId || !parentId) return null
+        if (parentId === rootId || !parentId) {
+          detailNavLog.debug?.("j past last sibling at root — boundary")
+          return null
+        }
         const parent = repo.getNode(parentId)
         if (parent?.parent_id) {
           const parentSiblings = repo.getChildren(parent.parent_id)
           const parentIdx = parentSiblings.findIndex((c) => c.id === parentId)
+          detailNavLog.debug?.(`j bubble up — parentSiblings=${parentSiblings.length} parentIdx=${parentIdx}`)
           if (parentIdx >= 0 && parentIdx + 1 < parentSiblings.length) return parentSiblings[parentIdx + 1]!.id
         }
         return null

@@ -393,6 +393,52 @@ describe("DetailViewNavigation", () => {
     const target = nav.navigate("down", makeState("child", nestedRepo, "root"), nestedRepo, grid)
     expect(target).toBe("sibling")
   })
+
+  // Regression for km-tui.detail-pane-polish-2 — user reported "can't cursor down
+  // in Done blocks". Simulates a doc-style root with multiple H2 sections, each
+  // with tasks underneath. Verifies j traverses every task in every section.
+  describe("multi-section document (H2 headings with children)", () => {
+    const tree = item(
+      "doc",
+      item("intro"), // paragraph before any heading
+      item(
+        "done-section", // "## Done"
+        item("done-task-a"),
+        item("done-task-b"),
+        item("done-task-c"),
+      ),
+      item(
+        "removed-section", // "## Removed"
+        item("removed-a"),
+        item("removed-b"),
+      ),
+    )
+    const sectionRepo = createFakeRepo({ nodes: tree })
+
+    it("j from Done heading → first task under Done (not skipping to next section)", () => {
+      const target = nav.navigate("down", makeState("done-section", sectionRepo, "doc"), sectionRepo, grid)
+      expect(target).toBe("done-task-a")
+    })
+
+    it("j traverses all tasks under Done before jumping to Removed heading", () => {
+      // Walk: done-task-a → done-task-b → done-task-c → removed-section (next H2)
+      expect(nav.navigate("down", makeState("done-task-a", sectionRepo, "doc"), sectionRepo, grid)).toBe("done-task-b")
+      expect(nav.navigate("down", makeState("done-task-b", sectionRepo, "doc"), sectionRepo, grid)).toBe("done-task-c")
+      expect(nav.navigate("down", makeState("done-task-c", sectionRepo, "doc"), sectionRepo, grid)).toBe(
+        "removed-section",
+      )
+    })
+
+    it("k traverses back through Done tasks", () => {
+      expect(nav.navigate("up", makeState("done-task-c", sectionRepo, "doc"), sectionRepo, grid)).toBe("done-task-b")
+      expect(nav.navigate("up", makeState("done-task-b", sectionRepo, "doc"), sectionRepo, grid)).toBe("done-task-a")
+      expect(nav.navigate("up", makeState("done-task-a", sectionRepo, "doc"), sectionRepo, grid)).toBe("done-section")
+    })
+
+    it("j from last task in last section → null (boundary)", () => {
+      expect(nav.navigate("down", makeState("removed-b", sectionRepo, "doc"), sectionRepo, grid)).toBeNull()
+    })
+  })
 })
 
 describe("classifyCursorFromLens", () => {
