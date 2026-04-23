@@ -19,6 +19,7 @@
   "dependencies": {
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",
+    "@silvery/commander": "workspace:*",
     "@silvery/theme": "workspace:*",
     "react": "catalog:",
     "silvery": "workspace:*"

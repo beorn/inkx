@@ -150,6 +150,7 @@
       "dependencies": {
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
+        "@silvery/commander": "workspace:*",
         "@silvery/theme": "workspace:*",
         "react": "catalog:",
         "silvery": "workspace:*",
@@ -630,6 +631,9 @@
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
       "version": "0.19.2",
+      "dependencies": {
+        "@silvery/ag": "0.19.2",
+      },
     },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
