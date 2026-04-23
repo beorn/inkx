@@ -94,14 +94,19 @@ describe("km-logview search highlight (matchRanges-driven)", () => {
       for (let row = 1; row < 18; row++) {
         for (let col = 0; col < 120; col++) {
           const c = term.cell!(row, col)
-          if (c.bg && c.bold && /[a-zA-Z]/.test(c.char ?? "")) n++
+          // Highlight cells are the alpha-character cells that picked up a
+          // non-default bg token ($bg-warning from highlight.tsx). Bold is
+          // part of the shape but we don't assert it — FrameCell's public
+          // shape here is { char, fg, bg } and the bg alone is sufficient
+          // to confirm the highlight landed.
+          if (c.bg && /[a-zA-Z]/.test(c.char ?? "")) n++
         }
       }
       return n
     }
 
-    // After the query, highlight cells exist (bold + bg + alpha char is the
-    // highlight shape — $bg-warning Text is `bold` in highlight.tsx).
+    // After the query, highlight cells exist (bg + alpha char is the
+    // highlight shape produced by $bg-warning on Text in highlight.tsx).
     const withQuery = countMatchingCells()
     expect(withQuery).toBeGreaterThan(0)
 
