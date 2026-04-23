@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 import React, { useCallback, useRef, useState } from "react"
-import { Box, Text, useWindowSize } from "silvery"
+import { Box, Text, useSearch, useWindowSize } from "silvery"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { colorize } from "./colorize.tsx"
 import { usePopover, type PopoverContent } from "./Popover.tsx"
@@ -56,6 +56,45 @@ function valueToString(v: unknown): string {
  */
 
 const PILL_FIELDS = new Set(["kind", "label"])
+
+/**
+ * Split a string around all case-insensitive occurrences of `query` and
+ * wrap the match slices in a highlighted Text. When `query` is empty or
+ * absent, returns the plain string. Used to visually mark search results
+ * inside any rendered string in the row.
+ *
+ * The underlying ListView search machinery (silvery/SearchProvider) finds
+ * matches at the level of a concatenated "virtual stream" of row fields,
+ * but doesn't propagate per-field match ranges down to `renderItem`. So
+ * each call site re-runs a simple indexOf against its own slice of text —
+ * cheap, correct, and avoids coordinating coordinates across silvery.
+ *
+ * Tracked as a silvery enhancement: pass match ranges to ListItemMeta so
+ * consumers don't have to re-search.
+ */
+function highlight(text: string, query: string): React.ReactNode {
+  if (query === "" || text === "") return text
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  const nodes: React.ReactNode[] = []
+  let cursor = 0
+  let key = 0
+  while (cursor < text.length) {
+    const found = lowerText.indexOf(lowerQuery, cursor)
+    if (found === -1) {
+      nodes.push(text.slice(cursor))
+      break
+    }
+    if (found > cursor) nodes.push(text.slice(cursor, found))
+    nodes.push(
+      <Text key={`hl${key++}`} backgroundColor="$bg-warning" color="$fg-on-warning" bold>
+        {text.slice(found, found + query.length)}
+      </Text>,
+    )
+    cursor = found + query.length
+  }
+  return nodes.length === 1 ? nodes[0] : <>{nodes}</>
+}
 
 /** Safety margin (cols) when deciding whether a single-line body fits on
  * the same line as the header. Absorbs slight rendering width differences
@@ -192,11 +231,13 @@ function CollapsedBodyPreview({
   remainder,
   isCursor,
   bodyColor,
+  searchQuery,
 }: {
   lines: string[]
   remainder: number
   isCursor: boolean
   bodyColor: string
+  searchQuery: string
 }) {
   const [hovered, setHovered] = useState(false)
   const onMouseEnter = useCallback(() => setHovered(true), [])
@@ -208,17 +249,21 @@ function CollapsedBodyPreview({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {lines.map((line, i) => (
-        <Text
-          // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-          key={`c${i}`}
-          color={bodyColor}
-          dim={!isCursor}
-          wrap="wrap"
-        >
-          {colorize(line)}
-        </Text>
-      ))}
+      {lines.map((line, i) => {
+        const showHighlight =
+          searchQuery !== "" && line.toLowerCase().includes(searchQuery.toLowerCase())
+        return (
+          <Text
+            // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+            key={`c${i}`}
+            color={bodyColor}
+            dim={!isCursor}
+            wrap="wrap"
+          >
+            {showHighlight ? highlight(line, searchQuery) : colorize(line)}
+          </Text>
+        )
+      })}
       {remainder > 0 && (
         // Only the "+N more" indicator brightens on hover — body lines stay
         // subdued so the call-to-action stands out. Bright default fg + bold
@@ -249,6 +294,11 @@ export function LogRowView({
   let bodyFieldKey: string | null = null
   const cursorFg = "$fg-cursor"
   const { columns } = useWindowSize()
+  // Active search query — used to highlight matching substrings in every
+  // rendered string (pill labels, inline body, body lines). Empty when no
+  // search is active.
+  const searchCtx = useSearch()
+  const searchQuery = searchCtx?.query ?? ""
 
   // Running count of characters consumed by header segments so far.
   // Used to decide whether a single-line body can fit on the same line
@@ -313,10 +363,17 @@ export function LogRowView({
     // Pills → pill rendering wrapped in a HoverTarget for popover.
     // Body inline → dim-muted + colorize. Non-pill header fields without
     // hidden content render without a hover target at all.
+    // When a search query is active, render matching substrings highlighted.
+    // Skip colorize on matched lines (the highlight is the important
+    // visual cue; colorize can resume when the search clears).
+    const activeQuery = searchQuery
+    const hasMatch = (s: string) =>
+      activeQuery !== "" && s.toLowerCase().includes(activeQuery.toLowerCase())
+
     if (PILL_FIELDS.has(field.key)) {
       const pill = (
         <Pill key={field.key} color={color} bold={bold} isCursor={isCursor}>
-          {rendered}
+          {hasMatch(rendered as string) ? highlight(rendered as string, activeQuery) : rendered}
         </Pill>
       )
       headerSegments.push(
@@ -331,7 +388,7 @@ export function LogRowView({
     } else if (inlineBody !== null) {
       const segment = (
         <Text key={field.key} color={isCursor ? cursorFg : "$fg-muted"} dim={!isCursor}>
-          {colorize(inlineBody)}
+          {hasMatch(inlineBody) ? highlight(inlineBody, activeQuery) : colorize(inlineBody)}
         </Text>
       )
       headerSegments.push(
@@ -346,7 +403,7 @@ export function LogRowView({
     } else {
       const segment = (
         <Text key={field.key} color={isCursor ? cursorFg : color} bold={bold || isCursor || undefined}>
-          {rendered}
+          {hasMatch(rendered as string) ? highlight(rendered as string, activeQuery) : rendered}
         </Text>
       )
       headerSegments.push(
@@ -432,36 +489,45 @@ export function LogRowView({
           remainder={collapsedRemainder}
           isCursor={isCursor}
           bodyColor={bodyColor}
+          searchQuery={searchQuery}
         />
       )}
       {showExpanded && (
         <Box flexDirection="column" paddingLeft={BODY_INDENT}>
-          {bodyLines.map((line, i) => (
-            <Text
-              // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-              key={`b${i}`}
-              color={bodyColor}
-              dim={!isCursor}
-              wrap="wrap"
-            >
-              {colorize(line)}
-            </Text>
-          ))}
+          {bodyLines.map((line, i) => {
+            const showHighlight =
+              searchQuery !== "" && line.toLowerCase().includes(searchQuery.toLowerCase())
+            return (
+              <Text
+                // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+                key={`b${i}`}
+                color={bodyColor}
+                dim={!isCursor}
+                wrap="wrap"
+              >
+                {showHighlight ? highlight(line, searchQuery) : colorize(line)}
+              </Text>
+            )
+          })}
         </Box>
       )}
       {showFlat && (
         <Box flexDirection="column" paddingLeft={BODY_INDENT}>
-          {trimmedBodyLines.map((line, i) => (
-            <Text
-              // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-              key={`f${i}`}
-              color={bodyColor}
-              dim={!isCursor}
-              wrap="wrap"
-            >
-              {colorize(line)}
-            </Text>
-          ))}
+          {trimmedBodyLines.map((line, i) => {
+            const showHighlight =
+              searchQuery !== "" && line.toLowerCase().includes(searchQuery.toLowerCase())
+            return (
+              <Text
+                // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+                key={`f${i}`}
+                color={bodyColor}
+                dim={!isCursor}
+                wrap="wrap"
+              >
+                {showHighlight ? highlight(line, searchQuery) : colorize(line)}
+              </Text>
+            )
+          })}
         </Box>
       )}
     </Box>
