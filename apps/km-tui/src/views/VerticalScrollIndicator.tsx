@@ -6,7 +6,7 @@
  * arrows only appear when there is overflow (hiddenCount > 0).
  */
 import React from "react"
-import { Box, Text } from "@silvery/ag-react"
+import { Box, Small } from "@silvery/ag-react"
 
 export interface VerticalScrollIndicatorProps {
   direction: "left" | "right"
@@ -32,9 +32,7 @@ export function VerticalScrollIndicator({
   return (
     <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden" userSelect="none">
       {active && (
-        <Text dimColor color="$fg-muted">
-          {direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}
-        </Text>
+        <Small>{direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}</Small>
       )}
     </Box>
   )

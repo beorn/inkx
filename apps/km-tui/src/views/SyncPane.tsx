@@ -87,11 +87,9 @@ export function SyncPane({ events, watcherStatus, width }: SyncPaneProps): React
       ) : (
         visibleEvents.map((ev, i) => (
           <Box key={i} flexDirection="row" overflow="hidden">
-            <Text dimColor> {formatTime(ev.timestamp)} </Text>
+            <Small> {formatTime(ev.timestamp)} </Small>
             <Text color={eventColor(ev.type)}>{eventIcon(ev.type)} </Text>
-            <Text dimColor wrap="truncate">
-              {ev.message}
-            </Text>
+            <Small wrap="truncate">{ev.message}</Small>
           </Box>
         ))
       )}
@@ -114,9 +112,9 @@ export function SyncPaneSummary({ events }: { events: SyncEvent[] }): React.Reac
     )
   }
   return (
-    <Text dimColor>
+    <Small>
       {" "}
       {eventIcon(last.type)} {last.message}
-    </Text>
+    </Small>
   )
 }

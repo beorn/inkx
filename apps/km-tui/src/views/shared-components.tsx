@@ -443,22 +443,20 @@ export function InputBox({
   const showGhostHint = !!value && !!ghostHint
 
   // Render the placeholder with the cursor INLINED on its first character
-  // (inverse + dim), not as a separate inverse-space block. This fixes:
+  // (inverse + faint), not as a separate inverse-space block. This fixes:
   //   (1) "not left-aligned" — there's no leading block pushing the text
-  //   (2) "too white" — the placeholder uses explicit dimColor, not <Muted>
+  //   (2) "too white" — the placeholder uses <Small> (`$faint`), not <Muted>
   //       (which some themes render too close to primary)
-  // The cursor is visible as a dim inverse cell on the first ghost char;
-  // the rest of the placeholder is plain dim text.
+  // The cursor is visible as a faint inverse cell on the first ghost char;
+  // the rest of the placeholder is plain faint text.
   const placeholderContent = showPlaceholder ? (
     showCursor && placeholder.length > 0 ? (
       <>
-        <Text dimColor inverse>
-          {placeholder[0]}
-        </Text>
-        <Text dimColor>{placeholder.slice(1)}</Text>
+        <Small inverse>{placeholder[0]}</Small>
+        <Small>{placeholder.slice(1)}</Small>
       </>
     ) : (
-      <Text dimColor>{placeholder}</Text>
+      <Small>{placeholder}</Small>
     )
   ) : null
 
@@ -472,13 +470,13 @@ export function InputBox({
           <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
         )}
         {showGhostHint && (
-          <Text dimColor>
+          <Small>
             {"  "}
             {ghostHint}
-          </Text>
+          </Small>
         )}
       </Text>
-      {!focusRing && <Text dimColor>{"─".repeat(40)}</Text>}
+      {!focusRing && <Small>{"─".repeat(40)}</Small>}
     </Box>
   )
 

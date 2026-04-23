@@ -355,9 +355,7 @@ export function BodyBlockEditor({
         const isActiveBlock = editBlockIndex === blockIndex
         return (
           <Box key={`${child.id}-${i}`} paddingLeft={depth}>
-            <Text dimColor={!isActiveBlock} color={"$border-focus"}>
-              {" "}
-            </Text>
+            <Text color={isActiveBlock ? "$border-focus" : "$muted"}>{" "}</Text>
             {isActiveBlock ? (
               <BodyEditField
                 initialValue={child.content ?? ""}

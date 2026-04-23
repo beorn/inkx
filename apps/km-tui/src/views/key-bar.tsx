@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Strong, Text, useFocusManager } from "@silvery/ag-react"
+import { Box, Small, Strong, Text, useFocusManager } from "@silvery/ag-react"
 import { PaneUI } from "../state/ui-reducer.ts"
 import { useSel } from "../state/ui-context.tsx"
 import { isDetailPaneId } from "../board/board-types.ts"
@@ -101,14 +101,14 @@ export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
   return (
     <Box flexDirection="row" flexShrink={0} width={termWidth} id="key-bar" userSelect="none">
       {/* Mode indicator */}
-      <Text dimColor>{"\u2500\u2500 "}</Text>
+      <Small>{"\u2500\u2500 "}</Small>
       <Strong id="key-bar-mode">{mode}</Strong>
-      <Text dimColor>{" \u2500\u2500\u2500\u2500 "}</Text>
+      <Small>{" \u2500\u2500\u2500\u2500 "}</Small>
       {/* Key hints */}
       {hints.map((hint, i) => (
         <React.Fragment key={hint.key}>
-          {i > 0 && <Text dimColor>{"  "}</Text>}
-          <Text dimColor>{hint.key}</Text>
+          {i > 0 && <Small>{"  "}</Small>}
+          <Small>{hint.key}</Small>
           <Text> {hint.action}</Text>
         </React.Fragment>
       ))}

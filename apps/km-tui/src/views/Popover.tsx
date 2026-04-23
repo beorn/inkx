@@ -346,25 +346,27 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
     >
       {content.render
         ? content.render()
-        : content.lines.map((line, i) =>
-            line.link && content.href ? (
+        : content.lines.map((line, i) => {
+            // Translate the legacy `dim` data-model flag to the $muted semantic token.
+            // When explicit color is set, dim still wins (matches previous SGR 2 behavior on any color).
+            const resolvedColor = line.dim ? "$muted" : line.color
+            return line.link && content.href ? (
               <Link
                 key={i}
                 href={content.href}
                 variant="arm-on-hover"
-                color={line.color}
-                dimColor={line.dim}
+                color={resolvedColor}
                 bold={line.bold}
                 wrap={line.wrap ?? "wrap"}
               >
                 {line.text}
               </Link>
             ) : (
-              <Text key={i} color={line.color} dimColor={line.dim} bold={line.bold} wrap={line.wrap ?? "wrap"}>
+              <Text key={i} color={resolvedColor} bold={line.bold} wrap={line.wrap ?? "wrap"}>
                 {line.text}
               </Text>
-            ),
-          )}
+            )
+          })}
       {content.loading && <Spinner label="Loading" color="$fg-muted" />}
     </Box>
   )

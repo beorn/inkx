@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import { Text } from "@silvery/ag-react"
+import { Small, Text } from "@silvery/ag-react"
 import { extractTitleTaskMarker, KNode, extractTaskDates } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board/board-pills.ts"
@@ -456,9 +456,15 @@ export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: bool
   if (node.priority) {
     const style = stripColor ? undefined : PRIORITY_TEXT_COLOR_MAP[node.priority.toUpperCase()]
     parts.push(
-      <Text key="p" color={style?.color} dimColor={style?.dim}>
-        {node.priority}
-      </Text>,
+      style?.dim ? (
+        <Small key="p" color={style.color}>
+          {node.priority}
+        </Small>
+      ) : (
+        <Text key="p" color={style?.color}>
+          {node.priority}
+        </Text>
+      ),
     )
   }
 
@@ -520,11 +526,7 @@ function DueDateText({ dateStr, stripColor }: { dateStr: string; stripColor?: bo
     )
   }
   if (diff <= 1) return <Text color={"$fg-success"}>{text}</Text>
-  return (
-    <Text color={"$fg-accent"} dimColor>
-      {text}
-    </Text>
-  )
+  return <Small color={"$fg-accent"}>{text}</Small>
 }
 
 /** Scheduled date with coloring: today/tomorrow=green, future=dim cyan, past=no color */
@@ -533,13 +535,7 @@ function ScheduledDateText({ dateStr, stripColor }: { dateStr: string; stripColo
   const text = formatRelativeDate(dateStr)
   if (stripColor) return <Text>{text}</Text>
   if (diff >= 0 && diff <= 1) return <Text color={"$fg-success"}>{text}</Text>
-  if (diff > 1) {
-    return (
-      <Text color={"$fg-accent"} dimColor>
-        {text}
-      </Text>
-    )
-  }
+  if (diff > 1) return <Small color={"$fg-accent"}>{text}</Small>
   return <Text>{text}</Text>
 }
 

@@ -10,7 +10,7 @@
  * card data reactively via `useNode(id)` + `useSignal(ps.visibleLens)`.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Small, ListView } from "@silvery/ag-react"
+import { Box, Small, ListView } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { deriveColumnExcludedSigils } from "../state/ui-context.tsx"
@@ -129,7 +129,7 @@ export function TabsView({ columnIds, width, height, columnFilters }: TabsViewPr
                 />
               </Box>
               {/* Separator with space padding */}
-              {cIdx < columnIds.length - 1 && <Text dimColor> │ </Text>}
+              {cIdx < columnIds.length - 1 && <Small> │ </Small>}
             </React.Fragment>
           )
         })}
@@ -139,7 +139,7 @@ export function TabsView({ columnIds, width, height, columnFilters }: TabsViewPr
 
       {/* Top border only */}
       <Box height={1} flexShrink={0}>
-        <Text dimColor>{"─".repeat(width)}</Text>
+        <Small>{"─".repeat(width)}</Small>
       </Box>
 
       {/* Content area with virtualized rendering — explicit height avoids

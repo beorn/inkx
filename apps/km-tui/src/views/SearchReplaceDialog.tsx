@@ -41,7 +41,7 @@ function DialogInput({
   if (!isActive) {
     return (
       <Box flexGrow={1} overflow="hidden">
-        <Text dimColor>{value || " "}</Text>
+        <Small>{value || " "}</Small>
       </Box>
     )
   }

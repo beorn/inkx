@@ -133,11 +133,12 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   const normalColor = isHighlighted ? textColor : isDoneOrDropped ? undefined : icon.color
   // Armed state: bold + primary color so icon character remains visible after toggle
   const armedColor = isHighlighted ? textColor : "$fg-accent"
+  // When not armed and shouldDim, fall back to $muted semantic token (replaces deprecated dimColor).
+  const resolvedColor = armed ? armedColor : shouldDim ? "$muted" : normalColor
 
   return (
     <Text
-      color={armed ? armedColor : normalColor}
-      dimColor={armed ? false : shouldDim}
+      color={resolvedColor}
       bold={armed}
       onMouseDown={handleMouseDown}
       onClick={handleClick}

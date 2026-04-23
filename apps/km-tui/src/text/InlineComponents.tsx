@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Link, Text } from "@silvery/ag-react"
+import { Link, Small, Text } from "@silvery/ag-react"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
@@ -206,9 +206,9 @@ export function InlineStrikethrough({
   offset,
 }: { node: StrikethroughNode } & DecorationProps): React.ReactElement {
   return (
-    <Text dim strikethrough>
+    <Small strikethrough>
       <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
-    </Text>
+    </Small>
   )
 }
 
@@ -345,10 +345,8 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
   const styledValue = ctx.stripInlineColors ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={ctx.stripInlineColors ? "inherit" : "$border-default"}>
-        {node.key}
-      </Text>
-      <Text dim>{":: "}</Text>
+      <Small color={ctx.stripInlineColors ? "inherit" : "$border-default"}>{node.key}</Small>
+      <Small>{":: "}</Small>
       {styledValue}
     </Text>
   )

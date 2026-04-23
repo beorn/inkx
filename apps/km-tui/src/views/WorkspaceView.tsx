@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo } from "react"
-import { Box, Text, useTheme } from "@silvery/ag-react"
+import { Box, Text, Small, useTheme } from "@silvery/ag-react"
 import { ownerPaneId, isDetailViewPane, type LayoutNode, type PaneState } from "../board/board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
@@ -230,7 +230,7 @@ function PaneSeparator(): React.ReactElement {
   const SEPARATOR_FILL = "│\n".repeat(200)
   return (
     <Box flexGrow={1} flexDirection="column" overflow="hidden">
-      <Text dimColor>{SEPARATOR_FILL}</Text>
+      <Small>{SEPARATOR_FILL}</Small>
     </Box>
   )
 }

@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, CursorLine, useFocusManager, useEditContext, useModifierKeys } from "@silvery/ag-react"
+import { Box, Text, Small, CursorLine, useFocusManager, useEditContext, useModifierKeys } from "@silvery/ag-react"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/fs-mount"
@@ -105,14 +105,17 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
       paddingY={1}
       overflow="hidden"
     >
-      {entries.map((entry) => (
-        <Text key={entry.key} dimColor={dimmed}>
-          <Text color={dimmed ? "$fg-muted" : "$fg-accent"} bold={!dimmed}>
-            {entry.key}
-          </Text>{" "}
-          <Text dimColor>{entry.label}</Text>
-        </Text>
-      ))}
+      {entries.map((entry) => {
+        const KeyLabel = dimmed ? Small : Text
+        return (
+          <KeyLabel key={entry.key}>
+            <Text color={dimmed ? "$fg-muted" : "$fg-accent"} bold={!dimmed}>
+              {entry.key}
+            </Text>{" "}
+            <Small>{entry.label}</Small>
+          </KeyLabel>
+        )
+      })}
     </Box>
   )
 }
@@ -275,7 +278,7 @@ export function CommandBox({
           <Text color={modeColor} bold id="mode-label">
             {modeLabel}
           </Text>
-          <Text dimColor> </Text>
+          <Small> </Small>
           {localSearch ? (
             <Box
               id="find-bar"
@@ -299,20 +302,16 @@ export function CommandBox({
             </Box>
           ) : (
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-              {chordSuffix && (
-                <Text
-                  color={chordActive ? "$fg-accent" : undefined}
-                  dimColor={!chordActive}
-                  bold={chordActive}
-                  id="chord-prefix"
-                >
-                  {chordSuffix}
-                </Text>
-              )}
+              {chordSuffix &&
+                (chordActive ? (
+                  <Text color="$fg-accent" bold id="chord-prefix">
+                    {chordSuffix}
+                  </Text>
+                ) : (
+                  <Small id="chord-prefix">{chordSuffix}</Small>
+                ))}
               {paneLabel && !chordSuffix && (
-                <Text dimColor id="pane-label">
-                  {paneLabel}
-                </Text>
+                <Small id="pane-label">{paneLabel}</Small>
               )}
               {multiSuffix && (
                 <Text color="$selectionbg" id="multi-count">
@@ -401,38 +400,38 @@ export function StatusCounters({
   return (
     <Box flexDirection="row" flexShrink={0}>
       {modSuffix && (
-        <Text dimColor id="modifier-keys">
+        <Small id="modifier-keys">
           {modSuffix}{" "}
-        </Text>
+        </Small>
       )}
-      <Text dimColor id="storage-path">
+      <Small id="storage-path">
         {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
-      </Text>
+      </Small>
       {/* Loading spinner + elapsed time counter */}
       {isLoading && (
-        <Text dimColor id="loading-indicator">
+        <Small id="loading-indicator">
           {" "}
           {spinnerFrame}
           {elapsed > 1 ? ` ${elapsed}s` : ""}
-        </Text>
+        </Small>
       )}
       {logTotal > 0 && (
-        <Text dimColor={!logFlash} id="console-indicator">
+        <Text color={!logFlash ? "$muted" : undefined} id="console-indicator">
           {" "}
           {hasWarnings ? "\u26A0" : "💬"} {logTotal}
         </Text>
       )}
-      <Text dimColor={!nodeFlash} id="node-count">
+      <Text color={!nodeFlash ? "$muted" : undefined} id="node-count">
         {" "}
         📋 {nodeCount}
       </Text>
       {watcherLoadingPrefix && (
-        <Text dimColor={!fileFlash} id="watcher-loading">
+        <Text color={!fileFlash ? "$muted" : undefined} id="watcher-loading">
           {watcherLoadingPrefix}
         </Text>
       )}
       {watcherFileCount && (
-        <Text dimColor={!fileFlash} id="watcher-status">
+        <Text color={!fileFlash ? "$muted" : undefined} id="watcher-status">
           {watcherFileCount}
         </Text>
       )}
@@ -441,7 +440,7 @@ export function StatusCounters({
          the wide-emoji continuation cells above from landing on stale
          letters. See bead km-tui.status-bar-stray-chars. */}
       {ui.watcherStatus && (
-        <Text dimColor id="watcher-state">
+        <Text color="$muted" id="watcher-state">
           {watcherSuffix}
         </Text>
       )}

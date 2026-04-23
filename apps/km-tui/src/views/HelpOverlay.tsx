@@ -53,7 +53,7 @@ function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): R
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text dimColor>{"─"}</Text>
+          <Small>{"─"}</Small>
         </Fill>
       </Box>
     </Box>
@@ -112,9 +112,7 @@ function buildSectionLines(section: HelpSection, keyPrefix: string): React.React
   }
   if (section.category === "Panes") {
     lines.push(
-      <Text key={`${keyPrefix}-foot`} dimColor>
-        {"⌃v or v both work as prefixes"}
-      </Text>,
+      <Small key={`${keyPrefix}-foot`}>{"⌃v or v both work as prefixes"}</Small>,
     )
   }
   return lines
@@ -196,7 +194,7 @@ const VG_LOC_W = 16
 const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
-  if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
+  if (!value) return showDot ? <Small>{"·"}</Small> : <Text>{""}</Text>
   return <KeyBinding keys={value} />
 }
 
@@ -227,21 +225,21 @@ function buildVerbGridLines(): React.ReactElement[] {
   lines.push(
     <Box key="vg-prefix" flexDirection="row">
       <Box width={VG_LOC_W}>
-        <Text dimColor>{"prefix key"}</Text>
+        <Small>{"prefix key"}</Small>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color={"$fg"}>{"g"}</Text>
-        <Text dimColor>{" or "}</Text>
+        <Small>{" or "}</Small>
         <Text color={"$fg"}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color={"$fg"}>{"m"}</Text>
-        <Text dimColor>{" or "}</Text>
+        <Small>{" or "}</Small>
         <Text color={"$fg"}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color={"$fg"}>{"a"}</Text>
-        <Text dimColor>{" or "}</Text>
+        <Small>{" or "}</Small>
         <Text color={"$fg"}>{"⌃l"}</Text>
       </Box>
       <Text color={"$fg"}>{"c"}</Text>
@@ -299,7 +297,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         data-dialog="help"
       >
         <Text color={"$fg"}>Terminal too small</Text>
-        <Text dimColor>Press ? or Esc</Text>
+        <Small>Press ? or Esc</Small>
       </Box>
     )
   }
@@ -330,10 +328,10 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   const footer = (
     <Box>
-      <Text dimColor>Esc to close</Text>
+      <Small>Esc to close</Small>
       {scrollHint && (
         <>
-          <Text dimColor>{"  "}</Text>
+          <Small>{"  "}</Small>
           <Text color={"$fg-info"}>{scrollHint}</Text>
         </>
       )}

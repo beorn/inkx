@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, renderStatic } from "@silvery/ag-react"
+import { Box, Small, Text, renderStatic } from "@silvery/ag-react"
 import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status
@@ -48,10 +48,10 @@ function TreeLine({
   if (isCursor) {
     return (
       <Text>
-        <Text dimColor>
+        <Small>
           {prefix}
           {connector}
-        </Text>
+        </Small>
         <Text backgroundColor="cyan" color="black">
           {contentText}
         </Text>
@@ -62,10 +62,10 @@ function TreeLine({
   if (isSelected) {
     return (
       <Text>
-        <Text dimColor>
+        <Small>
           {prefix}
           {connector}
-        </Text>
+        </Small>
         <Text color="cyan">{contentText}</Text>
       </Text>
     )
@@ -73,10 +73,10 @@ function TreeLine({
 
   return (
     <Text>
-      <Text dimColor>
+      <Small>
         {prefix}
         {connector}
-      </Text>
+      </Small>
       <Text>{contentText}</Text>
     </Text>
   )
@@ -161,9 +161,9 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
       {lines}
       {/* Footer with cursor position */}
       <Box marginTop={1}>
-        <Text dimColor>
+        <Small>
           cursor: [{state.cursor.join(",")}]{state.selectedNodes.size > 0 && ` selected: ${state.selectedNodes.size}`}
-        </Text>
+        </Small>
       </Box>
     </Box>
   )
