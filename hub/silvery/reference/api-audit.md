@@ -50,13 +50,13 @@ Curated Ink-compatible surface. No wildcard re-exports.
 ### `.` (main)
 
 **Term API**: `createTerm`, `term` (lazy proxy), `patchConsole`
-**Detection**: `detectCursor`, `detectInput`, `detectColor`, `detectUnicode`, `detectExtendedUnderline`, `detectTerminalCaps`, `defaultCaps`
+**Detection** _(post unicode-plateau 2026-04-23)_: `createTerminalProfile`, `probeTerminalProfile`, `defaultCaps`, `detectColorFromEnv`, `detectTerminalCapsFromEnv`. The historic bare-detector surface (`detectColor`, `detectTerminalCaps`, `detectCursor`, `detectInput`, `detectUnicode`, `detectExtendedUnderline`, `isTextSizingLikelySupported`) was retired — consumers read `caps.colorLevel` / `caps.cursor` / `caps.input` / `caps.unicode` / `caps.underlineStyles` / `caps.textSizingSupported` instead.
 **Utilities**: `ANSI_REGEX`, `stripAnsi`, `displayLength`
-**Underline**: `underline`, `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor`, `styledUnderline`
+**Underline** _(require explicit caps)_: `underline`, `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor`, `styledUnderline` — each takes `caps: UnderlineCaps` as the final argument.
 **Hyperlink**: `hyperlink`
 **Terminal Control**: `enterAltScreen`, `leaveAltScreen`, `clearScreen`, `clearLine`, `cursorTo`, `cursorHome`, `cursorHide`, `cursorShow`, `cursorStyle`, `setTitle`, `enableMouse`, `disableMouse`, `enableBracketedPaste`, `disableBracketedPaste`, `enableSyncUpdate`, `disableSyncUpdate`, `setScrollRegion`, `resetScrollRegion`, `scrollUp`, `scrollDown`, `enableKittyKeyboard`, `disableKittyKeyboard`
 **Background Override**: `BG_OVERRIDE_CODE`, `bgOverride`
-**Types**: `Term`, `StyleChain`, `PatchedConsole`, `PatchConsoleOptions`, `ConsoleStats`, `UnderlineStyle`, `RGB`, `ColorLevel`, `Color`, `AnsiColorName`, `StyleOptions`, `ConsoleMethod`, `ConsoleEntry`, `CreateTermOptions`, `TerminalCaps`
+**Types**: `Term`, `StyleChain`, `PatchedConsole`, `PatchConsoleOptions`, `ConsoleStats`, `UnderlineStyle`, `UnderlineCaps`, `RGB`, `ColorLevel`, `Color`, `AnsiColorName`, `StyleOptions`, `ConsoleMethod`, `ConsoleEntry`, `CreateTermOptions`, `TerminalCaps`, `TerminalProfile`, `TerminalProfileStdout`, `TerminalProfileStdin`, `ColorProvenance`, `CreateTerminalProfileOptions`, `ProbeTerminalProfileOptions`
 
 ### Wildcard (`@silvery/ansi/*`)
 
@@ -272,13 +272,13 @@ Render pipeline internals: `executeRender`, `executeRenderAdapter`, phase functi
 ANSI primitives merged from the former `@silvery/ansi` package. Term factory, styling, detection, underlines, hyperlinks, terminal control.
 
 **Term API**: `createTerm`, `term` (lazy proxy), `patchConsole`
-**Detection**: `detectCursor`, `detectInput`, `detectColor`, `detectUnicode`, `detectExtendedUnderline`, `detectTerminalCaps`, `defaultCaps`
+**Detection** _(post unicode-plateau 2026-04-23)_: `createTerminalProfile`, `probeTerminalProfile`, `defaultCaps`, `detectColorFromEnv`, `detectTerminalCapsFromEnv`. The historic bare-detector surface (`detectColor`, `detectTerminalCaps`, `detectCursor`, `detectInput`, `detectUnicode`, `detectExtendedUnderline`, `isTextSizingLikelySupported`) was retired — consumers read `caps.colorLevel` / `caps.cursor` / `caps.input` / `caps.unicode` / `caps.underlineStyles` / `caps.textSizingSupported` instead.
 **Utilities**: `ANSI_REGEX`, `stripAnsi`, `displayLength`
-**Underline**: `underline`, `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor`, `styledUnderline`
+**Underline** _(require explicit caps)_: `underline`, `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor`, `styledUnderline` — each takes `caps: UnderlineCaps` as the final argument.
 **Hyperlink**: `hyperlink`
 **Terminal Control**: `enterAltScreen`, `leaveAltScreen`, `clearScreen`, `clearLine`, `cursorTo`, `cursorHome`, `cursorHide`, `cursorShow`, `cursorStyle`, `setTitle`, `enableMouse`, `disableMouse`, `enableBracketedPaste`, `disableBracketedPaste`, `enableSyncUpdate`, `disableSyncUpdate`, `setScrollRegion`, `resetScrollRegion`, `scrollUp`, `scrollDown`, `enableKittyKeyboard`, `disableKittyKeyboard`
 **Background Override**: `BG_OVERRIDE_CODE`, `bgOverride`
-**Types**: `Term`, `StyleChain`, `PatchedConsole`, `PatchConsoleOptions`, `ConsoleStats`, `UnderlineStyle`, `RGB`, `ColorLevel`, `Color`, `AnsiColorName`, `StyleOptions`, `ConsoleMethod`, `ConsoleEntry`, `CreateTermOptions`, `TerminalCaps`
+**Types**: `Term`, `StyleChain`, `PatchedConsole`, `PatchConsoleOptions`, `ConsoleStats`, `UnderlineStyle`, `UnderlineCaps`, `RGB`, `ColorLevel`, `Color`, `AnsiColorName`, `StyleOptions`, `ConsoleMethod`, `ConsoleEntry`, `CreateTermOptions`, `TerminalCaps`, `TerminalProfile`, `TerminalProfileStdout`, `TerminalProfileStdin`, `ColorProvenance`, `CreateTerminalProfileOptions`, `ProbeTerminalProfileOptions`
 
 ### Wildcard (`@silvery/ag-term/*`)
 
