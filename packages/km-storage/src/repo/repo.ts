@@ -815,7 +815,7 @@ export interface Repo extends Disposable {
   /**
    * Stable per-clone RepoId (federation — see hub/km/storage-architecture.md §5.1).
    *
-   * Persisted to `.km/config.toml` for disk-mode repos — mints on first open
+   * Persisted under `repo.id` in `.km/config.yaml` for disk-mode repos — mints on first open
    * and round-trips on subsequent opens. Memory-mode / bare repos mint a
    * transient RepoId in-memory; it's valid for the life of the Repo but not
    * persisted. Always defined so consumers (session-db, workspace lookups)
@@ -1634,7 +1634,7 @@ interface RepoInitResult {
   unexploredDirs: UnexploredDir[]
   /**
    * Stable RepoId for this repo. Disk-mode repos persist this to
-   * `.km/config.toml` via `readOrMintRepoId`; memory-mode repos mint a
+   * `.km/config.yaml` (under `repo.id`) via `readOrMintRepoId`; memory-mode repos mint a
    * transient in-memory RepoId.
    */
   repoId: RepoId
@@ -1673,7 +1673,7 @@ function* initWithFileLoading(
     if (!existsSync(kmDir)) {
       mkdirSync(kmDir, { recursive: true })
     }
-    // Federation §5.1 — persist/read the stable RepoId from .km/config.toml
+    // Federation §5.1 — persist/read the stable RepoId from .km/config.yaml
     // immediately after the directory is confirmed, before any DB work.
     // Idempotent: first open mints + writes, subsequent opens round-trip.
     repoId = readOrMintRepoId(kmDir)
@@ -1806,7 +1806,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
       mkdirSync(kmDir, { recursive: true })
     }
 
-    // Federation §5.1 — persist/read the stable RepoId from .km/config.toml
+    // Federation §5.1 — persist/read the stable RepoId from .km/config.yaml
     // immediately after the directory is confirmed, before any DB work.
     repoId = readOrMintRepoId(kmDir)
 

@@ -48,7 +48,7 @@ export const WORKSPACE_TOML_NAME = "workspace.toml"
 export interface WorkspaceMount {
   alias: string
   path: string
-  /** Lazy-discovered RepoId. Reads / mints `.km/config.toml` inside the mount. */
+  /** Lazy-discovered RepoId. Reads / mints `repo.id` in `.km/config.yaml` inside the mount (migrating from legacy `.km/config.toml` if present). */
   repoId(): RepoId
 }
 
