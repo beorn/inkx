@@ -25,7 +25,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, type Theme } from "@silvery/ag-react"
-import type { ColorTier } from "@silvery/ansi"
+import type { ColorLevel } from "@silvery/ansi"
 import { detectTheme } from "./theme.ts"
 import { loadCachedTheme, saveCachedTheme, type ThemeCacheKey } from "./theme-cache.ts"
 import { createLogger } from "@km/core"
@@ -34,7 +34,7 @@ const log = createLogger("km:tui:theme")
 
 interface DeferredThemeProviderProps {
   caps: {
-    colorTier?: ColorTier
+    colorLevel?: ColorLevel
     /** Heuristic guess: terminal renders on a dark background. Uncertainty
      * flag (`maybe*`) signals this is a fallible env sniff, not a protocol
      * fact. Lives on caps post km-silvery.plateau-naming-polish. */
@@ -50,7 +50,7 @@ interface DeferredThemeProviderProps {
 /**
  * Pick a synchronous fallback theme based on the probed capabilities.
  *
- * - `colorTier === "mono" | "ansi16"` → the ANSI 16 theme (matches what
+ * - `colorLevel === "mono" | "ansi16"` → the ANSI 16 theme (matches what
  *   `detectTheme` would have returned synchronously anyway).
  * - Otherwise → ANSI 16 dark/light depending on `caps.maybeDarkBackground`.
  *   ANSI 16 themes use hex values but only 16 colors, which paint on any
@@ -102,11 +102,11 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
       return
     }
     let cancelled = false
-    // detectTheme accepts a structural `{ colorTier?, darkBackground? }`.
+    // detectTheme accepts a structural `{ colorLevel?, darkBackground? }`.
     // The heuristic lives on caps as `maybeDarkBackground` post
     // km-silvery.plateau-naming-polish; we adapt field names here.
     detectTheme({
-      caps: { colorTier: caps.colorTier, darkBackground: caps.maybeDarkBackground },
+      caps: { colorLevel: caps.colorLevel, darkBackground: caps.maybeDarkBackground },
     })
       .then((detected) => {
         if (cancelled) return

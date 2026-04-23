@@ -53,7 +53,7 @@ describe("DeferredThemeProvider", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     render(
       <DeferredThemeProvider
-        caps={{ colorTier: "truecolor", maybeDarkBackground: true }}
+        caps={{ colorLevel: "truecolor", maybeDarkBackground: true }}
         emulator={{ program: "ghostty" }}
         cacheKey={{ program: "ghostty", dark: true }}
       >
@@ -74,7 +74,7 @@ describe("DeferredThemeProvider", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     render(
       <DeferredThemeProvider
-        caps={{ colorTier: "truecolor", maybeDarkBackground: true }}
+        caps={{ colorLevel: "truecolor", maybeDarkBackground: true }}
         emulator={{ program: "ghostty" }}
         cacheKey={{ program: "ghostty", dark: true }}
       >
@@ -98,7 +98,7 @@ describe("DeferredThemeProvider", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     render(
       <DeferredThemeProvider
-        caps={{ colorTier: "truecolor", maybeDarkBackground: true }}
+        caps={{ colorLevel: "truecolor", maybeDarkBackground: true }}
         emulator={{ program: "ghostty" }}
         cacheKey={{ program: "ghostty", dark: true }}
       >

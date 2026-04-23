@@ -87,7 +87,7 @@ export async function runBoard(
   }
 
   log.debug?.(
-    `TTY detection interactive=${interactive} hasInput=${caps.input} isInteractive=${isInteractive} caps=${emulator.program}/${caps.colorTier} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} maybe-dark=${caps.maybeDarkBackground} maybe-nerdfont=${caps.maybeNerdFont}`,
+    `TTY detection interactive=${interactive} hasInput=${caps.input} isInteractive=${isInteractive} caps=${emulator.program}/${caps.colorLevel} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} maybe-dark=${caps.maybeDarkBackground} maybe-nerdfont=${caps.maybeNerdFont}`,
   )
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
