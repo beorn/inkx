@@ -1,8 +1,21 @@
-import React, { useCallback, useMemo, useState } from "react"
+import { watch } from "node:fs"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Box, ListView, SearchBar, Text, useSearch, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { LogRowView } from "./LogRow.tsx"
+import { loadRows } from "./parse-jsonl.ts"
 import type { LogRow, ViewConfig } from "./view-config.ts"
+
+/**
+ * No `cache={{ mode: "virtual" }}` here — that's for chat-style apps where old
+ * items freeze to scrollback and you only read top-to-bottom. A log viewer
+ * needs arbitrary scroll (G, /search → match mid-file), so we use ListView's
+ * built-in viewport virtualization (maxRendered + overscan) instead.
+ *
+ * Tailing: the file is re-parsed on every fs.watch event (debounced 150ms).
+ * If the cursor was at the bottom before the refresh, it follows to the new
+ * bottom (sticky tail). Otherwise cursor stays put.
+ */
 
 function defaultSearchText(row: LogRow): string {
   return Object.values(row.fields)
@@ -13,16 +26,23 @@ function defaultSearchText(row: LogRow): string {
 export function App({
   path,
   config,
-  rows,
+  rows: initialRows,
 }: {
   path: string
   config: ViewConfig
   rows: LogRow[]
 }) {
   const { rows: termRows } = useWindowSize()
-  const [cursor, setCursor] = useState(0)
+  const [rows, setRows] = useState(initialRows)
+  const [cursor, setCursor] = useState(initialRows.length - 1)
   const [detail, setDetail] = useState<LogRow | null>(null)
   const search = useSearch()
+
+  // Refs so the fs.watch callback reads fresh values without re-subscribing.
+  const cursorRef = useRef(cursor)
+  cursorRef.current = cursor
+  const rowsLenRef = useRef(rows.length)
+  rowsLenRef.current = rows.length
 
   const listHeight = Math.max(5, termRows - 3)
 
@@ -31,8 +51,10 @@ export function App({
     [config],
   )
 
-  // Stable — does not depend on cursor, so ListView doesn't rebuild each keypress.
-  const isCacheable = useCallback((_r: LogRow, i: number) => i < rows.length - 1, [rows.length])
+  const handleCursor = useCallback((i: number) => {
+    cursorRef.current = i
+    setCursor(i)
+  }, [])
 
   const handleSelect = useCallback(
     (i: number) => {
@@ -48,6 +70,35 @@ export function App({
     ),
     [config.fields],
   )
+
+  // Live tail — re-parse on fs.watch, sticky-to-bottom if cursor was at end.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const reload = () => {
+      try {
+        const fresh = loadRows(path, config)
+        const prevLen = rowsLenRef.current
+        const wasAtEnd = cursorRef.current >= prevLen - 1
+        setRows(fresh)
+        rowsLenRef.current = fresh.length
+        if (wasAtEnd && fresh.length !== prevLen) {
+          const nextCursor = Math.max(0, fresh.length - 1)
+          cursorRef.current = nextCursor
+          setCursor(nextCursor)
+        }
+      } catch {
+        // Ignore transient errors (file replaced mid-read, etc.)
+      }
+    }
+    const watcher = watch(path, { persistent: false }, () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(reload, 150)
+    })
+    return () => {
+      if (timer) clearTimeout(timer)
+      watcher.close()
+    }
+  }, [path, config])
 
   useInput((input, key) => {
     if (detail) {
@@ -85,11 +136,12 @@ export function App({
       <ListView
         items={rows}
         height={listHeight}
+        maxRendered={200}
         nav
+        cursorKey={cursor}
         getKey={(r) => r.id}
-        onCursor={setCursor}
+        onCursor={handleCursor}
         onSelect={handleSelect}
-        cache={{ mode: "virtual", isCacheable }}
         search={{ getText }}
         renderItem={renderItem}
       />
