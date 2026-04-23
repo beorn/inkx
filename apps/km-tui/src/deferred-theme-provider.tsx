@@ -44,7 +44,7 @@ interface DeferredThemeProviderProps {
 /**
  * Pick a synchronous fallback theme based on the probed capabilities.
  *
- * - `colorLevel === "none" | "basic"` → the ANSI 16 theme (matches what
+ * - `colorLevel === "mono" | "ansi16"` → the ANSI 16 theme (matches what
  *   `detectTheme` would have returned synchronously anyway).
  * - Otherwise → ANSI 16 dark/light depending on `caps.darkBackground`.
  *   ANSI 16 themes use hex values but only 16 colors, which paint on any
