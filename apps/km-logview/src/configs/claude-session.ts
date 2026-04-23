@@ -208,9 +208,8 @@ function deriveRows(parsed: unknown, lineNo: number): LogRow[] {
   return []
 }
 
-function kindColor(value: unknown): string | undefined {
-  const k = typeof value === "string" ? value : ""
-  switch (k) {
+function kindColor(kind: string): string | undefined {
+  switch (kind) {
     case "user":
       return "$fg-accent"
     case "assistant":
@@ -229,6 +228,30 @@ function kindColor(value: unknown): string | undefined {
       return "$fg-error"
     case "system":
       return "$fg-warning"
+    default:
+      return undefined
+  }
+}
+
+/** Subtler than kindColor — tints the bulk of body text without shouting. */
+function bodyColor(kind: string): string | undefined {
+  switch (kind) {
+    case "user":
+      return "$fg-accent"
+    case "thinking":
+      return "$fg-muted"
+    case "tool_use":
+      return "$fg-info"
+    case "tool_result":
+      return "$fg-muted"
+    case "inject":
+      return "$fg-warning"
+    case "hook":
+      return "$fg-muted"
+    case "hook_fail":
+      return "$fg-error"
+    case "system":
+      return "$fg-muted"
     default:
       return undefined
   }
@@ -260,12 +283,22 @@ export const claudeSessionConfig: ViewConfig = {
     {
       key: "kind",
       width: 10,
-      color: (_v, row) => kindColor(row.kind),
+      color: (_v, row) => kindColor(row.kind ?? ""),
       bold: (_v, row) => row.kind === "user" || row.kind === "inject",
       render: (_v, row) => KIND_LABEL[row.kind ?? ""] ?? row.kind ?? "",
     },
-    { key: "label", width: 14, color: "$fg-info" },
-    { key: "body", width: "flex", multiLine: "truncate" },
+    {
+      key: "label",
+      width: 14,
+      color: (_v, row) => kindColor(row.kind ?? "") ?? "$fg-muted",
+    },
+    {
+      key: "body",
+      width: "flex",
+      multiLine: "truncate",
+      // Tint bulk content by kind — subtle but visible across the row.
+      color: (_v, row) => bodyColor(row.kind ?? ""),
+    },
   ],
   searchText(row) {
     const f = row.fields

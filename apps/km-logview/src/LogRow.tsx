@@ -23,10 +23,23 @@ function valueToString(v: unknown): string {
   }
 }
 
-function FieldCell({ field, row }: { field: FieldSpec; row: LogRowData }) {
+function FieldCell({
+  field,
+  row,
+  isCursor,
+}: {
+  field: FieldSpec
+  row: LogRowData
+  isCursor: boolean
+}) {
   const raw = row.fields[field.key]
-  const color = resolve(field.color, raw, row)
-  const bold = resolve(field.bold, raw, row) ?? false
+  // Omnibox pattern: selection wins over per-field color — everything on the
+  // cursor row reads in $fg-cursor (black on $bg-cursor), bold. This is why
+  // Omnibox row looks like a native-terminal cursor highlight.
+  const color = isCursor
+    ? "$fg-cursor"
+    : resolve(field.color, raw, row)
+  const bold = isCursor || (resolve(field.bold, raw, row) ?? false)
   const wrap = field.multiLine === "wrap"
   const content = field.render ? field.render(raw, row) : valueToString(raw)
 
@@ -50,16 +63,25 @@ function FieldCell({ field, row }: { field: FieldSpec; row: LogRowData }) {
   )
 }
 
-export function LogRowView({ row, fields, isCursor }: { row: LogRowData; fields: FieldSpec[]; isCursor: boolean }) {
+export function LogRowView({
+  row,
+  fields,
+  isCursor,
+}: {
+  row: LogRowData
+  fields: FieldSpec[]
+  isCursor: boolean
+}) {
+  // Cursor row: $bg-cursor background fills the row. No leading ▸ glyph —
+  // selection is communicated entirely by the bg (per Silvery Omnibox pattern).
   return (
-    <Box flexDirection="row" paddingX={1}>
-      <Box width={2}>
-        <Text color="$fg-accent" bold>
-          {isCursor ? "▸" : " "}
-        </Text>
-      </Box>
+    <Box
+      flexDirection="row"
+      paddingX={1}
+      backgroundColor={isCursor ? "$bg-cursor" : undefined}
+    >
       {fields.map((f) => (
-        <FieldCell key={f.key} field={f} row={row} />
+        <FieldCell key={f.key} field={f} row={row} isCursor={isCursor} />
       ))}
     </Box>
   )

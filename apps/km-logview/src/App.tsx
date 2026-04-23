@@ -7,14 +7,20 @@ import { loadRows } from "./parse-jsonl.ts"
 import type { LogRow, ViewConfig } from "./view-config.ts"
 
 /**
- * No `cache={{ mode: "virtual" }}` here — that's for chat-style apps where old
- * items freeze to scrollback and you only read top-to-bottom. A log viewer
- * needs arbitrary scroll (G, /search → match mid-file), so we use ListView's
- * built-in viewport virtualization (maxRendered + overscan) instead.
+ * Layout:
+ *   [ single status bar (top)          ]  1 row
+ *   [ ListView                         ]  fills rest
+ *   [ SearchBar (only when active)     ]  0 or 1 row
  *
- * Tailing: the file is re-parsed on every fs.watch event (debounced 150ms).
- * If the cursor was at the bottom before the refresh, it follows to the new
- * bottom (sticky tail). Otherwise cursor stays put.
+ * No bottom status bar — everything collapses into the top strip.
+ *
+ * No `cache={{ mode: "virtual" }}` — that freezes older items to a ring buffer
+ * and is right for chat (top-to-bottom reading), wrong for a log viewer where
+ * users jump to arbitrary positions (G, /search, PgDn). ListView's built-in
+ * viewport virtualization handles any size via maxRendered + overscan.
+ *
+ * Tailing: fs.watch re-parses on change (debounced 150ms). If cursor was at
+ * the bottom before the refresh, it follows to the new bottom (sticky tail).
  */
 
 function defaultSearchText(row: LogRow): string {
@@ -38,13 +44,14 @@ export function App({
   const [detail, setDetail] = useState<LogRow | null>(null)
   const search = useSearch()
 
-  // Refs so the fs.watch callback reads fresh values without re-subscribing.
   const cursorRef = useRef(cursor)
   cursorRef.current = cursor
   const rowsLenRef = useRef(rows.length)
   rowsLenRef.current = rows.length
 
-  const listHeight = Math.max(5, termRows - 3)
+  // 1 (status bar) + (1 if SearchBar active else 0)
+  const chrome = 1 + (search.isActive ? 1 : 0)
+  const listHeight = Math.max(5, termRows - chrome)
 
   const getText = useMemo(
     () => config.searchText ?? defaultSearchText,
@@ -71,7 +78,6 @@ export function App({
     [config.fields],
   )
 
-  // Live tail — re-parse on fs.watch, sticky-to-bottom if cursor was at end.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
     const reload = () => {
@@ -108,7 +114,6 @@ export function App({
       }
       return
     }
-    // When search is active, let SearchProvider handle keys (Ctrl+F/Enter/Esc/…).
     if (search.isActive) return
     if (input === "/") {
       search.open()
@@ -132,7 +137,14 @@ export function App({
 
   return (
     <Box flexDirection="column" height={termRows}>
-      <HeaderBar path={path} configName={config.name} rowCount={rows.length} />
+      <StatusBar
+        path={path}
+        configName={config.name}
+        rowCount={rows.length}
+        cursor={cursor}
+        matches={search.matches.length}
+        searchActive={search.isActive}
+      />
       <ListView
         items={rows}
         height={listHeight}
@@ -146,47 +158,40 @@ export function App({
         renderItem={renderItem}
       />
       <SearchBar />
-      <StatusBar rowCount={rows.length} cursor={cursor} matches={search.matches.length} />
-    </Box>
-  )
-}
-
-function HeaderBar({
-  path,
-  configName,
-  rowCount,
-}: {
-  path: string
-  configName: string
-  rowCount: number
-}) {
-  const short = path.length > 50 ? `…${path.slice(-48)}` : path
-  return (
-    <Box paddingX={1} flexDirection="row">
-      <Text color="$fg-muted">
-        {configName} · {rowCount} rows · {short}
-      </Text>
     </Box>
   )
 }
 
 function StatusBar({
+  path,
+  configName,
   rowCount,
   cursor,
   matches,
+  searchActive,
 }: {
+  path: string
+  configName: string
   rowCount: number
   cursor: number
   matches: number
+  searchActive: boolean
 }) {
-  const hint =
-    matches > 0
-      ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev · /clear: Esc`
+  const short = path.length > 40 ? `…${path.slice(-38)}` : path
+  const hint = searchActive
+    ? "Esc close · Enter/Shift+Enter next/prev"
+    : matches > 0
+      ? `${matches} match${matches === 1 ? "" : "es"} · n/N next/prev`
       : "/ find · Enter detail · q quit"
   return (
-    <Box paddingX={1} flexDirection="row" justifyContent="space-between">
+    <Box
+      flexDirection="row"
+      paddingX={1}
+      backgroundColor="$bg-muted"
+      justifyContent="space-between"
+    >
       <Text color="$fg-muted">
-        {cursor + 1}/{rowCount}
+        {configName} · {cursor + 1}/{rowCount} · {short}
       </Text>
       <Text color="$fg-muted">{hint}</Text>
     </Box>

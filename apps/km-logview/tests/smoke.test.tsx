@@ -24,9 +24,9 @@ describe("km-logview smoke", () => {
       term,
     )
 
-    // Header shows the row count + config name.
+    // Status bar shows the config name + cursor/count.
     expect(term.screen.getText()).toContain("claude-session")
-    expect(term.screen.getText()).toContain(`${rows.length} rows`)
+    expect(term.screen.getText()).toContain(`${rows.length}/${rows.length}`)
 
     // First user message body shows up.
     expect(term.screen.getText()).toContain("hello")
