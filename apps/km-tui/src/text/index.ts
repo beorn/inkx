@@ -35,7 +35,10 @@ export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } fr
 // Term primitives (re-exported from silvery)
 export { createTerm, term, type Term, type StyleChain } from "@silvery/ag-react"
 
-// Extended ANSI features (from @silvery/ag-term/ansi)
+// Extended ANSI features (from @silvery/ag-term/ansi). Extended-underline
+// capability gating is owned by createTerminalProfile().caps — consumers read
+// caps.underlineStyles / caps.underlineColor instead of a standalone detector.
+// (km-silvery.unicode-plateau Phase 1, 2026-04-23.)
 export {
   curlyUnderline,
   dottedUnderline,
@@ -44,7 +47,6 @@ export {
   underlineColor,
   styledUnderline,
   hyperlink,
-  detectExtendedUnderline,
   type UnderlineStyle,
 } from "@silvery/ag-term/ansi"
 
