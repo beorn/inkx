@@ -426,8 +426,7 @@ const Card = React.memo(
             })}
           >
             <Text
-              color={isSelected || isNodeSelected ? "$selectionbg" : undefined}
-              dimColor={!isSelected && !isNodeSelected}
+              color={isSelected || isNodeSelected ? "$selectionbg" : "$muted"}
               wrap="truncate"
             >
               {hrContent}
@@ -533,7 +532,7 @@ const Card = React.memo(
               "data-card-index": cardIndex,
             })}
           >
-            <Text dimColor={!isSelected && !isNodeSelected} wrap="truncate">
+            <Text color={!isSelected && !isNodeSelected ? "$muted" : undefined} wrap="truncate">
               <InlineText text={collapsedTitleText} />
               {childCount > 0 ? ` ··· ${childCount}` : " ···"}
             </Text>
@@ -712,10 +711,8 @@ function SkeletonCards({
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} borderStyle="round" dimColor width={width} height={cardHeight}>
-          <Text dimColor wrap="truncate">
-            {"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
-          </Text>
+        <Box key={ri} borderStyle="round" borderColor="$muted" width={width} height={cardHeight}>
+          <Small wrap="truncate">{"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}</Small>
         </Box>
       ))}
     </Box>
@@ -1039,11 +1036,7 @@ export const Column = React.memo(function Column({
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
-              <Text
-                bold
-                color={isColumnSelected ? "$selection" : (ownColor ?? "$fg-muted")}
-                dimColor={!isColumnSelected}
-              >
+              <Text bold color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")}>
                 {ch}
               </Text>
             </Box>
@@ -1051,7 +1044,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text bold dimColor={!isColumnSelected} color={isColumnSelected ? "$selection" : undefined}>
+            <Text bold color={isColumnSelected ? "$selection" : "$muted"}>
               {countStr}
             </Text>
           </Box>

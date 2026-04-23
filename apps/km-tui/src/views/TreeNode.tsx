@@ -6,6 +6,7 @@
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
+/* eslint-disable @typescript-eslint/no-deprecated -- this file renders the shared TreeNode using a single computed dim flag (sd = style.shouldDim) that threads through ~13 JSX elements including CheckboxIcon/InfoSuffix children. The dim attribute at ANSI 16/mono still emits SGR 2; migrating to conditional $muted would require rethreading each style branch and re-running visual regression. Deletion tracked upstream in km-silvery.delete-dim-dimcolor (which plans the coordinated removal from silvery + showcase). */
 
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"

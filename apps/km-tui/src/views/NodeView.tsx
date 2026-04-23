@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- NodeView holds the unified column-header / tab / list style matrix. ColumnHeaderStyle is a public-ish data-model with a `dimColor` field that is threaded through ~17 JSX elements and computed by deriveColumnHeaderProps. Untangling is coordinated with the upstream dim/dimColor removal — tracking bead km-silvery.delete-dim-dimcolor. The dim attribute at ANSI 16/mono still resolves to SGR 2, so the deprecated API remains behaviourally meaningful until silvery deletes it. */
 /**
  * NodeView - Unified node rendering at different style levels.
  *

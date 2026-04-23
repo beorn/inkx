@@ -142,9 +142,7 @@ function TopBarBreadcrumb({
       {boardColor ? (
         <Text>
           {" "}
-          <Text color={boardColor} dimColor>
-            {"●"}
-          </Text>{" "}
+          <Small color={boardColor}>{"●"}</Small>{" "}
         </Text>
       ) : (
         " "
@@ -152,27 +150,28 @@ function TopBarBreadcrumb({
       {clamped.map((seg, i) => {
         const isBoardRoot = i === boardRootIdx
         const sepEl = seg.sep ? (
-          <Text key={`sep-${i}`} dimColor>
+          <Small key={`sep-${i}`}>
             {" "}
             {seg.sep}{" "}
-          </Text>
+          </Small>
         ) : null
         const nameEl = seg.id ? (
           <Link
             key={`seg-${i}`}
             href={`km://zoom/${seg.id}`}
             variant="arm-on-hover"
-            color="inherit"
+            color={isBoardRoot ? "inherit" : "$muted"}
             bold={isBoardRoot}
-            dimColor={!isBoardRoot}
             underline={false}
           >
             {seg.name}
           </Link>
-        ) : (
-          <Text key={`seg-${i}`} bold={isBoardRoot} dimColor={!isBoardRoot}>
+        ) : isBoardRoot ? (
+          <Text key={`seg-${i}`} bold>
             {seg.name}
           </Text>
+        ) : (
+          <Small key={`seg-${i}`}>{seg.name}</Small>
         )
         return (
           <React.Fragment key={i}>
@@ -232,7 +231,7 @@ function PaneBoardTopBar({
             <Text color={isBoardSelected ? "$selection" : undefined} id="view-mode">
               {" "}
               {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-              {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
+              {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
             </Text>
           </Box>
           {filterIndicator && (
@@ -317,10 +316,10 @@ function BoardTopBar({
       right={
         <>
           <Box data-view="view-mode-button">
-            <Text color={isBoardSelected ? "$selection" : undefined} dimColor={!isBoardSelected} id="view-mode">
+            <Text color={isBoardSelected ? "$selection" : "$muted"} id="view-mode">
               {" "}
               {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-              {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
+              {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
             </Text>
           </Box>
           {filterIndicator && (
