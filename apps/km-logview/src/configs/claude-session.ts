@@ -291,7 +291,12 @@ export const claudeSessionConfig: ViewConfig = {
   },
   deriveRows,
   fields: [
-    { key: "time", width: 8, color: "$fg-muted" },
+    {
+      key: "time",
+      width: 8,
+      color: (_v, row) => kindColor(row.kind ?? "") ?? "$fg-muted",
+      bold: true,
+    },
     {
       key: "kind",
       width: 8,

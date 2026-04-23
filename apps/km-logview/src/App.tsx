@@ -177,13 +177,15 @@ function StatusBar({
       flexDirection="row"
       paddingX={1}
       width="100%"
-      backgroundColor="$bg-muted"
+      backgroundColor="$bg-accent"
       justifyContent="space-between"
     >
-      <Text bold>
+      <Text color="$fg-on-accent" bold>
         {configName} · {cursor + 1}/{rowCount} · {short}
       </Text>
-      <Text bold>{hint}</Text>
+      <Text color="$fg-on-accent" bold>
+        {hint}
+      </Text>
     </Box>
   )
 }
