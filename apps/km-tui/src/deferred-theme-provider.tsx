@@ -25,6 +25,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, type Theme } from "@silvery/ag-react"
+import type { ColorTier } from "@silvery/ansi"
 import { detectTheme } from "./theme.ts"
 import { loadCachedTheme, saveCachedTheme, type ThemeCacheKey } from "./theme-cache.ts"
 import { createLogger } from "@km/core"
@@ -33,7 +34,9 @@ const log = createLogger("km:tui:theme")
 
 interface DeferredThemeProviderProps {
   caps: {
-    colorLevel?: string
+    // Silvery canonicalized the TYPE to `ColorTier` (2026-04-23) but kept
+    // the field name `colorLevel` on TerminalCaps for source compatibility.
+    colorLevel?: ColorTier
     darkBackground?: boolean
     program?: string
   }
