@@ -18,13 +18,6 @@ import { DEFAULT_LOCATIONS } from "./config.ts"
 /** User-assigned favorites: key -> location template. Starts empty; populated from config on startup. */
 const favorites = new Map<string, string>()
 
-/**
- * Default system locations -- re-exported from config.ts for backwards compatibility.
- * Prefer importing DEFAULT_LOCATIONS from config.ts directly.
- * @deprecated Use DEFAULT_LOCATIONS from config.ts (re-exported from index.ts)
- */
-export const DEFAULT_SYSTEM_LOCATIONS: Record<string, string> = DEFAULT_LOCATIONS
-
 /** Human-readable labels for system location keys */
 const SYSTEM_KEY_LABELS: Record<string, string> = {
   h: "home",
