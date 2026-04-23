@@ -387,12 +387,23 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
+  // Row bg cascade (most → least specific):
+  //   cursor row     → $bg-cursor (strong selection indicator)
+  //   expanded row   → $bg-surface-subtle (whole-row tint signals
+  //                    "expanded" state, carries through header + body)
+  //   otherwise      → terminal default (no bg)
+  const rowBackground = isCursor
+    ? "$bg-cursor"
+    : showExpanded
+      ? "$bg-surface-subtle"
+      : undefined
+
   return (
     <Box
       flexDirection="column"
       paddingX={1}
       width="100%"
-      backgroundColor={isCursor ? "$bg-cursor" : undefined}
+      backgroundColor={rowBackground}
       onClick={onBoxClick}
     >
       <Text wrap="truncate-end">{headerSegments}</Text>
@@ -404,29 +415,19 @@ export function LogRowView({
           bodyColor={bodyColor}
         />
       )}
-      {showExpanded && (
-        <Box
-          flexDirection="column"
-          // Subtle bg differentiates expanded from collapsed. Skip when the
-          // row is cursor-selected (the $bg-cursor on the outer Box already
-          // carries state); otherwise $bg-surface-subtle tints the body
-          // block a hair darker than the normal row bg.
-          backgroundColor={isCursor ? undefined : "$bg-surface-subtle"}
-        >
-          {bodyLines.map((line, i) => (
-            <Text
-              // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
-              key={`b${i}`}
-              color={bodyColor}
-              dim={!isCursor}
-              wrap="wrap"
-            >
-              <Text>{"  "}</Text>
-              {colorize(line)}
-            </Text>
-          ))}
-        </Box>
-      )}
+      {showExpanded &&
+        bodyLines.map((line, i) => (
+          <Text
+            // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable within a row
+            key={`b${i}`}
+            color={bodyColor}
+            dim={!isCursor}
+            wrap="wrap"
+          >
+            <Text>{"  "}</Text>
+            {colorize(line)}
+          </Text>
+        ))}
       {showFlat &&
         trimmedBodyLines.map((line, i) => (
           <Text
