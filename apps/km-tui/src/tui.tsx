@@ -50,7 +50,7 @@ tuiEvents.setMaxListeners(200)
  * Takes a repo + rootId directly. The store creates PaneSignals → lens → tree.
  * Initial cursor and collapsed nodes are derived from the lens — no pre-computed state needed.
  *
- * Uses term.hasInput() to detect TTY capability:
+ * Uses term.caps.input to detect TTY capability:
  * - hasInput() = true → interactive mode with keyboard
  * - hasInput() = false → static mode, render once and exit
  */

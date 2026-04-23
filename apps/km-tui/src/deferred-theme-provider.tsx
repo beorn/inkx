@@ -6,7 +6,7 @@
  * with a 150ms-per-query timeout). Blocking first paint on it pushes cold
  * start from <100ms to ~500ms. Most users on dark-terminal defaults never
  * notice the swap because the fallback picks the correct light/dark polarity
- * from `caps.darkBackground` (synchronous kernel/env detection). By the time
+ * from `heuristics.darkBackground` (synchronous kernel/env detection). By the time
  * the probe resolves, we re-render with the accurate scheme — usually
  * imperceptible because the first frame is already on screen.
  *
