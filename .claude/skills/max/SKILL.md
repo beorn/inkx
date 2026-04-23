@@ -114,7 +114,22 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 
 ## Isolation: When to Use Worktrees
 
-**Don't assume you're the only agent.** Other agents may be working on the same repo concurrently. Classify each work unit by blast radius:
+**Don't assume you're the only agent.** Other agents may be working on the same repo concurrently.
+
+### HARD RULE: 2+ agents on the same submodule = worktree-isolate every agent
+
+If you're spawning two or more agents that will touch files inside the **same** `vendor/<pkg>/` submodule (silvery, bearly, flexily, loggily, termless, etc.), **every such agent MUST use `isolation: "worktree"`** — no exceptions based on blast-radius classification. This rule supersedes the blast-radius table below whenever it applies.
+
+**Why:** The 2026-04-20 backdrop+themedetect incident had exactly TWO agents on vendor/silvery and the failure already happened (orphaned commits + lying bead closure). Two is sufficient. The 2026-04-22 hook-router /max run repeated the rule violation (Agent A + Agent B both on vendor/bearly without isolation); it worked only because the agents happened to touch disjoint files — discipline, not luck, should be what prevents collisions.
+
+Checklist before launching the Agent calls:
+
+- Count: how many agents in this `/max` batch will write to `vendor/<same-pkg>/`?
+- If ≥ 2: add `isolation: "worktree"` to **every one of them** that touches that submodule, and append the CRITICAL commit block below
+- After launching: verify with `git worktree list --porcelain` that each worktree entry actually exists. `isolation: "worktree"` can fail silently.
+- Canonical memory: [feedback-worktree-shared-submodule.md](/Users/beorn/.config/claude-profiles/bjorns@gmail.com/projects/-Users-beorn-Code-pim-km/memory/feedback-worktree-shared-submodule.md)
+
+### Blast-radius classification (applies when the submodule rule doesn't force isolation)
 
 | Blast Radius | Examples | Isolation |
 |---|---|---|
