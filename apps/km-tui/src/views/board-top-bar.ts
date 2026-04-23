@@ -12,7 +12,7 @@ import { parseToPlainText, colorize } from "../text/index.ts"
  * Called per-invocation to avoid module-level mutable state.
  */
 function createTermStyle(): StyleChain {
-  return createTerm({ color: "truecolor" })
+  return createTerm({ colorLevel: "truecolor" })
 }
 
 /** Colors that are too bright/light to be readable on a white background */

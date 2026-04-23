@@ -8,7 +8,7 @@ import { displayLength, stripAnsi } from "../../src/text/rich.ts"
 import { parseToPlainText } from "../../src/text/inline-parser.ts"
 
 // Create a term with forced color for testing
-const term = createTerm({ color: "truecolor" })
+const term = createTerm({ colorLevel: "truecolor" })
 const style = term
 
 // ============================================================================
