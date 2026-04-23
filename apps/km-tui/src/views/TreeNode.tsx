@@ -6,7 +6,6 @@
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
-/* eslint-disable @typescript-eslint/no-deprecated -- this file renders the shared TreeNode using a single computed dim flag (sd = style.shouldDim) that threads through ~13 JSX elements including CheckboxIcon/InfoSuffix children. The dim attribute at ANSI 16/mono still emits SGR 2; migrating to conditional $muted would require rethreading each style branch and re-running visual regression. Deletion tracked upstream in km-silvery.delete-dim-dimcolor (which plans the coordinated removal from silvery + showcase). */
 
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"
@@ -407,6 +406,10 @@ function TreeNodeImpl({
       ? "$fg-accent" // yellow fg for parent card title
       : style.textColor
   const sd = style.shouldDim
+  // Effective color folds the dim flag into the foreground token — $fg-muted
+  // is the canonical 'dimmed secondary text' token. Explicit tc (selection
+  // inverse, parent-of-cursor accent) always wins over muted.
+  const dimTc = tc ?? (sd ? "$fg-muted" : undefined)
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -763,7 +766,7 @@ function TreeNodeImpl({
               </Text>
             </Link>
           ) : (
-            <Text dimColor italic wrap="truncate">
+            <Text color="$fg-muted" italic wrap="truncate">
               {parentContext}
             </Text>
           )}
@@ -799,7 +802,7 @@ function TreeNodeImpl({
         >
           {/* Fixed-width prefix box (bullet/checkbox) */}
           <Box width={prefix.length} flexShrink={0}>
-            <Text color={tc} dimColor={sd}>
+            <Text color={dimTc}>
               {nodeIsTask && style.taskStatusIcon ? (
                 <CheckboxIcon
                   nodeId={node.id}
@@ -844,11 +847,12 @@ function TreeNodeImpl({
                 />
               </Text>
             ) : isHR ? (
-              // Unselected HRs render dim (separator chrome, not content) —
+              // Unselected HRs render muted (separator chrome, not content) —
               // matches the contract asserted by tests/hr.test.ts. When
-              // selected the cursor's inverse theming wins (dim off), so we
-              // OR the base dim flag with !isSelected instead of forcing.
-              <Text color={tc} dimColor={sd || !isSelected} wrap="truncate">
+              // selected the cursor's inverse theming wins ($selection over
+              // $selectionbg), so tc provides the selected color; otherwise
+              // fall back to $fg-muted.
+              <Text color={tc ?? "$fg-muted"} wrap="truncate">
                 {cleanContent.trim()}
               </Text>
             ) : (
@@ -865,9 +869,8 @@ function TreeNodeImpl({
                       ? "$fg-warning"
                       : isBody && !isSelected && !isNodeSelected
                         ? "$fg-muted"
-                        : (tc ?? style.ownColor)
+                        : (tc ?? (sd ? "$fg-muted" : style.ownColor))
                 }
-                dimColor={sd}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
@@ -888,11 +891,11 @@ function TreeNodeImpl({
                 {sigilName && (
                   <>
                     {" "}
-                    <Text dimColor={sd}>{sigilName}</Text>
+                    <Text color={sd ? "$fg-muted" : undefined}>{sigilName}</Text>
                   </>
                 )}
                 {!childrenHidden && (
-                  <Text dimColor={sd}>
+                  <Text color={sd ? "$fg-muted" : undefined}>
                     <InfoSuffix {...infoSuffixProps} stripColor={searchHighlight || shouldStripColor} />
                   </Text>
                 )}
@@ -902,11 +905,11 @@ function TreeNodeImpl({
                   </Link>
                 )}
                 {!childrenHidden && showInlineContext && !parentNodeId && (
-                  <Text dimColor={sd} italic>
+                  <Text color={sd ? "$fg-muted" : undefined} italic>
                     {contextSuffix}
                   </Text>
                 )}
-                {hasBody && (!childrenVisible || hiddenCount > 0) && <Text dimColor>{" ···"}</Text>}
+                {hasBody && (!childrenVisible || hiddenCount > 0) && <Text color="$fg-muted">{" ···"}</Text>}
               </Text>
             )}
           </Box>
@@ -970,7 +973,7 @@ function TreeNodeImpl({
       {childrenVisible && (
         <ErrorBoundary
           fallback={
-            <Text color={"$fg-error"} dim>
+            <Text color={"$fg-error"}>
               [error]
             </Text>
           }
@@ -1190,6 +1193,9 @@ const FoldedChildRow = React.memo(
     const effectiveBg = style.backgroundColor
     const foldTc = style.textColor
     const foldSd = style.shouldDim
+    // Fold the dim flag into foreground color — explicit foldTc (selection
+    // inverse) wins over the muted fallback.
+    const foldDimTc = foldTc ?? (foldSd ? "$fg-muted" : undefined)
 
     // Bullet icon — always folded (isFolded=true for computeBulletIcon).
     // Body classification suppresses bullets for pure prose but list items
@@ -1241,7 +1247,7 @@ const FoldedChildRow = React.memo(
         height={1}
       >
         <Box width={prefix.length} flexShrink={0}>
-          <Text color={foldTc} dimColor={foldSd}>
+          <Text color={foldDimTc}>
             <Text color={isNodeSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
               {prefix.markerChar}
             </Text>
@@ -1250,8 +1256,11 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={isBrokenEmbed && !isNodeSelected ? "$fg-error" : (foldTc ?? style.ownColor)}
-            dimColor={foldSd}
+            color={
+              isBrokenEmbed && !isNodeSelected
+                ? "$fg-error"
+                : (foldTc ?? (foldSd ? "$fg-muted" : style.ownColor))
+            }
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
           >
@@ -1419,7 +1428,7 @@ function NodeChildren({
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
           <Box paddingLeft={Math.max(0, depth) + 2}>
-            <Text dimColor wrap="truncate">
+            <Text color="$fg-muted" wrap="truncate">
               +{totalHiddenCount} more
             </Text>
           </Box>
@@ -1454,7 +1463,7 @@ function NodeChildren({
       })}
       {hiddenCount > 0 && showOverflowIndicator && (
         <Box paddingLeft={Math.max(0, depth) + 2}>
-          <Text dimColor wrap="truncate">
+          <Text color="$fg-muted" wrap="truncate">
             +{hiddenCount} more
           </Text>
         </Box>
@@ -1462,4 +1471,3 @@ function NodeChildren({
     </Box>
   )
 }
-

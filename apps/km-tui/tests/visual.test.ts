@@ -15,6 +15,7 @@ import { createFakeRepo } from "@km/storage"
 import { createTestBoard } from "@km/tui/test"
 import { item, renderBoardWithStore } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+import { TC } from "./helpers/theme.ts"
 
 // =============================================================================
 // Visual toolbelt: screen access
@@ -327,7 +328,10 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     expect(childIdx, "child1 text should be in the row").toBeGreaterThan(-1)
 
     const cell = app.screen.cell(childIdx, childBox.y)
-    expect(cell.dim, "child of done task should be dimmed").toBe(true)
+    // Muted foreground ($fg-muted) replaces deprecated dim attribute. At
+    // truecolor tier, $fg-muted resolves to a pre-dimmed hex — same visual
+    // intent, different mechanism. Tracking: km-silvery.delete-dim-dimcolor.
+    expect(cell.fg, "child of done task should be muted").toEqual(TC["$fg-muted"])
   })
 
   test("dropped task's sub-items are dimmed", () => {
@@ -349,7 +353,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     expect(childIdx).toBeGreaterThan(-1)
 
     const cell = app.screen.cell(childIdx, childBox.y)
-    expect(cell.dim, "child of dropped task should be dimmed").toBe(true)
+    expect(cell.fg, "child of dropped task should be muted").toEqual(TC["$fg-muted"])
   })
 
   test("open task's sub-items are NOT dimmed when parent is selected", () => {
@@ -368,7 +372,8 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     expect(childIdx).toBeGreaterThan(-1)
 
     const cell = app.screen.cell(childIdx, childBox.y)
-    expect(cell.dim, "child of open task should not be dimmed").toBeFalsy()
+    expect(cell.fg, "child of open task should not be muted").not.toEqual(TC["$fg-muted"])
+    expect(cell.dim, "child of open task should not carry dim SGR").toBeFalsy()
   })
 
   test("done task's title itself is dimmed (non-selected)", () => {
@@ -391,6 +396,6 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     expect(titleIdx).toBeGreaterThan(-1)
 
     const cell = app.screen.cell(titleIdx, nodeBox.y)
-    expect(cell.dim, "done task title should be dimmed").toBe(true)
+    expect(cell.fg, "done task title should be muted").toEqual(TC["$fg-muted"])
   })
 })

@@ -418,7 +418,9 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const titleIdx = row.indexOf("doneTitle")
     expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
     const titleCell = app.screen.cell(titleIdx, nodeBox.y)
-    expect(titleCell.dim, "done task title should be dimmed").toBe(true)
+    // $fg-muted replaces deprecated dim attribute — same visual intent,
+    // resolves to pre-dimmed hex at truecolor.
+    expect(titleCell.fg, "done task title should be muted").toEqual(TC["$fg-muted"])
   })
 
   it("dropped task also hides date badge and dims title", () => {
@@ -445,7 +447,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const titleIdx = row.indexOf("droppedTask")
     expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
     const titleCell = app.screen.cell(titleIdx, nodeBox.y)
-    expect(titleCell.dim, "dropped task title should be dimmed").toBe(true)
+    expect(titleCell.fg, "dropped task title should be muted").toEqual(TC["$fg-muted"])
   })
 
   it("done task with inline code has colors stripped (not colored)", () => {
