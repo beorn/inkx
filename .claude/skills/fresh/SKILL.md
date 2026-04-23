@@ -12,7 +12,7 @@ benefits-from: [recall, pm, gbrain]
 - `/fresh` — You're stuck on a **specific problem**. Each fix breaks something else. Structured protocol: gather context → reflect → ask external LLM.
 - `/big` — The problem feels **deeper than a bug** — the fix feels like a patch, or the same area keeps breaking. 10-20 hypotheses, 2 rounds of exploration, reframe the problem. **`/big` subsumes `/fresh`** — if you need both, use `/big`.
 - `/llm` — Quick question for another model. Direct: ask → get answer.
-- `/pro "question"` — GPT 5.4 Pro opinion on code or design. ~$1-3.
+- `/pro "question"` — GPT 5.4 Pro opinion on code or design (~$1-3). GPT-5.5 Pro announced 2026-04-23; API rollout pending — see [pro/SKILL.md](../pro/SKILL.md) for opt-in.
 - `/deep` — Thorough research with web search and citations. ~$2-5, 2-15 min.
 
 Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/llm --deep`.
