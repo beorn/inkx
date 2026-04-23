@@ -91,8 +91,8 @@ export const asanaAdapter: ImportAdapter = {
     return data
   },
 
-  async refreshAttachmentUrl(_att: ImportAttachment): Promise<string | null> {
+  refreshAttachmentUrl(_att: ImportAttachment): Promise<string | null> {
     // This is set dynamically when we have a token — see the CLI command
-    return null
+    return Promise.resolve(null)
   },
 }

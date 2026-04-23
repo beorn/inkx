@@ -223,15 +223,15 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     deferredFiles: [],
     unexploredDirs: [],
-    async expandDirectory() {
-      return { nodeCount: 0, linkCount: 0, newUnexploredDirs: [] }
+    expandDirectory() {
+      return Promise.resolve({ nodeCount: 0, linkCount: 0, newUnexploredDirs: [] })
     },
     async *expandAll() {
       // No-op for fake repo
     },
-    async reconcileAsync() {
+    reconcileAsync() {
       // No-op for fake repo — tests don't manage a real filesystem to reconcile.
-      return { changes: 0, deferredFiles: [], errors: [], duration: 0 }
+      return Promise.resolve({ changes: 0, deferredFiles: [], errors: [], duration: 0 })
     },
     withDeferredFs(fn) {
       return fn()

@@ -2362,15 +2362,15 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     stats: { nodeCount: 0, linkCount: 0, duration: 0 },
     deferredFiles: [],
     unexploredDirs: [],
-    async expandDirectory(_dirPath: string): Promise<ExpandResult> {
-      return { nodeCount: 0, linkCount: 0, newUnexploredDirs: [] }
+    expandDirectory(_dirPath: string): Promise<ExpandResult> {
+      return Promise.resolve({ nodeCount: 0, linkCount: 0, newUnexploredDirs: [] })
     },
     async *expandAll(): AsyncGenerator<ExpandProgress> {
       // No-op: bare repos have no unexplored directories
     },
-    async reconcileAsync() {
+    reconcileAsync() {
       // Bare repos have no filesystem to reconcile against.
-      return { changes: 0, deferredFiles: [], errors: [], duration: 0 }
+      return Promise.resolve({ changes: 0, deferredFiles: [], errors: [], duration: 0 })
     },
     get emitter() {
       ensureOpen()

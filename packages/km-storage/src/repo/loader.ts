@@ -1072,7 +1072,7 @@ export interface ReconcileFilesystemResult {
  * function on a microtask after the first frame renders. The cost is the same
  * as the eager path — this just moves it off the critical path.
  */
-export async function reconcileFilesystemPostFrame(
+export function reconcileFilesystemPostFrame(
   db: Database,
   repoRoot: string,
   options?: { collapseMatcher?: CollapseParseMatcher; isAborted?: () => boolean; emitter?: Emitter },
@@ -1086,7 +1086,7 @@ export async function reconcileFilesystemPostFrame(
   let result: ReconcileResult | undefined
   for (;;) {
     if (options?.isAborted?.()) {
-      return { changes: 0, deferredFiles: [], errors, duration: Date.now() - start }
+      return Promise.resolve({ changes: 0, deferredFiles: [], errors, duration: Date.now() - start })
     }
     const step = gen.next()
     if (step.done) {
@@ -1107,12 +1107,12 @@ export async function reconcileFilesystemPostFrame(
     changesApplied = result.changes.length
   }
 
-  return {
+  return Promise.resolve({
     changes: changesApplied,
     deferredFiles: result?.deferredFiles ?? [],
     errors,
     duration: Date.now() - start,
-  }
+  })
 }
 
 // ============================================================================
