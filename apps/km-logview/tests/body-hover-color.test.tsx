@@ -9,12 +9,14 @@ import { PopoverProvider } from "../src/Popover.tsx"
 import type { LogRow } from "../src/view-config.ts"
 
 /**
- * Contract: body text is muted by default; on row hover it promotes to the
- * kind-specific body color; cursor row is unaffected.
+ * Contract: body text color is uniform ($fg) — hover does NOT change the
+ * body color. Previous schemes (hover → kindBodyColor) had dark-theme
+ * failure modes where tokens resolved to near-black. Pills + header carry
+ * the kind signal; body just needs to read clearly. Hover still promotes
+ * colorize() (syntax highlighting) — that test lives elsewhere.
  *
  * We render `LogRowView` in isolation (outside ListView) so ListView's
- * "hover moves cursor" behaviour doesn't interfere with the test. The
- * isolated row preserves the hover-driven color promotion cleanly.
+ * "hover moves cursor" behaviour doesn't interfere.
  */
 
 function makeUserRow(): LogRow {
@@ -28,7 +30,7 @@ function makeUserRow(): LogRow {
 }
 
 describe("km-logview body hover color (isolated)", () => {
-  test("body is muted by default and promotes to kind color on row hover", async () => {
+  test("body color is uniform — unchanged across hover transitions", async () => {
     using term = createTermless({ cols: 120, rows: 6 })
     const row = makeUserRow()
     const handle = await run(
@@ -63,22 +65,21 @@ describe("km-logview body hover color (isolated)", () => {
       return c.fg && typeof c.fg === "object" ? (c.fg as { r: number; g: number; b: number }) : null
     }
 
-    const mutedFg = bodyFgAt(0)
-    expect(mutedFg).not.toBeNull()
+    const restingFg = bodyFgAt(0)
+    expect(restingFg).not.toBeNull()
 
-    // Hover — mouse-move into the row.
+    // Hover — mouse-move into the row. Body color must not change.
     await term.mouse.move(2, 0)
     await new Promise((r) => setTimeout(r, 20))
     const hoveredFg = bodyFgAt(0)
     expect(hoveredFg).not.toBeNull()
-    // Hovered body colour differs from the muted default.
-    expect(JSON.stringify(hoveredFg)).not.toBe(JSON.stringify(mutedFg))
+    expect(JSON.stringify(hoveredFg)).toBe(JSON.stringify(restingFg))
 
-    // Move away — revert. Row 5 is below our single rendered row.
+    // Move away — still the same color.
     await term.mouse.move(0, 5)
     await new Promise((r) => setTimeout(r, 20))
     const revertedFg = bodyFgAt(0)
-    expect(JSON.stringify(revertedFg)).toBe(JSON.stringify(mutedFg))
+    expect(JSON.stringify(revertedFg)).toBe(JSON.stringify(restingFg))
 
     handle.unmount()
   })

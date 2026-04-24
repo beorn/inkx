@@ -22,11 +22,12 @@ import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
  * readable, not colorful. On hover we promote the body back to `bodyColor(kind)`
  * so the user can still pull semantic color on demand.
  */
-// Non-hovered, non-cursor body text. `$fg-muted` is the canonical "secondary
-// text" token — lighter than `$color8` (bright-black) which read as nearly
-// invisible on the user's dark theme. Hovering a row promotes body to its
-// kind-specific (colorful) color; cursor row uses `$fg-cursor`.
-const BODY_COLOR_MUTED = "$fg-muted"
+// Body text — always `$fg` (default readable). Previous schemes (`$color8`,
+// `$fg-muted`, hover-promotes-to-kindColor) all had dark-theme failure
+// modes: tokens resolved to near-black, or hover's kindColor fell through
+// to `$fg-muted` for many kinds → visually identical to non-hover. Pills
+// and the header carry the kind signal; body just needs to read clearly.
+const BODY_COLOR = "$fg"
 
 function resolve<T>(
   v: T | ((value: unknown, row: LogRowData) => T) | undefined,
@@ -138,7 +139,7 @@ function renderInlineBodySegment(
     : useColorize
       ? colorize(inlineBody)
       : inlineBody
-  const color = ctx.isCursor ? ctx.cursorFg : ctx.isHovered ? ctx.kindBodyColor : BODY_COLOR_MUTED
+  const color = ctx.isCursor ? ctx.cursorFg : BODY_COLOR
   const segment = (
     <Text key={field.key} color={color}>
       {content}
@@ -295,17 +296,6 @@ function BodyLines({
   )
 }
 
-/** Resolve the kind-specific body color by running the `body` field's `color`
- * function against the row. Falls back to `$fg-muted` when the config has no
- * `body` field or the color resolver returns undefined — semantically
- * identical to "no categorical tint" (the hover state degrades gracefully to
- * the default). */
-function resolveKindBodyColor(row: LogRowData, fields: FieldSpec[]): string {
-  const bodyField = fields.find((f) => f.key === "body" && f.multiLine === "below")
-  if (!bodyField) return BODY_COLOR_MUTED
-  const resolved = resolve(bodyField.color, row.fields.body, row)
-  return typeof resolved === "string" && resolved.length > 0 ? resolved : BODY_COLOR_MUTED
-}
 
 /**
  * Row shape:
@@ -360,14 +350,13 @@ export function LogRowView({
   const cursorFg = "$fg-cursor"
   const [isHovered, setIsHovered] = useState(false)
 
-  // Resolve the kind-specific body color ONCE — used for the hovered state of
-  // all body renderings (inline, collapsed preview, below). When not hovered
-  // and not cursor, body text falls back to $fg-muted.
-  const kindBodyColor = resolveKindBodyColor(row, fields)
-
-  const ctx: SegmentContext = { isCursor, isHovered, cursorFg, searchQuery, kindBodyColor }
+  // Body text color is uniform ($fg or $fg-cursor) — kind distinction lives
+  // in pills + header. isHovered still gates colorize() (syntax highlighting
+  // appears on hover/cursor only) so the interactive affordance is: hover
+  // promotes from plain body text to tag/value-colored body.
+  const ctx: SegmentContext = { isCursor, isHovered, cursorFg, searchQuery, kindBodyColor: BODY_COLOR }
   const { segments: headerSegments, bodyLines, bodyFieldKey } = buildHeader(row, fields, columns, ctx)
-  const bodyColor = isCursor ? cursorFg : isHovered ? kindBodyColor : BODY_COLOR_MUTED
+  const bodyColor = isCursor ? cursorFg : BODY_COLOR
   const { hasBody, isCollapsible, trimmedBodyLines, collapsedLines, collapsedRemainder } = computeBodyState(bodyLines)
 
   // No body-level popover — body is shown inline. bodyFieldKey is unused
