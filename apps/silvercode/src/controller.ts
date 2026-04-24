@@ -261,8 +261,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const factory = opts.spawnFactory ?? defaultSpawn
 
   async function spawnSession(name?: string): Promise<SessionHandle> {
-    const id = `s${nextId++}`
-    const givenName = name ?? `session-${id}`
+    const id = `s${nextId}`
+    const givenName = name ?? `session ${nextId}`
+    nextId++
     const store = createSessionStore()
 
     // --resume backfill: replay the on-disk JSONL transcript into the store

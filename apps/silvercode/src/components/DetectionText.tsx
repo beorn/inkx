@@ -1,7 +1,6 @@
 import React from "react"
-import { Box, Text } from "silvery"
+import { Box, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
-import { usePopover } from "./Popover.tsx"
 
 function renderPopoverContent(d: Detection): React.ReactNode {
   switch (d.kind) {
@@ -92,7 +91,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
               key={`d${d.start}`}
               color={colorFor(d.kind)}
               underline
-              onClick={() => popover.show(renderPopoverContent(d), { x: 0, y: 0 })}
+              onClick={() => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })}
             >
               {d.match}
             </Text>,

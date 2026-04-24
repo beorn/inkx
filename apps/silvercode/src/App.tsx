@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box, Screen, useDispose, useExit } from "silvery"
+import { Box, PopoverProvider, Screen, useDispose, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
-import { PopoverLayer, PopoverProvider } from "./components/Popover.tsx"
 import { SessionCard } from "./components/SessionCard.tsx"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
@@ -282,10 +281,11 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
-            {/* Command input region — its own surface with outer padding
-                so it sits with breathing room above + below (opencode-ish).
-                Distinct bg from cards area and side panel. */}
-            <Box backgroundColor="$mutedbg" paddingX={2} paddingY={1}>
+            {/* Command input region — one unified bg with opencode-style
+                outer padding. Uses the Sterling flat token `$bg-muted` which
+                is also shared by the side panel so the two regions read as
+                a single surface separated only by layout (no border). */}
+            <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1}>
               <CommandInput
                 value={inputValue}
                 onChange={setInputValue}
@@ -297,14 +297,15 @@ export function App(props: AppProps): React.ReactElement {
           </Box>
         </Box>
 
-        {/* RIGHT: full-height side panel. Slightly different bg so it reads
-            as a separate region without needing a border. */}
+        {/* RIGHT: full-height side panel. Same bg token as the command input
+            so the chrome reads as a single unified surface — opencode uses
+            the same trick. */}
         {showSidePanel && focused && (
           <Box
             flexShrink={0}
             flexBasis={40}
             flexDirection="column"
-            backgroundColor="$surfacebg"
+            backgroundColor="$bg-surface-subtle"
           >
             <SidePanel
               focused={focused}
@@ -313,11 +314,10 @@ export function App(props: AppProps): React.ReactElement {
               onFocusSession={(id) => controller.focus(id)}
               mode={mode}
               onCycleMode={cycleMode}
+              cwd={props.cwd}
             />
           </Box>
         )}
-
-        <PopoverLayer />
       </Screen>
     </PopoverProvider>
   )
