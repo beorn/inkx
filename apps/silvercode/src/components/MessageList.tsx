@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React, { useState } from "react"
 import type { MessageEntry } from "@km/agent-harness"
 import { Box, ListView, useBoxRect } from "silvery"
 import { AssistantBlock } from "./AssistantBlock.tsx"
@@ -7,35 +7,16 @@ import { ToolResultBlock } from "./ToolResultBlock.tsx"
 import { UserMessageBlock } from "./UserMessageBlock.tsx"
 
 /**
- * Virtualized message stream.
+ * Virtualized message stream — same shape km-logview uses.
  *
- * silvery's ListView owns scrolling: wheel / keyboard / scrollTo all go
- * through it, and only the visible window is rendered into the grid. That's
- * what keeps long sessions performant and prevents content from "walking off"
- * the card below the command box. We measure our own height via useBoxRect
- * (synchronous signal, updates on resize) and feed it to ListView's height
- * prop — no manual arithmetic, no hardcoded rows.
- *
- * estimateHeight is deliberately generous: messages have variable body size
- * (text + N tool calls each with its own expand/collapse) and exact measuring
- * would require a two-pass render. The current estimate favours overscan
- * correctness at the cost of a bit of render work during scroll — acceptable
- * for the M0..M12 session-length regime.
+ * ListView owns scroll (wheel / keyboard / cursor). We pass height via
+ * useBoxRect and let ListView measure actual item heights after first
+ * render. No manual estimate, no scrollTo pinning — scrollTo was blocking
+ * user scroll by yanking the viewport back to the latest message every
+ * render. Cursor follows the latest item on the arrival path (cursorKey
+ * bound to state that auto-advances as new messages land) but the user
+ * can scroll away with j/k/wheel and the cursor stays where they put it.
  */
-
-function estimateMessageHeight(m: MessageEntry): number {
-  let h = 1
-  if (m.role === "user") {
-    h += Math.max(1, Math.ceil(m.text.length / 80))
-    return h
-  }
-  if (m.text.length > 0) {
-    h += Math.max(1, Math.ceil(m.text.length / 80))
-  }
-  h += m.toolCalls.length
-  h += m.toolResults.length
-  return h
-}
 
 function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
   if (m.role === "user") {
@@ -67,24 +48,17 @@ export function MessageList({
   sessionId: string
 }): React.ReactElement {
   const { height } = useBoxRect()
-  const estimate = useMemo(
-    () => (index: number) => {
-      const m = messages[index]
-      return m ? estimateMessageHeight(m) : 1
-    },
-    [messages],
-  )
-  const scrollTo = Math.max(0, messages.length - 1)
+  const [cursor, setCursor] = useState<number>(-1)
   return (
     <ListView
       items={messages}
       height={Math.max(1, Math.floor(height))}
-      getKey={(m) => m.id}
-      estimateHeight={estimate}
-      scrollTo={scrollTo}
+      getKey={(_m, i) => i}
       gap={1}
-      overflowIndicator
       nav
+      cursorKey={cursor}
+      onCursor={setCursor}
+      maxRendered={200}
       renderItem={(m) => <MessageItem m={m} />}
     />
   )

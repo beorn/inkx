@@ -157,16 +157,10 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
 
   const binary = opts.binary ?? "claude"
 
-  // detached: true puts the child (and its MCP sub-subprocesses) in a new
-  // process group. That lets `kill()` target the whole group with one signal
-  // so the sub-subprocesses (km-mcp-server, tribe-mcp) go down with the
-  // parent. Without it, SIGKILLing claude alone leaves orphaned MCP bins
-  // holding stdio pipes, which keeps our event loop alive.
   proc = spawn(binary, args, {
     cwd: opts.cwd ?? process.cwd(),
     env: env as NodeJS.ProcessEnv,
     stdio: ["pipe", "pipe", "pipe"],
-    detached: true,
   })
 
   const parser = createStreamJsonParser((event: AgentEvent) => {
@@ -264,18 +258,16 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       }
     },
     kill(): void {
-      // SIGKILL the process group (negative PID) so claude + its MCP
-      // sub-subprocesses all die together. Synchronous; doesn't wait for
-      // exit. Called from the SIGINT path where user wants out now.
+      // Immediate SIGKILL of the child. Its stdio pipes close, which lets
+      // Node's event loop drain — the MCP sub-subprocesses claude spawned
+      // get SIGPIPE when their stdin closes and die on their own. No
+      // process-group tricks (detached:true had macOS-specific quirks that
+      // caused Ctrl+C to silently do nothing).
       if (closed) return
       try {
-        if (proc.pid !== undefined) process.kill(-proc.pid, "SIGKILL")
+        proc.kill("SIGKILL")
       } catch {
-        try {
-          proc.kill("SIGKILL")
-        } catch {
-          /* already dead */
-        }
+        /* already dead */
       }
       if (cleanupMcpConfig) {
         cleanupMcpConfig()

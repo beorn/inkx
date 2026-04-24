@@ -180,17 +180,20 @@ export function App(props: AppProps): React.ReactElement {
     function onSigint(): void {
       if (killing) return
       killing = true
-      // SIGINT = user wants out now. Skip the graceful 2-second-per-session
-      // stdin.end + SIGTERM drain and SIGKILL the whole process group of
-      // each spawned session (claude + its MCP sub-subprocesses). That
-      // releases the stdio pipes holding the event loop open, then silvery
-      // restores the terminal and Node exits naturally on its next tick.
+      // SIGINT = user wants out now. SIGKILL every session's subprocess so
+      // its stdio pipes close and Node's event loop can drain. Then call
+      // silveryExit() to tear down the TUI. If a handle doesn't release
+      // within 300 ms (MCP subprocess's own children, for example), force-
+      // exit — the user has committed to quitting, don't hang on them.
       try {
         controller.killAll()
       } catch {
         /* best-effort */
       }
       silveryExit()
+      setTimeout(() => {
+        process.exit(0) // lint-ok: SIGINT deadline after kill + silvery teardown
+      }, 300)
     }
     process.on("SIGINT", onSigint)
     return () => {
