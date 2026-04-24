@@ -172,6 +172,20 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory(false)
         return
       }
+      // Esc on empty command input with no overlays open and a non-empty
+      // queue → cancel all queued messages. The queue editor has its own
+      // Esc handler (release focus back to input), so we only act when
+      // the input is the active widget (queueFocused === false).
+      if (
+        key.escape &&
+        !queueFocused &&
+        inputValue.length === 0 &&
+        focused &&
+        queueText.length > 0
+      ) {
+        controller.clearQueue(focused.id)
+        return
+      }
       // Shift+Tab cycles permission modes. index.tsx passes
       // `handleTabCycling: false` to run() so silvery's focus system
       // doesn't consume the key before it reaches us.
@@ -385,6 +399,7 @@ export function App(props: AppProps): React.ReactElement {
               mode={mode}
               onCycleMode={cycleMode}
               cwd={props.cwd}
+              controller={controller}
             />
           </Box>
         )}

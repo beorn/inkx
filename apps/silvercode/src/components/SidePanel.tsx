@@ -1,6 +1,6 @@
 import React, { useMemo } from "react"
 import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
-import type { SessionHandle } from "../controller.ts"
+import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
 import { probeClaudeVersion } from "../claude-version.ts"
 import {
@@ -12,6 +12,7 @@ import {
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
+import { useQueue } from "../hooks/use-queue.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
 // Probed once at module load — the installed CLI version can't change
@@ -201,6 +202,7 @@ export function SidePanel({
   mode,
   onCycleMode,
   cwd,
+  controller,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -209,6 +211,7 @@ export function SidePanel({
   mode: string
   onCycleMode: () => void
   cwd: string
+  controller: Controller
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -259,6 +262,12 @@ export function SidePanel({
     })
     return n + bg.length
   }, 0)
+
+  // Live queue buffer for the focused session. Queued messages are joined
+  // with `\n\n` in the controller, so the entry count is `split("\n\n")`.
+  // Empty buffer → no row (we hide the indicator entirely).
+  const queueText = useQueue(controller, focusedSessionId)
+  const queuedCount = queueText.length === 0 ? 0 : queueText.split("\n\n").length
 
   const branch = useMemo(() => gitBranchFor(cwd), [cwd])
   const cwdLabel = `${shortCwd(cwd)}${branch ? `:${branch}` : ""}`
@@ -340,6 +349,18 @@ export function SidePanel({
         <Muted>
           Bash tool calls invoked with run_in_background:true keep running after the tool call returns. Running / total
           in this session. Claude reads their output via BashOutput and kills them with KillBash.
+        </Muted>
+      </Box>
+    ),
+    maxWidth: 52,
+  })
+  const queuedHover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column">
+        <Text bold>Queued</Text>
+        <Muted>
+          Messages you typed while Claude was busy. Submitted as one batched user turn on next idle. Edit by cursor-up
+          from the command input, cancel with Esc.
         </Muted>
       </Box>
     ),
@@ -504,6 +525,26 @@ export function SidePanel({
             <Text color="$muted">
               {shellsRunning} / {shellsTotal}
             </Text>
+          </Box>
+        </>
+      )}
+
+      {/* Queued — only shown when the focused session has pending queued
+          messages. Entry count = paragraphs separated by blank lines, matching
+          the controller's `\n\n`-join convention when appending. */}
+      {queuedCount > 0 && (
+        <>
+          <Box flexShrink={0} height={1} />
+          <Box
+            flexDirection="row"
+            gap={1}
+            flexShrink={0}
+            onMouseEnter={queuedHover.onMouseEnter}
+            onMouseLeave={queuedHover.onMouseLeave}
+            backgroundColor={hoveredBg(queuedHover.isHovered)}
+          >
+            <SectionHeading>Queued</SectionHeading>
+            <Text color="$muted">{queuedCount}</Text>
           </Box>
         </>
       )}
