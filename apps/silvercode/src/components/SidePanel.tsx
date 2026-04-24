@@ -12,7 +12,6 @@ import {
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
-import { useQueue } from "../hooks/use-queue.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
 // Probed once at module load — the installed CLI version can't change
@@ -308,12 +307,6 @@ export function SidePanel({
     return n + bg.length
   }, 0)
 
-  // Live queue buffer for the focused session. Queued messages are joined
-  // with `\n\n` in the controller, so the entry count is `split("\n\n")`.
-  // Empty buffer → no row (we hide the indicator entirely).
-  const queueText = useQueue(controller, focusedSessionId)
-  const queuedCount = queueText.length === 0 ? 0 : queueText.split("\n\n").length
-
   const branch = useMemo(() => gitBranchFor(cwd), [cwd])
   const cwdLabel = `${shortCwd(cwd)}${branch ? `:${branch}` : ""}`
 
@@ -394,18 +387,6 @@ export function SidePanel({
         <Muted>
           Bash tool calls invoked with run_in_background:true keep running after the tool call returns. Running / total
           in this session. Claude reads their output via BashOutput and kills them with KillBash.
-        </Muted>
-      </Box>
-    ),
-    maxWidth: 52,
-  })
-  const queuedHover = usePopoverHandlers({
-    body: (
-      <Box flexDirection="column">
-        <Text bold>Queued</Text>
-        <Muted>
-          Messages you typed while Claude was busy. Submitted as one batched user turn on next idle. Edit by cursor-up
-          from the command input, cancel with Esc.
         </Muted>
       </Box>
     ),
@@ -579,26 +560,6 @@ export function SidePanel({
         </>
       )}
 
-      {/* Queued — only shown when the focused session has pending queued
-          messages. Entry count = paragraphs separated by blank lines, matching
-          the controller's `\n\n`-join convention when appending. */}
-      {queuedCount > 0 && (
-        <>
-          <Box flexShrink={0} height={1} />
-          <Box
-            flexDirection="row"
-            gap={1}
-            flexShrink={0}
-            onMouseEnter={queuedHover.onMouseEnter}
-            onMouseLeave={queuedHover.onMouseLeave}
-            backgroundColor={hoveredBg(queuedHover.isHovered)}
-          >
-            <SectionHeading>Queued</SectionHeading>
-            <Text color="$muted">{queuedCount}</Text>
-          </Box>
-        </>
-      )}
-
       {/* Flex spacer pushes the bottom meta to the bottom of the panel. */}
       <Box flexGrow={1} />
 
@@ -639,11 +600,7 @@ export function SidePanel({
         onMouseLeave={quotaHover.onMouseLeave}
         backgroundColor={hoveredBg(quotaHover.isHovered)}
       >
-        {hasAccount && (
-          <Text bold color="$fg">
-            {planLabel(account.plan)}
-          </Text>
-        )}
+        {hasAccount && <Text color="$fg">{planLabel(account.plan)}</Text>}
         {account.email && <Muted>{account.email}</Muted>}
         {account.quotas.length > 0 ? (
           filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
@@ -682,10 +639,7 @@ export function SidePanel({
         <Box flexDirection="row" gap={1}>
           <Text color="$fg">✻</Text>
           <Box flexDirection="row">
-            <Text bold color="$fg">
-              Claude
-            </Text>
-            <Text color="$fg"> Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
+            <Text color="$fg">Claude Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
           </Box>
         </Box>
         {/* Model — indent under the Claude Code line so it reads as a
@@ -696,15 +650,23 @@ export function SidePanel({
             <Small>{modelLabel(state.model)}</Small>
           </Box>
         )}
-        {/* Thinking mode — only rendered when the user has invoked a
-            /think family slash command this session. Neutral grey so
-            attention stays on the colored permission-mode line below. */}
-        {thinking && THINKING_ICONS[thinking] && (
-          <Box flexDirection="row" gap={1} flexShrink={0}>
-            <Text color="$muted">{THINKING_ICONS[thinking]}</Text>
-            <Text color="$muted">{THINKING_LABELS[thinking]}</Text>
-          </Box>
-        )}
+        {/* Thinking mode — always rendered so the row count is stable.
+            When no /think slash command is active this session, show a
+            dim "thinking off" default. Neutral grey so attention stays
+            on the colored permission-mode line below. */}
+        <Box flexDirection="row" gap={1} flexShrink={0}>
+          {thinking && THINKING_ICONS[thinking] ? (
+            <>
+              <Text color="$muted">{THINKING_ICONS[thinking]}</Text>
+              <Text color="$muted">{THINKING_LABELS[thinking]}</Text>
+            </>
+          ) : (
+            <>
+              <Text color="$fg-muted">·</Text>
+              <Text color="$fg-muted">thinking off</Text>
+            </>
+          )}
+        </Box>
         {/* Mode — directly under the model, no spacer. Icon in left
             margin, label aligned with Silver/Claude Code rows.
             Clickable to cycle, hover shows help + armed bg. */}
