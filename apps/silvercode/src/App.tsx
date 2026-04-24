@@ -185,6 +185,17 @@ export function App(props: AppProps): React.ReactElement {
     function onSigint(): void {
       if (draining) return
       draining = true
+      // Schedule the force-exit IMMEDIATELY on SIGINT — independent of the
+      // drain duration — so the process terminates in bounded time even if
+      // controller.closeAll() blocks (each session.close() has a 2s SIGTERM
+      // fallback; 3 sessions = 6s worst case). Without this, the first
+      // Ctrl+C restored the terminal (via silvery's own handler) but then
+      // sat idle while drain ran, forcing a second Ctrl+C.
+      setTimeout(() => {
+        process.exit(0) // lint-ok: SIGINT deadline force-exit
+      }, 800)
+      // In parallel: best-effort drain + silvery cleanup. Whichever finishes
+      // first wins; the setTimeout is the floor.
       void (async () => {
         try {
           await controller.closeAll()
@@ -192,12 +203,7 @@ export function App(props: AppProps): React.ReactElement {
           /* best-effort */
         }
         silveryExit()
-        // If the event loop still has lingering handles (stdio pipes from
-        // MCP servers that didn't flush, event-log streams, tribe watchers),
-        // force exit after a short grace so the host doesn't hang.
-        ;(setTimeout(() => {
-          process.exit(0) // lint-ok: SIGINT force-exit after silvery cleanup
-        }, 300) as unknown as { unref(): void }).unref()
+        process.exit(0) // lint-ok: SIGINT clean exit after drain
       })()
     }
     process.on("SIGINT", onSigint)
