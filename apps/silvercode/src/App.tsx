@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box, useExit, useWindowSize } from "silvery"
+import { Box, Screen, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -154,11 +154,6 @@ export function App(props: AppProps): React.ReactElement {
   // layout follows.
   const cardBasis = sessions.length <= 1 ? "100%" : "50%"
 
-  // Bind the root box to the live window dims so resize events propagate — on
-  // SIGWINCH useWindowSize re-renders, the root re-sizes, and the flex
-  // children (cards / input / status) redistribute automatically.
-  const { columns: cols, rows } = useWindowSize()
-
   // Clean exit: close all sessions first so the child claude subprocesses
   // terminate, THEN let silvery restore the terminal. process.exit is still
   // banned inside the silvery app. Without this, Ctrl+D×2 restores the
@@ -229,7 +224,7 @@ export function App(props: AppProps): React.ReactElement {
         version / cost metadata lives in the side panel's bottom block,
         so the StatusLine at the very bottom is gone.
       */}
-      <Box flexDirection="row" width={cols} height={rows} overflow="hidden">
+      <Screen flexDirection="row">
         {/* LEFT: cards + overlays + palette + input */}
         <Box flexDirection="column" flexGrow={1} minHeight={0}>
           <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
@@ -301,7 +296,7 @@ export function App(props: AppProps): React.ReactElement {
         )}
 
         <PopoverLayer />
-      </Box>
+      </Screen>
     </PopoverProvider>
   )
 }
