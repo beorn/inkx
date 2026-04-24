@@ -296,7 +296,6 @@ function BodyLines({
   )
 }
 
-
 /**
  * Row shape:
  *   Line 1 (header):   [time]  [ KIND-pill ]  [ label-pill ]  [ inline-body? ]
@@ -390,11 +389,7 @@ export function LogRowView({
   // treatment. Both tokens are guaranteed-populated post the Sterling-
   // into-@silvery/ansi unification (silvery bead
   // km-silvery.fallback-theme-empty-bg-tokens).
-  const rowBackground = showExpanded
-    ? "$bg-surface-subtle"
-    : isCursor
-      ? "$bg-cursor"
-      : undefined
+  const rowBackground = showExpanded ? "$bg-surface-subtle" : isCursor ? "$bg-cursor" : undefined
 
   return (
     <Box
@@ -417,13 +412,14 @@ export function LogRowView({
         />
       )}
       {showExpanded && (
-        <BodyLines
-          lines={bodyLines}
-          keyPrefix="b"
-          bodyColor={bodyColor}
-          searchQuery={searchQuery}
-          colorized={isCursor || isHovered}
-        />
+        // Expanded body: skip colorize() — the subtle-surface bg already
+        // elevates the region, and colorize's C_BRK ($fg-muted) on the
+        // subtle bg is dark-grey-on-grey (low contrast; user report:
+        // "black-on-grey, hard to read"). Pills + header carry the kind
+        // signal; the expanded body just needs to be readable. Inline /
+        // flat / collapsed bodies keep the hover → colorize affordance
+        // because they don't sit on an elevated surface.
+        <BodyLines lines={bodyLines} keyPrefix="b" bodyColor={bodyColor} searchQuery={searchQuery} colorized={false} />
       )}
       {showFlat && (
         <BodyLines
