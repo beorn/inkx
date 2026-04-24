@@ -49,20 +49,39 @@ isolate_worktree() {
   target_parent=$(cd "$target_parent" && pwd -P)
   target="$target_parent/$(basename "$target")"
 
-  # Primary path: APFS copy-on-write via /bin/cp (macOS).
-  # -c: clone file data (O(1) per file instead of byte copy)
-  # -R: recursive
-  # Fall back to tar pipe on failure (non-APFS, Linux, etc).
-  if /bin/cp -c -R "$source" "$target" 2>/dev/null; then
-    :  # success
-  else
+  # Serialize the heavy I/O step across sessions. Without this, two
+  # tribe sessions both running `isolation: "worktree"` at the same time
+  # hit I/O contention long enough that the harness times out the
+  # spawning Agent's hook and emits "Hook cancelled" — observed
+  # 2026-04-24 with three lifecycle-scope agents cancelled while
+  # tribe-cp jobs were running. One clone takes ~20-25s on the km repo;
+  # two in parallel stretches past the harness ceiling.
+  #
+  # Implementation: mkdir-based atomic lock (portable — no flock on
+  # macOS). Subshell + EXIT trap ensures the lock is released even on
+  # error paths. Stale locks are reaped if their owning pid is dead.
+  # Lock wraps ONLY the cp/tar block; fixups proceed unlocked since
+  # they don't contend significantly.
+  local lockdir="${TMPDIR:-/tmp}/silvery-clone.lock"
+  (
+    trap 'rm -rf "$lockdir" 2>/dev/null' EXIT
+    _wait_for_clone_lock "$lockdir" || exit 1
+    /bin/echo "$$" > "$lockdir/pid" 2>/dev/null
+
+    # Primary path: APFS copy-on-write via /bin/cp (macOS).
+    # -c: clone file data (O(1) per file instead of byte copy)
+    # -R: recursive
+    # Fall back to tar pipe on failure (non-APFS, Linux, etc).
+    if /bin/cp -c -R "$source" "$target" 2>/dev/null; then
+      exit 0
+    fi
     # tar fallback — preserves symlinks, permissions, xattrs. No CoW.
     mkdir -p "$target"
     if ! (cd "$source" && tar -cf - .) | (cd "$target" && tar -xf -); then
       echo "isolate_worktree: tar fallback failed" >&2
-      return 1
+      exit 1
     fi
-  fi
+  ) || return $?
 
   _fix_submodule_gitdirs "$source" "$target"
   _remove_stale_locks "$target"
@@ -123,6 +142,33 @@ _remove_stale_locks() {
       /bin/rm -f "$lock" 2>/dev/null || true
     done
   fi
+}
+
+# Block until the clone-serialization lock can be acquired. `mkdir` is
+# atomic on POSIX — it either creates the dir (we hold the lock) or
+# fails (someone else holds it). Held locks are short-lived (~25s per
+# clone); the timeout handles truly wedged processes by surfacing a
+# clear error rather than hanging forever.
+#
+# Deliberately NO pid-based staleness reaping — it's tempting (and was
+# in the first cut), but the staleness logic has subtle race windows
+# (process dies between cat-pid and rm-rf, fresh process gets same pid,
+# etc.) and the failure mode is rare. If a stuck lockdir IS observed
+# in practice, surface it via the timeout and let the user rmdir it.
+_wait_for_clone_lock() {
+  local lockdir="$1"
+  local waited=0
+  local max_wait=600  # 10 min — a single clone is ~25s, so 10 min is
+                      # ~24 queued clones. Anything more is a hard fault.
+  while ! mkdir "$lockdir" 2>/dev/null; do
+    if [ "$waited" -ge "$max_wait" ]; then
+      echo "isolate_worktree: clone-lock timeout (>${max_wait}s held by another session)" >&2
+      echo "isolate_worktree: if this is wedged, run: rmdir '$lockdir'" >&2
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
 }
 
 # CLI entry — when invoked directly (not sourced).
