@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, H3, Muted, Small, Spinner, Text } from "silvery"
+import { Box, Spinner, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
@@ -82,17 +82,9 @@ export function SessionCard({
       paddingX={1}
       onClick={onFocus}
     >
-      {/* Card header */}
-      <Box flexDirection="row" paddingX={1} gap={1} flexShrink={0}>
-        <H3>{handle.name}</H3>
-        <Muted>
-          ({state.model || "…"} / {state.mode || "…"})
-        </Muted>
-        <Box flexGrow={1} />
-        {state.status === "idle" || state.status === "ended" ? (
-          <Small>{state.status === "ended" ? "ended" : "idle"}</Small>
-        ) : null}
-      </Box>
+      {/* No header — name is implicit (one session), model/mode/status all
+          live in the side panel. Card header was noise duplicating side
+          panel info. */}
 
       {/* Body — empty state renders the Welcome card; otherwise the virtualized
           message list (silvery ListView owns scroll + wheel + keys). */}

@@ -39,11 +39,13 @@ import { replaySessionFromDisk } from "./resume.ts"
  * workspace deps the same way the host does. TRIBE_SESSION_NAME keys the
  * tribe backend to this session's identity.
  */
-function defaultMcpServers(sessionName: string, workspaceRoot: string): McpServerSpec[] {
-  const kmBin = resolvePath(workspaceRoot, "apps/silvercode/packages/km-mcp-server/src/bin.ts")
+function defaultMcpServers(
+  sessionName: string,
+  workspaceRoot: string,
+  kmDbPath: string | null,
+): McpServerSpec[] {
   const tribeBin = resolvePath(workspaceRoot, "apps/silvercode/packages/tribe-mcp/src/bin.ts")
-  return [
-    { name: "km", command: "bun", args: ["run", kmBin] },
+  const specs: McpServerSpec[] = [
     {
       name: "tribe",
       command: "bun",
@@ -51,6 +53,37 @@ function defaultMcpServers(sessionName: string, workspaceRoot: string): McpServe
       env: { TRIBE_SESSION_NAME: sessionName },
     },
   ]
+  // Declare km MCP ONLY when the bin can start (db exists). claude is
+  // launched with --strict-mcp-config so any declared server that fails
+  // to init blocks the session. The bin itself throws on missing db per
+  // principles.md (fail fast, fail loud); the controller's job is to
+  // decide not to declare it in the first place. Absence of km tools
+  // surfaces in the session-init event (mcp_servers list) and in the
+  // UI's meta block, which is honest about what's mounted.
+  if (kmDbPath) {
+    const kmBin = resolvePath(workspaceRoot, "apps/silvercode/packages/km-mcp-server/src/bin.ts")
+    specs.push({
+      name: "km",
+      command: "bun",
+      args: ["run", kmBin],
+      env: { KM_DB_PATH: kmDbPath },
+    })
+  }
+  return specs
+}
+
+/** Locate .km/state.db for the km MCP. Returns null if not found. */
+function findKmDb(cwd: string): string | null {
+  const envPath = process.env.KM_DB_PATH
+  if (envPath && envPath.length > 0) return resolvePath(envPath)
+  const candidate = resolvePath(cwd, ".km", "state.db")
+  try {
+    const fs = require("node:fs") as { existsSync(p: string): boolean }
+    if (fs.existsSync(candidate)) return candidate
+  } catch {
+    /* require failure is a hard error handled by Node — won't reach here */
+  }
+  return null
 }
 
 type Track = "claude" | "sdk" | "codex"
@@ -200,7 +233,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   async function defaultSpawn(s: SpawnSessionOptions): Promise<AgentSession> {
     const injectors = makeInjectors(s.name)
-    const mcpServers = opts.mcpServers ?? defaultMcpServers(s.name, workspaceRoot)
+    const mcpServers = opts.mcpServers ?? defaultMcpServers(s.name, workspaceRoot, findKmDb(s.cwd))
     if (s.track === "codex") {
       return spawnCodex({ cwd: s.cwd, injectors })
     }

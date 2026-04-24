@@ -48,39 +48,58 @@ export function SidePanel({
   const ctxLabel = `${Math.round(totalTokens / 1000)}K / ${Math.round(window / 1000)}K (${pct}%)`
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingX={1} paddingY={1} gap={1}>
+    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1} gap={1}>
+      {/* Session title — the only identity marker (SessionCard's header was
+          removed). Shown once at the top of the panel for the focused card. */}
+      <Box flexDirection="row" gap={1} flexShrink={0}>
+        <Text bold color="$primary">
+          {handle.name}
+        </Text>
+      </Box>
+
       {/* Upper scrollable region — todos + agents */}
       <Box flexDirection="column" flexGrow={1} gap={1} overflow="hidden">
         <TodoPanel handle={handle} />
         <AgentsPanel handle={handle} />
       </Box>
 
-      {/* Bottom-pinned metadata block. Pushed to the bottom via flexGrow on
-          the upper region; this stays at intrinsic height. */}
-      <Box flexDirection="column" flexShrink={0} gap={0}>
-        <MetaRow label="cwd" value={state.cwd || "…"} />
+      {/* Bottom-pinned metadata — tight, opencode-style. Two short lines:
+          cwd on top, identity/state on bottom. Click ⚡mode to cycle. */}
+      <Box flexDirection="column" flexShrink={0}>
+        <Muted>{state.cwd || "…"}</Muted>
         <Box flexDirection="row" gap={1}>
           <Text color="$accent">◈</Text>
           <Small>silvercode v{SILVERCODE_VERSION}</Small>
+          <Muted>·</Muted>
+          <Small>claude v{state.claudeCodeVersion || "…"}</Small>
         </Box>
         <Box flexDirection="row" gap={1}>
-          <Text color="$accent">✻</Text>
-          <Small>Claude Code v{state.claudeCodeVersion || "…"}</Small>
-        </Box>
-        <MetaRow label="model" value={state.model || "…"} />
-        <Box flexDirection="row" gap={1}>
-          <Muted>mode</Muted>
+          <Muted>{state.model || "…"}</Muted>
+          <Muted>·</Muted>
           <Text color={modeColor} bold onClick={onCycleMode}>
-            ⚡ {mode}
+            ⚡{mode}
           </Text>
+          {handle.account && (
+            <>
+              <Muted>·</Muted>
+              <Muted>@{handle.account}</Muted>
+            </>
+          )}
         </Box>
-        {handle.account && <MetaRow label="account" value={handle.account} />}
-        <MetaRow label="ctx" valueColor={ctxColor} value={ctxLabel} />
-        <MetaRow label="cost" value={`$${state.cost.usd.toFixed(4)}`} />
-        <MetaRow label="sessions" value={String(sessionCount)} />
-        <MetaRow label="tools" value={String(state.tools.length)} />
-        <MetaRow label="skills" value={String(state.skills.length)} />
-        {state.mcpServers.length > 0 && <MetaRow label="mcp" value={state.mcpServers.join(",")} />}
+        <Box flexDirection="row" gap={1}>
+          <Text color={ctxColor}>{ctxLabel}</Text>
+          <Muted>·</Muted>
+          <Muted>${state.cost.usd.toFixed(4)}</Muted>
+          <Muted>·</Muted>
+          <Muted>
+            {sessionCount} session{sessionCount === 1 ? "" : "s"}
+          </Muted>
+        </Box>
+        {state.mcpServers.length > 0 && (
+          <Small>
+            <Muted>mcp: {state.mcpServers.join(", ")}</Muted>
+          </Small>
+        )}
       </Box>
     </Box>
   )
