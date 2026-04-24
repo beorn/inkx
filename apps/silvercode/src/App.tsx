@@ -24,8 +24,8 @@ type Track = "claude" | "sdk" | "codex"
 const MODE_COLOR: Record<string, string> = {
   ask: "$muted",
   plan: "$info",
-  "accept-edits": "$warning",
-  auto: "$success",
+  "accept-edits": "$purple",
+  auto: "$warning",
   bypass: "$error",
 }
 
@@ -51,7 +51,16 @@ export type AppProps = {
    * buried in a TestApp wrapper) means visual tests exercise the exact
    * code path a real user hits, minus the subprocess.
    */
-  spawnFactory?: (opts: { id: string; name: string; cwd: string; model?: string; resume?: string; bare: boolean; account?: string; track: Track }) => AgentSession | Promise<AgentSession>
+  spawnFactory?: (opts: {
+    id: string
+    name: string
+    cwd: string
+    model?: string
+    resume?: string
+    bare: boolean
+    account?: string
+    track: Track
+  }) => AgentSession | Promise<AgentSession>
 }
 
 export function App(props: AppProps): React.ReactElement {
@@ -190,13 +199,7 @@ export function App(props: AppProps): React.ReactElement {
       // queue → cancel all queued messages. The queue editor has its own
       // Esc handler (release focus back to input), so we only act when
       // the input is the active widget (queueFocused === false).
-      if (
-        key.escape &&
-        !queueFocused &&
-        inputValue.length === 0 &&
-        focused &&
-        queueText.length > 0
-      ) {
+      if (key.escape && !queueFocused && inputValue.length === 0 && focused && queueText.length > 0) {
         controller.clearQueue(focused.id)
         return
       }
@@ -366,7 +369,15 @@ export function App(props: AppProps): React.ReactElement {
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
           <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             {sessions.map((s) => (
-              <Box key={s.id} flexDirection="column" flexGrow={1} flexShrink={1} flexBasis={cardBasis} minHeight={0} minWidth={0}>
+              <Box
+                key={s.id}
+                flexDirection="column"
+                flexGrow={1}
+                flexShrink={1}
+                flexBasis={cardBasis}
+                minHeight={0}
+                minWidth={0}
+              >
                 <SessionCard
                   handle={s}
                   isFocused={s.id === focusedSessionId}
@@ -430,12 +441,7 @@ export function App(props: AppProps): React.ReactElement {
             so the chrome reads as a single unified surface — opencode uses
             the same trick. */}
         {showSidePanel && focused && (
-          <Box
-            flexShrink={0}
-            flexBasis={40}
-            flexDirection="column"
-            backgroundColor="$bg-surface-subtle"
-          >
+          <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
             <SidePanel
               focused={focused}
               sessions={sessions}

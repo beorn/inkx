@@ -55,8 +55,8 @@ const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
 export const MODE_COLORS: Record<string, string> = {
   ask: "$muted",
   plan: "$info",
-  "accept-edits": "$warning",
-  auto: "$success",
+  "accept-edits": "$purple",
+  auto: "$warning",
   bypass: "$error",
 }
 
@@ -154,9 +154,7 @@ function quotaColor(w: QuotaWindow): string {
  * The popover always renders ALL of them regardless.
  */
 function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
-  const primaryYellow = all.some(
-    (q) => (q.name === "5-hour" || q.name === "7-day") && isWarningLevel(q.utilization),
-  )
+  const primaryYellow = all.some((q) => (q.name === "5-hour" || q.name === "7-day") && isWarningLevel(q.utilization))
   return all.filter((w) => {
     if (w.name === "5-hour") return true
     if (
@@ -187,11 +185,7 @@ function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
   return (
     <Box flexDirection="row" gap={1}>
       <Box flexBasis={4} minWidth={4}>
-        {isExtra ? (
-          <Text color="$warning">{windowShortLabel(w.name)}</Text>
-        ) : (
-          <Muted>{windowShortLabel(w.name)}</Muted>
-        )}
+        {isExtra ? <Text color="$warning">{windowShortLabel(w.name)}</Text> : <Muted>{windowShortLabel(w.name)}</Muted>}
       </Box>
       <ProgressBar
         value={Math.max(0, Math.min(1, w.utilization / 100))}
@@ -649,24 +643,22 @@ export function SidePanel({
           </Text>
         )}
         {account.email && <Muted>{account.email}</Muted>}
-        {account.quotas.length > 0
-          ? filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
-          : (
-              <Box flexDirection="row" gap={1}>
-                <Box flexBasis={4}>
-                  <Muted>ctx</Muted>
-                </Box>
-                <ProgressBar
-                  value={ctxValue}
-                  width={20}
-                  color={
-                    pct >= 90 ? "$error" : pct >= 70 ? "$warning" : "$fg-muted"
-                  }
-                  showPercentage
-                />
-                <Muted>${state.cost.usd.toFixed(4)}</Muted>
-              </Box>
-            )}
+        {account.quotas.length > 0 ? (
+          filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
+        ) : (
+          <Box flexDirection="row" gap={1}>
+            <Box flexBasis={4}>
+              <Muted>ctx</Muted>
+            </Box>
+            <ProgressBar
+              value={ctxValue}
+              width={20}
+              color={pct >= 90 ? "$error" : pct >= 70 ? "$warning" : "$fg-muted"}
+              showPercentage
+            />
+            <Muted>${state.cost.usd.toFixed(4)}</Muted>
+          </Box>
+        )}
       </Box>
 
       {/* Version block — absolute bottom. Iconography + brand styling:
