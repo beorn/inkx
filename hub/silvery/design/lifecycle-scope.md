@@ -35,24 +35,57 @@ Silvery lifecycle scopes build on TC39 explicit resource management (`AsyncDispo
 export class Scope extends AsyncDisposableStack {
   readonly signal: AbortSignal
   readonly name?: string
+  readonly #children = new Set<Scope>()
+  readonly #parent?: Scope
 
   constructor(parent?: Scope, name?: string) {
     super()
+    this.name = name
+    this.#parent = parent
+
     const controller = new AbortController()
     this.signal = controller.signal
-    this.name = name
+    this.defer(() => controller.abort())
 
     if (parent) {
       if (parent.signal.aborted) controller.abort()
-      else parent.signal.addEventListener("abort", () => controller.abort(), { once: true })
+      else {
+        const onAbort = () => controller.abort()
+        parent.signal.addEventListener("abort", onAbort, { once: true })
+        this.defer(() => parent.signal.removeEventListener("abort", onAbort))
+      }
+      parent.#children.add(this)
     }
-    this.defer(() => controller.abort())
   }
 
   child(name?: string): Scope {
-    const c = new Scope(this, name)
-    this.use(c)
-    return c
+    return new Scope(this, name)
+  }
+
+  override async [Symbol.asyncDispose](): Promise<void> {
+    if (this.disposed) return
+    const errors: unknown[] = []
+
+    // Dispose children first, most-recent first
+    const children = [...this.#children].reverse()
+    this.#children.clear()
+    for (const c of children) {
+      try { await c[Symbol.asyncDispose]() } catch (e) { errors.push(e) }
+    }
+
+    // Inherited user disposer stack (LIFO, from super)
+    try { await super[Symbol.asyncDispose]() } catch (e) { errors.push(e) }
+
+    // Remove self from parent so we don't leak after early dispose
+    this.#parent?.#children.delete(this)
+
+    if (errors.length === 1) throw errors[0]
+    if (errors.length > 1) throw errors.reduce((acc, e) => new SuppressedError(e, acc))
+  }
+
+  // Scope invariants prevent safe inheritance of move(); override to refuse.
+  override move(): never {
+    throw new TypeError("Scope.move() is not supported — create a new scope and re-register resources explicitly")
   }
 }
 
@@ -60,14 +93,24 @@ export function createScope(name?: string): Scope {
   return new Scope(undefined, name)
 }
 
+// Sync cleanup — value is Disposable
 export function disposable<T extends object>(
   value: T,
-  dispose: (v: T) => void | Promise<void>,
-): T & Disposable {
-  return Object.assign(value, { [Symbol.dispose]: () => dispose(value) })
+  dispose: (v: T) => void,
+): T & Disposable
+// Async cleanup — value is AsyncDisposable
+export function disposable<T extends object>(
+  value: T,
+  dispose: (v: T) => Promise<void>,
+): T & AsyncDisposable
+// Implementation — attaches both symbols so either `using` or `await using` works.
+// The caller's overload selects the static type; at runtime both paths are valid.
+export function disposable(value: object, dispose: (v: object) => void | Promise<void>): object {
+  return Object.assign(value, {
+    [Symbol.dispose]() { void dispose(value) },
+    [Symbol.asyncDispose]() { return Promise.resolve(dispose(value)) },
+  })
 }
-
-export class ScopeDisposedError extends Error {}
 
 export interface DisposeErrorContext {
   readonly phase: "react-unmount" | "signal" | "app-exit" | "manual"
@@ -85,16 +128,19 @@ export function withScope(): AppPlugin   // default-enabled by createApp()
 Inherited from `AsyncDisposableStack` (TC39 standard):
 
 - `scope.use(disposable)` — **canonical.** Strict: accepts only `Disposable | AsyncDisposable`. Returns the value unchanged.
-- `scope.defer(fn)` — register a cleanup callback (no value-return).
-- `scope.adopt(value, dispose)` — TC39's value + disposer form. Works, but prefer `scope.use(disposable(value, fn))` for consistency and `using`-friendliness.
+- `scope.defer(fn)` — register a cleanup callback.
+- `scope.adopt(value, dispose)` — TC39's value + disposer form. Works, but prefer `scope.use(disposable(value, fn))` or plain `scope.defer(fn)`.
 - `scope.disposed` — post-dispose flag.
-- `scope.move()` — transfer ownership to a new stack. Rarely needed.
 - `scope[Symbol.asyncDispose]()` — run teardown.
+
+Overridden to throw:
+
+- `scope.move()` — Scope invariants (signal, name, child registry) don't transfer cleanly to a plain `AsyncDisposableStack`; the call throws. Create a new scope and register resources explicitly if you need to relocate ownership.
 
 Added by Scope:
 
 - `scope.signal: AbortSignal` — cancelled when scope disposes; links to parent's signal.
-- `scope.child(name?): Scope` — creates a child scope, registers it via `use()`, returns it.
+- `scope.child(name?): Scope` — creates a child scope; the child is tracked in a weak internal set (not the parent's disposer stack), so early child disposal releases the reference.
 
 ### Why subclass the standard
 
@@ -112,9 +158,16 @@ const proc = scope.use(disposable(child_process.spawn("claude", args), p => p.ki
 
 ### Scope state machine and disposal
 
-Inherited from `AsyncDisposableStack`: `open → disposed`. `[Symbol.asyncDispose]()` is idempotent — the first call starts teardown; subsequent calls are no-ops. Post-dispose calls to `use`, `defer`, `adopt`, or `child` throw `ReferenceError` (standard TC39 behavior for disposed stacks). Multi-throw produces a chained `SuppressedError`.
+From `AsyncDisposableStack`: `open → disposed`. `[Symbol.asyncDispose]()` is idempotent. Post-dispose calls to `use`, `defer`, or `adopt` throw `ReferenceError` (standard). Multi-throw produces a chained `SuppressedError`.
 
-Scope adds tree semantics: a child scope is registered via `parent.use(child)`, so parent disposal cascades into children in LIFO order (children dispose before their parent's own stack runs). When a child is disposed early, it's already been popped (it's just a disposable in the parent's stack, marked `.disposed`) — the parent's teardown still calls its `asyncDispose`, which is a no-op.
+Scope's override of `[Symbol.asyncDispose]()` adds cascade semantics:
+
+1. **Dispose children first** (most-recent-first, iterated from an internal set).
+2. **Run the inherited user disposer stack** (`super[Symbol.asyncDispose]()`) — LIFO over everything passed to `use(...)` / `defer(...)`.
+3. **Remove self from parent's child set** so early disposal releases the reference.
+4. **Aggregate errors** into `SuppressedError` if more than one disposer throws.
+
+Children are tracked in a private `Set<Scope>`, not the disposer stack, so disposing a child early genuinely frees it — no growing-stack leak in long-running parents with frequently-rebuilt child scopes (e.g. `useScopeEffect` on a changing dep).
 
 ### Fire-and-forget disposal
 
@@ -195,7 +248,8 @@ Use existing native APIs. Wrap with `disposable(value, cleanup)`. Pass to `scope
 function Panel({ cmd }: { cmd: string }) {
   useScopeEffect((scope) => {
     scope.use(disposable(child_process.spawn("claude", [cmd]), p => p.kill("SIGTERM")))
-    scope.use(disposable(fs.mkdtempSync(os.tmpdir() + "/panel-"), dir => fs.rmSync(dir, { recursive: true })))
+    const dir = fs.mkdtempSync(os.tmpdir() + "/panel-")
+    scope.defer(() => fs.rmSync(dir, { recursive: true }))
   }, [cmd])
 
   return <Box>...</Box>
@@ -222,7 +276,8 @@ No `@silvery/node` wrapper — just Node's `child_process.spawn`, `fs.mkdtempSyn
 ```ts
 async function compile(scope: Scope) {
   await using s = scope.child("compile")
-  const tmp = s.use(disposable(fs.mkdtempSync(os.tmpdir() + "/c-"), dir => fs.rmSync(dir, { recursive: true })))
+  const tmp = fs.mkdtempSync(os.tmpdir() + "/c-")
+  s.defer(() => fs.rmSync(tmp, { recursive: true }))
   // tmp + any other resources in s disposed at block exit (success or throw)
 }
 ```
@@ -239,20 +294,22 @@ export function openStore(scope: Scope, path: string): Database {
 }
 ```
 
-**Timers, subscriptions, controllers** — the same one-liner works:
+**Timers, subscriptions, controllers** — native APIs with the right shape for each:
 
 ```ts
-// timer
-scope.use(disposable(setTimeout(fn, 5000), clearTimeout))
+// timer — browser handle is a number, not an object. Use scope.defer for cleanup.
+const timerId = setTimeout(fn, 5000)
+scope.defer(() => clearTimeout(timerId))
 
-// subscription
-scope.use(disposable(emitter.on("x", fn), () => emitter.off("x", fn)))
+// subscription — register + unregister pair, use defer
+emitter.on("x", fn)
+scope.defer(() => emitter.off("x", fn))
 
 // fetch — use scope's signal, no wrapper needed
 void fetch(url, { signal: scope.signal })
 ```
 
-That's the full pattern. Every resource shape reduces to `scope.use(disposable(nativeThing, cleanup))`. No framework-owned API surface duplicating what JS/Node/browser already provide.
+The rule: when the native API returns an object you can augment, `scope.use(disposable(value, cleanup))` is tightest. When the handle is a primitive (timer IDs) or the registration doesn't have a value to track (event subscriptions), `scope.defer(cleanup)` is the right tool.
 
 ## Before / After — real migrations
 
@@ -326,17 +383,15 @@ useScopeEffect((scope) => {
       if (e.kind === "permission-request") {
         const id = seq++
         setToasts((t) => [...t, { id, text: `...`, kind: "warn" }])
-        scope.use(disposable(
-          setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000),
-          clearTimeout,
-        ))
+        const timerId = setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
+        scope.defer(() => clearTimeout(timerId))
       }
     }))
   }
 }, [sessions])
 ```
 
-The effect scope collects everything — subscriptions and the pending timers — and disposes them as one unit. `setTimeout` stays as-is; `disposable(value, cleanup)` lifts it into the scope.
+The effect scope collects everything — subscriptions via `.use()`, pending timers via `.defer()` — and disposes them as one unit.
 
 ---
 
@@ -396,7 +451,8 @@ function createFoldPersister(scope: Scope, repoPath: string, debounceMs = 300) {
       void clearTimer()
       const s = scope.child("debounce")
       timerScope = s
-      s.use(disposable(setTimeout(doWrite, debounceMs), clearTimeout))
+      const id = setTimeout(doWrite, debounceMs)
+      s.defer(() => clearTimeout(id))
     },
     flush() {
       void clearTimer()
@@ -517,18 +573,12 @@ useScopeEffect((scope) => {
 }, [store, onChange])
 ```
 
-Option B: keep stores returning `() => void` (BC) and wrap the unsubscribe:
-
-```ts
-// @silvery/core
-export function disposable(fn: () => void): Disposable {
-  return { [Symbol.dispose]: fn }
-}
-```
+Option B: keep stores returning `() => void` (BC) and register the unsubscribe with `scope.defer`:
 
 ```tsx
 useScopeEffect((scope) => {
-  scope.use(disposable(store.subscribe(onChange)))
+  const unsub = store.subscribe(onChange)
+  scope.defer(unsub)
 }, [store, onChange])
 ```
 
@@ -682,6 +732,7 @@ App code is identical across targets. Browsers don't guarantee awaited async cle
 8. **Ad-hoc dep-array lifetime management.** If a dep change should reset ownership, create/dispose a child scope with `useScopeEffect(...)`; do not hand-roll unrelated cleanup state.
 9. **Shared subtree scopes by default.** Makes leaf cleanup too late. Default to component-local ownership.
 10. **WeakRef / FinalizationRegistry for cleanup.** Non-deterministic; useless for processes, sockets, fds.
+11. **`scope.move()`.** Inherited from `AsyncDisposableStack` but overridden to throw — Scope carries extra state (signal, name, child set) that can't transfer to a plain stack. Create a new scope and register resources explicitly if you need to relocate ownership.
 
 ## Done when
 
@@ -696,73 +747,23 @@ Concrete targets so Phase 0-1 can be claimed without reverse-engineering.
 
 ### Scope — replace current implementation with AsyncDisposableStack subclass
 
-`vendor/silvery/packages/scope/src/index.ts` currently implements a hand-rolled disposer stack. Phase 0 replaces it with a thin subclass of TC39's `AsyncDisposableStack`:
+`vendor/silvery/packages/scope/src/index.ts` currently implements a hand-rolled disposer stack. Phase 0 replaces it with the subclass defined in the Core API section above. Deleted vs current:
 
-```ts
-export class Scope extends AsyncDisposableStack {
-  readonly signal: AbortSignal
-  readonly name?: string
-
-  constructor(parent?: Scope, name?: string) {
-    super()
-    const controller = new AbortController()
-    this.signal = controller.signal
-    this.name = name
-
-    if (parent) {
-      if (parent.signal.aborted) controller.abort()
-      else parent.signal.addEventListener("abort", () => controller.abort(), { once: true })
-    }
-    this.defer(() => controller.abort())
-  }
-
-  child(name?: string): Scope {
-    const c = new Scope(this, name)
-    this.use(c)
-    return c
-  }
-}
-
-export function createScope(name?: string): Scope {
-  return new Scope(undefined, name)
-}
-
-export function disposable<T extends object>(
-  value: T,
-  dispose: (v: T) => void | Promise<void>,
-): T & Disposable {
-  return Object.assign(value, { [Symbol.dispose]: () => dispose(value) })
-}
-
-export class ScopeDisposedError extends Error {}
-
-export interface DisposeErrorContext {
-  readonly phase: "react-unmount" | "signal" | "app-exit" | "manual"
-  readonly scope?: Scope
-}
-
-export function reportDisposeError(error: unknown, context: DisposeErrorContext): void
-```
-
-Code deleted vs current:
-
-- Hand-rolled disposer stack, LIFO traversal, error aggregation, state machine — gone (inherited from `AsyncDisposableStack`).
+- Hand-rolled disposer stack / LIFO traversal / error aggregation — gone (inherited from `AsyncDisposableStack`).
 - `[Symbol.dispose]` — gone (only `[Symbol.asyncDispose]` via the standard).
-- `sleep(ms)`, `timeout(ms, fn)` on Scope — gone (use `setTimeout` / `AbortSignal.timeout` directly; wrap with `disposable()` if needed).
+- `sleep(ms)`, `timeout(ms, fn)` on Scope — gone (use `setTimeout` + `scope.defer(() => clearTimeout(id))` or `AbortSignal.timeout`).
 - `createScope(parent, name)` — gone (roots use `createScope(name?)`; children use `scope.child(name?)`).
+- `ScopeDisposedError` — never exported in v4. Post-dispose operations throw TC39's `ReferenceError` instead.
 
-### Disposal runtime contract (via TC39)
+### Disposal runtime contract
 
-All disposer-stack semantics inherit from `AsyncDisposableStack`:
+Inherited from `AsyncDisposableStack`: LIFO ordering, async-await, idempotent `[Symbol.asyncDispose]()`, post-dispose `ReferenceError`, multi-throw `SuppressedError`. Scope overrides `[Symbol.asyncDispose]()` to cascade children first (from a private `Set<Scope>`, not the disposer stack) before running the inherited stack.
 
-- LIFO ordering, async-await, idempotent `[Symbol.asyncDispose]()`.
-- Post-dispose calls to `use`, `defer`, `adopt`, `child` throw `ReferenceError` (the standard's behavior for disposed stacks).
-- Multi-throw → chained `SuppressedError` (the standard replaces `AggregateError` for resource cleanup).
-
-Scope adds:
+Scope additions:
 
 - **Parent signal linkage** — a child's `signal` aborts when the parent's aborts.
-- **Child-before-parent disposal** — because `parent.child()` registers the child via `parent.use(c)`, LIFO order disposes children before the parent's own deferred cleanups. No special code.
+- **Children-first cascade** — the override ensures child scopes dispose before the parent's own user disposers.
+- **Early-child release** — children register themselves in a `Set`, not the parent's disposer stack, so disposing a child early actually frees the reference.
 - **Signal abort in disposer stack** — `this.defer(() => controller.abort())` means disposal aborts the signal as part of LIFO teardown.
 
 ### Reconciler integration — where to edit
@@ -823,7 +824,7 @@ Replace the hand-rolled disposer stack with a subclass of `AsyncDisposableStack`
 
 1. Rewrite `vendor/silvery/packages/scope/src/index.ts` as the subclass sketch above. Delete the old disposer stack, LIFO traversal, state machine, and error-aggregation code.
 2. Delete `sleep`, `timeout`, `interval` methods on Scope (callers use `setTimeout` + `disposable()` wrapping, or `AbortSignal.timeout`).
-3. Export `disposable()`, `ScopeDisposedError`, `reportDisposeError`, `DisposeErrorContext`.
+3. Export `disposable()` (sync + async overloads), `reportDisposeError`, `DisposeErrorContext`.
 4. Require `lib: ["esnext.disposable"]` in scope's tsconfig.
 5. Unit tests in `vendor/silvery/packages/scope/tests/`: parent-child signal propagation, `child()` registers via `use()` and inherits parent disposal, `disposable()` helper, `reportDisposeError` signature. No need to test the inherited LIFO/async/idempotent behavior — that's TC39's responsibility.
 
@@ -843,7 +844,7 @@ Build order (each step passes tests before the next starts):
 
 1. `useScopeEffect(...)` never runs during render; acquisition starts only after commit.
 2. StrictMode double-invoke disposes the first scope before the second mount receives a fresh one.
-3. `[Symbol.asyncDispose]()` is idempotent (inherited from `AsyncDisposableStack`); post-dispose `use(...)`, `defer(...)`, or `child(...)` throw (`ReferenceError` from the standard).
+3. `[Symbol.asyncDispose]()` is idempotent (inherited from `AsyncDisposableStack`); post-dispose `use(...)`, `defer(...)`, `adopt(...)`, or `child(...)` throw `ReferenceError`.
 4. Early child disposal detaches from the parent and is skipped during later parent teardown.
 5. Every fire-and-forget disposal path reports exactly once through `reportDisposeError(...)`.
 
