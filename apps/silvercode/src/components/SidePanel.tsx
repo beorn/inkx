@@ -108,7 +108,7 @@ export const THINKING_ICONS: Record<string, string> = {
 }
 export const THINKING_LABELS: Record<string, string> = {
   normal: "think normal",
-  think: "think on (4K)",
+  think: "think med (4K)",
   think_hard: "think hard (16K)",
   ultrathink: "think ultra (32K)",
 }
@@ -286,6 +286,7 @@ export function SidePanel({
   cwd,
   controller,
   thinking,
+  onCycleThinking,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -295,8 +296,10 @@ export function SidePanel({
   onCycleMode: () => void
   cwd: string
   controller: Controller
-  /** Current thinking mode ("" = none). Set by App.tsx intercepting /think family. */
+  /** Current thinking mode ("" = normal). Set by App.tsx intercepting /think family. */
   thinking?: string
+  /** Cycle thinking: normal → think → think_hard → ultrathink → normal. */
+  onCycleThinking?: () => void
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -458,6 +461,27 @@ export function SidePanel({
       </Box>
     ),
     maxWidth: 56,
+  })
+  const thinkingHover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column">
+        <Text bold>Thinking</Text>
+        <Muted>Extended-thinking budget for Claude's internal reasoning. Higher = more thorough answers, more tokens spent. Click the row to cycle, or type /think, /think_hard, /ultrathink.</Muted>
+        <Text>
+          <Text color="$muted">○ normal</Text> — Claude's baseline (no extended thinking block)
+        </Text>
+        <Text>
+          <Text color="$muted">◔ med (4K)</Text> — /think — moderate reasoning budget
+        </Text>
+        <Text>
+          <Text color="$muted">◐ hard (16K)</Text> — /think_hard — deep reasoning
+        </Text>
+        <Text>
+          <Text color="$muted">● ultra (32K)</Text> — /ultrathink — max budget
+        </Text>
+      </Box>
+    ),
+    maxWidth: 60,
   })
   // Single hover popover for the whole quota block — plan + email at top,
   // then every window (unfiltered) with a tiny reset/credits caption per
@@ -676,14 +700,22 @@ export function SidePanel({
             <Small>{modelLabel(state.model)}</Small>
           </Box>
         )}
-        {/* Thinking mode — always rendered so the row count is stable.
-            Default tier is `normal` (Claude's baseline budget); /think
-            /think_hard /ultrathink escalate. Neutral grey so attention
-            stays on the colored permission-mode line below. */}
+        {/* Thinking mode — always rendered. Click to cycle; hover for
+            help popover. Default tier is `normal` (Claude's baseline
+            budget). Neutral grey so attention stays on the colored
+            permission-mode line below. */}
         {(() => {
           const key = thinking && THINKING_ICONS[thinking] ? thinking : "normal"
           return (
-            <Box flexDirection="row" gap={1} flexShrink={0}>
+            <Box
+              flexDirection="row"
+              gap={1}
+              flexShrink={0}
+              onClick={onCycleThinking}
+              onMouseEnter={thinkingHover.onMouseEnter}
+              onMouseLeave={thinkingHover.onMouseLeave}
+              backgroundColor={hoveredBg(thinkingHover.isHovered)}
+            >
               <Text color="$muted">{THINKING_ICONS[key]}</Text>
               <Text color="$muted">{THINKING_LABELS[key]}</Text>
             </Box>

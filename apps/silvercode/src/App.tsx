@@ -336,6 +336,21 @@ export function App(props: AppProps): React.ReactElement {
     })
   }, [])
 
+  // Thinking cycler: normal → think → think_hard → ultrathink → normal.
+  // Also emits the matching slash command to Claude so the budget actually
+  // applies on the next turn. `""` stored = "normal" (baseline).
+  const cycleThinking = useCallback((): void => {
+    setThinking((t) => {
+      const tiers = ["normal", "think", "think_hard", "ultrathink"]
+      const current = t && tiers.includes(t) ? t : "normal"
+      const next = tiers[(tiers.indexOf(current) + 1) % tiers.length]!
+      if (focused && next !== "normal") {
+        controller.runSlashCommand(focused.id, `/${next}`)
+      }
+      return next === "normal" ? "" : next
+    })
+  }, [controller, focused])
+
   return (
     <PopoverProvider>
       {/*
@@ -450,6 +465,7 @@ export function App(props: AppProps): React.ReactElement {
               mode={mode}
               onCycleMode={cycleMode}
               thinking={thinking}
+              onCycleThinking={cycleThinking}
               cwd={props.cwd}
               controller={controller}
             />
