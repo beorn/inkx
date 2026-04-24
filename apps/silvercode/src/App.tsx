@@ -220,12 +220,10 @@ export function App(props: AppProps): React.ReactElement {
         setQueueFocused(true)
         return
       }
-      // Down-arrow from the queue releases focus back to the input.
-      // (Ctrl+N is already bound to "next session"; we don't overload.)
-      if (queueFocused && key.downArrow) {
-        setQueueFocused(false)
-        return
-      }
+      // While the queue editor owns focus, Down / Up / Ctrl+N / Ctrl+P
+      // are routed to QueueEditor (per-entry navigation). The editor
+      // releases focus back to the input itself when the user presses
+      // Down/Ctrl+N past the last entry (or Esc / plain Enter).
       if (key.ctrl && input === "e") {
         setShowInbox((v) => !v)
         return
@@ -246,7 +244,10 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory((v) => !v)
         return
       }
-      if (key.ctrl && input === "n" && sessions.length > 1) {
+      // Ctrl+N cycles sessions only when the queue editor is NOT in
+      // focus — otherwise QueueEditor claims it as the emacs alias for
+      // Down (next entry / release-on-last).
+      if (key.ctrl && input === "n" && !queueFocused && sessions.length > 1) {
         const idx = sessions.findIndex((s) => s.id === focusedSessionId)
         const next = sessions[(idx + 1) % sessions.length]!
         controller.focus(next.id)

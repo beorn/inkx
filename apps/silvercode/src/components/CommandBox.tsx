@@ -205,14 +205,19 @@ function QueueEditor({
   // vertical arrows (handleEscape / handleVerticalArrows default false).
   // This is the documented escape hatch — see useReadline.ts:163-169.
   //
+  // Mental model — queue + command box are ONE big editable region for
+  // cursoring. Up/Down (and the emacs aliases Ctrl+P/Ctrl+N) move row
+  // by row through entries; only the boundary moves cross the queue/
+  // command-box seam.
+  //
   // Per-key behaviour:
   //
-  //   Enter        flush + release
-  //   Shift+Enter  insert a new empty entry below the active one, focus it
-  //   Esc          release focus back to the command input (buffer kept)
-  //   Up           move active row up (no wrap); top row stays
-  //   Down         move active row down; past the last row → release
-  useInput((_input, key) => {
+  //   Enter             flush + release
+  //   Shift+Enter       insert a new empty entry below the active one, focus it
+  //   Esc               release focus back to the command input (buffer kept)
+  //   Up / Ctrl+P       previous entry (no wrap); first entry stays
+  //   Down / Ctrl+N     next entry; past last entry → release
+  useInput((input, key) => {
     if (key.shift && key.return) {
       const idx = active
       const list = entriesRef.current
@@ -229,11 +234,13 @@ function QueueEditor({
       onQueueRelease()
       return
     }
-    if (key.upArrow) {
+    const goUp = key.upArrow || (key.ctrl && input === "p")
+    const goDown = key.downArrow || (key.ctrl && input === "n")
+    if (goUp) {
       setActive((i) => Math.max(0, i - 1))
       return
     }
-    if (key.downArrow) {
+    if (goDown) {
       setActive((i) => {
         if (i >= entriesRef.current.length - 1) {
           onQueueRelease()
