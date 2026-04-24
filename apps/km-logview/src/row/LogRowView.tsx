@@ -420,16 +420,20 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg. Expanded uses $bg-cursor — the ONE token we know is visibly
-  // distinct on the user's theme (their cursor row shows it clearly).
-  // Every other token we tried was imperceptible: $bg-surface-subtle
-  // (5%), $bg-muted (8%), $bg-surface-overlay (12%), $bg-accent-hover,
-  // $bg-accent-active, $color8 — all collapsed toward base bg on this
-  // scheme. Unifying expanded+cursor under $bg-cursor means "focused
-  // row" and "opened row" share one visual — hovering an expanded row
-  // doesn't change its bg (both states map to $bg-cursor), which
-  // matches the user's ask for "same bg hovered and not hovered."
-  const rowBackground = showExpanded || isCursor ? "$bg-cursor" : undefined
+  // Row bg. Cursor row gets $bg-cursor (existing behavior).
+  // Expanded rows use a SPECIFIC dark-purple hex (#2a1f3a) rather than
+  // any theme token — every semantic token (surface-subtle 5%, muted
+  // 8%, surface-overlay 12%, accent-hover, accent-active, color8, even
+  // $bg-cursor) rendered imperceptibly on the user's scheme. Raw 'red'
+  // was the only color confirmed visible in their TTY, which pinned
+  // the contrast-collapse to the theme derivation (not the render
+  // path). #2a1f3a is a dark muted purple that falls outside any
+  // theme's primary/surface compression and is guaranteed distinct
+  // from any common dark-terminal base bg.
+  //
+  // Tradeoff: breaks /silverize "use semantic tokens" idiom. Accepted
+  // because the semantic path is empirically broken for this user.
+  const rowBackground = showExpanded ? "#2a1f3a" : isCursor ? "$bg-cursor" : undefined
 
   return (
     <Box
