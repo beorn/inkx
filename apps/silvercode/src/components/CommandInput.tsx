@@ -14,12 +14,20 @@ export function CommandInput({
   disabled,
   onSubmit,
   onExit,
+  promptColor = "$primary",
 }: {
   value: string
   onChange: (text: string) => void
   disabled?: boolean
   onSubmit: (text: string) => void
   onExit: () => void
+  /**
+   * Color of the `>` prompt glyph. Defaults to `$primary` but the host app
+   * passes the current permission-mode color so the prompt reflects what
+   * Claude is allowed to do (plan=$info, accept-edits=$warning, auto=
+   * $success, bypass=$error). Rendered bold.
+   */
+  promptColor?: string
 }): React.ReactElement {
   const armedAt = useRef<number>(0)
 
@@ -42,7 +50,8 @@ export function CommandInput({
         }}
         isActive={!disabled}
         prompt="> "
-        promptColor="$primary"
+        promptColor={promptColor}
+        promptBold
         placeholder={disabled ? "spawning…" : ""}
       />
     </Box>

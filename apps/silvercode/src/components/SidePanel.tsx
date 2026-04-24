@@ -7,8 +7,14 @@ import {
   contextUtilizationPercent,
   contextWindowFor,
 } from "../context-windows.ts"
+import { probeClaudeVersion } from "../claude-version.ts"
 import { gitBranchFor } from "../git-branch.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
+
+// Probed once at module load — the installed CLI version can't change
+// mid-session. Used as a fallback until session-init arrives with the
+// real version from the running subprocess.
+const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
 
 /**
  * Right-side panel. Layout per user spec:
@@ -374,7 +380,7 @@ export function SidePanel({
         onMouseLeave={ctxHover.onMouseLeave}
         backgroundColor={hoveredBg(ctxHover.isHovered)}
       >
-        <ProgressBar value={ctxValue} width={14} color={ctxColor} showPercentage />
+        <ProgressBar value={ctxValue} width={25} color={ctxColor} showPercentage />
         <Muted>${state.cost.usd.toFixed(4)}</Muted>
       </Box>
 
@@ -400,7 +406,7 @@ export function SidePanel({
             <Text bold color="#d97757">
               Claude
             </Text>
-            <Text color="#d97757"> Code v{state.claudeCodeVersion || "…"}</Text>
+            <Text color="#d97757"> Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
           </Box>
         </Box>
       </Box>

@@ -58,6 +58,15 @@ export function App(props: AppProps): React.ReactElement {
   )
 
   const [mode, setMode] = useState<string>("auto")
+  // Mode → prompt color so the `>` in the command input visibly signals
+  // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
+  const MODE_COLOR: Record<string, string> = {
+    plan: "$info",
+    "accept-edits": "$warning",
+    auto: "$success",
+    bypass: "$error",
+  }
+  const promptColor = MODE_COLOR[mode] ?? "$primary"
   const [showInbox, setShowInbox] = useState(false)
   const [showSidePanel, setShowSidePanel] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
@@ -141,6 +150,13 @@ export function App(props: AppProps): React.ReactElement {
       if (key.escape && (showInbox || showHistory)) {
         setShowInbox(false)
         setShowHistory(false)
+        return
+      }
+      // Shift+Tab cycles permission modes. Same semantics as clicking the
+      // "Mode" label in the side panel, but keyboard-first users don't
+      // need to aim at the label.
+      if (key.shift && key.tab) {
+        cycleMode()
         return
       }
       if (key.ctrl && input === "e") return handleCtrlLetter("e", () => setShowInbox((v) => !v))
@@ -300,6 +316,7 @@ export function App(props: AppProps): React.ReactElement {
                   disabled={!focused}
                   onSubmit={handleSubmit}
                   onExit={requestExit}
+                  promptColor={promptColor}
                 />
               </Box>
             </Box>
