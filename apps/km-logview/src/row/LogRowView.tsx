@@ -420,15 +420,17 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg. $bg-surface-overlay is the semantic token for "content
-  // elevated above the base surface" — same token used by modal/popover
-  // chrome. Expanded-body fits that meaning exactly.
-  //
-  // Cursor row stays on $bg-cursor (existing behavior). When a row is
-  // both cursor AND expanded, expanded wins so hover doesn't change
-  // the row's bg.
+  // Row bg. `$bg-surface-hover` is the only bg-semantic token that
+  // silvery's detection-failed fallback theme actually populates with
+  // a hex value (#3F4652). Every other bg token ($bg-surface-overlay,
+  // $bg-cursor, $bg-accent-hover, $bg-muted, $color8, …) resolves to
+  // an empty string → transparent → invisible on the user's setup.
+  // This is a silvery bug (bead: km-silvery.fallback-theme-empty-bg-tokens)
+  // but until that lands, $bg-surface-hover is the pragmatic token
+  // that actually paints. Semantically it's "surface in a hover state"
+  // which loosely fits "expanded content is active/elevated."
   const rowBackground = showExpanded
-    ? "$bg-surface-overlay"
+    ? "$bg-surface-hover"
     : isCursor
       ? "$bg-cursor"
       : undefined
