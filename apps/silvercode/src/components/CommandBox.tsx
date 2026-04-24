@@ -1,86 +1,100 @@
-import React, { useEffect, useRef, useState } from "react"
-import { Box, Divider, Text, TextInput, useBoxRect } from "silvery"
-import { useInput } from "silvery/runtime"
+import React, { useRef } from "react"
+import { Box, Text, TextArea, useBoxRect } from "silvery"
+import type { TextAreaHandle } from "silvery"
 
 /**
- * Unified command box — queue area stacked on the command input inside one
- * filled surface. User-visible behaviour (Claude Code style):
+ * Command box — Option B model. Two always-live silvery `<TextArea>`
+ * widgets stacked, with a labeled divider between when the queue is
+ * non-empty:
  *
  *   ┌──────────────────────────────── QUEUE ────────┐
- *   │ > queued entry 1                              │  ← one `>` per entry
- *   │ > queued entry 2                              │     in BOTH modes.
- *   ├──────────────────────────── QUEUE HELD ───────┤  ← yellow when focused
- *   │ > |live input text                            │
- *   └───────────────────────────────────────────────┘
+ *   │ > queued entry 1                              │   ← TextArea (queue)
+ *   │ > queued entry 2                              │      always live
+ *   │ > queued entry 3                              │
+ *   ├──────────────────────────── QUEUE HELD ───────┤   ← divider (yellow when focused)
+ *   │ > current input                               │   ← TextArea (command)
+ *   └───────────────────────────────────────────────┘      always live
+ *
+ * Focus is just "which TextArea has the cursor". `focusedRegion` toggles
+ * via cursor-boundary handoff: Up at top of command → queue; Down at
+ * bottom of queue → command. Driven by silvery's `onEdge` callback.
  *
  * Semantics:
- *   - Each queued COMMAND renders as ONE row with a leading `>` prompt,
- *     compact — no blank rows between entries even while editing.
- *   - Editor mode renders ONE `TextInput` per entry; the active one shows
- *     the hardware cursor. Up/Down arrows navigate between entries;
- *     Down past the last entry releases focus back to the command input.
- *   - Multi-line entries (paste / slash output) collapse to a single line
- *     for editing — internal `\n` becomes a space. The controller stores
- *     entries joined by `\n\n`; the editor splits on `\n\n` and joins back.
- *   - Divider title: `QUEUE` in `$fg-muted` when unfocused, `QUEUE HELD`
- *     in `$warning` (yellow) when focused.
- *   - Text color: whichever side has focus renders in `$fg`; the other
- *     dims to `$fg-muted`.
+ *   - Enter in command: send/enqueue the current buffer (parent's onSubmit).
+ *   - Enter in queue: force-flush the entire queue (parent's onQueueSubmit).
+ *   - Shift+Enter: native silvery behaviour — newline within the buffer.
+ *   - Per-region coloring: focused region pops at $fg; other dims to $fg-muted.
  *
- * Parent (App.tsx) owns top-level focus state + entry-into-queue keys:
- *   - up-arrow / Ctrl+P on empty input with non-empty queue → focus queue
- *   - Esc / Ctrl+Enter from queue → release back to input
- *
- * QueueEditor owns per-entry navigation:
- *   - Enter on any entry → flush + release
- *   - Shift+Enter on any entry → insert a new empty entry below, focus it
- *   - Up / Down → move active entry index
- *   - Down past last entry OR Esc → release focus to command input
+ * Wire format vs display: the controller stores the queue buffer with
+ * entries joined by `\n\n` (paragraph break in Claude's input). The queue
+ * TextArea renders that verbatim — blank rows between entries are part of
+ * the wire format. Future polish (single-`\n` display + on-send re-expand)
+ * can come later.
  */
 export function CommandBox({
   queueText,
-  queueFocused,
   onQueueChange,
-  onQueueRelease,
   onQueueSubmit,
   inputValue,
   onInputChange,
   inputDisabled,
   onSubmit,
   onExit,
+  focusedRegion,
+  onFocusRegion,
   promptColor = "$primary",
 }: {
   queueText: string
-  queueFocused: boolean
   onQueueChange: (text: string) => void
-  /** Release focus back to the command input, KEEP the queue buffer.
-   *  Esc, or Up-at-top (no-op for now). */
-  onQueueRelease: () => void
-  /** Force-flush the queue NOW and release focus.
-   *  Enter, or Down past the last entry. */
+  /** Force-flush the queue NOW (Enter in queue region). */
   onQueueSubmit: () => void
   inputValue: string
   onInputChange: (text: string) => void
   inputDisabled?: boolean
+  /** Submit the current command buffer (Enter in command region). */
   onSubmit: (text: string) => void
+  /** Ctrl+D×2 exit. */
   onExit: () => void
-  /** Mode-tied color for the `>` prompt (plan=$info / auto=$success / etc.) */
+  focusedRegion: "queue" | "command"
+  /** Set focusedRegion (used by onEdge handoffs). */
+  onFocusRegion: (region: "queue" | "command") => void
+  /** Mode-tied color for the `>` prompt (plan=$info / auto=$warning / etc.) */
   promptColor?: string
 }): React.ReactElement {
   const armedAt = useRef<number>(0)
+  // Refs to the two TextAreas so the boundary handoffs can move the
+  // cursor on the receiving side. `setValue(value)` moves cursor to end
+  // (used for Up→queue: cursor lands on end of last queue line). For
+  // Down→command we want offset 0 — silvery's TextAreaHandle doesn't
+  // currently expose `setCursor`, so we soft-call it via `as any`. Once
+  // `km-silvery.textarea-edge-callback` lands the setCursor extension
+  // (see SendMessage to silvery-onedge), this becomes a typed call.
+  // TODO(km-silvery.textarea-edge-callback-handle): drop `as any` once
+  // setCursor is on TextAreaHandle.
+  const queueRef = useRef<TextAreaHandle | null>(null)
+  const commandRef = useRef<TextAreaHandle | null>(null)
 
   const hasQueue = queueText.length > 0
-  // Entries — each paragraph separated by `\n\n` is one queued command.
-  // Internal `\n` within an entry collapses to a space for display so the
-  // editor stays one-row-per-entry.
-  const entries = hasQueue ? queueText.split("\n\n").map((e) => e.replace(/\n/g, " ")) : []
+  // Queue height: count newlines + 1, capped at 12 (per design — scrolls
+  // beyond that via silvery's built-in TextArea scroll tracking).
+  const queueRows = hasQueue ? Math.min(12, queueText.split("\n").length) : 0
 
-  // Color policy: focused side pops at $fg, unfocused fades to $fg-muted.
-  const queueTextColor = queueFocused ? "$fg" : "$fg-muted"
-  const inputTextColor = queueFocused ? "$fg-muted" : "$fg"
-  // Prompt colors — use the mode color on whichever side has focus,
-  // muted on the other.
-  const inputPromptColor = queueFocused ? "$fg-muted" : promptColor
+  const queueIsFocused = focusedRegion === "queue"
+  const commandIsFocused = focusedRegion === "command"
+
+  // Per-region focus signals:
+  //   - Hardware cursor — silvery's TextArea hides the cursor when
+  //     `isActive=false`, so only the focused region shows a blinking caret.
+  //   - Prompt color — focused region uses the mode color (`promptColor`,
+  //     `$primary`/`$info`/`$warning`/...); unfocused region's prompt is
+  //     `$fg-muted`. Bold on the prompt makes it pop further.
+  //   - Divider title — `QUEUE` in `$fg-muted`, `QUEUE HELD` in `$warning`
+  //     when the queue region owns focus (handled by `<QueueDivider/>`).
+  //
+  // TODO(km-silvery.textarea-color-dim): silvery TextArea has no `color` /
+  // `dim` prop — when it lands, dim the unfocused TextArea body to
+  // `$fg-muted` for a stronger focus signal. The structural focus is
+  // already correct; this is a polish pass.
 
   return (
     // `userSelect="contain"` scopes drag-selection to the command box —
@@ -94,232 +108,96 @@ export function CommandBox({
       flexDirection="column"
       userSelect="contain"
     >
-      {/* Queue region — preview (unfocused) vs editor (focused). Both
-          modes render one `>` per entry, no blank rows between. */}
-      {hasQueue && !queueFocused && (
-        <Box flexDirection="column">
-          {entries.map((entry, i) => (
-            <Box key={i} flexDirection="row">
-              <Text color="$fg-muted">{"> "}</Text>
-              <Box flexGrow={1}>
-                <Text color={queueTextColor}>{entry}</Text>
-              </Box>
-            </Box>
-          ))}
-        </Box>
-      )}
-      {hasQueue && queueFocused && (
-        <QueueEditor
-          entries={entries}
-          onQueueChange={onQueueChange}
-          onQueueRelease={onQueueRelease}
-          onQueueSubmit={onQueueSubmit}
-        />
-      )}
-
-      {/* Labeled divider — "QUEUE" unfocused / "QUEUE HELD" focused.
-          Inline build (not silvery's Divider) so we can color the title. */}
-      {hasQueue && <QueueDivider focused={queueFocused} />}
-
-      {/* Command input — UNMOUNTED when the queue has focus so there's
-          never more than one visible cursor on screen. When the queue
-          releases, this remounts and re-focuses. `inputValue` is
-          controlled in App.tsx so remounting doesn't lose the buffer.
-          A static Text render takes the input's slot while the queue is
-          focused so the box doesn't reflow. */}
-      <Box flexDirection="row">
-        {queueFocused ? (
+      {/* Queue region — silvery TextArea, always live. Hidden entirely
+          when the buffer is empty (no divider, no widget). */}
+      {hasQueue && (
+        <>
           <Box flexDirection="row">
-            <Text color="$fg-muted" bold={false}>
-              {"> "}
-            </Text>
-            <Text color={inputTextColor}>{inputValue || " "}</Text>
+            <Text color="$fg-muted">{"> "}</Text>
+            <Box flexGrow={1}>
+              <TextArea
+                ref={queueRef}
+                value={queueText}
+                onChange={onQueueChange}
+                isActive={queueIsFocused}
+                height={queueRows}
+                submitKey="enter"
+                onSubmit={() => {
+                  // Plain Enter in the queue region — force-flush.
+                  // Shift+Enter still inserts a newline (silvery's
+                  // submitKey="enter" only fires onSubmit on bare Enter).
+                  onQueueSubmit()
+                }}
+                onEdge={(edge) => {
+                  // Down at bottom of queue → hand off to command,
+                  // cursor at start of first line.
+                  if (edge === "bottom") {
+                    onFocusRegion("command")
+                    const cmd = commandRef.current as (TextAreaHandle & { setCursor?: (offset: number) => void }) | null
+                    cmd?.setCursor?.(0)
+                    return true
+                  }
+                  return false
+                }}
+              />
+            </Box>
           </Box>
-        ) : (
-          <TextInput
+
+          <QueueDivider focused={queueIsFocused} />
+        </>
+      )}
+
+      {/* Command region — silvery TextArea, always live. */}
+      <Box flexDirection="row">
+        <Text color={commandIsFocused ? promptColor : "$fg-muted"} bold>
+          {"> "}
+        </Text>
+        <Box flexGrow={1}>
+          <TextArea
+            ref={commandRef}
             value={inputValue}
             onChange={onInputChange}
+            isActive={commandIsFocused && !inputDisabled}
+            height={Math.max(1, Math.min(8, inputValue.split("\n").length))}
+            submitKey="enter"
+            placeholder={inputDisabled ? "spawning…" : ""}
             onSubmit={(v) => {
-              if (!v.trim()) return
-              onSubmit(v)
-            }}
-            onEOF={() => {
-              const now = Date.now()
-              if (armedAt.current > 0 && now - armedAt.current < 1500) {
-                onExit()
+              if (!v.trim()) {
+                // Empty Enter — Ctrl+D-style double-tap to exit.
+                const now = Date.now()
+                if (armedAt.current > 0 && now - armedAt.current < 1500) {
+                  onExit()
+                  return
+                }
+                armedAt.current = now
                 return
               }
-              armedAt.current = now
+              onSubmit(v)
             }}
-            isActive={!inputDisabled}
-            prompt="> "
-            promptColor={inputPromptColor}
-            promptBold
-            placeholder={inputDisabled ? "spawning…" : ""}
+            onEdge={(edge) => {
+              // Up at top of command → hand off to queue, cursor at
+              // end of last queue line.
+              if (edge === "top" && hasQueue) {
+                onFocusRegion("queue")
+                // setValue(value) moves cursor to end of buffer — i.e.
+                // end of last queue line. No-op on the buffer content.
+                queueRef.current?.setValue(queueText)
+                return true
+              }
+              return false
+            }}
           />
-        )}
+        </Box>
       </Box>
     </Box>
   )
 }
 
 /**
- * Per-entry queue editor. Renders one `<TextInput>` per queued entry with
- * a leading `>` prompt. Active row tracked locally; navigation between
- * rows uses Up/Down. Mounts with the LAST entry active so the user lands
- * on the most recently-queued command (matches the Claude Code idiom of
- * cursor-up recalling the latest input).
- *
- * Per-entry rendering avoids the blank-row / cursor-visibility / submit-key
- * issues the silvery TextArea has with `\n\n`-joined buffers — each
- * TextInput is a single-line readline editor with its own hardware cursor
- * and a clean Enter-to-submit semantic.
- */
-function QueueEditor({
-  entries,
-  onQueueChange,
-  onQueueRelease,
-  onQueueSubmit,
-}: {
-  entries: string[]
-  onQueueChange: (text: string) => void
-  onQueueRelease: () => void
-  onQueueSubmit: () => void
-}): React.ReactElement {
-  // Active row — clamped against entry count so it stays valid as the
-  // user splits or merges. Initial value = last entry (cursor lands on
-  // the most recent queued command).
-  const [active, setActive] = useState<number>(() => Math.max(0, entries.length - 1))
-  const entriesRef = useRef(entries)
-  entriesRef.current = entries
-
-  // Re-clamp when the entry list shrinks (Backspace-merge or external
-  // controller mutation). React batches the change with the value update
-  // so there's no flash where active points off the end.
-  useEffect(() => {
-    if (active >= entries.length) setActive(Math.max(0, entries.length - 1))
-  }, [active, entries.length])
-
-  const writeBack = (next: string[]): void => {
-    onQueueChange(next.join("\n\n"))
-  }
-
-  const updateEntry = (i: number, value: string): void => {
-    const next = entriesRef.current.slice()
-    next[i] = value
-    writeBack(next)
-  }
-
-  // Keyboard nav for the queue editor. We do NOT pass `onSubmit` to the
-  // active TextInput — that flag controls silvery's `useReadline` hook
-  // (`handleEnter: !!onSubmit`), and with `handleEnter=false` the
-  // readline machinery EARLY-RETURNS on `key.return`, leaving the Enter
-  // event for our parent useInput to handle. Same for Esc and the
-  // vertical arrows (handleEscape / handleVerticalArrows default false).
-  // This is the documented escape hatch — see useReadline.ts:163-169.
-  //
-  // Mental model — queue + command box are ONE big editable region for
-  // cursoring. Up/Down (and the emacs aliases Ctrl+P/Ctrl+N) move row
-  // by row through entries; only the boundary moves cross the queue/
-  // command-box seam.
-  //
-  // Per-key behaviour:
-  //
-  //   Enter             flush + release
-  //   Shift+Enter       insert a new empty entry below the active one, focus it
-  //   Esc               release focus back to the command input (buffer kept)
-  //   Up / Ctrl+P       previous entry (no wrap); first entry stays
-  //   Down / Ctrl+N     next entry; past last entry → release
-  useInput((input, key) => {
-    if (key.shift && key.return) {
-      const idx = active
-      const list = entriesRef.current
-      const next = [...list.slice(0, idx + 1), "", ...list.slice(idx + 1)]
-      writeBack(next)
-      setActive(idx + 1)
-      return
-    }
-    if (key.return) {
-      // Plain Enter = submit + release. Force-flushes the queue NOW
-      // even if the session is mid-turn.
-      onQueueSubmit()
-      return
-    }
-    if (key.escape) {
-      // Esc = release WITHOUT submitting; queue buffer is preserved so
-      // the user can re-enter and edit later.
-      onQueueRelease()
-      return
-    }
-    const goUp = key.upArrow || (key.ctrl && input === "p")
-    const goDown = key.downArrow || (key.ctrl && input === "n")
-    if (goUp) {
-      setActive((i) => Math.max(0, i - 1))
-      return
-    }
-    if (goDown) {
-      setActive((i) => {
-        if (i >= entriesRef.current.length - 1) {
-          // Past the last entry — same as Enter: submit + release.
-          onQueueSubmit()
-          return i
-        }
-        return i + 1
-      })
-      return
-    }
-  })
-
-  // Render only the ACTIVE entry as a TextInput; the rest are plain Text
-  // rows. silvery's `useCursor` is last-writer-wins and runs cleanup when
-  // `visible: false` — if every inactive TextInput called useCursor with
-  // visible=false, the active one's cursor state would be stomped by the
-  // last inactive's effect. Restricting the live TextInput to the active
-  // row keeps exactly one cursor on screen.
-  //
-  // Color is per-REGION, not per-entry: when QueueEditor is mounted the
-  // queue region owns focus, so EVERY entry renders at `$fg` (white) —
-  // not just the active one. The `>` prompt stays muted to keep the
-  // gutter quiet. The command-box side dims via CommandBox-level
-  // `inputTextColor` / `inputPromptColor` while we're focused.
-  return (
-    <Box flexDirection="column">
-      {entries.map((entry, i) => {
-        if (i === active) {
-          // No `onSubmit` prop — silvery's readline hook gates Enter
-          // handling on `handleEnter: !!onSubmit`. Without onSubmit it
-          // early-returns on key.return, key.escape, and the vertical
-          // arrows, letting our parent useInput own those keys.
-          // No `color` prop — TextInput defaults to `$fg` (white).
-          return (
-            <Box key={i} flexDirection="row">
-              <TextInput
-                value={entry}
-                onChange={(v) => updateEntry(i, v)}
-                isActive
-                prompt="> "
-                promptColor="$fg-muted"
-              />
-            </Box>
-          )
-        }
-        return (
-          <Box key={i} flexDirection="row">
-            <Text color="$fg-muted">{"> "}</Text>
-            <Box flexGrow={1}>
-              <Text color="$fg">{entry || " "}</Text>
-            </Box>
-          </Box>
-        )
-      })}
-    </Box>
-  )
-}
-
-/**
  * Divider with a colored inline title. Reimplements silvery's Divider
- * (which hard-codes the title color) so we can render "QUEUE HELD" in
- * `$warning` when the editor owns focus.
+ * (which hard-codes the title color via `<Text bold>`) so we can render
+ * "QUEUE HELD" in `$warning` when the queue region owns focus. Same
+ * "──── title ────" shape as silvery's Divider.
  */
 function QueueDivider({ focused }: { focused: boolean }): React.ReactElement {
   const { width: contentWidth } = useBoxRect()
@@ -330,10 +208,6 @@ function QueueDivider({ focused }: { focused: boolean }): React.ReactElement {
   const remaining = Math.max(0, total - pad.length)
   const left = Math.floor(remaining / 2)
   const right = remaining - left
-  // `Divider` imported to keep the type dependency visible even though
-  // we render our own layout here — silvery's Divider is the reference
-  // implementation for the "──── title ────" shape.
-  void Divider
   return (
     <Box flexDirection="row">
       <Text color="$border-default">{"─".repeat(left)}</Text>
