@@ -77,7 +77,7 @@ export function CommandBox({
   const dividerTitle = queueFocused ? "esc / ctrl+enter to release" : "QUEUE"
 
   return (
-    <Box backgroundColor="$bg-surface-subtle" paddingX={2} flexShrink={0} flexDirection="column">
+    <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1} flexShrink={0} flexDirection="column">
       {/* Queue region — one `>` per content line; blank separator lines
           from `\n\n`-joined entries are filtered out for a compact stack.
           We show a non-editable "prompted" preview when the queue is
