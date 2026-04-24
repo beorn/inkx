@@ -281,13 +281,19 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
-            {/* Command input region — floats with transparent margin on
-                all sides so it reads as its own surface, visually separated
-                from the side panel (which sits immediately to its right)
-                and from the terminal edges. The inner Box carries the bg +
-                content padding; the outer Box is transparent gutter. */}
-            <Box paddingX={1} paddingBottom={1} flexShrink={0}>
-              <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1}>
+            {/* Command input region — floats inside a transparent gutter
+                (2 cols L/R, 1 row top/bottom). The inner filled Box
+                flex-grows to fill the left column's width so the input
+                line spans the entire available width, not just the prompt
+                + typed text. */}
+            <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
+              <Box
+                backgroundColor="$bg-surface-subtle"
+                paddingX={2}
+                paddingY={1}
+                flexGrow={1}
+                flexDirection="row"
+              >
                 <CommandInput
                   value={inputValue}
                   onChange={setInputValue}

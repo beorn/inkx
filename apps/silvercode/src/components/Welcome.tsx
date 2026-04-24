@@ -21,11 +21,6 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
       </Box>
 
       <Box flexDirection="column">
-        <H3>Getting started</H3>
-        <Text>Type a message and press Enter to send. Type `/` to open the command palette.</Text>
-      </Box>
-
-      <Box flexDirection="column">
         <H3>Commands</H3>
         <IntroRow name="/inbox" desc="cross-session permission triage" />
         <IntroRow name="/panel" desc="toggle the todos + agents side panel" />

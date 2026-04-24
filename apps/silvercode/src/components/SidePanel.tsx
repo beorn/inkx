@@ -320,12 +320,12 @@ export function SidePanel({
           3) Tokens + cost (hover details)
           4) Version block — Silver Code on / Claude Code (brand colors) */}
 
-      {/* cwd + git branch. "km:main" rendered bold; preceding path dimmed.
-          Opencode places this at the bottom; silvercode lifts it above the
-          interactive rows so the user sees "where am I" at a glance. */}
+      {/* cwd + git branch. Full row in $fg (not muted) with `km:main` bold
+          so the project + branch pop while the preceding path reads as
+          normal text. Opencode-style "where am I" anchor. */}
       <Box flexDirection="row" flexShrink={0}>
-        <Muted>{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Muted>
-        <Text bold>
+        <Text color="$fg">{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Text>
+        <Text bold color="$fg">
           {shortCwd(cwd).split("/").pop()}
           {branch ? `:${branch}` : ""}
         </Text>
@@ -348,9 +348,8 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Tokens + cost — hover for details. "Tokens" label makes the row
-          self-describing instead of dropping a bare "12K / 200K" into the
-          panel. */}
+      {/* Tokens + cost — bare numbers (no "Tokens" label); hover popover
+          carries the explanation + per-token breakdown + plan/window tips. */}
       <Box flexShrink={0} height={1} />
       <Box
         flexDirection="row"
@@ -360,27 +359,35 @@ export function SidePanel({
         onMouseLeave={ctxHover.onMouseLeave}
         backgroundColor={hoveredBg(ctxHover.isHovered)}
       >
-        <Muted>Tokens</Muted>
         <Text color={ctxColor}>{ctxLabel}</Text>
         <Muted>·</Muted>
         <Muted>${state.cost.usd.toFixed(4)}</Muted>
       </Box>
 
-      {/* Version block — absolute bottom. "Silver" bold white, " Code"
-          non-bold white, version + "on" muted. Then "Claude Code" in the
-          Anthropic brand orange. Compact, no per-row blank padding. */}
+      {/* Version block — absolute bottom. Iconography + brand styling:
+          - ◈ white diamond, "Silver" bold white, " Code" regular white,
+            version white, "on" in Small (smaller typography).
+          - ✻ Anthropic orange, "Claude" bold orange, " Code v…" orange. */}
       <Box flexShrink={0} height={1} />
       <Box flexDirection="column" flexShrink={0}>
-        <Box flexDirection="row">
-          <Text bold color="$fg">
-            Silver
-          </Text>
-          <Text color="$fg"> Code</Text>
-          <Muted> v{SILVERCODE_VERSION} on</Muted>
+        <Box flexDirection="row" gap={1}>
+          <Text color="$fg">◈</Text>
+          <Box flexDirection="row">
+            <Text bold color="$fg">
+              Silver
+            </Text>
+            <Text color="$fg"> Code v{SILVERCODE_VERSION} </Text>
+            <Small>on</Small>
+          </Box>
         </Box>
-        <Box flexDirection="row">
-          <Text color="#d97757">Claude Code</Text>
-          <Muted> v{state.claudeCodeVersion || "…"}</Muted>
+        <Box flexDirection="row" gap={1}>
+          <Text color="#d97757">✻</Text>
+          <Box flexDirection="row">
+            <Text bold color="#d97757">
+              Claude
+            </Text>
+            <Text color="#d97757"> Code v{state.claudeCodeVersion || "…"}</Text>
+          </Box>
         </Box>
       </Box>
     </Box>

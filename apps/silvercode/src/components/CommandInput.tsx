@@ -24,7 +24,7 @@ export function CommandInput({
   const armedAt = useRef<number>(0)
 
   return (
-    <Box paddingX={1}>
+    <Box flexGrow={1} flexDirection="row">
       <TextInput
         value={value}
         onChange={onChange}
