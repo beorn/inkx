@@ -67,7 +67,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
   const lines = text.split("\n")
   let offset = 0
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" minWidth={0}>
       {lines.map((line, lineIdx) => {
         const lineStart = offset
         const lineEnd = offset + line.length
@@ -75,7 +75,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
         offset = lineEnd + 1
         if (lineDetections.length === 0) {
           return (
-            <Text key={lineIdx} color={tone === "user" ? "$fg" : undefined}>
+            <Text key={lineIdx} color={tone === "user" ? "$fg" : undefined} wrap="wrap">
               {line}
             </Text>
           )
@@ -84,13 +84,18 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
         let cursor = lineStart
         for (const d of lineDetections) {
           if (d.start > cursor) {
-            pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
+            pieces.push(
+              <Text key={`t${cursor}`} wrap="wrap">
+                {line.slice(cursor - lineStart, d.start - lineStart)}
+              </Text>,
+            )
           }
           pieces.push(
             <Text
               key={`d${d.start}`}
               color={colorFor(d.kind)}
               underline
+              wrap="wrap"
               onClick={() => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })}
             >
               {d.match}
@@ -98,9 +103,17 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
           )
           cursor = d.end
         }
-        if (cursor < lineEnd) pieces.push(<Text key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</Text>)
+        if (cursor < lineEnd)
+          pieces.push(
+            <Text key={`tail${cursor}`} wrap="wrap">
+              {line.slice(cursor - lineStart)}
+            </Text>,
+          )
+        // flexWrap="wrap" — an inline-run line with a very long detection
+        // token (URL / long path) still breaks onto the next line instead
+        // of forcing the whole row to the content's natural width.
         return (
-          <Box key={lineIdx} flexDirection="row">
+          <Box key={lineIdx} flexDirection="row" flexWrap="wrap" minWidth={0}>
             {pieces}
           </Box>
         )

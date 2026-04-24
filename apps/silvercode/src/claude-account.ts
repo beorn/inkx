@@ -110,26 +110,32 @@ export async function probeActiveAccount(): Promise<AccountProbe> {
 }
 
 /**
- * Human-readable label for an Anthropic plan slug. `claude_max_20x` →
- * "Claude Code Max 20x"; unknown slugs fall through as-is so new plans
- * don't render as "undefined".
+ * Human-readable label for an Anthropic plan slug. Strips the
+ * accountly-added "default_" prefix, then maps the raw slug to a display
+ * name. Unknown slugs fall through with cosmetic cleanup so a new plan
+ * name doesn't render as "default_claude_foo_99x".
  */
 export function planLabel(plan: string | null): string {
   if (!plan) return "Claude Code"
-  switch (plan) {
+  const normalized = plan.replace(/^default_/, "")
+  switch (normalized) {
     case "claude_pro":
       return "Claude Pro"
     case "claude_max":
     case "claude_max_5x":
-      return "Claude Code Max 5x"
+      return "Claude Code Max 5"
     case "claude_max_20x":
-      return "Claude Code Max 20x"
+      return "Claude Code Max 20"
     case "claude_team":
       return "Claude Team"
     case "claude_enterprise":
       return "Claude Enterprise"
     default:
-      return plan
+      // Cosmetic fallback: "claude_foo_bar" → "Claude Foo Bar"
+      return normalized
+        .split("_")
+        .map((w) => (w.length > 0 ? w[0]!.toUpperCase() + w.slice(1) : w))
+        .join(" ")
   }
 }
 

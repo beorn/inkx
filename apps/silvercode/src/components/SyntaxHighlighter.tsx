@@ -296,14 +296,25 @@ export function SyntaxHighlighter({ language, code }: { language: string; code: 
   const keywords = LANG_KEYWORDS[lang] ?? []
   const lines = code.split("\n")
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor="$surfacebg" borderStyle="single" borderColor="$border">
+    <Box
+      flexDirection="column"
+      paddingX={1}
+      backgroundColor="$surfacebg"
+      borderStyle="single"
+      borderColor="$border"
+      minWidth={0}
+      overflow="hidden"
+    >
       <Box flexDirection="row">
         <Text color="$muted">{lang}</Text>
       </Box>
       {lines.map((line, i) => {
         const tokens = tokenize(line, keywords)
+        // overflow=hidden + minWidth=0 on each row so a long code line
+        // clips at the right edge instead of expanding the card outward
+        // (which pushes the side panel off-screen).
         return (
-          <Box key={i} flexDirection="row">
+          <Box key={i} flexDirection="row" minWidth={0} overflow="hidden">
             {tokens.map((t, j) => (
               <Text key={j} color={t.color}>
                 {t.text}

@@ -25,9 +25,20 @@ import { EventEmitter } from "node:events"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import createDebug from "debug"
 import type { AgentEvent, AgentInput, AgentSession, PermissionRequestId, SessionId } from "./events.ts"
 import { runInjectors, type Injector } from "./injectors.ts"
 import { createLineSplitter, createStreamJsonParser } from "./parse.ts"
+
+// Namespaces — enable with DEBUG=agent-harness:* (or agent-harness:spawn,
+// agent-harness:stdin, agent-harness:stdout, agent-harness:stderr for
+// finer control). Combined with DEBUG_LOG=<path>, routes output to a
+// file so it doesn't pollute the alt-screen TUI.
+const dSpawn = createDebug("agent-harness:spawn")
+const dIn = createDebug("agent-harness:stdin")
+const dOut = createDebug("agent-harness:stdout")
+const dErr = createDebug("agent-harness:stderr")
+const dEvent = createDebug("agent-harness:event")
 
 /** MCP server spec written into settings.json for spawned Claude sessions. */
 export type McpServerSpec = {
@@ -163,23 +174,32 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
     stdio: ["pipe", "pipe", "pipe"],
   })
 
+  dSpawn("spawned pid=%d cmd=%s %o cwd=%s", proc.pid, binary, args, opts.cwd ?? process.cwd())
+
   const parser = createStreamJsonParser((event: AgentEvent) => {
     if (event.kind === "session-init") sessionId = event.sessionId
+    dEvent("event kind=%s session=%s", event.kind, event.sessionId)
     bus.emit("event", event)
   })
-  const splitter = createLineSplitter((line) => parser.push(line))
+  const splitter = createLineSplitter((line) => {
+    dOut("line %s", line.length > 400 ? `${line.slice(0, 400)}…(+${line.length - 400})` : line)
+    parser.push(line)
+  })
 
   proc.stdout?.on("data", (chunk: Buffer) => splitter.push(chunk))
   proc.stderr?.on("data", (chunk: Buffer) => {
+    const msg = chunk.toString("utf8").trim()
+    dErr("%s", msg)
     if (opts.silentStderr) return
     bus.emit("event", {
       kind: "error",
       sessionId,
-      message: chunk.toString("utf8").trim(),
+      message: msg,
       ts: Date.now(),
     } satisfies AgentEvent)
   })
   proc.on("error", (err) => {
+    dSpawn("proc error: %s", err.message)
     bus.emit("event", {
       kind: "error",
       sessionId,
@@ -187,7 +207,11 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       ts: Date.now(),
     } satisfies AgentEvent)
   })
+  proc.on("close", (code, signal) => {
+    dSpawn("close code=%s signal=%s stdin=%s", code, signal, proc.stdin?.destroyed)
+  })
   proc.on("exit", (code, signal) => {
+    dSpawn("exit code=%s signal=%s", code, signal)
     closed = true
     splitter.flush()
     if (cleanupMcpConfig) cleanupMcpConfig()
@@ -208,8 +232,10 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
   function writeInput(input: AgentInput): void {
     if (closed) return
     const json = JSON.stringify(input) + "\n"
+    dIn("write type=%s len=%d %s", input.type, json.length, json.length > 200 ? `${json.slice(0, 200)}…` : json.trim())
     proc.stdin?.write(json, (err) => {
       if (err) {
+        dIn("write error: %s", err.message)
         bus.emit("event", {
           kind: "error",
           sessionId,
@@ -230,8 +256,11 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       return closed
     },
     send(text: string): void {
+      dSpawn("session.send() called text.len=%d sessionId=%s closed=%s", text.length, sessionId, closed)
       const finalText = runInjectors(injectors, text, { sessionId, cwd: opts.cwd ?? process.cwd() })
+      dSpawn("session.send() after injectors finalText.len=%d", finalText.length)
       writeInput({ type: "user", message: { role: "user", content: finalText } })
+      dSpawn("session.send() writeInput returned")
     },
     respondToPermission(requestId: PermissionRequestId, approved: boolean): void {
       writeInput({ type: "permission-response", request_id: requestId, approved })

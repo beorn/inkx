@@ -17,6 +17,10 @@
     "./codex-spawn": "./src/codex-spawn.ts"
   },
   "dependencies": {
-    "alien-signals": "^3.1.2"
+    "alien-signals": "^3.1.2",
+    "debug": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12"
   }
 }

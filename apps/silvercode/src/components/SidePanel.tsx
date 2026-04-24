@@ -99,14 +99,17 @@ function quotaColor(w: QuotaWindow): string {
  * - 5-hour: always (primary gauge)
  * - 7-day variants: only when yellow (≥70%) or red
  * - Extra usage: only when the plan has an overage budget AND a primary
- *   window (5h / 7d) is already yellow
+ *   window (5h / 7d) is about to run out (≥85%) — "danger of having to
+ *   start using it". Lower thresholds just caused Xtra to permanently
+ *   squat at the bottom of the panel regardless of whether the user was
+ *   actually in danger of overage.
  * - Unknown windows: pass through (future-proof)
  *
  * The popover always renders ALL of them regardless.
  */
 function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
-  const primaryHot = all.some(
-    (q) => (q.name === "5-hour" || q.name === "7-day") && isWarningLevel(q.utilization),
+  const primaryAboutToExhaust = all.some(
+    (q) => (q.name === "5-hour" || q.name === "7-day") && q.utilization >= 85,
   )
   return all.filter((w) => {
     if (w.name === "5-hour") return true
@@ -121,7 +124,7 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
     }
     if (w.name === "Extra usage") {
       const hasBudget = typeof w.limit === "number" && w.limit > 0
-      return hasBudget && primaryHot
+      return hasBudget && primaryAboutToExhaust
     }
     return true
   })
@@ -130,12 +133,19 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
 /**
  * One quota row: 4-col label gutter + 20-col progress bar, so every row's
  * bar is left-aligned on the same column regardless of label width.
+ * The "Xtra" label is rendered yellow (matching the bar color policy) so
+ * the user notices the overage window when it shows up.
  */
 function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
+  const isExtra = w.name === "Extra usage"
   return (
     <Box flexDirection="row" gap={1}>
-      <Box flexBasis={4}>
-        <Muted>{windowShortLabel(w.name)}</Muted>
+      <Box flexBasis={4} minWidth={4}>
+        {isExtra ? (
+          <Text color="$warning">{windowShortLabel(w.name)}</Text>
+        ) : (
+          <Muted>{windowShortLabel(w.name)}</Muted>
+        )}
       </Box>
       <ProgressBar
         value={Math.max(0, Math.min(1, w.utilization / 100))}
@@ -357,71 +367,60 @@ export function SidePanel({
     ),
     maxWidth: 56,
   })
-  // Single hover popover for the whole quota block — email, plan, each
-  // window's reset time + limit, and the running session cost. The user
-  // asked for one big popover instead of per-line popovers.
+  // Single hover popover for the whole quota block — plan + email at top,
+  // then every window (unfiltered) with a tiny reset/credits caption per
+  // row, then a session-totals footer. Compact layout: no per-row padding,
+  // reset info sits next to each bar as Small text so the rows stay one
+  // logical group rather than fragmented sub-blocks.
   const quotaHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column">
-        <Text bold>
-          {account.email ?? "Account"} — {planLabel(account.plan)}
-        </Text>
-        {account.plan === "claude_max_20x" && <Muted>$200/mo subscription</Muted>}
-        {account.plan === "claude_max_5x" && <Muted>$100/mo subscription</Muted>}
-        {account.plan === "claude_pro" && <Muted>$20/mo subscription</Muted>}
+        <Text bold>{planLabel(account.plan)}</Text>
+        {account.email && <Muted>{account.email}</Muted>}
 
         {account.quotas.length > 0 ? (
           <Box flexDirection="column" paddingTop={1}>
-            {/* Show ALL quotas regardless of inline-panel visibility rules. */}
             {account.quotas.map((w) => (
-              <Box key={w.name} flexDirection="column" paddingBottom={1}>
+              <Box key={w.name} flexDirection="column">
                 <QuotaRow w={w} />
-                <Box paddingLeft={5} flexDirection="column">
-                  <Muted>{w.name}</Muted>
+                <Box flexDirection="row" paddingLeft={5} gap={1}>
+                  <Small>{w.name}</Small>
                   {w.resetsAt && (
-                    <Muted>
-                      resets{" "}
+                    <Small>
+                      · resets{" "}
                       {new Date(w.resetsAt).toLocaleString(undefined, {
                         dateStyle: "short",
                         timeStyle: "short",
                       })}
-                    </Muted>
+                    </Small>
                   )}
                   {typeof w.limit === "number" && typeof w.remaining === "number" && (
-                    <Muted>
-                      {w.remaining.toLocaleString()} / {w.limit.toLocaleString()} credits left
-                    </Muted>
+                    <Small>
+                      · {w.remaining.toLocaleString()} / {w.limit.toLocaleString()}
+                    </Small>
                   )}
                 </Box>
               </Box>
             ))}
           </Box>
         ) : (
-          <Muted>
-            {account.loading ? "Loading quota…" : (account.error ?? "No quota data available.")}
-          </Muted>
+          <Muted>{account.loading ? "Loading quota…" : (account.error ?? "No quota data available.")}</Muted>
         )}
 
-        <Box flexDirection="column" paddingTop={1}>
-          <Text bold>This session</Text>
-          <Box flexDirection="row" gap={1}>
-            <Muted>input:</Muted>
-            <Text>{state.cost.inputTokens.toLocaleString()} tok</Text>
-          </Box>
-          <Box flexDirection="row" gap={1}>
-            <Muted>output:</Muted>
-            <Text>{state.cost.outputTokens.toLocaleString()} tok</Text>
-          </Box>
-          <Box flexDirection="row" gap={1}>
-            <Muted>context:</Muted>
-            <Text>
-              {totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)
-            </Text>
-          </Box>
-          <Box flexDirection="row" gap={1}>
-            <Muted>cost:</Muted>
-            <Text>${state.cost.usd.toFixed(4)}</Text>
-          </Box>
+        <Box flexShrink={0} height={1} />
+        <Text bold>This session</Text>
+        <Box flexDirection="row" gap={1}>
+          <Muted>context</Muted>
+          <Text>
+            {totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)
+          </Text>
+        </Box>
+        <Box flexDirection="row" gap={1}>
+          <Muted>cost</Muted>
+          <Text>${state.cost.usd.toFixed(4)}</Text>
+          <Muted>
+            ({state.cost.inputTokens.toLocaleString()} in / {state.cost.outputTokens.toLocaleString()} out)
+          </Muted>
         </Box>
       </Box>
     ),

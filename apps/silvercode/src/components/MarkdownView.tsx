@@ -47,7 +47,7 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
 export function MarkdownView({ source }: { source: string }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" minWidth={0}>
       {blocks.map((b, i) => {
         switch (b.kind) {
           case "heading": {
