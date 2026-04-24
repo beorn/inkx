@@ -21,11 +21,14 @@
     "@silvery/commander": "workspace:*",
     "@silvery/theme": "workspace:*",
     "alien-signals": "^3.1.2",
+    "debug": "^4.4.0",
     "diff": "^9.0.0",
+    "loggily": "workspace:*",
     "react": "catalog:",
     "silvery": "workspace:*"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/diff": "^7.0.2",
     "@types/react": "catalog:"
   }
