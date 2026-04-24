@@ -52,6 +52,10 @@ export type SessionState = {
   skills: string[]
   /** Plugin names loaded in the agent. Populated from session-init. */
   plugins: string[]
+  /** Claude Code CLI version the subprocess is running. */
+  claudeCodeVersion: string
+  /** Which auth path claude is using (ANTHROPIC_API_KEY, OAuth, etc.). */
+  apiKeySource: string
   status: "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"
   messages: MessageEntry[]
   permissions: Array<{ requestId: string; tool: string; args: unknown }>
@@ -74,6 +78,8 @@ function initialState(): SessionState {
     slashCommands: [],
     skills: [],
     plugins: [],
+    claudeCodeVersion: "",
+    apiKeySource: "",
     status: "spawning",
     messages: [],
     permissions: [],
@@ -150,6 +156,8 @@ export function createSessionStore(): SessionStore {
         next.slashCommands = event.slashCommands
         next.skills = event.skills
         next.plugins = event.plugins
+        next.claudeCodeVersion = event.claudeCodeVersion
+        next.apiKeySource = event.apiKeySource
         next.status = "idle"
         break
       case "turn-start":

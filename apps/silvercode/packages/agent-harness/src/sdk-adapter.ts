@@ -115,6 +115,8 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
               typeof p === "string" ? p : String(p?.name ?? ""),
             )
           : [],
+        claudeCodeVersion: typeof raw.claude_code_version === "string" ? (raw.claude_code_version as string) : "",
+        apiKeySource: typeof raw.apiKeySource === "string" ? (raw.apiKeySource as string) : "",
         ts,
       }
     }

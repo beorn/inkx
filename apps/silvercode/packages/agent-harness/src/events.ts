@@ -47,6 +47,10 @@ export type AgentEvent =
       skills: string[]
       /** Plugin names loaded into the spawned agent. */
       plugins: string[]
+      /** The Claude Code CLI version string (e.g. "2.1.119"). */
+      claudeCodeVersion: string
+      /** Where the API key / auth came from (e.g. "ANTHROPIC_API_KEY", "OAuth"). */
+      apiKeySource: string
       ts: number
     }
   | { kind: "turn-start"; sessionId: SessionId; turnId: TurnId; role: "user" | "assistant"; ts: number }

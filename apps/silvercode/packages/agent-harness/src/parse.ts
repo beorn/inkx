@@ -121,6 +121,8 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
               typeof p === "string" ? p : String(p?.name ?? ""),
             )
           : [],
+        claudeCodeVersion: typeof obj.claude_code_version === "string" ? (obj.claude_code_version as string) : "",
+        apiKeySource: typeof obj.apiKeySource === "string" ? (obj.apiKeySource as string) : "",
         ts: nowMs(),
       })
       return

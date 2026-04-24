@@ -3,6 +3,7 @@ import { Box, H3, Muted, Small, Spinner, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
+import { Welcome } from "./Welcome.tsx"
 
 /**
  * Live activity line — pinned to the bottom of the card body, shown whenever
@@ -94,9 +95,14 @@ export function SessionCard({
         ) : null}
       </Box>
 
-      {/* Messages (virtualized body — ListView owns scroll + wheel + keys) */}
+      {/* Body — empty state renders the Welcome card; otherwise the virtualized
+          message list (silvery ListView owns scroll + wheel + keys). */}
       <Box flexGrow={1} minHeight={0} paddingX={1}>
-        <MessageList messages={state.messages} onApprove={onApprove} onDeny={onDeny} sessionId={handle.id} />
+        {state.messages.length === 0 ? (
+          <Welcome handle={handle} />
+        ) : (
+          <MessageList messages={state.messages} onApprove={onApprove} onDeny={onDeny} sessionId={handle.id} />
+        )}
       </Box>
 
       {/* Activity indicator — bottom-pinned when the session is doing something */}

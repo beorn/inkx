@@ -132,13 +132,11 @@ export function App(props: AppProps): React.ReactElement {
         return
       }
       if (key.ctrl && input === "e") return setShowInbox((v) => !v)
-      // Cmd+I OR Ctrl+O toggle the side panel. Cmd+I is the requested
-      // binding (Kitty protocol forwards Cmd+letter as key.super); Ctrl+O
-      // is a non-alias fallback for terminals that don't forward Cmd.
-      // /panel, /aside, /todos slash aliases toggle the same state.
-      if ((key.super && input === "i") || (key.ctrl && input === "o")) {
-        return setShowSidePanel((v) => !v)
-      }
+      // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
+      // but gets intercepted by cmux / most terminal multiplexers before
+      // reaching the app). Slash commands /panel, /aside, /todos are the
+      // canonical surface.
+      if (key.ctrl && input === "o") return setShowSidePanel((v) => !v)
       if (key.ctrl && input === "y") return setShowSidePanel((v) => !v)
       if (key.ctrl && input === "r") return setShowHistory((v) => !v)
       if (key.ctrl && input === "n" && sessions.length > 1) {

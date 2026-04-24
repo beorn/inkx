@@ -265,66 +265,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       account: opts.account,
     }
 
-    // Intro message — synthesize a local assistant turn so the session card
-    // isn't empty on first render. Not sent to the subprocess; purely UI.
-    const introTurnId = `intro-${id}` as never
-    const introLines = [
-      "**Welcome to silvercode.**",
-      "",
-      "Type a message and press Enter to send. Type `/` to open the command palette:",
-      "",
-      "- `/inbox`             — cross-session permission triage",
-      "- `/todos`             — toggle todo panel",
-      "- `/history`           — replay + search past sessions",
-      "- `/mode [name]`       — cycle plan / accept-edits / auto / bypass",
-      "- `/handoff <prompt>`  — move task+context to another session",
-      "- `/fork`              — spawn a seeded sibling",
-      "- `/spawn [name]`      — open another session in the grid",
-      "",
-      "**Modes** (click the ⚡ label in the status bar to cycle):",
-      "",
-      "- **plan** — Claude plans but doesn't write; review proposed changes before running",
-      "- **accept-edits** — file edits apply automatically; other tools still prompt",
-      "- **auto** — default; everything Claude can do runs unattended",
-      "- **bypass** — skip all approvals; use only in sandboxes",
-      "",
-      "**Keybindings:**",
-      "",
-      "- `Ctrl+E` — open/close the permission inbox",
-      "- `Ctrl+Y` — toggle the todos panel",
-      "- `Ctrl+R` — open/close the history view",
-      "- `Ctrl+N` — focus the next session card (multi-session only)",
-      "- `Esc`    — dismiss open overlays",
-      "- `Ctrl+D Ctrl+D` — exit silvercode (on an empty prompt)",
-    ]
-    if (opts.account) {
-      introLines.push(
-        "",
-        `**Running with account:** \`${opts.account}\` (from \`~/.silvercode/accounts/${opts.account}/\`)`,
-      )
-    }
-    const introText = introLines.join("\n")
-    store.apply({
-      kind: "turn-start",
-      sessionId: "silvercode-intro" as never,
-      turnId: introTurnId,
-      role: "assistant",
-      ts: Date.now(),
-    })
-    store.apply({
-      kind: "text-delta",
-      sessionId: "silvercode-intro" as never,
-      turnId: introTurnId,
-      blockIndex: 0,
-      text: introText,
-      ts: Date.now(),
-    })
-    store.apply({
-      kind: "turn-end",
-      sessionId: "silvercode-intro" as never,
-      turnId: introTurnId,
-      ts: Date.now(),
-    })
+    // Welcome UI — rendered as a React component (see Welcome.tsx) when the
+    // message list is empty. That lets it read claudeCodeVersion / model /
+    // apiKeySource live from the store after session-init arrives, instead
+    // of baking a synthesized turn at spawn time (when those fields aren't
+    // yet known).
 
     sessions.push(handle)
     if (!focusedId) {
