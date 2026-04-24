@@ -440,6 +440,16 @@ export function App(props: AppProps): React.ReactElement {
                     queueFocused={queueFocused}
                     onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
                     onQueueRelease={() => setQueueFocused(false)}
+                    onQueueSubmit={() => {
+                      // Force-flush BEFORE releasing focus. Order matters:
+                      // flushQueue clears the hold AND the queue buffer
+                      // synchronously, so the auto-flush effect that fires
+                      // on the queueFocused→false transition (controller.
+                      // holdQueue(false) → tryFlush) sees an empty queue
+                      // and is a no-op. Net result: exactly one send.
+                      controller.flushQueue(focused.id)
+                      setQueueFocused(false)
+                    }}
                     inputValue={inputValue}
                     onInputChange={setInputValue}
                     inputDisabled={!focused}

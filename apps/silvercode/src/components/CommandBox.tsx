@@ -42,6 +42,7 @@ export function CommandBox({
   queueFocused,
   onQueueChange,
   onQueueRelease,
+  onQueueSubmit,
   inputValue,
   onInputChange,
   inputDisabled,
@@ -52,7 +53,12 @@ export function CommandBox({
   queueText: string
   queueFocused: boolean
   onQueueChange: (text: string) => void
+  /** Release focus back to the command input, KEEP the queue buffer.
+   *  Esc, or Up-at-top (no-op for now). */
   onQueueRelease: () => void
+  /** Force-flush the queue NOW and release focus.
+   *  Enter, or Down past the last entry. */
+  onQueueSubmit: () => void
   inputValue: string
   onInputChange: (text: string) => void
   inputDisabled?: boolean
@@ -103,7 +109,12 @@ export function CommandBox({
         </Box>
       )}
       {hasQueue && queueFocused && (
-        <QueueEditor entries={entries} onQueueChange={onQueueChange} onQueueRelease={onQueueRelease} />
+        <QueueEditor
+          entries={entries}
+          onQueueChange={onQueueChange}
+          onQueueRelease={onQueueRelease}
+          onQueueSubmit={onQueueSubmit}
+        />
       )}
 
       {/* Labeled divider — "QUEUE" unfocused / "QUEUE HELD" focused.
@@ -168,10 +179,12 @@ function QueueEditor({
   entries,
   onQueueChange,
   onQueueRelease,
+  onQueueSubmit,
 }: {
   entries: string[]
   onQueueChange: (text: string) => void
   onQueueRelease: () => void
+  onQueueSubmit: () => void
 }): React.ReactElement {
   // Active row — clamped against entry count so it stays valid as the
   // user splits or merges. Initial value = last entry (cursor lands on
@@ -227,10 +240,14 @@ function QueueEditor({
       return
     }
     if (key.return) {
-      onQueueRelease()
+      // Plain Enter = submit + release. Force-flushes the queue NOW
+      // even if the session is mid-turn.
+      onQueueSubmit()
       return
     }
     if (key.escape) {
+      // Esc = release WITHOUT submitting; queue buffer is preserved so
+      // the user can re-enter and edit later.
       onQueueRelease()
       return
     }
@@ -243,7 +260,8 @@ function QueueEditor({
     if (goDown) {
       setActive((i) => {
         if (i >= entriesRef.current.length - 1) {
-          onQueueRelease()
+          // Past the last entry — same as Enter: submit + release.
+          onQueueSubmit()
           return i
         }
         return i + 1

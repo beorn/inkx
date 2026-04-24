@@ -39,11 +39,7 @@ import { replaySessionFromDisk } from "./resume.ts"
  * workspace deps the same way the host does. TRIBE_SESSION_NAME keys the
  * tribe backend to this session's identity.
  */
-function defaultMcpServers(
-  sessionName: string,
-  workspaceRoot: string,
-  kmDbPath: string | null,
-): McpServerSpec[] {
+function defaultMcpServers(sessionName: string, workspaceRoot: string, kmDbPath: string | null): McpServerSpec[] {
   const tribeBin = resolvePath(workspaceRoot, "apps/silvercode/packages/tribe-mcp/src/bin.ts")
   const specs: McpServerSpec[] = [
     {
@@ -189,6 +185,16 @@ export type Controller = {
    * if the session is idle and the queue is non-empty.
    */
   holdQueue(sessionId: string, hold: boolean): void
+  /**
+   * Force-flush the queue buffer NOW, regardless of idle status. Used by
+   * the queue editor when the user explicitly submits (Enter / Down past
+   * last entry). Bypasses the `status === "idle"` gate that the ambient
+   * auto-flush path uses, because the user's explicit submit is its own
+   * signal — Claude Code's CLI buffers stdin if Claude is mid-turn, so
+   * sending a queued user message during a turn is safe and lands as the
+   * next turn's input. No-op if the queue is empty.
+   */
+  flushQueue(sessionId: string): void
   respondPermission(sessionId: string, requestId: string, approved: boolean): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
@@ -231,15 +237,25 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     for (const fn of queueSubs) fn(sessionId, t)
   }
   /**
-   * Flush the queue buffer to Claude as one user turn, then clear. No-op
-   * if the queue is empty, the session is non-idle, or the hold gate is
-   * set. Called on every turn-end / session-lifecycle / hold-release.
+   * Flush the queue buffer to Claude as one user turn, then clear.
+   *
+   * Two callers, two semantics:
+   *  - Auto-flush (`force=false`): no-op unless hold is clear AND session
+   *    is idle. Used by the turn-end subscriber + holdQueue release.
+   *  - Force-flush (`force=true`): bypasses the idle gate. Used by the
+   *    queue editor's explicit submit (Enter / Down-past-last). Claude
+   *    Code's CLI buffers stdin while mid-turn, so sending a user-message
+   *    during a turn is safe — it lands as the next turn's input.
+   *
+   * Always no-op if the queue is empty.
    */
-  function tryFlush(sessionId: string): void {
+  function tryFlush(sessionId: string, force = false): void {
     const s = sessions.find((h) => h.id === sessionId)
     if (!s) return
-    if (holds.get(sessionId)) return
-    if (s.store.state.get().status !== "idle") return
+    if (!force) {
+      if (holds.get(sessionId)) return
+      if (s.store.state.get().status !== "idle") return
+    }
     const text = queues.get(sessionId) ?? ""
     if (text.length === 0) return
     queues.set(sessionId, "")
@@ -473,6 +489,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     holdQueue(sessionId: string, hold: boolean): void {
       holds.set(sessionId, hold)
       if (!hold) tryFlush(sessionId)
+    },
+    flushQueue(sessionId: string): void {
+      // Explicit user-initiated submit — bypasses the idle gate, also
+      // clears any pending hold so a follow-up auto-flush doesn't double-
+      // send.
+      holds.set(sessionId, false)
+      tryFlush(sessionId, true)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
       const s = sessions.find((h) => h.id === sessionId)
