@@ -78,11 +78,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 ]
 
 /** Dispatch a tools/call payload to the right KmContext method. */
-export async function callTool(
-  ctx: KmContext,
-  name: string,
-  args: Record<string, unknown>,
-): Promise<unknown> {
+export async function callTool(ctx: KmContext, name: string, args: Record<string, unknown>): Promise<unknown> {
   switch (name) {
     case "km_search":
       return ctx.search(String(args.query ?? ""), typeof args.limit === "number" ? args.limit : 20)

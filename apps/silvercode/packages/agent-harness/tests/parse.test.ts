@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest"
-import {
-  type AgentEvent,
-  createLineSplitter,
-  createSessionStore,
-  createStreamJsonParser,
-} from "../src/index.ts"
+import { type AgentEvent, createLineSplitter, createSessionStore, createStreamJsonParser } from "../src/index.ts"
 
 function collect(lines: string[]): AgentEvent[] {
   const events: AgentEvent[] = []
@@ -75,12 +70,7 @@ describe("stream-json parser — M0 fixtures", () => {
     ])
 
     const kinds = events.map((e) => e.kind)
-    expect(kinds).toEqual([
-      "turn-start",
-      "text-delta",
-      "text-delta",
-      "turn-end",
-    ])
+    expect(kinds).toEqual(["turn-start", "text-delta", "text-delta", "turn-end"])
     expect(events[0]).toMatchObject({ kind: "turn-start", role: "assistant", turnId: "msg-1" })
     expect(events[1]).toMatchObject({ kind: "text-delta", text: "Hi" })
     expect(events[3]).toMatchObject({ kind: "turn-end", stopReason: "end_turn" })
@@ -117,9 +107,7 @@ describe("stream-json parser — M0 fixtures", () => {
       }),
     ])
     // Expect an initial tool-use + a finalized one with parsed input.
-    const toolEvents = events.filter((e) => e.kind === "tool-use") as Array<
-      Extract<AgentEvent, { kind: "tool-use" }>
-    >
+    const toolEvents = events.filter((e) => e.kind === "tool-use") as Array<Extract<AgentEvent, { kind: "tool-use" }>>
     expect(toolEvents).toHaveLength(2)
     const last = toolEvents[toolEvents.length - 1]!
     expect(last.name).toBe("Bash")
@@ -216,9 +204,7 @@ describe("session-store — event folding", () => {
       ts: now,
     })
     const state = store.state.get()
-    expect(state.todos).toEqual([
-      { content: "first", status: "in_progress", activeForm: "Doing first" },
-    ])
+    expect(state.todos).toEqual([{ content: "first", status: "in_progress", activeForm: "Doing first" }])
     expect(state.status).toBe("tool-running")
   })
 

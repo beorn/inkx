@@ -45,13 +45,7 @@ function scanLogDir(dir: string | undefined): Entry[] {
  * replay a selected log. FTS5 + mdtest tape integration come after the MVP
  * M10 work expands recall-index coverage; for now this is linear scan.
  */
-export function HistoryView({
-  onClose,
-  logDir,
-}: {
-  onClose: () => void
-  logDir?: string
-}): React.ReactElement {
+export function HistoryView({ onClose, logDir }: { onClose: () => void; logDir?: string }): React.ReactElement {
   const [query, setQuery] = useState("")
   const [cursor, setCursor] = useState(0)
 
@@ -59,21 +53,13 @@ export function HistoryView({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return entries
-    return entries.filter(
-      (e) => e.sessionId.toLowerCase().includes(q) || e.summary.toLowerCase().includes(q),
-    )
+    return entries.filter((e) => e.sessionId.toLowerCase().includes(q) || e.summary.toLowerCase().includes(q))
   }, [entries, query])
 
   return (
     <ModalDialog title="History" hotkey="Esc" onClose={onClose}>
       <Box flexDirection="column" gap={1}>
-        <TextInput
-          value={query}
-          onChange={setQuery}
-          placeholder="Search session history"
-          prompt="🔍 "
-          isActive
-        />
+        <TextInput value={query} onChange={setQuery} placeholder="Search session history" prompt="🔍 " isActive />
         {filtered.length === 0 ? (
           <Muted>No prior sessions. Enable logs with --log-dir.</Muted>
         ) : (

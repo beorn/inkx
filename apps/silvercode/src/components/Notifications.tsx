@@ -14,10 +14,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
       s.session.subscribe((e) => {
         if (e.kind === "permission-request") {
           const id = seq++
-          setToasts((t) => [
-            ...t,
-            { id, text: `${s.name}: permission requested (${e.tool})`, kind: "warn" },
-          ])
+          setToasts((t) => [...t, { id, text: `${s.name}: permission requested (${e.tool})`, kind: "warn" }])
           setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
         } else if (e.kind === "error") {
           const id = seq++
@@ -35,10 +32,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
   return (
     <Box flexDirection="column" paddingX={1}>
       {toasts.map((t) => (
-        <Text
-          key={t.id}
-          color={t.kind === "error" ? "$error" : t.kind === "warn" ? "$warning" : "$info"}
-        >
+        <Text key={t.id} color={t.kind === "error" ? "$error" : t.kind === "warn" ? "$warning" : "$info"}>
           🔔 {t.text}
         </Text>
       ))}

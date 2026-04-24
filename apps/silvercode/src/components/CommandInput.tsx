@@ -1,25 +1,27 @@
 import React, { useRef } from "react"
-import { Box, TextInput, useExit } from "silvery"
+import { Box, TextInput } from "silvery"
 
 /**
  * Command input bar. Ctrl+D with an empty buffer arms "exit"; a second
- * Ctrl+D within 1.5s exits the app cleanly via silvery's useExit hook (so
- * alt-screen, raw mode, mouse tracking, and bracketed-paste are all
- * restored — never call process.exit from inside a silvery app).
+ * Ctrl+D within 1.5s invokes the parent-provided onExit. The parent is
+ * responsible for closing all sessions AND calling silvery's useExit — both
+ * are required. Without session close, child claude subprocesses survive
+ * the alt-screen restore and keep the host process hanging.
  */
 export function CommandInput({
   value,
   onChange,
   disabled,
   onSubmit,
+  onExit,
 }: {
   value: string
   onChange: (text: string) => void
   disabled?: boolean
   onSubmit: (text: string) => void
+  onExit: () => void
 }): React.ReactElement {
   const armedAt = useRef<number>(0)
-  const exit = useExit()
 
   return (
     <Box borderStyle="single" borderColor="$border" paddingX={1}>
@@ -33,7 +35,7 @@ export function CommandInput({
         onEOF={() => {
           const now = Date.now()
           if (armedAt.current > 0 && now - armedAt.current < 1500) {
-            exit()
+            onExit()
             return
           }
           armedAt.current = now

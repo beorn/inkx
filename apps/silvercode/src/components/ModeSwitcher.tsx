@@ -19,12 +19,7 @@ export function ModeSwitcher({
     <Box flexDirection="row" gap={1} paddingX={1}>
       <Small>Mode:</Small>
       {MODES.map((m) => (
-        <Text
-          key={m.id}
-          bold={m.id === mode}
-          color={m.id === mode ? m.color : "$muted"}
-          onClick={() => onChange(m.id)}
-        >
+        <Text key={m.id} bold={m.id === mode} color={m.id === mode ? m.color : "$muted"} onClick={() => onChange(m.id)}>
           {m.id === mode ? `[${m.label}]` : m.label}
         </Text>
       ))}

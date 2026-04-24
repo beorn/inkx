@@ -12,13 +12,7 @@
  */
 
 import { EventEmitter } from "node:events"
-import type {
-  AgentEvent,
-  AgentInput,
-  AgentSession,
-  PermissionRequestId,
-  SessionId,
-} from "./events.ts"
+import type { AgentEvent, AgentInput, AgentSession, PermissionRequestId, SessionId } from "./events.ts"
 import { runInjectors, type Injector } from "./injectors.ts"
 
 export type SpawnSdkOptions = {
@@ -126,13 +120,14 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
         turnId: String(msg?.id ?? `turn-${ts}`) as never,
         content: blocks.map((b) => {
           if (b.type === "text") return { type: "text" as const, text: String(b.text ?? "") }
-          if (b.type === "tool_use")
+          if (b.type === "tool_use") {
             return {
               type: "tool_use" as const,
               id: String(b.id ?? "") as never,
               name: String(b.name ?? ""),
               input: b.input ?? {},
             }
+          }
           return { type: "text" as const, text: "" }
         }),
         ts,
@@ -159,7 +154,7 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
           model: opts.model,
           cwd: opts.cwd,
           apiKey: opts.apiKey ?? process.env.ANTHROPIC_API_KEY,
-          ...(opts.sdkOptions ?? {}),
+          ...opts.sdkOptions,
         },
       })
       for await (const raw of sdkStream) {

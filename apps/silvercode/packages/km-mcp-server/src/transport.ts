@@ -59,8 +59,7 @@ export function createMcpServer(ctx: KmContext): {
       }
       if (message.method === "tools/call") {
         const name = typeof message.params?.name === "string" ? (message.params.name as string) : ""
-        const args =
-          (message.params?.arguments as Record<string, unknown> | undefined) ?? {}
+        const args = (message.params?.arguments as Record<string, unknown> | undefined) ?? {}
         try {
           const output = await callTool(ctx, name, args)
           return {
@@ -95,7 +94,11 @@ export function createMcpServer(ctx: KmContext): {
 }
 
 /** Run the stdio transport loop until stdin closes. */
-export async function runStdioServer(ctx: KmContext, input: Readable = process.stdin, output: Writable = process.stdout): Promise<void> {
+export async function runStdioServer(
+  ctx: KmContext,
+  input: Readable = process.stdin,
+  output: Writable = process.stdout,
+): Promise<void> {
   const server = createMcpServer(ctx)
   let buffer = ""
   const decoder = new TextDecoder()

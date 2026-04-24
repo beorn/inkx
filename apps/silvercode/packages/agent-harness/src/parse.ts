@@ -76,10 +76,12 @@ function pickUsage(u: unknown): TokenCounts | undefined {
   const out: TokenCounts = {}
   if (typeof o.input_tokens === "number") out.input_tokens = o.input_tokens
   if (typeof o.output_tokens === "number") out.output_tokens = o.output_tokens
-  if (typeof o.cache_creation_input_tokens === "number")
+  if (typeof o.cache_creation_input_tokens === "number") {
     out.cache_creation_input_tokens = o.cache_creation_input_tokens
-  if (typeof o.cache_read_input_tokens === "number")
+  }
+  if (typeof o.cache_read_input_tokens === "number") {
     out.cache_read_input_tokens = o.cache_read_input_tokens
+  }
   return out
 }
 
@@ -268,7 +270,7 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
             const t = b.type
             if (t === "text") return { type: "text", text: String(b.text ?? "") }
             if (t === "thinking") return { type: "thinking", text: String(b.thinking ?? b.text ?? "") }
-            if (t === "tool_use")
+            if (t === "tool_use") {
               return {
                 type: "tool_use",
                 id: toToolUseId(b.id),
@@ -276,13 +278,15 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
                 input: (b.input as unknown) ?? {},
                 mcp_server: typeof b.mcp_server === "string" ? (b.mcp_server as string) : undefined,
               }
-            if (t === "tool_result")
+            }
+            if (t === "tool_result") {
               return {
                 type: "tool_result",
                 tool_use_id: toToolUseId(b.tool_use_id),
                 output: (b.content as unknown) ?? (b.output as unknown) ?? "",
                 is_error: Boolean(b.is_error),
               }
+            }
             return null
           })
           .filter((b): b is ContentBlock => b != null)

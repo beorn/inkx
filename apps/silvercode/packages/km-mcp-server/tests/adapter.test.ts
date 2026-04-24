@@ -65,21 +65,7 @@ function seed(db: Database): void {
   )
 
   // A second top-level node so getBoard has >1 row.
-  insert.run(
-    "board-2",
-    "file",
-    null,
-    1,
-    0,
-    "today",
-    "Today",
-    "Another board",
-    "hash-board-2",
-    "{}",
-    now,
-    now,
-    "v1",
-  )
+  insert.run("board-2", "file", null, 1, 0, "today", "Today", "Another board", "hash-board-2", "{}", now, now, "v1")
 }
 
 function makeCtx(db: Database): KmContext {

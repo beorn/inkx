@@ -129,13 +129,15 @@ export function parseBlocks(source: string): MdBlock[] {
     // Tables: require a header row + separator row of dashes
     const tableHeaderCells = line.includes("|") ? line.split("|").map((s) => s.trim()) : null
     const separatorLine = lines[i + 1] ?? ""
-    const isTable =
-      tableHeaderCells &&
-      tableHeaderCells.length >= 2 &&
-      /^\s*\|?[-:|\s]+\|?\s*$/.test(separatorLine)
+    const isTable = tableHeaderCells && tableHeaderCells.length >= 2 && /^\s*\|?[-:|\s]+\|?\s*$/.test(separatorLine)
     if (isTable) {
-      const cells = tableHeaderCells.filter((c, idx, arr) => !(idx === 0 && c === "") && !(idx === arr.length - 1 && c === ""))
-      const separators = separatorLine.split("|").map((s) => s.trim()).filter((s) => s.length > 0)
+      const cells = tableHeaderCells.filter(
+        (c, idx, arr) => !(idx === 0 && c === "") && !(idx === arr.length - 1 && c === ""),
+      )
+      const separators = separatorLine
+        .split("|")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
       const alignments = separators.map((s) => {
         if (s.startsWith(":") && s.endsWith(":")) return "center" as const
         if (s.endsWith(":")) return "right" as const
@@ -145,9 +147,7 @@ export function parseBlocks(source: string): MdBlock[] {
       const rows: string[][] = []
       i += 2
       while (i < lines.length && (lines[i] ?? "").includes("|")) {
-        const row = (lines[i] ?? "")
-          .split("|")
-          .map((s) => s.trim())
+        const row = (lines[i] ?? "").split("|").map((s) => s.trim())
         rows.push(row.filter((c, idx, arr) => !(idx === 0 && c === "") && !(idx === arr.length - 1 && c === "")))
         i++
       }

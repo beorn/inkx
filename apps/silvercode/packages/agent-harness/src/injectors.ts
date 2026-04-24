@@ -25,11 +25,7 @@ export type Injector = {
   run(userText: string, ctx: InjectorContext): string | null | Promise<string | null>
 }
 
-export function runInjectors(
-  injectors: readonly Injector[],
-  userText: string,
-  ctx: InjectorContext,
-): string {
+export function runInjectors(injectors: readonly Injector[], userText: string, ctx: InjectorContext): string {
   if (injectors.length === 0) return userText
   const additions: string[] = []
   for (const inj of injectors) {

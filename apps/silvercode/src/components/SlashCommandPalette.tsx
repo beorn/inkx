@@ -3,34 +3,41 @@ import { Box, Muted, SelectList, Text } from "silvery"
 import { useInput } from "silvery/runtime"
 import { filterCommands } from "../slash-commands.ts"
 
+/**
+ * Slash-command palette. Appears inline above the input whenever the current
+ * prompt starts with `/`.
+ *
+ * Enter = execute the currently-highlighted command (NOT autocomplete —
+ * autocomplete was the old flow and it confused users: "hitting Enter just
+ * added a space." Now Enter triggers the real action and clears the input.)
+ * Esc = close the palette.
+ */
 export function SlashCommandPalette({
   query,
-  onSelect,
+  onSubmit,
   onClose,
 }: {
   query: string
-  onSelect: (commandName: string) => void
+  /** Fired with the command name when the user confirms a row. */
+  onSubmit: (commandName: string) => void
   onClose: () => void
 }): React.ReactElement | null {
   const [cursor, setCursor] = useState(0)
   const filtered = useMemo(() => filterCommands(query), [query])
   useEffect(() => setCursor(0), [query])
-  useInput((input, key) => {
-    if (key.escape) return onClose()
-    if (key.return) {
-      const cmd = filtered[cursor]
-      if (cmd) onSelect(cmd.name)
-    }
-  }, { isActive: filtered.length > 0 })
+  useInput(
+    (input, key) => {
+      if (key.escape) return onClose()
+      if (key.return) {
+        const cmd = filtered[cursor]
+        if (cmd) onSubmit(cmd.name)
+      }
+    },
+    { isActive: filtered.length > 0 },
+  )
   if (filtered.length === 0) return null
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="$accent"
-      paddingX={1}
-      backgroundColor="$surfacebg"
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="$accent" paddingX={1} backgroundColor="$surfacebg">
       <Box flexDirection="row" gap={1}>
         <Text bold color="$accent">
           Slash commands
@@ -41,7 +48,7 @@ export function SlashCommandPalette({
         items={filtered.map((c) => ({ label: `${c.name}  —  ${c.description}`, value: c.name }))}
         highlightedIndex={cursor}
         onHighlight={setCursor}
-        onSelect={(opt) => onSelect(opt.value)}
+        onSelect={(opt) => onSubmit(opt.value)}
         maxVisible={5}
         isActive
       />

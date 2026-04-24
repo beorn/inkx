@@ -79,9 +79,7 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
           case "quote":
             return <Blockquote key={i}>{b.text}</Blockquote>
           case "code":
-            return (
-              <SyntaxHighlighter key={i} language={b.language || "plain"} code={b.code} />
-            )
+            return <SyntaxHighlighter key={i} language={b.language || "plain"} code={b.code} />
           case "rule":
             return <Muted key={i}>{"─".repeat(40)}</Muted>
           case "blank":
@@ -94,7 +92,11 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
   )
 }
 
-function MarkdownTable({ block }: { block: Extract<ReturnType<typeof parseBlocks>[number], { kind: "table" }> }): React.ReactElement {
+function MarkdownTable({
+  block,
+}: {
+  block: Extract<ReturnType<typeof parseBlocks>[number], { kind: "table" }>
+}): React.ReactElement {
   const widths = block.headers.map((h, col) => {
     const maxRow = block.rows.reduce((w, row) => Math.max(w, (row[col] ?? "").length), 0)
     return Math.max(h.length, maxRow)

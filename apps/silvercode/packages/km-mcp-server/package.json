@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Stdio MCP server exposing km as persistent memory for agent sessions.",
-  "type": "module",
   "bin": {
     "km-mcp-server": "./src/bin.ts"
   },
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./tools": "./src/tools.ts",

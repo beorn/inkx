@@ -28,12 +28,7 @@ export function MessageList({
             {m.text.length > 0 && <AssistantBlock text={m.text} />}
             {m.toolCalls.map((c) => (
               <Box key={c.id} flexDirection="column">
-                <ToolCallBlock
-                  id={c.id}
-                  name={c.name}
-                  input={c.input}
-                  mcpServer={c.mcp_server}
-                />
+                <ToolCallBlock id={c.id} name={c.name} input={c.input} mcpServer={c.mcp_server} />
                 {m.toolResults
                   .filter((r) => r.id === c.id)
                   .map((r) => (

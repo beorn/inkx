@@ -45,9 +45,7 @@ describe("materializeMcpConfig", () => {
   })
 
   test("cleanup removes the parent temp dir", () => {
-    const { path, cleanup } = materializeMcpConfig([
-      { name: "x", command: "true" },
-    ])
+    const { path, cleanup } = materializeMcpConfig([{ name: "x", command: "true" }])
     const dir = dirname(path)
     expect(existsSync(dir)).toBe(true)
     cleanup()

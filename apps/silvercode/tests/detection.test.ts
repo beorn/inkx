@@ -54,12 +54,7 @@ describe("markdown tokenizer", () => {
   })
 
   test("parses pipe tables with alignment separators", () => {
-    const md = [
-      "| a | b |",
-      "|---|---:|",
-      "| 1 | 2 |",
-      "| 3 | 4 |",
-    ].join("\n")
+    const md = ["| a | b |", "|---|---:|", "| 1 | 2 |", "| 3 | 4 |"].join("\n")
     const blocks = parseBlocks(md)
     expect(blocks).toHaveLength(1)
     const t = blocks[0]!

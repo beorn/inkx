@@ -51,18 +51,8 @@ export function SessionCard({
       </Box>
 
       {/* Messages (scrollable body) */}
-      <Box
-        flexGrow={1}
-        overflow="scroll"
-        paddingX={1}
-        scrollTo={Math.max(0, state.messages.length - 1)}
-      >
-        <MessageList
-          messages={state.messages}
-          onApprove={onApprove}
-          onDeny={onDeny}
-          sessionId={handle.id}
-        />
+      <Box flexGrow={1} overflow="scroll" paddingX={1} scrollTo={Math.max(0, state.messages.length - 1)}>
+        <MessageList messages={state.messages} onApprove={onApprove} onDeny={onDeny} sessionId={handle.id} />
       </Box>
     </Box>
   )

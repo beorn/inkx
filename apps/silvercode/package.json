@@ -12,13 +12,13 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
-    "@km/mcp-server": "workspace:*",
     "@km/agent-harness": "workspace:*",
+    "@km/mcp-server": "workspace:*",
+    "@km/tribe-mcp": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",
     "@silvery/commander": "workspace:*",
     "@silvery/theme": "workspace:*",
-    "@km/tribe-mcp": "workspace:*",
     "alien-signals": "^3.1.2",
     "react": "catalog:",
     "silvery": "workspace:*"

@@ -59,13 +59,7 @@ function colorFor(kind: Detection["kind"]): string {
   }
 }
 
-export function DetectionText({
-  text,
-  tone,
-}: {
-  text: string
-  tone?: "assistant" | "user"
-}): React.ReactElement {
+export function DetectionText({ text, tone }: { text: string; tone?: "assistant" | "user" }): React.ReactElement {
   const popover = usePopover()
   const detections = detectReferences(text)
 
@@ -90,15 +84,14 @@ export function DetectionText({
         const pieces: React.ReactNode[] = []
         let cursor = lineStart
         for (const d of lineDetections) {
-          if (d.start > cursor) pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
+          if (d.start > cursor)
+            pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
           pieces.push(
             <Text
               key={`d${d.start}`}
               color={colorFor(d.kind)}
               underline
-              onClick={() =>
-                popover.show(renderPopoverContent(d), { x: 0, y: 0 })
-              }
+              onClick={() => popover.show(renderPopoverContent(d), { x: 0, y: 0 })}
             >
               {d.match}
             </Text>,

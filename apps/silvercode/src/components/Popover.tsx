@@ -44,7 +44,7 @@ export function usePopover(): Ctx {
 
 export function PopoverLayer(): React.ReactElement | null {
   const ctx = useContext(PopoverCtx)
-  if (!ctx || !ctx.state.content) return null
+  if (!ctx?.state.content) return null
   // Positioning is anchor-relative; silvery's absolute positioning puts this
   // beside the anchor. In scrollback mode we render inline below the content
   // that triggered the popover instead of floating — single path for M0.

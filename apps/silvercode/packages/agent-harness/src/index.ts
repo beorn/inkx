@@ -18,12 +18,7 @@ export { spawnSdk } from "./sdk-adapter.ts"
 export type { SpawnSdkOptions } from "./sdk-adapter.ts"
 export { spawnCodex } from "./codex-spawn.ts"
 export type { SpawnCodexOptions } from "./codex-spawn.ts"
-export {
-  runInjectors,
-  activeBeadInjector,
-  cwdInjector,
-  channelDigestInjector,
-} from "./injectors.ts"
+export { runInjectors, activeBeadInjector, cwdInjector, channelDigestInjector } from "./injectors.ts"
 export type { Injector, InjectorContext } from "./injectors.ts"
 export { createFileEventLog, createMemoryEventLog } from "./event-log.ts"
 export type { EventLog } from "./event-log.ts"

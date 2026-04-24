@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest"
-import {
-  type KmContext,
-  callTool,
-  createMcpServer,
-  TOOL_DEFINITIONS,
-} from "../src/index.ts"
+import { type KmContext, callTool, createMcpServer, TOOL_DEFINITIONS } from "../src/index.ts"
 
 function makeContext(overrides: Partial<KmContext> = {}): KmContext {
   return {
@@ -65,7 +60,7 @@ describe("km-mcp-server", () => {
     })
     expect(resp).toBeTruthy()
     if (!resp || "error" in resp) throw new Error("expected result")
-    const content = (resp.result as { content: Array<{ text: string }>; isError: boolean })
+    const content = resp.result as { content: Array<{ text: string }>; isError: boolean }
     expect(content.isError).toBe(false)
     expect(content.content[0]?.text).toContain("Foo")
   })

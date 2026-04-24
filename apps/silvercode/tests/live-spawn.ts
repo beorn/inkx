@@ -30,9 +30,7 @@ const unsubscribe = session.subscribe((event) => {
   } else if (event.kind === "turn-end") {
     console.log(`\n[turn-end] stop=${event.stopReason ?? "?"}`)
   } else if (event.kind === "session-end") {
-    console.log(
-      `[session-end] cost=$${event.costUsd?.toFixed(4) ?? "?"} dur=${event.durationMs ?? "?"}ms`,
-    )
+    console.log(`[session-end] cost=$${event.costUsd?.toFixed(4) ?? "?"} dur=${event.durationMs ?? "?"}ms`)
   } else if (event.kind === "error") {
     console.error(`[error] ${event.message}`)
   }

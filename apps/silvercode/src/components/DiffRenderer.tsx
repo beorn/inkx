@@ -21,11 +21,7 @@ export function DiffRenderer({
   const newLines = newText.split("\n")
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
-      {filePath && (
-        <Text color="$muted">
-          --- {filePath}
-        </Text>
-      )}
+      {filePath && <Text color="$muted">--- {filePath}</Text>}
       {oldLines.map((line, i) => (
         <Box key={`o${i}`} flexDirection="row">
           <Text color="$error">- </Text>

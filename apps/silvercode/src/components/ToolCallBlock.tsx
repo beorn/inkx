@@ -61,9 +61,11 @@ export function ToolCallBlock({
             <DiffRenderer
               oldText={String((input as Record<string, unknown>).old_string ?? "")}
               newText={String((input as Record<string, unknown>).new_string ?? "")}
-              filePath={typeof (input as Record<string, unknown>).file_path === "string"
-                ? String((input as Record<string, unknown>).file_path)
-                : undefined}
+              filePath={
+                typeof (input as Record<string, unknown>).file_path === "string"
+                  ? String((input as Record<string, unknown>).file_path)
+                  : undefined
+              }
             />
           ) : (
             <Text>{JSON.stringify(input, null, 2)}</Text>

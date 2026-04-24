@@ -11,14 +11,7 @@
  */
 
 import { signal } from "alien-signals"
-import type {
-  AgentEvent,
-  AgentSession,
-  ContentBlock,
-  SessionId,
-  ToolUseId,
-  TurnId,
-} from "./events.ts"
+import type { AgentEvent, AgentSession, ContentBlock, SessionId, ToolUseId, TurnId } from "./events.ts"
 
 export type RoleIndicator = "user" | "assistant" | "system"
 
@@ -185,9 +178,8 @@ export function createSessionStore(): SessionStore {
         if (idx >= 0) {
           const msg = next.messages[idx]!
           const existing = msg.toolResults.findIndex((r) => r.id === event.id)
-          const results = existing >= 0
-            ? msg.toolResults.map((r, i) => (i === existing ? result : r))
-            : [...msg.toolResults, result]
+          const results =
+            existing >= 0 ? msg.toolResults.map((r, i) => (i === existing ? result : r)) : [...msg.toolResults, result]
           const updated = { ...msg, toolResults: results }
           next.messages = [...next.messages.slice(0, idx), updated, ...next.messages.slice(idx + 1)]
         }

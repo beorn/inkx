@@ -29,8 +29,7 @@ import {
 } from "./index.ts"
 
 const sessionName = process.env.TRIBE_SESSION_NAME ?? "unknown"
-const busPath =
-  process.env.TRIBE_BUS_PATH ?? join(homedir(), ".silvercode", "tribe-bus.jsonl")
+const busPath = process.env.TRIBE_BUS_PATH ?? join(homedir(), ".silvercode", "tribe-bus.jsonl")
 
 function ensureBus(): void {
   const dir = dirname(busPath)
@@ -69,9 +68,7 @@ const fileBackend: TribeBackend = {
   async history(opts): Promise<TribeMessage[]> {
     const all = readAllMessages()
     const forSession = opts.forSession
-    const visible = all.filter(
-      (m) => m.to === "*" || m.to === forSession || m.from === forSession,
-    )
+    const visible = all.filter((m) => m.to === "*" || m.to === forSession || m.from === forSession)
     const limit = opts.limit ?? 50
     return visible.slice(-limit)
   },

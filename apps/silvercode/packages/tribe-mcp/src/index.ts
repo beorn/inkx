@@ -127,7 +127,10 @@ export type JsonRpcResponse =
 
 const PROTOCOL_VERSION = "2025-06-18"
 
-export function createTribeMcpServer(backend: TribeBackend, selfSessionName: string): {
+export function createTribeMcpServer(
+  backend: TribeBackend,
+  selfSessionName: string,
+): {
   handle(msg: JsonRpcRequest): Promise<JsonRpcResponse | null>
 } {
   return {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box, useWindowSize } from "silvery"
+import { Box, useExit, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { AppHeader } from "./components/AppHeader.tsx"
 import { CommandInput } from "./components/CommandInput.tsx"
@@ -67,6 +67,55 @@ export function App(props: AppProps): React.ReactElement {
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
 
+  // Dedupe: when the palette is open and user presses Enter, both the
+  // palette's useInput AND TextInput's internal Enter handler fire in the
+  // same tick. Guard with a ts ref so the second call is a no-op.
+  const lastSubmitAt = useRef<number>(0)
+
+  function handleSubmit(text: string): void {
+    if (!focused) return
+    const now = Date.now()
+    if (now - lastSubmitAt.current < 50) return
+    lastSubmitAt.current = now
+    setInputValue("")
+    const trimmed = text.trim()
+    if (trimmed.startsWith("/")) {
+      const [cmd, ...rest] = trimmed.split(/\s+/)
+      const arg = rest.join(" ")
+      if (isLocal(cmd ?? "")) {
+        switch (cmd) {
+          case "/inbox":
+            return setShowInbox(true)
+          case "/history":
+            return setShowHistory(true)
+          case "/todos":
+            return setShowTodos((v) => !v)
+          case "/mode": {
+            const modes = ["plan", "accept-edits", "auto", "bypass"]
+            const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
+            setMode(target)
+            return
+          }
+          case "/handoff": {
+            const otherId = sessions.find((s) => s.id !== focused.id)?.id
+            if (otherId) controller.handoff(focused.id, otherId, arg)
+            return
+          }
+          case "/fork":
+            void controller.fork(focused.id)
+            return
+          case "/spawn":
+            void controller.spawnSession(arg || undefined)
+            return
+        }
+      } else {
+        controller.runSlashCommand(focused.id, trimmed)
+      }
+    } else {
+      controller.send(focused.id, trimmed)
+    }
+  }
+
   // Ctrl key choices avoid ASCII control-code aliases (Ctrl+I = Tab, Ctrl+M =
   // Enter, Ctrl+H = Backspace, Ctrl+J = LineFeed, Ctrl+[ = Esc). Terminals
   // translate those before silvery ever sees them, so they're unreachable
@@ -101,6 +150,21 @@ export function App(props: AppProps): React.ReactElement {
   // SIGWINCH useWindowSize re-renders, the root re-sizes, and the flex
   // children (cards / input / status) redistribute automatically.
   const { columns: cols, rows } = useWindowSize()
+
+  // Clean exit: close all sessions first so the child claude subprocesses
+  // terminate, THEN let silvery restore the terminal. process.exit is still
+  // banned inside the silvery app. Without this, Ctrl+D×2 restores the
+  // terminal but leaves orphaned claude subprocesses keeping the host
+  // process alive.
+  const silveryExit = useExit()
+  async function requestExit(): Promise<void> {
+    try {
+      await controller.closeAll()
+    } catch {
+      /* best-effort — still exit */
+    }
+    silveryExit()
+  }
 
   return (
     <PopoverProvider>
@@ -140,7 +204,7 @@ export function App(props: AppProps): React.ReactElement {
         {paletteQuery !== null && (
           <SlashCommandPalette
             query={paletteQuery}
-            onSelect={(cmd) => setInputValue(cmd + " ")}
+            onSubmit={(cmd) => handleSubmit(cmd)}
             onClose={() => setInputValue("")}
           />
         )}
@@ -149,46 +213,8 @@ export function App(props: AppProps): React.ReactElement {
           value={inputValue}
           onChange={setInputValue}
           disabled={!focused}
-          onSubmit={(text) => {
-            if (!focused) return
-            setInputValue("")
-            const trimmed = text.trim()
-            if (trimmed.startsWith("/")) {
-              const [cmd, ...rest] = trimmed.split(/\s+/)
-              const arg = rest.join(" ")
-              if (isLocal(cmd ?? "")) {
-                switch (cmd) {
-                  case "/inbox":
-                    return setShowInbox(true)
-                  case "/history":
-                    return setShowHistory(true)
-                  case "/todos":
-                    return setShowTodos((v) => !v)
-                  case "/mode": {
-                    const modes = ["plan", "accept-edits", "auto", "bypass"]
-                    const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
-                    setMode(target)
-                    return
-                  }
-                  case "/handoff": {
-                    const otherId = sessions.find((s) => s.id !== focused.id)?.id
-                    if (otherId) controller.handoff(focused.id, otherId, arg)
-                    return
-                  }
-                  case "/fork":
-                    void controller.fork(focused.id)
-                    return
-                  case "/spawn":
-                    void controller.spawnSession(arg || undefined)
-                    return
-                }
-              } else {
-                controller.runSlashCommand(focused.id, trimmed)
-              }
-            } else {
-              controller.send(focused.id, trimmed)
-            }
-          }}
+          onSubmit={handleSubmit}
+          onExit={() => void requestExit()}
         />
 
         <StatusLine session={focused} mode={mode} sessionCount={sessions.length} onSwitchMode={setMode} />

@@ -11,13 +11,7 @@ function preview(output: unknown, maxLen = 180): string {
   return json.length <= maxLen ? json : json.slice(0, maxLen) + "…"
 }
 
-export function ToolResultBlock({
-  output,
-  isError,
-}: {
-  output: unknown
-  isError?: boolean
-}): React.ReactElement {
+export function ToolResultBlock({ output, isError }: { output: unknown; isError?: boolean }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const preview1 = preview(output)
   const full = typeof output === "string" ? output : JSON.stringify(output, null, 2)
