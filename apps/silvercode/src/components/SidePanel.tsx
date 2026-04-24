@@ -92,6 +92,23 @@ export const MODE_LABELS: Record<string, string> = {
   bypass: "dangerously bypass on",
 }
 
+/**
+ * Thinking-mode icons + labels. Only shown when the user has invoked
+ * /think, /think_hard, or /ultrathink this session — default is no row.
+ * Intensity climbs with visual density: a dot, a colon, then `x` for the
+ * highest tier ("xhigh"). Colors are neutral grey in the version block.
+ */
+export const THINKING_ICONS: Record<string, string> = {
+  think: "·",
+  think_hard: ":",
+  ultrathink: "x",
+}
+export const THINKING_LABELS: Record<string, string> = {
+  think: "think on",
+  think_hard: "hard thinking on",
+  ultrathink: "xhigh thinking on",
+}
+
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
 
 /** Shorten an absolute path using `~` for display. */
@@ -230,6 +247,7 @@ export function SidePanel({
   onCycleMode,
   cwd,
   controller,
+  thinking,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -239,6 +257,8 @@ export function SidePanel({
   onCycleMode: () => void
   cwd: string
   controller: Controller
+  /** Current thinking mode ("" = none). Set by App.tsx intercepting /think family. */
+  thinking?: string
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -664,7 +684,7 @@ export function SidePanel({
           </Box>
         </Box>
         <Box flexDirection="row" gap={1}>
-          <Text color="#d97757">✻</Text>
+          <Text color="$fg">✻</Text>
           <Box flexDirection="row">
             <Text bold color="$fg">
               Claude
@@ -674,10 +694,19 @@ export function SidePanel({
         </Box>
         {/* Model — indent under the Claude Code line so it reads as a
             sub-detail. Uses the humanized slug (e.g. "Opus 4.7" /
-            "Opus 4.7 (1M context)"); empty string collapses the row. */}
+            "Opus 4.7 (1M)"); empty string collapses the row. */}
         {state.model && (
           <Box flexDirection="row" paddingLeft={2}>
             <Small>{modelLabel(state.model)}</Small>
+          </Box>
+        )}
+        {/* Thinking mode — only rendered when the user has invoked a
+            /think family slash command this session. Neutral grey so
+            attention stays on the colored permission-mode line below. */}
+        {thinking && THINKING_ICONS[thinking] && (
+          <Box flexDirection="row" gap={1} flexShrink={0}>
+            <Text color="$muted">{THINKING_ICONS[thinking]}</Text>
+            <Text color="$muted">{THINKING_LABELS[thinking]}</Text>
           </Box>
         )}
         {/* Mode — directly under the model, no spacer. Icon in left

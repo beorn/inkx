@@ -43,6 +43,15 @@ export type AppProps = {
    * use `~/.claude/` (v1.1 multi-account foundation).
    */
   account?: string
+  /**
+   * Test-only: inject a fake session factory so visual tests can drive the
+   * full <App/> via ScriptedFakeSession without spawning real subprocesses.
+   * Production callers never set this — the controller uses its default
+   * spawnClaude / spawnSdk / spawnCodex path. Exposing it on AppProps (not
+   * buried in a TestApp wrapper) means visual tests exercise the exact
+   * code path a real user hits, minus the subprocess.
+   */
+  spawnFactory?: (opts: { id: string; name: string; cwd: string; model?: string; resume?: string; bare: boolean; account?: string; track: Track }) => AgentSession | Promise<AgentSession>
 }
 
 export function App(props: AppProps): React.ReactElement {
@@ -57,6 +66,7 @@ export function App(props: AppProps): React.ReactElement {
       logDir: props.logDir,
       account: props.account,
       initialSessions: props.layout === "grid-4" ? 4 : props.layout === "grid-2" ? 2 : 1,
+      spawnFactory: props.spawnFactory,
     })
   }
   const controller = controllerRef.current!
@@ -73,6 +83,9 @@ export function App(props: AppProps): React.ReactElement {
 
   const [mode, setMode] = useState<string>("auto")
   const promptColor = MODE_COLOR[mode] ?? "$primary"
+  // Thinking mode ("" = none). Set when the user types /think, /think_hard,
+  // /ultrathink. Rendered as an optional row in SidePanel's version block.
+  const [thinking, setThinking] = useState<string>("")
   const [showInbox, setShowInbox] = useState(false)
   const [showSidePanel, setShowSidePanel] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
@@ -146,6 +159,12 @@ export function App(props: AppProps): React.ReactElement {
             return
         }
       } else {
+        // Thinking-mode slash commands — mirror locally so the SidePanel
+        // can show the current level. Pass through to Claude as well so
+        // Claude's own thinking-budget semantics apply.
+        if (cmd === "/think") setThinking("think")
+        else if (cmd === "/think_hard") setThinking("think_hard")
+        else if (cmd === "/ultrathink") setThinking("ultrathink")
         controller.runSlashCommand(focused.id, trimmed)
       }
     } else {
@@ -424,6 +443,7 @@ export function App(props: AppProps): React.ReactElement {
               onFocusSession={(id) => controller.focus(id)}
               mode={mode}
               onCycleMode={cycleMode}
+              thinking={thinking}
               cwd={props.cwd}
               controller={controller}
             />

@@ -39,7 +39,7 @@ export function contextWindowFor(model: string | null | undefined): number {
  */
 export function modelLabel(model: string | null | undefined): string {
   if (!model) return ""
-  const big = model.includes("[1m]") ? " (1M context)" : ""
+  const big = model.includes("[1m]") ? " (1M)" : ""
   const slug = model.replace(/\[1m\]$/, "")
   const m = slug.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)(?:-\d{8})?$/)
   if (m) {
