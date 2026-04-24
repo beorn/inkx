@@ -10,21 +10,32 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
   const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
+    // Track setTimeout handles so unmount clears pending dismissals —
+    // otherwise a toast's setState fires on an unmounted component.
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    const scheduleDismiss = (id: number, ms: number): void => {
+      const h = setTimeout(() => {
+        timers.delete(h)
+        setToasts((t) => t.filter((x) => x.id !== id))
+      }, ms)
+      timers.add(h)
+    }
     const unsubs = sessions.map((s) =>
       s.session.subscribe((e) => {
         if (e.kind === "permission-request") {
           const id = seq++
           setToasts((t) => [...t, { id, text: `${s.name}: permission requested (${e.tool})`, kind: "warn" }])
-          setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
+          scheduleDismiss(id, 4000)
         } else if (e.kind === "error") {
           const id = seq++
           setToasts((t) => [...t, { id, text: `${s.name}: ${e.message}`, kind: "error" }])
-          setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 5000)
+          scheduleDismiss(id, 5000)
         }
       }),
     )
     return () => {
       for (const u of unsubs) u()
+      for (const h of timers) clearTimeout(h)
     }
   }, [sessions])
 

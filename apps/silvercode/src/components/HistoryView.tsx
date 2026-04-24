@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Box, ModalDialog, Muted, SelectList, Text, TextInput } from "silvery"
 
 type Entry = {
@@ -49,7 +49,13 @@ export function HistoryView({ onClose, logDir }: { onClose: () => void; logDir?:
   const [query, setQuery] = useState("")
   const [cursor, setCursor] = useState(0)
 
-  const entries = useMemo(() => scanLogDir(logDir), [logDir])
+  // Sync fs scan lives in useEffect, not useMemo — render-time sync I/O
+  // blocks the event loop. User sees an empty list for one frame, then
+  // entries pop in after scanLogDir returns.
+  const [entries, setEntries] = useState<Entry[]>([])
+  useEffect(() => {
+    setEntries(scanLogDir(logDir))
+  }, [logDir])
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return entries

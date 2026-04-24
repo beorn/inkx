@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
 import { Box, PopoverProvider, Screen, useDispose, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
@@ -15,6 +15,16 @@ import { isLocal } from "./slash-commands.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
 type Track = "claude" | "sdk" | "codex"
+
+// Mode → prompt color so the `>` in the command input visibly signals
+// what Claude is allowed to do. Same mapping as SidePanel's Mode label.
+// Module-scope constant so it's not re-created per render.
+const MODE_COLOR: Record<string, string> = {
+  plan: "$info",
+  "accept-edits": "$warning",
+  auto: "$success",
+  bypass: "$error",
+}
 
 export type AppProps = {
   cwd: string
@@ -59,14 +69,6 @@ export function App(props: AppProps): React.ReactElement {
   )
 
   const [mode, setMode] = useState<string>("auto")
-  // Mode → prompt color so the `>` in the command input visibly signals
-  // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
-  const MODE_COLOR: Record<string, string> = {
-    plan: "$info",
-    "accept-edits": "$warning",
-    auto: "$success",
-    bypass: "$error",
-  }
   const promptColor = MODE_COLOR[mode] ?? "$primary"
   const [showInbox, setShowInbox] = useState(false)
   const [showSidePanel, setShowSidePanel] = useState(true)
@@ -288,11 +290,14 @@ export function App(props: AppProps): React.ReactElement {
     printResumeHints()
   })
 
-  // Mode cycler used by the side panel's ⚡ label.
-  function cycleMode(): void {
-    const modes = ["plan", "accept-edits", "auto", "bypass"]
-    setMode(modes[(modes.indexOf(mode) + 1) % modes.length]!)
-  }
+  // Mode cycler used by the side panel's ⚡ label. Memoized so passing
+  // it to SidePanel doesn't force a new prop identity every render.
+  const cycleMode = useCallback((): void => {
+    setMode((m) => {
+      const modes = ["plan", "accept-edits", "auto", "bypass"]
+      return modes[(modes.indexOf(m) + 1) % modes.length]!
+    })
+  }, [])
 
   return (
     <PopoverProvider>

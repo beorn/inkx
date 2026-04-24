@@ -54,15 +54,15 @@ const MODE_COLORS: Record<string, string> = {
 }
 
 /**
- * Permission-mode display labels. Mirrors Claude Code's own status-line
- * convention (⏸ for plan, ⏵⏵ for modes that skip prompting). Bypass gets
- * ⚡ — visually distinct, signals "zap through approvals, dangerous".
+ * Permission-mode display labels. Simple ASCII-ish glyphs — terminal-safe,
+ * single-cell, no emoji fallback drift: `·` pause/plan (tentative),
+ * `»` permissive modes (skip prompts), `!` bypass (attention / danger).
  */
 const MODE_LABELS: Record<string, string> = {
-  plan: "⏸ plan mode on",
-  "accept-edits": "⏵⏵ accept edits on",
-  auto: "⏵⏵ auto mode on",
-  bypass: "⚡ bypass mode on",
+  plan: "· plan mode on",
+  "accept-edits": "» accept edits on",
+  auto: "» auto mode on",
+  bypass: "! bypass mode on",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
