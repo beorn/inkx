@@ -9,9 +9,9 @@ import { Notifications } from "./components/Notifications.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
 import { PopoverLayer, PopoverProvider } from "./components/Popover.tsx"
 import { SessionCard } from "./components/SessionCard.tsx"
+import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
 import { StatusLine } from "./components/StatusLine.tsx"
-import { TodoPanel } from "./components/TodoPanel.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 
@@ -62,7 +62,7 @@ export function App(props: AppProps): React.ReactElement {
 
   const [mode, setMode] = useState<string>("auto")
   const [showInbox, setShowInbox] = useState(false)
-  const [showTodos, setShowTodos] = useState(true)
+  const [showSidePanel, setShowSidePanel] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
@@ -89,7 +89,9 @@ export function App(props: AppProps): React.ReactElement {
           case "/history":
             return setShowHistory(true)
           case "/todos":
-            return setShowTodos((v) => !v)
+          case "/panel":
+          case "/aside":
+            return setShowSidePanel((v) => !v)
           case "/mode": {
             const modes = ["plan", "accept-edits", "auto", "bypass"]
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
@@ -130,7 +132,14 @@ export function App(props: AppProps): React.ReactElement {
         return
       }
       if (key.ctrl && input === "e") return setShowInbox((v) => !v)
-      if (key.ctrl && input === "y") return setShowTodos((v) => !v)
+      // Cmd+I OR Ctrl+O toggle the side panel. Cmd+I is the requested
+      // binding (Kitty protocol forwards Cmd+letter as key.super); Ctrl+O
+      // is a non-alias fallback for terminals that don't forward Cmd.
+      // /panel, /aside, /todos slash aliases toggle the same state.
+      if ((key.super && input === "i") || (key.ctrl && input === "o")) {
+        return setShowSidePanel((v) => !v)
+      }
+      if (key.ctrl && input === "y") return setShowSidePanel((v) => !v)
       if (key.ctrl && input === "r") return setShowHistory((v) => !v)
       if (key.ctrl && input === "n" && sessions.length > 1) {
         const idx = sessions.findIndex((s) => s.id === focusedSessionId)
@@ -169,6 +178,25 @@ export function App(props: AppProps): React.ReactElement {
     silveryExit()
   }
 
+  // SIGINT (Ctrl+C) — silvery's default handler restores the terminal but
+  // leaves the child claude subprocesses running, which keeps Node alive and
+  // forces a second Ctrl+C to kill the host. Register our own handler that
+  // closes every session first, then exits cleanly. One-shot per process;
+  // a second SIGINT during the drain falls through to Node's default which
+  // kills the tree.
+  useEffect(() => {
+    let draining = false
+    function onSigint(): void {
+      if (draining) return
+      draining = true
+      void requestExit()
+    }
+    process.on("SIGINT", onSigint)
+    return () => {
+      process.off("SIGINT", onSigint)
+    }
+  }, [])
+
   return (
     <PopoverProvider>
       <Box flexDirection="column" width={cols} height={rows} overflow="hidden">
@@ -195,9 +223,9 @@ export function App(props: AppProps): React.ReactElement {
               </Box>
             ))}
           </Box>
-          {showTodos && focused && (
-            <Box flexShrink={0} flexBasis={36} flexDirection="column">
-              <TodoPanel handle={focused} />
+          {showSidePanel && focused && (
+            <Box flexShrink={0} flexBasis={38} flexDirection="column">
+              <SidePanel handle={focused} />
             </Box>
           )}
         </Box>
