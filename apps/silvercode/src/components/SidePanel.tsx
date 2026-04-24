@@ -54,15 +54,23 @@ const MODE_COLORS: Record<string, string> = {
 }
 
 /**
- * Permission-mode display labels. Simple ASCII-ish glyphs — terminal-safe,
- * single-cell, no emoji fallback drift: `·` pause/plan (tentative),
- * `»` permissive modes (skip prompts), `!` bypass (attention / danger).
+ * Permission-mode icons + labels. Icon sits in the left margin (col 0)
+ * matching the Silver Code / Claude Code rows; label aligns with the
+ * other text after a one-col gap. Terminal-safe single-cell glyphs: `·`
+ * plan (tentative), `»` permissive modes (skip prompts), `!` bypass
+ * (attention / danger).
  */
+const MODE_ICONS: Record<string, string> = {
+  plan: "·",
+  "accept-edits": "»",
+  auto: "»",
+  bypass: "!",
+}
 const MODE_LABELS: Record<string, string> = {
-  plan: "· plan mode on",
-  "accept-edits": "» accept edits on",
-  auto: "» auto mode on",
-  bypass: "! bypass mode on",
+  plan: "plan mode on",
+  "accept-edits": "accept edits on",
+  auto: "auto mode on",
+  bypass: "bypass mode on",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
@@ -648,17 +656,21 @@ export function SidePanel({
             <Small>{modelLabel(state.model)}</Small>
           </Box>
         )}
-        {/* Mode — directly under the model, no spacer. Clickable to cycle,
-            hover shows help + armed bg. */}
+        {/* Mode — directly under the model, no spacer. Icon in left
+            margin, label aligned with Silver/Claude Code rows.
+            Clickable to cycle, hover shows help + armed bg. */}
         <Box
           flexDirection="row"
+          gap={1}
           flexShrink={0}
-          paddingLeft={2}
           onClick={onCycleMode}
           onMouseEnter={modeHover.onMouseEnter}
           onMouseLeave={modeHover.onMouseLeave}
           backgroundColor={hoveredBg(modeHover.isHovered)}
         >
+          <Text color={modeColor} bold>
+            {MODE_ICONS[mode] ?? "·"}
+          </Text>
           <Text color={modeColor} bold>
             {MODE_LABELS[mode] ?? mode}
           </Text>
