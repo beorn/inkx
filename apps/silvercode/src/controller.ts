@@ -160,18 +160,29 @@ export type Controller = {
   onFocusChange(handler: (id: string) => void): () => void
   /**
    * Send a user message. If the session is currently NOT idle (Claude is
-   * thinking / running a tool / waiting for permission), the message is
-   * queued and flushed when the session returns to idle. Echo into the
-   * message stream is deferred until flush so the UI shows the real
-   * order.
+   * thinking / running a tool / waiting for permission), the text is
+   * appended to a queue buffer and the whole buffer is submitted as ONE
+   * user message when Claude returns to idle — matches Claude Code's
+   * batching behaviour. Unless `queueGate` has been set via
+   * `holdQueue(true)` (queue editor has focus), in which case flush
+   * waits until the gate is released.
    */
   send(sessionId: string, text: string): void
-  /** Queued messages (not yet flushed) per session. Drives the side-panel indicator. */
-  queuedCount(sessionId: string): number
-  /** Subscribe to queue-length changes. */
-  onQueueChange(handler: (sessionId: string, count: number) => void): () => void
-  /** Drop all queued messages for a session (e.g. Esc to cancel). */
+  /** Current queue buffer for a session. Empty string when none. */
+  queuedText(sessionId: string): string
+  /** Replace the whole queue buffer — used by the on-screen queue editor. */
+  setQueuedText(sessionId: string, text: string): void
+  /** Subscribe to queue-text changes (payload: the new buffer). */
+  onQueueChange(handler: (sessionId: string, text: string) => void): () => void
+  /** Drop the queue (Esc-to-cancel on empty input). */
   clearQueue(sessionId: string): void
+  /**
+   * Pause / resume auto-flush. When held, queued text never drains even
+   * if the session returns to idle — used by the queue editor to stop
+   * mid-edit submission. Releasing the hold triggers an immediate flush
+   * if the session is idle and the queue is non-empty.
+   */
+  holdQueue(sessionId: string, hold: boolean): void
   respondPermission(sessionId: string, requestId: string, approved: boolean): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
@@ -200,15 +211,42 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     for (const fn of sessionSubs) fn(sessions)
   }
 
-  // Per-session message queue. While Claude is mid-turn (status != idle),
-  // new user messages go here instead of straight to claude's stdin. The
-  // flushQueue() call (wired on each session via store.subscribe at spawn
-  // time) drains them one-at-a-time when status returns to idle.
-  const queues = new Map<string, string[]>()
-  const queueSubs = new Set<(sessionId: string, count: number) => void>()
+  // Per-session message queue — single string buffer so the on-screen
+  // queue editor can bind a TextArea to it directly. While Claude is
+  // mid-turn (status != idle), new user messages are appended (separated
+  // by "\n\n"). On idle, the whole buffer is flushed as ONE user message
+  // — matches Claude Code's batching behaviour. `holds` gates the flush
+  // (queue editor sets hold=true while the user is editing).
+  const queues = new Map<string, string>()
+  const holds = new Map<string, boolean>()
+  const queueSubs = new Set<(sessionId: string, text: string) => void>()
   function notifyQueue(sessionId: string): void {
-    const n = queues.get(sessionId)?.length ?? 0
-    for (const fn of queueSubs) fn(sessionId, n)
+    const t = queues.get(sessionId) ?? ""
+    for (const fn of queueSubs) fn(sessionId, t)
+  }
+  /**
+   * Flush the queue buffer to Claude as one user turn, then clear. No-op
+   * if the queue is empty, the session is non-idle, or the hold gate is
+   * set. Called on every result / session-lifecycle / hold-release.
+   */
+  function tryFlush(sessionId: string): void {
+    const s = sessions.find((h) => h.id === sessionId)
+    if (!s) return
+    if (holds.get(sessionId)) return
+    if (s.store.state.get().status !== "idle") return
+    const text = queues.get(sessionId) ?? ""
+    if (text.length === 0) return
+    queues.set(sessionId, "")
+    notifyQueue(sessionId)
+    const turnId = `u-${Date.now()}` as never
+    s.store.apply({
+      kind: "user-message",
+      sessionId: s.session.sessionId,
+      turnId,
+      text,
+      ts: Date.now(),
+    })
+    s.session.send(text)
   }
   function notifyFocus(): void {
     for (const fn of focusSubs) fn(focusedId)
@@ -317,25 +355,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const unsub = session.subscribe((event: AgentEvent) => {
       store.apply(event)
       if (log) log.append(event)
-      // Flush one queued message when the session returns to idle. We
-      // drain one-at-a-time (not the whole queue in a tight loop) because
-      // claude processes messages sequentially and each send transitions
-      // status back to non-idle on the next turn-start.
+      // Flush on every turn boundary — the whole queue goes as ONE turn.
       if (event.kind === "result" || event.kind === "session-lifecycle") {
-        const q = queues.get(id)
-        if (q && q.length > 0 && store.state.get().status === "idle") {
-          const next = q.shift()!
-          notifyQueue(id)
-          const turnId = `u-${Date.now()}` as never
-          store.apply({
-            kind: "user-message",
-            sessionId: session.sessionId,
-            turnId,
-            text: next,
-            ts: Date.now(),
-          })
-          session.send(next)
-        }
+        tryFlush(id)
       }
     })
 
@@ -397,39 +419,54 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
-      // Queue if Claude is mid-turn. flushQueue() below drains the queue
-      // when status returns to idle, respecting user order.
       const status = s.store.state.get().status
-      if (status !== "idle" && status !== "ended") {
-        const q = queues.get(sessionId) ?? []
-        q.push(text)
-        queues.set(sessionId, q)
+      const idle = status === "idle" || status === "ended"
+      // Non-idle OR queue currently held (editor has focus) → append to
+      // buffer and let tryFlush decide when to drain.
+      if (!idle || holds.get(sessionId)) {
+        const prev = queues.get(sessionId) ?? ""
+        const next = prev ? `${prev}\n\n${text}` : text
+        queues.set(sessionId, next)
         notifyQueue(sessionId)
         return
       }
-      // Synthesize the user-message locally so the card echoes it immediately.
+      // Idle + no hold → send immediately, but include any pending queue
+      // text (edited or auto-queued earlier) as part of the same turn.
+      const pending = queues.get(sessionId) ?? ""
+      const combined = pending ? `${pending}\n\n${text}` : text
+      queues.set(sessionId, "")
+      notifyQueue(sessionId)
       const turnId = `u-${Date.now()}` as never
       s.store.apply({
         kind: "user-message",
         sessionId: s.session.sessionId,
         turnId,
-        text,
+        text: combined,
         ts: Date.now(),
       })
-      s.session.send(text)
+      s.session.send(combined)
     },
-    queuedCount(sessionId: string): number {
-      return queues.get(sessionId)?.length ?? 0
+    queuedText(sessionId: string): string {
+      return queues.get(sessionId) ?? ""
     },
-    onQueueChange(handler: (sessionId: string, count: number) => void): () => void {
+    setQueuedText(sessionId: string, text: string): void {
+      if (text === (queues.get(sessionId) ?? "")) return
+      queues.set(sessionId, text)
+      notifyQueue(sessionId)
+    },
+    onQueueChange(handler: (sessionId: string, text: string) => void): () => void {
       queueSubs.add(handler)
-      for (const [sid, q] of queues) handler(sid, q.length)
+      for (const [sid, t] of queues) handler(sid, t)
       return () => queueSubs.delete(handler)
     },
     clearQueue(sessionId: string): void {
-      if (!queues.has(sessionId)) return
-      queues.delete(sessionId)
+      if (!queues.get(sessionId)) return
+      queues.set(sessionId, "")
       notifyQueue(sessionId)
+    },
+    holdQueue(sessionId: string, hold: boolean): void {
+      holds.set(sessionId, hold)
+      if (!hold) tryFlush(sessionId)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
       const s = sessions.find((h) => h.id === sessionId)

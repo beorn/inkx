@@ -6,6 +6,8 @@ import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
+import { QueueEditor } from "./components/QueueEditor.tsx"
+import { useQueue } from "./hooks/use-queue.ts"
 import { SessionCard } from "./components/SessionCard.tsx"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
@@ -72,6 +74,24 @@ export function App(props: AppProps): React.ReactElement {
   const [showHistory, setShowHistory] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
+
+  // Queue buffer for the currently-focused session. Bound to the
+  // QueueEditor TextArea; edits flow back to the controller which gates
+  // the flush. `queueFocused` tracks which widget owns the keyboard.
+  const queueText = focused ? useQueue(controller, focused.id) : ""
+  const [queueFocused, setQueueFocused] = useState(false)
+  // When the queue empties, release focus back to the input so the user
+  // isn't stuck in an invisible editor.
+  useEffect(() => {
+    if (queueText.length === 0 && queueFocused) setQueueFocused(false)
+  }, [queueText, queueFocused])
+  // Announce hold state to the controller — flush paused while editor
+  // has focus; released (and tryFlush fires) when focus returns to
+  // command input.
+  useEffect(() => {
+    if (!focused) return
+    controller.holdQueue(focused.id, queueFocused)
+  }, [controller, focused, queueFocused])
 
   // Dedupe: when the palette is open and user presses Enter, both the
   // palette's useInput AND TextInput's internal Enter handler fire in the
@@ -157,6 +177,14 @@ export function App(props: AppProps): React.ReactElement {
       // doesn't consume the key before it reaches us.
       if (key.shift && key.tab) {
         cycleMode()
+        return
+      }
+      // Up-arrow at the command input with an empty buffer and a pending
+      // queue → jump into the queue editor. Claude Code convention:
+      // cursor-up recalls recent input; we reuse that idiom here since
+      // silvercode doesn't have history recall yet.
+      if (key.upArrow && !queueFocused && inputValue.length === 0 && queueText.length > 0) {
+        setQueueFocused(true)
         return
       }
       if (key.ctrl && input === "e") return handleCtrlLetter("e", () => setShowInbox((v) => !v))
@@ -301,6 +329,18 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
+            {/* Queue editor — appears above the command input whenever
+                the current session has pending queued text. Editable
+                TextArea; holding focus pauses submission. */}
+            {focused && (
+              <QueueEditor
+                value={queueText}
+                focused={queueFocused}
+                onChange={(t) => controller.setQueuedText(focused.id, t)}
+                onRelease={() => setQueueFocused(false)}
+              />
+            )}
+
             {/* Command input region — floats inside a transparent gutter
                 (2 cols L/R, 1 row top/bottom). The inner filled Box
                 flex-grows to fill the left column's width so the input
@@ -317,7 +357,7 @@ export function App(props: AppProps): React.ReactElement {
                 <CommandInput
                   value={inputValue}
                   onChange={setInputValue}
-                  disabled={!focused}
+                  disabled={!focused || queueFocused}
                   onSubmit={handleSubmit}
                   onExit={requestExit}
                   promptColor={promptColor}
