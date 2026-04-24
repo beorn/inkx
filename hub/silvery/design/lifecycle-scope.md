@@ -17,7 +17,7 @@ Silvery apps today acquire and dispose resources through at least 6 mechanisms: 
 1. **Scope is lifetime, not DI.** Do not conflate "how to construct" with "how to dispose" (Effect-TS `Layer` trap).
 2. **Ownership is a tree.** Structured concurrency wants a tree; React fiber lifetimes are already a tree. Mirror them.
 3. **Ambient-via-React, explicit-outside-React.** No `AsyncLocalStorage`. Ownership must be visible.
-4. **Scope core stays tiny.** 5 methods, platform-neutral. Resources are factories in platform packages, not methods on Scope.
+4. **Scope core stays tiny.** 4 methods, platform-neutral. Resources are factories in platform packages, not methods on Scope.
 5. **One uniform gate.** Every resource shape plugs in through `scope.adopt(Disposable)`. No special cases.
 6. **Unmount is hard law.** If a resource must outlive its component, it was owned by the wrong thing.
 7. **Cross-platform by construction.** Scope knows only `AbortSignal`. SIGINT/pagehide live in host wiring.
@@ -91,16 +91,6 @@ If that pattern appears more than ~3 times, extract `useScopeEffect`. Not before
 - `useScope()` walks ancestor fibers to find the nearest scope. Fibers that don't call `useScope()` don't pay for one (lazy allocation).
 - On fiber deletion, if `fiber.scope` is set, the reconciler synchronously calls `scope[Symbol.asyncDispose]()`. Disposal is unavoidable — there is no path to skip it.
 - The app root always has a scope (from `withScope()`, now default-enabled in `createApp()`).
-
-### `useScopeEffect` vs `useEffect`
-
-`useScopeEffect` is `useEffect` with three refinements:
-
-1. A **child scope** is created per effect invocation.
-2. If `setup` throws partway, the partial scope is disposed before the error propagates.
-3. On deps change / unmount, the child scope disposes (triggering LIFO cleanup of everything `setup` adopted).
-
-This replaces the common `useEffect(() => { const x = ...; return () => x.close() }, [deps])` pattern. Ship if it earns its keep in real app code; defer if `useScope()` + `using` covers the cases.
 
 ## Resource adoption pattern
 
@@ -522,7 +512,7 @@ const root = scope.adopt(mountSubroot(<PanelUI />, term))
 
 ## Resource coverage
 
-One gate covers them all. Each is a factory returning `Disposable` or `AsyncDisposable`:
+Each resource shape is a factory returning `Disposable` or `AsyncDisposable`; adding a new shape means writing a factory, not changing `Scope`.
 
 | Shape | Factory | Package |
 |---|---|---|
@@ -533,14 +523,12 @@ One gate covers them all. Each is a factory returning `Disposable` or `AsyncDisp
 | Database connections | `openDb(path)` | per-driver |
 | Network sockets | `new WebSocket(url)` (browser + node) | platform-native |
 | Subscriptions | `on(emitter, event, fn)` helper | `@silvery/core` |
-| Intervals / timers | `interval(ms, fn)` / `scope.sleep(ms)` | `@silvery/core` |
+| Intervals / timers | `interval(ms, fn)` / `timeout(ms, fn)` | `@silvery/core` |
 | Temp directories | `tempDir()` | `@silvery/node` |
 | Server listeners | `listen(port)` | `@silvery/node` |
 | Worker threads | `worker(script)` | `@silvery/node` |
 | Terminal protocol state | `rawMode(term)` | `@silvery/ag-term` |
 | Sub-reconciler roots | `mountSubroot(element)` | `@silvery/ag-react` |
-
-None of these require changes to `Scope`. Adding a new resource = writing a factory that returns `Disposable`.
 
 ## Cross-platform story
 
@@ -554,37 +542,6 @@ Host wiring injects the root abort:
 
 App code is identical across targets. Browsers don't guarantee awaited async cleanup on tab close; that is a host-level honesty, not a reason to pollute the API. The model stays: deterministic when *you* control teardown, best-effort when the host kills the world. Terminals are the same if the process is `SIGKILL`ed.
 
-## `useDispose` migration
-
-`useDispose` was the 2026-04-24 ergonomic stopgap. Once scopes ship:
-
-```ts
-// Before
-useDispose(() => controller.killAll())
-
-// After — the resource registers itself
-const scope = useScope()
-scope.defer(() => controller.killAll())
-
-// Or, better, the controller itself is a Disposable
-const controller = scope.adopt(createController())
-```
-
-Plan: deprecate `useDispose` with a JSDoc note pointing to `scope.defer`, keep as a thin shim for one release, delete in the release after.
-
-## Lint gate
-
-Ban raw acquisition in app code (silvery + km + silvercode). ESLint rule flags:
-
-- `setTimeout`, `setInterval`
-- `new AbortController()`
-- `child_process.spawn`, `child_process.fork`, `child_process.exec`
-- `fs.watch`, `fs.createReadStream`, `fs.createWriteStream`
-- `net.createServer`, `http.createServer`
-- Direct `EventEmitter.on` without matching `.off` in same scope
-
-Autofix hint: "Wrap in a Disposable and adopt into a Scope." Exceptions for `@silvery/*` platform packages (they implement the wrappers).
-
 ## Anti-patterns (what to reject in review)
 
 1. **`scope.spawn`, `scope.watch`, `scope.listen` methods.** God-object. Keep Scope tiny; resources are factory functions.
@@ -597,36 +554,133 @@ Autofix hint: "Wrap in a Disposable and adopt into a Scope." Exceptions for `@si
 8. **Shared subtree scopes by default.** Makes leaf cleanup too late. Default to component-local ownership.
 9. **WeakRef / FinalizationRegistry for cleanup.** Non-deterministic; useless for processes, sockets, fds.
 
-## Success criteria
+## Done when
 
-- Single import path for all resource ownership in silvery + km.
-- Zero direct `setTimeout` / `setInterval` / `AbortController` / `fs.watch` / `child_process.spawn` in app code (CI grep gate).
-- STRICT test: root unmount leaves no live timers, fds, subscriptions, child processes, listeners, or terminal protocol state.
-- Migration guide with before/after for each of the 6 current mechanisms.
-- Silvercode sub-reconciler-roots use the same primitive as main render roots.
-- Real silvercode playtest: `App.tsx` has no `useDispose` / `useEffect` cleanup / manual `.close()` anywhere; subprocesses die when silvery exits.
+- `apps/silvercode/src/App.tsx` has no `useDispose` / `useEffect` cleanup / manual `.close()`; the subprocess dies via scope on panel unmount, app exit, and render throw.
+- `bun run lint` fails on raw `setTimeout` / `setInterval` / `new AbortController` / `child_process.spawn` / `fs.watch` / `net.createServer` / `http.createServer` outside `@silvery/*` and `vendor/*`.
+- STRICT test passes: root unmount leaves no live timers, fds, subscriptions, child processes, or listeners (checked via `process._getActiveHandles().length === 0` post-dispose in a termless harness).
+- Grep for `useDispose|term\.signals\.on\(|useExit\(` in non-vendor code returns zero hits.
+
+## Implementation guide
+
+Concrete targets so Phase 0-1 can be claimed without reverse-engineering.
+
+### Scope interface — pruning diff
+
+`vendor/silvery/packages/scope/src/index.ts` currently exports a superset. Phase 0 prunes it to the locked form:
+
+```diff
+ export interface Scope extends Disposable {
+-  readonly name: string
+   readonly signal: AbortSignal
+-  readonly cancelled: boolean
+   defer(fn: () => void | Promise<void>): void
+-  child(name?: string): Scope
++  child(name?: string): Scope              // name kept as ctor arg for trace only
+   adopt<T extends Disposable | AsyncDisposable>(value: T): T
+-  sleep(ms: number): Promise<void>
+-  timeout(ms: number, fn: () => void): () => void
+ }
+-
+-// Becomes:
++
++export interface Scope extends AsyncDisposable {
++  readonly signal: AbortSignal
++  defer(fn: () => void | Promise<void>): void
++  adopt<T extends Disposable | AsyncDisposable>(value: T): T
++  child(name?: string): Scope
++}
+```
+
+Runtime changes:
+
+- `name` / `cancelled` stay on the internal struct for debug/trace but drop from the public interface.
+- `sleep(ms)` / `timeout(ms, fn)` move to `@silvery/core` as free functions taking `scope` as first arg.
+- `[Symbol.dispose]` → `[Symbol.asyncDispose]`; returns a Promise that resolves when all cleanups (incl. async) settle.
+- `adopt` is new. Implementation: calls `defer(() => value[Symbol.dispose ?? Symbol.asyncDispose]())`, returns `value` unchanged.
+
+### Disposal algorithm — LIFO semantics
+
+`defer(fn)` and `adopt(value)` push onto **one shared stack** in call order. Disposal pops the stack in reverse — meaning an `adopt()` that came after a `defer()` runs *before* that `defer()`. This matters for code that wants "cleanup A after adopted resource B is gone": call `defer(A)` first, then `adopt(B)`.
+
+Children dispose before their parent's own stack runs. Within a scope: all children (recursively) → own LIFO stack.
+
+### Reconciler integration — where to edit
+
+- **`vendor/silvery/packages/ag-react/src/reconciler/host-config.ts`** — add an optional `scope: Scope | null` field on the fiber-local state the reconciler tracks. On the host-config `removeChild` / fiber-unmount path, if `scope != null`, `await scope[Symbol.asyncDispose]()` before returning.
+- **`vendor/silvery/packages/ag-react/src/hooks/useScope.ts`** (new file) — hook that:
+  1. Looks for a scope on the current fiber's state. If present, return it.
+  2. Walks up the owner chain (React's fiber `.return` pointer, exposed via `react-reconciler` internals or equivalent) to find the nearest ancestor scope.
+  3. Lazily allocates a fiber-local scope as a child of the nearest ancestor on first access — so components that never call `useScope()` pay nothing.
+- **`vendor/silvery/packages/ag-term/src/runtime/create-app.tsx`** — `createApp()` unconditionally calls `withScope()` (so every app has a root scope). `app` gets a `.scope` field. The existing plugin-chain (`pipe(withX, withY)(...)`) stays as-is; `withScope` just goes first by default.
+- **`vendor/silvery/packages/ag-term/src/runtime/devices/signals.ts`** — `withScope`'s root-wiring registers a single `priority: 0, name: "root-scope-dispose"` handler for SIGINT + SIGTERM that calls `rootScope[Symbol.asyncDispose]()`. App code no longer touches `term.signals` directly.
+
+### `withScope` contract
+
+```ts
+// @silvery/ag-term
+export function withScope(): <A extends AppBase>(app: A) => A & { readonly scope: Scope }
+```
+
+Where `AppBase` is the existing plugin-chain app shape (see `create-app.tsx`). `withScope` attaches `scope: rootScope` to the app; every fiber in the reconciler walks up to this root.
+
+### `@silvery/node` — new package
+
+Location: `vendor/silvery/packages/node/`. Deps: `react@19` (peer? no — pure Node), `@silvery/scope` (peer). No bun-specifics; `@silvery/bun` can layer on later for `bun:sqlite` etc. Exports: `spawn`, `watch`, `tempDir`, `interval`, `timeout`, `listen`. Each file is ~15-30 lines; whole package target is <300 LOC.
+
+Phase 2 creates this package. Phase 1 doesn't need it — inline the one `spawnClaude` wrapper in silvercode and port after Phase 2.
+
+### Testing strategy
+
+- **Unit tests** (`vendor/silvery/packages/scope/tests/` — new directory): `createScope`, `defer`/`adopt` ordering, `child` cascade, `AggregateError` on multi-throw, sync vs async dispose paths.
+- **Reconciler integration** (`vendor/silvery/packages/ag-react/tests/scope.test.tsx` — new): mount → unmount; `useScope()` ancestor walk; fiber disposal ordering; StrictMode double-invoke (use `<StrictMode>` wrapper in the test renderer).
+- **End-to-end leak check** (termless — see `apps/km-tui/tests/CLAUDE.md` for termless harness): mount silvercode with a subprocess, unmount, assert `process._getActiveHandles().length === 0` and `process._getActiveRequests().length === 0`. Run under `SILVERY_STRICT=1`.
+- **Template to copy**: `apps/km-tui/tests/showcase.spec.ts` (canonical TUI test pattern per root CLAUDE.md).
+
+### StrictMode contract
+
+Dev-mode double-invoke must dispose-then-reacquire. Contract: the second mount sees a **fresh scope** (new signal, empty disposer stack), never a cancelled one. The first mount's scope is disposed synchronously before the second mount's `useScope()` returns. Test explicitly.
+
+### FAQ / edge cases
+
+- **Resource shared across sibling components?** Lift to the nearest common ancestor — acquire in its `useScope()` and pass down. Siblings don't share scope.
+- **Resource outlives re-render but dies on unmount?** `useScope()` directly at component level is correct. Don't nest in `useEffect(() => scope.child(...))` — that rebuilds on every deps change.
+- **Error boundary caught an error?** The boundary's `componentDidCatch` disposes its subtree scope before rendering the fallback. Error-recovery UI runs under the boundary's own scope, not the crashed subtree's.
+- **Async work that should outlive the component?** You're designing it wrong. Move the work to a service/app scope (the app root) and pass the component a handle — the component's lifetime is just "interested listener," not owner.
+- **What if `scope.defer(fn)` throws synchronously during dispose?** Collected into `AggregateError`. Disposal continues. Other disposers run regardless.
+- **Can I hold `scope` in a `useRef`?** No — always `useScope()`. StrictMode may give you a different scope on remount; the ref would point at a disposed one.
+- **Does `scope.adopt` transfer ownership?** Yes. The adopted value is disposed when the scope disposes; the caller should not call `.close()` / `.kill()` / etc. on it.
+- **Two components want to adopt the same resource?** Only one owns. The other receives a reference (via prop / context) and doesn't adopt.
 
 ## Phased refactor plan
 
 Uses `/refactor` discipline: explicit phases, verifiable exit criteria, zero WIP between phases, each phase shippable independently.
 
-### Phase 0 — Research + API lock (1-2 days)
+### Phase 0 — API lock (1 day)
 
-**Do**: 1-page prior-art comparison doc in `hub/silvery/design/` covering Effect-TS `Scope`, Trio nursery, Kotlin `coroutineScope`, Go `context.Context`, VS Code `DisposableStore`, TC39 `using`. Validate that the 4-method core API covers every precedent's useful semantics without adopting their mistakes. Lock the core API.
+The prior-art survey above already picks our mental model. Phase 0 is mechanical:
 
-**Exit**: `@silvery/scope` API frozen (this doc). Comparison doc committed.
+1. Apply the pruning diff (see *Implementation guide → Scope interface*) to `vendor/silvery/packages/scope/src/index.ts`.
+2. Move `sleep` / `timeout` to `@silvery/core` as free functions.
+3. Switch to `[Symbol.asyncDispose]`.
+4. Add `adopt()`.
+5. Write the scope unit-test suite in `vendor/silvery/packages/scope/tests/`.
+
+**Exit**: `@silvery/scope` matches the locked interface; unit tests green; `bun run test:vendor -- scope` passes.
 
 ### Phase 1 — Prototype de-risk (1 week)
 
-Build only:
+Build order (each step passes tests before the next starts):
 
-1. **Reconciler `fiber.scope` slot.** On fiber deletion, if present, call `scope[Symbol.asyncDispose]()`. `useScope()` walks ancestors; fibers that don't call `useScope()` don't allocate one.
-2. **Migrate one real resource.** Silvercode's Claude subprocess spawn, from `useDispose(() => controller.killAll())` to `scope.adopt(spawnClaude(cwd))`.
-3. **Dogfood for a week.** Use silvercode daily. Watch for leaks (process table, open fds, log file growth).
+1. **`useScope()` hook** — new file `vendor/silvery/packages/ag-react/src/hooks/useScope.ts`. Lazy fiber-local allocation, ancestor walk. Test: two nested components, outer calls `useScope()`, inner walks up and finds it.
+2. **Fiber disposal wiring** — edit `vendor/silvery/packages/ag-react/src/reconciler/host-config.ts`. On fiber unmount, `await scope?.[Symbol.asyncDispose]()`. Test: mount/unmount disposes the scope; StrictMode double-invoke disposes both cleanly.
+3. **`withScope()` plugin** — `vendor/silvery/packages/ag-term/src/runtime/` (wire into `create-app.tsx` as default plugin). Roots SIGINT/SIGTERM through a single priority-0 signal handler (see *withScope contract*). Test: kill signal disposes root scope.
+4. **Migrate silvercode Claude subprocess** — edit `apps/silvercode/src/App.tsx` to use `scope.adopt(spawnClaude(cwd))`. Inline the `spawnClaude` Disposable wrapper in silvercode for now (the real `@silvery/node` comes in Phase 2).
+5. **Dogfood for a week** — run silvercode daily. Watch `ps | grep claude`, `lsof` for fd count, log file growth.
 
-**Exit**: three teardown paths verified — (a) panel unmount kills subprocess, (b) SIGTERM app kills subprocess, (c) throw during render kills subprocess. Zero regressions over 7 days. StrictMode double-mount disposes cleanly. Sub-reconciler root cascades through outer scope.
+**Exit**: three teardown paths verified — (a) panel unmount kills subprocess, (b) SIGTERM app kills subprocess, (c) throw during render kills subprocess. StrictMode double-mount disposes cleanly. Sub-reconciler root cascades through outer scope. Zero leaks over 7 days.
 
-**Bail criteria**: if React commit-phase reentrancy, StrictMode double-dispose, or sub-root lifetime causes any test to fail, stop and revisit the design before expanding scope.
+**Bail criteria**: if any step's tests fail on commit-phase reentrancy, StrictMode double-dispose, or sub-root lifetime, stop and revisit the design before expanding scope.
 
 ### Phase 2 — Platform factories (3-5 days)
 
@@ -744,22 +798,24 @@ Each phase's parent bead depends on the previous phase's parent bead. Phase 4 su
 3. **Error during dispose of an async child.** `AggregateError` flow needs to preserve stacks and not tear down the parent scope prematurely.
 4. **Sub-reconciler root lifetime.** Silvercode's panel sub-roots must cascade through the outer scope; this is the first test of child-scope composition under a real reconciler boundary.
 
-## Prior-art survey
+## Prior art
 
-The design is Trio-style structured concurrency ported to React component lifetimes. Key precedents studied:
+Trio-style structured concurrency ported to React fiber lifetimes. One-liner per precedent:
 
-- **Effect-TS `Scope` / `Layer`** — correct tree semantics but conflates lifetime with DI; foreign to React devs.
-- **Trio nursery / Kotlin `coroutineScope` / Swift `TaskGroup`** — structured concurrency done right for async; we borrow the tree+LIFO+propagate-cancel parts.
-- **Go `context.Context`** — cancellation propagation only, no disposal. We take the propagation idea, add the disposal.
-- **VS Code `Disposable` / `DisposableStore`** — pragmatic TS baseline. Manual `.add()` is the footgun we avoid with `scope.adopt` + `using`.
-- **React `useEffect` cleanup** — the return-function cleanup pattern is what app code writes today; `useScopeEffect` subsumes it and extends to resources that outlive a single effect.
-- **Rust `Drop` + scoped threads** — `using`/`Symbol.dispose` gives us the lexical-scope version; fiber lifetime gives us the structural version.
-- **TC39 explicit resource management** — `using` is a first-class citizen of the design, not a bolt-on.
+- **Effect-TS `Scope` / `Layer`** — correct tree semantics; conflates lifetime with DI. We take the tree, skip the DI.
+- **Trio nursery / Kotlin `coroutineScope` / Swift `TaskGroup`** — tree + LIFO + propagate-cancel. Borrowed whole.
+- **Go `context.Context`** — cancellation propagation only. We add disposal on top.
+- **VS Code `Disposable` / `DisposableStore`** — pragmatic TS baseline. `scope.adopt` + `using` avoids its `.add()` footgun.
+- **React `useEffect` cleanup** — the return-function cleanup is today's pattern; fiber-scoped disposal generalises it.
+- **Rust `Drop` + scoped threads** — gives the lexical (`using`) + structural (fiber) pair.
+- **TC39 explicit resource management** — `using` is a first-class citizen, not a bolt-on.
 
 ## References
 
-- Primitive: [`vendor/silvery/packages/scope/src/index.ts`](../../../vendor/silvery/packages/scope/src/index.ts)
+- Existing primitive: [`vendor/silvery/packages/scope/src/index.ts`](../../../vendor/silvery/packages/scope/src/index.ts)
 - Current stopgap: [`vendor/silvery/packages/ag-react/src/hooks/useDispose.ts`](../../../vendor/silvery/packages/ag-react/src/hooks/useDispose.ts)
+- Reconciler host-config (fiber lifecycle hooks go here): [`vendor/silvery/packages/ag-react/src/reconciler/host-config.ts`](../../../vendor/silvery/packages/ag-react/src/reconciler/host-config.ts)
+- App entry (withScope plugs in here): [`vendor/silvery/packages/ag-term/src/runtime/create-app.tsx`](../../../vendor/silvery/packages/ag-term/src/runtime/create-app.tsx)
 - Signal mediator: `vendor/silvery/packages/ag-term/src/runtime/devices/signals.ts`
+- Public doc mirror (post Phase 4): `vendor/silvery/docs/design/lifecycle-scope.md`
 - Bead: `km-silvery.lifecycle-scope`
-- Pro + Kimi review: `/tmp/llm-2aefb4b6-review-silverys-unified-lifecyclescope-3p31.txt` (2026-04-24)
