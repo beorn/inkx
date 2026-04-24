@@ -397,7 +397,11 @@ export function LogRowView({
   //   cursor row   → $bg-cursor (strong selection indicator)
   //   expanded row → $bg-surface-subtle (whole-row tint signals "expanded")
   //   otherwise    → terminal default (no bg)
-  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-subtle" : undefined
+  // Expanded-row bg shade. $bg-surface-subtle (4% blend toward fg) was too
+  // faint to distinguish on several themes; $bg-muted (8% blend) reads as
+  // "slightly different" without shouting — matches the user's intent of
+  // a subtle visual cue marking expanded content.
+  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-muted" : undefined
 
   return (
     <Box
