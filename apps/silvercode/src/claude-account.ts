@@ -229,8 +229,8 @@ export function windowShortLabel(name: string): string {
     case "7-day (Opus)":
     case "Opus 7-day":
       return "7do"
-    case "Extra usage":
-      return "x"
+    case "Xtra":
+      return "Xtra"
     default:
       return name.slice(0, 4)
   }

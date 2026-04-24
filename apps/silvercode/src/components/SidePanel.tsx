@@ -89,7 +89,7 @@ function isWarningLevel(util: number): boolean {
  * Everything else: grey → yellow → red by threshold.
  */
 function quotaColor(w: QuotaWindow): string {
-  const isExtra = w.name === "Extra usage"
+  const isExtra = w.name === "Xtra"
   if (w.utilization >= 90) return "$error"
   if (w.utilization >= 70) return "$warning"
   if (isExtra) return "$warning"
@@ -122,7 +122,7 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
     ) {
       return isWarningLevel(w.utilization)
     }
-    if (w.name === "Extra usage") {
+    if (w.name === "Xtra") {
       const hasBudget = typeof w.limit === "number" && w.limit > 0
       return hasBudget && primaryYellow
     }
@@ -137,7 +137,7 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
  * the user notices the overage window when it shows up.
  */
 function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
-  const isExtra = w.name === "Extra usage"
+  const isExtra = w.name === "Xtra"
   return (
     <Box flexDirection="row" gap={1}>
       <Box flexBasis={4} minWidth={4}>

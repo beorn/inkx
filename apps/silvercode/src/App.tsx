@@ -2,11 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
 import { Box, PopoverProvider, Screen, useDispose, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
-import { CommandInput } from "./components/CommandInput.tsx"
+import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
-import { QueueEditor } from "./components/QueueEditor.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SessionCard } from "./components/SessionCard.tsx"
 import { SidePanel } from "./components/SidePanel.tsx"
@@ -198,12 +197,25 @@ export function App(props: AppProps): React.ReactElement {
         cycleMode()
         return
       }
-      // Up-arrow at the command input with an empty buffer and a pending
-      // queue → jump into the queue editor. Claude Code convention:
-      // cursor-up recalls recent input; we reuse that idiom here since
-      // silvercode doesn't have history recall yet.
-      if (key.upArrow && !queueFocused && inputValue.length === 0 && queueText.length > 0) {
+      // Up-arrow / Ctrl+P at the command input with an empty buffer and
+      // a pending queue → jump into the queue editor. Claude Code
+      // convention: cursor-up recalls recent input; we reuse the idiom
+      // here since silvercode doesn't have history recall yet. Ctrl+P
+      // is the emacs/readline alias for up-arrow so shell muscle memory
+      // works too.
+      if (
+        (key.upArrow || (key.ctrl && input === "p")) &&
+        !queueFocused &&
+        inputValue.length === 0 &&
+        queueText.length > 0
+      ) {
         setQueueFocused(true)
+        return
+      }
+      // Down-arrow from the queue releases focus back to the input.
+      // (Ctrl+N is already bound to "next session"; we don't overload.)
+      if (queueFocused && key.downArrow) {
+        setQueueFocused(false)
         return
       }
       if (key.ctrl && input === "e") return handleCtrlLetter("e", () => setShowInbox((v) => !v))
@@ -306,15 +318,19 @@ export function App(props: AppProps): React.ReactElement {
         so the StatusLine at the very bottom is gone.
       */}
       <Screen flexDirection="row">
-        {/* LEFT: cards + overlays + palette + input. `minWidth={0}` on every
-            flex container along this chain is critical — without it, wide
-            tool-result content expands each Box past the terminal width and
-            pushes the side panel off screen. `minWidth={0}` lets the flex
-            engine shrink the column to make room for its siblings. */}
-        <Box flexDirection="column" flexGrow={1} minHeight={0} minWidth={0}>
-          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
+        {/* LEFT: cards + overlays + palette + input. The outer column has
+            `overflow="hidden"` — this is the "cards region vs side panel"
+            boundary. CSS spec §4.5 elevates flexShrink on the overflow
+            container itself, so any wide descendant is clipped here
+            instead of pushing the side panel off-screen.
+            silvery-expert audit (session 2026-04-24): silvery's reconciler
+            never calls setFlexShrink when unspecified, so flexily defaults
+            to shrink=0 — `minWidth={0}` alone does nothing without an
+            overflow boundary in the chain. */}
+        <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
+          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             {sessions.map((s) => (
-              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0} minWidth={0}>
+              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
                 <SessionCard
                   handle={s}
                   isFocused={s.id === focusedSessionId}
@@ -348,39 +364,27 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
-            {/* Queue editor — appears above the command input whenever
-                the current session has pending queued text. Editable
-                TextArea; holding focus pauses submission. */}
-            {focused && (
-              <QueueEditor
-                value={queueText}
-                focused={queueFocused}
-                onChange={(t) => controller.setQueuedText(focused.id, t)}
-                onRelease={() => setQueueFocused(false)}
-              />
-            )}
-
-            {/* Command input region — floats inside a transparent gutter
-                (2 cols L/R, 1 row top/bottom). The inner filled Box
-                flex-grows to fill the left column's width so the input
-                line spans the entire available width, not just the prompt
-                + typed text. */}
+            {/* Unified CommandBox — queue area (when non-empty) stacks on
+                top of the command input inside one filled surface with a
+                horizontal rule between them. Exactly one cursor is visible
+                at a time; focused side is bright, unfocused side dims to
+                $fg-muted. Claude-Code-style. */}
             <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
-              <Box
-                backgroundColor="$bg-surface-subtle"
-                paddingX={2}
-                paddingY={1}
-                flexGrow={1}
-                flexDirection="row"
-              >
-                <CommandInput
-                  value={inputValue}
-                  onChange={setInputValue}
-                  disabled={!focused || queueFocused}
-                  onSubmit={handleSubmit}
-                  onExit={requestExit}
-                  promptColor={promptColor}
-                />
+              <Box flexGrow={1} flexDirection="column">
+                {focused && (
+                  <CommandBox
+                    queueText={queueText}
+                    queueFocused={queueFocused}
+                    onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
+                    onQueueRelease={() => setQueueFocused(false)}
+                    inputValue={inputValue}
+                    onInputChange={setInputValue}
+                    inputDisabled={!focused}
+                    onSubmit={handleSubmit}
+                    onExit={requestExit}
+                    promptColor={promptColor}
+                  />
+                )}
               </Box>
             </Box>
           </Box>
