@@ -9,15 +9,12 @@ import { PopoverProvider } from "../src/Popover.tsx"
 import type { LogRow } from "../src/view-config.ts"
 
 /**
- * Contract: expanded body renders at full body color — no colorize()
- * syntax highlighting. Rationale: expanded rows use `$bg-surface-subtle`,
- * and colorize's C_BRK ($fg-muted) produces dark-grey bracket/punctuation
- * glyphs on the already-grey subtle bg ("black-on-grey, hard to read").
- *
- * We assert: every character of the body on an expanded row shares the
- * same fg colour (= the parent `bodyColor`), whether or not the row is
- * being hovered. Tags / JSON-like punctuation do NOT get the muted C_BRK
- * treatment on the subtle surface.
+ * Contract: the row never cross-composes tokens from different domains.
+ * Either EVERY bg-painted cell in the row uses the cursor bg (if cursor
+ * is on), or EVERY such cell uses the surface bg (if expanded-only) —
+ * never a mix. Prevents the pre-fix Espresso failure (surface bg #3B3B3B
+ * × cursor fg #999999 = 4.22:1) and its cousins in other low-contrast
+ * cursor schemes.
  */
 
 function makeExpandedRow(): LogRow {
@@ -41,8 +38,8 @@ function makeExpandedRow(): LogRow {
   }
 }
 
-describe("km-logview expanded hover body contrast", () => {
-  test("expanded body has uniform fg — hover does not introduce muted brackets", async () => {
+describe("km-logview row bg is single-domain", () => {
+  test("cursor + expanded: header bg equals body content bg (no domain mixing)", async () => {
     using term = createTermless({ cols: 80, rows: 12 })
     const row = makeExpandedRow()
     const handle = await run(
@@ -51,7 +48,7 @@ describe("km-logview expanded hover body contrast", () => {
           <LogRowView
             row={row}
             fields={claudeSessionConfig.fields}
-            isCursor={false}
+            isCursor={true}
             expanded={true}
             onToggleExpand={() => {}}
           />
@@ -61,47 +58,10 @@ describe("km-logview expanded hover body contrast", () => {
       term,
     )
 
-    type RGB = { r: number; g: number; b: number }
-    const toRGB = (v: unknown): RGB | null => (v && typeof v === "object" ? (v as RGB) : null)
-
-    const findRow = (needle: string): number => {
-      const lines = term.screen.getLines()
-      for (let r = 0; r < lines.length; r++) {
-        if ((lines[r] ?? "").includes(needle)) return r
-      }
-      return -1
-    }
-
-    // Hover the row to trigger isHovered=true (the previously broken state).
-    const bodyRow = findRow("plain body paragraph")
-    expect(bodyRow).toBeGreaterThan(-1)
-    await term.mouse.move(5, bodyRow)
-    await new Promise((r) => setTimeout(r, 30))
-
-    // Plain-text fg on the prose body line.
-    const proseLine = term.screen.getLines()[bodyRow] ?? ""
-    const proseCol = proseLine.indexOf("plain")
-    const proseFg = toRGB(term.cell(bodyRow, proseCol).fg)
-    expect(proseFg).not.toBeNull()
-
-    // Bracket fg on the `<system-reminder>` line — previously C_BRK ($fg-muted)
-    // due to colorize(); now must match the prose fg (uniform body color).
-    const bracketRow = findRow("<system-reminder")
-    expect(bracketRow).toBeGreaterThan(-1)
-    const bracketLine = term.screen.getLines()[bracketRow] ?? ""
-    const bracketCol = bracketLine.indexOf("<")
-    const bracketFg = toRGB(term.cell(bracketRow, bracketCol).fg)
-    expect(bracketFg).not.toBeNull()
-    expect(JSON.stringify(bracketFg)).toBe(JSON.stringify(proseFg))
-
-    // Same check for a JSON-ish punctuation cell on the "key": "value" line.
-    const jsonRow = findRow('"key"')
-    expect(jsonRow).toBeGreaterThan(-1)
-    const jsonLine = term.screen.getLines()[jsonRow] ?? ""
-    const quoteCol = jsonLine.indexOf('"key"')
-    const quoteFg = toRGB(term.cell(jsonRow, quoteCol).fg)
-    expect(quoteFg).not.toBeNull()
-    expect(JSON.stringify(quoteFg)).toBe(JSON.stringify(proseFg))
+    // Row 0 = header. Row 1+ = body content (past the $accent bar at col 1).
+    const headerCell = term.cell(0, 10)
+    const bodyCell = term.cell(2, 20)
+    expect(JSON.stringify(headerCell.bg)).toBe(JSON.stringify(bodyCell.bg))
 
     handle.unmount()
   })

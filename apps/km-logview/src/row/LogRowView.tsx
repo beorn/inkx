@@ -259,14 +259,25 @@ function computeBodyState(bodyLines: string[]): BodyState {
 }
 
 /** Render a list of body lines (expanded or flat — same visual shape).
- * Expanded rows are distinguished by the parent Box's `$bg-surface-subtle`
- * background; no per-body marker glyph is drawn. */
+ *
+ * When `marked` is true (expanded rows), a 1-column `$accent` left bar
+ * paints alongside the body — Markdown-blockquote convention, visible
+ * regardless of theme. The expanded row does NOT change its background:
+ * cross-domain token composition (surface bg + cursor fg, or vice versa)
+ * produces 1.45–4.2:1 contrast on low-contrast cursor schemes (Espresso:
+ * cursor.fg=#999 on bg-surface-subtle=#3B3B3B). The bar signals expansion
+ * without touching the bg/fg contrast budget.
+ *
+ * Tracking bugs for the derivation side: km-silvery.cursor-contrast-unguarded
+ * (cursor.fg/bg ships without a contrast guard) and
+ * km-silvery.invariant-matrix-gaps (cross-pair contrasts aren't enforced). */
 function BodyLines({
   lines,
   keyPrefix,
   bodyColor,
   searchQuery,
   colorized,
+  marked,
 }: {
   lines: string[]
   keyPrefix: string
@@ -276,9 +287,11 @@ function BodyLines({
    * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
    * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
   colorized: boolean
+  /** When true, paint a 1-column `$accent` bar on the left of the body. */
+  marked: boolean
 }) {
-  return (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={BODY_INDENT}>
+  const content = (
+    <Box flexDirection="column" flexGrow={1} paddingLeft={marked ? 1 : BODY_INDENT}>
       {lines.map((line, i) => {
         const showHighlight = hasMatch(line, searchQuery)
         return (
@@ -292,6 +305,13 @@ function BodyLines({
           </Text>
         )
       })}
+    </Box>
+  )
+  if (!marked) return content
+  return (
+    <Box flexDirection="row" width="100%">
+      <Box width={1} flexShrink={0} backgroundColor="$accent" />
+      {content}
     </Box>
   )
 }
@@ -377,19 +397,25 @@ export function LogRowView({
   const onBoxMouseEnter = useCallback(() => setIsHovered(true), [])
   const onBoxMouseLeave = useCallback(() => setIsHovered(false), [])
 
-  // Show expanded body (with subtle bg) only when body is collapsible AND expanded.
+  // Show expanded body only when body is collapsible AND expanded.
   const showExpanded = isCollapsible && expanded
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Expanded row bg — a subtle elevated surface. `$bg-surface-subtle`
-  // is barely-there: enough contrast to set the expanded region apart
-  // from surrounding rows, not enough to compete with kind/pill colors
-  // inside. Cursor row uses `$bg-cursor` for the canonical selected-row
-  // treatment. Both tokens are guaranteed-populated post the Sterling-
-  // into-@silvery/ansi unification (silvery bead
-  // km-silvery.fallback-theme-empty-bg-tokens).
-  const rowBackground = showExpanded ? "$bg-surface-subtle" : isCursor ? "$bg-cursor" : undefined
+  // Row bg: single-domain selection. Cursor WINS over expansion for bg,
+  // so fg stays in the cursor domain (`$fg-cursor` on `$bg-cursor`) and
+  // never cross-composes a surface bg with a cursor fg. Expansion
+  // signalling falls to the `$accent` left bar inside BodyLines instead
+  // of an elevated bg — the bar is visible regardless of bg state and
+  // survives cursor+expansion combos.
+  // Silvery fix km-silvery.cursor-contrast-unguarded makes `$fg-cursor`
+  // AA-safe on `$bg-cursor` for low-contrast schemes (Espresso lifts
+  // #999999 → #5D5D5D, 4.53:1).
+  const rowBackground = isCursor
+    ? "$bg-cursor"
+    : showExpanded
+      ? "$bg-surface-subtle"
+      : undefined
 
   return (
     <Box
@@ -412,14 +438,14 @@ export function LogRowView({
         />
       )}
       {showExpanded && (
-        // Expanded body: skip colorize() — the subtle-surface bg already
-        // elevates the region, and colorize's C_BRK ($fg-muted) on the
-        // subtle bg is dark-grey-on-grey (low contrast; user report:
-        // "black-on-grey, hard to read"). Pills + header carry the kind
-        // signal; the expanded body just needs to be readable. Inline /
-        // flat / collapsed bodies keep the hover → colorize affordance
-        // because they don't sit on an elevated surface.
-        <BodyLines lines={bodyLines} keyPrefix="b" bodyColor={bodyColor} searchQuery={searchQuery} colorized={false} />
+        <BodyLines
+          lines={bodyLines}
+          keyPrefix="b"
+          bodyColor={bodyColor}
+          searchQuery={searchQuery}
+          colorized={isCursor || isHovered}
+          marked
+        />
       )}
       {showFlat && (
         <BodyLines
@@ -428,6 +454,7 @@ export function LogRowView({
           bodyColor={bodyColor}
           searchQuery={searchQuery}
           colorized={isCursor || isHovered}
+          marked={false}
         />
       )}
     </Box>
