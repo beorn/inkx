@@ -1,10 +1,9 @@
 import { watch } from "node:fs"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Box, Em, ListView, SearchBar, Small, Strong, Text, useSearch, useWindowSize } from "silvery"
+import { Box, Em, ListView, PopoverProvider, SearchBar, Small, Strong, Text, useSearch, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { LogRowView } from "./LogRow.tsx"
 import { loadRows } from "./parse-jsonl.ts"
-import { PopoverProvider } from "./Popover.tsx"
 import type { LogRow, ViewConfig } from "./view-config.ts"
 
 /**

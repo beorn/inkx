@@ -3,15 +3,15 @@
 import React, { useCallback, useState } from "react"
 import { Box, Text, useWindowSize } from "silvery"
 import type { SilveryMouseEvent } from "silvery/term"
+import type { PopoverContent } from "silvery"
 import { colorize } from "../colorize.tsx"
-import type { PopoverContent } from "../Popover.tsx"
 import type { FieldSpec, LogRow as LogRowData } from "../view-config.ts"
 import { CollapsedBodyPreview } from "./CollapsedBodyPreview.tsx"
 import { BODY_COLLAPSED_MAX_LINES, BODY_INDENT, INLINE_BODY_FIT_MARGIN, PILL_FIELDS } from "./constants.ts"
 import { highlightQuery } from "./highlight.tsx"
 import { HoverTarget } from "./HoverTarget.tsx"
 import { Pill } from "./Pill.tsx"
-import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
+import { fieldPopoverContent, hasHiddenContent } from "./popover-content.tsx"
 
 /**
  * Default body-text color when the row is NOT hovered and NOT the cursor.

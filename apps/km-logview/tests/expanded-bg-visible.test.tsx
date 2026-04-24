@@ -1,11 +1,10 @@
 import React from "react"
-import { Box } from "silvery"
+import { Box, PopoverProvider } from "silvery"
 import { run } from "silvery/runtime"
 import { createTermless } from "@silvery/test"
 import { describe, expect, test } from "vitest"
 import { claudeSessionConfig } from "../src/configs/claude-session.ts"
 import { LogRowView } from "../src/row/LogRowView.tsx"
-import { PopoverProvider } from "../src/Popover.tsx"
 import type { LogRow } from "../src/view-config.ts"
 
 function makeCollapsibleRow(): LogRow {

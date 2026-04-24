@@ -1,5 +1,7 @@
 /** Builds popover content for field values and decides whether a rendered segment has "hidden" data (transformed/truncated) worth showing in a popover. */
-import type { PopoverContent } from "../Popover.tsx"
+import React from "react"
+import { Text } from "silvery"
+import type { PopoverContent } from "silvery"
 
 /** Produce popover content for a field value. */
 export function fieldPopoverContent(
@@ -14,7 +16,30 @@ export function fieldPopoverContent(
   // rendered when raw is non-stringy.
   const source = typeof rawValue === "string" ? rawValue : rendered
   const lines = source.length === 0 ? ["(empty)"] : source.split("\n")
-  return { title, lines, maxWidth: 80 }
+  return { body: <FieldPopoverBody title={title} lines={lines} />, maxWidth: 80 }
+}
+
+/** React body for field popovers: bold title, muted body lines. Matches the
+ * original local-Popover visual shape (bold title line + `$fg-muted` body lines,
+ * with truncate-end wrapping on the title). */
+function FieldPopoverBody({ title, lines }: { title: string; lines: string[] }): React.ReactElement {
+  return (
+    <>
+      <Text bold wrap="truncate-end">
+        {title}
+      </Text>
+      {lines.map((line, i) => (
+        <Text
+          // biome-ignore lint/suspicious/noArrayIndexKey: line order is stable for a given popover content
+          key={`l${i}`}
+          color="$fg-muted"
+          wrap="truncate-end"
+        >
+          {line}
+        </Text>
+      ))}
+    </>
+  )
 }
 
 /**

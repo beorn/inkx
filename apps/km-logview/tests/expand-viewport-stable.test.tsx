@@ -15,37 +15,66 @@
  */
 
 import React, { useImperativeHandle, useState, forwardRef } from "react"
-import { Box, ListView } from "silvery"
+import { Box, ListView, PopoverProvider } from "silvery"
 import { run } from "silvery/runtime"
 import { createTermless } from "@silvery/test"
 import { describe, expect, test } from "vitest"
 import { claudeSessionConfig } from "../src/configs/claude-session.ts"
 import { LogRowView } from "../src/row/LogRowView.tsx"
-import { PopoverProvider } from "../src/Popover.tsx"
 import type { LogRow } from "../src/view-config.ts"
 
 function makeRow(n: number, multi = false): LogRow {
-  return { id: `r${n}`, lineNo: n, kind: "tool_use", raw: null,
-    fields: { time: `05:00:${String(n).padStart(2, "0")}`,
+  return {
+    id: `r${n}`,
+    lineNo: n,
+    kind: "tool_use",
+    raw: null,
+    fields: {
+      time: `05:00:${String(n).padStart(2, "0")}`,
       label: multi ? "Bash" : `Msg${n}`,
-      body: multi ? Array.from({ length: 6 }, (_, i) => `b${n}-${i}`).join("\n") : `b${n}` } }
+      body: multi ? Array.from({ length: 6 }, (_, i) => `b${n}-${i}`).join("\n") : `b${n}`,
+    },
+  }
 }
 
 type Api = { toggle: (id: string) => void }
-const Harness = forwardRef<Api, { rows: LogRow[]; cursor: number }>(
-  function Harness({ rows, cursor }, ref) {
-    const [exp, setExp] = useState<ReadonlySet<string>>(() => new Set())
-    useImperativeHandle(ref, () => ({
-      toggle: (id: string) => setExp((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }),
-    }), [])
-    return (<PopoverProvider>
+const Harness = forwardRef<Api, { rows: LogRow[]; cursor: number }>(function Harness({ rows, cursor }, ref) {
+  const [exp, setExp] = useState<ReadonlySet<string>>(() => new Set())
+  useImperativeHandle(
+    ref,
+    () => ({
+      toggle: (id: string) =>
+        setExp((p) => {
+          const n = new Set(p)
+          n.has(id) ? n.delete(id) : n.add(id)
+          return n
+        }),
+    }),
+    [],
+  )
+  return (
+    <PopoverProvider>
       <Box flexDirection="column" width="100%" height="100%">
-        <ListView items={rows} height={8} nav cursorKey={cursor} getKey={(r) => r.id}
-          renderItem={(r, _i, m) => (<LogRowView row={r} fields={claudeSessionConfig.fields}
-            isCursor={m.isCursor} expanded={exp.has(r.id)} onToggleExpand={() => {}} />)} />
+        <ListView
+          items={rows}
+          height={8}
+          nav
+          cursorKey={cursor}
+          getKey={(r) => r.id}
+          renderItem={(r, _i, m) => (
+            <LogRowView
+              row={r}
+              fields={claudeSessionConfig.fields}
+              isCursor={m.isCursor}
+              expanded={exp.has(r.id)}
+              onToggleExpand={() => {}}
+            />
+          )}
+        />
       </Box>
-    </PopoverProvider>)
-  })
+    </PopoverProvider>
+  )
+})
 
 function findRowOnScreen(term: ReturnType<typeof createTermless>, needle: string): number {
   const lines = term.screen.getLines()
