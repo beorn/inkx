@@ -169,13 +169,18 @@ export function App(props: AppProps): React.ReactElement {
   return (
     <PopoverProvider>
       <Box flexDirection="column" width={cols} height={rows} overflow="hidden">
-        {/* Top banner */}
-        <AppHeader cwd={props.cwd} track={props.track} />
+        {/* Top banner — intrinsic height, never shrinks */}
+        <Box flexShrink={0}>
+          <AppHeader cwd={props.cwd} track={props.track} />
+        </Box>
 
-        {/* Session cards grid */}
-        <Box flexDirection="row" flexWrap="wrap" flexGrow={1}>
+        {/* Session cards grid — absorbs all remaining vertical space.
+            flexShrink=1 + minHeight=0 lets it yield to chrome below before
+            overflowing. Inner cards clip scrollable content via their own
+            overflow="scroll" region. */}
+        <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
           {sessions.map((s) => (
-            <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis}>
+            <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
               <SessionCard
                 handle={s}
                 isFocused={s.id === focusedSessionId}
@@ -187,37 +192,40 @@ export function App(props: AppProps): React.ReactElement {
           ))}
         </Box>
 
-        {/* Overlays first so they stack above the chrome below */}
-        {showInbox && (
-          <PermissionInbox
-            sessions={sessions}
-            onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-            onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-            onClose={() => setShowInbox(false)}
+        {/* Bottom chrome — flexShrink=0 so it can't be squeezed off-screen
+            by a growing cards grid. Everything from here down takes its
+            intrinsic height. */}
+        <Box flexDirection="column" flexShrink={0}>
+          {showInbox && (
+            <PermissionInbox
+              sessions={sessions}
+              onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+              onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+              onClose={() => setShowInbox(false)}
+            />
+          )}
+          {showTodos && focused && <TodoPanel handle={focused} />}
+          {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+          <Notifications sessions={sessions} />
+
+          {paletteQuery !== null && (
+            <SlashCommandPalette
+              query={paletteQuery}
+              onSubmit={(cmd) => handleSubmit(cmd)}
+              onClose={() => setInputValue("")}
+            />
+          )}
+
+          <CommandInput
+            value={inputValue}
+            onChange={setInputValue}
+            disabled={!focused}
+            onSubmit={handleSubmit}
+            onExit={() => void requestExit()}
           />
-        )}
-        {showTodos && focused && <TodoPanel handle={focused} />}
-        {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-        <Notifications sessions={sessions} />
 
-        {/* Slash-command palette when typing /… */}
-        {paletteQuery !== null && (
-          <SlashCommandPalette
-            query={paletteQuery}
-            onSubmit={(cmd) => handleSubmit(cmd)}
-            onClose={() => setInputValue("")}
-          />
-        )}
-
-        <CommandInput
-          value={inputValue}
-          onChange={setInputValue}
-          disabled={!focused}
-          onSubmit={handleSubmit}
-          onExit={() => void requestExit()}
-        />
-
-        <StatusLine session={focused} mode={mode} sessionCount={sessions.length} onSwitchMode={setMode} />
+          <StatusLine session={focused} mode={mode} sessionCount={sessions.length} onSwitchMode={setMode} />
+        </Box>
 
         <PopoverLayer />
       </Box>

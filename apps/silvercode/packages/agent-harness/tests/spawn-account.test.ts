@@ -34,9 +34,21 @@ function createFakeChild(): EventEmitter & {
     kill: () => boolean
     killed: boolean
   }
-  bus.stdin = new Writable({ write(_c, _e, cb) { cb() } })
-  bus.stdout = new Readable({ read() { this.push(null) } })
-  bus.stderr = new Readable({ read() { this.push(null) } })
+  bus.stdin = new Writable({
+    write(_c, _e, cb) {
+      cb()
+    },
+  })
+  bus.stdout = new Readable({
+    read() {
+      this.push(null)
+    },
+  })
+  bus.stderr = new Readable({
+    read() {
+      this.push(null)
+    },
+  })
   bus.killed = false
   bus.kill = () => {
     bus.killed = true

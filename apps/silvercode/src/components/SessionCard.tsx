@@ -1,8 +1,48 @@
 import React from "react"
-import { Box, H3, Muted, Small } from "silvery"
+import { Box, H3, Muted, Small, Spinner, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
+
+/**
+ * Live activity line — pinned to the bottom of the card body, shown whenever
+ * the session isn't idle. Gives the user per-frame feedback that something IS
+ * happening, even before any text-delta arrives on the wire (Claude's
+ * "thinking…" gap can be 500ms-several seconds on Opus). Without this, the
+ * card looks frozen.
+ */
+function ActivityIndicator({
+  status,
+  pendingPermissions,
+  inFlightTool,
+}: {
+  status: "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"
+  pendingPermissions: number
+  inFlightTool: string | null
+}): React.ReactElement | null {
+  if (status === "idle" || status === "ended") return null
+  const label =
+    status === "spawning"
+      ? "spawning claude…"
+      : status === "thinking"
+        ? "thinking…"
+        : status === "tool-running"
+          ? inFlightTool
+            ? `running ${inFlightTool}…`
+            : "running tool…"
+          : status === "awaiting-permission"
+            ? `awaiting permission (${pendingPermissions})`
+            : null
+  if (!label) return null
+  const color =
+    status === "awaiting-permission" ? "$warning" : status === "tool-running" ? "$accent" : "$info"
+  return (
+    <Box flexDirection="row" gap={1} paddingX={1}>
+      <Spinner type="dots" />
+      <Text color={color}>{label}</Text>
+    </Box>
+  )
+}
 
 export function SessionCard({
   handle,
@@ -19,41 +59,52 @@ export function SessionCard({
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
 
-  const statusText =
-    state.status === "spawning"
-      ? "spawning…"
-      : state.status === "thinking"
-        ? "thinking…"
-        : state.status === "tool-running"
-          ? "running tool…"
-          : state.status === "awaiting-permission"
-            ? `awaiting permission (${state.permissions.length})`
-            : state.status === "ended"
-              ? "ended"
-              : "idle"
+  // The most recent tool call that doesn't yet have a matching result is the
+  // one currently in flight. Used in the activity indicator label.
+  const inFlightTool = (() => {
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const m = state.messages[i]!
+      for (let j = m.toolCalls.length - 1; j >= 0; j--) {
+        const c = m.toolCalls[j]!
+        const hasResult = m.toolResults.some((r) => r.id === c.id)
+        if (!hasResult) return c.name
+      }
+    }
+    return null
+  })()
 
   return (
     <Box
       flexDirection="column"
       flexGrow={1}
+      minHeight={0}
       borderStyle={isFocused ? "round" : "single"}
       borderColor={isFocused ? "$primary" : "$border"}
       onClick={onFocus}
     >
       {/* Card header */}
-      <Box flexDirection="row" paddingX={1} gap={1}>
+      <Box flexDirection="row" paddingX={1} gap={1} flexShrink={0}>
         <H3>{handle.name}</H3>
         <Muted>
           ({state.model || "…"} / {state.mode || "…"})
         </Muted>
         <Box flexGrow={1} />
-        <Small>{statusText}</Small>
+        {state.status === "idle" || state.status === "ended" ? (
+          <Small>{state.status === "ended" ? "ended" : "idle"}</Small>
+        ) : null}
       </Box>
 
-      {/* Messages (scrollable body) */}
-      <Box flexGrow={1} overflow="scroll" paddingX={1} scrollTo={Math.max(0, state.messages.length - 1)}>
+      {/* Messages (virtualized body — ListView owns scroll + wheel + keys) */}
+      <Box flexGrow={1} minHeight={0} paddingX={1}>
         <MessageList messages={state.messages} onApprove={onApprove} onDeny={onDeny} sessionId={handle.id} />
       </Box>
+
+      {/* Activity indicator — bottom-pinned when the session is doing something */}
+      <ActivityIndicator
+        status={state.status}
+        pendingPermissions={state.permissions.length}
+        inFlightTool={inFlightTool}
+      />
     </Box>
   )
 }

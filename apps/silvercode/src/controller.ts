@@ -245,7 +245,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (log) log.append(event)
     })
 
-    const handle: SessionHandle = { id, name: givenName, store, session, unsubscribe: unsub, log, account: opts.account }
+    const handle: SessionHandle = {
+      id,
+      name: givenName,
+      store,
+      session,
+      unsubscribe: unsub,
+      log,
+      account: opts.account,
+    }
 
     // Intro message — synthesize a local assistant turn so the session card
     // isn't empty on first render. Not sent to the subprocess; purely UI.
@@ -271,7 +279,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       "- **bypass** — skip all approvals; use only in sandboxes",
     ]
     if (opts.account) {
-      introLines.push("", `**Running with account:** \`${opts.account}\` (from \`~/.silvercode/accounts/${opts.account}/\`)`)
+      introLines.push(
+        "",
+        `**Running with account:** \`${opts.account}\` (from \`~/.silvercode/accounts/${opts.account}/\`)`,
+      )
     }
     const introText = introLines.join("\n")
     store.apply({

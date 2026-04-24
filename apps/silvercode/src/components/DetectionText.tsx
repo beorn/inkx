@@ -84,8 +84,9 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
         const pieces: React.ReactNode[] = []
         let cursor = lineStart
         for (const d of lineDetections) {
-          if (d.start > cursor)
+          if (d.start > cursor) {
             pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
+          }
           pieces.push(
             <Text
               key={`d${d.start}`}

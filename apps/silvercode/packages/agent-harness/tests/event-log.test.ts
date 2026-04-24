@@ -26,7 +26,9 @@ function statusEvent(msg: string, sid: SessionId = SID): AgentEvent {
 
 function readLines(path: string): string[] {
   if (!existsSync(path)) return []
-  return readFileSync(path, "utf8").split("\n").filter((l) => l.length > 0)
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .filter((l) => l.length > 0)
 }
 
 describe("event-log — file backend", () => {
