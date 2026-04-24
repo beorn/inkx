@@ -55,7 +55,7 @@ function buildProgram(): Command {
       const handle = await run(
         <App
           cwd={String(opts.cwd ?? process.cwd())}
-          model={typeof opts.model === "string" ? opts.model : undefined}
+          model={typeof opts.model === "string" ? opts.model : "claude-opus-4-7[1m]"}
           resume={typeof opts.resume === "string" ? opts.resume : undefined}
           bare={opts.bare === true}
           layout={

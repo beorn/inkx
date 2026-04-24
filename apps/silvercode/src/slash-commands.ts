@@ -38,6 +38,9 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/help", description: "Claude's own help", local: false },
   { name: "/context", description: "Show current context details", local: false },
   { name: "/usage", description: "Show usage + quota", local: false },
+  { name: "/think", description: "Enable thinking (medium budget)", local: false },
+  { name: "/think_hard", description: "Enable hard thinking (higher budget)", local: false },
+  { name: "/ultrathink", description: "Enable ultra thinking (max budget)", local: false },
 ]
 
 /** Back-compat alias for older callers. */

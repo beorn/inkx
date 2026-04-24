@@ -10,7 +10,7 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
   // prevents truly unwrappable tokens from expanding the card; this wrap
   // is purely for readability of paragraph-shaped text.
   return (
-    <Box flexDirection="row" flexWrap="wrap">
+    <Box flexDirection="row" flexWrap="wrap" minWidth={0}>
       {tokens.map((t, i) => {
         switch (t.kind) {
           case "bold":
@@ -52,7 +52,7 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
 export function MarkdownView({ source }: { source: string }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" gap={1}>
       {blocks.map((b, i) => {
         switch (b.kind) {
           case "heading": {
@@ -71,7 +71,7 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
             return (
               <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
                 <Text color="$muted">• </Text>
-                <Box flexGrow={1} flexShrink={1}>
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
                   <InlineRun tokens={parseInline(b.text)} />
                 </Box>
               </Box>
@@ -80,7 +80,7 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
             return (
               <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
                 <Text color="$muted">{b.number}. </Text>
-                <Box flexGrow={1} flexShrink={1}>
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
                   <InlineRun tokens={parseInline(b.text)} />
                 </Box>
               </Box>
