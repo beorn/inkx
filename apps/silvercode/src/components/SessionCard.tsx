@@ -48,7 +48,23 @@ export function SessionCard({
   const turnStartedAt = state.messages.length > 0 ? state.messages[state.messages.length - 1]!.ts : null
 
   return (
-    <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden" paddingX={1} onClick={onFocus}>
+    // `userSelect="contain"` scopes mouse-drag selection to this card —
+    // drags that start here can't extend into neighboring cards or the
+    // side panel (silvery's findContainBoundary walks up to this ancestor
+    // and clips the drag to its scrollRect). Without it, drag selects
+    // across the whole screen, which is messy when multiple sessions
+    // are laid out side-by-side.
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      flexShrink={1}
+      minWidth={0}
+      minHeight={0}
+      overflow="hidden"
+      paddingX={1}
+      userSelect="contain"
+      onClick={onFocus}
+    >
       <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
         {state.messages.length === 0 ? (
           <Welcome handle={handle} />

@@ -498,7 +498,9 @@ export function SidePanel({
   const hoveredBg = (h: boolean): string | undefined => (h ? "$bg-surface-hover" : undefined)
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
+    // `userSelect="contain"` scopes drag-selection to the side panel —
+    // drags starting here can't extend into the card area.
+    <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1} userSelect="contain">
       {/* Sessions section — heading is a hover target with help. Keybinding
           hint (Ctrl+O) sits top-right as a dim reminder of how to toggle
           the panel, opencode-style. */}
