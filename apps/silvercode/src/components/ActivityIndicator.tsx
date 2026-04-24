@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Spinner, Text } from "silvery"
+import { Box, Text } from "silvery"
 
 /**
  * Playful verb pool — metallurgy / blacksmithing / jewellery / high tea
@@ -145,9 +145,20 @@ export function ActivityIndicator({
   }
   const tail = tailParts.length > 0 ? ` (${tailParts.join(" · ")})` : ""
 
+  // Pulse the ◈ silvery diamond by alternating bold↔regular on the same
+  // 1s tick as the elapsed updater — zero extra timers, visible "alive"
+  // rhythm. No spinner character; the diamond echoes silvercode's own
+  // brand glyph (◈ Silver Code) at the leading slot.
+  const pulse = Math.floor(now / 1000) % 2 === 0
+
   return (
+    // paddingX=1 (not 2) so the glyph aligns with the `●` on AssistantBlock
+    // and the `▸` on UserMessageBlock — same inset as the rest of the
+    // message stream.
     <Box flexDirection="row" gap={1} paddingX={1}>
-      <Spinner type="dots" />
+      <Text bold={pulse} color={color}>
+        ◈
+      </Text>
       <Text color={color}>{label}</Text>
       {tail ? <Text color="$muted">{tail}</Text> : null}
     </Box>

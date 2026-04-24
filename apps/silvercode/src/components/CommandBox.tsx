@@ -66,7 +66,6 @@ export function CommandBox({
 
   // Color policy: focused side pops at $fg, unfocused fades to $fg-muted.
   const queueTextColor = queueFocused ? "$fg" : "$fg-muted"
-  const inputTextColor = queueFocused ? "$fg-muted" : "$fg"
   // Prompt colors — use the mode color on whichever side has focus,
   // muted on the other.
   const inputPromptColor = queueFocused ? "$fg-muted" : promptColor
@@ -120,31 +119,45 @@ export function CommandBox({
           standalone when nothing's queued. */}
       {hasQueue && <Box height={1} backgroundColor="$border" flexShrink={0} />}
 
-      {/* Command input — always present. isActive is `!queueFocused` so the
-          cursor shows here only when input owns focus. */}
+      {/* Command input — UNMOUNTED when the queue has focus so there's
+          never more than one visible cursor on screen (silvery TextInput
+          always renders its inverse-block visual cursor regardless of
+          isActive; only the hardware cursor is gated). When the queue
+          releases, this remounts and re-focuses. `inputValue` is
+          controlled in App.tsx so remounting doesn't lose the buffer.
+          A static Text render takes the input's slot while the queue is
+          focused so the box doesn't reflow. */}
       <Box flexDirection="row" paddingTop={hasQueue ? 1 : 0}>
-        <TextInput
-          value={inputValue}
-          onChange={onInputChange}
-          onSubmit={(v) => {
-            if (!v.trim()) return
-            onSubmit(v)
-          }}
-          onEOF={() => {
-            const now = Date.now()
-            if (armedAt.current > 0 && now - armedAt.current < 1500) {
-              onExit()
-              return
-            }
-            armedAt.current = now
-          }}
-          isActive={!inputDisabled && !queueFocused}
-          prompt="> "
-          promptColor={inputPromptColor}
-          promptBold={!queueFocused}
-          color={inputTextColor}
-          placeholder={inputDisabled ? "spawning…" : ""}
-        />
+        {queueFocused ? (
+          <Box flexDirection="row">
+            <Text color="$fg-muted" bold={false}>
+              {"> "}
+            </Text>
+            <Text color="$fg-muted">{inputValue || " "}</Text>
+          </Box>
+        ) : (
+          <TextInput
+            value={inputValue}
+            onChange={onInputChange}
+            onSubmit={(v) => {
+              if (!v.trim()) return
+              onSubmit(v)
+            }}
+            onEOF={() => {
+              const now = Date.now()
+              if (armedAt.current > 0 && now - armedAt.current < 1500) {
+                onExit()
+                return
+              }
+              armedAt.current = now
+            }}
+            isActive={!inputDisabled}
+            prompt="> "
+            promptColor={inputPromptColor}
+            promptBold
+            placeholder={inputDisabled ? "spawning…" : ""}
+          />
+        )}
       </Box>
     </Box>
   )
