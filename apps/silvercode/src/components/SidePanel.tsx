@@ -196,6 +196,46 @@ function QuotaRow({ w }: { w: QuotaWindow }): React.ReactElement {
   )
 }
 
+/**
+ * Popover-only quota row: full quota name as primary label, progress bar
+ * underneath, optional reset / remaining annotations beside the bar. Used
+ * in the account-quota popover where horizontal space allows the full
+ * name (`5-hour`, `Sonnet 7-day`, `Xtra`) instead of the abbreviated form
+ * (`5hr` / `7ds`) used in the compact inline panel.
+ */
+function QuotaPopoverRow({ w }: { w: QuotaWindow }): React.ReactElement {
+  const isExtra = w.name === "Xtra"
+  return (
+    <Box flexDirection="column">
+      <Box flexDirection="row" gap={1}>
+        {isExtra ? <Text color="$warning">{w.name}</Text> : <Muted>{w.name}</Muted>}
+      </Box>
+      <Box flexDirection="row" gap={1}>
+        <ProgressBar
+          value={Math.max(0, Math.min(1, w.utilization / 100))}
+          width={20}
+          color={quotaColor(w)}
+          showPercentage
+        />
+        {w.resetsAt && (
+          <Small>
+            · resets{" "}
+            {new Date(w.resetsAt).toLocaleString(undefined, {
+              dateStyle: "short",
+              timeStyle: "short",
+            })}
+          </Small>
+        )}
+        {typeof w.limit === "number" && typeof w.remaining === "number" && (
+          <Small>
+            · {w.remaining.toLocaleString()} / {w.limit.toLocaleString()}
+          </Small>
+        )}
+      </Box>
+    </Box>
+  )
+}
+
 function SectionHeading({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Text bold color="$primary">
@@ -431,24 +471,7 @@ export function SidePanel({
           <Box flexDirection="column" paddingTop={1}>
             {account.quotas.map((w) => (
               <Box key={w.name} flexDirection="column">
-                <QuotaRow w={w} />
-                <Box flexDirection="row" paddingLeft={5} gap={1}>
-                  <Small>{w.name}</Small>
-                  {w.resetsAt && (
-                    <Small>
-                      · resets{" "}
-                      {new Date(w.resetsAt).toLocaleString(undefined, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </Small>
-                  )}
-                  {typeof w.limit === "number" && typeof w.remaining === "number" && (
-                    <Small>
-                      · {w.remaining.toLocaleString()} / {w.limit.toLocaleString()}
-                    </Small>
-                  )}
-                </Box>
+                <QuotaPopoverRow w={w} />
               </Box>
             ))}
           </Box>
