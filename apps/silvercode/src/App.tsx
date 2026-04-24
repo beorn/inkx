@@ -122,28 +122,23 @@ export function App(props: AppProps): React.ReactElement {
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
 
-  // Queue buffer for the currently-focused session. Bound to the
-  // QueueEditor TextArea; edits flow back to the controller which gates
-  // the flush. `queueFocused` tracks which widget owns the keyboard.
+  // Queue buffer for the currently-focused session. Bound directly to a
+  // silvery TextArea in the queue region; edits flow back to the
+  // controller. Option B: the queue TextArea is ALWAYS live — focus is
+  // just "which TextArea has the cursor" via `focusedRegion`. No "hold"
+  // state, no editor-mode toggle.
   //
   // React hooks must be called unconditionally on every render — pass an
   // empty string when `focused` is missing instead of branching the
   // hook call. Otherwise React's hook queue desyncs between renders
   // ("Should have a queue" crash).
   const queueText = useQueue(controller, focused?.id ?? "")
-  const [queueFocused, setQueueFocused] = useState(false)
-  // When the queue empties, release focus back to the input so the user
-  // isn't stuck in an invisible editor.
+  const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
+  // When the queue empties while it has focus, snap focus back to the
+  // command region — there's nowhere for the cursor to live in the queue.
   useEffect(() => {
-    if (queueText.length === 0 && queueFocused) setQueueFocused(false)
-  }, [queueText, queueFocused])
-  // Announce hold state to the controller — flush paused while editor
-  // has focus; released (and tryFlush fires) when focus returns to
-  // command input.
-  useEffect(() => {
-    if (!focused) return
-    controller.holdQueue(focused.id, queueFocused)
-  }, [controller, focused, queueFocused])
+    if (queueText.length === 0 && focusedRegion === "queue") setFocusedRegion("command")
+  }, [queueText, focusedRegion])
 
   // Dedupe: when the palette is open and user presses Enter, both the
   // palette's useInput AND TextInput's internal Enter handler fire in the
@@ -226,10 +221,10 @@ export function App(props: AppProps): React.ReactElement {
         return
       }
       // Esc on empty command input with no overlays open and a non-empty
-      // queue → cancel all queued messages. The queue editor has its own
-      // Esc handler (release focus back to input), so we only act when
-      // the input is the active widget (queueFocused === false).
-      if (key.escape && !queueFocused && inputValue.length === 0 && focused && queueText.length > 0) {
+      // queue → cancel all queued messages. We only fire when the
+      // command region owns focus; the queue TextArea handles its own
+      // Esc (silvery's native — clears its own selection or no-op).
+      if (key.escape && focusedRegion === "command" && inputValue.length === 0 && focused && queueText.length > 0) {
         controller.clearQueue(focused.id)
         return
       }
@@ -240,20 +235,9 @@ export function App(props: AppProps): React.ReactElement {
         cycleMode()
         return
       }
-      // Up-arrow / Ctrl+P → jump into the queue editor (when queue has
-      // content). Claude Code convention: cursor-up recalls recent input;
-      // we reuse the idiom since silvercode doesn't have history recall
-      // yet. Ctrl+P is the emacs/readline alias for up-arrow so shell
-      // muscle memory works too. No inputValue gate — user can nav into
-      // queue even with text in the input (state is preserved).
-      if ((key.upArrow || (key.ctrl && input === "p")) && !queueFocused && queueText.length > 0) {
-        setQueueFocused(true)
-        return
-      }
-      // While the queue editor owns focus, Down / Up / Ctrl+N / Ctrl+P
-      // are routed to QueueEditor (per-entry navigation). The editor
-      // releases focus back to the input itself when the user presses
-      // Down/Ctrl+N past the last entry (or Esc / plain Enter).
+      // Cursor-boundary handoff between command and queue is handled by
+      // CommandBox's own `onEdge` callbacks on the silvery TextAreas —
+      // no parent-side Up/Down intercept needed.
       if (key.ctrl && input === "e") {
         setShowInbox((v) => !v)
         return
@@ -274,10 +258,10 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory((v) => !v)
         return
       }
-      // Ctrl+N cycles sessions only when the queue editor is NOT in
-      // focus — otherwise QueueEditor claims it as the emacs alias for
-      // Down (next entry / release-on-last).
-      if (key.ctrl && input === "n" && !queueFocused && sessions.length > 1) {
+      // Ctrl+N cycles sessions. Now that the queue is a silvery TextArea
+      // (Option B), there's no editor-mode aliasing — Ctrl+N is always
+      // session cycling at the App level.
+      if (key.ctrl && input === "n" && sessions.length > 1) {
         const idx = sessions.findIndex((s) => s.id === focusedSessionId)
         const next = sessions[(idx + 1) % sessions.length]!
         controller.focus(next.id)
@@ -472,19 +456,16 @@ export function App(props: AppProps): React.ReactElement {
                 {focused && (
                   <CommandBox
                     queueText={queueText}
-                    queueFocused={queueFocused}
                     onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
-                    onQueueRelease={() => setQueueFocused(false)}
                     onQueueSubmit={() => {
-                      // Force-flush BEFORE releasing focus. Order matters:
-                      // flushQueue clears the hold AND the queue buffer
-                      // synchronously, so the auto-flush effect that fires
-                      // on the queueFocused→false transition (controller.
-                      // holdQueue(false) → tryFlush) sees an empty queue
-                      // and is a no-op. Net result: exactly one send.
+                      // Force-flush the queue NOW (Enter in queue region).
+                      // After flush, queue is empty so focusedRegion's
+                      // empty-snap effect moves cursor back to command.
                       controller.flushQueue(focused.id)
-                      setQueueFocused(false)
+                      setFocusedRegion("command")
                     }}
+                    focusedRegion={focusedRegion}
+                    onFocusRegion={setFocusedRegion}
                     inputValue={inputValue}
                     onInputChange={setInputValue}
                     inputDisabled={!focused}
