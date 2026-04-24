@@ -29,6 +29,27 @@ const MODE_COLOR: Record<string, string> = {
   bypass: "$error",
 }
 
+// Thinking tier → magic keyword that activates Claude's extended-thinking
+// budget. Claude Code recognises these as a prefix on the user message;
+// there is NO slash-command equivalent. Empty / "normal" → no prefix.
+//
+// Budget mapping mirrors the docs: `think` ≈ 4K tokens, `think hard` /
+// `think harder` ≈ 16K, `ultrathink` ≈ 32K.
+const THINKING_KEYWORD: Record<string, string> = {
+  think: "think",
+  think_hard: "think hard",
+  ultrathink: "ultrathink",
+}
+
+function injectThinkingKeyword(text: string, thinking: string): string {
+  const kw = THINKING_KEYWORD[thinking]
+  if (!kw) return text
+  // Sentence-leading prefix so Claude's recogniser fires reliably. Two
+  // newlines keep the user's actual prompt visually separated in any
+  // transcript / replay.
+  return `${kw}\n\n${text}`
+}
+
 export type AppProps = {
   cwd: string
   model?: string
@@ -155,6 +176,21 @@ export function App(props: AppProps): React.ReactElement {
             setMode(target)
             return
           }
+          // Thinking tier — silvercode-local only. Claude Code activates
+          // extended thinking via MAGIC KEYWORDS in the user message body
+          // (`think` / `think hard` / `ultrathink`); these slash commands
+          // are NOT real Claude commands. We just set the local tier and
+          // injectThinkingKeyword() prepends the keyword to the next
+          // outgoing user message.
+          case "/think":
+            setThinking("think")
+            return
+          case "/think_hard":
+            setThinking("think_hard")
+            return
+          case "/ultrathink":
+            setThinking("ultrathink")
+            return
           case "/handoff": {
             const otherId = sessions.find((s) => s.id !== focused.id)?.id
             if (otherId) controller.handoff(focused.id, otherId, arg)
@@ -168,16 +204,10 @@ export function App(props: AppProps): React.ReactElement {
             return
         }
       } else {
-        // Thinking-mode slash commands — mirror locally so the SidePanel
-        // can show the current level. Pass through to Claude as well so
-        // Claude's own thinking-budget semantics apply.
-        if (cmd === "/think") setThinking("think")
-        else if (cmd === "/think_hard") setThinking("think_hard")
-        else if (cmd === "/ultrathink") setThinking("ultrathink")
         controller.runSlashCommand(focused.id, trimmed)
       }
     } else {
-      controller.send(focused.id, trimmed)
+      controller.send(focused.id, injectThinkingKeyword(trimmed, thinking))
     }
   }
 

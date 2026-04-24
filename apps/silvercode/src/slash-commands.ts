@@ -30,6 +30,14 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/history", description: "Open the history view", local: true },
   { name: "/todos", description: "Toggle the todos panel", local: true },
   { name: "/mode", description: "Cycle permission mode (plan / accept-edits / auto / bypass)", local: true },
+  // Thinking-tier slash commands are silvercode-local — Claude Code activates
+  // extended thinking via MAGIC KEYWORDS in the user message body
+  // (`think` / `think hard` / `ultrathink`), not via slash commands. The
+  // palette entries below set the local tier; silvercode prepends the
+  // matching keyword to the next user message.
+  { name: "/think", description: "Set thinking tier: 4K (silvercode injects `think` keyword)", local: true },
+  { name: "/think_hard", description: "Set thinking tier: 16K (silvercode injects `think hard` keyword)", local: true },
+  { name: "/ultrathink", description: "Set thinking tier: 32K (silvercode injects `ultrathink` keyword)", local: true },
   // Well-known Claude-native — passed through.
   { name: "/compact", description: "Compact the conversation (Claude)", local: false },
   { name: "/clear", description: "Clear session state (Claude)", local: false },
@@ -38,9 +46,6 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/help", description: "Claude's own help", local: false },
   { name: "/context", description: "Show current context details", local: false },
   { name: "/usage", description: "Show usage + quota", local: false },
-  { name: "/think", description: "Enable thinking (medium budget)", local: false },
-  { name: "/think_hard", description: "Enable hard thinking (higher budget)", local: false },
-  { name: "/ultrathink", description: "Enable ultra thinking (max budget)", local: false },
 ]
 
 /** Back-compat alias for older callers. */
