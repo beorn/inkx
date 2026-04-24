@@ -440,48 +440,57 @@ export function SidePanel({
   })
   const modeHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column">
+      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Text bold>Mode</Text>
         <Muted>Controls what Claude is allowed to do without asking first. Click the label to cycle.</Muted>
-        <Text>
-          <Text color="$muted">ask</Text> — every tool prompts for approval
-        </Text>
-        <Text>
-          <Text color="$info">plan</Text> — plans but doesn't write
-        </Text>
-        <Text>
-          <Text color="$warning">accept-edits</Text> — edits auto-apply; tools still prompt
-        </Text>
-        <Text>
-          <Text color="$success">auto</Text> — default; all Claude tools unattended
-        </Text>
-        <Text>
-          <Text color="$error">bypass</Text> — skip all approvals (sandboxes only)
-        </Text>
+        <Box flexDirection="column">
+          <Text>
+            <Text color={MODE_COLORS.ask}>{MODE_ICONS.ask} ask</Text> — every tool prompts for approval
+          </Text>
+          <Text>
+            <Text color={MODE_COLORS.plan}>{MODE_ICONS.plan} plan</Text> — plans but doesn't write
+          </Text>
+          <Text>
+            <Text color={MODE_COLORS["accept-edits"]}>{MODE_ICONS["accept-edits"]} accept-edits</Text> — edits
+            auto-apply; tools still prompt
+          </Text>
+          <Text>
+            <Text color={MODE_COLORS.auto}>{MODE_ICONS.auto} auto</Text> — default; all Claude tools unattended
+          </Text>
+          <Text>
+            <Text color={MODE_COLORS.bypass}>{MODE_ICONS.bypass} bypass</Text> — skip all approvals (sandboxes only)
+          </Text>
+        </Box>
       </Box>
     ),
-    maxWidth: 56,
+    maxWidth: 72,
   })
   const thinkingHover = usePopoverHandlers({
     body: (
-      <Box flexDirection="column">
+      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Text bold>Thinking</Text>
-        <Muted>Extended-thinking budget for Claude's internal reasoning. Higher = more thorough answers, more tokens spent. Click the row to cycle, or type /think, /think_hard, /ultrathink.</Muted>
-        <Text>
-          <Text color="$muted">○ normal</Text> — Claude's baseline (no extended thinking block)
-        </Text>
-        <Text>
-          <Text color="$muted">◔ med (4K)</Text> — /think — moderate reasoning budget
-        </Text>
-        <Text>
-          <Text color="$muted">◐ hard (16K)</Text> — /think_hard — deep reasoning
-        </Text>
-        <Text>
-          <Text color="$muted">● ultra (32K)</Text> — /ultrathink — max budget
-        </Text>
+        <Muted>
+          Extended-thinking budget for Claude's internal reasoning. Higher = more thorough answers, more tokens spent.
+          Click to cycle. Silvercode injects the matching keyword (`think`, `think hard`, `ultrathink`) into your next
+          message — Claude's own magic-keyword recognition activates the budget.
+        </Muted>
+        <Box flexDirection="column">
+          <Text>
+            <Text color="$muted">{THINKING_ICONS.normal} normal</Text> — Claude's baseline (no extended thinking block)
+          </Text>
+          <Text>
+            <Text color="$muted">{THINKING_ICONS.think} think (4K)</Text> — injects `think` keyword for moderate budget
+          </Text>
+          <Text>
+            <Text color="$muted">{THINKING_ICONS.think_hard} hard (16K)</Text> — injects `think hard` for deep reasoning
+          </Text>
+          <Text>
+            <Text color="$muted">{THINKING_ICONS.ultrathink} ultra (32K)</Text> — injects `ultrathink` for max budget
+          </Text>
+        </Box>
       </Box>
     ),
-    maxWidth: 60,
+    maxWidth: 72,
   })
   // Single hover popover for the whole quota block — plan + email at top,
   // then every window (unfiltered) with a tiny reset/credits caption per
