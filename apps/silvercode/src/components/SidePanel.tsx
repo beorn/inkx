@@ -569,23 +569,6 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Mode — clickable to cycle, hover shows help + armed bg. Renders
-          the descriptive label ("Auto permissions") instead of the raw
-          mode slug with a "Mode:" prefix. */}
-      <Box flexShrink={0} height={1} />
-      <Box
-        flexDirection="row"
-        flexShrink={0}
-        onClick={onCycleMode}
-        onMouseEnter={modeHover.onMouseEnter}
-        onMouseLeave={modeHover.onMouseLeave}
-        backgroundColor={hoveredBg(modeHover.isHovered)}
-      >
-        <Text color={modeColor} bold>
-          {MODE_LABELS[mode] ?? mode}
-        </Text>
-      </Box>
-
       {/* Quota + cost block — plan (bold) then email (muted), then a
           per-window progress bar for each subscription quota.
           Visibility rules (skip rows that aren't relevant):
@@ -651,10 +634,10 @@ export function SidePanel({
         <Box flexDirection="row" gap={1}>
           <Text color="#d97757">✻</Text>
           <Box flexDirection="row">
-            <Text bold color="#d97757">
+            <Text bold color="$fg">
               Claude
             </Text>
-            <Text color="#d97757"> Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
+            <Text color="$fg"> Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
           </Box>
         </Box>
         {/* Model — indent under the Claude Code line so it reads as a
@@ -665,6 +648,21 @@ export function SidePanel({
             <Small>{modelLabel(state.model)}</Small>
           </Box>
         )}
+        {/* Mode — directly under the model, no spacer. Clickable to cycle,
+            hover shows help + armed bg. */}
+        <Box
+          flexDirection="row"
+          flexShrink={0}
+          paddingLeft={2}
+          onClick={onCycleMode}
+          onMouseEnter={modeHover.onMouseEnter}
+          onMouseLeave={modeHover.onMouseLeave}
+          backgroundColor={hoveredBg(modeHover.isHovered)}
+        >
+          <Text color={modeColor} bold>
+            {MODE_LABELS[mode] ?? mode}
+          </Text>
+        </Box>
       </Box>
     </Box>
   )
