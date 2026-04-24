@@ -259,10 +259,13 @@ function computeBodyState(bodyLines: string[]): BodyState {
 }
 
 /** Render a list of body lines (expanded or flat — same visual shape).
- * When `expanded` is true, each line is prefixed with a solid-color
- * left-edge marker (▎ in $accent) — the Markdown-blockquote convention
- * for "open content". The marker survives low-contrast themes where the
- * row bg shade is imperceptible. */
+ * When `marked` is true, the container gets a solid left-edge marker
+ * column (▎ in $accent) that spans the full height of the body — even
+ * across wrapped visual lines. Prior version put the ▎ as an inline
+ * Text prefix on each logical line, which broke visually when content
+ * wrapped: the first visual line showed the marker but continuation
+ * lines didn't, and they wrapped back to col 0 (no alignment with the
+ * post-marker text). The absolute-positioned overlay solves both. */
 function BodyLines({
   lines,
   keyPrefix,
@@ -279,12 +282,19 @@ function BodyLines({
    * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
    * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
   colorized: boolean
-  /** When true, prepend a left-edge '▎' marker in $accent — signals
-   * "expanded content" independent of theme bg contrast. */
+  /** When true, render a solid '▎' column down the left edge in $accent —
+   * Markdown-blockquote convention. Visible regardless of theme bg contrast. */
   marked: boolean
 }) {
   return (
-    <Box flexDirection="column" paddingLeft={marked ? 0 : BODY_INDENT}>
+    <Box flexDirection="column" paddingLeft={BODY_INDENT} position="relative">
+      {marked && (
+        <Box position="absolute" top={0} bottom={0} left={0} width={1}>
+          <Text color="$accent" wrap="wrap">
+            {"▎".repeat(64)}
+          </Text>
+        </Box>
+      )}
       {lines.map((line, i) => {
         const showHighlight = hasMatch(line, searchQuery)
         return (
@@ -294,7 +304,6 @@ function BodyLines({
             color={bodyColor}
             wrap="wrap"
           >
-            {marked ? <Text color="$accent">{"▎ "}</Text> : null}
             {showHighlight ? highlightQuery(line, searchQuery) : colorized ? colorize(line) : line}
           </Text>
         )
