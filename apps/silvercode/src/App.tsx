@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box } from "silvery"
+import { Box, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -90,9 +90,14 @@ export function App(props: AppProps): React.ReactElement {
   // No manual height/width math — let flex compute from flexGrow + flexBasis.
   const cardBasis = props.layout === "single" ? "100%" : "50%"
 
+  // Bind the root box to the live window dims so resize events propagate — on
+  // SIGWINCH useWindowSize re-renders, the root re-sizes, and the flex
+  // children (cards / input / status) redistribute automatically.
+  const { columns: cols, rows } = useWindowSize()
+
   return (
     <PopoverProvider>
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" width={cols} height={rows} overflow="hidden">
         {/* Session cards grid */}
         <Box flexDirection="row" flexWrap="wrap" flexGrow={1}>
           {sessions.map((s) => (

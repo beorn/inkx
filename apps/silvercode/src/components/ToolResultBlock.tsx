@@ -21,11 +21,18 @@ export function ToolResultBlock({
   const [expanded, setExpanded] = useState(false)
   const preview1 = preview(output)
   const full = typeof output === "string" ? output : JSON.stringify(output, null, 2)
+  const accentColor = isError ? "$error" : "$accent"
   return (
     <Box
       flexDirection="column"
       paddingX={1}
       paddingLeft={3}
+      backgroundColor={expanded ? "$surfacebg" : undefined}
+      borderStyle="single"
+      borderColor={expanded ? accentColor : "$border"}
+      borderTop={false}
+      borderBottom={false}
+      borderRight={false}
       onClick={() => setExpanded((v) => !v)}
     >
       <Box flexDirection="row" gap={1}>
