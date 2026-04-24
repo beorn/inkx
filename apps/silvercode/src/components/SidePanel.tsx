@@ -75,7 +75,7 @@ export const MODE_COLORS: Record<string, string> = {
  */
 export const MODE_ICONS: Record<string, string> = {
   ask: "?",
-  plan: "‖",
+  plan: "⏸︎", // VS15 text-variant selector forces non-emoji rendering
   "accept-edits": "»",
   auto: "»",
   bypass: "!",

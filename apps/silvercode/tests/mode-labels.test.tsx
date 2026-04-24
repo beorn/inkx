@@ -68,8 +68,8 @@ describe("MODE_LABELS / MODE_ICONS / MODE_COLORS", () => {
     expect(MODE_COLORS["ask"]).toBe("$muted")
   })
 
-  test("`plan` mode icon is ‖ (text-rendered double bar, not emoji-styled ⏸)", () => {
-    expect(MODE_ICONS["plan"]).toBe("‖")
+  test("`plan` mode icon is ⏸︎ (U+23F8 + VS15 text-variant) matching Claude Code", () => {
+    expect(MODE_ICONS["plan"]).toBe("⏸︎")
     expect(MODE_LABELS["plan"]).toBe("plan mode on")
   })
 
@@ -119,9 +119,7 @@ describe("App default mode + cycleMode order", () => {
     // Startup default stays as `auto` — silvercode is unattended by default.
     expect(appSrc).toMatch(/useState<string>\("auto"\)/)
     // The cycle array must list all five modes in order, with `ask` first.
-    const cycleMatches = appSrc.match(
-      /\["ask",\s*"plan",\s*"accept-edits",\s*"auto",\s*"bypass"\]/g,
-    )
+    const cycleMatches = appSrc.match(/\["ask",\s*"plan",\s*"accept-edits",\s*"auto",\s*"bypass"\]/g)
     // Should appear in BOTH cycleMode (the fn) AND the /mode slash command.
     expect(cycleMatches?.length ?? 0).toBeGreaterThanOrEqual(2)
   })
