@@ -79,8 +79,7 @@ export function SessionCard({
       flexDirection="column"
       flexGrow={1}
       minHeight={0}
-      borderStyle={isFocused ? "round" : "single"}
-      borderColor={isFocused ? "$primary" : "$border"}
+      paddingX={1}
       onClick={onFocus}
     >
       {/* Card header */}

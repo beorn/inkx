@@ -24,7 +24,7 @@ export function CommandInput({
   const armedAt = useRef<number>(0)
 
   return (
-    <Box borderStyle="single" borderColor="$border" paddingX={1}>
+    <Box paddingX={1}>
       <TextInput
         value={value}
         onChange={onChange}

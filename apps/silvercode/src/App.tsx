@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
 import { Box, useExit, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
-import { AppHeader } from "./components/AppHeader.tsx"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
@@ -11,7 +10,6 @@ import { PopoverLayer, PopoverProvider } from "./components/Popover.tsx"
 import { SessionCard } from "./components/SessionCard.tsx"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
-import { StatusLine } from "./components/StatusLine.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 
@@ -208,20 +206,36 @@ export function App(props: AppProps): React.ReactElement {
     }
   }, [])
 
+  // Mode cycler used by the side panel's ⚡ label.
+  function cycleMode(): void {
+    const modes = ["plan", "accept-edits", "auto", "bypass"]
+    setMode(modes[(modes.indexOf(mode) + 1) % modes.length]!)
+  }
+
   return (
     <PopoverProvider>
-      <Box flexDirection="column" width={cols} height={rows} overflow="hidden">
-        {/* Top banner — intrinsic height, never shrinks */}
-        <Box flexShrink={0}>
-          <AppHeader cwd={props.cwd} track={props.track} />
-        </Box>
+      {/*
+        Layout (opencode-style):
 
-        {/* Main area = cards grid + optional TodoPanel sidebar on the right.
-            The sidebar floats to a fixed narrow width (todos are usually
-            short); cards take the rest. flexShrink=1 + minHeight=0 lets the
-            whole area yield to chrome below before overflowing. */}
-        <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0}>
-          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} minHeight={0}>
+          ┌──────────────────────────────┬────────────┐
+          │                              │            │
+          │          cards area          │  side      │
+          │                              │  panel     │
+          │──────────────────────────────┤  (full     │
+          │       command input          │  height)   │
+          │                              │            │
+          └──────────────────────────────┴────────────┘
+
+        Side panel spans top to bottom on the right. Left column =
+        cards (flexGrow=1) + command input at the bottom. No borders on
+        any region — separation is via background color. All status /
+        version / cost metadata lives in the side panel's bottom block,
+        so the StatusLine at the very bottom is gone.
+      */}
+      <Box flexDirection="row" width={cols} height={rows} overflow="hidden">
+        {/* LEFT: cards + overlays + palette + input */}
+        <Box flexDirection="column" flexGrow={1} minHeight={0}>
+          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             {sessions.map((s) => (
               <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
                 <SessionCard
@@ -234,47 +248,60 @@ export function App(props: AppProps): React.ReactElement {
               </Box>
             ))}
           </Box>
-          {showSidePanel && focused && (
-            <Box flexShrink={0} flexBasis={38} flexDirection="column">
-              <SidePanel handle={focused} />
+
+          {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
+          <Box flexDirection="column" flexShrink={0}>
+            {showInbox && (
+              <PermissionInbox
+                sessions={sessions}
+                onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                onClose={() => setShowInbox(false)}
+              />
+            )}
+            {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+            <Notifications sessions={sessions} />
+
+            {paletteQuery !== null && (
+              <SlashCommandPalette
+                query={paletteQuery}
+                remoteCommands={focused?.store.state.get().slashCommands}
+                onSubmit={(cmd) => handleSubmit(cmd)}
+                onClose={() => setInputValue("")}
+              />
+            )}
+
+            {/* Distinct bg from the side panel so the input region reads as
+                its own surface even without a border. */}
+            <Box backgroundColor="$mutedbg">
+              <CommandInput
+                value={inputValue}
+                onChange={setInputValue}
+                disabled={!focused}
+                onSubmit={handleSubmit}
+                onExit={() => void requestExit()}
+              />
             </Box>
-          )}
+          </Box>
         </Box>
 
-        {/* Bottom chrome — flexShrink=0 so it can't be squeezed off-screen
-            by a growing cards grid. Everything from here down takes its
-            intrinsic height. */}
-        <Box flexDirection="column" flexShrink={0}>
-          {showInbox && (
-            <PermissionInbox
-              sessions={sessions}
-              onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-              onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-              onClose={() => setShowInbox(false)}
+        {/* RIGHT: full-height side panel. Slightly different bg so it reads
+            as a separate region without needing a border. */}
+        {showSidePanel && focused && (
+          <Box
+            flexShrink={0}
+            flexBasis={40}
+            flexDirection="column"
+            backgroundColor="$surfacebg"
+          >
+            <SidePanel
+              handle={focused}
+              mode={mode}
+              sessionCount={sessions.length}
+              onCycleMode={cycleMode}
             />
-          )}
-          {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-          <Notifications sessions={sessions} />
-
-          {paletteQuery !== null && (
-            <SlashCommandPalette
-              query={paletteQuery}
-              remoteCommands={focused?.store.state.get().slashCommands}
-              onSubmit={(cmd) => handleSubmit(cmd)}
-              onClose={() => setInputValue("")}
-            />
-          )}
-
-          <CommandInput
-            value={inputValue}
-            onChange={setInputValue}
-            disabled={!focused}
-            onSubmit={handleSubmit}
-            onExit={() => void requestExit()}
-          />
-
-          <StatusLine session={focused} mode={mode} sessionCount={sessions.length} onSwitchMode={setMode} />
-        </Box>
+          </Box>
+        )}
 
         <PopoverLayer />
       </Box>

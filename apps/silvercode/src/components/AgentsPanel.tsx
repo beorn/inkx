@@ -40,7 +40,7 @@ export function AgentsPanel({ handle }: { handle: SessionHandle }): React.ReactE
   const rows = scanAgents(state.messages)
   const running = rows.filter((r) => r.running).length
   return (
-    <Box flexDirection="column" paddingX={1} borderStyle="single" borderColor="$accent">
+    <Box flexDirection="column">
       <Box flexDirection="row" gap={1}>
         <Text bold color="$accent">
           Agents

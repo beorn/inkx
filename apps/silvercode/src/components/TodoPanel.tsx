@@ -7,7 +7,7 @@ export function TodoPanel({ handle }: { handle: SessionHandle }): React.ReactEle
   const state = useStoreSignal(handle.store)
   const done = state.todos.filter((t) => t.status === "completed").length
   return (
-    <Box flexDirection="column" paddingX={1} borderStyle="single" borderColor="$accent">
+    <Box flexDirection="column">
       <Box flexDirection="row" gap={1}>
         <Text bold color="$accent">
           Todos
