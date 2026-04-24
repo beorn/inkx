@@ -67,13 +67,15 @@ export const MODE_COLORS: Record<string, string> = {
  *
  * Glyphs:
  * - `?` ask (uncertain — every tool prompts)
- * - `⏸` plan (paused — Claude Code's canonical plan-mode glyph)
+ * - `‖` plan (double vertical bar — stylized "paused", text-rendered,
+ *        never emoji-styled; U+23F8 ⏸ gets rendered as an orange emoji
+ *        button by many terminal fonts)
  * - `»` permissive modes (skip prompts: accept-edits, auto)
  * - `!` bypass (attention / danger — skips ALL approvals)
  */
 export const MODE_ICONS: Record<string, string> = {
   ask: "?",
-  plan: "⏸",
+  plan: "‖",
   "accept-edits": "»",
   auto: "»",
   bypass: "!",

@@ -68,8 +68,8 @@ describe("MODE_LABELS / MODE_ICONS / MODE_COLORS", () => {
     expect(MODE_COLORS["ask"]).toBe("$muted")
   })
 
-  test("`plan` mode icon is ⏸ (pause glyph matching Claude Code)", () => {
-    expect(MODE_ICONS["plan"]).toBe("⏸")
+  test("`plan` mode icon is ‖ (text-rendered double bar, not emoji-styled ⏸)", () => {
+    expect(MODE_ICONS["plan"]).toBe("‖")
     expect(MODE_LABELS["plan"]).toBe("plan mode on")
   })
 
