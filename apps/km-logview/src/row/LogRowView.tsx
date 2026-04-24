@@ -258,13 +258,18 @@ function computeBodyState(bodyLines: string[]): BodyState {
   return { hasBody, isCollapsible, trimmedBodyLines, collapsedLines, collapsedRemainder }
 }
 
-/** Render a list of body lines (expanded or flat — same visual shape). */
+/** Render a list of body lines (expanded or flat — same visual shape).
+ * When `expanded` is true, each line is prefixed with a solid-color
+ * left-edge marker (▎ in $accent) — the Markdown-blockquote convention
+ * for "open content". The marker survives low-contrast themes where the
+ * row bg shade is imperceptible. */
 function BodyLines({
   lines,
   keyPrefix,
   bodyColor,
   searchQuery,
   colorized,
+  marked,
 }: {
   lines: string[]
   keyPrefix: string
@@ -274,9 +279,12 @@ function BodyLines({
    * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
    * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
   colorized: boolean
+  /** When true, prepend a left-edge '▎' marker in $accent — signals
+   * "expanded content" independent of theme bg contrast. */
+  marked: boolean
 }) {
   return (
-    <Box flexDirection="column" paddingLeft={BODY_INDENT}>
+    <Box flexDirection="column" paddingLeft={marked ? 0 : BODY_INDENT}>
       {lines.map((line, i) => {
         const showHighlight = hasMatch(line, searchQuery)
         return (
@@ -286,6 +294,7 @@ function BodyLines({
             color={bodyColor}
             wrap="wrap"
           >
+            {marked ? <Text color="$accent">{"▎ "}</Text> : null}
             {showHighlight ? highlightQuery(line, searchQuery) : colorized ? colorize(line) : line}
           </Text>
         )
@@ -395,14 +404,18 @@ export function LogRowView({
 
   // Row bg cascade (most → least specific):
   //   cursor row   → $bg-cursor (strong selection indicator)
-  //   expanded row → $bg-surface-subtle (whole-row tint signals "expanded")
+  //   expanded row → $bg-surface-overlay (12% blend) + left-edge marker
   //   otherwise    → terminal default (no bg)
-  // Expanded-row bg shade. Progression we tried:
-  //   $bg-surface-subtle (5% blend): imperceptible on most themes.
-  //   $bg-muted           (8% blend): still imperceptible per user report.
-  //   $bg-surface-overlay (12% blend): current — clearly distinguishable
-  //     without being loud. This is the same token used for modal/overlay
-  //     chrome, so it reads as "this row is in a secondary/overlay state."
+  //
+  // Bg-only shading was imperceptible across every token we tried
+  // ($bg-surface-subtle 5%, $bg-muted 8%, $bg-surface-overlay 12%) because
+  // the theme's bg↔fg contrast is low enough that a 12% blend reads as
+  // ~5 brightness points — below the perceptual threshold. Solution: a
+  // solid-color LEFT-EDGE MARKER ('▎' U+258E LEFT ONE QUARTER BLOCK) in
+  // $accent on every body line of the expanded row. The marker ignores
+  // theme contrast and reads as "this block is open" regardless of bg
+  // choices — same convention as Markdown blockquote indicators in
+  // editors like Obsidian and iA Writer.
   const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-overlay" : undefined
 
   return (
@@ -432,6 +445,7 @@ export function LogRowView({
           bodyColor={bodyColor}
           searchQuery={searchQuery}
           colorized={isCursor || isHovered}
+          marked={true}
         />
       )}
       {showFlat && (
@@ -441,6 +455,7 @@ export function LogRowView({
           bodyColor={bodyColor}
           searchQuery={searchQuery}
           colorized={isCursor || isHovered}
+          marked={false}
         />
       )}
     </Box>

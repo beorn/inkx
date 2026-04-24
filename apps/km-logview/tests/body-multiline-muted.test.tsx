@@ -43,10 +43,13 @@ describe("multi-line body muted by default", () => {
     )
 
     // Body lines (rows 1..5) should all have the same muted fg color.
+    // Skip past the '▎ ' left-edge marker (2 cells in $accent) added for
+    // expanded rows — sample the body-text glyph itself.
     const bodyFgs: Array<{ r: number; g: number; b: number } | null> = []
     for (let r = 1; r < 6; r++) {
       const line = term.screen.getLines()[r] ?? ""
-      const col = line.search(/\S/)
+      // Find the first non-space, non-▎ glyph (the body content).
+      const col = line.search(/[^ ▎]/)
       if (col < 0) continue
       const c = term.cell(r, col)
       bodyFgs.push((c.fg && typeof c.fg === "object" ? c.fg : null) as { r: number; g: number; b: number } | null)
