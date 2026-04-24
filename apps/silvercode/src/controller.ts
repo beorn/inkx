@@ -204,7 +204,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       "- `/fork`              — spawn a seeded sibling",
       "- `/spawn [name]`      — open another session in the grid",
       "",
-      "Click any tool block to expand it. Click a mode label to switch.",
+      "**Modes** (click the ⚡ label in the status bar to cycle):",
+      "",
+      "- **plan** — Claude plans but doesn't write; review proposed changes before running",
+      "- **accept-edits** — file edits apply automatically; other tools still prompt",
+      "- **auto** — default; everything Claude can do runs unattended",
+      "- **bypass** — skip all approvals; use only in sandboxes",
+      "",
+      "Click any tool block to expand it. Press Ctrl+D twice on an empty prompt to exit.",
     ].join("\n")
     store.apply({
       kind: "turn-start",

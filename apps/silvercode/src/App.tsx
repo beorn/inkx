@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
 import { Box, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
+import { AppHeader } from "./components/AppHeader.tsx"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
-import { ModeSwitcher } from "./components/ModeSwitcher.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
 import { PopoverLayer, PopoverProvider } from "./components/Popover.tsx"
@@ -98,6 +98,9 @@ export function App(props: AppProps): React.ReactElement {
   return (
     <PopoverProvider>
       <Box flexDirection="column" width={cols} height={rows} overflow="hidden">
+        {/* Top banner */}
+        <AppHeader cwd={props.cwd} track={props.track} />
+
         {/* Session cards grid */}
         <Box flexDirection="row" flexWrap="wrap" flexGrow={1}>
           {sessions.map((s) => (
@@ -139,8 +142,6 @@ export function App(props: AppProps): React.ReactElement {
             onClose={() => setInputValue("")}
           />
         )}
-
-        <ModeSwitcher mode={mode} onChange={setMode} />
 
         <CommandInput
           value={inputValue}

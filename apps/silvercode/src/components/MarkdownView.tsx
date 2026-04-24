@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Blockquote, Code, H1, H2, H3, H4, Muted, Text } from "silvery"
+import { Box, Blockquote, H1, H2, H3, H4, Muted, Text } from "silvery"
 import { parseBlocks, parseInline, type MdInline } from "../markdown.ts"
 import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -22,7 +22,14 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
               </Text>
             )
           case "code":
-            return <Code key={i}>{t.text}</Code>
+            // Inline code as a coloured foreground keyword, not a background
+            // pill — Claude Code's style. Keeps the line dense without the
+            // visual weight of a filled box.
+            return (
+              <Text key={i} color="$accent">
+                {t.text}
+              </Text>
+            )
           case "link":
             return (
               <Text key={i} color="$info" underline>
