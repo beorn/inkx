@@ -5,39 +5,43 @@ import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 
 function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
+  // minWidth={0} + flexWrap="wrap" + wrap="wrap" on every child Text so a
+  // long URL / identifier / path in one of the inline tokens breaks onto
+  // the next line instead of pushing the row past the card width.
   return (
-    <Box flexDirection="row" flexWrap="wrap">
+    <Box flexDirection="row" flexWrap="wrap" minWidth={0}>
       {tokens.map((t, i) => {
         switch (t.kind) {
           case "bold":
             return (
-              <Text key={i} bold>
+              <Text key={i} bold wrap="wrap">
                 {t.text}
               </Text>
             )
           case "italic":
             return (
-              <Text key={i} italic>
+              <Text key={i} italic wrap="wrap">
                 {t.text}
               </Text>
             )
           case "code":
-            // Inline code as a coloured foreground keyword, not a background
-            // pill — Claude Code's style. Keeps the line dense without the
-            // visual weight of a filled box.
             return (
-              <Text key={i} color="$accent">
+              <Text key={i} color="$accent" wrap="wrap">
                 {t.text}
               </Text>
             )
           case "link":
             return (
-              <Text key={i} color="$info" underline>
+              <Text key={i} color="$info" underline wrap="wrap">
                 {t.text}
               </Text>
             )
           default:
-            return <Text key={i}>{t.text}</Text>
+            return (
+              <Text key={i} wrap="wrap">
+                {t.text}
+              </Text>
+            )
         }
       })}
     </Box>
@@ -63,17 +67,24 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
             return <InlineRun key={i} tokens={inline} />
           }
           case "bullet":
+            // minWidth=0 + flexShrink=1 on the InlineRun wrapper so a long
+            // bullet text wraps inside the row instead of pushing the row
+            // past the card width.
             return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
+              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2} minWidth={0}>
                 <Text color="$muted">• </Text>
-                <InlineRun tokens={parseInline(b.text)} />
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  <InlineRun tokens={parseInline(b.text)} />
+                </Box>
               </Box>
             )
           case "ordered":
             return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
+              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2} minWidth={0}>
                 <Text color="$muted">{b.number}. </Text>
-                <InlineRun tokens={parseInline(b.text)} />
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  <InlineRun tokens={parseInline(b.text)} />
+                </Box>
               </Box>
             )
           case "quote":

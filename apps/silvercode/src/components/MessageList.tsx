@@ -23,18 +23,26 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
     return <UserMessageBlock text={m.text} />
   }
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" minWidth={0}>
       {m.text.length > 0 && <AssistantBlock text={m.text} />}
-      {m.toolCalls.map((c) => (
-        <Box key={c.id} flexDirection="column">
-          <ToolCallBlock id={c.id} name={c.name} input={c.input} mcpServer={c.mcp_server} />
-          {m.toolResults
-            .filter((r) => r.id === c.id)
-            .map((r) => (
+      {m.toolCalls.map((c) => {
+        const results = m.toolResults.filter((r) => r.id === c.id)
+        const running = results.length === 0
+        return (
+          <Box key={c.id} flexDirection="column" minWidth={0}>
+            <ToolCallBlock
+              id={c.id}
+              name={c.name}
+              input={c.input}
+              mcpServer={c.mcp_server}
+              running={running}
+            />
+            {results.map((r) => (
               <ToolResultBlock key={r.id} output={r.output} isError={r.is_error} />
             ))}
-        </Box>
-      ))}
+          </Box>
+        )
+      })}
     </Box>
   )
 }

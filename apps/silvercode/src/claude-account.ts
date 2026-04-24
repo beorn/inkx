@@ -16,7 +16,9 @@
  *     (offline, no credentials, API outage).
  */
 
-import { basename } from "node:path"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { basename, join } from "node:path"
 import {
   checkProfileQuota,
   keychainSlot,
@@ -70,12 +72,73 @@ function activeProfile(): ProfileInfo | null {
 }
 
 /**
+ * Minimum age between /api/usage hits, shared across every silvercode
+ * process via a disk cache. Anthropic starts returning 429 Too Many
+ * Requests when the user rapidly restarts silvercode (close+reopen a
+ * dozen times during iteration), because each spawn fires a fresh probe
+ * against the same quota endpoint. A disk cache keyed by profile dir
+ * lets successive spawns reuse a recent response.
+ */
+const QUOTA_CACHE_TTL_MS = 60_000
+const QUOTA_CACHE_DIR = join(homedir(), ".cache", "silvercode")
+
+interface CachedProbe {
+  fetchedAt: number
+  probe: AccountProbe
+}
+
+function cachePath(profileDir: string): string {
+  // sha1-like: replace slashes with `-` so the filename encodes the
+  // profile dir uniquely without needing a hash import.
+  const slug = profileDir.replace(/[^a-zA-Z0-9@._-]/g, "_")
+  return join(QUOTA_CACHE_DIR, `quota-${slug}.json`)
+}
+
+/**
+ * Sync read of the latest cached probe for the ACTIVE profile — for hooks
+ * that want to show quota numbers on first render instead of flashing
+ * "Loading…". Returns null when no cache exists or it's expired.
+ */
+export function readCachedProbeSync(): AccountProbe | null {
+  const profile = activeProfile()
+  if (!profile) return null
+  const cached = readCache(profile.dir)
+  if (!cached) return null
+  if (Date.now() - cached.fetchedAt >= QUOTA_CACHE_TTL_MS) return null
+  return cached.probe
+}
+
+function readCache(profileDir: string): CachedProbe | null {
+  try {
+    const raw = readFileSync(cachePath(profileDir), "utf8")
+    const parsed = JSON.parse(raw) as CachedProbe
+    if (typeof parsed?.fetchedAt !== "number" || !parsed.probe) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeCache(profileDir: string, probe: AccountProbe): void {
+  try {
+    mkdirSync(QUOTA_CACHE_DIR, { recursive: true })
+    writeFileSync(cachePath(profileDir), JSON.stringify({ fetchedAt: Date.now(), probe }))
+  } catch {
+    /* cache write is best-effort; ignore permission / fs errors */
+  }
+}
+
+/**
  * Load credentials + quotas for the active profile in one shot. Resolves
  * whether or not all paths succeed — individual fields may be null/empty
  * and `error` carries the first failure reason. Consumers render partial
  * state gracefully.
+ *
+ * Persistent disk cache (TTL: 60s, ~/.cache/silvercode/quota-*.json) is
+ * consulted first — close+reopen cycles reuse a fresh response instead of
+ * hammering the API and hitting 429. Set `forceRefresh` to bypass.
  */
-export async function probeActiveAccount(): Promise<AccountProbe> {
+export async function probeActiveAccount(forceRefresh = false): Promise<AccountProbe> {
   const email = resolveActiveEmail()
   const profile = activeProfile()
 
@@ -89,15 +152,26 @@ export async function probeActiveAccount(): Promise<AccountProbe> {
     }
   }
 
+  if (!forceRefresh) {
+    const cached = readCache(profile.dir)
+    if (cached && Date.now() - cached.fetchedAt < QUOTA_CACHE_TTL_MS) {
+      return cached.probe
+    }
+  }
+
   try {
     const { quota, error } = await checkProfileQuota(profile)
-    return {
+    const probe: AccountProbe = {
       email,
       plan: profile.plan ?? null,
       quotas: quota?.windows ?? [],
       error: error ?? quota?.error ?? null,
       loading: false,
     }
+    // Only cache SUCCESSFUL responses — a 429 error probe would otherwise
+    // extend itself into the cache and mask the eventual recovery.
+    if (!probe.error) writeCache(profile.dir, probe)
+    return probe
   } catch (err) {
     return {
       email,

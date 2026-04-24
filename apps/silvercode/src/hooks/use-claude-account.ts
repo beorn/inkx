@@ -3,25 +3,36 @@
  *
  * Fetches identity, plan, and per-window utilization from the active
  * profile's keychain slot (via accountly) on mount and every REFRESH_MS
- * thereafter. Consumers render whatever's available — the side panel can
- * show the email synchronously while plan/quotas arrive, then re-render
- * when the async state lands.
+ * thereafter. Backed by a 60s disk cache so close+reopen cycles reuse
+ * the recent response instead of hitting Anthropic's /api/usage and
+ * getting rate-limited.
  */
 
 import { useEffect, useState } from "react"
-import { type AccountProbe, probeActiveAccount, resolveActiveEmail } from "../claude-account.ts"
+import {
+  type AccountProbe,
+  probeActiveAccount,
+  readCachedProbeSync,
+  resolveActiveEmail,
+} from "../claude-account.ts"
 
 /** Refresh cadence. Anthropic's windows tick slowly; 2 minutes is plenty. */
 const REFRESH_MS = 120_000
 
 export function useClaudeAccount(): AccountProbe {
-  const [state, setState] = useState<AccountProbe>({
-    email: resolveActiveEmail(),
-    plan: null,
-    quotas: [],
-    error: null,
-    loading: true,
-  })
+  // Synchronous init from disk cache (when present + fresh) so the side
+  // panel renders quotas immediately on startup instead of flashing
+  // "Loading…" while the async probe runs.
+  const cached = readCachedProbeSync()
+  const [state, setState] = useState<AccountProbe>(
+    cached ?? {
+      email: resolveActiveEmail(),
+      plan: null,
+      quotas: [],
+      error: null,
+      loading: true,
+    },
+  )
 
   useEffect(() => {
     let cancelled = false

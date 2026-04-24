@@ -158,7 +158,20 @@ export type Controller = {
   focus(id: string): void
   subscribe(handler: (sessions: SessionHandle[]) => void): () => void
   onFocusChange(handler: (id: string) => void): () => void
+  /**
+   * Send a user message. If the session is currently NOT idle (Claude is
+   * thinking / running a tool / waiting for permission), the message is
+   * queued and flushed when the session returns to idle. Echo into the
+   * message stream is deferred until flush so the UI shows the real
+   * order.
+   */
   send(sessionId: string, text: string): void
+  /** Queued messages (not yet flushed) per session. Drives the side-panel indicator. */
+  queuedCount(sessionId: string): number
+  /** Subscribe to queue-length changes. */
+  onQueueChange(handler: (sessionId: string, count: number) => void): () => void
+  /** Drop all queued messages for a session (e.g. Esc to cancel). */
+  clearQueue(sessionId: string): void
   respondPermission(sessionId: string, requestId: string, approved: boolean): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
@@ -185,6 +198,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   function notifySessions(): void {
     for (const fn of sessionSubs) fn(sessions)
+  }
+
+  // Per-session message queue. While Claude is mid-turn (status != idle),
+  // new user messages go here instead of straight to claude's stdin. The
+  // flushQueue() call (wired on each session via store.subscribe at spawn
+  // time) drains them one-at-a-time when status returns to idle.
+  const queues = new Map<string, string[]>()
+  const queueSubs = new Set<(sessionId: string, count: number) => void>()
+  function notifyQueue(sessionId: string): void {
+    const n = queues.get(sessionId)?.length ?? 0
+    for (const fn of queueSubs) fn(sessionId, n)
   }
   function notifyFocus(): void {
     for (const fn of focusSubs) fn(focusedId)
@@ -293,6 +317,26 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const unsub = session.subscribe((event: AgentEvent) => {
       store.apply(event)
       if (log) log.append(event)
+      // Flush one queued message when the session returns to idle. We
+      // drain one-at-a-time (not the whole queue in a tight loop) because
+      // claude processes messages sequentially and each send transitions
+      // status back to non-idle on the next turn-start.
+      if (event.kind === "result" || event.kind === "session-lifecycle") {
+        const q = queues.get(id)
+        if (q && q.length > 0 && store.state.get().status === "idle") {
+          const next = q.shift()!
+          notifyQueue(id)
+          const turnId = `u-${Date.now()}` as never
+          store.apply({
+            kind: "user-message",
+            sessionId: session.sessionId,
+            turnId,
+            text: next,
+            ts: Date.now(),
+          })
+          session.send(next)
+        }
+      }
     })
 
     const handle: SessionHandle = {
@@ -353,9 +397,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
+      // Queue if Claude is mid-turn. flushQueue() below drains the queue
+      // when status returns to idle, respecting user order.
+      const status = s.store.state.get().status
+      if (status !== "idle" && status !== "ended") {
+        const q = queues.get(sessionId) ?? []
+        q.push(text)
+        queues.set(sessionId, q)
+        notifyQueue(sessionId)
+        return
+      }
       // Synthesize the user-message locally so the card echoes it immediately.
-      // Claude's stream-json only re-emits user turns for tool_results, not
-      // plain user messages, so without this the typed text never appears.
       const turnId = `u-${Date.now()}` as never
       s.store.apply({
         kind: "user-message",
@@ -365,6 +417,19 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         ts: Date.now(),
       })
       s.session.send(text)
+    },
+    queuedCount(sessionId: string): number {
+      return queues.get(sessionId)?.length ?? 0
+    },
+    onQueueChange(handler: (sessionId: string, count: number) => void): () => void {
+      queueSubs.add(handler)
+      for (const [sid, q] of queues) handler(sid, q.length)
+      return () => queueSubs.delete(handler)
+    },
+    clearQueue(sessionId: string): void {
+      if (!queues.has(sessionId)) return
+      queues.delete(sessionId)
+      notifyQueue(sessionId)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
       const s = sessions.find((h) => h.id === sessionId)

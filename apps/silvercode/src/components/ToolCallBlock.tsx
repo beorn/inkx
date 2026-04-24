@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { Box, Muted, Small, Text } from "silvery"
+import { Box, Muted, Small, Spinner, Text } from "silvery"
 import { useInput } from "silvery/runtime"
 import { DiffRenderer } from "./DiffRenderer.tsx"
 
@@ -24,11 +24,19 @@ export function ToolCallBlock({
   name,
   input,
   mcpServer,
+  running,
 }: {
   id: string
   name: string
   input: unknown
   mcpServer?: string
+  /**
+   * true when no tool-result has arrived yet — renders a pulsing
+   * spinner in the row's leading glyph slot so the user sees which
+   * tool is actively executing. Matches Claude Code's in-progress
+   * visualization.
+   */
+  running?: boolean
 }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const label = summarize(name, input)
@@ -38,6 +46,7 @@ export function ToolCallBlock({
     <Box
       flexDirection="column"
       paddingX={1}
+      minWidth={0}
       backgroundColor={expanded ? "$surfacebg" : "$mutedbg"}
       borderStyle="single"
       borderColor={expanded ? "$accent" : "$border"}
@@ -46,12 +55,16 @@ export function ToolCallBlock({
       borderRight={false}
       onClick={() => setExpanded((v) => !v)}
     >
-      <Box flexDirection="row" gap={1}>
-        <Text color="$accent">⚙</Text>
+      <Box flexDirection="row" gap={1} minWidth={0}>
+        {running ? <Spinner type="dots" /> : <Text color="$accent">⚙</Text>}
         <Text bold color="$primary">
           {display}
         </Text>
-        {label && <Muted>{label}</Muted>}
+        {label && (
+          <Box flexShrink={1} minWidth={0}>
+            <Muted wrap="wrap">{label}</Muted>
+          </Box>
+        )}
         <Box flexGrow={1} />
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
