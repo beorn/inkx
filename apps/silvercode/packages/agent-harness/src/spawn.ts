@@ -1,18 +1,23 @@
 /**
  * Spawn the official `claude` binary with stream-json I/O.
  *
- * Canonical command:
- *   claude --bare -p --input-format stream-json --output-format stream-json \
+ * Canonical command (default, full Claude Code setup):
+ *   claude -p --input-format stream-json --output-format stream-json \
  *          --include-partial-messages --verbose
  *
- * `--bare` suppresses the user's hooks/plugins/MCP/skills for deterministic
- * subprocess behaviour; Anthropic has indicated `--bare` will likely become
- * the `-p` default. See 00-agent-workspace.md for the rationale.
+ * Opt-in deterministic variant (`bare: true`):
+ *   claude --bare -p ...
  *
- * Since `--bare` skips CLAUDE.md / plugins / MCP discovery, this module
- * re-mounts caller-provided MCP servers by writing a temp `mcp-config.json`
- * with the `mcpServers` block and passing it via `--mcp-config`. Combined
- * with `--strict-mcp-config` (added when mcpServers is non-empty), that
+ * Default is NOT `--bare` — sessions run with the user's full Claude Code
+ * setup (hooks, plugins, skills, CLAUDE.md auto-load, MCP auto-discovery)
+ * so silvercode behaves like "real Claude Code" to the user. Pass
+ * `bare: true` for deterministic / stripped-down sessions (tests, scripted
+ * automation) where hook side-effects are undesirable.
+ *
+ * When MCP servers are explicitly provided by the caller, this module
+ * re-mounts them by writing a temp `mcp-config.json` with the `mcpServers`
+ * block and passing it via `--mcp-config`. Combined with
+ * `--strict-mcp-config` (added when mcpServers is non-empty), that
  * guarantees only the requested servers are mounted — no leak from the
  * user's global config. Closes the M2/M4 runtime gap.
  *
@@ -61,8 +66,12 @@ export type SpawnClaudeOptions = {
   /** Resume a previous session by id. Adds `--resume <id>`. */
   resume?: string
   /**
-   * Run without `--bare` so the user's hooks/plugins/skills fire inside the
-   * subprocess. Default false (bare is the recommended mode).
+   * Pass `--bare` for deterministic subprocess behavior (disables
+   * hooks/plugins/skills/CLAUDE.md). Default false — full Claude Code setup
+   * so sessions mirror what a real user sees: hooks fire (auto-recall,
+   * bd-prime), plugins load (tribe, telegram), CLAUDE.md injects, skills
+   * available. Set to true when you need a reproducible subprocess (tests,
+   * automation pipelines).
    */
   bare?: boolean
   /** Override the model (`--model <name>`). */
@@ -93,7 +102,12 @@ export type SpawnClaudeOptions = {
 
 function buildArgs(opts: SpawnClaudeOptions, mcpConfigPath: string | null): string[] {
   const args: string[] = []
-  if (opts.bare !== false) args.push("--bare")
+  // Default: omit `--bare` so the user's full Claude Code setup fires
+  // inside the subprocess (hooks, plugins, skills, CLAUDE.md auto-load,
+  // MCP auto-discovery) — closer to "real user" behavior. Opt-in to
+  // `--bare` when deterministic / stripped-down sessions are needed
+  // (e.g. test harnesses, scripted automation).
+  if (opts.bare === true) args.push("--bare")
   args.push("-p")
   args.push("--input-format", "stream-json")
   args.push("--output-format", "stream-json")

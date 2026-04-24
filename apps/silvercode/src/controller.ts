@@ -103,6 +103,12 @@ export type ControllerOptions = {
   cwd: string
   model?: string
   resume?: string
+  /**
+   * When true, spawn Claude with `--bare` for deterministic subprocess
+   * behavior (disables hooks/plugins/skills/CLAUDE.md). Default (false) runs
+   * the full Claude Code setup so sessions mirror what a real user sees.
+   * Propagated verbatim through SpawnSessionOptions → spawnClaude.
+   */
   bare: boolean
   track: Track
   logDir?: string

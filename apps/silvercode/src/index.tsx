@@ -13,7 +13,10 @@ function buildProgram(): Command {
     .option("--cwd <path>", "working directory for spawned sessions", process.cwd())
     .option("--model <name>", "override claude model")
     .option("--resume <id>", "resume a previous Claude session id")
-    .option("--no-bare", "run Claude without --bare (hooks/plugins/skills fire)")
+    .option(
+      "--bare",
+      "spawn Claude with --bare for deterministic / stripped-down sessions (no hooks/plugins/skills/CLAUDE.md)",
+    )
     .option("--layout <mode>", "layout: single | grid-2 | grid-4 (M5+)", "single")
     .option("--track <kind>", "agent track: claude | sdk | codex (M11/M12)", "claude")
     .option("--log-dir <path>", "event-log directory for replay", "")
@@ -54,7 +57,7 @@ function buildProgram(): Command {
           cwd={String(opts.cwd ?? process.cwd())}
           model={typeof opts.model === "string" ? opts.model : undefined}
           resume={typeof opts.resume === "string" ? opts.resume : undefined}
-          bare={opts.bare !== false}
+          bare={opts.bare === true}
           layout={
             opts.layout === "grid-2" || opts.layout === "grid-4" || opts.layout === "single" ? opts.layout : "single"
           }
