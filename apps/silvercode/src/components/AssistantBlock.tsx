@@ -4,7 +4,7 @@ import { MarkdownView } from "./MarkdownView.tsx"
 
 export function AssistantBlock({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection="row" gap={1} paddingX={1}>
       <Text bold color="$primary">
         ●
       </Text>
