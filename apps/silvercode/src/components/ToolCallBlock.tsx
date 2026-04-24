@@ -69,7 +69,12 @@ export function ToolCallBlock({
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
       {expanded && (
-        <Box paddingLeft={2}>
+        // minWidth={0} + overflow="hidden" so a long JSON line or nested
+        // DiffRenderer can't push the expanded body past the card width.
+        // The Text inside also gets wrap="wrap" so paragraph-shaped values
+        // still line-break normally; truly unwrappable tokens (long paths,
+        // URLs without whitespace) clip at the right edge via overflow.
+        <Box paddingLeft={2} minWidth={0} overflow="hidden">
           {name === "Edit" && input && typeof input === "object" && "old_string" in input && "new_string" in input ? (
             <DiffRenderer
               oldText={String((input as Record<string, unknown>).old_string ?? "")}
@@ -81,7 +86,7 @@ export function ToolCallBlock({
               }
             />
           ) : (
-            <Text>{JSON.stringify(input, null, 2)}</Text>
+            <Text wrap="wrap">{JSON.stringify(input, null, 2)}</Text>
           )}
         </Box>
       )}

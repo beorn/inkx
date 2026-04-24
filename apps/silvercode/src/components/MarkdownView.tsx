@@ -123,9 +123,20 @@ function MarkdownTable({
     }
     return text.padEnd(w)
   }
+  // minWidth={0} + overflow="hidden" on the outer Box + each row so a table
+  // with a very long unwrappable cell value (URL, long identifier) clips at
+  // the card's right edge instead of expanding the flex column outward and
+  // hiding the side panel.
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
-      <Box flexDirection="row" gap={1}>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      borderColor="$border"
+      paddingX={1}
+      minWidth={0}
+      overflow="hidden"
+    >
+      <Box flexDirection="row" gap={1} minWidth={0} overflow="hidden">
         {block.headers.map((h, col) => (
           <Text key={col} bold color="$primary">
             {pad(h, col)}
@@ -133,7 +144,7 @@ function MarkdownTable({
         ))}
       </Box>
       {block.rows.map((row, rowIdx) => (
-        <Box key={rowIdx} flexDirection="row" gap={1}>
+        <Box key={rowIdx} flexDirection="row" gap={1} minWidth={0} overflow="hidden">
           {row.map((cell, col) => (
             <Text key={col}>{pad(cell, col)}</Text>
           ))}
