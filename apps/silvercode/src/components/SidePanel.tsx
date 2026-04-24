@@ -46,7 +46,14 @@ const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
  * so the user sees they're interactive before clicking.
  */
 
-const MODE_COLORS: Record<string, string> = {
+/**
+ * Permission-mode colors. `ask` is `$muted` (grey) because it's the most
+ * conservative mode — every tool prompts, so the label shouldn't demand
+ * attention the way `warning`/`error` modes do. `auto` is `$success`
+ * (green) because it's the silvercode default for unattended operation.
+ */
+export const MODE_COLORS: Record<string, string> = {
+  ask: "$muted",
   plan: "$info",
   "accept-edits": "$warning",
   auto: "$success",
@@ -54,23 +61,35 @@ const MODE_COLORS: Record<string, string> = {
 }
 
 /**
- * Permission-mode icons + labels. Icon sits in the left margin (col 0)
- * matching the Silver Code / Claude Code rows; label aligns with the
- * other text after a one-col gap. Terminal-safe single-cell glyphs: `·`
- * plan (tentative), `»` permissive modes (skip prompts), `!` bypass
- * (attention / danger).
+ * Permission-mode icons. Icon sits in the left margin (col 0) matching
+ * the Silver Code / Claude Code rows; label aligns with the other text
+ * after a one-col gap.
+ *
+ * Glyphs:
+ * - `?` ask (uncertain — every tool prompts)
+ * - `⏸` plan (paused — Claude Code's canonical plan-mode glyph)
+ * - `»` permissive modes (skip prompts: accept-edits, auto)
+ * - `!` bypass (attention / danger — skips ALL approvals)
  */
-const MODE_ICONS: Record<string, string> = {
-  plan: "·",
+export const MODE_ICONS: Record<string, string> = {
+  ask: "?",
+  plan: "⏸",
   "accept-edits": "»",
   auto: "»",
   bypass: "!",
 }
-const MODE_LABELS: Record<string, string> = {
+/**
+ * Permission-mode labels. `ask` reads as `always ask` (matching Claude
+ * Code's default-mode wording). `bypass` is `dangerously bypass on` —
+ * the wording is intentionally strong because bypass skips ALL
+ * approvals, including destructive ops.
+ */
+export const MODE_LABELS: Record<string, string> = {
+  ask: "always ask",
   plan: "plan mode on",
   "accept-edits": "accept edits on",
   auto: "auto mode on",
-  bypass: "bypass mode on",
+  bypass: "dangerously bypass on",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
@@ -224,6 +243,8 @@ export function SidePanel({
   if (!focused) return null
   const state = useStoreSignal(focused.store)
   const modeColor = MODE_COLORS[mode] ?? "$muted"
+  const modeIcon = MODE_ICONS[mode] ?? "?"
+  const modeLabel = MODE_LABELS[mode] ?? mode
   const totalTokens = state.cost.inputTokens + state.cost.outputTokens
   const window = contextWindowFor(state.model)
   const pct = contextUtilizationPercent(totalTokens, window)
@@ -379,6 +400,9 @@ export function SidePanel({
       <Box flexDirection="column">
         <Text bold>Mode</Text>
         <Muted>Controls what Claude is allowed to do without asking first. Click the label to cycle.</Muted>
+        <Text>
+          <Text color="$muted">ask</Text> — every tool prompts for approval
+        </Text>
         <Text>
           <Text color="$info">plan</Text> — plans but doesn't write
         </Text>
@@ -669,10 +693,10 @@ export function SidePanel({
           backgroundColor={hoveredBg(modeHover.isHovered)}
         >
           <Text color={modeColor} bold>
-            {MODE_ICONS[mode] ?? "·"}
+            {modeIcon}
           </Text>
           <Text color={modeColor} bold>
-            {MODE_LABELS[mode] ?? mode}
+            {modeLabel}
           </Text>
         </Box>
       </Box>

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { SessionStore } from "@km/agent-harness"
+import type { AgentSession, SessionStore } from "@km/agent-harness"
 import { Box, PopoverProvider, Screen, useDispose, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
@@ -19,7 +19,10 @@ type Track = "claude" | "sdk" | "codex"
 // Mode → prompt color so the `>` in the command input visibly signals
 // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
 // Module-scope constant so it's not re-created per render.
+// `ask` is grey because it's the most conservative (every tool prompts);
+// `auto` is green because it's the unattended default for silvercode.
 const MODE_COLOR: Record<string, string> = {
+  ask: "$muted",
   plan: "$info",
   "accept-edits": "$warning",
   auto: "$success",
@@ -125,7 +128,7 @@ export function App(props: AppProps): React.ReactElement {
           case "/aside":
             return setShowSidePanel((v) => !v)
           case "/mode": {
-            const modes = ["plan", "accept-edits", "auto", "bypass"]
+            const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
             setMode(target)
             return
@@ -306,7 +309,7 @@ export function App(props: AppProps): React.ReactElement {
   // it to SidePanel doesn't force a new prop identity every render.
   const cycleMode = useCallback((): void => {
     setMode((m) => {
-      const modes = ["plan", "accept-edits", "auto", "bypass"]
+      const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
       return modes[(modes.indexOf(m) + 1) % modes.length]!
     })
   }, [])
