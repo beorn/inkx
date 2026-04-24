@@ -22,12 +22,11 @@ import { fieldPopoverContent, hasHiddenContent } from "./popover-content.ts"
  * readable, not colorful. On hover we promote the body back to `bodyColor(kind)`
  * so the user can still pull semantic color on demand.
  */
-// Non-hovered, non-cursor body text. `$fg-muted` is only a 40% blend toward
-// bg — still quite visible ("white" on dark themes per user report). `$color8`
-// is the terminal's bright-black palette slot — a genuinely subdued gray that
-// carries presence without competing with active rows. Hovering a row promotes
-// body to its kind-specific (colorful) color; cursor row uses `$fg-cursor`.
-const BODY_COLOR_MUTED = "$color8"
+// Non-hovered, non-cursor body text. `$fg-muted` is the canonical "secondary
+// text" token — lighter than `$color8` (bright-black) which read as nearly
+// invisible on the user's dark theme. Hovering a row promotes body to its
+// kind-specific (colorful) color; cursor row uses `$fg-cursor`.
+const BODY_COLOR_MUTED = "$fg-muted"
 
 function resolve<T>(
   v: T | ((value: unknown, row: LogRowData) => T) | undefined,
@@ -259,22 +258,14 @@ function computeBodyState(bodyLines: string[]): BodyState {
 }
 
 /** Render a list of body lines (expanded or flat — same visual shape).
- * When `marked` is true, a 1-column sibling Box with `$accent` background
- * paints a vertical bar to the left of the body content (Markdown
- * blockquote convention, visible regardless of theme bg contrast).
- *
- * Why a sibling Box instead of Box borderStyle: the border-render path
- * has had edge cases where the border paints outside its Box height
- * under ListView virtualization (user-reported leak onto sibling rows).
- * A flex-row with a 1-col solid-bg child is layout-simple — the bar is
- * exactly as tall as the content Box, no border semantics, no surprise. */
+ * Expanded rows are distinguished by the parent Box's `$bg-surface-subtle`
+ * background; no per-body marker glyph is drawn. */
 function BodyLines({
   lines,
   keyPrefix,
   bodyColor,
   searchQuery,
   colorized,
-  marked,
 }: {
   lines: string[]
   keyPrefix: string
@@ -284,12 +275,9 @@ function BodyLines({
    * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
    * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
   colorized: boolean
-  /** When true, paint a 1-column `$accent` bar on the left — Markdown
-   * blockquote convention, visible regardless of theme bg contrast. */
-  marked: boolean
 }) {
-  const content = (
-    <Box flexDirection="column" flexGrow={1} paddingLeft={marked ? 1 : BODY_INDENT}>
+  return (
+    <Box flexDirection="column" flexGrow={1} paddingLeft={BODY_INDENT}>
       {lines.map((line, i) => {
         const showHighlight = hasMatch(line, searchQuery)
         return (
@@ -303,13 +291,6 @@ function BodyLines({
           </Text>
         )
       })}
-    </Box>
-  )
-  if (!marked) return content
-  return (
-    <Box flexDirection="row" width="100%">
-      <Box width={1} flexShrink={0} backgroundColor="$accent" />
-      {content}
     </Box>
   )
 }
@@ -413,17 +394,13 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg. `$bg-surface-hover` is the only bg-semantic token that
-  // silvery's detection-failed fallback theme actually populates with
-  // a hex value (#3F4652). Every other bg token ($bg-surface-overlay,
-  // $bg-cursor, $bg-accent-hover, $bg-muted, $color8, …) resolves to
-  // an empty string → transparent → invisible on the user's setup.
-  // This is a silvery bug (bead: km-silvery.fallback-theme-empty-bg-tokens)
-  // but until that lands, $bg-surface-hover is the pragmatic token
-  // that actually paints. Semantically it's "surface in a hover state"
-  // which loosely fits "expanded content is active/elevated."
+  // Expanded row bg — a subtle elevated surface. `$bg-surface-subtle`
+  // is barely-there: enough contrast to set the expanded region apart
+  // from surrounding rows, not enough to compete with kind/pill colors
+  // inside. `$bg-surface-hover` (used earlier) was too visible for a
+  // content-affordance background.
   const rowBackground = showExpanded
-    ? "$bg-surface-hover"
+    ? "$bg-surface-subtle"
     : isCursor
       ? "$bg-cursor"
       : undefined
@@ -455,7 +432,6 @@ export function LogRowView({
           bodyColor={bodyColor}
           searchQuery={searchQuery}
           colorized={isCursor || isHovered}
-          marked={true}
         />
       )}
       {showFlat && (
@@ -465,7 +441,6 @@ export function LogRowView({
           bodyColor={bodyColor}
           searchQuery={searchQuery}
           colorized={isCursor || isHovered}
-          marked={false}
         />
       )}
     </Box>
