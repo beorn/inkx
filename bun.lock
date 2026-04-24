@@ -231,11 +231,29 @@
         "@types/react": "catalog:",
       },
     },
-    "packages/agent-harness": {
+    "apps/silvercode/packages/agent-harness": {
       "name": "@km/agent-harness",
       "version": "0.1.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
+      },
+    },
+    "apps/silvercode/packages/km-mcp-server": {
+      "name": "@km/mcp-server",
+      "version": "0.1.0",
+      "bin": {
+        "km-mcp-server": "./src/bin.ts",
+      },
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/storage": "workspace:*",
+      },
+    },
+    "apps/silvercode/packages/tribe-mcp": {
+      "name": "@km/tribe-mcp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@km/agent-harness": "workspace:*",
       },
     },
     "packages/km-agent": {
@@ -345,17 +363,6 @@
         "unist-util-visit": "^5.1.0",
       },
     },
-    "packages/km-mcp-server": {
-      "name": "@km/mcp-server",
-      "version": "0.1.0",
-      "bin": {
-        "km-mcp-server": "./src/bin.ts",
-      },
-      "dependencies": {
-        "@km/core": "workspace:*",
-        "@km/storage": "workspace:*",
-      },
-    },
     "packages/km-storage": {
       "name": "@km/storage",
       "dependencies": {
@@ -381,13 +388,6 @@
       "version": "0.1.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
-      },
-    },
-    "packages/tribe-mcp": {
-      "name": "@km/tribe-mcp",
-      "version": "0.1.0",
-      "dependencies": {
-        "@km/agent-harness": "workspace:*",
       },
     },
     "vendor/accountly": {
@@ -1221,7 +1221,7 @@
 
     "@km/agent": ["@km/agent@workspace:packages/km-agent"],
 
-    "@km/agent-harness": ["@km/agent-harness@workspace:packages/agent-harness"],
+    "@km/agent-harness": ["@km/agent-harness@workspace:apps/silvercode/packages/agent-harness"],
 
     "@km/agent-view": ["@km/agent-view@workspace:apps/km-agent-view"],
 
@@ -1245,7 +1245,7 @@
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
-    "@km/mcp-server": ["@km/mcp-server@workspace:packages/km-mcp-server"],
+    "@km/mcp-server": ["@km/mcp-server@workspace:apps/silvercode/packages/km-mcp-server"],
 
     "@km/repl": ["@km/repl@workspace:apps/km-repl"],
 
@@ -1255,7 +1255,7 @@
 
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
 
-    "@km/tribe-mcp": ["@km/tribe-mcp@workspace:packages/tribe-mcp"],
+    "@km/tribe-mcp": ["@km/tribe-mcp@workspace:apps/silvercode/packages/tribe-mcp"],
 
     "@km/tui": ["@km/tui@workspace:apps/km-tui"],
 

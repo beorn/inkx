@@ -12,6 +12,7 @@
     "packages/*",
     "apps/*",
     "apps/km-tui/packages/*",
+    "apps/silvercode/packages/*",
     "vendor/*",
     "vendor/termless/packages/*",
     "vendor/silvery/packages/*",

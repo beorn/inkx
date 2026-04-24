@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { SessionState, SessionStore } from "@km/agent-harness"
-import { Box, H2, Muted, Small, Text, useWindowSize } from "silvery"
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import type { SessionStore } from "@km/agent-harness"
+import { Box } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -13,7 +13,6 @@ import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
 import { StatusLine } from "./components/StatusLine.tsx"
 import { TodoPanel } from "./components/TodoPanel.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
-import { useStoreSignal } from "./hooks/use-store-signal.ts"
 import { isLocal } from "./slash-commands.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
@@ -30,7 +29,6 @@ export type AppProps = {
 }
 
 export function App(props: AppProps): React.ReactElement {
-  const { columns: cols, rows: termRows } = useWindowSize()
   const controllerRef = useRef<Controller | null>(null)
   if (!controllerRef.current) {
     controllerRef.current = createSilvercodeController({
@@ -62,6 +60,12 @@ export function App(props: AppProps): React.ReactElement {
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
 
+  // Ctrl key choices avoid ASCII control-code aliases (Ctrl+I = Tab, Ctrl+M =
+  // Enter, Ctrl+H = Backspace, Ctrl+J = LineFeed, Ctrl+[ = Esc). Terminals
+  // translate those before silvery ever sees them, so they're unreachable
+  // outside Kitty disambiguation mode. These letters are safe across all
+  // terminals: E / Y / R / N. Slash commands (/inbox, /history, /todos,
+  // /mode) are the canonical surface — the Ctrl pairs are shortcuts.
   useInput(
     (input, key) => {
       if (key.escape && (showInbox || showHistory)) {
@@ -69,26 +73,10 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory(false)
         return
       }
-      if (key.ctrl && input === "i") {
-        setShowInbox((v) => !v)
-        return
-      }
-      if (key.ctrl && input === "t") {
-        setShowTodos((v) => !v)
-        return
-      }
-      if (key.ctrl && input === "h") {
-        setShowHistory((v) => !v)
-        return
-      }
-      if (key.ctrl && input === "m") {
-        const modes = ["plan", "accept-edits", "auto", "bypass"]
-        const idx = modes.indexOf(mode)
-        const next = modes[(idx + 1) % modes.length]!
-        setMode(next)
-        return
-      }
-      if (key.tab && sessions.length > 1) {
+      if (key.ctrl && input === "e") return setShowInbox((v) => !v)
+      if (key.ctrl && input === "y") return setShowTodos((v) => !v)
+      if (key.ctrl && input === "r") return setShowHistory((v) => !v)
+      if (key.ctrl && input === "n" && sessions.length > 1) {
         const idx = sessions.findIndex((s) => s.id === focusedSessionId)
         const next = sessions[(idx + 1) % sessions.length]!
         controller.focus(next.id)
@@ -98,17 +86,22 @@ export function App(props: AppProps): React.ReactElement {
     { isActive: true },
   )
 
-  const columns = props.layout === "grid-4" ? 2 : props.layout === "grid-2" ? 2 : 1
-  const cardCount = sessions.length
-  const cardHeight = props.layout === "single" ? Math.max(10, termRows - 5) : Math.max(10, Math.floor((termRows - 5) / Math.ceil(cardCount / columns)))
+  // grid-2 → 2 cards, 1 row of 2. grid-4 → 4 cards, 2 rows of 2 via flexWrap.
+  // No manual height/width math — let flex compute from flexGrow + flexBasis.
+  const cardBasis = props.layout === "single" ? "100%" : "50%"
 
   return (
     <PopoverProvider>
-      <Box flexDirection="column" height={termRows} width={cols}>
-        {/* Grid of session cards */}
+      <Box flexDirection="column" flexGrow={1}>
+        {/* Session cards grid */}
         <Box flexDirection="row" flexWrap="wrap" flexGrow={1}>
           {sessions.map((s) => (
-            <Box key={s.id} width={columns === 1 ? "100%" : "50%"} height={cardHeight} padding={0}>
+            <Box
+              key={s.id}
+              flexDirection="column"
+              flexGrow={1}
+              flexBasis={cardBasis}
+            >
               <SessionCard
                 handle={s}
                 isFocused={s.id === focusedSessionId}
@@ -120,7 +113,20 @@ export function App(props: AppProps): React.ReactElement {
           ))}
         </Box>
 
-        {/* Slash command palette (appears above input when typing '/…') */}
+        {/* Overlays first so they stack above the chrome below */}
+        {showInbox && (
+          <PermissionInbox
+            sessions={sessions}
+            onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+            onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+            onClose={() => setShowInbox(false)}
+          />
+        )}
+        {showTodos && focused && <TodoPanel handle={focused} />}
+        {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+        <Notifications sessions={sessions} />
+
+        {/* Slash-command palette when typing /… */}
         {paletteQuery !== null && (
           <SlashCommandPalette
             query={paletteQuery}
@@ -129,7 +135,8 @@ export function App(props: AppProps): React.ReactElement {
           />
         )}
 
-        {/* Command input (user → focused session) */}
+        <ModeSwitcher mode={mode} onChange={setMode} />
+
         <CommandInput
           value={inputValue}
           onChange={setInputValue}
@@ -144,24 +151,27 @@ export function App(props: AppProps): React.ReactElement {
               if (isLocal(cmd ?? "")) {
                 switch (cmd) {
                   case "/inbox":
-                    setShowInbox(true)
-                    return
+                    return setShowInbox(true)
                   case "/history":
-                    setShowHistory(true)
-                    return
+                    return setShowHistory(true)
                   case "/todos":
-                    setShowTodos((v) => !v)
+                    return setShowTodos((v) => !v)
+                  case "/mode": {
+                    const modes = ["plan", "accept-edits", "auto", "bypass"]
+                    const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
+                    setMode(target)
                     return
+                  }
                   case "/handoff": {
                     const otherId = sessions.find((s) => s.id !== focused.id)?.id
                     if (otherId) controller.handoff(focused.id, otherId, arg)
                     return
                   }
                   case "/fork":
-                    controller.fork(focused.id)
+                    void controller.fork(focused.id)
                     return
                   case "/spawn":
-                    controller.spawnSession(arg || undefined)
+                    void controller.spawnSession(arg || undefined)
                     return
                 }
               } else {
@@ -173,7 +183,6 @@ export function App(props: AppProps): React.ReactElement {
           }}
         />
 
-        {/* Status line pinned to bottom */}
         <StatusLine
           session={focused}
           mode={mode}
@@ -181,19 +190,6 @@ export function App(props: AppProps): React.ReactElement {
           onSwitchMode={setMode}
         />
 
-        {/* Overlays */}
-        {showInbox && (
-          <PermissionInbox
-            sessions={sessions}
-            onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-            onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-            onClose={() => setShowInbox(false)}
-          />
-        )}
-        {showTodos && focused && <TodoPanel handle={focused} />}
-        {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-        <ModeSwitcher mode={mode} onChange={setMode} />
-        <Notifications sessions={sessions} />
         <PopoverLayer />
       </Box>
     </PopoverProvider>

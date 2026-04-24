@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Muted, Small, Text } from "silvery"
+import { Box, Muted, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
@@ -40,7 +40,6 @@ export function StatusLine({
         </>
       )}
       <Box flexGrow={1} />
-      <Small>Ctrl+M cycle mode · Ctrl+I inbox · Ctrl+T todos · Ctrl+H history</Small>
     </Box>
   )
 }

@@ -187,6 +187,47 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     })
 
     const handle: SessionHandle = { id, name: givenName, store, session, unsubscribe: unsub, log }
+
+    // Intro message — synthesize a local assistant turn so the session card
+    // isn't empty on first render. Not sent to the subprocess; purely UI.
+    const introTurnId = `intro-${id}` as never
+    const introText = [
+      "**Welcome to silvercode.**",
+      "",
+      "Type a message and press Enter to send. Type `/` to open the command palette:",
+      "",
+      "- `/inbox`             — cross-session permission triage",
+      "- `/todos`             — toggle todo panel",
+      "- `/history`           — replay + search past sessions",
+      "- `/mode [name]`       — cycle plan / accept-edits / auto / bypass",
+      "- `/handoff <prompt>`  — move task+context to another session",
+      "- `/fork`              — spawn a seeded sibling",
+      "- `/spawn [name]`      — open another session in the grid",
+      "",
+      "Click any tool block to expand it. Click a mode label to switch.",
+    ].join("\n")
+    store.apply({
+      kind: "turn-start",
+      sessionId: "silvercode-intro" as never,
+      turnId: introTurnId,
+      role: "assistant",
+      ts: Date.now(),
+    })
+    store.apply({
+      kind: "text-delta",
+      sessionId: "silvercode-intro" as never,
+      turnId: introTurnId,
+      blockIndex: 0,
+      text: introText,
+      ts: Date.now(),
+    })
+    store.apply({
+      kind: "turn-end",
+      sessionId: "silvercode-intro" as never,
+      turnId: introTurnId,
+      ts: Date.now(),
+    })
+
     sessions.push(handle)
     if (!focusedId) {
       focusedId = id

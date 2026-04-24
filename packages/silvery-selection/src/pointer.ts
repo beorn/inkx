@@ -9,14 +9,7 @@
  * sel.drag is only for area-select and text-drag.
  */
 
-import type {
-  PointerEvent,
-  PointerHelpers,
-  PointerOrigin,
-  PointerState,
-  PressHit,
-  SelectionEffect,
-} from "./types.ts"
+import type { PointerEvent, PointerHelpers, PointerOrigin, PointerState, PressHit, SelectionEffect } from "./types.ts"
 
 // --- Helpers ---
 

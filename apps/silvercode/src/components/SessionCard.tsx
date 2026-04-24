@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, H3, Muted, Small, Text } from "silvery"
+import { Box, H3, Muted, Small } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
@@ -35,10 +35,9 @@ export function SessionCard({
   return (
     <Box
       flexDirection="column"
+      flexGrow={1}
       borderStyle={isFocused ? "round" : "single"}
       borderColor={isFocused ? "$primary" : "$border"}
-      padding={0}
-      flexGrow={1}
       onClick={onFocus}
     >
       {/* Card header */}
@@ -52,7 +51,12 @@ export function SessionCard({
       </Box>
 
       {/* Messages (scrollable body) */}
-      <Box flexGrow={1} overflow="scroll" paddingX={1}>
+      <Box
+        flexGrow={1}
+        overflow="scroll"
+        paddingX={1}
+        scrollTo={Math.max(0, state.messages.length - 1)}
+      >
         <MessageList
           messages={state.messages}
           onApprove={onApprove}
@@ -60,28 +64,6 @@ export function SessionCard({
           sessionId={handle.id}
         />
       </Box>
-
-      {/* Permission requests for this session land here; inbox (overlay) shows cross-session */}
-      {state.permissions.length > 0 && (
-        <Box flexDirection="column" paddingX={1} borderStyle="single" borderColor="$warning">
-          <Text bold color="$warning">
-            {state.permissions.length} permission{state.permissions.length === 1 ? "" : "s"} pending
-          </Text>
-          {state.permissions.slice(0, 3).map((p) => (
-            <Box key={p.requestId} flexDirection="row" gap={1}>
-              <Text>{p.tool}</Text>
-              <Muted>(Ctrl+I to triage)</Muted>
-            </Box>
-          ))}
-        </Box>
-      )}
-
-      {/* Error line */}
-      {state.lastError && (
-        <Box paddingX={1}>
-          <Text color="$error">{state.lastError}</Text>
-        </Box>
-      )}
     </Box>
   )
 }

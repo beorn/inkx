@@ -42,6 +42,7 @@ export function SlashCommandPalette({
         highlightedIndex={cursor}
         onHighlight={setCursor}
         onSelect={(opt) => onSelect(opt.value)}
+        maxVisible={5}
         isActive
       />
     </Box>

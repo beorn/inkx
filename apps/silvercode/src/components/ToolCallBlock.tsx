@@ -38,7 +38,12 @@ export function ToolCallBlock({
     <Box
       flexDirection="column"
       paddingX={1}
-      backgroundColor="$mutedbg"
+      backgroundColor={expanded ? "$surfacebg" : "$mutedbg"}
+      borderStyle="single"
+      borderColor={expanded ? "$accent" : "$border"}
+      borderTop={false}
+      borderBottom={false}
+      borderRight={false}
       onClick={() => setExpanded((v) => !v)}
     >
       <Box flexDirection="row" gap={1}>

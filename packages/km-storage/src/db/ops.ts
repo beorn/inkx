@@ -341,7 +341,9 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
 
 function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>, emitter?: Emitter): string {
   const nodeId = node.id ?? ulid()
-  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "p"} item=${String(node.item)} parent=${parentId} emitter=${!!emitter}`)
+  log.debug?.(
+    `addNode: ${nodeId} type=${node.type ?? "p"} item=${String(node.item)} parent=${parentId} emitter=${!!emitter}`,
+  )
   const now = Date.now()
 
   // Merge non-column fields into data blob

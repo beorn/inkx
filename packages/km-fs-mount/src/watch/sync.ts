@@ -431,9 +431,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       })
     }
 
-    writeQueue.on("flushed", (data) =>
-      callbacks?.onWriteComplete?.(data as { count: number; errors: number }),
-    )
+    writeQueue.on("flushed", (data) => callbacks?.onWriteComplete?.(data as { count: number; errors: number }))
     writeQueue.on("errors", (errors) => {
       callbacks?.onWriteErrors?.(errors as Array<{ path: string; error: Error; errorClass?: string }>)
       for (const err of errors as Array<{ path: string; errorClass?: string }>) {
