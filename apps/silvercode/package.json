@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@km/agent-harness": "workspace:*",
+    "@km/markdown": "workspace:*",
     "@km/mcp-server": "workspace:*",
     "@km/tribe-mcp": "workspace:*",
     "@silvery/ag-react": "workspace:*",
@@ -20,10 +21,12 @@
     "@silvery/commander": "workspace:*",
     "@silvery/theme": "workspace:*",
     "alien-signals": "^3.1.2",
+    "diff": "^9.0.0",
     "react": "catalog:",
     "silvery": "workspace:*"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.2",
     "@types/react": "catalog:"
   }
 }

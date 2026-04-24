@@ -142,9 +142,12 @@ export function App(props: AppProps): React.ReactElement {
     { isActive: true },
   )
 
-  // grid-2 → 2 cards, 1 row of 2. grid-4 → 4 cards, 2 rows of 2 via flexWrap.
-  // No manual height/width math — let flex compute from flexGrow + flexBasis.
-  const cardBasis = props.layout === "single" ? "100%" : "50%"
+  // Layout adapts to actual session count: single session → full width;
+  // 2+ sessions (e.g. from /fork or /spawn) → 50% basis + flexWrap so they
+  // tile instead of stacking on top of each other. The --layout flag sets
+  // the initial session count; forks grow that count at runtime and the
+  // layout follows.
+  const cardBasis = sessions.length <= 1 ? "100%" : "50%"
 
   // Bind the root box to the live window dims so resize events propagate — on
   // SIGWINCH useWindowSize re-renders, the root re-sizes, and the flex
@@ -174,22 +177,29 @@ export function App(props: AppProps): React.ReactElement {
           <AppHeader cwd={props.cwd} track={props.track} />
         </Box>
 
-        {/* Session cards grid — absorbs all remaining vertical space.
-            flexShrink=1 + minHeight=0 lets it yield to chrome below before
-            overflowing. Inner cards clip scrollable content via their own
-            overflow="scroll" region. */}
-        <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
-          {sessions.map((s) => (
-            <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
-              <SessionCard
-                handle={s}
-                isFocused={s.id === focusedSessionId}
-                onFocus={() => controller.focus(s.id)}
-                onApprove={(reqId) => controller.respondPermission(s.id, reqId, true)}
-                onDeny={(reqId) => controller.respondPermission(s.id, reqId, false)}
-              />
+        {/* Main area = cards grid + optional TodoPanel sidebar on the right.
+            The sidebar floats to a fixed narrow width (todos are usually
+            short); cards take the rest. flexShrink=1 + minHeight=0 lets the
+            whole area yield to chrome below before overflowing. */}
+        <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0}>
+          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} minHeight={0}>
+            {sessions.map((s) => (
+              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
+                <SessionCard
+                  handle={s}
+                  isFocused={s.id === focusedSessionId}
+                  onFocus={() => controller.focus(s.id)}
+                  onApprove={(reqId) => controller.respondPermission(s.id, reqId, true)}
+                  onDeny={(reqId) => controller.respondPermission(s.id, reqId, false)}
+                />
+              </Box>
+            ))}
+          </Box>
+          {showTodos && focused && (
+            <Box flexShrink={0} flexBasis={36} flexDirection="column">
+              <TodoPanel handle={focused} />
             </Box>
-          ))}
+          )}
         </Box>
 
         {/* Bottom chrome — flexShrink=0 so it can't be squeezed off-screen
@@ -204,7 +214,6 @@ export function App(props: AppProps): React.ReactElement {
               onClose={() => setShowInbox(false)}
             />
           )}
-          {showTodos && focused && <TodoPanel handle={focused} />}
           {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
           <Notifications sessions={sessions} />
 

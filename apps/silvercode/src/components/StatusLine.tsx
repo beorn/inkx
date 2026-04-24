@@ -1,5 +1,11 @@
 import React from "react"
 import { Box, Muted, Text } from "silvery"
+import {
+  contextUtilizationColor,
+  contextUtilizationLevel,
+  contextWindowFor,
+  formatContextUtilization,
+} from "../context-windows.ts"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 

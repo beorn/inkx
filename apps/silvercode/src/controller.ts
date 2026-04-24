@@ -28,6 +28,7 @@ import {
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
+import { replaySessionFromDisk } from "./resume.ts"
 
 /**
  * Resolve stdio MCP server specs for a spawned session. Each session gets:
@@ -224,6 +225,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const id = `s${nextId++}`
     const givenName = name ?? `session-${id}`
     const store = createSessionStore()
+
+    // --resume backfill: replay the on-disk JSONL transcript into the store
+    // BEFORE spawning so the card shows prior turns immediately. Claude Code
+    // will then --resume from server-side state, and new events stream in on
+    // top of the replayed history.
+    if (opts.resume) {
+      replaySessionFromDisk(store, opts.cwd, opts.resume)
+    }
+
     const session = await Promise.resolve(
       factory({
         id,
@@ -277,6 +287,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       "- **accept-edits** — file edits apply automatically; other tools still prompt",
       "- **auto** — default; everything Claude can do runs unattended",
       "- **bypass** — skip all approvals; use only in sandboxes",
+      "",
+      "**Keybindings:**",
+      "",
+      "- `Ctrl+E` — open/close the permission inbox",
+      "- `Ctrl+Y` — toggle the todos panel",
+      "- `Ctrl+R` — open/close the history view",
+      "- `Ctrl+N` — focus the next session card (multi-session only)",
+      "- `Esc`    — dismiss open overlays",
+      "- `Ctrl+D Ctrl+D` — exit silvercode (on an empty prompt)",
     ]
     if (opts.account) {
       introLines.push(
