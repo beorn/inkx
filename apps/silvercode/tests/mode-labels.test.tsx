@@ -49,7 +49,7 @@ function makeStubController(): Controller {
     send: () => {},
     closeAll: () => {},
     respondPermission: () => {},
-    holdQueue: () => {},
+    flushQueue: () => {},
     setQueuedText: () => {},
     clearQueue: () => {},
     queuedText: () => "",

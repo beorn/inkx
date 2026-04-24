@@ -33,9 +33,9 @@ import { replaySessionFromDisk } from "./resume.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
 // `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
-// polluted). Traces every send/setQueuedText/holdQueue/tryFlush and the
-// decision the controller made. Loaded when investigating "queue items
-// stay there" reports — auto-flush should fire on `turn-end`.
+// polluted). Traces every send/setQueuedText/tryFlush and the decision the
+// controller made. Loaded when investigating "queue items stay there"
+// reports — auto-flush should fire on `turn-end`.
 const dQueue = createDebug("silvercode:queue")
 
 /**
@@ -173,9 +173,7 @@ export type Controller = {
    * thinking / running a tool / waiting for permission), the text is
    * appended to a queue buffer and the whole buffer is submitted as ONE
    * user message when Claude returns to idle — matches Claude Code's
-   * batching behaviour. Unless `queueGate` has been set via
-   * `holdQueue(true)` (queue editor has focus), in which case flush
-   * waits until the gate is released.
+   * batching behaviour.
    */
   send(sessionId: string, text: string): void
   /** Current queue buffer for a session. Empty string when none. */
@@ -187,16 +185,9 @@ export type Controller = {
   /** Drop the queue (Esc-to-cancel on empty input). */
   clearQueue(sessionId: string): void
   /**
-   * Pause / resume auto-flush. When held, queued text never drains even
-   * if the session returns to idle — used by the queue editor to stop
-   * mid-edit submission. Releasing the hold triggers an immediate flush
-   * if the session is idle and the queue is non-empty.
-   */
-  holdQueue(sessionId: string, hold: boolean): void
-  /**
    * Force-flush the queue buffer NOW, regardless of idle status. Used by
-   * the queue editor when the user explicitly submits (Enter / Down past
-   * last entry). Bypasses the `status === "idle"` gate that the ambient
+   * the queue editor when the user explicitly submits (Enter in the queue
+   * region). Bypasses the `status === "idle"` gate that the ambient
    * auto-flush path uses, because the user's explicit submit is its own
    * signal — Claude Code's CLI buffers stdin if Claude is mid-turn, so
    * sending a queued user message during a turn is safe and lands as the
@@ -235,10 +226,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // queue editor can bind a TextArea to it directly. While Claude is
   // mid-turn (status != idle), new user messages are appended (separated
   // by "\n\n"). On idle, the whole buffer is flushed as ONE user message
-  // — matches Claude Code's batching behaviour. `holds` gates the flush
-  // (queue editor sets hold=true while the user is editing).
+  // — matches Claude Code's batching behaviour.
+  //
+  // Option B model: the queue TextArea is ALWAYS live (no editor mode,
+  // no "hold" state). Auto-flush waits for `turn-end`; explicit submit
+  // (Enter in queue region) calls `flushQueue` to bypass the idle gate.
   const queues = new Map<string, string>()
-  const holds = new Map<string, boolean>()
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
   function notifyQueue(sessionId: string): void {
     const t = queues.get(sessionId) ?? ""
@@ -248,10 +241,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
    * Flush the queue buffer to Claude as one user turn, then clear.
    *
    * Two callers, two semantics:
-   *  - Auto-flush (`force=false`): no-op unless hold is clear AND session
-   *    is idle. Used by the turn-end subscriber + holdQueue release.
+   *  - Auto-flush (`force=false`): no-op unless session is idle. Used by
+   *    the turn-end subscriber.
    *  - Force-flush (`force=true`): bypasses the idle gate. Used by the
-   *    queue editor's explicit submit (Enter / Down-past-last). Claude
+   *    queue editor's explicit submit (Enter in queue region). Claude
    *    Code's CLI buffers stdin while mid-turn, so sending a user-message
    *    during a turn is safe — it lands as the next turn's input.
    *
@@ -264,10 +257,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return
     }
     if (!force) {
-      if (holds.get(sessionId)) {
-        dQueue("tryFlush %s — held, skip", sessionId)
-        return
-      }
       const status = s.store.state.get().status
       if (status !== "idle") {
         dQueue("tryFlush %s — status=%s, skip", sessionId, status)
@@ -466,14 +455,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (!s) return
       const status = s.store.state.get().status
       const idle = status === "idle" || status === "ended"
-      // Non-idle OR queue currently held (editor has focus) → append to
-      // buffer and let tryFlush decide when to drain.
-      if (!idle || holds.get(sessionId)) {
+      // Non-idle → append to buffer and let tryFlush drain on turn-end.
+      if (!idle) {
         const prev = queues.get(sessionId) ?? ""
         const next = prev ? `${prev}\n\n${text}` : text
         queues.set(sessionId, next)
         notifyQueue(sessionId)
-        dQueue("send %s — queued (status=%s held=%s len=%d)", sessionId, status, !!holds.get(sessionId), next.length)
+        dQueue("send %s — queued (status=%s len=%d)", sessionId, status, next.length)
         return
       }
       // Idle + no hold → send immediately, but include any pending queue
@@ -510,17 +498,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       queues.set(sessionId, "")
       notifyQueue(sessionId)
     },
-    holdQueue(sessionId: string, hold: boolean): void {
-      holds.set(sessionId, hold)
-      dQueue("holdQueue %s — hold=%s", sessionId, hold)
-      if (!hold) tryFlush(sessionId)
-    },
     flushQueue(sessionId: string): void {
-      // Explicit user-initiated submit — bypasses the idle gate, also
-      // clears any pending hold so a follow-up auto-flush doesn't double-
-      // send.
+      // Explicit user-initiated submit — bypasses the idle gate. Claude
+      // Code's CLI buffers stdin while mid-turn, so the message lands as
+      // the next turn's input.
       dQueue("flushQueue %s — explicit submit", sessionId)
-      holds.set(sessionId, false)
       tryFlush(sessionId, true)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
