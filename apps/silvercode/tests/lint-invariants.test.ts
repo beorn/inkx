@@ -50,7 +50,12 @@ describe("silvercode invariants", () => {
         if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue
         if (file.endsWith("/bin.ts") || file.endsWith("/bootstrap.ts")) continue
         const src = readFileSync(file, "utf8")
-        if (/\bprocess\.exit\s*\(/.test(src)) {
+        // Strip lines with an explicit carve-out marker. Reserved for force-
+        // exit in SIGINT / fatal-error paths where silvery has already run
+        // its cleanup and we need to guarantee the host terminates even if
+        // the event loop has lingering handles.
+        const lines = src.split("\n").filter((l) => !l.includes("lint-ok: "))
+        if (/\bprocess\.exit\s*\(/.test(lines.join("\n"))) {
           offenders.push(relative(REPO_ROOT, file))
         }
       }

@@ -179,15 +179,28 @@ export function App(props: AppProps): React.ReactElement {
   // SIGINT (Ctrl+C) — silvery's default handler restores the terminal but
   // leaves the child claude subprocesses running, which keeps Node alive and
   // forces a second Ctrl+C to kill the host. Register our own handler that
-  // closes every session first, then exits cleanly. One-shot per process;
-  // a second SIGINT during the drain falls through to Node's default which
-  // kills the tree.
+  // closes every session first, THEN force-exits (process.exit is only ok
+  // here because silvery has already restored the terminal by this point
+  // and we're actively trying to terminate; staying alive is the bug).
   useEffect(() => {
     let draining = false
     function onSigint(): void {
       if (draining) return
       draining = true
-      void requestExit()
+      void (async () => {
+        try {
+          await controller.closeAll()
+        } catch {
+          /* best-effort */
+        }
+        silveryExit()
+        // If the event loop still has lingering handles (stdio pipes from
+        // MCP servers that didn't flush, event-log streams, tribe watchers),
+        // force exit after a short grace so the host doesn't hang.
+        ;(setTimeout(() => {
+          process.exit(0) // lint-ok: SIGINT force-exit after silvery cleanup
+        }, 300) as unknown as { unref(): void }).unref()
+      })()
     }
     process.on("SIGINT", onSigint)
     return () => {

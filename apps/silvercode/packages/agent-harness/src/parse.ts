@@ -271,7 +271,21 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     if (!msg) return
     const sid = state.sessionId ?? toSessionId(obj.session_id)
     state.sessionId = sid
-    const turnId = state.turnIdByMessageId.get(String(msg.id ?? "")) ?? state.currentTurnId ?? toTurnId(null)
+    // Turn-id resolution for assistant events:
+    //   1. If a live `message_start` registered this msg.id under a turnId
+    //      (live stream), reuse it.
+    //   2. Else if msg.id exists (JSONL-on-disk replay has no message_start
+    //      but every assistant entry has an id), use msg.id directly — this
+    //      guarantees every distinct assistant message gets a distinct bucket
+    //      in the session store. Without this, replay collapsed 300+ messages
+    //      into ~4 when multiple events fell into the same Date.now() ms.
+    //   3. Fall back to currentTurnId / synthetic.
+    const msgIdStr = typeof msg.id === "string" ? (msg.id as string) : ""
+    const turnId =
+      state.turnIdByMessageId.get(msgIdStr) ??
+      (msgIdStr.length > 0 ? (msgIdStr as TurnId) : null) ??
+      state.currentTurnId ??
+      toTurnId(null)
     const rawContent = msg.content
     const blocks: ContentBlock[] = Array.isArray(rawContent)
       ? (rawContent as Array<Record<string, unknown>>)
@@ -339,7 +353,12 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
     // advance currentTurnId for them (otherwise the subsequent turn-end
     // attaches to a phantom empty message).
     if (text.length > 0) {
-      const turnId = toTurnId(msg.id ?? `user-${nowMs()}`)
+      // Prefer the JSONL's top-level uuid over Date.now() for uniqueness —
+      // Date.now() collides when several user messages fall in the same ms
+      // during a replay, collapsing them into one store bucket. uuid is
+      // stable per message on disk; msg.id is rare for user messages.
+      const uniq = msg.id ?? (obj.uuid as string | undefined) ?? `user-${nowMs()}-${Math.random().toString(36).slice(2, 8)}`
+      const turnId = toTurnId(uniq)
       state.currentTurnId = turnId
       emit({
         kind: "user-message",
