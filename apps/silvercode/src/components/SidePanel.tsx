@@ -52,15 +52,15 @@ const MODE_COLORS: Record<string, string> = {
 }
 
 /**
- * Longer descriptive labels for each permission mode. Replaces the "Mode:
- * auto" prefix with a self-contained phrase that reads as a full status
- * line — e.g. "Auto permissions" instead of "Mode: auto".
+ * Permission-mode display labels. Mirrors Claude Code's own status-line
+ * convention (⏸ for plan, ⏵⏵ for modes that skip prompting). Bypass gets
+ * ⚡ — visually distinct, signals "zap through approvals, dangerous".
  */
 const MODE_LABELS: Record<string, string> = {
-  plan: "Plan only",
-  "accept-edits": "Accept edits",
-  auto: "Auto permissions",
-  bypass: "Bypass permissions",
+  plan: "⏸ plan mode on",
+  "accept-edits": "⏵⏵ accept edits on",
+  auto: "⏵⏵ auto mode on",
+  bypass: "⚡ bypass mode on",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes

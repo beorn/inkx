@@ -2,31 +2,37 @@
  * Claude account + quota probe.
  *
  * Resolves the active profile's email, subscription tier, and usage-window
- * quotas via `@beorn/accountly`. Consumed by the SidePanel to render the
- * multi-window quota block (5-hour / 7-day / 7-day Sonnet / Extra usage).
+ * quotas via `@beorn/accountly`'s PUBLIC API surface. Consumed by the
+ * SidePanel to render the multi-window quota block (5hr / 7d / 7ds / x).
  *
  * Design:
- *   - Email is resolved synchronously from CLAUDE_CONFIG_DIR (when set) —
- *     the side panel can render the identity line immediately.
- *   - Plan + quotas require calling Anthropic's /api/usage, so they come
- *     via an async fetch. The hook that consumes this file caches the
- *     result and refreshes on a gentle cadence (2 min) so the panel stays
- *     live without hammering the API.
+ *   - Email resolves synchronously from CLAUDE_CONFIG_DIR so the panel
+ *     can render the identity line immediately.
+ *   - Plan + quotas come via `checkProfileQuota()` (hits Anthropic's
+ *     /api/usage through the keychain OAuth token). The consuming hook
+ *     re-runs it every ~2 min.
  *   - Errors are surfaced as a string on the returned object; the panel
- *     falls back to the local context-window bar when the probe fails
+ *     falls back to a local context-window bar when the probe fails
  *     (offline, no credentials, API outage).
  */
 
 import { basename } from "node:path"
-import { createClaudeOAuthProvider, extractPlan, readKeychainForProfile } from "@beorn/accountly"
-import type { QuotaInfo, QuotaWindow } from "@beorn/accountly"
+import {
+  checkProfileQuota,
+  keychainSlot,
+  isLoggedIn,
+  type QuotaWindow,
+  type ProfileInfo,
+} from "@beorn/accountly"
+
+export type { QuotaWindow } from "@beorn/accountly"
 
 export interface AccountProbe {
   /** `bjorn@stabell.org` when the active profile encodes an email; otherwise null. */
   email: string | null
   /**
-   * Raw plan/tier string from keychain (e.g. `"claude_max_20x"` or `"claude_pro"`).
-   * The SidePanel humanizes this for display.
+   * Raw plan/tier string populated by accountly (e.g. `"claude_max_20x"` or
+   * `"claude_pro"`). The SidePanel humanizes this for display.
    */
   plan: string | null
   /** Per-window utilization. Empty while loading / on error. */
@@ -46,10 +52,21 @@ export function resolveActiveEmail(): string | null {
   const configDir = process.env.CLAUDE_CONFIG_DIR
   if (!configDir) return null
   const name = basename(configDir)
-  // Only return it if it actually looks like an email — otherwise the user
-  // is on stock ~/.claude (or a non-email profile name); we don't want to
-  // render a garbage identity line.
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(name) ? name : null
+}
+
+/**
+ * Synthesize a ProfileInfo for accountly's `checkProfileQuota`. We build it
+ * locally from the active CLAUDE_CONFIG_DIR rather than scanning all
+ * profiles — silvercode only cares about the account the current process
+ * is billing against.
+ */
+function activeProfile(): ProfileInfo | null {
+  const configDir = process.env.CLAUDE_CONFIG_DIR
+  if (!configDir) return null
+  const name = basename(configDir)
+  const slot = keychainSlot(configDir)
+  return { name, dir: configDir, slot, authenticated: isLoggedIn(configDir) }
 }
 
 /**
@@ -60,35 +77,31 @@ export function resolveActiveEmail(): string | null {
  */
 export async function probeActiveAccount(): Promise<AccountProbe> {
   const email = resolveActiveEmail()
-  const configDir = process.env.CLAUDE_CONFIG_DIR ?? `${process.env.HOME ?? ""}/.claude`
+  const profile = activeProfile()
 
-  const credential = readKeychainForProfile(configDir)
-  if (!credential) {
+  if (!profile) {
     return {
       email,
       plan: null,
       quotas: [],
-      error: `No Claude credentials in keychain for ${configDir}`,
+      error: "CLAUDE_CONFIG_DIR not set — stock ~/.claude quota check not wired",
       loading: false,
     }
   }
 
-  const plan = extractPlan(credential) ?? null
-
   try {
-    const provider = createClaudeOAuthProvider()
-    const info: QuotaInfo = await provider.checkQuota(credential)
+    const { quota, error } = await checkProfileQuota(profile)
     return {
       email,
-      plan,
-      quotas: info.windows,
-      error: info.error ?? null,
+      plan: profile.plan ?? null,
+      quotas: quota?.windows ?? [],
+      error: error ?? quota?.error ?? null,
       loading: false,
     }
   } catch (err) {
     return {
       email,
-      plan,
+      plan: profile.plan ?? null,
       quotas: [],
       error: err instanceof Error ? err.message : String(err),
       loading: false,
@@ -139,7 +152,6 @@ export function windowShortLabel(name: string): string {
     case "Extra usage":
       return "x"
     default:
-      // Best-effort abbreviation for A/B-test windows or future names.
       return name.slice(0, 4)
   }
 }
