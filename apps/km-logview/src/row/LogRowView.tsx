@@ -259,16 +259,15 @@ function computeBodyState(bodyLines: string[]): BodyState {
 }
 
 /** Render a list of body lines (expanded or flat — same visual shape).
- * When `marked` is true, the container gets a SINGLE LEFT BORDER via
- * Box's native borderStyle — a vertical bar that spans the full height
- * of the body Box including wrapped continuation lines. Prior attempts:
- *   - Inline '▎ ' Text prefix per line: broke on wrap (continuation
- *     lines lost the marker and wrapped back to col 0).
- *   - position=absolute overlay with "▎".repeat(64) + width=1: the
- *     absolute-positioned Text wrapped 64 chars across many rows,
- *     leaking the marker onto siblings below the expanded row.
- * Box borderLeft just works: it's layout-aware, height-aware, and
- * shrinks to fit like any flex child. */
+ * When `marked` is true, a 1-column sibling Box with `$accent` background
+ * paints a vertical bar to the left of the body content (Markdown
+ * blockquote convention, visible regardless of theme bg contrast).
+ *
+ * Why a sibling Box instead of Box borderStyle: the border-render path
+ * has had edge cases where the border paints outside its Box height
+ * under ListView virtualization (user-reported leak onto sibling rows).
+ * A flex-row with a 1-col solid-bg child is layout-simple — the bar is
+ * exactly as tall as the content Box, no border semantics, no surprise. */
 function BodyLines({
   lines,
   keyPrefix,
@@ -285,25 +284,12 @@ function BodyLines({
    * nodes that colorize emits carry their own bright colors (C_TAG, C_VAL, …)
    * which defeat the outer muted color. Pass `true` only when hovered / cursor. */
   colorized: boolean
-  /** When true, render a single left border in $accent — Markdown-blockquote
-   * convention, visible regardless of theme bg contrast. */
+  /** When true, paint a 1-column `$accent` bar on the left — Markdown
+   * blockquote convention, visible regardless of theme bg contrast. */
   marked: boolean
 }) {
-  const borderProps = marked
-    ? ({
-        borderStyle: "single",
-        borderColor: "$accent",
-        borderTop: false,
-        borderRight: false,
-        borderBottom: false,
-      } as const)
-    : undefined
-  return (
-    <Box
-      flexDirection="column"
-      paddingLeft={marked ? 1 : BODY_INDENT}
-      {...borderProps}
-    >
+  const content = (
+    <Box flexDirection="column" flexGrow={1} paddingLeft={marked ? 1 : BODY_INDENT}>
       {lines.map((line, i) => {
         const showHighlight = hasMatch(line, searchQuery)
         return (
@@ -317,6 +303,13 @@ function BodyLines({
           </Text>
         )
       })}
+    </Box>
+  )
+  if (!marked) return content
+  return (
+    <Box flexDirection="row" width="100%">
+      <Box width={1} flexShrink={0} backgroundColor="$accent" />
+      {content}
     </Box>
   )
 }
