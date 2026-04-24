@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, H1, H3, Muted, Text } from "silvery"
+import { Box, H1, H2, Muted, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 
 /**
@@ -21,7 +21,7 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
       </Box>
 
       <Box flexDirection="column">
-        <H3>Commands</H3>
+        <H2>Commands</H2>
         <IntroRow name="/inbox" desc="cross-session permission triage" />
         <IntroRow name="/panel" desc="toggle the todos + agents side panel" />
         <IntroRow name="/history" desc="replay + search past sessions" />
@@ -32,13 +32,13 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
       </Box>
 
       <Box flexDirection="column">
-        <H3>Keybindings</H3>
-        <IntroRow name="Ctrl+O" desc="toggle the side panel (todos + agents)" />
-        <IntroRow name="Ctrl+E" desc="permission inbox" />
-        <IntroRow name="Ctrl+R" desc="history view" />
-        <IntroRow name="Ctrl+N" desc="next session (multi-session)" />
-        <IntroRow name="Esc" desc="dismiss open overlays" />
-        <IntroRow name="Ctrl+C / Ctrl+D Ctrl+D" desc="exit silvercode" />
+        <H2>Keybindings</H2>
+        <IntroRow name="ctrl-o" desc="toggle the side panel (todos + agents)" />
+        <IntroRow name="ctrl-e" desc="permission inbox" />
+        <IntroRow name="ctrl-r" desc="history view" />
+        <IntroRow name="ctrl-n" desc="next session (multi-session)" />
+        <IntroRow name="esc" desc="dismiss open overlays" />
+        <IntroRow name="ctrl-c / ctrl-d ctrl-d" desc="exit silvercode" />
       </Box>
     </Box>
   )

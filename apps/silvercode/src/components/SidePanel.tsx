@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Muted, Small, Text, useHover, usePopoverHandlers } from "silvery"
+import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import {
   contextUtilizationColor,
@@ -41,6 +41,18 @@ const MODE_COLORS: Record<string, string> = {
   "accept-edits": "$warning",
   auto: "$success",
   bypass: "$error",
+}
+
+/**
+ * Longer descriptive labels for each permission mode. Replaces the "Mode:
+ * auto" prefix with a self-contained phrase that reads as a full status
+ * line — e.g. "Auto permissions" instead of "Mode: auto".
+ */
+const MODE_LABELS: Record<string, string> = {
+  plan: "Plan only",
+  "accept-edits": "Accept edits",
+  auto: "Auto permissions",
+  bypass: "Bypass permissions",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
@@ -113,7 +125,7 @@ export function SidePanel({
   const window = contextWindowFor(state.model)
   const pct = contextUtilizationPercent(totalTokens, window)
   const ctxColor = contextUtilizationColor(contextUtilizationLevel(pct))
-  const ctxLabel = `${Math.round(totalTokens / 1000)}K / ${Math.round(window / 1000)}K (${pct}%)`
+  const ctxValue = Math.max(0, Math.min(1, totalTokens / window))
 
   const todosCount = state.todos.length
   const agentsTotal = state.messages.reduce(
@@ -160,7 +172,7 @@ export function SidePanel({
         </Text>
         <Text>
           <Muted>• </Muted>
-          <Text>Ctrl+N</Text>
+          <Text>ctrl-n</Text>
           <Muted> — cycle focus</Muted>
         </Text>
         <Muted>Resume with: silvercode --resume &lt;sessionId&gt;</Muted>
@@ -269,7 +281,7 @@ export function SidePanel({
           >
             <SectionHeading>Sessions</SectionHeading>
           </Box>
-          <Small color="$muted">Ctrl+O</Small>
+          <Small color="$muted">ctrl-o</Small>
         </Box>
         {sessions.map((s) => (
           <SessionRow
@@ -331,25 +343,28 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Mode — clickable to cycle, hover shows help + armed bg. */}
+      {/* Mode — clickable to cycle, hover shows help + armed bg. Renders
+          the descriptive label ("Auto permissions") instead of the raw
+          mode slug with a "Mode:" prefix. */}
       <Box flexShrink={0} height={1} />
       <Box
         flexDirection="row"
-        gap={1}
         flexShrink={0}
         onClick={onCycleMode}
         onMouseEnter={modeHover.onMouseEnter}
         onMouseLeave={modeHover.onMouseLeave}
         backgroundColor={hoveredBg(modeHover.isHovered)}
       >
-        <Muted>Mode:</Muted>
         <Text color={modeColor} bold>
-          {mode}
+          {MODE_LABELS[mode] ?? mode}
         </Text>
       </Box>
 
-      {/* Tokens + cost — bare numbers (no "Tokens" label); hover popover
-          carries the explanation + per-token breakdown + plan/window tips. */}
+      {/* Tokens + cost — horizontal progress bar (percentage of the context
+          window used) with the running dollar cost beside it. Hover popover
+          has the full breakdown: input/output tokens, window size, /compact
+          hint, warning/error thresholds. The bar color shifts at 70% / 90%
+          via `ctxColor` so utilization is visible at a glance. */}
       <Box flexShrink={0} height={1} />
       <Box
         flexDirection="row"
@@ -359,8 +374,7 @@ export function SidePanel({
         onMouseLeave={ctxHover.onMouseLeave}
         backgroundColor={hoveredBg(ctxHover.isHovered)}
       >
-        <Text color={ctxColor}>{ctxLabel}</Text>
-        <Muted>·</Muted>
+        <ProgressBar value={ctxValue} width={14} color={ctxColor} showPercentage />
         <Muted>${state.cost.usd.toFixed(4)}</Muted>
       </Box>
 

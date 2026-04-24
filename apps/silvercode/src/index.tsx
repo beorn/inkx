@@ -68,13 +68,13 @@ function buildProgram(): Command {
     })
 
   program.addHelpSection("Keybindings:", [
-    ["Enter", "send message"],
-    ["Tab", "focus next session card (grid mode)"],
-    ["Ctrl+M", "cycle mode (plan/accept-edits/auto/bypass)"],
-    ["Ctrl+I", "open permission inbox"],
-    ["Ctrl+T", "toggle todo panel"],
-    ["Ctrl+H", "open history view"],
-    ["Esc", "dismiss popover / quit"],
+    ["enter", "send message"],
+    ["ctrl-o", "toggle side panel (todos + agents)"],
+    ["ctrl-e", "open permission inbox"],
+    ["ctrl-r", "history view"],
+    ["ctrl-n", "next session (multi-session)"],
+    ["esc", "dismiss overlays"],
+    ["ctrl-c / ctrl-d ctrl-d", "exit silvercode"],
   ])
 
   return program
