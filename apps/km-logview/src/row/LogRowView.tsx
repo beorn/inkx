@@ -421,14 +421,16 @@ export function LogRowView({
   const showFlat = hasBody && !isCollapsible
 
   // Row bg. EXPANDED wins over CURSOR so hover-moves-cursor doesn't
-  // change the expanded row's bg when the user mouses over it — the
-  // expanded state is what they care about, not whether the cursor
-  // happens to be on it. $bg-accent-hover is the semantic "interactive
-  // state change" token — accent-tinted, visibly different from the
-  // base bg even on low-contrast themes (unlike the surface-overlay
-  // 12%-blend token, which was imperceptible per user report).
+  // change the expanded row's bg when the user mouses over it.
+  //
+  // Token progression we tried:
+  //   $bg-surface-subtle (5%): imperceptible
+  //   $bg-muted (8%): imperceptible
+  //   $bg-surface-overlay (12%): imperceptible
+  //   $bg-accent-hover (hover-shift from accent): imperceptible on user's theme
+  //   $bg-accent-active (active-shift, more saturated): current
   const rowBackground = showExpanded
-    ? "$bg-accent-hover"
+    ? "$bg-accent-active"
     : isCursor
       ? "$bg-cursor"
       : undefined
