@@ -48,13 +48,6 @@ describe("expanded-row bg is actually applied", () => {
     const outsideCell = term.cell(10, 0) // outside the expanded row
     expect(bodyCell.bg).not.toBeNull()
     expect(JSON.stringify(bodyCell.bg)).not.toBe(JSON.stringify(outsideCell.bg))
-    // DIAGNOSTIC: with rowBackground="red" the bg must be reddish
-    // (ANSI-16 red is ~128,0,0; truecolor "red" is 255,0,0).
-    const bg = bodyCell.bg as { r: number; g: number; b: number } | null
-    expect(bg).not.toBeNull()
-    expect(bg!.r).toBeGreaterThan(bg!.g) // red > green
-    expect(bg!.r).toBeGreaterThan(bg!.b) // red > blue
-    expect(bg!.r).toBeGreaterThan(80)
     handle.unmount()
   })
 })

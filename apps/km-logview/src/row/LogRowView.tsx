@@ -420,15 +420,18 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // DIAGNOSTIC: expanded-row bg set to raw "red" to verify the bg prop
-  // is reaching the cell buffer at all. User reported no visible bg
-  // shade with every semantic token we tried ($bg-surface-subtle 5%,
-  // $bg-muted 8%, $bg-surface-overlay 12% — all imperceptible on their
-  // theme). Red is a sanity check: if red doesn't show, backgroundColor
-  // isn't applying to the Box at all and the bug is elsewhere. Revert
-  // to a real semantic token ($bg-accent-hover or similar) once we've
-  // confirmed the path works.
-  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "red" : undefined
+  // Row bg. EXPANDED wins over CURSOR so hover-moves-cursor doesn't
+  // change the expanded row's bg when the user mouses over it — the
+  // expanded state is what they care about, not whether the cursor
+  // happens to be on it. $bg-accent-hover is the semantic "interactive
+  // state change" token — accent-tinted, visibly different from the
+  // base bg even on low-contrast themes (unlike the surface-overlay
+  // 12%-blend token, which was imperceptible per user report).
+  const rowBackground = showExpanded
+    ? "$bg-accent-hover"
+    : isCursor
+      ? "$bg-cursor"
+      : undefined
 
   return (
     <Box
