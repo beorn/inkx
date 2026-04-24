@@ -197,18 +197,38 @@ function QueueEditor({
     writeBack(next)
   }
 
-  // Keyboard nav for the queue editor. Active only while the editor is
-  // mounted (parent gates via `queueFocused`). Per-key behaviour:
+  // Keyboard nav for the queue editor. We do NOT pass `onSubmit` to the
+  // active TextInput — that flag controls silvery's `useReadline` hook
+  // (`handleEnter: !!onSubmit`), and with `handleEnter=false` the
+  // readline machinery EARLY-RETURNS on `key.return`, leaving the Enter
+  // event for our parent useInput to handle. Same for Esc and the
+  // vertical arrows (handleEscape / handleVerticalArrows default false).
+  // This is the documented escape hatch — see useReadline.ts:163-169.
   //
-  // - Up         move active row up (no wrap); top row stays
-  // - Down       move active row down; past the last row → release
-  // - Esc        release focus back to the command input (buffer kept)
-  // - Shift+Enter insert a new empty entry below the active one, focus it
+  // Per-key behaviour:
   //
-  // Plain Enter is owned by the active TextInput — its `onSubmit` calls
-  // `onQueueRelease`, which (via App.tsx → controller.holdQueue(false))
-  // triggers `tryFlush` and submits the entire queue as one user turn.
+  //   Enter        flush + release
+  //   Shift+Enter  insert a new empty entry below the active one, focus it
+  //   Esc          release focus back to the command input (buffer kept)
+  //   Up           move active row up (no wrap); top row stays
+  //   Down         move active row down; past the last row → release
   useInput((_input, key) => {
+    if (key.shift && key.return) {
+      const idx = active
+      const list = entriesRef.current
+      const next = [...list.slice(0, idx + 1), "", ...list.slice(idx + 1)]
+      writeBack(next)
+      setActive(idx + 1)
+      return
+    }
+    if (key.return) {
+      onQueueRelease()
+      return
+    }
+    if (key.escape) {
+      onQueueRelease()
+      return
+    }
     if (key.upArrow) {
       setActive((i) => Math.max(0, i - 1))
       return
@@ -223,34 +243,43 @@ function QueueEditor({
       })
       return
     }
-    if (key.escape) {
-      onQueueRelease()
-      return
-    }
-    if (key.shift && key.return) {
-      const idx = active
-      const list = entriesRef.current
-      const next = [...list.slice(0, idx + 1), "", ...list.slice(idx + 1)]
-      writeBack(next)
-      setActive(idx + 1)
-      return
-    }
   })
 
+  // Render only the ACTIVE entry as a TextInput; the rest are plain Text
+  // rows. silvery's `useCursor` is last-writer-wins and runs cleanup when
+  // `visible: false` — if every inactive TextInput called useCursor with
+  // visible=false, the active one's cursor state would be stomped by the
+  // last inactive's effect. Restricting the live TextInput to the active
+  // row keeps exactly one cursor on screen.
   return (
     <Box flexDirection="column">
-      {entries.map((entry, i) => (
-        <Box key={i} flexDirection="row">
-          <TextInput
-            value={entry}
-            onChange={(v) => updateEntry(i, v)}
-            onSubmit={() => onQueueRelease()}
-            isActive={i === active}
-            prompt="> "
-            promptColor="$fg-muted"
-          />
-        </Box>
-      ))}
+      {entries.map((entry, i) => {
+        if (i === active) {
+          // No `onSubmit` prop — silvery's readline hook gates Enter
+          // handling on `handleEnter: !!onSubmit`. Without onSubmit it
+          // early-returns on key.return, key.escape, and the vertical
+          // arrows, letting our parent useInput own those keys.
+          return (
+            <Box key={i} flexDirection="row">
+              <TextInput
+                value={entry}
+                onChange={(v) => updateEntry(i, v)}
+                isActive
+                prompt="> "
+                promptColor="$fg-muted"
+              />
+            </Box>
+          )
+        }
+        return (
+          <Box key={i} flexDirection="row">
+            <Text color="$fg-muted">{"> "}</Text>
+            <Box flexGrow={1}>
+              <Text color="$fg-muted">{entry || " "}</Text>
+            </Box>
+          </Box>
+        )
+      })}
     </Box>
   )
 }

@@ -19,13 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, join } from "node:path"
-import {
-  checkProfileQuota,
-  keychainSlot,
-  isLoggedIn,
-  type QuotaWindow,
-  type ProfileInfo,
-} from "@beorn/accountly"
+import { checkProfileQuota, keychainSlot, isLoggedIn, type QuotaWindow, type ProfileInfo } from "@beorn/accountly"
 
 export type { QuotaWindow } from "@beorn/accountly"
 
@@ -43,6 +37,29 @@ export interface AccountProbe {
   error: string | null
   /** true while the first fetch is in flight. */
   loading: boolean
+}
+
+/**
+ * Test-only factory installed via `setAccountFactoryOverride`. When set,
+ * `probeActiveAccount` and `readCachedProbeSync` route through it instead
+ * of touching the keychain, network, or `~/.cache/silvercode/`. The
+ * factory may return `null` from `readCached` to simulate cold-start.
+ */
+export interface AccountFactory {
+  /** Synchronous read — emulates the disk cache hit path. */
+  readCached(): AccountProbe | null
+  /** Async probe — emulates calling Anthropic's /api/usage. */
+  probe(forceRefresh?: boolean): Promise<AccountProbe>
+}
+
+let accountOverride: AccountFactory | null = null
+
+/**
+ * Test-only: install a fake account probe. Pass `null` to clear.
+ * Production callers MUST NOT use this.
+ */
+export function setAccountFactoryOverride(factory: AccountFactory | null): void {
+  accountOverride = factory
 }
 
 /**
@@ -100,6 +117,7 @@ function cachePath(profileDir: string): string {
  * "Loading…". Returns null when no cache exists or it's expired.
  */
 export function readCachedProbeSync(): AccountProbe | null {
+  if (accountOverride) return accountOverride.readCached()
   const profile = activeProfile()
   if (!profile) return null
   const cached = readCache(profile.dir)
@@ -139,6 +157,7 @@ function writeCache(profileDir: string, probe: AccountProbe): void {
  * hammering the API and hitting 429. Set `forceRefresh` to bypass.
  */
 export async function probeActiveAccount(forceRefresh = false): Promise<AccountProbe> {
+  if (accountOverride) return accountOverride.probe(forceRefresh)
   const email = resolveActiveEmail()
   const profile = activeProfile()
 

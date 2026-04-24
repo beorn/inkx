@@ -6,10 +6,16 @@
  * thereafter. Backed by a 60s disk cache so close+reopen cycles reuse
  * the recent response instead of hitting Anthropic's /api/usage and
  * getting rate-limited.
+ *
+ * Test injection: pass `accountFactory` to bypass the keychain + network
+ * + disk cache entirely. The harness calls `setAccountFactoryOverride()`
+ * at module level so SidePanel's existing `useClaudeAccount()` calls also
+ * pick up the fake without prop-drilling through the component tree.
  */
 
 import { useEffect, useState } from "react"
 import {
+  type AccountFactory,
   type AccountProbe,
   probeActiveAccount,
   readCachedProbeSync,
@@ -19,14 +25,14 @@ import {
 /** Refresh cadence. Anthropic's windows tick slowly; 2 minutes is plenty. */
 const REFRESH_MS = 120_000
 
-export function useClaudeAccount(): AccountProbe {
+export function useClaudeAccount(accountFactory?: AccountFactory): AccountProbe {
   // Synchronous init from disk cache (when present + fresh) so the side
   // panel renders quotas immediately on startup instead of flashing
   // "Loading…" while the async probe runs. Lazy-init so the fs read
   // only runs once on mount, not on every render.
   const [state, setState] = useState<AccountProbe>(
     () =>
-      readCachedProbeSync() ?? {
+      (accountFactory ? accountFactory.readCached() : readCachedProbeSync()) ?? {
         email: resolveActiveEmail(),
         plan: null,
         quotas: [],
@@ -38,7 +44,7 @@ export function useClaudeAccount(): AccountProbe {
   useEffect(() => {
     let cancelled = false
     async function refresh(): Promise<void> {
-      const next = await probeActiveAccount()
+      const next = accountFactory ? await accountFactory.probe() : await probeActiveAccount()
       if (!cancelled) setState(next)
     }
     void refresh()
@@ -47,7 +53,7 @@ export function useClaudeAccount(): AccountProbe {
       cancelled = true
       clearInterval(id)
     }
-  }, [])
+  }, [accountFactory])
 
   return state
 }

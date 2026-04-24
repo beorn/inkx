@@ -42,7 +42,13 @@ const alwaysExclude = [
 const hasProjectFlag = process.argv.some((a) => a.startsWith("--project"))
 
 const sharedTest = {
-	setupFiles: ["./packages/km-infra/vitest/setup.ts"],
+	setupFiles: [
+		"./packages/km-infra/vitest/setup.ts",
+		// Silvercode-visual fake boundaries. No-op for tests that don't import
+		// silvercode modules, but ensures probe-at-module-load (claude-version)
+		// reads the fake env var when SidePanel does load.
+		"./apps/silvercode/src/test/setup-fakes.ts",
+	],
 	maxWorkers: process.env.VITEST_MAX_WORKERS
 		? Number.parseInt(process.env.VITEST_MAX_WORKERS)
 		: Math.max(availableParallelism() - 1, 1),
@@ -57,7 +63,23 @@ const projects = hasProjectFlag
 					name: "default",
 					...sharedTest,
 					include: ["**/*.{test,spec}.{ts,tsx,md}"],
-					exclude: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
+					exclude: [
+						...alwaysExclude,
+						"**/*.slow.*",
+						"vendor/**",
+						// Live-mode visual tests run under their own project so SILVERCODE_REAL=1
+						// can opt them in without affecting the fast default suite.
+						"apps/silvercode/tests/visual/**/*.live.*",
+					],
+				},
+			},
+			{
+				plugins: [mdspec()],
+				test: {
+					name: "silvercode-live",
+					...sharedTest,
+					include: ["apps/silvercode/tests/visual/**/*.live.{test,spec}.{ts,tsx}"],
+					exclude: [...alwaysExclude],
 				},
 			},
 			{
@@ -131,8 +153,16 @@ export default defineConfig({
 			: ["**/*.{test,spec}.{ts,tsx,md}"],
 		exclude: process.env.FUZZ
 			? [...alwaysExclude, "**/*.slow.*"]
-			: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
-		setupFiles: ["./packages/km-infra/vitest/setup.ts"],
+			: [
+				...alwaysExclude,
+				"**/*.slow.*",
+				"vendor/**",
+				"apps/silvercode/tests/visual/**/*.live.*",
+			],
+		setupFiles: [
+			"./packages/km-infra/vitest/setup.ts",
+			"./apps/silvercode/src/test/setup-fakes.ts",
+		],
 		benchmark: {
 			include: ["**/*.bench.{ts,tsx}"],
 			exclude: alwaysExclude,

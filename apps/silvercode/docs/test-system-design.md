@@ -39,80 +39,98 @@ Any change to a component that breaks one of these must **fail in CI before merg
 ## /big reframe — 18 hypotheses
 
 ### H1. Golden text-frame snapshots per scenario
+
 Render the whole app at fixed cols×rows through a `ScriptedFakeSession` script; snapshot the terminal frame; fail on drift.
 **Cost**: medium setup, cheap per-test. **Coverage**: all visible surface changes.
 **Risk**: noise — every legitimate change updates N snapshots.
 
 ### H2. Cell-level color assertions
+
 For a few "load-bearing" cells (mode glyph at col X row Y with color $warning), assert exact cell style.
 **Cost**: cheap. **Coverage**: glyph/color specifically. **Risk**: brittle on layout shift.
 
 ### H3. Layout invariants as universal checks
+
 One assertion per scenario: "no content renders at columns ≥ LEFT_WIDTH". Catches wrap bugs without naming each one.
 **Cost**: cheap. **Coverage**: entire class of overflow-at-root regressions.
 **Winner** — this is the one that could have caught the "paragraph into side panel" bug.
 
 ### H4. Icon-alignment invariant
+
 Before rendering, locate `●`, `>`, `◈`, `⚙`, `·`, `»`, `!` in the frame. Assert all icons that should align (the message-stream family) DO align at the same column.
 **Cost**: cheap. **Coverage**: icon drift class. **Winner** — catches every icon-alignment regression at once.
 
 ### H5. Component-level matrix tests via createRenderer
+
 Render `<AssistantBlock>`, `<SidePanel>`, `<Welcome>` in isolation at various widths and snapshot.
 **Cost**: cheap. **Coverage**: component wrap/render. **Risk**: context-free — misses bugs from interaction with parent.
 
 ### H6. Termless scenarios = visual e2e
+
 `createTermless({ cols, rows })` + `await run(<App/>)` + `ScriptedFakeSession` → full ANSI pipeline.
 **Cost**: ~100-300ms per test. **Coverage**: everything a user sees.
 **Winner** — this is the real e2e. Keep N small (5-8 canonical scenarios).
 
 ### H7. Multi-size resize tests
+
 Same scenario at cols=80, cols=120, cols=200 narrow — check overflow guards.
 **Cost**: 3x per scenario. **Coverage**: resize regressions.
 
 ### H8. "Must-contain-text" contracts
+
 Each scenario asserts required substrings: `expect(text).toContain("Silver Code")`, `expect(text).toContain("ctrl-o")`.
 **Cost**: cheap. **Coverage**: accidental deletions. Already partly covered by H1.
 
 ### H9. Diff snapshot for markdown
+
 A canonical markdown doc (headings, bullets, code fences, links, tight lists, loose lists, inline bold/italic/code) rendered into a card — snapshot.
 **Cost**: cheap. **Coverage**: every markdown-rendering regression.
 **Winner** — addresses the "wrap broken" class directly.
 
 ### H10. Input simulation (scripted keystrokes)
+
 Bind termless → feed Shift+Tab / Enter / typed text → snapshot each step.
 **Cost**: medium. **Coverage**: interactive flows (queue editor, mode cycling).
 
 ### H11. Side-by-side matcher (before/after)
+
 For every scenario, run with current code AND with a "last-known-good" snapshot file; fail if divergent beyond allowlist.
 **Cost**: high (infra + baseline curation). **Coverage**: regression-ratchet. **Skip** for now — H1 + snapshot files already give this.
 
-### H12. Fuzz over widths 
+### H12. Fuzz over widths
+
 Parameterized test runs scenarios at 40 random widths; catches edge-case wraps.
 **Cost**: slow. **Coverage**: wide; probabilistic. **Future**: Layer 5 slow test.
 
 ### H13. Opt-in visual diff tool
+
 When snapshot fails, print a colored diff in CI. Use `compareBuffers()` from `@silvery/test`.
 **Cost**: cheap (already built). **Coverage**: ergonomics (engineer experience when tests fail).
 
 ### H14. Per-component contract tests
+
 Each public component declares `@renders` fixture + expected regions in docstring; a linter-style test verifies.
 **Cost**: high (new DSL + enforcement). **Skip** — YAGNI vs H1 + H5.
 
 ### H15. The "user reports" regression file
+
 Every user-reported visual bug becomes a `regressions/<date>-<slug>.test.tsx` that reproduces the bug. Never deleted. Builds a moat over time.
 **Cost**: cheap per-test. **Coverage**: never-regress-what-was-fixed.
 **Winner** — cultural mechanism, not infra. Add to the skill.
 
 ### H16. Screenshot-to-PNG via termless
+
 Terminal → ANSI → render to PNG via `@termless/test`'s SVG snapshot. Compare pixel-diff.
 **Cost**: high. **Coverage**: faithful visual. **Skip for v1** — text frames are sufficient and diff-friendly; revisit if text snapshots miss styling bugs.
 
 ### H17. Scenario catalog covers 90% surface
+
 Minimum 7 canonical scenarios: Welcome, first-turn, long-paragraph, tool-call, permission-request, queued-3, narrow-width (60 cols). Extend with `markdown-rich` (all md constructs) and `mode-cycle` (4 modes).
 **Cost**: medium. **Coverage**: exhaustive.
 **Winner** — the scenario catalog is the product.
 
 ### H18. Automated "piecemeal feedback" detection
+
 When user files a bug, the bug's fix PR is required to (a) include a regression test under H15 AND (b) extend a scenario in H17 if applicable.
 **Cost**: process. **Winner** — closes the loop.
 
@@ -129,22 +147,23 @@ Five winners fold into one coherent system:
 Component-level tests (H5) stay for speed, but they're no longer the primary guard — they're an optimization for change-locality. The primary guard is end-to-end visual snapshots because **that's what the user sees.**
 
 The user's piecemeal feedback becomes a self-extinguishing problem:
+
 - Each reported bug → one scenario + one regression test. Never regresses.
 - New features → extend the scenario catalog before shipping.
 - CI fails on visual drift, not just logic drift.
 
 ## Cost/benefit table
 
-| Layer                     | Cost (per-test) | Coverage        | Setup effort | Status   |
-| ------------------------- | --------------- | --------------- | ------------ | -------- |
-| Layout invariants (H3+H4) | ~20ms           | Entire overflow/alignment classes | 1 helper | **Ship** |
-| Visual snapshots (H1+H6)  | ~100-300ms      | Every visible surface change      | 8 scenarios | **Ship** |
-| Markdown contract (H9)    | ~100ms × 4      | Wrap regressions in prose          | 1 doc + 1 test | **Ship** |
-| Regression file (H15)     | ~50-100ms each  | Never re-regress known bugs       | 1 README + culture | **Ship** |
-| Component renderer (H5)   | ~10-50ms        | Isolated component bugs           | Per-component | Already partial |
-| Resize matrix (H7)        | ~300ms × 3      | Narrow-terminal bugs              | Param scenarios | v2 |
-| Keystroke simulation (H10)| ~200ms          | Interactive flows                 | Scripted keys | v2 |
-| Screenshot SVG/PNG (H16)  | ~1s             | Pixel-perfect                     | New infra | Skip v1 |
+| Layer                      | Cost (per-test) | Coverage                          | Setup effort       | Status          |
+| -------------------------- | --------------- | --------------------------------- | ------------------ | --------------- |
+| Layout invariants (H3+H4)  | ~20ms           | Entire overflow/alignment classes | 1 helper           | **Ship**        |
+| Visual snapshots (H1+H6)   | ~100-300ms      | Every visible surface change      | 8 scenarios        | **Ship**        |
+| Markdown contract (H9)     | ~100ms × 4      | Wrap regressions in prose         | 1 doc + 1 test     | **Ship**        |
+| Regression file (H15)      | ~50-100ms each  | Never re-regress known bugs       | 1 README + culture | **Ship**        |
+| Component renderer (H5)    | ~10-50ms        | Isolated component bugs           | Per-component      | Already partial |
+| Resize matrix (H7)         | ~300ms × 3      | Narrow-terminal bugs              | Param scenarios    | v2              |
+| Keystroke simulation (H10) | ~200ms          | Interactive flows                 | Scripted keys      | v2              |
+| Screenshot SVG/PNG (H16)   | ~1s             | Pixel-perfect                     | New infra          | Skip v1         |
 
 ## /pro review — incorporated revisions (2026-04-24)
 
@@ -177,21 +196,21 @@ The v1 contract is narrower: **static final-frame composition + layout regressio
 
 ### Coverage matrix (falsifiable)
 
-| Bug class                                   | Test type         | Where                                     | Assertion                                              | v1? |
-| ------------------------------------------- | ----------------- | ----------------------------------------- | ------------------------------------------------------ | --- |
-| paragraph overflows into side panel         | e2e               | `visual/scenarios.test.tsx`               | `assertNoOverflowIntoSidePanel`                        | ✓   |
-| paragraph clips one char short              | component         | `visual/markdown.test.tsx`                | `parseFrame().wrapShape` deep-equal to golden          | ✓   |
-| message-stream icon drift                   | e2e invariant     | `visual/scenarios.test.tsx`               | `assertIconFamilyAligned`                              | ✓   |
-| mode glyph typo / wrong label               | side-panel region | `visual/side-panel.test.tsx`              | `parseFrame().modeRow === { icon, label, color }`      | ✓   |
-| welcome panel missing row                   | region snapshot   | `visual/welcome.test.tsx`                 | `.frame.txt` fixture diff                              | ✓   |
-| `paddingX` regression on AssistantBlock     | region snapshot   | `visual/scenarios.test.tsx helloWorld`    | fixture diff — icon column shifts                      | ✓   |
-| side panel pushed off-screen                | layout invariant  | `visual/scenarios.test.tsx longTool`      | `assertSidePanelVisible`                               | ✓   |
-| markdown wrap broken at narrow width        | region at width   | `visual/markdown.test.tsx`                | rendered at {40, 60, 80, 120}; fixture diff per width  | ✓   |
-| queue editor height grows on 3 queued msgs  | interactive       | **v2** — needs keystroke simulation       | —                                                      | —   |
-| resume hint stderr after alt-screen         | process harness   | **v2** — needs process-level capture      | —                                                      | —   |
-| activity verb rotation / elapsed tail       | fake clock        | **v2** — needs `vi.useFakeTimers()` wire  | —                                                      | —   |
-| hover popovers (Sessions/Todos/Mode)        | UI driver         | **v2**                                    | —                                                      | —   |
-| scroll position / focus ring                | UI driver         | **v2**                                    | —                                                      | —   |
+| Bug class                                  | Test type         | Where                                    | Assertion                                             | v1? |
+| ------------------------------------------ | ----------------- | ---------------------------------------- | ----------------------------------------------------- | --- |
+| paragraph overflows into side panel        | e2e               | `visual/scenarios.test.tsx`              | `assertNoOverflowIntoSidePanel`                       | ✓   |
+| paragraph clips one char short             | component         | `visual/markdown.test.tsx`               | `parseFrame().wrapShape` deep-equal to golden         | ✓   |
+| message-stream icon drift                  | e2e invariant     | `visual/scenarios.test.tsx`              | `assertIconFamilyAligned`                             | ✓   |
+| mode glyph typo / wrong label              | side-panel region | `visual/side-panel.test.tsx`             | `parseFrame().modeRow === { icon, label, color }`     | ✓   |
+| welcome panel missing row                  | region snapshot   | `visual/welcome.test.tsx`                | `.frame.txt` fixture diff                             | ✓   |
+| `paddingX` regression on AssistantBlock    | region snapshot   | `visual/scenarios.test.tsx helloWorld`   | fixture diff — icon column shifts                     | ✓   |
+| side panel pushed off-screen               | layout invariant  | `visual/scenarios.test.tsx longTool`     | `assertSidePanelVisible`                              | ✓   |
+| markdown wrap broken at narrow width       | region at width   | `visual/markdown.test.tsx`               | rendered at {40, 60, 80, 120}; fixture diff per width | ✓   |
+| queue editor height grows on 3 queued msgs | interactive       | **v2** — needs keystroke simulation      | —                                                     | —   |
+| resume hint stderr after alt-screen        | process harness   | **v2** — needs process-level capture     | —                                                     | —   |
+| activity verb rotation / elapsed tail      | fake clock        | **v2** — needs `vi.useFakeTimers()` wire | —                                                     | —   |
+| hover popovers (Sessions/Todos/Mode)       | UI driver         | **v2**                                   | —                                                     | —   |
+| scroll position / focus ring               | UI driver         | **v2**                                   | —                                                     | —   |
 
 ### Mutation proof
 
@@ -260,7 +279,7 @@ src/test/
 ```tsx
 // apps/silvercode/src/test/render-harness.ts
 export async function renderScenario(opts: {
-  script: ReadonlyArray<AgentEvent>  // drives session state
+  script: ReadonlyArray<AgentEvent> // drives session state
   cols: number
   rows: number
   layout?: "single" | "grid-2" | "grid-4"
@@ -269,7 +288,7 @@ export async function renderScenario(opts: {
   term: TermlessTerm
   handle: AppHandle
   fakeSession: ScriptedFakeSession
-  text: string        // normalized frame text
+  text: string // normalized frame text
   lines: string[]
   dispose(): void
 }>
@@ -309,6 +328,7 @@ Vitest's `toMatchSnapshot()` stores snapshots next to the test under `__snapshot
 New mini-skill: `.claude/skills/silvercode/regression-from-bug.md` (future work). Rule:
 
 > When silvercode rendering bug is reported, before fixing:
+>
 > 1. Read the bug + reproduce interactively.
 > 2. Add a scenario OR a `tests/regressions/<date>-<slug>.test.tsx` that FAILS.
 > 3. Fix code.
@@ -354,6 +374,7 @@ When the user reports one of these v2-gap bugs, a v1 regression test can still b
 **Phase E** — README under `tests/regressions/` + one line in `apps/silvercode/CLAUDE.md`.
 
 Followups (new beads):
+
 - `km-silvercode.test-interactive` — keystroke-simulation scenarios (H10).
 - `km-silvercode.test-resize-matrix` — width-parameterized tests (H7).
 - `km-silvercode.test-mouse-hover` — hover-state visual snapshots.
@@ -366,3 +387,68 @@ Followups (new beads):
 - `apps/km-tui/tests/showcase.spec.ts` — canonical km-tui test style (snapshots, matchers, typed handles)
 - `apps/km-tui/tests/CLAUDE.md` — test philosophy (domain-based, MECE, journey tests)
 - `docs/silvery-positioning-brief.md` — silvery is multi-target; snapshots must be platform-portable
+
+## Boundary fakes — every third-party API silvercode reaches into
+
+Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
+
+| Boundary             | What's faked                                           | Override entry point                              |
+| -------------------- | ------------------------------------------------------ | ------------------------------------------------- |
+| Claude CLI version   | `spawnSync("claude", "--version")` at module load     | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
+| Git branch           | `.git/HEAD` walk in `gitBranchFor(cwd)`               | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var |
+| Account / quota      | accountly's `checkProfileQuota`, keychain reads, `~/.cache/silvercode/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })` |
+| Filesystem           | `~/.cache/silvercode/`, `~/.silvercode/` writes        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME` |
+
+### How the wiring lands without touching components
+
+The hook `useClaudeAccount(accountFactory?)` accepts an optional factory, but the canonical injection path is **module-level** — `setAccountFactoryOverride` flips a sentinel inside `claude-account.ts`. SidePanel's existing `useClaudeAccount()` call (no prop changes needed) reads the override automatically. `claude-version.ts` and `git-branch.ts` follow the same pattern: a `let xxxOverride` at the top of the file, gated checks at the start of each public fn, and `setXxxFactoryOverride(null)` resets to the production path.
+
+The version probe is captured into a const at SidePanel module load (`const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()`). For that one boundary the override has to be in place BEFORE SidePanel imports — handled by `apps/silvercode/src/test/setup-fakes.ts` (loaded as a global vitest setupFile) which sets `SILVERCODE_FAKE_CLAUDE_VERSION` BEFORE any test file runs. Per-test version overrides via `setVersionFactoryOverride` still apply for re-probes.
+
+### Harness API
+
+```ts
+const s = await renderScenario({
+  script: welcome,
+  cols: 120, rows: 30,
+  account: { plan: "claude_max_20x", quotas: warningQuotas() }, // or null for live
+  version: "9.9.9-test",   // or null for real spawn
+  branch: "feat-x",         // or null for real .git walk
+  fsRoot: "/tmp/scratch",   // or null to leave HOME alone
+})
+try {
+  expect(s.text).toContain("87%")
+} finally {
+  s.dispose()  // restores overrides + removes tmp HOME if allocated
+}
+```
+
+`renderScenario` returns a `dispose()` that restores every module override and removes the per-scenario tmp HOME directory. Calling `dispose()` is required when you opt out of the default healthy account fake — the global `afterEach` in `setup-fakes.ts` restores defaults but does not delete the per-test tmp dir.
+
+### Verification
+
+- **Determinism gate**: `HOME=/tmp/empty-dir bun vitest run apps/silvercode/tests/visual/` passes — proves no test reads the user's real `~/.cache/silvercode/` or shells out to `git`/`claude`.
+- **Boundary contract gate**: `apps/silvercode/tests/visual/boundary-fakes.test.tsx` — five contract tests, one per faked boundary, prove the fake path actually surfaces in the rendered frame.
+
+## Live-mode contract tests (SILVERCODE_REAL=1)
+
+Bead `km-silvercode.test-live-mode` (closed 2026-04-24) introduces a parallel "real" test track that swaps every fake for the production implementation, so the fake/real divergence shows up in CI before users hit it.
+
+### Invocation
+
+| Mode  | Command                                                              | What runs                                              |
+| ----- | -------------------------------------------------------------------- | ------------------------------------------------------ |
+| Fake  | `bun vitest run apps/silvercode/tests/`                              | Default — every visual scenario via fakes              |
+| Live  | `SILVERCODE_REAL=1 bun vitest run --project silvercode-live`         | `*.live.test.tsx` only — real Claude CLI + accountly + git |
+
+### Pattern
+
+Each contract scenario uses `describe.each([["fake"], ["real"]])` so the same assertions run in both modes. The "real" arm calls `test.skip` when `process.env.SILVERCODE_REAL !== "1"` so live-mode tests don't slow the fast suite. Setting `account: null`, `version: null`, `branch: null`, `fsRoot: null` on `renderScenario(...)` opts that boundary out of the fake — that's how the real arm runs against the production implementation.
+
+The live project lives at `silvercode-live` in `vitest.config.ts` and is excluded from both the root config (no-flag run) and the `default` project, so plain `bun vitest run` never triggers it.
+
+### v1 live scenarios
+
+- **Welcome** — empty session, real spawnSync of `claude --version`, real `.git/HEAD` walk, real keychain quota read.
+- **Single-turn hello** — sends a literal "say hi" prompt to the real CLI, asserts an assistant glyph + non-empty body in the rendered frame.
+- **Quota display** — real accountly probe; asserts the SidePanel renders ≥1 QuotaWindow row (specific %s vary; we assert structure, not values).

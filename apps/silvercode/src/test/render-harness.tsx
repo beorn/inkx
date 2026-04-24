@@ -31,6 +31,7 @@ import React from "react"
 import { createRenderer, type App as RendererApp } from "@silvery/test"
 import { App } from "../App.tsx"
 import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
+import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"
 
 export type RenderedScenario = {
   /** Normalized frame text (ANSI stripped, blank lines preserved — they ARE layout). */
@@ -77,6 +78,33 @@ export type RenderScenarioOptions = {
    * when a test needs to inspect `fake.sent` before the scenario runs.
    */
   fake?: ScriptedFakeSession
+  /**
+   * Account scenario for the SidePanel quota bar. Default: a healthy
+   * canned scenario. Set `null` to leave accountly unmocked (real keychain,
+   * real /api/usage — only meaningful in `SILVERCODE_REAL=1` mode).
+   */
+  account?: AccountScenario | null
+  /**
+   * Fake `claude --version` string. Default `"2.1.119"`. Set `null` to
+   * use the real spawn (only meaningful in real-mode).
+   */
+  version?: string | null
+  /**
+   * Fake git branch. Default `"main"`. Set `null` for real `.git/HEAD` walk.
+   */
+  branch?: string | null
+  /**
+   * Per-scenario root for HOME / XDG_CACHE_HOME. Default: a fresh
+   * `mkdtempSync` allocated under `tmpdir()` and removed on dispose. Set
+   * to `null` to leave HOME alone (live mode).
+   */
+  fsRoot?: string | null
+}
+
+/** Returned by `renderScenario` so tests can clean up if they hold on. */
+export type RenderedScenarioWithDispose = RenderedScenario & {
+  /** Restore module overrides + remove the per-scenario temp HOME. */
+  dispose(): void
 }
 
 /** Default side-panel width. Must match App.tsx's `flexBasis={40}`. */
@@ -98,13 +126,23 @@ const DEFAULT_ROWS = 30
  * microtasks + re-render before the frame stabilizes. Tests should
  * `await renderScenario(...)`.
  */
-export async function renderScenario(opts: RenderScenarioOptions): Promise<RenderedScenario> {
+export async function renderScenario(opts: RenderScenarioOptions): Promise<RenderedScenarioWithDispose> {
   const cols = opts.cols ?? DEFAULT_COLS
   const rows = opts.rows ?? DEFAULT_ROWS
   const cwd = opts.cwd ?? "/tmp/silvercode-test"
   const layout = opts.layout ?? "single"
   const bare = opts.bare ?? true
   const model = opts.model ?? "claude-sonnet-4-6"
+
+  // Install third-party-boundary fakes (accountly, git branch, version,
+  // fs HOME). Each is bypassed when its option is `null` — that's the
+  // hook the live-mode test path uses to exercise real implementations.
+  const fakes: InstalledFakes = installFakes({
+    account: opts.account,
+    version: opts.version,
+    branch: opts.branch,
+    fsRoot: opts.fsRoot,
+  })
 
   // Silvery's <Screen> component reads process.stdout.columns/rows directly
   // (it calls `getTermDims()` on mount). In test env that returns the host
@@ -169,6 +207,9 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     },
     resample(): { text: string; lines: readonly string[] } {
       return { text: app.text, lines: app.lines }
+    },
+    dispose(): void {
+      fakes.dispose()
     },
   }
 }
