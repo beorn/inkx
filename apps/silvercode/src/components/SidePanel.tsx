@@ -255,15 +255,21 @@ export function SidePanel({
 
   return (
     <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
-      {/* Sessions section — heading is a hover target with help. */}
+      {/* Sessions section — heading is a hover target with help. Keybinding
+          hint (Ctrl+O) sits top-right as a dim reminder of how to toggle
+          the panel, opencode-style. */}
       <Box flexDirection="column" flexShrink={0}>
-        <Box
-          flexDirection="row"
-          onMouseEnter={sessionsHover.onMouseEnter}
-          onMouseLeave={sessionsHover.onMouseLeave}
-          backgroundColor={hoveredBg(sessionsHover.isHovered)}
-        >
-          <SectionHeading>Sessions</SectionHeading>
+        <Box flexDirection="row">
+          <Box
+            flexDirection="row"
+            flexGrow={1}
+            onMouseEnter={sessionsHover.onMouseEnter}
+            onMouseLeave={sessionsHover.onMouseLeave}
+            backgroundColor={hoveredBg(sessionsHover.isHovered)}
+          >
+            <SectionHeading>Sessions</SectionHeading>
+          </Box>
+          <Small color="$muted">Ctrl+O</Small>
         </Box>
         {sessions.map((s) => (
           <SessionRow
@@ -308,7 +314,25 @@ export function SidePanel({
       {/* Flex spacer pushes the bottom meta to the bottom of the panel. */}
       <Box flexGrow={1} />
 
+      {/* ───── bottom meta, top to bottom ─────
+          1) cwd + git branch (km:main bold)
+          2) Mode (clickable, hover help, armed bg)
+          3) Tokens + cost (hover details)
+          4) Version block — Silver Code on / Claude Code (brand colors) */}
+
+      {/* cwd + git branch. "km:main" rendered bold; preceding path dimmed.
+          Opencode places this at the bottom; silvercode lifts it above the
+          interactive rows so the user sees "where am I" at a glance. */}
+      <Box flexDirection="row" flexShrink={0}>
+        <Muted>{shortCwd(cwd).replace(/\/[^/]+$/, "/")}</Muted>
+        <Text bold>
+          {shortCwd(cwd).split("/").pop()}
+          {branch ? `:${branch}` : ""}
+        </Text>
+      </Box>
+
       {/* Mode — clickable to cycle, hover shows help + armed bg. */}
+      <Box flexShrink={0} height={1} />
       <Box
         flexDirection="row"
         gap={1}
@@ -324,20 +348,9 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Version block — not interactive, no hover state. */}
-      <Box flexShrink={0} height={1} />
-      <Box flexDirection="column" flexShrink={0}>
-        <Box flexDirection="row" gap={1}>
-          <Text color="$accent">◈</Text>
-          <Small>silvercode v{SILVERCODE_VERSION}</Small>
-        </Box>
-        <Box flexDirection="row" gap={1}>
-          <Text color="$accent">✻</Text>
-          <Small>Claude Code v{state.claudeCodeVersion || "…"}</Small>
-        </Box>
-      </Box>
-
-      {/* Context + cost — hover for details. */}
+      {/* Tokens + cost — hover for details. "Tokens" label makes the row
+          self-describing instead of dropping a bare "12K / 200K" into the
+          panel. */}
       <Box flexShrink={0} height={1} />
       <Box
         flexDirection="row"
@@ -347,15 +360,28 @@ export function SidePanel({
         onMouseLeave={ctxHover.onMouseLeave}
         backgroundColor={hoveredBg(ctxHover.isHovered)}
       >
+        <Muted>Tokens</Muted>
         <Text color={ctxColor}>{ctxLabel}</Text>
         <Muted>·</Muted>
         <Muted>${state.cost.usd.toFixed(4)}</Muted>
       </Box>
 
-      {/* Bottom — cwd + git branch, opencode style. Not interactive. */}
+      {/* Version block — absolute bottom. "Silver" bold white, " Code"
+          non-bold white, version + "on" muted. Then "Claude Code" in the
+          Anthropic brand orange. Compact, no per-row blank padding. */}
       <Box flexShrink={0} height={1} />
-      <Box flexDirection="row" flexShrink={0}>
-        <Small color="$success">{cwdLabel}</Small>
+      <Box flexDirection="column" flexShrink={0}>
+        <Box flexDirection="row">
+          <Text bold color="$fg">
+            Silver
+          </Text>
+          <Text color="$fg"> Code</Text>
+          <Muted> v{SILVERCODE_VERSION} on</Muted>
+        </Box>
+        <Box flexDirection="row">
+          <Text color="#d97757">Claude Code</Text>
+          <Muted> v{state.claudeCodeVersion || "…"}</Muted>
+        </Box>
       </Box>
     </Box>
   )

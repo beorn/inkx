@@ -1,14 +1,14 @@
 import React from "react"
-import { Box, H3, Muted, Text } from "silvery"
+import { Box, H1, H3, Muted, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 
 /**
  * Empty-state card shown when a session has no messages yet. Contains only
  * the help surface users reach for BEFORE they've sent a first message:
- * a one-line product marker and the command / mode / keybind reference
- * tables. Everything else (claudeCodeVersion, model, mode, account, tool
- * count, MCP servers, cost) lives in the SidePanel's bottom metadata
- * block — duplicating it here was noise.
+ * product title, getting-started hint, command + keybind reference.
+ * Modes live in the side panel (hover over "Mode: …") — duplicating them
+ * here was noise; the user lives in the mode indicator once they're past
+ * the intro screen.
  */
 export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
   return (
@@ -17,7 +17,7 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
         <Text bold color="$accent">
           ◈
         </Text>
-        <Text bold>Silver Code for Claude Code</Text>
+        <H1>Silver Code for Claude Code</H1>
       </Box>
 
       <Box flexDirection="column">
@@ -37,15 +37,6 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
       </Box>
 
       <Box flexDirection="column">
-        <H3>Modes</H3>
-        <Muted>Click the ⚡ label in the side panel to cycle.</Muted>
-        <IntroRow name="plan" desc="Claude plans but doesn't write — review before running" />
-        <IntroRow name="accept-edits" desc="file edits apply automatically; other tools still prompt" />
-        <IntroRow name="auto" desc="default — everything Claude can do runs unattended" />
-        <IntroRow name="bypass" desc="skip all approvals (sandboxes only)" />
-      </Box>
-
-      <Box flexDirection="column">
         <H3>Keybindings</H3>
         <IntroRow name="Ctrl+O" desc="toggle the side panel (todos + agents)" />
         <IntroRow name="Ctrl+E" desc="permission inbox" />
@@ -57,6 +48,7 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
     </Box>
   )
 }
+
 
 function IntroRow({ name, desc }: { name: string; desc: string }): React.ReactElement {
   return (

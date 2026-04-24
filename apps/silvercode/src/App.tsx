@@ -281,18 +281,21 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
-            {/* Command input region — one unified bg with opencode-style
-                outer padding. Uses the Sterling flat token `$bg-muted` which
-                is also shared by the side panel so the two regions read as
-                a single surface separated only by layout (no border). */}
-            <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1}>
-              <CommandInput
-                value={inputValue}
-                onChange={setInputValue}
-                disabled={!focused}
-                onSubmit={handleSubmit}
-                onExit={requestExit}
-              />
+            {/* Command input region — floats with transparent margin on
+                all sides so it reads as its own surface, visually separated
+                from the side panel (which sits immediately to its right)
+                and from the terminal edges. The inner Box carries the bg +
+                content padding; the outer Box is transparent gutter. */}
+            <Box paddingX={1} paddingBottom={1} flexShrink={0}>
+              <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1}>
+                <CommandInput
+                  value={inputValue}
+                  onChange={setInputValue}
+                  disabled={!focused}
+                  onSubmit={handleSubmit}
+                  onExit={requestExit}
+                />
+              </Box>
             </Box>
           </Box>
         </Box>
