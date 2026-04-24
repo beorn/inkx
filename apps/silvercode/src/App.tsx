@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box, Screen, useExit } from "silvery"
+import { Box, Screen, useExit, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -122,6 +122,21 @@ export function App(props: AppProps): React.ReactElement {
   // outside Kitty disambiguation mode. These letters are safe across all
   // terminals: E / Y / R / N. Slash commands (/inbox, /history, /todos,
   // /mode) are the canonical surface — the Ctrl pairs are shortcuts.
+  //
+  // Known silvery quirk: when our app-level useInput fires on a Ctrl+letter,
+  // the TextInput in CommandInput STILL sees the same key event and inserts
+  // the plain letter via its readline fallback (unknown ctrl combos aren't
+  // consumed by readline). We strip the trailing letter after handling so
+  // users don't see 'o' appended to their prompt every time they toggle.
+  function handleCtrlLetter(letter: string, action: () => void): void {
+    action()
+    // TextInput's onChange runs AFTER our useInput in the same tick. Setting
+    // inputValue synchronously doesn't reliably win the race. Defer with a
+    // microtask so we run after TextInput's insert, then strip.
+    queueMicrotask(() => {
+      setInputValue((v) => (v.endsWith(letter) ? v.slice(0, -1) : v))
+    })
+  }
   useInput(
     (input, key) => {
       if (key.escape && (showInbox || showHistory)) {
@@ -129,19 +144,20 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory(false)
         return
       }
-      if (key.ctrl && input === "e") return setShowInbox((v) => !v)
+      if (key.ctrl && input === "e") return handleCtrlLetter("e", () => setShowInbox((v) => !v))
       // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
       // but gets intercepted by cmux / most terminal multiplexers before
       // reaching the app). Slash commands /panel, /aside, /todos are the
       // canonical surface.
-      if (key.ctrl && input === "o") return setShowSidePanel((v) => !v)
-      if (key.ctrl && input === "y") return setShowSidePanel((v) => !v)
-      if (key.ctrl && input === "r") return setShowHistory((v) => !v)
+      if (key.ctrl && input === "o") return handleCtrlLetter("o", () => setShowSidePanel((v) => !v))
+      if (key.ctrl && input === "y") return handleCtrlLetter("y", () => setShowSidePanel((v) => !v))
+      if (key.ctrl && input === "r") return handleCtrlLetter("r", () => setShowHistory((v) => !v))
       if (key.ctrl && input === "n" && sessions.length > 1) {
-        const idx = sessions.findIndex((s) => s.id === focusedSessionId)
-        const next = sessions[(idx + 1) % sessions.length]!
-        controller.focus(next.id)
-        return
+        return handleCtrlLetter("n", () => {
+          const idx = sessions.findIndex((s) => s.id === focusedSessionId)
+          const next = sessions[(idx + 1) % sessions.length]!
+          controller.focus(next.id)
+        })
       }
     },
     { isActive: true },
@@ -188,38 +204,35 @@ export function App(props: AppProps): React.ReactElement {
     printResumeHints()
   }
 
-  // SIGINT (Ctrl+C) — silvery's default handler restores the terminal but
-  // leaves the child claude subprocesses running, which keeps Node alive and
-  // forces a second Ctrl+C to kill the host. Register our own handler that
-  // closes every session first, THEN force-exits (process.exit is only ok
-  // here because silvery has already restored the terminal by this point
-  // and we're actively trying to terminate; staying alive is the bug).
+  // Clean disposal: silvery owns the exit lifecycle (its own Ctrl+C handler,
+  // its own teardown). We just register our "kill subprocesses + print
+  // resume hints" step into silvery's signals mediator so it runs DURING
+  // that teardown, not after. priority: 5 = app-level cleanup (runs before
+  // runtime/terminal cleanup at 10/20). Also register the same action on
+  // React unmount so it fires regardless of which exit path silvery takes.
+  const term = useTerm()
   useEffect(() => {
-    let killing = false
-    function onSigint(): void {
-      if (killing) return
-      killing = true
-      // SIGINT = user wants out now. SIGKILL every session's subprocess so
-      // its stdio pipes close and Node's event loop can drain. Then call
-      // silveryExit() to tear down the TUI. If a handle doesn't release
-      // within 300 ms (MCP subprocess's own children, for example), force-
-      // exit — the user has committed to quitting, don't hang on them.
+    function dispose(): void {
       try {
         controller.killAll()
       } catch {
-        /* best-effort */
+        /* best-effort — best we can do when tearing down */
       }
-      silveryExit()
       printResumeHints()
-      setTimeout(() => {
-        process.exit(0) // lint-ok: SIGINT deadline after kill + silvery teardown
-      }, 300)
     }
-    process.on("SIGINT", onSigint)
+    const unregSigint = term.signals?.on(
+      "SIGINT",
+      dispose,
+      { priority: 5, name: "silvercode-killall" },
+    )
     return () => {
-      process.off("SIGINT", onSigint)
+      // React unmount — belt-and-suspenders. If silvery exits via a path
+      // that doesn't fire the SIGINT mediator (normal shutdown, uncaught
+      // error), the unmount cleanup still runs dispose().
+      unregSigint?.()
+      dispose()
     }
-  }, [])
+  }, [term])
 
   // Mode cycler used by the side panel's ⚡ label.
   function cycleMode(): void {
