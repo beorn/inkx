@@ -160,6 +160,24 @@ export function App(props: AppProps): React.ReactElement {
   // terminal but leaves orphaned claude subprocesses keeping the host
   // process alive.
   const silveryExit = useExit()
+
+  // On any exit path (Ctrl+D×2, Ctrl+C, /quit), capture the resumable
+  // session IDs so we can print them to stderr AFTER silvery restores
+  // the terminal — that way the user sees "resume with silvercode
+  // --resume <id>" in their normal scrollback, not inside the alt-screen
+  // view that's about to go away.
+  function printResumeHints(): void {
+    const hints = controller
+      .snapshot()
+      .map((h) => h.session.sessionId)
+      .filter((sid) => typeof sid === "string" && sid !== "pending")
+    if (hints.length === 0) return
+    const lines = hints.map((sid) => `  silvercode --resume ${sid}`)
+    process.stderr.write(
+      `\nResume ${hints.length === 1 ? "this session" : "one of these sessions"} with:\n${lines.join("\n")}\n\n`,
+    )
+  }
+
   async function requestExit(): Promise<void> {
     try {
       await controller.closeAll()
@@ -167,6 +185,7 @@ export function App(props: AppProps): React.ReactElement {
       /* best-effort — still exit */
     }
     silveryExit()
+    printResumeHints()
   }
 
   // SIGINT (Ctrl+C) — silvery's default handler restores the terminal but
@@ -191,6 +210,7 @@ export function App(props: AppProps): React.ReactElement {
         /* best-effort */
       }
       silveryExit()
+      printResumeHints()
       setTimeout(() => {
         process.exit(0) // lint-ok: SIGINT deadline after kill + silvery teardown
       }, 300)
