@@ -321,6 +321,13 @@ export function App(props: AppProps): React.ReactElement {
   // was landing scrollback-wiping sequences after our write, erasing the
   // hint. `process.on('exit')` is synchronous and guaranteed last, so
   // nothing can overwrite us.
+  //
+  // CRITICAL: do NOT unregister the listener in a useEffect cleanup. silvery's
+  // exit path unmounts React BEFORE the process actually dies (via
+  // `useExit` → `useDispose`), which would fire the cleanup and remove the
+  // listener — the `process.on("exit")` event then runs with no listeners
+  // and the hint never prints. The listener is process-scoped: the OS
+  // reaps it when the process exits. There is no leak.
   useEffect(() => {
     function printHintsNow(): void {
       const hints = resumeIdsRef.current
@@ -331,9 +338,7 @@ export function App(props: AppProps): React.ReactElement {
       )
     }
     process.on("exit", printHintsNow)
-    return (): void => {
-      process.off("exit", printHintsNow)
-    }
+    // No cleanup — see comment above.
   }, [])
 
   function requestExit(): void {
