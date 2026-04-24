@@ -15,13 +15,12 @@ export function UserMessageBlock({ text }: { text: string }): React.ReactElement
       gap={1}
       paddingX={1}
       paddingY={0}
-      marginTop={1}
       backgroundColor="$bg-surface-subtle"
     >
       <Text bold color="$accent">
-        ▸
+        {">"}
       </Text>
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
         <DetectionText text={text} tone="user" />
       </Box>
     </Box>

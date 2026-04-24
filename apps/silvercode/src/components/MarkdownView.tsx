@@ -1,6 +1,6 @@
 import React, { useMemo } from "react"
 import { Box, Blockquote, Divider, H1, H2, H3, H4, Text } from "silvery"
-import { parseBlocks, parseInline, type MdInline } from "../markdown.ts"
+import { parseBlocks, parseInline, type MdBlock, type MdInline } from "../markdown.ts"
 import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 
@@ -49,53 +49,84 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
   )
 }
 
+/**
+ * Tight-list-aware spacing: bullet lists pack tight (no gap between
+ * items), but lists get a blank line before/after to separate them from
+ * surrounding paragraphs. Everything else (paragraph → heading, etc.)
+ * also gets a blank line between.
+ */
+function needsGapBefore(prev: MdBlock | null, curr: MdBlock): boolean {
+  if (!prev) return false
+  if (curr.kind === "blank" || prev.kind === "blank") return false
+  const prevIsList = prev.kind === "bullet" || prev.kind === "ordered"
+  const currIsList = curr.kind === "bullet" || curr.kind === "ordered"
+  // Consecutive list items of same kind → tight, no gap.
+  if (prevIsList && currIsList) return false
+  return true
+}
+
+function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
+  switch (b.kind) {
+    case "heading": {
+      const Heading = b.level === 1 ? H1 : b.level === 2 ? H2 : b.level === 3 ? H3 : H4
+      return <Heading key={i}>{b.text}</Heading>
+    }
+    case "paragraph": {
+      const inline = parseInline(b.text)
+      // If paragraph has nothing inline-formatted, keep detection highlighting.
+      if (inline.length === 1 && inline[0]!.kind === "text") {
+        return <DetectionText key={i} text={b.text} />
+      }
+      return <InlineRun key={i} tokens={inline} />
+    }
+    case "bullet":
+      return (
+        <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
+          <Text color="$muted">• </Text>
+          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+            <InlineRun tokens={parseInline(b.text)} />
+          </Box>
+        </Box>
+      )
+    case "ordered":
+      return (
+        <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
+          <Text color="$muted">{b.number}. </Text>
+          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+            <InlineRun tokens={parseInline(b.text)} />
+          </Box>
+        </Box>
+      )
+    case "quote":
+      return <Blockquote key={i}>{b.text}</Blockquote>
+    case "code":
+      return <SyntaxHighlighter key={i} language={b.language || "plain"} code={b.code} />
+    case "rule":
+      return <Divider key={i} />
+    case "blank":
+      return null
+    case "table":
+      return <MarkdownTable key={i} block={b} />
+  }
+}
+
 export function MarkdownView({ source }: { source: string }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection="column" flexShrink={1} minWidth={0}>
       {blocks.map((b, i) => {
-        switch (b.kind) {
-          case "heading": {
-            const Heading = b.level === 1 ? H1 : b.level === 2 ? H2 : b.level === 3 ? H3 : H4
-            return <Heading key={i}>{b.text}</Heading>
-          }
-          case "paragraph": {
-            const inline = parseInline(b.text)
-            // If paragraph has nothing inline-formatted, keep detection highlighting.
-            if (inline.length === 1 && inline[0]!.kind === "text") {
-              return <DetectionText key={i} text={b.text} />
-            }
-            return <InlineRun key={i} tokens={inline} />
-          }
-          case "bullet":
-            return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
-                <Text color="$muted">• </Text>
-                <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                  <InlineRun tokens={parseInline(b.text)} />
-                </Box>
-              </Box>
-            )
-          case "ordered":
-            return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
-                <Text color="$muted">{b.number}. </Text>
-                <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                  <InlineRun tokens={parseInline(b.text)} />
-                </Box>
-              </Box>
-            )
-          case "quote":
-            return <Blockquote key={i}>{b.text}</Blockquote>
-          case "code":
-            return <SyntaxHighlighter key={i} language={b.language || "plain"} code={b.code} />
-          case "rule":
-            return <Divider key={i} />
-          case "blank":
-            return null
-          case "table":
-            return <MarkdownTable key={i} block={b} />
-        }
+        const prev = i > 0 ? (blocks[i - 1] ?? null) : null
+        const gap = needsGapBefore(prev, b)
+        const rendered = renderBlock(b, i)
+        if (!rendered) return null
+        if (gap)
+          return (
+            <React.Fragment key={i}>
+              <Box height={1} />
+              {rendered}
+            </React.Fragment>
+          )
+        return rendered
       })}
     </Box>
   )

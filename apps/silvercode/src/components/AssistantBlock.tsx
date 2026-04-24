@@ -8,7 +8,7 @@ export function AssistantBlock({ text }: { text: string }): React.ReactElement {
       <Text bold color="$primary">
         ●
       </Text>
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
         <MarkdownView source={text} />
       </Box>
     </Box>

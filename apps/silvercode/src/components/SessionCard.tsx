@@ -48,8 +48,8 @@ export function SessionCard({
   const turnStartedAt = state.messages.length > 0 ? state.messages[state.messages.length - 1]!.ts : null
 
   return (
-    <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden" paddingX={1} onClick={onFocus}>
-      <Box flexGrow={1} minHeight={0} paddingX={1}>
+    <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden" paddingX={1} onClick={onFocus}>
+      <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
         {state.messages.length === 0 ? (
           <Welcome handle={handle} />
         ) : (
