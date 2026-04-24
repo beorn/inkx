@@ -646,6 +646,7 @@
         "@silvery/ag": "0.19.2",
         "@silvery/create": "0.19.2",
         "@silvery/headless": "0.19.2",
+        "@silvery/scope": "0.19.2",
         "@silvery/theme": "0.19.2",
       },
       "peerDependencies": {
@@ -662,6 +663,7 @@
         "@silvery/color": "0.19.2",
         "@silvery/create": "0.19.2",
         "@silvery/headless": "0.19.2",
+        "@silvery/scope": "0.19.2",
         "@silvery/signals": "0.19.2",
         "@silvery/test": "0.19.2",
         "@silvery/theme": "0.19.2",
