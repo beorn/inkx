@@ -420,20 +420,18 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg. Cursor row gets $bg-cursor (existing behavior).
-  // Expanded rows use a SPECIFIC dark-purple hex (#2a1f3a) rather than
-  // any theme token — every semantic token (surface-subtle 5%, muted
-  // 8%, surface-overlay 12%, accent-hover, accent-active, color8, even
-  // $bg-cursor) rendered imperceptibly on the user's scheme. Raw 'red'
-  // was the only color confirmed visible in their TTY, which pinned
-  // the contrast-collapse to the theme derivation (not the render
-  // path). #2a1f3a is a dark muted purple that falls outside any
-  // theme's primary/surface compression and is guaranteed distinct
-  // from any common dark-terminal base bg.
+  // Row bg. $bg-surface-overlay is the semantic token for "content
+  // elevated above the base surface" — same token used by modal/popover
+  // chrome. Expanded-body fits that meaning exactly.
   //
-  // Tradeoff: breaks /silverize "use semantic tokens" idiom. Accepted
-  // because the semantic path is empirically broken for this user.
-  const rowBackground = showExpanded ? "#2a1f3a" : isCursor ? "$bg-cursor" : undefined
+  // Cursor row stays on $bg-cursor (existing behavior). When a row is
+  // both cursor AND expanded, expanded wins so hover doesn't change
+  // the row's bg.
+  const rowBackground = showExpanded
+    ? "$bg-surface-overlay"
+    : isCursor
+      ? "$bg-cursor"
+      : undefined
 
   return (
     <Box
