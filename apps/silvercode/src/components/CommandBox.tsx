@@ -59,11 +59,14 @@ export function CommandBox({
   const armedAt = useRef<number>(0)
 
   const hasQueue = queueText.length > 0
-  // Collapse blank separator lines from "\n\n"-joined entries — we render
-  // one `>` per content line only.
-  const queueLines = hasQueue ? queueText.split("\n").filter((l) => l.length > 0) : []
-  // TextArea needs a fixed height; grow with content up to 8 rows.
-  const queueHeight = Math.min(Math.max(queueLines.length, 1), 8)
+  // For the read-only preview: collapse blank separator lines from
+  // "\n\n"-joined entries — one `>` per content line only.
+  const previewLines = hasQueue ? queueText.split("\n").filter((l) => l.length > 0) : []
+  // For the editable TextArea: use the RAW line count (including blank
+  // separator lines) so all queued entries are visible inside the editor.
+  // Grow with content up to 12 rows.
+  const rawLineCount = hasQueue ? queueText.split("\n").length : 1
+  const queueHeight = Math.min(Math.max(rawLineCount, 1), 12)
 
   // Color policy: focused side pops at $fg, unfocused fades to $fg-muted.
   const queueTextColor = queueFocused ? "$fg" : "$fg-muted"
@@ -84,7 +87,7 @@ export function CommandBox({
           UNFOCUSED and swap to the live editable TextArea when FOCUSED. */}
       {hasQueue && !queueFocused && (
         <Box flexDirection="column">
-          {queueLines.map((line, i) => (
+          {previewLines.map((line, i) => (
             <Box key={i} flexDirection="row">
               <Text color="$fg-muted">{"> "}</Text>
               <Text color={queueTextColor}>{line}</Text>

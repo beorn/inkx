@@ -185,18 +185,13 @@ export function App(props: AppProps): React.ReactElement {
         cycleMode()
         return
       }
-      // Up-arrow / Ctrl+P at the command input with an empty buffer and
-      // a pending queue → jump into the queue editor. Claude Code
-      // convention: cursor-up recalls recent input; we reuse the idiom
-      // here since silvercode doesn't have history recall yet. Ctrl+P
-      // is the emacs/readline alias for up-arrow so shell muscle memory
-      // works too.
-      if (
-        (key.upArrow || (key.ctrl && input === "p")) &&
-        !queueFocused &&
-        inputValue.length === 0 &&
-        queueText.length > 0
-      ) {
+      // Up-arrow / Ctrl+P → jump into the queue editor (when queue has
+      // content). Claude Code convention: cursor-up recalls recent input;
+      // we reuse the idiom since silvercode doesn't have history recall
+      // yet. Ctrl+P is the emacs/readline alias for up-arrow so shell
+      // muscle memory works too. No inputValue gate — user can nav into
+      // queue even with text in the input (state is preserved).
+      if ((key.upArrow || (key.ctrl && input === "p")) && !queueFocused && queueText.length > 0) {
         setQueueFocused(true)
         return
       }
@@ -332,7 +327,7 @@ export function App(props: AppProps): React.ReactElement {
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
           <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             {sessions.map((s) => (
-              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
+              <Box key={s.id} flexDirection="column" flexGrow={1} flexShrink={1} flexBasis={cardBasis} minHeight={0} minWidth={0}>
                 <SessionCard
                   handle={s}
                   isFocused={s.id === focusedSessionId}
