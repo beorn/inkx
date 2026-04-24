@@ -269,8 +269,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       "- **accept-edits** — file edits apply automatically; other tools still prompt",
       "- **auto** — default; everything Claude can do runs unattended",
       "- **bypass** — skip all approvals; use only in sandboxes",
-      "",
-      "Click any tool block to expand it. Press Ctrl+D twice on an empty prompt to exit.",
     ]
     if (opts.account) {
       introLines.push("", `**Running with account:** \`${opts.account}\` (from \`~/.silvercode/accounts/${opts.account}/\`)`)
