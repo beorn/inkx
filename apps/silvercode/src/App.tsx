@@ -155,20 +155,6 @@ export function App(props: AppProps): React.ReactElement {
   // terminals: E / Y / R / N. Slash commands (/inbox, /history, /todos,
   // /mode) are the canonical surface — the Ctrl pairs are shortcuts.
   //
-  // Known silvery quirk: when our app-level useInput fires on a Ctrl+letter,
-  // the TextInput in CommandInput STILL sees the same key event and inserts
-  // the plain letter via its readline fallback (unknown ctrl combos aren't
-  // consumed by readline). We strip the trailing letter after handling so
-  // users don't see 'o' appended to their prompt every time they toggle.
-  function handleCtrlLetter(letter: string, action: () => void): void {
-    action()
-    // TextInput's onChange runs AFTER our useInput in the same tick. Setting
-    // inputValue synchronously doesn't reliably win the race. Defer with a
-    // microtask so we run after TextInput's insert, then strip.
-    queueMicrotask(() => {
-      setInputValue((v) => (v.endsWith(letter) ? v.slice(0, -1) : v))
-    })
-  }
   useInput(
     (input, key) => {
       if (key.escape && (showInbox || showHistory)) {
@@ -218,20 +204,31 @@ export function App(props: AppProps): React.ReactElement {
         setQueueFocused(false)
         return
       }
-      if (key.ctrl && input === "e") return handleCtrlLetter("e", () => setShowInbox((v) => !v))
+      if (key.ctrl && input === "e") {
+        setShowInbox((v) => !v)
+        return
+      }
       // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
       // but gets intercepted by cmux / most terminal multiplexers before
       // reaching the app). Slash commands /panel, /aside, /todos are the
       // canonical surface.
-      if (key.ctrl && input === "o") return handleCtrlLetter("o", () => setShowSidePanel((v) => !v))
-      if (key.ctrl && input === "y") return handleCtrlLetter("y", () => setShowSidePanel((v) => !v))
-      if (key.ctrl && input === "r") return handleCtrlLetter("r", () => setShowHistory((v) => !v))
+      if (key.ctrl && input === "o") {
+        setShowSidePanel((v) => !v)
+        return
+      }
+      if (key.ctrl && input === "y") {
+        setShowSidePanel((v) => !v)
+        return
+      }
+      if (key.ctrl && input === "r") {
+        setShowHistory((v) => !v)
+        return
+      }
       if (key.ctrl && input === "n" && sessions.length > 1) {
-        return handleCtrlLetter("n", () => {
-          const idx = sessions.findIndex((s) => s.id === focusedSessionId)
-          const next = sessions[(idx + 1) % sessions.length]!
-          controller.focus(next.id)
-        })
+        const idx = sessions.findIndex((s) => s.id === focusedSessionId)
+        const next = sessions[(idx + 1) % sessions.length]!
+        controller.focus(next.id)
+        return
       }
     },
     { isActive: true },

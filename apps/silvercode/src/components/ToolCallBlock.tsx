@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import { Box, Muted, Small, Spinner, Text } from "silvery"
-import { useInput } from "silvery/runtime"
 import { DiffRenderer } from "./DiffRenderer.tsx"
 
 /** Compact one-line summary when collapsed, pretty-printed JSON when expanded. */

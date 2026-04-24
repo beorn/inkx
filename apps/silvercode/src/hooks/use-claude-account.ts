@@ -22,16 +22,17 @@ const REFRESH_MS = 120_000
 export function useClaudeAccount(): AccountProbe {
   // Synchronous init from disk cache (when present + fresh) so the side
   // panel renders quotas immediately on startup instead of flashing
-  // "Loading…" while the async probe runs.
-  const cached = readCachedProbeSync()
+  // "Loading…" while the async probe runs. Lazy-init so the fs read
+  // only runs once on mount, not on every render.
   const [state, setState] = useState<AccountProbe>(
-    cached ?? {
-      email: resolveActiveEmail(),
-      plan: null,
-      quotas: [],
-      error: null,
-      loading: true,
-    },
+    () =>
+      readCachedProbeSync() ?? {
+        email: resolveActiveEmail(),
+        plan: null,
+        quotas: [],
+        error: null,
+        loading: true,
+      },
   )
 
   useEffect(() => {

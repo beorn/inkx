@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Blockquote, H1, H2, H3, H4, Muted, Text } from "silvery"
+import { Box, Blockquote, Divider, H1, H2, H3, H4, Text } from "silvery"
 import { parseBlocks, parseInline, type MdInline } from "../markdown.ts"
 import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -90,7 +90,7 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
           case "code":
             return <SyntaxHighlighter key={i} language={b.language || "plain"} code={b.code} />
           case "rule":
-            return <Muted key={i}>{"─".repeat(40)}</Muted>
+            return <Divider key={i} />
           case "blank":
             return null
           case "table":
