@@ -26,6 +26,7 @@ import {
   activeBeadInjector,
 } from "@km/agent-harness"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
+import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
 
 /**
@@ -60,6 +61,8 @@ export type SessionHandle = {
   readonly session: AgentSession
   readonly unsubscribe: () => void
   readonly log?: EventLog
+  /** Anthropic account bound to this session (multi-account). */
+  readonly account?: string
 }
 
 export type ControllerOptions = {
@@ -70,6 +73,13 @@ export type ControllerOptions = {
   track: Track
   logDir?: string
   initialSessions: number
+  /**
+   * Anthropic account name for per-session credential isolation (v1.1
+   * multi-account). Resolves to `~/.silvercode/accounts/<account>/` which the
+   * harness exposes via `CLAUDE_CONFIG_DIR`. Undefined → use the user's main
+   * `~/.claude/` (current behavior, unchanged).
+   */
+  account?: string
   /** Hook for tests to swap spawn behavior. */
   spawnFactory?: (opts: SpawnSessionOptions) => AgentSession | Promise<AgentSession>
   /**
@@ -104,6 +114,8 @@ export type SpawnSessionOptions = {
   model?: string
   resume?: string
   bare: boolean
+  /** Anthropic account name — pass-through from ControllerOptions.account. */
+  account?: string
 }
 
 export type Controller = {
@@ -169,8 +181,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     list.push(
       channelDigestInjector((sid) => {
         if (opts.drainChannel) return opts.drainChannel(sid)
-        const maybe = (tribe as TribeBackend & { drain?: (n: string) => Array<{ from: string; text: string }> })
-          .drain
+        const maybe = (tribe as TribeBackend & { drain?: (n: string) => Array<{ from: string; text: string }> }).drain
         if (maybe) return maybe(sessionName)
         return []
       }),
@@ -192,6 +203,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     if (s.track === "sdk") {
       return spawnSdk({ cwd: s.cwd, model: s.model, injectors })
     }
+    // Multi-account: when an account is bound, the harness spawns claude
+    // with CLAUDE_CONFIG_DIR pointing at ~/.silvercode/accounts/<name>/.
+    // Undefined account → claude uses the user's main ~/.claude/ (unchanged).
+    const configDir = s.account ? resolveAccountDir(s.account) : undefined
     return spawnClaude({
       cwd: s.cwd,
       model: s.model,
@@ -199,6 +214,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       bare: s.bare,
       injectors,
       mcpServers,
+      configDir,
     })
   }
 
@@ -217,6 +233,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         model: opts.model,
         resume: opts.resume,
         bare: opts.bare,
+        account: opts.account,
       }),
     )
 
@@ -228,12 +245,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (log) log.append(event)
     })
 
-    const handle: SessionHandle = { id, name: givenName, store, session, unsubscribe: unsub, log }
+    const handle: SessionHandle = { id, name: givenName, store, session, unsubscribe: unsub, log, account: opts.account }
 
     // Intro message — synthesize a local assistant turn so the session card
     // isn't empty on first render. Not sent to the subprocess; purely UI.
     const introTurnId = `intro-${id}` as never
-    const introText = [
+    const introLines = [
       "**Welcome to silvercode.**",
       "",
       "Type a message and press Enter to send. Type `/` to open the command palette:",
@@ -254,7 +271,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       "- **bypass** — skip all approvals; use only in sandboxes",
       "",
       "Click any tool block to expand it. Press Ctrl+D twice on an empty prompt to exit.",
-    ].join("\n")
+    ]
+    if (opts.account) {
+      introLines.push("", `**Running with account:** \`${opts.account}\` (from \`~/.silvercode/accounts/${opts.account}/\`)`)
+    }
+    const introText = introLines.join("\n")
     store.apply({
       kind: "turn-start",
       sessionId: "silvercode-intro" as never,
@@ -366,7 +387,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const summary = recent
         .map((m) => {
           if (m.role === "user") return `USER: ${m.text}`
-          const text = m.text || m.blocks?.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("") || ""
+          const text =
+            m.text ||
+            m.blocks
+              ?.filter((b) => b.type === "text")
+              .map((b) => (b as { text: string }).text)
+              .join("") ||
+            ""
           const tools = m.toolCalls.map((c) => `  ${c.name}(${JSON.stringify(c.input).slice(0, 80)})`).join("\n")
           return `ASSISTANT: ${text}${tools ? "\n" + tools : ""}`
         })

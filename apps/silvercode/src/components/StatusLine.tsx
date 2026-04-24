@@ -27,13 +27,7 @@ export function StatusLine({
   const modeColor = MODE_COLORS[mode] ?? "$muted"
 
   return (
-    <Box
-      backgroundColor="$inversebg"
-      paddingX={1}
-      flexDirection="row"
-      gap={2}
-      justifyContent="flex-start"
-    >
+    <Box backgroundColor="$inversebg" paddingX={1} flexDirection="row" gap={2} justifyContent="flex-start">
       <Text color="$inverse" bold>
         ◈ silvercode
       </Text>
@@ -43,6 +37,7 @@ export function StatusLine({
       {session && (
         <>
           <Text color="$inverse">{session.name}</Text>
+          {session.account && <Muted>@{session.account}</Muted>}
           <Muted>{state?.model || "–"}</Muted>
           <Text
             color={modeColor}

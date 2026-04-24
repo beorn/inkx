@@ -26,6 +26,12 @@ export type AppProps = {
   layout: Layout
   track: Track
   logDir?: string
+  /**
+   * Anthropic account name for per-session credential isolation. Resolves to
+   * `~/.silvercode/accounts/<account>/` via `CLAUDE_CONFIG_DIR`. Undefined →
+   * use `~/.claude/` (v1.1 multi-account foundation).
+   */
+  account?: string
 }
 
 export function App(props: AppProps): React.ReactElement {
@@ -38,6 +44,7 @@ export function App(props: AppProps): React.ReactElement {
       bare: props.bare,
       track: props.track,
       logDir: props.logDir,
+      account: props.account,
       initialSessions: props.layout === "grid-4" ? 4 : props.layout === "grid-2" ? 2 : 1,
     })
   }
@@ -104,12 +111,7 @@ export function App(props: AppProps): React.ReactElement {
         {/* Session cards grid */}
         <Box flexDirection="row" flexWrap="wrap" flexGrow={1}>
           {sessions.map((s) => (
-            <Box
-              key={s.id}
-              flexDirection="column"
-              flexGrow={1}
-              flexBasis={cardBasis}
-            >
+            <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis}>
               <SessionCard
                 handle={s}
                 isFocused={s.id === focusedSessionId}
@@ -189,12 +191,7 @@ export function App(props: AppProps): React.ReactElement {
           }}
         />
 
-        <StatusLine
-          session={focused}
-          mode={mode}
-          sessionCount={sessions.length}
-          onSwitchMode={setMode}
-        />
+        <StatusLine session={focused} mode={mode} sessionCount={sessions.length} onSwitchMode={setMode} />
 
         <PopoverLayer />
       </Box>
