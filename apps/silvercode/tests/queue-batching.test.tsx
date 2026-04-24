@@ -127,6 +127,112 @@ describe("layer 3: queue batching", () => {
     controller.closeAll()
   })
 
+  test("regression: queue auto-flushes on turn-end after editor releases mid-thinking", async () => {
+    // User scenario from the bug report: "After cursor returns to command box,
+    // queue doesn't submit — items just stay there."
+    //
+    // Reproduction:
+    //   1. Session is busy (thinking).
+    //   2. User opens queue editor (hold=true) and queues 3 messages via
+    //      setQueuedText (matches what QueueEditor's onChange does).
+    //   3. User presses Enter on a queue item → editor calls onQueueRelease
+    //      → App.tsx setQueueFocused(false) → useEffect calls
+    //      controller.holdQueue(id, false). Cursor returns to command box.
+    //   4. Hold is released BUT session is still thinking — tryFlush bails.
+    //   5. Eventually Claude emits turn-end → status flips to "idle" →
+    //      controller's subscribe-path tryFlush fires → queue must drain.
+    //
+    // If step 5 doesn't drain the queue, items stay there forever and the
+    // user's queued work is silently lost until they press Enter on the
+    // command-box prompt (which combines pending + new in send()).
+    const fake = createFakeSession({ sessionId: SESSION })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      track: "claude",
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    fake.emit(turnStart("a1"))
+    expect(handle.store.state.get().status).toBe("thinking")
+
+    // Queue editor opens — App.tsx sets hold=true via useEffect.
+    controller.holdQueue(handle.id, true)
+    // User types three queued entries through setQueuedText (the path the
+    // QueueEditor's onChange→writeBack uses, NOT controller.send()). This
+    // models the actual user motion: paste/type in the editor, see the
+    // text in the queue area, then release.
+    controller.setQueuedText(handle.id, "one\n\ntwo\n\nthree")
+    expect(controller.queuedText(handle.id)).toBe("one\n\ntwo\n\nthree")
+    expect(fake.sent).toHaveLength(0)
+
+    // Enter on a queue item → onQueueRelease → setQueueFocused(false) →
+    // useEffect → holdQueue(id, false). Hold released, but session is
+    // still thinking — tryFlush should bail silently here.
+    controller.holdQueue(handle.id, false)
+    expect(fake.sent).toHaveLength(0)
+    expect(controller.queuedText(handle.id)).toBe("one\n\ntwo\n\nthree")
+
+    // Now Claude finishes its turn. The controller's subscribe handler
+    // applies the event (status → idle) and calls tryFlush. The queue
+    // MUST drain at this point — that's the auto-flush guarantee.
+    fake.emit(turnEnd("a1"))
+
+    expect(handle.store.state.get().status).toBe("idle")
+    expect(fake.sent).toHaveLength(1)
+    expect(fake.sent[0]!.type).toBe("user")
+    expect(fake.sent[0]!.payload).toBe("one\n\ntwo\n\nthree")
+    expect(controller.queuedText(handle.id)).toBe("")
+
+    controller.closeAll()
+  })
+
+  test("flushQueue force-sends mid-thinking (Enter on a queue item bypasses idle gate)", async () => {
+    // The user-facing fix: pressing Enter on a queue item should submit
+    // ALL queued items NOW, even if Claude is mid-turn. The previous
+    // behaviour only released the hold and waited for the next idle
+    // window, which made the items look stuck. flushQueue bypasses the
+    // idle gate; Claude Code's CLI buffers stdin while it's working, so
+    // the user-message lands as the next turn's input.
+    const fake = createFakeSession({ sessionId: SESSION })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      track: "claude",
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    fake.emit(turnStart("a1"))
+    expect(handle.store.state.get().status).toBe("thinking")
+
+    // Editor opens (hold=true), user types three entries via setQueuedText.
+    controller.holdQueue(handle.id, true)
+    controller.setQueuedText(handle.id, "one\n\ntwo\n\nthree")
+    expect(fake.sent).toHaveLength(0)
+
+    // User presses Enter on a queue item → App.tsx onQueueSubmit calls
+    // controller.flushQueue. Status is still "thinking" — the old code
+    // path (holdQueue(false)→tryFlush) would have bailed here. The new
+    // force-flush path sends through.
+    controller.flushQueue(handle.id)
+
+    expect(fake.sent).toHaveLength(1)
+    expect(fake.sent[0]!.payload).toBe("one\n\ntwo\n\nthree")
+    expect(controller.queuedText(handle.id)).toBe("")
+    // Hold cleared so the subsequent turn-end auto-flush is a no-op,
+    // never resurrecting drained text or double-sending.
+    fake.emit(turnEnd("a1"))
+    expect(fake.sent).toHaveLength(1)
+
+    controller.closeAll()
+  })
+
   test("clearQueue drops the buffer without sending anything", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
