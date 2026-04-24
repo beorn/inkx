@@ -197,11 +197,24 @@ export function SessionCard({
   })()
 
   return (
+    // `overflow="hidden"` is the single overflow boundary for the card.
+    // CSS spec §4.5: an overflow container gets automatic min-size=0 and
+    // flex-shrink=1, so this Box shrinks against its sibling (the side
+    // panel in App.tsx) and silvery's render phase clips any descendant
+    // content that would otherwise expand past the card's bounds.
+    //
+    // Descendants therefore DO NOT need per-node `minWidth={0}` / `wrap` /
+    // `overflow="hidden"` plumbing to prevent the "wide unwrappable token
+    // pushes the side panel off-screen" bug. The only leaf-level overflow
+    // that should survive is for content that must CLIP (not wrap):
+    // source code lines (SyntaxHighlighter), diff rows (DiffRenderer),
+    // and markdown tables (MarkdownTable) where breaking would destroy
+    // alignment.
     <Box
       flexDirection="column"
       flexGrow={1}
       minHeight={0}
-      minWidth={0}
+      overflow="hidden"
       paddingX={1}
       onClick={onFocus}
     >
@@ -211,7 +224,7 @@ export function SessionCard({
 
       {/* Body — empty state renders the Welcome card; otherwise the virtualized
           message list (silvery ListView owns scroll + wheel + keys). */}
-      <Box flexGrow={1} minHeight={0} minWidth={0} paddingX={1}>
+      <Box flexGrow={1} minHeight={0} paddingX={1}>
         {state.messages.length === 0 ? (
           <Welcome handle={handle} />
         ) : (

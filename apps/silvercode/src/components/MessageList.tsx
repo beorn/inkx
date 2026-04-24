@@ -23,13 +23,13 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
     return <UserMessageBlock text={m.text} />
   }
   return (
-    <Box flexDirection="column" minWidth={0}>
+    <Box flexDirection="column">
       {m.text.length > 0 && <AssistantBlock text={m.text} />}
       {m.toolCalls.map((c) => {
         const results = m.toolResults.filter((r) => r.id === c.id)
         const running = results.length === 0
         return (
-          <Box key={c.id} flexDirection="column" minWidth={0}>
+          <Box key={c.id} flexDirection="column">
             <ToolCallBlock
               id={c.id}
               name={c.name}

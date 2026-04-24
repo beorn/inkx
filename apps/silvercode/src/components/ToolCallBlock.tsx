@@ -46,7 +46,6 @@ export function ToolCallBlock({
     <Box
       flexDirection="column"
       paddingX={1}
-      minWidth={0}
       backgroundColor={expanded ? "$surfacebg" : "$mutedbg"}
       borderStyle="single"
       borderColor={expanded ? "$accent" : "$border"}
@@ -55,13 +54,13 @@ export function ToolCallBlock({
       borderRight={false}
       onClick={() => setExpanded((v) => !v)}
     >
-      <Box flexDirection="row" gap={1} minWidth={0}>
+      <Box flexDirection="row" gap={1}>
         {running ? <Spinner type="dots" /> : <Text color="$accent">⚙</Text>}
         <Text bold color="$primary">
           {display}
         </Text>
         {label && (
-          <Box flexShrink={1} minWidth={0}>
+          <Box flexShrink={1}>
             <Muted wrap="wrap">{label}</Muted>
           </Box>
         )}
@@ -69,12 +68,7 @@ export function ToolCallBlock({
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
       {expanded && (
-        // minWidth={0} + overflow="hidden" so a long JSON line or nested
-        // DiffRenderer can't push the expanded body past the card width.
-        // The Text inside also gets wrap="wrap" so paragraph-shaped values
-        // still line-break normally; truly unwrappable tokens (long paths,
-        // URLs without whitespace) clip at the right edge via overflow.
-        <Box paddingLeft={2} minWidth={0} overflow="hidden">
+        <Box paddingLeft={2}>
           {name === "Edit" && input && typeof input === "object" && "old_string" in input && "new_string" in input ? (
             <DiffRenderer
               oldText={String((input as Record<string, unknown>).old_string ?? "")}

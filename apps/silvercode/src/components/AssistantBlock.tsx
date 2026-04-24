@@ -4,15 +4,11 @@ import { MarkdownView } from "./MarkdownView.tsx"
 
 export function AssistantBlock({ text }: { text: string }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} minWidth={0}>
+    <Box flexDirection="row" gap={1}>
       <Text bold color="$primary">
         ●
       </Text>
-      {/* minWidth=0 on the content column lets long unwrappable tokens
-          (URLs, identifiers without spaces) shrink-fit instead of
-          pushing the whole row past the card width — which would push
-          the side panel offscreen. */}
-      <Box flexDirection="column" flexGrow={1} minWidth={0}>
+      <Box flexDirection="column" flexGrow={1}>
         <MarkdownView source={text} />
       </Box>
     </Box>

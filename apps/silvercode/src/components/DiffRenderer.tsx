@@ -24,28 +24,18 @@ export function DiffRenderer({
 }): React.ReactElement {
   const parts = diffLines(oldText, newText)
   const rows = buildRows(parts)
-  // minWidth={0} + overflow="hidden" on the outer container AND each line row
-  // so a long code line in the diff (common in real Edit payloads: long string
-  // literals, full import paths, URLs) clips at the card's right edge instead
-  // of expanding the flex column outward and pushing the side panel off-screen.
+  // Per-row `overflow="hidden"` clips long code lines (long string literals,
+  // import paths, URLs) rather than wrapping them — wrapping would destroy
+  // the column alignment that makes diffs readable. Card-level clipping at
+  // SessionCard prevents layout expansion independently; this one is about
+  // visual alignment of source code.
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderColor="$border"
-      paddingX={1}
-      minWidth={0}
-      overflow="hidden"
-    >
-      {filePath && (
-        <Text color="$muted" wrap="wrap">
-          --- {filePath}
-        </Text>
-      )}
+    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+      {filePath && <Text color="$muted">--- {filePath}</Text>}
       {rows.map((row, i) => {
         if (row.kind === "elision") {
           return (
-            <Box key={`e${i}`} flexDirection="row" minWidth={0} overflow="hidden">
+            <Box key={`e${i}`} flexDirection="row" overflow="hidden">
               <Text color="$muted">{`... ${row.count} lines unchanged ...`}</Text>
             </Box>
           )
@@ -53,7 +43,7 @@ export function DiffRenderer({
         const color = row.kind === "added" ? "$success" : row.kind === "removed" ? "$error" : "$muted"
         const marker = row.kind === "added" ? "+ " : row.kind === "removed" ? "- " : "  "
         return (
-          <Box key={`${row.kind[0]}${i}`} flexDirection="row" minWidth={0} overflow="hidden">
+          <Box key={`${row.kind[0]}${i}`} flexDirection="row" overflow="hidden">
             <Text color={color}>{marker}</Text>
             <Text color={color}>{row.line}</Text>
           </Box>

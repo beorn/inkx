@@ -30,7 +30,6 @@ export function ToolResultBlock({ output, isError }: { output: unknown; isError?
       flexDirection="column"
       paddingX={1}
       paddingLeft={3}
-      minWidth={0}
       backgroundColor={expanded ? "$surfacebg" : undefined}
       borderStyle="single"
       borderColor={expanded ? accentColor : "$border"}
@@ -39,12 +38,12 @@ export function ToolResultBlock({ output, isError }: { output: unknown; isError?
       borderRight={false}
       onClick={() => setExpanded((v) => !v)}
     >
-      <Box flexDirection="row" gap={1} minWidth={0}>
+      <Box flexDirection="row" gap={1}>
         <Text color={isError ? "$error" : "$success"}>{isError ? "✗" : "↳"}</Text>
         {/* Preview lines stack in their own column with wrap; each line
             can break naturally onto multiple visual lines while the
             expand caret stays at the top of the row. */}
-        <Box flexDirection="column" flexGrow={1} minWidth={0}>
+        <Box flexDirection="column" flexGrow={1}>
           {preview.map((line, i) => (
             <Muted key={i} wrap="wrap">
               {line}
@@ -55,7 +54,7 @@ export function ToolResultBlock({ output, isError }: { output: unknown; isError?
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
       {expanded && (
-        <Box paddingLeft={2} minWidth={0}>
+        <Box paddingLeft={2}>
           <Text color={isError ? "$error" : undefined} wrap="wrap">
             {full}
           </Text>

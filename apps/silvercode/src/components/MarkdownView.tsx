@@ -5,11 +5,12 @@ import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 
 function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
-  // minWidth={0} + flexWrap="wrap" + wrap="wrap" on every child Text so a
-  // long URL / identifier / path in one of the inline tokens breaks onto
-  // the next line instead of pushing the row past the card width.
+  // flexWrap="wrap" + per-Text wrap="wrap" so inline runs reflow nicely
+  // over multiple visual lines. Card-level overflow=hidden at SessionCard
+  // prevents truly unwrappable tokens from expanding the card; this wrap
+  // is purely for readability of paragraph-shaped text.
   return (
-    <Box flexDirection="row" flexWrap="wrap" minWidth={0}>
+    <Box flexDirection="row" flexWrap="wrap">
       {tokens.map((t, i) => {
         switch (t.kind) {
           case "bold":
@@ -51,7 +52,7 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
 export function MarkdownView({ source }: { source: string }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Box flexDirection="column" minWidth={0}>
+    <Box flexDirection="column">
       {blocks.map((b, i) => {
         switch (b.kind) {
           case "heading": {
@@ -67,22 +68,19 @@ export function MarkdownView({ source }: { source: string }): React.ReactElement
             return <InlineRun key={i} tokens={inline} />
           }
           case "bullet":
-            // minWidth=0 + flexShrink=1 on the InlineRun wrapper so a long
-            // bullet text wraps inside the row instead of pushing the row
-            // past the card width.
             return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2} minWidth={0}>
+              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
                 <Text color="$muted">• </Text>
-                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                <Box flexGrow={1} flexShrink={1}>
                   <InlineRun tokens={parseInline(b.text)} />
                 </Box>
               </Box>
             )
           case "ordered":
             return (
-              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2} minWidth={0}>
+              <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
                 <Text color="$muted">{b.number}. </Text>
-                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                <Box flexGrow={1} flexShrink={1}>
                   <InlineRun tokens={parseInline(b.text)} />
                 </Box>
               </Box>
@@ -123,20 +121,12 @@ function MarkdownTable({
     }
     return text.padEnd(w)
   }
-  // minWidth={0} + overflow="hidden" on the outer Box + each row so a table
-  // with a very long unwrappable cell value (URL, long identifier) clips at
-  // the card's right edge instead of expanding the flex column outward and
-  // hiding the side panel.
+  // Per-row `overflow="hidden"` so table cells clip rather than wrap —
+  // wrapping would destroy the padded column alignment. Card-level
+  // clipping at SessionCard handles layout-expansion prevention.
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderColor="$border"
-      paddingX={1}
-      minWidth={0}
-      overflow="hidden"
-    >
-      <Box flexDirection="row" gap={1} minWidth={0} overflow="hidden">
+    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+      <Box flexDirection="row" gap={1} overflow="hidden">
         {block.headers.map((h, col) => (
           <Text key={col} bold color="$primary">
             {pad(h, col)}
@@ -144,7 +134,7 @@ function MarkdownTable({
         ))}
       </Box>
       {block.rows.map((row, rowIdx) => (
-        <Box key={rowIdx} flexDirection="row" gap={1} minWidth={0} overflow="hidden">
+        <Box key={rowIdx} flexDirection="row" gap={1} overflow="hidden">
           {row.map((cell, col) => (
             <Text key={col}>{pad(cell, col)}</Text>
           ))}

@@ -67,7 +67,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
   const lines = text.split("\n")
   let offset = 0
   return (
-    <Box flexDirection="column" minWidth={0}>
+    <Box flexDirection="column">
       {lines.map((line, lineIdx) => {
         const lineStart = offset
         const lineEnd = offset + line.length
@@ -109,11 +109,12 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
               {line.slice(cursor - lineStart)}
             </Text>,
           )
-        // flexWrap="wrap" — an inline-run line with a very long detection
-        // token (URL / long path) still breaks onto the next line instead
-        // of forcing the whole row to the content's natural width.
+        // flexWrap="wrap" — lets mixed-token inline runs reflow onto
+        // multiple visual lines when the row exceeds the card width.
+        // (Card-level clipping at SessionCard's overflow=hidden prevents
+        // outright layout expansion; this wrap is for readability.)
         return (
-          <Box key={lineIdx} flexDirection="row" flexWrap="wrap" minWidth={0}>
+          <Box key={lineIdx} flexDirection="row" flexWrap="wrap">
             {pieces}
           </Box>
         )
