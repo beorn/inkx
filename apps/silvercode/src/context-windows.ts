@@ -19,14 +19,34 @@ const WINDOWS: Array<{ prefix: string; tokens: number }> = [
 
 /**
  * Resolve the context-window size (in tokens) for a given model name.
+ * Special-case the `[1m]` variant which indicates a 1M-token tier.
  * Returns DEFAULT_WINDOW (200K) for unknown or empty models.
  */
 export function contextWindowFor(model: string | null | undefined): number {
   if (!model) return DEFAULT_WINDOW
+  if (model.includes("[1m]")) return 1_000_000
   for (const { prefix, tokens } of WINDOWS) {
     if (model.startsWith(prefix)) return tokens
   }
   return DEFAULT_WINDOW
+}
+
+/**
+ * Humanize a model slug for display. `claude-opus-4-7` → "Opus 4.7";
+ * `claude-opus-4-7[1m]` → "Opus 4.7 (1M context)"; dated builds like
+ * `claude-haiku-4-5-20251001` drop the trailing YYYYMMDD. Unknown slugs
+ * fall through.
+ */
+export function modelLabel(model: string | null | undefined): string {
+  if (!model) return ""
+  const big = model.includes("[1m]") ? " (1M context)" : ""
+  const slug = model.replace(/\[1m\]$/, "")
+  const m = slug.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)(?:-\d{8})?$/)
+  if (m) {
+    const family = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1)
+    return `${family} ${m[2]}.${m[3]}${big}`
+  }
+  return slug + big
 }
 
 /** Threshold colors for context utilization. Tuned so /compact is suggested early. */

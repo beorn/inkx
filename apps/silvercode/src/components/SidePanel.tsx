@@ -8,6 +8,7 @@ import {
   contextUtilizationLevel,
   contextUtilizationPercent,
   contextWindowFor,
+  modelLabel,
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
@@ -615,6 +616,14 @@ export function SidePanel({
             <Text color="#d97757"> Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
           </Box>
         </Box>
+        {/* Model — indent under the Claude Code line so it reads as a
+            sub-detail. Uses the humanized slug (e.g. "Opus 4.7" /
+            "Opus 4.7 (1M context)"); empty string collapses the row. */}
+        {state.model && (
+          <Box flexDirection="row" paddingLeft={2}>
+            <Small>{modelLabel(state.model)}</Small>
+          </Box>
+        )}
       </Box>
     </Box>
   )
