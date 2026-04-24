@@ -63,14 +63,7 @@ const projects = hasProjectFlag
 					name: "default",
 					...sharedTest,
 					include: ["**/*.{test,spec}.{ts,tsx,md}"],
-					exclude: [
-						...alwaysExclude,
-						"**/*.slow.*",
-						"vendor/**",
-						// Live-mode visual tests run under their own project so SILVERCODE_REAL=1
-						// can opt them in without affecting the fast default suite.
-						"apps/silvercode/tests/visual/**/*.live.*",
-					],
+					exclude: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
 				},
 			},
 			{
@@ -153,12 +146,7 @@ export default defineConfig({
 			: ["**/*.{test,spec}.{ts,tsx,md}"],
 		exclude: process.env.FUZZ
 			? [...alwaysExclude, "**/*.slow.*"]
-			: [
-				...alwaysExclude,
-				"**/*.slow.*",
-				"vendor/**",
-				"apps/silvercode/tests/visual/**/*.live.*",
-			],
+			: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
 		setupFiles: [
 			"./packages/km-infra/vitest/setup.ts",
 			"./apps/silvercode/src/test/setup-fakes.ts",

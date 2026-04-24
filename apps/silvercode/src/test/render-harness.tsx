@@ -99,6 +99,14 @@ export type RenderScenarioOptions = {
    * to `null` to leave HOME alone (live mode).
    */
   fsRoot?: string | null
+  /**
+   * Live mode. When true, the harness does NOT install a ScriptedFakeSession;
+   * the App spawns the real Claude CLI subprocess via its default factory.
+   * Used by `*.live.test.tsx` contract tests under SILVERCODE_REAL=1.
+   * Implies `account/version/branch/fsRoot` default to `null` so every
+   * boundary runs against the production implementation.
+   */
+  live?: boolean
 }
 
 /** Returned by `renderScenario` so tests can clean up if they hold on. */
@@ -134,14 +142,17 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   const bare = opts.bare ?? true
   const model = opts.model ?? "claude-sonnet-4-6"
 
+  const live = opts.live === true
   // Install third-party-boundary fakes (accountly, git branch, version,
   // fs HOME). Each is bypassed when its option is `null` — that's the
   // hook the live-mode test path uses to exercise real implementations.
+  // When `live: true`, every boundary defaults to `null` so the App hits
+  // the real keychain / git / claude-version / ~/.cache paths.
   const fakes: InstalledFakes = installFakes({
-    account: opts.account,
-    version: opts.version,
-    branch: opts.branch,
-    fsRoot: opts.fsRoot,
+    account: live ? (opts.account ?? null) : opts.account,
+    version: live ? (opts.version ?? null) : opts.version,
+    branch: live ? (opts.branch ?? null) : opts.branch,
+    fsRoot: live ? (opts.fsRoot ?? null) : opts.fsRoot,
   })
 
   // Silvery's <Screen> component reads process.stdout.columns/rows directly
@@ -159,18 +170,22 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
 
   const fake = opts.fake ?? createFakeSession()
   const renderer = createRenderer({ cols, rows })
-  const app = renderer(
-    <App cwd={cwd} bare={bare} layout={layout} track="claude" model={model} spawnFactory={() => fake} />,
-  )
+  // In live mode, omit spawnFactory so the App uses its default
+  // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
+  // ignored — the real subprocess produces the events.
+  const elementProps = live
+    ? { cwd, bare, layout, track: "claude" as const, model }
+    : { cwd, bare, layout, track: "claude" as const, model, spawnFactory: () => fake }
+  const app = renderer(<App {...elementProps} />)
 
   // Let the controller's initial `void spawnSession()` microtask resolve,
   // then trigger React to re-render with the new session in the list.
   for (let i = 0; i < 5; i++) {
     await Promise.resolve()
   }
-  renderer(<App cwd={cwd} bare={bare} layout={layout} track="claude" model={model} spawnFactory={() => fake} />)
+  renderer(<App {...elementProps} />)
 
-  if (opts.autoEmit !== false) {
+  if (opts.autoEmit !== false && !live) {
     for (const event of opts.script) fake.emit(event)
     // Multiple flushes cover: store.apply → signal propagation → React
     // useStoreSignal re-render → reconciler commit.
@@ -180,7 +195,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     // Re-render explicitly — the reconciler has flushed but createRenderer
     // doesn't auto-sample the buffer; a second renderer() call with the
     // same element reuses the instance but triggers a fresh render pass.
-    renderer(<App cwd={cwd} bare={bare} layout={layout} track="claude" model={model} spawnFactory={() => fake} />)
+    renderer(<App {...elementProps} />)
     for (let i = 0; i < 5; i++) {
       await Promise.resolve()
     }

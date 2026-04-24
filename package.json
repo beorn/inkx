@@ -100,6 +100,7 @@
     "test:slow": "bun vitest run --project slow",
     "test:all": "bun vitest run --project default --project slow --project vendor --project fuzz",
     "test:vendor": "bun vitest run --project vendor",
+    "test:silvercode-live": "SILVERCODE_REAL=1 bun vitest run --project silvercode-live",
     "test:compat": "cd vendor/silvery && bun run compat",
     "test:compat:ink": "cd vendor/silvery && bun run compat:ink",
     "test:compat:chalk": "cd vendor/silvery && bun run compat:chalk",
