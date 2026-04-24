@@ -7,7 +7,7 @@
  * via: `bun apps/silvercode/tests/live-spawn.ts "what are you?"`.
  */
 
-import { createSessionStore, spawnClaude } from "@silvery/agent-harness"
+import { createSessionStore, spawnClaude } from "@km/agent-harness"
 
 const prompt = process.argv.slice(2).join(" ") || "Say hi in one short sentence."
 

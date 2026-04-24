@@ -1,5 +1,5 @@
 import React from "react"
-import type { MessageEntry } from "@silvery/agent-harness"
+import type { MessageEntry } from "@km/agent-harness"
 import { Box } from "silvery"
 import { AssistantBlock } from "./AssistantBlock.tsx"
 import { ToolCallBlock } from "./ToolCallBlock.tsx"

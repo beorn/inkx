@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { SessionState, SessionStore } from "@silvery/agent-harness"
+import type { SessionState, SessionStore } from "@km/agent-harness"
 import { Box, H2, Muted, Small, Text, useWindowSize } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"

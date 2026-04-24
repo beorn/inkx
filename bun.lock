@@ -216,19 +216,26 @@
         "silvercode": "./src/bootstrap.ts",
       },
       "dependencies": {
+        "@km/agent-harness": "workspace:*",
         "@km/mcp-server": "workspace:*",
+        "@km/tribe-mcp": "workspace:*",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
-        "@silvery/agent-harness": "workspace:*",
         "@silvery/commander": "workspace:*",
         "@silvery/theme": "workspace:*",
-        "@silvery/tribe-mcp": "workspace:*",
         "alien-signals": "^3.1.2",
         "react": "catalog:",
         "silvery": "workspace:*",
       },
       "devDependencies": {
         "@types/react": "catalog:",
+      },
+    },
+    "packages/agent-harness": {
+      "name": "@km/agent-harness",
+      "version": "0.1.0",
+      "dependencies": {
+        "alien-signals": "^3.1.2",
       },
     },
     "packages/km-agent": {
@@ -374,6 +381,13 @@
       "version": "0.1.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
+      },
+    },
+    "packages/tribe-mcp": {
+      "name": "@km/tribe-mcp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@km/agent-harness": "workspace:*",
       },
     },
     "vendor/accountly": {
@@ -640,13 +654,6 @@
         "flexily": "0.5.2",
       },
     },
-    "vendor/silvery/packages/agent-harness": {
-      "name": "@silvery/agent-harness",
-      "version": "0.1.0",
-      "dependencies": {
-        "alien-signals": "^3.1.2",
-      },
-    },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
       "version": "0.19.2",
@@ -741,13 +748,6 @@
       "dependencies": {
         "@silvery/ansi": "0.19.2",
         "@silvery/color": "0.19.2",
-      },
-    },
-    "vendor/silvery/packages/tribe-mcp": {
-      "name": "@silvery/tribe-mcp",
-      "version": "0.1.0",
-      "dependencies": {
-        "@silvery/agent-harness": "workspace:*",
       },
     },
     "vendor/tap": {
@@ -1221,6 +1221,8 @@
 
     "@km/agent": ["@km/agent@workspace:packages/km-agent"],
 
+    "@km/agent-harness": ["@km/agent-harness@workspace:packages/agent-harness"],
+
     "@km/agent-view": ["@km/agent-view@workspace:apps/km-agent-view"],
 
     "@km/beads": ["@km/beads@workspace:packages/km-beads"],
@@ -1252,6 +1254,8 @@
     "@km/storage": ["@km/storage@workspace:packages/km-storage"],
 
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
+
+    "@km/tribe-mcp": ["@km/tribe-mcp@workspace:packages/tribe-mcp"],
 
     "@km/tui": ["@km/tui@workspace:apps/km-tui"],
 
@@ -1679,8 +1683,6 @@
 
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
 
-    "@silvery/agent-harness": ["@silvery/agent-harness@workspace:vendor/silvery/packages/agent-harness"],
-
     "@silvery/ansi": ["@silvery/ansi@workspace:vendor/silvery/packages/ansi"],
 
     "@silvery/color": ["@silvery/color@workspace:vendor/silvery/packages/color"],
@@ -1706,8 +1708,6 @@
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 
     "@silvery/theme": ["@silvery/theme@workspace:vendor/silvery/packages/theme"],
-
-    "@silvery/tribe-mcp": ["@silvery/tribe-mcp@workspace:vendor/silvery/packages/tribe-mcp"],
 
     "@sinonjs/commons": ["@sinonjs/commons@3.0.1", "", { "dependencies": { "type-detect": "4.0.8" } }, "sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ=="],
 

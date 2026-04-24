@@ -1,0 +1,14 @@
+{
+  "name": "@km/tribe-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing tribe cross-session messaging as typed tools. Used by silvercode.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@km/agent-harness": "workspace:*"
+  }
+}

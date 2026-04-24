@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { SessionState, SessionStore } from "@silvery/agent-harness"
+import type { SessionState, SessionStore } from "@km/agent-harness"
 
 /** Subscribe a React component to a SessionStore. */
 export function useStoreSignal(store: SessionStore): SessionState {

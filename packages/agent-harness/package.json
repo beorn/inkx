@@ -1,0 +1,22 @@
+{
+  "name": "@km/agent-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed harness for spawning Claude Code (and other agent CLIs) with stream-json. Used by silvercode.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./parse": "./src/parse.ts",
+    "./events": "./src/events.ts",
+    "./spawn": "./src/spawn.ts",
+    "./injectors": "./src/injectors.ts",
+    "./event-log": "./src/event-log.ts",
+    "./session-store": "./src/session-store.ts",
+    "./sdk-adapter": "./src/sdk-adapter.ts",
+    "./codex-spawn": "./src/codex-spawn.ts"
+  },
+  "dependencies": {
+    "alien-signals": "^3.1.2"
+  }
+}

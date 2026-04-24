@@ -3,7 +3,7 @@ import {
   createSessionStore,
   createStreamJsonParser,
   type AgentEvent,
-} from "@silvery/agent-harness"
+} from "@km/agent-harness"
 
 /**
  * End-to-end M0 contract: feeding a realistic stream-json fixture into the

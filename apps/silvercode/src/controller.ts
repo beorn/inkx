@@ -22,8 +22,8 @@ import {
   spawnCodex,
   spawnSdk,
   activeBeadInjector,
-} from "@silvery/agent-harness"
-import { createInMemoryTribe, type TribeBackend } from "@silvery/tribe-mcp"
+} from "@km/agent-harness"
+import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
 
 type Track = "claude" | "sdk" | "codex"
