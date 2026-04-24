@@ -258,6 +258,12 @@ function QueueEditor({
   // visible=false, the active one's cursor state would be stomped by the
   // last inactive's effect. Restricting the live TextInput to the active
   // row keeps exactly one cursor on screen.
+  //
+  // Color is per-REGION, not per-entry: when QueueEditor is mounted the
+  // queue region owns focus, so EVERY entry renders at `$fg` (white) —
+  // not just the active one. The `>` prompt stays muted to keep the
+  // gutter quiet. The command-box side dims via CommandBox-level
+  // `inputTextColor` / `inputPromptColor` while we're focused.
   return (
     <Box flexDirection="column">
       {entries.map((entry, i) => {
@@ -266,6 +272,7 @@ function QueueEditor({
           // handling on `handleEnter: !!onSubmit`. Without onSubmit it
           // early-returns on key.return, key.escape, and the vertical
           // arrows, letting our parent useInput own those keys.
+          // No `color` prop — TextInput defaults to `$fg` (white).
           return (
             <Box key={i} flexDirection="row">
               <TextInput
@@ -282,7 +289,7 @@ function QueueEditor({
           <Box key={i} flexDirection="row">
             <Text color="$fg-muted">{"> "}</Text>
             <Box flexGrow={1}>
-              <Text color="$fg-muted">{entry || " "}</Text>
+              <Text color="$fg">{entry || " "}</Text>
             </Box>
           </Box>
         )
