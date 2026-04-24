@@ -411,11 +411,7 @@ export function LogRowView({
   // Silvery fix km-silvery.cursor-contrast-unguarded makes `$fg-cursor`
   // AA-safe on `$bg-cursor` for low-contrast schemes (Espresso lifts
   // #999999 → #5D5D5D, 4.53:1).
-  const rowBackground = isCursor
-    ? "$bg-cursor"
-    : showExpanded
-      ? "$bg-surface-subtle"
-      : undefined
+  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-subtle" : undefined
 
   return (
     <Box
