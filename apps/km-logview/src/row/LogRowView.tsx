@@ -420,21 +420,15 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg cascade (most → least specific):
-  //   cursor row   → $bg-cursor (strong selection indicator)
-  //   expanded row → $bg-surface-overlay (12% blend) + left-edge marker
-  //   otherwise    → terminal default (no bg)
-  //
-  // Bg-only shading was imperceptible across every token we tried
-  // ($bg-surface-subtle 5%, $bg-muted 8%, $bg-surface-overlay 12%) because
-  // the theme's bg↔fg contrast is low enough that a 12% blend reads as
-  // ~5 brightness points — below the perceptual threshold. Solution: a
-  // solid-color LEFT-EDGE MARKER ('▎' U+258E LEFT ONE QUARTER BLOCK) in
-  // $accent on every body line of the expanded row. The marker ignores
-  // theme contrast and reads as "this block is open" regardless of bg
-  // choices — same convention as Markdown blockquote indicators in
-  // editors like Obsidian and iA Writer.
-  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-overlay" : undefined
+  // DIAGNOSTIC: expanded-row bg set to raw "red" to verify the bg prop
+  // is reaching the cell buffer at all. User reported no visible bg
+  // shade with every semantic token we tried ($bg-surface-subtle 5%,
+  // $bg-muted 8%, $bg-surface-overlay 12% — all imperceptible on their
+  // theme). Red is a sanity check: if red doesn't show, backgroundColor
+  // isn't applying to the Box at all and the bug is elsewhere. Revert
+  // to a real semantic token ($bg-accent-hover or similar) once we've
+  // confirmed the path works.
+  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "red" : undefined
 
   return (
     <Box
