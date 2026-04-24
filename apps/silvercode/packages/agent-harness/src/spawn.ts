@@ -182,10 +182,20 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
 
   const binary = opts.binary ?? "claude"
 
+  // `detached: true` puts Claude in its own process group, with Claude as
+  // group leader. MCP grandchildren (km-mcp-server, tribe-mcp, etc.) inherit
+  // that group. On close() we can then signal the whole group with one call
+  // (see `process.kill(-proc.pid, "SIGTERM")` below) instead of waiting for
+  // the cascade silvercode → Claude → grandchild to drain stdio at each hop.
+  //
+  // Detached does NOT mean orphaned — we keep stdio pipes attached, we do
+  // NOT call `proc.unref()`, and the parent still supervises via on('exit').
+  // The only observable effect is the new pgid, which is what we want.
   proc = spawn(binary, args, {
     cwd: opts.cwd ?? process.cwd(),
     env: env as NodeJS.ProcessEnv,
     stdio: ["pipe", "pipe", "pipe"],
+    detached: true,
   })
 
   dSpawn("spawned pid=%d cmd=%s %o cwd=%s", proc.pid, binary, args, opts.cwd ?? process.cwd())
@@ -284,25 +294,50 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       return () => bus.off("event", handler)
     },
     close(): void {
-      // Graceful shutdown: SIGTERM to claude. Well-behaved CLIs (claude
-      // included) treat SIGTERM as "please shut down cleanly" — flushes
-      // pending stream-json, tears down MCP sub-subprocesses, closes its
-      // stdio. Pipes close, our event loop drains, Node exits.
+      // Graceful shutdown: SIGTERM to the whole process group in parallel.
+      //
+      // Because we spawned with `detached: true`, `proc.pid` is also the
+      // process group id. `process.kill(-pid, ...)` with a negative pid
+      // signals every member of that group simultaneously — Claude AND its
+      // MCP grandchildren (km-mcp-server, tribe-mcp, …) all receive SIGTERM
+      // at the same tick. That collapses the old cascade (us → claude →
+      // grandchild, each hop ~100-500ms draining stdio) into a single
+      // parallel teardown, cutting Ctrl+D×2 exit latency from seconds to
+      // <200ms.
+      //
+      // Closing stdin alongside SIGTERM helps stdio-based MCP servers that
+      // exit faster on EOF than on a signal — belt-and-suspenders.
       //
       // SIGTERM over SIGINT: SIGTERM is the conventional "programmatic
       // shutdown" signal (what `kill <pid>`, systemctl stop, docker stop
       // send). SIGINT semantically means "user interrupted" and is
       // already what the TTY driver synthesizes from Ctrl+C — reserving
       // SIGINT for actual user-interrupts keeps the semantics clean.
-      // Claude handles both identically; the choice is conventional.
       //
       // Synchronous fire-and-forget. Listeners get 'session-end' via
       // subscribe() when the child actually exits.
       if (closed) return
       try {
-        proc.kill("SIGTERM")
+        proc.stdin?.end()
       } catch {
-        /* already dead */
+        /* already closed */
+      }
+      try {
+        if (proc.pid !== undefined) {
+          // Negative pid = signal the whole process group. Requires the
+          // child to have been spawned with `detached: true` (see above).
+          process.kill(-proc.pid, "SIGTERM")
+        } else {
+          proc.kill("SIGTERM")
+        }
+      } catch {
+        // ESRCH = group already gone. Fall back to single-process kill in
+        // case the group lookup failed for a non-ESRCH reason.
+        try {
+          proc.kill("SIGTERM")
+        } catch {
+          /* already dead */
+        }
       }
       if (cleanupMcpConfig) {
         cleanupMcpConfig()
