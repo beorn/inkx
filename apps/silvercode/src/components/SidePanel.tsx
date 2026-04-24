@@ -99,17 +99,15 @@ function quotaColor(w: QuotaWindow): string {
  * - 5-hour: always (primary gauge)
  * - 7-day variants: only when yellow (≥70%) or red
  * - Extra usage: only when the plan has an overage budget AND a primary
- *   window (5h / 7d) is about to run out (≥85%) — "danger of having to
- *   start using it". Lower thresholds just caused Xtra to permanently
- *   squat at the bottom of the panel regardless of whether the user was
- *   actually in danger of overage.
+ *   window (5h / 7d) is already yellow (≥70%) — "soon to be used". If
+ *   nothing's yellow yet, Xtra stays hidden.
  * - Unknown windows: pass through (future-proof)
  *
  * The popover always renders ALL of them regardless.
  */
 function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
-  const primaryAboutToExhaust = all.some(
-    (q) => (q.name === "5-hour" || q.name === "7-day") && q.utilization >= 85,
+  const primaryYellow = all.some(
+    (q) => (q.name === "5-hour" || q.name === "7-day") && isWarningLevel(q.utilization),
   )
   return all.filter((w) => {
     if (w.name === "5-hour") return true
@@ -124,7 +122,7 @@ function filterVisibleQuotas(all: QuotaWindow[]): QuotaWindow[] {
     }
     if (w.name === "Extra usage") {
       const hasBudget = typeof w.limit === "number" && w.limit > 0
-      return hasBudget && primaryAboutToExhaust
+      return hasBudget && primaryYellow
     }
     return true
   })
