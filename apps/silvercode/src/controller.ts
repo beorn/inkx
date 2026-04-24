@@ -133,7 +133,10 @@ export type Controller = {
   handoff(fromId: string, toId: string, prompt: string): void
   /** Fork a session — spawn a new one pre-seeded with the source's context. */
   fork(fromId: string): Promise<SessionHandle>
+  /** Graceful drain — each session.close() (stdin.end + 2 s SIGTERM fallback). */
   closeAll(): Promise<void>
+  /** Immediate SIGKILL of every session's process group. Use on SIGINT. */
+  killAll(): void
 }
 
 let nextId = 1
@@ -396,6 +399,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     async closeAll(): Promise<void> {
       await Promise.all(sessions.map((s) => s.session.close()))
       for (const s of sessions) s.unsubscribe()
+    },
+    killAll(): void {
+      for (const s of sessions) {
+        s.session.kill()
+        s.unsubscribe()
+      }
     },
   }
 }

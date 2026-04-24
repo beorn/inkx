@@ -157,10 +157,16 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
 
   const binary = opts.binary ?? "claude"
 
+  // detached: true puts the child (and its MCP sub-subprocesses) in a new
+  // process group. That lets `kill()` target the whole group with one signal
+  // so the sub-subprocesses (km-mcp-server, tribe-mcp) go down with the
+  // parent. Without it, SIGKILLing claude alone leaves orphaned MCP bins
+  // holding stdio pipes, which keeps our event loop alive.
   proc = spawn(binary, args, {
     cwd: opts.cwd ?? process.cwd(),
     env: env as NodeJS.ProcessEnv,
     stdio: ["pipe", "pipe", "pipe"],
+    detached: true,
   })
 
   const parser = createStreamJsonParser((event: AgentEvent) => {
@@ -252,6 +258,25 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
         }, 2000)
         proc.on("exit", () => clearTimeout(timer))
       })
+      if (cleanupMcpConfig) {
+        cleanupMcpConfig()
+        cleanupMcpConfig = null
+      }
+    },
+    kill(): void {
+      // SIGKILL the process group (negative PID) so claude + its MCP
+      // sub-subprocesses all die together. Synchronous; doesn't wait for
+      // exit. Called from the SIGINT path where user wants out now.
+      if (closed) return
+      try {
+        if (proc.pid !== undefined) process.kill(-proc.pid, "SIGKILL")
+      } catch {
+        try {
+          proc.kill("SIGKILL")
+        } catch {
+          /* already dead */
+        }
+      }
       if (cleanupMcpConfig) {
         cleanupMcpConfig()
         cleanupMcpConfig = null

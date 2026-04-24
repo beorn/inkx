@@ -214,6 +214,17 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
         resolve({ value: undefined as unknown as AgentInput, done: true })
       }
     },
+    kill(): void {
+      // Track 2 has no subprocess — the SDK runs in-process. kill() is the
+      // same as close() for now; the distinction matters only for spawned
+      // CLIs where we'd otherwise block on stdin drain.
+      closed = true
+      if (queueResolve) {
+        const resolve = queueResolve
+        queueResolve = null
+        resolve({ value: undefined as unknown as AgentInput, done: true })
+      }
+    },
   }
 
   return session

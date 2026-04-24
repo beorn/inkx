@@ -115,8 +115,10 @@ export interface AgentSession {
   respondToPermission(requestId: PermissionRequestId, approved: boolean): void
   /** Subscribe to events. Returns an unsubscribe function. */
   subscribe(handler: (event: AgentEvent) => void): () => void
-  /** Stop the subprocess and clean up. */
+  /** Graceful stop: stdin.end + 2 s SIGTERM fallback. Use on intentional shutdown. */
   close(): Promise<void>
+  /** Immediate stop: SIGKILL (and SIGKILL the process group). Use on SIGINT/panic. */
+  kill(): void
   /** True if the subprocess has exited. */
   readonly closed: boolean
 }

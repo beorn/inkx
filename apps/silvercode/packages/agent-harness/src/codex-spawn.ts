@@ -128,6 +128,18 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
         }, 2000)
       })
     },
+    kill(): void {
+      if (closed) return
+      try {
+        if (proc.pid !== undefined) process.kill(-proc.pid, "SIGKILL")
+      } catch {
+        try {
+          proc.kill("SIGKILL")
+        } catch {
+          /* already dead */
+        }
+      }
+    },
   }
 
   return session

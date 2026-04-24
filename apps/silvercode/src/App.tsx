@@ -181,30 +181,21 @@ export function App(props: AppProps): React.ReactElement {
   // here because silvery has already restored the terminal by this point
   // and we're actively trying to terminate; staying alive is the bug).
   useEffect(() => {
-    let draining = false
+    let killing = false
     function onSigint(): void {
-      if (draining) return
-      draining = true
-      // Schedule the force-exit IMMEDIATELY on SIGINT — independent of the
-      // drain duration — so the process terminates in bounded time even if
-      // controller.closeAll() blocks (each session.close() has a 2s SIGTERM
-      // fallback; 3 sessions = 6s worst case). Without this, the first
-      // Ctrl+C restored the terminal (via silvery's own handler) but then
-      // sat idle while drain ran, forcing a second Ctrl+C.
-      setTimeout(() => {
-        process.exit(0) // lint-ok: SIGINT deadline force-exit
-      }, 800)
-      // In parallel: best-effort drain + silvery cleanup. Whichever finishes
-      // first wins; the setTimeout is the floor.
-      void (async () => {
-        try {
-          await controller.closeAll()
-        } catch {
-          /* best-effort */
-        }
-        silveryExit()
-        process.exit(0) // lint-ok: SIGINT clean exit after drain
-      })()
+      if (killing) return
+      killing = true
+      // SIGINT = user wants out now. Skip the graceful 2-second-per-session
+      // stdin.end + SIGTERM drain and SIGKILL the whole process group of
+      // each spawned session (claude + its MCP sub-subprocesses). That
+      // releases the stdio pipes holding the event loop open, then silvery
+      // restores the terminal and Node exits naturally on its next tick.
+      try {
+        controller.killAll()
+      } catch {
+        /* best-effort */
+      }
+      silveryExit()
     }
     process.on("SIGINT", onSigint)
     return () => {
