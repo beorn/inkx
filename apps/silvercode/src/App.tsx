@@ -245,34 +245,52 @@ export function App(props: AppProps): React.ReactElement {
   // process alive.
   const silveryExit = useExit()
 
-  // On any exit path (Ctrl+D×2, Ctrl+C, /quit), capture the resumable
-  // session IDs so we can print them to stderr AFTER silvery restores
-  // the terminal — that way the user sees "resume with silvercode
-  // --resume <id>" in their normal scrollback, not inside the alt-screen
-  // view that's about to go away.
-  function printResumeHints(): void {
-    const hints = controller
-      .snapshot()
+  // Resumable session ids, kept fresh on every session change. We read from
+  // a ref (not props/state) because the `process.on('exit')` handler below
+  // fires during Node's final teardown, long after React has torn down — we
+  // need stale-free data at that moment without depending on closures.
+  const resumeIdsRef = useRef<string[]>([])
+  useEffect(() => {
+    resumeIdsRef.current = sessions
       .map((h) => h.session.sessionId)
-      .filter((sid) => typeof sid === "string" && sid !== "pending")
-    if (hints.length === 0) return
-    const lines = hints.map((sid) => `  silvercode --resume ${sid}`)
-    process.stderr.write(
-      `\nResume ${hints.length === 1 ? "this session" : "one of these sessions"} with:\n${lines.join("\n")}\n\n`,
-    )
-  }
+      .filter((sid): sid is string => typeof sid === "string" && sid !== "pending")
+  }, [sessions])
+
+  // Print the resume hint via `process.on('exit')` — the very last thing
+  // Node runs before the process dies. This places the write AFTER silvery's
+  // teardown (which emits 3J/2J to wipe scrollback), AFTER any queued stderr
+  // drain, so the hint survives in the user's real scrollback.
+  //
+  // Previously printed inline after silveryExit(), but silvery's teardown
+  // was landing scrollback-wiping sequences after our write, erasing the
+  // hint. `process.on('exit')` is synchronous and guaranteed last, so
+  // nothing can overwrite us.
+  useEffect(() => {
+    function printHintsNow(): void {
+      const hints = resumeIdsRef.current
+      if (hints.length === 0) return
+      const lines = hints.map((sid) => `  silvercode --resume ${sid}`)
+      process.stderr.write(
+        `\nResume ${hints.length === 1 ? "this session" : "one of these sessions"} with:\n${lines.join("\n")}\n\n`,
+      )
+    }
+    process.on("exit", printHintsNow)
+    return (): void => {
+      process.off("exit", printHintsNow)
+    }
+  }, [])
 
   function requestExit(): void {
     // controller.closeAll() SIGTERMs every child synchronously; silveryExit
-    // restores the terminal; resume hints print to real stderr after the
-    // alt screen is gone. Closes the whole path in one tick.
+    // restores the terminal. The resume hint prints via the process.on('exit')
+    // handler above — guaranteed last, so silvery's scrollback-wipe can't
+    // clobber it.
     try {
       controller.closeAll()
     } catch {
       /* best-effort — still exit */
     }
     silveryExit()
-    printResumeHints()
   }
 
   // silvery owns the exit lifecycle. useDispose wires our cleanup into
@@ -282,7 +300,6 @@ export function App(props: AppProps): React.ReactElement {
   // /big session flagged as its top reframe.
   useDispose(() => {
     controller.closeAll()
-    printResumeHints()
   })
 
   // Mode cycler used by the side panel's ⚡ label. Memoized so passing
