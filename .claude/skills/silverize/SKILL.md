@@ -194,6 +194,75 @@ import { render } from "silvery"
 await render(<App />).run()
 ```
 
+### App Lifecycle, Ctrl+C, DEBUG/DEBUG_LOG, Keybindings
+
+This is the single biggest source of "I built a silvery app and it broke" pain. The rules:
+
+**1. Let silvery own Ctrl+C.** Do not `process.on("SIGINT", …)` — stdin is in raw mode, so Ctrl+C arrives as the 0x03 byte, the kernel never delivers SIGINT, and your listener never fires. silvery's runtime intercepts 0x03 at the input layer via `create-app.tsx`'s lifecycle handler. Register your cleanup step into that path via `term.signals.on("SIGINT", …, { priority: 5, name: "yourapp-dispose" })` (see `vendor/silvery/packages/ag-term/src/runtime/devices/signals.ts`). For belt-and-suspenders, also run the same `dispose()` from a React `useEffect` cleanup so it fires on any unmount path.
+
+```typescript
+// Shiny — silvery owns the lifecycle, you hook in
+const term = useTerm()
+useEffect(() => {
+  function dispose(): void {
+    // SIGKILL subprocesses, close files, print resume hints, …
+    controller.killAll()
+  }
+  const unreg = term.signals?.on("SIGINT", dispose, { priority: 5, name: "silvercode-dispose" })
+  return () => {
+    unreg?.()
+    dispose()  // also run on React unmount for non-SIGINT exit paths
+  }
+}, [term])
+```
+
+**2. Anything that spawns subprocesses needs a `kill()` method, not just `close()`.** On Ctrl+C the user wants out now — a graceful `stdin.end() + 2 s SIGTERM fallback` per session is too slow. Ship a `kill()` that SIGKILLs immediately and have the controller expose `killAll()` for the dispose path. Closing the child's stdio pipes is what lets Node's event loop drain naturally; you don't need `process.exit()` force-timers if the pipes close.
+
+**3. `exitOnCtrlC: false` in `run()` options is almost always wrong.** Fighting silvery's lifecycle handler is a losing battle — useInput doesn't even see the 0x03 byte when silvery consumes it first. Use silvery's `onInterrupt` hook if you really need pre-exit logic; otherwise just register via `term.signals.on("SIGINT", …)` and return immediately.
+
+**4. DEBUG / DEBUG_LOG routing is a side-effect module, imported before anything else in bootstrap.ts.** Write stderr output to a file, not through `console.*` (silvery's alt-screen surface). The canonical implementation lives at `apps/km-cli/src/debug-log.ts` — mirror it into new silvery apps until we extract to a shared package (third consumer justifies extraction). Key rules:
+   - `loggily.setSuppressConsole(true)` when `DEBUG_LOG` is set — keeps loggily's output OUT of the console.
+   - `createDebug.log = customLog` overrides the `debug` package's default writer so third-party deps using `debug()` also route to the file.
+   - `appendFileSync` (not `createWriteStream.write`) for the loggily writer — async streams don't flush reliably before process exit in the blocked-event-loop case.
+   - `process.on("SIGINT", () => stream?.end())` + `process.on("exit", …)` to flush on teardown.
+
+```typescript
+// bootstrap.ts — single source of truth for the app entry
+if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = "error"
+
+// Must run BEFORE any debug() call in the dep graph fires.
+import "./debug-log.ts"
+
+const { main } = await import("./index.tsx")
+await main()
+```
+
+If you find yourself rebinding `console.log`/`.error`/`.warn` in bootstrap.ts, you're reimplementing what `debug-log.ts` already does. Use the module instead.
+
+**5. Ctrl+letter keybindings that aren't ASCII aliases leak the letter into TextInput.** silvery's readline doesn't swallow unknown ctrl combos (they fall through to "insert literal char"). Until that's fixed at the silvery level, every ctrl-letter app-level binding has to strip the inserted character:
+
+```typescript
+function handleCtrlLetter(letter: string, action: () => void): void {
+  action()
+  // TextInput's onChange fires after our useInput in the same tick. Defer
+  // with a microtask so we run after the insert, then strip.
+  queueMicrotask(() => {
+    setInputValue((v) => (v.endsWith(letter) ? v.slice(0, -1) : v))
+  })
+}
+
+useInput((input, key) => {
+  if (key.ctrl && input === "o") return handleCtrlLetter("o", () => setShowPanel(v => !v))
+  // …
+})
+```
+
+Reserved letters (they're ASCII aliases and unreachable outside Kitty disambiguation mode): **Ctrl+I = Tab, Ctrl+M = Enter, Ctrl+H = Backspace, Ctrl+J = LineFeed, Ctrl+[ = Escape**. Don't bind these — use letters like E, Y, R, N, O, P.
+
+**6. Slash commands are the canonical surface.** Ctrl+letter bindings are brittle (see above); slash commands (`/inbox`, `/help`, `/mode`) work everywhere and are discoverable via the command palette. Treat Ctrl+letter as a power-user shortcut, slash as the default.
+
+**Ergonomic gap** (file if hit): silvery could expose a `useAppLifecycle({ onDispose })` hook that internally wires both `term.signals.on("SIGINT", …)` and React unmount, plus a `useCtrlLetterBinding(letter, action)` hook that handles the TextInput echo strip. Both are ~10 lines of boilerplate every silvery app writes today.
+
 ### Styling — All Roads Lead to React
 
 Any string-level styling (`createStyle`, chalk, raw ANSI) is tarnished. Silvery apps use React components for ALL output.
