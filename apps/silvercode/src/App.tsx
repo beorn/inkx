@@ -275,11 +275,15 @@ export function App(props: AppProps): React.ReactElement {
         so the StatusLine at the very bottom is gone.
       */}
       <Screen flexDirection="row">
-        {/* LEFT: cards + overlays + palette + input */}
-        <Box flexDirection="column" flexGrow={1} minHeight={0}>
-          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
+        {/* LEFT: cards + overlays + palette + input. `minWidth={0}` on every
+            flex container along this chain is critical — without it, wide
+            tool-result content expands each Box past the terminal width and
+            pushes the side panel off screen. `minWidth={0}` lets the flex
+            engine shrink the column to make room for its siblings. */}
+        <Box flexDirection="column" flexGrow={1} minHeight={0} minWidth={0}>
+          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
             {sessions.map((s) => (
-              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0}>
+              <Box key={s.id} flexDirection="column" flexGrow={1} flexBasis={cardBasis} minHeight={0} minWidth={0}>
                 <SessionCard
                   handle={s}
                   isFocused={s.id === focusedSessionId}

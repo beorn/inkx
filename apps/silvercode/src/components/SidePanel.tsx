@@ -1,14 +1,16 @@
 import React, { useMemo } from "react"
 import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
 import type { SessionHandle } from "../controller.ts"
+import { planLabel, windowShortLabel } from "../claude-account.ts"
+import { probeClaudeVersion } from "../claude-version.ts"
 import {
   contextUtilizationColor,
   contextUtilizationLevel,
   contextUtilizationPercent,
   contextWindowFor,
 } from "../context-windows.ts"
-import { probeClaudeVersion } from "../claude-version.ts"
 import { gitBranchFor } from "../git-branch.ts"
+import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
 // Probed once at module load — the installed CLI version can't change
@@ -133,6 +135,12 @@ export function SidePanel({
   const ctxColor = contextUtilizationColor(contextUtilizationLevel(pct))
   const ctxValue = Math.max(0, Math.min(1, totalTokens / window))
 
+  // Account + quota probe. Email resolves synchronously from CLAUDE_CONFIG_DIR;
+  // plan + per-window utilization arrive async from Anthropic's /api/usage
+  // via accountly. Refreshes every 2 min.
+  const account = useClaudeAccount()
+  const hasAccount = account.email !== null || account.quotas.length > 0
+
   const todosCount = state.todos.length
   const agentsTotal = state.messages.reduce(
     (n, m) => n + m.toolCalls.filter((c) => c.name === "Task" || c.name === "Agent").length,
@@ -240,33 +248,68 @@ export function SidePanel({
     ),
     maxWidth: 56,
   })
-  const ctxHover = usePopoverHandlers({
+  // Single hover popover for the whole quota block — email, plan, each
+  // window's reset time + limit, and the running session cost. The user
+  // asked for one big popover instead of per-line popovers.
+  const quotaHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column">
-        <Text bold>Context + Cost</Text>
-        <Box flexDirection="row" gap={1}>
-          <Muted>input:</Muted>
-          <Text>{state.cost.inputTokens.toLocaleString()} tok</Text>
+        <Text bold>
+          {account.email ?? "Account"} — {planLabel(account.plan)}
+        </Text>
+        {account.plan === "claude_max_20x" && <Muted>$200/mo subscription</Muted>}
+        {account.plan === "claude_max_5x" && <Muted>$100/mo subscription</Muted>}
+        {account.plan === "claude_pro" && <Muted>$20/mo subscription</Muted>}
+
+        {account.quotas.length > 0 ? (
+          <Box flexDirection="column" paddingTop={1}>
+            {account.quotas.map((w) => (
+              <Box key={w.name} flexDirection="column" paddingBottom={1}>
+                <Box flexDirection="row" gap={1}>
+                  <Text bold>{w.name}</Text>
+                  <Text>{w.utilization}%</Text>
+                </Box>
+                {w.resetsAt && (
+                  <Muted>resets {new Date(w.resetsAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}</Muted>
+                )}
+                {typeof w.limit === "number" && typeof w.remaining === "number" && (
+                  <Muted>
+                    {w.remaining.toLocaleString()} / {w.limit.toLocaleString()} credits left
+                  </Muted>
+                )}
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Muted>
+            {account.loading ? "Loading quota…" : (account.error ?? "No quota data available.")}
+          </Muted>
+        )}
+
+        <Box flexDirection="column" paddingTop={1}>
+          <Text bold>This session</Text>
+          <Box flexDirection="row" gap={1}>
+            <Muted>input:</Muted>
+            <Text>{state.cost.inputTokens.toLocaleString()} tok</Text>
+          </Box>
+          <Box flexDirection="row" gap={1}>
+            <Muted>output:</Muted>
+            <Text>{state.cost.outputTokens.toLocaleString()} tok</Text>
+          </Box>
+          <Box flexDirection="row" gap={1}>
+            <Muted>context:</Muted>
+            <Text>
+              {totalTokens.toLocaleString()} / {window.toLocaleString()} ({pct}%)
+            </Text>
+          </Box>
+          <Box flexDirection="row" gap={1}>
+            <Muted>cost:</Muted>
+            <Text>${state.cost.usd.toFixed(4)}</Text>
+          </Box>
         </Box>
-        <Box flexDirection="row" gap={1}>
-          <Muted>output:</Muted>
-          <Text>{state.cost.outputTokens.toLocaleString()} tok</Text>
-        </Box>
-        <Box flexDirection="row" gap={1}>
-          <Muted>window:</Muted>
-          <Text>{window.toLocaleString()} tok</Text>
-        </Box>
-        <Box flexDirection="row" gap={1}>
-          <Muted>cost:</Muted>
-          <Text>${state.cost.usd.toFixed(4)}</Text>
-        </Box>
-        <Muted>
-          Color shifts at 70% (warning) and 90% (error). Run /compact to summarize older turns when approaching the
-          window.
-        </Muted>
       </Box>
     ),
-    maxWidth: 52,
+    maxWidth: 58,
   })
 
   const hoveredBg = (h: boolean): string | undefined => (h ? "$bg-surface-hover" : undefined)
@@ -366,22 +409,52 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Tokens + cost — horizontal progress bar (percentage of the context
-          window used) with the running dollar cost beside it. Hover popover
-          has the full breakdown: input/output tokens, window size, /compact
-          hint, warning/error thresholds. The bar color shifts at 70% / 90%
-          via `ctxColor` so utilization is visible at a glance. */}
+      {/* Quota + cost block — account identity (email), plan name, and a
+          per-window progress bar for each subscription quota (5hr / 7d /
+          7ds / x). Falls back to the session's context-window usage when
+          no account quota is available (no creds, offline, API error).
+          Single hover popover carries all the details. */}
       <Box flexShrink={0} height={1} />
       <Box
-        flexDirection="row"
-        gap={1}
+        flexDirection="column"
         flexShrink={0}
-        onMouseEnter={ctxHover.onMouseEnter}
-        onMouseLeave={ctxHover.onMouseLeave}
-        backgroundColor={hoveredBg(ctxHover.isHovered)}
+        onMouseEnter={quotaHover.onMouseEnter}
+        onMouseLeave={quotaHover.onMouseLeave}
+        backgroundColor={hoveredBg(quotaHover.isHovered)}
       >
-        <ProgressBar value={ctxValue} width={25} color={ctxColor} showPercentage />
-        <Muted>${state.cost.usd.toFixed(4)}</Muted>
+        {account.email && (
+          <Text bold color="$fg">
+            {account.email}
+          </Text>
+        )}
+        {hasAccount && (
+          <Muted>{planLabel(account.plan)}</Muted>
+        )}
+        {account.quotas.length > 0
+          ? account.quotas.map((w) => (
+              <Box key={w.name} flexDirection="row" gap={1}>
+                <Box flexBasis={4}>
+                  <Muted>{windowShortLabel(w.name)}</Muted>
+                </Box>
+                <ProgressBar
+                  value={Math.max(0, Math.min(1, w.utilization / 100))}
+                  width={20}
+                  color={
+                    w.utilization >= 90 ? "$error" : w.utilization >= 70 ? "$warning" : "$success"
+                  }
+                  showPercentage
+                />
+              </Box>
+            ))
+          : (
+              <Box flexDirection="row" gap={1}>
+                <Box flexBasis={4}>
+                  <Muted>ctx</Muted>
+                </Box>
+                <ProgressBar value={ctxValue} width={20} color={ctxColor} showPercentage />
+                <Muted>${state.cost.usd.toFixed(4)}</Muted>
+              </Box>
+            )}
       </Box>
 
       {/* Version block — absolute bottom. Iconography + brand styling:

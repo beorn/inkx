@@ -36,8 +36,10 @@ export function ToolResultBlock({ output, isError }: { output: unknown; isError?
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
       {expanded && (
-        <Box paddingLeft={2}>
-          <Text color={isError ? "$error" : undefined}>{full}</Text>
+        <Box paddingLeft={2} minWidth={0}>
+          <Text color={isError ? "$error" : undefined} wrap="wrap">
+            {full}
+          </Text>
         </Box>
       )}
     </Box>

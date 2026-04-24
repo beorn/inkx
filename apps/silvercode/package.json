@@ -12,6 +12,7 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
+    "@beorn/accountly": "workspace:*",
     "@km/agent-harness": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/mcp-server": "workspace:*",

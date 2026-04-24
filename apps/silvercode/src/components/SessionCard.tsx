@@ -79,6 +79,7 @@ export function SessionCard({
       flexDirection="column"
       flexGrow={1}
       minHeight={0}
+      minWidth={0}
       paddingX={1}
       onClick={onFocus}
     >
@@ -88,7 +89,7 @@ export function SessionCard({
 
       {/* Body — empty state renders the Welcome card; otherwise the virtualized
           message list (silvery ListView owns scroll + wheel + keys). */}
-      <Box flexGrow={1} minHeight={0} paddingX={1}>
+      <Box flexGrow={1} minHeight={0} minWidth={0} paddingX={1}>
         {state.messages.length === 0 ? (
           <Welcome handle={handle} />
         ) : (

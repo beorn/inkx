@@ -216,7 +216,9 @@
         "silvercode": "./src/bootstrap.ts",
       },
       "dependencies": {
+        "@beorn/accountly": "workspace:*",
         "@km/agent-harness": "workspace:*",
+        "@km/markdown": "workspace:*",
         "@km/mcp-server": "workspace:*",
         "@km/tribe-mcp": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -224,10 +226,15 @@
         "@silvery/commander": "workspace:*",
         "@silvery/theme": "workspace:*",
         "alien-signals": "^3.1.2",
+        "debug": "^4.4.0",
+        "diff": "^9.0.0",
+        "loggily": "workspace:*",
         "react": "catalog:",
         "silvery": "workspace:*",
       },
       "devDependencies": {
+        "@types/debug": "^4.1.12",
+        "@types/diff": "^7.0.2",
         "@types/react": "catalog:",
       },
     },
@@ -252,6 +259,9 @@
     "apps/silvercode/packages/tribe-mcp": {
       "name": "@km/tribe-mcp",
       "version": "0.1.0",
+      "bin": {
+        "km-tribe-mcp": "./src/bin.ts",
+      },
       "dependencies": {
         "@km/agent-harness": "workspace:*",
       },
@@ -1847,6 +1857,8 @@
 
     "@types/deep-eql": ["@types/deep-eql@4.0.2", "", {}, "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw=="],
 
+    "@types/diff": ["@types/diff@7.0.2", "", {}, "sha512-JSWRMozjFKsGlEjiiKajUjIJVKuKdE3oVy2DNtK+fUo8q82nhFZ2CPQwicAIkXrofahDXrWJ7mjelvZphMS98Q=="],
+
     "@types/estree": ["@types/estree@1.0.8", "", {}, "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="],
 
     "@types/geojson": ["@types/geojson@7946.0.16", "", {}, "sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg=="],
@@ -2238,6 +2250,8 @@
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
     "devlop": ["devlop@1.1.0", "", { "dependencies": { "dequal": "^2.0.0" } }, "sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA=="],
+
+    "diff": ["diff@9.0.0", "", {}, "sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw=="],
 
     "dom-serializer": ["dom-serializer@3.0.0", "", { "dependencies": { "domelementtype": "^3.0.0", "domhandler": "^6.0.0", "entities": "^8.0.0" } }, "sha512-x+9D6nkC8tdXOQUS32egtZpZFLP90+HBZmWjuT920srbJvD/zPgFB9t4k3pEhlw5BQrXStQtRc1Y1zuriXk+Nw=="],
 
