@@ -254,6 +254,7 @@ When the user's request contains any of the triggers below, **load the listed re
 | slow / laggy / freeze / jank / blocked / stutter | [`.claude/skills/perf/`](.claude/skills/perf/) + [`docs/lessons/performance.md`](docs/lessons/performance.md) |
 | publish / release / ship version / npm publish / bump | [`.claude/skills/release/`](.claude/skills/release/) + [`.claude/skills/npm/`](.claude/skills/npm/) + [`.claude/skills/release/npm-packages.md`](.claude/skills/release/npm-packages.md) |
 | signals / reactive / computed / derived / atom / subscription / projection / tree aggregate | check `alien-*` siblings at `github.com/beorn/bearly` before designing |
+| resource leak / lifecycle / cleanup / dispose / SIGINT / process.on / setTimeout cleanup | [`hub/silvery/design/lifecycle-scope.md`](hub/silvery/design/lifecycle-scope.md) — `Scope` (= AsyncDisposableStack + AbortSignal + child cascade) is the canonical primitive. `useScopeEffect` for components, `withScope()` for app root. `bash packages/km-infra/scripts/check-no-raw-lifecycle.sh` blocks new raw `setTimeout` / `process.on("SIG…")`. `SILVERY_SCOPE_TRACE=1` for runtime leak accounting. |
 | CVE / vulnerability / security audit / npm audit | `/sop security` + [`.claude/skills/sop/_dep-security.md`](.claude/skills/sop/_dep-security.md) |
 | DNS / domain / Cloudflare / redirect / Pages | `/sop infra cloudflare` |
 | CI failure / GitHub Actions / workflow | `/sop infra` CI Fix Workflow |

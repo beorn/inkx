@@ -261,7 +261,9 @@ Reserved letters (they're ASCII aliases and unreachable outside Kitty disambigua
 
 **6. Slash commands are the canonical surface.** Ctrl+letter bindings are brittle (see above); slash commands (`/inbox`, `/help`, `/mode`) work everywhere and are discoverable via the command palette. Treat Ctrl+letter as a power-user shortcut, slash as the default.
 
-**Ergonomic gap** (file if hit): silvery could expose a `useAppLifecycle({ onDispose })` hook that internally wires both `term.signals.on("SIGINT", …)` and React unmount, plus a `useCtrlLetterBinding(letter, action)` hook that handles the TextInput echo strip. Both are ~10 lines of boilerplate every silvery app writes today.
+**Lifecycle is now `Scope` + `withScope` + `useScopeEffect`.** silvery ships an explicit-resource-management primitive (`@silvery/scope`): `withScope()` wires SIGINT/SIGTERM into a root scope; `useScopeEffect((scope) => …, deps)` ties resources to component unmount; `scope.use(term.signals.on(...))` composes the signal owner directly. See [hub/silvery/design/lifecycle-scope.md](../../../hub/silvery/design/lifecycle-scope.md) and the public guide at `vendor/silvery/docs/guide/scope.md`. The km-side gate `packages/km-infra/scripts/check-no-raw-lifecycle.sh` blocks new raw `setTimeout` / `process.on("SIG…")` from re-introducing convention-driven cleanup.
+
+**Ergonomic gap** (file if hit): a `useCtrlLetterBinding(letter, action)` hook that handles the TextInput echo strip is ~10 lines of boilerplate every silvery app writes today.
 
 ### Styling — All Roads Lead to React
 
