@@ -46,6 +46,12 @@ export type SessionState = {
   cwd: string
   tools: string[]
   mcpServers: string[]
+  /** Slash commands the agent advertises (built-in + plugin). Populated from session-init. */
+  slashCommands: string[]
+  /** Skill names loaded in the agent. Populated from session-init. */
+  skills: string[]
+  /** Plugin names loaded in the agent. Populated from session-init. */
+  plugins: string[]
   status: "spawning" | "idle" | "thinking" | "tool-running" | "awaiting-permission" | "ended"
   messages: MessageEntry[]
   permissions: Array<{ requestId: string; tool: string; args: unknown }>
@@ -65,6 +71,9 @@ function initialState(): SessionState {
     cwd: "",
     tools: [],
     mcpServers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
     status: "spawning",
     messages: [],
     permissions: [],
@@ -138,6 +147,9 @@ export function createSessionStore(): SessionStore {
         next.cwd = event.cwd
         next.tools = event.tools
         next.mcpServers = event.mcp_servers
+        next.slashCommands = event.slashCommands
+        next.skills = event.skills
+        next.plugins = event.plugins
         next.status = "idle"
         break
       case "turn-start":

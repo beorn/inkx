@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { Box, Muted, SelectList, Text } from "silvery"
 import { useInput } from "silvery/runtime"
-import { filterCommands } from "../slash-commands.ts"
+import { filterCommands, mergeRemoteCommands } from "../slash-commands.ts"
 
 /**
  * Slash-command palette. Appears inline above the input whenever the current
@@ -14,16 +14,20 @@ import { filterCommands } from "../slash-commands.ts"
  */
 export function SlashCommandPalette({
   query,
+  remoteCommands,
   onSubmit,
   onClose,
 }: {
   query: string
+  /** Slash commands discovered from the focused session's session-init event. */
+  remoteCommands?: readonly string[]
   /** Fired with the command name when the user confirms a row. */
   onSubmit: (commandName: string) => void
   onClose: () => void
 }): React.ReactElement | null {
   const [cursor, setCursor] = useState(0)
-  const filtered = useMemo(() => filterCommands(query), [query])
+  const merged = useMemo(() => mergeRemoteCommands(remoteCommands ?? []), [remoteCommands])
+  const filtered = useMemo(() => filterCommands(query, merged), [query, merged])
   useEffect(() => setCursor(0), [query])
   useInput(
     (input, key) => {

@@ -41,6 +41,12 @@ export type AgentEvent =
       mode: string
       tools: string[]
       mcp_servers: string[]
+      /** Slash commands the spawned agent advertises (built-in + plugin). */
+      slashCommands: string[]
+      /** Skill names the spawned agent has loaded. */
+      skills: string[]
+      /** Plugin names loaded into the spawned agent. */
+      plugins: string[]
       ts: number
     }
   | { kind: "turn-start"; sessionId: SessionId; turnId: TurnId; role: "user" | "assistant"; ts: number }

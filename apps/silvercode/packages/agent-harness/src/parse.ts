@@ -114,6 +114,13 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
               typeof s === "string" ? s : String(s?.name ?? ""),
             )
           : [],
+        slashCommands: Array.isArray(obj.slash_commands) ? (obj.slash_commands as string[]) : [],
+        skills: Array.isArray(obj.skills) ? (obj.skills as string[]) : [],
+        plugins: Array.isArray(obj.plugins)
+          ? (obj.plugins as Array<{ name?: string } | string>).map((p) =>
+              typeof p === "string" ? p : String(p?.name ?? ""),
+            )
+          : [],
         ts: nowMs(),
       })
       return

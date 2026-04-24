@@ -56,6 +56,16 @@ export function contextUtilizationColor(level: ContextUtilizationLevel): string 
 export function formatContextUtilization(totalTokens: number, windowTokens: number): string {
   const totalK = Math.round(totalTokens / 1000)
   const windowK = Math.round(windowTokens / 1000)
-  const percent = windowTokens > 0 ? Math.round((totalTokens / windowTokens) * 100) : 0
+  const percent = contextUtilizationPercent(totalTokens, windowTokens)
   return `ctx: ${totalK}K / ${windowK}K (${percent}%)`
+}
+
+/**
+ * Compute used-percentage for a given token count + window. Floor-based
+ * so a user who's burned 3.5% of their window reads "3%" — rounding up
+ * misleads users into thinking they're closer to /compact than they are.
+ */
+export function contextUtilizationPercent(totalTokens: number, windowTokens: number): number {
+  if (windowTokens <= 0) return 0
+  return Math.floor((totalTokens / windowTokens) * 100)
 }

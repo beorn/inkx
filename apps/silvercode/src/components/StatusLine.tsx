@@ -3,6 +3,7 @@ import { Box, Muted, Text } from "silvery"
 import {
   contextUtilizationColor,
   contextUtilizationLevel,
+  contextUtilizationPercent,
   contextWindowFor,
   formatContextUtilization,
 } from "../context-windows.ts"
@@ -28,7 +29,11 @@ export function StatusLine({
   onSwitchMode: (mode: string) => void
 }): React.ReactElement {
   const state = session ? useStoreSignal(session.store) : null
-  const tokens = state ? state.cost.inputTokens + state.cost.outputTokens : 0
+  const totalTokens = state ? state.cost.inputTokens + state.cost.outputTokens : 0
+  const contextWindow = contextWindowFor(state?.model)
+  const contextPercent = contextUtilizationPercent(totalTokens, contextWindow)
+  const contextLabel = formatContextUtilization(totalTokens, contextWindow)
+  const contextColor = contextUtilizationColor(contextUtilizationLevel(contextPercent))
   const costStr = state ? `$${state.cost.usd.toFixed(4)}` : "–"
   const modeColor = MODE_COLORS[mode] ?? "$muted"
 
@@ -56,7 +61,7 @@ export function StatusLine({
           >
             ⚡ {mode}
           </Text>
-          <Muted>tok:{tokens}</Muted>
+          <Text color={contextColor}>{contextLabel}</Text>
           <Muted>{costStr}</Muted>
         </>
       )}

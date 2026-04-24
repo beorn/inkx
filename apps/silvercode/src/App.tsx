@@ -220,6 +220,7 @@ export function App(props: AppProps): React.ReactElement {
           {paletteQuery !== null && (
             <SlashCommandPalette
               query={paletteQuery}
+              remoteCommands={focused?.store.state.get().slashCommands}
               onSubmit={(cmd) => handleSubmit(cmd)}
               onClose={() => setInputValue("")}
             />

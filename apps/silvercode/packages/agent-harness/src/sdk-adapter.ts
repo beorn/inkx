@@ -108,6 +108,13 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
         mode: String(raw.permissionMode ?? "default"),
         tools: Array.isArray(raw.tools) ? (raw.tools as string[]) : [],
         mcp_servers: Array.isArray(raw.mcp_servers) ? (raw.mcp_servers as string[]) : [],
+        slashCommands: Array.isArray(raw.slash_commands) ? (raw.slash_commands as string[]) : [],
+        skills: Array.isArray(raw.skills) ? (raw.skills as string[]) : [],
+        plugins: Array.isArray(raw.plugins)
+          ? (raw.plugins as Array<{ name?: string } | string>).map((p) =>
+              typeof p === "string" ? p : String(p?.name ?? ""),
+            )
+          : [],
         ts,
       }
     }
