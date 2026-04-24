@@ -147,31 +147,15 @@ export function App(props: AppProps): React.ReactElement {
   }
   useInput(
     (input, key) => {
-      // DEBUG trace — remove once shift+tab stabilizes. Writes to DEBUG_LOG
-      // if set. Helps diagnose which fields silvery parses for each key.
-      if (process.env.DEBUG_LOG) {
-        try {
-          require("node:fs").appendFileSync(
-            process.env.DEBUG_LOG,
-            `[useInput] input=${JSON.stringify(input)} tab=${key.tab} shift=${key.shift} ctrl=${key.ctrl} escape=${key.escape}\n`,
-          )
-        } catch {}
-      }
       if (key.escape && (showInbox || showHistory)) {
         setShowInbox(false)
         setShowHistory(false)
         return
       }
-      // Shift+Tab cycles permission modes. Same semantics as clicking the
-      // "Mode" label in the side panel, but keyboard-first users don't
-      // need to aim at the label.
+      // Shift+Tab cycles permission modes. index.tsx passes
+      // `handleTabCycling: false` to run() so silvery's focus system
+      // doesn't consume the key before it reaches us.
       if (key.shift && key.tab) {
-        cycleMode()
-        return
-      }
-      // Fallback: some terminals send raw \e[Z through the `input` slot
-      // without setting key.shift — match the byte sequence directly.
-      if (input === "\x1b[Z") {
         cycleMode()
         return
       }
