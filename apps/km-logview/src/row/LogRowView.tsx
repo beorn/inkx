@@ -386,8 +386,10 @@ export function LogRowView({
   // Expanded row bg — a subtle elevated surface. `$bg-surface-subtle`
   // is barely-there: enough contrast to set the expanded region apart
   // from surrounding rows, not enough to compete with kind/pill colors
-  // inside. `$bg-surface-hover` (used earlier) was too visible for a
-  // content-affordance background.
+  // inside. Cursor row uses `$bg-cursor` for the canonical selected-row
+  // treatment. Both tokens are guaranteed-populated post the Sterling-
+  // into-@silvery/ansi unification (silvery bead
+  // km-silvery.fallback-theme-empty-bg-tokens).
   const rowBackground = showExpanded
     ? "$bg-surface-subtle"
     : isCursor
