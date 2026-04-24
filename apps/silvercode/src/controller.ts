@@ -233,7 +233,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   /**
    * Flush the queue buffer to Claude as one user turn, then clear. No-op
    * if the queue is empty, the session is non-idle, or the hold gate is
-   * set. Called on every result / session-lifecycle / hold-release.
+   * set. Called on every turn-end / session-lifecycle / hold-release.
    */
   function tryFlush(sessionId: string): void {
     const s = sessions.find((h) => h.id === sessionId)
@@ -362,7 +362,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       store.apply(event)
       if (log) log.append(event)
       // Flush on every turn boundary — the whole queue goes as ONE turn.
-      if (event.kind === "result" || event.kind === "session-lifecycle") {
+      if (event.kind === "turn-end" || event.kind === "session-lifecycle") {
         tryFlush(id)
       }
     })
