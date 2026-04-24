@@ -1,5 +1,5 @@
 import React, { useRef } from "react"
-import { Box, Small, Text, TextArea, TextInput } from "silvery"
+import { Box, Divider, Text, TextArea, TextInput } from "silvery"
 
 /**
  * Unified command box — queue area stacked on the command input inside one
@@ -59,8 +59,9 @@ export function CommandBox({
   const armedAt = useRef<number>(0)
 
   const hasQueue = queueText.length > 0
-  const queueLines = hasQueue ? queueText.split("\n") : []
-  const queueEntries = hasQueue ? queueText.split("\n\n").length : 0
+  // Collapse blank separator lines from "\n\n"-joined entries — we render
+  // one `>` per content line only.
+  const queueLines = hasQueue ? queueText.split("\n").filter((l) => l.length > 0) : []
   // TextArea needs a fixed height; grow with content up to 8 rows.
   const queueHeight = Math.min(Math.max(queueLines.length, 1), 8)
 
@@ -70,27 +71,17 @@ export function CommandBox({
   // muted on the other.
   const inputPromptColor = queueFocused ? "$fg-muted" : promptColor
 
-  return (
-    <Box backgroundColor="$bg-surface-subtle" paddingX={2} paddingY={1} flexShrink={0} flexDirection="column">
-      {/* Header row — QUEUE label + release hint. Only shown when the queue
-          has content (otherwise the command box looks like a plain input). */}
-      {hasQueue && (
-        <Box flexDirection="row" gap={1} paddingBottom={1}>
-          {queueFocused ? <Small color="$muted">esc / ctrl+enter to release</Small> : null}
-          <Box flexGrow={1} />
-          <Small color={queueFocused ? "$accent" : "$muted"}>
-            QUEUE · {queueEntries} {queueEntries === 1 ? "entry" : "entries"}
-          </Small>
-        </Box>
-      )}
+  // Divider title doubles as the QUEUE label — no extra header row, no
+  // vertical padding above/below the rule. When focused, the hint replaces
+  // the label so the user sees how to release.
+  const dividerTitle = queueFocused ? "esc / ctrl+enter to release" : "QUEUE"
 
-      {/* Queue region — each line prefixed with a grey `>`. The TextArea is
-          an overlay on top of the rendered prompt-lines: the prompts sit
-          behind the cursor area. Easier / more correct path: render the
-          prompts + TextArea side-by-side in a single row per logical line
-          is impractical (TextArea owns its own newline layout). Instead we
-          show a non-editable "prompted" preview when the queue is UNFOCUSED
-          and swap to the live editable TextArea when FOCUSED. */}
+  return (
+    <Box backgroundColor="$bg-surface-subtle" paddingX={2} flexShrink={0} flexDirection="column">
+      {/* Queue region — one `>` per content line; blank separator lines
+          from `\n\n`-joined entries are filtered out for a compact stack.
+          We show a non-editable "prompted" preview when the queue is
+          UNFOCUSED and swap to the live editable TextArea when FOCUSED. */}
       {hasQueue && !queueFocused && (
         <Box flexDirection="column">
           {queueLines.map((line, i) => (
@@ -114,10 +105,10 @@ export function CommandBox({
         </Box>
       )}
 
-      {/* Horizontal rule — a single-row $border-colored Box. Rendered
-          only when queue is present so the command input still looks
-          standalone when nothing's queued. */}
-      {hasQueue && <Box height={1} backgroundColor="$border" flexShrink={0} />}
+      {/* Labeled divider — single row with "QUEUE" / release hint inline.
+          Separates queued buffer from live input. Renders only when queue
+          is non-empty so the input stands alone otherwise. */}
+      {hasQueue && <Divider title={dividerTitle} />}
 
       {/* Command input — UNMOUNTED when the queue has focus so there's
           never more than one visible cursor on screen (silvery TextInput
@@ -127,7 +118,7 @@ export function CommandBox({
           controlled in App.tsx so remounting doesn't lose the buffer.
           A static Text render takes the input's slot while the queue is
           focused so the box doesn't reflow. */}
-      <Box flexDirection="row" paddingTop={hasQueue ? 1 : 0}>
+      <Box flexDirection="row">
         {queueFocused ? (
           <Box flexDirection="row">
             <Text color="$fg-muted" bold={false}>
