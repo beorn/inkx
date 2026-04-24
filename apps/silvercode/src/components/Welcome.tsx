@@ -13,7 +13,6 @@ import { useStoreSignal } from "../hooks/use-store-signal.ts"
  */
 export function Welcome({ handle }: { handle: SessionHandle }): React.ReactElement {
   const state = useStoreSignal(handle.store)
-  const hasInit = state.sessionId != null
   const version = state.claudeCodeVersion || "…"
   const model = state.model || "…"
   const mode = state.mode || "…"
@@ -96,9 +95,6 @@ export function Welcome({ handle }: { handle: SessionHandle }): React.ReactEleme
         <IntroRow name="Ctrl+C / Ctrl+D Ctrl+D" desc="exit silvercode" />
       </Box>
 
-      {!hasInit && (
-        <Muted>spawning claude subprocess — session-init will populate the details above…</Muted>
-      )}
     </Box>
   )
 }

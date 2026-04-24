@@ -58,23 +58,39 @@ function renderPath(db: Database, id: string): string[] {
 }
 
 const dbPath = resolveDbPath()
-if (!dbPath) {
+let ctx: ReturnType<typeof createKmContextFromStorage>
+if (dbPath) {
+  const db = new Database(dbPath, { readonly: true })
+  ctx = createKmContextFromStorage(db, {
+    search,
+    getNode: (d, id) => getNode(d, id),
+    getTopLevelNodes,
+    renderPath,
+  })
+} else {
+  // No db in cwd → MCP still registers + serves empty results. We CANNOT
+  // throw here: claude's --strict-mcp-config refuses to start the session
+  // if any declared MCP server fails to initialize. A running-but-empty
+  // server is strictly better than blocking session spawn. Warn to stderr
+  // so it's visible in a log tail.
   process.stderr.write(
-    "km-mcp-server: no km database found.\n" +
-      "  Set KM_DB_PATH=/path/to/.km/state.db, or run from a km vault dir\n" +
-      "  containing .km/state.db.\n",
+    "km-mcp-server: no km database found. Tools will return empty results.\n" +
+      "  Set KM_DB_PATH=/path/to/.km/state.db or run from a km vault dir to enable.\n",
   )
-  // Throwing here surfaces the failure via the harness instead of calling
-  // process.exit — project rule (silvery/km) is to never exit directly.
-  throw new Error("km-mcp-server: KM_DB_PATH not set and no .km/state.db in cwd")
+  ctx = {
+    async search(): Promise<KNode[]> {
+      return []
+    },
+    async getNode(): Promise<KNode | null> {
+      return null
+    },
+    async getBoard(): Promise<KNode[]> {
+      return []
+    },
+    async renderPath(): Promise<string[]> {
+      return []
+    },
+  }
 }
-
-const db = new Database(dbPath, { readonly: true })
-const ctx = createKmContextFromStorage(db, {
-  search,
-  getNode: (d, id) => getNode(d, id),
-  getTopLevelNodes,
-  renderPath,
-})
 
 await runStdioServer(ctx)
