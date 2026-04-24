@@ -270,6 +270,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
+      // Synthesize the user-message locally so the card echoes it immediately.
+      // Claude's stream-json only re-emits user turns for tool_results, not
+      // plain user messages, so without this the typed text never appears.
+      const turnId = `u-${Date.now()}` as never
+      s.store.apply({
+        kind: "user-message",
+        sessionId: s.session.sessionId,
+        turnId,
+        text,
+        ts: Date.now(),
+      })
       s.session.send(text)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
@@ -283,6 +294,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // registered above the controller.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
+      const turnId = `u-${Date.now()}` as never
+      s.store.apply({
+        kind: "user-message",
+        sessionId: s.session.sessionId,
+        turnId,
+        text,
+        ts: Date.now(),
+      })
       s.session.send(text)
     },
     spawnSession,
