@@ -1,0 +1,29 @@
+{
+  "name": "@km/silvercode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Silvercode — silvery-native agent workspace (INTERNAL, do not publish).",
+  "bin": {
+    "silvercode": "./src/bootstrap.ts"
+  },
+  "type": "module",
+  "module": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@km/mcp-server": "workspace:*",
+    "@silvery/agent-harness": "workspace:*",
+    "@silvery/ag-react": "workspace:*",
+    "@silvery/ag-term": "workspace:*",
+    "@silvery/commander": "workspace:*",
+    "@silvery/theme": "workspace:*",
+    "@silvery/tribe-mcp": "workspace:*",
+    "alien-signals": "^3.1.2",
+    "react": "catalog:",
+    "silvery": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:"
+  }
+}

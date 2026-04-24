@@ -57,6 +57,7 @@
     "km-logview": "bun run ./apps/km-logview/src/bootstrap.ts",
     "claude-log": "bun run ./apps/km-logview/src/claude-log.ts",
     "km-agent-view": "bun run ./apps/km-agent-view/src/bootstrap.ts",
+    "silvercode": "bun run ./apps/silvercode/src/bootstrap.ts",
     "km:strict": "SILVERY_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "termless": "bun vendor/termless/packages/cli/src/cli.ts",

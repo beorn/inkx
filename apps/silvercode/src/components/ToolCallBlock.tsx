@@ -1,0 +1,70 @@
+import React, { useState } from "react"
+import { Box, Muted, Small, Text } from "silvery"
+import { useInput } from "silvery/runtime"
+import { DiffRenderer } from "./DiffRenderer.tsx"
+
+/** Compact one-line summary when collapsed, pretty-printed JSON when expanded. */
+function summarize(name: string, input: unknown): string {
+  if (!input || typeof input !== "object") return ""
+  const o = input as Record<string, unknown>
+  if (name === "Bash" && typeof o.command === "string") return String(o.command)
+  if ((name === "Read" || name === "Edit" || name === "Write") && typeof o.file_path === "string") {
+    return String(o.file_path)
+  }
+  if (name === "Grep" && typeof o.pattern === "string") return String(o.pattern)
+  if (name === "Glob" && typeof o.pattern === "string") return String(o.pattern)
+  if (name === "TodoWrite" && Array.isArray(o.todos)) return `${o.todos.length} todos`
+  if (name === "WebFetch" && typeof o.url === "string") return String(o.url)
+  if (name === "Agent" && typeof o.description === "string") return String(o.description)
+  return ""
+}
+
+export function ToolCallBlock({
+  id,
+  name,
+  input,
+  mcpServer,
+}: {
+  id: string
+  name: string
+  input: unknown
+  mcpServer?: string
+}): React.ReactElement {
+  const [expanded, setExpanded] = useState(false)
+  const label = summarize(name, input)
+  const display = mcpServer ? `${mcpServer}:${name}` : name
+
+  return (
+    <Box
+      flexDirection="column"
+      paddingX={1}
+      backgroundColor="$mutedbg"
+      onClick={() => setExpanded((v) => !v)}
+    >
+      <Box flexDirection="row" gap={1}>
+        <Text color="$accent">⚙</Text>
+        <Text bold color="$primary">
+          {display}
+        </Text>
+        {label && <Muted>{label}</Muted>}
+        <Box flexGrow={1} />
+        <Small>{expanded ? "▾" : "▸"}</Small>
+      </Box>
+      {expanded && (
+        <Box paddingLeft={2}>
+          {name === "Edit" && input && typeof input === "object" && "old_string" in input && "new_string" in input ? (
+            <DiffRenderer
+              oldText={String((input as Record<string, unknown>).old_string ?? "")}
+              newText={String((input as Record<string, unknown>).new_string ?? "")}
+              filePath={typeof (input as Record<string, unknown>).file_path === "string"
+                ? String((input as Record<string, unknown>).file_path)
+                : undefined}
+            />
+          ) : (
+            <Text>{JSON.stringify(input, null, 2)}</Text>
+          )}
+        </Box>
+      )}
+    </Box>
+  )
+}
