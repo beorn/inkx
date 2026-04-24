@@ -78,7 +78,12 @@ export function App(props: AppProps): React.ReactElement {
   // Queue buffer for the currently-focused session. Bound to the
   // QueueEditor TextArea; edits flow back to the controller which gates
   // the flush. `queueFocused` tracks which widget owns the keyboard.
-  const queueText = focused ? useQueue(controller, focused.id) : ""
+  //
+  // React hooks must be called unconditionally on every render — pass an
+  // empty string when `focused` is missing instead of branching the
+  // hook call. Otherwise React's hook queue desyncs between renders
+  // ("Should have a queue" crash).
+  const queueText = useQueue(controller, focused?.id ?? "")
   const [queueFocused, setQueueFocused] = useState(false)
   // When the queue empties, release focus back to the input so the user
   // isn't stuck in an invisible editor.

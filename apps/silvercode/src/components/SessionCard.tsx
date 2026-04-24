@@ -6,29 +6,42 @@ import { MessageList } from "./MessageList.tsx"
 import { Welcome } from "./Welcome.tsx"
 
 /**
- * Playful verb pool, rotated every 3s so the indicator feels alive — mirrors
- * Claude Code's own `✻ Honking…` style. Any verb works; keep them short and
- * a little whimsical so the UI doesn't feel robotic during long thinks.
+ * Playful verb pool — all drawn from metallurgy, blacksmithing, jewellery,
+ * and high tea so the indicator fits the "Silver Code" motif. Rotated every
+ * 3s so the UI feels alive during long thinks.
  */
 const VERB_POOL = [
-  "Honking",
-  "Pondering",
-  "Cogitating",
-  "Brewing",
-  "Spelunking",
-  "Thinking",
-  "Musing",
-  "Plotting",
-  "Divining",
-  "Sifting",
-  "Wrangling",
-  "Parsing",
-  "Noodling",
-  "Puzzling",
-  "Scheming",
-  "Calibrating",
-  "Percolating",
-  "Untangling",
+  // Metallurgy
+  "Smelting",
+  "Refining",
+  "Annealing",
+  "Tempering",
+  "Casting",
+  "Alloying",
+  "Quenching",
+  "Forging",
+  // Blacksmithing
+  "Hammering",
+  "Welding",
+  "Drawing",
+  "Upsetting",
+  "Swaging",
+  "Bellowing",
+  // Jewellery
+  "Filigreeing",
+  "Polishing",
+  "Setting",
+  "Engraving",
+  "Chasing",
+  "Soldering",
+  "Burnishing",
+  // High tea
+  "Steeping",
+  "Pouring",
+  "Infusing",
+  "Whisking",
+  "Stirring",
+  "Simmering",
 ] as const
 
 const VERB_ROTATE_MS = 3000

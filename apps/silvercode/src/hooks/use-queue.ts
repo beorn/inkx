@@ -10,12 +10,20 @@ import { useEffect, useState } from "react"
 import type { Controller } from "../controller.ts"
 
 export function useQueue(controller: Controller, sessionId: string): string {
-  const [text, setText] = useState<string>(() => controller.queuedText(sessionId))
+  // Empty sessionId (e.g. during the startup window where App renders before
+  // the first session is attached) → always returns empty. The hook still
+  // runs unconditionally, which matches React's rules.
+  const [text, setText] = useState<string>(() =>
+    sessionId ? controller.queuedText(sessionId) : "",
+  )
   useEffect(() => {
+    if (!sessionId) {
+      setText("")
+      return undefined
+    }
     const unsub = controller.onQueueChange((sid, t) => {
       if (sid === sessionId) setText(t)
     })
-    // Re-sync in case the value changed before we subscribed.
     setText(controller.queuedText(sessionId))
     return unsub
   }, [controller, sessionId])

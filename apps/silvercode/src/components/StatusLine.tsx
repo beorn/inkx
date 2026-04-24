@@ -1,4 +1,5 @@
 import React from "react"
+import { createSessionStore } from "@km/agent-harness"
 import { Box, Muted, Text } from "silvery"
 import {
   contextUtilizationColor,
@@ -9,6 +10,13 @@ import {
 } from "../context-windows.ts"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
+
+// Stable empty store for the "no session" branch so the hook below can be
+// called unconditionally — the branch `session ? useHook(session.store) :
+// null` is a React rules-of-hooks violation that manifests as "Should have
+// a queue" when the session prop transitions null <-> defined between
+// renders.
+const EMPTY_STORE = createSessionStore()
 
 const MODE_COLORS: Record<string, string> = {
   plan: "$info",
@@ -28,13 +36,14 @@ export function StatusLine({
   sessionCount: number
   onSwitchMode: (mode: string) => void
 }): React.ReactElement {
-  const state = session ? useStoreSignal(session.store) : null
-  const totalTokens = state ? state.cost.inputTokens + state.cost.outputTokens : 0
-  const contextWindow = contextWindowFor(state?.model)
+  const state = useStoreSignal(session?.store ?? EMPTY_STORE)
+  const hasSession = session != null
+  const totalTokens = hasSession ? state.cost.inputTokens + state.cost.outputTokens : 0
+  const contextWindow = contextWindowFor(hasSession ? state.model : undefined)
   const contextPercent = contextUtilizationPercent(totalTokens, contextWindow)
   const contextLabel = formatContextUtilization(totalTokens, contextWindow)
   const contextColor = contextUtilizationColor(contextUtilizationLevel(contextPercent))
-  const costStr = state ? `$${state.cost.usd.toFixed(4)}` : "–"
+  const costStr = hasSession ? `$${state.cost.usd.toFixed(4)}` : "–"
   const modeColor = MODE_COLORS[mode] ?? "$muted"
 
   return (
@@ -49,7 +58,7 @@ export function StatusLine({
         <>
           <Text color="$inverse">{session.name}</Text>
           {session.account && <Muted>@{session.account}</Muted>}
-          <Muted>{state?.model || "–"}</Muted>
+          <Muted>{state.model || "–"}</Muted>
           <Text
             color={modeColor}
             bold
