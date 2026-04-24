@@ -94,20 +94,23 @@ export const MODE_LABELS: Record<string, string> = {
 }
 
 /**
- * Thinking-mode icons + labels. Only shown when the user has invoked
- * /think, /think_hard, or /ultrathink this session — default is no row.
- * Intensity climbs with visual density: a dot, a colon, then `x` for the
- * highest tier ("xhigh"). Colors are neutral grey in the version block.
+ * Thinking-mode icons + labels. Always shown — the default tier is
+ * `normal` (Claude's unboosted baseline budget), NOT "off". Intensity
+ * climbs via a filled-circle progression: empty → quarter → half → full,
+ * with the token budget shown in parens so the user sees what they're
+ * buying. Colors are neutral grey in the version block.
  */
 export const THINKING_ICONS: Record<string, string> = {
-  think: "·",
-  think_hard: ":",
-  ultrathink: "x",
+  normal: "○",
+  think: "◔",
+  think_hard: "◐",
+  ultrathink: "●",
 }
 export const THINKING_LABELS: Record<string, string> = {
-  think: "think on",
-  think_hard: "hard thinking on",
-  ultrathink: "xhigh thinking on",
+  normal: "think normal",
+  think: "think on (4K)",
+  think_hard: "think hard (16K)",
+  ultrathink: "think ultra (32K)",
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
@@ -674,22 +677,18 @@ export function SidePanel({
           </Box>
         )}
         {/* Thinking mode — always rendered so the row count is stable.
-            When no /think slash command is active this session, show a
-            dim "thinking off" default. Neutral grey so attention stays
-            on the colored permission-mode line below. */}
-        <Box flexDirection="row" gap={1} flexShrink={0}>
-          {thinking && THINKING_ICONS[thinking] ? (
-            <>
-              <Text color="$muted">{THINKING_ICONS[thinking]}</Text>
-              <Text color="$muted">{THINKING_LABELS[thinking]}</Text>
-            </>
-          ) : (
-            <>
-              <Text color="$fg-muted">·</Text>
-              <Text color="$fg-muted">thinking off</Text>
-            </>
-          )}
-        </Box>
+            Default tier is `normal` (Claude's baseline budget); /think
+            /think_hard /ultrathink escalate. Neutral grey so attention
+            stays on the colored permission-mode line below. */}
+        {(() => {
+          const key = thinking && THINKING_ICONS[thinking] ? thinking : "normal"
+          return (
+            <Box flexDirection="row" gap={1} flexShrink={0}>
+              <Text color="$muted">{THINKING_ICONS[key]}</Text>
+              <Text color="$muted">{THINKING_LABELS[key]}</Text>
+            </Box>
+          )
+        })()}
         {/* Mode — directly under the model, no spacer. Icon in left
             margin, label aligned with Silver/Claude Code rows.
             Clickable to cycle, hover shows help + armed bg. */}
