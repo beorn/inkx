@@ -146,6 +146,78 @@ The user's piecemeal feedback becomes a self-extinguishing problem:
 | Keystroke simulation (H10)| ~200ms          | Interactive flows                 | Scripted keys | v2 |
 | Screenshot SVG/PNG (H16)  | ~1s             | Pixel-perfect                     | New infra | Skip v1 |
 
+## /pro review — incorporated revisions (2026-04-24)
+
+Ran `/pro review` (GPT-5.4 Pro + Kimi K2.6, dual-pro, $1.90) against the design doc above + the silvery-positioning brief. Both reviewers converged on the same critiques. Incorporating P0 blockers and top P1 concerns below.
+
+### P0 blockers acknowledged
+
+**P0.1 — Overclaim removed.** The original "cannot regress" list included resume hint, queue editor height, and activity indicator timing. This v1 does NOT catch those:
+
+- **Resume hint** — requires process-level stdout/stderr capture after alt-screen exit. Separate harness needed. Now a named gap, not a guarantee.
+- **Queue editor height** — requires keystroke simulation (focus the queue editor, assert row count). v2 work.
+- **Activity indicator rotation/elapsed/tokens** — requires fake clock. v2 work.
+- **Hover popovers / scroll position / focus ring** — session-event harness can't drive these. v2.
+
+The v1 contract is narrower: **static final-frame composition + layout regressions** in the card stream and side panel. Everything else is an explicit v2 bead.
+
+**P0.2 — Kill destructive normalization.** In a TUI, blank lines ARE vertical rhythm and trailing whitespace IS padding. Normalization now strips ONLY content-volatile text (elapsed `Ns`, `Nm Ns`, specific timestamps via marker regex). Row structure, blank lines, and column occupancy are preserved verbatim. If a blank line disappears between "before" and "after", the diff shows it.
+
+**P0.3 — ScriptedFakeSession isn't a UI driver.** Noted. v1 accepts this limitation and covers the session-driven surface only. A follow-up bead (`km-silvercode.test-ui-driver`) adds keystroke simulation + fake clock. Until then, the v1 guarantee explicitly excludes interactive flows.
+
+### P1 concerns incorporated
+
+**Reviewable `.frame.txt` fixtures, not vitest `.snap` files.** Vitest snapshots escape to single-line strings; a 30-line frame becomes a 200-char string nobody reviews in the PR diff. We store expected output as literal multi-line `.frame.txt` files next to the test. Git diff shows exactly which rows changed. No `--update-snapshot` escape hatch — updating means editing the fixture by hand, which forces review.
+
+**Semantic FrameParser for structural assertions.** Absolute `(col, row)` coordinates break under any layout shift. A `parseFrame(text, { cols })` helper extracts semantic regions: `cardStream[]`, `sidePanel.modeRow`, `inputBox`, `welcome.rows[]`. Tests assert `layout.cardStream[0].textWidth === leftWidth - padding` — surviving refactors that shift the whole panel.
+
+**Region snapshots, not whole-frame.** Whole-frame snapshots only for the smoke-test scenarios (2-3 canonical). The bulk of assertions are region-level (welcome panel, side panel, first assistant block) so a copy tweak in the welcome panel doesn't churn the side-panel snapshots.
+
+**Coverage matrix — the missing core.** Below.
+
+### Coverage matrix (falsifiable)
+
+| Bug class                                   | Test type         | Where                                     | Assertion                                              | v1? |
+| ------------------------------------------- | ----------------- | ----------------------------------------- | ------------------------------------------------------ | --- |
+| paragraph overflows into side panel         | e2e               | `visual/scenarios.test.tsx`               | `assertNoOverflowIntoSidePanel`                        | ✓   |
+| paragraph clips one char short              | component         | `visual/markdown.test.tsx`                | `parseFrame().wrapShape` deep-equal to golden          | ✓   |
+| message-stream icon drift                   | e2e invariant     | `visual/scenarios.test.tsx`               | `assertIconFamilyAligned`                              | ✓   |
+| mode glyph typo / wrong label               | side-panel region | `visual/side-panel.test.tsx`              | `parseFrame().modeRow === { icon, label, color }`      | ✓   |
+| welcome panel missing row                   | region snapshot   | `visual/welcome.test.tsx`                 | `.frame.txt` fixture diff                              | ✓   |
+| `paddingX` regression on AssistantBlock     | region snapshot   | `visual/scenarios.test.tsx helloWorld`    | fixture diff — icon column shifts                      | ✓   |
+| side panel pushed off-screen                | layout invariant  | `visual/scenarios.test.tsx longTool`      | `assertSidePanelVisible`                               | ✓   |
+| markdown wrap broken at narrow width        | region at width   | `visual/markdown.test.tsx`                | rendered at {40, 60, 80, 120}; fixture diff per width  | ✓   |
+| queue editor height grows on 3 queued msgs  | interactive       | **v2** — needs keystroke simulation       | —                                                      | —   |
+| resume hint stderr after alt-screen         | process harness   | **v2** — needs process-level capture      | —                                                      | —   |
+| activity verb rotation / elapsed tail       | fake clock        | **v2** — needs `vi.useFakeTimers()` wire  | —                                                      | —   |
+| hover popovers (Sessions/Todos/Mode)        | UI driver         | **v2**                                    | —                                                      | —   |
+| scroll position / focus ring                | UI driver         | **v2**                                    | —                                                      | —   |
+
+### Mutation proof
+
+Every "we catch this" row in the matrix above has a companion mutation test in `tests/visual/mutations.test.ts` — it applies a fault patch in-memory (e.g., overrides `MODE_ICONS.plan` to `"."`) and asserts the relevant test FAILS. This is the "prove your tests actually work" gate. If a refactor silently breaks the ability to detect a known bug class, the mutation test for that class goes red.
+
+### v1 scope (what ships in this session)
+
+1. `renderScenario()` harness (scripted-event-driven, synchronous, real `<App/>`).
+2. `parseFrame()` semantic parser — cardStream, sidePanel, welcome region, input box.
+3. Layout invariants — overflow, icon alignment, mode row, side panel visible, command input present.
+4. 7 canonical scenarios: welcome, helloWorld, multiTurn, bashTool, longToolResult, permissionRequest, markdownRich.
+5. 3 visual test files:
+   - `visual/scenarios.test.tsx` — runs every scenario, asserts invariants + small fixture diff on key regions
+   - `visual/markdown.test.tsx` — renders markdownRich at 4 widths, fixture diff per width
+   - `visual/side-panel.test.tsx` — mode glyph + label + color per mode (parsed, not coordinate-based)
+6. 1 mutation test file: `visual/mutations.test.ts` — proves the above tests catch 5 concrete injected regressions.
+7. `regressions/` seed + README — culture mechanism for user-reported bugs.
+
+### v2 backlog (tracked as new beads)
+
+- `km-silvercode.test-ui-driver` — keystroke simulation + fake clock
+- `km-silvercode.test-process-harness` — stdout/stderr capture for resume hint
+- `km-silvercode.test-hover-popovers` — mouse events + popover assertions
+- `km-silvercode.test-resize-matrix` — scenarios × width parameterization
+- `km-silvercode.test-mutation-gate` — wire mutation proof into CI
+
 ## Architecture
 
 ```
@@ -251,18 +323,27 @@ A single bead tag `silvercode-visual-regression` groups all such beads for patte
 - **Animation rendering** — ActivityIndicator's 3s verb rotation and 1s pulse. Snapshot one frame at t=0; pulse itself tested separately.
 - **Terminal-specific quirks** — Kitty vs iTerm vs Ghostty. Termless uses xterm.js; idiosyncrasies outside xterm.js don't surface here. Layer 5 manual sweep.
 
-## Success criteria
+## Success criteria (v1 — falsifiable by mutation tests)
 
-After shipping this system, reintroducing any of the following bugs must cause test failure:
+After shipping this system, every mutation below triggers a specific failing test. `visual/mutations.test.ts` enforces this — proving the tests actually catch what the doc claims:
 
-- [ ] Remove `paddingX={1}` from `AssistantBlock` → visual snapshot + icon-align invariant catch it.
-- [ ] Change `MODE_ICONS.plan` from `·` to `.` typo → mode-row invariant catches it.
-- [ ] Remove `overflow="hidden"` from SessionCard outer Box → side-panel invariant catches it.
-- [ ] Break `MarkdownView` flexWrap so paragraph wraps overflow → markdown contract catches it at 60 cols.
-- [ ] Break `printResumeHints()` to print while alt-screen open → Layer 5 manual (this system does NOT catch; left to followup bead).
-- [ ] Remove `◈` glyph from Silver Code line → snapshot catches it.
+- [x] Remove `paddingX={1}` from `AssistantBlock` → region fixture diff catches it + icon-align invariant catches it.
+- [x] Change `MODE_ICONS.plan` from `·` to `.` typo → `assertModeRowWellFormed` catches the wrong glyph; semantic mode-row parse catches it too.
+- [x] Remove `overflow="hidden"` from SessionCard outer Box → `assertNoOverflowIntoSidePanel` + `assertSidePanelVisible` on the longToolResult scenario.
+- [x] Break `MarkdownView` flexWrap so paragraphs overflow → `markdown.test.tsx` at 60 cols, `parseFrame().wrapShape` diff.
+- [x] Remove `◈` glyph from Silver Code line → side-panel region fixture diff.
 
-When the user reports a NEW class of visual bug, the fix PR extends one of the test layers so THAT class can't slip through again.
+### Known gaps (explicitly NOT covered by v1)
+
+These are documented as gaps, NOT claimed as coverage:
+
+- **Resume hint regression after alt-screen exit** — requires process-level stdout/stderr capture. Tracked in `km-silvercode.test-process-harness`.
+- **Queue editor height growing** — requires keystroke simulation (focus the queue editor, type, measure). Tracked in `km-silvercode.test-ui-driver`.
+- **Activity indicator verb rotation / elapsed timer / token tail** — requires fake clock + interval advance. Tracked in `km-silvercode.test-ui-driver`.
+- **Hover-popover visual bugs** — requires mouse events + popover assertion. Tracked in `km-silvercode.test-hover-popovers`.
+- **Scroll position / focus-ring bugs** — v2.
+
+When the user reports one of these v2-gap bugs, a v1 regression test can still be added (via `tests/regressions/`) if the reproduction is session-event-driven. If it's UI-driven, the v2 work is now pre-scoped.
 
 ## Rollout plan (implemented in this session)
 
