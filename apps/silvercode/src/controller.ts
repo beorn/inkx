@@ -8,6 +8,7 @@
  */
 
 import { resolve as resolvePath } from "node:path"
+import createDebug from "debug"
 import {
   type AgentEvent,
   type AgentSession,
@@ -29,6 +30,13 @@ import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
 import { replaySessionFromDisk } from "./resume.ts"
+
+// Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
+// `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
+// polluted). Traces every send/setQueuedText/holdQueue/tryFlush and the
+// decision the controller made. Loaded when investigating "queue items
+// stay there" reports — auto-flush should fire on `turn-end`.
+const dQueue = createDebug("silvercode:queue")
 
 /**
  * Resolve stdio MCP server specs for a spawned session. Each session gets:
@@ -251,13 +259,27 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
    */
   function tryFlush(sessionId: string, force = false): void {
     const s = sessions.find((h) => h.id === sessionId)
-    if (!s) return
+    if (!s) {
+      dQueue("tryFlush %s force=%s — no handle", sessionId, force)
+      return
+    }
     if (!force) {
-      if (holds.get(sessionId)) return
-      if (s.store.state.get().status !== "idle") return
+      if (holds.get(sessionId)) {
+        dQueue("tryFlush %s — held, skip", sessionId)
+        return
+      }
+      const status = s.store.state.get().status
+      if (status !== "idle") {
+        dQueue("tryFlush %s — status=%s, skip", sessionId, status)
+        return
+      }
     }
     const text = queues.get(sessionId) ?? ""
-    if (text.length === 0) return
+    if (text.length === 0) {
+      dQueue("tryFlush %s force=%s — queue empty, skip", sessionId, force)
+      return
+    }
+    dQueue("tryFlush %s force=%s — FLUSHING %d chars", sessionId, force, text.length)
     queues.set(sessionId, "")
     notifyQueue(sessionId)
     const turnId = `u-${Date.now()}` as never
@@ -379,6 +401,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (log) log.append(event)
       // Flush on every turn boundary — the whole queue goes as ONE turn.
       if (event.kind === "turn-end" || event.kind === "session-lifecycle") {
+        dQueue("subscribe %s — event=%s, calling tryFlush", id, event.kind)
         tryFlush(id)
       }
     })
@@ -450,6 +473,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         const next = prev ? `${prev}\n\n${text}` : text
         queues.set(sessionId, next)
         notifyQueue(sessionId)
+        dQueue("send %s — queued (status=%s held=%s len=%d)", sessionId, status, !!holds.get(sessionId), next.length)
         return
       }
       // Idle + no hold → send immediately, but include any pending queue
@@ -488,12 +512,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     },
     holdQueue(sessionId: string, hold: boolean): void {
       holds.set(sessionId, hold)
+      dQueue("holdQueue %s — hold=%s", sessionId, hold)
       if (!hold) tryFlush(sessionId)
     },
     flushQueue(sessionId: string): void {
       // Explicit user-initiated submit — bypasses the idle gate, also
       // clears any pending hold so a follow-up auto-flush doesn't double-
       // send.
+      dQueue("flushQueue %s — explicit submit", sessionId)
       holds.set(sessionId, false)
       tryFlush(sessionId, true)
     },
