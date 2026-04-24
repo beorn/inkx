@@ -62,7 +62,10 @@ function buildProgram(): Command {
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
         />,
-        { mode: "fullscreen" },
+        // handleTabCycling: false so Shift+Tab reaches our useInput for the
+        // permission-mode cycle binding (Claude Code convention). Silvercode
+        // has a single TextInput — focus navigation via Tab isn't useful.
+        { mode: "fullscreen", handleTabCycling: false },
       )
       await handle.waitUntilExit()
     })

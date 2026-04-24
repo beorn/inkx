@@ -409,11 +409,12 @@ export function SidePanel({
         </Text>
       </Box>
 
-      {/* Quota + cost block — account identity (email), plan name, and a
-          per-window progress bar for each subscription quota (5hr / 7d /
-          7ds / x). Falls back to the session's context-window usage when
-          no account quota is available (no creds, offline, API error).
-          Single hover popover carries all the details. */}
+      {/* Quota + cost block — plan (bold) then email (muted), then a
+          per-window progress bar for each subscription quota aligned on
+          the left. Color policy: normal utilization uses a neutral grey
+          ($fg-muted); only warning (≥70%) and error (≥90%) get color.
+          Green for "healthy" was noise — a healthy bar doesn't need to
+          demand attention. One hover popover carries all the details. */}
       <Box flexShrink={0} height={1} />
       <Box
         flexDirection="column"
@@ -422,36 +423,43 @@ export function SidePanel({
         onMouseLeave={quotaHover.onMouseLeave}
         backgroundColor={hoveredBg(quotaHover.isHovered)}
       >
-        {account.email && (
+        {hasAccount && (
           <Text bold color="$fg">
-            {account.email}
+            {planLabel(account.plan)}
           </Text>
         )}
-        {hasAccount && (
-          <Muted>{planLabel(account.plan)}</Muted>
-        )}
+        {account.email && <Muted>{account.email}</Muted>}
         {account.quotas.length > 0
-          ? account.quotas.map((w) => (
-              <Box key={w.name} flexDirection="row" gap={1}>
-                <Box flexBasis={4}>
-                  <Muted>{windowShortLabel(w.name)}</Muted>
+          ? account.quotas.map((w) => {
+              const color =
+                w.utilization >= 90 ? "$error" : w.utilization >= 70 ? "$warning" : "$fg-muted"
+              return (
+                <Box key={w.name} flexDirection="row" gap={1}>
+                  <Box flexBasis={4}>
+                    <Muted>{windowShortLabel(w.name)}</Muted>
+                  </Box>
+                  <ProgressBar
+                    value={Math.max(0, Math.min(1, w.utilization / 100))}
+                    width={20}
+                    color={color}
+                    showPercentage
+                  />
                 </Box>
-                <ProgressBar
-                  value={Math.max(0, Math.min(1, w.utilization / 100))}
-                  width={20}
-                  color={
-                    w.utilization >= 90 ? "$error" : w.utilization >= 70 ? "$warning" : "$success"
-                  }
-                  showPercentage
-                />
-              </Box>
-            ))
+              )
+            })
           : (
               <Box flexDirection="row" gap={1}>
                 <Box flexBasis={4}>
                   <Muted>ctx</Muted>
                 </Box>
-                <ProgressBar value={ctxValue} width={20} color={ctxColor} showPercentage />
+                <ProgressBar
+                  value={ctxValue}
+                  width={20}
+                  color={
+                    pct >= 90 ? "$error" : pct >= 70 ? "$warning" : "$fg-muted"
+                  }
+                  showPercentage
+                />
                 <Muted>${state.cost.usd.toFixed(4)}</Muted>
               </Box>
             )}
