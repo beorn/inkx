@@ -397,11 +397,13 @@ export function LogRowView({
   //   cursor row   → $bg-cursor (strong selection indicator)
   //   expanded row → $bg-surface-subtle (whole-row tint signals "expanded")
   //   otherwise    → terminal default (no bg)
-  // Expanded-row bg shade. $bg-surface-subtle (4% blend toward fg) was too
-  // faint to distinguish on several themes; $bg-muted (8% blend) reads as
-  // "slightly different" without shouting — matches the user's intent of
-  // a subtle visual cue marking expanded content.
-  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-muted" : undefined
+  // Expanded-row bg shade. Progression we tried:
+  //   $bg-surface-subtle (5% blend): imperceptible on most themes.
+  //   $bg-muted           (8% blend): still imperceptible per user report.
+  //   $bg-surface-overlay (12% blend): current — clearly distinguishable
+  //     without being loud. This is the same token used for modal/overlay
+  //     chrome, so it reads as "this row is in a secondary/overlay state."
+  const rowBackground = isCursor ? "$bg-cursor" : showExpanded ? "$bg-surface-overlay" : undefined
 
   return (
     <Box
