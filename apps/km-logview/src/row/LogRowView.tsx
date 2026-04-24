@@ -420,20 +420,16 @@ export function LogRowView({
   const showCollapsed = isCollapsible && !expanded
   const showFlat = hasBody && !isCollapsible
 
-  // Row bg. EXPANDED wins over CURSOR so hover-moves-cursor doesn't
-  // change the expanded row's bg when the user mouses over it.
-  //
-  // Token progression we tried:
-  //   $bg-surface-subtle (5%): imperceptible
-  //   $bg-muted (8%): imperceptible
-  //   $bg-surface-overlay (12%): imperceptible
-  //   $bg-accent-hover (hover-shift from accent): imperceptible on user's theme
-  //   $bg-accent-active (active-shift, more saturated): current
-  const rowBackground = showExpanded
-    ? "$bg-accent-active"
-    : isCursor
-      ? "$bg-cursor"
-      : undefined
+  // Row bg. Expanded uses $bg-cursor — the ONE token we know is visibly
+  // distinct on the user's theme (their cursor row shows it clearly).
+  // Every other token we tried was imperceptible: $bg-surface-subtle
+  // (5%), $bg-muted (8%), $bg-surface-overlay (12%), $bg-accent-hover,
+  // $bg-accent-active, $color8 — all collapsed toward base bg on this
+  // scheme. Unifying expanded+cursor under $bg-cursor means "focused
+  // row" and "opened row" share one visual — hovering an expanded row
+  // doesn't change its bg (both states map to $bg-cursor), which
+  // matches the user's ask for "same bg hovered and not hovered."
+  const rowBackground = showExpanded || isCursor ? "$bg-cursor" : undefined
 
   return (
     <Box
