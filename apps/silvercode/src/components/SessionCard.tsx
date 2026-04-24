@@ -23,16 +23,16 @@ function ActivityIndicator({
 }): React.ReactElement | null {
   if (status === "idle" || status === "ended") return null
   const label =
-    status === "spawning"
-      ? "spawning claude…"
-      : status === "thinking"
-        ? "thinking…"
-        : status === "tool-running"
-          ? inFlightTool
-            ? `running ${inFlightTool}…`
-            : "running tool…"
-          : status === "awaiting-permission"
-            ? `awaiting permission (${pendingPermissions})`
+    status === "thinking"
+      ? "thinking…"
+      : status === "tool-running"
+        ? inFlightTool
+          ? `running ${inFlightTool}…`
+          : "running tool…"
+        : status === "awaiting-permission"
+          ? `awaiting permission (${pendingPermissions})`
+          : status === "spawning"
+            ? "spawning claude…"
             : null
   if (!label) return null
   const color =

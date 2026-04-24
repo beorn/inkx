@@ -206,18 +206,10 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    async close(): Promise<void> {
-      closed = true
-      if (queueResolve) {
-        const resolve = queueResolve
-        queueResolve = null
-        resolve({ value: undefined as unknown as AgentInput, done: true })
-      }
-    },
-    kill(): void {
-      // Track 2 has no subprocess — the SDK runs in-process. kill() is the
-      // same as close() for now; the distinction matters only for spawned
-      // CLIs where we'd otherwise block on stdin drain.
+    close(): void {
+      // Track 2 runs the SDK in-process; no subprocess to signal. We just
+      // resolve the pending queue iterator with done:true so the SDK's
+      // async generator completes and its internal fibers unwind.
       closed = true
       if (queueResolve) {
         const resolve = queueResolve

@@ -240,32 +240,24 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    async close(): Promise<void> {
-      if (closed) return
-      proc.stdin?.end()
-      await new Promise<void>((resolve) => {
-        if (closed) return resolve()
-        proc.on("exit", () => resolve())
-        // Hard kill after a grace period in case the subprocess hangs.
-        const timer = setTimeout(() => {
-          if (!proc.killed) proc.kill("SIGTERM")
-        }, 2000)
-        proc.on("exit", () => clearTimeout(timer))
-      })
-      if (cleanupMcpConfig) {
-        cleanupMcpConfig()
-        cleanupMcpConfig = null
-      }
-    },
-    kill(): void {
-      // Immediate SIGKILL of the child. Its stdio pipes close, which lets
-      // Node's event loop drain — the MCP sub-subprocesses claude spawned
-      // get SIGPIPE when their stdin closes and die on their own. No
-      // process-group tricks (detached:true had macOS-specific quirks that
-      // caused Ctrl+C to silently do nothing).
+    close(): void {
+      // Graceful shutdown: SIGTERM to claude. Well-behaved CLIs (claude
+      // included) treat SIGTERM as "please shut down cleanly" — flushes
+      // pending stream-json, tears down MCP sub-subprocesses, closes its
+      // stdio. Pipes close, our event loop drains, Node exits.
+      //
+      // SIGTERM over SIGINT: SIGTERM is the conventional "programmatic
+      // shutdown" signal (what `kill <pid>`, systemctl stop, docker stop
+      // send). SIGINT semantically means "user interrupted" and is
+      // already what the TTY driver synthesizes from Ctrl+C — reserving
+      // SIGINT for actual user-interrupts keeps the semantics clean.
+      // Claude handles both identically; the choice is conventional.
+      //
+      // Synchronous fire-and-forget. Listeners get 'session-end' via
+      // subscribe() when the child actually exits.
       if (closed) return
       try {
-        proc.kill("SIGKILL")
+        proc.kill("SIGTERM")
       } catch {
         /* already dead */
       }

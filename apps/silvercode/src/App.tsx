@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { SessionStore } from "@km/agent-harness"
-import { Box, Screen, useExit, useTerm } from "silvery"
+import { Box, Screen, useDispose, useExit } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandInput } from "./components/CommandInput.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -194,9 +194,12 @@ export function App(props: AppProps): React.ReactElement {
     )
   }
 
-  async function requestExit(): Promise<void> {
+  function requestExit(): void {
+    // controller.closeAll() SIGTERMs every child synchronously; silveryExit
+    // restores the terminal; resume hints print to real stderr after the
+    // alt screen is gone. Closes the whole path in one tick.
     try {
-      await controller.closeAll()
+      controller.closeAll()
     } catch {
       /* best-effort — still exit */
     }
@@ -204,35 +207,15 @@ export function App(props: AppProps): React.ReactElement {
     printResumeHints()
   }
 
-  // Clean disposal: silvery owns the exit lifecycle (its own Ctrl+C handler,
-  // its own teardown). We just register our "kill subprocesses + print
-  // resume hints" step into silvery's signals mediator so it runs DURING
-  // that teardown, not after. priority: 5 = app-level cleanup (runs before
-  // runtime/terminal cleanup at 10/20). Also register the same action on
-  // React unmount so it fires regardless of which exit path silvery takes.
-  const term = useTerm()
-  useEffect(() => {
-    function dispose(): void {
-      try {
-        controller.killAll()
-      } catch {
-        /* best-effort — best we can do when tearing down */
-      }
-      printResumeHints()
-    }
-    const unregSigint = term.signals?.on(
-      "SIGINT",
-      dispose,
-      { priority: 5, name: "silvercode-killall" },
-    )
-    return () => {
-      // React unmount — belt-and-suspenders. If silvery exits via a path
-      // that doesn't fire the SIGINT mediator (normal shutdown, uncaught
-      // error), the unmount cleanup still runs dispose().
-      unregSigint?.()
-      dispose()
-    }
-  }, [term])
+  // silvery owns the exit lifecycle. useDispose wires our cleanup into
+  // SIGINT + SIGTERM + React unmount with a single line. Before silvery
+  // shipped useDispose, this was 10 lines of term.signals.on / useEffect
+  // / guard-against-double-run boilerplate — that was the ergonomic-gap
+  // /big session flagged as its top reframe.
+  useDispose(() => {
+    controller.closeAll()
+    printResumeHints()
+  })
 
   // Mode cycler used by the side panel's ⚡ label.
   function cycleMode(): void {
@@ -299,15 +282,16 @@ export function App(props: AppProps): React.ReactElement {
               />
             )}
 
-            {/* Distinct bg from the side panel so the input region reads as
-                its own surface even without a border. */}
-            <Box backgroundColor="$mutedbg">
+            {/* Command input region — its own surface with outer padding
+                so it sits with breathing room above + below (opencode-ish).
+                Distinct bg from cards area and side panel. */}
+            <Box backgroundColor="$mutedbg" paddingX={2} paddingY={1}>
               <CommandInput
                 value={inputValue}
                 onChange={setInputValue}
                 disabled={!focused}
                 onSubmit={handleSubmit}
-                onExit={() => void requestExit()}
+                onExit={requestExit}
               />
             </Box>
           </Box>
@@ -323,9 +307,11 @@ export function App(props: AppProps): React.ReactElement {
             backgroundColor="$surfacebg"
           >
             <SidePanel
-              handle={focused}
+              focused={focused}
+              sessions={sessions}
+              focusedSessionId={focusedSessionId}
+              onFocusSession={(id) => controller.focus(id)}
               mode={mode}
-              sessionCount={sessions.length}
               onCycleMode={cycleMode}
             />
           </Box>

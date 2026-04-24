@@ -38,15 +38,23 @@ export function sessionJsonlPath(cwd: string, sessionId: string): string {
  * malformed line surfaces as an error event (via the parser) but never
  * throws. Returns true if the file existed and was read, false otherwise.
  */
-export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionId: string): boolean {
+export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionId: string): void {
   const path = sessionJsonlPath(cwd, sessionId)
-  if (!existsSync(path)) return false
-  let raw: string
-  try {
-    raw = readFileSync(path, "utf8")
-  } catch {
-    return false
+  if (!existsSync(path)) {
+    // principles.md: invariant violations throw. fail fast, fail loud.
+    // A missing transcript on --resume is a caller bug (wrong session id
+    // or wrong cwd), not a recoverable condition — replaying into an
+    // empty store would spin up a session that looks identical to a
+    // fresh spawn but with the wrong sessionId passed to claude's
+    // --resume, which then prints its own 'session not found' to stderr
+    // and continues with a phantom transcript. Abort upfront.
+    throw new Error(
+      `--resume: no transcript at ${path}. ` +
+        `Session "${sessionId}" doesn't exist for cwd ${cwd}. ` +
+        `Check ~/.claude/projects/ for the right session id, or omit --resume to start fresh.`,
+    )
   }
+  const raw = readFileSync(path, "utf8") // let real I/O errors propagate
   const parser = createStreamJsonParser((event: AgentEvent) => {
     store.apply(event)
   })
@@ -54,5 +62,4 @@ export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionI
     if (line.length === 0) continue
     parser.push(line)
   }
-  return true
 }

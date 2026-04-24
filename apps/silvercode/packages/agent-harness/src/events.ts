@@ -115,10 +115,13 @@ export interface AgentSession {
   respondToPermission(requestId: PermissionRequestId, approved: boolean): void
   /** Subscribe to events. Returns an unsubscribe function. */
   subscribe(handler: (event: AgentEvent) => void): () => void
-  /** Graceful stop: stdin.end + 2 s SIGTERM fallback. Use on intentional shutdown. */
-  close(): Promise<void>
-  /** Immediate stop: SIGKILL (and SIGKILL the process group). Use on SIGINT/panic. */
-  kill(): void
+  /**
+   * Close the session — sends SIGINT to the child. Claude handles its own
+   * graceful teardown (flush pending events, close its MCP subprocesses),
+   * then exits; its stdio pipes close and our event loop drains.
+   * Synchronous fire-and-forget; listen on 'session-end' for confirmation.
+   */
+  close(): void
   /** True if the subprocess has exited. */
   readonly closed: boolean
 }

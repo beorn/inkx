@@ -166,10 +166,13 @@ export type Controller = {
   handoff(fromId: string, toId: string, prompt: string): void
   /** Fork a session — spawn a new one pre-seeded with the source's context. */
   fork(fromId: string): Promise<SessionHandle>
-  /** Graceful drain — each session.close() (stdin.end + 2 s SIGTERM fallback). */
-  closeAll(): Promise<void>
-  /** Immediate SIGKILL of every session's process group. Use on SIGINT. */
-  killAll(): void
+  /**
+   * Send SIGTERM to every session's child and unsubscribe. Synchronous —
+   * the children shut down gracefully (flushing their pending output +
+   * tearing down their own MCP subprocesses) in the background; we return
+   * immediately. Listen on session.subscribe('session-end') to wait.
+   */
+  closeAll(): void
 }
 
 let nextId = 1
@@ -429,13 +432,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       if (!from) throw new Error(`session ${fromId} not found`)
       return spawnSession(`${from.name}-fork`)
     },
-    async closeAll(): Promise<void> {
-      await Promise.all(sessions.map((s) => s.session.close()))
-      for (const s of sessions) s.unsubscribe()
-    },
-    killAll(): void {
+    closeAll(): void {
+      // Synchronous SIGTERM to every child, then unsubscribe. Children
+      // shut down gracefully in the background; we don't wait. Listen on
+      // session.subscribe('session-end') if a caller needs confirmation.
       for (const s of sessions) {
-        s.session.kill()
+        s.session.close()
         s.unsubscribe()
       }
     },

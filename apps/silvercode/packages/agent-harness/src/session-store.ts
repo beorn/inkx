@@ -80,7 +80,14 @@ function initialState(): SessionState {
     plugins: [],
     claudeCodeVersion: "",
     apiKeySource: "",
-    status: "spawning",
+    // "idle" not "spawning": claude --bare -p doesn't emit session-init
+    // until the first user message arrives on stdin, so the subprocess can
+    // sit in a "running but not yet chatty" state for a while. Labelling
+    // that as "spawning" is a lie — the process IS spawned, it's just
+    // waiting for input. Real transient spawning state (if we ever need
+    // it) can be set briefly during the synchronous spawn() call and
+    // cleared immediately after the subprocess is alive.
+    status: "idle",
     messages: [],
     permissions: [],
     todos: [],

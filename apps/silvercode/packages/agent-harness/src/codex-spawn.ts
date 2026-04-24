@@ -118,26 +118,14 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    async close(): Promise<void> {
-      if (closed) return
-      proc.stdin?.end()
-      await new Promise<void>((resolve) => {
-        proc.on("exit", () => resolve())
-        setTimeout(() => {
-          if (!proc.killed) proc.kill("SIGTERM")
-        }, 2000)
-      })
-    },
-    kill(): void {
+    close(): void {
+      // Same shape as spawnClaude.close — SIGINT to the child, let it
+      // tear itself down gracefully. Fire-and-forget.
       if (closed) return
       try {
-        if (proc.pid !== undefined) process.kill(-proc.pid, "SIGKILL")
+        proc.kill("SIGTERM")
       } catch {
-        try {
-          proc.kill("SIGKILL")
-        } catch {
-          /* already dead */
-        }
+        /* already dead */
       }
     },
   }
