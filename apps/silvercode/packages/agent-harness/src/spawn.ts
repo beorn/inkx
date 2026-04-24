@@ -9,15 +9,36 @@
  * subprocess behaviour; Anthropic has indicated `--bare` will likely become
  * the `-p` default. See 00-agent-workspace.md for the rationale.
  *
+ * Since `--bare` skips CLAUDE.md / plugins / MCP discovery, this module
+ * re-mounts caller-provided MCP servers by writing a temp `mcp-config.json`
+ * with the `mcpServers` block and passing it via `--mcp-config`. Combined
+ * with `--strict-mcp-config` (added when mcpServers is non-empty), that
+ * guarantees only the requested servers are mounted — no leak from the
+ * user's global config. Closes the M2/M4 runtime gap.
+ *
  * This spawner is intentionally thin. All parsing lives in parse.ts, all
  * injection lives in injectors.ts, all persistence lives in event-log.ts.
  */
 
 import { type ChildProcess, spawn } from "node:child_process"
 import { EventEmitter } from "node:events"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import type { AgentEvent, AgentInput, AgentSession, PermissionRequestId, SessionId } from "./events.ts"
 import { runInjectors, type Injector } from "./injectors.ts"
 import { createLineSplitter, createStreamJsonParser } from "./parse.ts"
+
+/** MCP server spec written into settings.json for spawned Claude sessions. */
+export type McpServerSpec = {
+  /** Stable identifier; becomes the key under mcpServers. */
+  name: string
+  command: string
+  args?: string[]
+  env?: Record<string, string>
+  /** Transport. Only `stdio` is wired in M0; `sse`/`http` land later. */
+  type?: "stdio"
+}
 
 export type SpawnClaudeOptions = {
   /** Working directory for the subprocess. Defaults to process.cwd(). */
@@ -38,10 +59,18 @@ export type SpawnClaudeOptions = {
   /** Additional CLI args appended at the end. */
   extraArgs?: string[]
   /**
-   * CLAUDE_CONFIG_DIR for per-account isolation (see v1.1 multi-account). If
-   * provided, exported as env to the subprocess.
+   * Explicit CLAUDE_CONFIG_DIR for per-account isolation (v1.1 multi-account).
+   * When provided, the harness does NOT synthesize a temp dir — the caller
+   * owns the settings.json at this location. Mutually exclusive with
+   * `mcpServers` (which implies a synthetic temp dir).
    */
   configDir?: string
+  /**
+   * MCP servers to mount for this session. The harness writes a temp
+   * `CLAUDE_CONFIG_DIR/settings.json` with the `mcpServers` block and cleans
+   * up on session close. Stdio only in M0.
+   */
+  mcpServers?: McpServerSpec[]
   /** Chain of injectors applied to every user message before stdin write. */
   injectors?: Injector[]
   /**
@@ -51,7 +80,7 @@ export type SpawnClaudeOptions = {
   silentStderr?: boolean
 }
 
-function buildArgs(opts: SpawnClaudeOptions): string[] {
+function buildArgs(opts: SpawnClaudeOptions, mcpConfigPath: string | null): string[] {
   const args: string[] = []
   if (opts.bare !== false) args.push("--bare")
   args.push("-p")
@@ -59,10 +88,51 @@ function buildArgs(opts: SpawnClaudeOptions): string[] {
   args.push("--output-format", "stream-json")
   args.push("--include-partial-messages")
   args.push("--verbose")
+  if (mcpConfigPath) {
+    args.push("--mcp-config", mcpConfigPath)
+    args.push("--strict-mcp-config")
+  }
   if (opts.resume) args.push("--resume", opts.resume)
   if (opts.model) args.push("--model", opts.model)
   if (opts.extraArgs) args.push(...opts.extraArgs)
   return args
+}
+
+/**
+ * Materialize a temp `mcp-config.json` file containing the requested MCP
+ * servers in the exact shape `claude --mcp-config` expects. Returns the file
+ * path and a cleanup function.
+ *
+ * Exported for tests so the generated file can be asserted without actually
+ * spawning Claude.
+ */
+export function materializeMcpConfig(mcpServers: McpServerSpec[]): { path: string; cleanup(): void } {
+  const dir = mkdtempSync(join(tmpdir(), "silvercode-mcp-"))
+  const path = join(dir, "mcp-config.json")
+  const body = {
+    mcpServers: Object.fromEntries(
+      mcpServers.map((s) => [
+        s.name,
+        {
+          command: s.command,
+          args: s.args ?? [],
+          ...(s.env ? { env: s.env } : {}),
+          ...(s.type ? { type: s.type } : {}),
+        },
+      ]),
+    ),
+  }
+  writeFileSync(path, JSON.stringify(body, null, 2))
+  return {
+    path,
+    cleanup(): void {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        /* ignore — tempdir cleanup is best-effort */
+      }
+    },
+  }
 }
 
 /** Spawn a Claude Code subprocess via Track 1. */
@@ -72,9 +142,18 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
   let proc: ChildProcess
   let closed = false
 
-  const args = buildArgs(opts)
   const env: Record<string, string | undefined> = { ...process.env, ...opts.env }
   if (opts.configDir) env.CLAUDE_CONFIG_DIR = opts.configDir
+
+  let mcpConfigPath: string | null = null
+  let cleanupMcpConfig: (() => void) | null = null
+  if (opts.mcpServers && opts.mcpServers.length > 0) {
+    const materialized = materializeMcpConfig(opts.mcpServers)
+    mcpConfigPath = materialized.path
+    cleanupMcpConfig = materialized.cleanup
+  }
+
+  const args = buildArgs(opts, mcpConfigPath)
 
   const binary = opts.binary ?? "claude"
 
@@ -111,6 +190,7 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
   proc.on("exit", (code, signal) => {
     closed = true
     splitter.flush()
+    if (cleanupMcpConfig) cleanupMcpConfig()
     bus.emit("event", {
       kind: "session-lifecycle",
       sessionId,
@@ -172,6 +252,10 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
         }, 2000)
         proc.on("exit", () => clearTimeout(timer))
       })
+      if (cleanupMcpConfig) {
+        cleanupMcpConfig()
+        cleanupMcpConfig = null
+      }
     },
   }
 

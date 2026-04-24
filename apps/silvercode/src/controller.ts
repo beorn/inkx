@@ -7,11 +7,13 @@
  * render tree and the headless agent-harness.
  */
 
+import { resolve as resolvePath } from "node:path"
 import {
   type AgentEvent,
   type AgentSession,
   type EventLog,
   type Injector,
+  type McpServerSpec,
   type PermissionRequestId,
   type SessionStore,
   channelDigestInjector,
@@ -25,6 +27,29 @@ import {
 } from "@km/agent-harness"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
+
+/**
+ * Resolve stdio MCP server specs for a spawned session. Each session gets:
+ *   - km-mcp-server (km_search / km_get_node / km_get_board / km_render_path)
+ *   - km-tribe-mcp (tribe_send / tribe_history / tribe_members / tribe_broadcast)
+ *
+ * Both run via `bun run` against the workspace package src so they resolve
+ * workspace deps the same way the host does. TRIBE_SESSION_NAME keys the
+ * tribe backend to this session's identity.
+ */
+function defaultMcpServers(sessionName: string, workspaceRoot: string): McpServerSpec[] {
+  const kmBin = resolvePath(workspaceRoot, "apps/silvercode/packages/km-mcp-server/src/bin.ts")
+  const tribeBin = resolvePath(workspaceRoot, "apps/silvercode/packages/tribe-mcp/src/bin.ts")
+  return [
+    { name: "km", command: "bun", args: ["run", kmBin] },
+    {
+      name: "tribe",
+      command: "bun",
+      args: ["run", tribeBin],
+      env: { TRIBE_SESSION_NAME: sessionName },
+    },
+  ]
+}
 
 type Track = "claude" | "sdk" | "codex"
 
@@ -59,6 +84,16 @@ export type ControllerOptions = {
   drainChannel?: (sessionId: string) => Array<{ from: string; text: string }>
   /** Tribe backend for M4 channel integration. Defaults to in-memory. */
   tribe?: TribeBackend
+  /**
+   * MCP servers to mount for every spawned session. Defaults to km + tribe
+   * stdio bins shipped with silvercode. Pass [] to disable MCP mounting.
+   */
+  mcpServers?: McpServerSpec[]
+  /**
+   * Root of the workspace (used to resolve bundled MCP bin paths). Defaults
+   * to process.cwd().
+   */
+  workspaceRoot?: string
 }
 
 export type SpawnSessionOptions = {
@@ -143,8 +178,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     return list
   }
 
+  // Root of the silvercode host process (the km workspace). MCP servers are
+  // resolved relative to this so `bun run <path>` inside the subprocess finds
+  // the bin.ts files regardless of the session's own cwd.
+  const workspaceRoot = opts.workspaceRoot ?? process.cwd()
+
   async function defaultSpawn(s: SpawnSessionOptions): Promise<AgentSession> {
     const injectors = makeInjectors(s.name)
+    const mcpServers = opts.mcpServers ?? defaultMcpServers(s.name, workspaceRoot)
     if (s.track === "codex") {
       return spawnCodex({ cwd: s.cwd, injectors })
     }
@@ -157,6 +198,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       resume: s.resume,
       bare: s.bare,
       injectors,
+      mcpServers,
     })
   }
 

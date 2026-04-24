@@ -5,8 +5,12 @@
   "description": "MCP server exposing tribe cross-session messaging as typed tools. Used by silvercode.",
   "type": "module",
   "main": "src/index.ts",
+  "bin": {
+    "km-tribe-mcp": "./src/bin.ts"
+  },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./bin": "./src/bin.ts"
   },
   "dependencies": {
     "@km/agent-harness": "workspace:*"
