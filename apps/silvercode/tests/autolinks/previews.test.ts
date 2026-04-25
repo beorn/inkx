@@ -8,7 +8,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
-import { clearPreviewCache, PREVIEW_CACHE_TTL_MS, resolvePreview } from "../../src/autolinks/previews.ts"
+import {
+  _activeWatcherCount,
+  clearPreviewCache,
+  disposeAllWatchers,
+  PREVIEW_CACHE_TTL_MS,
+  PREVIEW_WATCH_DEBOUNCE_MS,
+  resolvePreview,
+} from "../../src/autolinks/previews.ts"
 
 describe("autolink previews", () => {
   let dir: string
@@ -75,7 +82,12 @@ describe("autolink previews", () => {
     expect(result.body).toBe("The paragraph.")
   })
 
-  test("cache: hits within TTL, refreshes after expiry", () => {
+  test("cache: file-backed entries serve cached value until watcher evicts (no TTL)", () => {
+    // File-backed previews (`readme`, `first-paragraph`) cache without
+    // TTL — invalidation is fs.watch-driven. Synchronous re-reads
+    // within the same tick (before the debounce timer fires) keep
+    // serving the cached body. See the "watcher" tests below for
+    // change-driven invalidation.
     writeFileSync(join(dir, "README.md"), "# v1\n")
     let now = 1_000_000
     const result1 = resolvePreview({
@@ -86,7 +98,8 @@ describe("autolink previews", () => {
     })
     expect(result1.kind).toBe("ok")
 
-    // Mutate file but stay inside TTL — cache should still serve v1.
+    // Mutate file but read again synchronously — debounce hasn't
+    // fired yet, so the cached v1 is still served.
     writeFileSync(join(dir, "README.md"), "# v2\n")
     now += PREVIEW_CACHE_TTL_MS - 1
     const result2 = resolvePreview({
@@ -100,7 +113,8 @@ describe("autolink previews", () => {
     expect(result2.body).toContain("v1")
     expect(result2.body).not.toContain("v2")
 
-    // Push past TTL — fresh read.
+    // Even past the (no-longer-applicable) TTL, a synchronous re-read
+    // still hits the cache for file-backed entries.
     now += 2
     const result3 = resolvePreview({
       preview: "readme",
@@ -110,7 +124,7 @@ describe("autolink previews", () => {
     })
     expect(result3.kind).toBe("ok")
     if (result3.kind !== "ok") return
-    expect(result3.body).toContain("v2")
+    expect(result3.body).toContain("v1")
   })
 
   test("cache: per-key isolation — different cache keys don't pollute each other", () => {
@@ -125,5 +139,126 @@ describe("autolink previews", () => {
     if (ra.kind !== "ok" || rb.kind !== "ok") return
     expect(ra.body).toContain("alpha")
     expect(rb.body).toContain("bravo")
+  })
+
+  // Wait long enough for fs.watch to fire + debounce to expire. Slightly
+  // padded so flaky filesystems still settle in CI.
+  const settleMs = PREVIEW_WATCH_DEBOUNCE_MS + 250
+
+  test("watcher: cache invalidates when file is modified within TTL window", async () => {
+    const path = join(dir, "README.md")
+    writeFileSync(path, "# v1\n")
+    const r1 = resolvePreview({
+      preview: "readme",
+      resolvesTo: dir,
+      cacheKey: "watch-readme",
+    })
+    expect(r1.kind).toBe("ok")
+    if (r1.kind !== "ok") return
+    expect(r1.body).toContain("v1")
+
+    // Modify the file. Cache should invalidate via fs.watch even though
+    // we're well inside the 30s TTL window.
+    writeFileSync(path, "# v2\n")
+    await new Promise((r) => setTimeout(r, settleMs))
+
+    const r2 = resolvePreview({
+      preview: "readme",
+      resolvesTo: dir,
+      cacheKey: "watch-readme",
+    })
+    expect(r2.kind).toBe("ok")
+    if (r2.kind !== "ok") return
+    expect(r2.body).toContain("v2")
+    expect(r2.body).not.toContain("v1")
+  })
+
+  test("watcher: first-paragraph invalidates on file modification", async () => {
+    const path = join(dir, "doc.md")
+    writeFileSync(path, "First version paragraph.\n")
+    const r1 = resolvePreview({
+      preview: "first-paragraph",
+      resolvesTo: path,
+      cacheKey: "watch-fp",
+    })
+    expect(r1.kind).toBe("ok")
+    if (r1.kind !== "ok") return
+    expect(r1.body).toBe("First version paragraph.")
+
+    writeFileSync(path, "Second version paragraph.\n")
+    await new Promise((r) => setTimeout(r, settleMs))
+
+    const r2 = resolvePreview({
+      preview: "first-paragraph",
+      resolvesTo: path,
+      cacheKey: "watch-fp",
+    })
+    expect(r2.kind).toBe("ok")
+    if (r2.kind !== "ok") return
+    expect(r2.body).toBe("Second version paragraph.")
+  })
+
+  test("watcher: TTL fallback still applies for shell-out previews (no file watcher)", () => {
+    // bd-active is shell-out — no file backing. Verify no watcher gets
+    // registered for the entry, and that TTL semantics drive eviction.
+    // We don't actually run `bd` here; we just verify that an error
+    // result (most likely without `bd` available, or no parent) is
+    // cached without a watcher.
+    let now = 1_000_000
+    const r1 = resolvePreview({
+      preview: "bd-active",
+      resolvesTo: "nonexistent-bead",
+      cacheKey: "shell-ttl",
+      now: () => now,
+    })
+    // Either ok (bd is installed) or error — both cache, neither watches.
+    expect(r1.kind).toMatch(/ok|error/)
+    expect(_activeWatcherCount()).toBe(0)
+
+    // Inside TTL — same result reused (cached).
+    now += PREVIEW_CACHE_TTL_MS - 1
+    const r2 = resolvePreview({
+      preview: "bd-active",
+      resolvesTo: "nonexistent-bead",
+      cacheKey: "shell-ttl",
+      now: () => now,
+    })
+    expect(r2.resolvedAt).toBe(r1.resolvedAt)
+
+    // Past TTL — fresh resolve (different resolvedAt).
+    now += 2
+    const r3 = resolvePreview({
+      preview: "bd-active",
+      resolvesTo: "nonexistent-bead",
+      cacheKey: "shell-ttl",
+      now: () => now,
+    })
+    expect(r3.resolvedAt).toBe(now)
+  })
+
+  test("watcher: file-backed previews register an fs.watch handle", () => {
+    writeFileSync(join(dir, "README.md"), "# tracked\n")
+    expect(_activeWatcherCount()).toBe(0)
+    const r = resolvePreview({
+      preview: "readme",
+      resolvesTo: dir,
+      cacheKey: "track-watch",
+    })
+    expect(r.kind).toBe("ok")
+    expect(_activeWatcherCount()).toBe(1)
+  })
+
+  test("disposeAllWatchers: tears down every active watcher (no leaks)", () => {
+    mkdirSync(join(dir, "a"))
+    mkdirSync(join(dir, "b"))
+    writeFileSync(join(dir, "a", "README.md"), "# alpha\n")
+    writeFileSync(join(dir, "b", "README.md"), "# bravo\n")
+
+    resolvePreview({ preview: "readme", resolvesTo: join(dir, "a"), cacheKey: "leak-a" })
+    resolvePreview({ preview: "readme", resolvesTo: join(dir, "b"), cacheKey: "leak-b" })
+    expect(_activeWatcherCount()).toBe(2)
+
+    disposeAllWatchers()
+    expect(_activeWatcherCount()).toBe(0)
   })
 })

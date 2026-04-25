@@ -14,11 +14,14 @@
  *   - "shell" / "mcp"   → km-silvercode.autolinks-preview-extensions
  *   - "mcp" resolver    → km-silvercode.autolinks-mcp-resolver
  *
- * Caching: per-cache-key in-memory with a 30-second TTL. File-watcher
- * driven invalidation is deferred — see `km-silvercode.autolinks-cache-invalidation`.
+ * Caching: per-cache-key in-memory. File-backed previews (`readme`,
+ * `first-paragraph`) invalidate on `fs.watch` `change` events with a
+ * 200ms debounce, so the next `resolvePreview()` reads fresh content.
+ * Shell-out previews (`bd-active`) have no file backing and fall back to
+ * a 30-second TTL — see `km-silvercode.autolinks-cache-invalidation`.
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 import createDebug from "debug"
@@ -26,8 +29,11 @@ import type { AutolinkPreviewKind } from "./config.ts"
 
 const log = createDebug("silvercode:autolinks:previews")
 
-/** TTL for the per-target preview cache. */
+/** TTL fallback for previews without a file backing (e.g., `bd-active`). */
 export const PREVIEW_CACHE_TTL_MS = 30_000
+
+/** Debounce window for fs.watch change events. fsync can fire many times in a tight loop; we wait this long after the last event before evicting. */
+export const PREVIEW_WATCH_DEBOUNCE_MS = 200
 
 export type PreviewSuccess = {
   readonly kind: "ok"
@@ -52,19 +58,102 @@ export type PreviewResult = PreviewSuccess | PreviewError
  * resolves_to under different preview kinds doesn't collide.
  *
  * Exposed via `clearPreviewCache()` for tests. Production code never
- * resets it manually — entries expire on TTL.
+ * resets it manually — file-backed entries evict on fs.watch change
+ * events, shell-out entries expire on TTL.
  */
 const cache = new Map<string, PreviewResult>()
 
-/** Test-only: drop every cached preview so the next call goes through fresh. */
+/**
+ * Per-cache-key fs.watch handles. When a file-backed preview is cached,
+ * we register a watcher that evicts the entry on `change`. Watchers are
+ * torn down on cache eviction (manual or change-driven) and on
+ * `disposeAllWatchers()`.
+ */
+type WatcherEntry = {
+  readonly watcher: FSWatcher
+  /** Active debounce timer; cleared on eviction. */
+  debounce: ReturnType<typeof setTimeout> | null
+}
+const watchers = new Map<string, WatcherEntry>()
+
+/** Test-only: drop every cached preview so the next call goes through fresh. Also tears down all watchers. */
 export function clearPreviewCache(): void {
   cache.clear()
+  disposeAllWatchers()
+}
+
+/** Tear down every active fs.watch handle. Used by `clearPreviewCache()` and exposed for callers (e.g., `AutolinksProvider`) that want to dispose on unmount. */
+export function disposeAllWatchers(): void {
+  for (const [, entry] of watchers) {
+    if (entry.debounce !== null) clearTimeout(entry.debounce)
+    try {
+      entry.watcher.close()
+    } catch (err) {
+      log("watcher close failed: %s", String(err))
+    }
+  }
+  watchers.clear()
+}
+
+/** Tear down the watcher for a single cache key, if any. Idempotent. */
+function disposeWatcher(key: string): void {
+  const entry = watchers.get(key)
+  if (!entry) return
+  if (entry.debounce !== null) clearTimeout(entry.debounce)
+  try {
+    entry.watcher.close()
+  } catch (err) {
+    log("watcher close failed for %s: %s", key, String(err))
+  }
+  watchers.delete(key)
 }
 
 /**
- * Resolve a preview for the given autolink. Synchronous on cache hits
- * inside the TTL; otherwise runs the underlying loader (filesystem or
- * `bd` subprocess) and caches the result.
+ * Register an fs.watch handle for a cache key. On `change`, debounce
+ * for `PREVIEW_WATCH_DEBOUNCE_MS`, then evict the cache entry and tear
+ * down the watcher (the next resolve will register a fresh one).
+ */
+function registerWatcher(key: string, path: string): void {
+  // Replace any existing watcher for this key — the file we're tracking
+  // may have changed (e.g., README.md vs Readme.md resolution).
+  disposeWatcher(key)
+  let watcher: FSWatcher
+  try {
+    watcher = watch(path, () => {
+      const entry = watchers.get(key)
+      if (!entry) return
+      if (entry.debounce !== null) clearTimeout(entry.debounce)
+      entry.debounce = setTimeout(() => {
+        log("evicting %s after fs.watch change on %s", key, path)
+        cache.delete(key)
+        disposeWatcher(key)
+      }, PREVIEW_WATCH_DEBOUNCE_MS)
+    })
+  } catch (err) {
+    // fs.watch can fail (e.g., file deleted between stat and watch);
+    // we degrade silently — the entry just stays cached until the
+    // next manual clear or process restart.
+    log("fs.watch failed for %s: %s", path, String(err))
+    return
+  }
+  // If the watcher itself errors after creation, tear it down so we
+  // don't leak.
+  watcher.on("error", (err) => {
+    log("fs.watch errored for %s: %s", path, String(err))
+    disposeWatcher(key)
+  })
+  watchers.set(key, { watcher, debounce: null })
+}
+
+/**
+ * Resolve a preview for the given autolink. Synchronous on cache hits;
+ * otherwise runs the underlying loader (filesystem or `bd` subprocess)
+ * and caches the result.
+ *
+ * File-backed previews (`readme`, `first-paragraph`) register an
+ * fs.watch handle on cache insert so subsequent file modifications
+ * evict the entry. Shell-out previews (`bd-active`) have no file to
+ * watch and fall back to the 30s TTL.
  *
  * Errors never throw — they're returned as `PreviewError` so the popover
  * can show a useful diagnostic instead of crashing the render tree.
@@ -83,17 +172,31 @@ export function resolvePreview(args: {
   const t = now()
 
   const hit = cache.get(key)
-  if (hit && t - hit.resolvedAt < PREVIEW_CACHE_TTL_MS) return hit
+  if (hit) {
+    // File-backed entries stay valid until the watcher evicts them.
+    // Shell-out entries expire on TTL.
+    const isFileBacked = watchers.has(key)
+    if (isFileBacked) return hit
+    if (t - hit.resolvedAt < PREVIEW_CACHE_TTL_MS) return hit
+  }
 
   let result: PreviewResult
+  /** Path of the file actually read (for watcher registration). null = no file backing. */
+  let watchedPath: string | null = null
   try {
     switch (args.preview) {
-      case "readme":
-        result = renderReadme(args.resolvesTo, t)
+      case "readme": {
+        const path = resolveReadmePath(args.resolvesTo)
+        result = renderReadme(args.resolvesTo, path, t)
+        if (result.kind === "ok" && path !== null) watchedPath = path
         break
-      case "first-paragraph":
-        result = renderFirstParagraph(args.resolvesTo, t)
+      }
+      case "first-paragraph": {
+        const path = resolveReadmePath(args.resolvesTo) ?? args.resolvesTo
+        result = renderFirstParagraph(args.resolvesTo, path, t)
+        if (result.kind === "ok" && existsSync(path)) watchedPath = path
         break
+      }
       case "bd-active":
         result = renderBdActive(args.resolvesTo, t)
         break
@@ -108,6 +211,13 @@ export function resolvePreview(args: {
     result = { kind: "error", message: `preview failed: ${String(err)}`, resolvedAt: t }
   }
   cache.set(key, result)
+  if (watchedPath !== null) {
+    registerWatcher(key, watchedPath)
+  } else {
+    // No file backing — make sure any stale watcher (e.g., from a
+    // previous file-backed result that's now an error) is disposed.
+    disposeWatcher(key)
+  }
   return result
 }
 
@@ -130,8 +240,7 @@ function resolveReadmePath(resolvesTo: string): string | null {
   return resolvesTo
 }
 
-function renderReadme(resolvesTo: string, t: number): PreviewResult {
-  const path = resolveReadmePath(resolvesTo)
+function renderReadme(resolvesTo: string, path: string | null, t: number): PreviewResult {
   if (!path) {
     return { kind: "error", message: `no README found at ${resolvesTo}`, resolvedAt: t }
   }
@@ -143,8 +252,7 @@ function renderReadme(resolvesTo: string, t: number): PreviewResult {
   return { kind: "ok", body: trimmed, format: "markdown", resolvedAt: t }
 }
 
-function renderFirstParagraph(resolvesTo: string, t: number): PreviewResult {
-  const path = resolveReadmePath(resolvesTo) ?? resolvesTo
+function renderFirstParagraph(resolvesTo: string, path: string, t: number): PreviewResult {
   if (!existsSync(path)) {
     return { kind: "error", message: `file not found: ${resolvesTo}`, resolvedAt: t }
   }
@@ -225,4 +333,9 @@ function truncateForPopover(raw: string, maxLines: number): string {
   const lines = raw.split("\n")
   if (lines.length <= maxLines) return raw
   return [...lines.slice(0, maxLines), "", "…"].join("\n")
+}
+
+/** Test-only: introspect active watcher count. */
+export function _activeWatcherCount(): number {
+  return watchers.size
 }
