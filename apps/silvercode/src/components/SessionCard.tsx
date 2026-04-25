@@ -65,7 +65,14 @@ export function SessionCard({
       userSelect="contain"
       onClick={onFocus}
     >
-      <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
+      <Box
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        paddingX={1}
+        paddingTop={1}
+      >
         {state.messages.length === 0 ? (
           <Welcome handle={handle} />
         ) : (
