@@ -362,6 +362,10 @@ Flexily is a pure JavaScript flexbox layout engine -- Yoga-compatible API, 1.5-2
 
 11. **`bgDirty` exists for a reason.** When `backgroundColor` changes from `"cyan"` to `undefined`, the current value is falsy but stale cyan pixels remain in the clone. `bgDirty` ensures `contentAreaAffected` fires so the region gets cleared.
 
+14. **`createRenderer({cols, rows})` does NOT pin `root.style.width/height`.** It only passes them as the *available* size to `calculateLayout()`. Production roots use `<Screen>` which sets explicit `width/height` from the terminal. A `column → row → <Text wrap=wrap>` chain in a test root with `height=auto` correctly collapses to `height=1` via CSS max-content sizing — the row's intrinsic cross size is its tallest child's max-content height, and a wrappable Text at unconstrained width is exactly 1 line tall. Looks like a wrap bug, isn't. Tests for full-app layouts MUST pin `width`/`height` on the outermost Box (mirroring `<Screen>`).
+
+15. **silvery defaults `flexShrink: 0` (Yoga-compat, NOT CSS).** CSS default is `1`. Every container that should shrink to fit a parent — for example, a content row inside an `overflow="hidden"` boundary — must explicitly opt in with `flexShrink={1} minWidth={0}`. Without it, that row measures at `sum(children.maxContent)` ≫ parent width, the wrappable Text inside receives the wide measure, and `wrap="wrap"` never fires. Long-term direction: `km-silvery.flexshrink-default` (P2) tracks evaluating a flip to `1` once the ergonomics primitive `<Prose>` lands. Negative-knowledge tax until then.
+
 ## Borderless Overflow Indicator — Child Clip Reserve (2026-04-20)
 
 When a scroll container has `overflowIndicator=true` and no `borderStyle`, the
@@ -930,6 +934,28 @@ Hours debugging a non-existent rendering bug. TTY MCP text extraction (`mcp__tty
 
 11 test failures from missing pending-wrap semantics in internal VT100 parser. Parser wrapped immediately at last column instead of deferring. Production rendering was never affected -- only STRICT verification.
 
+### Wrap Misdiagnosis — Test-Harness `height=auto` Collapse (2026-04-24)
+
+Filed as `km-silvery.wrap-measurement` (P1): "flexily Phase 7a NaN×NaN cascade breaks `<Text wrap=wrap>` measurement in nested flexGrow column→row chains." Closed as not-a-bug after silvery-expert validation.
+
+**Surface symptom**: `apps/silvercode/tests/wrap-regression.test.tsx`'s App.tsx-mirror test renders a `column → row(wrap) → column×3 → <Text wrap="wrap">` chain (no root `height`) and observes only line 0 of the paragraph; the rest is "missing." The test documented the broken state with `expect(hasMiddle).toBe(false)` as a placeholder for "until the underlying flexily bug is fixed." Two independent commits had already added `flexShrink={1} minWidth={0}` to component-level rows (cdf14b592, 363deaf6f) — those fixed the *real* screenshot bug. The "residual" was something else.
+
+**Actual root cause**: `createRenderer({cols, rows})` only passes `cols`/`rows` as the *available* size to `calculateLayout()`; it does NOT set `root.style.width/height`. Production roots use `<Screen>` (`packages/ag-react/src/ui/components/Screen.tsx:51-58`) which sets explicit `width={dims.width} height={dims.height}` from the terminal. With root `height=auto`, intrinsic height = max-content of children. For a `column → row → wrappable-Text` chain: row's intrinsic cross size = tallest child's max-content cross = column's max-content cross = wrappable Text's max-content cross at unconstrained width = **1**. That cascades up: `row.h=1`, `outerCol.h=1`, `root.h=1`. Inside that 1-row area, Text gets the right wrap *width* but only renders the first line.
+
+**Why it looked like a flexily bug**: pure column-only chains pass (variant B) because the column main-axis = vertical = the path `flexGrow=1` distributes along, so heights expand; pure row-only chains pass (variant E) because there's no column→row transition above the wrappable text. Only column→row chains fail, which superficially looks like flexily can't propagate cross-axis through a direction switch. It's actually correct CSS max-content sizing.
+
+**flexily Phase 7a `measureNode(child, NaN, NaN)` is CSS-correct**: see `vendor/flexily/src/layout-zero.ts:947-952`. Phase 7a measures auto-sized container children at NaN×NaN to get their max-content intrinsic shrink-wrap size — that's what CSS Flexbox §9.7 specifies for `max-content` flex base size. Once a definite size arrives via Phase 5 main-axis distribution or Phase 6 cross-axis stretch, Phase 8 re-lays out children with the resolved childAvailH. The NaN→definite handoff happens at the layout-pass boundary, not inside Phase 7a. Propagating a tentative cross-axis size into Phase 7a would create the classic flexbox circular-dependency bug (child wraps based on tentative width → parent shrinks to wrapped width → child re-wraps narrower).
+
+**Fix landed**: pin `width`/`height` in the test outer Box (matching `<Screen>`); flip the broken assertion; add `contentPastBoundary` boundary check + wrapped-line sentinels; document the antipattern with a `.skip` test in `vendor/silvery/tests/features/wrap-nested-flexgrow.test.tsx`.
+
+**Diagnostic recipe for "Text won't wrap" reports**:
+1. Read the rendered output carefully — count chars on each line. If the text wraps at the right width but is truncated to N lines, the *container* height is wrong, not the wrap measurement.
+2. Add `id`s to each Box in the chain and dump `app.locator("#id").boundingBox()` for the entire chain. If every container has `height=1`, the root is `height=auto` and you're seeing max-content collapse, not a measurement defect.
+3. If reproducing a production bug, verify the production app's root: silvercode uses `<Screen>`, km-tui uses `withTerminal`'s implicit fullscreen, examples may use bare `<Box>` and miss the pin.
+4. flexily Phase 7a NaN×NaN is *correct*. Don't file beads against it without first verifying root height.
+
+**Counterpart silvercode bug (real, fixed earlier in `363deaf6f` + `cdf14b592`)**: silvery's `flexShrink: 0` default (Yoga-compat) means every container that should shrink to fit a parent must opt in with `flexShrink={1} minWidth={0}`. `DetectionText`'s outer column + inner flex-row, and `AssistantBlock`'s outer row, lacked those props. The grandchild `<Text wrap="wrap">` then received `sum(children.maxContent)` ≫ parent width and never wrapped — text overflowed past the side panel. **This** was the original screenshot bug; not a flexily defect either, but a default-mismatch consequence. The proper long-term fix is `<Prose>` (`km-silvercode.prose-primitive`, P2) — a primitive that encapsulates the correct flex chain so consumers never hand-roll it.
+
 ### Theme Cascade Cache Bug (2026-04-18)
 
 `ThemeProvider` was using the `setActiveTheme()` global for `$token` resolution. Migration to `<Box theme={merged}>` + `pushContextTheme/popContextTheme` worked for fresh renders but NOT for incremental renders after a theme change.
@@ -953,3 +979,86 @@ Why `SILVERY_STRICT=1` missed it: STRICT runs a "fresh render" via `doFreshRende
 5. Check the five critical formulas in `renderNodeToBuffer`
 6. Verify text bg inheritance (`nodeState.inheritedBg`) and region clearing bg color
 7. Parallel hypothesis testing via sub-agents
+
+## Staging — findings to groom
+
+### 2026-04-24 — `isModifierOnly` heuristic was wrong, two plugins, same bug (silvercode Shift+Tab regression)
+
+**Where it bit**: silvercode's `useInput` handler never saw `Shift+Tab` (nor
+`Shift+Enter`, `Shift+Arrow*`, `Ctrl+Tab`, …). Claude-Code-style
+"Shift+Tab cycles permission mode" binding silently dropped.
+
+**Root cause**: `with-input-chain.ts` and `with-focus-chain.ts` each had a
+local `isModifierOnly(input, key)` helper that derived modifier-only
+status from `input === ""` + any-modifier-set. That classifies *every*
+key whose payload comes via a dedicated flag (`key.tab`, `key.return`,
+`key.upArrow`, …) and whose string `input` is empty as "modifier-only"
+whenever the user also holds Shift / Ctrl / Alt / Meta. Shift+Tab is the
+canonical victim; all Kitty enhanced special keys with a modifier are
+affected.
+
+**Fix**: both plugins now consult `key.isModifierOnly === true`, set
+authoritatively by `@silvery/ag/keys.parseKey()` based on whether the
+name is in `MODIFIER_ONLY_NAMES` (leftshift / leftctrl / …). Heuristic
+gone. The existing canonical `isModifierOnlyEvent` in
+`@silvery/ag/keys` already had it right; only the chain plugins had
+rolled their own. Related: removed the `!hasActiveFocus()` short-circuit
+in `withFocusChain.apply` — it suppressed the intentional "Tab focuses
+first focusable when nothing is active" fallback that
+`handleFocusNavigation` supports.
+
+Commit: `vendor/silvery@8e5c7f32` (fix(chain)).
+
+`promote-to:` `RENDERING.md` — no, this is input-pipeline not rendering.
+`promote-to:` `vendor/silvery/packages/ag-term/src/runtime/CLAUDE.md` if
+we ever create one; for now the fix + tests in-tree are the
+documentation. Input-pipeline guide at
+`vendor/silvery/docs/guide/input-architecture.md` could get a "if you're
+filtering modifier-only events, consult `key.isModifierOnly`, never
+derive from `input === ""`" note.
+
+**Contract-test rule this triggers**: every plugin that filters "modifier-only"
+events must use the authoritative `key.isModifierOnly` — no local
+heuristics. Add to the mandatory-tests policy.
+
+### 2026-04-24 — readline-ops only dropped Super-held keys, not Ctrl/Meta/Alt
+
+**Where it bit**: silvercode bound Ctrl+O / Ctrl+Y / Ctrl+R / Ctrl+N in
+its app-level useInput. Each keypress inserted the bare letter into the
+TextInput below because readline's `char >= " "` branch accepted the
+event. Host had to hack around with
+`queueMicrotask(() => setInputValue(v => v.endsWith(letter) ? v.slice(0, -1) : v))`.
+
+**Fix**: `readline-ops.ts` drops all modifier-gated keys
+(`key.super || key.ctrl || key.meta || key.alt`) before the insert
+branch. The Ctrl-shortcuts readline itself handles (Ctrl+T/H/D/B/F/A/E/
+K/U/W/Y) match earlier in the function, so gating the rest drops only
+"not ours" keystrokes.
+
+Commit: `vendor/silvery@f9d1cc2a` (fix(readline)).
+
+`promote-to:` `vendor/silvery/docs/guide/the-silvery-way.md` —
+"Canonical components cooperate with host useInput" principle; the
+readline hook must not intercept host-shortcut keys it doesn't itself
+bind.
+
+### 2026-04-24 — `press()` focusConsumed branch renders once; UI stale on focus cycle
+
+**Where it bit**: in `run()` path's `createApp.press()`, when focus
+consumed a key (Tab/Shift+Tab focus-cycling), the branch does
+`doRender()` + `await Promise.resolve()` and returns. Components that
+read `focused` via `useFocusable` via `useSyncExternalStore` need a
+second commit — focus mutation pushes a subscriber notify, React
+schedules a commit, which only lands on the *next* doRender. Tests that
+assert on `app.text` after `app.press("Shift+Tab")` see stale "unfocused"
+text.
+
+**Not yet fixed**. Worked around the test by asserting on
+`focusManager.activeId` instead of rendered text. The proper fix is to
+run the effect-flush loop (same as the non-consumed branch) in the
+focusConsumed branch too. That change is straightforward but was backed
+out of the Shift+Tab fix to keep the commit surface minimal.
+
+`promote-to:` new bead `km-silvery.press-focus-rerender`. Low priority —
+real terminals see the update on the NEXT event's render pass; only
+synchronous tests notice.
