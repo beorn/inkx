@@ -154,6 +154,15 @@ const UNFOCUSED_STERLING_DIM: readonly string[] = [
   "bg-inverse",
   "fg-on-inverse",
   "fg-link",
+  // Sterling v1 completeness (km-silvery.sterling-no-negative-surprises) —
+  // disabled / backdrop / explicit defaults are all consumed by km-tui at
+  // render time and must dim alongside the rest when a pane is unfocused.
+  "fg-disabled",
+  "bg-disabled",
+  "border-disabled",
+  "bg-backdrop",
+  "fg-default",
+  "bg-default",
 ]
 
 /** Legacy Theme fields that still drive render output on silvery's legacy

@@ -94,7 +94,7 @@ function App() {
 <Text color="$fg-accent">Selected</Text>
 <Box backgroundColor="$bg-surface-subtle">Sidebar</Box>
 <Text color="$fg-on-error" backgroundColor="$bg-error">Error!</Text>
-<Alert tone="error">Something failed</Alert>     // resolves to tokens internally
+<Alert variant="error">Something failed</Alert>     // resolves to tokens internally
 ```
 
 Tokens read **channel-role-state** order (matches Primer / CSS var conventions). A nested `theme.accent.hover.bg` form is also available for programmatic access — see [Part 2 §Two shapes](#flat--the-user-facing-form).
@@ -106,6 +106,17 @@ Tokens read **channel-role-state** order (matches Primer / CSS var conventions).
 3. **`ThemeProvider` is the scoping primitive.** Everything else composes on top. `run({ theme })` just seeds the root — nest freely for modals, previews, multi-tenant branding, hot-swap.
 4. **Cross-platform by construction.** Same Theme, same `<ThemeProvider>`, same components across terminal / canvas / DOM / React Native. Only the output phase differs.
 5. **Preservative by default.** User-authored color schemes (Nord, Catppuccin) are sacred — Sterling's default derivation preserves the 22 input colors and only fills gaps. Generative derivations (Material-style from a seed) are supported as alternate modes.
+6. **Asymmetric surprise.** Sterling MUST NOT surprise users in the negative direction. Every reachable API must either work, or fail at compile time with a teaching message. Sterling MAY exceed expectations in the positive direction (auto-detection, contrast guarantees, helpful traces). Three corollaries (locked 2026-04-25):
+   - *No silent fallback.* No "best effort" to another token/role; mismatches surface, not paper over.
+   - *Auto-magic must be inspectable.* When derivation lifts contrast or repairs a token, the trace records it.
+   - *JS callers get runtime teaching errors.* TS users get compile-time failures; dynamic indexing throws `TypeError` with the valid set + "Did you mean …?".
+
+   Concrete consequences encoded in v1:
+   - Disabled token family (`fg-disabled`/`bg-disabled`/`border-disabled`) — adopters reach for these; they exist.
+   - `bg-backdrop` distinct from `bg-surface-overlay` — modal scrim and popover card bg are different surfaces.
+   - `fg-default` / `bg-default` are explicit public flat tokens.
+   - Component prop name is `variant` (industry-standard, satisfies muscle memory across Material/Chakra/shadcn/Radix/Polaris-via-its-actual-implementation). Per-component value unions enforce correctness — `<Alert variant="destructive">` won't compile.
+   - Status family type is `StatusRole`, not `InteractiveRole` — the family lacks `fg.hover/active`, the name now reflects that.
 
 ## How to frame it
 
@@ -210,15 +221,17 @@ Web-CSS export auto-flattens (`theme.accent.hover.fg` → `--fg-accent-hover`) a
 
 Sterling's roles (`error`, `warning`, `info`, `accent`, `success`) are **status tokens**: they communicate *what's happening* (this is an error, this needs attention). But UIs also need **intent tokens** for *what this action will do*.
 
-The classic case: a "Delete repository" button is not an error — it's a destructive action. Calling it `<Button tone="error">` sounds wrong in docs and code.
+The classic case: a "Delete repository" button is not an error — it's a destructive action. Calling it `<Button variant="error">` sounds wrong in docs and code.
 
 **Sterling provides `destructive` as a component-layer intent alias**, not a base color role:
 
 ```tsx
-<Alert tone="error" />        // status: something failed
-<Button tone="destructive" /> // intent: this will delete
-<Callout tone="warning" />    // status: heads up
+<Alert variant="error" />        // status: something failed
+<Button variant="destructive" /> // intent: this will delete
+<Callout variant="warning" />    // status: heads up
 ```
+
+The prop name is **`variant`** (the industry-standard convention from Material / Chakra / shadcn / Radix). Each component has its own allowed value union — `<Alert variant="destructive">` is a type error (Alert is a status component; destructive is an action intent). The asymmetry is enforced by the compiler, not by lint or docs. (`tone` is retained for one cycle as a deprecated alias.)
 
 By default, `destructive` aliases to `error` (same hex values). Apps can override to diverge. This gives semantic correctness without palette sprawl.
 
@@ -234,9 +247,9 @@ Urgency is expressed through **three mechanisms that aren't the design system**:
 2. **Position** — top-of-screen conveys more urgency than inline; center-modal conveys more than a corner toast.
 3. **Content** — "Warning" vs "⚠️ Critical: data loss in 30 seconds" is a copy/icon concern, not a token concern.
 
-No mainstream design system (Material, shadcn, MUI, Chakra, Ant) ships a separate urgency axis alongside color roles. Sterling follows the same pattern: one `tone` axis with 5 values (`error` / `warning` / `success` / `info` / `accent`), component APIs stay narrow, and apps compose escalation from component + position + content.
+No mainstream design system (Material, shadcn, MUI, Chakra, Ant) ships a separate urgency axis alongside color roles. Sterling follows the same pattern: one `variant` axis with 5 status values (`error` / `warning` / `success` / `info` / `accent`) plus component-specific intents, component APIs stay narrow, and apps compose escalation from component + position + content.
 
-When someone asks "how do I show a *critical* error?" — the answer is "use a `<Dialog>` with `tone='error'`, not an inline `<Alert>`." Not "add `priority='high'`."
+When someone asks "how do I show a *critical* error?" — the answer is "use a `<Dialog>` with `variant='error'`, not an inline `<Alert>`." Not "add `priority='high'`."
 
 ## Color scheme shape
 
@@ -479,7 +492,7 @@ No namespace indirection: both forms live at the root of `theme`. Kebab-hyphen k
 // What almost every user writes almost all the time:
 <Text color="$fg-accent">Click me</Text>
 <Box backgroundColor="$bg-accent-hover">...</Box>
-<Alert tone="error">Something failed</Alert>     // resolves to $fg-error + $bg-error-subtle
+<Alert variant="error">Something failed</Alert>     // resolves to $fg-error + $bg-error-subtle
 ```
 
 And programmatically — direct root access, no extra dot:
