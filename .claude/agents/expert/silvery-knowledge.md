@@ -364,7 +364,7 @@ Flexily is a pure JavaScript flexbox layout engine -- Yoga-compatible API, 1.5-2
 
 14. **`createRenderer({cols, rows})` does NOT pin `root.style.width/height`.** It only passes them as the *available* size to `calculateLayout()`. Production roots use `<Screen>` which sets explicit `width/height` from the terminal. A `column → row → <Text wrap=wrap>` chain in a test root with `height=auto` correctly collapses to `height=1` via CSS max-content sizing — the row's intrinsic cross size is its tallest child's max-content height, and a wrappable Text at unconstrained width is exactly 1 line tall. Looks like a wrap bug, isn't. Tests for full-app layouts MUST pin `width`/`height` on the outermost Box (mirroring `<Screen>`).
 
-15. **silvery defaults `flexShrink: 0` (Yoga-compat, NOT CSS).** CSS default is `1`. Every container that should shrink to fit a parent — for example, a content row inside an `overflow="hidden"` boundary — must explicitly opt in with `flexShrink={1} minWidth={0}`. Without it, that row measures at `sum(children.maxContent)` ≫ parent width, the wrappable Text inside receives the wide measure, and `wrap="wrap"` never fires. Long-term direction: `km-silvery.flexshrink-default` (P2) tracks evaluating a flip to `1` once the ergonomics primitive `<Prose>` lands. Negative-knowledge tax until then.
+15. **silvery uses CSS-correct flex defaults** (since 2026-04-25, commits `silvery 8d9ce3a6` + `silvery a3a3be96`). `flexShrink: 1`, `alignContent: stretch`, plus CSS §4.5 flex-item auto min-size on every Node. Wrap chains work without ceremony — the `flexShrink={1} minWidth={0}` cascade that was load-bearing under the old Yoga-flavored defaults is no longer needed. `<Prose>` is now optional typography sugar rather than a wrap-enablement primitive. The Yoga preset is reachable from flexily directly (`createFlexily({ defaults: "yoga" })`) for drop-in Yoga-compat consumers; the silvery Ink-compat layer uses Yoga preset internally via `createFlexilyZeroEngineForInkCompat()` (@internal). If a chain still fails to wrap, it's almost certainly a test-harness `height=auto` collapse (Gotcha #14) — not the old default-mismatch story.
 
 ## Borderless Overflow Indicator — Child Clip Reserve (2026-04-20)
 
@@ -954,7 +954,9 @@ Filed as `km-silvery.wrap-measurement` (P1): "flexily Phase 7a NaN×NaN cascade 
 3. If reproducing a production bug, verify the production app's root: silvercode uses `<Screen>`, km-tui uses `withTerminal`'s implicit fullscreen, examples may use bare `<Box>` and miss the pin.
 4. flexily Phase 7a NaN×NaN is *correct*. Don't file beads against it without first verifying root height.
 
-**Counterpart silvercode bug (real, fixed earlier in `363deaf6f` + `cdf14b592`)**: silvery's `flexShrink: 0` default (Yoga-compat) means every container that should shrink to fit a parent must opt in with `flexShrink={1} minWidth={0}`. `DetectionText`'s outer column + inner flex-row, and `AssistantBlock`'s outer row, lacked those props. The grandchild `<Text wrap="wrap">` then received `sum(children.maxContent)` ≫ parent width and never wrapped — text overflowed past the side panel. **This** was the original screenshot bug; not a flexily defect either, but a default-mismatch consequence. The proper long-term fix is `<Prose>` (`km-silvercode.prose-primitive`, P2) — a primitive that encapsulates the correct flex chain so consumers never hand-roll it.
+**Counterpart silvercode bug (real, fixed earlier in `363deaf6f` + `cdf14b592`)**: silvery historically defaulted `flexShrink: 0` (Yoga-compat) which meant every container that should shrink to fit a parent had to opt in with `flexShrink={1} minWidth={0}`. `DetectionText`'s outer column + inner flex-row, and `AssistantBlock`'s outer row, lacked those props. The grandchild `<Text wrap="wrap">` then received `sum(children.maxContent)` ≫ parent width and never wrapped — text overflowed past the side panel. **This** was the original screenshot bug; not a flexily defect either, but a default-mismatch consequence.
+
+**Resolution (2026-04-25)**: silvery flipped to CSS-correct defaults (`silvery 8d9ce3a6` + `silvery a3a3be96`) — `flexShrink: 1`, `alignContent: stretch`, plus CSS §4.5 flex-item auto min-size. The wrap-chain footgun is gone; both `<Box flexDirection="column">` and `<Prose>` produce wrapping behavior without ceremony. `<Prose>` survives as optional typography sugar. Silvery's Ink-compat layer keeps Yoga semantics via `createFlexilyZeroEngineForInkCompat()` (@internal); the Yoga preset is otherwise unreachable from production silvery code. See bead `km-flexily.auto-min-size-flex-items`.
 
 ### Theme Cascade Cache Bug (2026-04-18)
 
@@ -981,6 +983,71 @@ Why `SILVERY_STRICT=1` missed it: STRICT runs a "fresh render" via `doFreshRende
 7. Parallel hypothesis testing via sub-agents
 
 ## Staging — findings to groom
+
+### 2026-04-25 — cursor as layout output (Phase 2 of view-as-layout-output)
+
+**Where it bit**: silvercode's hardware cursor parked at the side-panel quota
+line on first frame after CommandBox conditionally mounted; only reset after
+the user typed (`km-silvercode.cursor-startup-position`). The legacy
+`useCursor` hook chain (`useScrollRect` → `useLayoutEffect` →
+`setCursorState`) had stale-null reads on the first commit because Box's
+`useState(null) + useLayoutEffect(setNode)` produced a two-commit mount and
+the scheduler painted before the second commit landed.
+
+**Root cause class**: cursor coordinates lived in a separate React-effect
+chain rather than being a layout output. Any `useBoxRect`-family read
+inherits this pattern (~10 callers in km/silvercode/silvery — see
+`docs/audit/use-layout-rect-callers.md`).
+
+**Fix shape**: cursor declared as `BoxProps.cursorOffset = { col, row,
+visible?, shape? }`. Layout phase computes absolute coordinates via
+`computeCursorRect(node)` (mirrors the border + padding math `useCursor` did
+at effect time) and writes to `LayoutSignals.cursorRect` — peer of
+boxRect/scrollRect/screenRect. Scheduler + runtime read
+`findActiveCursorRect(root)` (deepest visible cursor wins) and emit the
+cursor suffix.
+
+**Discovered along the way**: the `createApp` runtime path
+(`runtime/create-runtime.ts`) was emitting NO cursor positioning ANSI in
+fullscreen mode at all — only the legacy scheduler path had cursor suffix
+emission. Phase 2 added it to the runtime path too. Bonus fix: any
+silvercode session before today had a hidden hardware cursor wherever the
+last buffer-cell write happened to land.
+
+**Migration ergonomics**: TextArea / TextInput previously threaded
+`borderColOffset` / `borderRowOffset` constants manually. With
+cursorOffset-as-prop, the layout phase pulls border + padding from the same
+Box automatically — components only declare content-area-relative position.
+
+**Pattern to remember**: when a hook reads layout state via
+useLayoutEffect/useState, it has 1-frame stale-read latency on first mount.
+For deterministic semantics (hit-testing, cursor, focus, selection), make it
+a layout-output prop instead. The same pattern applies to Phases 3-6 of
+`km-silvery.view-as-layout-output`.
+
+**Files touched**:
+- `vendor/silvery/packages/ag/src/types.ts` — `CursorOffset`, `CursorShape`
+- `vendor/silvery/packages/ag/src/layout-signals.ts` — `cursorRect` signal,
+  `computeCursorRect`, `findActiveCursorRect`
+- `vendor/silvery/packages/ag-term/src/scheduler.ts` — `resolveActiveCursor`
+- `vendor/silvery/packages/ag-term/src/runtime/create-runtime.ts` — NEW
+  cursor suffix emission in fullscreen mode (was missing entirely)
+- `vendor/silvery/packages/ag-term/src/app.ts` — `getCursorState` consults
+  layout-output first
+- `vendor/silvery/packages/ag-term/src/xterm/index.ts` — same priority
+- `vendor/silvery/packages/ag-react/src/ui/components/TextArea.tsx`,
+  `TextInput.tsx` — migrated
+- `vendor/silvery/packages/ag-react/src/hooks/useCursor.ts` — `@deprecated`
+  back-compat wrapper
+- `vendor/silvery/tests/features/cursor-offset-prop.test.tsx` — six STRICT
+  invariants
+
+**promote-to: `vendor/silvery/packages/ag-term/src/pipeline/RENDERING.md`**
+once Phase 6 lands a layout-output guide. The "deepest visible wins" rule
+and the createApp-vs-scheduler cursor-emit asymmetry deserve a section in
+RENDERING.md alongside the dirty-flag cascade.
+
+---
 
 ### 2026-04-24 — `isModifierOnly` heuristic was wrong, two plugins, same bug (silvercode Shift+Tab regression)
 
