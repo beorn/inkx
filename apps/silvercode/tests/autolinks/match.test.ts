@@ -79,21 +79,31 @@ syntaxlinks:
 })
 
 describe("mergeDetections", () => {
-  test("built-in URL takes priority over an autolink that overlaps it", () => {
+  test("a configured autolink rule covering the full URL wins over the virtual plain-URL detection", () => {
+    // After the URL→handler-registry migration (bd-km-silvercode.url-detection-via-handlers),
+    // there is no builtin `kind: "url"`. Plain URLs become virtual autolinks
+    // emitted by `virtualUrlDetections`. A user-configured rule whose match
+    // STARTS at the same offset as the virtual URL detection wins because
+    // configured rules carry a lower `rule_idx` than virtual ones.
     const text = "see https://example.com/x for details"
     const builtins = detectReferences(text)
     const autolinkRules = rulesFromYaml(`
 syntaxlinks:
-  - pattern: "/example\\\\.com\\\\/x/"
+  - pattern: "/https:\\\\/\\\\/example\\\\.com\\\\/x/"
     resolves_to: "/local/x"
     preview: readme
 `)
     const autolinks = detectAutolinks(text, autolinkRules)
     const merged = mergeDetections(builtins, autolinks)
-    // The URL detection wins; the autolink that intersects it is dropped.
     const kinds = merged.map((d) => d.kind)
-    expect(kinds).toContain("url")
-    expect(kinds).not.toContain("autolink")
+    // No more builtin URL kind.
+    expect(kinds).not.toContain("url")
+    // Exactly one autolink survives at the URL's range — the configured one
+    // (resolves_to=/local/x), NOT the virtual detection.
+    const autolink = merged.find((d) => d.kind === "autolink")
+    expect(autolink).toBeDefined()
+    expect(autolink?.payload.resolves_to).toBe("/local/x")
+    expect(autolink?.payload.virtual).toBeUndefined()
   })
 
   test("non-overlapping autolinks merge in start order", () => {

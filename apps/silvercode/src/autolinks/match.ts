@@ -3,17 +3,17 @@
  *
  * `detectAutolinks(text, rules)` scans `text` against the user's autolink
  * rules and emits a `Detection`-shaped record for every non-overlapping
- * match. Results merge with the built-in detections (URL, file path, bead
- * ID) downstream — see `mergeDetections` in this file.
+ * match. Results merge with the built-in detections (file path, bead ID,
+ * km node, code-ref) downstream — see `mergeDetections` in this file.
  *
  * The merged list is what flows through `<DetectionText/>` unchanged.
  *
- * After the URI pivot, this module ALSO emits *virtual* autolink detections
- * for URL-shaped tokens in the input text that aren't covered by a
- * configured rule. Those virtual detections carry `preview: "https"` (or
- * the URL's scheme) and `resolves_to: <url>` so the handler registry can
- * render them through the same dispatch pipeline as configured rules. See
- * `PLAIN_URL_RE` and `virtualUrlDetections` below.
+ * Plain URLs in messages produce *virtual* autolink detections via
+ * `virtualUrlDetections` below: they carry `preview: "https"` and
+ * `resolves_to: <url>` so the handler registry renders them through the
+ * same dispatch pipeline as configured rules. URLs are NOT a builtin
+ * detection kind anymore — see
+ * `bd-km-silvercode.url-detection-via-handlers`.
  */
 
 import type { Detection } from "../detection.ts"
@@ -33,13 +33,13 @@ import type { AutolinkRule } from "./config.ts"
  * `https?://...` token in displayed text becomes an autolink so the
  * handler registry resolves it the same way as a configured rule.
  *
- * Mirrors the shape of the URL_RE in `detection.ts` (which handles the
- * built-in `kind: "url"` detection) but lives here so virtual rules can
- * coexist with built-ins. A built-in URL detection still wins via
- * `mergeDetections` precedence — virtual autolink detections only land in
- * the merged list when no built-in covers the same span (which is by
- * design: built-ins draw plain URL popovers; plain URLs as autolinks would
- * be the path forward only after we rip out the built-in renderer).
+ * As of `bd-km-silvercode.url-detection-via-handlers`, plain URLs are
+ * *only* produced here — there is no longer a builtin `kind: "url"`
+ * detection in `detection.ts`. Configured autolink rules with a lower
+ * `rule_idx` still take priority over a virtual detection at the same
+ * span (see the priority sort in `detectAutolinks`). The `URL_EXCLUDE_RE`
+ * in `detection.ts` mirrors this regex so the file detector skips ranges
+ * inside URLs.
  */
 const PLAIN_URL_RE = /\bhttps?:\/\/[^\s)\]]+/g
 

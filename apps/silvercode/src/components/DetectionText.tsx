@@ -99,13 +99,6 @@ function renderPopoverContent(d: Detection): React.ReactNode {
           {d.payload.line && <Text>line {d.payload.line}</Text>}
         </Box>
       )
-    case "url":
-      return (
-        <Box flexDirection="column">
-          <Text bold>{d.payload.url}</Text>
-          <Text>Fetch on-demand: WebFetch resolves on expand.</Text>
-        </Box>
-      )
     case "km-node":
       return (
         <Box flexDirection="column">
@@ -121,17 +114,18 @@ function renderPopoverContent(d: Detection): React.ReactNode {
           </Text>
         </Box>
       )
+    // Plain URLs land here as `kind: "autolink"` with `payload.virtual === "1"`
+    // — the migration in `bd-km-silvercode.url-detection-via-handlers` removed
+    // the dedicated `kind: "url"` branch in favor of the handler registry path.
     case "autolink":
       return renderAutolinkPopover(d)
   }
 }
 
-function colorFor(kind: Detection["kind"]): string {
-  switch (kind) {
+function colorFor(d: Detection): string {
+  switch (d.kind) {
     case "bead":
       return "$accent"
-    case "url":
-      return "$info"
     case "file":
       return "$primary"
     case "km-node":
@@ -139,7 +133,10 @@ function colorFor(kind: Detection["kind"]): string {
     case "code-ref":
       return "$primary"
     case "autolink":
-      return "$secondary"
+      // Virtual plain-URL detections inherit the legacy URL color so plain
+      // links read like links. Configured autolinks keep `$secondary` to
+      // distinguish rule-driven matches from raw URLs.
+      return d.payload.virtual === "1" ? "$info" : "$secondary"
   }
 }
 
@@ -195,7 +192,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
           pieces.push(
             <Text
               key={`d${d.start}`}
-              color={colorFor(d.kind)}
+              color={colorFor(d)}
               underline
               onClick={() => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })}
             >

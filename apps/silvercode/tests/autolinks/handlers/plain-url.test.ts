@@ -3,21 +3,17 @@
  * in displayed text flows through the handler registry as a virtual rule,
  * routed via the `https:` scheme to a webcard preview.
  *
- * Bead: km-silvercode.autolinks-uri-pivot
+ * Beads: km-silvercode.autolinks-uri-pivot,
+ *        km-silvercode.url-detection-via-handlers
  *
- * This is the "plain URL pipeline confirmation" required by the bead. Two
- * layers are exercised:
+ * Three layers are exercised:
  *   1. `detectAutolinks` emits a virtual autolink for any URL-shaped token
  *      not already covered by a configured rule.
- *   2. `resolvePreview` routes that detection through `parseResolvesTo` and
+ *   2. After `mergeDetections` (no longer shadowed by a builtin URL kind),
+ *      the virtual detection is what reaches `<DetectionText/>`.
+ *   3. `resolvePreview` routes that detection through `parseResolvesTo` and
  *      the handler registry, dispatching on the `https:` scheme to produce
  *      the v1 webcard placeholder body.
- *
- * Note: in the full DetectionText pipeline, `mergeDetections` shadows the
- * autolink-virtual detection with the built-in `kind: "url"` detection from
- * `detection.ts`. That's intentional in v1 — replacing the built-in URL
- * popover with the registry-driven one is a follow-up. The pipeline below
- * proves the registry handles plain URLs correctly when reached.
  */
 
 import { describe, expect, test } from "vitest"
@@ -88,18 +84,57 @@ describe("plain URL → handler registry", () => {
     expect(detectAutolinks("just some prose with no URLs", [])).toEqual([])
   })
 
-  test("mergeDetections still shadows virtual URL autolinks with built-in url detections (v1 behavior)", () => {
-    // Documents the v1 layering: detection.ts produces kind=url for plain URLs
-    // and mergeDetections gives builtins priority over autolinks. The virtual
-    // detection from detectAutolinks is dropped here. This is by design in v1
-    // — the URL popover renderer is independent of the registry. Once the URL
-    // popover migrates to use the registry, this test will flip.
+  test("after the URL→handler-registry migration, mergeDetections preserves virtual URL autolinks", () => {
+    // Post-migration layering: detection.ts no longer produces a builtin
+    // `kind: "url"`, so mergeDetections lets the virtual autolink through
+    // to the renderer. The autolink popover then resolves through the
+    // https handler. Bead: km-silvercode.url-detection-via-handlers.
     const text = "see https://github.com/foo/bar for details"
     const builtins = detectReferences(text)
     const autolinks = detectAutolinks(text, [])
     const merged = mergeDetections(builtins, autolinks)
     const kinds = merged.map((d) => d.kind)
-    expect(kinds).toContain("url")
-    expect(kinds).not.toContain("autolink")
+    expect(kinds).not.toContain("url")
+    expect(kinds).toContain("autolink")
+
+    // The autolink that survives is the virtual one for the URL itself.
+    const url = merged.find((d) => d.kind === "autolink")
+    expect(url).toBeDefined()
+    expect(url?.match).toBe("https://github.com/foo/bar")
+    expect(url?.payload.virtual).toBe("1")
+    expect(url?.payload.resolves_to).toBe("https://github.com/foo/bar")
+  })
+
+  test("end-to-end: virtual detection → handler registry → webcard popover body", () => {
+    // The pinned-limitation test above documented the v1 gap. This is the
+    // end-to-end version that exercises the full chain: scan text, merge,
+    // resolve through resolvePreview, expect handler-registry output.
+    clearPreviewCache()
+    const text = "open https://github.com/foo/bar to inspect"
+    const builtins = detectReferences(text)
+    const autolinks = detectAutolinks(text, [])
+    const merged = mergeDetections(builtins, autolinks)
+
+    // Exactly one detection survives: the virtual URL autolink.
+    expect(merged).toHaveLength(1)
+    const d = merged[0]!
+    expect(d.kind).toBe("autolink")
+    expect(d.payload.virtual).toBe("1")
+
+    // resolvePreview routes through the https handler — the body is the
+    // webcard placeholder, not the legacy "Fetch on-demand" line.
+    const result = resolvePreview({
+      preview: d.payload.preview ?? "https",
+      resolvesTo: d.payload.resolves_to ?? "",
+      cacheKey: d.payload.cache_key ?? d.match,
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    expect(result.body).toContain("https://github.com/foo/bar")
+    expect(result.body).toMatch(/webcard fetch not yet implemented/i)
+    // The legacy popover used the line "Fetch on-demand: WebFetch resolves
+    // on expand." — make sure it's gone.
+    expect(result.body).not.toMatch(/Fetch on-demand/i)
+    expect(result.body).not.toMatch(/WebFetch resolves on expand/i)
   })
 })

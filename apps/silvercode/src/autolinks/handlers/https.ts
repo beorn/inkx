@@ -4,9 +4,10 @@
  * v1 doesn't fetch the URL (that needs offline-safe fetching, OG metadata
  * extraction, sandboxing) — instead we surface a structured placeholder so
  * users see the URL details up front. Plain URLs detected in messages flow
- * through this handler via virtual rules emitted by `match.ts`; the existing
- * `kind: "url"` detection in `detection.ts` continues to render its built-in
- * popover (no double-handling).
+ * through this handler via virtual rules emitted by `match.ts`. There is no
+ * longer a builtin `kind: "url"` detection in `detection.ts`; this handler
+ * is the sole rendering path for plain URLs (see
+ * `bd-km-silvercode.url-detection-via-handlers`).
  *
  * Future: replace the placeholder body with a webcard fetch. Tracking via
  * `km-silvercode.autolinks-uri-pivot` follow-up.

@@ -3,13 +3,40 @@ import { detectReferences } from "../src/detection.ts"
 import { parseBlocks, parseInline } from "../src/markdown.ts"
 
 describe("detection", () => {
-  test("finds bead ids, file paths, urls, and code refs", () => {
+  test("finds bead ids, file paths, and code refs", () => {
+    // URLs no longer produce a builtin detection — they flow through the
+    // autolinks virtual-detection path instead (handler registry). See
+    // `bd-km-silvercode.url-detection-via-handlers`.
     const text = "See km-silvercode.m0-harness-skeleton — also apps/silvercode/src/App.tsx:42 and https://silvery.dev"
     const d = detectReferences(text)
     const kinds = d.map((x) => x.kind)
     expect(kinds).toContain("bead")
     expect(kinds).toContain("code-ref")
-    expect(kinds).toContain("url")
+    // URL is intentionally NOT in builtins anymore.
+    expect(kinds).not.toContain("url")
+  })
+
+  test("URL spans don't get split into file detections", () => {
+    // Without the URL-mask in detectReferences, FILE_RE would grab the
+    // `/foo/bar` inside `https://github.com/foo/bar`. The URL itself is
+    // matched downstream by `detectAutolinks` virtual rules.
+    const text = "see https://github.com/foo/bar for details"
+    const d = detectReferences(text)
+    expect(d).toHaveLength(0)
+  })
+
+  test("real file paths outside URLs still detect", () => {
+    const text = "open /Users/me/foo.ts:5 not https://example.com/bar"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file" || x.kind === "code-ref")
+    expect(files.length).toBeGreaterThan(0)
+    // None of the detected ranges should fall inside the URL.
+    const urlStart = text.indexOf("https://")
+    const urlEnd = text.length
+    for (const det of d) {
+      const inside = det.start >= urlStart && det.end <= urlEnd
+      expect(inside, `detection ${JSON.stringify(det)} should not be inside URL`).toBe(false)
+    }
   })
 
   test("non-overlapping", () => {
@@ -75,7 +102,7 @@ describe("markdown tokenizer", () => {
     // Must contain a bold token whose text has no stray asterisks / underscores.
     const bold = tokens.find((t) => t.kind === "bold")
     expect(bold).toBeTruthy()
-    if (!bold || bold.kind !== "bold") return
+    if (bold?.kind !== "bold") return
     expect(bold.text).not.toMatch(/[*_]/)
     expect(bold.text.trim()).toBe("bold italic")
     // Surrounding text should still be present.
@@ -85,20 +112,13 @@ describe("markdown tokenizer", () => {
   })
 
   test("fenced code block inside a list item", () => {
-    const md = [
-      "- before",
-      "- item with code:",
-      "  ```ts",
-      "  const x = 1",
-      "  ```",
-      "- after",
-    ].join("\n")
+    const md = ["- before", "- item with code:", "  ```ts", "  const x = 1", "  ```", "- after"].join("\n")
     const blocks = parseBlocks(md)
     const kinds = blocks.map((b) => b.kind)
     expect(kinds).toContain("code")
     const codeBlock = blocks.find((b) => b.kind === "code")
     expect(codeBlock).toBeTruthy()
-    if (!codeBlock || codeBlock.kind !== "code") return
+    if (codeBlock?.kind !== "code") return
     expect(codeBlock.language).toBe("ts")
     expect(codeBlock.code).toContain("const x = 1")
     // The bullets surrounding the code still need to render.
@@ -107,16 +127,11 @@ describe("markdown tokenizer", () => {
   })
 
   test("table with inline code + bold inside cells", () => {
-    const md = [
-      "| name | value |",
-      "|------|-------|",
-      "| `a`  | **hi** |",
-      "| b    | _em_   |",
-    ].join("\n")
+    const md = ["| name | value |", "|------|-------|", "| `a`  | **hi** |", "| b    | _em_   |"].join("\n")
     const blocks = parseBlocks(md)
     const t = blocks.find((b) => b.kind === "table")
     expect(t).toBeTruthy()
-    if (!t || t.kind !== "table") return
+    if (t?.kind !== "table") return
     expect(t.headers).toEqual(["name", "value"])
     // Cells flatten inline formatting to plain text — the important thing is
     // the cell's visible text survives the table projection.
@@ -130,9 +145,7 @@ describe("markdown tokenizer", () => {
     // allowed — all we require is a non-empty, synchronous result.
     const blocks = parseBlocks("Writing **unclosed bold and continuing…")
     expect(blocks.length).toBeGreaterThan(0)
-    const text = blocks
-      .map((b) => ("text" in b ? b.text : "code" in b ? b.code : ""))
-      .join(" ")
+    const text = blocks.map((b) => ("text" in b ? b.text : "code" in b ? b.code : "")).join(" ")
     expect(text).toMatch(/unclosed bold/)
   })
 
