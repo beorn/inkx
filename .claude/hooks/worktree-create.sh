@@ -39,6 +39,35 @@ fi
 WORKTREE_PATH="$PROJECT_DIR/.claude/worktrees/$NAME"
 echo "$(date '+%H:%M:%S') [$NAME] creating clone at $WORKTREE_PATH" >> "$LOG"
 
+# Pre-create gate: refuse if too many fully-clean clones have piled up.
+# 2026-04-24 incident: 23 clones accumulated over 36h → fseventsd 213% CPU
+# → 2 system crashes + agent slowdown via I/O contention. The lock
+# serialization in isolate.sh prevents PARALLEL contention but doesn't
+# bound ACCUMULATION. This gate forces the user to run `bun worktree gc`
+# (or, once auto-cleanup-on-remove lands, the gate becomes a safety net).
+# Threshold rationale: ≤4 clean clones is normal noise; ≥5 means hygiene
+# has lapsed. Dirty/unique-work clones don't trigger the gate — they hit
+# the existing preservation policy and shouldn't block real work.
+CLEAN_STALE=0
+WORKTREES_DIR="$PROJECT_DIR/.claude/worktrees"
+if [ -d "$WORKTREES_DIR" ] && [ -f "$LIB_DIR/classify-clone.sh" ]; then
+  # shellcheck source=../lib/classify-clone.sh
+  source "$LIB_DIR/classify-clone.sh"
+  for wt in "$WORKTREES_DIR"/agent-*; do
+    [ -d "$wt" ] || continue
+    cls=$(classify_clone "$wt" 2>/dev/null)
+    case "$cls" in
+      clean|broken) CLEAN_STALE=$((CLEAN_STALE + 1)) ;;
+    esac
+  done
+fi
+if [ "$CLEAN_STALE" -ge 5 ]; then
+  msg="$CLEAN_STALE stale agent worktrees (clean+broken) at $WORKTREES_DIR. Run: bun worktree gc"
+  echo "$(date '+%H:%M:%S') [$NAME] GATED — $msg" >> "$LOG"
+  printf '{"continue": false, "stopReason": "%s"}\n' "$msg"
+  exit 0
+fi
+
 # Source isolate.sh and run the clone SYNCHRONOUSLY.
 # Agent starts as soon as we return — target must be ready.
 # shellcheck source=../lib/isolate.sh
