@@ -155,7 +155,7 @@ export function ColumnHeader({
   hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? "$selection" : icon.color
+  const iconColor = isColumnSelected ? "$fg-on-selected" : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
 
   // Build count display
@@ -223,7 +223,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$selectionbg" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width))}</Text>
+          <Text color={isColumnSelected ? "$bg-selected" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width))}</Text>
         </Box>
       )}
     </Box>
@@ -281,9 +281,9 @@ export function NodeLineView({
 
   // Dimmed items (done/dropped or has a done ancestor) use $fg-muted when no
   // explicit textColor is set. Selection color wins over muted.
-  const textColor = isSelected ? "$selection" : shouldDim ? "$fg-muted" : undefined
-  const bgColor = isSelected ? "$selectionbg" : undefined
-  const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$fg-on-selected" : shouldDim ? "$fg-muted" : undefined
+  const bgColor = isSelected ? "$bg-selected" : undefined
+  const iconColor = isSelected ? "$fg-on-selected" : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
@@ -351,9 +351,9 @@ export function NodeCardView({
 
   // When dimmed (done/dropped or done ancestor) and not selected, use muted
   // foreground. Selection color wins.
-  const textColor = isSelected ? "$selection" : shouldDim ? "$fg-muted" : undefined
-  const bgColor = isSelected ? "$selectionbg" : undefined
-  const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$fg-on-selected" : shouldDim ? "$fg-muted" : undefined
+  const bgColor = isSelected ? "$bg-selected" : undefined
+  const iconColor = isSelected ? "$fg-on-selected" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
@@ -396,13 +396,13 @@ export function NodeCardView({
               text={displayContent}
               context={{ stripInlineColors: shouldStripColor || undefined, hideFields: true }}
             />
-            {subtaskBadge && <Text color={isSelected ? "$selection" : "$fg-muted"}>{` ${subtaskBadge}`}</Text>}
+            {subtaskBadge && <Text color={isSelected ? "$fg-on-selected" : "$fg-muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text color="$fg-muted">{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
           <Box flexShrink={0}>
-            <Text color={isSelected ? "$selection" : "$fg-error"}>{" blocked"}</Text>
+            <Text color={isSelected ? "$fg-on-selected" : "$fg-error"}>{" blocked"}</Text>
           </Box>
         )}
         {hasDateBadge && (
@@ -460,8 +460,8 @@ export function NodeColumnView({
   isSelected = false,
   width,
 }: NodeColumnViewProps): React.ReactElement {
-  const textColor = isSelected ? "$selection" : undefined
-  const bgColor = isSelected ? "$selectionbg" : undefined
+  const textColor = isSelected ? "$fg-on-selected" : undefined
+  const bgColor = isSelected ? "$bg-selected" : undefined
 
   // Icon comes from the type-bullet resolver — it owns the mdsection→§,
   // folder→, mdfile→, etc. mapping. We no longer hardcode `§ ` here
@@ -483,12 +483,12 @@ export function NodeColumnView({
           </Text>
         </Box>
         <Box flexShrink={0}>
-          <Text color={isSelected ? "$selection" : "$fg-muted"}>{` ${count}`}</Text>
+          <Text color={isSelected ? "$fg-on-selected" : "$fg-muted"}>{` ${count}`}</Text>
         </Box>
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text color={isSelected ? "$selectionbg" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width ?? 40))}</Text>
+        <Text color={isSelected ? "$bg-selected" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width ?? 40))}</Text>
       </Box>
     </Box>
   )
@@ -539,10 +539,10 @@ export function NodeTabView({
   // Inactive + non-selected tabs get muted fg when dimInactive is set. Active
   // selected tab fg wins over muted.
   const inactiveMuted = !isActive && !isSelected && dimInactive
-  const textColor = isSelected ? "$selection" : isActive ? "$selectionbg" : inactiveMuted ? "$fg-muted" : "$fg"
+  const textColor = isSelected ? "$fg-on-selected" : isActive ? "$bg-selected" : inactiveMuted ? "$fg-muted" : "$fg"
 
   return (
-    <Box backgroundColor={isSelected ? "$selectionbg" : undefined}>
+    <Box backgroundColor={isSelected ? "$bg-selected" : undefined}>
       <Text bold color={textColor}>
         {" "}
         {untitled ? <Text color={"$fg-muted"}>{truncatedName}</Text> : truncatedName}
@@ -613,12 +613,12 @@ export function NodeDetailView({
       width={width}
       height={height}
       borderStyle="round"
-      borderColor={"$selectionbg"}
+      borderColor={"$bg-selected"}
       backgroundColor={"$bg-surface-overlay"}
     >
       {/* Title header — yellow bg */}
-      <Box flexDirection="column" width={width - 2} backgroundColor={"$selectionbg"} paddingX={1}>
-        <Text bold color={"$selection"} wrap="wrap">
+      <Box flexDirection="column" width={width - 2} backgroundColor={"$bg-selected"} paddingX={1}>
+        <Text bold color={"$fg-on-selected"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
           <InlineText text={displayContent} context={{ stripInlineColors: true, hideFields: true }} />
         </Text>
@@ -741,7 +741,7 @@ export function deriveColumnHeaderProps(
   // Virtual body columns: muted header unless cursor is on column header.
   // Folds what was previously `dimColor: true` into the foreground color —
   // $fg-muted is the canonical "secondary text" token, so dim + color would
-  // be redundant. Don't override an explicit selection color ($selection /
+  // be redundant. Don't override an explicit selection color ($fg-on-selected /
   // $fg-accent), only the undefined (default fg) case.
   if (isVirtual && !opts.isColumnSelected && headerStyle.color === undefined) {
     headerStyle.color = "$fg-muted"

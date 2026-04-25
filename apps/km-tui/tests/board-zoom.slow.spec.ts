@@ -1364,7 +1364,7 @@ describe("zoom out from file to folder shows multiple columns", () => {
 // =============================================================================
 
 describe("Zoom color assertions", () => {
-  test("cursor card has $selection-bg after zoom in", () => {
+  test("cursor card has $bg-selected after zoom in", () => {
     using app = createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))), {
       cols: 80,
       rows: 24,
@@ -1383,15 +1383,15 @@ describe("Zoom color assertions", () => {
     let hasSelectionBg = false
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = app.screen.cell(x, box.y)
-      if (colorEquals(cell.bg, TC["$selection-bg"])) {
+      if (colorEquals(cell.bg, TC["$bg-selected"])) {
         hasSelectionBg = true
         break
       }
     }
-    expect(hasSelectionBg, "cursor card should have $selection-bg after zoom in").toBe(true)
+    expect(hasSelectionBg, "cursor card should have $bg-selected after zoom in").toBe(true)
   })
 
-  test("cursor card has $selection-bg after zoom out", () => {
+  test("cursor card has $bg-selected after zoom out", () => {
     using app = createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"))))),
       { cols: 120, rows: 24 },
@@ -1417,15 +1417,15 @@ describe("Zoom color assertions", () => {
     let hasSelectionBg = false
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = app.screen.cell(x, box.y)
-      if (colorEquals(cell.bg, TC["$selection-bg"])) {
+      if (colorEquals(cell.bg, TC["$bg-selected"])) {
         hasSelectionBg = true
         break
       }
     }
-    expect(hasSelectionBg, `cursor card "${cursorId}" should have $selection-bg after zoom out`).toBe(true)
+    expect(hasSelectionBg, `cursor card "${cursorId}" should have $bg-selected after zoom out`).toBe(true)
   })
 
-  test("non-cursor cards do NOT have $selection-bg after zoom", () => {
+  test("non-cursor cards do NOT have $bg-selected after zoom", () => {
     using app = createTestApp(
       item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
       { cols: 120, rows: 24 },
@@ -1446,12 +1446,12 @@ describe("Zoom color assertions", () => {
       let hasSelectionBg = false
       for (let x = box.x; x < box.x + box.width; x++) {
         const cell = app.screen.cell(x, box.y)
-        if (colorEquals(cell.bg, TC["$selection-bg"])) {
+        if (colorEquals(cell.bg, TC["$bg-selected"])) {
           hasSelectionBg = true
           break
         }
       }
-      expect(hasSelectionBg, `non-cursor card "${nodeId}" should NOT have $selection-bg`).toBe(false)
+      expect(hasSelectionBg, `non-cursor card "${nodeId}" should NOT have $bg-selected`).toBe(false)
     }
   })
 
@@ -1482,12 +1482,12 @@ describe("Zoom color assertions", () => {
     let hasSelectionBg = false
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = app.screen.cell(x, box.y)
-      if (colorEquals(cell.bg, TC["$selection-bg"])) {
+      if (colorEquals(cell.bg, TC["$bg-selected"])) {
         hasSelectionBg = true
         break
       }
     }
-    expect(hasSelectionBg, "cursor card should have $selection-bg after zoom at wide terminal").toBe(true)
+    expect(hasSelectionBg, "cursor card should have $bg-selected after zoom at wide terminal").toBe(true)
 
     // Zoom back out
     app.press("Z")
@@ -1499,12 +1499,12 @@ describe("Zoom color assertions", () => {
     let hasSelectionBg2 = false
     for (let x = box2.x; x < box2.x + box2.width; x++) {
       const cell = app.screen.cell(x, box2.y)
-      if (colorEquals(cell.bg, TC["$selection-bg"])) {
+      if (colorEquals(cell.bg, TC["$bg-selected"])) {
         hasSelectionBg2 = true
         break
       }
     }
-    expect(hasSelectionBg2, "cursor card should have $selection-bg after zoom out").toBe(true)
+    expect(hasSelectionBg2, "cursor card should have $bg-selected after zoom out").toBe(true)
   })
 })
 
@@ -1609,7 +1609,7 @@ describe("Regression: zoom-garble-repro — Zoom-out rendering at wide terminal"
     expect(col0Bg, "breadcrumb bar column 0 bg should match column 1").toEqual(col1Bg)
 
     // Check that every cell in row 0 has a non-null background (the top bar
-    // should fill the entire row with $selection-bg or similar).
+    // should fill the entire row with $bg-selected or similar).
     const nullBgCells: number[] = []
     for (let x = 0; x < cols; x++) {
       const cell = app.screen.cell(x, 0)
@@ -1648,8 +1648,8 @@ describe("Regression: zoom-garble-repro — Zoom-out rendering at wide terminal"
     if (!selectedBox) return
 
     // Sample the selection background color from a cell within the selected card.
-    // Find the first cell with $selection-bg inside the card bounds.
-    const selectionBg = TC["$selection-bg"]
+    // Find the first cell with $bg-selected inside the card bounds.
+    const selectionBg = TC["$bg-selected"]
     let foundSelectionBg = false
     for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
       const cell = app.screen.cell(x, selectedBox.y)
@@ -1660,10 +1660,10 @@ describe("Regression: zoom-garble-repro — Zoom-out rendering at wide terminal"
     }
     expect(
       foundSelectionBg,
-      `selected card "${selectedNodeId}" should have $selection-bg (${JSON.stringify(selectionBg)}) somewhere in its row`,
+      `selected card "${selectedNodeId}" should have $bg-selected (${JSON.stringify(selectionBg)}) somewhere in its row`,
     ).toBe(true)
 
-    // Check cells ABOVE the selected card -- they should NOT have $selection-bg.
+    // Check cells ABOVE the selected card -- they should NOT have $bg-selected.
     // Skip row 0 (breadcrumb bar) which legitimately uses the same bg token.
     const rowsAbove: { x: number; y: number }[] = []
     for (let y = Math.max(1, selectedBox.y - 3); y < selectedBox.y; y++) {
@@ -1682,7 +1682,7 @@ describe("Regression: zoom-garble-repro — Zoom-out rendering at wide terminal"
         .join(", ")}`,
     ).toHaveLength(0)
 
-    // Check cells BELOW the selected card -- they should NOT have $selection-bg
+    // Check cells BELOW the selected card -- they should NOT have $bg-selected
     const rowsBelow: { x: number; y: number }[] = []
     for (let y = selectedBox.y + selectedBox.height; y < Math.min(rows, selectedBox.y + selectedBox.height + 3); y++) {
       for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {

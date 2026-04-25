@@ -41,13 +41,13 @@ import { defaultKmTheme } from "../src/theme.ts"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
-/** $selectionbg resolved against the active test theme (Nord-derived).
+/** $bg-selected resolved against the active test theme (Nord-derived).
  * Canonical cursor/selection bg across km-tui — the detail pane, board cards,
  * and node rows all use this token. Prior to km-tui.detail-pane-polish the
  * detail pane used $bg-cursor (the terminal's native cursor color) which
  * resolved to white-on-white in many themes. */
-const SELECTION_BG = TC.$selectionbg
-/** Back-compat alias — detail pane used to use $bg-cursor; now uses $selectionbg.
+const SELECTION_BG = TC["$bg-selected"]
+/** Back-compat alias — detail pane used to use $bg-cursor; now uses $bg-selected.
  * Kept as an alias so existing assertions continue to work. */
 const CURSOR_BG = SELECTION_BG
 import { createViewLens, createVisibleLens } from "@km/board"

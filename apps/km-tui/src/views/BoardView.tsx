@@ -149,12 +149,7 @@ function TopBarBreadcrumb({
       )}
       {clamped.map((seg, i) => {
         const isBoardRoot = i === boardRootIdx
-        const sepEl = seg.sep ? (
-          <Small key={`sep-${i}`}>
-            {" "}
-            {seg.sep}{" "}
-          </Small>
-        ) : null
+        const sepEl = seg.sep ? <Small key={`sep-${i}`}> {seg.sep} </Small> : null
         const nameEl = seg.id ? (
           <Link
             key={`seg-${i}`}
@@ -218,24 +213,24 @@ function PaneBoardTopBar({
   return (
     <PaneBar
       isFocused={isPaneFocused}
-      backgroundColor={isBoardSelected ? "$selectionbg" : undefined}
+      backgroundColor={isBoardSelected ? "$bg-selected" : undefined}
       paneLabel={paneLabel}
       left={
-        <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
+        <Text color={isBoardSelected ? "$fg-on-selected" : undefined} wrap="truncate">
           <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
         </Text>
       }
       right={
         <>
           <Box data-view="view-mode-button">
-            <Text color={isBoardSelected ? "$selection" : undefined} id="view-mode">
+            <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="view-mode">
               {" "}
               {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
               {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
             </Text>
           </Box>
           {filterIndicator && (
-            <Text color={isBoardSelected ? "$selection" : undefined} id="filter-indicator">
+            <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>
@@ -307,23 +302,23 @@ function BoardTopBar({
   return (
     <PaneBar
       isFocused={true}
-      backgroundColor={isBoardSelected ? "$selectionbg" : undefined}
+      backgroundColor={isBoardSelected ? "$bg-selected" : undefined}
       left={
-        <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
+        <Text color={isBoardSelected ? "$fg-on-selected" : undefined} wrap="truncate">
           <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
         </Text>
       }
       right={
         <>
           <Box data-view="view-mode-button">
-            <Text color={isBoardSelected ? "$selection" : "$muted"} id="view-mode">
+            <Text color={isBoardSelected ? "$fg-on-selected" : "$muted"} id="view-mode">
               {" "}
               {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
               {viewMode === "cards" && <Small>CL:{maxContentLines} </Small>}
             </Text>
           </Box>
           {filterIndicator && (
-            <Text color={isBoardSelected ? "$selection" : undefined} id="filter-indicator">
+            <Text color={isBoardSelected ? "$fg-on-selected" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>

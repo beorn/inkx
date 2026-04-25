@@ -162,7 +162,7 @@ function CommandFeedback({
 const MODE_COLORS: Record<string, string> = {
   NORMAL: "$fg-success",
   INSERT: "$fg-warning",
-  VISUAL: "$selectionbg",
+  VISUAL: "$bg-selected",
   MOVE: "magenta",
   FIND: "$fg-accent",
 }
@@ -310,11 +310,9 @@ export function CommandBox({
                 ) : (
                   <Small id="chord-prefix">{chordSuffix}</Small>
                 ))}
-              {paneLabel && !chordSuffix && (
-                <Small id="pane-label">{paneLabel}</Small>
-              )}
+              {paneLabel && !chordSuffix && <Small id="pane-label">{paneLabel}</Small>}
               {multiSuffix && (
-                <Text color="$selectionbg" id="multi-count">
+                <Text color="$bg-selected" id="multi-count">
                   {multiSuffix}
                 </Text>
               )}
@@ -399,11 +397,7 @@ export function StatusCounters({
 
   return (
     <Box flexDirection="row" flexShrink={0}>
-      {modSuffix && (
-        <Small id="modifier-keys">
-          {modSuffix}{" "}
-        </Small>
-      )}
+      {modSuffix && <Small id="modifier-keys">{modSuffix} </Small>}
       <Small id="storage-path">
         {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
       </Small>

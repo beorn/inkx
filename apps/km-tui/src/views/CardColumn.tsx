@@ -385,7 +385,7 @@ const Card = React.memo(
     const bodyBlockBg = isEditing
       ? undefined
       : isCursorOnThis
-        ? "$selectionbg"
+        ? "$bg-selected"
         : cursorInDescendant
           ? selectedBg(theme)
           : isNodeSelected
@@ -427,11 +427,11 @@ const Card = React.memo(
           >
             <Text
               // HR dividers are separator chrome, not content. Selected state
-              // uses $selectionbg (yellow) to match column tint; unselected
+              // uses $bg-selected (yellow) to match column tint; unselected
               // uses $fg-muted — the canonical 'secondary text' token. This
               // replaces the old color="$muted" + dimColor={...} pair, which
               // double-dimmed (both at truecolor hex and ANSI 16 SGR 2).
-              color={isSelected || isNodeSelected ? "$selectionbg" : "$fg-muted"}
+              color={isSelected || isNodeSelected ? "$bg-selected" : "$fg-muted"}
               wrap="truncate"
             >
               {hrContent}
@@ -512,7 +512,7 @@ const Card = React.memo(
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder =
-        isSelected || isNodeSelected || isColSelected ? "$selectionbg" : (hoverBorderColor ?? "$border-muted")
+        isSelected || isNodeSelected || isColSelected ? "$bg-selected" : (hoverBorderColor ?? "$border-muted")
       return (
         <Box
           data-view="card"
@@ -548,7 +548,7 @@ const Card = React.memo(
 
     // Direct cursor match: cursor is ON this card (not on a descendant).
     // isCursorOnThis = per-node cursor signal (avoids global cursor read).
-    // Direct cursor on this card → full-strength $selectionbg across the
+    // Direct cursor on this card → full-strength $bg-selected across the
     // whole card (title + body + padding). A single unified highlight, not
     // a two-tone split between a bright title row and a tinted body.
     //
@@ -561,7 +561,7 @@ const Card = React.memo(
     const cardBg = isEditing
       ? undefined
       : isCursorOnThis
-        ? "$selectionbg"
+        ? "$bg-selected"
         : cursorInDescendant
           ? selectedBg(theme)
           : isNodeSelected
@@ -573,7 +573,7 @@ const Card = React.memo(
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     // Default card border: invisible ($surface-bg). Cards are separated by
     // whitespace, not visible borders. Borders appear as interactive feedback:
-    // hover → $fg-muted (faint), selection → $selection-bg (yellow).
+    // hover → $fg-muted (faint), selection → $bg-selected (yellow).
     // Done/dropped use the muted border role; normal cards use the default border role.
     const defaultBorder = isDoneOrDropped ? "$border-muted" : "$border-default"
     // "Board level" means cursor is on an ancestor (column or board root).
@@ -587,7 +587,7 @@ const Card = React.memo(
       : isColSelected || isBoardLevel
         ? "$bg-surface-default" // hide borders when column/board selected (same space, invisible)
         : isSelected || isNodeSelected
-          ? "$selectionbg"
+          ? "$bg-selected"
           : (hoverBorderColor ?? defaultBorder)
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -1014,7 +1014,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selectionbg" : "$border-default"
+    const borderColor = isColumnSelected ? "$bg-selected" : "$border-default"
     return (
       <Box
         id={nodeId}
@@ -1036,12 +1036,12 @@ export const Column = React.memo(function Column({
           borderStyle="round"
           borderColor={borderColor}
           overflow="hidden"
-          backgroundColor={isColumnSelected ? "$selectionbg" : undefined}
+          backgroundColor={isColumnSelected ? "$bg-selected" : undefined}
         >
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
-              <Text bold color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")}>
+              <Text bold color={isColumnSelected ? "$fg-on-selected" : (ownColor ?? "$muted")}>
                 {ch}
               </Text>
             </Box>
@@ -1049,7 +1049,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text bold color={isColumnSelected ? "$selection" : "$muted"}>
+            <Text bold color={isColumnSelected ? "$fg-on-selected" : "$muted"}>
               {countStr}
             </Text>
           </Box>

@@ -22,8 +22,8 @@
  * import { TC } from "./helpers/theme.ts"
  *
  * // Semantic tokens — track the runtime theme:
- * expect(cell.bg).toEqual(TC.$selectionbg) // Nord Polar Night 3
- * expect(cell.fg).toEqual(TC.$selection)   // Nord Snow Storm 1
+ * expect(cell.bg).toEqual(TC["$bg-selected"]) // Nord Polar Night 3
+ * expect(cell.fg).toEqual(TC["$fg-on-selected"])   // Nord Snow Storm 1
  *
  * // Named ANSI slots — fixed, regardless of theme:
  * expect(cell.fg).toEqual(TC.BRIGHT_RED)   // {r:255, g:0, b:0}
@@ -108,12 +108,10 @@ const CURSOR_BG = hexToRgb(t["bg-cursor"] ?? t["cursorbg"])
 const CURSOR_FG = hexToRgb(t["fg-cursor"] ?? t["cursor"])
 
 export const TC = {
-  /** Text on selected background (legacy — Sterling has no selection role yet) */
-  $selection: SELECTION_FG,
-  /** Legacy flat alias — same as $selectionbg */
-  "$selection-bg": SELECTION_BG,
-  /** Selection highlight background (legacy — Sterling has no selection role yet) */
-  $selectionbg: SELECTION_BG,
+  /** Text on selected background — Sterling */
+  "$fg-on-selected": SELECTION_FG,
+  /** Selection highlight background — Sterling */
+  "$bg-selected": SELECTION_BG,
   /** Primary foreground text */
   $fg: FG,
   /** Muted foreground text — Sterling */
@@ -130,8 +128,8 @@ export const TC = {
   "$fg-success": SUCCESS,
   /** Primary brand tint / interactive accent — Sterling */
   "$fg-accent": PRIMARY,
-  /** Hyperlinks, references (legacy — Sterling has no link role; use $fg-accent) */
-  $link: LINK,
+  /** Hyperlinks, references — Sterling */
+  "$fg-link": LINK,
   /** Focus border — Sterling */
   "$border-focus": FOCUS_BORDER,
   /** Interactive control borders (legacy — same hex as $border-default in Sterling) */

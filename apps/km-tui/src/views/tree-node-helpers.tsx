@@ -119,14 +119,14 @@ export function getNodeStyle(
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected) {
-    // Cursor node: $selectionbg/$selection (Nord yellow or equivalent).
+    // Cursor node: $bg-selected/$fg-on-selected (Nord yellow or equivalent).
     // Kept on selection tokens (not cursor tokens) because km-tui's per-pane
     // theme dimming logic in theme.ts dims selectionbg to produce the
     // 'unfocused pane' dimmed look. Migrating to $bg-cursor/$fg-cursor would
     // need that dimming logic extended to cursorbg too — tracked in
     // km-silvery.theme-fake-cursor (follow-up).
-    backgroundColor = "$selectionbg"
-    textColor = "$selection"
+    backgroundColor = "$bg-selected"
+    textColor = "$fg-on-selected"
   }
   // isNodeSelected (multi-selection): no inverse — CardColumn handles bg tint.
   // Default (no assignment): inherits $fg from WorkspaceView wrapper via silvery fg inheritance

@@ -51,7 +51,7 @@ const EMPTY_MARKER: StatusIcon = {
  * @param color - Optional color override (from node's rules.color)
  * @param sticky - Sticky fold state ("folded" | "unfolded" | null). When
  *   non-null, the marker is rendered with inverse video (`backgroundColor:
- *   $fg`, `color: $selection`) so the user can see that fold-all/unfold-all
+ *   $fg`, `color: $fg-on-selected`) so the user can see that fold-all/unfold-all
  *   will skip this node. km is the second editor after Emacs org-mode to
  *   visualize per-node fold pinning distinctly. See km-tui.sticky-fold.
  */
@@ -68,11 +68,11 @@ export function getFoldMarker(
   const base = color ? { ...marker, color } : { ...marker }
   if (sticky !== null) {
     // Inverse: swap fg → bg so the glyph reads as a "pinned" chip.
-    // Using `$selection` for fg + `$fg` for bg matches the cursor-inverse
+    // Using `$fg-on-selected` for fg + `$fg` for bg matches the cursor-inverse
     // treatment used elsewhere in the TUI (see views/selection-style.ts).
     return {
       ...base,
-      color: "$selection",
+      color: "$fg-on-selected",
       backgroundColor: "$fg",
     }
   }
@@ -120,7 +120,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       // This helps debug what invalid status was received
       return {
         char: String(status).charAt(0),
-        color: "$selection",
+        color: "$fg-on-selected",
         backgroundColor: "$fg",
       }
   }

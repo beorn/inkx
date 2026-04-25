@@ -87,7 +87,7 @@ function renderBoardWithTruecolor(options: {
 
   const theme = defaultDarkTheme
   // When cursor is directly on a card, the card uses the theme's full
-  // $selectionbg (primary accent) so the whole card reads as one unified
+  // $bg-selected (primary accent) so the whole card reads as one unified
   // highlight. When cursor is on a descendant of the card, the card uses
   // the softer `selectedBg(theme)` 6% tint.
   const expectedCardBg = theme.selectionbg ?? selectedBg(theme)
@@ -286,8 +286,8 @@ describe("card bg inheritance (zebra pattern bug)", () => {
       expect(
         maxDiff,
         `Sub-item bg (${actual.r},${actual.g},${actual.b}) does not match ` +
-          `$selectionbg=${hex} (${expectedR},${expectedG},${expectedB}), diff=${maxDiff}. ` +
-          `Cursor-on-card now paints the whole card with $selectionbg so the card reads ` +
+          `$bg-selected=${hex} (${expectedR},${expectedG},${expectedB}), diff=${maxDiff}. ` +
+          `Cursor-on-card now paints the whole card with $bg-selected so the card reads ` +
           `as one unified highlight (see CardColumn.tsx cardBg logic).`,
       ).toBeLessThanOrEqual(2)
     }

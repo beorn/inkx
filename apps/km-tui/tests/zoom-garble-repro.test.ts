@@ -121,7 +121,7 @@ describe("Zoom-out rendering at wide terminal", () => {
     expect(col0Bg, "breadcrumb bar column 0 bg should match column 1").toEqual(col1Bg)
 
     // Check that every cell in row 0 has a non-null background (the top bar
-    // should fill the entire row with $selection-bg or similar).
+    // should fill the entire row with $bg-selected or similar).
     const nullBgCells: number[] = []
     for (let x = 0; x < cols; x++) {
       const cell = app.screen.cell(x, 0)
@@ -150,7 +150,7 @@ describe("Zoom-out rendering at wide terminal", () => {
     app.press("j")
 
     // Find the bounding box of the currently selected CARD (not just the
-    // title row). Cursor-on-card paints the whole card with $selectionbg,
+    // title row). Cursor-on-card paints the whole card with $bg-selected,
     // so "bleed" means selection-bg showing up outside the card's own Box.
     const cursorLoc = app.q("[data-cursor]")
     expect(cursorLoc.count(), "cursor element should exist after pressing j").toBeGreaterThan(0)
@@ -164,8 +164,8 @@ describe("Zoom-out rendering at wide terminal", () => {
     if (!selectedBox) return
 
     // Sample the selection background color from a cell within the selected card.
-    // Find the first cell with $selection-bg inside the card bounds.
-    const selectionBg = TC["$selection-bg"]
+    // Find the first cell with $bg-selected inside the card bounds.
+    const selectionBg = TC["$bg-selected"]
     let foundSelectionBg = false
     for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
       const cell = app.screen.cell(x, selectedBox.y)
@@ -176,10 +176,10 @@ describe("Zoom-out rendering at wide terminal", () => {
     }
     expect(
       foundSelectionBg,
-      `selected card "${selectedNodeId}" should have $selection-bg (${JSON.stringify(selectionBg)}) somewhere in its row`,
+      `selected card "${selectedNodeId}" should have $bg-selected (${JSON.stringify(selectionBg)}) somewhere in its row`,
     ).toBe(true)
 
-    // Check cells ABOVE the selected card -- they should NOT have $selection-bg.
+    // Check cells ABOVE the selected card -- they should NOT have $bg-selected.
     // Skip row 0 (breadcrumb bar) which legitimately uses the same bg token.
     const rowsAbove: { x: number; y: number }[] = []
     for (let y = Math.max(1, selectedBox.y - 3); y < selectedBox.y; y++) {
@@ -198,7 +198,7 @@ describe("Zoom-out rendering at wide terminal", () => {
         .join(", ")}`,
     ).toHaveLength(0)
 
-    // Check cells BELOW the selected card -- they should NOT have $selection-bg
+    // Check cells BELOW the selected card -- they should NOT have $bg-selected
     const rowsBelow: { x: number; y: number }[] = []
     for (let y = selectedBox.y + selectedBox.height; y < Math.min(rows, selectedBox.y + selectedBox.height + 3); y++) {
       for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {

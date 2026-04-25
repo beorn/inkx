@@ -63,7 +63,7 @@ export interface InlineRenderContext {
   /**
    * Strip all foreground colors from inline leaves.
    * When true, every leaf uses color="inherit" so the nearest colored
-   * ancestor (e.g. a cursor row's $selection fg or a done-dimmed row)
+   * ancestor (e.g. a cursor row's $fg-on-selected fg or a done-dimmed row)
    * wins cleanly. Callers that want a specific color for the override
    * wrap <InlineText> in a colored ancestor Box/Text and set stripInlineColors={true}.
    */
@@ -287,7 +287,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   //
   // CURSOR-SAFE BY CONSTRUCTION: we intentionally do NOT set a foreground color
   // here, because a red fg competes with cursor-inverse styling (the cell's fg
-  // gets forced to $selection on the cursor line, and inline colors get
+  // gets forced to $fg-on-selected on the cursor line, and inline colors get
   // stripped via stripInlineColors=true on the subtree). The dashed $fg-error
   // underline passes through all states unchanged because decoration attributes
   // are not composed into the fg/bg override pipeline.
@@ -470,7 +470,7 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   // Sigil color: from the sigilColors map first, then the resolver. Used for
   // BOTH resolved and unresolved sigils so the visual identity is stable.
   // When stripping inline colors the sigil's own color is suppressed so the
-  // nearest colored ancestor (e.g. cursor row $selection) wins.
+  // nearest colored ancestor (e.g. cursor row $fg-on-selected) wins.
   const sigilColor = ctx.stripInlineColors ? undefined : (ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil))
 
   // Unresolved sigil: preserve legacy rendering (plain or colorized via
@@ -483,12 +483,12 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
 
   // Resolved sigil-link: wrap in link styling so it's navigable + shows a
   // popover on hover. Keep the sigil's own color as the anchor (fall back
-  // to $link if the sigil has no configured color) and add a dotted
+  // to $fg-link if the sigil has no configured color) and add a dotted
   // underline via linkTextProps("sigil").
   const props = linkTextProps("sigil", hovered, ctx.stripInlineColors)
   // stripInlineColors: false/undefined → sigil's own color;
   // true → "inherit" (cascade from nearest colored ancestor via silvery).
-  const color = ctx.stripInlineColors ? "inherit" : (sigilColor ?? "$link")
+  const color = ctx.stripInlineColors ? "inherit" : (sigilColor ?? "$fg-link")
   return (
     <Text
       id={linkNodeId ?? undefined}

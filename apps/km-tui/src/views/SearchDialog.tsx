@@ -113,7 +113,7 @@ function SearchResults({
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? "$selection" : "$muted"}>{` #${result.tags.join(" #")}`}</Text>
+              <Text color={isSelected ? "$fg-on-selected" : "$muted"}>{` #${result.tags.join(" #")}`}</Text>
             )}
           </NodeLine>
         )

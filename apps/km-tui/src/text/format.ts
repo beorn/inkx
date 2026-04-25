@@ -6,7 +6,7 @@
  *
  * Uses theme tokens via themeFg() for semantic coloring:
  * - $disabled-fg for dimmed chrome (suffixes, markers)
- * - $link for navigation elements (folders, files)
+ * - $fg-link for navigation elements (folders, files)
  * - $fg-accent for headings and section names
  * - $fg-success/$fg-warning/$fg-error for task status
  */
@@ -94,10 +94,10 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   if (KNode.isOutline(node)) {
     switch (node.fstype) {
       case "folder":
-        return prefix + themeFg(name, "$link") + themeFg("/", "$fg-muted")
+        return prefix + themeFg(name, "$fg-link") + themeFg("/", "$fg-muted")
       case "file":
       case "mdfile":
-        return prefix + themeFg(name, "$link")
+        return prefix + themeFg(name, "$fg-link")
       case "mdsection": {
         const depth = computeSectionDepth(node, (id) => repo.getNode(id))
         return prefix + themeFg("#".repeat(depth) + " ", "$fg-muted") + themeFg(name, "$fg-accent")
@@ -150,7 +150,7 @@ export function formatStatus(status: string): string {
     case "done":
       return themeFg(status, "$fg-success")
     case "wip":
-      return themeFg(status, "$link")
+      return themeFg(status, "$fg-link")
     case "blocked":
       return themeFg(status, "$fg-error")
     case "waiting":
@@ -168,7 +168,7 @@ export function formatNodeBrief(node: KNode): string {
   const parts: string[] = []
 
   parts.push(style.dim(node.id.slice(-8)))
-  parts.push(themeFg(node.type, "$link"))
+  parts.push(themeFg(node.type, "$fg-link"))
 
   if (node.content) {
     parts.push(node.content.slice(0, 50))

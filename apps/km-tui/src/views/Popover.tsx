@@ -390,7 +390,7 @@ export function urlPopoverContent(url: string, options?: { loading?: boolean }):
   const query = parsed.search
   const fragment = parsed.hash
 
-  const lines: PopoverLine[] = [{ text: domain, bold: true, color: "$link", link: true }]
+  const lines: PopoverLine[] = [{ text: domain, bold: true, color: "$fg-link", link: true }]
 
   if (path && path !== "/") {
     const fullPath = path + (query || "") + (fragment || "")
@@ -422,7 +422,7 @@ export function richUrlPopoverContent(
   if (meta.description) lines.push({ text: meta.description, dim: true })
 
   const prettyUrl = domain + (parsed.pathname !== "/" ? decodeURIComponent(parsed.pathname) : "")
-  lines.push({ text: prettyUrl, color: "$link", link: true, wrap: "truncate" })
+  lines.push({ text: prettyUrl, color: "$fg-link", link: true, wrap: "truncate" })
 
   return { lines, href: url, maxWidth: 60 }
 }

@@ -41,7 +41,7 @@ function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }):
 // ── 1. Cursor visual treatment per role ────────────────────────────────────
 
 describe("cursor visual treatment", () => {
-  it("cursor card title row gets inverse ($selection-bg bg, $selection fg)", () => {
+  it("cursor card title row gets inverse ($bg-selected bg, $fg-on-selected fg)", () => {
     using app = createTestApp(standardBoard(), { cols: 80, rows: 24 })
     app.expect(cursorLoc("card1")).toExist()
 
@@ -50,8 +50,8 @@ describe("cursor visual treatment", () => {
     if (!cardBox) return
 
     const titleCell = app.screen.cell(cardBox.x, cardBox.y)
-    expect(colorEquals(titleCell.bg, TC["$selection-bg"]), "cursor card title bg").toBe(true)
-    expect(colorEquals(titleCell.fg, TC.$selection), "cursor card title fg").toBe(true)
+    expect(colorEquals(titleCell.bg, TC["$bg-selected"]), "cursor card title bg").toBe(true)
+    expect(colorEquals(titleCell.fg, TC["$fg-on-selected"]), "cursor card title fg").toBe(true)
   })
 
   it("cursor move: old card loses inverse, new card gains it", () => {
@@ -68,7 +68,7 @@ describe("cursor visual treatment", () => {
     if (!card2Box) return
 
     const titleCell = app.screen.cell(card2Box.x, card2Box.y)
-    expect(colorEquals(titleCell.bg, TC["$selection-bg"]), "new cursor card title bg").toBe(true)
+    expect(colorEquals(titleCell.bg, TC["$bg-selected"]), "new cursor card title bg").toBe(true)
   })
 
   it("cursor at column level: column header gets inverse", () => {
@@ -81,7 +81,7 @@ describe("cursor visual treatment", () => {
     if (!colBox) return
 
     const headerCell = app.screen.cell(colBox.x, colBox.y)
-    expect(colorEquals(headerCell.bg, TC["$selection-bg"]), "column-level cursor header bg").toBe(true)
+    expect(colorEquals(headerCell.bg, TC["$bg-selected"]), "column-level cursor header bg").toBe(true)
   })
 })
 
@@ -117,7 +117,7 @@ describe("cursor-descendant breadcrumb", () => {
     if (!col2Box) return
 
     const cell = app.screen.cell(col2Box.x, col2Box.y)
-    expect(colorEquals(cell.fg, TC["$selection-bg"]), "col2 header should NOT have $selection-bg fg").toBe(false)
+    expect(colorEquals(cell.fg, TC["$bg-selected"]), "col2 header should NOT have $bg-selected fg").toBe(false)
   })
 })
 
@@ -171,7 +171,7 @@ describe("done/dropped visual", () => {
 
     // Done task fg should differ from cursor task fg (it's dimmed/muted)
     // The specific fg depends on theme — just verify it's not the same as active cursor
-    expect(colorEquals(doneCell.bg, TC["$selection-bg"]), "done task should NOT have selection bg").toBe(false)
+    expect(colorEquals(doneCell.bg, TC["$bg-selected"]), "done task should NOT have selection bg").toBe(false)
   })
 })
 

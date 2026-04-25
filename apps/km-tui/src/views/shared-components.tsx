@@ -434,7 +434,7 @@ export function InputBox({
   prompt = "",
   placeholder = "",
   ghostHint = "",
-  promptColor = "$selectionbg",
+  promptColor = "$bg-selected",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -551,10 +551,10 @@ export function NodeLine({
       {/* Parent context + suffix: fixed width, never truncated */}
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "$selection" : undefined}>
+          <Text color={isSelected ? "$fg-on-selected" : undefined}>
             {parentContext &&
               (isSelected ? (
-                <Text color="$selection">{` < ${parentContext}`}</Text>
+                <Text color="$fg-on-selected">{` < ${parentContext}`}</Text>
               ) : (
                 <Muted>{` < ${parentContext}`}</Muted>
               ))}

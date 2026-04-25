@@ -417,7 +417,7 @@ describe("Selection", () => {
 
     // Parent's children should visually appear selected (multi-select bg)
     // because their parent (Parent) is in the multiSelected set.
-    // Multi-selected non-cursor nodes get MULTI_BG, not $selection-bg.
+    // Multi-selected non-cursor nodes get MULTI_BG, not $bg-selected.
     // Truecolor theme: multiSelectedBg resolves to an RGB blend.
     const MULTI_BG = { r: 69, g: 71, b: 75 }
     app.expectNodeColor("child-1", { bg: MULTI_BG })
@@ -567,9 +567,9 @@ describe("Multi-select visual feedback", () => {
     // alpha is multi-selected but NOT the cursor → multi-select bg on title row.
     app.expectNodeColor("alpha", { bg: MULTI_BG })
 
-    // beta is the cursor AND multi-selected → $selectionbg wins (rule 1).
-    // Truecolor theme: $selectionbg resolves to Nord's selection bg hex.
-    app.expectNodeColor("beta", { bg: TC.$selectionbg })
+    // beta is the cursor AND multi-selected → $bg-selected wins (rule 1).
+    // Truecolor theme: $bg-selected resolves to Nord's selection bg hex.
+    app.expectNodeColor("beta", { bg: TC["$bg-selected"] })
 
     // gamma is not in the selection → no multi-select bg, no selection bg.
     app.expectNodeColor("gamma", { bg: null })
@@ -599,7 +599,7 @@ describe("Multi-select visual feedback", () => {
     app.expectNodeColor("child-2", { bg: MULTI_BG })
 
     // child-3 is the cursor → inverse selection bg (rule 1 wins).
-    app.expectNodeColor("child-3", { bg: TC.$selectionbg })
+    app.expectNodeColor("child-3", { bg: TC["$bg-selected"] })
   })
 })
 

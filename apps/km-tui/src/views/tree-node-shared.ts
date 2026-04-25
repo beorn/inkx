@@ -42,14 +42,14 @@ export function computeBulletIcon(
     // still shows the status but visually announces the pin. Matches the
     // fold-marker treatment below.
     if (sticky !== null) {
-      return { ...taskStatusIcon, color: "$selection", backgroundColor: "$fg" }
+      return { ...taskStatusIcon, color: "$fg-on-selected", backgroundColor: "$fg" }
     }
     return taskStatusIcon
   }
   if (iconStyle === "workflowy") {
     const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
     const base = ownColor ? { ...bullet, color: ownColor } : bullet
-    if (sticky !== null) return { ...base, color: "$selection", backgroundColor: "$fg" }
+    if (sticky !== null) return { ...base, color: "$fg-on-selected", backgroundColor: "$fg" }
     return base
   }
   if (iconStyle === "nerdfont") {
@@ -63,7 +63,7 @@ export function computeBulletIcon(
     const base = ownColor ? { ...bullet, color: ownColor } : bullet
     // When the nerdfont branch returned a type bullet (not the fold marker), we still
     // want sticky to show — overlay inverse regardless.
-    if (sticky !== null) return { ...base, color: "$selection", backgroundColor: "$fg" }
+    if (sticky !== null) return { ...base, color: "$fg-on-selected", backgroundColor: "$fg" }
     return base
   }
   // "regular" style — existing fold markers (getFoldMarker handles sticky internally)

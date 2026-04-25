@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- codebase idiom: arr[i]! / map.get(k)! / stack.pop()! after surrounding length/has/bounds check; TS noUncheckedIndexedAccess requires the assertion even when invariant is obvious */
 /**
  * DetailView — renders a node as a readable document.
  *
@@ -150,10 +151,10 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const rootIsTask = KNode.isTask(rootNode)
   const rootStatusIcon = rootIsTask ? getStatusIcon(rootNode.item?.task?.status ?? "todo") : null
   // Selection model (see apps/km-tui/src/views/selection-style.ts rule 1):
-  // cursor node title → $selectionbg / $selection. Shared with TreeNode,
+  // cursor node title → $bg-selected / $fg-on-selected. Shared with TreeNode,
   // NodeView, CardColumn so the detail pane reads the same as the board.
-  const titleBg = isTitleCursor && !isRootEditing ? "$selectionbg" : undefined
-  const titleFg = isRootEditing ? "$border-focus" : isTitleCursor ? "$selection" : undefined
+  const titleBg = isTitleCursor && !isRootEditing ? "$bg-selected" : undefined
+  const titleFg = isRootEditing ? "$border-focus" : isTitleCursor ? "$fg-on-selected" : undefined
   const titleInlineCtx = isTitleCursor && !isRootEditing ? { stripInlineColors: true as const } : undefined
 
   // Scroll-to-cursor: the doc-tree is rendered inside a scroll container, and
@@ -205,108 +206,114 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     <Box flexDirection="column" width={width} height={height} overflow="hidden" userSelect="contain">
       <InlineRenderProvider value={inlineCtx}>
         <CursorScrollContext.Provider value={cursorCtx}>
-        <Box flexDirection="column" flexGrow={1} overflow="hidden">
-          {/* Document title — custom bold + inverse on cursor, with the node
+          <Box flexDirection="column" flexGrow={1} overflow="hidden">
+            {/* Document title — custom bold + inverse on cursor, with the node
              badge to its right. Explicitly NOT an H1: H1 is reserved for the
              first in-document heading (### depth=1), so the depth→H<N>
              mapping inside DocNode stays aligned with the markdown source.
-             The title already gets maximum emphasis via $selection inverse +
+             The title already gets maximum emphasis via $fg-on-selected inverse +
              bold; duplicating H1 here would just dim-wash the accent color
              against the cursor highlight. */}
-          <Box
-            id={effectiveId}
-            testID={effectiveId}
-            focusable
-            paddingX={1}
-            backgroundColor={titleBg}
-            {...(isTitleCursor ? { "data-cursor": true } : {})}
-          >
-            {isTitleCursor && <CursorScrollRegistrar />}
-            <Box flexGrow={1} flexShrink={1}>
-              <Text bold color={titleFg} wrap="wrap">
-                {rootStatusIcon && (
-                  <>
-                    <CheckboxIcon
-                      nodeId={effectiveId}
-                      icon={rootStatusIcon}
-                      textColor={titleFg}
-                      shouldDim={false}
-                      isSelected={isTitleCursor}
-                      isNodeSelected={false}
-                      isDoneOrDropped={
-                        rootNode.item?.task?.status === "done" || rootNode.item?.task?.status === "dropped"
-                      }
+            <Box
+              id={effectiveId}
+              testID={effectiveId}
+              focusable
+              paddingX={1}
+              backgroundColor={titleBg}
+              {...(isTitleCursor ? { "data-cursor": true } : {})}
+            >
+              {isTitleCursor && <CursorScrollRegistrar />}
+              <Box flexGrow={1} flexShrink={1}>
+                <Text bold color={titleFg} wrap="wrap">
+                  {rootStatusIcon && (
+                    <>
+                      <CheckboxIcon
+                        nodeId={effectiveId}
+                        icon={rootStatusIcon}
+                        textColor={titleFg}
+                        shouldDim={false}
+                        isSelected={isTitleCursor}
+                        isNodeSelected={false}
+                        isDoneOrDropped={
+                          rootNode.item?.task?.status === "done" || rootNode.item?.task?.status === "dropped"
+                        }
+                        undoHandle={undoHandle}
+                      />
+                      <Text> </Text>
+                    </>
+                  )}
+                  {isRootEditing ? (
+                    <TitleEditor
+                      displayNode={rootNode}
+                      editState={rootEditState as NodeEditState}
+                      nodeIsTask={rootIsTask}
+                      repo={repo}
+                      setUI={setUI}
+                      sel={sel}
+                      jobRunner={jobRunner}
                       undoHandle={undoHandle}
                     />
-                    <Text> </Text>
-                  </>
-                )}
-                {isRootEditing ? (
-                  <TitleEditor
-                    displayNode={rootNode}
-                    editState={rootEditState as NodeEditState}
-                    nodeIsTask={rootIsTask}
-                    repo={repo}
-                    setUI={setUI}
-                    sel={sel}
-                    jobRunner={jobRunner}
-                    undoHandle={undoHandle}
-                  />
-                ) : (
-                  <InlineText text={title} context={titleInlineCtx} />
-                )}
-              </Text>
+                  ) : (
+                    <InlineText text={title} context={titleInlineCtx} />
+                  )}
+                </Text>
+              </Box>
+              <NodeBadge node={rootNode} />
             </Box>
-            <NodeBadge node={rootNode} />
-          </Box>
 
-          {/* Metadata property rows */}
-          {metaKeys.length > 0 && (
-            <>
-              <Box height={1} />
-              {metaKeys.map((key) => {
-                const metaId = `${DETAIL_META_PREFIX}${key}`
-                const isSelected = cursorCardNodeId === metaId
-                return (
-                  <MetadataRow
-                    key={key}
-                    metaId={metaId}
-                    label={key}
-                    node={rootNode}
-                    isSelected={isSelected}
-                    width={contentWidth}
-                  />
-                )
-              })}
-            </>
-          )}
+            {/* Metadata property rows */}
+            {metaKeys.length > 0 && (
+              <>
+                <Box height={1} />
+                {metaKeys.map((key) => {
+                  const metaId = `${DETAIL_META_PREFIX}${key}`
+                  const isSelected = cursorCardNodeId === metaId
+                  return (
+                    <MetadataRow
+                      key={key}
+                      metaId={metaId}
+                      label={key}
+                      node={rootNode}
+                      isSelected={isSelected}
+                      width={contentWidth}
+                    />
+                  )
+                })}
+              </>
+            )}
 
-          {/* Separator */}
-          {children.length > 0 && (
-            <Box height={1} flexShrink={0} width={width}>
-              <HR />
-            </Box>
-          )}
+            {/* Separator */}
+            {children.length > 0 && (
+              <Box height={1} flexShrink={0} width={width}>
+                <HR />
+              </Box>
+            )}
 
-          {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1.
+            {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1.
              Wrapped in a scroll container so j/k navigation past the visible
              area brings the cursor row into view (scroll-to-cursor via
              CursorScrollRegistrar + useLayoutEffect). paddingX so prose
              breathes on both sides; maxWidth caps measure in wide panes
              (reading a 120-col line of prose is unpleasant — ~72 is the
              Polaris sweet spot). */}
-          {children.length > 0 ? (
-            <Box flexGrow={1} flexShrink={1} overflow="scroll" scrollOffset={scrollOffset} paddingX={1}>
-              <Box flexDirection="column" maxWidth={width > 90 ? 80 : undefined}>
-                <DocContent nodes={children} depth={1} repo={repo} cursor={cursorCardNodeId} undoHandle={undoHandle} />
+            {children.length > 0 ? (
+              <Box flexGrow={1} flexShrink={1} overflow="scroll" scrollOffset={scrollOffset} paddingX={1}>
+                <Box flexDirection="column" maxWidth={width > 90 ? 80 : undefined}>
+                  <DocContent
+                    nodes={children}
+                    depth={1}
+                    repo={repo}
+                    cursor={cursorCardNodeId}
+                    undoHandle={undoHandle}
+                  />
+                </Box>
               </Box>
-            </Box>
-          ) : metaKeys.length === 0 ? (
-            <Box paddingX={1}>
-              <Small>(empty)</Small>
-            </Box>
-          ) : null}
-        </Box>
+            ) : metaKeys.length === 0 ? (
+              <Box paddingX={1}>
+                <Small>(empty)</Small>
+              </Box>
+            ) : null}
+          </Box>
         </CursorScrollContext.Provider>
       </InlineRenderProvider>
     </Box>
@@ -409,10 +416,10 @@ function DocNode({
   // Selection model — aligned with selection-style.ts rule 1 (shared with
   // TreeNode / NodeView / CardColumn). Using $bg-cursor/$fg-cursor here
   // produced white-on-white in themes where the terminal cursor color is
-  // near-white. $selectionbg / $selection are the canonical inverse tokens.
+  // near-white. $bg-selected / $fg-on-selected are the canonical inverse tokens.
   // Edit mode suppresses the selection bg and uses $border-focus instead.
-  const bg = isCursor && !isEditing ? "$selectionbg" : undefined
-  const cursorFg = isEditing ? "$border-focus" : isCursor ? "$selection" : undefined
+  const bg = isCursor && !isEditing ? "$bg-selected" : undefined
+  const cursorFg = isEditing ? "$border-focus" : isCursor ? "$fg-on-selected" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
   // Strip inline colors on cursor row — blue links on inverse bg are unreadable
   const cursorCtx = isCursor && !isEditing ? { stripInlineColors: true as const } : undefined
@@ -671,14 +678,14 @@ const LABEL_WIDTH = 12
 /**
  * Renders a single metadata property row: [label] [value]
  *
- * Selection highlighting uses $selection/$selection tokens,
+ * Selection highlighting uses $fg-on-selected/$fg-on-selected tokens,
  * which the per-pane theme dims for unfocused panes.
  */
 function MetadataRow({ metaId, label, node, isSelected, width }: MetadataRowProps): React.ReactElement {
   const repo = useRepo()
-  const bg = isSelected ? "$selectionbg" : undefined
-  const fg = isSelected ? "$selection" : undefined
-  const labelColor = isSelected ? "$selection" : "$fg-muted"
+  const bg = isSelected ? "$bg-selected" : undefined
+  const fg = isSelected ? "$fg-on-selected" : undefined
+  const labelColor = isSelected ? "$fg-on-selected" : "$fg-muted"
 
   const value = getMetadataValue(label, node, repo)
 

@@ -22,7 +22,7 @@ describe("urlPopoverContent", () => {
   it("shows domain bold and path dim for simple URL", () => {
     const result = urlPopoverContent("https://example.com/path/page")
     expect(result.lines).toHaveLength(2)
-    expect(result.lines[0]).toMatchObject({ text: "example.com", bold: true, color: "$link", link: true })
+    expect(result.lines[0]).toMatchObject({ text: "example.com", bold: true, color: "$fg-link", link: true })
     expect(result.lines[1]).toMatchObject({ text: "/path/page", dim: true })
     expect(result.href).toBe("https://example.com/path/page")
   })

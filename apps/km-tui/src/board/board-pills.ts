@@ -167,8 +167,8 @@ export function getHeaderStyle(
   // Cursor elsewhere: default fg
   if (isActiveSelection) {
     return {
-      color: "$selection",
-      backgroundColor: "$selectionbg",
+      color: "$fg-on-selected",
+      backgroundColor: "$bg-selected",
     }
   }
 

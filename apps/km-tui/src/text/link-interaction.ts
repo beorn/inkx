@@ -103,22 +103,22 @@ export interface LinkTextProps {
 /**
  * Kind-specific styling props for a link at rest or on hover.
  * Respects stripColors:
- *   false/undefined → normal (link uses its own $link color)
+ *   false/undefined → normal (link uses its own $fg-link color)
  *   true            → inherit (link uses nearest colored ancestor via silvery cascade)
  *
  * The inherit cascade leans on silvery's color="inherit" primitive: when a
- * cursor row wraps the link in $selection fg, the link naturally adopts
- * $selection without an explicit string override.
+ * cursor row wraps the link in $fg-on-selected fg, the link naturally adopts
+ * $fg-on-selected without an explicit string override.
  * See bead km-silvery.color-inherit.
  */
 export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boolean | undefined): LinkTextProps {
-  const color = stripColors ? "inherit" : "$link"
+  const color = stripColors ? "inherit" : "$fg-link"
   switch (kind) {
     case "url":
       return {
         color,
         underlineStyle: hovered ? "single" : "dotted",
-        underlineColor: hovered ? "$link" : "$border-default",
+        underlineColor: hovered ? "$fg-link" : "$border-default",
       }
     case "wiki": {
       // Wikilinks are colored like URLs at rest so they're visibly
@@ -129,7 +129,7 @@ export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boo
         color,
         backgroundColor: pillBg,
         underlineStyle: hovered ? false : "dotted",
-        underlineColor: "$link",
+        underlineColor: "$fg-link",
       }
     }
     case "sigil": {
@@ -141,7 +141,7 @@ export function linkTextProps(kind: LinkKind, hovered: boolean, stripColors: boo
       return {
         color: undefined, // caller wraps with its own sigil color
         underlineStyle: hovered ? "single" : "dotted",
-        underlineColor: hovered ? "$link" : "$border-default",
+        underlineColor: hovered ? "$fg-link" : "$border-default",
       }
     }
   }

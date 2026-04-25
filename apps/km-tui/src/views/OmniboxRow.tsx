@@ -74,7 +74,7 @@ export function OmniboxRow({
   // For unselected muted icons (e.g. the command ':' marker), we render via
   // the <Small> preset below (MECE: fine print = $fg-muted + dimColor bundled).
   const iconIsMuted = iconColor === "$fg-muted"
-  const iconFg = disabled ? "$fg-muted" : isSelected ? "$selection" : iconColor
+  const iconFg = disabled ? "$fg-muted" : isSelected ? "$fg-on-selected" : iconColor
   const iconUsesFinePrint = iconIsMuted && !isSelected && !disabled
 
   return (
@@ -96,7 +96,7 @@ export function OmniboxRow({
           />
           {context &&
             (isSelected ? (
-              <Text color="$selection">
+              <Text color="$fg-on-selected">
                 {"  "}
                 {context}
               </Text>
@@ -112,7 +112,7 @@ export function OmniboxRow({
       {/* Hint — fixed width, never truncated. Plain Text (not <Small>) so the
           keybinding reads at default fg — it's navigation-relevant meta that
           the user scans; muting it makes discovery harder. On selection it
-          takes $selection (black) like the rest of the row's content. */}
+          takes $fg-on-selected (black) like the rest of the row's content. */}
       {hint && (
         <Box flexGrow={0} flexShrink={0}>
           <Text color={fg}>{hint}</Text>

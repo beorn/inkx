@@ -5,7 +5,7 @@
  * order for composing cell styles in km. One place to understand, one place
  * to change. If you change any styling logic in km-tui, update this file too.
  *
- * Note: `$selection` / `$selectionbg` / `$inverse` / `$link` are legacy theme
+ * Note: `$fg-on-selected` / `$bg-selected` / `$fg-on-inverse` / `$fg-link` are legacy theme
  * tokens. Sterling now ships flat-token equivalents (`bg-selected`,
  * `fg-on-selected`, `bg-inverse`, `fg-on-inverse`, `fg-link`) and matching
  * nested roles (`theme.selected`, `theme.inverse`, `theme.link`). The legacy
@@ -32,7 +32,7 @@
  *                           Applied via CardColumn.tsx / Board.tsx backgroundColor.
  *
  *   4. Cursor state       — the cursor NODE gets inverse-yellow head row
- *                           ($selectionbg bg + $selection fg). This forces the fg
+ *                           ($bg-selected bg + $fg-on-selected fg). This forces the fg
  *                           color across the entire cursor line, so leaves in this
  *                           cell MUST be cursor-safe (see "Cursor-safe leaves" below).
  * ```
@@ -45,7 +45,7 @@
  * a) Use `color="inherit"` (the silvery cascade primitive) — the leaf walks
  *    the AgNode parent tree to find the nearest ancestor's resolved fg.
  *    Callers set `stripInlineColors: true` in `InlineRenderContext` to enable
- *    this on the whole inline subtree. The cursor row's `<Text color="$selection">`
+ *    this on the whole inline subtree. The cursor row's `<Text color="$fg-on-selected">`
  *    ancestor provides the forced fg; when no ancestor has a color (done/dropped
  *    with no override), the leaf resolves to terminal default.
  *    This is the CURRENT model for most leaves.
@@ -83,7 +83,7 @@
  * ## Rules
  *
  * 1. CURSOR NODE TITLE: The node where the cursor IS gets inverse yellow
- *    on its title row only (headRowBg = $selectionbg, textColor = $selection).
+ *    on its title row only (headRowBg = $bg-selected, textColor = $fg-on-selected).
  *    Inline colors are stripped for readability on the inverse bg.
  *
  * 2. CARD CONTAINER: When cursor is anywhere in the card (directly on the card
@@ -99,7 +99,7 @@
  *    (including column titles) gets the subtle bg tint.
  *
  * 5. PARENT INDICATORS: Regardless of cursor depth:
- *    - Card border: yellow ($selectionbg) when card or descendant has cursor
+ *    - Card border: yellow ($bg-selected) when card or descendant has cursor
  *    - Column title: yellow when any child has cursor
  *    - Column underline: yellow when any child has cursor
  *

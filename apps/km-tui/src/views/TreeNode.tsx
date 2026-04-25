@@ -394,14 +394,14 @@ function TreeNodeImpl({
   const isMultiSelectedOnly = isNodeSelected && !isSelected && !hasSelectedAncestor
   const effectiveBg = isSelected || isParentOfCursor ? undefined : style.backgroundColor
   const headRowBg = isSelected
-    ? style.backgroundColor // inverse ($selection-bg)
+    ? style.backgroundColor // inverse ($bg-selected)
     : isParentOfCursor
       ? selectedBg(theme) // faint highlight
       : isMultiSelectedOnly
         ? multiSelectedBg(theme) // stronger tint for multi-selected sub-items
         : undefined
   const tc = isSelected
-    ? style.textColor // $selection (black) for inverse
+    ? style.textColor // $fg-on-selected (black) for inverse
     : isParentOfCursor
       ? "$fg-accent" // yellow fg for parent card title
       : style.textColor
@@ -849,8 +849,8 @@ function TreeNodeImpl({
             ) : isHR ? (
               // Unselected HRs render muted (separator chrome, not content) —
               // matches the contract asserted by tests/hr.test.ts. When
-              // selected the cursor's inverse theming wins ($selection over
-              // $selectionbg), so tc provides the selected color; otherwise
+              // selected the cursor's inverse theming wins ($fg-on-selected over
+              // $bg-selected), so tc provides the selected color; otherwise
               // fall back to $fg-muted.
               <Text color={tc ?? "$fg-muted"} wrap="truncate">
                 {cleanContent.trim()}
