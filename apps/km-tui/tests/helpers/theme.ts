@@ -73,9 +73,9 @@ function hexToRgb(hex: string | undefined): RGB {
 const t = ansi16DarkTheme as unknown as Record<string, string | undefined>
 
 /** Selection highlight bg (Nord Polar Night 3 by default). */
-const SELECTION_BG = hexToRgb(t["selectionbg"])
+const SELECTION_BG = hexToRgb(t["bg-selected"])
 /** Selection fg on the selection bg (Nord Snow Storm 1 by default). */
-const SELECTION_FG = hexToRgb(t["selection"])
+const SELECTION_FG = hexToRgb(t["fg-on-selected"])
 /** Primary foreground text (Nord Snow Storm 1 by default). */
 const FG = hexToRgb(t["fg"])
 /** Muted foreground text — prefer Sterling fg-muted, fallback to legacy. */
@@ -92,8 +92,8 @@ const WARNING = hexToRgb(t["fg-warning"] ?? t["warning"])
 const SUCCESS = hexToRgb(t["fg-success"] ?? t["success"])
 /** Primary brand tint / interactive accent — prefer Sterling fg-accent. */
 const PRIMARY = hexToRgb(t["fg-accent"] ?? t["primary"])
-/** Hyperlinks, references. */
-const LINK = hexToRgb(t["link"])
+/** Hyperlinks, references — Sterling fg-link. */
+const LINK = hexToRgb(t["fg-link"])
 /** Focus border (Sterling border-focus → legacy focusborder). */
 const FOCUS_BORDER = hexToRgb(t["border-focus"] ?? t["focusborder"])
 /** Interactive control borders. */

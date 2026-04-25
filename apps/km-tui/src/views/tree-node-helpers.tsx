@@ -121,9 +121,9 @@ export function getNodeStyle(
   } else if (isSelected) {
     // Cursor node: $bg-selected/$fg-on-selected (Nord yellow or equivalent).
     // Kept on selection tokens (not cursor tokens) because km-tui's per-pane
-    // theme dimming logic in theme.ts dims selectionbg to produce the
+    // theme dimming logic in theme.ts dims `bg-selected` to produce the
     // 'unfocused pane' dimmed look. Migrating to $bg-cursor/$fg-cursor would
-    // need that dimming logic extended to cursorbg too — tracked in
+    // need that dimming logic extended to bg-cursor too — tracked in
     // km-silvery.theme-fake-cursor (follow-up).
     backgroundColor = "$bg-selected"
     textColor = "$fg-on-selected"

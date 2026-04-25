@@ -158,22 +158,19 @@ const UNFOCUSED_STERLING_DIM: readonly string[] = [
 
 /** Legacy Theme fields that still drive render output on silvery's legacy
  * path. Dimmed alongside Sterling flat tokens so that consumers reading
- * either shape see the same unfocused signal. Removable after silvery's
- * legacy Theme shape is retired (see bead
- * `km-silvery.sterling-2e-interior-migration` phase F). */
+ * either shape see the same unfocused signal. The Sterling-replaced aliases
+ * (`selection` / `selectionbg` / `inverse` / `inversebg` / `link`) were
+ * removed in silvery 0.21.0 — sterling-purge-legacy-tokens — and dropped
+ * from this list. Removable after the rest of silvery's legacy Theme shape
+ * is retired. */
 const UNFOCUSED_LEGACY_DIM: readonly string[] = [
   "primary",
-  "link",
   "inputborder",
-  "selectionbg",
-  "selection",
   "focusborder",
   "fg",
   "muted",
   "disabledfg",
   "border",
-  "inversebg",
-  "inverse",
   "error",
   "warning",
   "success",
