@@ -344,13 +344,8 @@ const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreview
  */
 const EXEC_BAD_RELATIVE_PATH = /[/\\]/
 
-function validateRule(entry: unknown, where: string): AutolinkRule | null {
-  const result = validateRuleWithReason(entry, where)
-  return result.kind === "ok" ? result.rule : null
-}
-
 /**
- * Like {@link validateRule} but returns the drop reason as structured data.
+ * Validate a single rule and return the drop reason as structured data.
  * Used by `parseSyntaxlinksYamlWithDiagnostics` to surface drop reasons in
  * the doctor output. Logs to debug for parity with the legacy path.
  *
