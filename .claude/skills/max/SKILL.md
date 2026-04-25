@@ -140,7 +140,7 @@ Checklist before launching the Agent calls:
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
 **Worktree commit rules (CRITICAL):**
-- Agents in worktrees **MUST commit** their changes. Clones live at `.claude/worktrees/<name>/`; the WorktreeRemove hook preserves the directory on finish (it logs uncommitted-change count) but the clone is no longer on main's branch graph — without a commit, the work stays orphaned.
+- Agents in worktrees **MUST commit** their changes. Clones live at `.claude/worktrees/<name>/`. As of 2026-04-24, the WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved. Either way, the clone is no longer on main's branch graph — without a commit, the work either stays orphaned (preserved) or vanishes (deleted).
 - **Every worktree agent prompt MUST end with explicit commit instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
 
   > CRITICAL: You are in a worktree at `.claude/worktrees/<your-name>/`.
@@ -148,7 +148,7 @@ Checklist before launching the Agent calls:
   > the parent session. Commit early and often with conventional
   > commits. Your final message MUST include the commit SHA as proof.
 
-  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. Since the 2026-04-23 cp-c rewrite the clone directory survives cleanup, but the parent session still can't see uncommitted work — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
+  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. Even though the WorktreeRemove hook will preserve a clone with uncommitted changes, the parent session can't see that work without an explicit recovery step — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
 
 - Integrate clone commits back to main via the branch the agent committed on (e.g. `git fetch .claude/worktrees/<name> main:<branch>` or `git cherry-pick -X theirs <sha>` from main). `bun worktree merge` only applies to `bun worktree`-created branches.
 
