@@ -143,6 +143,17 @@ const UNFOCUSED_STERLING_DIM: readonly string[] = [
   "border-muted",
   "fg-cursor",
   "bg-cursor",
+  // Sterling selection / inverse / link (Phase A — sterling-selection-tokens).
+  // After Phase B (selection-theme-tokens), paintFrame reads `bg-selected` /
+  // `fg-on-selected` directly off the (per-pane) Theme — so the unfocused
+  // variant must dim them too, otherwise the unfocused pane keeps a
+  // full-strength selection bar.
+  "bg-selected",
+  "fg-on-selected",
+  "bg-selected-hover",
+  "bg-inverse",
+  "fg-on-inverse",
+  "fg-link",
 ]
 
 /** Legacy Theme fields that still drive render output on silvery's legacy
