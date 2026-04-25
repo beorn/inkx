@@ -6,12 +6,12 @@
  * to change. If you change any styling logic in km-tui, update this file too.
  *
  * Note: `$selection` / `$selectionbg` / `$inverse` / `$link` are legacy theme
- * tokens that have no direct Sterling flat-token equivalent (Sterling 0.19
- * derives accent + status roles, but not selection / inverse / link). They
- * remain on the legacy theme via `@silvery/ansi`'s `deriveTheme()` and are
- * not migrated by `km-silvery.sterling-consumer-migration`. When Sterling
- * adds equivalents (`bg-selected`, `fg-on-selected`, `bg-inverse`, etc.),
- * migrate then.
+ * tokens. Sterling now ships flat-token equivalents (`bg-selected`,
+ * `fg-on-selected`, `bg-inverse`, `fg-on-inverse`, `fg-link`) and matching
+ * nested roles (`theme.selected`, `theme.inverse`, `theme.link`). The legacy
+ * tokens still ship through `@silvery/ansi`'s `deriveTheme()` for the 0.19.x
+ * transition; consumers migrate in `km-silvery.sterling-km-tui-selection-migration`
+ * (Phase C). The legacy tokens get purged in 0.20.0 (Phase D).
  *
  * ## Precedence: how a cell's final style is composed
  *
