@@ -63,8 +63,14 @@
  *   fine for the cursor-safe decoration rule above, but it means inconsistent
  *   enforcement: a leaf can hardcode `underlineStyle` and nothing can strip it.
  *
- * - `shouldStripColor` is computed 2 different ways across TreeNode and NodeView.
- *   They should share one helper.
+ * - `shouldStripColor` is computed locally in TreeNode and NodeView. The
+ *   per-view definitions differ intentionally: TreeNode guards `isSelected`
+ *   with `tc != null` (the title color is null on the ANSI16 fallback path
+ *   where there's no inverse to strip TO); NodeView always has a forced
+ *   title color when selected, so the guard is unneeded. Evaluated 2026-04-25
+ *   under km-silvery.theme-v4-stripInlineColors and kept as-is — the
+ *   stripInlineColors mechanism is already context-based (no prop-drilling),
+ *   and a shared helper wouldn't simplify a 1-line boolean expression.
  *
  * - Hardcoded hex values exist (e.g. `#404050` pill bg in InlineComponents.tsx).
  *   They bypass the theme token system and break dark/light mode consistency.
