@@ -25,15 +25,26 @@
  * `flexShrink={1} minWidth={0}` must be explicit at every intermediate
  * Box that sits between a bounded parent and the text that should wrap.
  *
- * KNOWN residual: in the FULL App.tsx chain (Screen row → left column →
- * per-session wrapper flexGrow=1 → SessionCard outer flexGrow=1 →
- * SessionCard inner flexGrow=1 → AssistantBlock → MarkdownView), stacking
- * 3+ levels of `flexGrow=1` on flex-columns still triggers a flexily bug
- * where `<Text wrap="wrap">` descendants receive their max-content width
- * instead of the parent's available width. See the "G" / "H" debug cases
- * during the session that diagnosed this. Fixing that requires a flexily
- * layout-phase change (bench + fuzz verified). This test covers the
- * component-level fixes.
+ * MISDIAGNOSED-AND-RESOLVED: a previous session ran the App.tsx-mirror
+ * scenario without root height pinning and saw text not wrapping. That was
+ * filed as a flexily bug (km-silvery.wrap-measurement, P1). Re-investigation
+ * (silvery-expert agent verdict, 2026-04-24) found it was a TEST-HARNESS
+ * artifact, not a flexily defect:
+ *
+ * - Real silvercode roots use `<Screen>` which sets explicit
+ *   `width={dims.width} height={dims.height}` from the terminal.
+ * - `createRenderer({cols, rows})` only passes cols/rows as the available
+ *   size to `calculateLayout()` — it does NOT pin root.style.width/height.
+ * - Without a definite root height, a column→row→wrappable-text chain
+ *   collapses to height=1 via correct CSS max-content sizing (the row's
+ *   intrinsic cross size is its tallest child's max-content height, which
+ *   for a wrappable Text at unconstrained width is 1).
+ * - Pin root via `<Root>` helper (matching `<Screen>`) and the chain wraps
+ *   correctly. flexily Phase 7a's NaN×NaN measure is CSS-correct shrink-
+ *   wrap behavior — see vendor/flexily/src/layout-zero.ts:947-952.
+ *
+ * Companion silvery-level test:
+ *   vendor/silvery/tests/features/wrap-nested-flexgrow.test.tsx
  */
 import React from "react"
 import { describe, expect, test } from "vitest"
@@ -70,11 +81,14 @@ function contentPastBoundary(text: string, boundary: number): string[] {
   return offenders
 }
 
-/** Minimal "card + side panel" shell that doesn't trigger the flexily
- *  nested-flexGrow bug — ONE flexGrow level, then flexShrink-only layers. */
+/** Minimal "card + side panel" shell. The outer Box pins `width` and
+ *  `height` to mirror what `<Screen>` does in the real app — without that,
+ *  column→row→wrappable-text chains collapse to height=1 via correct CSS
+ *  max-content sizing and the wrapping that the test wants to verify never
+ *  has space to render. */
 function Shell({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <Box flexDirection="row">
+    <Box flexDirection="row" width={TOTAL_COLS} height={30}>
       <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
         <Box flexShrink={1} minWidth={0} paddingX={1}>
           <Box flexShrink={1} minWidth={0} paddingX={1}>
@@ -135,13 +149,15 @@ describe("regression: DetectionText wraps mixed-token paragraphs at card boundar
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
-  test("full App-style chain: identifies remaining flexily bug", () => {
-    // This mirrors apps/silvercode/src/App.tsx:317-340 + SessionCard.tsx.
-    // It documents the CURRENT behavior — when this test starts passing,
-    // the nested-flexGrow flexily bug has been fixed.
+  test("full App-style chain: 5 nested flex-grow boxes wrap at card boundary", () => {
+    // Mirrors apps/silvercode/src/App.tsx:397-430 + SessionCard.tsx.
+    // The outer Box width/height pin matches what `<Screen>` does in the
+    // real app — see vendor/silvery/packages/ag-react/src/ui/components/
+    // Screen.tsx:51-58. Without this pin, column→row→wrappable-text chains
+    // collapse to height=1 via correct CSS max-content sizing.
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
-      <Box flexDirection="row">
+      <Box flexDirection="row" width={TOTAL_COLS} height={30}>
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
           <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
@@ -168,14 +184,15 @@ describe("regression: DetectionText wraps mixed-token paragraphs at card boundar
         </Box>
       </Box>,
     )
+
+    const sideCol = findSide(app.text)
+    const boundary = sideCol ?? LEFT_WIDTH
+    expect(contentPastBoundary(app.text, boundary)).toEqual([])
+
     const lines = app.text.split("\n")
-    // Document current broken behavior: only first sentence renders on
-    // row 0, rest of paragraph is clipped. When the underlying flexily
-    // bug is fixed, this test should be updated to assert correct wrap
-    // (replace .toBe(false) with .toBe(true) and invert the offenders
-    // check).
-    const hasMiddle = lines.some((l) => l.includes("unifies notes"))
-    expect(hasMiddle).toBe(false) // TODO: invert once flexily bug fixed
+    expect(lines.some((l) => l.includes("Knowledge Machine"))).toBe(true)
+    expect(lines.some((l) => l.includes("unifies notes"))).toBe(true)
+    expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
   test("plain MarkdownView wraps at card boundary", () => {
