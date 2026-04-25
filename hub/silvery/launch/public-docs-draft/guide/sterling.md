@@ -34,7 +34,7 @@ Flat `$token` strings in JSX:
 <Text color="$fg-accent">Selected</Text>
 <Box backgroundColor="$bg-surface-subtle">Sidebar</Box>
 <Text color="$fg-on-error" backgroundColor="$bg-error">Deploy failed</Text>
-<Alert tone="error">Something went wrong</Alert>
+<Alert variant="error">Something went wrong</Alert>
 ```
 
 Tokens read **channel-role-state** order — matches Primer and CSS custom property conventions:
@@ -95,7 +95,7 @@ Each role has a `bg` (fill), `fg` (text color as standalone), and `fgOn` (text o
 
 Each omission is deliberate.
 
-**No `destructive` role.** A "Delete" button is an intent, not a status. `<Button tone="destructive">` aliases to `error` by default at the component layer. Keeps `error` / `destructive` / `danger` from drifting into four slightly different reds.
+**No `destructive` role.** A "Delete" button is an intent, not a status. `<Button variant="destructive">` aliases to `error` by default at the component layer. Keeps `error` / `destructive` / `danger` from drifting into four slightly different reds.
 
 **No urgency axis.** No `priority="high"`, no `severe` / `catastrophic` color role. Urgency is conveyed by component choice (`<Toast>` vs `<Banner>` vs `<Dialog>` vs inline `<Alert>`), position, and content — not by tokens.
 

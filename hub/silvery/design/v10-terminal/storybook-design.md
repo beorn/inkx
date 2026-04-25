@@ -66,21 +66,21 @@ For every role pair in the current scheme: WCAG AA ratio + pass/fail. Failures h
 Side-by-side:
 
 ```
-<Alert tone="error">       → uses error.fg / error.bg
-<Button tone="destructive"> → ALSO uses error.fg / error.bg (by default)
-<Button tone="error">      → ⚠ linted: use "destructive" for actions
+<Alert variant="error">       → uses error.fg / error.bg
+<Button variant="destructive"> → ALSO uses error.fg / error.bg (by default)
+<Button variant="error">      → ⚠ linted: use "destructive" for actions
 ```
 
 Docs the Sterling decision: `error` is status, `destructive` is intent.
 
 ### 5. Urgency-is-not-a-token demo
 
-Three components, same `tone="error"`:
+Three components, same `variant="error"`:
 
 ```
-<InlineAlert tone="error"> │ "Something failed"
-<Banner tone="error">      │ dismissible header
-<Dialog tone="error">      │ modal, blocking
+<InlineAlert variant="error"> │ "Something failed"
+<Banner variant="error">      │ dismissible header
+<Dialog variant="error">      │ modal, blocking
 ```
 
 Same color. Three urgency levels. Zero `priority` prop. Drives home Sterling's philosophy.

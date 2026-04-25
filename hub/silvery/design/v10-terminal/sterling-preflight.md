@@ -10,7 +10,7 @@
 
 ## D1 — `destructive` is a component prop, NOT a Theme field
 
-**Question**: does `destructive` live on the Theme object (as `theme.destructive.bg`), or only at the component layer (as a `tone="destructive"` value that resolves internally to `theme.error.bg`)?
+**Question**: does `destructive` live on the Theme object (as `theme.destructive.bg`), or only at the component layer (as a `variant="destructive"` value that resolves internally to `theme.error.bg`)?
 
 **Decision**: **component-layer only.** Theme exposes `error` / `warning` / `success` / `info` / `accent` as base roles. Components that accept a `tone` prop accept `"destructive"` as a synonym that resolves to `error`. Apps can override the mapping per-component but not per-theme.
 
@@ -20,7 +20,7 @@
 - `Theme` type has no `destructive` member
 - `@silvery/ui` components with a `tone` prop accept `"error" | "warning" | "success" | "info" | "accent" | "destructive"`; internally `destructive` → `error` lookup
 - Design-system.md §"Intent vs role" stays as written; no changes
-- Docs lint rule (future): suggest `tone="destructive"` for `<Button>`/`<MenuItem>` with destructive semantics; suggest `tone="error"` for status components
+- Docs lint rule (future): suggest `variant="destructive"` for `<Button>`/`<MenuItem>` with destructive semantics; suggest `variant="error"` for status components
 
 ---
 

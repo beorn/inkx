@@ -19,8 +19,8 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<CommandPalette>`     | `$bg-surface-raised` bg, `$border-default` border                             |
 | `<Toast>`              | `$bg-surface-overlay` bg, `$border-default` border                            |
 | `<SelectList>`         | inverse for selection, `$fg-muted` for disabled                               |
-| `<Alert tone="…">`     | Tone → `$bg-<tone>-subtle` + `$fg-<tone>`                                     |
-| `<Button tone="…">`    | Tone → `$bg-<tone>` + `$fg-on-<tone>`                                         |
+| `<Alert variant="…">`     | Tone → `$bg-<tone>-subtle` + `$fg-<tone>`                                     |
+| `<Button variant="…">`    | Tone → `$bg-<tone>` + `$fg-on-<tone>`                                         |
 | `<ErrorBoundary>`      | `$border-error`                                                               |
 | `<Divider>`            | `$border-muted`                                                               |
 | `<ProgressBar>`        | `$fg-muted` empty portion                                                     |
@@ -42,7 +42,7 @@ Most Silvery components already use the correct semantic colors by default. **Th
 
 <SelectList items={items} />
 
-<Alert tone="success">Deployed</Alert>
+<Alert variant="success">Deployed</Alert>
 
 <Divider />
 
@@ -61,7 +61,7 @@ Zero color props. The modal gets the raised surface, the right border, accent ti
   <TextInput borderColor={focused ? "$border-focus" : "$border-input"} />
 </Box>
 
-<Alert tone="success" color="$fg-success">OK</Alert>  // Alert resolves tone internally
+<Alert variant="success" color="$fg-success">OK</Alert>  // Alert resolves tone internally
 <Divider color="$border-muted" />                      // default already
 ```
 
@@ -256,7 +256,7 @@ Works in monochrome. Works for color-blind users. The icon carries meaning witho
 
 ```tsx
 <Text color="$fg-error" bold>FAILED</Text>      // color-only
-<Badge tone="success" />                         // empty badge — a green dot
+<Badge variant="success" />                         // empty badge — a green dot
 ```
 
 Color alone isn't enough.

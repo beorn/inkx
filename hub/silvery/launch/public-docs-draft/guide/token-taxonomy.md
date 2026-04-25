@@ -195,7 +195,7 @@ Every token has a **flat form** (the user-facing string) and a **nested form** (
 ```tsx
 <Text color="$fg-accent">Click me</Text>
 <Box backgroundColor="$bg-accent-hover">...</Box>
-<Alert tone="error">Something failed</Alert>     // resolves internally
+<Alert variant="error">Something failed</Alert>     // resolves internally
 ```
 
 Programmatic:
@@ -247,21 +247,21 @@ Both populated at derive time; no runtime lookup penalty.
 
 Sterling's roles are **status tokens**: they describe what's happening. UIs also need **intent tokens** for what an action will do.
 
-The classic case: a "Delete repository" button isn't an error — it's a destructive intent. `<Button tone="error">Delete</Button>` reads wrong.
+The classic case: a "Delete repository" button isn't an error — it's a destructive intent. `<Button variant="error">Delete</Button>` reads wrong.
 
 Sterling provides `destructive` as a **component-layer intent alias**, not a base role:
 
 ```tsx
-<Alert tone="error" />        // status — something failed
-<Button tone="destructive" /> // intent — this will delete
-<Callout tone="warning" />    // status — heads up
+<Alert variant="error" />        // status — something failed
+<Button variant="destructive" /> // intent — this will delete
+<Callout variant="warning" />    // status — heads up
 ```
 
 By default, `destructive` aliases to `error` (same hex). Apps can override per-component. Keeps `error` / `destructive` / `danger` / `critical` from sprawling into four near-duplicate roles.
 
 ## Anti-patterns
 
-- **`$fg-error` for anything that isn't an error** — delete buttons, red tags. Use `tone="destructive"` on components, or `$color1` for a red category tag.
+- **`$fg-error` for anything that isn't an error** — delete buttons, red tags. Use `variant="destructive"` on components, or `$color1` for a red category tag.
 - **`$color1` for everyday UI** — palette is the user's raw ANSI, not contrast-adjusted. Use `$fg-error` / `$fg-accent` for UI, `$color*` only for data.
 - **Hardcoded hex for a tinted surface** — use `$bg-surface-subtle` / `mix($bg, $bg-error, 15%)`.
 - **`dim` / `dimColor` in view code** — rendering detail. Use `$fg-muted` / `<Small>` / `$fg-disabled`.

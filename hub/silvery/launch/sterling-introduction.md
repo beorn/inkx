@@ -36,7 +36,7 @@ The everyday surface is a flat `$token` string:
 <Text color="$fg-accent">Selected</Text>
 <Box backgroundColor="$bg-surface-subtle">Sidebar</Box>
 <Text color="$fg-on-error" backgroundColor="$bg-error">Deploy failed</Text>
-<Alert tone="error">Something went wrong</Alert>
+<Alert variant="error">Something went wrong</Alert>
 ```
 
 The same Theme is also a structured object for programmatic code. Both forms reference the same strings:
@@ -87,7 +87,7 @@ Sterling is small on purpose.
 
 **No urgency axis.** No `priority="high"`, no `severe` color role, no `importance` prop. Urgency is conveyed by **component choice** (`<Toast>` vs `<Banner>` vs `<Dialog>` vs inline `<Alert>`), **position**, and **content**. No mainstream system — Material, shadcn, Chakra, Ant — ships an urgency axis either.
 
-**`destructive` is a component prop, not a Theme field.** A "Delete repository" button isn't an error, it's an intent. `<Button tone="destructive">` resolves to `error.bg` by default; apps can override per-component but not per-theme. Keeps `error` / `destructive` / `danger` / `critical` from drifting into four different reds.
+**`destructive` is a component prop, not a Theme field.** A "Delete repository" button isn't an error, it's an intent. `<Button variant="destructive">` resolves to `error.bg` by default; apps can override per-component but not per-theme. Keeps `error` / `destructive` / `danger` / `critical` from drifting into four different reds.
 
 **`brand` is an input, not a public role.** Apps pass `brand` when constructing a Theme; components consume `accent`. Prevents the inevitable "which blue is which" slide.
 
