@@ -1,6 +1,189 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-25 (cursor-invariants — 6 invariants locked)
+Last updated: 2026-04-25 (Phase 4b — selection as overlay + soft-wrap-aware fragments via Option-B wrap measurer registry)
+
+## Soft-wrap selection fragments (Phase 4b deferred → closed)
+
+**Closed**: bead `km-silvery.softwrap-selection-fragments` resolves the
+"one wide rectangle visually overflowing the viewport" gap that Phase 4b
+left open. A 60-char paragraph at terminal width 20 now emits 3 fragment
+rectangles (one per visual line) — `computeSelectionFragments` clamps the
+selection range against per-visual-line slices instead of `\n`-only-split
+logical lines.
+
+### Architecture (Option B — runtime wrap measurer registry)
+
+- `@silvery/ag/wrap-measurer.ts` (NEW) — module-level singleton.
+  `setWrapMeasurer({ wrapText })` / `getWrapMeasurer()`. Fragment helper
+  reads at compute-time so registration order is non-load-bearing.
+  v1 single Term-per-process; multi-Term will need per-tree binding (file
+  header documents the upgrade path).
+- `@silvery/ag-term/unicode.ts` — `wrapTextWithOffsets(text, width) →
+  WrapTextSlice[]` (NEW). Mirrors `wrapTextWithMeasurer`'s word-boundary
+  algorithm but tracks grapheme indices into the source. Returns `[]` for
+  "fits unchanged" so the geometry layer can synthesize a passthrough
+  without per-call allocation.
+- `@silvery/ag-term/runtime/wrap-measurer-registration.ts` (NEW) — adapts
+  `wrapTextWithOffsets` → `WrapMeasurer.wrapText` via type-only re-tag.
+  Module-load side effect installs the adapter; exports
+  `installTerminalWrapMeasurer` / `uninstallTerminalWrapMeasurer` /
+  `restoreDefaultWrapMeasurer` / `isTerminalWrapMeasurerInstalled` for
+  test control. Idempotency reads the live registry (`getWrapMeasurer()
+  === ourAdapter`), not a private boolean — so a test that called
+  `setWrapMeasurer(null)` directly is observed correctly.
+- Side-effect imports live in `runtime/create-runtime.ts` AND
+  `renderer.ts` so both `createApp.run()` (production) and
+  `createRenderer` (tests via `@silvery/test`) arm the registry without
+  caller wiring.
+
+### Geometry rewrite (`computeSelectionFragments`)
+
+The fragment loop now runs on a uniform per-visual-line slice list
+(`VisualLine[]`) regardless of source. Two builders:
+1. `buildVisualLinesWithMeasurer(text, width, wrapText)` — splits on
+   `\n` first, then walks each paragraph through the measurer.
+   Empty-list returns are synthesized into a passthrough so empty/short
+   paragraphs don't break offset arithmetic.
+2. `buildVisualLinesNewlineOnly(text)` — fallback when measurer is null
+   or content width <= 0. Preserves pre-Option-B geometry bit-for-bit
+   so pure-`@silvery/ag` consumers and unit tests are undisturbed.
+
+The downstream projection loop is shared:
+```
+for each visual line:
+  if line ends before from: skip
+  if line starts after to: break
+  emit Rect with x = content.x + max(0, from - line.startOffset),
+                width = min(line.text.length, to - line.startOffset) - max(0, from - line.startOffset),
+                y = content.y + lineIndex
+```
+
+### Test isolation
+
+`vendor/silvery/tests/features/softwrap-selection-fragments.test.tsx` —
+canonical 60-char/width-20 acceptance test (5,35) → 2 fragments at y=0
+width 15 + y=1 width 15. 12 tests with SILVERY_STRICT=2:
+- Acceptance (canonical) + direct-compute agreement
+- Multi-line spanning 4 visual lines / 3 lines full-coverage
+- Single visual line within wrap segment / no-wrap-needed passthrough
+- Wrap-boundary edge cases (selection ends at boundary, starts at
+  boundary, straddles boundary by 1 cell each side)
+- Fallback with `setWrapMeasurer(null)`: 60-char selection collapses to
+  ONE wide rect; embedded-`\n` multi-line still works
+- Re-arming after manual `setWrapMeasurer(null)`
+
+`beforeEach` / `afterAll` re-arm via `installTerminalWrapMeasurer()` so
+the test file is robust to cross-file leak. Tests that exercise the
+fallback wrap their own `beforeEach`/`afterEach` to drop and restore.
+
+### Pitfalls during implementation (this session)
+
+- Idempotency-by-private-boolean is wrong for a module-level registry: a
+  test that calls `setWrapMeasurer(null)` directly bypasses the install
+  function's bookkeeping, so subsequent `installTerminalWrapMeasurer()`
+  becomes a silent no-op. Fix: source truth from `getWrapMeasurer() ===
+  ourAdapter` instead of a local `_registered` flag.
+- `wrapText` (rendering) and `wrapTextWithOffsets` (geometry) need
+  separate functions because the rendering version drops boundary chars
+  (`"hello world"` width 5 → `["hello", "world"]`, the space is gone).
+  Geometry needs offset coverage for selection clamping; the rendering
+  output would corrupt the offset arithmetic if reused. Both share the
+  word-boundary algorithm and the underlying grapheme split — only the
+  bookkeeping (offset tracking vs trim) differs.
+- The "fits unchanged" empty-array passthrough convention is part of the
+  `WrapMeasurer.wrapText` contract — geometry layer turns `[]` into
+  `[{ text, startOffset: 0, endOffset: text.length }]`. This avoids
+  allocating a single-slice array for the (very common) short-text case.
+- `runtime/index.ts` re-exports don't fire side effects unless the
+  consumer actually imports from `runtime/index.ts`. Test paths via
+  `@silvery/ag-term/renderer` bypass this — so the registration import
+  has to live IN the consumed modules (`renderer.ts` AND
+  `create-runtime.ts`), not just at the barrel. Sharing a module-level
+  side effect across multiple entry points is the right move; loading it
+  once gates everything regardless of import path.
+
+## Selection-as-overlay (Phase 4b)
+
+**State machine**: `selectionIntent` BoxProp → layout phase computes
+`selectionFragments: readonly Rect[]` (peer of `cursorRect`, `focusedNodeId`,
+`contentRect`) → renderer reads `findActiveSelectionFragments(root)` and
+paints highlight bg without subscribing through `SelectionFeature` /
+`useSyncExternalStore`. Bypasses the React effect chain that legacy
+`useSelection` relied on. See `km-silvery.phase4-split-focus-selection`
+(closed; 4a + 4b both shipped).
+
+### Locked invariants (`km-silvery.phase4-split-focus-selection`, Phase 4b)
+
+1. **Wrap-spanning fragments**: multi-line selections (text contains `\n`)
+   yield N rectangles — first partial + middle full-width + last partial.
+   Single-line collapses to one rect. v1 covers embedded-newline
+   multi-line; soft-wrap awareness awaits a registered wrap measurer
+   (tracked at `km-silvery.overlay-anchor-system`).
+2. **Recompute on prop change**: `syncRectSignals` runs every layout pass
+   and unconditionally recomputes `selectionFragments` from
+   `props.selectionIntent` — `from`/`to` changes propagate even when
+   boxRect/scrollRect/contentRect didn't change. Mirrors cursor invariant
+   2 + focus invariant 2.
+3. **Cleanup on unmount**: WeakMap-backed signal map handles GC; the
+   tree-walk reads `props.selectionIntent` per-frame, so unmounted nodes
+   can't contribute. Conditional mount/unmount cycles produce zero ghosts.
+4. **Empty/collapsed selection**: `from === to` (or `from > to`, or no
+   prop, or empty text content) → `EMPTY_FRAGMENTS` (frozen `[]`
+   sentinel — reference-stable for downstream subscribers). Caret renders
+   separately via `cursorOffset`.
+5. **Multi-node selection (basic)**: `findActiveSelectionFragments`
+   concatenates fragments across all currently-mounted declarers. Two
+   adjacent Boxes both with `selectionIntent` → fragments from both,
+   composed for free. Cross-node range selection (mid-of-A through
+   mid-of-B) is a future enhancement.
+6. **Cross-target hygiene**: `selectionFragments` is a list of plain
+   `{x, y, width, height}` `Rect`s — purely geometric. Terminal-specific
+   highlight bg styling stays in `@silvery/ag-term` (selection-renderer);
+   canvas/DOM targets read the same fragments and paint their own
+   highlight.
+
+### Files involved (Phase 4b)
+
+- `vendor/silvery/packages/ag/src/types.ts` — `SelectionIntent` type,
+  `BoxProps.selectionIntent`
+- `vendor/silvery/packages/ag/src/layout-signals.ts` —
+  `LayoutSignals.selectionFragments`, `computeSelectionFragments`,
+  `findActiveSelectionFragments`, `selectionFragmentsEqual`,
+  `EMPTY_FRAGMENTS`, `collectSelectionText`, `offsetToLineCol`,
+  `lineLengthAt`
+- `vendor/silvery/packages/ag/src/index.ts` — re-exports new symbols
+- `vendor/silvery/packages/ag-react/src/hooks/useSelection.ts` —
+  `@deprecated` JSDoc + module-level migration note (one-cycle wrapper)
+- `vendor/silvery/scripts/lint-layout-reads.ts` — `useSelection` added
+  to `TARGET_HOOKS` warn-list; `useSelection.ts` allowlisted; `/**` and
+  `/*` single-line comments now filtered (a JSDoc reference in
+  `create-app.tsx:1188` was previously firing the rule).
+- `vendor/silvery/tests/features/selection-fragments.test.tsx` (NEW) —
+  15 tests pin all 6 invariants
+
+### Pitfalls noted during implementation (Phase 4b)
+
+- `@silvery/ag` cannot import `wrapText` from `@silvery/ag-term/unicode`
+  without inverting the layering. Solved post-Phase 4b via Option-B
+  registry (`setWrapMeasurer` / `getWrapMeasurer` in
+  `@silvery/ag/wrap-measurer.ts` — see "Soft-wrap selection fragments"
+  section above). v1 used `\n`-only splitting; the registry now drives
+  per-visual-line fragmentation when `@silvery/ag-term` is loaded.
+- `collectSelectionText` walks descendant `silvery-text` nodes in DFS
+  order. For pure-text Boxes this is a single child; richer composition
+  callers wanting per-line semantics should split the intent across
+  multiple Box declarers.
+- The shared `EMPTY_FRAGMENTS` sentinel is `Object.freeze([])` — re-using
+  the same reference means downstream subscribers see reference-stable
+  "no selection" frames and skip recomputation. Never mutate it.
+- Multi-node concatenation uses post-order walk (deepest-last) — order
+  is consistent with cursor / focus tree-walks. Renderers that need
+  z-ordering should treat the array as independent rects, not a stack.
+- The lint script's `shouldSkipLine` filter only matched `*` (multi-line
+  comment continuation), not `/**` or `/*` (single-line block comments).
+  Adding `useSelection` to the warn-list surfaced a JSDoc false positive
+  in `create-app.tsx`. Fixed by extending the filter to handle both
+  prefixes.
 
 ## Caret-as-layout-output (Phase 2 + invariants)
 
