@@ -31,6 +31,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 import createDebug from "debug"
 
@@ -49,18 +50,22 @@ export type AutolinkRule = {
   readonly preview: AutolinkPreviewKind
 }
 
-/** Default config path relative to a working directory. */
+/** Default config path relative to a working directory (per-vault). */
 export function defaultConfigPath(cwd: string): string {
   return join(cwd, ".silvercode", "links.toml")
 }
 
+/** Workspace-level config path (`~/.silvercode/links.toml`). */
+export function workspaceConfigPath(): string {
+  return join(homedir(), ".silvercode", "links.toml")
+}
+
 /**
- * Load and validate `<cwd>/.silvercode/links.toml`. Missing file → empty list.
+ * Load + validate one TOML file at `path`. Missing file → empty list.
  * Malformed TOML → empty list (with a logged warning). Per-rule validation
  * errors drop the offending rule but keep the rest.
  */
-export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
-  const path = defaultConfigPath(cwd)
+function loadAutolinksFile(path: string): AutolinkRule[] {
   if (!existsSync(path)) return []
 
   let raw: string
@@ -72,6 +77,49 @@ export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
   }
 
   return parseAutolinksToml(raw, path)
+}
+
+/**
+ * Cascade workspace + per-vault autolinks. Per-vault rules win on duplicate
+ * `source` (verbatim pattern string). Workspace rules that aren't shadowed
+ * appear FIRST in the returned list (lower priority — `mergeDetections`
+ * scans rules in order and an earlier match wins on overlap, but a per-vault
+ * override of the same source replaces the workspace entry in-place).
+ *
+ * Tests can drive `parseAutolinksToml` directly to bypass the filesystem;
+ * cascade behavior is unit-tested via `cascadeAutolinks` below.
+ */
+export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
+  const workspaceRules = loadAutolinksFile(workspaceConfigPath())
+  const vaultRules = loadAutolinksFile(defaultConfigPath(cwd))
+  return cascadeAutolinks(workspaceRules, vaultRules)
+}
+
+/**
+ * Pure cascade function — overlaps `vault` onto `workspace`.
+ *
+ * For each rule in `vault`: if a rule with the same `source` exists in
+ * `workspace`, the vault rule REPLACES the workspace rule at the workspace
+ * rule's original index (preserving relative ordering of other workspace
+ * rules). Otherwise the vault rule is APPENDED to the result.
+ *
+ * Result preserves the workspace-first / vault-second priority shape that
+ * `mergeDetections` (in match.ts) consumes.
+ */
+export function cascadeAutolinks(
+  workspace: readonly AutolinkRule[],
+  vault: readonly AutolinkRule[],
+): AutolinkRule[] {
+  const result: AutolinkRule[] = workspace.slice()
+  for (const vaultRule of vault) {
+    const idx = result.findIndex((r) => r.source === vaultRule.source)
+    if (idx >= 0) {
+      result[idx] = vaultRule
+    } else {
+      result.push(vaultRule)
+    }
+  }
+  return result
 }
 
 /**

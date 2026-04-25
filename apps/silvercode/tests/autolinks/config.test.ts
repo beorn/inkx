@@ -8,7 +8,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
-import { compilePattern, loadAutolinksConfig, parseAutolinksToml } from "../../src/autolinks/config.ts"
+import {
+  cascadeAutolinks,
+  compilePattern,
+  loadAutolinksConfig,
+  parseAutolinksToml,
+} from "../../src/autolinks/config.ts"
 
 describe("autolinks config — pattern compilation", () => {
   test("literal pattern matches verbatim, escapes meta characters", () => {
@@ -162,5 +167,53 @@ preview = "readme"
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~repo")
     expect(rules[0]!.resolvesTo).toBe(dir)
+  })
+})
+
+describe("autolinks config — cascade (workspace + per-vault)", () => {
+  function rule(source: string, resolvesTo: string): {
+    source: string
+    regex: RegExp
+    resolvesTo: string
+    preview: "readme"
+  } {
+    return { source, regex: compilePattern(source), resolvesTo, preview: "readme" }
+  }
+
+  test("vault rules append when no shadow", () => {
+    const ws = [rule("a", "/ws/a"), rule("b", "/ws/b")]
+    const vault = [rule("c", "/v/c")]
+    const merged = cascadeAutolinks(ws, vault)
+    expect(merged.map((r) => r.source)).toEqual(["a", "b", "c"])
+    expect(merged[2]!.resolvesTo).toBe("/v/c")
+  })
+
+  test("vault rule replaces workspace rule with same source, preserves position", () => {
+    const ws = [rule("a", "/ws/a"), rule("b", "/ws/b"), rule("c", "/ws/c")]
+    const vault = [rule("b", "/v/b")]
+    const merged = cascadeAutolinks(ws, vault)
+    expect(merged.map((r) => r.source)).toEqual(["a", "b", "c"])
+    expect(merged[1]!.resolvesTo).toBe("/v/b") // override
+    expect(merged[0]!.resolvesTo).toBe("/ws/a") // untouched
+    expect(merged[2]!.resolvesTo).toBe("/ws/c") // untouched
+  })
+
+  test("vault adds + replaces in one cascade", () => {
+    const ws = [rule("a", "/ws/a")]
+    const vault = [rule("a", "/v/a"), rule("b", "/v/b")]
+    const merged = cascadeAutolinks(ws, vault)
+    expect(merged.map((r) => r.source)).toEqual(["a", "b"])
+    expect(merged[0]!.resolvesTo).toBe("/v/a")
+    expect(merged[1]!.resolvesTo).toBe("/v/b")
+  })
+
+  test("empty workspace + vault rules → vault rules verbatim", () => {
+    const vault = [rule("a", "/v/a"), rule("b", "/v/b")]
+    expect(cascadeAutolinks([], vault)).toEqual(vault)
+  })
+
+  test("empty vault → workspace rules verbatim", () => {
+    const ws = [rule("a", "/ws/a")]
+    expect(cascadeAutolinks(ws, [])).toEqual(ws)
   })
 })
