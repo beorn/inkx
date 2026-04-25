@@ -63,7 +63,7 @@
     "km:safe": "./scripts/km-safe.sh",
     "termless": "bun vendor/termless/packages/cli/src/cli.ts",
     "silvery": "bun vendor/silvery/bin/silvery.ts",
-    "design": "bun vendor/silvery/examples/bin/cli.ts design",
+    "design": "bun vendor/silvery/examples/bin/cli.ts storybook",
     "terminfo": "bun vendor/terminfo.dev/packages/admin/src/index.ts",
     "worktree": "bun vendor/bearly/tools/worktree.ts",
     "accountly": "bun vendor/accountly/src/cli.ts",
