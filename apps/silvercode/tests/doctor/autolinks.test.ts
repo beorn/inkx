@@ -235,11 +235,7 @@ syntaxlinks:
     )
     const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
     expect(section.severity).toBe("error")
-    expect(
-      section.items.some(
-        (i) => i.severity === "error" && /not found on PATH/.test(i.message),
-      ),
-    ).toBe(true)
+    expect(section.items.some((i) => i.severity === "error" && /not found on PATH/.test(i.message))).toBe(true)
   })
 
   test("shell.exec absolute path that exists → ok", () => {
@@ -276,9 +272,7 @@ syntaxlinks:
     )
     const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
     expect(section.severity).toBe("error")
-    expect(
-      section.items.some((i) => i.severity === "error" && /shell\.exec missing/.test(i.message)),
-    ).toBe(true)
+    expect(section.items.some((i) => i.severity === "error" && /shell\.exec missing/.test(i.message))).toBe(true)
   })
 })
 
@@ -355,6 +349,77 @@ describe("doctor autolinks — watcher count", () => {
     const watcherItem = section.items.find((i) => i.message.startsWith("watchers —"))
     expect(watcherItem).toBeDefined()
     expect(watcherItem!.message).toContain(`${_activeWatcherCount()} active`)
+  })
+})
+
+describe("doctor autolinks — handler registry (URI pivot)", () => {
+  let dir: string
+  let wsPath: string
+  let vaultPath: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "silvercode-doctor-"))
+    wsPath = join(dir, "ws-config.yaml")
+    vaultPath = join(dir, "vault-config.yaml")
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test("autolinks-handlers extra lists v1 schemes (file, bd, shell, https, mcp)", () => {
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const handlers = section.extras?.find((e) => e.kind === "autolinks-handlers")
+    expect(handlers).toBeDefined()
+    if (handlers?.kind !== "autolinks-handlers") return
+    expect(handlers.schemes).toEqual(["file", "bd", "shell", "https", "mcp"])
+  })
+
+  test("each rule is bound to a handler — file: scheme inferred from /path", () => {
+    writeFileSync(join(dir, "README.md"), "# Test\n")
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "~repo"
+    resolves_to: "${dir}"
+    preview: readme
+`,
+    )
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const handlers = section.extras?.find((e) => e.kind === "autolinks-handlers")
+    expect(handlers?.kind).toBe("autolinks-handlers")
+    if (handlers?.kind !== "autolinks-handlers") return
+    const binding = handlers.bindings.find((b) => b.pattern === "~repo")
+    expect(binding).toBeDefined()
+    expect(binding!.inferredScheme).toBe("file")
+    expect(binding!.status).toBe("ok")
+  })
+
+  test("bd-shaped resolves_to (bare scope.slug) → bd: scheme inferred", () => {
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "/\\\\+\\\\w+/"
+    resolves_to: "km-silvercode.autolinks-uri-pivot"
+    preview: bd-active
+`,
+    )
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const handlers = section.extras?.find((e) => e.kind === "autolinks-handlers")
+    if (handlers?.kind !== "autolinks-handlers") return
+    const binding = handlers.bindings.find((b) => b.pattern.startsWith("/"))
+    expect(binding?.inferredScheme).toBe("bd")
+    expect(binding?.status).toBe("ok")
+  })
+
+  test("section emits an `ok` summary item listing the registered schemes", () => {
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const handlersItem = section.items.find((i) => i.message.startsWith("handlers —"))
+    expect(handlersItem).toBeDefined()
+    expect(handlersItem!.severity).toBe("ok")
+    expect(handlersItem!.message).toContain("file, bd, shell, https, mcp")
   })
 })
 

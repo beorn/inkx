@@ -140,20 +140,36 @@ The preview cache uses two strategies:
 
 Watchers are torn down on session dispose via `useScopeEffect` on `AutolinksContext`.
 
-### Future direction — URI pivot
+### URI dispatch (internal)
 
-The current shape combines two concerns (text → resolved value AND resolved value → preview) in a single rule. A planned pivot factors the implementation into URI-scheme dispatch:
+The implementation factors preview resolution into URI-scheme dispatch — the same shape every OS and editor uses for handler registration (VS Code's `DocumentLinkProvider` + `UriHandler` are the canonical analogue):
 
-- Stage 1 (linkifier): `pattern → URI` (where `resolves_to` is parsed as a URI)
-- Stage 2 (handlers): `URI → preview + action`, keyed by URI scheme
+- **Stage 1 — linkifier** (`apps/silvercode/src/autolinks/match.ts`): pattern → URI. The matcher emits autolink detections and a separate virtual-detection pass picks up plain `https?://...` tokens that aren't covered by a configured rule.
+- **Stage 2 — handlers** (`apps/silvercode/src/autolinks/handlers/`): URI → preview + action, keyed by URI scheme.
 
-After this lands:
-- ANY URL in chat (typed by user, returned by an MCP tool, pasted) flows through the same handler pipeline — no rule needed for plain URLs.
-- `mcp` becomes a handler scheme (not a preview kind).
-- `shell` becomes a handler scheme.
-- The user-facing schema stays the same in v1; an additive `[[handlers]]` block exposes the registry to advanced users in v2.
+The user-facing schema in `.km/config.yaml` is unchanged — rules still carry `pattern` / `resolves_to` / `preview`. The `resolves_to` value is parsed by `parseResolvesTo` into a URI on the way to dispatch:
 
-Tracking: `km-silvercode.autolinks-uri-pivot`.
+| `resolves_to` value          | Inferred scheme | Notes |
+|------------------------------|-----------------|-------|
+| `/Users/beorn/Code`          | `file:`         | Absolute path |
+| `~/Documents`                | `file:`         | `~` expanded to `$HOME` |
+| `km-foo.bar` / `foo.bar`     | `bd:`           | Looks like a bd parent id |
+| `https://github.com/...`     | `https:`        | Explicit scheme passes through |
+| `bd://km-foo`                | `bd:`           | Explicit scheme passes through |
+| `mcp:rfc.lookup`             | `mcp:`          | Explicit scheme passes through |
+
+The handler registry (`apps/silvercode/src/autolinks/handlers/index.ts`) is hardcoded in v1 with five schemes: `file`, `bd`, `shell`, `https`, `mcp`. Each handler exports a `Handler { scheme, resolve(uri, ctx) }` and is responsible for its own resolve logic; cache + watcher lifecycle stays in `previews.ts`.
+
+Plain URLs in displayed text flow through the same pipeline. `detectAutolinks` emits a *virtual* autolink detection for any URL-shaped token not already covered by a configured rule; the registry routes it to the `https:` handler (a webcard placeholder in v1). No rule is needed.
+
+Doctor introspection (`silvercode doctor autolinks`) lists registered schemes and shows the per-rule handler binding so users can see which scheme each rule's `resolves_to` resolves to and flag rules whose scheme has no handler.
+
+Future direction:
+- v2 will expose `[[handlers]]` in `.km/config.yaml` for user-defined handlers (additive — v1 user-facing schema unchanged).
+- `mcp` will become a fully implemented handler scheme (currently a stub at `apps/silvercode/src/autolinks/handlers/mcp.ts`); see `km-silvercode.autolinks-mcp-resolver`.
+- The `https:` handler will gain a real webcard fetcher (OG metadata + sandboxed fetch).
+
+Tracking: `km-silvercode.autolinks-uri-pivot` (URI dispatch landed); `km-silvercode.autolinks-mcp-resolver` (mcp handler implementation, deferred).
 
 ## Term linker (website)
 

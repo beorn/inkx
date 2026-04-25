@@ -27,13 +27,9 @@ import {
   type SyntaxlinksDiagnostic,
 } from "../../autolinks/config.ts"
 import { _activeWatcherCount } from "../../autolinks/previews.ts"
-import {
-  rollupItems,
-  type DoctorExtra,
-  type DoctorItem,
-  type DoctorSection,
-  type DoctorSeverity,
-} from "../index.ts"
+import { findHandler, registeredSchemes } from "../../autolinks/handlers/index.ts"
+import { parseResolvesTo } from "../../autolinks/uri.ts"
+import { rollupItems, type DoctorExtra, type DoctorItem, type DoctorSection, type DoctorSeverity } from "../index.ts"
 
 export type AutolinksCheckerOptions = {
   /**
@@ -86,6 +82,14 @@ export function runAutolinksChecker(cwd: string, opts: AutolinksCheckerOptions =
   // Section 4: path checks for every effective rule.
   const effectiveRules = cascadeAutolinks(wsRules, vaultRules)
   items.push(...pathItems(effectiveRules))
+
+  // Section 4b: handler-registry introspection (URI dispatch pivot,
+  // bead km-silvercode.autolinks-uri-pivot). Lists every registered scheme
+  // and per-rule handler binding, flagging rules whose inferred URI scheme
+  // has no registered handler.
+  const handlerExtra = buildHandlersExtra(effectiveRules)
+  extras.push(handlerExtra)
+  items.push(...handlerItems(handlerExtra))
 
   // Section 5: watcher count (in-process; will be 0 from a fresh CLI run
   // that hasn't resolved any previews yet, but visible if someone wires
@@ -305,6 +309,79 @@ function collectMcpStubs(
     if (d.kind === "mcp-stub") rows.push({ pattern: d.pattern, resolvesTo: d.resolvesTo })
   }
   return rows
+}
+
+/**
+ * Build the `autolinks-handlers` extra from the effective rule list. Each
+ * rule's `resolves_to` is parsed via `parseResolvesTo` and matched against
+ * the handler registry; mismatches surface as `status: "no-handler"`.
+ */
+function buildHandlersExtra(rules: readonly AutolinkRule[]): {
+  readonly kind: "autolinks-handlers"
+  readonly schemes: readonly string[]
+  readonly bindings: ReadonlyArray<{
+    readonly pattern: string
+    readonly resolvesTo: string
+    readonly inferredScheme: string
+    readonly status: "ok" | "no-handler"
+  }>
+} {
+  const schemes = registeredSchemes()
+  const bindings = rules.map((rule) => {
+    let uri: URL
+    try {
+      uri = parseResolvesTo(rule.resolvesTo)
+    } catch {
+      return {
+        pattern: rule.source,
+        resolvesTo: rule.resolvesTo,
+        inferredScheme: "?",
+        status: "no-handler" as const,
+      }
+    }
+    const inferredScheme = uri.protocol.replace(/:$/, "")
+    const handler = findHandler(uri)
+    return {
+      pattern: rule.source,
+      resolvesTo: rule.resolvesTo,
+      inferredScheme,
+      status: handler ? ("ok" as const) : ("no-handler" as const),
+    }
+  })
+  return { kind: "autolinks-handlers", schemes, bindings }
+}
+
+/**
+ * Promote the handler-registry introspection into doctor items: a single
+ * "ok" row summarising registered schemes, plus one "warn" per rule whose
+ * inferred URI scheme has no handler. We use warn (not error) because a
+ * rule with an inert scheme is still loadable — just won't render a popover.
+ */
+function handlerItems(extra: {
+  readonly schemes: readonly string[]
+  readonly bindings: ReadonlyArray<{
+    readonly pattern: string
+    readonly resolvesTo: string
+    readonly inferredScheme: string
+    readonly status: "ok" | "no-handler"
+  }>
+}): DoctorItem[] {
+  const items: DoctorItem[] = []
+  const schemeList = extra.schemes.join(", ")
+  items.push({
+    severity: "ok",
+    message: `handlers — ${extra.schemes.length} registered scheme${extra.schemes.length === 1 ? "" : "s"} (${schemeList})`,
+  })
+  for (const b of extra.bindings) {
+    if (b.status === "no-handler") {
+      items.push({
+        severity: "warn",
+        message: `${b.pattern} — no handler for inferred scheme \`${b.inferredScheme}\``,
+        detail: `resolves_to: ${b.resolvesTo}`,
+      })
+    }
+  }
+  return items
 }
 
 /** Re-export severity helper for symmetry. */

@@ -72,10 +72,7 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
   if (extra.kind === "autolinks-cascade") {
     if (extra.rows.length === 0) return [`  ${t.dim("(no rules effective)")}`]
     const headers = ["pattern", "source", "resolves_to", "preview"] as const
-    const rows: string[][] = [
-      [...headers],
-      ...extra.rows.map((r) => [r.pattern, r.source, r.resolvesTo, r.preview]),
-    ]
+    const rows: string[][] = [[...headers], ...extra.rows.map((r) => [r.pattern, r.source, r.resolvesTo, r.preview])]
     const widths = computeColumnWidths(rows)
     const lines: string[] = []
     lines.push(`  ${t.bold(`cascade (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"} effective)`)}`)
@@ -94,6 +91,20 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     lines.push(`  ${t.bold("mcp stubs (loaded but inert)")}`)
     for (const r of extra.rows) {
       lines.push(`    ${t.dim("·")} ${r.pattern} → ${r.resolvesTo}`)
+    }
+    return lines
+  }
+  if (extra.kind === "autolinks-handlers") {
+    const lines: string[] = []
+    const schemeList = extra.schemes.join(", ")
+    lines.push(
+      `  ${t.bold(`handlers (${extra.schemes.length} scheme${extra.schemes.length === 1 ? "" : "s"}: ${schemeList})`)}`,
+    )
+    if (extra.bindings.length > 0) {
+      for (const b of extra.bindings) {
+        const status = b.status === "ok" ? t.green("✓") : t.yellow("⚠")
+        lines.push(`    ${status} ${b.pattern} → ${b.inferredScheme}: (${b.resolvesTo})`)
+      }
     }
     return lines
   }

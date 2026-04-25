@@ -54,6 +54,25 @@ export type DoctorExtra =
       readonly kind: "autolinks-mcp"
       readonly rows: ReadonlyArray<{ readonly pattern: string; readonly resolvesTo: string }>
     }
+  | {
+      /**
+       * Handler registry introspection for autolinks. Lists every registered
+       * URI scheme + per-rule handler binding. Surfaced by the autolinks
+       * checker after the URI dispatch pivot landed
+       * (km-silvercode.autolinks-uri-pivot).
+       */
+      readonly kind: "autolinks-handlers"
+      /** Registered URI schemes — `["file","bd","shell","https","mcp"]` in v1. */
+      readonly schemes: readonly string[]
+      /** One row per effective rule with its inferred URI scheme + handler match. */
+      readonly bindings: ReadonlyArray<{
+        readonly pattern: string
+        readonly resolvesTo: string
+        readonly inferredScheme: string
+        /** "ok" if a registered handler claims the scheme; "no-handler" if not. */
+        readonly status: "ok" | "no-handler"
+      }>
+    }
 
 export type DoctorSection = {
   readonly title: string
