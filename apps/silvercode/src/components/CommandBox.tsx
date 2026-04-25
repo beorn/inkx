@@ -62,15 +62,9 @@ export function CommandBox({
   promptColor?: string
 }): React.ReactElement {
   const armedAt = useRef<number>(0)
-  // Refs to the two TextAreas so the boundary handoffs can move the
-  // cursor on the receiving side. `setValue(value)` moves cursor to end
-  // (used for Up→queue: cursor lands on end of last queue line). For
-  // Down→command we want offset 0 — silvery's TextAreaHandle doesn't
-  // currently expose `setCursor`, so we soft-call it via `as any`. Once
-  // `km-silvery.textarea-edge-callback` lands the setCursor extension
-  // (see SendMessage to silvery-onedge), this becomes a typed call.
-  // TODO(km-silvery.textarea-edge-callback-handle): drop `as any` once
-  // setCursor is on TextAreaHandle.
+  // Refs to the two TextAreas for cursor placement on boundary handoff.
+  // Up→queue: cursor lands at end of last queue line. Down→command:
+  // cursor lands at offset 0.
   const queueRef = useRef<TextAreaHandle | null>(null)
   const commandRef = useRef<TextAreaHandle | null>(null)
 
@@ -133,8 +127,7 @@ export function CommandBox({
                   // cursor at start of first line.
                   if (edge === "bottom") {
                     onFocusRegion("command")
-                    const cmd = commandRef.current as (TextAreaHandle & { setCursor?: (offset: number) => void }) | null
-                    cmd?.setCursor?.(0)
+                    commandRef.current?.setCursor(0)
                     return true
                   }
                   return false
@@ -179,9 +172,7 @@ export function CommandBox({
               // end of last queue line.
               if (edge === "top" && hasQueue) {
                 onFocusRegion("queue")
-                // setValue(value) moves cursor to end of buffer — i.e.
-                // end of last queue line. No-op on the buffer content.
-                queueRef.current?.setValue(queueText)
+                queueRef.current?.setCursor(queueText.length)
                 return true
               }
               return false

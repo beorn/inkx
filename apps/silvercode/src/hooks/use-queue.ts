@@ -13,9 +13,7 @@ export function useQueue(controller: Controller, sessionId: string): string {
   // Empty sessionId (e.g. during the startup window where App renders before
   // the first session is attached) → always returns empty. The hook still
   // runs unconditionally, which matches React's rules.
-  const [text, setText] = useState<string>(() =>
-    sessionId ? controller.queuedText(sessionId) : "",
-  )
+  const [text, setText] = useState<string>(() => (sessionId ? controller.queuedText(sessionId) : ""))
   useEffect(() => {
     if (!sessionId) {
       setText("")
