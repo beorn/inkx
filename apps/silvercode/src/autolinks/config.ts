@@ -173,6 +173,42 @@ export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
 }
 
 /**
+ * File-level state surfaced to `silvercode doctor`:
+ *   - `missing`: file does not exist on disk (the most common case).
+ *   - `unreadable`: file exists but `readFileSync` threw (perms, etc).
+ *   - `loaded`: file parsed (with possible per-rule diagnostics).
+ */
+export type AutolinksFileLoad =
+  | { readonly status: "missing"; readonly path: string }
+  | { readonly status: "unreadable"; readonly path: string; readonly reason: string }
+  | {
+      readonly status: "loaded"
+      readonly path: string
+      readonly rules: AutolinkRule[]
+      readonly diagnostics: SyntaxlinksDiagnostic[]
+    }
+
+/**
+ * Doctor-facing variant of {@link loadAutolinksFile}. Returns enough state to
+ * report file existence + parse outcomes without losing diagnostics.
+ */
+export function loadAutolinksFileWithDiagnostics(path: string): AutolinksFileLoad {
+  if (!existsSync(path)) return { status: "missing", path }
+
+  let raw: string
+  try {
+    raw = readFileSync(path, "utf-8")
+  } catch (err) {
+    const reason = String(err)
+    log(`failed to read %s: %s`, path, reason)
+    return { status: "unreadable", path, reason }
+  }
+
+  const { rules, diagnostics } = parseSyntaxlinksYamlWithDiagnostics(raw, path)
+  return { status: "loaded", path, rules, diagnostics }
+}
+
+/**
  * Pure cascade function — overlaps `vault` onto `workspace`.
  *
  * For each rule in `vault`: if a rule with the same `source` exists in
@@ -203,33 +239,91 @@ export function cascadeAutolinks(workspace: readonly AutolinkRule[], vault: read
  * parser without touching the filesystem.
  */
 export function parseSyntaxlinksYaml(raw: string, sourceLabel = "<inline>"): AutolinkRule[] {
-  let parsed: Record<string, unknown> | null
+  return parseSyntaxlinksYamlWithDiagnostics(raw, sourceLabel).rules
+}
+
+/**
+ * Diagnostic carried by `parseSyntaxlinksYamlWithDiagnostics`. One of:
+ *   - `yaml-error`: the YAML parser threw on the whole document.
+ *   - `shape-error`: top-level `syntaxlinks:` key is the wrong shape (not a list).
+ *   - `rule-drop`: a single rule failed validation; `ruleIdx` identifies it
+ *     within the YAML's `syntaxlinks:` array (0-based).
+ *   - `mcp-stub`: a syntactically-valid `mcp` rule that was dropped pending
+ *     implementation. Surfaced separately so doctor can list them as
+ *     "visible-but-inert" rather than as errors.
+ */
+export type SyntaxlinksDiagnostic =
+  | { readonly kind: "yaml-error"; readonly where: string; readonly reason: string }
+  | { readonly kind: "shape-error"; readonly where: string; readonly reason: string }
+  | { readonly kind: "rule-drop"; readonly where: string; readonly ruleIdx: number; readonly reason: string }
+  | {
+      readonly kind: "mcp-stub"
+      readonly where: string
+      readonly ruleIdx: number
+      readonly pattern: string
+      readonly resolvesTo: string
+    }
+
+/**
+ * Diagnostic-collecting peer of {@link parseSyntaxlinksYaml}.
+ *
+ * Returns the same accepted rules PLUS a list of structured diagnostics for
+ * every drop. Used by `silvercode doctor autolinks` to surface why rules
+ * were silently dropped at config load (the production parser writes drops
+ * to a debug log nobody reads). Production code paths still call the plain
+ * `parseSyntaxlinksYaml` — this peer exists purely for introspection.
+ */
+export function parseSyntaxlinksYamlWithDiagnostics(
+  raw: string,
+  sourceLabel = "<inline>",
+): { rules: AutolinkRule[]; diagnostics: SyntaxlinksDiagnostic[] } {
+  const diagnostics: SyntaxlinksDiagnostic[] = []
+  let parsed: unknown
   try {
-    parsed = Bun.YAML.parse(raw) as Record<string, unknown> | null
+    parsed = Bun.YAML.parse(raw)
   } catch (err) {
-    log(`%s: malformed YAML (%s); ignoring`, sourceLabel, String(err))
-    return []
+    const reason = String(err)
+    log(`%s: malformed YAML (%s); ignoring`, sourceLabel, reason)
+    diagnostics.push({ kind: "yaml-error", where: sourceLabel, reason })
+    return { rules: [], diagnostics }
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return []
+    return { rules: [], diagnostics }
   }
 
-  const entries = parsed["syntaxlinks"]
+  const obj = parsed as Record<string, unknown>
+  const entries = obj["syntaxlinks"]
+  if (entries === undefined) {
+    return { rules: [], diagnostics }
+  }
   if (!Array.isArray(entries)) {
-    if (entries !== undefined) {
-      log(`%s: expected \`syntaxlinks:\` array, got %s`, sourceLabel, typeof entries)
-    }
-    return []
+    const reason = `expected \`syntaxlinks:\` array, got ${typeof entries}`
+    log(`%s: %s`, sourceLabel, reason)
+    diagnostics.push({ kind: "shape-error", where: sourceLabel, reason })
+    return { rules: [], diagnostics }
   }
 
   const rules: AutolinkRule[] = []
   for (let i = 0; i < entries.length; i++) {
+    const where = `${sourceLabel}[${i}]`
     const entry = entries[i]
-    const rule = validateRule(entry, `${sourceLabel}[${i}]`)
-    if (rule) rules.push(rule)
+    const result = validateRuleWithReason(entry, where)
+    if (result.kind === "ok") {
+      rules.push(result.rule)
+    } else if (result.kind === "mcp-stub") {
+      diagnostics.push({
+        kind: "mcp-stub",
+        where,
+        ruleIdx: i,
+        pattern: result.pattern,
+        resolvesTo: result.resolvesTo,
+      })
+    } else {
+      diagnostics.push({ kind: "rule-drop", where, ruleIdx: i, reason: result.reason })
+    }
   }
-  return rules
+  return { rules, diagnostics }
 }
 
 const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreviewKind>([
@@ -251,34 +345,58 @@ const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreview
 const EXEC_BAD_RELATIVE_PATH = /[/\\]/
 
 function validateRule(entry: unknown, where: string): AutolinkRule | null {
+  const result = validateRuleWithReason(entry, where)
+  return result.kind === "ok" ? result.rule : null
+}
+
+/**
+ * Like {@link validateRule} but returns the drop reason as structured data.
+ * Used by `parseSyntaxlinksYamlWithDiagnostics` to surface drop reasons in
+ * the doctor output. Logs to debug for parity with the legacy path.
+ *
+ * `mcp-stub` is a separate result kind because mcp rules pass YAML/shape
+ * validation and only get dropped because the runtime isn't implemented yet
+ * — doctor lists them as inert rather than as errors.
+ */
+type ValidateResult =
+  | { readonly kind: "ok"; readonly rule: AutolinkRule }
+  | { readonly kind: "drop"; readonly reason: string }
+  | { readonly kind: "mcp-stub"; readonly pattern: string; readonly resolvesTo: string }
+
+function validateRuleWithReason(entry: unknown, where: string): ValidateResult {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-    log(`%s: not an object`, where)
-    return null
+    const reason = "not an object"
+    log(`%s: %s`, where, reason)
+    return { kind: "drop", reason }
   }
   const obj = entry as Record<string, unknown>
 
   const pattern = obj["pattern"]
   if (typeof pattern !== "string" || pattern.length === 0) {
-    log(`%s: missing/invalid \`pattern\``, where)
-    return null
+    const reason = "missing/invalid `pattern`"
+    log(`%s: %s`, where, reason)
+    return { kind: "drop", reason }
   }
   const resolvesTo = obj["resolves_to"]
   if (typeof resolvesTo !== "string" || resolvesTo.length === 0) {
-    log(`%s: missing/invalid \`resolves_to\``, where)
-    return null
+    const reason = "missing/invalid `resolves_to`"
+    log(`%s: %s`, where, reason)
+    return { kind: "drop", reason }
   }
   const preview = obj["preview"]
   if (typeof preview !== "string" || !VALID_PREVIEWS.has(preview as AutolinkPreviewKind)) {
-    log(`%s: invalid \`preview\` (got %s; expected one of %s)`, where, String(preview), [...VALID_PREVIEWS].join(", "))
-    return null
+    const reason = `invalid \`preview\` (got ${String(preview)}; expected one of ${[...VALID_PREVIEWS].join(", ")})`
+    log(`%s: %s`, where, reason)
+    return { kind: "drop", reason }
   }
 
   let regex: RegExp
   try {
     regex = compilePattern(pattern)
   } catch (err) {
-    log(`%s: invalid regex pattern \`${pattern}\` (%s)`, where, String(err))
-    return null
+    const reason = `invalid regex pattern \`${pattern}\` (${String(err)})`
+    log(`%s: %s`, where, reason)
+    return { kind: "drop", reason }
   }
 
   const kind = preview as AutolinkPreviewKind
@@ -289,57 +407,68 @@ function validateRule(entry: unknown, where: string): AutolinkRule | null {
   if (kind === "shell") {
     const command = obj["command"]
     if (!command || typeof command !== "object" || Array.isArray(command)) {
-      log(`%s: \`shell\` rule missing/invalid \`command\` (must be an object with \`exec\` and \`args\`)`, where)
-      return null
+      const reason = "`shell` rule missing/invalid `command` (must be an object with `exec` and `args`)"
+      log(`%s: %s`, where, reason)
+      return { kind: "drop", reason }
     }
     const cmdObj = command as Record<string, unknown>
     const exec = cmdObj["exec"]
     if (typeof exec !== "string" || exec.length === 0) {
-      log(`%s: \`shell\` rule missing/invalid \`command.exec\` (must be a non-empty string)`, where)
-      return null
+      const reason = "`shell` rule missing/invalid `command.exec` (must be a non-empty string)"
+      log(`%s: %s`, where, reason)
+      return { kind: "drop", reason }
     }
     // Reject relative paths (program-name-with-slash). Bare names resolve
     // via PATH; absolute paths are allowed. Anything in between is rejected.
     if (!exec.startsWith("/") && EXEC_BAD_RELATIVE_PATH.test(exec)) {
-      log(`%s: \`shell\` rule rejected — \`exec\` contains path separators but is not absolute (got %s)`, where, exec)
-      return null
+      const reason = `\`shell\` rule rejected — \`exec\` contains path separators but is not absolute (got ${exec})`
+      log(`%s: %s`, where, reason)
+      return { kind: "drop", reason }
     }
     const argsRaw = cmdObj["args"]
     if (argsRaw !== undefined && !Array.isArray(argsRaw)) {
-      log(`%s: \`shell\` rule \`command.args\` must be a list (got %s)`, where, typeof argsRaw)
-      return null
+      const reason = `\`shell\` rule \`command.args\` must be a list (got ${typeof argsRaw})`
+      log(`%s: %s`, where, reason)
+      return { kind: "drop", reason }
     }
     const args: string[] = []
     if (Array.isArray(argsRaw)) {
       for (let i = 0; i < argsRaw.length; i++) {
         const a = argsRaw[i]
         if (typeof a !== "string") {
-          log(`%s: \`shell\` rule \`command.args[${i}]\` must be a string (got %s)`, where, typeof a)
-          return null
+          const reason = `\`shell\` rule \`command.args[${i}]\` must be a string (got ${typeof a})`
+          log(`%s: %s`, where, reason)
+          return { kind: "drop", reason }
         }
         args.push(a)
       }
     }
     return {
-      source: pattern,
-      regex,
-      resolvesTo,
-      preview: kind,
-      command: { exec, args },
+      kind: "ok",
+      rule: {
+        source: pattern,
+        regex,
+        resolvesTo,
+        preview: kind,
+        command: { exec, args },
+      },
     }
   }
 
   if (kind === "mcp") {
     // Stub — config-load only. Drop with a clear pointer to the follow-up bead.
     log(`%s: \`mcp\` preview not yet implemented — see km-silvercode.autolinks-mcp-resolver`, where)
-    return null
+    return { kind: "mcp-stub", pattern, resolvesTo }
   }
 
   return {
-    source: pattern,
-    regex,
-    resolvesTo,
-    preview: kind,
+    kind: "ok",
+    rule: {
+      source: pattern,
+      regex,
+      resolvesTo,
+      preview: kind,
+    },
   }
 }
 

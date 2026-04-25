@@ -4,6 +4,8 @@ import React from "react"
 import { run } from "silvery/runtime"
 import { accountExists, resolveAccountDir } from "./accounts.ts"
 import { App } from "./App.tsx"
+import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
+import { renderReport } from "./doctor/render.ts"
 
 function buildProgram(): Command {
   const program = new Command()
@@ -82,6 +84,44 @@ function buildProgram(): Command {
     ["esc", "dismiss overlays"],
     ["ctrl-c / ctrl-d ctrl-d", "exit silvercode"],
   ])
+
+  // `silvercode doctor [checker]` — config + integration health check.
+  // Exits before any TUI mounts. CLI-only for v1; the in-TUI `/doctor`
+  // slash command is deferred (tracked by bead km-silvercode.doctor).
+  const doctor = program
+    .command("doctor")
+    .description("Health-check silvercode config + integrations (autolinks, …)")
+    .argument("[checker]", `restrict to one checker (${CHECKER_NAMES.join(", ")})`)
+    .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
+    .action((arg: string | undefined, opts: Record<string, unknown>) => {
+      const cwd = String(opts.cwd ?? process.cwd())
+      const only = arg ? [arg] : undefined
+      if (only && !CHECKER_NAMES.includes(only[0]! as (typeof CHECKER_NAMES)[number])) {
+        process.stderr.write(`silvercode doctor: unknown checker "${only[0]}". Known: ${CHECKER_NAMES.join(", ")}\n`)
+        process.exitCode = 2
+        return
+      }
+      const report = runDoctor({ cwd, only })
+      const text = renderReport(report)
+      process.stdout.write(text)
+      process.exitCode = severityToExitCode(report.severity)
+    })
+  // Per-checker subcommand: `silvercode doctor autolinks`. Same outcome as
+  // passing `autolinks` as a positional, kept around because users typing
+  // `silvercode doctor autolinks` (the `gh extension doctor <name>` shape)
+  // should just work without re-reading help.
+  for (const name of CHECKER_NAMES) {
+    doctor
+      .command(name)
+      .description(`Health-check the ${name} subsystem`)
+      .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
+      .action((opts: Record<string, unknown>) => {
+        const cwd = String(opts.cwd ?? process.cwd())
+        const report = runDoctor({ cwd, only: [name] })
+        process.stdout.write(renderReport(report))
+        process.exitCode = severityToExitCode(report.severity)
+      })
+  }
 
   return program
 }
