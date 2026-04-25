@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Text } from "silvery"
+import { Box, Prose, Text } from "silvery"
 import { DetectionText } from "./DetectionText.tsx"
 
 /**
@@ -10,19 +10,13 @@ import { DetectionText } from "./DetectionText.tsx"
  */
 export function UserMessageBlock({ text }: { text: string }): React.ReactElement {
   return (
-    <Box
-      flexDirection="row"
-      gap={1}
-      paddingX={1}
-      paddingY={0}
-      backgroundColor="$bg-surface-subtle"
-    >
+    <Box flexDirection="row" gap={1} paddingX={1} paddingY={0} backgroundColor="$bg-surface-subtle">
       <Text bold color="$accent">
         {">"}
       </Text>
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+      <Prose flexGrow={1}>
         <DetectionText text={text} tone="user" />
-      </Box>
+      </Prose>
     </Box>
   )
 }

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Blockquote, Divider, H1, H2, H3, H4, Text } from "silvery"
+import { Box, Blockquote, Divider, H1, H2, H3, H4, Prose, Text } from "silvery"
 import { parseBlocks, parseInline, type MdBlock, type MdInline } from "../markdown.ts"
 import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -83,18 +83,18 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
       return (
         <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
           <Text color="$muted">• </Text>
-          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+          <Prose flexGrow={1}>
             <InlineRun tokens={parseInline(b.text)} />
-          </Box>
+          </Prose>
         </Box>
       )
     case "ordered":
       return (
         <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
           <Text color="$muted">{b.number}. </Text>
-          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+          <Prose flexGrow={1}>
             <InlineRun tokens={parseInline(b.text)} />
-          </Box>
+          </Prose>
         </Box>
       )
     case "quote":
@@ -113,22 +113,23 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
 export function MarkdownView({ source }: { source: string }): React.ReactElement {
   const blocks = useMemo(() => parseBlocks(source), [source])
   return (
-    <Box flexDirection="column" flexShrink={1} minWidth={0}>
+    <Prose>
       {blocks.map((b, i) => {
         const prev = i > 0 ? (blocks[i - 1] ?? null) : null
         const gap = needsGapBefore(prev, b)
         const rendered = renderBlock(b, i)
         if (!rendered) return null
-        if (gap)
+        if (gap) {
           return (
             <React.Fragment key={i}>
               <Box height={1} />
               {rendered}
             </React.Fragment>
           )
+        }
         return rendered
       })}
-    </Box>
+    </Prose>
   )
 }
 

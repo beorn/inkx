@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Text, usePopover } from "silvery"
+import { Box, Prose, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 
 function renderPopoverContent(d: Detection): React.ReactNode {
@@ -65,18 +65,14 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
   // Split by line first so layout stays inline per-line; inside each line
   // split by detection spans.
   //
-  // `flexShrink={1} minWidth={0}` on the outer column + inner flex-row is
-  // load-bearing for wrap. Without them, flexily sizes the row to the
-  // sum-of-intrinsic-widths of its Text children — blowing past parent
-  // width — and the per-Text `wrap="wrap"` never fires (Text receives its
-  // intrinsic max-content width, not the parent's available width).
-  // silvery reconciler does NOT auto-apply CSS §4.5's "overflow:hidden →
-  // flex-shrink:1" rule, so these props must be explicit at every level
-  // that could introduce an unbounded intermediate.
+  // <Prose> wraps the line stack so flexily measures every wrappable Text
+  // against the parent's available width. The inner `flexDirection="row"
+  // flexWrap="wrap" flexShrink={1} minWidth={0}` row is still hand-rolled
+  // because Prose defaults to column — see Prose's JSDoc for the why.
   const lines = text.split("\n")
   let offset = 0
   return (
-    <Box flexDirection="column" flexShrink={1} minWidth={0}>
+    <Prose>
       {lines.map((line, lineIdx) => {
         const lineStart = offset
         const lineEnd = offset + line.length
@@ -131,6 +127,6 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
           </Box>
         )
       })}
-    </Box>
+    </Prose>
   )
 }
