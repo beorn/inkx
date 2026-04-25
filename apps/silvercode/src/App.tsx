@@ -12,6 +12,8 @@ import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
+import { AutolinksProvider } from "./AutolinksContext.tsx"
+import { loadAutolinksConfig, type AutolinkRule } from "./autolinks/config.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
 type Track = "claude" | "sdk" | "codex"
@@ -85,6 +87,12 @@ export type AppProps = {
 }
 
 export function App(props: AppProps): React.ReactElement {
+  // Load autolink rules once per cwd. Lives in a ref so we don't reload
+  // on every render — the file is read synchronously at App mount.
+  // Memoizing on `props.cwd` covers the (rare) case where the App is
+  // re-mounted with a different working directory.
+  const autolinkRules = useMemo<AutolinkRule[]>(() => loadAutolinksConfig(props.cwd), [props.cwd])
+
   const controllerRef = useRef<Controller | null>(null)
   if (!controllerRef.current) {
     controllerRef.current = createSilvercodeController({
@@ -460,8 +468,9 @@ export function App(props: AppProps): React.ReactElement {
   }, [controller, focused])
 
   return (
-    <PopoverProvider>
-      {/*
+    <AutolinksProvider rules={autolinkRules}>
+      <PopoverProvider>
+        {/*
         Layout (opencode-style):
 
           ┌──────────────────────────────┬────────────┐
@@ -479,8 +488,8 @@ export function App(props: AppProps): React.ReactElement {
         version / cost metadata lives in the side panel's bottom block,
         so the StatusLine at the very bottom is gone.
       */}
-      <Screen flexDirection="row">
-        {/* LEFT: cards + overlays + palette + input. The outer column has
+        <Screen flexDirection="row">
+          {/* LEFT: cards + overlays + palette + input. The outer column has
             `overflow="hidden"` — this is the "cards region vs side panel"
             boundary. CSS spec §4.5 elevates flexShrink on the overflow
             container itself, so any wide descendant is clipped here
@@ -489,92 +498,93 @@ export function App(props: AppProps): React.ReactElement {
             never calls setFlexShrink when unspecified, so flexily defaults
             to shrink=0 — `minWidth={0}` alone does nothing without an
             overflow boundary in the chain. */}
-        <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-          <PaneGrid
-            sessions={sessions}
-            focusedSessionId={focusedSessionId}
-            zoomedPaneId={zoomedPaneId}
-            cwd={props.cwd}
-            onFocusSession={(id) => controller.focus(id)}
-            onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
-            onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
-          />
+          <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
+            <PaneGrid
+              sessions={sessions}
+              focusedSessionId={focusedSessionId}
+              zoomedPaneId={zoomedPaneId}
+              cwd={props.cwd}
+              onFocusSession={(id) => controller.focus(id)}
+              onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
+              onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+            />
 
-          {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
-          <Box flexDirection="column" flexShrink={0}>
-            {showInbox && (
-              <PermissionInbox
-                sessions={sessions}
-                onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                onClose={() => setShowInbox(false)}
-              />
-            )}
-            {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-            <Notifications sessions={sessions} />
+            {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
+            <Box flexDirection="column" flexShrink={0}>
+              {showInbox && (
+                <PermissionInbox
+                  sessions={sessions}
+                  onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                  onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                  onClose={() => setShowInbox(false)}
+                />
+              )}
+              {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+              <Notifications sessions={sessions} />
 
-            {paletteQuery !== null && (
-              <SlashCommandPalette
-                query={paletteQuery}
-                remoteCommands={focused?.store.state.get().slashCommands}
-                onSubmit={(cmd) => handleSubmit(cmd)}
-                onClose={() => setInputValue("")}
-              />
-            )}
+              {paletteQuery !== null && (
+                <SlashCommandPalette
+                  query={paletteQuery}
+                  remoteCommands={focused?.store.state.get().slashCommands}
+                  onSubmit={(cmd) => handleSubmit(cmd)}
+                  onClose={() => setInputValue("")}
+                />
+              )}
 
-            {/* Unified CommandBox — queue area (when non-empty) stacks on
+              {/* Unified CommandBox — queue area (when non-empty) stacks on
                 top of the command input inside one filled surface with a
                 horizontal rule between them. Exactly one cursor is visible
                 at a time; focused side is bright, unfocused side dims to
                 $fg-muted. Claude-Code-style. */}
-            <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
-              <Box flexGrow={1} flexDirection="column">
-                {focused && (
-                  <CommandBox
-                    queueText={queueText}
-                    onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
-                    onQueueSubmit={() => {
-                      // Force-flush the queue NOW (Enter in queue region).
-                      // After flush, queue is empty so focusedRegion's
-                      // empty-snap effect moves cursor back to command.
-                      controller.flushQueue(focused.id)
-                      setFocusedRegion("command")
-                    }}
-                    focusedRegion={focusedRegion}
-                    onFocusRegion={setFocusedRegion}
-                    inputValue={inputValue}
-                    onInputChange={setInputValue}
-                    inputDisabled={!focused}
-                    onSubmit={handleSubmit}
-                    onExit={requestExit}
-                    promptColor={promptColor}
-                  />
-                )}
+              <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
+                <Box flexGrow={1} flexDirection="column">
+                  {focused && (
+                    <CommandBox
+                      queueText={queueText}
+                      onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
+                      onQueueSubmit={() => {
+                        // Force-flush the queue NOW (Enter in queue region).
+                        // After flush, queue is empty so focusedRegion's
+                        // empty-snap effect moves cursor back to command.
+                        controller.flushQueue(focused.id)
+                        setFocusedRegion("command")
+                      }}
+                      focusedRegion={focusedRegion}
+                      onFocusRegion={setFocusedRegion}
+                      inputValue={inputValue}
+                      onInputChange={setInputValue}
+                      inputDisabled={!focused}
+                      onSubmit={handleSubmit}
+                      onExit={requestExit}
+                      promptColor={promptColor}
+                    />
+                  )}
+                </Box>
               </Box>
             </Box>
           </Box>
-        </Box>
 
-        {/* RIGHT: full-height side panel. Same bg token as the command input
+          {/* RIGHT: full-height side panel. Same bg token as the command input
             so the chrome reads as a single unified surface — opencode uses
             the same trick. */}
-        {showSidePanel && focused && (
-          <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
-            <SidePanel
-              focused={focused}
-              sessions={sessions}
-              focusedSessionId={focusedSessionId}
-              onFocusSession={(id) => controller.focus(id)}
-              mode={mode}
-              onCycleMode={cycleMode}
-              thinking={thinking}
-              onCycleThinking={cycleThinking}
-              cwd={props.cwd}
-              controller={controller}
-            />
-          </Box>
-        )}
-      </Screen>
-    </PopoverProvider>
+          {showSidePanel && focused && (
+            <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
+              <SidePanel
+                focused={focused}
+                sessions={sessions}
+                focusedSessionId={focusedSessionId}
+                onFocusSession={(id) => controller.focus(id)}
+                mode={mode}
+                onCycleMode={cycleMode}
+                thinking={thinking}
+                onCycleThinking={cycleThinking}
+                cwd={props.cwd}
+                controller={controller}
+              />
+            </Box>
+          )}
+        </Screen>
+      </PopoverProvider>
+    </AutolinksProvider>
   )
 }

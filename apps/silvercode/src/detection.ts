@@ -8,7 +8,7 @@
  * arrives.
  */
 
-export type DetectionKind = "bead" | "file" | "url" | "km-node" | "code-ref"
+export type DetectionKind = "bead" | "file" | "url" | "km-node" | "code-ref" | "autolink"
 
 export type Detection = {
   kind: DetectionKind

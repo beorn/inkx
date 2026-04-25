@@ -1,6 +1,47 @@
 import React from "react"
-import { Box, Prose, Text, usePopover } from "silvery"
+import { Box, Muted, Prose, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
+import { useAutolinks } from "../AutolinksContext.tsx"
+import { detectAutolinks, mergeDetections } from "../autolinks/match.ts"
+import { resolvePreview } from "../autolinks/previews.ts"
+import type { AutolinkPreviewKind } from "../autolinks/config.ts"
+
+function renderAutolinkPopover(d: Detection): React.ReactNode {
+  const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind
+  const resolvesTo = d.payload.resolves_to ?? ""
+  const cacheKey = d.payload.cache_key ?? d.match
+  const result = resolvePreview({ preview, resolvesTo, cacheKey })
+  if (result.kind === "error") {
+    return (
+      <Box flexDirection="column">
+        <Text bold>{d.match}</Text>
+        <Muted>resolves to {resolvesTo}</Muted>
+        <Text color="$error">{result.message}</Text>
+      </Box>
+    )
+  }
+  // Render markdown previews as plain text inside the popover for v1 —
+  // wiring full MarkdownView introduces a render cycle (DetectionText
+  // is invoked from MarkdownView). The preview shows the source markdown
+  // so the user can see headings, lists, etc., and react to it. The
+  // upgrade to a shrunken MarkdownView lives in the preview-extensions
+  // follow-up bead.
+  return (
+    <Box flexDirection="column">
+      <Text bold>{d.match}</Text>
+      <Muted>
+        {preview} · {resolvesTo}
+      </Muted>
+      <Box flexDirection="column" paddingTop={1}>
+        {result.body.split("\n").map((line, i) => (
+          <Text key={i} wrap="wrap">
+            {line.length === 0 ? " " : line}
+          </Text>
+        ))}
+      </Box>
+    </Box>
+  )
+}
 
 function renderPopoverContent(d: Detection): React.ReactNode {
   switch (d.kind) {
@@ -40,6 +81,8 @@ function renderPopoverContent(d: Detection): React.ReactNode {
           </Text>
         </Box>
       )
+    case "autolink":
+      return renderAutolinkPopover(d)
   }
 }
 
@@ -55,12 +98,20 @@ function colorFor(kind: Detection["kind"]): string {
       return "$accent"
     case "code-ref":
       return "$primary"
+    case "autolink":
+      return "$secondary"
   }
 }
 
 export function DetectionText({ text, tone }: { text: string; tone?: "assistant" | "user" }): React.ReactElement {
   const popover = usePopover()
-  const detections = detectReferences(text)
+  const { rules } = useAutolinks()
+  const detections = React.useMemo(() => {
+    const builtins = detectReferences(text)
+    if (rules.length === 0) return builtins
+    const auto = detectAutolinks(text, rules)
+    return mergeDetections(builtins, auto)
+  }, [text, rules])
 
   // Each markdown line renders as a SINGLE outer <Text wrap="wrap"> with
   // nested styled Text spans for detected references. This is the only
