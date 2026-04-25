@@ -264,24 +264,18 @@ function SessionRow({
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const sid = handle.session.sessionId
-  const sidLabel = typeof sid === "string" && sid !== "pending" ? sid : null
+  // The session id IS the row identifier — no name/label/arrow chrome.
+  // Pre-resolve sessions show "pending" until the spawn microtask lands the id.
+  const label = typeof sid === "string" && sid !== "pending" ? sid : "pending"
   return (
     <Box
-      flexDirection="column"
+      flexDirection="row"
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
     >
-      <Box flexDirection="row" gap={1}>
-        <Text color={isFocused ? "$accent" : "$muted"}>{isFocused ? "▸" : " "}</Text>
-        <Text color={isFocused ? undefined : "$muted"}>{handle.name}</Text>
-      </Box>
-      {sidLabel ? (
-        <Box paddingLeft={2}>
-          <Text color="$muted">session: {sidLabel}</Text>
-        </Box>
-      ) : null}
+      <Text color={isFocused ? undefined : "$muted"}>{label}</Text>
     </Box>
   )
 }
@@ -809,6 +803,10 @@ export function SidePanel({
           </Text>
         </Box>
       </Box>
+      {/* Trailing blank row at the bottom of the side panel. paddingY={1} on
+          the outer Box only contributes 1 row; this Spacer adds one more so
+          there's visible breathing room below the mode line. */}
+      <Box flexShrink={0} height={1} />
     </Box>
   )
 }
