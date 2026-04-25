@@ -58,11 +58,7 @@ export function ToolCallBlock({
         <Text bold color="$primary">
           {display}
         </Text>
-        {label && (
-          <Box flexShrink={1}>
-            <Muted wrap="wrap">{label}</Muted>
-          </Box>
-        )}
+        {label && <Muted wrap="wrap">{label}</Muted>}
         <Box flexGrow={1} />
         <Small>{expanded ? "▾" : "▸"}</Small>
       </Box>
