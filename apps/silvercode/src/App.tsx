@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AgentSession, SessionStore } from "@km/agent-harness"
-import { Box, PopoverProvider, Screen, useDispose, useExit, useTerm } from "silvery"
+import { Box, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -350,14 +350,18 @@ export function App(props: AppProps): React.ReactElement {
     silveryExit()
   }
 
-  // silvery owns the exit lifecycle. useDispose wires our cleanup into
-  // SIGINT + SIGTERM + React unmount with a single line. Before silvery
-  // shipped useDispose, this was 10 lines of term.signals.on / useEffect
-  // / guard-against-double-run boilerplate — that was the ergonomic-gap
-  // /big session flagged as its top reframe.
-  useDispose(() => {
-    controller.closeAll()
-  })
+  // silvery owns the exit lifecycle. `useScopeEffect` registers the
+  // controller cleanup on a child of the app's root scope — when the
+  // component unmounts (or when SIGINT/SIGTERM disposes the root via the
+  // runtime's `withScope` wiring), the deferred callback runs exactly
+  // once. This replaces the older `useDispose` shortcut and is the
+  // canonical form per `hub/silvery/design/lifecycle-scope.md`.
+  useScopeEffect(
+    (scope) => {
+      scope.defer(() => controller.closeAll())
+    },
+    [controller],
+  )
 
   // Mode cycler used by the side panel's ⚡ label. Memoized so passing
   // it to SidePanel doesn't force a new prop identity every render.
