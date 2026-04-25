@@ -5,13 +5,9 @@
  * order for composing cell styles in km. One place to understand, one place
  * to change. If you change any styling logic in km-tui, update this file too.
  *
- * Note: `$fg-on-selected` / `$bg-selected` / `$fg-on-inverse` / `$fg-link` are legacy theme
- * tokens. Sterling now ships flat-token equivalents (`bg-selected`,
- * `fg-on-selected`, `bg-inverse`, `fg-on-inverse`, `fg-link`) and matching
- * nested roles (`theme.selected`, `theme.inverse`, `theme.link`). The legacy
- * tokens still ship through `@silvery/ansi`'s `deriveTheme()` for the 0.19.x
- * transition; consumers migrate in `km-silvery.sterling-km-tui-selection-migration`
- * (Phase C). The legacy tokens get purged in 0.20.0 (Phase D).
+ * Note: `$bg-selected` / `$fg-on-selected` / `$bg-inverse` / `$fg-on-inverse`
+ * / `$fg-link` are Sterling flat tokens (silvery 0.19.x+). Matching nested
+ * roles (`theme.selected`, `theme.inverse`, `theme.link`) are also available.
  *
  * ## Precedence: how a cell's final style is composed
  *
