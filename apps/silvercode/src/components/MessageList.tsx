@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import type { MessageEntry } from "@km/agent-harness"
-import { Box, ListView, Text, useBoxRect } from "silvery"
+import { Box, ListView, Text } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AssistantBlock } from "./AssistantBlock.tsx"
 import { ToolCallBlock } from "./ToolCallBlock.tsx"
@@ -11,11 +11,12 @@ import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
 /**
  * Virtualized message stream — same shape km-logview uses.
  *
- * ListView owns scroll (wheel / keyboard / cursor). We pass height via
- * useBoxRect and let ListView measure actual item heights after first
- * render. No manual estimate, no scrollTo pinning — scrollTo was blocking
- * user scroll by yanking the viewport back to the latest message every
- * render. Cursor follows the latest item on the arrival path (cursorKey
+ * ListView owns scroll (wheel / keyboard / cursor). We render with no
+ * `height` prop and let flex propagate the actual viewport from the
+ * parent (`flex-grow=1 overflow=scroll` inside ListView). This avoids the
+ * `useBoxRect` first-frame zero-read class — long paragraphs wrap on the
+ * first paint, not after a re-render that may never come for static
+ * tests. Cursor follows the latest item on the arrival path (cursorKey
  * bound to state that auto-advances as new messages land) but the user
  * can scroll away with j/k/wheel and the cursor stays where they put it.
  *
@@ -23,6 +24,9 @@ import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
  * real message when the session is active — so the user sees it pulsing
  * where the next assistant response will arrive, not as bottom-pinned
  * chrome. Matches Claude Code's own live-feel.
+ *
+ * Phase 3 of `km-silvery.view-as-layout-output` — closes
+ * `km-silvercode.message-wrap-truncation`.
  */
 
 // Sentinel that MessageList stuffs at the end of the items array when the
@@ -61,14 +65,22 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
   if (m.role === "system") {
     return <BackgroundSystemBlock text={m.text} />
   }
+  // `flexShrink={1} minWidth={0}` propagate the wrap chain through this
+  // intermediate column container — without them flexily measures the
+  // wrapper at its children's max-content width, which feeds an
+  // unconstrained width to the wrap-aware Text inside AssistantBlock /
+  // ToolCallBlock and defeats soft-wrapping. Same pattern AssistantBlock
+  // applies on its own row container; the MeasuredItem wrapper inside
+  // ListView keeps `flexShrink=0` for vertical height measurement, so
+  // cross-axis shrinkability has to be declared explicitly here.
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" flexShrink={1} minWidth={0}>
       {m.text.length > 0 && <AssistantBlock text={m.text} />}
       {m.toolCalls.map((c) => {
         const results = m.toolResults.filter((r) => r.id === c.id)
         const running = results.length === 0
         return (
-          <Box key={c.id} flexDirection="column">
+          <Box key={c.id} flexDirection="column" flexShrink={1} minWidth={0}>
             <ToolCallBlock id={c.id} name={c.name} input={c.input} mcpServer={c.mcp_server} running={running} />
             {results.map((r) => (
               <ToolResultBlock key={r.id} output={r.output} isError={r.is_error} />
@@ -100,7 +112,6 @@ export function MessageList({
   pendingPermissions: number
   inFlightTool: string | null
 }): React.ReactElement {
-  const { height } = useBoxRect()
   const [cursor, setCursor] = useState<number>(-1)
 
   const showActivity = status !== "idle" && status !== "ended"
@@ -109,7 +120,6 @@ export function MessageList({
   return (
     <ListView
       items={items}
-      height={Math.max(1, Math.floor(height))}
       getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
       gap={1}
       nav

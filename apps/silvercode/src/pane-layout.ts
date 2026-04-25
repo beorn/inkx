@@ -245,6 +245,160 @@ export function setSplitWeight(tree: LayoutNode, path: readonly number[], weight
 }
 
 /**
+ * Swap the leaves with `idA` and `idB`. Pure tree walk — replaces every
+ * occurrence of one id with the other and vice-versa. Tree shape is
+ * unchanged; only leaf ids are renamed. Idempotent if `idA === idB`.
+ *
+ * Used as the visual "drop in center" operation during pane drag-move:
+ * the dragged leaf's id and the target leaf's id swap places, so
+ * the two panes effectively trade screen positions while keeping the
+ * surrounding split structure intact.
+ */
+export function swapLeaves(tree: LayoutNode, idA: string, idB: string): LayoutNode {
+  if (idA === idB) return tree
+  return mapTree(tree, (node) => {
+    if (node.kind !== "leaf") return node
+    if (node.sessionId === idA) return { kind: "leaf", sessionId: idB }
+    if (node.sessionId === idB) return { kind: "leaf", sessionId: idA }
+    return node
+  })
+}
+
+/** Edge of a target pane that a drop lands on, controlling the split direction + child ordering. */
+export type DropEdge = "top" | "bottom" | "left" | "right"
+
+/**
+ * Move the leaf with `sourceId` to a position adjacent to the leaf with
+ * `targetId` along `edge`. Two-step: (1) remove sourceId (collapses
+ * its parent split as `removeLeaf` does); (2) split targetId along the
+ * direction implied by `edge`, with sourceId placed on the indicated
+ * side.
+ *
+ *   "left"  → row-split, source first  → [source | target]
+ *   "right" → row-split, target first  → [target | source]
+ *   "top"   → col-split, source first  → [source / target]
+ *   "bottom"→ col-split, target first  → [target / source]
+ *
+ * No-op (returns the same tree) if `sourceId === targetId`, if either
+ * leaf is missing, or if removal of the source would leave nothing for
+ * the target (single-leaf tree). Pure — caller decides whether to persist.
+ */
+export function moveLeafTo(tree: LayoutNode, sourceId: string, targetId: string, edge: DropEdge): LayoutNode {
+  if (sourceId === targetId) return tree
+  const ids = new Set(leafIds(tree))
+  if (!ids.has(sourceId) || !ids.has(targetId)) return tree
+  const removed = removeLeaf(tree, sourceId)
+  if (!removed) return tree
+  // After removal the target is guaranteed to still exist (we checked
+  // both ids were present and they differ; removeLeaf only removes
+  // sourceId).
+  const direction: SplitDirection = edge === "left" || edge === "right" ? "row" : "column"
+  // splitLeaf places the original session as the first child, the new
+  // session as the second. So:
+  //   - "right"/"bottom": source goes second → just call splitLeaf as-is
+  //   - "left"/"top":     source goes first  → call splitLeaf, then swap children
+  const next = splitLeaf(removed, targetId, sourceId, direction)
+  if (edge === "right" || edge === "bottom") return next
+  // Swap children of the freshly-created split so source ends up first.
+  return swapSplitChildrenContaining(next, targetId, sourceId)
+}
+
+/**
+ * Find the leaf "structurally adjacent" to `id` in the given direction.
+ * Walks up the tree until we find a split aligned with the direction
+ * (row for left/right, column for up/down) and where stepping into the
+ * other branch goes the correct way; from there, descends into the
+ * branch's edge nearest the source leaf so the returned id is the
+ * visually-closest neighbor in 2D space.
+ *
+ * Returns null if there is no neighbor on that side (already at edge).
+ *
+ * Used by the keyboard fallback `Ctrl+W H/J/K/L` to pick a swap target.
+ */
+export function findNeighbor(tree: LayoutNode, id: string, direction: "left" | "right" | "up" | "down"): string | null {
+  const path = pathToLeaf(tree, id)
+  if (!path) return null
+  const wantSplit: SplitDirection = direction === "left" || direction === "right" ? "row" : "column"
+  // Walk up: we need an ancestor whose split direction matches and
+  // whose child index points the wrong way (so we can pivot to the
+  // sibling subtree on the requested side).
+  for (let i = path.length - 1; i >= 0; i--) {
+    const ancestor = nodeAtPath(tree, path.slice(0, i))
+    if (ancestor?.kind !== "split") continue
+    if (ancestor.direction !== wantSplit) continue
+    const childIdx = path[i]
+    if (childIdx === undefined) continue
+    // direction "right"/"down": we came from index 0, neighbor is in index 1.
+    // direction "left"/"up":    we came from index 1, neighbor is in index 0.
+    const wantFrom = direction === "right" || direction === "down" ? 0 : 1
+    if (childIdx !== wantFrom) continue
+    const siblingIdx = wantFrom === 0 ? 1 : 0
+    const sibling = ancestor.children[siblingIdx]
+    // Within the sibling subtree, descend toward the edge nearest the
+    // source leaf. For "right" we want the sibling's left edge → keep
+    // taking children[0] when we hit a row-split (column-splits don't
+    // matter for L/R). Symmetric for the other directions.
+    return descendToNearestEdge(sibling, direction)
+  }
+  return null
+}
+
+// Internal: helper for moveLeafTo's child-swap step.
+function swapSplitChildrenContaining(node: LayoutNode, targetId: string, sourceId: string): LayoutNode {
+  if (node.kind !== "split") return node
+  const a = node.children[0]
+  const b = node.children[1]
+  // The split we just created has targetId in one leaf and sourceId in
+  // the other (immediate children). Swap them.
+  const aHasTarget = a.kind === "leaf" && a.sessionId === targetId && b.kind === "leaf" && b.sessionId === sourceId
+  const bHasTarget = b.kind === "leaf" && b.sessionId === targetId && a.kind === "leaf" && a.sessionId === sourceId
+  if (aHasTarget || bHasTarget) {
+    return { kind: "split", direction: node.direction, children: [b, a], weight: node.weight }
+  }
+  // Recurse — the freshly-created split is somewhere deeper.
+  const newA = swapSplitChildrenContaining(a, targetId, sourceId)
+  if (newA !== a) return { kind: "split", direction: node.direction, children: [newA, b], weight: node.weight }
+  const newB = swapSplitChildrenContaining(b, targetId, sourceId)
+  if (newB !== b) return { kind: "split", direction: node.direction, children: [a, newB], weight: node.weight }
+  return node
+}
+
+// Internal: descend the subtree to the leaf nearest the requested edge.
+function descendToNearestEdge(node: LayoutNode, direction: "left" | "right" | "up" | "down"): string {
+  if (node.kind === "leaf") return node.sessionId
+  // For "right" we approach from the left → pick children[0] when the
+  // split direction matches (row). For other split directions, fall
+  // through arbitrarily — pick children[0].
+  if (node.direction === "row") {
+    const idx = direction === "right" ? 0 : direction === "left" ? 1 : 0
+    return descendToNearestEdge(node.children[idx], direction)
+  }
+  // column split
+  const idx = direction === "down" ? 0 : direction === "up" ? 1 : 0
+  return descendToNearestEdge(node.children[idx], direction)
+}
+
+// Internal: find the path from root to the leaf with `id`, or null.
+function pathToLeaf(node: LayoutNode, id: string, prefix: number[] = []): number[] | null {
+  if (node.kind === "leaf") return node.sessionId === id ? prefix : null
+  const left = pathToLeaf(node.children[0], id, [...prefix, 0])
+  if (left) return left
+  return pathToLeaf(node.children[1], id, [...prefix, 1])
+}
+
+// Internal: walk a path back to its node (mirrors PaneGrid's helper).
+function nodeAtPath(node: LayoutNode, path: readonly number[]): LayoutNode | null {
+  let cur: LayoutNode = node
+  for (const idx of path) {
+    if (cur.kind !== "split") return null
+    const child = cur.children[idx === 0 ? 0 : 1]
+    if (!child) return null
+    cur = child
+  }
+  return cur
+}
+
+/**
  * Reconcile a loaded tree against the live session list. Adds new
  * sessions as row-splits on the rightmost leaf; drops leaves whose
  * sessions no longer exist.

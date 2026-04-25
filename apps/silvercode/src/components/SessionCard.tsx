@@ -26,12 +26,16 @@ import { Welcome } from "./Welcome.tsx"
 export function SessionCard({
   handle,
   isFocused,
+  isDimmed = false,
   onFocus,
   onApprove,
   onDeny,
 }: {
   handle: SessionHandle
   isFocused: boolean
+  /** When true, the pane content renders dimmed — used as the "ghost"
+   * effect for the source pane during a drag-move operation. */
+  isDimmed?: boolean
   onFocus: () => void
   onApprove: (requestId: string) => void
   onDeny: (requestId: string) => void
@@ -72,6 +76,7 @@ export function SessionCard({
       minHeight={0}
       overflow="hidden"
       userSelect="contain"
+      backgroundColor={isDimmed ? "$bg-surface-subtle" : undefined}
       onClick={onFocus}
     >
       {/* Left-edge accent bar = active-pane indicator. 1 col wide; visible

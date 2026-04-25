@@ -58,8 +58,11 @@ describe("assistant message wrap (regression — km-silvercode.message-wrap-trun
     expect(totalRendered).toContain("layout")
   })
 
-  // FAILING regression — keep until view-as-layout-output lands.
-  test.fails("MessageList with long paragraph wraps (FAILS — bead km-silvercode.message-wrap-truncation)", () => {
+  // Regression for km-silvercode.message-wrap-truncation. Closed by Phase 3
+  // of km-silvery.view-as-layout-output — ListView height-independence +
+  // MessageList drops `useBoxRect`. Long paragraphs now wrap on the first
+  // render through the real component chain.
+  test("MessageList with long paragraph wraps (km-silvercode.message-wrap-truncation regression)", () => {
     const COLS = 60
     const ROWS = 30
     const render = createRenderer({ cols: COLS, rows: ROWS })

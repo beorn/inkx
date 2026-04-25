@@ -5,7 +5,7 @@ import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
-import { PaneGrid } from "./components/PaneGrid.tsx"
+import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
@@ -15,6 +15,7 @@ import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
 import { loadAutolinksConfig, type AutolinkRule } from "./autolinks/config.ts"
 import {
+  findNeighbor,
   type LayoutNode,
   leafIds,
   loadPanes,
@@ -22,6 +23,7 @@ import {
   savePanes,
   splitLeaf,
   type SplitDirection,
+  swapLeaves,
 } from "./pane-layout.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
@@ -192,6 +194,32 @@ export function App(props: AppProps): React.ReactElement {
   }, [sessionIdsKey, props.cwd, sessions])
   const onTreeChange = useCallback((next: LayoutNode) => setPaneTree(next), [])
 
+  // Imperative handle to PaneGrid so the App-level Escape handler can
+  // cancel an in-flight pane drag-move without state-coupling to the
+  // grid's internal dragRef.
+  const paneGridRef = useRef<PaneGridHandle | null>(null)
+
+  // Ctrl+W H/J/K/L — keyboard-driven pane swap (vim-window convention).
+  // Picks the structurally-adjacent leaf in the requested direction via
+  // `findNeighbor`, then swaps the two leaves' session ids in the layout
+  // tree. Mirrors what a user would do with the mouse drag-move "drop in
+  // center" zone, just driven from the keyboard.
+  const swapWithNeighbor = useCallback(
+    (direction: "left" | "right" | "up" | "down"): void => {
+      const focus = focusedSessionId
+      if (!focus) return
+      const neighbor = findNeighbor(paneTree, focus, direction)
+      if (!neighbor) return
+      setPaneTree((prev) => {
+        const next = swapLeaves(prev, focus, neighbor)
+        if (next === prev) return prev
+        savePanes(props.cwd, next)
+        return next
+      })
+    },
+    [focusedSessionId, paneTree, props.cwd],
+  )
+
   // Ctrl+W v / Ctrl+W s — split the focused pane. The new session is
   // appended to the controller in the usual way; the layout tree gets
   // the focused leaf replaced by a split with the original session +
@@ -306,6 +334,14 @@ export function App(props: AppProps): React.ReactElement {
   //
   useInput(
     (input, key) => {
+      // Escape cancels an in-flight pane drag-move first — highest
+      // priority because dropping the drag silently on next mousemove
+      // would be confusing. PaneGrid's imperative handle returns true
+      // if there was a drag to cancel; we stop further Escape handling
+      // in that case.
+      if (key.escape && paneGridRef.current?.cancelDrag()) {
+        return
+      }
       if (key.escape && (showInbox || showHistory)) {
         setShowInbox(false)
         setShowHistory(false)
@@ -405,6 +441,28 @@ export function App(props: AppProps): React.ReactElement {
         if (input === "z") {
           // Zoom toggle — when on, PaneGrid renders only the focused pane.
           setZoomedPaneId((cur) => (cur ? null : (focused?.id ?? null)))
+          return
+        }
+        // Ctrl+W H/J/K/L — vim-style swap with neighbor in direction.
+        // Uppercase form is the canonical "swap" gesture (lowercase
+        // h/j/k/l would be "navigate to neighbor" in tmux/vim, but
+        // silvercode already uses Ctrl+N for cycle and the focus model
+        // is the active-pane bar, not a separate cursor). We accept
+        // both upper and lowercase to match user muscle memory.
+        if (input === "H" || input === "h") {
+          swapWithNeighbor("left")
+          return
+        }
+        if (input === "J" || input === "j") {
+          swapWithNeighbor("down")
+          return
+        }
+        if (input === "K" || input === "k") {
+          swapWithNeighbor("up")
+          return
+        }
+        if (input === "L" || input === "l") {
+          swapWithNeighbor("right")
           return
         }
         return
@@ -569,6 +627,7 @@ export function App(props: AppProps): React.ReactElement {
             overflow boundary in the chain. */}
           <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
             <PaneGrid
+              ref={paneGridRef}
               sessions={sessions}
               focusedSessionId={focusedSessionId}
               zoomedPaneId={zoomedPaneId}
