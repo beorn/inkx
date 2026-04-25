@@ -14,6 +14,15 @@ import { createSilvercodeController, type Controller, type SessionHandle } from 
 import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
 import { loadAutolinksConfig, type AutolinkRule } from "./autolinks/config.ts"
+import {
+  type LayoutNode,
+  leafIds,
+  loadPanes,
+  reconcileTree,
+  savePanes,
+  splitLeaf,
+  type SplitDirection,
+} from "./pane-layout.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
 type Track = "claude" | "sdk" | "codex"
@@ -153,6 +162,56 @@ export function App(props: AppProps): React.ReactElement {
       setZoomedPaneId(null)
     }
   }, [zoomedPaneId, sessions])
+
+  // Pane layout tree — owned by App so Ctrl+W chord handlers can edit it
+  // (split / close / focus-cycle in reading order). PaneGrid is the
+  // controlled renderer + drag-resize handler.
+  //
+  // Hydrate from disk on first mount; the v1 → v2 migration in
+  // `loadPanes` returns placeholder leaf ids that `reconcileTree`
+  // renames to real session ids in left-to-right order.
+  const sessionIdsKey = useMemo(() => sessions.map((s) => s.id).join(","), [sessions])
+  const [paneTree, setPaneTree] = useState<LayoutNode>(() =>
+    reconcileTree(
+      loadPanes(props.cwd),
+      sessions.map((s) => s.id),
+    ),
+  )
+  // Reconcile when the live session list changes (spawn/close from
+  // outside the chord handlers — e.g. `/spawn`, controller-driven).
+  useEffect(() => {
+    setPaneTree((prev) => {
+      const ids = sessions.map((s) => s.id)
+      const before = leafIds(prev).join(",")
+      const next = reconcileTree(prev, ids)
+      const after = leafIds(next).join(",")
+      if (before === after) return prev
+      savePanes(props.cwd, next)
+      return next
+    })
+  }, [sessionIdsKey, props.cwd, sessions])
+  const onTreeChange = useCallback((next: LayoutNode) => setPaneTree(next), [])
+
+  // Ctrl+W v / Ctrl+W s — split the focused pane. The new session is
+  // appended to the controller in the usual way; the layout tree gets
+  // the focused leaf replaced by a split with the original session +
+  // the new one. We have to wait for `spawnSession` to resolve so we
+  // know the new session's id before editing the tree.
+  const splitFocusedPane = useCallback(
+    (direction: SplitDirection): void => {
+      const currentFocus = focusedSessionId
+      if (!currentFocus) return
+      void controller.spawnSession().then((handle) => {
+        setPaneTree((prev) => {
+          const next = splitLeaf(prev, currentFocus, handle.id, direction)
+          savePanes(props.cwd, next)
+          return next
+        })
+        return undefined
+      })
+    },
+    [controller, focusedSessionId, props.cwd],
+  )
 
   // Queue buffer for the currently-focused session. Bound directly to a
   // silvery TextArea in the queue region; edits flow back to the
@@ -312,9 +371,15 @@ export function App(props: AppProps): React.ReactElement {
         // next real keystroke after a typo.
         setChord(null)
         if (input === "v") {
-          // Vertical split = spawn a new session and append it to the grid.
-          // Horizontal split (Ctrl+W s) is deferred to v2 (needs 2D layout).
-          void controller.spawnSession()
+          // Vertical split — focused leaf becomes a row-split with the
+          // new session as its right sibling.
+          splitFocusedPane("row")
+          return
+        }
+        if (input === "s") {
+          // Horizontal split — focused leaf becomes a column-split with
+          // the new session as its bottom sibling.
+          splitFocusedPane("column")
           return
         }
         if (input === "x") {
@@ -348,13 +413,17 @@ export function App(props: AppProps): React.ReactElement {
         setChord("ctrl-w")
         return
       }
-      // Ctrl+N cycles sessions. Now that the queue is a silvery TextArea
-      // (Option B), there's no editor-mode aliasing — Ctrl+N is always
-      // session cycling at the App level.
+      // Ctrl+N cycles sessions in left-to-right reading order — i.e.
+      // the order the panes appear on screen, which for a 2D tree is
+      // the leaf order from the layout, NOT the controller's creation
+      // order. Falls back to the session list if the tree disagrees
+      // (e.g. mid-reconcile transient).
       if (key.ctrl && input === "n" && sessions.length > 1) {
-        const idx = sessions.findIndex((s) => s.id === focusedSessionId)
-        const next = sessions[(idx + 1) % sessions.length]!
-        controller.focus(next.id)
+        const order = leafIds(paneTree).filter((id) => sessions.some((s) => s.id === id))
+        const list = order.length > 0 ? order : sessions.map((s) => s.id)
+        const idx = list.indexOf(focusedSessionId)
+        const next = list[(idx + 1) % list.length]
+        if (next) controller.focus(next)
         return
       }
     },
@@ -503,6 +572,8 @@ export function App(props: AppProps): React.ReactElement {
               sessions={sessions}
               focusedSessionId={focusedSessionId}
               zoomedPaneId={zoomedPaneId}
+              tree={paneTree}
+              onTreeChange={onTreeChange}
               cwd={props.cwd}
               onFocusSession={(id) => controller.focus(id)}
               onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
