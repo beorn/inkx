@@ -6,7 +6,7 @@
  * text. Bead: km-silvercode.autolinks-config
  *
  * What this catches:
- *   - The TOML config under <cwd>/.silvercode/links.toml is loaded at App mount
+ *   - The YAML config under <cwd>/.km/config.yaml is loaded at App mount
  *   - DetectionText sees the autolink rules via AutolinksContext
  *   - Autolink matches make it into the rendered frame (text contains "+km" / "AGENTS.md")
  *
@@ -65,24 +65,22 @@ describe("autolinks visual", () => {
   let cwd: string
 
   beforeEach(() => {
-    cwd = mkdtempSync(join(tmpdir(), "silvercode-autolinks-visual-"))
-    mkdirSync(join(cwd, ".silvercode"))
-    // Two autolinks: a literal "AGENTS.md" → first-paragraph; a regex
+    cwd = mkdtempSync(join(tmpdir(), "silvercode-smartlinks-visual-"))
+    mkdirSync(join(cwd, ".km"))
+    // Two smart-links: a literal "AGENTS.md" → first-paragraph; a regex
     // matching "+\w+" → bd-active. Neither pattern is shadowed by the
     // built-in URL/file/bead detectors, so both should land in the frame
     // as autolink-styled tokens.
     writeFileSync(
-      join(cwd, ".silvercode", "links.toml"),
+      join(cwd, ".km", "config.yaml"),
       `
-[[autolinks]]
-pattern = "AGENTS.md"
-resolves_to = "${cwd}/AGENTS.md"
-preview = "first-paragraph"
-
-[[autolinks]]
-pattern = "/\\\\+\\\\w+/"
-resolves_to = "${cwd}"
-preview = "bd-active"
+smartlinks:
+  - pattern: "AGENTS.md"
+    resolves_to: "${cwd}/AGENTS.md"
+    preview: first-paragraph
+  - pattern: "/\\\\+\\\\w+/"
+    resolves_to: "${cwd}"
+    preview: bd-active
 `,
     )
     // Provide a target file for the first-paragraph preview to resolve.
@@ -93,7 +91,7 @@ preview = "bd-active"
     rmSync(cwd, { recursive: true, force: true })
   })
 
-  test("config at <cwd>/.silvercode/links.toml is loaded into 2 rules", () => {
+  test("config at <cwd>/.km/config.yaml is loaded into 2 rules", () => {
     const rules = loadAutolinksConfig(cwd)
     expect(rules).toHaveLength(2)
     expect(rules.map((r) => r.preview)).toEqual(["first-paragraph", "bd-active"])

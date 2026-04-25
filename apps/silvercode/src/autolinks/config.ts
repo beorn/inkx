@@ -1,25 +1,41 @@
 /**
- * Autolinks configuration loader.
+ * Smart-links configuration loader.
  *
- * Reads `<cwd>/.silvercode/links.toml` (per-vault) and returns a normalized
- * `AutolinkRule[]`. Workspace-level cascade is deferred to v2 — see
- * follow-up bead `km-silvercode.autolinks-cascade`.
+ * "Smart links" are silvercode's pattern-matched popover system: rules in
+ * `<cwd>/.km/config.yaml` (per-vault) and `~/.km/config.yaml` (workspace)
+ * scan displayed text for matches and render a hover popover. Per-vault
+ * rules cascade onto workspace rules (vault wins on duplicate `pattern`).
  *
- * Schema (TOML):
+ * See `docs/design/smartlinks.md` for the terminology + design.
  *
- *   [[autolinks]]
- *   pattern = "~repo"            # literal OR regex (start with "/" for regex)
- *   resolves_to = "/path/or/url" # what the pattern resolves to
- *   preview = "readme"           # one of the kinds below
+ * ## Config file shape
+ *
+ * `.km/config.yaml` is a single per-cwd config file holding multiple
+ * sections. Smart links live under the top-level `smartlinks:` key:
+ *
+ * ```yaml
+ * smartlinks:
+ *   - pattern: "~repo"
+ *     resolves_to: "/Users/beorn/Code/pim/km"
+ *     preview: readme
+ *
+ *   - pattern: "/\\+\\w+/"
+ *     resolves_to: "/Users/beorn/Code/pim/km"
+ *     preview: bd-active
+ *
+ *   - pattern: "AGENTS.md"
+ *     resolves_to: "/Users/beorn/Code/pim/km/AGENTS.md"
+ *     preview: first-paragraph
+ * ```
  *
  * Pattern syntax:
- *   - Literal:  pattern = "~repo"            → exact substring match (escaped)
- *   - Regex:    pattern = "/\\+\\w+/"        → JS RegExp source between leading
- *                                              slash and trailing slash; if no
- *                                              trailing slash, the entire body
- *                                              after the leading slash is the
- *                                              source. The `g` flag is always
- *                                              applied internally.
+ *   - Literal:  pattern: "~repo"            → exact substring match (escaped)
+ *   - Regex:    pattern: "/\\+\\w+/"        → JS RegExp source between leading
+ *                                             slash and trailing slash; if no
+ *                                             trailing slash, the entire body
+ *                                             after the leading slash is the
+ *                                             source. The `g` flag is always
+ *                                             applied internally.
  *
  * Preview kinds (5 total):
  *   - "readme"          → fetch resolves_to (or its README.md if it's a dir);
@@ -33,7 +49,8 @@
  *                         Rendered as plain text.
  *   - "mcp"             → STUB. Rules are dropped at config-load time with a
  *                         "not yet implemented" warning. Full impl tracked at
- *                         bead `km-silvercode.autolinks-mcp-resolver`.
+ *                         bead `km-silvercode.autolinks-mcp-resolver` (will be
+ *                         superseded by `km-silvercode.autolinks-uri-pivot`).
  *
  * Shell-kind safety:
  *   - The `command` string MUST NOT start with a shell metacharacter
@@ -50,7 +67,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import createDebug from "debug"
 
-const log = createDebug("silvercode:autolinks:config")
+const log = createDebug("silvercode:smartlinks:config")
 
 export type AutolinkPreviewKind = "readme" | "first-paragraph" | "bd-active" | "shell" | "mcp"
 
@@ -66,7 +83,7 @@ export type AutolinkRule = {
   /**
    * Shell command template — required when `preview === "shell"`.
    * Supports a single literal substitution: `${resolves_to}` → `resolvesTo`.
-   * No other env-var expansion. Stored verbatim from TOML.
+   * No other env-var expansion. Stored verbatim from YAML.
    */
   readonly command?: string
   /**
@@ -84,17 +101,17 @@ export type AutolinkRule = {
 
 /** Default config path relative to a working directory (per-vault). */
 export function defaultConfigPath(cwd: string): string {
-  return join(cwd, ".silvercode", "links.toml")
+  return join(cwd, ".km", "config.yaml")
 }
 
-/** Workspace-level config path (`~/.silvercode/links.toml`). */
+/** Workspace-level config path (`~/.km/config.yaml`). */
 export function workspaceConfigPath(): string {
-  return join(homedir(), ".silvercode", "links.toml")
+  return join(homedir(), ".km", "config.yaml")
 }
 
 /**
- * Load + validate one TOML file at `path`. Missing file → empty list.
- * Malformed TOML → empty list (with a logged warning). Per-rule validation
+ * Load + validate one YAML file at `path`. Missing file → empty list.
+ * Malformed YAML → empty list (with a logged warning). Per-rule validation
  * errors drop the offending rule but keep the rest.
  */
 function loadAutolinksFile(path: string): AutolinkRule[] {
@@ -108,17 +125,17 @@ function loadAutolinksFile(path: string): AutolinkRule[] {
     return []
   }
 
-  return parseAutolinksToml(raw, path)
+  return parseSmartlinksYaml(raw, path)
 }
 
 /**
- * Cascade workspace + per-vault autolinks. Per-vault rules win on duplicate
+ * Cascade workspace + per-vault smart links. Per-vault rules win on duplicate
  * `source` (verbatim pattern string). Workspace rules that aren't shadowed
  * appear FIRST in the returned list (lower priority — `mergeDetections`
  * scans rules in order and an earlier match wins on overlap, but a per-vault
  * override of the same source replaces the workspace entry in-place).
  *
- * Tests can drive `parseAutolinksToml` directly to bypass the filesystem;
+ * Tests can drive `parseSmartlinksYaml` directly to bypass the filesystem;
  * cascade behavior is unit-tested via `cascadeAutolinks` below.
  */
 export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
@@ -152,22 +169,28 @@ export function cascadeAutolinks(workspace: readonly AutolinkRule[], vault: read
 }
 
 /**
- * Parse a TOML string into an `AutolinkRule[]`. Exposed separately so tests
- * can drive the parser without touching the filesystem.
+ * Parse a YAML string into an `AutolinkRule[]`. Looks for the top-level
+ * `smartlinks:` key (the `.km/config.yaml` file holds multiple sections;
+ * smart links is one of them). Exposed separately so tests can drive the
+ * parser without touching the filesystem.
  */
-export function parseAutolinksToml(raw: string, sourceLabel = "<inline>"): AutolinkRule[] {
-  let parsed: Record<string, unknown>
+export function parseSmartlinksYaml(raw: string, sourceLabel = "<inline>"): AutolinkRule[] {
+  let parsed: Record<string, unknown> | null
   try {
-    parsed = Bun.TOML.parse(raw) as Record<string, unknown>
+    parsed = Bun.YAML.parse(raw) as Record<string, unknown> | null
   } catch (err) {
-    log(`%s: malformed TOML (%s); ignoring`, sourceLabel, String(err))
+    log(`%s: malformed YAML (%s); ignoring`, sourceLabel, String(err))
     return []
   }
 
-  const entries = parsed["autolinks"]
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return []
+  }
+
+  const entries = parsed["smartlinks"]
   if (!Array.isArray(entries)) {
     if (entries !== undefined) {
-      log(`%s: expected [[autolinks]] array, got %s`, sourceLabel, typeof entries)
+      log(`%s: expected \`smartlinks:\` array, got %s`, sourceLabel, typeof entries)
     }
     return []
   }
@@ -192,7 +215,7 @@ const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreview
 /**
  * Disallow obvious shell-injection prefixes for `shell` rules.
  *
- * The user trusts their own `links.toml`, but a leading metacharacter is
+ * The user trusts their own `config.yaml`, but a leading metacharacter is
  * almost always a paste error rather than intent — there's no useful program
  * whose first token starts with `|`, `&`, `;`, `>`, `<`, or `` ` ``. Drop
  * rather than execute. Note this is a SAFETY-NET (we run via spawnSync with
@@ -236,7 +259,7 @@ function validateRule(entry: unknown, where: string): AutolinkRule | null {
 
   // Per-kind validation: shell needs `command`; mcp is a config-loadable
   // stub that's dropped here pending implementation in
-  // km-silvercode.autolinks-mcp-resolver.
+  // km-silvercode.autolinks-mcp-resolver (will be superseded by URI pivot).
   if (kind === "shell") {
     const command = obj["command"]
     if (typeof command !== "string" || command.length === 0) {

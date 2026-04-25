@@ -1,7 +1,8 @@
 /**
- * Unit tests for autolinks config loading + parsing.
+ * Unit tests for smart-links config loading + parsing.
  *
  * Bead: km-silvercode.autolinks-config
+ * Config file: <cwd>/.km/config.yaml (top-level `smartlinks:` key)
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
@@ -12,10 +13,10 @@ import {
   cascadeAutolinks,
   compilePattern,
   loadAutolinksConfig,
-  parseAutolinksToml,
+  parseSmartlinksYaml,
 } from "../../src/autolinks/config.ts"
 
-describe("autolinks config — pattern compilation", () => {
+describe("smartlinks config — pattern compilation", () => {
   test("literal pattern matches verbatim, escapes meta characters", () => {
     const re = compilePattern("~repo")
     expect("~repo".match(re)?.[0]).toBe("~repo")
@@ -45,15 +46,15 @@ describe("autolinks config — pattern compilation", () => {
   })
 })
 
-describe("autolinks config — TOML parsing", () => {
+describe("smartlinks config — YAML parsing", () => {
   test("parses a single literal rule", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/Users/beorn/Code/pim/km"
-      preview = "readme"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/Users/beorn/Code/pim/km"
+    preview: readme
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     const rule = rules[0]!
     expect(rule.source).toBe("~repo")
@@ -62,91 +63,105 @@ describe("autolinks config — TOML parsing", () => {
   })
 
   test("parses multiple rules with mixed pattern syntax", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/path/a"
-      preview = "readme"
-
-      [[autolinks]]
-      pattern = "/\\\\+\\\\w+/"
-      resolves_to = "/path/b"
-      preview = "bd-active"
-
-      [[autolinks]]
-      pattern = "AGENTS.md"
-      resolves_to = "/path/c"
-      preview = "first-paragraph"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/path/a"
+    preview: readme
+  - pattern: "/\\\\+\\\\w+/"
+    resolves_to: "/path/b"
+    preview: bd-active
+  - pattern: "AGENTS.md"
+    resolves_to: "/path/c"
+    preview: first-paragraph
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(3)
     expect(rules.map((r) => r.preview)).toEqual(["readme", "bd-active", "first-paragraph"])
   })
 
   test("drops rules with missing `pattern`", () => {
-    const toml = `
-      [[autolinks]]
-      resolves_to = "/path"
-      preview = "readme"
-
-      [[autolinks]]
-      pattern = "~ok"
-      resolves_to = "/ok"
-      preview = "readme"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - resolves_to: "/path"
+    preview: readme
+  - pattern: "~ok"
+    resolves_to: "/ok"
+    preview: readme
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~ok")
   })
 
   test("drops rules with invalid `preview` kind", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~bad"
-      resolves_to = "/path"
-      preview = "exec"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: exec
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(0)
   })
 
   test("drops rules with malformed regex", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "/[unclosed/"
-      resolves_to = "/path"
-      preview = "readme"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "/[unclosed/"
+    resolves_to: "/path"
+    preview: readme
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(0)
   })
 
-  test("malformed TOML returns empty list (does not throw)", () => {
-    const rules = parseAutolinksToml("this is = not valid [[[ toml")
+  test("malformed YAML returns empty list (does not throw)", () => {
+    const rules = parseSmartlinksYaml("smartlinks:\n  - this: is\n   bad: indent\n")
     expect(rules).toEqual([])
   })
 
-  test("missing [[autolinks]] returns empty list", () => {
-    const rules = parseAutolinksToml('title = "no autolinks here"\n')
+  test("missing `smartlinks:` key returns empty list", () => {
+    const rules = parseSmartlinksYaml('title: "no smartlinks here"\n')
     expect(rules).toEqual([])
   })
 
-  test("non-array `autolinks` value returns empty list", () => {
-    const rules = parseAutolinksToml('autolinks = "should be an array"\n')
+  test("non-array `smartlinks` value returns empty list", () => {
+    const rules = parseSmartlinksYaml('smartlinks: "should be a list"\n')
     expect(rules).toEqual([])
+  })
+
+  test("empty document returns empty list", () => {
+    expect(parseSmartlinksYaml("")).toEqual([])
+    expect(parseSmartlinksYaml("---\n")).toEqual([])
+  })
+
+  test("ignores other top-level sections (forward-compat)", () => {
+    const yaml = `
+theme: dark
+panes:
+  - id: a
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/path"
+    preview: readme
+`
+    const rules = parseSmartlinksYaml(yaml)
+    expect(rules).toHaveLength(1)
+    expect(rules[0]!.source).toBe("~repo")
   })
 })
 
-describe("autolinks config — shell preview kind", () => {
+describe("smartlinks config — shell preview kind", () => {
   test("accepts a valid shell rule with command", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/path/to/repo"
-      preview = "shell"
-      command = "git -C \${resolves_to} log -5 --oneline"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/path/to/repo"
+    preview: shell
+    command: "git -C \${resolves_to} log -5 --oneline"
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     const rule = rules[0]!
     expect(rule.preview).toBe("shell")
@@ -154,113 +169,112 @@ describe("autolinks config — shell preview kind", () => {
   })
 
   test("drops shell rule with no command field", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~bad"
-      resolves_to = "/path"
-      preview = "shell"
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    const yaml = `
+smartlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule with empty command", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~bad"
-      resolves_to = "/path"
-      preview = "shell"
-      command = ""
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    const yaml = `
+smartlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+    command: ""
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with shell metacharacter (|)", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~pipe"
-      resolves_to = "/path"
-      preview = "shell"
-      command = "| cat"
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    const yaml = `
+smartlinks:
+  - pattern: "~pipe"
+    resolves_to: "/path"
+    preview: shell
+    command: "| cat"
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with redirect (>)", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~redir"
-      resolves_to = "/path"
-      preview = "shell"
-      command = "> /tmp/x"
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    const yaml = `
+smartlinks:
+  - pattern: "~redir"
+    resolves_to: "/path"
+    preview: shell
+    command: "> /tmp/x"
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with backtick", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~tick"
-      resolves_to = "/path"
-      preview = "shell"
-      command = "\`echo hi\`"
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    const yaml = `
+smartlinks:
+  - pattern: "~tick"
+    resolves_to: "/path"
+    preview: shell
+    command: "\`echo hi\`"
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("accepts shell command containing metachars later in the string", () => {
     // Only the leading character is a footgun (paste error); a metachar
     // anywhere else is a legitimate command (e.g. `echo a && echo b` —
     // weird, but the user wrote it).
-    const toml = `
-      [[autolinks]]
-      pattern = "~ok"
-      resolves_to = "/path"
-      preview = "shell"
-      command = "echo hello"
-    `
-    expect(parseAutolinksToml(toml)).toHaveLength(1)
+    const yaml = `
+smartlinks:
+  - pattern: "~ok"
+    resolves_to: "/path"
+    preview: shell
+    command: "echo hello"
+`
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(1)
   })
 })
 
-describe("autolinks config — mcp preview kind (stub)", () => {
+describe("smartlinks config — mcp preview kind (stub)", () => {
   test("drops mcp rules at config-load time pending implementation", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~rfc"
-      resolves_to = "rfc-server.lookup"
-      preview = "mcp"
-      tool = "rfc-server.lookup"
-      args = { id = 42 }
-    `
+    const yaml = `
+smartlinks:
+  - pattern: "~rfc"
+    resolves_to: "rfc-server.lookup"
+    preview: mcp
+    tool: "rfc-server.lookup"
+    args:
+      id: 42
+`
     // mcp is a recognised preview kind (passes VALID_PREVIEWS) but
     // dropped here with a "not implemented" warning.
-    expect(parseAutolinksToml(toml)).toHaveLength(0)
+    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("mcp rule alongside other valid rules: only mcp is dropped", () => {
-    const toml = `
-      [[autolinks]]
-      pattern = "~ok"
-      resolves_to = "/path"
-      preview = "readme"
-
-      [[autolinks]]
-      pattern = "~mcp"
-      resolves_to = "rfc.lookup"
-      preview = "mcp"
-      tool = "rfc.lookup"
-    `
-    const rules = parseAutolinksToml(toml)
+    const yaml = `
+smartlinks:
+  - pattern: "~ok"
+    resolves_to: "/path"
+    preview: readme
+  - pattern: "~mcp"
+    resolves_to: "rfc.lookup"
+    preview: mcp
+    tool: "rfc.lookup"
+`
+    const rules = parseSmartlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~ok")
   })
 })
 
-describe("autolinks config — filesystem loader", () => {
+describe("smartlinks config — filesystem loader", () => {
   let dir: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "silvercode-autolinks-"))
+    dir = mkdtempSync(join(tmpdir(), "silvercode-smartlinks-"))
   })
 
   afterEach(() => {
@@ -271,15 +285,15 @@ describe("autolinks config — filesystem loader", () => {
     expect(loadAutolinksConfig(dir)).toEqual([])
   })
 
-  test("reads .silvercode/links.toml when present", () => {
-    mkdirSync(join(dir, ".silvercode"))
+  test("reads .km/config.yaml when present", () => {
+    mkdirSync(join(dir, ".km"))
     writeFileSync(
-      join(dir, ".silvercode", "links.toml"),
+      join(dir, ".km", "config.yaml"),
       `
-[[autolinks]]
-pattern = "~repo"
-resolves_to = "${dir}"
-preview = "readme"
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "${dir}"
+    preview: readme
 `,
     )
     const rules = loadAutolinksConfig(dir)
@@ -289,7 +303,7 @@ preview = "readme"
   })
 })
 
-describe("autolinks config — cascade (workspace + per-vault)", () => {
+describe("smartlinks config — cascade (workspace + per-vault)", () => {
   function rule(
     source: string,
     resolvesTo: string,

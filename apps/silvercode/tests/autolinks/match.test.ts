@@ -1,26 +1,26 @@
 /**
- * Unit tests for autolinks pattern matcher.
+ * Unit tests for smart-links pattern matcher.
  *
  * Bead: km-silvercode.autolinks-config
  */
 
 import { describe, expect, test } from "vitest"
-import { parseAutolinksToml } from "../../src/autolinks/config.ts"
+import { parseSmartlinksYaml } from "../../src/autolinks/config.ts"
 import { detectAutolinks, mergeDetections } from "../../src/autolinks/match.ts"
 import { detectReferences } from "../../src/detection.ts"
 
-function rulesFromToml(toml: string) {
-  return parseAutolinksToml(toml)
+function rulesFromYaml(yaml: string) {
+  return parseSmartlinksYaml(yaml)
 }
 
 describe("detectAutolinks", () => {
   test("finds literal patterns and emits autolink detections", () => {
-    const rules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/path/to/repo"
-      preview = "readme"
-    `)
+    const rules = rulesFromYaml(`
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/path/to/repo"
+    preview: readme
+`)
     const detections = detectAutolinks("see ~repo for details", rules)
     expect(detections).toHaveLength(1)
     const d = detections[0]!
@@ -33,12 +33,12 @@ describe("detectAutolinks", () => {
   })
 
   test("regex pattern produces multiple matches", () => {
-    const rules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "/\\\\+\\\\w+/"
-      resolves_to = "/Users/beorn/Code"
-      preview = "bd-active"
-    `)
+    const rules = rulesFromYaml(`
+smartlinks:
+  - pattern: "/\\\\+\\\\w+/"
+    resolves_to: "/Users/beorn/Code"
+    preview: bd-active
+`)
     const detections = detectAutolinks("ping +km and +pam", rules)
     expect(detections.map((d) => d.match)).toEqual(["+km", "+pam"])
     // Same rule, same target — but the cache_key differentiates per-match.
@@ -46,17 +46,15 @@ describe("detectAutolinks", () => {
   })
 
   test("non-overlapping output: earlier rule wins", () => {
-    const rules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "abc"
-      resolves_to = "/a"
-      preview = "readme"
-
-      [[autolinks]]
-      pattern = "/[a-z]+/"
-      resolves_to = "/b"
-      preview = "readme"
-    `)
+    const rules = rulesFromYaml(`
+smartlinks:
+  - pattern: "abc"
+    resolves_to: "/a"
+    preview: readme
+  - pattern: "/[a-z]+/"
+    resolves_to: "/b"
+    preview: readme
+`)
     const detections = detectAutolinks("abc def", rules)
     // The first rule's "abc" wins over the regex's "abc" (ties broken by rule_idx ascending),
     // and the regex still matches "def" cleanly.
@@ -70,12 +68,12 @@ describe("detectAutolinks", () => {
   })
 
   test("empty input returns []", () => {
-    const rules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/x"
-      preview = "readme"
-    `)
+    const rules = rulesFromYaml(`
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/x"
+    preview: readme
+`)
     expect(detectAutolinks("", rules)).toEqual([])
   })
 })
@@ -84,12 +82,12 @@ describe("mergeDetections", () => {
   test("built-in URL takes priority over an autolink that overlaps it", () => {
     const text = "see https://example.com/x for details"
     const builtins = detectReferences(text)
-    const autolinkRules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "/example\\\\.com\\\\/x/"
-      resolves_to = "/local/x"
-      preview = "readme"
-    `)
+    const autolinkRules = rulesFromYaml(`
+smartlinks:
+  - pattern: "/example\\\\.com\\\\/x/"
+    resolves_to: "/local/x"
+    preview: readme
+`)
     const autolinks = detectAutolinks(text, autolinkRules)
     const merged = mergeDetections(builtins, autolinks)
     // The URL detection wins; the autolink that intersects it is dropped.
@@ -103,17 +101,15 @@ describe("mergeDetections", () => {
     // test focuses on autolink merging, not the precedence rules covered above.
     const text = "look at AGENTS and call km-thing later"
     const builtins = detectReferences(text).filter((d) => d.kind !== "bead")
-    const autolinkRules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "AGENTS"
-      resolves_to = "agents-target"
-      preview = "readme"
-
-      [[autolinks]]
-      pattern = "km-thing"
-      resolves_to = "km-target"
-      preview = "first-paragraph"
-    `)
+    const autolinkRules = rulesFromYaml(`
+smartlinks:
+  - pattern: "AGENTS"
+    resolves_to: "agents-target"
+    preview: readme
+  - pattern: "km-thing"
+    resolves_to: "km-target"
+    preview: first-paragraph
+`)
     const autolinks = detectAutolinks(text, autolinkRules)
     const merged = mergeDetections(builtins, autolinks)
     // Filter out anything not from us and verify both autolinks survive in order.
@@ -122,17 +118,17 @@ describe("mergeDetections", () => {
   })
 
   test("built-in file detection wins over an overlapping autolink (documents priority)", () => {
-    // Demonstrates that built-in detections shadow user autolinks when the
+    // Demonstrates that built-in detections shadow user smart-links when the
     // ranges overlap. Authors of `~repo`-style patterns will see this:
-    // the tilde-path is a built-in file detection, so the autolink is dropped.
+    // the tilde-path is a built-in file detection, so the smart-link is dropped.
     const text = "look at ~repo here"
     const builtins = detectReferences(text)
-    const autolinkRules = rulesFromToml(`
-      [[autolinks]]
-      pattern = "~repo"
-      resolves_to = "/r"
-      preview = "readme"
-    `)
+    const autolinkRules = rulesFromYaml(`
+smartlinks:
+  - pattern: "~repo"
+    resolves_to: "/r"
+    preview: readme
+`)
     const autolinks = detectAutolinks(text, autolinkRules)
     const merged = mergeDetections(builtins, autolinks)
     // Only the built-in file detection survives.
