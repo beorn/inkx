@@ -1,5 +1,5 @@
 import React from "react"
-import { Box } from "silvery"
+import { Box, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
@@ -13,9 +13,19 @@ import { Welcome } from "./Welcome.tsx"
  * left column Box form the two boundaries the flex engine honours. Without
  * those, wide unwrappable content (paths, URLs, JSON) expands the column
  * and pushes the side panel off-screen.
+ *
+ * Active-pane visual cue: a 1-col `▎` bar painted in `$accent` flush with
+ * the focused pane's left edge. Picked over a bg tint because (a) it adds
+ * zero chrome to inactive panes — they still render with no background —
+ * and (b) it works on every terminal theme without depending on a subtle
+ * bg color that some palettes flatten. Inactive panes paint a same-width
+ * blank column so the content origin doesn't jump on focus change. NO
+ * border around the pane — that'd be exactly the "boxes around
+ * everything" anti-pattern this bead course-corrects against.
  */
 export function SessionCard({
   handle,
+  isFocused,
   onFocus,
   onApprove,
   onDeny,
@@ -55,40 +65,45 @@ export function SessionCard({
     // across the whole screen, which is messy when multiple sessions
     // are laid out side-by-side.
     <Box
-      flexDirection="column"
+      flexDirection="row"
       flexGrow={1}
       flexShrink={1}
       minWidth={0}
       minHeight={0}
       overflow="hidden"
-      paddingX={1}
       userSelect="contain"
       onClick={onFocus}
     >
-      <Box
-        flexGrow={1}
-        flexShrink={1}
-        minWidth={0}
-        minHeight={0}
-        paddingX={1}
-        paddingTop={1}
-      >
-        {state.messages.length === 0 ? (
-          <Welcome handle={handle} />
-        ) : (
-          <MessageList
-            messages={state.messages}
-            onApprove={onApprove}
-            onDeny={onDeny}
-            sessionId={handle.id}
-            status={state.status}
-            turnStartedAt={turnStartedAt}
-            inputTokens={state.cost.inputTokens}
-            outputTokens={state.cost.outputTokens}
-            pendingPermissions={state.permissions.length}
-            inFlightTool={inFlightTool}
-          />
-        )}
+      {/* Left-edge accent bar = active-pane indicator. 1 col wide; visible
+          only when this pane is focused. Inactive panes render a same-width
+          blank column so the content origin (and any text-wrap math
+          downstream) stays stable across focus changes. */}
+      <Box flexShrink={0} flexGrow={0} flexBasis={1} width={1} flexDirection="column">
+        {isFocused ? (
+          <Text color="$accent" wrap="wrap">
+            {"▎".repeat(200)}
+          </Text>
+        ) : null}
+      </Box>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
+        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
+          {state.messages.length === 0 ? (
+            <Welcome handle={handle} />
+          ) : (
+            <MessageList
+              messages={state.messages}
+              onApprove={onApprove}
+              onDeny={onDeny}
+              sessionId={handle.id}
+              status={state.status}
+              turnStartedAt={turnStartedAt}
+              inputTokens={state.cost.inputTokens}
+              outputTokens={state.cost.outputTokens}
+              pendingPermissions={state.permissions.length}
+              inFlightTool={inFlightTool}
+            />
+          )}
+        </Box>
       </Box>
     </Box>
   )

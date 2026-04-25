@@ -5,9 +5,9 @@ import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
 import { Notifications } from "./components/Notifications.tsx"
+import { PaneGrid } from "./components/PaneGrid.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
-import { SessionCard } from "./components/SessionCard.tsx"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
@@ -121,6 +121,30 @@ export function App(props: AppProps): React.ReactElement {
   const [showHistory, setShowHistory] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
+
+  // Pane management — Ctrl+W chord prefix (vim-window convention) gates
+  // pane operations: `Ctrl+W v` (vsplit), `Ctrl+W x` (close), `Ctrl+W z`
+  // (zoom toggle). Ctrl+B stays as background-turn (km-silvercode.ctrl-b
+  // -background) — picking Ctrl+W avoids that conflict.
+  //
+  // The chord lives in a state value (not a ref) so the visual hint
+  // shown in the side panel can react to its presence. Times out 1500ms
+  // after activation so a stale Ctrl+W doesn't trap the next plain
+  // keystroke.
+  const [chord, setChord] = useState<"ctrl-w" | null>(null)
+  useEffect(() => {
+    if (!chord) return
+    const handle = setTimeout(() => setChord(null), 1500)
+    return () => clearTimeout(handle)
+  }, [chord])
+  const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null)
+  // If the zoomed pane disappears (close), drop zoom so the grid re-renders
+  // the remaining panes.
+  useEffect(() => {
+    if (zoomedPaneId && !sessions.some((s) => s.id === zoomedPaneId)) {
+      setZoomedPaneId(null)
+    }
+  }, [zoomedPaneId, sessions])
 
   // Queue buffer for the currently-focused session. Bound directly to a
   // silvery TextArea in the queue region; edits flow back to the
@@ -267,6 +291,55 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory((v) => !v)
         return
       }
+      // Ctrl+W — pane chord prefix (vim-window). The next non-modifier
+      // keypress within the timeout selects an action. We consume the
+      // Ctrl+W itself + the follow-up so neither leaks into TextInput.
+      // Resolving the chord follow-up has to come BEFORE the Ctrl+N
+      // session cycler so that e.g. `Ctrl+W` then `n` doesn't get
+      // intercepted as "next session" (currently we don't bind a chord
+      // for `n`, but the order keeps the slot reserved).
+      if (chord === "ctrl-w") {
+        // Any keypress in chord state consumes the chord — even an
+        // unrecognised one — so we don't accidentally swallow the user's
+        // next real keystroke after a typo.
+        setChord(null)
+        if (input === "v") {
+          // Vertical split = spawn a new session and append it to the grid.
+          // Horizontal split (Ctrl+W s) is deferred to v2 (needs 2D layout).
+          void controller.spawnSession()
+          return
+        }
+        if (input === "x") {
+          // Close the focused pane. v1 reuses the existing exit path when
+          // closing the last pane (matches Ctrl+D×2 semantics) and the
+          // controller's per-session close otherwise. The closeAll() path
+          // is the canonical shutdown for a single-pane window — the
+          // controller has no per-session close API today, so a single
+          // pane's `x` is best-effort: it just clears the current focus.
+          if (focused && sessions.length > 1) {
+            // No per-session close API on the controller (yet); send the
+            // SDK-level close + drop the handle from the visible list by
+            // moving focus to a sibling. The orphaned subprocess shuts
+            // down via the same SIGTERM path that closeAll uses.
+            focused.session.close()
+            focused.unsubscribe()
+            const idx = sessions.findIndex((s) => s.id === focused.id)
+            const next = sessions[(idx + 1) % sessions.length]
+            if (next && next.id !== focused.id) controller.focus(next.id)
+          }
+          return
+        }
+        if (input === "z") {
+          // Zoom toggle — when on, PaneGrid renders only the focused pane.
+          setZoomedPaneId((cur) => (cur ? null : (focused?.id ?? null)))
+          return
+        }
+        return
+      }
+      if (key.ctrl && input === "w") {
+        setChord("ctrl-w")
+        return
+      }
       // Ctrl+N cycles sessions. Now that the queue is a silvery TextArea
       // (Option B), there's no editor-mode aliasing — Ctrl+N is always
       // session cycling at the App level.
@@ -280,12 +353,11 @@ export function App(props: AppProps): React.ReactElement {
     { isActive: true },
   )
 
-  // Layout adapts to actual session count: single session → full width;
-  // 2+ sessions (e.g. from /fork or /spawn) → 50% basis + flexWrap so they
-  // tile instead of stacking on top of each other. The --layout flag sets
-  // the initial session count; forks grow that count at runtime and the
-  // layout follows.
-  const cardBasis = sessions.length <= 1 ? "100%" : "50%"
+  // Pane layout is owned by <PaneGrid> — it persists per-pane weights to
+  // `<cwd>/.silvercode/panes.json` and renders one 1-col `│` divider per
+  // gap (NOT a border around each pane, per the chrome constraint in
+  // bead km-silvercode.pane-management). The active-pane indicator is a
+  // 1-col accent bar inside SessionCard's left edge.
 
   // Clean exit: close all sessions first so the child claude subprocesses
   // terminate, THEN let silvery restore the terminal. process.exit is still
@@ -418,27 +490,15 @@ export function App(props: AppProps): React.ReactElement {
             to shrink=0 — `minWidth={0}` alone does nothing without an
             overflow boundary in the chain. */}
         <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-          <Box flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minHeight={0}>
-            {sessions.map((s) => (
-              <Box
-                key={s.id}
-                flexDirection="column"
-                flexGrow={1}
-                flexShrink={1}
-                flexBasis={cardBasis}
-                minHeight={0}
-                minWidth={0}
-              >
-                <SessionCard
-                  handle={s}
-                  isFocused={s.id === focusedSessionId}
-                  onFocus={() => controller.focus(s.id)}
-                  onApprove={(reqId) => controller.respondPermission(s.id, reqId, true)}
-                  onDeny={(reqId) => controller.respondPermission(s.id, reqId, false)}
-                />
-              </Box>
-            ))}
-          </Box>
+          <PaneGrid
+            sessions={sessions}
+            focusedSessionId={focusedSessionId}
+            zoomedPaneId={zoomedPaneId}
+            cwd={props.cwd}
+            onFocusSession={(id) => controller.focus(id)}
+            onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
+            onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+          />
 
           {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
           <Box flexDirection="column" flexShrink={0}>
