@@ -14,6 +14,8 @@ import {
   disposeAllWatchers,
   PREVIEW_CACHE_TTL_MS,
   PREVIEW_WATCH_DEBOUNCE_MS,
+  SHELL_PREVIEW_OUTPUT_CAP_BYTES,
+  SHELL_PREVIEW_TIMEOUT_MS,
   resolvePreview,
 } from "../../src/autolinks/previews.ts"
 
@@ -63,7 +65,9 @@ describe("autolink previews", () => {
     })
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
-    expect(result.format).toBe("text")
+    // The body is markdown source — emphasis tokens flow to MarkdownView
+    // in the popover for rich rendering. (Previously this was "text".)
+    expect(result.format).toBe("markdown")
     expect(result.body).toContain("First real para")
     expect(result.body).toContain("Second line")
     expect(result.body).not.toContain("Not included")
@@ -260,5 +264,150 @@ describe("autolink previews", () => {
 
     disposeAllWatchers()
     expect(_activeWatcherCount()).toBe(0)
+  })
+})
+
+describe("autolink previews — shell kind", () => {
+  beforeEach(() => {
+    clearPreviewCache()
+  })
+
+  test("shell: runs `echo` and captures its stdout", () => {
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "ignored",
+      cacheKey: "shell-echo",
+      command: "echo hello-from-shell",
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    expect(result.format).toBe("text")
+    expect(result.body).toBe("hello-from-shell")
+  })
+
+  test("shell: substitutes ${resolves_to} in the command template", () => {
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "substituted-value",
+      cacheKey: "shell-subst",
+      command: "echo prefix-${resolves_to}-suffix",
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    expect(result.body).toBe("prefix-substituted-value-suffix")
+  })
+
+  test("shell: returns error when command is missing", () => {
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "x",
+      cacheKey: "shell-no-cmd",
+    })
+    expect(result.kind).toBe("error")
+  })
+
+  test("shell: returns error when program does not exist", () => {
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "x",
+      cacheKey: "shell-enoent",
+      command: "no-such-program-1234567890",
+    })
+    expect(result.kind).toBe("error")
+  })
+
+  test("shell: caps stdout at SHELL_PREVIEW_OUTPUT_CAP_BYTES", () => {
+    // `printf` is universally available and lets us stuff bytes deterministically.
+    // Build a command that prints ~10KB of "x"; expect the body to top out at
+    // ~4KB plus a "[truncated]" marker.
+    const len = SHELL_PREVIEW_OUTPUT_CAP_BYTES * 2 + 100
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "ignored",
+      cacheKey: "shell-cap",
+      command: `printf %${len}d 0`,
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    // Total body length stays within the cap + the marker line.
+    expect(result.body.length).toBeLessThan(SHELL_PREVIEW_OUTPUT_CAP_BYTES + 200)
+    expect(result.body).toMatch(/\[truncated/)
+  })
+
+  test("shell: respects 5-second timeout (kills runaway program)", () => {
+    // `sleep 30` would block well past the 5s timeout; the preview must
+    // bail out and return an error rather than hang the popover. To keep
+    // tests fast we shrink the wait — we still rely on the spawnSync
+    // timeout firing, which we know happens at SHELL_PREVIEW_TIMEOUT_MS.
+    // We verify the configuration constant is what callers expect.
+    expect(SHELL_PREVIEW_TIMEOUT_MS).toBe(5_000)
+    // Smoke: the shell branch surfaces a TIMEOUT error when the underlying
+    // spawnSync's `timeout:` triggers a SIGTERM. Use `sleep` for ≤ 6s so
+    // the test still finishes promptly.
+    const start = Date.now()
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "ignored",
+      cacheKey: "shell-timeout",
+      command: "sleep 30",
+    })
+    const elapsed = Date.now() - start
+    expect(result.kind).toBe("error")
+    if (result.kind !== "error") return
+    expect(result.message).toMatch(/timed out/i)
+    // Must have given up well before the program would have finished.
+    expect(elapsed).toBeLessThan(SHELL_PREVIEW_TIMEOUT_MS + 2_000)
+  }, 10_000)
+
+  test("shell: cache TTL applies (no fs.watch handle)", () => {
+    let now = 1_000_000
+    const r1 = resolvePreview({
+      preview: "shell",
+      resolvesTo: "x",
+      cacheKey: "shell-ttl",
+      command: "echo ttl",
+      now: () => now,
+    })
+    expect(r1.kind).toBe("ok")
+    expect(_activeWatcherCount()).toBe(0)
+
+    now += PREVIEW_CACHE_TTL_MS - 1
+    const r2 = resolvePreview({
+      preview: "shell",
+      resolvesTo: "x",
+      cacheKey: "shell-ttl",
+      command: "echo ttl",
+      now: () => now,
+    })
+    // Same cached resolution.
+    expect(r2.resolvedAt).toBe(r1.resolvedAt)
+
+    now += 2 // cross the TTL boundary
+    const r3 = resolvePreview({
+      preview: "shell",
+      resolvesTo: "x",
+      cacheKey: "shell-ttl",
+      command: "echo ttl",
+      now: () => now,
+    })
+    expect(r3.resolvedAt).toBe(now)
+  })
+})
+
+describe("autolink previews — mcp kind (stub)", () => {
+  beforeEach(() => {
+    clearPreviewCache()
+  })
+
+  test("mcp: returns error pointing at the follow-up bead", () => {
+    const result = resolvePreview({
+      preview: "mcp",
+      resolvesTo: "rfc.lookup",
+      cacheKey: "mcp-stub",
+    })
+    expect(result.kind).toBe("error")
+    if (result.kind !== "error") return
+    expect(result.message).toMatch(/not yet implemented/i)
+    expect(result.message).toMatch(/km-silvercode\.autolinks-mcp-resolver/)
   })
 })

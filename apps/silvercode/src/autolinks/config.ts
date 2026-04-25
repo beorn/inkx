@@ -21,10 +21,25 @@
  *                                              source. The `g` flag is always
  *                                              applied internally.
  *
- * Preview kinds (v1):
- *   - "readme"          → fetch resolves_to (or its README.md if it's a dir)
- *   - "first-paragraph" → fetch resolves_to and show the first non-blank paragraph
- *   - "bd-active"       → shell out to `bd list --parent <resolves_to> --status open --limit 5`
+ * Preview kinds (5 total):
+ *   - "readme"          → fetch resolves_to (or its README.md if it's a dir);
+ *                         body is rendered through MarkdownView (rich)
+ *   - "first-paragraph" → fetch resolves_to, show the first non-blank paragraph;
+ *                         body is rendered through MarkdownView (rich)
+ *   - "bd-active"       → shell out to `bd list --parent <resolves_to>
+ *                         --status open --limit 5`; rendered as plain text
+ *   - "shell"           → run user-defined `command` (with ${resolves_to}
+ *                         substitution), capture stdout. 5s timeout, 4KB cap.
+ *                         Rendered as plain text.
+ *   - "mcp"             → STUB. Rules are dropped at config-load time with a
+ *                         "not yet implemented" warning. Full impl tracked at
+ *                         bead `km-silvercode.autolinks-mcp-resolver`.
+ *
+ * Shell-kind safety:
+ *   - The `command` string MUST NOT start with a shell metacharacter
+ *     (`|`, `&`, `;`, `>`, `<`, `` ` ``). Such rules are dropped with a
+ *     warning. Substitution is limited to literal `${resolves_to}` — no
+ *     other env-var expansion, no nested templating.
  *
  * Malformed rules are dropped with a warning emitted via the silvercode
  * debug log (never throw — startup must not be blocked by user-config typos).
@@ -37,7 +52,7 @@ import createDebug from "debug"
 
 const log = createDebug("silvercode:autolinks:config")
 
-export type AutolinkPreviewKind = "readme" | "first-paragraph" | "bd-active"
+export type AutolinkPreviewKind = "readme" | "first-paragraph" | "bd-active" | "shell" | "mcp"
 
 export type AutolinkRule = {
   /** Source pattern as the user authored it (for diagnostics + cache keys). */
@@ -48,6 +63,23 @@ export type AutolinkRule = {
   readonly resolvesTo: string
   /** Preview kind to render on hover. */
   readonly preview: AutolinkPreviewKind
+  /**
+   * Shell command template — required when `preview === "shell"`.
+   * Supports a single literal substitution: `${resolves_to}` → `resolvesTo`.
+   * No other env-var expansion. Stored verbatim from TOML.
+   */
+  readonly command?: string
+  /**
+   * MCP tool name — required when `preview === "mcp"` (currently unused;
+   * mcp rules are dropped at config-load time pending implementation).
+   * Format: `"<server>.<tool-name>"`.
+   */
+  readonly tool?: string
+  /**
+   * MCP tool args — opaque key/value bag forwarded to the MCP call (currently
+   * unused; mcp rules are dropped at config-load time pending implementation).
+   */
+  readonly args?: Record<string, unknown>
 }
 
 /** Default config path relative to a working directory (per-vault). */
@@ -106,10 +138,7 @@ export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
  * Result preserves the workspace-first / vault-second priority shape that
  * `mergeDetections` (in match.ts) consumes.
  */
-export function cascadeAutolinks(
-  workspace: readonly AutolinkRule[],
-  vault: readonly AutolinkRule[],
-): AutolinkRule[] {
+export function cascadeAutolinks(workspace: readonly AutolinkRule[], vault: readonly AutolinkRule[]): AutolinkRule[] {
   const result: AutolinkRule[] = workspace.slice()
   for (const vaultRule of vault) {
     const idx = result.findIndex((r) => r.source === vaultRule.source)
@@ -156,7 +185,21 @@ const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreview
   "readme",
   "first-paragraph",
   "bd-active",
+  "shell",
+  "mcp",
 ])
+
+/**
+ * Disallow obvious shell-injection prefixes for `shell` rules.
+ *
+ * The user trusts their own `links.toml`, but a leading metacharacter is
+ * almost always a paste error rather than intent — there's no useful program
+ * whose first token starts with `|`, `&`, `;`, `>`, `<`, or `` ` ``. Drop
+ * rather than execute. Note this is a SAFETY-NET (we run via spawnSync with
+ * an explicit argv, not via `sh -c`), but matching shell-style commands
+ * elsewhere in the toolchain leaks if a user copy-pastes a piped command.
+ */
+const SHELL_METACHAR_PREFIX = /^[|&;><`]/
 
 function validateRule(entry: unknown, where: string): AutolinkRule | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -189,11 +232,41 @@ function validateRule(entry: unknown, where: string): AutolinkRule | null {
     return null
   }
 
+  const kind = preview as AutolinkPreviewKind
+
+  // Per-kind validation: shell needs `command`; mcp is a config-loadable
+  // stub that's dropped here pending implementation in
+  // km-silvercode.autolinks-mcp-resolver.
+  if (kind === "shell") {
+    const command = obj["command"]
+    if (typeof command !== "string" || command.length === 0) {
+      log(`%s: \`shell\` rule missing/invalid \`command\` field`, where)
+      return null
+    }
+    if (SHELL_METACHAR_PREFIX.test(command.trimStart())) {
+      log(`%s: \`shell\` rule rejected — command starts with shell metacharacter (\`%s\`)`, where, command)
+      return null
+    }
+    return {
+      source: pattern,
+      regex,
+      resolvesTo,
+      preview: kind,
+      command,
+    }
+  }
+
+  if (kind === "mcp") {
+    // Stub — config-load only. Drop with a clear pointer to the follow-up bead.
+    log(`%s: \`mcp\` preview not yet implemented — see km-silvercode.autolinks-mcp-resolver`, where)
+    return null
+  }
+
   return {
     source: pattern,
     regex,
     resolvesTo,
-    preview: preview as AutolinkPreviewKind,
+    preview: kind,
   }
 }
 

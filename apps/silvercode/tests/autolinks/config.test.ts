@@ -137,6 +137,125 @@ describe("autolinks config — TOML parsing", () => {
   })
 })
 
+describe("autolinks config — shell preview kind", () => {
+  test("accepts a valid shell rule with command", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~repo"
+      resolves_to = "/path/to/repo"
+      preview = "shell"
+      command = "git -C \${resolves_to} log -5 --oneline"
+    `
+    const rules = parseAutolinksToml(toml)
+    expect(rules).toHaveLength(1)
+    const rule = rules[0]!
+    expect(rule.preview).toBe("shell")
+    expect(rule.command).toBe("git -C ${resolves_to} log -5 --oneline")
+  })
+
+  test("drops shell rule with no command field", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~bad"
+      resolves_to = "/path"
+      preview = "shell"
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("drops shell rule with empty command", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~bad"
+      resolves_to = "/path"
+      preview = "shell"
+      command = ""
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("drops shell rule whose command starts with shell metacharacter (|)", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~pipe"
+      resolves_to = "/path"
+      preview = "shell"
+      command = "| cat"
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("drops shell rule whose command starts with redirect (>)", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~redir"
+      resolves_to = "/path"
+      preview = "shell"
+      command = "> /tmp/x"
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("drops shell rule whose command starts with backtick", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~tick"
+      resolves_to = "/path"
+      preview = "shell"
+      command = "\`echo hi\`"
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("accepts shell command containing metachars later in the string", () => {
+    // Only the leading character is a footgun (paste error); a metachar
+    // anywhere else is a legitimate command (e.g. `echo a && echo b` —
+    // weird, but the user wrote it).
+    const toml = `
+      [[autolinks]]
+      pattern = "~ok"
+      resolves_to = "/path"
+      preview = "shell"
+      command = "echo hello"
+    `
+    expect(parseAutolinksToml(toml)).toHaveLength(1)
+  })
+})
+
+describe("autolinks config — mcp preview kind (stub)", () => {
+  test("drops mcp rules at config-load time pending implementation", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~rfc"
+      resolves_to = "rfc-server.lookup"
+      preview = "mcp"
+      tool = "rfc-server.lookup"
+      args = { id = 42 }
+    `
+    // mcp is a recognised preview kind (passes VALID_PREVIEWS) but
+    // dropped here with a "not implemented" warning.
+    expect(parseAutolinksToml(toml)).toHaveLength(0)
+  })
+
+  test("mcp rule alongside other valid rules: only mcp is dropped", () => {
+    const toml = `
+      [[autolinks]]
+      pattern = "~ok"
+      resolves_to = "/path"
+      preview = "readme"
+
+      [[autolinks]]
+      pattern = "~mcp"
+      resolves_to = "rfc.lookup"
+      preview = "mcp"
+      tool = "rfc.lookup"
+    `
+    const rules = parseAutolinksToml(toml)
+    expect(rules).toHaveLength(1)
+    expect(rules[0]!.source).toBe("~ok")
+  })
+})
+
 describe("autolinks config — filesystem loader", () => {
   let dir: string
 
@@ -171,7 +290,10 @@ preview = "readme"
 })
 
 describe("autolinks config — cascade (workspace + per-vault)", () => {
-  function rule(source: string, resolvesTo: string): {
+  function rule(
+    source: string,
+    resolvesTo: string,
+  ): {
     source: string
     regex: RegExp
     resolvesTo: string

@@ -1,24 +1,29 @@
 /**
  * Autolink preview renderers.
  *
- * Three pluggable preview kinds shipped in v1:
+ * Five preview kinds:
  *
  *   - "readme"          → fetch the file at `resolvesTo`, render markdown.
  *                         If `resolvesTo` is a directory, look for README.md.
- *   - "first-paragraph" → fetch the file, return the first non-blank paragraph
- *                         as plain text.
- *   - "bd-active"       → shell out to `bd list --parent <resolvesTo>
- *                         --status open --limit 5` and return its output.
- *
- * Skipped for v1 (see follow-up beads):
- *   - "shell" / "mcp"   → km-silvercode.autolinks-preview-extensions
- *   - "mcp" resolver    → km-silvercode.autolinks-mcp-resolver
+ *                         `format: "markdown"` — popover renders via MarkdownView.
+ *   - "first-paragraph" → fetch the file, return the first non-blank paragraph.
+ *                         `format: "markdown"` — popover renders via MarkdownView
+ *                         (the source IS markdown — emphasis carries over).
+ *   - "bd-active"       → spawn `bd list --parent <resolvesTo> --status open
+ *                         --limit 5` and return its stdout. `format: "text"`.
+ *   - "shell"           → spawn the rule's `command` (with ${resolves_to}
+ *                         substitution); 5s timeout, output capped at 4KB.
+ *                         `format: "text"`.
+ *   - "mcp"             → stub. `resolvePreview` returns an error pointing at
+ *                         the follow-up bead; mcp rules are normally dropped
+ *                         at config-load time, this branch is a defensive
+ *                         fallback only.
  *
  * Caching: per-cache-key in-memory. File-backed previews (`readme`,
  * `first-paragraph`) invalidate on `fs.watch` `change` events with a
  * 200ms debounce, so the next `resolvePreview()` reads fresh content.
- * Shell-out previews (`bd-active`) have no file backing and fall back to
- * a 30-second TTL — see `km-silvercode.autolinks-cache-invalidation`.
+ * Shell-out previews (`bd-active`, `shell`) have no file backing and fall
+ * back to a 30-second TTL.
  */
 
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs"
@@ -29,11 +34,17 @@ import type { AutolinkPreviewKind } from "./config.ts"
 
 const log = createDebug("silvercode:autolinks:previews")
 
-/** TTL fallback for previews without a file backing (e.g., `bd-active`). */
+/** TTL fallback for previews without a file backing (e.g., `bd-active`, `shell`). */
 export const PREVIEW_CACHE_TTL_MS = 30_000
 
 /** Debounce window for fs.watch change events. fsync can fire many times in a tight loop; we wait this long after the last event before evicting. */
 export const PREVIEW_WATCH_DEBOUNCE_MS = 200
+
+/** Wall-clock timeout for `shell` previews. Process is killed if it overruns. */
+export const SHELL_PREVIEW_TIMEOUT_MS = 5_000
+
+/** Hard cap on captured stdout from a `shell` preview, in bytes. Anything past this is truncated with a "[truncated]" marker. Prevents a runaway command (e.g. `find /`) from filling the popover with megabytes of text. */
+export const SHELL_PREVIEW_OUTPUT_CAP_BYTES = 4_096
 
 export type PreviewSuccess = {
   readonly kind: "ok"
@@ -163,6 +174,11 @@ export function resolvePreview(args: {
   resolvesTo: string
   cacheKey: string
   /**
+   * Required for `preview === "shell"` — the user-supplied command template
+   * with `${resolves_to}` substitution. Ignored for other kinds.
+   */
+  command?: string
+  /**
    * Override `now()` for tests. Production callers omit it.
    */
   now?: () => number
@@ -199,6 +215,19 @@ export function resolvePreview(args: {
       }
       case "bd-active":
         result = renderBdActive(args.resolvesTo, t)
+        break
+      case "shell":
+        result = renderShell(args.command ?? "", args.resolvesTo, t)
+        break
+      case "mcp":
+        // Defensive — `mcp` rules are dropped by `validateRule`. If we get
+        // here, the caller bypassed config validation. Surface a useful
+        // pointer instead of crashing.
+        result = {
+          kind: "error",
+          message: "mcp preview not yet implemented — see km-silvercode.autolinks-mcp-resolver",
+          resolvedAt: t,
+        }
         break
       default: {
         // Defensive — config validation should have caught this.
@@ -258,7 +287,11 @@ function renderFirstParagraph(resolvesTo: string, path: string, t: number): Prev
   }
   const raw = readFileSync(path, "utf-8")
   const para = firstNonBlankParagraph(raw)
-  return { kind: "ok", body: para, format: "text", resolvedAt: t }
+  // The source IS markdown, so we keep the inline emphasis tokens
+  // (`**bold**`, `*italic*`, `[link](url)`, backtick code spans) intact.
+  // The popover renders this body through MarkdownView, which consumes
+  // those tokens into styled cells.
+  return { kind: "ok", body: para, format: "markdown", resolvedAt: t }
 }
 
 function renderBdActive(parentId: string, t: number): PreviewResult {
@@ -283,6 +316,99 @@ function renderBdActive(parentId: string, t: number): PreviewResult {
   const stdout = (proc.stdout ?? "").trim()
   const body = stdout.length > 0 ? stdout : `No open beads under ${parentId}.`
   return { kind: "ok", body, format: "text", resolvedAt: t }
+}
+
+/**
+ * Run a user-defined shell command and return its stdout.
+ *
+ * Sandboxing:
+ *   - `${resolves_to}` is the ONLY substitution. No other env-var expansion,
+ *     no nested templating.
+ *   - We tokenize on whitespace and invoke `spawnSync(argv[0], argv.slice(1))`
+ *     directly — no `sh -c`. The argv[0] is whatever the user wrote; if their
+ *     command needs shell features (pipes, redirects), they'd need to write
+ *     them as the program (e.g. `bash -c "…"`). That's a deliberate choice:
+ *     `spawnSync` without a shell can't be tricked by injection in the
+ *     resolves_to text, but the user retains the escape hatch.
+ *   - Stdin is closed (`input: ""`).
+ *   - 5-second wall-clock timeout (`timeout: SHELL_PREVIEW_TIMEOUT_MS`); the
+ *     process is killed if it overruns.
+ *   - Stdout is capped at SHELL_PREVIEW_OUTPUT_CAP_BYTES — anything past that
+ *     is truncated with a "[truncated]" marker so the popover can show the
+ *     prefix instead of dropping the entry.
+ *   - stderr is ignored (we already log to debug).
+ */
+function renderShell(commandTemplate: string, resolvesTo: string, t: number): PreviewResult {
+  if (!commandTemplate || commandTemplate.length === 0) {
+    return { kind: "error", message: "shell preview missing command", resolvedAt: t }
+  }
+
+  // Substitute the single template variable. Replacing literally avoids any
+  // accidental interaction with $&, $1, etc. that String.prototype.replace
+  // honours when the second arg is a string.
+  const expanded = commandTemplate.split("${resolves_to}").join(resolvesTo)
+  const argv = expanded.split(/\s+/).filter((s) => s.length > 0)
+  if (argv.length === 0) {
+    return { kind: "error", message: "shell preview command is empty after expansion", resolvedAt: t }
+  }
+  const [program, ...rest] = argv
+  if (!program) {
+    return { kind: "error", message: "shell preview command is empty after expansion", resolvedAt: t }
+  }
+
+  const proc = spawnSync(program, rest, {
+    encoding: "utf-8",
+    timeout: SHELL_PREVIEW_TIMEOUT_MS,
+    input: "",
+    // Cap captured output up-front so a runaway command doesn't allocate
+    // gigabytes before timing out. We then trim further to the byte cap.
+    maxBuffer: SHELL_PREVIEW_OUTPUT_CAP_BYTES * 4,
+  })
+
+  if (proc.error) {
+    // ETIMEDOUT shows up here when the timeout fires.
+    const msg = String(proc.error)
+    if (proc.signal === "SIGTERM" || /ETIMEDOUT/i.test(msg)) {
+      return {
+        kind: "error",
+        message: `shell preview timed out after ${SHELL_PREVIEW_TIMEOUT_MS}ms`,
+        resolvedAt: t,
+      }
+    }
+    return { kind: "error", message: `shell: ${msg}`, resolvedAt: t }
+  }
+  // node's spawnSync sets `signal` to SIGTERM when timeout fires (no `error`
+  // field on every platform — guard separately).
+  if (proc.signal === "SIGTERM") {
+    return {
+      kind: "error",
+      message: `shell preview timed out after ${SHELL_PREVIEW_TIMEOUT_MS}ms`,
+      resolvedAt: t,
+    }
+  }
+  if (proc.status !== 0) {
+    return {
+      kind: "error",
+      message: `shell exited ${proc.status ?? "?"}`,
+      resolvedAt: t,
+    }
+  }
+
+  const stdout = proc.stdout ?? ""
+  const body = capOutput(stdout)
+  return { kind: "ok", body, format: "text", resolvedAt: t }
+}
+
+/**
+ * Truncate stdout to the configured byte cap, appending a marker if the
+ * output was longer. Operates on bytes via Buffer to avoid splitting a
+ * multi-byte UTF-8 codepoint visibly inside the popover.
+ */
+function capOutput(raw: string): string {
+  const buf = Buffer.from(raw, "utf-8")
+  if (buf.length <= SHELL_PREVIEW_OUTPUT_CAP_BYTES) return raw.trimEnd()
+  const truncated = buf.subarray(0, SHELL_PREVIEW_OUTPUT_CAP_BYTES).toString("utf-8")
+  return `${truncated.trimEnd()}\n[truncated — output exceeded ${SHELL_PREVIEW_OUTPUT_CAP_BYTES}B]`
 }
 
 /**

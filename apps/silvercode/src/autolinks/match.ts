@@ -38,21 +38,27 @@ export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): D
       const start = m.index ?? 0
       const matchText = m[0]
       if (typeof matchText !== "string" || matchText.length === 0) continue
+      const payload: Record<string, string> = {
+        source: rule.source,
+        resolves_to: rule.resolvesTo,
+        preview: rule.preview,
+        // Stable cache key: per-rule + matched text. The matched text
+        // matters because regex rules can resolve to different concrete
+        // targets per match (e.g. /\+(\w+)/ → +km, +pam).
+        cache_key: `${rule.source}::${matchText}`,
+        rule_idx: String(ruleIdx),
+      }
+      // shell rules carry their `command` through to the popover layer so
+      // the resolver can spawn it without re-walking the rule list.
+      if (rule.preview === "shell" && typeof rule.command === "string") {
+        payload["command"] = rule.command
+      }
       candidates.push({
         kind: "autolink",
         match: matchText,
         start,
         end: start + matchText.length,
-        payload: {
-          source: rule.source,
-          resolves_to: rule.resolvesTo,
-          preview: rule.preview,
-          // Stable cache key: per-rule + matched text. The matched text
-          // matters because regex rules can resolve to different concrete
-          // targets per match (e.g. /\+(\w+)/ → +km, +pam).
-          cache_key: `${rule.source}::${matchText}`,
-          rule_idx: String(ruleIdx),
-        },
+        payload,
       })
     }
   }

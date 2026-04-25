@@ -5,12 +5,19 @@ import { useAutolinks } from "../AutolinksContext.tsx"
 import { detectAutolinks, mergeDetections } from "../autolinks/match.ts"
 import { resolvePreview } from "../autolinks/previews.ts"
 import type { AutolinkPreviewKind } from "../autolinks/config.ts"
+import { MarkdownView } from "./MarkdownView.tsx"
+
+/** Preview kinds whose body is markdown source — render via MarkdownView. */
+function isMarkdownKind(kind: AutolinkPreviewKind): boolean {
+  return kind === "readme" || kind === "first-paragraph"
+}
 
 function renderAutolinkPopover(d: Detection): React.ReactNode {
   const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind
   const resolvesTo = d.payload.resolves_to ?? ""
   const cacheKey = d.payload.cache_key ?? d.match
-  const result = resolvePreview({ preview, resolvesTo, cacheKey })
+  const command = d.payload.command
+  const result = resolvePreview({ preview, resolvesTo, cacheKey, command })
   if (result.kind === "error") {
     return (
       <Box flexDirection="column">
@@ -20,12 +27,16 @@ function renderAutolinkPopover(d: Detection): React.ReactNode {
       </Box>
     )
   }
-  // Render markdown previews as plain text inside the popover for v1 —
-  // wiring full MarkdownView introduces a render cycle (DetectionText
-  // is invoked from MarkdownView). The preview shows the source markdown
-  // so the user can see headings, lists, etc., and react to it. The
-  // upgrade to a shrunken MarkdownView lives in the preview-extensions
-  // follow-up bead.
+  // Markdown-source kinds (readme / first-paragraph) render through
+  // MarkdownView — emphasis, code spans, headings, and bullets all carry
+  // through. Shell, bd-active, and (defensively) mcp render as plain text
+  // since their body is program output, not markdown.
+  //
+  // The popover is narrow (~50 cols typical). Wrap MarkdownView in a
+  // <Prose flexShrink={1} minWidth={0}> so the inner Text nodes can shrink
+  // to the popover width — without the explicit shrink/minWidth, Yoga
+  // refuses to compress below a child's intrinsic size and the popover
+  // expands to fit the longest line.
   return (
     <Box flexDirection="column">
       <Text bold>{d.match}</Text>
@@ -33,11 +44,17 @@ function renderAutolinkPopover(d: Detection): React.ReactNode {
         {preview} · {resolvesTo}
       </Muted>
       <Box flexDirection="column" paddingTop={1}>
-        {result.body.split("\n").map((line, i) => (
-          <Text key={i} wrap="wrap">
-            {line.length === 0 ? " " : line}
-          </Text>
-        ))}
+        {isMarkdownKind(preview) ? (
+          <Prose flexShrink={1} minWidth={0}>
+            <MarkdownView source={result.body} />
+          </Prose>
+        ) : (
+          result.body.split("\n").map((line, i) => (
+            <Text key={i} wrap="wrap">
+              {line.length === 0 ? " " : line}
+            </Text>
+          ))
+        )}
       </Box>
     </Box>
   )
