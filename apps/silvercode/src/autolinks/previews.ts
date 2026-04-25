@@ -174,10 +174,11 @@ export function resolvePreview(args: {
   resolvesTo: string
   cacheKey: string
   /**
-   * Required for `preview === "shell"` — the user-supplied command template
-   * with `${resolves_to}` substitution. Ignored for other kinds.
+   * Required for `preview === "shell"` — the structured command spec.
+   * Each `args[i]` has `${resolves_to}` substituted at token level (never
+   * concatenated into a shell string). Ignored for other kinds.
    */
-  command?: string
+  command?: { readonly exec: string; readonly args: readonly string[] }
   /**
    * Override `now()` for tests. Production callers omit it.
    */
@@ -217,7 +218,9 @@ export function resolvePreview(args: {
         result = renderBdActive(args.resolvesTo, t)
         break
       case "shell":
-        result = renderShell(args.command ?? "", args.resolvesTo, t)
+        result = args.command
+          ? renderShell(args.command, args.resolvesTo, t)
+          : { kind: "error", message: "shell preview missing command spec", resolvedAt: t }
         break
       case "mcp":
         // Defensive — `mcp` rules are dropped by `validateRule`. If we get
@@ -319,47 +322,57 @@ function renderBdActive(parentId: string, t: number): PreviewResult {
 }
 
 /**
- * Run a user-defined shell command and return its stdout.
+ * Run a user-defined shell command and return its sanitized stdout.
  *
- * Sandboxing:
- *   - `${resolves_to}` is the ONLY substitution. No other env-var expansion,
- *     no nested templating.
- *   - We tokenize on whitespace and invoke `spawnSync(argv[0], argv.slice(1))`
- *     directly — no `sh -c`. The argv[0] is whatever the user wrote; if their
- *     command needs shell features (pipes, redirects), they'd need to write
- *     them as the program (e.g. `bash -c "…"`). That's a deliberate choice:
- *     `spawnSync` without a shell can't be tricked by injection in the
- *     resolves_to text, but the user retains the escape hatch.
+ * Security model (the schema removes the injection surface; this function
+ * keeps the runtime narrow):
+ *   - `command.exec` is the program (bare name resolved via PATH, or absolute).
+ *   - Each `command.args[i]` has the literal `${resolves_to}` substituted with
+ *     `resolvesTo` AT TOKEN LEVEL — never concatenated into a shell string.
+ *     No injection surface: a `resolvesTo` of `"; rm -rf /"` becomes a single
+ *     argv token, not a new command.
+ *   - We spawn directly via `spawnSync(exec, args)` — no `sh -c`, no shell
+ *     interpretation of the user's input.
  *   - Stdin is closed (`input: ""`).
- *   - 5-second wall-clock timeout (`timeout: SHELL_PREVIEW_TIMEOUT_MS`); the
- *     process is killed if it overruns.
- *   - Stdout is capped at SHELL_PREVIEW_OUTPUT_CAP_BYTES — anything past that
- *     is truncated with a "[truncated]" marker so the popover can show the
- *     prefix instead of dropping the entry.
+ *   - 5-second wall-clock timeout. Process is killed if it overruns.
+ *     `killSignal: "SIGKILL"` ensures the child can't ignore the timeout.
+ *   - Env is minimized: only `PATH`, `HOME`, `LANG` are inherited; `TERM`
+ *     is forced to `dumb` so commands don't emit ANSI by default.
+ *   - Stdout is capped at SHELL_PREVIEW_OUTPUT_CAP_BYTES — anything past
+ *     that is truncated.
+ *   - Output passes through `sanitizeShellOutput` which strips ANSI escape
+ *     sequences (CSI, OSC, DCS), C0 control characters, and DEL — defense
+ *     against terminal-injection in popover render.
  *   - stderr is ignored (we already log to debug).
  */
-function renderShell(commandTemplate: string, resolvesTo: string, t: number): PreviewResult {
-  if (!commandTemplate || commandTemplate.length === 0) {
-    return { kind: "error", message: "shell preview missing command", resolvedAt: t }
+function renderShell(
+  command: { readonly exec: string; readonly args: readonly string[] },
+  resolvesTo: string,
+  t: number,
+): PreviewResult {
+  if (!command.exec || command.exec.length === 0) {
+    return { kind: "error", message: "shell preview missing exec", resolvedAt: t }
   }
 
-  // Substitute the single template variable. Replacing literally avoids any
-  // accidental interaction with $&, $1, etc. that String.prototype.replace
-  // honours when the second arg is a string.
-  const expanded = commandTemplate.split("${resolves_to}").join(resolvesTo)
-  const argv = expanded.split(/\s+/).filter((s) => s.length > 0)
-  if (argv.length === 0) {
-    return { kind: "error", message: "shell preview command is empty after expansion", resolvedAt: t }
-  }
-  const [program, ...rest] = argv
-  if (!program) {
-    return { kind: "error", message: "shell preview command is empty after expansion", resolvedAt: t }
+  // Per-arg literal substitution — single template variable, no
+  // String.prototype.replace surprises ($&, $1, etc.).
+  const argv = command.args.map((arg) => arg.split("${resolves_to}").join(resolvesTo))
+
+  // Minimal env. TERM=dumb tells well-behaved tools to skip color codes.
+  // Output sanitizer is the safety net for tools that ignore TERM.
+  const env: Record<string, string> = {
+    PATH: process.env["PATH"] ?? "/usr/bin:/bin",
+    HOME: process.env["HOME"] ?? "/",
+    LANG: process.env["LANG"] ?? "C",
+    TERM: "dumb",
   }
 
-  const proc = spawnSync(program, rest, {
+  const proc = spawnSync(command.exec, argv, {
     encoding: "utf-8",
     timeout: SHELL_PREVIEW_TIMEOUT_MS,
+    killSignal: "SIGKILL",
     input: "",
+    env,
     // Cap captured output up-front so a runaway command doesn't allocate
     // gigabytes before timing out. We then trim further to the byte cap.
     maxBuffer: SHELL_PREVIEW_OUTPUT_CAP_BYTES * 4,
@@ -368,7 +381,7 @@ function renderShell(commandTemplate: string, resolvesTo: string, t: number): Pr
   if (proc.error) {
     // ETIMEDOUT shows up here when the timeout fires.
     const msg = String(proc.error)
-    if (proc.signal === "SIGTERM" || /ETIMEDOUT/i.test(msg)) {
+    if (proc.signal === "SIGTERM" || proc.signal === "SIGKILL" || /ETIMEDOUT/i.test(msg)) {
       return {
         kind: "error",
         message: `shell preview timed out after ${SHELL_PREVIEW_TIMEOUT_MS}ms`,
@@ -377,9 +390,7 @@ function renderShell(commandTemplate: string, resolvesTo: string, t: number): Pr
     }
     return { kind: "error", message: `shell: ${msg}`, resolvedAt: t }
   }
-  // node's spawnSync sets `signal` to SIGTERM when timeout fires (no `error`
-  // field on every platform — guard separately).
-  if (proc.signal === "SIGTERM") {
+  if (proc.signal === "SIGTERM" || proc.signal === "SIGKILL") {
     return {
       kind: "error",
       message: `shell preview timed out after ${SHELL_PREVIEW_TIMEOUT_MS}ms`,
@@ -395,8 +406,51 @@ function renderShell(commandTemplate: string, resolvesTo: string, t: number): Pr
   }
 
   const stdout = proc.stdout ?? ""
-  const body = capOutput(stdout)
+  const sanitized = sanitizeShellOutput(stdout)
+  const body = capOutput(sanitized)
   return { kind: "ok", body, format: "text", resolvedAt: t }
+}
+
+/**
+ * Strip ANSI escape sequences and C0 control characters from shell output.
+ *
+ * We render this output in a TUI buffer where ANSI/OSC/DCS sequences would
+ * be interpreted by the host terminal (color, cursor moves, OSC 52 paste,
+ * window-title set, etc). That's terminal-injection — a real class of bug
+ * — so we strip the escape surface even though TERM=dumb is also set.
+ *
+ * What we strip:
+ *   - CSI sequences:    ESC [ ... <final-byte 0x40-0x7E>
+ *   - OSC sequences:    ESC ] ... (ST | BEL)
+ *   - DCS sequences:    ESC P ... ST
+ *   - PM / APC / SOS:   ESC ^ | ESC _ | ESC X ... ST
+ *   - 7-bit single-char escapes:  ESC <char>
+ *   - C0 controls except TAB (0x09), LF (0x0A), CR (0x0D)
+ *   - DEL (0x7F)
+ *
+ * UTF-8 graphemes pass through unchanged.
+ */
+export function sanitizeShellOutput(raw: string): string {
+  // Strip multi-char escape sequences first (ESC followed by ...).
+  // Order matters: OSC/DCS/PM/APC/SOS use String Terminator (ESC \) or BEL
+  // and may contain CSI-like bytes inside.
+  let s = raw
+    // OSC: ESC ] ... (ST = ESC \  | BEL = 0x07)
+    .replace(/\x1b\][\s\S]*?(?:\x1b\\|\x07)/g, "")
+    // DCS / PM / APC / SOS: ESC P|^|_|X ... ST
+    .replace(/\x1b[P^_X][\s\S]*?\x1b\\/g, "")
+    // CSI: ESC [ <params> <final>  (final byte 0x40-0x7E)
+    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
+    // Two-byte 7-bit escapes (ESC <intermediate-or-final>) — anything not
+    // already consumed above. Strip the escape and the byte that follows.
+    .replace(/\x1b./g, "")
+    // Lone ESC at the very end of buffer (incomplete sequence).
+    .replace(/\x1b/g, "")
+
+  // C0 controls: 0x00-0x1F except TAB / LF / CR. Plus DEL (0x7F).
+  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+
+  return s
 }
 
 /**

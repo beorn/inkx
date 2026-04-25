@@ -17,6 +17,7 @@ import {
   SHELL_PREVIEW_OUTPUT_CAP_BYTES,
   SHELL_PREVIEW_TIMEOUT_MS,
   resolvePreview,
+  sanitizeShellOutput,
 } from "../../src/autolinks/previews.ts"
 
 describe("autolink previews", () => {
@@ -277,7 +278,7 @@ describe("autolink previews — shell kind", () => {
       preview: "shell",
       resolvesTo: "ignored",
       cacheKey: "shell-echo",
-      command: "echo hello-from-shell",
+      command: { exec: "echo", args: ["hello-from-shell"] },
     })
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
@@ -285,16 +286,32 @@ describe("autolink previews — shell kind", () => {
     expect(result.body).toBe("hello-from-shell")
   })
 
-  test("shell: substitutes ${resolves_to} in the command template", () => {
+  test("shell: substitutes ${resolves_to} in args at token level", () => {
     const result = resolvePreview({
       preview: "shell",
       resolvesTo: "substituted-value",
       cacheKey: "shell-subst",
-      command: "echo prefix-${resolves_to}-suffix",
+      command: { exec: "echo", args: ["prefix-${resolves_to}-suffix"] },
     })
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
     expect(result.body).toBe("prefix-substituted-value-suffix")
+  })
+
+  test("shell: argv form is injection-proof — `; rm -rf /` becomes a single arg", () => {
+    // The whole point of the schema change. With the old string form, a
+    // resolvesTo containing shell metacharacters could be interpreted; with
+    // argv, it's a literal argument value.
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "; rm -rf /",
+      cacheKey: "shell-injection-proof",
+      command: { exec: "echo", args: ["${resolves_to}"] },
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    // Echoed verbatim — never interpreted. No shell got involved.
+    expect(result.body).toBe("; rm -rf /")
   })
 
   test("shell: returns error when command is missing", () => {
@@ -311,53 +328,54 @@ describe("autolink previews — shell kind", () => {
       preview: "shell",
       resolvesTo: "x",
       cacheKey: "shell-enoent",
-      command: "no-such-program-1234567890",
+      command: { exec: "no-such-program-1234567890", args: [] },
     })
     expect(result.kind).toBe("error")
   })
 
   test("shell: caps stdout at SHELL_PREVIEW_OUTPUT_CAP_BYTES", () => {
-    // `printf` is universally available and lets us stuff bytes deterministically.
-    // Build a command that prints ~10KB of "x"; expect the body to top out at
-    // ~4KB plus a "[truncated]" marker.
     const len = SHELL_PREVIEW_OUTPUT_CAP_BYTES * 2 + 100
     const result = resolvePreview({
       preview: "shell",
       resolvesTo: "ignored",
       cacheKey: "shell-cap",
-      command: `printf %${len}d 0`,
+      command: { exec: "printf", args: [`%${len}d`, "0"] },
     })
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
-    // Total body length stays within the cap + the marker line.
     expect(result.body.length).toBeLessThan(SHELL_PREVIEW_OUTPUT_CAP_BYTES + 200)
     expect(result.body).toMatch(/\[truncated/)
   })
 
   test("shell: respects 5-second timeout (kills runaway program)", () => {
-    // `sleep 30` would block well past the 5s timeout; the preview must
-    // bail out and return an error rather than hang the popover. To keep
-    // tests fast we shrink the wait — we still rely on the spawnSync
-    // timeout firing, which we know happens at SHELL_PREVIEW_TIMEOUT_MS.
-    // We verify the configuration constant is what callers expect.
     expect(SHELL_PREVIEW_TIMEOUT_MS).toBe(5_000)
-    // Smoke: the shell branch surfaces a TIMEOUT error when the underlying
-    // spawnSync's `timeout:` triggers a SIGTERM. Use `sleep` for ≤ 6s so
-    // the test still finishes promptly.
     const start = Date.now()
     const result = resolvePreview({
       preview: "shell",
       resolvesTo: "ignored",
       cacheKey: "shell-timeout",
-      command: "sleep 30",
+      command: { exec: "sleep", args: ["30"] },
     })
     const elapsed = Date.now() - start
     expect(result.kind).toBe("error")
     if (result.kind !== "error") return
     expect(result.message).toMatch(/timed out/i)
-    // Must have given up well before the program would have finished.
     expect(elapsed).toBeLessThan(SHELL_PREVIEW_TIMEOUT_MS + 2_000)
   }, 10_000)
+
+  test("shell: TERM=dumb in env (no inherited terminal type)", () => {
+    // We can't observe env directly, but we can prove TERM is NOT inherited
+    // by running `printenv TERM` and asserting the output is "dumb".
+    const result = resolvePreview({
+      preview: "shell",
+      resolvesTo: "ignored",
+      cacheKey: "shell-term-dumb",
+      command: { exec: "printenv", args: ["TERM"] },
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    expect(result.body).toBe("dumb")
+  })
 
   test("shell: cache TTL applies (no fs.watch handle)", () => {
     let now = 1_000_000
@@ -365,7 +383,7 @@ describe("autolink previews — shell kind", () => {
       preview: "shell",
       resolvesTo: "x",
       cacheKey: "shell-ttl",
-      command: "echo ttl",
+      command: { exec: "echo", args: ["ttl"] },
       now: () => now,
     })
     expect(r1.kind).toBe("ok")
@@ -376,7 +394,7 @@ describe("autolink previews — shell kind", () => {
       preview: "shell",
       resolvesTo: "x",
       cacheKey: "shell-ttl",
-      command: "echo ttl",
+      command: { exec: "echo", args: ["ttl"] },
       now: () => now,
     })
     // Same cached resolution.
@@ -387,7 +405,7 @@ describe("autolink previews — shell kind", () => {
       preview: "shell",
       resolvesTo: "x",
       cacheKey: "shell-ttl",
-      command: "echo ttl",
+      command: { exec: "echo", args: ["ttl"] },
       now: () => now,
     })
     expect(r3.resolvedAt).toBe(now)
@@ -409,5 +427,63 @@ describe("autolink previews — mcp kind (stub)", () => {
     if (result.kind !== "error") return
     expect(result.message).toMatch(/not yet implemented/i)
     expect(result.message).toMatch(/km-silvercode\.autolinks-mcp-resolver/)
+  })
+})
+
+describe("sanitizeShellOutput — ANSI / control-sequence stripping", () => {
+  test("plain text passes through unchanged", () => {
+    expect(sanitizeShellOutput("hello world")).toBe("hello world")
+  })
+
+  test("preserves TAB / LF / CR but strips other C0 controls", () => {
+    expect(sanitizeShellOutput("a\tb\nc\rd\x00e\x01f\x07g\x08h")).toBe("a\tb\nc\rdefgh")
+  })
+
+  test("strips DEL (0x7F)", () => {
+    expect(sanitizeShellOutput("ab\x7Fcd")).toBe("abcd")
+  })
+
+  test("strips CSI sequences (color, cursor moves)", () => {
+    expect(sanitizeShellOutput("\x1b[31mred\x1b[0m text")).toBe("red text")
+    expect(sanitizeShellOutput("a\x1b[2J\x1b[Hb")).toBe("ab")
+    // 256-color sequence
+    expect(sanitizeShellOutput("\x1b[38;5;202mfoo\x1b[0m")).toBe("foo")
+  })
+
+  test("strips OSC sequences (window-title set, OSC 52 paste, etc.)", () => {
+    // OSC 0 ; new title BEL — terminal injection (sets window title)
+    expect(sanitizeShellOutput("safe\x1b]0;EVIL TITLE\x07rest")).toBe("saferest")
+    // OSC 52 ; clipboard write — termianted by ESC \
+    expect(sanitizeShellOutput("a\x1b]52;c;ZGFuZ2Vy\x1b\\b")).toBe("ab")
+  })
+
+  test("strips DCS sequences", () => {
+    expect(sanitizeShellOutput("a\x1bPdata\x1b\\b")).toBe("ab")
+  })
+
+  test("strips PM / APC / SOS sequences", () => {
+    expect(sanitizeShellOutput("a\x1b^msg\x1b\\b")).toBe("ab")
+    expect(sanitizeShellOutput("a\x1b_apc\x1b\\b")).toBe("ab")
+    expect(sanitizeShellOutput("a\x1bXsos\x1b\\b")).toBe("ab")
+  })
+
+  test("strips short two-byte escapes", () => {
+    expect(sanitizeShellOutput("a\x1b7b\x1b8c")).toBe("abc")
+  })
+
+  test("strips lone trailing ESC", () => {
+    expect(sanitizeShellOutput("hello\x1b")).toBe("hello")
+  })
+
+  test("preserves UTF-8 multi-byte characters", () => {
+    expect(sanitizeShellOutput("héllo 🌍 \x1b[31mwörld\x1b[0m")).toBe("héllo 🌍 wörld")
+  })
+
+  test("composite — color + clipboard write + control char in same buffer", () => {
+    // ESC followed by any single byte is stripped as a 2-byte escape (so
+    // ESC+n eats the 'n'). That's intentionally aggressive — the sanitizer
+    // doesn't know which two-byte ESCs are dangerous, so it strips them all.
+    const input = "\x1b[1;31mhead\x1b[0m\n\x1b]52;c;ZGFuZ2Vy\x07body\x00with end"
+    expect(sanitizeShellOutput(input)).toBe("head\nbodywith end")
   })
 })

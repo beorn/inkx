@@ -152,88 +152,126 @@ syntaxlinks:
   })
 })
 
-describe("syntaxlinks config — shell preview kind", () => {
-  test("accepts a valid shell rule with command", () => {
+describe("syntaxlinks config — shell preview kind (argv form)", () => {
+  test("accepts a valid shell rule with structured command", () => {
     const yaml = `
 syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/path/to/repo"
     preview: shell
-    command: "git -C \${resolves_to} log -5 --oneline"
+    command:
+      exec: git
+      args: ["-C", "\${resolves_to}", "log", "-5", "--oneline"]
 `
     const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     const rule = rules[0]!
     expect(rule.preview).toBe("shell")
-    expect(rule.command).toBe("git -C ${resolves_to} log -5 --oneline")
+    expect(rule.command?.exec).toBe("git")
+    expect(rule.command?.args).toEqual(["-C", "${resolves_to}", "log", "-5", "--oneline"])
   })
 
-  test("drops shell rule with no command field", () => {
+  test("accepts shell rule with empty args", () => {
     const yaml = `
 syntaxlinks:
-  - pattern: "~bad"
+  - pattern: "~uname"
     resolves_to: "/path"
     preview: shell
+    command:
+      exec: uname
 `
-    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+    const rules = parseSyntaxlinksYaml(yaml)
+    expect(rules).toHaveLength(1)
+    expect(rules[0]!.command?.args).toEqual([])
   })
 
-  test("drops shell rule with empty command", () => {
+  test("accepts absolute exec path", () => {
     const yaml = `
 syntaxlinks:
-  - pattern: "~bad"
+  - pattern: "~abs"
     resolves_to: "/path"
     preview: shell
-    command: ""
-`
-    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
-  })
-
-  test("drops shell rule whose command starts with shell metacharacter (|)", () => {
-    const yaml = `
-syntaxlinks:
-  - pattern: "~pipe"
-    resolves_to: "/path"
-    preview: shell
-    command: "| cat"
-`
-    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
-  })
-
-  test("drops shell rule whose command starts with redirect (>)", () => {
-    const yaml = `
-syntaxlinks:
-  - pattern: "~redir"
-    resolves_to: "/path"
-    preview: shell
-    command: "> /tmp/x"
-`
-    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
-  })
-
-  test("drops shell rule whose command starts with backtick", () => {
-    const yaml = `
-syntaxlinks:
-  - pattern: "~tick"
-    resolves_to: "/path"
-    preview: shell
-    command: "\`echo hi\`"
-`
-    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
-  })
-
-  test("accepts shell command containing metachars later in the string", () => {
-    // Only the leading character is a footgun (paste error); a metachar
-    // anywhere else is a legitimate command (e.g. `echo a && echo b` —
-    // weird, but the user wrote it).
-    const yaml = `
-syntaxlinks:
-  - pattern: "~ok"
-    resolves_to: "/path"
-    preview: shell
-    command: "echo hello"
+    command:
+      exec: /usr/bin/uname
+      args: ["-a"]
 `
     expect(parseSyntaxlinksYaml(yaml)).toHaveLength(1)
+  })
+
+  test("drops shell rule missing command", () => {
+    const yaml = `
+syntaxlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+  })
+
+  test("drops shell rule where command is a string (legacy schema)", () => {
+    // Old TOML schema used `command: "git ..."` — the new schema requires
+    // a structured object. Reject string form so users who paste old
+    // configs see a drop, not a misinterpreted string.
+    const yaml = `
+syntaxlinks:
+  - pattern: "~legacy"
+    resolves_to: "/path"
+    preview: shell
+    command: "git status"
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+  })
+
+  test("drops shell rule with empty exec", () => {
+    const yaml = `
+syntaxlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+    command:
+      exec: ""
+      args: []
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+  })
+
+  test("drops shell rule with relative path-with-separator exec (footgun guard)", () => {
+    const yaml = `
+syntaxlinks:
+  - pattern: "~relpath"
+    resolves_to: "/path"
+    preview: shell
+    command:
+      exec: "./bin/danger"
+      args: []
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+  })
+
+  test("drops shell rule with non-array args", () => {
+    const yaml = `
+syntaxlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+    command:
+      exec: ls
+      args: "should be a list"
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
+  })
+
+  test("drops shell rule with non-string arg in args", () => {
+    const yaml = `
+syntaxlinks:
+  - pattern: "~bad"
+    resolves_to: "/path"
+    preview: shell
+    command:
+      exec: ls
+      args: ["-l", 42]
+`
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 })
 

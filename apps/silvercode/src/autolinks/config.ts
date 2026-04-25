@@ -42,21 +42,35 @@
  *                         body is rendered through MarkdownView (rich)
  *   - "first-paragraph" → fetch resolves_to, show the first non-blank paragraph;
  *                         body is rendered through MarkdownView (rich)
- *   - "bd-active"       → shell out to `bd list --parent <resolves_to>
+ *   - "bd-active"       → spawn `bd list --parent <resolves_to>
  *                         --status open --limit 5`; rendered as plain text
- *   - "shell"           → run user-defined `command` (with ${resolves_to}
- *                         substitution), capture stdout. 5s timeout, 4KB cap.
- *                         Rendered as plain text.
+ *   - "shell"           → spawn user-defined `command` (structured argv form,
+ *                         see below). 5s timeout, 4KB cap. Output sanitized
+ *                         (ANSI / control sequences stripped) before render.
  *   - "mcp"             → STUB. Rules are dropped at config-load time with a
  *                         "not yet implemented" warning. Full impl tracked at
  *                         bead `km-silvercode.autolinks-mcp-resolver` (will be
  *                         superseded by `km-silvercode.autolinks-uri-pivot`).
  *
- * Shell-kind safety:
- *   - The `command` string MUST NOT start with a shell metacharacter
- *     (`|`, `&`, `;`, `>`, `<`, `` ` ``). Such rules are dropped with a
- *     warning. Substitution is limited to literal `${resolves_to}` — no
- *     other env-var expansion, no nested templating.
+ * Shell-kind security model:
+ *   - `command` is an OBJECT with `exec` and `args`, never a shell string:
+ *
+ *     ```yaml
+ *     - pattern: "~repo"
+ *       preview: shell
+ *       command:
+ *         exec: git
+ *         args: ["-C", "${resolves_to}", "log", "-5", "--oneline"]
+ *     ```
+ *
+ *   - `exec` is a bare program name (resolved via PATH) or an absolute path.
+ *     Relative paths with separators are rejected.
+ *   - Each `arg` has `${resolves_to}` substituted at TOKEN LEVEL — never
+ *     concatenated into a shell string. No injection surface.
+ *   - We spawn via Bun.spawnSync with the argv array directly — no `sh -c`.
+ *   - TERM=dumb is forced in the child env so commands don't emit ANSI by
+ *     default; output is also passed through a sanitizer that strips ANSI /
+ *     C0 control sequences / OSC sequences before render.
  *
  * Malformed rules are dropped with a warning emitted via the silvercode
  * debug log (never throw — startup must not be blocked by user-config typos).
@@ -81,11 +95,25 @@ export type AutolinkRule = {
   /** Preview kind to render on hover. */
   readonly preview: AutolinkPreviewKind
   /**
-   * Shell command template — required when `preview === "shell"`.
-   * Supports a single literal substitution: `${resolves_to}` → `resolvesTo`.
-   * No other env-var expansion. Stored verbatim from YAML.
+   * Shell command spec — required when `preview === "shell"`. Structured
+   * (NOT a string) to remove all shell-injection surface:
+   *
+   *   - `exec` is the bare program name (resolved via PATH) or absolute
+   *     path. No path separators in user-authored exec without prior
+   *     allow-list (deferred). No `sh -c`.
+   *   - `args` is a list of argument tokens. Each token has the literal
+   *     substring `${resolves_to}` replaced with `resolvesTo` AT TOKEN
+   *     LEVEL — never concatenated into a shell string.
+   *
+   * Example YAML:
+   *
+   * ```yaml
+   * command:
+   *   exec: git
+   *   args: ["-C", "${resolves_to}", "log", "-5", "--oneline"]
+   * ```
    */
-  readonly command?: string
+  readonly command?: { readonly exec: string; readonly args: readonly string[] }
   /**
    * MCP tool name — required when `preview === "mcp"` (currently unused;
    * mcp rules are dropped at config-load time pending implementation).
@@ -213,16 +241,14 @@ const VALID_PREVIEWS: ReadonlySet<AutolinkPreviewKind> = new Set<AutolinkPreview
 ])
 
 /**
- * Disallow obvious shell-injection prefixes for `shell` rules.
- *
- * The user trusts their own `config.yaml`, but a leading metacharacter is
- * almost always a paste error rather than intent — there's no useful program
- * whose first token starts with `|`, `&`, `;`, `>`, `<`, or `` ` ``. Drop
- * rather than execute. Note this is a SAFETY-NET (we run via spawnSync with
- * an explicit argv, not via `sh -c`), but matching shell-style commands
- * elsewhere in the toolchain leaks if a user copy-pastes a piped command.
+ * Restrict the `exec` field of `shell` rules. We accept either a bare
+ * program name (resolved via PATH) or an absolute path. Path separators in
+ * a relative `exec` are blocked because they're almost always a mistake (or
+ * an attempt to load something off-disk via "../...") and the user can use
+ * the absolute form if they want a specific binary. Future enhancement:
+ * allow-list of trusted absolute paths from a separate config section.
  */
-const SHELL_METACHAR_PREFIX = /^[|&;><`]/
+const EXEC_BAD_RELATIVE_PATH = /[/\\]/
 
 function validateRule(entry: unknown, where: string): AutolinkRule | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -262,20 +288,44 @@ function validateRule(entry: unknown, where: string): AutolinkRule | null {
   // km-silvercode.autolinks-mcp-resolver (will be superseded by URI pivot).
   if (kind === "shell") {
     const command = obj["command"]
-    if (typeof command !== "string" || command.length === 0) {
-      log(`%s: \`shell\` rule missing/invalid \`command\` field`, where)
+    if (!command || typeof command !== "object" || Array.isArray(command)) {
+      log(`%s: \`shell\` rule missing/invalid \`command\` (must be an object with \`exec\` and \`args\`)`, where)
       return null
     }
-    if (SHELL_METACHAR_PREFIX.test(command.trimStart())) {
-      log(`%s: \`shell\` rule rejected — command starts with shell metacharacter (\`%s\`)`, where, command)
+    const cmdObj = command as Record<string, unknown>
+    const exec = cmdObj["exec"]
+    if (typeof exec !== "string" || exec.length === 0) {
+      log(`%s: \`shell\` rule missing/invalid \`command.exec\` (must be a non-empty string)`, where)
       return null
+    }
+    // Reject relative paths (program-name-with-slash). Bare names resolve
+    // via PATH; absolute paths are allowed. Anything in between is rejected.
+    if (!exec.startsWith("/") && EXEC_BAD_RELATIVE_PATH.test(exec)) {
+      log(`%s: \`shell\` rule rejected — \`exec\` contains path separators but is not absolute (got %s)`, where, exec)
+      return null
+    }
+    const argsRaw = cmdObj["args"]
+    if (argsRaw !== undefined && !Array.isArray(argsRaw)) {
+      log(`%s: \`shell\` rule \`command.args\` must be a list (got %s)`, where, typeof argsRaw)
+      return null
+    }
+    const args: string[] = []
+    if (Array.isArray(argsRaw)) {
+      for (let i = 0; i < argsRaw.length; i++) {
+        const a = argsRaw[i]
+        if (typeof a !== "string") {
+          log(`%s: \`shell\` rule \`command.args[${i}]\` must be a string (got %s)`, where, typeof a)
+          return null
+        }
+        args.push(a)
+      }
     }
     return {
       source: pattern,
       regex,
       resolvesTo,
       preview: kind,
-      command,
+      command: { exec, args },
     }
   }
 

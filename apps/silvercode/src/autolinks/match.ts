@@ -48,10 +48,11 @@ export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): D
         cache_key: `${rule.source}::${matchText}`,
         rule_idx: String(ruleIdx),
       }
-      // shell rules carry their `command` through to the popover layer so
-      // the resolver can spawn it without re-walking the rule list.
-      if (rule.preview === "shell" && typeof rule.command === "string") {
-        payload["command"] = rule.command
+      // shell rules carry their structured `command` through to the popover
+      // layer (JSON-encoded; `payload` is `Record<string, string>` for cache
+      // simplicity). The resolver decodes back into `{exec, args}`.
+      if (rule.preview === "shell" && rule.command !== undefined) {
+        payload["command"] = JSON.stringify(rule.command)
       }
       candidates.push({
         kind: "autolink",

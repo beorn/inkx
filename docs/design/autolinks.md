@@ -1,6 +1,6 @@
 # Autolinks
 
-**Autolinks** (a.k.a. **smartlinks**) is the umbrella term for systems in the km ecosystem that automatically turn matched text into navigable links. The pattern is widespread but the km ecosystem has two distinct kinds:
+**Autolinks** is the umbrella term for systems in the km ecosystem that automatically turn matched text into navigable links. The pattern is widespread but the km ecosystem has two distinct kinds:
 
 | Kind | What it matches | When | Where it lives | Output |
 |---|---|---|---|---|
@@ -94,7 +94,7 @@ Two forms:
 | `readme` | reads `resolves_to` (or its `README.md` if a directory); rendered via MarkdownView (rich) | `fs.watch` |
 | `first-paragraph` | reads `resolves_to`, shows the first non-blank paragraph; rendered via MarkdownView | `fs.watch` |
 | `bd-active` | runs `bd list --parent <resolves_to> --status open --limit 5` | 30s TTL |
-| `shell` | runs `command` field with `${resolves_to}` substitution; 5s timeout, 4KB cap; rendered as plain text | 30s TTL |
+| `shell` | spawns `command.exec` with `command.args` (per-arg `${resolves_to}` substitution); 5s timeout, 4KB cap; output sanitized of ANSI/control sequences before render | 30s TTL |
 | `mcp` | calls an MCP tool with `args`; **stub** — rules dropped at config load until `km-silvercode.autolinks-mcp-resolver` lands (will be superseded by URI pivot) | n/a |
 
 ### Validation
@@ -104,9 +104,32 @@ Malformed rules are dropped silently (with a debug-log warning) — startup neve
 - Missing `pattern` / `resolves_to` / `preview`
 - Invalid regex (e.g. `"/[unclosed/"`)
 - Unknown preview kind
-- `shell` rules without a `command` field
-- `shell` rules whose command starts with a shell metacharacter (`|`, `&`, `;`, `>`, `<`, `` ` ``) — paste-error guard
+- `shell` rules without a `command` object (must be `{exec, args}`, not a string)
+- `shell` rules whose `exec` is a relative path with separators (e.g. `"./bin/x"` is rejected; bare names resolve via PATH, absolute paths are allowed)
+- `shell` rules whose `command.args` isn't a list of strings
 - `mcp` rules — always dropped (stub)
+
+### Shell preview security model
+
+The `shell` preview kind uses a **structured argv form**, not a shell command string, to remove all shell-injection surface:
+
+```yaml
+syntaxlinks:
+  - pattern: "~repo"
+    preview: shell
+    command:
+      exec: git
+      args: ["-C", "${resolves_to}", "log", "-5", "--oneline"]
+```
+
+Properties:
+
+- `command.exec` is the program — bare name resolved via `PATH`, or an absolute path. Relative paths with separators are rejected (paste-error guard).
+- Each `command.args[i]` has the literal substring `${resolves_to}` replaced with the rule's resolved value AT TOKEN LEVEL. The arg stays a single argv token. A `resolves_to` of `"; rm -rf /"` becomes a single argument value, never a new shell command.
+- We spawn directly via `Bun.spawn` with the argv array — no `sh -c`.
+- Env is minimized: only `PATH`, `HOME`, `LANG` are inherited; `TERM` is forced to `dumb` so commands don't emit ANSI by default.
+- 5-second wall-clock timeout with `SIGKILL` on overrun.
+- Output passes through a sanitizer (`sanitizeShellOutput`) that strips ANSI escape sequences (CSI, OSC, DCS, PM, APC, SOS), C0 control characters, and DEL — defending against terminal-injection in popover render even from tools that ignore `TERM=dumb`.
 
 ### Cache invalidation
 
@@ -156,7 +179,7 @@ A pattern can graduate from syntax-linker to canonical link: if a user keeps typ
 
 ## Future sharing
 
-Today the syntax linker lives in `apps/silvercode/`. As the system matures it will likely extract to a shared package consumed by silvercode + km-tui (knode body view) + future km surfaces. The term linker is owned by the website build pipeline. Tracking: `km-all.smartlinks-extraction`.
+Today the syntax linker lives in `apps/silvercode/`. As the system matures it will likely extract to a shared package consumed by silvercode + km-tui (knode body view) + future km surfaces. The term linker is owned by the website build pipeline. Tracking: `km-all.autolinks-extraction`.
 
 ## References
 
@@ -166,4 +189,4 @@ Today the syntax linker lives in `apps/silvercode/`. As the system matures it wi
   - `km-silvercode.autolinks-config` (parent — v1 ships)
   - `km-silvercode.autolinks-uri-pivot` (URI dispatch refactor)
   - `km-silvercode.autolinks-mcp-resolver` (mcp scheme — superseded by URI pivot)
-  - `km-all.smartlinks-extraction` (cross-app sharing)
+  - `km-all.autolinks-extraction` (cross-app sharing)

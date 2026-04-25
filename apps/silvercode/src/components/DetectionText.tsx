@@ -12,11 +12,34 @@ function isMarkdownKind(kind: AutolinkPreviewKind): boolean {
   return kind === "readme" || kind === "first-paragraph"
 }
 
+/**
+ * Decode the JSON-encoded `command` carried in the detection payload (per
+ * `match.ts`). Returns `undefined` on any shape mismatch so a corrupt payload
+ * doesn't crash the popover; the shell resolver will surface a clearer error.
+ */
+function safeParseCommand(s: string): { exec: string; args: string[] } | undefined {
+  try {
+    const parsed = JSON.parse(s) as unknown
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed) &&
+      typeof (parsed as { exec?: unknown }).exec === "string" &&
+      Array.isArray((parsed as { args?: unknown }).args) &&
+      (parsed as { args: unknown[] }).args.every((a) => typeof a === "string")
+    ) {
+      return parsed as { exec: string; args: string[] }
+    }
+  } catch {}
+  return undefined
+}
+
 function renderAutolinkPopover(d: Detection): React.ReactNode {
   const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind
   const resolvesTo = d.payload.resolves_to ?? ""
   const cacheKey = d.payload.cache_key ?? d.match
-  const command = d.payload.command
+  const commandJson = d.payload.command
+  const command = commandJson ? safeParseCommand(commandJson) : undefined
   const result = resolvePreview({ preview, resolvesTo, cacheKey, command })
   if (result.kind === "error") {
     return (
