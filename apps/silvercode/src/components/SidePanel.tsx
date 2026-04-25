@@ -263,17 +263,25 @@ function SessionRow({
   onClick: () => void
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+  const sid = handle.session.sessionId
+  const sidLabel = typeof sid === "string" && sid !== "pending" ? sid : null
   return (
     <Box
-      flexDirection="row"
-      gap={1}
+      flexDirection="column"
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
     >
-      <Text color={isFocused ? "$accent" : "$muted"}>{isFocused ? "▸" : " "}</Text>
-      <Text color={isFocused ? undefined : "$muted"}>{handle.name}</Text>
+      <Box flexDirection="row" gap={1}>
+        <Text color={isFocused ? "$accent" : "$muted"}>{isFocused ? "▸" : " "}</Text>
+        <Text color={isFocused ? undefined : "$muted"}>{handle.name}</Text>
+      </Box>
+      {sidLabel ? (
+        <Box paddingLeft={2}>
+          <Text color="$muted">session: {sidLabel}</Text>
+        </Box>
+      ) : null}
     </Box>
   )
 }
