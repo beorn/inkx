@@ -1,51 +1,63 @@
 import React, { useMemo } from "react"
 import { Box, Blockquote, Divider, H1, H2, H3, H4, Prose, Text } from "silvery"
-import { parseBlocks, parseInline, type MdBlock, type MdInline } from "../markdown.ts"
+import { parseBlocks, type MdBlock, type MdInline } from "../markdown.ts"
 import { DetectionText } from "./DetectionText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 
 function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
-  // flexWrap="wrap" + per-Text wrap="wrap" so inline runs reflow nicely
-  // over multiple visual lines. Card-level overflow=hidden at SessionCard
-  // prevents truly unwrappable tokens from expanding the card; this wrap
-  // is purely for readability of paragraph-shaped text.
+  // Render as a SINGLE outer Text containing nested Text spans for
+  // bold/italic/code/link. This is the only shape that gives correct
+  // word-wrap, contiguous text flow across styles, and bold/italic
+  // attributes on cells:
+  //
+  // - Word-wrap operates over the unified text content, so words flow
+  //   naturally across spans (e.g. "github.com/beorn/bearly:" stays
+  //   together — the colon doesn't get pushed to a new line).
+  // - Whitespace between adjacent spans is preserved verbatim (no flex
+  //   gutter eats trailing/leading spaces) — this fixes the "•Content"
+  //   bug where the bullet glyph's trailing space disappeared at a flex
+  //   item boundary.
+  // - Nested <Text bold> / <Text italic> propagate their style to the
+  //   merged StyleContext for those characters, so cells carry the bold
+  //   / italic attribute (silvery: collectTextWithBg + mergeStyleContext
+  //   in render-text.ts).
+  //
+  // The previous flexWrap="wrap" container with per-token <Text wrap="wrap">
+  // children had each token as a separate flex item; flex line wrapping
+  // dropped boundary whitespace and broke words across spans.
   return (
-    <Box flexDirection="row" flexWrap="wrap" minWidth={0}>
+    <Text wrap="wrap">
       {tokens.map((t, i) => {
         switch (t.kind) {
           case "bold":
             return (
-              <Text key={i} bold wrap="wrap">
+              <Text key={i} bold>
                 {t.text}
               </Text>
             )
           case "italic":
             return (
-              <Text key={i} italic wrap="wrap">
+              <Text key={i} italic>
                 {t.text}
               </Text>
             )
           case "code":
             return (
-              <Text key={i} color="$accent" wrap="wrap">
+              <Text key={i} color="$accent">
                 {t.text}
               </Text>
             )
           case "link":
             return (
-              <Text key={i} color="$info" underline wrap="wrap">
+              <Text key={i} color="$info" underline>
                 {t.text}
               </Text>
             )
           default:
-            return (
-              <Text key={i} wrap="wrap">
-                {t.text}
-              </Text>
-            )
+            return <React.Fragment key={i}>{t.text}</React.Fragment>
         }
       })}
-    </Box>
+    </Text>
   )
 }
 
@@ -72,19 +84,23 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
       return <Heading key={i}>{b.text}</Heading>
     }
     case "paragraph": {
-      const inline = parseInline(b.text)
-      // If paragraph has nothing inline-formatted, keep detection highlighting.
-      if (inline.length === 1 && inline[0]!.kind === "text") {
+      // Use the projected inline tokens from parseBlocks — they preserve
+      // bold/italic/code/link spans from the original mdast. Falling back
+      // to `parseInline(b.text)` would re-parse the FLATTENED text where
+      // `**`/`*` markers have already been stripped by phrasingToString,
+      // losing all emphasis. If there's nothing inline-formatted, defer
+      // to DetectionText for autodetection (URLs, file paths, beads).
+      if (b.inlines.length === 1 && b.inlines[0]?.kind === "text") {
         return <DetectionText key={i} text={b.text} />
       }
-      return <InlineRun key={i} tokens={inline} />
+      return <InlineRun key={i} tokens={b.inlines} />
     }
     case "bullet":
       return (
         <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
           <Text color="$muted">• </Text>
           <Prose flexGrow={1}>
-            <InlineRun tokens={parseInline(b.text)} />
+            <InlineRun tokens={b.inlines} />
           </Prose>
         </Box>
       )
@@ -93,7 +109,7 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
         <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
           <Text color="$muted">{b.number}. </Text>
           <Prose flexGrow={1}>
-            <InlineRun tokens={parseInline(b.text)} />
+            <InlineRun tokens={b.inlines} />
           </Prose>
         </Box>
       )

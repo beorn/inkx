@@ -62,13 +62,21 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
   const popover = usePopover()
   const detections = detectReferences(text)
 
-  // Split by line first so layout stays inline per-line; inside each line
-  // split by detection spans.
+  // Each markdown line renders as a SINGLE outer <Text wrap="wrap"> with
+  // nested styled Text spans for detected references. This is the only
+  // shape that gives correct word-wrap across detection boundaries — the
+  // earlier `<Box flexDirection="row" flexWrap="wrap">` over per-piece
+  // flex children dropped boundary whitespace and shoved punctuation
+  // (e.g. ":" after a URL) onto its own visual line because each piece
+  // was an atomic flex item.
   //
-  // <Prose> wraps the line stack so flexily measures every wrappable Text
-  // against the parent's available width. The inner `flexDirection="row"
-  // flexWrap="wrap" flexShrink={1} minWidth={0}` row is still hand-rolled
-  // because Prose defaults to column — see Prose's JSDoc for the why.
+  // With nested Text, silvery's text pipeline (collectTextWithBg +
+  // mergeStyleContext in vendor/silvery render-text.ts) treats the
+  // children as virtual text nodes — they contribute to one unified
+  // text run for word-wrap, and their styles project onto the cells.
+  //
+  // <Prose> still wraps the line stack so flexily measures every Text
+  // against the parent's available width.
   const lines = text.split("\n")
   let offset = 0
   return (
@@ -90,9 +98,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
         for (const d of lineDetections) {
           if (d.start > cursor) {
             pieces.push(
-              <Text key={`t${cursor}`} wrap="wrap">
-                {line.slice(cursor - lineStart, d.start - lineStart)}
-              </Text>,
+              <React.Fragment key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</React.Fragment>,
             )
           }
           pieces.push(
@@ -100,7 +106,6 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
               key={`d${d.start}`}
               color={colorFor(d.kind)}
               underline
-              wrap="wrap"
               onClick={() => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })}
             >
               {d.match}
@@ -109,22 +114,12 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
           cursor = d.end
         }
         if (cursor < lineEnd) {
-          pieces.push(
-            <Text key={`tail${cursor}`} wrap="wrap">
-              {line.slice(cursor - lineStart)}
-            </Text>,
-          )
+          pieces.push(<React.Fragment key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</React.Fragment>)
         }
-        // flexWrap="wrap" — lets mixed-token inline runs reflow onto
-        // multiple visual lines when the row exceeds the card width.
-        // flexShrink+minWidth forces flexily to measure this row's width
-        // against the PARENT's available width, not the sum of its
-        // children's intrinsic widths — otherwise per-Text `wrap="wrap"`
-        // is passed the max-content width and never wraps.
         return (
-          <Box key={lineIdx} flexDirection="row" flexWrap="wrap" flexShrink={1} minWidth={0}>
+          <Text key={lineIdx} color={tone === "user" ? "$fg" : undefined} wrap="wrap">
             {pieces}
-          </Box>
+          </Text>
         )
       })}
     </Prose>

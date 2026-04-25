@@ -26,14 +26,25 @@ import type {
 } from "mdast"
 import { parseMarkdown } from "@km/markdown"
 
+/**
+ * `inlines` carries the original mdast emphasis/code/link tokens through
+ * to the renderer. Without it, block projection flattens phrasing content
+ * to a plain string via `phrasingToString` — and once the markdown
+ * markers are gone, calling `parseInline(block.text)` later cannot recover
+ * the bold/italic/code/link spans. Storing the projected MdInline[]
+ * alongside `text` lets the renderer apply styling without a re-parse.
+ *
+ * `text` is preserved for callers (DetectionText, Blockquote, etc.) that
+ * need the flattened string.
+ */
 export type MdBlock =
-  | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; text: string }
-  | { kind: "bullet"; depth: number; text: string }
-  | { kind: "ordered"; depth: number; number: number; text: string }
+  | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; inlines: MdInline[] }
+  | { kind: "bullet"; depth: number; text: string; inlines: MdInline[] }
+  | { kind: "ordered"; depth: number; number: number; text: string; inlines: MdInline[] }
   | { kind: "quote"; text: string }
   | { kind: "code"; language: string; code: string }
   | { kind: "rule" }
-  | { kind: "paragraph"; text: string }
+  | { kind: "paragraph"; text: string; inlines: MdInline[] }
   | { kind: "blank" }
   | {
       kind: "table"
@@ -159,7 +170,7 @@ function mergeAdjacentText(tokens: MdInline[]): MdInline[] {
   const out: MdInline[] = []
   for (const t of tokens) {
     const prev = out[out.length - 1]
-    if (t.kind === "text" && prev && prev.kind === "text") {
+    if (t.kind === "text" && prev?.kind === "text") {
       prev.text += t.text
     } else {
       out.push(t)
@@ -179,7 +190,7 @@ export function parseInline(text: string): MdInline[] {
   const root = safeParse(text)
   // Pull the first paragraph's children (the common case for inline-only input).
   const first = root.children[0]
-  if (first && first.type === "paragraph") {
+  if (first?.type === "paragraph") {
     return phrasingToInline(first.children)
   }
   // Fallback: treat everything as raw text.
@@ -223,11 +234,20 @@ function projectNode(node: TopLevelContent, out: MdBlock[], listDepth: number): 
   switch (node.type) {
     case "heading": {
       const level = Math.min(6, Math.max(1, node.depth)) as 1 | 2 | 3 | 4 | 5 | 6
-      out.push({ kind: "heading", level, text: phrasingToString(node.children) })
+      out.push({
+        kind: "heading",
+        level,
+        text: phrasingToString(node.children),
+        inlines: phrasingToInline(node.children),
+      })
       return
     }
     case "paragraph": {
-      out.push({ kind: "paragraph", text: phrasingToString(node.children) })
+      out.push({
+        kind: "paragraph",
+        text: phrasingToString(node.children),
+        inlines: phrasingToInline(node.children),
+      })
       return
     }
     case "code": {
@@ -253,7 +273,7 @@ function projectNode(node: TopLevelContent, out: MdBlock[], listDepth: number): 
     }
     case "html": {
       // Raw HTML: surface the literal so nothing disappears silently.
-      out.push({ kind: "paragraph", text: node.value })
+      out.push({ kind: "paragraph", text: node.value, inlines: [{ kind: "text", text: node.value }] })
       return
     }
     default: {
@@ -262,7 +282,7 @@ function projectNode(node: TopLevelContent, out: MdBlock[], listDepth: number): 
       // carry a `.value`.
       if ("value" in node && typeof (node as { value?: unknown }).value === "string") {
         const v = (node as { value: string }).value
-        if (v.length > 0) out.push({ kind: "paragraph", text: v })
+        if (v.length > 0) out.push({ kind: "paragraph", text: v, inlines: [{ kind: "text", text: v }] })
       }
     }
   }
@@ -297,13 +317,7 @@ function projectList(list: MdList, out: MdBlock[], listDepth: number): void {
   }
 }
 
-function projectListItem(
-  item: MdListItem,
-  out: MdBlock[],
-  listDepth: number,
-  ordered: boolean,
-  number: number,
-): void {
+function projectListItem(item: MdListItem, out: MdBlock[], listDepth: number, ordered: boolean, number: number): void {
   // First child is typically the item's text — project it as the list entry.
   // Subsequent children (nested list, code fence, paragraph continuation)
   // become their own blocks at the appropriate depth.
@@ -311,10 +325,11 @@ function projectListItem(
   for (const child of item.children) {
     if (first && child.type === "paragraph") {
       const text = phrasingToString(child.children)
+      const inlines = phrasingToInline(child.children)
       if (ordered) {
-        out.push({ kind: "ordered", depth: listDepth, number, text })
+        out.push({ kind: "ordered", depth: listDepth, number, text, inlines })
       } else {
-        out.push({ kind: "bullet", depth: listDepth, text })
+        out.push({ kind: "bullet", depth: listDepth, text, inlines })
       }
       first = false
       continue
@@ -322,10 +337,11 @@ function projectListItem(
     if (first) {
       // Non-paragraph first child (e.g. a nested list). Emit an empty marker
       // so the ordering/bullet is still visible.
+      const empty: MdInline[] = [{ kind: "text", text: "" }]
       if (ordered) {
-        out.push({ kind: "ordered", depth: listDepth, number, text: "" })
+        out.push({ kind: "ordered", depth: listDepth, number, text: "", inlines: empty })
       } else {
-        out.push({ kind: "bullet", depth: listDepth, text: "" })
+        out.push({ kind: "bullet", depth: listDepth, text: "", inlines: empty })
       }
       first = false
     }
@@ -337,10 +353,11 @@ function projectListItem(
   }
   if (first) {
     // Empty item — still surface the marker.
+    const empty: MdInline[] = [{ kind: "text", text: "" }]
     if (ordered) {
-      out.push({ kind: "ordered", depth: listDepth, number, text: "" })
+      out.push({ kind: "ordered", depth: listDepth, number, text: "", inlines: empty })
     } else {
-      out.push({ kind: "bullet", depth: listDepth, text: "" })
+      out.push({ kind: "bullet", depth: listDepth, text: "", inlines: empty })
     }
   }
 }
