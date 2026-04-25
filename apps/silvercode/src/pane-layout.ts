@@ -15,9 +15,9 @@
  *
  * v1 stored a flat `weights[]` array (1D row, left-to-right). On read,
  * a v1 file auto-upgrades to a single-row split tree so users with an
- * existing `.silvercode/panes.json` keep their layout.
+ * existing `.km/panes.json` keep their layout.
  *
- * Persistence: `<cwd>/.silvercode/panes.json`. Per-cwd because two
+ * Persistence: `<cwd>/.km/panes.json`. Per-cwd because two
  * different vaults shouldn't share grid state. Best-effort I/O — failure
  * to read or write logs to debug but never throws.
  */
@@ -78,9 +78,9 @@ export const DEFAULT_WEIGHT = 0.5
 /** Minimum weight — keeps a pane from disappearing on overshoot during drag. */
 export const MIN_WEIGHT = 0.05
 
-/** Resolve `<cwd>/.silvercode/panes.json` for layout persistence. */
+/** Resolve `<cwd>/.km/panes.json` for layout persistence. */
 export function panesFilePath(cwd: string): string {
-  return join(cwd, ".silvercode", "panes.json")
+  return join(cwd, ".km", "panes.json")
 }
 
 /** Build a single-leaf tree from one session id. */

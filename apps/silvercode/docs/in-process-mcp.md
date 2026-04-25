@@ -51,7 +51,7 @@ Claude is invoked with `--mcp-config <tempfile> --strict-mcp-config`, which tell
 **Server code:**
 
 - `apps/silvercode/packages/km-mcp-server/src/bin.ts` (80 lines) — opens `.km/state.db` read-only via `bun:sqlite`, wires `@km/storage`'s `search / getNode / getAllNodes` into a `KmContext`, and runs the JSON-RPC loop from `transport.ts`. Four read-only tools: `km_search`, `km_get_node`, `km_get_board`, `km_render_path`. Deps: `@km/core`, `@km/storage`, `bun:sqlite`.
-- `apps/silvercode/packages/tribe-mcp/src/bin.ts` (122 lines) — reads `TRIBE_SESSION_NAME` and a JSONL bus at `~/.silvercode/tribe-bus.jsonl`. Implements a file-backed `TribeBackend` (send / history / members) and pipes stdin → `server.handle` → stdout. Deps: `@km/agent-harness` (only for the `createTribeMcpServer` types + factory).
+- `apps/silvercode/packages/tribe-mcp/src/bin.ts` (122 lines) — reads `TRIBE_SESSION_NAME` and a JSONL bus at `~/.km/tribe-bus.jsonl`. Implements a file-backed `TribeBackend` (send / history / members) and pipes stdin → `server.handle` → stdout. Deps: `@km/agent-harness` (only for the `createTribeMcpServer` types + factory).
 
 Both bins are thin shells around re-usable factories (`createMcpServer(ctx)`, `createTribeMcpServer(backend, sessionName)`). The factories themselves have zero transport assumptions.
 
@@ -131,9 +131,10 @@ The MCP spec (modelcontextprotocol.io) itself defines stdio, SSE, and streamable
 **Evidence from the Claude CLI binary** — the SDK's config materializer (`Xv8` in agentSdk.ts):
 
 ```js
-if (e) for (let [pH, rH] of Object.entries(e))
-  if (rH.type === "sdk" && rH.instance) xH.set(pH, rH.instance);
-  else LH[pH] = rH;
+if (e)
+  for (let [pH, rH] of Object.entries(e))
+    if (rH.type === "sdk" && rH.instance) xH.set(pH, rH.instance)
+    else LH[pH] = rH
 ```
 
 SDK-type servers are held in a `Map` of live instances; stdio/sse/http configs are forwarded to the CLI subprocess. The SDK routes tool calls through the stream-json pipe to the CLI and dispatches them **back** to the in-process JS handler in the host. No grandchild subprocess per MCP server.
@@ -186,7 +187,7 @@ for await (const msg of query({
 **Cons:**
 
 - **Billing model switches from subscription (OAuth) to API key** on Track 2. The SDK's `options.apiKey` path is API-billing; `spawnClaude` (Track 1) is the subscription path. This is the one structural reason silvercode has two tracks. Moving MCP servers in-process for Track 1 would require Anthropic to add SDK-style in-process MCP to the bare CLI's `--mcp-config` schema — which returns us to option (a).
-- The SDK bundles the CLI binary; it still spawns a subprocess internally — but it's *one* subprocess instead of three, and the SDK owns its lifecycle so close-propagation is deterministic.
+- The SDK bundles the CLI binary; it still spawns a subprocess internally — but it's _one_ subprocess instead of three, and the SDK owns its lifecycle so close-propagation is deterministic.
 - `@anthropic-ai/claude-agent-sdk` is an optional peer dep (`sdk-adapter.ts:38`). Making it default means installing it for every user.
 - Doesn't solve the problem for Track 1 users (subscription billing), who remain stuck with 2 MCP grandchildren per session.
 
@@ -203,8 +204,8 @@ Concretely:
 2. **(f) Wire in-process MCP for Track 2 (SDK)** — 2-3 days. Eliminates the grandchild MCP subprocesses entirely for users on API-key billing. Leverages existing `sdk-adapter.ts`. Good showcase of the Agent SDK integration.
 
 3. **(a) File an Anthropic feature request** asking for one of:
-    - A `type: "sdk"` / in-process MCP path in the CLI's `--mcp-config` schema, parallel to what the Agent SDK already offers internally.
-    - Or, a UDS/fd transport added to the MCP spec.
+   - A `type: "sdk"` / in-process MCP path in the CLI's `--mcp-config` schema, parallel to what the Agent SDK already offers internally.
+   - Or, a UDS/fd transport added to the MCP spec.
 
    Without this, Track 1 (the subscription path most silvercode users are on) will always have MCP grandchildren and the shutdown drain they cause. Option (e) compresses the pain; only upstream support eliminates it.
 
@@ -225,7 +226,7 @@ The user's whole reason for preferring Track 1 is **subscription billing** (OAut
 1. **Is the subscription-vs-API-key cost tradeoff actually blocking Track 2 default?** If not, going Track 2 everywhere (+ in-process MCP) is the simpler fix. Needs an explicit "how much does the user care about API-key cost per session?" answer.
 2. **Does the Anthropic CLI have an undocumented SDK bridge that works with subscription OAuth?** The SDK's `pathToClaudeCodeExecutable` path suggests yes — the SDK bundles and spawns the same CLI binary, and the CLI binary accepts the same OAuth credentials from `CLAUDE_CONFIG_DIR/.credentials.json`. Need to verify: does `spawnSdk` with `CLAUDE_CONFIG_DIR=~/.claude` bill to the subscription, or does the SDK force API-key even when CLAUDE_CONFIG_DIR has OAuth creds? If the former, we might default-switch to Track 2.
 3. **Per-session `createSdkMcpServer` instances?** SDK docs show one server per query. With N concurrent silvercode sessions, do we instantiate N SDK servers (one per query), or can one server serve many queries? (Almost certainly the former; the server is cheap — zero subprocess overhead.)
-4. **Tribe semantics change.** Current `tribe-mcp` uses a file-backed bus (`~/.silvercode/tribe-bus.jsonl`) for cross-process messaging. In-process tribe (option f) would use silvercode's `createInMemoryTribe()` directly — same-process sessions only. Cross-silvercode-host tribe (if any) needs a separate mechanism. Confirm we only need in-process tribe for now.
+4. **Tribe semantics change.** Current `tribe-mcp` uses a file-backed bus (`~/.km/tribe-bus.jsonl`) for cross-process messaging. In-process tribe (option f) would use silvercode's `createInMemoryTribe()` directly — same-process sessions only. Cross-silvercode-host tribe (if any) needs a separate mechanism. Confirm we only need in-process tribe for now.
 
 ## References
 

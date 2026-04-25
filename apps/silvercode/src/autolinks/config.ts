@@ -1,20 +1,20 @@
 /**
  * Smart-links configuration loader.
  *
- * "Smart links" are silvercode's pattern-matched popover system: rules in
+ * Autolinks are silvercode's pattern-matched popover system: rules in
  * `<cwd>/.km/config.yaml` (per-vault) and `~/.km/config.yaml` (workspace)
  * scan displayed text for matches and render a hover popover. Per-vault
  * rules cascade onto workspace rules (vault wins on duplicate `pattern`).
  *
- * See `docs/design/smartlinks.md` for the terminology + design.
+ * See `docs/design/autolinks.md` for the terminology + design.
  *
  * ## Config file shape
  *
  * `.km/config.yaml` is a single per-cwd config file holding multiple
- * sections. Smart links live under the top-level `smartlinks:` key:
+ * sections. Autolink rules live under the top-level `syntaxlinks:` key:
  *
  * ```yaml
- * smartlinks:
+ * syntaxlinks:
  *   - pattern: "~repo"
  *     resolves_to: "/Users/beorn/Code/pim/km"
  *     preview: readme
@@ -67,7 +67,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import createDebug from "debug"
 
-const log = createDebug("silvercode:smartlinks:config")
+const log = createDebug("silvercode:autolinks:config")
 
 export type AutolinkPreviewKind = "readme" | "first-paragraph" | "bd-active" | "shell" | "mcp"
 
@@ -125,17 +125,17 @@ function loadAutolinksFile(path: string): AutolinkRule[] {
     return []
   }
 
-  return parseSmartlinksYaml(raw, path)
+  return parseSyntaxlinksYaml(raw, path)
 }
 
 /**
- * Cascade workspace + per-vault smart links. Per-vault rules win on duplicate
+ * Cascade workspace + per-vault autolink rules. Per-vault rules win on duplicate
  * `source` (verbatim pattern string). Workspace rules that aren't shadowed
  * appear FIRST in the returned list (lower priority — `mergeDetections`
  * scans rules in order and an earlier match wins on overlap, but a per-vault
  * override of the same source replaces the workspace entry in-place).
  *
- * Tests can drive `parseSmartlinksYaml` directly to bypass the filesystem;
+ * Tests can drive `parseSyntaxlinksYaml` directly to bypass the filesystem;
  * cascade behavior is unit-tested via `cascadeAutolinks` below.
  */
 export function loadAutolinksConfig(cwd: string): AutolinkRule[] {
@@ -170,11 +170,11 @@ export function cascadeAutolinks(workspace: readonly AutolinkRule[], vault: read
 
 /**
  * Parse a YAML string into an `AutolinkRule[]`. Looks for the top-level
- * `smartlinks:` key (the `.km/config.yaml` file holds multiple sections;
- * smart links is one of them). Exposed separately so tests can drive the
+ * `syntaxlinks:` key (the `.km/config.yaml` file holds multiple sections;
+ * syntax linker is one of them). Exposed separately so tests can drive the
  * parser without touching the filesystem.
  */
-export function parseSmartlinksYaml(raw: string, sourceLabel = "<inline>"): AutolinkRule[] {
+export function parseSyntaxlinksYaml(raw: string, sourceLabel = "<inline>"): AutolinkRule[] {
   let parsed: Record<string, unknown> | null
   try {
     parsed = Bun.YAML.parse(raw) as Record<string, unknown> | null
@@ -187,10 +187,10 @@ export function parseSmartlinksYaml(raw: string, sourceLabel = "<inline>"): Auto
     return []
   }
 
-  const entries = parsed["smartlinks"]
+  const entries = parsed["syntaxlinks"]
   if (!Array.isArray(entries)) {
     if (entries !== undefined) {
-      log(`%s: expected \`smartlinks:\` array, got %s`, sourceLabel, typeof entries)
+      log(`%s: expected \`syntaxlinks:\` array, got %s`, sourceLabel, typeof entries)
     }
     return []
   }

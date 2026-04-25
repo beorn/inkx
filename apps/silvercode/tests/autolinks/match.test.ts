@@ -1,22 +1,22 @@
 /**
- * Unit tests for smart-links pattern matcher.
+ * Unit tests for syntax-linker pattern matcher.
  *
  * Bead: km-silvercode.autolinks-config
  */
 
 import { describe, expect, test } from "vitest"
-import { parseSmartlinksYaml } from "../../src/autolinks/config.ts"
+import { parseSyntaxlinksYaml } from "../../src/autolinks/config.ts"
 import { detectAutolinks, mergeDetections } from "../../src/autolinks/match.ts"
 import { detectReferences } from "../../src/detection.ts"
 
 function rulesFromYaml(yaml: string) {
-  return parseSmartlinksYaml(yaml)
+  return parseSyntaxlinksYaml(yaml)
 }
 
 describe("detectAutolinks", () => {
   test("finds literal patterns and emits autolink detections", () => {
     const rules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/path/to/repo"
     preview: readme
@@ -34,7 +34,7 @@ smartlinks:
 
   test("regex pattern produces multiple matches", () => {
     const rules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "/\\\\+\\\\w+/"
     resolves_to: "/Users/beorn/Code"
     preview: bd-active
@@ -47,7 +47,7 @@ smartlinks:
 
   test("non-overlapping output: earlier rule wins", () => {
     const rules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "abc"
     resolves_to: "/a"
     preview: readme
@@ -69,7 +69,7 @@ smartlinks:
 
   test("empty input returns []", () => {
     const rules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/x"
     preview: readme
@@ -83,7 +83,7 @@ describe("mergeDetections", () => {
     const text = "see https://example.com/x for details"
     const builtins = detectReferences(text)
     const autolinkRules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "/example\\\\.com\\\\/x/"
     resolves_to: "/local/x"
     preview: readme
@@ -102,7 +102,7 @@ smartlinks:
     const text = "look at AGENTS and call km-thing later"
     const builtins = detectReferences(text).filter((d) => d.kind !== "bead")
     const autolinkRules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "AGENTS"
     resolves_to: "agents-target"
     preview: readme
@@ -118,13 +118,13 @@ smartlinks:
   })
 
   test("built-in file detection wins over an overlapping autolink (documents priority)", () => {
-    // Demonstrates that built-in detections shadow user smart-links when the
+    // Demonstrates that built-in detections shadow user autolinks when the
     // ranges overlap. Authors of `~repo`-style patterns will see this:
-    // the tilde-path is a built-in file detection, so the smart-link is dropped.
+    // the tilde-path is a built-in file detection, so the autolink is dropped.
     const text = "look at ~repo here"
     const builtins = detectReferences(text)
     const autolinkRules = rulesFromYaml(`
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/r"
     preview: readme

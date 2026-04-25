@@ -165,7 +165,7 @@ export type ControllerOptions = {
   initialSessions: number
   /**
    * Anthropic account name for per-session credential isolation (v1.1
-   * multi-account). Resolves to `~/.silvercode/accounts/<account>/` which the
+   * multi-account). Resolves to `~/.km/accounts/<account>/` which the
    * harness exposes via `CLAUDE_CONFIG_DIR`. Undefined → use the user's main
    * `~/.claude/` (current behavior, unchanged).
    */
@@ -584,7 +584,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return spawnSdk({ cwd: s.cwd, model: s.model, injectors })
     }
     // Multi-account: when an account is bound, the harness spawns claude
-    // with CLAUDE_CONFIG_DIR pointing at ~/.silvercode/accounts/<name>/.
+    // with CLAUDE_CONFIG_DIR pointing at ~/.km/accounts/<name>/.
     // Undefined account → claude uses the user's main ~/.claude/ (unchanged).
     const configDir = s.account ? resolveAccountDir(s.account) : undefined
     return spawnClaude({

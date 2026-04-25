@@ -392,12 +392,12 @@ Followups (new beads):
 
 Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
 
-| Boundary             | What's faked                                           | Override entry point                              |
-| -------------------- | ------------------------------------------------------ | ------------------------------------------------- |
-| Claude CLI version   | `spawnSync("claude", "--version")` at module load     | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
-| Git branch           | `.git/HEAD` walk in `gitBranchFor(cwd)`               | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var |
-| Account / quota      | accountly's `checkProfileQuota`, keychain reads, `~/.cache/silvercode/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })` |
-| Filesystem           | `~/.cache/silvercode/`, `~/.silvercode/` writes        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME` |
+| Boundary           | What's faked                                                                                   | Override entry point                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Claude CLI version | `spawnSync("claude", "--version")` at module load                                              | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
+| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                        | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                               |
+| Account / quota    | accountly's `checkProfileQuota`, keychain reads, `~/.cache/km/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })`                                                                      |
+| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                                  |
 
 ### How the wiring lands without touching components
 
@@ -410,16 +410,17 @@ The version probe is captured into a const at SidePanel module load (`const CLAU
 ```ts
 const s = await renderScenario({
   script: welcome,
-  cols: 120, rows: 30,
+  cols: 120,
+  rows: 30,
   account: { plan: "claude_max_20x", quotas: warningQuotas() }, // or null for live
-  version: "9.9.9-test",   // or null for real spawn
-  branch: "feat-x",         // or null for real .git walk
-  fsRoot: "/tmp/scratch",   // or null to leave HOME alone
+  version: "9.9.9-test", // or null for real spawn
+  branch: "feat-x", // or null for real .git walk
+  fsRoot: "/tmp/scratch", // or null to leave HOME alone
 })
 try {
   expect(s.text).toContain("87%")
 } finally {
-  s.dispose()  // restores overrides + removes tmp HOME if allocated
+  s.dispose() // restores overrides + removes tmp HOME if allocated
 }
 ```
 
@@ -427,7 +428,7 @@ try {
 
 ### Verification
 
-- **Determinism gate**: `HOME=/tmp/empty-dir bun vitest run apps/silvercode/tests/visual/` passes — proves no test reads the user's real `~/.cache/silvercode/` or shells out to `git`/`claude`.
+- **Determinism gate**: `HOME=/tmp/empty-dir bun vitest run apps/silvercode/tests/visual/` passes — proves no test reads the user's real `~/.cache/km/` or shells out to `git`/`claude`.
 - **Boundary contract gate**: `apps/silvercode/tests/visual/boundary-fakes.test.tsx` — five contract tests, one per faked boundary, prove the fake path actually surfaces in the rendered frame.
 
 ## Live-mode contract tests (SILVERCODE_REAL=1)
@@ -436,10 +437,10 @@ Bead `km-silvercode.test-live-mode` (closed 2026-04-24) introduces a parallel "r
 
 ### Invocation
 
-| Mode  | Command                                                              | What runs                                              |
-| ----- | -------------------------------------------------------------------- | ------------------------------------------------------ |
-| Fake  | `bun vitest run apps/silvercode/tests/`                              | Default — every visual scenario via fakes              |
-| Live  | `SILVERCODE_REAL=1 bun vitest run --project silvercode-live`         | `*.live.test.tsx` only — real Claude CLI + accountly + git |
+| Mode | Command                                                      | What runs                                                  |
+| ---- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| Fake | `bun vitest run apps/silvercode/tests/`                      | Default — every visual scenario via fakes                  |
+| Live | `SILVERCODE_REAL=1 bun vitest run --project silvercode-live` | `*.live.test.tsx` only — real Claude CLI + accountly + git |
 
 ### Pattern
 

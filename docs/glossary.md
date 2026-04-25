@@ -54,6 +54,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **anchor** — The node where a shift-select gesture began, stored as the last element of `Selection.nodes`. In text selection, the text point where a text range began. Contrast with *cursor*.
 
+**autolinks** (a.k.a. *smartlinks*) — Umbrella term for systems that automatically turn matched text into navigable links. Two kinds in km: *syntax linker* (display-layer pattern → popover, run-time, silvercode) and *term linker* (build-time glossary → anchor, website). Distinct from *links* (canonical persistent storage edges). See [docs/design/autolinks.md](design/autolinks.md).
+
 **apply** — The universal verb for state transitions in TEA machines. Every machine uses `.apply(state, op) -> [state, effects]` — pure function, two arguments, returns new state plus effects.
 
 **area-select** — A selection gesture where the user drags across empty space to select all nodes within a rectangular region. Produces a `node-area` or `node-area-toggle` selecting kind.
@@ -206,7 +208,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **gesture morphing** — During a drag, the selecting kind recomputes as the pointer moves. A `text-drag` crossing a node boundary becomes `node-area`; dragging back reverts.
 
-**glossary linker** — Build-time substitution of glossary terms into anchor tags in static content (website pipeline). Distinct from *smart links* (display-layer interaction) and *links* (data-layer relations). a.k.a. "term enrichment" or "cross-references" in docs-tooling parlance (Sphinx, MkDocs).
+**term linker** — Build-time substitution of glossary terms into anchor tags in static content (website pipeline). Distinct from *syntax linker* (display-layer interaction) and *links* (data-layer relations). a.k.a. "term enrichment" or "cross-references" in docs-tooling parlance (Sphinx, MkDocs).
 
 ### H
 
@@ -264,7 +266,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **li** — A km-ast parse type for list items. Maps to KNode with `type: "p"` and `item`. Does not exist as a KNode type — parser concept only.
 
-**links** (km canonical) — Persistent edges between knodes in the storage layer. Typed via `rel` taxonomy; URI-shaped `href`; followable by graph queries. Distinct from *smart links* (display-layer interaction) and *glossary linker* (build-time substitution). See [docs/design/model/klink.md](design/model/klink.md).
+**links** (km canonical) — Persistent edges between knodes in the storage layer. Typed via `rel` taxonomy; URI-shaped `href`; followable by graph queries. Distinct from *syntax linker* (display-layer interaction) and *term linker* (build-time substitution). See [docs/design/model/klink.md](design/model/klink.md).
 
 ### M
 
@@ -392,7 +394,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **scope** — A structured concurrency primitive that tracks child tasks and timers. Disposing a scope cancels all its children. Supports nesting.
 
-**smart links** — Pattern-matched popover system in silvercode (and eventually km-tui knode bodies). Rules in `.km/config.yaml` map text patterns (`~repo`, `+km`, regexes) to a resolved value; on hover, the engine renders a preview popover (readme, first-paragraph, bd-active, shell, mcp). Display-layer concern — distinct from *links* (storage-layer data) and *glossary linker* (build-time HTML substitution). See [docs/design/smartlinks.md](design/smartlinks.md). Industry analogues: GitHub repo autolinks, JetBrains Issue Navigation, Apple NSDataDetector, VS Code DocumentLinkProvider.
+**syntax linker** — Pattern-matched popover system in silvercode (and eventually km-tui knode bodies). Rules in `.km/config.yaml` map text patterns (`~repo`, `+km`, regexes) to a resolved value; on hover, the engine renders a preview popover (readme, first-paragraph, bd-active, shell, mcp). Display-layer concern — distinct from *links* (storage-layer data) and *term linker* (build-time HTML substitution). See [docs/design/autolinks.md](design/autolinks.md). Industry analogues: GitHub repo autolinks, JetBrains Issue Navigation, Apple NSDataDetector, VS Code DocumentLinkProvider.
 
 **scrollRect** — Scroll-adjusted position of a node, projected onto screen coordinates before sticky clamping. For non-sticky nodes equals `screenRect`; for sticky nodes, can go off-screen. Accessed via `useScrollRect()`.
 

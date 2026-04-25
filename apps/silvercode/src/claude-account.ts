@@ -42,7 +42,7 @@ export interface AccountProbe {
 /**
  * Test-only factory installed via `setAccountFactoryOverride`. When set,
  * `probeActiveAccount` and `readCachedProbeSync` route through it instead
- * of touching the keychain, network, or `~/.cache/silvercode/`. The
+ * of touching the keychain, network, or `~/.cache/km/`. The
  * factory may return `null` from `readCached` to simulate cold-start.
  */
 export interface AccountFactory {
@@ -152,7 +152,7 @@ function writeCache(profileDir: string, probe: AccountProbe): void {
  * and `error` carries the first failure reason. Consumers render partial
  * state gracefully.
  *
- * Persistent disk cache (TTL: 60s, ~/.cache/silvercode/quota-*.json) is
+ * Persistent disk cache (TTL: 60s, ~/.cache/km/quota-*.json) is
  * consulted first — close+reopen cycles reuse a fresh response instead of
  * hammering the API and hitting 429. Set `forceRefresh` to bypass.
  */

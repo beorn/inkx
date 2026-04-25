@@ -22,7 +22,7 @@ function buildProgram(): Command {
     .option("--log-dir <path>", "event-log directory for replay", "")
     .option(
       "--account <name>",
-      "Anthropic account name — reads creds from ~/.silvercode/accounts/<name>/ via CLAUDE_CONFIG_DIR (v1.1 multi-account)",
+      "Anthropic account name — reads creds from ~/.km/accounts/<name>/ via CLAUDE_CONFIG_DIR (v1.1 multi-account)",
     )
     .action(async (opts: Record<string, unknown>) => {
       const account = typeof opts.account === "string" && opts.account.length > 0 ? opts.account : undefined
@@ -41,8 +41,8 @@ function buildProgram(): Command {
             exists ? "(directory exists but is empty or missing creds)" : "(directory does not exist)",
             "",
             "One-time setup (copy creds from your main Claude install):",
-            `  mkdir -p ~/.silvercode/accounts/${account}`,
-            `  cp -r ~/.claude/. ~/.silvercode/accounts/${account}/`,
+            `  mkdir -p ~/.km/accounts/${account}`,
+            `  cp -r ~/.claude/. ~/.km/accounts/${account}/`,
             "",
             "Or omit --account to use ~/.claude/ (default).",
           ].join("\n")

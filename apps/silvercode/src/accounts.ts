@@ -33,12 +33,12 @@ import { join } from "node:path"
  */
 export function accountsRoot(): string {
   const home = process.env.HOME ?? homedir()
-  return join(home, ".silvercode", "accounts")
+  return join(home, ".km", "accounts")
 }
 
 /**
  * Resolve an account name to its absolute config dir. Ensures the parent
- * `~/.silvercode/accounts/` exists so writes don't race on first run; does
+ * `~/.km/accounts/` exists so writes don't race on first run; does
  * NOT create the account dir itself (the user populates it by copying
  * `~/.claude/` contents — see the stderr hint in index.tsx).
  */
@@ -62,7 +62,7 @@ export function accountExists(name: string): boolean {
 }
 
 /**
- * List the account names under `~/.silvercode/accounts/`. Returns an empty
+ * List the account names under `~/.km/accounts/`. Returns an empty
  * array when the root doesn't exist yet (first-run case). Only subdirectory
  * names — stray files are ignored.
  */

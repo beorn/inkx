@@ -20,12 +20,12 @@ afterEach(() => {
 })
 
 describe("accounts", () => {
-  test("resolveAccountDir joins ~/.silvercode/accounts/<name> and creates the parent", async () => {
+  test("resolveAccountDir joins ~/.km/accounts/<name> and creates the parent", async () => {
     const mod = await import("../src/accounts.ts")
     const dir = mod.resolveAccountDir("work")
-    expect(dir).toBe(join(tmpHome, ".silvercode", "accounts", "work"))
+    expect(dir).toBe(join(tmpHome, ".km", "accounts", "work"))
     // resolve should have MkdirP'd the parent so downstream writes don't race.
-    expect(mod.accountsRoot()).toBe(join(tmpHome, ".silvercode", "accounts"))
+    expect(mod.accountsRoot()).toBe(join(tmpHome, ".km", "accounts"))
     // Parent exists, but NOT the account dir itself — caller populates that.
     const rootStat = await import("node:fs").then((f) => f.statSync(mod.accountsRoot()))
     expect(rootStat.isDirectory()).toBe(true)

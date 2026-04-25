@@ -73,7 +73,7 @@ export type AppProps = {
   logDir?: string
   /**
    * Anthropic account name for per-session credential isolation. Resolves to
-   * `~/.silvercode/accounts/<account>/` via `CLAUDE_CONFIG_DIR`. Undefined →
+   * `~/.km/accounts/<account>/` via `CLAUDE_CONFIG_DIR`. Undefined →
    * use `~/.claude/` (v1.1 multi-account foundation).
    */
   account?: string
@@ -489,7 +489,7 @@ export function App(props: AppProps): React.ReactElement {
   )
 
   // Pane layout is owned by <PaneGrid> — it persists per-pane weights to
-  // `<cwd>/.silvercode/panes.json` and renders one 1-col `│` divider per
+  // `<cwd>/.km/panes.json` and renders one 1-col `│` divider per
   // gap (NOT a border around each pane, per the chrome constraint in
   // bead km-silvercode.pane-management). The active-pane indicator is a
   // 1-col accent bar inside SessionCard's left edge.

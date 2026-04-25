@@ -9,7 +9,7 @@
  * knows whose outbox to drain and whose identity to use on send.
  *
  * Backend: reads/writes to a JSONL file specified by `TRIBE_BUS_PATH` (default
- * `~/.silvercode/tribe-bus.jsonl`). That gives us a cross-process shared tribe
+ * `~/.km/tribe-bus.jsonl`). That gives us a cross-process shared tribe
  * for the common silvercode case where all sessions are siblings under the
  * same silvercode host, without needing a daemon. A daemon-backed adapter
  * (bearly tribe) can replace this later via a BACKEND env var.
@@ -29,7 +29,7 @@ import {
 } from "./index.ts"
 
 const sessionName = process.env.TRIBE_SESSION_NAME ?? "unknown"
-const busPath = process.env.TRIBE_BUS_PATH ?? join(homedir(), ".silvercode", "tribe-bus.jsonl")
+const busPath = process.env.TRIBE_BUS_PATH ?? join(homedir(), ".km", "tribe-bus.jsonl")
 
 function ensureBus(): void {
   const dir = dirname(busPath)

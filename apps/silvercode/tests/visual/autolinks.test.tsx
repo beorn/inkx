@@ -65,16 +65,16 @@ describe("autolinks visual", () => {
   let cwd: string
 
   beforeEach(() => {
-    cwd = mkdtempSync(join(tmpdir(), "silvercode-smartlinks-visual-"))
+    cwd = mkdtempSync(join(tmpdir(), "silvercode-syntaxlinks-visual-"))
     mkdirSync(join(cwd, ".km"))
-    // Two smart-links: a literal "AGENTS.md" → first-paragraph; a regex
+    // Two syntax-linker: a literal "AGENTS.md" → first-paragraph; a regex
     // matching "+\w+" → bd-active. Neither pattern is shadowed by the
     // built-in URL/file/bead detectors, so both should land in the frame
     // as autolink-styled tokens.
     writeFileSync(
       join(cwd, ".km", "config.yaml"),
       `
-smartlinks:
+syntaxlinks:
   - pattern: "AGENTS.md"
     resolves_to: "${cwd}/AGENTS.md"
     preview: first-paragraph

@@ -79,7 +79,7 @@ export type PaneGridProps = {
   tree: LayoutNode
   /** Drag-resize / drag-move emits a new tree here; App persists + re-renders. */
   onTreeChange: (next: LayoutNode) => void
-  /** Per-vault root for `.silvercode/panes.json` — persistence on drag-end. */
+  /** Per-vault root for `.km/panes.json` — persistence on drag-end. */
   cwd: string
   onFocusSession: (id: string) => void
   onApprovePermission: (sessionId: string, requestId: string) => void

@@ -1,8 +1,8 @@
 /**
- * Unit tests for smart-links config loading + parsing.
+ * Unit tests for syntax-linker config loading + parsing.
  *
  * Bead: km-silvercode.autolinks-config
- * Config file: <cwd>/.km/config.yaml (top-level `smartlinks:` key)
+ * Config file: <cwd>/.km/config.yaml (top-level `syntaxlinks:` key)
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
@@ -13,10 +13,10 @@ import {
   cascadeAutolinks,
   compilePattern,
   loadAutolinksConfig,
-  parseSmartlinksYaml,
+  parseSyntaxlinksYaml,
 } from "../../src/autolinks/config.ts"
 
-describe("smartlinks config — pattern compilation", () => {
+describe("syntaxlinks config — pattern compilation", () => {
   test("literal pattern matches verbatim, escapes meta characters", () => {
     const re = compilePattern("~repo")
     expect("~repo".match(re)?.[0]).toBe("~repo")
@@ -46,15 +46,15 @@ describe("smartlinks config — pattern compilation", () => {
   })
 })
 
-describe("smartlinks config — YAML parsing", () => {
+describe("syntaxlinks config — YAML parsing", () => {
   test("parses a single literal rule", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/Users/beorn/Code/pim/km"
     preview: readme
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     const rule = rules[0]!
     expect(rule.source).toBe("~repo")
@@ -64,7 +64,7 @@ smartlinks:
 
   test("parses multiple rules with mixed pattern syntax", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/path/a"
     preview: readme
@@ -75,65 +75,65 @@ smartlinks:
     resolves_to: "/path/c"
     preview: first-paragraph
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(3)
     expect(rules.map((r) => r.preview)).toEqual(["readme", "bd-active", "first-paragraph"])
   })
 
   test("drops rules with missing `pattern`", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - resolves_to: "/path"
     preview: readme
   - pattern: "~ok"
     resolves_to: "/ok"
     preview: readme
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~ok")
   })
 
   test("drops rules with invalid `preview` kind", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~bad"
     resolves_to: "/path"
     preview: exec
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(0)
   })
 
   test("drops rules with malformed regex", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "/[unclosed/"
     resolves_to: "/path"
     preview: readme
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(0)
   })
 
   test("malformed YAML returns empty list (does not throw)", () => {
-    const rules = parseSmartlinksYaml("smartlinks:\n  - this: is\n   bad: indent\n")
+    const rules = parseSyntaxlinksYaml("syntaxlinks:\n  - this: is\n   bad: indent\n")
     expect(rules).toEqual([])
   })
 
-  test("missing `smartlinks:` key returns empty list", () => {
-    const rules = parseSmartlinksYaml('title: "no smartlinks here"\n')
+  test("missing `syntaxlinks:` key returns empty list", () => {
+    const rules = parseSyntaxlinksYaml('title: "no syntaxlinks here"\n')
     expect(rules).toEqual([])
   })
 
-  test("non-array `smartlinks` value returns empty list", () => {
-    const rules = parseSmartlinksYaml('smartlinks: "should be a list"\n')
+  test("non-array `syntaxlinks` value returns empty list", () => {
+    const rules = parseSyntaxlinksYaml('syntaxlinks: "should be a list"\n')
     expect(rules).toEqual([])
   })
 
   test("empty document returns empty list", () => {
-    expect(parseSmartlinksYaml("")).toEqual([])
-    expect(parseSmartlinksYaml("---\n")).toEqual([])
+    expect(parseSyntaxlinksYaml("")).toEqual([])
+    expect(parseSyntaxlinksYaml("---\n")).toEqual([])
   })
 
   test("ignores other top-level sections (forward-compat)", () => {
@@ -141,27 +141,27 @@ smartlinks:
 theme: dark
 panes:
   - id: a
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/path"
     preview: readme
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~repo")
   })
 })
 
-describe("smartlinks config — shell preview kind", () => {
+describe("syntaxlinks config — shell preview kind", () => {
   test("accepts a valid shell rule with command", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "/path/to/repo"
     preview: shell
     command: "git -C \${resolves_to} log -5 --oneline"
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     const rule = rules[0]!
     expect(rule.preview).toBe("shell")
@@ -170,56 +170,56 @@ smartlinks:
 
   test("drops shell rule with no command field", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~bad"
     resolves_to: "/path"
     preview: shell
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule with empty command", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~bad"
     resolves_to: "/path"
     preview: shell
     command: ""
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with shell metacharacter (|)", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~pipe"
     resolves_to: "/path"
     preview: shell
     command: "| cat"
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with redirect (>)", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~redir"
     resolves_to: "/path"
     preview: shell
     command: "> /tmp/x"
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("drops shell rule whose command starts with backtick", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~tick"
     resolves_to: "/path"
     preview: shell
     command: "\`echo hi\`"
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("accepts shell command containing metachars later in the string", () => {
@@ -227,20 +227,20 @@ smartlinks:
     // anywhere else is a legitimate command (e.g. `echo a && echo b` —
     // weird, but the user wrote it).
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~ok"
     resolves_to: "/path"
     preview: shell
     command: "echo hello"
 `
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(1)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(1)
   })
 })
 
-describe("smartlinks config — mcp preview kind (stub)", () => {
+describe("syntaxlinks config — mcp preview kind (stub)", () => {
   test("drops mcp rules at config-load time pending implementation", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~rfc"
     resolves_to: "rfc-server.lookup"
     preview: mcp
@@ -250,12 +250,12 @@ smartlinks:
 `
     // mcp is a recognised preview kind (passes VALID_PREVIEWS) but
     // dropped here with a "not implemented" warning.
-    expect(parseSmartlinksYaml(yaml)).toHaveLength(0)
+    expect(parseSyntaxlinksYaml(yaml)).toHaveLength(0)
   })
 
   test("mcp rule alongside other valid rules: only mcp is dropped", () => {
     const yaml = `
-smartlinks:
+syntaxlinks:
   - pattern: "~ok"
     resolves_to: "/path"
     preview: readme
@@ -264,17 +264,17 @@ smartlinks:
     preview: mcp
     tool: "rfc.lookup"
 `
-    const rules = parseSmartlinksYaml(yaml)
+    const rules = parseSyntaxlinksYaml(yaml)
     expect(rules).toHaveLength(1)
     expect(rules[0]!.source).toBe("~ok")
   })
 })
 
-describe("smartlinks config — filesystem loader", () => {
+describe("syntaxlinks config — filesystem loader", () => {
   let dir: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "silvercode-smartlinks-"))
+    dir = mkdtempSync(join(tmpdir(), "silvercode-syntaxlinks-"))
   })
 
   afterEach(() => {
@@ -290,7 +290,7 @@ describe("smartlinks config — filesystem loader", () => {
     writeFileSync(
       join(dir, ".km", "config.yaml"),
       `
-smartlinks:
+syntaxlinks:
   - pattern: "~repo"
     resolves_to: "${dir}"
     preview: readme
@@ -303,7 +303,7 @@ smartlinks:
   })
 })
 
-describe("smartlinks config — cascade (workspace + per-vault)", () => {
+describe("syntaxlinks config — cascade (workspace + per-vault)", () => {
   function rule(
     source: string,
     resolvesTo: string,
