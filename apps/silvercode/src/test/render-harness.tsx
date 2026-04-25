@@ -29,6 +29,8 @@
 import type { AgentEvent } from "@km/agent-harness"
 import React from "react"
 import { createRenderer, type App as RendererApp } from "@silvery/test"
+import { ScopeProvider } from "@silvery/ag-react"
+import { createScope } from "@silvery/scope"
 import { App } from "../App.tsx"
 import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
 import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"
@@ -176,14 +178,26 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   const elementProps = live
     ? { cwd, bare, layout, track: "claude" as const, model }
     : { cwd, bare, layout, track: "claude" as const, model, spawnFactory: () => fake }
-  const app = renderer(<App {...elementProps} />)
+  // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
+  // useScope, shipped with vendor/silvery 7d9ee808) have an ambient scope
+  // to register against. createApp/run() do this for production paths;
+  // createRenderer doesn't, so the harness threads it explicitly. Without
+  // this, every test that mounts the real App throws "useScope() called
+  // without a <ScopeProvider> ancestor".
+  const scope = createScope("test-render-harness")
+  const tree = (
+    <ScopeProvider scope={scope} appScope={scope}>
+      <App {...elementProps} />
+    </ScopeProvider>
+  )
+  const app = renderer(tree)
 
   // Let the controller's initial `void spawnSession()` microtask resolve,
   // then trigger React to re-render with the new session in the list.
   for (let i = 0; i < 5; i++) {
     await Promise.resolve()
   }
-  renderer(<App {...elementProps} />)
+  renderer(tree)
 
   if (opts.autoEmit !== false && !live) {
     for (const event of opts.script) fake.emit(event)
@@ -195,7 +209,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     // Re-render explicitly — the reconciler has flushed but createRenderer
     // doesn't auto-sample the buffer; a second renderer() call with the
     // same element reuses the instance but triggers a fresh render pass.
-    renderer(<App {...elementProps} />)
+    renderer(tree)
     for (let i = 0; i < 5; i++) {
       await Promise.resolve()
     }
