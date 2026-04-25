@@ -58,6 +58,11 @@ function makeStubController(): Controller {
     fork: async () => ({}) as any,
     spawnSession: async () => ({}) as any,
     runSlashCommand: () => {},
+    backgroundActiveTurn: () => {},
+    foregroundTask: () => {},
+    cancelBackgroundTask: () => {},
+    backgroundTasks: () => [],
+    onBackgroundTasksChange: () => () => {},
   } as unknown as Controller
 }
 

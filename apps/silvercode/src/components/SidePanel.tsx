@@ -1,5 +1,6 @@
 import React, { useMemo } from "react"
 import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
+import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
 import { probeClaudeVersion } from "../claude-version.ts"
@@ -11,6 +12,7 @@ import {
   modelLabel,
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
+import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
@@ -353,6 +355,13 @@ export function SidePanel({
     return n + bg.length
   }, 0)
 
+  // Background tasks (Ctrl-B): backgrounded turns for this session. Total =
+  // every task in the session's history (running + terminal); running =
+  // those still streaming. The Background row only renders when total > 0.
+  const backgroundTasks = useBackgroundTasks(controller, focused.id)
+  const bgRunning = backgroundTasks.filter((t) => t.status === "running").length
+  const bgTotal = backgroundTasks.length
+
   const branch = useMemo(() => gitBranchFor(cwd), [cwd])
   const cwdLabel = `${shortCwd(cwd)}${branch ? `:${branch}` : ""}`
 
@@ -437,6 +446,25 @@ export function SidePanel({
       </Box>
     ),
     maxWidth: 52,
+  })
+  // Background tasks (Ctrl-B). The popover shows the live BackgroundPane so
+  // the user can cancel / foreground without leaving the SidePanel hover.
+  const backgroundHover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column" gap={1}>
+        <Text bold>Background tasks</Text>
+        <Muted>
+          Press <Text>Ctrl-B</Text> during a running turn to push it into the background. The turn keeps streaming; when
+          it completes, the result lands in the conversation as a system message.
+        </Muted>
+        <BackgroundPane
+          tasks={backgroundTasks}
+          onCancel={(id) => controller.cancelBackgroundTask(focused.id, id)}
+          onForeground={(id) => controller.foregroundTask(focused.id, id)}
+        />
+      </Box>
+    ),
+    maxWidth: 64,
   })
   const modeHover = usePopoverHandlers({
     body: (
@@ -614,6 +642,29 @@ export function SidePanel({
             <SectionHeading>Shells</SectionHeading>
             <Text color="$muted">
               {shellsRunning}/{shellsTotal}
+            </Text>
+          </Box>
+        </>
+      )}
+
+      {/* Background tasks — Ctrl-B during a running turn pushes the in-flight
+          turn into the background so the user can keep typing. The row only
+          shows once at least one task exists in this session. The "running /
+          total" pattern matches Agents/Shells above. */}
+      {bgTotal > 0 && (
+        <>
+          <Box flexShrink={0} height={1} />
+          <Box
+            flexDirection="row"
+            gap={1}
+            flexShrink={0}
+            onMouseEnter={backgroundHover.onMouseEnter}
+            onMouseLeave={backgroundHover.onMouseLeave}
+            backgroundColor={hoveredBg(backgroundHover.isHovered)}
+          >
+            <SectionHeading>Background</SectionHeading>
+            <Text color="$muted">
+              {bgRunning}/{bgTotal}
             </Text>
           </Box>
         </>

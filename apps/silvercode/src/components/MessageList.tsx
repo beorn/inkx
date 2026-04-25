@@ -1,11 +1,12 @@
 import React, { useState } from "react"
 import type { MessageEntry } from "@km/agent-harness"
-import { Box, ListView, useBoxRect } from "silvery"
+import { Box, ListView, Text, useBoxRect } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AssistantBlock } from "./AssistantBlock.tsx"
 import { ToolCallBlock } from "./ToolCallBlock.tsx"
 import { ToolResultBlock } from "./ToolResultBlock.tsx"
 import { UserMessageBlock } from "./UserMessageBlock.tsx"
+import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
 
 /**
  * Virtualized message stream — same shape km-logview uses.
@@ -32,9 +33,33 @@ function isActivity(item: Item): item is ActivityItem {
   return (item as ActivityItem).__activity === true
 }
 
+/**
+ * Background-task system message. Rendered when the controller surfaces a
+ * "▶ Background task ..." row. Distinct treatment vs. user/assistant rows
+ * so the user can immediately see "this came from a backgrounded turn,
+ * not from me typing or Claude responding".
+ */
+function BackgroundSystemBlock({ text }: { text: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row" gap={1} paddingX={1} paddingY={0} backgroundColor="$bg-surface-subtle">
+      <Text color="$info">{text}</Text>
+    </Box>
+  )
+}
+
 function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
+  // Background-task system messages are stuffed into the store as
+  // user-messages with a `bg-` prefixed turnId AND a `▶ Background task `
+  // text prefix (see controller.ts: BACKGROUND_MESSAGE_PREFIX). Render
+  // them with a distinct (system) treatment.
+  if (m.role === "user" && (m.id as string).startsWith("bg-") && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)) {
+    return <BackgroundSystemBlock text={m.text} />
+  }
   if (m.role === "user") {
     return <UserMessageBlock text={m.text} />
+  }
+  if (m.role === "system") {
+    return <BackgroundSystemBlock text={m.text} />
   }
   return (
     <Box flexDirection="column">
@@ -44,13 +69,7 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
         const running = results.length === 0
         return (
           <Box key={c.id} flexDirection="column">
-            <ToolCallBlock
-              id={c.id}
-              name={c.name}
-              input={c.input}
-              mcpServer={c.mcp_server}
-              running={running}
-            />
+            <ToolCallBlock id={c.id} name={c.name} input={c.input} mcpServer={c.mcp_server} running={running} />
             {results.map((r) => (
               <ToolResultBlock key={r.id} output={r.output} isError={r.is_error} />
             ))}

@@ -242,6 +242,15 @@ export function App(props: AppProps): React.ReactElement {
         setShowInbox((v) => !v)
         return
       }
+      // Ctrl-B — background the in-flight turn for the focused session.
+      // No-op if there's no active turn (controller checks status). Frees
+      // the UI immediately so the user can keep typing while the turn
+      // keeps streaming in the background; the eventual result surfaces
+      // as a system message in the conversation.
+      if (key.ctrl && input === "b") {
+        if (focused) controller.backgroundActiveTurn(focused.id)
+        return
+      }
       // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
       // but gets intercepted by cmux / most terminal multiplexers before
       // reaching the app). Slash commands /panel, /aside, /todos are the
