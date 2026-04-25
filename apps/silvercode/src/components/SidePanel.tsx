@@ -28,7 +28,7 @@ const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
  *
  *   Todos   0                         ← hover for help popover
  *
- *   Agents  0 / 0                     ← hover for help popover
+ *   Agents  0/0                       ← hover for help popover
  *
  *   ─────────                         (flex spacer)
  *
@@ -593,7 +593,7 @@ export function SidePanel({
       >
         <SectionHeading>Agents</SectionHeading>
         <Text color="$muted">
-          {agentsRunning} / {agentsTotal}
+          {agentsRunning}/{agentsTotal}
         </Text>
       </Box>
 
@@ -613,7 +613,7 @@ export function SidePanel({
           >
             <SectionHeading>Shells</SectionHeading>
             <Text color="$muted">
-              {shellsRunning} / {shellsTotal}
+              {shellsRunning}/{shellsTotal}
             </Text>
           </Box>
         </>
