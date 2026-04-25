@@ -1,6 +1,35 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-18 (theme-v4 Phase 3)
+Last updated: 2026-04-25 (cursor-invariants — 6 invariants locked)
+
+## Caret-as-layout-output (Phase 2 + invariants)
+
+**State machine**: `cursorOffset` BoxProp → layout phase computes `cursorRect` and `contentRect` signals → scheduler / xterm runtime read `findActiveCursorRect(root)` and emit cursor ANSI on the very first frame after mount. Bypasses the React effect chain that the legacy `useCursor` relied on. See `km-silvery.view-as-layout-output` (Phase 2) and `km-silvery.cursor-invariants` (lockdown).
+
+### Locked invariants (`km-silvery.cursor-invariants`)
+
+1. **Active caret precedence**: focused-editable wins > deepest-in-paint-order > null. Multiple focused-editables → deepest among them. Implemented in `findActiveCursorRect` (two parallel tracks — `focusedResult ?? fallbackResult`).
+2. **Recompute on semantic prop changes**: `syncRectSignals` runs every layout pass and unconditionally recomputes `cursorRect` from `props.cursorOffset` — col/row/visible/shape changes propagate even when boxRect/scrollRect didn't change.
+3. **`contentRect` is a first-class peer signal**: added in `LayoutSignals` alongside boxRect/scrollRect/screenRect. `computeCursorRect` reads from it instead of redoing border+padding math at the call site. Phase 4 (overlay-anchor) will use the same origin.
+4. **Offscreen / clipping default = hide**: `findActiveCursorRect` walks with a clipStack (innermost-last) of `overflow=scroll|hidden` / `overflowY=hidden` ancestors. Caret outside visible region → null. Edge of clip region counts as visible (strict-less-than upper bound).
+5. **Stale-cleanup on unmount**: WeakMap-backed signal map handles GC; the precedence walk reads `props.cursorOffset` per-frame, so unmounted nodes can't contribute. Conditional mount/unmount cycles produce exactly one cursor at any frame, no ghosts.
+6. **`CursorShape` rename → caret-style at terminal layer**: core `cursorOffset.shape` is `@deprecated` (one-cycle back-compat). New module `vendor/silvery/packages/ag-term/src/caret-style.ts` exposes `resolveCaretStyle(activeNode, explicitShape?)` that derives `bar | underline | block | null` from focused state. Scheduler / xterm / create-runtime use it instead of branching on `cursor.shape`.
+
+### Files involved
+
+- `vendor/silvery/packages/ag/src/types.ts` — `CursorOffset` type, `CursorShape` (deprecated)
+- `vendor/silvery/packages/ag/src/layout-signals.ts` — `LayoutSignals.contentRect/cursorRect`, `computeContentRect`, `computeCursorRect`, `findActiveCursorRect` (precedence + clipping)
+- `vendor/silvery/packages/ag-term/src/caret-style.ts` — `resolveCaretStyle`, `findActiveCursorNode`
+- `vendor/silvery/packages/ag-term/src/scheduler.ts` — emits caret ANSI via `resolveCaretStyle`
+- `vendor/silvery/packages/ag-term/src/runtime/create-runtime.ts` — same path for inline / xterm runtime
+- `vendor/silvery/tests/features/cursor-invariants.test.tsx` — 15 tests pin all 6 invariants
+
+### Pitfalls noted during implementation
+
+- `flexDirection` defaults to **row** in silvery (CSS-correct). Tests that build vertical scroll containers must set `flexDirection="column"` explicitly. Without it, children are laid out horizontally and "below the viewport" assertions don't hold.
+- `app.getContainer()` returns the AgNode root from a test renderer. Don't reach for `__root` / `node` shortcuts — `getContainer()` is the public path.
+- `interactiveState.focused` is the canonical focus signal (set by `setFocused` in `@silvery/ag/interactive-signals`). Tests can set it directly on the AgNode for unit-level precedence checks; production sets it via `FocusManager`.
+- `overflowX="hidden"` alone is NOT yet treated as a clip ancestor by `findActiveCursorRect` — only `overflow="scroll" | "hidden"` and `overflowY="hidden"` are. Matches the layout phase's actual scroll/clip model (axis-isolated overflowX is rare in TUIs and the cursor case for it has no real-world consumer yet).
 
 ## References (canonical sources — don't duplicate, supplement)
 
