@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AgentSession, SessionStore } from "@km/agent-harness"
-import { Box, PopoverProvider, Screen, useDispose, useExit } from "silvery"
+import { Box, PopoverProvider, Screen, useDispose, useExit, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryView } from "./components/HistoryView.tsx"
@@ -303,15 +303,18 @@ export function App(props: AppProps): React.ReactElement {
   //
   // Previously printed inline after silveryExit(), but silvery's teardown
   // was landing scrollback-wiping sequences after our write, erasing the
-  // hint. `process.on('exit')` is synchronous and guaranteed last, so
-  // nothing can overwrite us.
+  // hint. `term.signals.on('exit', …)` is synchronous and guaranteed last
+  // (Signals runs at topologically-sorted exit ordering), so nothing can
+  // overwrite us.
   //
-  // CRITICAL: do NOT unregister the listener in a useEffect cleanup. silvery's
-  // exit path unmounts React BEFORE the process actually dies (via
-  // `useExit` → `useDispose`), which would fire the cleanup and remove the
-  // listener — the `process.on("exit")` event then runs with no listeners
-  // and the hint never prints. The listener is process-scoped: the OS
-  // reaps it when the process exits. There is no leak.
+  // Uses silvery's `term.signals.on` rather than raw `process.on("exit",
+  // …)` — check-no-raw-lifecycle.sh gates the latter. The returned
+  // Disposable is NOT unregistered on React unmount: silvery's exit path
+  // unmounts React BEFORE the process dies (via `useExit` → `useDispose`),
+  // so if we disposed on unmount the listener would be gone before the
+  // exit event runs. Term's signal registry is process-lifetime; it's
+  // reaped when the process dies.
+  const term = useTerm()
   useEffect(() => {
     function printHintsNow(): void {
       const hints = resumeIdsRef.current
@@ -321,9 +324,9 @@ export function App(props: AppProps): React.ReactElement {
         `\nResume ${hints.length === 1 ? "this session" : "one of these sessions"} with:\n${lines.join("\n")}\n\n`,
       )
     }
-    process.on("exit", printHintsNow)
+    term.signals.on("exit", printHintsNow)
     // No cleanup — see comment above.
-  }, [])
+  }, [term])
 
   function requestExit(): void {
     // controller.closeAll() SIGTERMs every child synchronously; silveryExit
