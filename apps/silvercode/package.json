@@ -11,6 +11,9 @@
   "exports": {
     ".": "./src/index.tsx"
   },
+  "scripts": {
+    "storybook": "bun storybook/runner.tsx"
+  },
   "dependencies": {
     "@beorn/accountly": "workspace:*",
     "@km/agent-harness": "workspace:*",
