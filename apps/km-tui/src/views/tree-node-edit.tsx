@@ -353,10 +353,42 @@ export function BodyBlockEditor({
         const realIndex = visibleBody.startIndex + i
         const blockIndex = realIndex + 1 // 0 is title
         const isActiveBlock = editBlockIndex === blockIndex
+        // Non-active body blocks render via TreeNode (display mode, isBody=true)
+        // at the same depth they would in display mode. NO outer wrap — wrapping
+        // with paddingLeft + a gutter Text shifts indentation by an extra cell
+        // versus display mode (km-all.fix-sweep-inline-edit-indent). They keep
+        // their bullets, checkboxes, indentation, and width constraints.
+        if (!isActiveBlock) {
+          return (
+            <TreeNode
+              key={`${child.id}-${i}`}
+              node={child}
+              depth={depth + 1}
+              isSelected={false}
+              colIndex={colIndex}
+              cardIndex={cardIndex}
+              getChildren={resolvedGetChildren}
+              isBody
+            />
+          )
+        }
+        // Active block: mirror TreeNode's main-row layout exactly so the edit
+        // caret sits at the same column the read-only content would occupy.
+        // Layout: paddingLeft={depth+1} + 2-cell prefix box + flexible content.
+        // The prefix's first cell is a colored stripe (▎) marking the active
+        // block — replaces the historic gutter Text that lived OUTSIDE the
+        // depth padding and pushed the row 1 column past display-mode parity.
+        // `id={child.id}` + data-view="item" keeps the active block queryable
+        // by AutoLocator so test helpers like nodeBox(child.id) report the same
+        // outer rect they would in display mode (parity assertion).
         return (
-          <Box key={`${child.id}-${i}`} paddingLeft={depth}>
-            <Text color={isActiveBlock ? "$border-focus" : "$muted"}> </Text>
-            {isActiveBlock ? (
+          <Box key={`${child.id}-${i}`} id={child.id} data-view="item" flexDirection="row" paddingLeft={depth + 1}>
+            <Box width={2} flexShrink={0}>
+              <Text>
+                <Text color="$border-focus">▎</Text>{" "}
+              </Text>
+            </Box>
+            <Box flexGrow={1} flexShrink={1}>
               <BodyEditField
                 initialValue={child.content ?? ""}
                 onConfirm={(v) => {
@@ -398,21 +430,7 @@ export function BodyBlockEditor({
                   }
                 }}
               />
-            ) : (
-              // Render non-active body blocks via TreeNode (display mode, isBody=true)
-              // so they keep their bullets, checkboxes, indentation, and width
-              // constraints. Without this, they flatten into raw text and overflow
-              // past the card border (km-tui.body-edit-structure).
-              <TreeNode
-                node={child}
-                depth={depth + 1}
-                isSelected={false}
-                colIndex={colIndex}
-                cardIndex={cardIndex}
-                getChildren={resolvedGetChildren}
-                isBody
-              />
-            )}
+            </Box>
           </Box>
         )
       })}

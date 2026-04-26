@@ -2243,10 +2243,16 @@ describe("edit indentation parity", () => {
     // Navigate to the "parent" card
     board.expect("#parent[data-cursor]").toExist()
 
-    // Find "body child" position in display mode
-    const displayBox = board.screen.nodeBox("body child")
-    expect(displayBox, "body child should be visible in display mode").not.toBeNull()
-    const displayX = displayBox!.x
+    // Find "body child" text position in display mode (apples-to-apples with edit
+    // mode below). Earlier revisions mixed `nodeBox.x` (Box outer rect) with
+    // `indexOf` (text glyph position), which embedded a fixed paddingLeft +
+    // prefix offset into the delta. Use indexOf on both sides so the assertion
+    // measures actual screen-space text indent. Bead km-all.fix-sweep-inline-edit-indent.
+    const displayRow = board.screen.findRow("body child")
+    expect(displayRow, "body child should be visible in display mode").not.toBeNull()
+    if (displayRow === null) return
+    const displayLine = board.screen.row(displayRow)
+    const displayX = displayLine.indexOf("body child")
 
     // Enter edit mode on "body child" (cursor down into body, then Enter)
     board.command("cursor_down") // move to body child
@@ -2255,15 +2261,17 @@ describe("edit indentation parity", () => {
     // Find "body child" position in edit mode
     const editRow = board.screen.findRow("body child")
     expect(editRow, "body child should be visible in edit mode").not.toBeNull()
-    if (!editRow) return
+    if (editRow === null) return
     const editLine = board.screen.row(editRow)
     const editX = editLine.indexOf("body child")
 
-    // Indentation should be the same (±1 char for cursor/gutter)
+    // Indentation should be the same (±1 char tolerance for cursor/gutter glyph
+    // variations). The active-block layout in BodyBlockEditor mirrors TreeNode's
+    // main row exactly: paddingLeft={depth+1} + 2-cell prefix box.
     expect(
       Math.abs(editX - displayX),
-      `edit indent (${editX}) should be close to display indent (${displayX})`,
-    ).toBeLessThanOrEqual(2)
+      `edit indent (${editX}) should match display indent (${displayX})`,
+    ).toBeLessThanOrEqual(1)
   })
 
   // =============================================================================
