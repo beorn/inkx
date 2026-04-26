@@ -148,3 +148,14 @@ export type {
   ReadProjection,
   ReadSignal,
 } from "./acp-session.ts"
+
+// ---------------------------------------------------------------------------
+// ACP adapter — Claude Code stream-json. Convenience factory that composes
+// `spawnClaude` (subprocess + stream-json parser) with `createAcpSession`
+// (signals over ACP-shaped types). THIS IS THE CANONICAL CLAUDE PATH FOR
+// SUBSCRIPTION-AUTH USERS — `@agentclientprotocol/claude-agent-acp` blocks
+// Claude.ai subscriptions at session-init.
+// See ./acp-adapter-claude.ts. Bead: km-silvercode.acp-adapter-claude.
+// ---------------------------------------------------------------------------
+export { spawnClaudeAcpSession } from "./acp-adapter-claude.ts"
+export type { SpawnClaudeAcpOpts } from "./acp-adapter-claude.ts"

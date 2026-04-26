@@ -142,6 +142,48 @@ This client is for **external ACP servers**. Wrapping Claude Code (so it
 speaks ACP) is a separate bead (`acp-adapter-claude`) — Claude's
 subscription auth path is bespoke and doesn't ride the generic ACP wire.
 
+## Claude (subscription auth) — `spawnClaudeAcpSession`
+
+`@agentclientprotocol/claude-agent-acp@0.31.0` (Zed-published) **blocks
+Claude.ai subscriptions** at session-init — Anthropic's policy reserves
+Pro/Max quota for Claude Code's interactive surfaces. For silvercode users
+on a Claude Pro/Max plan, the only maintained ACP-shaped path is to spawn
+the `claude` binary directly with stream-json I/O. That subprocess
+inherits Claude Code's full auth gate (`CLAUDE_CODE_OAUTH_TOKEN` →
+`ANTHROPIC_API_KEY` → `~/.claude/auth.json` fallback).
+
+`spawnClaudeAcpSession(scope, opts)` is the convenience wrapper:
+
+```ts
+import { spawnClaudeAcpSession } from "@km/agent-harness"
+import { createScope } from "@silvery/scope"
+
+await using scope = createScope("agent-claude")
+const acp = spawnClaudeAcpSession(scope, { cwd: process.cwd() })
+
+// Read reactively in any component:
+effect(() => render(acp.messages()))
+
+// Drive the session:
+const result = await acp.prompt([{ type: "text", text: "fix the failing test" }])
+```
+
+Internally it composes existing primitives — `createAcpSession(scope,
+spawnClaude(opts))` — and ties the subprocess lifetime to the scope.
+Disposing the scope SIGTERMs the process group (`claude` plus all its MCP
+grandchildren) and settles any in-flight `prompt(...)` with
+`stopReason: "cancelled"`.
+
+**Both surfaces are first-class.** `spawnClaude(...)` continues to return
+the legacy `AgentSession` for callers that need Claude-Code-specific
+events (compaction, skill load, plugin manifests). `spawnClaudeAcpSession`
+is the recommended entry point for new code that consumes ACP-shaped
+state. Migration is per-component: nothing forces existing
+`createSessionStore(spawnClaude(...))` consumers to switch.
+
+Reference: `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+§ "Recommended path — internal-first, extract later".
+
 ## Tests
 
 ```bash
