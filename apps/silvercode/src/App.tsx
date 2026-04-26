@@ -653,21 +653,21 @@ export function App(props: AppProps): React.ReactElement {
   // process alive.
   const silveryExit = useExit()
 
-  // Resumable session ids, kept fresh on every session change. We read from
-  // a ref (not props/state) because the resume-hint handler below fires
-  // during silvery teardown — long after React has torn down — and we need
-  // stale-free data at that moment without depending on closures.
+  // Resumable session ids — read LIVE at exit time via the handle's
+  // `session.sessionId` getter (spawn.ts updates the captured local on
+  // session-init; the getter reflects the current value). A previous
+  // useEffect-based snapshot of just the strings missed updates because
+  // session-init mutates the handle internally without changing the
+  // `sessions` array reference, so React never re-ran the effect and the
+  // ref stayed full of "pending". The fix is to keep a ref to the sessions
+  // ARRAY itself and re-read every getter at print time.
   //
   // We keep ALL session IDs (including the placeholder `"pending"` value
   // spawn.ts sets before the first session-init event). The renderer below
   // filters them at print time so the user sees an explanation when only
   // pending sessions exist (vs. silent "nothing happened").
-  const resumeIdsRef = useRef<string[]>([])
-  useEffect(() => {
-    resumeIdsRef.current = sessions
-      .map((h) => h.session.sessionId)
-      .filter((sid): sid is string => typeof sid === "string")
-  }, [sessions])
+  const sessionsRef = useRef(sessions)
+  sessionsRef.current = sessions
 
   // Print the resume hint when the app is tearing down so the user can
   // copy `silvercode --resume <sid>` from their scrollback.
@@ -709,7 +709,10 @@ export function App(props: AppProps): React.ReactElement {
       if (printed) return
       printed = true
       try {
-        process.stdout.write(formatResumeHint(resumeIdsRef.current))
+        const ids = sessionsRef.current
+          .map((h) => h.session.sessionId)
+          .filter((sid): sid is string => typeof sid === "string")
+        process.stdout.write(formatResumeHint(ids))
       } catch {
         // stdout may be torn down on a hard crash path; best-effort.
       }
