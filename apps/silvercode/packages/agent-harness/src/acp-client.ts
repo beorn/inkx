@@ -153,15 +153,20 @@ export type AcpRegistryId =
   | "pi-acp" // pi-acp ecosystem
   | "claude-code" // silvercode-built subscription-compatible Claude wrapper
 
+// `bun x` (not `npx`) is used for npm-resolved agents because silvercode
+// commonly runs inside the km monorepo, whose root package.json declares
+// `$@silvery/ag` workspace overrides that npm can't resolve. `bun x`
+// transparently resolves and runs the package without colliding with our
+// workspace overrides. See feedback-npx-mcp-from-workspace.md.
 const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; description: string }> = {
   codex: {
-    command: "npx",
-    args: ["-y", "@zed-industries/codex-acp"],
+    command: "bun",
+    args: ["x", "@zed-industries/codex-acp"],
     description: "OpenAI Codex via Zed's ACP wrapper (ChatGPT subscription supported).",
   },
   gemini: {
-    command: "npx",
-    args: ["-y", "@google/gemini-cli", "--experimental-acp"],
+    command: "bun",
+    args: ["x", "@google/gemini-cli", "--experimental-acp"],
     description: "Google Gemini CLI in ACP mode (Sign in with Google supported).",
   },
   "github-copilot-cli": {
@@ -170,15 +175,15 @@ const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; des
     description: "GitHub Copilot CLI — assumes `copilot` binary on PATH (Copilot subscription).",
   },
   "pi-acp": {
-    command: "npx",
-    args: ["-y", "pi-acp"],
+    command: "bun",
+    args: ["x", "pi-acp"],
     description: "pi-acp ecosystem agent.",
   },
   "claude-code": {
-    command: "npx",
-    args: ["-y", "@km/claude-acp"],
+    command: "bun",
+    args: ["x", "@km/claude-acp"],
     description:
-      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned.",
+      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned. NOTE: package is currently private (workspace-only); the probe-acp script provides a local-bin override until publication.",
   },
 }
 

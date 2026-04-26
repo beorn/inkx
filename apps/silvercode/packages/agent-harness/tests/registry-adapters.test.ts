@@ -159,11 +159,11 @@ afterEach(() => {
  * for the rationale behind each command/arg choice.
  */
 const EXPECTED: Record<AcpRegistryId, { command: string; args: string[] }> = {
-  codex: { command: "npx", args: ["-y", "@zed-industries/codex-acp"] },
-  gemini: { command: "npx", args: ["-y", "@google/gemini-cli", "--experimental-acp"] },
+  codex: { command: "bun", args: ["x", "@zed-industries/codex-acp"] },
+  gemini: { command: "bun", args: ["x", "@google/gemini-cli", "--experimental-acp"] },
   "github-copilot-cli": { command: "copilot", args: [] },
-  "pi-acp": { command: "npx", args: ["-y", "pi-acp"] },
-  "claude-code": { command: "npx", args: ["-y", "@km/claude-acp"] },
+  "pi-acp": { command: "bun", args: ["x", "pi-acp"] },
+  "claude-code": { command: "bun", args: ["x", "@km/claude-acp"] },
 }
 
 describe("connectAcpRegistry", () => {
@@ -194,8 +194,8 @@ describe("connectAcpRegistry", () => {
       extraArgs: ["--model", "gemini-2.5-pro"],
     })
 
-    expect(capture.command).toBe("npx")
-    expect(capture.args).toEqual(["-y", "@google/gemini-cli", "--experimental-acp", "--model", "gemini-2.5-pro"])
+    expect(capture.command).toBe("bun")
+    expect(capture.args).toEqual(["x", "@google/gemini-cli", "--experimental-acp", "--model", "gemini-2.5-pro"])
   })
 
   test("env overrides are merged over process.env", async () => {
