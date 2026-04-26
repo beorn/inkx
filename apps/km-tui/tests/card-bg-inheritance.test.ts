@@ -91,7 +91,8 @@ function renderBoardWithTruecolor(options: {
   // cursor is on a descendant of the card, the card uses the softer
   // `selectedBg(theme)` 6% tint. Sterling renamed `selectionbg` to the
   // flat `bg-selected` token; read both for forward/back compat.
-  const expectedCardBg = theme["bg-selected"] ?? theme.selectionbg ?? selectedBg(theme)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Theme type drops legacy `selectionbg` but runtime still reads it (renderer.ts ~535)
+  const expectedCardBg = theme["bg-selected"] ?? (theme as any).selectionbg ?? selectedBg(theme)
   const expectedDescendantCardBg = selectedBg(theme)
 
   const render = createRenderer({ cols, rows, singlePassLayout: true })
@@ -215,7 +216,7 @@ describe("card bg inheritance (zebra pattern bug)", () => {
     expect(term.screen).toContainText("Section1")
 
     // Collect bg colors from termless cells for each sub-item
-    const termText = term.screen!.getText()
+    const termText = term.screen.getText()
     const subLabels = ["Section1", "sub-item-1", "sub-item-2", "Section2", "sub-item-3"]
     const termBgs = subLabels
       .map((label) => {
@@ -224,7 +225,7 @@ describe("card bg inheritance (zebra pattern bug)", () => {
         if (row < 0) return null
         const col = lines[row]!.indexOf(label)
         // termless cell(row, col) — row-first order
-        const cell = term.cell!(row, col)
+        const cell = term.cell(row, col)
         return { label, bg: cell.bg, row, col }
       })
       .filter((b): b is NonNullable<typeof b> => b !== null)

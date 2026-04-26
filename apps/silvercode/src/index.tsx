@@ -109,17 +109,21 @@ function buildProgram(): Command {
       await handle.waitUntilExit()
     })
 
-  program.addHelpSection("Keybindings:", [
-    ["enter", "send message"],
-    ["ctrl-o", "toggle side panel (todos + agents)"],
-    ["ctrl-e", "open permission inbox"],
-    ["ctrl-r", "history view"],
-    ["ctrl-n", "next session (multi-session)"],
-    ["ctrl-g v / s / x / z", "pane chord: vsplit / hsplit / close / zoom"],
-    ["ctrl-g h/j/k/l", "swap focused pane with neighbor"],
-    ["esc", "dismiss overlays"],
-    ["ctrl-c / ctrl-d ctrl-d", "exit silvercode"],
-  ])
+  program.addHelpText(
+    "after",
+    `
+Examples:
+  $ silvercode                                  # default: Claude, ~/.claude creds
+  $ silvercode --model claude-sonnet-4-6        # pick a different Claude model
+  $ silvercode --resume <session-id>            # resume a prior Claude session
+  $ silvercode --bare                           # no hooks/plugins/skills/CLAUDE.md
+  $ silvercode --agent codex                    # run OpenAI Codex via ACP
+  $ silvercode --agent gemini                   # run Gemini via ACP
+  $ silvercode --account work                   # use creds from ~/.km/accounts/work
+  $ silvercode --layout grid-2 --pane-headers   # 2-pane grid with pane headers
+  $ silvercode doctor                           # health-check config + integrations
+`,
+  )
 
   // `silvercode doctor [checker]` — config + integration health check.
   // Exits before any TUI mounts. CLI-only for v1; the in-TUI `/doctor`

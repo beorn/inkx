@@ -35,8 +35,8 @@ describe("side panel", () => {
     // The cwd row renders as the path. Check the side-panel text contains
     // our test cwd (short form; may be "~/..." if inside home). We passed
     // /tmp/... so no home substitution.
-    const panelText = (p) => p.sidePanel!.lines.join("\n")
     const p = parseFrame(s)
+    const panelText = (parsed: typeof p) => parsed.sidePanel!.lines.join("\n")
     expect(panelText(p)).toContain("/tmp/silvercode-test")
   })
 })

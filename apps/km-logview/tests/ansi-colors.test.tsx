@@ -29,7 +29,12 @@ describe("km-logview color emission", () => {
     let coloredCount = 0
     for (let row = 0; row < 20; row++) {
       for (let col = 0; col < 120; col++) {
-        const c = term.cell(row, col)
+        const c = term.cell(row, col) as {
+          readonly fg: unknown
+          readonly bg: unknown
+          readonly char: string
+          readonly bold?: boolean
+        }
         if (c.fg !== null || c.bg !== null || c.bold) coloredCount++
         if (c.fg) distinctFg.add(JSON.stringify(c.fg))
         if (c.bg) distinctBg.add(JSON.stringify(c.bg))

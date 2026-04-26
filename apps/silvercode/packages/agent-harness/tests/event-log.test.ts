@@ -16,6 +16,11 @@ function initEvent(sid: SessionId = SID): AgentEvent {
     mode: "auto",
     tools: ["Bash"],
     mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "test",
+    apiKeySource: "test",
     ts: 1,
   }
 }

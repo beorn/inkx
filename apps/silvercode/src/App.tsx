@@ -903,9 +903,9 @@ export function App(props: AppProps): React.ReactElement {
       if (printed) return
       printed = true
       try {
-        const ids = sessionsRef.current
+        const ids: string[] = sessionsRef.current
           .map((h) => h.session.sessionId)
-          .filter((sid): sid is string => typeof sid === "string")
+          .filter((sid) => typeof sid === "string")
         process.stdout.write(formatResumeHint(ids))
       } catch {
         // stdout may be torn down on a hard crash path; best-effort.

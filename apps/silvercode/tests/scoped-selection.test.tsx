@@ -19,7 +19,7 @@ import { describe, test, expect } from "vitest"
 import { Box, Text } from "silvery"
 import { createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
-import type { Term } from "silvery/runtime"
+import type { Term } from "silvery"
 import "@termless/test/matchers"
 
 const settle = (ms = 300) => new Promise((r) => setTimeout(r, ms))

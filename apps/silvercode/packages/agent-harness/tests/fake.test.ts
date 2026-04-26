@@ -49,7 +49,7 @@ describe("fixture replay (manual driver)", () => {
       // Every scripted event was emitted, in order.
       expect(events.length).toBeGreaterThanOrEqual(script.length)
       for (let i = 0; i < script.length; i += 1) {
-        expect(events[i]).toEqual(script[i].event)
+        expect(events[i]).toEqual(script[i]!.event)
       }
     })
   }
@@ -192,10 +192,10 @@ describe("permissionPolicy", () => {
       (e): e is Extract<AgentEvent, { kind: "permission-decision" }> => e.kind === "permission-decision",
     )
     expect(decisions).toHaveLength(3)
-    expect(decisions[0].approved).toBe(true)
-    expect(decisions[1].approved).toBe(false)
+    expect(decisions[0]!.approved).toBe(true)
+    expect(decisions[1]!.approved).toBe(false)
     // unknown requestId defaults to false.
-    expect(decisions[2].approved).toBe(false)
+    expect(decisions[2]!.approved).toBe(false)
   })
 
   test("policy function receives requestId/tool/args and may approve/deny", () => {
@@ -220,8 +220,8 @@ describe("permissionPolicy", () => {
     const decisions = events.filter(
       (e): e is Extract<AgentEvent, { kind: "permission-decision" }> => e.kind === "permission-decision",
     )
-    expect(decisions[0].approved).toBe(true) // Edit
-    expect(decisions[1].approved).toBe(false) // Bash
+    expect(decisions[0]!.approved).toBe(true) // Edit
+    expect(decisions[1]!.approved).toBe(false) // Bash
   })
 
   test("no policy = no auto-decision", () => {
@@ -303,7 +303,7 @@ describe("input methods", () => {
     session.send("hello")
 
     expect(events).toHaveLength(1)
-    const e = events[0]
+    const e = events[0]!
     expect(e.kind).toBe("user-message")
     if (e.kind === "user-message") {
       expect(e.text).toBe("hello")
@@ -319,7 +319,7 @@ describe("input methods", () => {
     session.respondToPermission("perm-x" as PermissionRequestId, true)
 
     expect(events).toHaveLength(1)
-    const e = events[0]
+    const e = events[0]!
     expect(e.kind).toBe("permission-decision")
     if (e.kind === "permission-decision") {
       expect(e.approved).toBe(true)

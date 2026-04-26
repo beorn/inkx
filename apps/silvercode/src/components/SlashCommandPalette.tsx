@@ -15,12 +15,15 @@ import { filterCommands, mergeRemoteCommands } from "../slash-commands.ts"
 export function SlashCommandPalette({
   query,
   remoteCommands,
+  remoteSkills: _remoteSkills,
   onSubmit,
   onClose,
 }: {
   query: string
   /** Slash commands discovered from the focused session's session-init event. */
   remoteCommands?: readonly string[]
+  /** Skills discovered from the focused session's session-init event (unused for now). */
+  remoteSkills?: readonly string[]
   /** Fired with the command name when the user confirms a row. */
   onSubmit: (commandName: string) => void
   onClose: () => void

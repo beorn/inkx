@@ -40,7 +40,7 @@ describe("km-logview search highlight (matchRanges-driven)", () => {
     const bgBefore = new Set<string>()
     for (let row = 1; row < 18; row++) {
       for (let col = 0; col < 120; col++) {
-        const c = term.cell!(row, col)
+        const c = term.cell(row, col)
         if (c.bg) bgBefore.add(JSON.stringify(c.bg))
       }
     }
@@ -58,7 +58,7 @@ describe("km-logview search highlight (matchRanges-driven)", () => {
     const bgAfter = new Set<string>()
     for (let row = 1; row < 18; row++) {
       for (let col = 0; col < 120; col++) {
-        const c = term.cell!(row, col)
+        const c = term.cell(row, col)
         if (c.bg) bgAfter.add(JSON.stringify(c.bg))
         const bgKey = c.bg ? JSON.stringify(c.bg) : ""
         if (bgKey && !bgBefore.has(bgKey) && /[a-zA-Z]/.test(c.char ?? "")) {
@@ -93,7 +93,7 @@ describe("km-logview search highlight (matchRanges-driven)", () => {
       let n = 0
       for (let row = 1; row < 18; row++) {
         for (let col = 0; col < 120; col++) {
-          const c = term.cell!(row, col)
+          const c = term.cell(row, col)
           // Highlight cells are the alpha-character cells that picked up a
           // non-default bg token ($bg-warning from highlight.tsx). Bold is
           // part of the shape but we don't assert it — FrameCell's public

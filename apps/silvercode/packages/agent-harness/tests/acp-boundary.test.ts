@@ -195,7 +195,7 @@ describe("PermissionOptionKind round-trip", () => {
         options: [{ optionId: `opt-${kind}`, name: kind, kind }],
       }
       const sc = acpRequestPermissionToSilvercode(req)
-      expect(sc.options[0].kind).toBe(kind)
+      expect(sc.options[0]!.kind).toBe(kind)
       const back = silvercodeRequestPermissionToAcp(sc)
       expect(back).toEqual(req)
     })

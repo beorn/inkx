@@ -85,7 +85,7 @@ function createCapturingSpawn(): { spawn: AcpSpawn; capture: SpawnCapture } {
     )
 
     const exitListeners: Array<(code: number | null, signal: NodeJS.Signals | null) => void> = []
-    const child: AcpSpawnedChild = {
+    const child = {
       pid: 12345,
       stdin: parentToServer.writable,
       stdout: serverToParent.readable,
@@ -118,7 +118,7 @@ function createCapturingSpawn(): { spawn: AcpSpawn; capture: SpawnCapture } {
         return child
       },
     }
-    return child
+    return child as unknown as AcpSpawnedChild
   }
 
   return { spawn, capture }

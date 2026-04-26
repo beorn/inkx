@@ -33,7 +33,13 @@
  *   pi-acp:      pi config
  */
 
-import { AcpResumeUnsupportedError, connectAcp, connectAcpRegistry, type AcpRegistryId } from "@km/agent-harness"
+import {
+  AcpResumeUnsupportedError,
+  type AcpConnectOpts,
+  connectAcp,
+  connectAcpRegistry,
+  type AcpRegistryId,
+} from "@km/agent-harness"
 import { createScope } from "@silvery/scope"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
@@ -91,7 +97,7 @@ const toolCallSummary = new Map<string, { kind: string; status: string }>()
 const startedAt = Date.now()
 
 let session
-const baseOpts = {
+const baseOpts: Omit<AcpConnectOpts, "command" | "args"> = {
   cwd: process.cwd(),
   sessionCwd: process.cwd(),
   ...(resumeSessionId ? { resume: { sessionId: resumeSessionId } } : {}),
@@ -166,8 +172,9 @@ try {
     else if (registryId === "gemini") console.error(`  bun x @google/gemini-cli --experimental-acp`)
     else if (registryId === "pi-acp") console.error(`  bun x pi-acp`)
     else if (registryId === "github-copilot-cli") console.error(`  copilot`)
-    else if (registryId === "claude-code")
+    else if (registryId === "claude-code") {
       console.error(`  bun apps/silvercode/packages/claude-acp/bin/silvercode-claude-acp.js`)
+    }
   }
   process.exit(2)
 }

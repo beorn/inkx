@@ -193,5 +193,6 @@ function makeSynthetic(
     resample() {
       return { text, lines }
     },
+    dispose() {},
   }
 }

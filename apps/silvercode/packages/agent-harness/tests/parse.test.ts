@@ -388,6 +388,11 @@ describe("session-store — event folding", () => {
       mode: "auto",
       tools: [],
       mcp_servers: [],
+      slashCommands: [],
+      skills: [],
+      plugins: [],
+      claudeCodeVersion: "test",
+      apiKeySource: "test",
       ts: now,
     })
     store.apply({ kind: "turn-start", sessionId: "s" as never, turnId: "t1" as never, role: "assistant", ts: now })

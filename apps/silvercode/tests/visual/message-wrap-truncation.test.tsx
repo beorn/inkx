@@ -20,7 +20,7 @@ import { MessageList } from "../../src/components/MessageList.tsx"
 import { AssistantBlock } from "../../src/components/AssistantBlock.tsx"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
-import type { Message } from "@km/agent-harness"
+import type { MessageEntry } from "@km/agent-harness"
 
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
@@ -29,7 +29,7 @@ beforeAll(() => {
 const longText =
   "A workspace for agentic knowledge workers: unified notes, tasks, and calendar in a TUI, with bidirectional markdown sync and a vendor/ submodule layout."
 
-function fakeAssistantMessage(text: string): Message {
+function fakeAssistantMessage(text: string): MessageEntry {
   return {
     id: "m1",
     role: "assistant",
@@ -37,7 +37,7 @@ function fakeAssistantMessage(text: string): Message {
     toolCalls: [],
     toolResults: [],
     ts: 0,
-  } as unknown as Message
+  } as unknown as MessageEntry
 }
 
 describe("assistant message wrap (regression — km-silvercode.message-wrap-truncation)", () => {

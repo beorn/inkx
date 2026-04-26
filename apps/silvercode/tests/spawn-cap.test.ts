@@ -19,8 +19,8 @@ describe("controller spawn cap", () => {
       cwd: "/tmp/silvercode-cap-test",
       model: "claude-test",
       track: "claude",
+      bare: false,
       initialSessions: 0,
-      paneHeaders: false,
       spawnFactory: () => createFakeSession(),
     })
 

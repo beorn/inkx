@@ -227,7 +227,7 @@ function SubsectionHeader({ title }: { title: string }): React.ReactElement {
   const subDivider = "─".repeat(40)
   return (
     <Box flexDirection="column">
-      <Text dimColor>{subDivider}</Text>
+      <Text color="$fg-muted">{subDivider}</Text>
       <Text bold>{title}</Text>
       <Text> </Text>
     </Box>
@@ -267,11 +267,11 @@ function Layer1RichText(): React.ReactElement {
       {examples.inlineFields.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
-            <Text dimColor>input: </Text>
+            <Text color="$fg-muted">input: </Text>
             {ex.input}
           </Text>
           <Text>
-            <Text dimColor>output: </Text>
+            <Text color="$fg-muted">output: </Text>
             <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
@@ -282,11 +282,11 @@ function Layer1RichText(): React.ReactElement {
       {examples.wikiLinks.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
-            <Text dimColor>input: </Text>
+            <Text color="$fg-muted">input: </Text>
             {ex.input}
           </Text>
           <Text>
-            <Text dimColor>output: </Text>
+            <Text color="$fg-muted">output: </Text>
             <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
@@ -297,11 +297,11 @@ function Layer1RichText(): React.ReactElement {
       {examples.markdown.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
-            <Text dimColor>input: </Text>
+            <Text color="$fg-muted">input: </Text>
             {ex.input}
           </Text>
           <Text>
-            <Text dimColor>output: </Text>
+            <Text color="$fg-muted">output: </Text>
             <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
@@ -356,33 +356,33 @@ function Layer1TagPills(): React.ReactElement {
       <SectionHeader title="Layer 1: Tag Pills" />
 
       <SubsectionHeader title="Preset Tag Colors" />
-      <Text dimColor> Tag Name Color Pill Example</Text>
-      <Text dimColor> ────────── ────── ─────────────────────</Text>
+      <Text color="$fg-muted"> Tag Name Color Pill Example</Text>
+      <Text color="$fg-muted"> ────────── ────── ─────────────────────</Text>
       {presetTags.map(({ name, desc }) => {
         const color = GTD_BOARD_COLORS[name] || "white"
         return (
           <Text key={name}>
             {" "}
-            {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)} <Text dimColor>← {desc}</Text>
+            {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)} <Text color="$fg-muted">← {desc}</Text>
           </Text>
         )
       })}
       <Text> </Text>
 
       <SubsectionHeader title="Custom Tag Colors (via km.color:: attribute)" />
-      <Text dimColor> Custom colors override presets using km.color:: value in headings</Text>
-      <Text dimColor> Example: ## Sprint km.color:: magenta</Text>
+      <Text color="$fg-muted"> Custom colors override presets using km.color:: value in headings</Text>
+      <Text color="$fg-muted"> Example: ## Sprint km.color:: magenta</Text>
       <Text> </Text>
       {customTags.map(({ name, color }) => (
         <Text key={name}>
           {" "}
-          {colorize(`@${name}`, color)} <Text dimColor>← km.color:: {color}</Text>
+          {colorize(`@${name}`, color)} <Text color="$fg-muted">← km.color:: {color}</Text>
         </Text>
       ))}
       <Text> </Text>
 
       <SubsectionHeader title="Compact Mode (colored dots)" />
-      <Text dimColor> In compact view, pills are shown as colored dots:</Text>
+      <Text color="$fg-muted"> In compact view, pills are shown as colored dots:</Text>
       <Text>
         {" "}
         ○ Task with multiple tags {colorize("●", "cyan")}
@@ -392,7 +392,7 @@ function Layer1TagPills(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Wide Mode (full @name pills)" />
-      <Text dimColor> In wide view, pills show the full tag name:</Text>
+      <Text color="$fg-muted"> In wide view, pills show the full tag name:</Text>
       <Text>
         {" "}
         ○ Task with multiple tags {colorize("@next", "cyan")} {colorize("@waiting", "yellow")}{" "}
@@ -438,8 +438,8 @@ function Layer1TaskStyling(): React.ReactElement {
       <SectionHeader title="Layer 1: Task Styling (Square Icons)" />
 
       <SubsectionHeader title="Standard Status States" />
-      <Text dimColor> Plain Icon Description</Text>
-      <Text dimColor> ───── ──── ─────────────────────</Text>
+      <Text color="$fg-muted"> Plain Icon Description</Text>
+      <Text color="$fg-muted"> ───── ──── ─────────────────────</Text>
       {statusTable.map(({ mark, status, desc }) => {
         const icon = getStatusIcon(status)
         const isDoneOrDropped = status === "done" || status === "dropped"
@@ -448,27 +448,25 @@ function Layer1TaskStyling(): React.ReactElement {
         return (
           <Text key={status}>
             {" "}
-            <Text dimColor>[</Text>
-            <Text color={markerColor} dimColor={!markerColor}>
-              {mark}
-            </Text>
-            <Text dimColor>]</Text> <Text color={icon.color}>{icon.char}</Text>
+            <Text color="$fg-muted">[</Text>
+            <Text color={markerColor}>{mark}</Text>
+            <Text color="$fg-muted">]</Text> <Text color={icon.color}>{icon.char}</Text>
             {"    "}
-            <Text dimColor={isDoneOrDropped}>{desc}</Text>
+            <Text color={isDoneOrDropped ? "$fg-muted" : undefined}>{desc}</Text>
           </Text>
         )
       })}
       <Text> </Text>
 
       <SubsectionHeader title="Custom Markers (inverted in TUI)" />
-      <Text dimColor> Plain Icon Description</Text>
-      <Text dimColor> ───── ──── ─────────────────────</Text>
+      <Text color="$fg-muted"> Plain Icon Description</Text>
+      <Text color="$fg-muted"> ───── ──── ─────────────────────</Text>
       {customMarkers.map(({ mark, desc }) => (
         <Text key={mark}>
           {" "}
-          <Text dimColor>[</Text>
-          <Text dimColor>{mark}</Text>
-          <Text dimColor>]</Text>{" "}
+          <Text color="$fg-muted">[</Text>
+          <Text color="$fg-muted">{mark}</Text>
+          <Text color="$fg-muted">]</Text>{" "}
           <Text backgroundColor="white" color="black">
             {mark}
           </Text>
@@ -481,17 +479,17 @@ function Layer1TaskStyling(): React.ReactElement {
       <SubsectionHeader title="Error State" />
       <Text>
         {" "}
-        <Text dimColor>[</Text>
-        <Text dimColor>-</Text>
-        <Text dimColor>]</Text> <Text color="red">⚠</Text>
+        <Text color="$fg-muted">[</Text>
+        <Text color="$fg-muted">-</Text>
+        <Text color="$fg-muted">]</Text> <Text color="red">⚠</Text>
         {"    "}
         Missing status (null/undefined)
       </Text>
       <Text> </Text>
 
       <SubsectionHeader title="Date Badges (formatDateBadge)" />
-      <Text dimColor> Right-aligned badge: priority, start → due, recurrence</Text>
-      <Text dimColor> Format: P2 Mar 10 → Mar 15 ↻ (each part optional)</Text>
+      <Text color="$fg-muted"> Right-aligned badge: priority, start → due, recurrence</Text>
+      <Text color="$fg-muted"> Format: P2 Mar 10 → Mar 15 ↻ (each part optional)</Text>
       <Text> </Text>
       <DateBadgeDemo />
     </>
@@ -554,8 +552,8 @@ function DateBadgeDemo(): React.ReactElement {
 
   return (
     <>
-      <Text dimColor> {"Description".padEnd(34)} Badge Output</Text>
-      <Text dimColor>
+      <Text color="$fg-muted"> {"Description".padEnd(34)} Badge Output</Text>
+      <Text color="$fg-muted">
         {" "}
         {"─".repeat(34)} {"─".repeat(30)}
       </Text>
@@ -563,7 +561,7 @@ function DateBadgeDemo(): React.ReactElement {
         <Text key={i}>
           {" "}
           {label.padEnd(34)} <DateBadge node={node} />{" "}
-          {!node.due_at && !node.start_at && !node.priority && !node.rrule && <Text dimColor>(empty)</Text>}
+          {!node.due_at && !node.start_at && !node.priority && !node.rrule && <Text color="$fg-muted">(empty)</Text>}
         </Text>
       ))}
     </>
@@ -586,8 +584,8 @@ function Layer1FoldMarkers(): React.ReactElement {
       <SectionHeader title="Layer 1: Fold Markers (Cards Style)" />
 
       <SubsectionHeader title="Fold State Indicators" />
-      <Text dimColor> Marker Description</Text>
-      <Text dimColor> ────── ─────────────────────────────</Text>
+      <Text color="$fg-muted"> Marker Description</Text>
+      <Text color="$fg-muted"> ────── ─────────────────────────────</Text>
       {foldStates.map(({ hasChildren, isFolded, desc }, i) => {
         const marker = getFoldMarker(hasChildren, isFolded)
         return (
@@ -618,7 +616,7 @@ function Layer1FoldMarkers(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Colored Fold Markers (node color inheritance)" />
-      <Text dimColor> When a node has a color, the marker inherits it:</Text>
+      <Text color="$fg-muted"> When a node has a color, the marker inherits it:</Text>
       <Text> </Text>
       {colors.map((color) => {
         const folded = getFoldMarker(true, true, color)
@@ -630,14 +628,14 @@ function Layer1FoldMarkers(): React.ReactElement {
             <Text color={folded.color}>{folded.char}</Text> <Text color={unfolded.color}>{unfolded.char}</Text>{" "}
             <Text color={empty.color}>{empty.char}</Text>
             {"  "}
-            <Text dimColor>km.color:: {color}</Text>
+            <Text color="$fg-muted">km.color:: {color}</Text>
           </Text>
         )
       })}
       <Text> </Text>
 
       <SubsectionHeader title="Combined: Fold Marker + Task Status" />
-      <Text dimColor> New cards style: marker indicates fold, status in title</Text>
+      <Text color="$fg-muted"> New cards style: marker indicates fold, status in title</Text>
       <Text> </Text>
       <Text>
         {" "}
@@ -672,13 +670,13 @@ function Layer2Layout(): React.ReactElement {
       <SectionHeader title="Layer 2: Layout Functions" />
 
       <SubsectionHeader title="wrapText() - Word Wrapping" />
-      <Text dimColor>Width 30:</Text>
+      <Text color="$fg-muted">Width 30:</Text>
       {wrapText(longText, 30).map((line, i) => (
         <Text key={i}> |{line}|</Text>
       ))}
       <Text> </Text>
 
-      <Text dimColor>Width 20:</Text>
+      <Text color="$fg-muted">Width 20:</Text>
       {wrapText(longText, 20).map((line, i) => (
         <Text key={i}> |{line}|</Text>
       ))}
@@ -698,7 +696,7 @@ function Layer2Layout(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="constrainText() - Wrap + Truncate + Limit Lines" />
-      <Text dimColor>Width=25, maxLines=2:</Text>
+      <Text color="$fg-muted">Width=25, maxLines=2:</Text>
       {constrainText("This is a longer piece of text that needs both wrapping and line limiting", 25, 2).lines.map(
         (line, i) => (
           <Text key={i}> |{line}|</Text>
@@ -712,11 +710,11 @@ function Layer2Layout(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="renderParentPath() - Separate Line Context" />
-      <Text dimColor>Input: "Projects/Work/Tasks/Subtask" (len=27)</Text>
+      <Text color="$fg-muted">Input: "Projects/Work/Tasks/Subtask" (len=27)</Text>
       <Text> </Text>
-      <Text dimColor>Width=30: |{renderParentPath("Projects/Work/Tasks/Subtask", 30)}|</Text>
-      <Text dimColor>Width=25: |{renderParentPath("Projects/Work/Tasks/Subtask", 25)}|</Text>
-      <Text dimColor>Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|</Text>
+      <Text color="$fg-muted">Width=30: |{renderParentPath("Projects/Work/Tasks/Subtask", 30)}|</Text>
+      <Text color="$fg-muted">Width=25: |{renderParentPath("Projects/Work/Tasks/Subtask", 25)}|</Text>
+      <Text color="$fg-muted">Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|</Text>
     </>
   )
 }
@@ -748,11 +746,11 @@ function segsToStr(segs: PathSegment[]): string {
 function RenderPathDemo(): React.ReactElement {
   return (
     <>
-      <Text dimColor>Full path (length=44):</Text>
+      <Text color="$fg-muted">Full path (length=44):</Text>
       <Text> |{segsToStr(renderPath(pathDemoSegments, 60))}|</Text>
       <Text> </Text>
       {[60, 40, 25].map((w) => (
-        <Text key={w} dimColor>
+        <Text key={w}>
           Width={w}: |{segsToStr(renderPath(pathDemoSegments, w))}|
         </Text>
       ))}
@@ -887,7 +885,7 @@ function Layer3Views(): React.ReactElement {
       <SectionHeader title="Layer 3: TreeNode Component" />
 
       <SubsectionHeader title="TreeNode - Different Task States" />
-      <Text dimColor>Each node rendered at width=40:</Text>
+      <Text color="$fg-muted">Each node rendered at width=40:</Text>
       <Text> </Text>
 
       <Text bold>Todo (open):</Text>
@@ -907,7 +905,7 @@ function Layer3Views(): React.ReactElement {
 
       <Text> </Text>
       <SubsectionHeader title="TreeNode - Date Badges (right-aligned)" />
-      <Text dimColor>Priority, recurrence, scheduled/due dates shown after title:</Text>
+      <Text color="$fg-muted">Priority, recurrence, scheduled/due dates shown after title:</Text>
       <Text> </Text>
 
       <Text bold>P1 Overdue (red curly underline):</Text>
@@ -1277,13 +1275,13 @@ function Layer3AllViews(): React.ReactElement {
       <StorybookProviders>
         <>
           <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
-          <Text dimColor>Each view renders the same TUIBoardState via BoardCore:</Text>
-          <Text dimColor>• Fold markers: ● folded, • unfolded, · empty (size variation)</Text>
-          <Text dimColor>• Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)</Text>
-          <Text dimColor>• Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]</Text>
-          <Text dimColor>• Inactive children: dimmed when card not selected</Text>
-          <Text dimColor>• Embedded tasks: show parent context prefix</Text>
-          <Text dimColor>• Selection levels: column → card → outline (sub-items)</Text>
+          <Text color="$fg-muted">Each view renders the same TUIBoardState via BoardCore:</Text>
+          <Text color="$fg-muted">• Fold markers: ● folded, • unfolded, · empty (size variation)</Text>
+          <Text color="$fg-muted">• Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)</Text>
+          <Text color="$fg-muted">• Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]</Text>
+          <Text color="$fg-muted">• Inactive children: dimmed when card not selected</Text>
+          <Text color="$fg-muted">• Embedded tasks: show parent context prefix</Text>
+          <Text color="$fg-muted">• Selection levels: column → card → outline (sub-items)</Text>
 
           <ViewBox title="View 1: Cards (card level - first card selected)" height={viewRows}>
             <BoardCore
@@ -1337,11 +1335,11 @@ function VisualLanguageSection(): React.ReactElement {
   return (
     <>
       <SectionHeader title="Visual Language - Design System" />
-      <Text dimColor>Reference: specs/km-design-system.md</Text>
+      <Text color="$fg-muted">Reference: specs/km-design-system.md</Text>
       <Text> </Text>
 
       <SubsectionHeader title="Selection States (RESERVED COLOR)" />
-      <Text dimColor> Yellow bg = selection (cursor, focused, multi-select)</Text>
+      <Text color="$fg-muted"> Yellow bg = selection (cursor, focused, multi-select)</Text>
       <Text> </Text>
 
       <Box flexDirection="row" gap={2}>
@@ -1359,7 +1357,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Card Border States (Cards View)" />
-      <Text dimColor> Three visual states via card border color:</Text>
+      <Text color="$fg-muted"> Three visual states via card border color:</Text>
       <Text> </Text>
 
       <Box flexDirection="row" gap={1}>
@@ -1381,13 +1379,13 @@ function VisualLanguageSection(): React.ReactElement {
       </Box>
       <Box flexDirection="row" gap={1}>
         <Box width={28}>
-          <Text dimColor> gray border</Text>
+          <Text color="$fg-muted"> gray border</Text>
         </Box>
         <Box width={28}>
-          <Text dimColor> yellow border + bg</Text>
+          <Text color="$fg-muted"> yellow border + bg</Text>
         </Box>
         <Box width={28}>
-          <Text dimColor> cyan border + cursor</Text>
+          <Text color="$fg-muted"> cyan border + cursor</Text>
         </Box>
       </Box>
       <Text> </Text>
@@ -1398,15 +1396,15 @@ function VisualLanguageSection(): React.ReactElement {
           <Text bold color="yellow">
             Active Panel
           </Text>
-          <Text dimColor>borderColor: cyanBright</Text>
-          <Text dimColor>header: yellow + bold</Text>
+          <Text color="$fg-muted">borderColor: cyanBright</Text>
+          <Text color="$fg-muted">header: yellow + bold</Text>
         </Box>
         <Box flexDirection="column" width={30} borderStyle="round" borderColor="blackBright" paddingX={1}>
-          <Text bold color="yellowBright" dimColor>
+          <Text bold color="yellowBright">
             Inactive Panel
           </Text>
-          <Text dimColor>borderColor: blackBright</Text>
-          <Text dimColor>header: yellowBright + dim</Text>
+          <Text color="$fg-muted">borderColor: blackBright</Text>
+          <Text color="$fg-muted">header: yellowBright + dim</Text>
         </Box>
       </Box>
       <Text> </Text>
@@ -1417,20 +1415,18 @@ function VisualLanguageSection(): React.ReactElement {
           <Text bold color="yellow">
             Selected Column (4)
           </Text>
-          <Text dimColor>color: yellow, bold: true</Text>
+          <Text color="$fg-muted">color: yellow, bold: true</Text>
         </Box>
         <Box flexDirection="column">
-          <Text color="yellowBright" dimColor>
-            Unselected Column (2)
-          </Text>
-          <Text dimColor>color: yellowBright, dimColor: true</Text>
+          <Text color="yellowBright">Unselected Column (2)</Text>
+          <Text color="$fg-muted">color: yellowBright, dim: true</Text>
         </Box>
         <Box flexDirection="column">
           <Text backgroundColor="cyan" color="black">
             {" "}
             Header at Cursor{" "}
           </Text>
-          <Text dimColor>bg: cyan (cursor level)</Text>
+          <Text color="$fg-muted">bg: cyan (cursor level)</Text>
         </Box>
       </Box>
       <Text> </Text>
@@ -1457,26 +1453,26 @@ function VisualLanguageSection(): React.ReactElement {
             Text input cursor: [search
             <Text inverse> </Text>]
           </Text>
-          <Text dimColor>Uses inverse video</Text>
+          <Text color="$fg-muted">Uses inverse video</Text>
         </Box>
         <Box flexDirection="column">
           <Text>
             Mode badge: <Text inverse> CARDS </Text>
           </Text>
-          <Text dimColor>Uses inverse video</Text>
+          <Text color="$fg-muted">Uses inverse video</Text>
         </Box>
         <Box flexDirection="column">
           <Text>
             Selection prefix: <Text color="cyan">▸</Text> Selected item
           </Text>
-          <Text dimColor>Arrow indicates focus</Text>
+          <Text color="$fg-muted">Arrow indicates focus</Text>
         </Box>
       </Box>
       <Text> </Text>
 
       <SubsectionHeader title="Date Badges (right-aligned on cards)" />
-      <Text dimColor> Priority, recurrence, scheduled/due dates shown right-aligned</Text>
-      <Text dimColor> Uses 24-bit RGB underlines for due date urgency</Text>
+      <Text color="$fg-muted"> Priority, recurrence, scheduled/due dates shown right-aligned</Text>
+      <Text color="$fg-muted"> Uses 24-bit RGB underlines for due date urgency</Text>
       <Text> </Text>
 
       <Text bold>Overdue task (red curly underline):</Text>
@@ -1618,7 +1614,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <SectionHeader title="Toast Stack & Status Bar" />
 
       <SubsectionHeader title="Single Toast - All Levels" />
-      <Text dimColor>Toasts appear in bottom-right corner with border and black background</Text>
+      <Text color="$fg-muted">Toasts appear in bottom-right corner with border and black background</Text>
       <Text> </Text>
 
       {/* Two columns — vertically more concise than the original 5-row stack.
@@ -1653,8 +1649,8 @@ function ToastAndStatusSection(): React.ReactElement {
       </Box>
 
       <SubsectionHeader title="Stacked Toasts (shadcn/ui pattern)" />
-      <Text dimColor>Multiple toasts stack vertically, newest at bottom</Text>
-      <Text dimColor>Shows latest 5 toasts maximum</Text>
+      <Text color="$fg-muted">Multiple toasts stack vertically, newest at bottom</Text>
+      <Text color="$fg-muted">Shows latest 5 toasts maximum</Text>
       <Text> </Text>
 
       <ViewBox title="3 Stacked Toasts">
@@ -1670,7 +1666,7 @@ function ToastAndStatusSection(): React.ReactElement {
       </ViewBox>
 
       <SubsectionHeader title="Status Bar with Messages" />
-      <Text dimColor>Bottom bar shows watcher status and optional messages</Text>
+      <Text color="$fg-muted">Bottom bar shows watcher status and optional messages</Text>
       <Text> </Text>
 
       <Text bold>Normal state (no status message):</Text>
@@ -1696,14 +1692,14 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Complete Layout: Toasts + Bottom Bar" />
-      <Text dimColor>Shows how toasts appear above the bottom bar</Text>
+      <Text color="$fg-muted">Shows how toasts appear above the bottom bar</Text>
       <Text> </Text>
 
       <ViewBox title="Full Layout with Toasts">
         <Box width={demoTermWidth} height={demoTermHeight} flexDirection="column" position="relative">
           {/* Content area */}
           <Box flexGrow={1} flexShrink={1}>
-            <Text dimColor>Board content area...</Text>
+            <Text color="$fg-muted">Board content area...</Text>
           </Box>
 
           {/* Toast stack in bottom-right */}
@@ -1814,7 +1810,7 @@ function InteractiveStorybook({ mode }: { mode: StorybookMode }): React.ReactEle
               <Text bold>
                 {currentSection?.title} ({selectedIndex + 1}/{sections.length})
               </Text>
-              <Text dimColor>j/k:nav ↑↓:scroll q:quit</Text>
+              <Text color="$fg-muted">j/k:nav ↑↓:scroll q:quit</Text>
             </Box>
           ) : (
             <Box borderStyle="double" borderColor="cyan" paddingX={1}>
@@ -1822,7 +1818,7 @@ function InteractiveStorybook({ mode }: { mode: StorybookMode }): React.ReactEle
                 TUI Storybook
               </Text>
               <Text>{"  "}</Text>
-              <Text dimColor>j/k:nav ↑↓:scroll q:quit</Text>
+              <Text color="$fg-muted">j/k:nav ↑↓:scroll q:quit</Text>
             </Box>
           )}
 
@@ -1833,7 +1829,7 @@ function InteractiveStorybook({ mode }: { mode: StorybookMode }): React.ReactEle
               <Text bold color="yellow">
                 Sections
               </Text>
-              <Text dimColor>────────────────────────</Text>
+              <Text color="$fg-muted">────────────────────────</Text>
               {sections.map((section, idx) => {
                 const isSelected = idx === selectedIndex
                 return (

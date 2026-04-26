@@ -56,7 +56,7 @@ function createFakeAcpServer(opts: ServerWiring): { spawn: AcpSpawn; child: Fake
     killSignalResolve = resolve
   })
 
-  const child: AcpSpawnedChild = {
+  const child = {
     pid: 99999,
     // Parent's stdin → server reads from it.
     stdin: parentToServer.writable,
@@ -97,7 +97,7 @@ function createFakeAcpServer(opts: ServerWiring): { spawn: AcpSpawn; child: Fake
     },
   }
 
-  const spawn: AcpSpawn = () => child
+  const spawn: AcpSpawn = () => child as unknown as AcpSpawnedChild
 
   return {
     spawn,
@@ -454,7 +454,7 @@ describe("connectAcp", () => {
   test("opts.resume calls loadSession; sessionId reflects resumed id", async () => {
     let loadCallCount = 0
     let newCallCount = 0
-    let lastLoadParams: acp.LoadSessionRequest | null = null
+    let lastLoadParams: acp.LoadSessionRequest | null = null as acp.LoadSessionRequest | null
     const { spawn } = createFakeAcpServer({
       agent: () => ({
         async initialize() {

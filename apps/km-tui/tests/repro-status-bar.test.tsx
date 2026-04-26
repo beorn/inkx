@@ -28,8 +28,8 @@ describe("regression: status bar stray chars (km-tui.status-bar-stray-chars)", (
     const render = createRenderer({ cols: 60, rows: 3 })
     const app = render(
       <Box flexDirection="row">
-        <Text dimColor>DISK /tmp/foo</Text>
-        <Text dimColor> 📋 {1}</Text>
+        <Text color="$fg-muted">DISK /tmp/foo</Text>
+        <Text color="$fg-muted"> 📋 {1}</Text>
       </Box>,
     )
     expect(app.text).toContain("📋 1")
@@ -40,7 +40,7 @@ describe("regression: status bar stray chars (km-tui.status-bar-stray-chars)", (
     const render = createRenderer({ cols: 60, rows: 3 })
     const app = render(
       <Box flexDirection="row">
-        <Text dimColor>{" 📄 3"}</Text>
+        <Text color="$fg-muted">{" 📄 3"}</Text>
       </Box>,
     )
     expect(app.text).toContain("📄 3")
@@ -53,13 +53,13 @@ describe("regression: status bar stray chars (km-tui.status-bar-stray-chars)", (
       return (
         <Box flexDirection="row" justifyContent="flex-end" paddingX={1}>
           <Box flexDirection="row" flexShrink={0}>
-            <Text dimColor>DISK /tmp/foo</Text>
-            <Text dimColor> 📋 3</Text>
+            <Text color="$fg-muted">DISK /tmp/foo</Text>
+            <Text color="$fg-muted"> 📋 3</Text>
             {/* Split file-count from suffix — file-count is stable width
                and its wide emoji's continuation cell never lands on stale
                pixels from a prior longer render. */}
-            <Text dimColor>{fileCount}</Text>
-            {suffix && <Text dimColor>{suffix}</Text>}
+            <Text color="$fg-muted">{fileCount}</Text>
+            {suffix && <Text color="$fg-muted">{suffix}</Text>}
           </Box>
         </Box>
       )

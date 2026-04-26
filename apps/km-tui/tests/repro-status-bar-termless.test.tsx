@@ -57,7 +57,7 @@ describe("termless regression: status bar stray chars (km-tui.status-bar-stray-c
     }
     const handle = await run(<App />, term)
     await new Promise((r) => setTimeout(r, 150))
-    const screen = term.screen!.getText()
+    const screen = term.screen.getText()
     expect(screen).not.toMatch(/📋[A-Za-z:]/)
     expect(screen).not.toMatch(/📄[A-Za-z:]/)
     expect(screen).not.toContain("starting")
@@ -83,7 +83,7 @@ describe("termless regression: status bar stray chars (km-tui.status-bar-stray-c
     }
     const handle = await run(<App />, term)
     await new Promise((r) => setTimeout(r, 150))
-    const screen = term.screen!.getText()
+    const screen = term.screen.getText()
     expect(screen).not.toMatch(/📋[A-Za-z:]/)
     expect(screen).not.toMatch(/📄[A-Za-z:]/)
     expect(screen).not.toContain("sync:")
@@ -109,7 +109,7 @@ describe("termless regression: status bar stray chars (km-tui.status-bar-stray-c
     }
     const handle = await run(<App />, term)
     await new Promise((r) => setTimeout(r, 150))
-    const screen = term.screen!.getText()
+    const screen = term.screen.getText()
     expect(screen).not.toMatch(/📋[A-Za-z:]/)
     expect(screen).not.toMatch(/📄[A-Za-z:]/)
     handle.unmount()
@@ -139,7 +139,7 @@ describe("termless regression: status bar stray chars (km-tui.status-bar-stray-c
     }
     const handle = await run(<App />, term)
     await new Promise((r) => setTimeout(r, 150))
-    const screen = term.screen!.getText()
+    const screen = term.screen.getText()
     expect(screen).not.toMatch(/📋[A-Za-z:]/)
     expect(screen).not.toMatch(/📄[A-Za-z:]/)
     handle.unmount()

@@ -53,12 +53,12 @@ export function UserMessageBlock({
       )}
       {hasContext && (
         <Box flexDirection="column" flexShrink={1} minWidth={0}>
-          <Text dimColor color="$muted">
+          <Text color="$muted">
             {showRaw ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/raw` to toggle)
           </Text>
           {showRaw && (
             <Box flexDirection="column" flexShrink={1} minWidth={0} paddingLeft={2}>
-              <Text dimColor wrap="wrap">
+              <Text color="$muted" wrap="wrap">
                 {additionalContext}
               </Text>
             </Box>
