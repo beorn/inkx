@@ -42,10 +42,7 @@ async function expectToFail(fn: () => void | Promise<void>): Promise<void> {
   } catch (err) {
     caught = err as Error
   }
-  expect(
-    caught,
-    `expected the assertion to fail (the mutation should trip the detector), but it passed`,
-  ).not.toBeNull()
+  expect(caught, `expected the assertion to fail (the mutation should trip the detector), but it passed`).not.toBeNull()
 }
 
 // ============================================================================
@@ -62,10 +59,14 @@ describe("mutation: AssistantBlock paddingX regression", () => {
     const s = await renderScenario({ script: helloWorld, cols: 120, rows: 30 })
     // Sanity: unmutated, invariant passes.
     assertIconFamilyAligned(s)
-    // Now mutate the frame: shift ● left by one column.
+    // Now mutate the frame: shift ● left by one column. Each card row is
+    // prefixed with the SessionCard stripe glyph `▎` followed by spaces;
+    // the regex matches the leading-whitespace block AFTER the stripe so
+    // the shift collapses one space without touching the stripe.
     const mutated = mutateFrame(s, (line) => {
-      // Find `   ● ` and replace with `  ● ` (one less space).
-      return line.replace(/^(\s*)● /, (_m, sp) => (sp as string).slice(0, -1) + "● ")
+      return line.replace(/^(\S?)(\s+)● /, (_m, lead, sp) => {
+        return (lead as string) + (sp as string).slice(0, -1) + "● "
+      })
     })
     await expectToFail(() => assertIconFamilyAligned(mutated))
   })
@@ -148,10 +149,7 @@ describe("mutation: Silver Code brand row missing", () => {
 
     const mutated = mutateFrame(s, (line) => line.replace(/◈ Silver Code v\d+\.\d+\.\d+ on/, ""))
     const pMut = parseFrame(mutated)
-    expect(
-      pMut.sidePanel!.hasSilverCodeRow,
-      `parse should report silverCode row as ABSENT after mutation`,
-    ).toBe(false)
+    expect(pMut.sidePanel!.hasSilverCodeRow, `parse should report silverCode row as ABSENT after mutation`).toBe(false)
   })
 })
 

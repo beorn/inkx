@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import type { MessageEntry } from "@km/agent-harness"
 import { Box, ListView, Text } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
@@ -74,7 +74,7 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
   // ListView keeps `flexShrink=0` for vertical height measurement, so
   // cross-axis shrinkability has to be declared explicitly here.
   return (
-    <Box flexDirection="column" flexShrink={1} minWidth={0}>
+    <Box flexDirection="column" gap={1} flexShrink={1} minWidth={0}>
       {m.text.length > 0 && <AssistantBlock text={m.text} />}
       {m.toolCalls.map((c) => {
         const results = m.toolResults.filter((r) => r.id === c.id)
@@ -112,10 +112,20 @@ export function MessageList({
   pendingPermissions: number
   inFlightTool: string | null
 }): React.ReactElement {
-  const [cursor, setCursor] = useState<number>(-1)
-
   const showActivity = status !== "idle" && status !== "ended"
   const items: Item[] = showActivity ? [...messages, { __activity: true }] : messages
+
+  // Pin cursor to the last item — chat-style "always tracking the tail".
+  // Previously cursor was useState(-1) with onCursor wired up; the −1 sentinel
+  // collided with ListView's ensure-visible math on certain re-renders (e.g.
+  // when input value changed via Ctrl+U), producing a viewport jump to the
+  // top. Pinning to the last visible key (activity sentinel when active,
+  // otherwise the last message index) keeps auto-follow correct and removes
+  // the controlled-cursor seam entirely. Wheel/keyboard scrolling still moves
+  // the *viewport* via ListView's own scrollRow state — only the cursor is
+  // pinned.
+  const lastKey: string | number =
+    showActivity ? "__activity" : Math.max(0, messages.length - 1)
 
   return (
     <ListView
@@ -123,8 +133,7 @@ export function MessageList({
       getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
       gap={1}
       nav
-      cursorKey={cursor}
-      onCursor={setCursor}
+      cursorKey={lastKey}
       maxRendered={200}
       renderItem={(item) =>
         isActivity(item) ? (

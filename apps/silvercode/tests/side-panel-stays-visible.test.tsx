@@ -99,11 +99,14 @@ describe("side panel stays visible with wide descendants", () => {
     expect(col).toBeGreaterThanOrEqual(LEFT_WIDTH - 2)
   })
 
-  test("minWidth=0 ALONE is insufficient — pushes side panel off-screen", () => {
-    // This documents the trap: minWidth=0 without flexShrink:1 (which is
-    // the silvery default-from-flexily = 0, NOT CSS's default of 1) lets
-    // the left column expand to content size, eating the side panel.
-    // Only overflow=hidden forces flexShrink:1 via CSS spec §4.5.
+  test("minWidth=0 alone is sufficient under silvery's CSS-correct flex defaults", () => {
+    // After silvery flipped to CSS-correct flex defaults (flexShrink: 1
+    // by default + CSS §4.5 auto min-size), `minWidth: 0` on the wide
+    // descendant is sufficient by itself: the left column shrinks against
+    // its flex parent, and the side panel stays visible without an
+    // explicit `overflow="hidden"` clip. Documenting this so the inverse
+    // assumption (which held under the historical Yoga-flavored defaults)
+    // doesn't creep back into other tests.
     const render = createRenderer({ cols: TOTAL_COLS, rows: 20 })
     const app = render(
       <TestLayout protection="minWidth">
@@ -111,7 +114,7 @@ describe("side panel stays visible with wide descendants", () => {
       </TestLayout>,
     )
     const col = findSide(app.text)
-    // Side panel is invisible OR pushed past the terminal edge.
-    expect(col === null || col >= TOTAL_COLS - 2).toBe(true)
+    expect(col).not.toBeNull()
+    expect(col).toBeGreaterThanOrEqual(LEFT_WIDTH - 2)
   })
 })
