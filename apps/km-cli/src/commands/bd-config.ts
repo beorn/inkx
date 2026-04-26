@@ -8,8 +8,8 @@ import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
-import { loadConfigObject } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
+import { loadKmBdConfig } from "./bd-load-config.ts"
 
 export const configCommand = new Command("config").description("View and modify beads configuration")
 
@@ -17,9 +17,9 @@ configCommand
   .command("list")
   .alias("ls")
   .description("List current configuration")
-  .action(() => {
+  .action(async () => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     console.log(term.bold("Beads Configuration"))
     console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)
@@ -38,9 +38,9 @@ configCommand
   .command("get")
   .argument("<key>", "Config key (board, parent, prefix)")
   .description("Get a configuration value")
-  .actionMerged((opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     switch (opts.key) {
       case "board":
@@ -64,7 +64,7 @@ configCommand
   .argument("<key>", "Config key (board, parent, prefix)")
   .argument("<value>", "Config value")
   .description("Set a configuration value (edits .km/config.yaml)")
-  .actionMerged((opts) => {
+  .actionMerged(async (opts) => {
     // Validate key
     if (!["board", "parent", "prefix"].includes(opts.key)) {
       console.error(term.red(`Unknown config key: ${opts.key}`))
@@ -74,20 +74,22 @@ configCommand
     }
 
     const resolved = resolvePathArg(undefined)
-    const configPath = `${resolved.repoRoot}/.km/config.yaml`
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
-    console.log(term.yellow(`To set ${opts.key}=${opts.value}, edit ${configPath}:`))
-    console.log()
-    console.log(term.dim("beads:"))
-    console.log(term.dim(`  ${opts.key}: "${opts.value}"`))
-    console.log()
-    console.log(term.dim("(Programmatic config editing coming soon)"))
+    // `@silvery/config` handles atomic writes + scoped (local) save.
+    configObj.raw.set(`beads.${opts.key}`, opts.value, "local")
+    await configObj.raw.save({ scope: "local" })
+
+    console.log(term.green(`Set beads.${opts.key} = ${opts.value}`))
+    if (configObj.raw.projectPath) {
+      console.log(term.dim(`Wrote: ${configObj.raw.projectPath}`))
+    }
   })
 
 // Show config list by default when no subcommand
-configCommand.action(() => {
+configCommand.action(async () => {
   const resolved = resolvePathArg(undefined)
-  const configObj = loadConfigObject(resolved.repoRoot)
+  const configObj = await loadKmBdConfig(resolved.repoRoot)
 
   console.log(term.bold("Beads Configuration"))
   console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)

@@ -18,8 +18,9 @@ import {
 } from "@km/beads"
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
-import { loadConfigObject, getOriginalBeadsConfig } from "@km/storage"
+import { getOriginalBeadsConfig } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
+import { loadKmBdConfig } from "./bd-load-config.ts"
 
 /** Real filesystem implementation for BeadsFs DI */
 const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
@@ -32,9 +33,9 @@ export const migrateCommand = new Command("migrate")
   .option("--dry-run", "Show what would be migrated without writing files")
   .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
   .option("--target <dir>", "Target directory for markdown files")
-  .action((opts) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     // Find .beads directory
     const beadsDir = findBeadsDir(nodeFs, resolved.repoRoot)
@@ -132,9 +133,9 @@ export const exportCommand = new Command("export")
   .option("--dry-run", "Show what would be exported without writing")
   .option("--mode <mode>", "Export mode: append or replace", "append")
   .option("--target <dir>", "Target .beads directory")
-  .action((opts) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     // Get issues from km
     const boardTag = configObj.beads.board || undefined

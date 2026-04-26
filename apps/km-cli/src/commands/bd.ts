@@ -25,8 +25,8 @@ import {
   type Issue,
   type IssueFilter,
 } from "@km/beads"
-import { loadConfigObject } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
+import { loadKmBdConfig } from "./bd-load-config.ts"
 import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"
@@ -65,7 +65,7 @@ bdCommand
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(opts.scope)
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     using repo = await loadRepo(resolved.repoRoot)
 
@@ -121,7 +121,7 @@ bdCommand
       // Legacy path-based scope — use old behavior
       const resolved = resolvePathArg(positionalQuery)
       const scopePath = resolved.nodeRef ?? undefined
-      const configObj = loadConfigObject(resolved.repoRoot)
+      const configObj = await loadKmBdConfig(resolved.repoRoot)
 
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -156,7 +156,7 @@ bdCommand
 
     // New unified query path
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     using repo = await loadRepo(resolved.repoRoot)
 
@@ -238,7 +238,7 @@ bdCommand
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
     const { node, shortId, children } = createIssueNode(opts.title, {
@@ -531,7 +531,7 @@ bdCommand
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
     const boardTag = configObj.beads.board || undefined
@@ -628,7 +628,7 @@ bdCommand
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
     const boardTag = configObj.beads.board || undefined
@@ -672,7 +672,7 @@ bdCommand
     // Load repo for database access and mode
     using repo = await loadRepo(resolved.repoRoot)
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
     const config = configObj.beads
     const dbPath = join(kmDir, "state.db")
     const repoMode = repo.mode
@@ -766,7 +766,7 @@ bdCommand
     // Load repo (unused but kept for consistency - may use in future)
     using _repo = await loadRepo(resolved.repoRoot)
     const dbPath = join(kmDir, "state.db")
-    const configObj = loadConfigObject(resolved.repoRoot)
+    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     if (existsSync(kmDir)) {
       console.log(kmDir)

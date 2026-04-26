@@ -1892,7 +1892,7 @@ export interface CreateRepoOptions {
  * - Detects .km/ directory to determine persistence mode
  * - Creates DataStore (disk or memory based on mode)
  * - Creates FileTree for the repo root
- * - Loads config from cosmiconfig
+ * - Loads config (sync walk-up of `.km/config.yaml` and legacy fallbacks)
  *
  * This is a generator that yields progress info during loading.
  * Use runGenerator() for silent loading, or iterate for progress.

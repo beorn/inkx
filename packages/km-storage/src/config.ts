@@ -1,19 +1,33 @@
 /**
- * KM Configuration System
+ * KM Configuration System (internal)
  *
- * Uses cosmiconfig for standard config discovery. Searches for config in:
- * - .km/config.yaml (primary)
- * - .kmrc, .kmrc.yaml, .kmrc.json
- * - km.config.js, km.config.ts
+ * Sync loader for `.km/config.yaml` (and a few legacy fallbacks). Used by
+ * `Repo` construction and other sync paths that cannot await.
  *
- * Also reads .beads/config.yaml for beads-specific settings.
+ * **App-level callers should prefer `@silvery/config`** — see
+ * `apps/km-cli/src/commands/bd.ts` for the canonical usage. That package
+ * provides multi-source (global + project) discovery, scoped writes,
+ * reactive signals, and watching. This file exists because km's `Repo`
+ * factory is a sync generator (`function*`) and cannot await an async load.
  *
- * External callers should prefer loadConfigObject() from config-object.ts
- * which returns a Config domain object with an explicit reload() method.
+ * Search order (walk up from `searchFrom` to filesystem root, first hit
+ * wins):
+ *   - .km/config.yaml
+ *   - .km/config.yml
+ *   - .km/config.json
+ *   - .kmrc.yaml
+ *   - .kmrc.yml
+ *   - .kmrc.json
+ *
+ * Also reads `.beads/config.yaml` for legacy beads migration metadata via
+ * `getOriginalBeadsConfig()` — separate concern, separate API.
+ *
+ * External callers should prefer `loadConfigObject()` from
+ * `config-object.ts`, which returns a Config domain object with an
+ * explicit `reload()` method.
  */
 
 import { createLogger } from "loggily"
-import { cosmiconfigSync } from "cosmiconfig"
 import { existsSync, readFileSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { parse as parseYaml } from "yaml"
@@ -76,31 +90,58 @@ export interface OriginalBeadsConfig {
   actor?: string
 }
 
-const explorer = cosmiconfigSync("km", {
-  searchPlaces: [
-    ".km/config.yaml",
-    ".km/config.yml",
-    ".km/config.json",
-    ".kmrc",
-    ".kmrc.yaml",
-    ".kmrc.yml",
-    ".kmrc.json",
-    "km.config.js",
-    "km.config.ts",
-  ],
-})
-
-// NOTE: Process-wide caches removed (they were buggy - ignored searchFrom).
-// Use loadConfigObject() per Repo, or loadConfig() which uses cosmiconfig's cache.
+const SEARCH_PLACES = [
+  ".km/config.yaml",
+  ".km/config.yml",
+  ".km/config.json",
+  ".kmrc.yaml",
+  ".kmrc.yml",
+  ".kmrc.json",
+] as const
 
 /**
- * Find and load .beads/config.yaml
+ * Walk up from `start` to `/`, returning the first existing matching file.
+ * Mirrors cosmiconfig's discovery semantics for our supported `searchPlaces`.
+ */
+function findConfigFile(start: string): string | null {
+  let dir = start
+  while (true) {
+    for (const place of SEARCH_PLACES) {
+      const candidate = join(dir, place)
+      if (existsSync(candidate)) return candidate
+    }
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
+function parseConfigFile(filepath: string): unknown {
+  const raw = readFileSync(filepath, "utf-8")
+  if (filepath.endsWith(".json")) {
+    return JSON.parse(raw)
+  }
+  // yaml.parse handles both YAML and superset-of-JSON.
+  return parseYaml(raw)
+}
+
+// Cache by `searchFrom` arg (cosmiconfig used internal cache keyed similarly).
+// Cleared by `clearConfigCache()`. Tests rely on this caching behavior.
+type CacheEntry = { config: KmConfig; filepath: string } | null
+const configCache = new Map<string, CacheEntry>()
+
+function cacheKey(searchFrom: string | undefined): string {
+  return searchFrom ?? process.cwd()
+}
+
+/**
+ * Find and load `.beads/config.yaml`.
  * Returns both config and path for caller to track.
  */
 function loadOriginalBeadsConfigWithPath(
   searchFrom?: string,
 ): { config: OriginalBeadsConfig; filepath: string } | null {
-  let dir = searchFrom || process.cwd()
+  let dir = searchFrom ?? process.cwd()
 
   while (dir !== "/") {
     const beadsConfigPath = join(dir, ".beads", "config.yaml")
@@ -120,7 +161,7 @@ function loadOriginalBeadsConfigWithPath(
 }
 
 /**
- * Get the original beads config (for migration info)
+ * Get the original beads config (for migration info).
  */
 export function getOriginalBeadsConfig(searchFrom?: string): OriginalBeadsConfig | null {
   return loadOriginalBeadsConfigWithPath(searchFrom)?.config ?? null
@@ -128,32 +169,46 @@ export function getOriginalBeadsConfig(searchFrom?: string): OriginalBeadsConfig
 
 /**
  * Load km configuration, searching from the given directory.
- * Uses cosmiconfig's internal cache for performance.
+ * Returns the merged plain config object — empty `{}` when no file is found.
  */
 export function loadConfig(searchFrom?: string): KmConfig {
-  const result = explorer.search(searchFrom)
-  if (result && !result.isEmpty) {
-    return result.config as KmConfig
-  }
-  return {}
+  return loadConfigWithPath(searchFrom)?.config ?? {}
 }
 
 /**
  * Load km configuration and return both config and filepath.
  */
 export function loadConfigWithPath(searchFrom?: string): { config: KmConfig; filepath: string } | null {
-  const result = explorer.search(searchFrom)
-  if (result && !result.isEmpty) {
-    return { config: result.config as KmConfig, filepath: result.filepath }
+  const key = cacheKey(searchFrom)
+  if (configCache.has(key)) return configCache.get(key) ?? null
+
+  const filepath = findConfigFile(searchFrom ?? process.cwd())
+  if (!filepath) {
+    configCache.set(key, null)
+    return null
   }
-  return null
+  let parsed: unknown
+  try {
+    parsed = parseConfigFile(filepath)
+  } catch (err) {
+    log.warn?.(`failed to parse ${filepath}: ${String(err)}`)
+    configCache.set(key, null)
+    return null
+  }
+  if (parsed == null || typeof parsed !== "object") {
+    configCache.set(key, null)
+    return null
+  }
+  const entry = { config: parsed as KmConfig, filepath }
+  configCache.set(key, entry)
+  return entry
 }
 
 /**
  * Clear the config cache (useful for testing or after config changes).
  */
 export function clearConfigCache(): void {
-  explorer.clearCaches()
+  configCache.clear()
 }
 
 /**

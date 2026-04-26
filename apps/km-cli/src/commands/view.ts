@@ -214,16 +214,20 @@ export const viewCommand = new Command("view")
 
       const viewMode = VIEW_MODES.includes(options.as as ViewMode) ? (options.as as ViewMode) : "cards"
 
-      // Watch options: CLI flag > config > default (true)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
-      const tuiConfig = storageModule!.loadConfigObject(resolved.repoRoot).tui
-      const watchEnabled = options.watch !== false ? tuiConfig.watch : false
-      const watchWorker = tuiConfig.watchWorker
+      // Watch options: CLI flag > config > default (true).
+      // Read via `@silvery/config` so we share the canonical loader with km-cli's
+      // `bd …` subcommands (multi-source: project `.km/config.yaml` overrides
+      // global `~/.config/km/config.yaml`).
+      const { loadConfig } = await import("@silvery/config")
+      const cfg = await loadConfig({ appName: "km", cwd: resolved.repoRoot, watch: false })
+      const watchCfg = cfg.get<boolean>("tui.watch") ?? true
+      const watchWorker = cfg.get<boolean>("tui.watchWorker") ?? true
+      const watchEnabled = options.watch !== false ? watchCfg : false
       debug.debug?.("watch config", {
         watchEnabled,
         watchWorker,
         cli: options.watch,
-        config: tuiConfig.watch,
+        config: watchCfg,
       })
 
       // Run board - TUI takes over from here
