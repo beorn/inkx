@@ -28,6 +28,15 @@ import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
 import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
 import { welcomeBasic } from "./stories/Welcome.basic.story.tsx"
+// Wave B — ACP component family stories
+import { sessionPromptComposerEmpty } from "./stories/SessionPromptComposer.empty.story.tsx"
+import { sessionPromptComposerWithText } from "./stories/SessionPromptComposer.with-text.story.tsx"
+import { sessionPromptComposerWithQueue } from "./stories/SessionPromptComposer.with-queue.story.tsx"
+import { sessionPromptHistoryEntries } from "./stories/SessionPromptHistory.entries.story.tsx"
+import { usageMeterFull } from "./stories/UsageMeter.full.story.tsx"
+import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchangeDivider.between-exchanges.story.tsx"
+import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
+import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
 
 /**
  * Canonical, ordered list of stories. Order is the runner's display order;
@@ -51,6 +60,17 @@ export const STORIES: readonly Story[] = [
   // Higher-order: full conversation via SessionUpdateList
   sessionUpdateListEmpty,
   sessionUpdateListMultiTurn,
+  // Conversation structure
+  sessionExchangeDividerBetweenExchanges,
+  sessionRetryFailedExchange,
+  subAgentExchangeCollapsed,
+  // Prompt composer (Wave B — acp-session-prompt)
+  sessionPromptComposerEmpty,
+  sessionPromptComposerWithText,
+  sessionPromptComposerWithQueue,
+  sessionPromptHistoryEntries,
+  // Usage / cost (Wave B — acp-usage-and-permission)
+  usageMeterFull,
   // Dialogs
   availableCommandsPaletteOpen,
   requestPermissionInboxOnePending,
