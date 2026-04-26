@@ -45,7 +45,7 @@ function scanLogDir(dir: string | undefined): Entry[] {
  * replay a selected log. FTS5 + mdtest tape integration come after the MVP
  * M10 work expands recall-index coverage; for now this is linear scan.
  */
-export function HistoryView({ onClose, logDir }: { onClose: () => void; logDir?: string }): React.ReactElement {
+export function HistoryDialog({ onClose, logDir }: { onClose: () => void; logDir?: string }): React.ReactElement {
   const [query, setQuery] = useState("")
   const [cursor, setCursor] = useState(0)
 

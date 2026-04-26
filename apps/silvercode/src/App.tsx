@@ -3,7 +3,7 @@ import type { AgentSession, SessionStore } from "@km/agent-harness"
 import { Box, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
-import { HistoryView } from "./components/HistoryView.tsx"
+import { HistoryDialog } from "./components/HistoryDialog.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
@@ -649,7 +649,7 @@ export function App(props: AppProps): React.ReactElement {
                   onClose={() => setShowInbox(false)}
                 />
               )}
-              {showHistory && <HistoryView onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+              {showHistory && <HistoryDialog onClose={() => setShowHistory(false)} logDir={props.logDir} />}
               <Notifications sessions={sessions} />
 
               {paletteQuery !== null && (

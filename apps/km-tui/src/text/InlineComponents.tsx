@@ -12,11 +12,13 @@
 
 import React from "react"
 import { Link, Small, Text } from "@silvery/ag-react"
+import { detectAutolinks } from "@km/autolinks"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
 import { type PopoverContent } from "../views/Popover.tsx"
 import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
+import { useAutolinks } from "./AutolinksContext.tsx"
 import type {
   BareURLNode,
   BoldNode,
@@ -176,8 +178,64 @@ export function InlinePlainText({
   decorations,
   offset,
 }: { node: PlainTextNode } & DecorationProps): React.ReactElement {
-  if (!decorations?.length) return <Text>{node.text}</Text>
-  return <DecoratedText text={node.text} decorations={decorations} offset={offset ?? 0} />
+  // Search/find decorations take priority — they highlight matched ranges
+  // and the autolink pass would conflict with their styling. When there are
+  // decorations, render the legacy path unchanged.
+  if (decorations?.length) {
+    return <DecoratedText text={node.text} decorations={decorations} offset={offset ?? 0} />
+  }
+  // Autolink pass: scan the plain-text run against the user's syntaxlinks
+  // rules + virtual URL detector. Fast path (no rules, no detections, no
+  // empty text) returns a single <Text> with no per-piece nesting, which is
+  // important for cards where text is short and overhead matters.
+  return <AutolinkedPlainText text={node.text} />
+}
+
+/**
+ * Render a plain-text run with rule-driven autolink detection applied.
+ *
+ * The runtime cost is one regex sweep per visible plain-text node; rules
+ * compile to global RegExps at config load and are reused. When the rule
+ * list is empty AND there are no virtual URL detections, this collapses
+ * to a single <Text>{text}</Text> — same as the non-autolinks path.
+ */
+function AutolinkedPlainText({ text }: { text: string }): React.ReactElement {
+  const ctx = useAutolinks()
+  // Memoize per-text detection so React doesn't re-scan on every render
+  // when the same text re-mounts (e.g. during a parent's re-render). The
+  // rules array identity is stable for the session.
+  const detections = React.useMemo(() => detectAutolinks(text, ctx.rules), [text, ctx.rules])
+  if (detections.length === 0) {
+    return <Text>{text}</Text>
+  }
+  // Split the text into alternating plain + detection spans. Detections
+  // are non-overlapping and sorted by start offset (guaranteed by
+  // detectAutolinks), so a single linear pass covers the run.
+  const pieces: React.ReactNode[] = []
+  let cursor = 0
+  for (const d of detections) {
+    if (d.start > cursor) {
+      pieces.push(
+        <React.Fragment key={`t${cursor}`}>{text.slice(cursor, d.start)}</React.Fragment>,
+      )
+    }
+    // Virtual URL detections inherit the link color so plain links read
+    // like links. Configured (rule-driven) autolinks use $secondary to
+    // distinguish rule-driven matches from raw URLs. Mirrors silvercode's
+    // `colorFor` for autolink kinds.
+    const isVirtual = d.payload.virtual === "1"
+    const color = isVirtual ? "$info" : "$secondary"
+    pieces.push(
+      <Text key={`d${d.start}`} color={color} underline>
+        {d.match}
+      </Text>,
+    )
+    cursor = d.end
+  }
+  if (cursor < text.length) {
+    pieces.push(<React.Fragment key={`tail${cursor}`}>{text.slice(cursor)}</React.Fragment>)
+  }
+  return <Text>{pieces}</Text>
 }
 
 export function InlineBold({ node, decorations, offset }: { node: BoldNode } & DecorationProps): React.ReactElement {
