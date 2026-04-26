@@ -179,13 +179,23 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
             </Text>
           )
         }
+        // Boundary whitespace preservation: gap text between detections is
+        // wrapped in `<Text>` rather than `React.Fragment`. Every piece is
+        // now a virtual silvery-text child with uniform shape — the link
+        // `<Text>` and the surrounding gap `<Text>` both contribute to
+        // the parent's unified text run as styled spans. In testing the
+        // cell-level invariant — the character at the position
+        // immediately after the link is always the trailing space, never
+        // the next word's first character — holds in both shapes; this
+        // change is the smaller-radius fix that consolidates on a single
+        // node type at the boundary so renderers (xterm.js / native
+        // terminal) see consistent cell metadata across pieces. Bead:
+        // km-silvercode.autolink-trailing-space-eaten.
         const pieces: React.ReactNode[] = []
         let cursor = lineStart
         for (const d of lineDetections) {
           if (d.start > cursor) {
-            pieces.push(
-              <React.Fragment key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</React.Fragment>,
-            )
+            pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
           }
           pieces.push(
             <Text
@@ -200,7 +210,7 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
           cursor = d.end
         }
         if (cursor < lineEnd) {
-          pieces.push(<React.Fragment key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</React.Fragment>)
+          pieces.push(<Text key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</Text>)
         }
         return (
           <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} wrap="wrap">

@@ -38,7 +38,10 @@ function feed(term: TermlessTerm, data: string): void {
   ;(term as unknown as { sendInput: (s: string) => void }).sendInput(data)
 }
 
-const CTRL_W = "\x17"
+// Ctrl+G (0x07, BEL) is the pane chord prefix as of 2026-04-26 — was
+// Ctrl+W until silvery TextArea was found to consume Ctrl+W as
+// readline word-delete. Bead: km-silvercode.ctrl-w-blocked-by-textarea.
+const CTRL_G = "\x07"
 
 async function bootGrid(): Promise<{
   term: TermlessTerm
@@ -71,7 +74,7 @@ describe("pane drag-move — grab handle + drop", () => {
     try {
       // Single pane → vsplit → two panes side by side, each with a
       // grab handle.
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "v")
       await settle(250)
@@ -91,7 +94,7 @@ describe("pane drag-move — grab handle + drop", () => {
     try {
       // Build a 2-pane row split [A | B], then drag A → right edge of B.
       // Expectation: layout becomes [B | A] (A is now to the right of B).
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "v")
       await settle(300)

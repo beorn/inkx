@@ -6,16 +6,16 @@
  * Asserts the 2D-grid contract that distinguishes v2 from v1's flat-row
  * PaneGrid:
  *
- *   1. A horizontal split (Ctrl+W s) renders a `─` row divider.
- *   2. Mixed splits (Ctrl+W v then Ctrl+W s on the right pane) render
+ *   1. A horizontal split (Ctrl+G s) renders a `─` row divider.
+ *   2. Mixed splits (Ctrl+G v then Ctrl+G s on the right pane) render
  *      both a `│` column divider AND a `─` row divider — i.e. the tree
  *      grew a column-split as the right child of a row-split.
- *   3. Ctrl+W z (zoom) hides ALL dividers across the 2D tree — the
+ *   3. Ctrl+G z (zoom) hides ALL dividers across the 2D tree — the
  *      focused pane fills the entire grid area.
  *
  * Wiring follows pane-management.test.tsx: real `<App/>` driven through
  * createTermless so silvery's app-root scope is in place. We feed key
- * bytes (`\x17` = Ctrl+W, `\x1a` = Ctrl+Z, etc) as if typed at the
+ * bytes (`\x07` = Ctrl+G, `\x1a` = Ctrl+Z, etc) as if typed at the
  * terminal — same path a real user hits.
  */
 
@@ -40,10 +40,15 @@ function feed(term: TermlessTerm, data: string): void {
 }
 
 // ASCII control bytes — what the terminal driver produces when the user
-// holds Ctrl and presses the matching letter. Ctrl+W = ETB (0x17). We
+// holds Ctrl and presses the matching letter. Ctrl+G = BEL (0x07). We
 // don't send a raw Ctrl+Z anywhere because it would SIGTSTP the host
 // process; the chord follow-up is the literal `z` character.
-const CTRL_W = "\x17"
+//
+// History: chord prefix was Ctrl+W (vim-window) until 2026-04-26, but
+// silvery's TextArea consumes Ctrl+W as readline word-delete BEFORE
+// App-level useInput sees it. Switched to Ctrl+G (= bell, no readline
+// binding) in bead km-silvercode.ctrl-w-blocked-by-textarea.
+const CTRL_G = "\x07"
 
 async function bootGrid(layout: "single" | "grid-2" = "single"): Promise<{
   term: TermlessTerm
@@ -72,11 +77,11 @@ async function bootGrid(layout: "single" | "grid-2" = "single"): Promise<{
 }
 
 describe("pane management — 2D binary-split tree", () => {
-  test("Ctrl+W s — horizontal split renders a row divider (`─`)", async () => {
+  test("Ctrl+G s — horizontal split renders a row divider (`─`)", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("single")
     try {
-      // Single pane initial → Ctrl+W s creates a column-split (top + bottom).
-      feed(term, CTRL_W)
+      // Single pane initial → Ctrl+G s creates a column-split (top + bottom).
+      feed(term, CTRL_G)
       // Tiny gap so the chord state has time to settle in React before
       // the follow-up byte arrives — the chord setter is async.
       await settle(20)
@@ -98,18 +103,18 @@ describe("pane management — 2D binary-split tree", () => {
     }
   })
 
-  test("Ctrl+W v then Ctrl+W s — mixed split renders both `│` and `─` dividers", async () => {
+  test("Ctrl+G v then Ctrl+G s — mixed split renders both `│` and `─` dividers", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("single")
     try {
       // 1) Vertical split (row-split): pane A | pane B (B becomes focused).
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "v")
       await settle(250)
 
       // 2) Horizontal split on the now-focused right pane (B): the right
       //    child of the row-split becomes a column-split (B-top / C-bot).
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "s")
       await settle(250)
@@ -129,15 +134,15 @@ describe("pane management — 2D binary-split tree", () => {
     }
   })
 
-  test("Ctrl+W z — zoom hides dividers across the 2D tree", async () => {
+  test("Ctrl+G z — zoom hides dividers across the 2D tree", async () => {
     const { term, handle, fakesInstalled } = await bootGrid("single")
     try {
       // Build a 2D tree: vsplit, then hsplit on the right pane.
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "v")
       await settle(250)
-      feed(term, CTRL_W)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "s")
       await settle(250)
@@ -147,10 +152,10 @@ describe("pane management — 2D binary-split tree", () => {
       expect(before).toContain("│")
       expect(before).toContain("─")
 
-      // Zoom toggle — Ctrl+W z. (Sending Ctrl+Z directly would suspend
+      // Zoom toggle — Ctrl+G z. (Sending Ctrl+Z directly would suspend
       // the host process; the app's chord wires the literal letter `z`
-      // after the Ctrl+W prefix.)
-      feed(term, CTRL_W)
+      // after the Ctrl+G prefix.)
+      feed(term, CTRL_G)
       await settle(20)
       feed(term, "z")
       await settle(250)
