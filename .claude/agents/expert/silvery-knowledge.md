@@ -1,6 +1,39 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-25 (Phase 4b — selection as overlay + soft-wrap-aware fragments via Option-B wrap measurer registry)
+Last updated: 2026-04-26 (flexily explicit-flexShrink=0 fix — gutter-collapse regression)
+
+## flexily explicit-flexShrink=0 must be honored for overflow=hidden boxes (2026-04-26)
+
+**Bead**: `km-silvercode.layout-corrupt-during-stream-with-queue` (P1).
+
+**Symptom**: silvercode SessionCard's 1-col left-gutter accent bar (`<Text wrap="wrap">"▎"×200</Text>` inside `Box(width=1, flexShrink=0, overflow=hidden)`) collapsed to width=0 during streaming. The bug also reproduced statically whenever a row sibling's measureFunc max-content baseSize exceeded the container.
+
+**Root cause** (flexily `src/layout-zero.ts` line 793, pre-fix):
+
+```ts
+let shrink = childStyle.flexShrink
+if (childStyle.overflow !== C.OVERFLOW_VISIBLE) shrink = Math.max(shrink, 1)
+if (child.hasMeasureFunc() && childStyle.flexGrow > 0) shrink = Math.max(shrink, 1)
+```
+
+These two overrides existed to bridge Yoga-default `flexShrink:0` → CSS-spec shrinking for overflow containers and flexGrow leaves. They fired UNCONDITIONALLY — clobbering the consumer's explicit `setFlexShrink(0)` ("I am rigid"). Negative-free-space distribution then weighted-shrunk the gutter to 0 (negative-space proportional to baseSize × flexShrink; gutter baseSize=1, list baseSize=88, gutter shrinks ~0.78 → rounds to 0).
+
+**Fix** (flexily `c34237b`): added `_flexShrinkExplicit: boolean` on Node, set true by `setFlexShrink()`, exposed via `hasExplicitFlexShrink()`. Both overrides now gate on `!explicitShrink`. Explicit `setFlexShrink(0)` on `overflow=hidden` is honored — the Box stays rigid.
+
+**Why this didn't bite earlier**: the recursive min-content rollout (flexily `b93d4a5` + `f8fd934`, 2026-04-25/26) increased the realistic baseSize of measureFunc-container siblings (Box-wrapped wrap-Text now propagates true min-content instead of approximating with baseSize=max-content). That tipped more layouts into negative-free-space territory, exposing the latent override behavior.
+
+**Lessons**:
+- "CSS bridge" overrides that ignore explicit consumer values are foot-guns. The CSS §4.5 rule is about *min-size*, not flexShrink — flexily's flexShrink override was a heuristic, not a spec-correct mapping.
+- Reproducing at the flexily layer (Node API directly) bisected this in seconds: silvery + ListView + TextArea is enough scaffolding to obscure where the issue lives. The Node-level repro fits in ~50 LOC.
+- The trigger is a *combination* of (overflow=hidden) + (explicit flexShrink=0) + (sibling with baseSize > available main-axis). All three must hold.
+
+**Where this lives**:
+- `vendor/flexily/src/node-zero.ts` — `_flexShrinkExplicit` field + `hasExplicitFlexShrink()` getter
+- `vendor/flexily/src/layout-zero.ts` — `!explicitShrink` gating on the two overrides
+- `vendor/flexily/tests/silvercode-gutter-bug.test.ts` — 4 canonical repros (60/20/10 widths + minimal sibling)
+- `vendor/silvery/tests/features/layout-during-stream.test.tsx` — silvery-integration regression test exercising the SessionCard + CommandBox + simultaneous-resize sequence
+
+
 
 ## Soft-wrap selection fragments (Phase 4b deferred → closed)
 
@@ -1195,6 +1228,128 @@ Why `SILVERY_STRICT=1` missed it: STRICT runs a "fresh render" via `doFreshRende
 7. Parallel hypothesis testing via sub-agents
 
 ## Staging — findings to groom
+
+### 2026-04-26 — HeightModel Phase 2 + follow="end" policy
+
+**Bead**: `km-silvery.listview-heightmodel-unify` (Phase 2),
+`km-silvery.listview-followpolicy-split` — both shipped on this date.
+
+**Phase 2 rewire** — `ListView` no longer uses `sumHeights(...)` for
+production height math. The Fenwick-backed `HeightModel` (scaffolded
+c5e58336) now owns: `totalRowsMeasured`, `rowsAboveViewport`,
+`indexLeadingSpacer`, `indexTrailingSpacer`, and the budget-loop
+`rowsForRange(s, e)`. The model is allocated once via `useRef` and
+reconfigured per render via `update({ itemCount, gap, estimate })`. A
+reconfigure rebuilds the Fenwick tree (O(n log n)); for n ≤ 200 this is
+~1500 ops, dwarfed by React render cost.
+
+**Two `sumHeights` callsites kept on purpose**:
+1. `totalRowsStable = items.length × (estimate + gap)` — the visibility
+   gate intentionally uses estimate-only math (TanStack-convention
+   anti-jitter). Not `sumHeights` per se, but the same role.
+2. The `SILVERY_STRICT` cross-check at `~line 1880` in `ListView.tsx`
+   compares the virtualizer's internally-computed `leadingHeight`
+   against an INDEPENDENT `sumHeights(0, range.startIndex, …)` call.
+   Replacing with `heightModel.prefixSum(...)` would make this a
+   self-consistency tautology because the model and the virtualizer
+   share `effectiveEstimate` resolution at runtime.
+
+**Effective-estimate semantics**: `effectiveEstimate(i)` mirrors the
+per-item resolution that `sumHeights` performed inline — measured cache
+first (keyed by `(itemKey, viewportWidth)` via `makeMeasureKey`),
+`avgMeasured` fallback when ANY measurements exist, then estimate. Without
+this fallback, leading/trailing placeholders overshoot when the original
+estimate diverges from actual heights — the silvercode tall-AssistantBlock
+overshoot pattern (Stream J / Stream O fixes).
+
+**follow="end" — cursor independence + visual-row atEnd**:
+
+The bead splits two latent bugs in the legacy `stickyBottom={true}` path:
+
+1. **CURSOR INDEPENDENCE**. Setting `cursorKey={lastIdx}` together with
+   `stickyBottom={true}` made BOTH the cursor-pin (`scrollTo` →
+   ensure-visible) AND the sticky auto-follow drive the viewport. Two
+   scroll authorities competing produced viewport jumps when the last
+   item changed shape mid-scroll (silvercode resume race against
+   streamed AssistantBlock height growth, prior Item ID tracking bug).
+   New policy: `follow="end"` removes cursor-as-scroll-authority. The
+   cursor is a SELECTION marker only.
+
+2. **VISUAL-ROW atEnd**. `atBottom = (cursor === lastIdx)` was wrong
+   when the last item was taller than the viewport: cursor on the last
+   item but its tail still off-screen below. New formula:
+   `atEnd = (scrollRow ?? rowsAboveViewportRef.current) + trackHeight
+   >= heightModel.totalRows() - 0.5`. Pure row math.
+
+**Mechanics for the snap-to-end on initial mount**:
+
+- `pendingFollowSnapRef = useRef<boolean>` is initialized once on
+  first render via a `followInitialisedRef` guard (not a useEffect —
+  must run during render so `scrollTo` resolution can read it).
+- The follow-end pre-snap path passes `scrollTo = items.length - 1` to
+  the inner Box on the first paint (synchronous ensure-visible) so the
+  viewport at least has the last item's neighbourhood rendered before
+  the row-space snap fires.
+- The row-space snap is gated on `viewportReady = !isHeightIndependent
+  || (viewportSize?.h ?? 0) > 0`. Without this gate, the snap fires
+  with `trackHeight=1` (viewportSize fallback before first layout),
+  computing `scrollableRows = totalRowsMeasured - 1` — a phantom
+  small `maxRow` that pins the viewport near the top with
+  `pendingFollowSnap` already cleared. The viewport then never recovers
+  on subsequent renders.
+- Effect deps include `measuredHeights.size` AND `viewportSize?.h` so
+  the effect re-fires as measurements arrive and the viewport becomes
+  measurable. Without these, the effect doesn't run again after first
+  paint and the snap stays deferred.
+
+**`atBottom = shouldSnap ? true : computedAtEnd` short-circuit**: when
+items grow while at-end, the new totalContentRows is bigger than the
+old, so the stale scrollRow puts `bottomRow < newTotal` → atEnd=false
+transiently, then the snap fires and the next render flips back to
+true. Without the short-circuit, this fires `onAtBottomChange(false)`
+followed by `onAtBottomChange(true)` per items-grow — doubling the
+callback rate. The snap KNOWS the post-snap state is at-end; report
+that directly.
+
+**`stickyBottom` deprecation**: kept as a one-cycle alias mapping to
+`follow="end"`. Explicit `follow={...}` wins when both are passed.
+`FollowPolicy = "none" | "end"` exported alongside
+`VirtualizationStrategy`.
+
+**silvercode MessageList migration**: dropped the historical
+`cursorKey={lastKey}` pin (was a workaround for the cursor-vs-sticky
+race). Now uses `follow="end"` only. User-visible behaviour unchanged.
+
+**Tests**: 8 new tests in `tests/features/listview-follow-end.test.tsx`
+covering initial-mount snap, append-at-bottom auto-scroll, wheel-up
+pause, wheel-back resume, cursor independence, visual-row atEnd math,
+and the `stickyBottom` alias semantics. Full listview suite (62 tests
+across 11 files) plus 11 silvercode MessageList-touching tests green.
+
+**Pitfalls during implementation (this session)**:
+
+- React useRef call-order matters: `pendingFollowSnapRef` MUST be
+  declared before any conditional hook calls, including before the
+  `scrollTo` resolution that reads it. I initially put the ref next to
+  the at-bottom effect (further down in the function), then had to
+  move it up.
+- The classic-loop renderer.ts stabilization (max 5 iterations)
+  catches React commits from useEffect, but each iteration's effect
+  runs with the THEN-current refs. If maxRow is 0 in iteration N
+  because viewportSize hasn't been measured yet, the snap MUST defer
+  until iteration N+1 with viewport set — the gate must read both
+  `viewportReady` AND `maxRow > 0`.
+- `heightModel` is a stable identity (useRef-backed) but its
+  `totalRows()` output changes per render. Listing it in effect deps
+  doesn't make the effect re-run when totalRows changes — must depend
+  on `measuredHeights.size` for that.
+
+**Promote-to**: `vendor/silvery/packages/ag-react/src/ui/components/list-view/`
+deserves its own README documenting the (a) HeightModel as the height-math
+SoT, (b) FollowPolicy semantics, (c) snap-gate viewport-ready invariant.
+Defer until `km-silvery.listview-heightmodel-unify` Phase 3 lands (which
+will rewire the SILVERY_STRICT cross-check or replace it with a different
+invariant).
 
 ### 2026-04-25 — cursor as layout output (Phase 2 of view-as-layout-output)
 

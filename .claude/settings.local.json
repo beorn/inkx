@@ -96,7 +96,11 @@
       "Bash(mlx_lm.server:*)",
       "Bash(mlx_lm.chat:*)",
       "Bash(mlx_lm.manage:*)",
-      "Bash(mkdir -p /Users/beorn/.lmstudio/models/mlx-community)"
+      "Bash(mkdir -p /Users/beorn/.lmstudio/models/mlx-community)",
+      "Bash(git -C /Users/beorn/Code/pim/km log --oneline -5)",
+      "Bash(bd show *)",
+      "Bash(bd update km-flexily.recursive-min-content --notes ' *)",
+      "Bash(bd dolt *)"
     ],
     "deny": [],
     "ask": []
