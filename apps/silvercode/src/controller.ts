@@ -194,6 +194,17 @@ export type ControllerOptions = {
    * to process.cwd().
    */
   workspaceRoot?: string
+  /**
+   * Read the UI's currently-focused region. When the user has moved focus
+   * INTO the queue region (to inspect / edit / reorder queued entries), the
+   * controller's turn-end auto-flush MUST NOT yank the draft out from under
+   * them. Returns "queue" while the user is editing the queue TextArea,
+   * "command" otherwise. Default (undefined accessor) → behave as before
+   * (always auto-flush on turn-end). The explicit `flushQueue` path is
+   * unaffected — Enter-in-queue is the user saying "send now" and bypasses
+   * this guard. See bead `km-silvercode.queue-focus-flush-guard`.
+   */
+  getFocusedRegion?: () => "queue" | "command"
 }
 
 export type SpawnSessionOptions = {
@@ -338,6 +349,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const status = s.store.state.get().status
       if (status !== "idle") {
         dQueue("tryFlush %s — status=%s, skip", sessionId, status)
+        return
+      }
+      // Focus guard — if the user has moved the cursor INTO the queue
+      // region (editing / reordering queued entries), don't yank their
+      // draft mid-edit. Auto-flush will fire on the NEXT turn-end after
+      // they move focus back to the command box. Explicit submit
+      // (flushQueue, force=true) bypasses this. See bead
+      // km-silvercode.queue-focus-flush-guard.
+      const region = opts.getFocusedRegion?.()
+      if (region === "queue") {
+        dQueue("tryFlush %s — focus=queue, skip (auto-flush paused)", sessionId)
         return
       }
     }

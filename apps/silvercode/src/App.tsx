@@ -104,6 +104,15 @@ export function App(props: AppProps): React.ReactElement {
   // re-mounted with a different working directory.
   const autolinkRules = useMemo<AutolinkRule[]>(() => loadAutolinksConfig(props.cwd), [props.cwd])
 
+  // Ref-backed mirror of `focusedRegion` so the controller can read the
+  // latest value without depending on React state. App.tsx owns the
+  // useState below; this ref is kept in sync via a one-line effect. The
+  // controller calls `getFocusedRegion()` at every turn-end — when it
+  // returns "queue", auto-flush is paused so the user's in-progress
+  // queue edit isn't yanked mid-edit. See bead
+  // km-silvercode.queue-focus-flush-guard.
+  const focusedRegionRef = useRef<"queue" | "command">("command")
+
   const controllerRef = useRef<Controller | null>(null)
   if (!controllerRef.current) {
     controllerRef.current = createSilvercodeController({
@@ -116,6 +125,7 @@ export function App(props: AppProps): React.ReactElement {
       account: props.account,
       initialSessions: props.layout === "grid-4" ? 4 : props.layout === "grid-2" ? 2 : 1,
       spawnFactory: props.spawnFactory,
+      getFocusedRegion: () => focusedRegionRef.current,
     })
   }
   const controller = controllerRef.current!
@@ -253,6 +263,13 @@ export function App(props: AppProps): React.ReactElement {
   // ("Should have a queue" crash).
   const queueText = useQueue(controller, focused?.id ?? "")
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
+  // Mirror focusedRegion into the ref the controller closes over (created
+  // once at mount above) so its turn-end auto-flush guard sees the latest
+  // value without us having to recreate the controller. Bead
+  // km-silvercode.queue-focus-flush-guard.
+  useEffect(() => {
+    focusedRegionRef.current = focusedRegion
+  }, [focusedRegion])
   // When the queue empties while it has focus, snap focus back to the
   // command region — there's nowhere for the cursor to live in the queue.
   useEffect(() => {
