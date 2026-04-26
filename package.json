@@ -220,5 +220,8 @@
     "rrule": "^2.8.1",
     "ulid": "^3.0.2",
     "zod": "^4.3.6"
-  }
+  },
+  "trustedDependencies": [
+    "@termless/core"
+  ]
 }
