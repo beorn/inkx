@@ -30,7 +30,7 @@ const COLS = 50
 const ROWS = 30
 
 /**
- * Mirror of the popover's content shape from DetectionText.renderAutolinkPopover.
+ * Mirror of the popover's content shape from LinkifiedText.renderAutolinkPopover.
  * Rendering this in isolation lets us inspect the markdown styling without
  * driving the App through a hover gesture (the visual harness can't simulate
  * dwell-timed mouse events).

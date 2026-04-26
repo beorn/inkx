@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { Box, Blockquote, Divider, H1, H2, H3, H4, Prose, Text } from "silvery"
 import { parseBlocks, type MdBlock, type MdInline } from "../markdown.ts"
-import { DetectionText } from "./DetectionText.tsx"
+import { LinkifiedText } from "./LinkifiedText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 
 function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
@@ -89,9 +89,9 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
       // to `parseInline(b.text)` would re-parse the FLATTENED text where
       // `**`/`*` markers have already been stripped by phrasingToString,
       // losing all emphasis. If there's nothing inline-formatted, defer
-      // to DetectionText for autodetection (URLs, file paths, beads).
+      // to LinkifiedText for autodetection (URLs, file paths, beads).
       if (b.inlines.length === 1 && b.inlines[0]?.kind === "text") {
-        return <DetectionText key={i} text={b.text} />
+        return <LinkifiedText key={i} text={b.text} />
       }
       return <InlineRun key={i} tokens={b.inlines} />
     }
@@ -172,19 +172,30 @@ function MarkdownTable({
   // Per-row `overflow="hidden"` so table cells clip rather than wrap —
   // wrapping would destroy the padded column alignment. Card-level
   // clipping at SessionCard handles layout-expansion prevention.
+  // Inner separators: `│` between cells, `─` underline after headers.
+  const sep = " │ "
+  const ruleSegments = widths.map((w) => "─".repeat(w))
+  const ruleLine = ruleSegments.join("─┼─")
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
-      <Box flexDirection="row" gap={1} overflow="hidden">
+      <Box flexDirection="row" overflow="hidden">
         {block.headers.map((h, col) => (
-          <Text key={col} bold color="$primary">
-            {pad(h, col)}
-          </Text>
+          <React.Fragment key={col}>
+            {col > 0 && <Text color="$border">{sep}</Text>}
+            <Text bold color="$primary">
+              {pad(h, col)}
+            </Text>
+          </React.Fragment>
         ))}
       </Box>
+      <Text color="$border">{ruleLine}</Text>
       {block.rows.map((row, rowIdx) => (
-        <Box key={rowIdx} flexDirection="row" gap={1} overflow="hidden">
+        <Box key={rowIdx} flexDirection="row" overflow="hidden">
           {row.map((cell, col) => (
-            <Text key={col}>{pad(cell, col)}</Text>
+            <React.Fragment key={col}>
+              {col > 0 && <Text color="$border">{sep}</Text>}
+              <Text>{pad(cell, col)}</Text>
+            </React.Fragment>
           ))}
         </Box>
       ))}

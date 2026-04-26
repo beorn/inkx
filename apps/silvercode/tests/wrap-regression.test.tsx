@@ -8,7 +8,7 @@
  *
  * Two separate fixes went into this regression:
  *
- *   1. `DetectionText` (src/components/DetectionText.tsx) emits a flex-row
+ *   1. `LinkifiedText` (src/components/LinkifiedText.tsx) emits a flex-row
  *      wrapping N Text pieces (plain-text gaps + detection links). Without
  *      `flexShrink=1 minWidth=0` on that row (and its outer column),
  *      flexily measures the row at `sum(children.maxContent)` ≫ parent
@@ -17,7 +17,7 @@
  *
  *   2. `AssistantBlock` (src/components/AssistantBlock.tsx) outer
  *      `<Box flexDirection="row" paddingX={1}>` was missing the same
- *      props; even after DetectionText wraps correctly, the AssistantBlock
+ *      props; even after LinkifiedText wraps correctly, the AssistantBlock
  *      row expands to child-intrinsic width and defeats wrap.
  *
  * silvery's reconciler does NOT apply CSS §4.5's "overflow:hidden ⇒
@@ -51,7 +51,7 @@ import { describe, expect, test } from "vitest"
 import { Box, Text } from "silvery"
 import { createRenderer } from "@silvery/test"
 import { AssistantBlock } from "../src/components/AssistantBlock.tsx"
-import { DetectionText } from "../src/components/DetectionText.tsx"
+import { LinkifiedText } from "../src/components/LinkifiedText.tsx"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 
 const TOTAL_COLS = 160
@@ -103,14 +103,14 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
   )
 }
 
-describe("regression: DetectionText wraps mixed-token paragraphs at card boundary", () => {
-  test("DetectionText with 5-piece shape wraps onto multiple visual lines", () => {
+describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundary", () => {
+  test("LinkifiedText with 5-piece shape wraps onto multiple visual lines", () => {
     // The screenshot text produces 2 detections: `~/Code/pim/km` and
     // `/Bun` (from "TypeScript/Bun"). That's 5 Text pieces in the row.
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
-        <DetectionText text={SCREENSHOT_TEXT} />
+        <LinkifiedText text={SCREENSHOT_TEXT} />
       </Shell>,
     )
 

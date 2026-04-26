@@ -6,7 +6,7 @@
  *
  * Before this migration: a `https://...` token in assistant text was matched
  * by `URL_RE` in `detection.ts`, became a `kind: "url"` detection, and
- * rendered through the legacy URL popover branch in `DetectionText`. The
+ * rendered through the legacy URL popover branch in `LinkifiedText`. The
  * autolinks handler registry was bypassed.
  *
  * After this migration: there is no `kind: "url"` detection. Plain URLs are
@@ -19,7 +19,7 @@
  *   2. End-to-end pipeline (`detectReferences` + `detectAutolinks` +
  *      `mergeDetections`) produces exactly one detection at the URL span,
  *      and that detection is `kind: "autolink"` with `virtual === "1"`.
- *      This is the exact data `<DetectionText/>` consumes — proving the
+ *      This is the exact data `<LinkifiedText/>` consumes — proving the
  *      visual frame's URL token routes through the handler registry.
  *   3. The `payload.url` field used by the legacy URL popover renderer is
  *      NOT present (legacy used `payload.url`, registry uses `resolves_to`).
@@ -75,8 +75,8 @@ describe("plain URL via handler registry — visual regression", () => {
     s.dispose()
   })
 
-  test("DetectionText pipeline routes the URL through autolink, not the legacy `url` kind", () => {
-    // This is the exact merge `<DetectionText/>` runs in its useMemo. We
+  test("LinkifiedText pipeline routes the URL through autolink, not the legacy `url` kind", () => {
+    // This is the exact merge `<LinkifiedText/>` runs in its useMemo. We
     // check the detection list directly so the assertion is precise about
     // which renderer branch fires (autolink, NOT the dropped legacy url).
     const builtins = detectReferences(ASSISTANT_TEXT)

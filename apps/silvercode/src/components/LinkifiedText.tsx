@@ -138,7 +138,7 @@ function colorFor(d: Detection): string {
   }
 }
 
-export function DetectionText({ text, role }: { text: string; role?: "assistant" | "user" }): React.ReactElement {
+export function LinkifiedText({ text, role }: { text: string; role?: "assistant" | "user" }): React.ReactElement {
   const popover = usePopover()
   const { rules } = useAutolinks()
   const detections = React.useMemo(() => {

@@ -5,7 +5,7 @@
  *   - The in-memory `PreviewResult` cache (keyed by `${preview}::${cache_key}`).
  *   - `fs.watch` lifecycle for file-backed previews (debounced eviction).
  *   - The 30s TTL fallback for shell-out / subprocess / network previews.
- *   - `resolvePreview` — the public entry point used by `DetectionText` and
+ *   - `resolvePreview` — the public entry point used by `LinkifiedText` and
  *     by tests. It builds a URI from the rule's `resolves_to`, dispatches
  *     into the handler registry (`./handlers/index.ts`), then folds the
  *     result through the cache + watcher layer.

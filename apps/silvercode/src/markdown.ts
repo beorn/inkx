@@ -34,7 +34,7 @@ import { parseMarkdown } from "@km/markdown"
  * the bold/italic/code/link spans. Storing the projected MdInline[]
  * alongside `text` lets the renderer apply styling without a re-parse.
  *
- * `text` is preserved for callers (DetectionText, Blockquote, etc.) that
+ * `text` is preserved for callers (LinkifiedText, Blockquote, etc.) that
  * need the flattened string.
  */
 export type MdBlock =

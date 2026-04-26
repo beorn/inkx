@@ -1,10 +1,10 @@
 /**
  * AutolinksContext — threads loaded autolink rules + the preview cache
- * down to `<DetectionText/>`.
+ * down to `<LinkifiedText/>`.
  *
  * The context value is read-only from the consumer's perspective. The App
  * mounts a single `<AutolinksProvider rules={…}>` once at startup; any
- * `<DetectionText/>` deeper in the tree picks rules up via `useAutolinks()`.
+ * `<LinkifiedText/>` deeper in the tree picks rules up via `useAutolinks()`.
  *
  * Consumers that aren't wrapped in a provider get an empty rule list —
  * autolinks gracefully degrade to "no extra detections" rather than

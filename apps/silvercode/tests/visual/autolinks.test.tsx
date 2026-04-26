@@ -7,7 +7,7 @@
  *
  * What this catches:
  *   - The YAML config under <cwd>/.km/config.yaml is loaded at App mount
- *   - DetectionText sees the autolink rules via AutolinksContext
+ *   - LinkifiedText sees the autolink rules via AutolinksContext
  *   - Autolink matches make it into the rendered frame (text contains "+km" / "AGENTS.md")
  *
  * What this deliberately does NOT cover (visual harness limits):
@@ -104,7 +104,7 @@ syntaxlinks:
     const autolinkMatches = merged.filter((d) => d.kind === "autolink").map((d) => d.match)
     expect(autolinkMatches).toContain("AGENTS.md")
     expect(autolinkMatches).toContain("+km")
-    // Each carries the expected preview kind so DetectionText dispatches
+    // Each carries the expected preview kind so LinkifiedText dispatches
     // to the correct renderer.
     const previews = merged.filter((d) => d.kind === "autolink").map((d) => d.payload.preview)
     expect(previews).toContain("first-paragraph")

@@ -6,7 +6,7 @@
  * match. Results merge with the built-in detections (file path, bead ID,
  * km node, code-ref) downstream — see `mergeDetections` in this file.
  *
- * The merged list is what flows through `<DetectionText/>` unchanged.
+ * The merged list is what flows through `<LinkifiedText/>` unchanged.
  *
  * Plain URLs in messages produce *virtual* autolink detections via
  * `virtualUrlDetections` below: they carry `preview: "https"` and

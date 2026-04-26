@@ -10,7 +10,7 @@
  *   1. `detectAutolinks` emits a virtual autolink for any URL-shaped token
  *      not already covered by a configured rule.
  *   2. After `mergeDetections` (no longer shadowed by a builtin URL kind),
- *      the virtual detection is what reaches `<DetectionText/>`.
+ *      the virtual detection is what reaches `<LinkifiedText/>`.
  *   3. `resolvePreview` routes that detection through `parseResolvesTo` and
  *      the handler registry, dispatching on the `https:` scheme to produce
  *      the v1 webcard placeholder body.
