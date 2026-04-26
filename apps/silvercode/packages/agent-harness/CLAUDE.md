@@ -40,6 +40,7 @@ Until both conditions hold, keep the layer. The cost is ~50 LOC of mostly-identi
 src/
   acp-types.ts       # silvercode's canonical ACP-shaped types (no @agentclientprotocol/sdk import)
   acp-boundary.ts    # bidirectional adapter — ONLY file importing @agentclientprotocol/sdk
+  acp-client.ts      # connectAcp(scope, opts): scope-bound ClientSideConnection for external ACP servers
   events.ts          # legacy AgentEvent union (Claude stream-json shaped, turn-oriented)
   parse.ts           # stream-json → AgentEvent normalizer (legacy path)
   session-store.ts   # AgentEvent consumer; emits signals for silvery components
@@ -51,6 +52,58 @@ src/
   index.ts           # public exports
 tests/               # vitest tests, including round-trip acp-boundary.test.ts
 ```
+
+## Consuming an external ACP server (Codex, Gemini CLI, Copilot CLI, pi-acp)
+
+`connectAcp(scope, opts)` spawns an ACP server child process and returns an
+`AcpAgentSession` — same shape as the legacy `AgentSession`, so the existing
+`session-store.ts` / `MessageList` / `ToolCallBlock` UI works unchanged.
+
+```ts
+import { connectAcp, connectAcpRegistry } from "@km/agent-harness"
+import { createScope } from "@silvery/scope"
+
+await using scope = createScope("agent-codex")
+
+// Direct command:
+const session = await connectAcp(scope, {
+  command: "npx",
+  args: ["-y", "@zed-industries/codex-acp"],
+  cwd: process.cwd(),
+  clientCapabilities: { fs: { readTextFile: true, writeTextFile: true } },
+  fsHandler: {
+    async readTextFile({ path }) {
+      return { content: await Bun.file(path).text() }
+    },
+    async writeTextFile({ path, content }) {
+      await Bun.write(path, content)
+      return {}
+    },
+  },
+  permissionHandler: async (req) => {
+    const choice = await ui.askPermission(req)
+    return choice ? { outcome: { outcome: "selected", optionId: choice.id } } : { outcome: { outcome: "cancelled" } }
+  },
+})
+
+// Or via the registry (same effect for known agents):
+const session = await connectAcpRegistry(scope, "codex", { cwd: process.cwd() })
+
+// Use the legacy AgentSession surface:
+session.subscribe((e) => console.log(e.kind, e))
+
+// Or call the typed ACP wrappers directly:
+const result = await session.prompt([{ type: "text", text: "fix the failing test" }])
+console.log(result.stopReason)
+```
+
+Disposing the scope kills the child process, closes the JSON-RPC stream, and
+aborts in-flight prompts. **Do not call `connectAcp` outside a scope** — the
+factory is fire-and-forget without one.
+
+This client is for **external ACP servers**. Wrapping Claude Code (so it
+speaks ACP) is a separate bead (`acp-adapter-claude`) — Claude's
+subscription auth path is bespoke and doesn't ride the generic ACP wire.
 
 ## Tests
 

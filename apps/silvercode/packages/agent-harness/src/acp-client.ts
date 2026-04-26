@@ -1,0 +1,647 @@
+/**
+ * connectAcp(scope, opts) — scope-bound `ClientSideConnection` factory for
+ * **external ACP servers** (Codex via `@zed-industries/codex-acp`, Gemini CLI
+ * in ACP mode, GitHub Copilot CLI, `pi-acp`, etc.).
+ *
+ * NOT for wrapping Claude Code — that's `acp-adapter-claude` / Anthropic's
+ * own `claude-agent-acp`. This module is the **client side**:
+ *
+ *     silvercode → ACP wire (ndJsonStream over stdio) → external ACP server.
+ *
+ * The connection lifecycle is owned by a `Scope` (`@silvery/scope`):
+ *
+ * - When the scope disposes, the child process is killed (SIGTERM, with a
+ *   short SIGKILL fallback), the ACP `ClientSideConnection` closes, and
+ *   in-flight prompts abort via the connection's AbortSignal.
+ * - Children are registered with the scope at construction. The signal also
+ *   propagates to in-flight `prompt(...)` calls, so callers don't have to
+ *   thread cancellation manually.
+ *
+ * The returned `AcpAgentSession` is structurally compatible with the existing
+ * silvercode `AgentSession` (`./events.ts`). `subscribe(handler)` receives
+ * the legacy `AgentEvent` union — `sessionUpdate` notifications from the
+ * agent are mapped to the closest legacy event so existing
+ * `session-store.ts` consumers work unchanged. Once the
+ * `acp-foundation`-shaped `SessionUpdate` becomes the canonical UI surface
+ * (bead `km-silvercode.acp-session`), this mapping moves to a thin
+ * pass-through and the existing inline mapper retires.
+ *
+ * Reference: hub/silvery/future/ai-terminal/10-agent-router-landscape.md
+ *            § "How ACP is set up and consumed (concrete)".
+ */
+
+import { spawn as nodeSpawn } from "node:child_process"
+import { EventEmitter } from "node:events"
+import { Readable, Writable } from "node:stream"
+import * as acp from "@agentclientprotocol/sdk"
+import { Scope, disposable } from "@silvery/scope"
+import createDebug from "debug"
+import { acpToSilvercode } from "./acp-boundary.ts"
+import type {
+  AgentEvent,
+  AgentSession,
+  ContentBlock as LegacyContentBlock,
+  PermissionRequestId,
+  SessionId,
+  ToolUseId,
+  TurnId,
+} from "./events.ts"
+
+const dSpawn = createDebug("agent-harness:acp:spawn")
+const dWire = createDebug("agent-harness:acp:wire")
+const dEvent = createDebug("agent-harness:acp:event")
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/**
+ * Permission handler — invoked when the agent requests permission to run a
+ * tool. Return `null` to translate to `{ outcome: "cancelled" }`. If no
+ * handler is wired, the connection responds `cancelled` and surfaces an
+ * `error` AgentEvent so the UI knows permission flow is unconfigured.
+ */
+export type PermissionHandler = (req: acp.RequestPermissionRequest) => Promise<acp.RequestPermissionResponse | null>
+
+export type FsHandler = {
+  readTextFile?: (req: acp.ReadTextFileRequest) => Promise<acp.ReadTextFileResponse>
+  writeTextFile?: (req: acp.WriteTextFileRequest) => Promise<acp.WriteTextFileResponse>
+}
+
+export type TerminalHandler = {
+  createTerminal?: (req: acp.CreateTerminalRequest) => Promise<acp.CreateTerminalResponse>
+  terminalOutput?: (req: acp.TerminalOutputRequest) => Promise<acp.TerminalOutputResponse>
+  releaseTerminal?: (req: acp.ReleaseTerminalRequest) => Promise<acp.ReleaseTerminalResponse | void>
+  waitForTerminalExit?: (req: acp.WaitForTerminalExitRequest) => Promise<acp.WaitForTerminalExitResponse>
+  killTerminal?: (req: acp.KillTerminalRequest) => Promise<acp.KillTerminalResponse | void>
+}
+
+export type AcpConnectOpts = {
+  /** Executable to spawn (e.g. `npx`, `codex`, absolute path). */
+  command: string
+  /** Arguments. */
+  args?: string[]
+  /** Environment variables (merged over `process.env`). */
+  env?: Record<string, string | undefined>
+  /** Working directory for the child. Defaults to `process.cwd()`. */
+  cwd?: string
+  /**
+   * Capabilities the **client** advertises to the agent during initialize.
+   * Default: `{}` — no fs / terminal capabilities. Wire handlers and
+   * advertise the matching capabilities together.
+   */
+  clientCapabilities?: acp.ClientCapabilities
+  /** Protocol version to negotiate. Defaults to `acp.PROTOCOL_VERSION` (1). */
+  protocolVersion?: number
+  /** MCP servers to forward to the agent's `newSession`. */
+  mcpServers?: acp.McpServer[]
+  /**
+   * Working directory for the **session** (passed to `newSession`). If
+   * omitted, falls back to `cwd` and then `process.cwd()`. Must be absolute
+   * per ACP spec.
+   */
+  sessionCwd?: string
+  /** Permission handler (see `PermissionHandler`). */
+  permissionHandler?: PermissionHandler
+  /** Filesystem handlers (only invoked when matching capability advertised). */
+  fsHandler?: FsHandler
+  /** Terminal handlers (only invoked when `clientCapabilities.terminal === true`). */
+  terminalHandler?: TerminalHandler
+  /** When true, swallow subprocess stderr instead of forwarding as `error` events. */
+  silentStderr?: boolean
+  /** Skip the initial `newSession` call. Caller drives the session lifecycle. */
+  skipNewSession?: boolean
+}
+
+/**
+ * Handle for a live connection to an external ACP server. Extends the
+ * existing silvercode `AgentSession` so consumers (session-store, UI) can
+ * treat ACP-spawned sessions identically to subprocess-spawned ones.
+ */
+export interface AcpAgentSession extends AgentSession {
+  /** The underlying ACP connection (use sparingly — prefer the typed wrappers). */
+  readonly agent: acp.ClientSideConnection
+  /** Capabilities the agent advertised during initialize. */
+  readonly capabilities: acp.AgentCapabilities
+  /** Authentication methods the agent advertised. Empty if no auth required. */
+  readonly authMethods: acp.AuthMethod[]
+  /** Negotiated protocol version. */
+  readonly protocolVersion: number
+  /**
+   * Send a prompt. Returns the stop reason. Aborts when the scope disposes.
+   * Convenience wrapper around `agent.prompt({ sessionId, prompt: ... })`.
+   */
+  prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse>
+  /** Cancel the in-flight prompt for this session (notification only). */
+  cancel(): Promise<void>
+  /** Authenticate with the given method id (subscription OAuth, env-var, etc.). */
+  authenticate(methodId: string): Promise<acp.AuthenticateResponse | void>
+}
+
+// ---------------------------------------------------------------------------
+// Registry — known external ACP servers, by id.
+//
+// Update this table when new agents matter; defer dynamic registry fetch to a
+// follow-up bead (see km-silvercode.acp tracking notes for ACP server
+// catalogue work).
+// ---------------------------------------------------------------------------
+
+export type AcpRegistryId =
+  | "codex" // OpenAI Codex via @zed-industries/codex-acp
+  | "gemini" // Google Gemini CLI in ACP mode
+  | "github-copilot-cli" // GitHub Copilot CLI (binary on PATH)
+  | "pi-acp" // pi-acp ecosystem
+
+const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; description: string }> = {
+  codex: {
+    command: "npx",
+    args: ["-y", "@zed-industries/codex-acp"],
+    description: "OpenAI Codex via Zed's ACP wrapper (ChatGPT subscription supported).",
+  },
+  gemini: {
+    command: "npx",
+    args: ["-y", "@google/gemini-cli", "--experimental-acp"],
+    description: "Google Gemini CLI in ACP mode (Sign in with Google supported).",
+  },
+  "github-copilot-cli": {
+    command: "copilot",
+    args: [],
+    description: "GitHub Copilot CLI — assumes `copilot` binary on PATH (Copilot subscription).",
+  },
+  "pi-acp": {
+    command: "npx",
+    args: ["-y", "pi-acp"],
+    description: "pi-acp ecosystem agent.",
+  },
+}
+
+/** Resolve a registry id and connect. Convenience over `connectAcp`. */
+export function connectAcpRegistry(
+  scope: Scope,
+  registryId: AcpRegistryId,
+  opts: Omit<AcpConnectOpts, "command" | "args"> & {
+    /** Override the registry args (e.g. add `--model` to gemini). */
+    extraArgs?: string[]
+  } = {},
+): Promise<AcpAgentSession> {
+  const entry = ACP_REGISTRY[registryId]
+  if (!entry) {
+    throw new Error(`connectAcpRegistry: unknown registryId ${JSON.stringify(registryId)}`)
+  }
+  const { extraArgs, ...rest } = opts
+  return connectAcp(scope, {
+    ...rest,
+    command: entry.command,
+    args: extraArgs ? [...entry.args, ...extraArgs] : entry.args,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Test seam — the spawn function. Tests inject a fake to avoid invoking real
+// binaries. Production code uses `nodeSpawn`.
+// ---------------------------------------------------------------------------
+
+/** Minimal shape we need from a spawned child — keeps the test seam tight. */
+export interface AcpSpawnedChild {
+  readonly pid?: number
+  readonly stdin: NodeJS.WritableStream | null
+  readonly stdout: NodeJS.ReadableStream | null
+  readonly stderr: NodeJS.ReadableStream | null
+  kill(signal?: NodeJS.Signals | number): boolean
+  on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
+  on(event: "error", listener: (err: Error) => void): unknown
+}
+
+export type AcpSpawn = (
+  command: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv },
+) => AcpSpawnedChild
+
+let activeSpawn: AcpSpawn = (command, args, options) =>
+  nodeSpawn(command, args, {
+    ...options,
+    stdio: ["pipe", "pipe", "pipe"],
+  }) as unknown as AcpSpawnedChild
+
+/**
+ * Override the spawn function used by `connectAcp`. Tests pass a fake that
+ * returns an in-memory child; production never calls this.
+ */
+export function __setAcpSpawnForTesting(fn: AcpSpawn | null): void {
+  activeSpawn =
+    fn ??
+    ((command, args, options) =>
+      nodeSpawn(command, args, {
+        ...options,
+        stdio: ["pipe", "pipe", "pipe"],
+      }) as unknown as AcpSpawnedChild)
+}
+
+// ---------------------------------------------------------------------------
+// connectAcp
+// ---------------------------------------------------------------------------
+
+export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<AcpAgentSession> {
+  const protocolVersion = opts.protocolVersion ?? acp.PROTOCOL_VERSION
+  const cwd = opts.cwd ?? process.cwd()
+  const env: NodeJS.ProcessEnv = { ...process.env, ...opts.env }
+  const args = opts.args ?? []
+
+  dSpawn("connectAcp command=%s args=%o cwd=%s", opts.command, args, cwd)
+
+  const child = activeSpawn(opts.command, args, { cwd, env })
+  if (!child.stdin || !child.stdout) {
+    throw new Error(`connectAcp: child process started without stdin/stdout pipes (command=${opts.command})`)
+  }
+
+  // Register the child with the scope. Disposal kills the process group;
+  // best-effort SIGTERM, then SIGKILL after a short grace period if still
+  // alive. We don't wait — disposal is fire-and-forget at this layer (the
+  // connection's `closed` promise handles drain).
+  let exited = false
+  scope.use(
+    disposable({ pid: child.pid }, () => {
+      if (exited) return
+      try {
+        child.kill("SIGTERM")
+      } catch {
+        // already gone
+      }
+      // Give the agent ~250ms to flush; if still alive, SIGKILL.
+      const t = setTimeout(() => {
+        if (exited) return
+        try {
+          child.kill("SIGKILL")
+        } catch {
+          // already gone
+        }
+      }, 250)
+      // setTimeout returns a NodeJS.Timeout (not a number) under @types/node;
+      // unref keeps the dispose timer from holding the event loop open.
+      ;(t as unknown as { unref?: () => void }).unref?.()
+    }),
+  )
+
+  child.on("exit", (code, signal) => {
+    exited = true
+    dSpawn("child exit code=%s signal=%s", code, signal)
+  })
+  child.on("error", (err) => {
+    dSpawn("child error: %s", err.message)
+  })
+
+  // Build the bus for AgentEvent subscribers (legacy session-store path).
+  const bus = new EventEmitter()
+  let sessionId: SessionId = "acp-pending" as SessionId
+  let closed = false
+
+  function emit(event: AgentEvent): void {
+    // `handoff` lacks `sessionId` — narrow before logging.
+    const sid = "sessionId" in event ? event.sessionId : "<handoff>"
+    dEvent("emit kind=%s session=%s", event.kind, sid)
+    bus.emit("event", event)
+  }
+
+  // Surface stderr as legacy `error` events so the UI's existing
+  // `state.lastError` panel works unchanged.
+  child.stderr?.on("data", (chunk: Buffer | string) => {
+    if (opts.silentStderr) return
+    const msg = typeof chunk === "string" ? chunk.trim() : chunk.toString("utf8").trim()
+    if (!msg) return
+    emit({ kind: "error", sessionId, message: msg, ts: Date.now() })
+  })
+
+  // Stream wiring — convert Node streams to Web streams for the SDK.
+  const writable = Writable.toWeb(child.stdin as Writable) as WritableStream<Uint8Array>
+  const readable = Readable.toWeb(child.stdout as Readable) as ReadableStream<Uint8Array>
+  const stream = acp.ndJsonStream(writable, readable)
+
+  // Build the Client callback bridge.
+  const client: acp.Client = {
+    async sessionUpdate(params: acp.SessionNotification): Promise<void> {
+      dWire("sessionUpdate %s", params.update.sessionUpdate)
+      try {
+        const mapped = mapSessionUpdateToLegacyEvents(params, sessionId)
+        for (const ev of mapped) emit(ev)
+      } catch (err) {
+        emit({
+          kind: "error",
+          sessionId,
+          message: `acp sessionUpdate handler failed: ${(err as Error).message}`,
+          raw: params,
+          ts: Date.now(),
+        })
+      }
+    },
+
+    async requestPermission(req: acp.RequestPermissionRequest): Promise<acp.RequestPermissionResponse> {
+      dWire("requestPermission tool=%s", req.toolCall.title ?? req.toolCall.toolCallId)
+      // Surface a legacy permission-request event so existing UI sees it.
+      emit({
+        kind: "permission-request",
+        sessionId,
+        requestId: String(req.toolCall.toolCallId) as PermissionRequestId,
+        tool: req.toolCall.title ?? "",
+        args: req.toolCall.rawInput,
+        ts: Date.now(),
+      })
+      if (!opts.permissionHandler) {
+        emit({
+          kind: "error",
+          sessionId,
+          message:
+            "acp permissionHandler not configured — auto-cancelling permission request. " +
+            "Wire AcpConnectOpts.permissionHandler to surface this in the UI.",
+          ts: Date.now(),
+        })
+        return { outcome: { outcome: "cancelled" } }
+      }
+      const handled = await opts.permissionHandler(req)
+      if (!handled) return { outcome: { outcome: "cancelled" } }
+      return handled
+    },
+
+    ...(opts.fsHandler?.readTextFile ? { readTextFile: opts.fsHandler.readTextFile } : {}),
+    ...(opts.fsHandler?.writeTextFile ? { writeTextFile: opts.fsHandler.writeTextFile } : {}),
+
+    ...(opts.terminalHandler?.createTerminal ? { createTerminal: opts.terminalHandler.createTerminal } : {}),
+    ...(opts.terminalHandler?.terminalOutput ? { terminalOutput: opts.terminalHandler.terminalOutput } : {}),
+    ...(opts.terminalHandler?.releaseTerminal ? { releaseTerminal: opts.terminalHandler.releaseTerminal } : {}),
+    ...(opts.terminalHandler?.waitForTerminalExit
+      ? { waitForTerminalExit: opts.terminalHandler.waitForTerminalExit }
+      : {}),
+    ...(opts.terminalHandler?.killTerminal ? { killTerminal: opts.terminalHandler.killTerminal } : {}),
+  }
+
+  const agent = new acp.ClientSideConnection(() => client, stream)
+
+  // When the connection closes (stream EOF), mark closed + emit session-end.
+  void agent.closed.then(() => {
+    if (closed) return
+    closed = true
+    emit({ kind: "session-lifecycle", sessionId, state: "ended", ts: Date.now() })
+    emit({ kind: "session-end", sessionId, ts: Date.now() })
+  })
+
+  // Initialize — exchanges protocol version + capabilities.
+  const init = await agent.initialize({
+    protocolVersion,
+    clientCapabilities: opts.clientCapabilities ?? {},
+  })
+  dSpawn("initialize ok protocolVersion=%d", init.protocolVersion)
+
+  // Open a session unless caller wants to drive that explicitly.
+  if (!opts.skipNewSession) {
+    const sessionCwd = opts.sessionCwd ?? cwd
+    const newSessionResult = await agent.newSession({
+      cwd: sessionCwd,
+      mcpServers: opts.mcpServers ?? [],
+    })
+    sessionId = newSessionResult.sessionId as SessionId
+    dSpawn("newSession ok sessionId=%s", sessionId)
+    // Surface a legacy session-init so existing session-store consumers
+    // populate sessionId / cwd from day one. ACP doesn't carry the rich
+    // metadata Claude's stream-json does, so most fields are empty.
+    emit({
+      kind: "session-init",
+      sessionId,
+      cwd: sessionCwd,
+      model: "",
+      mode: "",
+      tools: [],
+      mcp_servers: (opts.mcpServers ?? []).map((s) => s.name),
+      slashCommands: [],
+      skills: [],
+      plugins: [],
+      claudeCodeVersion: "",
+      apiKeySource: "",
+      ts: Date.now(),
+    })
+  }
+
+  const handle: AcpAgentSession = {
+    get sessionId(): SessionId {
+      return sessionId
+    },
+    get closed(): boolean {
+      return closed
+    },
+    agent,
+    capabilities: init.agentCapabilities ?? {},
+    authMethods: init.authMethods ?? [],
+    protocolVersion: init.protocolVersion,
+
+    send(text: string): void {
+      // Best-effort: caller should typically use prompt() for typed responses.
+      // We fire prompt without awaiting to keep `send` synchronous like the
+      // legacy AgentSession contract; errors surface through the `error` bus.
+      void agent
+        .prompt({
+          sessionId,
+          prompt: [{ type: "text", text }],
+        })
+        .catch((err: Error) => {
+          emit({
+            kind: "error",
+            sessionId,
+            message: `acp prompt failed: ${err.message}`,
+            ts: Date.now(),
+          })
+        })
+    },
+
+    respondToPermission(_requestId: PermissionRequestId, _approved: boolean): void {
+      // ACP permission flow is request/response inside requestPermission()
+      // — there's no out-of-band approval channel. Callers wire
+      // `permissionHandler` to resolve the request inline. Surface a clear
+      // error if anything tries to use the legacy out-of-band path.
+      emit({
+        kind: "error",
+        sessionId,
+        message:
+          "AcpAgentSession.respondToPermission() is not supported — wire " +
+          "AcpConnectOpts.permissionHandler to resolve permission requests inline.",
+        ts: Date.now(),
+      })
+    },
+
+    subscribe(handler: (event: AgentEvent) => void): () => void {
+      bus.on("event", handler)
+      return () => bus.off("event", handler)
+    },
+
+    close(): void {
+      if (closed) return
+      closed = true
+      try {
+        child.kill("SIGTERM")
+      } catch {
+        /* already gone */
+      }
+    },
+
+    async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {
+      return agent.prompt({ sessionId, prompt: content })
+    },
+
+    async cancel(): Promise<void> {
+      await agent.cancel({ sessionId })
+    },
+
+    async authenticate(methodId: string): Promise<acp.AuthenticateResponse | void> {
+      return agent.authenticate({ methodId })
+    },
+  }
+
+  return handle
+}
+
+// ---------------------------------------------------------------------------
+// SessionUpdate → legacy AgentEvent mapping
+//
+// This is intentionally a thin, lossy bridge. Once `acp-foundation`'s
+// SessionUpdate becomes the canonical UI surface (bead
+// `km-silvercode.acp-session`), the typed component layer subscribes
+// directly to those updates and this mapper retires.
+// ---------------------------------------------------------------------------
+
+function mapSessionUpdateToLegacyEvents(params: acp.SessionNotification, fallbackSessionId: SessionId): AgentEvent[] {
+  // Run the canonical adapter so we exercise the boundary code path. The
+  // resulting silvercode-shaped update is what richer consumers will use
+  // once acp-session ships; we still emit the legacy event for now.
+  let scUpdate
+  try {
+    scUpdate = acpToSilvercode(params.update)
+  } catch {
+    // Unknown variant — surface as raw status so nothing is silently dropped.
+    return [
+      {
+        kind: "status",
+        sessionId: fallbackSessionId,
+        status: `acp:${params.update.sessionUpdate}`,
+        ts: Date.now(),
+      },
+    ]
+  }
+
+  const sessionId = (params.sessionId as SessionId) ?? fallbackSessionId
+  const turnId = ("acp-turn-" + Date.now()) as TurnId
+  const ts = Date.now()
+  const events: AgentEvent[] = []
+
+  switch (scUpdate.sessionUpdate) {
+    case "user_message_chunk":
+    case "agent_message_chunk": {
+      const block = contentBlockToLegacy(scUpdate.content)
+      if (block.type === "text") {
+        events.push({
+          kind: "text-delta",
+          sessionId,
+          turnId,
+          blockIndex: 0,
+          text: block.text,
+          ts,
+        })
+      } else {
+        events.push({
+          kind: "status",
+          sessionId,
+          status: `acp:${scUpdate.sessionUpdate}:${block.type}`,
+          ts,
+        })
+      }
+      return events
+    }
+
+    case "agent_thought_chunk": {
+      const block = contentBlockToLegacy(scUpdate.content)
+      if (block.type === "text") {
+        events.push({
+          kind: "thinking-delta",
+          sessionId,
+          turnId,
+          blockIndex: 0,
+          text: block.text,
+          ts,
+        })
+      }
+      return events
+    }
+
+    case "tool_call": {
+      events.push({
+        kind: "tool-use",
+        sessionId,
+        turnId,
+        id: String(scUpdate.toolCallId) as ToolUseId,
+        name: scUpdate.title,
+        input: scUpdate.rawInput,
+        ts,
+      })
+      return events
+    }
+
+    case "tool_call_update": {
+      // status transitions surface as legacy status events; final outputs
+      // surface as tool-result.
+      if (scUpdate.status === "completed" || scUpdate.status === "failed") {
+        events.push({
+          kind: "tool-result",
+          sessionId,
+          id: String(scUpdate.toolCallId) as ToolUseId,
+          output: scUpdate.rawOutput,
+          is_error: scUpdate.status === "failed",
+          ts,
+        })
+      } else if (scUpdate.status) {
+        events.push({
+          kind: "status",
+          sessionId,
+          status: `tool:${scUpdate.toolCallId}:${scUpdate.status}`,
+          ts,
+        })
+      }
+      return events
+    }
+
+    case "plan":
+    case "available_commands_update":
+    case "current_mode_update":
+    case "config_option_update":
+    case "session_info_update":
+    case "usage_update": {
+      // Legacy events have no rich slot for these; surface as status so the
+      // UI knows something happened. Once acp-session lands, components
+      // subscribe to the canonical SessionUpdate surface for these directly.
+      events.push({
+        kind: "status",
+        sessionId,
+        status: `acp:${scUpdate.sessionUpdate}`,
+        ts,
+      })
+      return events
+    }
+  }
+
+  // Unreachable — TS narrows scUpdate to never. Safety net for SDK churn.
+  events.push({
+    kind: "status",
+    sessionId,
+    status: `acp:unknown`,
+    ts,
+  })
+  return events
+}
+
+function contentBlockToLegacy(block: import("./acp-types.ts").ContentBlock): LegacyContentBlock {
+  if (block.type === "text") {
+    return { type: "text", text: block.text }
+  }
+  if (block.type === "image") {
+    return { type: "image", mediaType: block.mimeType ?? "" }
+  }
+  // audio / resource_link / resource have no direct legacy slot. Surface as
+  // empty text so the caller can decide to emit a status event instead.
+  return { type: "text", text: "" }
+}

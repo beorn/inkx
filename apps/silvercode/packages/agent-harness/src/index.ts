@@ -97,3 +97,18 @@ export {
   silvercodeRequestPermissionToAcp,
   silvercodeToAcp,
 } from "./acp-boundary.ts"
+
+// ACP client — scope-bound ClientSideConnection factory for external ACP
+// servers (Codex, Gemini CLI, GitHub Copilot CLI, pi-acp). NOT for wrapping
+// Claude Code — see acp-adapter-claude bead.
+export { connectAcp, connectAcpRegistry, __setAcpSpawnForTesting } from "./acp-client.ts"
+export type {
+  AcpAgentSession,
+  AcpConnectOpts,
+  AcpRegistryId,
+  AcpSpawn,
+  AcpSpawnedChild,
+  FsHandler,
+  PermissionHandler,
+  TerminalHandler,
+} from "./acp-client.ts"
