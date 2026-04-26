@@ -1,15 +1,15 @@
 ---
-description: "CPU — Rogue Process Hunter"
+description: "CPU & I/O — Rogue Process Hunter + Bottleneck Finder"
 argument-hint: "[process-name or symptom]"
 ---
 
-# CPU — Rogue Process Hunter
+# CPU & I/O — Rogue Process Hunter + Bottleneck Finder
 
-**Keywords**: cpu, processes, rogue, runaway, slow, fan, hot, kill, cleanup, memory, ram
+**Keywords**: cpu, processes, rogue, runaway, slow, fan, hot, kill, cleanup, memory, ram, io, disk, network, bottleneck, fd, file descriptor
 
-Find and kill rogue processes, then fix root causes so they don't recur.
+Find and kill rogue processes, identify I/O bottlenecks (disk, network, file descriptors), then fix root causes so they don't recur.
 
-**Proactive trigger**: Run this when the user mentions "fan is loud", "laptop is hot", "things are slow", "CPU", or "memory".
+**Proactive trigger**: Run this when the user mentions "fan is loud", "laptop is hot", "things are slow", "disk thrashing", "network slow", "CPU", "I/O", or "memory".
 
 ## Phase 1: Survey
 
@@ -66,6 +66,81 @@ echo "=== Load ===" && sysctl -n vm.loadavg
 echo "=== Memory ===" && vm_stat | head -5
 echo "=== Swap ===" && sysctl vm.swapusage
 ```
+
+## Phase 1b: I/O Bottleneck Survey
+
+Run when CPU looks fine but the system *feels* slow, or when symptoms include "disk thrashing", "network slow", or "spinning beachball". I/O bottlenecks rarely show up as %CPU because the offending process is *blocked*, not running.
+
+```bash
+# Disk I/O — interval sample (1s × 2 to see current rate)
+iostat -d -w 1 -c 2 2>/dev/null | tail -10
+```
+
+Read the second sample. Look for:
+- **KB/t high (~1000+) + tps low**: large sequential I/O (backup, indexer, copy)
+- **tps high (>100/sec) + KB/t small (<8)**: random thrashing (DB, fsevents storm)
+- **MB/s sustained >100**: heavy write — Spotlight reindex, mdworker, snapshot
+
+```bash
+# Pageout pressure — paging is the canary for memory→disk thrash
+vm_stat | awk '/Pageouts/ || /Swapouts/ || /Pageins/'
+```
+
+If `Pageouts` is climbing during the survey window (run twice 5s apart, compare), the system is swapping → kill memory hogs from Phase 1.
+
+```bash
+# Top file-descriptor holders (often the smoking gun for "things feel slow")
+lsof -nP 2>/dev/null | awk 'NR>1 { c[$2]++ } END { for (p in c) if (c[p] > 200) printf "%6d  fds: %5d\n", p, c[p] }' | sort -k3 -rn | head -10 | while read pid fdlabel fds; do
+  cmd=$(ps -p $pid -o command= 2>/dev/null | head -c 120)
+  printf "PID %s  fds: %s  %s\n" "$pid" "$fds" "$cmd"
+done
+```
+
+>500 fds is normal for browsers/IDEs. >2000 on a CLI tool is a leak. >10000 anywhere → serious leak (forgotten `close`, unbounded watcher, undisposed AbortControllers). Check `lsof -p <pid> | sort | uniq -c | sort -rn | head` to see what kind of fds — sockets, pipes, files, kqueue.
+
+```bash
+# Network connections — saturated outbound or stuck-in-CLOSE_WAIT
+echo "=== Connections by state ==="
+netstat -an 2>/dev/null | awk '/^tcp/ { print $6 }' | sort | uniq -c | sort -rn
+echo "=== Top connection holders ==="
+lsof -nP -iTCP -sTCP:ESTABLISHED 2>/dev/null | awk 'NR>1 { c[$2"|"$1]++ } END { for (k in c) printf "%5d  %s\n", c[k], k }' | sort -rn | head -10
+```
+
+Red flags:
+- **CLOSE_WAIT > 50**: app forgot to close sockets — restart the app, file a bug
+- **TIME_WAIT > 5000**: lots of short-lived connections (testing, scraping) — usually fine, transient
+- **One process holding >100 ESTABLISHED**: connection leak (HTTP client without keepalive limit, undisposed WebSockets)
+
+```bash
+# Active disk readers/writers (BSD jobs path; macOS-friendly)
+ps -eo pid,ppid,pcpu,pmem,state,command | awk '$5 ~ /U|D/' | head -10
+# State U = uninterruptible sleep (usually disk I/O wait)
+# State D = disk wait (less common on macOS)
+```
+
+```bash
+# Suspicious mdworker/backupd/snapshot activity (common macOS culprits)
+ps aux | grep -E "mdworker|mds|backupd|fseventsd|cloudd|bird|nsurlsessiond|trustd|distnoted" | grep -v grep | awk '$3 > 1.0 || $4 > 0.5' | sort -k3 -rn
+```
+
+```bash
+# fs_usage spot check — top syscall-heavy processes (10s sample, requires sudo)
+# Skip if non-interactive; this is the deepest tool, often most informative.
+# sudo timeout 10 fs_usage -w -f filesys 2>/dev/null | head -200 | awk '{ print $7 }' | sort | uniq -c | sort -rn | head
+echo "(skip fs_usage in non-interactive mode; ask user to run if disk thrashing suspected)"
+```
+
+### I/O classification table
+
+| Signal | Likely cause | Action |
+|--------|-------------|--------|
+| Pageouts climbing | Memory pressure → swap | Kill top memory consumers (Phase 1) |
+| Single process: >2000 fds | FD leak | Find owner, restart, file root-cause bead |
+| CLOSE_WAIT > 50 | Socket close bug | Restart app, file bug |
+| iostat MB/s high + mdworker hot | Spotlight indexing | `sudo mdutil -i off /Volumes/<vol>` for noisy volumes; usually transient |
+| iostat tps high + low MB/s | Random disk thrash | Check fseventsd / running tests / DB process |
+| Process in U-state for minutes | Stuck on disk wait (NFS, dead drive) | Investigate filesystem health |
+| Many TIME_WAIT (>5000) | Short-lived connections | Usually transient (scraping, tests); check for bug if persistent |
 
 ## Phase 2: Classify
 
@@ -160,12 +235,15 @@ sysctl -n vm.loadavg
 ## Report
 
 ```
-## CPU Cleanup
+## CPU & I/O Cleanup
 
 ### Before
 - Load: X.XX
 - High-CPU (>5%): N processes
 - Node/Bun total: N
+- Pageouts climbing: yes/no
+- Top fd holders (>2000): N processes
+- CLOSE_WAIT count: N
 
 ### Killed
 | PID | Command | Age | CPU% | Reason |
@@ -174,6 +252,10 @@ sysctl -n vm.loadavg
 ### Left alone (user confirmed)
 | PID | Command | CPU% | Why |
 |-----|---------|------|-----|
+
+### I/O findings
+| Signal | Source | Action |
+|--------|--------|--------|
 
 ### Root Causes
 | Category | Count | Root Cause | Fix | Status |
@@ -184,4 +266,6 @@ sysctl -n vm.loadavg
 - High-CPU (>5%): N
 - Tribe daemons: 1
 - Zombies: 0
+- Pageouts stable: yes/no
+- fd hogs: N
 ```
