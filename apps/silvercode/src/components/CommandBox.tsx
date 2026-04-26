@@ -3,6 +3,27 @@ import { Box, Text, TextArea, useBoxRect } from "silvery"
 import type { TextAreaHandle } from "silvery"
 
 /**
+ * Wire format → display format. The controller stores queued entries
+ * joined by `\n\n` (Claude's paragraph break). The user sees one entry
+ * per line — collapse the double newline to a single one for display.
+ */
+function wireToDisplay(wire: string): string {
+  return wire.split("\n\n").join("\n")
+}
+
+/**
+ * Display format → wire format. Every newline the user types becomes a
+ * paragraph break on the wire. Round-tripping a wire-format buffer
+ * through `wireToDisplay` then `displayToWire` is the identity (assuming
+ * no entry contains a literal newline of its own — entries are typed
+ * as single-line follow-ups, the multi-line case is rare and acceptable
+ * to flatten).
+ */
+function displayToWire(display: string): string {
+  return display.split("\n").join("\n\n")
+}
+
+/**
  * Command box — Option B model. Two always-live silvery `<TextArea>`
  * widgets stacked, with a labeled divider between when the queue is
  * non-empty:
@@ -69,9 +90,16 @@ export function CommandBox({
   const commandRef = useRef<TextAreaHandle | null>(null)
 
   const hasQueue = queueText.length > 0
-  // Queue height: count newlines + 1, capped at 12 (per design — scrolls
-  // beyond that via silvery's built-in TextArea scroll tracking).
-  const queueRows = hasQueue ? Math.min(12, queueText.split("\n").length) : 0
+  // Wire format vs display: the controller stores the queue buffer with
+  // entries joined by `\n\n` (paragraph break in Claude's input). The user
+  // sees one entry per line with its own `>` prefix and a single newline
+  // between entries — collapse `\n\n` → `\n` for display, expand back on
+  // every change.
+  const displayQueueText = wireToDisplay(queueText)
+  const queueDisplayLines = displayQueueText.length > 0 ? displayQueueText.split("\n") : []
+  // Queue height: one row per display line, capped at 12 (per design —
+  // scrolls beyond that via silvery's built-in TextArea scroll tracking).
+  const queueRows = hasQueue ? Math.min(12, Math.max(1, queueDisplayLines.length)) : 0
 
   const queueIsFocused = focusedRegion === "queue"
   const commandIsFocused = focusedRegion === "command"
@@ -103,16 +131,30 @@ export function CommandBox({
       userSelect="contain"
     >
       {/* Queue region — silvery TextArea, always live. Hidden entirely
-          when the buffer is empty (no divider, no widget). */}
+          when the buffer is empty (no divider, no widget).
+
+          The user-visible display has ONE `>` prefix per line, with each
+          queued entry on its own row separated by a single newline. The
+          wire format keeps the canonical `\n\n` paragraph break Claude
+          expects, so we transform on the way in (`wireToDisplay`) and back
+          out (`displayToWire`). The prefix column renders one `>` glyph
+          per visible line, cycling through the same focus colour as the
+          command prompt so the focused side pops. */}
       {hasQueue && (
         <>
           <Box flexDirection="row">
-            <Text color="$fg-muted">{"> "}</Text>
+            <Box flexDirection="column" flexShrink={0}>
+              {Array.from({ length: queueRows }, (_, i) => (
+                <Text key={i} color="$fg-muted">
+                  {i < queueDisplayLines.length ? "> " : "  "}
+                </Text>
+              ))}
+            </Box>
             <Box flexGrow={1}>
               <TextArea
                 ref={queueRef}
-                value={queueText}
-                onChange={onQueueChange}
+                value={displayQueueText}
+                onChange={(text) => onQueueChange(displayToWire(text))}
                 isActive={queueIsFocused}
                 showInactiveCursor={false}
                 height={queueRows}
