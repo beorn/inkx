@@ -9,6 +9,8 @@
 import "./debug-log.ts"
 
 import { Command, type OptionValues } from "@silvery/commander"
+import { loadConfig } from "@silvery/config"
+import { mountConfigCommand } from "@silvery/config/commander"
 import { existsSync, statSync } from "fs"
 import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
@@ -295,6 +297,13 @@ export function configureProgram(): Command {
   program.addCommand(perfCommand) // km perf analyze <file> - performance trace analysis
   program.addCommand(termtestCommand) // km termtest - visual terminal capability test
   program.addCommand(importCommand) // km import asana <file> | --fetch - import from external tools
+
+  // `km config [<key>[=<value>]]` — generic get/set on the @silvery/config-backed
+  // tree. Lazy-loads per-invocation so cwd-based discovery (cosmiconfig walk-up
+  // for project `.km/config.yaml`, env-paths for global `~/.config/km/config.yaml`)
+  // resolves at action time, not at program-build time. Mirrors silvercode's
+  // surface so the config command behaves identically across km tools.
+  mountConfigCommand(program, () => loadConfig({ appName: "km", cwd: process.cwd(), watch: false }))
 
   // Handle unknown commands with helpful error message
   program.action((_options, command) => {
