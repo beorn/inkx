@@ -285,6 +285,15 @@ export function App(props: AppProps): React.ReactElement {
   // still does its normal thing per the rules in the useInput handler.
   const lastEscapeAt = useRef<number>(0)
   const DOUBLE_ESC_WINDOW_MS = 500
+  // Ctrl+D×2 quit — Claude Code parity. First Ctrl+D arms a 1500ms
+  // window; a second Ctrl+D inside the window calls requestExit(). Any
+  // other key resets the arm so a stale Ctrl+D doesn't trap the next
+  // keystroke. silvery's multi-line TextArea (used by CommandBox) does
+  // NOT consume Ctrl+D as delete-forward — only useReadline / single-line
+  // TextInput do — so the App-level useInput here reliably receives the
+  // chord. See bead km-silvercode.ctrl-d-quit.
+  const lastCtrlDAt = useRef<number>(0)
+  const DOUBLE_CTRL_D_WINDOW_MS = 1500
 
   function handleSubmit(text: string): void {
     if (!focused) return
@@ -382,6 +391,31 @@ export function App(props: AppProps): React.ReactElement {
   //
   useInput(
     (input, key) => {
+      // Ctrl+D×2 quit — runs FIRST so the chord can't be eaten by other
+      // bindings. First press arms a 1500ms window; second press inside
+      // the window calls requestExit(). Any other key (handled below)
+      // implicitly resets the arm via the `else` branch at the end of
+      // this handler. Ctrl+D inside the window short-circuits all other
+      // bindings — by the time the user is exiting, intermediate
+      // bindings shouldn't fire.
+      if (key.ctrl && input === "d") {
+        const now = Date.now()
+        const sinceLast = now - lastCtrlDAt.current
+        if (sinceLast > 0 && sinceLast < DOUBLE_CTRL_D_WINDOW_MS) {
+          lastCtrlDAt.current = 0
+          requestExit()
+          return
+        }
+        lastCtrlDAt.current = now
+        return
+      }
+      // Any non-Ctrl+D keystroke resets the arm so a stale Ctrl+D from
+      // a minute ago doesn't trap the next Ctrl+D into "I meant to exit".
+      // Modifier-only events (Shift held, etc.) reach useInput as
+      // `input === ""`; treat them as "no key" and don't reset the arm.
+      if (lastCtrlDAt.current !== 0 && input.length > 0) {
+        lastCtrlDAt.current = 0
+      }
       // Escape cancels an in-flight pane drag-move first — highest
       // priority because dropping the drag silently on next mousemove
       // would be confusing. PaneGrid's imperative handle returns true
@@ -444,7 +478,13 @@ export function App(props: AppProps): React.ReactElement {
       // Cursor-boundary handoff between command and queue is handled by
       // CommandBox's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
-      if (key.ctrl && input === "e") {
+      // Ctrl+E toggles the permission inbox — but only when there's no
+      // text to navigate to the end of. With non-empty input we let the
+      // keypress fall through to silvery TextArea's readline binding
+      // (Ctrl+E = move cursor to end-of-line), the cross-platform
+      // expectation. To open the inbox while typing, clear the buffer
+      // first or use the `/inbox` slash command.
+      if (key.ctrl && input === "e" && (inputValue.length === 0 || focusedRegion !== "command")) {
         setShowInbox((v) => !v)
         return
       }
@@ -735,6 +775,7 @@ export function App(props: AppProps): React.ReactElement {
                 <SlashCommandPalette
                   query={paletteQuery}
                   remoteCommands={focused?.store.state.get().slashCommands}
+                  remoteSkills={focused?.store.state.get().skills}
                   onSubmit={(cmd) => handleSubmit(cmd)}
                   onClose={() => setInputValue("")}
                 />
