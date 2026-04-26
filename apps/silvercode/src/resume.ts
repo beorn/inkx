@@ -36,7 +36,20 @@ export function sessionJsonlPath(cwd: string, sessionId: string): string {
  * Read the JSONL transcript, feed lines through the canonical stream-json
  * parser, and apply every resulting AgentEvent to `store`. Best-effort: a
  * malformed line surfaces as an error event (via the parser) but never
- * throws. Returns true if the file existed and was read, false otherwise.
+ * throws.
+ *
+ * Post-condition: status is left at `"idle"`. The on-disk JSONL contains
+ * `assistant` / `user` / `tool_result` entries but NOT the live-stream
+ * events that flip status back to idle (`message_delta` → turn-end,
+ * `result` → session-end). A typical real transcript ends with a
+ * tool_result followed by an assistant text block — tool-result sets
+ * status to "thinking" and assistant-message doesn't change status, so
+ * without a final reset the store's status would be stuck non-idle
+ * forever. Then `controller.send()` would see non-idle and route every
+ * typed message into the queue buffer indefinitely (the live turn-end
+ * that would drain the queue never fires because the transcript is
+ * historical). Symptom: command box appears to "do nothing" on Enter and
+ * the agent never responds. Bead: `km-silvercode.resume-hangs-no-input`.
  */
 export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionId: string): void {
   const path = sessionJsonlPath(cwd, sessionId)
@@ -61,5 +74,24 @@ export function replaySessionFromDisk(store: SessionStore, cwd: string, sessionI
   for (const line of raw.split("\n")) {
     if (line.length === 0) continue
     parser.push(line)
+  }
+  // Force status to "idle" via a synthetic turn-end. We reuse the LAST
+  // replayed message's id as the turn id so the session-store's turn-end
+  // handler upserts onto that existing entry (just sets a stopReason)
+  // instead of appending a phantom empty assistant bubble. If there are
+  // no messages at all (empty transcript) we fall back to a unique
+  // synthetic id — the resulting empty bubble is benign and the file-
+  // existence check above already guards against the common case.
+  const replayed = store.state.get()
+  if (replayed.status !== "idle" && replayed.status !== "ended") {
+    const last = replayed.messages[replayed.messages.length - 1]
+    const turnId = (last?.id ?? `resume-replay-end-${Date.now()}`) as never
+    store.apply({
+      kind: "turn-end",
+      sessionId: sessionId as never,
+      turnId,
+      stopReason: "end_turn",
+      ts: Date.now(),
+    })
   }
 }
