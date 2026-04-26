@@ -142,6 +142,32 @@ This client is for **external ACP servers**. Wrapping Claude Code (so it
 speaks ACP) is a separate bead (`acp-adapter-claude`) — Claude's
 subscription auth path is bespoke and doesn't ride the generic ACP wire.
 
+### Registry agents — pi, codex, gemini, github-copilot-cli
+
+The `ACP_REGISTRY` table in `acp-client.ts` maps a small set of well-known
+agent ids to their documented spawn commands. silvercode does not maintain
+per-vendor adapter code for any of them — `connectAcpRegistry(scope, id,
+opts)` is the entire integration surface. Each id has a brief vendor doc
+covering wire spawn, auth, capabilities, and caveats:
+
+| Registry id          | Doc                                                | Spawn                                          |
+| -------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| `pi-acp`             | [docs/adapter-pi.md](./docs/adapter-pi.md)         | `npx -y pi-acp`                                |
+| `codex`              | [docs/adapter-codex.md](./docs/adapter-codex.md)   | `npx -y @zed-industries/codex-acp`             |
+| `gemini`             | [docs/adapter-gemini.md](./docs/adapter-gemini.md) | `npx -y @google/gemini-cli --experimental-acp` |
+| `github-copilot-cli` | (covered by registry table only)                   | `copilot`                                      |
+
+Spawn correctness is asserted by `tests/registry-adapters.test.ts` — when
+upstream changes a bin name, an ACP flag, or a registry slug, update the
+registry table AND the matching expectation in that test together. The
+docs explain _why_ each entry is what it is.
+
+**Do not add a stream-json adapter for codex / gemini / pi.** That was the
+original P2-P3 plan; once the Registry covered all three, silvercode's
+job collapsed to "spawn the documented command." The stream-json
+fallbacks are deferred to P4 — only revisit if a real user surfaces the
+narrow case the Registry path doesn't handle.
+
 ## Claude (subscription auth) — `spawnClaudeAcpSession`
 
 `@agentclientprotocol/claude-agent-acp@0.31.0` (Zed-published) **blocks
