@@ -15,7 +15,7 @@ export function UserMessageBlock({ text }: { text: string }): React.ReactElement
         {">"}
       </Text>
       <Prose flexGrow={1}>
-        <DetectionText text={text} tone="user" />
+        <DetectionText text={text} role="user" />
       </Prose>
     </Box>
   )

@@ -140,7 +140,7 @@ function colorFor(d: Detection): string {
   }
 }
 
-export function DetectionText({ text, tone }: { text: string; tone?: "assistant" | "user" }): React.ReactElement {
+export function DetectionText({ text, role }: { text: string; role?: "assistant" | "user" }): React.ReactElement {
   const popover = usePopover()
   const { rules } = useAutolinks()
   const detections = React.useMemo(() => {
@@ -176,7 +176,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
         offset = lineEnd + 1
         if (lineDetections.length === 0) {
           return (
-            <Text key={lineIdx} color={tone === "user" ? "$fg" : undefined} wrap="wrap">
+            <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} wrap="wrap">
               {line}
             </Text>
           )
@@ -205,7 +205,7 @@ export function DetectionText({ text, tone }: { text: string; tone?: "assistant"
           pieces.push(<React.Fragment key={`tail${cursor}`}>{line.slice(cursor - lineStart)}</React.Fragment>)
         }
         return (
-          <Text key={lineIdx} color={tone === "user" ? "$fg" : undefined} wrap="wrap">
+          <Text key={lineIdx} color={role === "user" ? "$fg" : undefined} wrap="wrap">
             {pieces}
           </Text>
         )
