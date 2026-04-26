@@ -76,6 +76,8 @@
       "Bash(rm -r .claude/skills/llm)",
       "Bash(git -c commit.gpgsign=false commit -m 'refactor\\(skills\\): rename /llm → /ask — user-facing name, not implementation detail:*)",
       "Bash(git push:*)",
+      "Bash(git push origin HEAD)",
+      "Bash(git push origin HEAD --tags)",
       "Bash(mv .claude/agents/expert/release.md .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/name: release/name: npm/' .claude/agents/expert/npm.md)",
       "Bash(sed -i '' 's/Release — Packaging Expert/npm — Packaging Expert/' .claude/agents/expert/npm.md)",
