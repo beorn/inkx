@@ -163,6 +163,7 @@ const EXPECTED: Record<AcpRegistryId, { command: string; args: string[] }> = {
   gemini: { command: "npx", args: ["-y", "@google/gemini-cli", "--experimental-acp"] },
   "github-copilot-cli": { command: "copilot", args: [] },
   "pi-acp": { command: "npx", args: ["-y", "pi-acp"] },
+  "claude-code": { command: "npx", args: ["-y", "@km/claude-acp"] },
 }
 
 describe("connectAcpRegistry", () => {

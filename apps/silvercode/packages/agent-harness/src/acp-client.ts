@@ -151,6 +151,7 @@ export type AcpRegistryId =
   | "gemini" // Google Gemini CLI in ACP mode
   | "github-copilot-cli" // GitHub Copilot CLI (binary on PATH)
   | "pi-acp" // pi-acp ecosystem
+  | "claude-code" // silvercode-built subscription-compatible Claude wrapper
 
 const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; description: string }> = {
   codex: {
@@ -172,6 +173,12 @@ const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; des
     command: "npx",
     args: ["-y", "pi-acp"],
     description: "pi-acp ecosystem agent.",
+  },
+  "claude-code": {
+    command: "npx",
+    args: ["-y", "@km/claude-acp"],
+    description:
+      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned.",
   },
 }
 

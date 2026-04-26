@@ -227,6 +227,7 @@
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
         "@silvery/commander": "workspace:*",
+        "@silvery/scope": "workspace:*",
         "@silvery/theme": "workspace:*",
         "alien-signals": "^3.1.2",
         "debug": "^4.4.0",
@@ -254,6 +255,18 @@
       },
       "devDependencies": {
         "@types/debug": "^4.1.12",
+      },
+    },
+    "apps/silvercode/packages/claude-acp": {
+      "name": "@km/claude-acp",
+      "version": "0.1.0",
+      "bin": {
+        "silvercode-claude-acp": "./bin/silvercode-claude-acp.js",
+      },
+      "dependencies": {
+        "@agentclientprotocol/sdk": "^0.20.0",
+        "@km/agent-harness": "workspace:*",
+        "@silvery/scope": "workspace:*",
       },
     },
     "apps/silvercode/packages/km-mcp-server": {
@@ -1261,6 +1274,8 @@
     "@km/beads": ["@km/beads@workspace:packages/km-beads"],
 
     "@km/board": ["@km/board@workspace:packages/km-board"],
+
+    "@km/claude-acp": ["@km/claude-acp@workspace:apps/silvercode/packages/claude-acp"],
 
     "@km/cli-app": ["@km/cli-app@workspace:apps/km-cli"],
 

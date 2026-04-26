@@ -1,0 +1,27 @@
+{
+  "name": "@km/claude-acp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone ACP server wrapping the Claude Code binary. Subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). Extracted from silvercode's internal stream-json → ACP adapter.",
+  "license": "Apache-2.0",
+  "bin": {
+    "silvercode-claude-acp": "./bin/silvercode-claude-acp.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./wire": "./src/wire.ts"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.20.0",
+    "@km/agent-harness": "workspace:*",
+    "@silvery/scope": "workspace:*"
+  }
+}
