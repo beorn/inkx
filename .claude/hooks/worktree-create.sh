@@ -86,9 +86,27 @@ fi
 ELAPSED=$(( $(date +%s) - START ))
 echo "$(date '+%H:%M:%S') [$NAME] clone complete (${ELAPSED}s)" >> "$LOG"
 
+# Slow-clone alarm — surface regressions before they hit the hook ceiling.
+# Baseline 2026-04-26: ~18-20s (git worktree add + submodule init). The
+# Claude Code hook ceiling is unknown but >30s clones hit it
+# intermittently. Threshold rationale:
+#   - WARN at 30s (1.5× baseline): early signal, still well under ceiling
+#   - ALERT at 60s (3× baseline): regression that needs investigation NOW
+# Both are non-fatal — the agent still gets its worktree. The signal
+# surfaces via stderr (visible in hook log + Claude Code's hook output).
+SLOW_WARN=30
+SLOW_ALERT=60
+if [ "$ELAPSED" -ge "$SLOW_ALERT" ]; then
+  msg="worktree clone took ${ELAPSED}s (threshold ${SLOW_ALERT}s) — investigate isolate.sh perf regression. Recent baseline ~18-20s. Check: vendor/ submodule sizes, .git size, system I/O load."
+  echo "$(date '+%H:%M:%S') [$NAME] SLOW-ALERT — $msg" >> "$LOG"
+  echo "isolate.sh: $msg" >&2
+elif [ "$ELAPSED" -ge "$SLOW_WARN" ]; then
+  msg="worktree clone took ${ELAPSED}s (warn threshold ${SLOW_WARN}s, baseline ~18-20s) — keep an eye on it"
+  echo "$(date '+%H:%M:%S') [$NAME] SLOW-WARN — $msg" >> "$LOG"
+  echo "isolate.sh: $msg" >&2
+fi
+
 # Background the non-critical setup (direnv, etc).
-# node_modules is already correct via CoW; no bun install needed.
-# Submodule .git paths are correct via isolate.sh fixups; no submodule update needed.
 (
   cd "$WORKTREE_PATH" 2>/dev/null || exit 0
   if [ -f .envrc ] && command -v direnv &>/dev/null; then
