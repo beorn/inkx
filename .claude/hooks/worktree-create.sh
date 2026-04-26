@@ -6,18 +6,18 @@
 #   $PROJECT_DIR/.claude/worktrees/$NAME
 # before the Agent starts working in it.
 #
-# Mechanism: APFS copy-on-write via .claude/lib/isolate.sh
+# Mechanism: `git worktree add` + submodule init via .claude/lib/isolate.sh
 #
-# The original design polled for a directory that git-worktree-add would
-# populate — but Claude Code's Agent runtime never invokes git worktree,
-# so the poll timed out after 60s and the Agent wrote to main instead.
-# The 2026-04-23 rewrite has the hook CREATE the clone directly.
+# History: the original design polled for a directory that git-worktree-add
+# would populate — but Claude Code's Agent runtime never invokes git worktree,
+# so the poll timed out after 60s and the Agent wrote to main instead. The
+# 2026-04-23 rewrite had the hook CREATE the clone directly via APFS cp -c -R
+# (~25s for 15G/134K files). The 2026-04-26 rewrite switched to `git worktree
+# add` (~0.3s create + ~17s submodule init = ~18s total, 110× smaller working
+# tree, no APFS dependency). See bead km-infra.worktree-clone-too-slow.
 #
-# Timing on the km repo: ~20-25s for the cp -c -R. Hook blocks until done
-# so the Agent starts on a ready directory. Setup work that isn't
-# correctness-critical (direnv allow) is backgrounded after return.
-#
-# See bead km-infra.worktree-isolation-apfs for the full design.
+# Hook blocks until done so the Agent starts on a ready directory. Setup
+# work that isn't correctness-critical (direnv allow) is backgrounded.
 
 LOG="/tmp/worktree-create-hook.log"
 LIB_DIR="$(dirname "$0")/../lib"

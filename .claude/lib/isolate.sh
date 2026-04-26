@@ -1,19 +1,35 @@
 #!/bin/bash
-# isolate.sh — Clone a git working tree for isolated concurrent use.
+# isolate.sh — Create an isolated git worktree for an agent.
 #
-# Primary path: APFS copy-on-write (macOS `cp -c -R`). Data blocks are shared
-# with the source until written; per-file directory entries are created in
-# the target. For the km repo (13G, ~500K files) this takes ~20-25s — the
-# cost is directory traversal, not data copy.
+# Strategy: `git worktree add --detach` creates a new working tree that
+# shares the source's `.git` database (no object copy). On the km repo
+# this takes ~0.3s — orders of magnitude faster than the old `cp -c -R`
+# approach which copied 15G/134K files in ~25s.
 #
-# Fallback: `tar cf - | tar xf -` pipe. Same O(files) cost, no CoW. Used on
-# non-APFS filesystems (Linux, remote-mounted paths).
+# Post-create steps:
+#   1. `git submodule update --init --recursive` — the worktree starts
+#      with empty submodule directories; this populates them. Each
+#      submodule clones into the worktree's per-worktree modules dir
+#      (`.git/worktrees/<name>/modules/...`). ~15-20s for the km repo's
+#      9 submodules — most of the wall time. Recursive init may emit
+#      non-fatal "fatal: No url found" for nested submodules in
+#      vendor/termless/sites/* (pre-existing upstream issue); the main
+#      repo's submodules all check out cleanly regardless.
+#   2. Symlink `node_modules` from source to target. This avoids a 1.3G
+#      copy of 63K entries. Constraint: agents must NOT run `bun install`
+#      in the worktree — that mutates the source's node_modules. Since
+#      the source's lockfile is the source of truth, agents should only
+#      run code, never install.
 #
-# Post-clone fixups:
-#   1. Rewrite submodule `.git` files to point to the clone's .git/modules/*
-#      instead of the source's (they're absolute paths; cp doesn't translate).
-#   2. Remove stale `.git/index.lock` and `.git/modules/*/index.lock` files
-#      (copied if the source had git running during the clone).
+# Concurrency: `git worktree add` is fast enough (<1s) that lock
+# serialization is unnecessary. Submodule init has its own per-submodule
+# locks inside .git/modules/*; they hold briefly and don't contend
+# noticeably across concurrent worktree creates.
+#
+# Why not cp -c -R: see km-infra.worktree-clone-too-slow. APFS CoW is
+# O(directory entries), not O(bytes), so even shared blocks don't help
+# when the entry count is high. `git worktree add` shares the .git
+# entirely — there's no entry copy to do.
 #
 # Usage (as library):
 #   source /path/to/isolate.sh
@@ -41,7 +57,7 @@ isolate_worktree() {
     return 2
   fi
 
-  # Canonicalize paths — submodule .git rewrites need absolute paths.
+  # Canonicalize paths.
   source=$(cd "$source" && pwd -P)
   local target_parent
   target_parent=$(dirname "$target")
@@ -49,126 +65,28 @@ isolate_worktree() {
   target_parent=$(cd "$target_parent" && pwd -P)
   target="$target_parent/$(basename "$target")"
 
-  # Serialize the heavy I/O step across sessions. Without this, two
-  # tribe sessions both running `isolation: "worktree"` at the same time
-  # hit I/O contention long enough that the harness times out the
-  # spawning Agent's hook and emits "Hook cancelled" — observed
-  # 2026-04-24 with three lifecycle-scope agents cancelled while
-  # tribe-cp jobs were running. One clone takes ~20-25s on the km repo;
-  # two in parallel stretches past the harness ceiling.
-  #
-  # Implementation: mkdir-based atomic lock (portable — no flock on
-  # macOS). Subshell + EXIT trap ensures the lock is released even on
-  # error paths. Stale locks are reaped if their owning pid is dead.
-  # Lock wraps ONLY the cp/tar block; fixups proceed unlocked since
-  # they don't contend significantly.
-  local lockdir="${TMPDIR:-/tmp}/silvery-clone.lock"
-  (
-    trap 'rm -rf "$lockdir" 2>/dev/null' EXIT
-    _wait_for_clone_lock "$lockdir" || exit 1
-    /bin/echo "$$" > "$lockdir/pid" 2>/dev/null
-
-    # Primary path: APFS copy-on-write via /bin/cp (macOS).
-    # -c: clone file data (O(1) per file instead of byte copy)
-    # -R: recursive
-    # Fall back to tar pipe on failure (non-APFS, Linux, etc).
-    if /bin/cp -c -R "$source" "$target" 2>/dev/null; then
-      exit 0
-    fi
-    # tar fallback — preserves symlinks, permissions, xattrs. No CoW.
-    mkdir -p "$target"
-    if ! (cd "$source" && tar -cf - .) | (cd "$target" && tar -xf -); then
-      echo "isolate_worktree: tar fallback failed" >&2
-      exit 1
-    fi
-  ) || return $?
-
-  _fix_submodule_gitdirs "$source" "$target"
-  _remove_stale_locks "$target"
-  _reset_to_head "$target"
-}
-
-# Reset the clone's working tree to HEAD state in the main repo and every
-# submodule. cp copied the source's uncommitted WIP verbatim; without this,
-# the Agent sees the user's unstaged modifications (and could commit them as
-# its own work) and also inherits whatever .claude/worktrees/* clones the
-# source had (cascade). The clone starts from a known baseline.
-_reset_to_head() {
-  local target="$1"
-
-  # Main repo — wipe tracked modifications + staged changes, then remove
-  # untracked (but keep ignored dirs like node_modules/, .beads/dolt-*).
-  (
-    cd "$target" 2>/dev/null || exit 0
-    git reset --hard HEAD >/dev/null 2>&1 || true
-    git clean -fd >/dev/null 2>&1 || true
-    # Prevent clone cascade — don't inherit the source's agent worktrees.
-    /bin/rm -rf .claude/worktrees 2>/dev/null || true
-  )
-
-  # Submodules — same drill. foreach --recursive covers nested submodules.
-  (
-    cd "$target" 2>/dev/null || exit 0
-    git submodule foreach --recursive --quiet \
-      'git reset --hard HEAD >/dev/null 2>&1; git clean -fd >/dev/null 2>&1' \
-      >/dev/null 2>&1 || true
-  )
-}
-
-# Rewrite every submodule .git file in the clone so its `gitdir:` points to
-# the clone's .git/modules/* rather than the source's. cp preserves absolute
-# paths verbatim; without this, commits in the clone land in the source's
-# per-worktree module dir (breaking isolation).
-_fix_submodule_gitdirs() {
-  local source="$1"
-  local target="$2"
-
-  # Every submodule has a .git FILE (not dir) with content: "gitdir: <abspath>"
-  # Find all such files under the clone, skipping the top-level .git which is
-  # a normal directory in the main repo.
-  find "$target" -name .git -type f -not -path "$target/.git" 2>/dev/null | while IFS= read -r sub_gitfile; do
-    # Rewrite any reference to $source/.git → $target/.git
-    perl -i -pe "s|\Q$source/.git\E|$target/.git|g" "$sub_gitfile" 2>/dev/null || true
-  done
-}
-
-# Stale lock files from a copy taken while git was running. Safe to remove
-# unconditionally in the clone (they name PIDs that own the SOURCE, not us).
-_remove_stale_locks() {
-  local target="$1"
-  /bin/rm -f "$target/.git/index.lock" 2>/dev/null || true
-  if [ -d "$target/.git/modules" ]; then
-    find "$target/.git/modules" -name index.lock -type f 2>/dev/null | while IFS= read -r lock; do
-      /bin/rm -f "$lock" 2>/dev/null || true
-    done
+  # Create the worktree (detached HEAD at source's current HEAD).
+  if ! git -C "$source" worktree add "$target" --detach 2>&1; then
+    echo "isolate_worktree: git worktree add failed" >&2
+    return 1
   fi
-}
 
-# Block until the clone-serialization lock can be acquired. `mkdir` is
-# atomic on POSIX — it either creates the dir (we hold the lock) or
-# fails (someone else holds it). Held locks are short-lived (~25s per
-# clone); the timeout handles truly wedged processes by surfacing a
-# clear error rather than hanging forever.
-#
-# Deliberately NO pid-based staleness reaping — it's tempting (and was
-# in the first cut), but the staleness logic has subtle race windows
-# (process dies between cat-pid and rm-rf, fresh process gets same pid,
-# etc.) and the failure mode is rare. If a stuck lockdir IS observed
-# in practice, surface it via the timeout and let the user rmdir it.
-_wait_for_clone_lock() {
-  local lockdir="$1"
-  local waited=0
-  local max_wait=600  # 10 min — a single clone is ~25s, so 10 min is
-                      # ~24 queued clones. Anything more is a hard fault.
-  while ! mkdir "$lockdir" 2>/dev/null; do
-    if [ "$waited" -ge "$max_wait" ]; then
-      echo "isolate_worktree: clone-lock timeout (>${max_wait}s held by another session)" >&2
-      echo "isolate_worktree: if this is wedged, run: rmdir '$lockdir'" >&2
-      return 1
-    fi
-    sleep 1
-    waited=$((waited + 1))
-  done
+  # Init submodules. Errors from nested submodules with missing URLs are
+  # non-fatal (pre-existing upstream issue in vendor/termless/sites/*).
+  if ! git -C "$target" submodule update --init --recursive 2>&1; then
+    # Top-level submodules may have succeeded even if recursive init
+    # failed on a nested one. Don't return error — the agent can usually
+    # still work. Log to stderr for visibility.
+    echo "isolate_worktree: submodule recursive init had errors (likely vendor/termless/sites/* — non-fatal)" >&2
+  fi
+
+  # Symlink node_modules. Agents read from the symlink; if they need an
+  # install, they should run it in source instead (and not in worktree).
+  if [ -d "$source/node_modules" ] && [ ! -e "$target/node_modules" ]; then
+    ln -s "$source/node_modules" "$target/node_modules"
+  fi
+
+  return 0
 }
 
 # CLI entry — when invoked directly (not sourced).
