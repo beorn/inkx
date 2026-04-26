@@ -71,9 +71,11 @@ export function PaneHeader({
       backgroundColor={isFocused ? "$bg-surface" : "$bg-surface-subtle"}
       paddingX={1}
     >
-      {/* Title — flexGrow=1 so it eats the slack and the buttons stay
-          flush right. minWidth=0 lets the Text truncate instead of
-          pushing the buttons off-screen on narrow panes. */}
+      {/* Title — flexGrow=1 so it eats the slack and buttons stay flush right.
+          minWidth={0} is still required for truncate-Text: a non-wrappable
+          Text reports naturalWidth as both min and max content (recursive
+          min-content equals max-content for non-wrappable). Without the
+          escape hatch the row can't shrink past full session-id width. */}
       <Box flexGrow={1} flexShrink={1} minWidth={0} flexDirection="row">
         <Text color={isFocused ? "$primary" : "$muted"} wrap="truncate">
           {sessionId}
