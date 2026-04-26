@@ -96,19 +96,28 @@ function renderBlock(b: MdBlock, i: number): React.ReactElement | null {
       return <InlineRun key={i} tokens={b.inlines} />
     }
     case "bullet":
+      // `gap={1}` between the glyph and content + `flexShrink={0}` on
+      // the glyph keeps a stable space after every bullet — the previous
+      // shape (`<Text>• </Text>` with the space INSIDE the text) had the
+      // trailing space eaten on bullets 2+ when flex shrunk the glyph
+      // cell to its 1-col min-content. Fixed: 2026-04-26.
       return (
-        <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
-          <Text color="$muted">• </Text>
-          <Prose flexGrow={1}>
+        <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2}>
+          <Text color="$muted" flexShrink={0}>
+            •
+          </Text>
+          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
             <InlineRun tokens={b.inlines} />
           </Prose>
         </Box>
       )
     case "ordered":
       return (
-        <Box key={i} flexDirection="row" paddingLeft={b.depth * 2}>
-          <Text color="$muted">{b.number}. </Text>
-          <Prose flexGrow={1}>
+        <Box key={i} flexDirection="row" gap={1} paddingLeft={b.depth * 2}>
+          <Text color="$muted" flexShrink={0}>
+            {b.number}.
+          </Text>
+          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
             <InlineRun tokens={b.inlines} />
           </Prose>
         </Box>

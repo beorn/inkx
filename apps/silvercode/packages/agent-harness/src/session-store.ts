@@ -214,7 +214,29 @@ export function createSessionStore(): SessionStore {
         break
       }
       case "assistant-message":
-        upsertMessage(next, event.turnId, (m) => ({ ...m, blocks: event.content }))
+        // Live streaming builds m.text + m.toolCalls incrementally via
+        // text-delta and tool-use events, then this aggregate arrives at
+        // turn-end. Replay (--resume) skips the streaming events — only
+        // this aggregate fires with the FINAL content blocks. Derive
+        // m.text and m.toolCalls from the blocks when they're missing,
+        // so resumed sessions render the same as live ones.
+        upsertMessage(next, event.turnId, (m) => {
+          let text = m.text
+          if (text.length === 0) {
+            text = event.content
+              .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+              .map((b) => b.text)
+              .join("")
+          }
+          let toolCalls = m.toolCalls
+          if (toolCalls.length === 0) {
+            const fromBlocks = event.content
+              .filter((b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use")
+              .map((b) => ({ id: b.id, name: b.name, input: b.input, mcp_server: b.mcp_server }))
+            if (fromBlocks.length > 0) toolCalls = fromBlocks
+          }
+          return { ...m, blocks: event.content, text, toolCalls }
+        })
         break
       case "turn-end":
         upsertMessage(next, event.turnId, (m) => ({ ...m, stopReason: event.stopReason }))

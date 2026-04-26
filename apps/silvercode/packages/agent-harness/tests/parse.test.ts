@@ -405,4 +405,53 @@ describe("session-store — event folding", () => {
     const msg = store.state.get().messages[0]!
     expect(msg.toolResults).toEqual([{ id: "tool-1", output: "README.md", is_error: undefined }])
   })
+
+  // Replay (--resume): on-disk JSONL has aggregate `assistant` entries
+  // but no streaming events. assistant-message must derive m.text and
+  // m.toolCalls from event.content blocks. Without this, resumed
+  // sessions show empty assistant bubbles between user prompts.
+  // Bead: km-silvercode.resume-renders-system-reminders.
+  test("assistant-message derives text + toolCalls from blocks when streaming events absent", () => {
+    const store = createSessionStore()
+    const now = Date.now()
+    store.apply({
+      kind: "assistant-message",
+      sessionId: "s" as never,
+      turnId: "msg-replay-1" as never,
+      content: [
+        { type: "text", text: "Final aggregate text." },
+        { type: "tool_use", id: "tu-1" as never, name: "Bash", input: { command: "ls" } },
+      ],
+      ts: now,
+    })
+    const msg = store.state.get().messages[0]!
+    expect(msg.text).toBe("Final aggregate text.")
+    expect(msg.toolCalls).toEqual([{ id: "tu-1", name: "Bash", input: { command: "ls" }, mcp_server: undefined }])
+  })
+
+  test("assistant-message preserves live-streamed text (doesn't overwrite from blocks)", () => {
+    // Live path: text-delta builds m.text incrementally before the
+    // aggregate fires. Aggregate must NOT replace the streamed text
+    // (idempotent — content blocks should match).
+    const store = createSessionStore()
+    const now = Date.now()
+    store.apply({ kind: "turn-start", sessionId: "s" as never, turnId: "msg-live" as never, role: "assistant", ts: now })
+    store.apply({
+      kind: "text-delta",
+      sessionId: "s" as never,
+      turnId: "msg-live" as never,
+      blockIndex: 0,
+      text: "STREAMED",
+      ts: now,
+    })
+    store.apply({
+      kind: "assistant-message",
+      sessionId: "s" as never,
+      turnId: "msg-live" as never,
+      content: [{ type: "text", text: "STREAMED" }],
+      ts: now,
+    })
+    const msg = store.state.get().messages[0]!
+    expect(msg.text).toBe("STREAMED")
+  })
 })
