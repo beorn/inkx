@@ -32,6 +32,8 @@ import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
 import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
 import { wireChannelSources } from "./channel-sources.ts"
+import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
+import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { registerChild } from "./process-supervisor.ts"
 import { replaySessionFromDisk } from "./resume.ts"
 
@@ -121,6 +123,15 @@ export type SessionHandle = {
   readonly log?: EventLog
   /** Anthropic account bound to this session (multi-account). */
   readonly account?: string
+  /**
+   * Per-session coordinator-mcp server (in-process, holds a reference to
+   * the controller's shared CrossAgentState). The agent-side wiring (how
+   * the spawned subprocess actually reaches this in-process server) is a
+   * follow-up bead — see `apps/silvercode/docs/in-process-mcp.md`. The
+   * server is exposed here so tests + UI panes can dispatch tool calls
+   * directly against this session's identity.
+   */
+  readonly coordinatorMcp: CoordinatorMcpServer
 }
 
 /**
@@ -357,6 +368,18 @@ export type Controller = {
    * `acp-adapter-claude`).
    */
   readonly channelQueue: ChannelQueue
+  /**
+   * Cross-agent state — silvercode-owned coordination store shared across
+   * every session this controller spawned. Holds file claims, handoffs,
+   * active session list, recent peer broadcasts. Each session gets its
+   * own coordinator-mcp instance (`SessionHandle.coordinatorMcp`) that
+   * delegates to this single store. UI panes subscribe to its signals
+   * via `useSignal` for live updates.
+   *
+   * See `apps/silvercode/src/cross-agent-state.ts` and
+   * `apps/silvercode/docs/multi-agent.md`.
+   */
+  readonly crossAgentState: CrossAgentState
 }
 
 let nextId = 1
@@ -380,9 +403,32 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const ownsScope = !opts.scope
   const controllerScope: Scope = opts.scope ?? createScope("silvercode-controller")
   const channelQueue = createChannelQueue(controllerScope)
+  // Cross-agent state — one per controller, shared across every session.
+  // Each session's coordinator-mcp delegates to this store; UI panes
+  // subscribe to its signals (claims, activeSessions, ...). Channel-queue
+  // events fan out into `recordBroadcast` below so the prompt-assembly
+  // slice has visibility into recent peer activity.
+  const crossAgentState = createCrossAgentState(controllerScope)
   if (!opts.disableChannelSources) {
     wireChannelSources(controllerScope, channelQueue)
   }
+  // Mirror channel-queue events into the cross-agent broadcast ring buffer
+  // so the prompt-projection slice (apps/silvercode/src/prompt-cross-agent.ts)
+  // sees recent peer activity even when individual sessions choose not to
+  // auto-drain the channel queue. The subscription is owned by the
+  // controller scope — disposing the scope unsubscribes.
+  const broadcastUnsub = channelQueue.subscribe((event) => {
+    crossAgentState.recordBroadcast({
+      id: event.id,
+      source: event.source,
+      content: event.content,
+      timestamp: event.timestamp,
+      // Channel events don't currently carry sessionId; future tribe
+      // subscribers can populate `meta.fromSessionId` to attribute.
+      fromSessionId: typeof event.meta?.fromSessionId === "string" ? (event.meta.fromSessionId as string) : undefined,
+    })
+  })
+  controllerScope.defer(() => broadcastUnsub())
   // TODO (acp-adapter-claude): when we wrap Claude Code via the ACP
   // adapter, the spawned subprocess MUST NOT emit its own
   // `<channel source="..." ...>` tag injection — silvercode owns the
@@ -821,6 +867,33 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         dQueue("subscribe %s — event=%s, calling tryFlush", id, event.kind)
         tryFlush(id)
       }
+
+      // Mirror coarse status into the cross-agent state so peer sessions
+      // see a meaningful "what is this session up to right now" hint.
+      // We only flip on events that have an unambiguous meaning — fine-
+      // grained spinner states stay inside the per-session SessionStore.
+      if (event.kind === "session-init") {
+        crossAgentState.updateSessionStatus(id, "idle")
+      } else if (event.kind === "turn-start") {
+        crossAgentState.updateSessionStatus(id, "thinking")
+      } else if (event.kind === "turn-end") {
+        crossAgentState.updateSessionStatus(id, "idle")
+      } else if (event.kind === "session-end") {
+        crossAgentState.updateSessionStatus(id, "ended")
+      }
+    })
+
+    // Per-session coordinator-mcp — in-process server bound to this
+    // session's identity. Mutating tools (claim/release/handoff) are
+    // attributed to `id` automatically; the agent never spells its own
+    // identity in tool args. State is the controller-shared store.
+    const coordinatorMcp = createCoordinatorMcpServer(crossAgentState, id)
+    crossAgentState.addSession({
+      sessionId: id,
+      name: givenName,
+      model: opts.model,
+      status: "spawning",
+      startedAt: Date.now(),
     })
 
     const handle: SessionHandle = {
@@ -831,6 +904,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       unsubscribe: unsub,
       log,
       account: opts.account,
+      coordinatorMcp,
     }
 
     // Welcome UI — rendered as a React component (see Welcome.tsx) when the
@@ -1007,6 +1081,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       for (const s of sessions) {
         s.session.close()
         s.unsubscribe()
+        // Drop the session from cross-agent state too — releases any
+        // claims it held so peers don't see ghost holders.
+        crossAgentState.removeSession(s.id)
       }
       // Dispose the controller-owned scope (tears down channel-source
       // watchers, clears the channel queue) only if we created it.
@@ -1213,5 +1290,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return () => backgroundSubs.delete(handler)
     },
     channelQueue,
+    crossAgentState,
   }
 }
