@@ -177,7 +177,7 @@ export function ColumnHeader({
       {/* Header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
       <Box height={1} flexShrink={0} width={width} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
         <Box width={1} flexShrink={0} />
-        <Box flexGrow={1} flexShrink={1} flexDirection="row">
+        <Box flexGrow={1} flexShrink={1} minWidth={0} flexDirection="row">
           {children ? (
             // Custom content (e.g., inline edit field)
             <Text bold color={headerStyle.color} wrap="truncate">

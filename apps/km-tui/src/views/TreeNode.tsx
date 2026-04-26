@@ -826,9 +826,14 @@ function TreeNodeImpl({
           </Box>
           {/* Flexible content box */}
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
+          {/* minWidth={0} lets the box shrink past its child Text's content size — */}
+          {/* flexily's auto-min-size only propagates min-content through direct */}
+          {/* measureFunc nodes, not Box wrappers (CSS §4.5 escape hatch). Required */}
+          {/* so a wide title doesn't push sibling badges off-screen. */}
           <Box
             flexGrow={1}
             flexShrink={1}
+            minWidth={0}
             overflow={isOneliner || isCardChild ? "hidden" : undefined}
             paddingRight={isOneliner || isCardChild ? 2 : 0}
           >
