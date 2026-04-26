@@ -43,7 +43,7 @@
  */
 
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
-import { Box, Text, useBoxRect, useMouseCursor } from "silvery"
+import { Box, Text, useBoxRect, useMouseCursor, type ListViewHandle } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import {
   type DropEdge,
@@ -102,6 +102,15 @@ export type PaneGridProps = {
   /** v2 only: which pane ids are currently minimized. When a pane is
    * minimized its body is hidden — only the header strip renders. */
   minimizedPaneIds?: ReadonlySet<string>
+  /**
+   * Registration callback for each pane's MessageList ListViewHandle.
+   * App.tsx uses this to maintain a `Map<sessionId, ListViewHandle>` so
+   * app-level Shift+Up/Down/PageUp/Down scroll bindings can reach the
+   * focused pane's list — keyboard focus lives in the CommandBox by
+   * default, so the ListView never receives keys directly. Called with
+   * `null` on unmount to drop entries.
+   */
+  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
 }
 
 /**
@@ -161,6 +170,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     onClosePane,
     onToggleMinimizePane,
     minimizedPaneIds,
+    onRegisterMessageList,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -355,6 +365,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onSplitRight={onSplitRightPane ? () => onSplitRightPane(handle.id) : undefined}
           onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
           onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
+          onRegisterMessageList={onRegisterMessageList}
         />
       )
     },
@@ -371,6 +382,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onSplitRightPane,
       onClosePane,
       onToggleMinimizePane,
+      onRegisterMessageList,
     ],
   )
 
@@ -393,6 +405,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onFocus={() => onFocusSession(zoomed.id)}
               onApprove={(rid) => props.onApprovePermission(zoomed.id, rid)}
               onDeny={(rid) => props.onDenyPermission(zoomed.id, rid)}
+              onRegisterMessageList={onRegisterMessageList}
             />
           </Box>
         </Box>
@@ -449,6 +462,7 @@ function LeafContainer({
   onSplitRight,
   onClose,
   onToggleMinimize,
+  onRegisterMessageList,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -469,6 +483,7 @@ function LeafContainer({
   onSplitRight?: () => void
   onClose?: () => void
   onToggleMinimize?: () => void
+  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -498,6 +513,7 @@ function LeafContainer({
           onFocus={onFocus}
           onApprove={onApprove}
           onDeny={onDeny}
+          onRegisterMessageList={onRegisterMessageList}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.

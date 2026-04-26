@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Text } from "silvery"
+import { Box, Text, type ListViewHandle } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { MessageList } from "./MessageList.tsx"
@@ -30,6 +30,7 @@ export function SessionCard({
   onFocus,
   onApprove,
   onDeny,
+  onRegisterMessageList,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -39,8 +40,27 @@ export function SessionCard({
   onFocus: () => void
   onApprove: (requestId: string) => void
   onDeny: (requestId: string) => void
+  /**
+   * Optional registration callback. App.tsx uses this to maintain a
+   * Map<sessionId, ListViewHandle> so app-level Shift+Up/Down/PageUp/Down
+   * scroll bindings can reach the focused session's ListView even though
+   * keyboard focus lives in the CommandBox. Called with `null` on
+   * unmount to drop the entry.
+   */
+  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
+  // Callback ref — fires with the live ListViewHandle on mount and with
+  // null on unmount. Mirrors the handle into App's registration map so
+  // app-level Shift+Up/Down scroll bindings can reach this pane's list
+  // even though keyboard focus lives in the CommandBox.
+  const sessionId = handle.id
+  const messageListRefCb = React.useCallback(
+    (instance: ListViewHandle | null): void => {
+      onRegisterMessageList?.(sessionId, instance)
+    },
+    [onRegisterMessageList, sessionId],
+  )
 
   // The most recent tool call that doesn't yet have a matching result is
   // the one currently in flight. Used in the activity indicator label.
@@ -90,12 +110,21 @@ export function SessionCard({
           </Text>
         ) : null}
       </Box>
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingLeft={1} paddingRight={2}>
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        flexShrink={1}
+        minWidth={0}
+        minHeight={0}
+        paddingLeft={1}
+        paddingRight={2}
+      >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
             <Welcome handle={handle} />
           ) : (
             <MessageList
+              ref={messageListRefCb}
               messages={state.messages}
               onApprove={onApprove}
               onDeny={onDeny}

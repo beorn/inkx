@@ -1,6 +1,6 @@
 import React from "react"
 import type { MessageEntry } from "@km/agent-harness"
-import { Box, ListView, Text } from "silvery"
+import { Box, ListView, type ListViewHandle, Text } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { AssistantBlock } from "./AssistantBlock.tsx"
 import { ToolCallBlock } from "./ToolCallBlock.tsx"
@@ -92,26 +92,32 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
   )
 }
 
-export function MessageList({
-  messages,
-  status,
-  turnStartedAt,
-  inputTokens,
-  outputTokens,
-  pendingPermissions,
-  inFlightTool,
-}: {
-  messages: MessageEntry[]
-  onApprove: (requestId: string) => void
-  onDeny: (requestId: string) => void
-  sessionId: string
-  status: ActivityStatus
-  turnStartedAt: number | null
-  inputTokens: number
-  outputTokens: number
-  pendingPermissions: number
-  inFlightTool: string | null
-}): React.ReactElement {
+export const MessageList = React.forwardRef<
+  ListViewHandle,
+  {
+    messages: MessageEntry[]
+    onApprove: (requestId: string) => void
+    onDeny: (requestId: string) => void
+    sessionId: string
+    status: ActivityStatus
+    turnStartedAt: number | null
+    inputTokens: number
+    outputTokens: number
+    pendingPermissions: number
+    inFlightTool: string | null
+  }
+>(function MessageList(
+  {
+    messages,
+    status,
+    turnStartedAt,
+    inputTokens,
+    outputTokens,
+    pendingPermissions,
+    inFlightTool,
+  },
+  ref,
+): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
   const items: Item[] = showActivity ? [...messages, { __activity: true }] : messages
 
@@ -123,8 +129,16 @@ export function MessageList({
   // a workaround for the legacy "cursor and stickyBottom both fight
   // for scroll authority" race. With `follow="end"`, no pin is
   // required to land + stay at the tail.
+  //
+  // The forwarded ref exposes `scrollBy` / `scrollToTop` /
+  // `scrollToBottom` so App.tsx can wire app-level Shift+Up/Down/
+  // PageUp/PageDown/Home/End scroll bindings — the CommandBox owns
+  // keyboard focus by default, so MessageList never receives Arrow/
+  // PageUp/PageDown directly. Mirrors Claude Code's keyboard-only
+  // scroll story.
   return (
     <ListView
+      ref={ref}
       items={items}
       getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
       gap={1}
@@ -147,4 +161,4 @@ export function MessageList({
       }
     />
   )
-}
+})

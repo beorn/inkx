@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AgentSession, SessionStore } from "@km/agent-harness"
-import { Box, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
+import { Box, type ListViewHandle, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
 import { HistoryDialog } from "./components/HistoryDialog.tsx"
@@ -28,6 +28,14 @@ import {
 
 type Layout = "single" | "grid-2" | "grid-4"
 type Track = "claude" | "sdk" | "codex"
+
+// MessageList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
+// matches roughly half a typical chat-pane viewport — large enough to
+// traverse history quickly, small enough that one PageUp doesn't
+// overshoot the user's reading position. ListView has no exposed
+// viewport-row count, so we use a constant rather than computing it
+// from the (currently-private) trackHeight.
+const MESSAGE_LIST_PAGE_STEP = 10
 
 // Mode → prompt color so the `>` in the command input visibly signals
 // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
@@ -249,6 +257,27 @@ export function App(props: AppProps): React.ReactElement {
   // cancel an in-flight pane drag-move without state-coupling to the
   // grid's internal dragRef.
   const paneGridRef = useRef<PaneGridHandle | null>(null)
+
+  // Registry of MessageList ListView handles, keyed by session id. Each
+  // SessionCard registers its forwarded ListViewHandle here on mount via
+  // the `onRegisterMessageList` callback threaded through PaneGrid →
+  // LeafContainer → SessionCard. App-level Shift+Up/Down/PageUp/Down/
+  // Home/End scroll bindings (below) use this map to call scrollBy /
+  // scrollToTop / scrollToBottom on the focused pane's list — keyboard
+  // focus normally lives in the CommandBox, so the ListView never
+  // receives Arrow / PageUp / PageDown keys directly.
+  //
+  // Stored on a ref (not state) — registration is a side-effect, not
+  // render input. The handler reads `messageListsRef.current.get(...)`
+  // at keypress time, which always sees the latest value.
+  const messageListsRef = useRef(new Map<string, ListViewHandle>())
+  const registerMessageList = useCallback(
+    (sessionId: string, handle: ListViewHandle | null): void => {
+      if (handle) messageListsRef.current.set(sessionId, handle)
+      else messageListsRef.current.delete(sessionId)
+    },
+    [],
+  )
 
   // Ctrl+W H/J/K/L — keyboard-driven pane swap (vim-window convention).
   // Picks the structurally-adjacent leaf in the requested direction via
@@ -510,6 +539,33 @@ export function App(props: AppProps): React.ReactElement {
       // `input === ""`; treat them as "no key" and don't reset the arm.
       if (lastCtrlDAt.current !== 0 && input.length > 0) {
         lastCtrlDAt.current = 0
+      }
+      // ── App-level MessageList scroll bindings ────────────────────────
+      // CommandBox owns keyboard focus by default and silvery's TextArea
+      // consumes ArrowUp/ArrowDown/PageUp/PageDown — without an app-level
+      // intercept the user has no way to scroll the message stream from
+      // the keyboard. We use the Shift modifier so plain Arrow keys
+      // still reach the textarea for cursor movement.
+      //
+      //   Shift+Up / Shift+Down       → scroll by ±1 row
+      //   Shift+PageUp / Shift+PageDn → scroll by ±10 rows (page step)
+      //   Shift+Home                  → scrollToTop
+      //   Shift+End                   → scrollToBottom (re-engages follow="end")
+      //
+      // The bindings target the FOCUSED session's MessageList — multi-pane
+      // layouts route the keystroke to the pane the user is looking at.
+      // Bead: km-silvercode.no-keyboard-scroll-from-command-box.
+      if (key.shift && (key.upArrow || key.downArrow || key.pageUp || key.pageDown || key.home || key.end)) {
+        const list = focused ? messageListsRef.current.get(focused.id) : undefined
+        if (list) {
+          if (key.upArrow) list.scrollBy(-1)
+          else if (key.downArrow) list.scrollBy(1)
+          else if (key.pageUp) list.scrollBy(-MESSAGE_LIST_PAGE_STEP)
+          else if (key.pageDown) list.scrollBy(MESSAGE_LIST_PAGE_STEP)
+          else if (key.home) list.scrollToTop()
+          else if (key.end) list.scrollToBottom()
+          return
+        }
       }
       // Escape cancels an in-flight pane drag-move first — highest
       // priority because dropping the drag silently on next mousemove
@@ -887,6 +943,7 @@ export function App(props: AppProps): React.ReactElement {
               onClosePane={closePaneById}
               onToggleMinimizePane={toggleMinimizePane}
               minimizedPaneIds={minimizedPaneIds}
+              onRegisterMessageList={registerMessageList}
             />
 
             {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
