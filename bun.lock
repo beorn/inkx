@@ -227,7 +227,9 @@
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
         "@silvery/commander": "workspace:*",
+        "@silvery/config": "workspace:*",
         "@silvery/scope": "workspace:*",
+        "@silvery/syntax": "workspace:*",
         "@silvery/theme": "workspace:*",
         "alien-signals": "^3.1.2",
         "debug": "^4.4.0",
@@ -674,6 +676,7 @@
         "@silvery/headless": "0.21.0",
         "@silvery/scope": "0.21.0",
         "@silvery/theme": "0.21.0",
+        "upng-js": "^2.1.0",
       },
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
@@ -724,6 +727,22 @@
         "@silvery/ag": "0.21.0",
       },
     },
+    "vendor/silvery/packages/config": {
+      "name": "@silvery/config",
+      "version": "0.21.0",
+      "dependencies": {
+        "@silvery/signals": "0.21.0",
+        "cosmiconfig": "^9.0.1",
+        "yaml": ">=2.0.0",
+      },
+      "peerDependencies": {
+        "@silvery/commander": "0.21.0",
+        "zod": ">=3.0.0",
+      },
+      "optionalPeers": [
+        "@silvery/commander",
+      ],
+    },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
       "version": "0.21.0",
@@ -772,6 +791,13 @@
       "version": "0.21.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
+      },
+    },
+    "vendor/silvery/packages/syntax": {
+      "name": "@silvery/syntax",
+      "version": "0.21.0",
+      "dependencies": {
+        "shiki": "^2.5.0",
       },
     },
     "vendor/silvery/packages/test": {
@@ -1032,6 +1058,7 @@
     "@silvery/scope": "vendor/silvery/packages/scope",
     "@silvery/selection": "packages/silvery-selection",
     "@silvery/signals": "vendor/silvery/packages/signals",
+    "@silvery/syntax": "vendor/silvery/packages/syntax",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1739,6 +1766,8 @@
 
     "@silvery/commands": ["@silvery/commands@workspace:vendor/silvery/packages/commands"],
 
+    "@silvery/config": ["@silvery/config@workspace:vendor/silvery/packages/config"],
+
     "@silvery/create": ["@silvery/create@workspace:vendor/silvery/packages/create"],
 
     "@silvery/headless": ["@silvery/headless@workspace:vendor/silvery/packages/headless"],
@@ -1752,6 +1781,8 @@
     "@silvery/selection": ["@silvery/selection@workspace:packages/silvery-selection"],
 
     "@silvery/signals": ["@silvery/signals@workspace:vendor/silvery/packages/signals"],
+
+    "@silvery/syntax": ["@silvery/syntax@workspace:vendor/silvery/packages/syntax"],
 
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 

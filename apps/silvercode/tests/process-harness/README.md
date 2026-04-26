@@ -56,12 +56,15 @@ To spawn the _production_ CLI (`bun silvercode`), pass `entryPath`:
 ```ts
 const harness = await spawnSilvercode({
   entryPath: "/abs/path/to/apps/silvercode/src/bootstrap.ts",
-  argv: ["--bare"],
+  argv: ["--agent", "claude-code?bare"],
 })
 ```
 
 Be aware: production bootstrap will try to spawn `claude` and needs a real
-account. Almost no test wants this — pick `test-entry.tsx`.
+account. Almost no test wants this — pick `test-entry.tsx`. The `--bare`
+top-level flag was dropped in the connection-system refactor; the equivalent
+is the `?bare` parameter on a built-in claude-code connection string (or a
+named registry entry configured with `bare: true`).
 
 ## stdout vs stderr
 

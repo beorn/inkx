@@ -1,0 +1,196 @@
+/**
+ * silvercode @silvery/config schema — `ai.acp.*` and `ai.mcp.*` registries
+ * plus the BUILTIN_AGENTS map used for zero-config first-run.
+ *
+ * The two registry kinds projected onto `~/.km/config.yaml`:
+ *
+ *   ai:
+ *     acp:
+ *       default: claude-work
+ *       claude-work: "claude-code?account=bjorn@stabell.org&model=opus-4.7&bare"
+ *       codex: "codex?model=gpt-5-mini"
+ *     mcp:
+ *       km:
+ *         command: bun
+ *         args: ["run", "apps/silvercode/packages/km-mcp-server/src/bin.ts"]
+ *
+ * Reserved keys: `default` (for both kinds — `ai.acp.default` names the
+ * active connection; `ai.mcp.default` is unused but still forbidden as an
+ * entry name to keep the registry surface uniform).
+ *
+ * `BUILTIN_AGENTS` provides connection defaults so silvercode can be
+ * launched with zero config — `silvercode --agent codex` or just
+ * `silvercode` (which falls back to `claude-code`) Just Works as long as
+ * the credentials are reachable via env or the agent's documented config
+ * dir.
+ */
+
+import { defineKind } from "@silvery/config"
+import { z } from "zod"
+
+// ---------------------------------------------------------------------------
+// ai.acp.<name> — connection registry kind
+// ---------------------------------------------------------------------------
+
+/**
+ * One ACP connection entry. Matches the "object form" YAML shape; the
+ * "string form" (e.g. `"claude-code?model=opus-4.7&bare"`) is parsed via
+ * the kind's connection-string grammar (see `@silvery/config`).
+ *
+ * Field semantics:
+ * - `agent`     — required. The path-segment of the connection string;
+ *                 either a built-in agent id (`claude-code`, `codex`,
+ *                 `gemini`, `copilot`) or a free-form id used by a
+ *                 custom transport. Coerced via `pathField: "agent"`.
+ * - `transport` — optional override. Most connections leave this unset
+ *                 (the agent's default ACP transport is used). Set to
+ *                 `spawn` for the legacy stream-json claude path.
+ * - `account`   — optional Anthropic account name. Resolves via
+ *                 `accounts.ts` to `~/.km/accounts/<name>/`.
+ * - `model`     — optional model id; passed through to the agent.
+ * - `bare`      — optional. Spawns claude with `--bare` (deterministic
+ *                 mode, no hooks/plugins/skills/CLAUDE.md). Boolean-coerced.
+ * - `label`     — optional human-readable name for the SidePanel.
+ * - `color`     — optional CSS-style hex (e.g. `#a0d8a0`) for the pane chip.
+ * - `options`   — escape hatch for agent-specific extras.
+ * - `base`      — hybrid form: parse as a connection string, sibling
+ *                 fields override. Handled inside `@silvery/config`.
+ * - `mcp_servers` — list of `ai.mcp.*` entry names to mount for sessions
+ *                   spawned through this connection. Empty/undefined means
+ *                   the controller's default set is used.
+ */
+const AcpEntrySchema = z.object({
+  transport: z.string().optional(),
+  agent: z.string(),
+  account: z.string().optional(),
+  model: z.string().optional(),
+  bare: z.boolean().optional(),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
+  base: z.string().optional(),
+  mcp_servers: z.array(z.string()).optional(),
+})
+
+export type AcpEntry = z.infer<typeof AcpEntrySchema>
+
+export const AcpEntryKind = defineKind({
+  name: "acp",
+  schema: AcpEntrySchema,
+  pathField: "agent",
+  reservedKeys: ["default"],
+  // Coercion hints for connection-string parsing — without these, the
+  // grammar treats every value as a string.
+  //   bare           → boolean (also flag-style: `?bare` / `?!bare`)
+  //   temp / top_p   → number  (sampling params, common across agents)
+  coerce: {
+    bare: "boolean",
+    temp: "number",
+    top_p: "number",
+    mcp_servers: "array",
+  },
+})
+
+// ---------------------------------------------------------------------------
+// ai.mcp.<name> — MCP server registry kind
+// ---------------------------------------------------------------------------
+
+const McpEntrySchema = z.object({
+  command: z.string(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
+  cwd: z.string().optional(),
+})
+
+export type McpEntry = z.infer<typeof McpEntrySchema>
+
+export const McpKind = defineKind({
+  name: "mcp",
+  schema: McpEntrySchema,
+  pathField: "command",
+  reservedKeys: ["default"],
+})
+
+// ---------------------------------------------------------------------------
+// BUILTIN_AGENTS — zero-config first-run defaults
+// ---------------------------------------------------------------------------
+
+/**
+ * One row of the built-in agent table. Used only when the user hasn't
+ * defined the matching `ai.acp.<name>` entry in their config — provides
+ * sensible defaults so `silvercode --agent codex` Just Works.
+ *
+ * `cred_env` lists env vars that, when present, count as "this agent is
+ * usable without further configuration". `cred_dir` (when set) is checked
+ * for existence as a fallback (e.g. `~/.claude/auth.json` for Pro/Max
+ * subscription auth that doesn't surface in env).
+ *
+ * `default_model` seeds the connection's `model` when the user hasn't
+ * passed `--model` and the config doesn't override it. Optional —
+ * agents that pick a model server-side leave this undefined.
+ */
+export type BuiltinAgent = {
+  /** Connection-string sugar — same value as `agent` field. */
+  readonly id: string
+  /** Default transport. `acp` for ACP-spawned agents; `spawn` for
+   *  the legacy stream-json claude path. */
+  readonly transport: "acp" | "spawn"
+  /** Env vars that count as "credentials present". */
+  readonly credEnv: ReadonlyArray<string>
+  /** Optional credential directory (checked for existence). */
+  readonly credDir?: string
+  /** Default model id used when nothing overrides it. */
+  readonly defaultModel?: string
+  /** One-line description for `silvercode config acp list` etc. */
+  readonly description: string
+}
+
+export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
+  "claude-code": {
+    id: "claude-code",
+    transport: "acp",
+    credEnv: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+    credDir: "~/.claude",
+    defaultModel: "claude-opus-4-7",
+    description: "Claude Code (ACP) — Pro/Max OAuth or ANTHROPIC_API_KEY",
+  },
+  "claude-code-spawn": {
+    id: "claude-code-spawn",
+    transport: "spawn",
+    credEnv: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+    credDir: "~/.claude",
+    defaultModel: "claude-opus-4-7",
+    description: "Claude Code (legacy stream-json spawn)",
+  },
+  codex: {
+    id: "codex",
+    transport: "acp",
+    credEnv: ["OPENAI_API_KEY"],
+    description: "OpenAI Codex (ACP) — ChatGPT subscription",
+  },
+  gemini: {
+    id: "gemini",
+    transport: "acp",
+    credEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+    description: "Google Gemini (ACP) — Sign in with Google",
+  },
+  copilot: {
+    id: "copilot",
+    transport: "acp",
+    credEnv: ["GITHUB_TOKEN"],
+    description: "GitHub Copilot (ACP) — Copilot subscription",
+  },
+}
+
+/**
+ * True when `id` is a known built-in agent key.
+ *
+ * Returns a plain boolean (not a type predicate) on purpose: a `id is keyof
+ * typeof BUILTIN_AGENTS` predicate would narrow the call-site's `input:
+ * string` to `never` in the surrounding `else` branches, which then breaks
+ * `restrict-template-expressions` when we want to include the original
+ * input in error messages.
+ */
+export function isBuiltinAgentId(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(BUILTIN_AGENTS, id)
+}

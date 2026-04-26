@@ -33,7 +33,7 @@
  *
  * The handle implements `Symbol.asyncDispose` so tests can write:
  *
- *   await using harness = await spawnSilvercode({ argv: ["--bare"] })
+ *   await using harness = await spawnSilvercode({ bare: true })
  *   await harness.waitFor((screen) => screen.includes("Silver Code"))
  *   await harness.press("h")
  *   expect(harness.screen.text).toContain("history")
@@ -131,7 +131,13 @@ export interface SpawnSilvercodeOptions {
   /** Terminal rows. Default: 40. */
   rows?: Rows
 
-  /** Pass `--bare` to the App (skip user CLAUDE.md / hooks / plugins). Default: true. */
+  /**
+   * Pass `bare: true` to the App (skip user CLAUDE.md / hooks / plugins).
+   * Wired via the `SILVERCODE_TEST_BARE` env var → `<App bare={...} />` prop;
+   * the top-level `--bare` CLI flag was dropped in the connection-system
+   * refactor (its replacement is the `?bare` connection-string parameter).
+   * Default: true.
+   */
   bare?: boolean
   /** Layout prop. Default: "single". */
   layout?: "single" | "grid-2" | "grid-4"

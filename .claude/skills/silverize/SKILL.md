@@ -354,10 +354,72 @@ Checklist when replacing parseArgs/custom help:
 - [ ] Run `<tool> --help` after conversion and compare with the old output
 ```typescript
 program.addHelpSection("Examples:", [
-  ["$ terminfo test", "Test this terminal"],
-  ["$ terminfo submit", "Test + submit results"],
+  ["$ terminfo test", "test this terminal"],
+  ["$ terminfo submit", "test + submit results"],
 ])
 ```
+
+### Help-text style: short, lowercase, consistent
+
+`@silvery/commander` auto-detects whether your project uses **lowercase** or **Sentence case** for option/command descriptions and matches built-in flags (`-h, --help`, etc.) accordingly — see the `/^[a-z]/.test(opt.description)` check in `command.ts`. Pick one and stay consistent within a single program.
+
+**Default for new silvery programs: lowercase.** Matches GNU CLI tradition (`grep`, `git`, `npm` all lowercase) and reads better at terminal density. Sentence case is fine for existing programs that already use it — don't retrofit; the auto-detection will mix them visibly otherwise.
+
+**Keep descriptions tight.** Help columns get crowded fast. Aim for 30-60 chars per description. If you can't fit it: pick a noun phrase, drop articles ("a", "the"), drop helper words ("override the connection's model" → "override model").
+
+**Verbose vs tight:**
+
+```typescript
+// Tarnished — sentence-case + verbose
+.option("--agent <id>", "Connection: registry label, connection-string, or built-in agent id")
+.option("--model <name>", "Override the connection's model (transient, this invocation only)")
+.option("--account <name>", "Credentials profile — reads from ~/.km/accounts/<name>/ (transient override)")
+.option("--cwd <path>", "Working directory for spawned sessions")
+
+// Shiny — lowercase + tight
+.option("--agent <id>", "label, connection-string, or built-in id")
+.option("--model <name>", "override model (transient)")
+.option("--account <name>", "credentials profile (transient)")
+.option("--cwd <path>", "working directory")
+```
+
+**Examples descriptions follow the same rule:** lowercase, concise, noun phrase preferred.
+
+```typescript
+// Tarnished
+program.addHelpSection("Examples:", [
+  ["$ silvercode", "default — uses ai.acp.default or built-in fallback"],
+  ["$ silvercode --agent claude-work", "use a named registry preset"],
+  ["$ silvercode doctor", "health-check config + integrations"],
+])
+
+// Shiny
+program.addHelpSection("Examples:", [
+  ["$ silvercode", "use the default"],
+  ["$ silvercode --agent claude-work", "named registry preset"],
+  ["$ silvercode doctor", "health-check"],
+])
+```
+
+**Exception — proper noun descriptions stay sentence case.** `Built-in agents:` lists products with proper names ("Claude Code via …", "OpenAI Codex …", "Google Gemini …"). Those are full sentences and that's fine — they describe distinct products, not CLI knobs.
+
+**Group options with comments**, not blank lines. Commander renders all options in declaration order; comments document intent for maintainers without affecting output:
+
+```typescript
+program
+  // Connection (what to run)
+  .option("--agent <id>", "label, connection-string, or built-in id")
+  .option("--model <name>", "override model (transient)")
+  .option("--account <name>", "credentials profile (transient)")
+  // Session
+  .option("--resume <id>", "resume session id")
+  // Paths
+  .option("--cwd <path>", "working directory")
+  .option("--log-dir <path>", "event-log directory")
+  .option("--config <path>", "config file path (overrides KM_CONFIG)")
+```
+
+The user reads them as one column; the maintainer sees the logical clusters.
 
 ### CLI Output — Use Silvery Inline Rendering
 

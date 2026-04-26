@@ -17,7 +17,9 @@
  * the checks. CLI-only for v1.
  */
 
+import { loadConfig } from "@silvery/config"
 import { runAutolinksChecker } from "./checkers/autolinks.ts"
+import { runConnectionsChecker } from "./checkers/connections.ts"
 
 /**
  * Severity ordering: `ok < warn < error`. A section's severity is the max of
@@ -159,13 +161,24 @@ export type RunDoctorOptions = {
     readonly workspaceConfigPath?: string
     readonly vaultConfigPath?: string
   }
+  /**
+   * Test seam for the ai.acp / ai.mcp checkers — single explicit YAML path
+   * passed to `loadConfig({ path })`. Production callers omit this; the
+   * default behaviour is `loadConfig({ appName: "km" })` which walks the
+   * usual XDG / project-local locations.
+   */
+  readonly acp?: {
+    readonly configPath?: string
+  }
 }
 
 /**
  * Run all (or the requested subset of) checkers and return the aggregated
- * report. Pure-ish: filesystem reads are real, but no global mutation.
+ * report. Async because the ai.acp / ai.mcp checkers require
+ * `loadConfig` (filesystem-async). Filesystem reads are real, but no
+ * global mutation; safe to call repeatedly.
  */
-export function runDoctor(opts: RunDoctorOptions): DoctorReport {
+export async function runDoctor(opts: RunDoctorOptions): Promise<DoctorReport> {
   const sections: DoctorSection[] = []
   const wantsAll = !opts.only || opts.only.length === 0
   const wants = (name: string) => wantsAll || opts.only?.includes(name)
@@ -174,10 +187,19 @@ export function runDoctor(opts: RunDoctorOptions): DoctorReport {
     sections.push(runAutolinksChecker(opts.cwd, opts.autolinks ?? {}))
   }
 
+  if (wants("connections")) {
+    const config = await loadConfig(
+      opts.acp?.configPath
+        ? { path: opts.acp.configPath, watch: false }
+        : { appName: "km", cwd: opts.cwd, watch: false },
+    )
+    sections.push(runConnectionsChecker(config))
+  }
+
   let severity: DoctorSeverity = "ok"
   for (const section of sections) severity = maxSeverity(severity, section.severity)
   return { cwd: opts.cwd, severity, sections }
 }
 
 /** Names of registered checkers. Useful for `silvercode doctor --help`. */
-export const CHECKER_NAMES = ["autolinks"] as const
+export const CHECKER_NAMES = ["autolinks", "connections"] as const

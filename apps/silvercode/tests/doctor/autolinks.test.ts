@@ -34,13 +34,17 @@ describe("doctor autolinks — file presence + parse", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  test("missing workspace + vault → all ok, exit 0", () => {
+  test("missing workspace + vault → all ok, exit 0", async () => {
     const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
     expect(section.severity).toBe("ok")
     // Watcher item is always emitted (count = 0 for a fresh CLI run).
     expect(section.items.some((i) => i.message.startsWith("workspace config — not present"))).toBe(true)
     expect(section.items.some((i) => i.message.startsWith("vault config — not present"))).toBe(true)
-    const report = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const report = await runDoctor({
+      cwd: dir,
+      only: ["autolinks"],
+      autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath },
+    })
     expect(severityToExitCode(report.severity)).toBe(0)
   })
 
@@ -554,9 +558,16 @@ describe("doctor autolinks — exit code", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  test("ok → 0, warn → 1, error → 2", () => {
+  test("ok → 0, warn → 1, error → 2", async () => {
+    const runOnly = (): ReturnType<typeof runDoctor> =>
+      runDoctor({
+        cwd: dir,
+        only: ["autolinks"],
+        autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath },
+      })
+
     // ok: no configs.
-    const ok = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const ok = await runOnly()
     expect(severityToExitCode(ok.severity)).toBe(0)
 
     // warn: dead resolves_to.
@@ -569,16 +580,16 @@ syntaxlinks:
     preview: readme
 `,
     )
-    const warn = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const warn = await runOnly()
     expect(severityToExitCode(warn.severity)).toBe(1)
 
     // error: malformed YAML.
     writeFileSync(vaultPath, "syntaxlinks:\n  - this: is\n   bad: indent\n")
-    const err = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const err = await runOnly()
     expect(severityToExitCode(err.severity)).toBe(2)
   })
 
-  test("DoctorReport is JSON-serializable round-trip (proves --json output is sound)", () => {
+  test("DoctorReport is JSON-serializable round-trip (proves --json output is sound)", async () => {
     // The CLI's `--json` flag JSON.stringify's the report directly. This
     // test asserts the report shape contains only data — no functions,
     // no circular refs — so the CLI output is always valid JSON regardless
@@ -592,7 +603,11 @@ syntaxlinks:
     preview: readme
 `,
     )
-    const report = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const report = await runDoctor({
+      cwd: dir,
+      only: ["autolinks"],
+      autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath },
+    })
     const json = JSON.stringify(report)
     const parsed = JSON.parse(json) as {
       cwd: string

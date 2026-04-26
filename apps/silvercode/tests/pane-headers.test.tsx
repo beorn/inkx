@@ -1,7 +1,9 @@
 /**
- * PaneHeader / --pane-headers — opt-in chrome strip per pane.
+ * PaneHeader / paneHeaders prop — opt-in chrome strip per pane.
  *
- * Bead: km-silvercode.pane-headers (v2 of pane-management).
+ * Bead: km-silvercode.pane-headers (v2 of pane-management). The top-level
+ * `--pane-headers` CLI flag was dropped in the connection-system refactor;
+ * the prop on `<App />` remains and is the only test surface here.
  *
  * Two layers of coverage:
  *
@@ -132,7 +134,7 @@ async function bootApp(opts: { paneHeaders: boolean }): Promise<{
   return { term, fakes, handle, fakesInstalled }
 }
 
-describe("--pane-headers — opt-in wiring", () => {
+describe("paneHeaders prop — opt-in wiring", () => {
   test("default (paneHeaders=false) renders no header chrome — v1 contract holds", async () => {
     const { term, handle, fakesInstalled } = await bootApp({ paneHeaders: false })
     try {
