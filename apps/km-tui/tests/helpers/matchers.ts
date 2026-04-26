@@ -23,6 +23,11 @@ import type { TestAppState } from "./test-app.ts"
 // (e.g., a TestApp-aware toContainText) take final precedence.
 // vitest's expect.extend is last-write-wins per matcher name.
 import "@termless/test/matchers"
+// terminalMatchers is the source of truth for the termless contract on
+// `toContainText` / `toHaveText`. We delegate to it whenever the received
+// value is a termless-domain object (RegionView or TerminalReadable) so
+// km-tui's overrides extend rather than replace termless behavior.
+import { terminalMatchers } from "@termless/test"
 
 // =============================================================================
 // Type Guard
@@ -46,6 +51,43 @@ function assertAutoLocator(value: unknown, matcherName: string): asserts value i
         `Use app.getByTestId() or app.locator() to get a locator.`,
     )
   }
+}
+
+// =============================================================================
+// Termless Delegation
+// =============================================================================
+//
+// km-tui's matchers register AFTER termless's, so they win the last-write
+// race in vitest's expect.extend. But that means when termless's own tests
+// (or any test that hands a RegionView / TerminalReadable to expect()) run
+// under km-tui's vitest setup, our matchers receive shapes they weren't
+// designed for. Detect those shapes and forward to termless's implementation
+// so its contract — including its error messages — is preserved verbatim.
+
+/** RegionView duck-type: has containsText (matches termless's isRegionView). */
+function isRegionView(value: unknown): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "containsText" in (value as Record<string, unknown>) &&
+    typeof (value as { containsText?: unknown }).containsText === "function"
+  )
+}
+
+/** TerminalReadable duck-type: has getCell + getCursor + getMode (matches termless's isTerminalReadable). */
+function isTerminalReadable(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value !== "object" && typeof value !== "function") return false
+  return (
+    "getCell" in (value as Record<string, unknown>) &&
+    "getCursor" in (value as Record<string, unknown>) &&
+    "getMode" in (value as Record<string, unknown>)
+  )
+}
+
+/** True for any value the termless contract should handle (RegionView or TerminalReadable). */
+function isTermlessDomain(value: unknown): boolean {
+  return isRegionView(value) || isTerminalReadable(value)
 }
 
 // =============================================================================
@@ -78,9 +120,10 @@ function assertTestApp(value: unknown, matcherName: string): asserts value is { 
 
 declare module "vitest" {
   interface Matchers<T> {
-    // Text matchers
-    toHaveText(expected: string): void
-    toContainText(expected: string): void
+    // Text matchers — accept optional { timeout } so termless's RegionView
+    // auto-retry contract continues to work when our overrides delegate.
+    toHaveText(expected: string, options?: { timeout?: number }): void
+    toContainText(expected: string, options?: { timeout?: number }): void
 
     // Visibility matchers
     toBeVisible(): void
@@ -128,7 +171,19 @@ expect.extend({
    * @example
    * expect(locator.getByTestId('title')).toHaveText('Hello World')
    */
-  toHaveText(received: unknown, expected: string) {
+  toHaveText(this: unknown, received: unknown, expected: string, options?: { timeout?: number }) {
+    // Delegate termless-domain shapes (RegionView, TerminalReadable) to termless's
+    // matcher so its contract — and its helpful "use term.screen" error — is preserved.
+    if (isTermlessDomain(received)) {
+      const fn = terminalMatchers.toHaveText as (
+        this: unknown,
+        r: unknown,
+        t: string,
+        o?: { timeout?: number },
+      ) => { pass: boolean; message: () => string } | Promise<{ pass: boolean; message: () => string }>
+      return fn.call(this, received, expected, options)
+    }
+
     assertAutoLocator(received, "toHaveText")
     const actual = getLocatorText(received)
     const pass = actual === expected
@@ -157,7 +212,7 @@ expect.extend({
    * // Termless RegionView — for termless-backed tests
    * expect(term.screen).toContainText('ready')
    */
-  toContainText(received: unknown, expected: string, options?: { timeout?: number }) {
+  toContainText(this: unknown, received: unknown, expected: string, options?: { timeout?: number }) {
     // TestApp form: screen-wide text assertion (canonical replacement for expectScreen)
     if (isTestApp(received)) {
       const app = received as unknown as { text: string }
@@ -170,41 +225,17 @@ expect.extend({
       }
     }
 
-    // RegionView form: delegate to termless's matcher behavior.
-    // Detection mirrors termless's isRegionView (containsText function present).
-    if (
-      received !== null &&
-      typeof received === "object" &&
-      "containsText" in (received as Record<string, unknown>) &&
-      typeof (received as { containsText?: unknown }).containsText === "function"
-    ) {
-      const region = received as { containsText: (t: string) => boolean; getText?: () => string }
-      const assertFn = () => {
-        const pass = region.containsText(expected)
-        return {
-          pass,
-          message: () =>
-            pass
-              ? `Expected region not to contain "${expected}"`
-              : `Expected region to contain "${expected}"${region.getText ? `, got "${region.getText()}"` : ""}`,
-        }
-      }
-      // Auto-retry when timeout is specified (Playwright pattern)
-      if (options?.timeout) {
-        return new Promise<ReturnType<typeof assertFn>>((resolve) => {
-          const start = Date.now()
-          const poll = () => {
-            const result = assertFn()
-            if (result.pass || Date.now() - start >= options.timeout!) {
-              resolve(result)
-            } else {
-              setTimeout(poll, 50)
-            }
-          }
-          poll()
-        })
-      }
-      return assertFn()
+    // Termless-domain forms (RegionView, TerminalReadable): delegate to termless's
+    // matcher so its contract — including the helpful "use term.screen" error for
+    // bare TerminalReadables — is preserved verbatim.
+    if (isTermlessDomain(received)) {
+      const fn = terminalMatchers.toContainText as (
+        this: unknown,
+        r: unknown,
+        t: string,
+        o?: { timeout?: number },
+      ) => { pass: boolean; message: () => string } | Promise<{ pass: boolean; message: () => string }>
+      return fn.call(this, received, expected, options)
     }
 
     // AutoLocator form: scoped text assertion
