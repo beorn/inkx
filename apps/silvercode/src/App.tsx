@@ -198,6 +198,18 @@ export function App(props: AppProps): React.ReactElement {
   const [showSidePanel, setShowSidePanel] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
   const [inputValue, setInputValue] = useState("")
+  // Mirror inputValue into a ref so the App-level input handler can
+  // capture the pre-chord value synchronously. Without this, when the
+  // user presses `Ctrl+G v`, TextArea consumes the `v` BEFORE App's
+  // useInput sees it (silvery fires all useInput handlers per
+  // registration order — there's no priority), so we'd be left with
+  // `v` stuck in the input. We snapshot the value before Ctrl+G fires
+  // (in the chord branch) and restore it after the chord resolves.
+  const inputValueRef = useRef("")
+  useEffect(() => {
+    inputValueRef.current = inputValue
+  }, [inputValue])
+  const preChordInputRef = useRef<string | null>(null)
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
 
   // Pane management — Ctrl+G chord prefix gates pane operations:
@@ -213,16 +225,28 @@ export function App(props: AppProps): React.ReactElement {
   // the App-level useInput cleanly. "G" mnemonic = grid management.
   // Bead: km-silvercode.ctrl-w-blocked-by-textarea.
   //
-  // The chord lives in a state value (not a ref) so the visual hint
-  // shown in the side panel can react to its presence. Times out 1500ms
-  // after activation so a stale Ctrl+G doesn't trap the next plain
-  // keystroke.
+  // The chord lives in a state value so the visual hint shown in the side
+  // panel can react to its presence. We ALSO mirror it into a ref because
+  // the input handler reads it synchronously — without the ref, React
+  // batching means the closure captured by the next keystroke handler
+  // sees the previous (null) value, so `Ctrl+G` followed quickly by `v`
+  // never resolves the chord. Times out 1500ms after activation so a
+  // stale Ctrl+G doesn't trap the next plain keystroke. Bead:
+  // km-silvercode.ctrl-g-chord-state-stale.
   const [chord, setChord] = useState<"ctrl-g" | null>(null)
+  const chordRef = useRef<"ctrl-g" | null>(null)
+  const setChordBoth = useCallback((next: "ctrl-g" | null): void => {
+    chordRef.current = next
+    setChord(next)
+  }, [])
   useEffect(() => {
     if (!chord) return
-    const handle = setTimeout(() => setChord(null), 1500)
+    const handle = setTimeout(() => {
+      preChordInputRef.current = null
+      setChordBoth(null)
+    }, 1500)
     return () => clearTimeout(handle)
-  }, [chord])
+  }, [chord, setChordBoth])
   const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null)
   // If the zoomed pane disappears (close), drop zoom so the grid re-renders
   // the remaining panes.
@@ -680,11 +704,23 @@ export function App(props: AppProps): React.ReactElement {
       // History: was Ctrl+W (vim-window), but TextArea consumes Ctrl+W
       // as readline word-delete before this handler runs. Bead
       // km-silvercode.ctrl-w-blocked-by-textarea.
-      if (chord === "ctrl-g") {
+      if (chordRef.current === "ctrl-g") {
         // Any keypress in chord state consumes the chord — even an
         // unrecognised one — so we don't accidentally swallow the user's
         // next real keystroke after a typo.
-        setChord(null)
+        setChordBoth(null)
+        // Restore the input value snapshot taken when Ctrl+G fired, so
+        // the chord follow-up letter (which TextArea also inserts) is
+        // wiped. We schedule the restore via setTimeout(0) — by then,
+        // TextArea's onChange has fully propagated through React, and
+        // our restore is the last write to win. Microtask is too early
+        // (TextArea's setInputValue runs after our handler returns).
+        const snapshot = preChordInputRef.current
+        preChordInputRef.current = null
+        if (snapshot !== null) {
+          const restore = snapshot
+          setTimeout(() => setInputValue(restore), 0)
+        }
         if (input === "v") {
           // Vertical split — focused leaf becomes a row-split with the
           // new session as its right sibling.
@@ -749,7 +785,12 @@ export function App(props: AppProps): React.ReactElement {
         return
       }
       if (key.ctrl && input === "g") {
-        setChord("ctrl-g")
+        // Snapshot the current input value so we can restore it after the
+        // chord follow-up resolves — TextArea will insert the follow-up
+        // letter into the input regardless of whether App's chord branch
+        // ran (silvery has no priority/cancel between useInput handlers).
+        preChordInputRef.current = inputValueRef.current
+        setChordBoth("ctrl-g")
         return
       }
       // Ctrl+N cycles sessions in left-to-right reading order — i.e.
