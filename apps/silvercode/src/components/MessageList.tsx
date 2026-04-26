@@ -108,16 +108,7 @@ export const MessageList = React.forwardRef<
     showRaw?: boolean
   }
 >(function MessageList(
-  {
-    messages,
-    status,
-    turnStartedAt,
-    inputTokens,
-    outputTokens,
-    pendingPermissions,
-    inFlightTool,
-    showRaw = false,
-  },
+  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool, showRaw = false },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"

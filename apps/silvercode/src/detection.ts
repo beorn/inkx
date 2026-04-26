@@ -40,8 +40,7 @@ const BEAD_RE = /\b(?:bd[-:]|km-)[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\b/g
  *      `/quit`, `/inbox` don't render as paths. Real paths (`/Users/foo`,
  *      `/main.ts`) all have either another `/` or an extension `.`.
  */
-const FILE_RE =
-  /(~[A-Za-z0-9/_.-]+|(?<![A-Za-z0-9_])\/[A-Za-z0-9_-]+[/.][A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
+const FILE_RE = /(~[A-Za-z0-9/_.-]+|(?<![A-Za-z0-9_])\/[A-Za-z0-9_-]+[/.][A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
 
 /** km node refs: #id or @mention. */
 const KM_REF_RE = /(?:^|\s)(?:#|@)([A-Za-z][A-Za-z0-9_-]{2,})/g

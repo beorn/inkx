@@ -14,12 +14,13 @@ describe("MarkdownView paragraph wrap", () => {
   test("long paragraph wraps at column boundary", () => {
     const COLS = 60
     const ROWS = 20
-    const longPara = "A workspace for agentic knowledge workers: unified notes, tasks, and calendar in a TUI, with bidirectional markdown sync and a vendor/ submodule layout."
+    const longPara =
+      "A workspace for agentic knowledge workers: unified notes, tasks, and calendar in a TUI, with bidirectional markdown sync and a vendor/ submodule layout."
     const render = createRenderer({ cols: COLS, rows: ROWS })
     const app = render(
       <Box width={COLS} height={ROWS} flexDirection="column">
         <MarkdownView source={longPara} />
-      </Box>
+      </Box>,
     )
     const text = app.text
     // Each line should be <= COLS chars

@@ -68,7 +68,4 @@ export const permissionRequestAfter: ReadonlyArray<AgentEvent> = [
 ]
 
 /** Convenience: all events concatenated, for when the test drives approval inline via emit(). */
-export const permissionRequest: ReadonlyArray<AgentEvent> = [
-  ...permissionRequestBefore,
-  ...permissionRequestAfter,
-]
+export const permissionRequest: ReadonlyArray<AgentEvent> = [...permissionRequestBefore, ...permissionRequestAfter]

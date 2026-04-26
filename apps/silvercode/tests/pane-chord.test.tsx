@@ -63,7 +63,9 @@ async function bootApp(): Promise<{
         // session, subsequent calls return fresh fakes so PaneGrid can
         // mount each pane with its own handle.
         if (spawnCount.value === 1) return fake as unknown as AgentSession
-        return createFakeSession({ sessionId: `fake-session-${spawnCount.value}` as SessionId }) as unknown as AgentSession
+        return createFakeSession({
+          sessionId: `fake-session-${spawnCount.value}` as SessionId,
+        }) as unknown as AgentSession
       }}
     />,
     term,

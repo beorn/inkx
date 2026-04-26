@@ -98,9 +98,7 @@ describe("A1 — single visible cursor in queue editor", () => {
       // the bottom 8 rows of the frame.
       const lowerHalf = lines.slice(Math.max(0, lines.length - 8))
       const lowerStart = lines.length - lowerHalf.length
-      const candidateOffsets = lowerHalf
-        .map((l, i) => ({ l, i: lowerStart + i }))
-        .filter(({ l }) => l.includes("> "))
+      const candidateOffsets = lowerHalf.map((l, i) => ({ l, i: lowerStart + i })).filter(({ l }) => l.includes("> "))
       const commandRow = candidateOffsets[candidateOffsets.length - 1]?.i
       expect(commandRow, `Could not locate command row.\nFrame:\n${s.text}`).toBeDefined()
 
@@ -137,14 +135,8 @@ describe("A2 — per-line `>` prefix in queue display", () => {
       // Single-newline display: cmd lines are CONSECUTIVE rows (no blank
       // row between them). Today the wire-format `\n\n` produces a
       // blank row between every entry — that's the bug.
-      expect(
-        idx2 - idx1,
-        `cmd1→cmd2 has a blank row between (\\n\\n leaking into display).\nFrame:\n${s.text}`,
-      ).toBe(1)
-      expect(
-        idx3 - idx2,
-        `cmd2→cmd3 has a blank row between (\\n\\n leaking into display).\nFrame:\n${s.text}`,
-      ).toBe(1)
+      expect(idx2 - idx1, `cmd1→cmd2 has a blank row between (\\n\\n leaking into display).\nFrame:\n${s.text}`).toBe(1)
+      expect(idx3 - idx2, `cmd2→cmd3 has a blank row between (\\n\\n leaking into display).\nFrame:\n${s.text}`).toBe(1)
 
       // Each line carries its own `>` prefix. Today the queue shows ONE
       // `>` for the entire multi-entry buffer (the prefix lives in a

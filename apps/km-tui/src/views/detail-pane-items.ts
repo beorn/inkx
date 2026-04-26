@@ -113,7 +113,12 @@ export function computeMetadataKeys(node: KNode): string[] {
   // Extra data.metadata entries (excluding created/completed already shown),
   // data.propsRaw entries, and extra data fields not in KNOWN_DATA_KEYS.
   const usedKeys = new Set(keys)
-  pushExtraKeys(data?.metadata as Record<string, unknown> | undefined, usedKeys, keys, (k) => k === "created" || k === "completed")
+  pushExtraKeys(
+    data?.metadata as Record<string, unknown> | undefined,
+    usedKeys,
+    keys,
+    (k) => k === "created" || k === "completed",
+  )
   pushExtraKeys(data?.propsRaw as Record<string, unknown> | undefined, usedKeys, keys)
   pushExtraKeys(data, usedKeys, keys, (k) => KNOWN_DATA_KEYS.has(k))
 

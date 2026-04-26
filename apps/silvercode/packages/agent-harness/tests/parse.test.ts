@@ -488,7 +488,13 @@ describe("session-store — event folding", () => {
     // (idempotent — content blocks should match).
     const store = createSessionStore()
     const now = Date.now()
-    store.apply({ kind: "turn-start", sessionId: "s" as never, turnId: "msg-live" as never, role: "assistant", ts: now })
+    store.apply({
+      kind: "turn-start",
+      sessionId: "s" as never,
+      turnId: "msg-live" as never,
+      role: "assistant",
+      ts: now,
+    })
     store.apply({
       kind: "text-delta",
       sessionId: "s" as never,

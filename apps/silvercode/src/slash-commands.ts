@@ -27,7 +27,11 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   // (system-reminders, hook output, isMeta auto-prompts) below the visible
   // prompt. Resumed sessions surface what the model actually received.
   // Bead: km-silvercode.resume-show-everything-collapsed.
-  { name: "/raw", description: "Toggle debug view: inline hidden context (system-reminders, isMeta) on user messages", local: true },
+  {
+    name: "/raw",
+    description: "Toggle debug view: inline hidden context (system-reminders, isMeta) on user messages",
+    local: true,
+  },
   { name: "/debug", description: "Alias for /raw — inline hidden context on user messages", local: true },
   { name: "/handoff", description: "Handoff task + context to another session", local: true },
   { name: "/inbox", description: "Open the cross-session permission inbox", local: true },

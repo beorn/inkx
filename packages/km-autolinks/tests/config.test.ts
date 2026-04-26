@@ -9,12 +9,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
-import {
-  cascadeAutolinks,
-  compilePattern,
-  loadAutolinksConfig,
-  parseSyntaxlinksYaml,
-} from "../src/config.ts"
+import { cascadeAutolinks, compilePattern, loadAutolinksConfig, parseSyntaxlinksYaml } from "../src/config.ts"
 
 describe("syntaxlinks config — pattern compilation", () => {
   test("literal pattern matches verbatim, escapes meta characters", () => {

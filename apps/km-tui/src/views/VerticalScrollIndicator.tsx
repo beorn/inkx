@@ -31,9 +31,7 @@ export function VerticalScrollIndicator({
 
   return (
     <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden" userSelect="none">
-      {active && (
-        <Small>{direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}</Small>
-      )}
+      {active && <Small>{direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}</Small>}
     </Box>
   )
 }

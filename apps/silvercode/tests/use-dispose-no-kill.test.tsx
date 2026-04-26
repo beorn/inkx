@@ -132,9 +132,7 @@ describe("layer 3: useDispose regression (ca794509)", () => {
     const fake: ScriptedFakeSession = createFakeSession()
     const render = createRenderer({ cols: 40, rows: 5 })
 
-    const app = render(
-      <DisposeHarness label="hello" spawnFactory={() => fake} onController={() => {}} />,
-    )
+    const app = render(<DisposeHarness label="hello" spawnFactory={() => fake} onController={() => {}} />)
     expect(app.text).toContain("hello")
     await Promise.resolve()
 

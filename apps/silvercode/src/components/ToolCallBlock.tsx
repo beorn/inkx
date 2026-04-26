@@ -101,7 +101,13 @@ export function ToolCallBlock({
         <Box paddingLeft={2} flexDirection="column">
           {(() => {
             // Edit tools: dedicated diff renderer (already covered).
-            if (name === "Edit" && input && typeof input === "object" && "old_string" in input && "new_string" in input) {
+            if (
+              name === "Edit" &&
+              input &&
+              typeof input === "object" &&
+              "old_string" in input &&
+              "new_string" in input
+            ) {
               const o = input as Record<string, unknown>
               return (
                 <DiffRenderer

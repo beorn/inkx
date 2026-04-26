@@ -33,15 +33,15 @@ Tests must be **Mutually Exclusive, Collectively Exhaustive** (see [docs/princip
 
 Single canonical entry point. Backend-agnostic test API — write once, run on headless (default) or termless (`TEST_BACKEND=termless`). Re-exports `item`, `createDriverTest`, `createDriverTestWithRepo`, `realisticBoard`, and `renderBoardWithStore` so one import covers the full fixture menu.
 
-| Helper                                     | Purpose                                                      |
-| ------------------------------------------ | ------------------------------------------------------------ |
-| `createTestApp(nodes, opts?)`              | Create test app with headless or termless backend            |
-| `createTestApp.fromMarkdown(md, opts?)`    | Markdown → TestApp                                           |
-| `createTestApp.fromVault(path, opts?)`     | Fixture vault dir (parses .md files) → TestApp               |
-| `createTestApp.fromRealVault(path, opts?)` | Real on-disk vault via `createRepo` → async TestBoardResult  |
-| `realisticBoard()`                         | Pre-built fixture: multi-column board with varied content    |
-| `item(...)`                                | Inline tree fixture builder                                  |
-| `createDriverTest(...)`                    | Low-level driver for white-box / cell-attribute tests        |
+| Helper                                     | Purpose                                                     |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `createTestApp(nodes, opts?)`              | Create test app with headless or termless backend           |
+| `createTestApp.fromMarkdown(md, opts?)`    | Markdown → TestApp                                          |
+| `createTestApp.fromVault(path, opts?)`     | Fixture vault dir (parses .md files) → TestApp              |
+| `createTestApp.fromRealVault(path, opts?)` | Real on-disk vault via `createRepo` → async TestBoardResult |
+| `realisticBoard()`                         | Pre-built fixture: multi-column board with varied content   |
+| `item(...)`                                | Inline tree fixture builder                                 |
+| `createDriverTest(...)`                    | Low-level driver for white-box / cell-attribute tests       |
 
 ```typescript
 import { item, createTestApp } from "./helpers/create-test-app.ts"

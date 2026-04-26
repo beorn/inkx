@@ -421,9 +421,6 @@ describe("column primitive: selection tint continuity across frame boundaries", 
       const cell = app.screen.cell(naked!.x + dx, gapY)
       if (cell && cell.bg && cell.bg !== 0) tintedCells++
     }
-    expect(
-      tintedCells,
-      `gap row at y=${gapY} must not inherit body bg (got ${tintedCells} tinted cells)`,
-    ).toBe(0)
+    expect(tintedCells, `gap row at y=${gapY} must not inherit body bg (got ${tintedCells} tinted cells)`).toBe(0)
   })
 })

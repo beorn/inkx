@@ -21,7 +21,9 @@ const store = createSessionStore()
 session.subscribe((e) => {
   store.apply(e)
   console.log(`[event] ${e.kind}`)
-  if (e.kind === "session-init") console.log(`[init] model=${e.model} tools=${e.tools.length} mcp=${e.mcp_servers.join(",")}`)
+  if (e.kind === "session-init") {
+    console.log(`[init] model=${e.model} tools=${e.tools.length} mcp=${e.mcp_servers.join(",")}`)
+  }
   if (e.kind === "error") console.log(`[error] ${e.message.slice(0, 160)}`)
 })
 // Don't send — see if session-init fires without any user input (silvercode

@@ -12,12 +12,7 @@ import { Box, Screen } from "silvery"
 import { createRenderer } from "@silvery/test"
 import { UserMessageBlock } from "../../src/components/UserMessageBlock.tsx"
 
-function renderBlock(props: {
-  text: string
-  additionalContext?: string
-  showRaw?: boolean
-  cols?: number
-}): string {
+function renderBlock(props: { text: string; additionalContext?: string; showRaw?: boolean; cols?: number }): string {
   const { cols = 120 } = props
   const r = createRenderer({ cols, rows: 30 })
   const app = r(

@@ -117,10 +117,15 @@ function normalizeUserText(raw: string): string {
   // outer-block's middle content stranded. Per-tag negative-lookahead
   // matches INNERMOST-first; iterating until stable peels the nesting
   // from the inside out.
-  const tags = ["system-reminder", "local-command-stdout", "local-command-stderr", "command-message", "command-args", "command-name"]
-  const innermostRes = tags.map(
-    (t) => new RegExp(`<${t}>(?:(?!<${t}>)[\\s\\S])*?<\\/${t}>`, "g"),
-  )
+  const tags = [
+    "system-reminder",
+    "local-command-stdout",
+    "local-command-stderr",
+    "command-message",
+    "command-args",
+    "command-name",
+  ]
+  const innermostRes = tags.map((t) => new RegExp(`<${t}>(?:(?!<${t}>)[\\s\\S])*?<\\/${t}>`, "g"))
   let stripped = raw
   let prev = ""
   while (prev !== stripped) {

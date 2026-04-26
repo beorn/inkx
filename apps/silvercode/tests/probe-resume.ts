@@ -69,14 +69,18 @@ console.log(`  lastError:          ${state.lastError ?? "(none)"}`)
 
 console.log(`\n[probe] first 3 messages:`)
 for (const [i, m] of state.messages.slice(0, 3).entries()) {
-  console.log(`  [${i}] role=${m.role} textLen=${m.text.length} toolCalls=${m.toolCalls.length} toolResults=${m.toolResults.length}`)
+  console.log(
+    `  [${i}] role=${m.role} textLen=${m.text.length} toolCalls=${m.toolCalls.length} toolResults=${m.toolResults.length}`,
+  )
   console.log(`       text preview: ${JSON.stringify(m.text.slice(0, 140))}`)
 }
 
 console.log(`\n[probe] last 3 messages:`)
 for (const [i, m] of state.messages.slice(-3).entries()) {
   const idx = state.messages.length - 3 + i
-  console.log(`  [${idx}] role=${m.role} textLen=${m.text.length} toolCalls=${m.toolCalls.length} toolResults=${m.toolResults.length}`)
+  console.log(
+    `  [${idx}] role=${m.role} textLen=${m.text.length} toolCalls=${m.toolCalls.length} toolResults=${m.toolResults.length}`,
+  )
   console.log(`       text preview: ${JSON.stringify(m.text.slice(0, 140))}`)
 }
 
@@ -90,8 +94,8 @@ for (let i = 1; i < state.messages.length; i++) {
 console.log(`\n[probe] consecutive-duplicate-text messages: ${dupCount}`)
 
 // Show any messages that contain raw XML-ish tags (channel / system-reminder / UserPromptSubmit).
-const taggy = state.messages.filter((m) =>
-  m.text.includes("<channel") || m.text.includes("<system-reminder") || m.text.includes("UserPromptSubmit hook"),
+const taggy = state.messages.filter(
+  (m) => m.text.includes("<channel") || m.text.includes("<system-reminder") || m.text.includes("UserPromptSubmit hook"),
 )
 console.log(`[probe] messages containing raw system tags: ${taggy.length}`)
 if (taggy.length > 0) {

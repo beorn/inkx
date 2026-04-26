@@ -102,7 +102,9 @@ describe("parseGithubUrl + GitHub host integration", () => {
       branch: "release",
       path: "1.x/src/index.ts",
     })
-    expect(parseGithubUrl(new URL("https://github.com/dotnet/runtime/blob/main/src/libraries/System.IO/README.md"))).toEqual({
+    expect(
+      parseGithubUrl(new URL("https://github.com/dotnet/runtime/blob/main/src/libraries/System.IO/README.md")),
+    ).toEqual({
       kind: "file",
       owner: "dotnet",
       repo: "runtime",
@@ -124,9 +126,7 @@ describe("parseGithubUrl + GitHub host integration", () => {
 
   test("formatGithubInfo body strings", () => {
     expect(formatGithubInfo({ kind: "repo", owner: "foo", repo: "bar" })).toBe("GitHub repo: foo/bar")
-    expect(formatGithubInfo({ kind: "pull", owner: "foo", repo: "bar", number: "1" })).toBe(
-      "GitHub PR #1\nin foo/bar",
-    )
+    expect(formatGithubInfo({ kind: "pull", owner: "foo", repo: "bar", number: "1" })).toBe("GitHub PR #1\nin foo/bar")
     expect(formatGithubInfo({ kind: "issue", owner: "foo", repo: "bar", number: "2" })).toBe(
       "GitHub issue #2\nin foo/bar",
     )
@@ -139,9 +139,7 @@ describe("parseGithubUrl + GitHub host integration", () => {
     expect(bodyOf("https://github.com/foo/bar")).toBe("GitHub repo: foo/bar")
     expect(bodyOf("https://github.com/foo/bar/pull/123")).toBe("GitHub PR #123\nin foo/bar")
     expect(bodyOf("https://github.com/foo/bar/issues/7")).toBe("GitHub issue #7\nin foo/bar")
-    expect(bodyOf("https://github.com/foo/bar/blob/main/src/x.ts")).toBe(
-      "GitHub file: src/x.ts\n@main in foo/bar",
-    )
+    expect(bodyOf("https://github.com/foo/bar/blob/main/src/x.ts")).toBe("GitHub file: src/x.ts\n@main in foo/bar")
   })
 
   test("unmatched github.com path falls through to generic webcard", () => {
@@ -265,9 +263,7 @@ describe("parseLinearUrl + Linear host integration", () => {
       id: "SIL-123",
       slug: "fix-the-thing",
     })
-    expect(
-      parseLinearUrl(new URL("https://linear.app/team-foo/issue/FOO-1/add-new-feature-with-many-words")),
-    ).toEqual({
+    expect(parseLinearUrl(new URL("https://linear.app/team-foo/issue/FOO-1/add-new-feature-with-many-words"))).toEqual({
       kind: "linear",
       workspace: "team-foo",
       id: "FOO-1",
@@ -297,9 +293,9 @@ describe("parseLinearUrl + Linear host integration", () => {
     expect(formatLinearInfo({ kind: "linear", workspace: "silvery", id: "SIL-1", slug: null })).toBe(
       "Linear SIL-1\nin silvery",
     )
-    expect(
-      formatLinearInfo({ kind: "linear", workspace: "silvery", id: "SIL-1", slug: "fix-the-thing" }),
-    ).toBe("Linear SIL-1\nFix The Thing\nin silvery")
+    expect(formatLinearInfo({ kind: "linear", workspace: "silvery", id: "SIL-1", slug: "fix-the-thing" })).toBe(
+      "Linear SIL-1\nFix The Thing\nin silvery",
+    )
   })
 
   test("end-to-end body via httpsHandler", () => {

@@ -111,9 +111,7 @@ function buildSectionLines(section: HelpSection, keyPrefix: string): React.React
     lines.push(<EntryLine key={`${keyPrefix}-e${i}`} keys={item.keys} desc={item.description} />)
   }
   if (section.category === "Panes") {
-    lines.push(
-      <Small key={`${keyPrefix}-foot`}>{"⌃v or v both work as prefixes"}</Small>,
-    )
+    lines.push(<Small key={`${keyPrefix}-foot`}>{"⌃v or v both work as prefixes"}</Small>)
   }
   return lines
 }

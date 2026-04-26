@@ -145,16 +145,7 @@ function resolveArgToPath(arg: string): string | null {
 function openSession(path: string): void {
   // Delegate to the same bootstrap the km-logview script uses. This keeps
   // claude-log a thin wrapper — all the viewer logic stays in one place.
-  const bootstrap = resolve(
-    import.meta.dir,
-    "..",
-    "..",
-    "..",
-    "apps",
-    "km-logview",
-    "src",
-    "bootstrap.ts",
-  )
+  const bootstrap = resolve(import.meta.dir, "..", "..", "..", "apps", "km-logview", "src", "bootstrap.ts")
   const child = spawn("bun", ["run", bootstrap, path], { stdio: "inherit" })
   child.on("exit", (code) => {
     process.exit(code ?? 0)

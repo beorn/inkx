@@ -124,7 +124,7 @@ export function installFakes(opts: InstallFakesOptions = {}): InstalledFakes {
     setAccountFactoryOverride(
       fakeAccountFactory({
         quotas: defaultQuotas(),
-        ...(opts.account ?? {}),
+        ...opts.account,
       }),
     )
   }

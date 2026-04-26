@@ -128,9 +128,7 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     const rows: string[][] = [[...headers], ...extra.rows.map((r) => [r.host, r.kinds.join(", ")])]
     const widths = computeColumnWidths(rows)
     const lines: string[] = []
-    lines.push(
-      `  ${t.bold(`https host parsers (${extra.rows.length} registered)`)}`,
-    )
+    lines.push(`  ${t.bold(`https host parsers (${extra.rows.length} registered)`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {
@@ -141,15 +139,10 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
   if (extra.kind === "autolinks-rule-coverage") {
     if (extra.rows.length === 0) return []
     const headers = ["pattern", "uri scheme", "handler"] as const
-    const rows: string[][] = [
-      [...headers],
-      ...extra.rows.map((r) => [r.pattern, r.inferredScheme, r.handler]),
-    ]
+    const rows: string[][] = [[...headers], ...extra.rows.map((r) => [r.pattern, r.inferredScheme, r.handler])]
     const widths = computeColumnWidths(rows)
     const lines: string[] = []
-    lines.push(
-      `  ${t.bold(`rule handler coverage (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"})`)}`,
-    )
+    lines.push(`  ${t.bold(`rule handler coverage (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"})`)}`)
     lines.push(`  ${t.dim(divider(widths))}`)
     lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
     for (let i = 1; i < rows.length; i++) {

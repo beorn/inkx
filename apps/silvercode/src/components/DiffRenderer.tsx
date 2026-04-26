@@ -53,9 +53,7 @@ export function DiffRenderer({
   )
 }
 
-type Row =
-  | { kind: "context" | "added" | "removed"; line: string }
-  | { kind: "elision"; count: number }
+type Row = { kind: "context" | "added" | "removed"; line: string } | { kind: "elision"; count: number }
 
 // Minimum unchanged-run length to trigger elision. Stretches of 4+ unchanged
 // lines collapse to first-2 + marker + last-2; shorter runs render verbatim.
