@@ -135,6 +135,7 @@ export function MessageList({
       nav
       cursorKey={lastKey}
       maxRendered={200}
+      stickyBottom={true}
       renderItem={(item) =>
         isActivity(item) ? (
           <ActivityIndicator
