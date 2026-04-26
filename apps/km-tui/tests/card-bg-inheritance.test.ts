@@ -87,10 +87,11 @@ function renderBoardWithTruecolor(options: {
 
   const theme = defaultDarkTheme
   // When cursor is directly on a card, the card uses the theme's full
-  // $bg-selected (primary accent) so the whole card reads as one unified
-  // highlight. When cursor is on a descendant of the card, the card uses
-  // the softer `selectedBg(theme)` 6% tint.
-  const expectedCardBg = theme.selectionbg ?? selectedBg(theme)
+  // $bg-selected so the whole card reads as one unified highlight. When
+  // cursor is on a descendant of the card, the card uses the softer
+  // `selectedBg(theme)` 6% tint. Sterling renamed `selectionbg` to the
+  // flat `bg-selected` token; read both for forward/back compat.
+  const expectedCardBg = theme["bg-selected"] ?? theme.selectionbg ?? selectedBg(theme)
   const expectedDescendantCardBg = selectedBg(theme)
 
   const render = createRenderer({ cols, rows, singlePassLayout: true })
