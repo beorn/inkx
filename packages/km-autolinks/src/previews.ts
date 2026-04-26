@@ -49,8 +49,8 @@ export const PREVIEW_CACHE_TTL_MS = 30_000
 /** Debounce window for fs.watch change events. fsync can fire many times in a tight loop; we wait this long after the last event before evicting. */
 export const PREVIEW_WATCH_DEBOUNCE_MS = 200
 
-// Re-export shell-related primitives so existing import sites
-// (`from "../../src/autolinks/previews.ts"`) don't break.
+// Re-export shell-related primitives so consumers can import everything
+// shell-related from a single module.
 export { sanitizeShellOutput, SHELL_PREVIEW_OUTPUT_CAP_BYTES, SHELL_PREVIEW_TIMEOUT_MS }
 
 export type PreviewSuccess = {

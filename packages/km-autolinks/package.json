@@ -1,0 +1,20 @@
+{
+  "name": "@km/autolinks",
+  "private": true,
+  "description": "Autolinks substrate — pattern→URI→preview pipeline. Umbrella for syntaxlinks (silvercode runtime) + termlinks (website build-time).",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./detection": "./src/detection.ts",
+    "./config": "./src/config.ts",
+    "./match": "./src/match.ts",
+    "./previews": "./src/previews.ts",
+    "./uri": "./src/uri.ts",
+    "./shell-utils": "./src/shell-utils.ts",
+    "./handlers": "./src/handlers/index.ts"
+  },
+  "dependencies": {
+    "debug": "^4.4.3"
+  }
+}

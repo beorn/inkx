@@ -16,7 +16,7 @@
  * `bd-km-silvercode.url-detection-via-handlers`.
  */
 
-import type { Detection } from "../detection.ts"
+import type { AutolinkDetection, Detection } from "./detection.ts"
 import type { AutolinkRule } from "./config.ts"
 
 /**
@@ -43,10 +43,10 @@ import type { AutolinkRule } from "./config.ts"
  */
 const PLAIN_URL_RE = /\bhttps?:\/\/[^\s)\]]+/g
 
-export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): Detection[] {
+export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): AutolinkDetection[] {
   if (text.length === 0) return []
 
-  const candidates: Detection[] = []
+  const candidates: AutolinkDetection[] = []
   for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
     const rule = rules[ruleIdx]
     if (!rule) continue
@@ -104,7 +104,7 @@ export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): D
     return b.end - a.end - (b.start - a.start)
   })
 
-  const kept: Detection[] = []
+  const kept: AutolinkDetection[] = []
   let cursor = -1
   for (const d of candidates) {
     if (d.start < cursor) continue
@@ -124,8 +124,8 @@ export function detectAutolinks(text: string, rules: readonly AutolinkRule[]): D
  * `rule_idx` is set high so configured rules sort earlier in the priority
  * pass — a user's regex pattern that overlaps a URL still wins.
  */
-function virtualUrlDetections(text: string): Detection[] {
-  const out: Detection[] = []
+function virtualUrlDetections(text: string): AutolinkDetection[] {
+  const out: AutolinkDetection[] = []
   for (const m of text.matchAll(PLAIN_URL_RE)) {
     const start = m.index ?? 0
     const url = m[0]
@@ -162,12 +162,15 @@ function virtualUrlDetections(text: string): Detection[] {
  *
  * Returns a new sorted, non-overlapping array.
  */
-export function mergeDetections(builtins: readonly Detection[], autolinks: readonly Detection[]): Detection[] {
-  if (builtins.length === 0) return [...autolinks]
-  if (autolinks.length === 0) return [...builtins]
+export function mergeDetections<K extends string = string>(
+  builtins: readonly Detection<K>[],
+  autolinks: readonly AutolinkDetection[],
+): Detection<K | "autolink">[] {
+  if (builtins.length === 0) return [...autolinks] as Detection<K | "autolink">[]
+  if (autolinks.length === 0) return [...builtins] as Detection<K | "autolink">[]
 
   // Build an interval set from builtins; drop any autolink that overlaps.
-  const out: Detection[] = [...builtins]
+  const out: Detection<K | "autolink">[] = [...builtins]
   for (const a of autolinks) {
     const overlaps = builtins.some((b) => a.start < b.end && a.end > b.start)
     if (!overlaps) out.push(a)

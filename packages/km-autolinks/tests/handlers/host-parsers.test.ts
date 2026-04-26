@@ -18,8 +18,8 @@ import {
   parseGithubUrl,
   parseJiraUrl,
   parseLinearUrl,
-} from "../../../src/autolinks/handlers/https.ts"
-import type { ResolveCtx } from "../../../src/autolinks/handlers/index.ts"
+} from "../../src/handlers/https.ts"
+import type { ResolveCtx } from "../../src/handlers/index.ts"
 
 const CTX: ResolveCtx = { cacheKey: "k" }
 

@@ -14,7 +14,7 @@ import {
   compilePattern,
   loadAutolinksConfig,
   parseSyntaxlinksYaml,
-} from "../../src/autolinks/config.ts"
+} from "../src/config.ts"
 
 describe("syntaxlinks config — pattern compilation", () => {
   test("literal pattern matches verbatim, escapes meta characters", () => {

@@ -7,7 +7,7 @@
 
 import { homedir } from "node:os"
 import { describe, expect, test } from "vitest"
-import { bdIdFromURL, filePathFromURL, parseResolvesTo } from "../../src/autolinks/uri.ts"
+import { bdIdFromURL, filePathFromURL, parseResolvesTo } from "../src/uri.ts"
 
 describe("parseResolvesTo — scheme inference", () => {
   test("absolute path → file: URI with the path encoded", () => {

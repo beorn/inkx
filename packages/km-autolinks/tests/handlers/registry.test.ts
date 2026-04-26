@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { findHandler, registeredSchemes, resolveURI, type ResolveCtx } from "../../../src/autolinks/handlers/index.ts"
+import { findHandler, registeredSchemes, resolveURI, type ResolveCtx } from "../../src/handlers/index.ts"
 
 const CTX: ResolveCtx = { cacheKey: "test" }
 

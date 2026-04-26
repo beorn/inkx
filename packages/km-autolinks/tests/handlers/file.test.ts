@@ -10,8 +10,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
-import { fileHandler } from "../../../src/autolinks/handlers/file.ts"
-import { parseResolvesTo } from "../../../src/autolinks/uri.ts"
+import { fileHandler } from "../../src/handlers/file.ts"
+import { parseResolvesTo } from "../../src/uri.ts"
 
 describe("fileHandler", () => {
   let dir: string

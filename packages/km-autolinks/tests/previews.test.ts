@@ -18,7 +18,7 @@ import {
   SHELL_PREVIEW_TIMEOUT_MS,
   resolvePreview,
   sanitizeShellOutput,
-} from "../../src/autolinks/previews.ts"
+} from "../src/previews.ts"
 
 describe("autolink previews", () => {
   let dir: string
