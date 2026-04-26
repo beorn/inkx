@@ -1,7 +1,3 @@
-20 vendor/bearly/packages/vitest-silvery-dots/src/index.tsx
-20 vendor/bearly/tests/broadcast-coalescer.test.ts
-1 vendor/bearly/tools/lib/tribe/broadcast-coalescer.ts
-1 vendor/bearly/tools/tribe-daemon.ts
 1 vendor/flexily/bench/compare.ts
 2 vendor/silvery/bin/silvery.ts
 2 vendor/silvery/examples/apps/explorer.tsx
