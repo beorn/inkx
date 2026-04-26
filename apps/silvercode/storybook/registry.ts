@@ -17,7 +17,7 @@
 import type { Story } from "./types.ts"
 
 import { activityIndicatorThinking } from "./stories/ActivityIndicator.thinking.story.tsx"
-import { permissionInboxOnePending } from "./stories/PermissionInbox.one-pending.story.tsx"
+import { requestPermissionInboxOnePending } from "./stories/RequestPermissionInbox.one-pending.story.tsx"
 import { availableCommandsPaletteOpen } from "./stories/AvailableCommandsPalette.open.story.tsx"
 import { toolCallRead } from "./stories/ToolCall.read.story.tsx"
 import { toolCallEdit } from "./stories/ToolCall.edit.story.tsx"
@@ -53,7 +53,7 @@ export const STORIES: readonly Story[] = [
   sessionUpdateListMultiTurn,
   // Dialogs
   availableCommandsPaletteOpen,
-  permissionInboxOnePending,
+  requestPermissionInboxOnePending,
 ]
 
 /** Look up a story by id. Returns null if unknown. */

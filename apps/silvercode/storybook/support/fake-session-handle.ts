@@ -1,7 +1,7 @@
 /**
  * Storybook fake `SessionHandle`.
  *
- * Components like `Welcome`, `PermissionInbox`, and `SessionUpdateList` consume a
+ * Components like `Welcome`, `RequestPermissionInbox`, and `SessionUpdateList` consume a
  * `SessionHandle` from `controller.ts`. The real shape pulls in a full
  * `SessionStore`, an `AgentSession`, and an `EventLog`. For storybook
  * purposes we only need a structural stub the component is willing to

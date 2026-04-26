@@ -15,8 +15,13 @@ import {
   type EventLog,
   type Injector,
   type McpServerSpec,
+  type PermissionOptionId,
   type PermissionRequestId,
+  type RequestPermissionRequest,
+  type RequestPermissionResponse,
   type SessionStore,
+  acpRequestPermissionToSilvercode,
+  silvercodeRequestPermissionResponseToAcp,
   channelDigestInjector,
   connectAcpRegistry,
   createFileEventLog,
@@ -196,9 +201,7 @@ export type ControllerOptions = {
    * (codex, gemini, github-copilot-cli, pi-acp) and silvercode's own
    * subscription wrapper (claude-code).
    *
-   * v0 limitations:
-   * - Permissions auto-approve the first option (no UI integration yet —
-   *   tracked as km-silvercode.acp-permission-ui-wire)
+   * Limitations:
    * - Multi-account / `--bare` / `resume` are not threaded through ACP path
    *   yet (resume support added separately via opts.resume + per-agent
    *   loadSession capability)
@@ -310,6 +313,15 @@ export type Controller = {
    */
   flushQueue(sessionId: string): void
   respondPermission(sessionId: string, requestId: string, approved: boolean): void
+  /**
+   * Multi-option ACP permission response. Routes the user's chosen option to
+   * the ACP-session's per-session permission queue resolver. `approved`
+   * reflects whether the chosen option is an allow or reject kind — used by
+   * the session store to update `status` / `permissions` state.
+   *
+   * For legacy (stream-json) sessions this falls back to `respondPermission`.
+   */
+  respondPermissionOption(sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
   /** Move task+context from source → destination session. */
@@ -484,6 +496,26 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // (Enter in queue region) calls `flushQueue` to bypass the idle gate.
   const queues = new Map<string, string>()
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
+
+  // ───── ACP per-session permission queue ─────
+  //
+  // When an ACP session's `permissionHandler` is invoked, we push a
+  // `{requestId, req, resolver}` entry onto this map so the UI can surface
+  // it via the existing permission-request / awaiting-permission flow, and
+  // the user's decision resolves the handler's promise.
+  //
+  // Key:   sessionId
+  // Value: map from requestId → pending resolver + original request
+  //
+  // The legacy (stream-json) path does NOT use this map — it drives the
+  // session directly via `AgentSession.respondToPermission`.
+  type AcpPermResolver = (response: RequestPermissionResponse) => void
+  type AcpPermEntry = {
+    readonly requestId: string
+    readonly req: RequestPermissionRequest
+    readonly resolve: AcpPermResolver
+  }
+  const acpPermQueues = new Map<string, Map<string, AcpPermEntry>>()
   function notifyQueue(sessionId: string): void {
     const t = queues.get(sessionId) ?? ""
     for (const fn of queueSubs) fn(sessionId, t)
@@ -775,9 +807,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // all surface the same AgentSession interface, so the rest of the
     // controller (subscribe, send, close) is unchanged.
     //
-    // v0 caveats:
-    // - Permissions auto-approve the first option; real UI integration is
-    //   deferred (km-silvercode.acp-permission-ui-wire).
+    // caveats:
     // - fs handlers wire to local Bun.file read/write.
     // - injectors are NOT applied to the prompt (ACP `session/prompt` does
     //   not include silvercode's bd-prime / cwd / channel-digest text). That
@@ -785,6 +815,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     //   transport (km-silvercode.acp-channels).
     if (s.agent) {
       const sessionScope = controllerScope.child(`acp-session-${s.id}`)
+      const sessionId = s.id
       return connectAcpRegistry(sessionScope, s.agent, {
         cwd: s.cwd,
         sessionCwd: s.cwd,
@@ -798,10 +829,40 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
             return {}
           },
         },
-        permissionHandler: async (req) => {
-          const optionId = req.options[0]?.optionId
-          if (!optionId) return { outcome: { outcome: "cancelled" } }
-          return { outcome: { outcome: "selected", optionId } }
+        /**
+         * UI-driven permission handler — pushes the request onto the per-session
+         * ACP permission queue and waits for `respondPermission[Option]` to
+         * resolve it. The `acp-client` module already emits a `permission-request`
+         * AgentEvent before calling this handler, so `session-store` has already
+         * set `status = "awaiting-permission"` and the UI renders the
+         * `<RequestPermissionInbox>` modal.
+         *
+         * The handler returns a Promise that resolves only when the user
+         * approves/denies via the controller's `respondPermission[Option]` methods,
+         * which look up the resolver in `acpPermQueues` and call it with the
+         * appropriate `RequestPermissionResponse`.
+         */
+        permissionHandler: async (rawReq) => {
+          // Convert from SDK type to silvercode type so the rest of the
+          // controller speaks the owned type surface (boundary discipline).
+          const scReq = acpRequestPermissionToSilvercode(rawReq)
+          const requestId = String(scReq.toolCall.toolCallId)
+          // Push onto the queue. The promise resolves when the user approves
+          // or denies via respondPermission / respondPermissionOption.
+          const scResponse = await new Promise<RequestPermissionResponse>((resolvePromise) => {
+            let queueForSession = acpPermQueues.get(sessionId)
+            if (!queueForSession) {
+              queueForSession = new Map()
+              acpPermQueues.set(sessionId, queueForSession)
+            }
+            queueForSession.set(requestId, {
+              requestId,
+              req: scReq,
+              resolve: resolvePromise,
+            })
+          })
+          // Convert silvercode response back to SDK type for the ACP wire.
+          return silvercodeRequestPermissionResponseToAcp(scResponse)
         },
       })
     }
@@ -1065,6 +1126,52 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       tryFlush(sessionId, true)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
+      // Check ACP queue first — if there's a pending resolver for this
+      // requestId, resolve it with the binary approved/cancelled outcome.
+      const acpQueue = acpPermQueues.get(sessionId)
+      if (acpQueue?.has(requestId)) {
+        const entry = acpQueue.get(requestId)!
+        acpQueue.delete(requestId)
+        if (approved) {
+          // Pick the first allow_once / allow_always option, or just the first option.
+          const allowOpt =
+            entry.req.options.find((o) => o.kind === "allow_once" || o.kind === "allow_always") ?? entry.req.options[0]
+          if (allowOpt) {
+            entry.resolve({ outcome: { outcome: "selected", optionId: allowOpt.optionId } })
+          } else {
+            entry.resolve({ outcome: { outcome: "cancelled" } })
+          }
+        } else {
+          entry.resolve({ outcome: { outcome: "cancelled" } })
+        }
+        return
+      }
+      // Legacy stream-json path.
+      const s = sessions.find((h) => h.id === sessionId)
+      if (!s) return
+      s.session.respondToPermission(requestId as PermissionRequestId, approved)
+    },
+    respondPermissionOption(
+      sessionId: string,
+      requestId: string,
+      optionId: PermissionOptionId,
+      approved: boolean,
+    ): void {
+      // Route through ACP permission queue when the session has a pending
+      // resolver (ACP path). Falls back to the binary respondPermission for
+      // legacy sessions that don't use multi-option permissions.
+      const acpQueue = acpPermQueues.get(sessionId)
+      if (acpQueue?.has(requestId)) {
+        const entry = acpQueue.get(requestId)!
+        acpQueue.delete(requestId)
+        if (approved) {
+          entry.resolve({ outcome: { outcome: "selected", optionId } })
+        } else {
+          entry.resolve({ outcome: { outcome: "cancelled" } })
+        }
+        return
+      }
+      // Fallback: legacy binary path.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
       s.session.respondToPermission(requestId as PermissionRequestId, approved)
@@ -1141,6 +1248,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         // Drop the session from cross-agent state too — releases any
         // claims it held so peers don't see ghost holders.
         crossAgentState.removeSession(s.id)
+        // Cancel any pending ACP permission resolvers so dangling promises
+        // don't leak — the session is gone, so any queued request is moot.
+        const acpQueue = acpPermQueues.get(s.id)
+        if (acpQueue) {
+          for (const entry of acpQueue.values()) {
+            entry.resolve({ outcome: { outcome: "cancelled" } })
+          }
+          acpPermQueues.delete(s.id)
+        }
       }
       // Dispose the controller-owned scope (tears down channel-source
       // watchers, clears the channel queue) only if we created it.

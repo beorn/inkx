@@ -1,18 +1,20 @@
 /**
- * PermissionInbox — one pending permission.
+ * RequestPermissionInbox — one pending permission (binary allow/deny).
  *
  * The inbox aggregates pending permission requests across sessions. We
  * synthesize one fake `SessionHandle` with a single permission queued in
  * its store snapshot.
+ *
+ * Renamed from PermissionInbox (bead km-silvercode.acp-usage-and-permission).
  */
 import React from "react"
-import { PermissionInbox } from "../../src/components/PermissionInbox.tsx"
+import { RequestPermissionInbox } from "../../src/components/RequestPermissionInbox.tsx"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import type { Story } from "../types.ts"
 
-export const permissionInboxOnePending: Story = {
-  id: "PermissionInbox/one-pending",
-  component: "PermissionInbox",
+export const requestPermissionInboxOnePending: Story = {
+  id: "RequestPermissionInbox/one-pending",
+  component: "RequestPermissionInbox",
   variant: "one-pending",
   description: "Inbox with one pending Bash request awaiting decision.",
   knobs: [
@@ -40,6 +42,6 @@ export const permissionInboxOnePending: Story = {
         permissions: [{ requestId: "req-1", tool, args }],
       },
     })
-    return <PermissionInbox sessions={[handle]} onApprove={() => {}} onDeny={() => {}} onClose={() => {}} />
+    return <RequestPermissionInbox sessions={[handle]} onApprove={() => {}} onDeny={() => {}} onClose={() => {}} />
   },
 }

@@ -6,7 +6,7 @@ import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
 import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
-import { PermissionInbox } from "./components/PermissionInbox.tsx"
+import { RequestPermissionInbox } from "./components/RequestPermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
@@ -1026,10 +1026,13 @@ export function App(props: AppProps): React.ReactElement {
             {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
             <Box flexDirection="column" flexShrink={0}>
               {showInbox && (
-                <PermissionInbox
+                <RequestPermissionInbox
                   sessions={sessions}
                   onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
                   onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                  onSelectOption={(sid, rid, optionId, approved) =>
+                    controller.respondPermissionOption(sid, rid, optionId, approved)
+                  }
                   onClose={() => setShowInbox(false)}
                 />
               )}
