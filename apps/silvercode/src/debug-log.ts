@@ -1,15 +1,20 @@
 /**
- * Debug Log Support (mirror of apps/km-cli/src/debug-log.ts).
+ * Debug Log Support — silvercode-specific overrides on top of silvery's
+ * console-hygiene defaults.
  *
- * Routes DEBUG / @beorn/logger output to the DEBUG_LOG file AND suppresses
- * console output when the TUI is active — so the alt-screen UI can never
- * be polluted by a stray debug() call anywhere in the dep graph.
+ * silvery's run() now buffers debug() / console.* / raw stderr writes
+ * during alt-screen and replays them to the normal terminal on exit
+ * (km-silvery.console-hygiene-default). For most cases, that's enough —
+ * no per-app debug-log.ts boilerplate needed.
+ *
+ * What silvercode adds on top:
+ *   - DEBUG_LOG also routes loggily's structured writer to the same file
+ *     (silvery's Output handles the stderr/console mirror; this hooks
+ *     loggily's separate writer pipeline).
+ *   - setSuppressConsole(true) when DEBUG_LOG is set so loggily's console
+ *     sink doesn't double-emit.
  *
  * Must be imported as a side-effect BEFORE any debug() call fires.
- *
- * Extract to a shared package when a third consumer arrives (currently:
- * km-cli + silvercode). For now, mirrored because the module is self-
- * contained and extraction adds build coordination we don't need yet.
  */
 
 // loggily re-exports addWriter/setSuppressConsole from ./core.js, but TypeScript
@@ -20,10 +25,7 @@ const { addWriter, setSuppressConsole } = _loggily as unknown as {
   addWriter: (writer: (formatted: string, level: string) => void) => () => void
   setSuppressConsole: (value: boolean) => void
 }
-import createDebug from "debug"
-import { appendFileSync, createWriteStream } from "node:fs"
-
-let stream: ReturnType<typeof createWriteStream> | null = null
+import { appendFileSync } from "node:fs"
 
 // Strip ANSI escape sequences for clean file output
 // eslint-disable-next-line no-control-regex
@@ -32,67 +34,11 @@ function stripAnsi(s: string): string {
   return s.replace(ANSI_RE, "")
 }
 
-function formatValue(val: unknown): string {
-  if (typeof val === "string") return val
-  if (typeof val !== "object" || val === null) return String(val)
-  try {
-    return JSON.stringify(val)
-  } catch {
-    return "[object]"
-  }
-}
-
-function customLog(...args: unknown[]): void {
-  const formatStr = typeof args[0] === "string" ? args[0] : ""
-  const rest = args.slice(1)
-  let i = 0
-  const formatted = formatStr.replace(/%([Oojs%d])/g, (match, type) => {
-    if (type === "%") return "%"
-    if (i >= rest.length) return match
-    const val = rest[i++]
-    switch (type) {
-      case "O":
-      case "o":
-      case "j":
-        return formatValue(val)
-      case "s":
-        return String(val)
-      case "d":
-        return String(Number(val))
-      default:
-        return match
-    }
-  })
-  const remaining = rest.slice(i).map(formatValue)
-  const parts = [formatted, ...remaining].filter(Boolean)
-  const line = parts.join(" ")
-
-  if (stream) {
-    stream.write(stripAnsi(line) + "\n")
-  }
-
-  if (!process.stdout.isTTY) {
-    // Non-TTY (tests, scripts) — stderr is the natural destination.
-    console.error(line)
-  }
-  // TTY + stream: file-only, skip console to prevent leak into alt screen.
-  // TTY + no stream: the TUI is drawing and there's no log file — drop the
-  // message (can't render to alt screen safely). User should set DEBUG_LOG
-  // to see output.
-}
-
-createDebug.log = customLog
-
 const logPath = process.env.DEBUG_LOG
 if (logPath) {
-  const logStream = createWriteStream(logPath, { flags: "a" })
-  stream = logStream
-  // Use appendFileSync for loggily writer — stream.write() is async and
-  // may not flush before process exit. appendFileSync guarantees writes
-  // land even during blocked event loops or rapid shutdown.
+  // loggily's structured writer goes to the same file silvery's Output
+  // device redirects stderr/console to. Combined output: every log line
+  // (loggily, debug(), console.*, process.stderr.write) lands in DEBUG_LOG.
   addWriter((formatted) => appendFileSync(logPath, stripAnsi(formatted) + "\n"))
   setSuppressConsole(true)
-  process.on("exit", () => stream?.end())
-  process.on("SIGINT", () => stream?.end())
-  process.on("SIGTERM", () => stream?.end())
 }
