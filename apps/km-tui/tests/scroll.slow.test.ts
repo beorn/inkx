@@ -536,10 +536,11 @@ describe("column shift with collapsed columns", () => {
       { cols: 120, rows: 24 },
     )
 
-    // Navigate to col1 header and collapse it
+    // Navigate to col1 header and collapse it (v c chord — see km-commands keybindings.ts
+    // V_CHORD_SUFFIXES; bare `c` was rebound to capture_inbox in the keybinding refactor).
     app.press("k")
     app.expect("#col1[data-cursor]").toExist()
-    app.press("c")
+    app.press("v").press("c")
 
     // Shift collapsed col1 right
     app.press("opt+l")
@@ -572,10 +573,11 @@ describe("column shift with collapsed columns", () => {
   test("shift non-collapsed column when some columns are collapsed", () => {
     using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 24 })
 
-    // Navigate to col1 header and collapse it
+    // Navigate to col1 header and collapse it (v c chord — see km-commands keybindings.ts
+    // V_CHORD_SUFFIXES; bare `c` was rebound to capture_inbox in the keybinding refactor).
     app.press("k")
     app.expect("#col1[data-cursor]").toExist()
-    app.press("c")
+    app.press("v").press("c")
 
     // Navigate to col2 header
     app.press("l")
