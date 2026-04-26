@@ -38,6 +38,22 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/think", description: "Set thinking tier: 4K (silvercode injects `think` keyword)", local: true },
   { name: "/think_hard", description: "Set thinking tier: 16K (silvercode injects `think hard` keyword)", local: true },
   { name: "/ultrathink", description: "Set thinking tier: 32K (silvercode injects `ultrathink` keyword)", local: true },
+  // Channel-injection commands — drain queued ambient events from the
+  // channel-queue (see `channel-queue.ts` + `prompt-assembly.ts`) and
+  // prepend them to the next user prompt as typed EmbeddedResource
+  // blocks. Default for ambient channels is UI-first / user-mediated;
+  // these commands are the user's "I want this context now" lever.
+  {
+    name: "/inject-tribe",
+    description: "Inject queued tribe messages as ambient resources on next prompt",
+    local: true,
+  },
+  { name: "/inject-recent", description: "Inject all queued ambient channel events on next prompt", local: true },
+  { name: "/inject-ci", description: "Inject queued CI status events on next prompt", local: true },
+  { name: "/inject-lore", description: "Inject queued lore deltas on next prompt", local: true },
+  { name: "/inject-telegram", description: "Inject queued telegram messages on next prompt", local: true },
+  { name: "/inject-subagent", description: "Inject queued sub-agent updates on next prompt", local: true },
+  { name: "/clear-channels", description: "Drop all queued ambient channel events without injecting", local: true },
   // Well-known Claude-native — passed through.
   { name: "/compact", description: "Compact the conversation (Claude)", local: false },
   { name: "/clear", description: "Clear session state (Claude)", local: false },
@@ -87,4 +103,48 @@ export function isLocal(cmd: string, commands: readonly SlashCommand[] = STATIC_
   const name = cmd.split(/\s+/)[0] ?? ""
   const def = commands.find((c) => c.name === name)
   return def?.local ?? false
+}
+
+/**
+ * Outcome of dispatching a `/inject-*` or `/clear-channels` command.
+ *
+ *   - `kind: "inject"` — drain the queue (filtered to `sources` if set,
+ *     all sources if `sources === undefined`) and feed the events as
+ *     typed EmbeddedResource blocks to the next prompt via
+ *     `assembleAcpPrompt({ autoInject: true, sources })`.
+ *   - `kind: "clear"` — drop the queue without injecting.
+ *   - `kind: "none"` — the command is not a channel command (caller
+ *     falls through to its normal slash dispatch).
+ */
+export type ChannelCommandOutcome =
+  | { kind: "inject"; sources?: ReadonlySet<string> }
+  | { kind: "clear" }
+  | { kind: "none" }
+
+/**
+ * Map a `/inject-*` or `/clear-channels` command to the channel-queue
+ * action it represents. Only the first whitespace-delimited token is
+ * inspected — `/inject-tribe extra args` returns the same outcome as
+ * `/inject-tribe`.
+ */
+export function classifyChannelCommand(cmd: string): ChannelCommandOutcome {
+  const name = cmd.trim().split(/\s+/)[0] ?? ""
+  switch (name) {
+    case "/inject-tribe":
+      return { kind: "inject", sources: new Set(["tribe"]) }
+    case "/inject-ci":
+      return { kind: "inject", sources: new Set(["ci"]) }
+    case "/inject-lore":
+      return { kind: "inject", sources: new Set(["lore"]) }
+    case "/inject-telegram":
+      return { kind: "inject", sources: new Set(["telegram"]) }
+    case "/inject-subagent":
+      return { kind: "inject", sources: new Set(["subagent"]) }
+    case "/inject-recent":
+      return { kind: "inject" }
+    case "/clear-channels":
+      return { kind: "clear" }
+    default:
+      return { kind: "none" }
+  }
 }

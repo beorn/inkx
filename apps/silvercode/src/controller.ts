@@ -26,9 +26,12 @@ import {
   spawnSdk,
   activeBeadInjector,
 } from "@km/agent-harness"
+import { createScope, type Scope } from "@silvery/scope"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
+import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
+import { wireChannelSources } from "./channel-sources.ts"
 import { registerChild } from "./process-supervisor.ts"
 import { replaySessionFromDisk } from "./resume.ts"
 
@@ -206,6 +209,19 @@ export type ControllerOptions = {
    * this guard. See bead `km-silvercode.queue-focus-flush-guard`.
    */
   getFocusedRegion?: () => "queue" | "command"
+  /**
+   * Optional scope for owning the controller's auxiliary subscribers
+   * (channel queue, channel-source watchers). Defaults to a fresh root
+   * scope created at controller-init and disposed via `closeAll`. Pass
+   * an explicit scope to integrate with the host app's lifecycle.
+   */
+  scope?: Scope
+  /**
+   * Disable wiring channel sources (tribe / telegram / ci / lore /
+   * subagent). Tests pass `true` to keep the queue inert. The queue
+   * itself is always created so the controller surface is uniform.
+   */
+  disableChannelSources?: boolean
 }
 
 export type SpawnSessionOptions = {
@@ -323,6 +339,24 @@ export type Controller = {
   backgroundTasks(sessionId: string): ReadonlyArray<BackgroundTask>
   /** Subscribe to background-task list changes (per session). */
   onBackgroundTasksChange(handler: (sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void): () => void
+  /**
+   * Channel queue — silvercode-owned ambient-event buffer. Subscribers
+   * (tribe, telegram, CI, lore, sub-agent) push `ChannelEvent`s here on
+   * receipt; the prompt-assembly hook decides whether to drain them as
+   * typed `EmbeddedResource` blocks on the next user prompt.
+   *
+   * Default disposition: hold the queue, surface a notification badge
+   * via `pendingCount`, drain on user-invoked `/inject-<source>` slash
+   * command. Auto-injection is opt-in per session (future work). See
+   * `prompt-assembly.ts`.
+   *
+   * Replaces Claude Code's free-text `<channel source="..." ...>` tag
+   * injection — when wrapping Claude Code via `acp-adapter-claude` we
+   * also need to suppress the native `<channel>` tag at the spawn level
+   * (TODO: wire via env / system-prompt amendment in
+   * `acp-adapter-claude`).
+   */
+  readonly channelQueue: ChannelQueue
 }
 
 let nextId = 1
@@ -332,6 +366,32 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   let focusedId = ""
   const sessionSubs = new Set<(s: SessionHandle[]) => void>()
   const focusSubs = new Set<(id: string) => void>()
+
+  // Channel pipeline — silvercode-owned ambient-event buffer feeding the
+  // typed prompt-assembly path (apps/silvercode/src/prompt-assembly.ts).
+  // Replaces Claude Code's free-text `<channel source="..." ...>` tag
+  // injection — see hub/silvery/future/ai-terminal/10-agent-router-landscape.md.
+  // The scope owns watcher teardown for tribe / telegram / ci / lore /
+  // subagent subscribers; closeAll() disposes it.
+  //
+  // Note: ownsScope tracks whether we created the scope (and therefore
+  // are responsible for disposing it on closeAll). When the host app
+  // passes a scope in via opts.scope, the host owns disposal.
+  const ownsScope = !opts.scope
+  const controllerScope: Scope = opts.scope ?? createScope("silvercode-controller")
+  const channelQueue = createChannelQueue(controllerScope)
+  if (!opts.disableChannelSources) {
+    wireChannelSources(controllerScope, channelQueue)
+  }
+  // TODO (acp-adapter-claude): when we wrap Claude Code via the ACP
+  // adapter, the spawned subprocess MUST NOT emit its own
+  // `<channel source="..." ...>` tag injection — silvercode owns the
+  // channel pipeline now via channelQueue + assembleAcpPrompt. Until
+  // that adapter lands, we keep the legacy `channelDigestInjector` path
+  // wired below for the stream-json sessions, which means the legacy
+  // tribe digest still flows through the user-role text. Migrating one
+  // session at a time onto the ACP path drains channelQueue via
+  // `assembleAcpPrompt({ autoInject: false })` + slash commands.
 
   function notifySessions(): void {
     for (const fn of sessionSubs) fn(sessions)
@@ -948,6 +1008,16 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         s.session.close()
         s.unsubscribe()
       }
+      // Dispose the controller-owned scope (tears down channel-source
+      // watchers, clears the channel queue) only if we created it.
+      // Hosts that supplied their own scope are responsible for it.
+      if (ownsScope) {
+        // Fire-and-forget — Scope[Symbol.asyncDispose] returns a Promise
+        // we don't await (matches the rest of closeAll's sync contract).
+        void controllerScope[Symbol.asyncDispose]().catch(() => {
+          /* swallow — disposal errors are non-fatal */
+        })
+      }
     },
     backgroundActiveTurn(sessionId: string): void {
       const handle = sessions.find((h) => h.id === sessionId)
@@ -1142,5 +1212,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       for (const [sid, tasks] of tasksBySession) handler(sid, tasks)
       return () => backgroundSubs.delete(handler)
     },
+    channelQueue,
   }
 }
