@@ -27,6 +27,10 @@
             # Diagram tools (ASCII art creation + validation)
             boxes # Draw boxes around text
             graph-easy # Render graphs as ASCII/Unicode from DOT or simple syntax
+
+            # AI coding agents
+            aider-chat # Terminal AI pair programmer
+            gemini-cli # Google Gemini CLI
           ];
 
           # Note: Run 'bun run setup' manually after first clone

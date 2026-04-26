@@ -88,3 +88,4 @@ editset.json
 *.db
 .beads-credential-key
 .changeset/
+.aider*
