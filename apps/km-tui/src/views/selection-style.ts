@@ -6,8 +6,9 @@
  * to change. If you change any styling logic in km-tui, update this file too.
  *
  * Note: `$bg-selected` / `$fg-on-selected` / `$bg-inverse` / `$fg-on-inverse`
- * / `$fg-link` are Sterling flat tokens (silvery 0.19.x+). Matching nested
- * roles (`theme.selected`, `theme.inverse`, `theme.link`) are also available.
+ * / `$fg-link` are Sterling flat tokens (silvery 0.19.x+). The legacy nested
+ * roles (`theme.selection`, `theme.inverse`, `theme.link`) were removed —
+ * read flat tokens via `theme["bg-selected"]`, `theme["fg-link"]`, etc.
  *
  * ## Precedence: how a cell's final style is composed
  *
