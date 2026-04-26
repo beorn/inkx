@@ -37,13 +37,14 @@ export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
         <IntroRow name="ctrl-e" desc="permission inbox" />
         <IntroRow name="ctrl-r" desc="history view" />
         <IntroRow name="ctrl-n" desc="next session (multi-session)" />
+        <IntroRow name="ctrl-g v / s / x / z" desc="pane chord: vsplit / hsplit / close / zoom" />
+        <IntroRow name="ctrl-g h/j/k/l" desc="swap focused pane with neighbor" />
         <IntroRow name="esc" desc="dismiss open overlays" />
         <IntroRow name="ctrl-c / ctrl-d ctrl-d" desc="exit silvercode" />
       </Box>
     </Box>
   )
 }
-
 
 function IntroRow({ name, desc }: { name: string; desc: string }): React.ReactElement {
   return (

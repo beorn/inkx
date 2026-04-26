@@ -200,16 +200,24 @@ export function App(props: AppProps): React.ReactElement {
   const [inputValue, setInputValue] = useState("")
   const paletteQuery = inputValue.startsWith("/") ? inputValue : null
 
-  // Pane management — Ctrl+W chord prefix (vim-window convention) gates
-  // pane operations: `Ctrl+W v` (vsplit), `Ctrl+W x` (close), `Ctrl+W z`
-  // (zoom toggle). Ctrl+B stays as background-turn (km-silvercode.ctrl-b
-  // -background) — picking Ctrl+W avoids that conflict.
+  // Pane management — Ctrl+G chord prefix gates pane operations:
+  // `Ctrl+G v` (vsplit), `Ctrl+G s` (hsplit), `Ctrl+G x` (close),
+  // `Ctrl+G z` (zoom toggle), `Ctrl+G h/j/k/l` (swap with neighbor).
+  //
+  // Why Ctrl+G (not Ctrl+W as vim convention would suggest): silvery's
+  // TextArea + useReadline consume Ctrl+W as readline word-delete-
+  // backwards (vendor/silvery/packages/ag-react/src/hooks/readline-ops.ts
+  // line 131) BEFORE App-level useInput sees it. Since the CommandBox
+  // owns focus by default, Ctrl+W never reaches this handler. Ctrl+G is
+  // not consumed by readline-ops or useTextArea, so it leaks through to
+  // the App-level useInput cleanly. "G" mnemonic = grid management.
+  // Bead: km-silvercode.ctrl-w-blocked-by-textarea.
   //
   // The chord lives in a state value (not a ref) so the visual hint
   // shown in the side panel can react to its presence. Times out 1500ms
-  // after activation so a stale Ctrl+W doesn't trap the next plain
+  // after activation so a stale Ctrl+G doesn't trap the next plain
   // keystroke.
-  const [chord, setChord] = useState<"ctrl-w" | null>(null)
+  const [chord, setChord] = useState<"ctrl-g" | null>(null)
   useEffect(() => {
     if (!chord) return
     const handle = setTimeout(() => setChord(null), 1500)
@@ -224,7 +232,7 @@ export function App(props: AppProps): React.ReactElement {
     }
   }, [zoomedPaneId, sessions])
 
-  // Pane layout tree — owned by App so Ctrl+W chord handlers can edit it
+  // Pane layout tree — owned by App so Ctrl+G chord handlers can edit it
   // (split / close / focus-cycle in reading order). PaneGrid is the
   // controlled renderer + drag-resize handler.
   //
@@ -271,15 +279,12 @@ export function App(props: AppProps): React.ReactElement {
   // render input. The handler reads `messageListsRef.current.get(...)`
   // at keypress time, which always sees the latest value.
   const messageListsRef = useRef(new Map<string, ListViewHandle>())
-  const registerMessageList = useCallback(
-    (sessionId: string, handle: ListViewHandle | null): void => {
-      if (handle) messageListsRef.current.set(sessionId, handle)
-      else messageListsRef.current.delete(sessionId)
-    },
-    [],
-  )
+  const registerMessageList = useCallback((sessionId: string, handle: ListViewHandle | null): void => {
+    if (handle) messageListsRef.current.set(sessionId, handle)
+    else messageListsRef.current.delete(sessionId)
+  }, [])
 
-  // Ctrl+W H/J/K/L — keyboard-driven pane swap (vim-window convention).
+  // Ctrl+G H/J/K/L — keyboard-driven pane swap (vim-window convention).
   // Picks the structurally-adjacent leaf in the requested direction via
   // `findNeighbor`, then swaps the two leaves' session ids in the layout
   // tree. Mirrors what a user would do with the mouse drag-move "drop in
@@ -300,7 +305,7 @@ export function App(props: AppProps): React.ReactElement {
     [focusedSessionId, paneTree, props.cwd],
   )
 
-  // Ctrl+W v / Ctrl+W s — split the focused pane. The new session is
+  // Ctrl+G v / Ctrl+G s — split the focused pane. The new session is
   // appended to the controller in the usual way; the layout tree gets
   // the focused leaf replaced by a split with the original session +
   // the new one. We have to wait for `spawnSession` to resolve so we
@@ -321,11 +326,11 @@ export function App(props: AppProps): React.ReactElement {
     [controller, focusedSessionId, props.cwd],
   )
 
-  // Pane close — extracted from the Ctrl+W x chord handler so the
+  // Pane close — extracted from the Ctrl+G x chord handler so the
   // PaneHeader's `×` button shares the same code path. Closes the named
   // pane (not necessarily the focused one) when there's more than one;
   // single-pane close stays a no-op for safety (matches the chord). The
-  // controller has no per-session close API, so we mirror what Ctrl+W x
+  // controller has no per-session close API, so we mirror what Ctrl+G x
   // does: SDK-level close + drop the handle locally + advance focus.
   const closePaneById = useCallback(
     (id: string): void => {
@@ -664,14 +669,18 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory((v) => !v)
         return
       }
-      // Ctrl+W — pane chord prefix (vim-window). The next non-modifier
-      // keypress within the timeout selects an action. We consume the
-      // Ctrl+W itself + the follow-up so neither leaks into TextInput.
+      // Ctrl+G — pane chord prefix. The next non-modifier keypress
+      // within the timeout selects an action. We consume the Ctrl+G
+      // itself + the follow-up so neither leaks into TextInput.
       // Resolving the chord follow-up has to come BEFORE the Ctrl+N
-      // session cycler so that e.g. `Ctrl+W` then `n` doesn't get
+      // session cycler so that e.g. `Ctrl+G` then `n` doesn't get
       // intercepted as "next session" (currently we don't bind a chord
       // for `n`, but the order keeps the slot reserved).
-      if (chord === "ctrl-w") {
+      //
+      // History: was Ctrl+W (vim-window), but TextArea consumes Ctrl+W
+      // as readline word-delete before this handler runs. Bead
+      // km-silvercode.ctrl-w-blocked-by-textarea.
+      if (chord === "ctrl-g") {
         // Any keypress in chord state consumes the chord — even an
         // unrecognised one — so we don't accidentally swallow the user's
         // next real keystroke after a typo.
@@ -695,6 +704,8 @@ export function App(props: AppProps): React.ReactElement {
           // is the canonical shutdown for a single-pane window — the
           // controller has no per-session close API today, so a single
           // pane's `x` is best-effort: it just clears the current focus.
+          // (Note: lower-case x — chord follow-ups are case-insensitive
+          // letters; uppercase versions are handled by H/J/K/L below.)
           if (focused && sessions.length > 1) {
             // No per-session close API on the controller (yet); send the
             // SDK-level close + drop the handle from the visible list by
@@ -713,7 +724,7 @@ export function App(props: AppProps): React.ReactElement {
           setZoomedPaneId((cur) => (cur ? null : (focused?.id ?? null)))
           return
         }
-        // Ctrl+W H/J/K/L — vim-style swap with neighbor in direction.
+        // Ctrl+G H/J/K/L — vim-style swap with neighbor in direction.
         // Uppercase form is the canonical "swap" gesture (lowercase
         // h/j/k/l would be "navigate to neighbor" in tmux/vim, but
         // silvercode already uses Ctrl+N for cycle and the focus model
@@ -737,8 +748,8 @@ export function App(props: AppProps): React.ReactElement {
         }
         return
       }
-      if (key.ctrl && input === "w") {
-        setChord("ctrl-w")
+      if (key.ctrl && input === "g") {
+        setChord("ctrl-g")
         return
       }
       // Ctrl+N cycles sessions in left-to-right reading order — i.e.

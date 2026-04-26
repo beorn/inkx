@@ -8,7 +8,7 @@
  * splits) or 1-row `─` (column splits) gutter; the active pane gets a
  * 1-col accent bar inside SessionCard's left edge. That's it.
  *
- *   row-split (vsplit, Ctrl+W v):       column-split (hsplit, Ctrl+W s):
+ *   row-split (vsplit, Ctrl+G v):       column-split (hsplit, Ctrl+G s):
  *   ┌───────────────────┐                ┌───────────────────┐
  *   │ ▎ pane A │ pane B │                │ ▎ pane A          │
  *   │           │        │                │ ─────────────     │

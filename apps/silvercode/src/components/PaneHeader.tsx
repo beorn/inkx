@@ -20,11 +20,11 @@
  *     drag-move wiring already lives in PaneGrid's LeafContainer (mouse-
  *     down on the top-left cell). The header glyph is a visual cue, not
  *     a separate drag origin — clicking it is a no-op for now.
- *   - `+`: spawn split-right (same effect as Ctrl+W v).
+ *   - `+`: spawn split-right (same effect as Ctrl+G v).
  *   - `_`: minimize toggle. When minimized, the pane shrinks to just
  *     the header strip (parent decides the height collapse — the header
  *     itself doesn't manage state).
- *   - `×`: close pane (same effect as Ctrl+W x).
+ *   - `×`: close pane (same effect as Ctrl+G x).
  *
  * Buttons use silvery semantic tokens ($accent on hover/active, $muted
  * otherwise) so they pick up theme changes automatically. No raw ANSI

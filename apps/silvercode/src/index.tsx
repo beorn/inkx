@@ -173,6 +173,8 @@ function buildProgram(): Command {
     ["ctrl-e", "open permission inbox"],
     ["ctrl-r", "history view"],
     ["ctrl-n", "next session (multi-session)"],
+    ["ctrl-g v / s / x / z", "pane chord: vsplit / hsplit / close / zoom"],
+    ["ctrl-g h/j/k/l", "swap focused pane with neighbor"],
     ["esc", "dismiss overlays"],
     ["ctrl-c / ctrl-d ctrl-d", "exit silvercode"],
   ])

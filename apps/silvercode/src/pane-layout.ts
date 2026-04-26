@@ -313,7 +313,7 @@ export function moveLeafTo(tree: LayoutNode, sourceId: string, targetId: string,
  *
  * Returns null if there is no neighbor on that side (already at edge).
  *
- * Used by the keyboard fallback `Ctrl+W H/J/K/L` to pick a swap target.
+ * Used by the keyboard fallback `Ctrl+G H/J/K/L` to pick a swap target.
  */
 export function findNeighbor(tree: LayoutNode, id: string, direction: "left" | "right" | "up" | "down"): string | null {
   const path = pathToLeaf(tree, id)
