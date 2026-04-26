@@ -29,6 +29,7 @@ import {
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
+import { registerChild } from "./process-supervisor.ts"
 import { replaySessionFromDisk } from "./resume.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
@@ -651,6 +652,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       injectors,
       mcpServers,
       configDir,
+      // Pidfile + child registry — see process-supervisor.ts for why. We
+      // register every spawned claude (with its pgid, since `detached:true`
+      // makes pid === pgid) so a future silvercode launch can reap orphans
+      // if THIS silvercode dies hard. The supervisor module short-circuits
+      // when not initialized at the app level, so factory-only test paths
+      // (no acquireSupervisor call) are unaffected.
+      onSpawn: ({ pid, pgid }) => {
+        registerChild(s.cwd, {
+          pid,
+          pgid,
+          sessionId: s.id,
+          startedAt: Date.now(),
+        })
+      },
     })
   }
 

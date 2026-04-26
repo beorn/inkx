@@ -6,6 +6,38 @@ import { accountExists, resolveAccountDir } from "./accounts.ts"
 import { App } from "./App.tsx"
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
 import { renderReport } from "./doctor/render.ts"
+import { acquireSupervisor, releaseSupervisor } from "./process-supervisor.ts"
+
+/**
+ * Layout shape silvercode supports today. Mirrored as a string literal
+ * union — kept as one declaration so the resume-clamp helper can be type-
+ * checked against a single source of truth.
+ */
+export type SilvercodeLayout = "single" | "grid-2" | "grid-4"
+
+/**
+ * Resume-clamp helper. When `--resume <id>` is set, `--layout` MUST collapse
+ * to single — resuming is for ONE session (fan-out grid panes would all try
+ * to attach to the same id) AND each pane carries its own claude + MCP
+ * children, which is the resume fork-bomb path
+ * (`km-silvercode.resume-fork-bomb`). Returns the new layout plus a
+ * human-readable warning when clamping fired (caller writes to stderr).
+ *
+ * Pure function so tests can pin the matrix without driving the whole
+ * `commander` action.
+ */
+export function clampLayoutForResume(
+  layout: SilvercodeLayout,
+  resume: string | undefined,
+): { layout: SilvercodeLayout; warning: string | null } {
+  if (resume && layout !== "single") {
+    return {
+      layout: "single",
+      warning: `silvercode: --resume forces single-session layout (you passed --layout=${layout}); spawning 1 session.`,
+    }
+  }
+  return { layout, warning: null }
+}
 
 function buildProgram(): Command {
   const program = new Command()
@@ -27,7 +59,62 @@ function buildProgram(): Command {
       "Anthropic account name — reads creds from ~/.km/accounts/<name>/ via CLAUDE_CONFIG_DIR (v1.1 multi-account)",
     )
     .action(async (opts: Record<string, unknown>) => {
+      const cwd = String(opts.cwd ?? process.cwd())
       const account = typeof opts.account === "string" && opts.account.length > 0 ? opts.account : undefined
+
+      // Resume → clamp layout to single session. See `clampLayoutForResume`
+      // for the rationale; this is the call-site that emits the warning.
+      const requestedLayout: SilvercodeLayout =
+        opts.layout === "grid-2" || opts.layout === "grid-4" || opts.layout === "single"
+          ? (opts.layout as SilvercodeLayout)
+          : "single"
+      const resume = typeof opts.resume === "string" && opts.resume.length > 0 ? opts.resume : undefined
+      const { layout: effectiveLayout, warning: resumeWarning } = clampLayoutForResume(requestedLayout, resume)
+      if (resumeWarning) process.stderr.write(`${resumeWarning}\n`)
+
+      // Pidfile + orphan-reap. Refuses to start if another silvercode owns
+      // this vault; reaps orphans from a previously-crashed silvercode.
+      // See `process-supervisor.ts` for the contract.
+      const acquired = acquireSupervisor(cwd)
+      if (!acquired.ok) {
+        process.stderr.write(
+          [
+            `silvercode: another instance is already running for this vault (pid ${acquired.runningPid}).`,
+            "",
+            "If you're sure that process is gone, remove the pidfile manually:",
+            `  rm ${acquired.pidfile}`,
+            "",
+            "Refusing to start a second instance — concurrent silvercode runs in",
+            "the same vault would compound the resume fork-bomb risk.",
+          ].join("\n") + "\n",
+        )
+        // Throw rather than process.exit so silvery's TTY cleanup runs (no
+        // alt-screen leak). The bootstrap installs no TUI here yet, so this
+        // just propagates to the top-level catch.
+        throw new Error(`silvercode already running for vault (pid ${acquired.runningPid})`)
+      }
+      if (acquired.takenOver) {
+        const what =
+          acquired.reaped.length > 0
+            ? `reaped ${acquired.reaped.length} orphan process group(s) [${acquired.reaped.join(", ")}]`
+            : "no surviving orphans found"
+        process.stderr.write(`silvercode: previous instance crashed; ${what}.\n`)
+      }
+      // Best-effort cleanup of pidfile + registry on EVERY shutdown path.
+      // process.on("exit") fires on normal exit; SIGINT/SIGTERM are caught
+      // by silvery's runtime AND by us here so manual `kill <pid>` still
+      // cleans up before silvery's term cleanup runs.
+      const cleanup = (): void => releaseSupervisor(cwd)
+      process.on("exit", cleanup)
+      process.on("SIGINT", () => {
+        cleanup()
+        // Don't re-raise here — bootstrap.ts's SIGINT handler owns the
+        // forced-exit deadline. We just want our cleanup to fire first.
+      })
+      process.on("SIGTERM", () => {
+        cleanup()
+      })
+
       if (account) {
         // Fail loudly at startup if the account dir isn't populated. An empty
         // dir would silently degrade to anonymous claude (worse than failing).
@@ -56,13 +143,11 @@ function buildProgram(): Command {
 
       const handle = await run(
         <App
-          cwd={String(opts.cwd ?? process.cwd())}
+          cwd={cwd}
           model={typeof opts.model === "string" ? opts.model : "claude-opus-4-7[1m]"}
-          resume={typeof opts.resume === "string" ? opts.resume : undefined}
+          resume={resume}
           bare={opts.bare === true}
-          layout={
-            opts.layout === "grid-2" || opts.layout === "grid-4" || opts.layout === "single" ? opts.layout : "single"
-          }
+          layout={effectiveLayout}
           track={opts.track === "sdk" || opts.track === "codex" || opts.track === "claude" ? opts.track : "claude"}
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
@@ -73,6 +158,8 @@ function buildProgram(): Command {
         { mode: "fullscreen", handleTabCycling: false },
       )
       await handle.waitUntilExit()
+      // Final cleanup — covers the normal-quit path (no signal raised).
+      cleanup()
     })
 
   program.addHelpSection("Keybindings:", [
