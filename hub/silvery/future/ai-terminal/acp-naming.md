@@ -79,11 +79,33 @@ Where silvercode needs concepts ACP doesn't speak, coin names that fit ACP's nam
 
 ## Things explicitly OUT of ACP scope (deferred)
 
-These belong to IDE-shell, not the ACP session client. Tracked under `km-silvercode.ide-shell` (P4):
+These belong to IDE-shell, not the ACP session client. Tracked under `km-silvercode.ide-shell` (P4). When the IDE-shell scope is revisited, names below are the canonical map — clearly silvercode-coined, never faux-ACP.
 
-- Workspace, project, sidebar, titlebar, file tabs, status popover
-- Provider/model/MCP pickers, settings panels
-- Standalone terminal tabs (ACP has terminal *inside* a `ToolCall` — that's covered by `<TerminalContent>`)
+### IDE-shell naming (non-ACP, silvercode-only)
+
+Prefix everything with `Silvercode` or `Workspace` to make it obvious this is *outside* the protocol vocabulary.
+
+| Concept | silvercode name | Component(s) |
+|---|---|---|
+| App-level chrome | `Silvercode*` prefix | `<SilvercodeApp>`, `<SilvercodeTitlebar>` |
+| Multi-session container | `Workspace*` | `<Workspace>`, `<WorkspaceSidebar>`, `<WorkspaceProject>`, `<WorkspaceSidebarItems>` |
+| Session-tab bar | `SessionTab*` | `<SessionTabBar>`, `<SessionTab>`, `<SessionTabSortable>`, `<TerminalTab>`, `<TerminalTabSortable>` |
+| File tabs (open files) | `FileTab*` | `<FileTabBar>`, `<FileTab>`, `<FileTabScroll>` |
+| Status popovers | `StatusPopover*` | `<StatusPopover>`, `<StatusPopoverBody>` |
+| Settings UI | `Settings*` | `<SettingsShell>`, `<SettingsGeneral>`, `<SettingsKeybinds>`, `<SettingsModels>`, `<SettingsProviders>`, `<KeybindChip>` |
+| Marketplace dialogs | `Dialog*` | `<DialogSelectModel>`, `<DialogSelectProvider>`, `<DialogConnectProvider>`, `<DialogCustomProvider>`, `<DialogManageModels>`, `<DialogSelectMcp>`, `<DialogSelectServer>` |
+| Provider metadata | `Provider*` | `<ProviderIcon>`, `<ProviderTooltip>` (alias of `<ModelHoverCard>` once HoverCard wrapper exists) |
+| Standalone terminal pane | `TerminalPanel*` | `<TerminalPanel>` (NOT ACP `Terminal` — that lives inside `ToolCallContent`), `<TerminalPanelLabel>` |
+| Session lifecycle (non-ACP) | `Session*` (silvercode-extended) | `<DialogForkSession>`, `<DialogReleaseNotes>`, `<DialogSelectDirectory>`, `<DialogSelectFile>` |
+| File-system primitives (UI-only) | `FileBrowser*` | `<FileBrowserDir>`, `<FileBrowserFile>` |
+
+### Naming rule for IDE-shell
+
+When ACP defines a concept (`Terminal`, `RequestPermission`, `ToolCall`), use ACP's name even if it appears inside a Silvercode-prefixed shell. When ACP has no concept (workspace, file tabs, settings shell), use `Silvercode*` / `Workspace*` / `Dialog*` prefixes — never coin a faux-ACP name like `SessionTabUpdate` or `WorkspaceSessionUpdate`.
+
+### Why prefix at all
+
+A reader scanning `apps/silvercode/src/components/` should be able to tell at a glance which components implement protocol concepts (`<ToolCall>`, `<RequestPermission>`, `<UsageMeter>`) versus client-side chrome (`<SilvercodeTitlebar>`, `<WorkspaceSidebar>`, `<DialogSelectModel>`). The prefix makes the protocol/chrome boundary visible in the file tree.
 
 If silvercode later pivots toward an IDE shape, those names get coined under `<SilvercodeIde*>` or similar — never as faux-ACP names.
 
