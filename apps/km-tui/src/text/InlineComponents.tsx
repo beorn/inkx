@@ -12,13 +12,15 @@
 
 import React from "react"
 import { Link, Small, Text } from "@silvery/ag-react"
-import { detectAutolinks } from "@km/autolinks"
+import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import { detectAutolinks, type AutolinkDetection } from "@km/autolinks"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
-import { type PopoverContent } from "../views/Popover.tsx"
+import { type PopoverContent, usePopover } from "../views/Popover.tsx"
 import { useLinkInteraction, linkTextProps } from "./link-interaction.ts"
 import { useAutolinks } from "./AutolinksContext.tsx"
+import { autolinkPopoverContent } from "./autolink-popover.tsx"
 import type {
   BareURLNode,
   BoldNode,
@@ -198,6 +200,22 @@ export function InlinePlainText({
  * compile to global RegExps at config load and are reused. When the rule
  * list is empty AND there are no virtual URL detections, this collapses
  * to a single <Text>{text}</Text> — same as the non-autolinks path.
+ *
+ * Each matched span renders as an `<AutolinkSpan>` that wires hover →
+ * popover via the same `usePopover` store used by URL / wikilink / sigil
+ * popovers. The popover anchors at the mouse's `clientX/clientY` — which is
+ * the actual rendered span position — matching the convention used by every
+ * other inline link in km-tui (`useLinkInteraction` in `link-interaction.ts`).
+ *
+ * **Why not silvery overlay-anchor v1 (`anchorRef` + `decorations`)?** That
+ * substrate is a `BoxProp`, and inline `<Text>` spans inside a wrapping
+ * `<Text wrap=...>` don't allocate their own `contentRect` — the parent Text
+ * collects them as a single text run for word-wrap. Wrapping each span in a
+ * Box would break inline flow. The mouse-event coordinate path resolves to
+ * the same on-screen position. If silvery later ships span-level anchors
+ * (text fragment rects), this is the spot to migrate. Tracking: bead
+ * `km-silvery.overlay-anchor-impl-v1` (Phase 4c notes — wrap-aware fragments
+ * deferred).
  */
 function AutolinkedPlainText({ text }: { text: string }): React.ReactElement {
   const ctx = useAutolinks()
@@ -215,27 +233,70 @@ function AutolinkedPlainText({ text }: { text: string }): React.ReactElement {
   let cursor = 0
   for (const d of detections) {
     if (d.start > cursor) {
-      pieces.push(
-        <React.Fragment key={`t${cursor}`}>{text.slice(cursor, d.start)}</React.Fragment>,
-      )
+      pieces.push(<React.Fragment key={`t${cursor}`}>{text.slice(cursor, d.start)}</React.Fragment>)
     }
-    // Virtual URL detections inherit the link color so plain links read
-    // like links. Configured (rule-driven) autolinks use $secondary to
-    // distinguish rule-driven matches from raw URLs. Mirrors silvercode's
-    // `colorFor` for autolink kinds.
-    const isVirtual = d.payload.virtual === "1"
-    const color = isVirtual ? "$info" : "$secondary"
-    pieces.push(
-      <Text key={`d${d.start}`} color={color} underline>
-        {d.match}
-      </Text>,
-    )
+    pieces.push(<AutolinkSpan key={`d${d.start}`} detection={d} />)
     cursor = d.end
   }
   if (cursor < text.length) {
     pieces.push(<React.Fragment key={`tail${cursor}`}>{text.slice(cursor)}</React.Fragment>)
   }
   return <Text>{pieces}</Text>
+}
+
+/**
+ * Render a single autolink-matched span with hover → popover wiring.
+ *
+ * Visual + interaction model mirrors `useLinkInteraction` (URL / wikilink /
+ * sigil) — popover on enter, hide on leave, stable underline at rest +
+ * brighter hover state. We don't share `useLinkInteraction` itself because
+ * autolinks have their own popover-content shape (rule payload → preview
+ * resolver) that doesn't fit the URL-metadata vs internal-title fork.
+ *
+ * **anchor**: passed via `e.clientX/clientY` from the mouse event. This is
+ * the actual rendered cell position of whichever character the cursor is on,
+ * so the popover anchors to the matched span (not to the text-frame origin
+ * or to the parent card). See the AutolinkedPlainText comment for why we
+ * don't use silvery's `anchorRef`/`decorations` substrate here.
+ */
+function AutolinkSpan({ detection: d }: { detection: AutolinkDetection }): React.ReactElement {
+  const popover = usePopover()
+
+  // Bind on each render so we always reach the latest popover store actions.
+  // popover is a snapshot of `store.getState()` — its `show/hide` refs are
+  // stable across calls, but capturing via callback is cheap.
+  const onMouseEnter = React.useCallback(
+    (e: SilveryMouseEvent) => {
+      if (!popover) return
+      popover.show(autolinkPopoverContent(d), { x: e.clientX, y: e.clientY })
+    },
+    [popover, d],
+  )
+
+  const onMouseLeave = React.useCallback(() => {
+    popover?.hide()
+  }, [popover])
+
+  // Virtual URL detections inherit the link color so plain links read like
+  // links. Configured (rule-driven) autolinks use `$secondary` to distinguish
+  // rule-driven matches from raw URLs. Mirrors silvercode's `colorFor`.
+  //
+  // **Stable visual on hover**: we deliberately do NOT toggle underline
+  // style or color based on hover state — toggling those props inside an
+  // inline `<Text>` span causes incremental-render diffs to drift from a
+  // fresh render at the surrounding-whitespace cells (style cascades
+  // along the text run). The popover itself is the hover affordance; the
+  // rest-state underline + secondary/info color is enough visual signal
+  // that the match is interactive. See bead notes for the
+  // STRICT_OUTPUT mismatch this avoids.
+  const isVirtual = d.payload.virtual === "1" || d.payload.source === "<virtual:plain-url>"
+  const color = isVirtual ? "$info" : "$secondary"
+
+  return (
+    <Text color={color} underline onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      {d.match}
+    </Text>
+  )
 }
 
 export function InlineBold({ node, decorations, offset }: { node: BoldNode } & DecorationProps): React.ReactElement {
