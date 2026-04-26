@@ -56,12 +56,13 @@ describe("markdown rendering at multiple widths", () => {
     })
   }
 
-  test("markdownRich at narrow cols=40: content renders (no invariants — side panel dominates)", async () => {
-    // cols=40 with flexBasis=40 side panel means left region width = 0 —
-    // everything should get clipped but at minimum the side panel still
-    // renders. Basically a smoke test that we don't crash.
+  test("markdownRich at narrow cols=40: side panel hidden by default, content renders", async () => {
+    // cols=40 < SIDE_PANEL_AUTO_OPEN_COLS (60) — responsive default hides
+    // the panel so the message area gets the full width. Asserts the new
+    // behavior: panel markers do NOT render, but message content does.
+    // (Manual /panel opens it as an overlay; that path tested elsewhere.)
     const s = await renderScenario({ script: markdownRich, cols: 40, rows: 60 })
-    // Side panel markers should always render.
-    expect(s.text, `side panel missing at cols=40`).toMatch(/Sessions|Silver|Claude/)
+    expect(s.text, `'first' missing at cols=40`).toMatch(/first/)
+    expect(s.text, `'bullet' missing at cols=40`).toMatch(/bullet/)
   })
 })

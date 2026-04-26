@@ -37,6 +37,19 @@ type Track = "claude" | "sdk" | "codex"
 // from the (currently-private) trackHeight.
 const MESSAGE_LIST_PAGE_STEP = 10
 
+// Side panel responsive breakpoint (terminal cols).
+//
+// At this width and above: panel opens by default and renders inline as
+// a 40-col gutter beside the message area.
+// Below this width: panel is hidden by default. If the user manually
+// opens it (Ctrl+O / /panel), the panel renders as an OVERLAY on top of
+// the message area instead of inline — same pattern as opencode. This
+// keeps the message area readable on narrow terminals while still
+// giving the user access to sessions/todos/agents on demand.
+//
+// User toggle always wins; auto-open only kicks in if no manual choice.
+const SIDE_PANEL_AUTO_OPEN_COLS = 60
+
 // Mode → prompt color so the `>` in the command input visibly signals
 // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
 // Module-scope constant so it's not re-created per render.
@@ -204,7 +217,36 @@ export function App(props: AppProps): React.ReactElement {
   // /ultrathink. Rendered as an optional row in SidePanel's version block.
   const [thinking, setThinking] = useState<string>("")
   const [showInbox, setShowInbox] = useState(false)
-  const [showSidePanel, setShowSidePanel] = useState(true)
+
+  // Side panel — responsive default + manual override.
+  //
+  // Auto-open when terminal is wide enough that both message area and
+  // panel get comfortable widths. SIDE_PANEL_WIDTH is 40 cols; the
+  // message area is everything to the left. At cols >= SIDE_PANEL_AUTO_OPEN_COLS
+  // (120), the message area gets ≥80 cols which is the standard "comfortable"
+  // width. Below that, hide the panel by default so the message area isn't
+  // squeezed.
+  //
+  // Manual override (Ctrl+O / Ctrl+Y / /panel / /aside / /todos) sticks
+  // for the rest of the session — auto-open only kicks in if the user
+  // hasn't expressed a preference yet.
+  // Reactive terminal cols — live updates on SIGWINCH via useTerm. In test
+  // harnesses where mockTerm has no size, t.size.cols() returns 0; treat 0
+  // as "unknown — assume wide" so the existing visual fixtures (which
+  // assert panel-open layouts) keep matching.
+  //
+  // Side panel state is DERIVED from auto + manual override — no
+  // useEffect, so the render-string harness sees a single stable frame
+  // (an effect-based update would trigger React's "not wrapped in act"
+  // warnings and re-render flicker).
+  const termCols = useTerm((t) => t.size.cols())
+  const isNarrow = termCols > 0 && termCols < SIDE_PANEL_AUTO_OPEN_COLS
+  const [panelOverride, setPanelOverride] = useState<boolean | null>(null)
+  const showSidePanel = panelOverride ?? !isNarrow
+  const togglePanel = useCallback(() => {
+    setPanelOverride((curr) => !(curr ?? !isNarrow))
+  }, [isNarrow])
+
   const [showHistory, setShowHistory] = useState(false)
   // `/raw` slash command toggles a debug view that inlines each user
   // message's `additionalContext` (system-reminders, hook output,
@@ -501,7 +543,7 @@ export function App(props: AppProps): React.ReactElement {
           case "/todos":
           case "/panel":
           case "/aside":
-            return setShowSidePanel((v) => !v)
+            return togglePanel()
           case "/raw":
           case "/debug":
             // Toggle the debug view: inline every user message's hidden
@@ -704,13 +746,14 @@ export function App(props: AppProps): React.ReactElement {
       // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
       // but gets intercepted by cmux / most terminal multiplexers before
       // reaching the app). Slash commands /panel, /aside, /todos are the
-      // canonical surface.
+      // canonical surface. togglePanel() also marks the user-override flag
+      // so the responsive auto-open logic doesn't clobber the choice.
       if (key.ctrl && input === "o") {
-        setShowSidePanel((v) => !v)
+        togglePanel()
         return
       }
       if (key.ctrl && input === "y") {
-        setShowSidePanel((v) => !v)
+        togglePanel()
         return
       }
       if (key.ctrl && input === "r") {
@@ -1084,23 +1127,54 @@ export function App(props: AppProps): React.ReactElement {
 
           {/* RIGHT: full-height side panel. Same bg token as the command input
             so the chrome reads as a single unified surface — opencode uses
-            the same trick. */}
-          {showSidePanel && focused && (
-            <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
-              <SidePanel
-                focused={focused}
-                sessions={sessions}
-                focusedSessionId={focusedSessionId}
-                onFocusSession={(id) => controller.focus(id)}
-                mode={mode}
-                onCycleMode={cycleMode}
-                thinking={thinking}
-                onCycleThinking={cycleThinking}
-                cwd={props.cwd}
-                controller={controller}
-              />
-            </Box>
-          )}
+            the same trick.
+            - Wide terminal (cols >= breakpoint): inline as a 40-col gutter
+              beside the message area (default).
+            - Narrow terminal: panel hidden by default; if user manually
+              opened it (Ctrl+O / /panel), render as an absolute-positioned
+              overlay on top of the message area, right-anchored — same
+              pattern as opencode. */}
+          {showSidePanel &&
+            focused &&
+            (isNarrow ? (
+              <Box
+                position="absolute"
+                top={0}
+                bottom={0}
+                right={0}
+                width={40}
+                flexDirection="column"
+                backgroundColor="$bg-surface-subtle"
+              >
+                <SidePanel
+                  focused={focused}
+                  sessions={sessions}
+                  focusedSessionId={focusedSessionId}
+                  onFocusSession={(id) => controller.focus(id)}
+                  mode={mode}
+                  onCycleMode={cycleMode}
+                  thinking={thinking}
+                  onCycleThinking={cycleThinking}
+                  cwd={props.cwd}
+                  controller={controller}
+                />
+              </Box>
+            ) : (
+              <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
+                <SidePanel
+                  focused={focused}
+                  sessions={sessions}
+                  focusedSessionId={focusedSessionId}
+                  onFocusSession={(id) => controller.focus(id)}
+                  mode={mode}
+                  onCycleMode={cycleMode}
+                  thinking={thinking}
+                  onCycleThinking={cycleThinking}
+                  cwd={props.cwd}
+                  controller={controller}
+                />
+              </Box>
+            ))}
         </Screen>
       </PopoverProvider>
     </AutolinksProvider>
