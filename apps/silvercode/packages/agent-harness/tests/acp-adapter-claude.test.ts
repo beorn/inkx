@@ -425,21 +425,30 @@ describe("spawnClaudeAcpSession — composition end-to-end", () => {
     setScript([])
     const { spawnClaudeAcpSession } = await import("../src/acp-adapter-claude.ts")
     const scope = createScope("test-dispose")
-    let exited = false
-    const acp = spawnClaudeAcpSession(scope, {
-      silentStderr: true,
-      onExit: () => {
-        exited = true
-      },
-    })
-    expect(acp).toBeDefined()
 
-    // Dispose scope → spawnClaude's close() runs → process.kill(-pid)
-    // → mock's stdout was already pushed null → exit fires → onExit fires.
-    await scope[Symbol.asyncDispose]()
-    await settle()
+    // Spy on process.kill to verify the process-group SIGTERM is actually
+    // sent when the scope disposes. spawnClaude.close() calls
+    // `process.kill(-pid, "SIGTERM")` to drop the whole detached group in
+    // one syscall — that's the contract scope-dispose has to honour.
+    const kills: Array<{ pid: number; signal: string | number | undefined }> = []
+    const prev = process.kill
+    process.kill = ((pid: number, signal?: string | number): true => {
+      kills.push({ pid, signal })
+      return true
+    }) as typeof process.kill
 
-    expect(exited).toBe(true)
+    try {
+      const acp = spawnClaudeAcpSession(scope, { silentStderr: true })
+      expect(acp).toBeDefined()
+      await scope[Symbol.asyncDispose]()
+      await settle()
+    } finally {
+      process.kill = prev
+    }
+
+    // Group SIGTERM with negative pid — this is the whole point of the
+    // detached:true spawn path.
+    expect(kills.some((k) => k.pid === -FAKE_PID && k.signal === "SIGTERM")).toBe(true)
   })
 
   test("subscription-auth env passthrough — process.env reaches the child", async () => {

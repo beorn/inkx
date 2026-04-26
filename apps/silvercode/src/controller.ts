@@ -36,7 +36,6 @@ import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
 import { wireChannelSources } from "./channel-sources.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
-import { registerChild } from "./process-supervisor.ts"
 import { replaySessionFromDisk } from "./resume.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
@@ -46,6 +45,18 @@ import { replaySessionFromDisk } from "./resume.ts"
 // reports — auto-flush should fire on `turn-end`.
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
+
+/**
+ * Hard cap on concurrent live AgentSessions per controller. Each session
+ * carries a claude subprocess + N MCP grandchildren (typically 3-8 worker
+ * processes total per pane), so 8 panes ≈ 24-64 worker processes — already
+ * generous. Past this, additional `spawnSession()` calls reject with an
+ * explicit error so a runaway loop fails closed instead of fork-bombing.
+ *
+ * If a real workflow needs more, lift this — the value is a guardrail, not
+ * a product limit.
+ */
+const MAX_LIVE_SESSIONS = 8
 
 /**
  * Prefix that marks a synthetic "background result" system message stuffed
@@ -812,26 +823,17 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       injectors,
       mcpServers,
       configDir,
-      // Pidfile + child registry — see process-supervisor.ts for why. We
-      // register every spawned claude (with its pgid, since `detached:true`
-      // makes pid === pgid) so a future silvercode launch can reap orphans
-      // if THIS silvercode dies hard. The supervisor module short-circuits
-      // when not initialized at the app level, so factory-only test paths
-      // (no acquireSupervisor call) are unaffected.
-      onSpawn: ({ pid, pgid }) => {
-        registerChild(s.cwd, {
-          pid,
-          pgid,
-          sessionId: s.id,
-          startedAt: Date.now(),
-        })
-      },
     })
   }
 
   const factory = opts.spawnFactory ?? defaultSpawn
 
   async function spawnSession(name?: string): Promise<SessionHandle> {
+    if (sessions.length >= MAX_LIVE_SESSIONS) {
+      throw new Error(
+        `silvercode: spawn cap reached (${MAX_LIVE_SESSIONS} live sessions). Close one before spawning another.`,
+      )
+    }
     const id = `s${nextId}`
     const givenName = name ?? `session ${nextId}`
     nextId++

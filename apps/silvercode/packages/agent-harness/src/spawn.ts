@@ -98,21 +98,6 @@ export type SpawnClaudeOptions = {
    * error events. Useful for tests where stderr is expected to be noisy.
    */
   silentStderr?: boolean
-  /**
-   * Fires once when the child is spawned, with its pid (and pgid — same
-   * value because we spawn with `detached: true`). Used by silvercode's
-   * process supervisor to record children in a per-vault JSONL registry so
-   * that orphans from a hard-crashed silvercode can be reaped on the next
-   * launch. Best-effort: throws inside this callback are swallowed and
-   * surfaced as a debug log only — we will not let supervisor bookkeeping
-   * compromise spawn.
-   */
-  onSpawn?: (info: { pid: number; pgid: number }) => void
-  /**
-   * Fires once when the child exits (either clean or signalled). Pairs with
-   * `onSpawn` so supervisors can decrement counts / clear per-child state.
-   */
-  onExit?: (info: { pid: number; code: number | null; signal: NodeJS.Signals | null }) => void
 }
 
 function buildArgs(opts: SpawnClaudeOptions, mcpConfigPath: string | null): string[] {
@@ -215,22 +200,9 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
 
   dSpawn("spawned pid=%d cmd=%s %o cwd=%s", proc.pid, binary, args, opts.cwd ?? process.cwd())
 
-  // Notify the supervisor (silvercode-side) that a new child is alive. We
-  // pass pgid === pid because the spawn used `detached: true`, which makes
-  // the child its own process-group leader. Wrap in try/catch — supervisor
-  // bookkeeping is opportunistic; a failure here must never compromise
-  // spawn.
-  if (opts.onSpawn && proc.pid !== undefined) {
-    try {
-      opts.onSpawn({ pid: proc.pid, pgid: proc.pid })
-    } catch (err) {
-      dSpawn("onSpawn callback threw: %s", (err as Error).message)
-    }
-  }
-
   const parser = createStreamJsonParser((event: AgentEvent) => {
     if (event.kind === "session-init") sessionId = event.sessionId
-    dEvent("event kind=%s session=%s", event.kind, event.sessionId)
+    dEvent("event kind=%s session=%s", event.kind, "sessionId" in event ? event.sessionId : "-")
     bus.emit("event", event)
   })
   const splitter = createLineSplitter((line) => {
@@ -267,13 +239,6 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
     closed = true
     splitter.flush()
     if (cleanupMcpConfig) cleanupMcpConfig()
-    if (opts.onExit && proc.pid !== undefined) {
-      try {
-        opts.onExit({ pid: proc.pid, code, signal })
-      } catch (err) {
-        dSpawn("onExit callback threw: %s", (err as Error).message)
-      }
-    }
     bus.emit("event", {
       kind: "session-lifecycle",
       sessionId,
