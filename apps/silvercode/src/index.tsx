@@ -58,6 +58,10 @@ function buildProgram(): Command {
       "--account <name>",
       "Anthropic account name — reads creds from ~/.km/accounts/<name>/ via CLAUDE_CONFIG_DIR (v1.1 multi-account)",
     )
+    .option(
+      "--pane-headers",
+      "render a Zellij-style header strip per pane (title + add/minimize/close buttons). Default off — preserves the v1 chrome-minimal layout.",
+    )
     .action(async (opts: Record<string, unknown>) => {
       const cwd = String(opts.cwd ?? process.cwd())
       const account = typeof opts.account === "string" && opts.account.length > 0 ? opts.account : undefined
@@ -151,6 +155,7 @@ function buildProgram(): Command {
           track={opts.track === "sdk" || opts.track === "codex" || opts.track === "claude" ? opts.track : "claude"}
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
+          paneHeaders={opts.paneHeaders === true}
         />,
         // handleTabCycling: false so Shift+Tab reaches our useInput for the
         // permission-mode cycle binding (Claude Code convention). Silvercode

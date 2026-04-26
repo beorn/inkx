@@ -111,6 +111,14 @@ export type AppProps = {
    */
   account?: string
   /**
+   * v2 opt-in chrome (km-silvercode.pane-headers). When true, every
+   * pane gets a Zellij-style 1-row header strip with title + drag /
+   * split / minimize / close buttons. Default false preserves v1's
+   * chrome-minimal contract (km-silvercode.pane-management). Wired to
+   * `--pane-headers` in `index.tsx`.
+   */
+  paneHeaders?: boolean
+  /**
    * Test-only: inject a fake session factory so visual tests can drive the
    * full <App/> via ScriptedFakeSession without spawning real subprocesses.
    * Production callers never set this — the controller uses its default
@@ -283,6 +291,60 @@ export function App(props: AppProps): React.ReactElement {
     },
     [controller, focusedSessionId, props.cwd],
   )
+
+  // Pane close — extracted from the Ctrl+W x chord handler so the
+  // PaneHeader's `×` button shares the same code path. Closes the named
+  // pane (not necessarily the focused one) when there's more than one;
+  // single-pane close stays a no-op for safety (matches the chord). The
+  // controller has no per-session close API, so we mirror what Ctrl+W x
+  // does: SDK-level close + drop the handle locally + advance focus.
+  const closePaneById = useCallback(
+    (id: string): void => {
+      const handle = sessions.find((s) => s.id === id)
+      if (!handle) return
+      if (sessions.length <= 1) return
+      handle.session.close()
+      handle.unsubscribe()
+      // Advance focus to the next session in left-to-right reading order
+      // so the user keeps a sensible focus after closing.
+      const idx = sessions.findIndex((s) => s.id === id)
+      const next = sessions[(idx + 1) % sessions.length]
+      if (next && next.id !== id) controller.focus(next.id)
+    },
+    [controller, sessions],
+  )
+
+  // Header-button split: spawn a new session as a row-split right-of the
+  // named pane. Same effect as splitFocusedPane("row") but parameterised
+  // by the pane that owned the click — the user might click `+` on a
+  // non-focused pane.
+  const splitPaneRightById = useCallback(
+    (id: string): void => {
+      void controller.spawnSession().then((handle) => {
+        setPaneTree((prev) => {
+          const next = splitLeaf(prev, id, handle.id, "row")
+          savePanes(props.cwd, next)
+          return next
+        })
+        return undefined
+      })
+    },
+    [controller, props.cwd],
+  )
+
+  // Per-pane minimize state. Keyed by session id — when the pane closes
+  // the entry leaks until reconcile drops it (cheap; we never have many
+  // panes). Toggle is idempotent: click `_` to minimize, click `□` to
+  // restore. PaneGrid renders only the header strip when minimized.
+  const [minimizedPaneIds, setMinimizedPaneIds] = useState<ReadonlySet<string>>(() => new Set())
+  const toggleMinimizePane = useCallback((id: string): void => {
+    setMinimizedPaneIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
 
   // Queue buffer for the currently-focused session. Bound directly to a
   // silvery TextArea in the queue region; edits flow back to the
@@ -820,6 +882,11 @@ export function App(props: AppProps): React.ReactElement {
               onFocusSession={(id) => controller.focus(id)}
               onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
               onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+              paneHeaders={props.paneHeaders === true}
+              onSplitRightPane={splitPaneRightById}
+              onClosePane={closePaneById}
+              onToggleMinimizePane={toggleMinimizePane}
+              minimizedPaneIds={minimizedPaneIds}
             />
 
             {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}

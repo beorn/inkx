@@ -55,6 +55,7 @@ import {
   setSplitWeight,
   swapLeaves,
 } from "../pane-layout.ts"
+import { PaneHeader } from "./PaneHeader.tsx"
 import { SessionCard } from "./SessionCard.tsx"
 
 /** Width of a single divider column / row in cells. */
@@ -84,6 +85,23 @@ export type PaneGridProps = {
   onFocusSession: (id: string) => void
   onApprovePermission: (sessionId: string, requestId: string) => void
   onDenyPermission: (sessionId: string, requestId: string) => void
+  /**
+   * v2 opt-in: render a 1-row header strip above each pane (Zellij-
+   * style). Default false preserves the v1 chrome-minimal contract from
+   * km-silvercode.pane-management. When true, App.tsx supplies the
+   * header callbacks below; when false they're ignored. See bead
+   * km-silvercode.pane-headers.
+   */
+  paneHeaders?: boolean
+  /** v2 only: spawn a new session split-right of the named pane. */
+  onSplitRightPane?: (sessionId: string) => void
+  /** v2 only: close the named pane. */
+  onClosePane?: (sessionId: string) => void
+  /** v2 only: toggle minimize state for the named pane. */
+  onToggleMinimizePane?: (sessionId: string) => void
+  /** v2 only: which pane ids are currently minimized. When a pane is
+   * minimized its body is hidden — only the header strip renders. */
+  minimizedPaneIds?: ReadonlySet<string>
 }
 
 /**
@@ -130,7 +148,20 @@ type DragState = ResizeDragState | MoveDragState
 type LeafRect = { x: number; y: number; w: number; h: number }
 
 export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneGrid(props, ref): React.ReactElement {
-  const { sessions, focusedSessionId, zoomedPaneId, cwd, onFocusSession, tree, onTreeChange } = props
+  const {
+    sessions,
+    focusedSessionId,
+    zoomedPaneId,
+    cwd,
+    onFocusSession,
+    tree,
+    onTreeChange,
+    paneHeaders = false,
+    onSplitRightPane,
+    onClosePane,
+    onToggleMinimizePane,
+    minimizedPaneIds,
+  } = props
 
   const dragRef = useRef<DragState | null>(null)
   const [dragVersion, setDragVersion] = useState(0)
@@ -307,6 +338,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       const isSourceLeaf = moveDrag?.sourceId === handle.id
       const isTargetLeaf = moveDrag?.targetId === handle.id
       const dropEdge = isTargetLeaf ? (moveDrag?.edge ?? null) : null
+      const isMinimized = minimizedPaneIds?.has(handle.id) ?? false
       return (
         <LeafContainer
           handle={handle}
@@ -318,10 +350,28 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onApprove={(rid) => props.onApprovePermission(handle.id, rid)}
           onDeny={(rid) => props.onDenyPermission(handle.id, rid)}
           onGrabMouseDown={(x, y) => handleGrabMouseDown(handle.id, x, y)}
+          showHeader={paneHeaders}
+          isMinimized={isMinimized}
+          onSplitRight={onSplitRightPane ? () => onSplitRightPane(handle.id) : undefined}
+          onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
+          onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
         />
       )
     },
-    [sessionMap, focusedSessionId, onFocusSession, props, moveDrag, reportLeafRect, handleGrabMouseDown],
+    [
+      sessionMap,
+      focusedSessionId,
+      onFocusSession,
+      props,
+      moveDrag,
+      reportLeafRect,
+      handleGrabMouseDown,
+      paneHeaders,
+      minimizedPaneIds,
+      onSplitRightPane,
+      onClosePane,
+      onToggleMinimizePane,
+    ],
   )
 
   // dragVersion participates in dependency arrays of memoized callbacks
@@ -394,6 +444,11 @@ function LeafContainer({
   onApprove,
   onDeny,
   onGrabMouseDown,
+  showHeader,
+  isMinimized,
+  onSplitRight,
+  onClose,
+  onToggleMinimize,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -404,6 +459,16 @@ function LeafContainer({
   onApprove: (rid: string) => void
   onDeny: (rid: string) => void
   onGrabMouseDown: (x: number, y: number) => void
+  /** Render PaneHeader strip above SessionCard (v2 opt-in). */
+  showHeader: boolean
+  /** When minimized + showHeader, hide the SessionCard so only the
+   * header strip is visible. flexGrow stays at 1 so the surrounding
+   * split layout still allocates space — the empty body just collapses
+   * to one row plus the header. */
+  isMinimized: boolean
+  onSplitRight?: () => void
+  onClose?: () => void
+  onToggleMinimize?: () => void
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -412,16 +477,29 @@ function LeafContainer({
   if (rect.width > 0 && rect.height > 0) {
     onReportRect(handle.id, { x: rect.x, y: rect.y, w: rect.width, h: rect.height })
   }
+  const sessionLabel = handle.session.sessionId ?? handle.id
   return (
     <Box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0} position="relative">
-      <SessionCard
-        handle={handle}
-        isFocused={isFocused}
-        isDimmed={isSourceLeaf}
-        onFocus={onFocus}
-        onApprove={onApprove}
-        onDeny={onDeny}
-      />
+      {showHeader && (
+        <PaneHeader
+          sessionId={typeof sessionLabel === "string" ? sessionLabel : handle.id}
+          isFocused={isFocused}
+          isMinimized={isMinimized}
+          onSplitRight={onSplitRight ?? (() => {})}
+          onClose={onClose ?? (() => {})}
+          onToggleMinimize={onToggleMinimize ?? (() => {})}
+        />
+      )}
+      {!isMinimized && (
+        <SessionCard
+          handle={handle}
+          isFocused={isFocused}
+          isDimmed={isSourceLeaf}
+          onFocus={onFocus}
+          onApprove={onApprove}
+          onDeny={onDeny}
+        />
+      )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.
           Always visible (per design constraint: hover detection
           unreliable, take the practical path). */}
