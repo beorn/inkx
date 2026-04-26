@@ -111,6 +111,32 @@ export type AcpConnectOpts = {
   silentStderr?: boolean
   /** Skip the initial `newSession` call. Caller drives the session lifecycle. */
   skipNewSession?: boolean
+  /**
+   * Resume an existing session instead of creating a new one. When set,
+   * `agent.loadSession({ sessionId, cwd, mcpServers })` is called in place
+   * of `agent.newSession`. The agent re-emits prior `SessionUpdate`
+   * notifications during load so subscribers rebuild UI state from the
+   * stream. Throws `AcpResumeUnsupportedError` if the agent doesn't
+   * advertise `loadSession: true` in its initialize response.
+   */
+  resume?: { sessionId: string }
+}
+
+/**
+ * Thrown by `connectAcp` when `opts.resume` is set but the negotiated
+ * agent doesn't advertise `loadSession` capability. Carries the actual
+ * `agentCapabilities` so callers can offer a meaningful fallback.
+ */
+export class AcpResumeUnsupportedError extends Error {
+  readonly agentCapabilities: acp.AgentCapabilities
+  constructor(agentCapabilities: acp.AgentCapabilities) {
+    super(
+      "ACP agent does not advertise loadSession capability — cannot resume. " +
+        `Capabilities: ${JSON.stringify(agentCapabilities)}`,
+    )
+    this.name = "AcpResumeUnsupportedError"
+    this.agentCapabilities = agentCapabilities
+  }
 }
 
 /**
@@ -136,6 +162,14 @@ export interface AcpAgentSession extends AgentSession {
   cancel(): Promise<void>
   /** Authenticate with the given method id (subscription OAuth, env-var, etc.). */
   authenticate(methodId: string): Promise<acp.AuthenticateResponse | void>
+  /**
+   * Resume an existing session within this open connection. The agent
+   * re-emits prior SessionUpdate notifications during load. Throws
+   * `AcpResumeUnsupportedError` if the agent didn't advertise loadSession
+   * capability at initialize time. Replaces this handle's `sessionId`
+   * with the resumed one.
+   */
+  loadSession(sessionId: string, opts?: { cwd?: string; mcpServers?: acp.McpServer[] }): Promise<acp.LoadSessionResponse>
 }
 
 // ---------------------------------------------------------------------------
@@ -187,7 +221,20 @@ const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; des
   },
 }
 
-/** Resolve a registry id and connect. Convenience over `connectAcp`. */
+/**
+ * Resolve a registry id and connect. Convenience over `connectAcp`.
+ *
+ * Resume: pass `opts.resume = { sessionId }` to call `loadSession` instead
+ * of `newSession`. Throws `AcpResumeUnsupportedError` if the resolved agent
+ * doesn't advertise `loadSession: true`. Per agent (verified 2026-04-26):
+ *
+ *   codex   — loadSession: true
+ *   pi-acp  — loadSession: true
+ *   gemini  — partial (advertises true; replay coverage unverified)
+ *   claude-code — loadSession: false (until @km/claude-acp ships JSONL replay,
+ *                 tracked km-silvercode.acp-claude-acp-loadsession)
+ *   github-copilot-cli — unverified
+ */
 export function connectAcpRegistry(
   scope: Scope,
   registryId: AcpRegistryId,
@@ -406,15 +453,35 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   // Open a session unless caller wants to drive that explicitly.
   if (!opts.skipNewSession) {
     const sessionCwd = opts.sessionCwd ?? cwd
-    const newSessionResult = await agent.newSession({
-      cwd: sessionCwd,
-      mcpServers: opts.mcpServers ?? [],
-    })
-    sessionId = newSessionResult.sessionId as SessionId
-    dSpawn("newSession ok sessionId=%s", sessionId)
+    if (opts.resume) {
+      // Resume path — call loadSession instead of newSession. The agent
+      // re-emits prior SessionUpdates during load via the existing
+      // sessionUpdate notification path, so subscribers rebuild UI state
+      // from the stream automatically.
+      if (init.agentCapabilities?.loadSession !== true) {
+        throw new AcpResumeUnsupportedError(init.agentCapabilities ?? {})
+      }
+      sessionId = opts.resume.sessionId as SessionId
+      dSpawn("loadSession sessionId=%s cwd=%s", sessionId, sessionCwd)
+      await agent.loadSession({
+        sessionId: opts.resume.sessionId as acp.SessionId,
+        cwd: sessionCwd,
+        mcpServers: opts.mcpServers ?? [],
+      })
+      dSpawn("loadSession ok sessionId=%s", sessionId)
+    } else {
+      const newSessionResult = await agent.newSession({
+        cwd: sessionCwd,
+        mcpServers: opts.mcpServers ?? [],
+      })
+      sessionId = newSessionResult.sessionId as SessionId
+      dSpawn("newSession ok sessionId=%s", sessionId)
+    }
     // Surface a legacy session-init so existing session-store consumers
     // populate sessionId / cwd from day one. ACP doesn't carry the rich
-    // metadata Claude's stream-json does, so most fields are empty.
+    // metadata Claude's stream-json does, so most fields are empty. We emit
+    // this AFTER loadSession returns so that any replayed SessionUpdate
+    // notifications fired during the load arrive in order with init first.
     emit({
       kind: "session-init",
       sessionId,
@@ -503,6 +570,41 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 
     async authenticate(methodId: string): Promise<acp.AuthenticateResponse | void> {
       return agent.authenticate({ methodId })
+    },
+
+    async loadSession(
+      newSessionId: string,
+      loadOpts?: { cwd?: string; mcpServers?: acp.McpServer[] },
+    ): Promise<acp.LoadSessionResponse> {
+      if (init.agentCapabilities?.loadSession !== true) {
+        throw new AcpResumeUnsupportedError(init.agentCapabilities ?? {})
+      }
+      const resolvedCwd = loadOpts?.cwd ?? opts.sessionCwd ?? cwd
+      sessionId = newSessionId as SessionId
+      const result = await agent.loadSession({
+        sessionId: newSessionId as acp.SessionId,
+        cwd: resolvedCwd,
+        mcpServers: loadOpts?.mcpServers ?? opts.mcpServers ?? [],
+      })
+      // Surface a legacy session-init for any consumers that materialize state
+      // from it. The replayed SessionUpdate notifications fired by the agent
+      // during load will continue to arrive on the existing notification path.
+      emit({
+        kind: "session-init",
+        sessionId,
+        cwd: resolvedCwd,
+        model: "",
+        mode: "",
+        tools: [],
+        mcp_servers: (loadOpts?.mcpServers ?? opts.mcpServers ?? []).map((s) => s.name),
+        slashCommands: [],
+        skills: [],
+        plugins: [],
+        claudeCodeVersion: "",
+        apiKeySource: "",
+        ts: Date.now(),
+      })
+      return result
     },
   }
 

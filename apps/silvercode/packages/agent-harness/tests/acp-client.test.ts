@@ -446,4 +446,136 @@ describe("connectAcp", () => {
     expect(events.some((e) => e.kind === "permission-request")).toBe(true)
     expect(events.some((e) => e.kind === "error")).toBe(true)
   })
+
+  // ---------------------------------------------------------------------------
+  // Resume — `opts.resume.sessionId` calls loadSession, capability-gated.
+  // ---------------------------------------------------------------------------
+
+  test("opts.resume calls loadSession; sessionId reflects resumed id", async () => {
+    let loadCallCount = 0
+    let newCallCount = 0
+    let lastLoadParams: acp.LoadSessionRequest | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return {
+            protocolVersion: 1,
+            agentCapabilities: { loadSession: true },
+            authMethods: [],
+          }
+        },
+        async newSession() {
+          newCallCount++
+          return { sessionId: "newSess" }
+        },
+        async loadSession(params) {
+          loadCallCount++
+          lastLoadParams = params
+          return {}
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-resume")
+    const session = await connectAcp(scope, {
+      command: "fake-acp",
+      cwd: "/tmp",
+      sessionCwd: "/tmp/work",
+      resume: { sessionId: "prior-session-123" },
+    })
+
+    expect(loadCallCount).toBe(1)
+    expect(newCallCount).toBe(0)
+    expect(session.sessionId).toBe("prior-session-123")
+    expect(lastLoadParams?.sessionId).toBe("prior-session-123")
+    expect(lastLoadParams?.cwd).toBe("/tmp/work")
+    expect(lastLoadParams?.mcpServers).toEqual([])
+  })
+
+  test("opts.resume throws AcpResumeUnsupportedError when loadSession capability is false", async () => {
+    const { AcpResumeUnsupportedError } = await import("../src/acp-client.ts")
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return {
+            protocolVersion: 1,
+            agentCapabilities: { loadSession: false },
+            authMethods: [],
+          }
+        },
+        async newSession() {
+          return { sessionId: "newSess" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-resume-unsupported")
+    await expect(
+      connectAcp(scope, {
+        command: "fake-acp",
+        cwd: "/tmp",
+        resume: { sessionId: "x" },
+      }),
+    ).rejects.toBeInstanceOf(AcpResumeUnsupportedError)
+  })
+
+  test("session.loadSession() within an open connection swaps the active sessionId", async () => {
+    let loadCallCount = 0
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return {
+            protocolVersion: 1,
+            agentCapabilities: { loadSession: true },
+            authMethods: [],
+          }
+        },
+        async newSession() {
+          return { sessionId: "originalSess" }
+        },
+        async loadSession() {
+          loadCallCount++
+          return {}
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-loadsession-method")
+    const session = await connectAcp(scope, { command: "fake-acp", cwd: "/tmp" })
+    expect(session.sessionId).toBe("originalSess")
+
+    await session.loadSession("resumed-sess")
+    expect(loadCallCount).toBe(1)
+    expect(session.sessionId).toBe("resumed-sess")
+  })
 })

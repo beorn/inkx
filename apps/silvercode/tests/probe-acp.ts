@@ -6,12 +6,13 @@
  * for ACP wire connectivity per agent.
  *
  * Usage:
- *   bun apps/silvercode/tests/probe-acp.ts <registryId> [prompt]
+ *   bun apps/silvercode/tests/probe-acp.ts <registryId> [prompt] [--resume <sessionId>]
  *
  * Examples:
  *   bun apps/silvercode/tests/probe-acp.ts claude-code 'list files in cwd'
  *   bun apps/silvercode/tests/probe-acp.ts gemini 'hello'
  *   bun apps/silvercode/tests/probe-acp.ts codex 'write hello.ts'
+ *   bun apps/silvercode/tests/probe-acp.ts codex 'continue' --resume <sessionId>
  *
  * Permissions: auto-approves the first option ('selected' outcome) so the
  * probe doesn't block on UI. fs/read_text_file + fs/write_text_file are
@@ -32,7 +33,7 @@
  *   pi-acp:      pi config
  */
 
-import { connectAcp, connectAcpRegistry, type AcpRegistryId } from "@km/agent-harness"
+import { AcpResumeUnsupportedError, connectAcp, connectAcpRegistry, type AcpRegistryId } from "@km/agent-harness"
 import { createScope } from "@silvery/scope"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
@@ -60,14 +61,28 @@ function usage(msg?: string): never {
   process.exit(1)
 }
 
-const registryId = process.argv[2] as AcpRegistryId | undefined
-const userPrompt = process.argv[3] ?? "Say hello in one short sentence."
+const args = process.argv.slice(2)
+const positional: string[] = []
+let resumeSessionId: string | undefined
+for (let i = 0; i < args.length; i++) {
+  const a = args[i]
+  if (a === "--resume") {
+    resumeSessionId = args[++i]
+    if (!resumeSessionId) usage("--resume requires a sessionId argument")
+  } else if (a !== undefined) {
+    positional.push(a)
+  }
+}
+
+const registryId = positional[0] as AcpRegistryId | undefined
+const userPrompt = positional[1] ?? "Say hello in one short sentence."
 
 if (!registryId) usage("missing <registryId>")
 if (!REGISTRY_IDS.includes(registryId)) usage(`unknown registryId: ${registryId}`)
 
 console.log(`[probe] registryId=${registryId}`)
 console.log(`[probe] prompt=${JSON.stringify(userPrompt)}`)
+if (resumeSessionId) console.log(`[probe] resume=${resumeSessionId}`)
 
 await using scope = createScope("probe-acp")
 
@@ -79,6 +94,7 @@ let session
 const baseOpts = {
   cwd: process.cwd(),
   sessionCwd: process.cwd(),
+  ...(resumeSessionId ? { resume: { sessionId: resumeSessionId } } : {}),
   clientCapabilities: {
     fs: { readTextFile: true, writeTextFile: true },
   },
@@ -129,6 +145,11 @@ try {
   }
 } catch (err) {
   const e = err as Error
+  if (e instanceof AcpResumeUnsupportedError) {
+    console.error(`[probe] connect failed: ${e.message}`)
+    console.error(`[probe] hint: agent '${registryId}' does not support session/load (loadSession capability false). Resume is not supported here.`)
+    process.exit(4)
+  }
   console.error(`[probe] connect failed: ${e.message}`)
   if (e.message.includes("ENOENT") || e.message.includes("not found")) {
     console.error(`[probe] hint: the spawn command for '${registryId}' is not on PATH. Check the install instructions for that agent.`)
@@ -145,6 +166,7 @@ try {
 }
 
 console.log(`[probe] connected. protocolVersion=${session.protocolVersion}`)
+console.log(`[probe] sessionId=${session.sessionId}`)
 console.log(`[probe] capabilities=${JSON.stringify(session.capabilities)}`)
 console.log(`[probe] authMethods=${session.authMethods.map((m) => m.id).join(", ") || "(none)"}`)
 
