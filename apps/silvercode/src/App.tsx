@@ -63,6 +63,39 @@ function injectThinkingKeyword(text: string, thinking: string): string {
   return `${kw}\n\n${text}`
 }
 
+/**
+ * Format the resume hint shown on quit. Pure function so tests can pin
+ * the output shape without driving the silvery teardown path. See the
+ * useEffect that registers `printHintsNow` for invocation rules and the
+ * bead `km-silvercode.resume-hint-not-shown` for context.
+ *
+ * Three cases:
+ *   - One or more real session ids → invite the user to `--resume <sid>`.
+ *   - One or more sessions exist but ALL are still "pending" (Claude
+ *     never reached session-init) → explain why no resume is on offer.
+ *   - Empty list (no sessions at all) → bare confirmation that we exited.
+ *
+ * The leading + trailing blank lines push the hint into the user's
+ * scrollback after silvery's terminal teardown — the prompt that follows
+ * lands on its own row instead of butting against our last line.
+ */
+export function formatResumeHint(sessionIds: ReadonlyArray<string>): string {
+  const realIds = sessionIds.filter((sid) => sid !== "pending")
+  const lines: string[] = ["\n"]
+  if (realIds.length > 0) {
+    lines.push(`Resume ${realIds.length === 1 ? "this session" : "one of these sessions"} with:\n`)
+    for (const sid of realIds) lines.push(`  silvercode --resume ${sid}\n`)
+  } else if (sessionIds.length > 0) {
+    lines.push(
+      "silvercode: no resumable sessions — Claude didn't reach session-init. Send a turn before quitting to enable --resume.\n",
+    )
+  } else {
+    lines.push("silvercode: exited.\n")
+  }
+  lines.push("\n")
+  return lines.join("")
+}
+
 export type AppProps = {
   cwd: string
   model?: string
@@ -621,45 +654,73 @@ export function App(props: AppProps): React.ReactElement {
   const silveryExit = useExit()
 
   // Resumable session ids, kept fresh on every session change. We read from
-  // a ref (not props/state) because the `process.on('exit')` handler below
-  // fires during Node's final teardown, long after React has torn down — we
-  // need stale-free data at that moment without depending on closures.
+  // a ref (not props/state) because the resume-hint handler below fires
+  // during silvery teardown — long after React has torn down — and we need
+  // stale-free data at that moment without depending on closures.
+  //
+  // We keep ALL session IDs (including the placeholder `"pending"` value
+  // spawn.ts sets before the first session-init event). The renderer below
+  // filters them at print time so the user sees an explanation when only
+  // pending sessions exist (vs. silent "nothing happened").
   const resumeIdsRef = useRef<string[]>([])
   useEffect(() => {
     resumeIdsRef.current = sessions
       .map((h) => h.session.sessionId)
-      .filter((sid): sid is string => typeof sid === "string" && sid !== "pending")
+      .filter((sid): sid is string => typeof sid === "string")
   }, [sessions])
 
-  // Print the resume hint via `process.on('exit')` — the very last thing
-  // Node runs before the process dies. This places the write AFTER silvery's
-  // teardown (which emits 3J/2J to wipe scrollback), AFTER any queued stderr
-  // drain, so the hint survives in the user's real scrollback.
+  // Print the resume hint when the app is tearing down so the user can
+  // copy `silvercode --resume <sid>` from their scrollback.
   //
-  // Previously printed inline after silveryExit(), but silvery's teardown
-  // was landing scrollback-wiping sequences after our write, erasing the
-  // hint. `term.signals.on('exit', …)` is synchronous and guaranteed last
-  // (Signals runs at topologically-sorted exit ordering), so nothing can
-  // overwrite us.
+  // Plumbing details:
   //
-  // Uses silvery's `term.signals.on` rather than raw `process.on("exit",
-  // …)` — check-no-raw-lifecycle.sh gates the latter. The returned
-  // Disposable is NOT unregistered on React unmount: silvery's exit path
-  // unmounts React BEFORE the process dies (via `useExit` → `useDispose`),
-  // so if we disposed on unmount the listener would be gone before the
-  // exit event runs. Term's signal registry is process-lifetime; it's
-  // reaped when the process dies.
+  //   - `term.signals.on("exit", …)` registers an `onDispose: true` handler
+  //     (the default). It fires synchronously inside `term[Symbol.dispose]`
+  //     during silvery's `cleanup()` — AFTER the writeSync block has emitted
+  //     `\x1b[?1049l` to leave the alt screen (so writes here land in the
+  //     user's real scrollback) and AFTER `process.on("exit")` would fire
+  //     (signals also installs that, but the handler is unregistered before
+  //     Node's exit event runs, so we don't double-print).
+  //   - We register the SAME handler under three signals (`exit`,
+  //     `SIGINT`, `SIGTERM`) with distinct `name`s. Reason: a SIGINT path
+  //     ends with the term being disposed before "exit" can fire on
+  //     process; signals.dispose() runs every onDispose handler exactly
+  //     once across all signals (one global topological pass), so the user
+  //     gets one print even when both paths trigger.
+  //   - Output goes to **stdout**, not stderr. Stderr is commonly
+  //     redirected (`silvercode 2>/dev/null`) and several CI / wrapper
+  //     setups eat stderr after a non-zero exit; stdout survives those.
+  //   - We always write SOMETHING (resume IDs or a fallback message) so
+  //     the user gets a clear "yes, the quit happened" signal even when
+  //     no session ever produced a real session id (e.g. quitting before
+  //     Claude's first session-init event arrives).
+  //   - The returned `SignalUnregister` is NOT unregistered on React
+  //     unmount: silvery's exit path unmounts React BEFORE the term is
+  //     disposed (via `useExit` → `useDispose`), so disposing the listener
+  //     on unmount would lose it before signals.dispose() runs. Term's
+  //     signal registry is process-lifetime; it's reaped when the process
+  //     dies.
+  //
+  // Bead: km-silvercode.resume-hint-not-shown.
   const term = useTerm()
   useEffect(() => {
+    let printed = false
     function printHintsNow(): void {
-      const hints = resumeIdsRef.current
-      if (hints.length === 0) return
-      const lines = hints.map((sid) => `  silvercode --resume ${sid}`)
-      process.stderr.write(
-        `\nResume ${hints.length === 1 ? "this session" : "one of these sessions"} with:\n${lines.join("\n")}\n\n`,
-      )
+      if (printed) return
+      printed = true
+      try {
+        process.stdout.write(formatResumeHint(resumeIdsRef.current))
+      } catch {
+        // stdout may be torn down on a hard crash path; best-effort.
+      }
     }
-    term.signals.on("exit", printHintsNow)
+    // Register under exit / SIGINT / SIGTERM with distinct names. A single
+    // signals.dispose() pass runs each onDispose handler once globally;
+    // the `printed` guard above belts-and-suspenders against any future
+    // change that could call us twice.
+    term.signals.on("exit", printHintsNow, { name: "silvercode-resume-hint-exit" })
+    term.signals.on("SIGINT", printHintsNow, { name: "silvercode-resume-hint-sigint" })
+    term.signals.on("SIGTERM", printHintsNow, { name: "silvercode-resume-hint-sigterm" })
     // No cleanup — see comment above.
   }, [term])
 
