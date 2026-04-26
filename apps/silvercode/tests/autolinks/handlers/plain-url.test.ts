@@ -34,7 +34,28 @@ describe("plain URL → handler registry", () => {
     expect(d.payload.source).toBe("<virtual:plain-url>")
   })
 
-  test("the virtual autolink resolves through the https handler to a webcard preview", () => {
+  test("the virtual autolink resolves through the https handler to a generic webcard preview (unknown host)", () => {
+    // Use example.com so we hit the generic fallback (not the GitHub
+    // per-host parser, which is covered by host-parsers.test.ts).
+    clearPreviewCache()
+    const detections = detectAutolinks("see https://example.com/foo/bar", [])
+    const autolinks = detections.filter((d) => d.kind === "autolink")
+    expect(autolinks).toHaveLength(1)
+    const d = autolinks[0]!
+    const result = resolvePreview({
+      preview: d.payload.preview ?? "https",
+      resolvesTo: d.payload.resolves_to ?? "",
+      cacheKey: d.payload.cache_key ?? d.match,
+    })
+    expect(result.kind).toBe("ok")
+    if (result.kind !== "ok") return
+    expect(result.format).toBe("text")
+    expect(result.body).toContain("https://example.com/foo/bar")
+    expect(result.body).toContain("example.com")
+    expect(result.body).toMatch(/webcard fetch not yet implemented/i)
+  })
+
+  test("the virtual autolink for a GitHub repo URL resolves through the host parser", () => {
     clearPreviewCache()
     const detections = detectAutolinks("see https://github.com/foo/bar", [])
     const autolinks = detections.filter((d) => d.kind === "autolink")
@@ -48,9 +69,7 @@ describe("plain URL → handler registry", () => {
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
     expect(result.format).toBe("text")
-    expect(result.body).toContain("https://github.com/foo/bar")
-    expect(result.body).toContain("github.com")
-    expect(result.body).toMatch(/webcard fetch not yet implemented/i)
+    expect(result.body).toBe("GitHub repo: foo/bar")
   })
 
   test("a configured rule that matches the URL takes priority over the virtual detection", () => {
@@ -105,12 +124,14 @@ describe("plain URL → handler registry", () => {
     expect(url?.payload.resolves_to).toBe("https://github.com/foo/bar")
   })
 
-  test("end-to-end: virtual detection → handler registry → webcard popover body", () => {
+  test("end-to-end: virtual detection → handler registry → generic webcard popover body (unknown host)", () => {
     // The pinned-limitation test above documented the v1 gap. This is the
     // end-to-end version that exercises the full chain: scan text, merge,
     // resolve through resolvePreview, expect handler-registry output.
+    // Use example.com to land on the generic fallback (host-parsers.test.ts
+    // covers GitHub-specific output).
     clearPreviewCache()
-    const text = "open https://github.com/foo/bar to inspect"
+    const text = "open https://example.com/foo/bar to inspect"
     const builtins = detectReferences(text)
     const autolinks = detectAutolinks(text, [])
     const merged = mergeDetections(builtins, autolinks)
@@ -130,7 +151,7 @@ describe("plain URL → handler registry", () => {
     })
     expect(result.kind).toBe("ok")
     if (result.kind !== "ok") return
-    expect(result.body).toContain("https://github.com/foo/bar")
+    expect(result.body).toContain("https://example.com/foo/bar")
     expect(result.body).toMatch(/webcard fetch not yet implemented/i)
     // The legacy popover used the line "Fetch on-demand: WebFetch resolves
     // on expand." — make sure it's gone.

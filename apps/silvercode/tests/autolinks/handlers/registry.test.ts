@@ -37,15 +37,26 @@ describe("handler registry", () => {
     expect(outcome.watchPath).toBeUndefined()
   })
 
-  test("resolveURI dispatches https URI to the https handler (webcard placeholder)", () => {
+  test("resolveURI dispatches https URI to the https handler (generic webcard placeholder)", () => {
+    // Use example.com — no per-host parser matches, so we land on the
+    // generic webcard fallback. github.com is now intercepted by the
+    // GitHub host parser (see host-parsers.test.ts).
+    const outcome = resolveURI(new URL("https://example.com/foo/bar"), CTX)
+    expect(outcome.result.kind).toBe("ok")
+    if (outcome.result.kind !== "ok") return
+    expect(outcome.result.format).toBe("text")
+    expect(outcome.result.body).toContain("https://example.com/foo/bar")
+    expect(outcome.result.body).toContain("example.com")
+    // No fetcher implemented in v1 — placeholder copy.
+    expect(outcome.result.body).toMatch(/webcard fetch not yet implemented/i)
+  })
+
+  test("resolveURI dispatches https://github.com/<owner>/<repo> through the GitHub host parser", () => {
     const outcome = resolveURI(new URL("https://github.com/foo/bar"), CTX)
     expect(outcome.result.kind).toBe("ok")
     if (outcome.result.kind !== "ok") return
     expect(outcome.result.format).toBe("text")
-    expect(outcome.result.body).toContain("https://github.com/foo/bar")
-    expect(outcome.result.body).toContain("github.com")
-    // No fetcher implemented in v1 — placeholder copy.
-    expect(outcome.result.body).toMatch(/webcard fetch not yet implemented/i)
+    expect(outcome.result.body).toBe("GitHub repo: foo/bar")
   })
 
   test("resolveURI dispatches mcp URI to the mcp handler stub", () => {
