@@ -36,6 +36,8 @@ type FakeChild = EventEmitter & {
   stdout: Readable
   stderr: Readable
   pid: number
+  exitCode: number | null
+  signalCode: NodeJS.Signals | null
   kill: (signal?: NodeJS.Signals | number) => boolean
   killed: boolean
 }
@@ -54,6 +56,8 @@ function createFakeChild(): FakeChild {
   const bus = new EventEmitter() as FakeChild
   bus.pid = FAKE_PID
   bus.killed = false
+  bus.exitCode = null
+  bus.signalCode = null
 
   bus.stdin = new Writable({
     write(_c, _e, cb) {

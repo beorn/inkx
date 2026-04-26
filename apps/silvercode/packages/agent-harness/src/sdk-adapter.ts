@@ -54,6 +54,10 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
   const bus = new EventEmitter()
   let sessionId: SessionId = ("sdk-" + Date.now()) as SessionId
   let closed = false
+  let resolveExit: () => void = () => {}
+  const exitPromise = new Promise<void>((r) => {
+    resolveExit = r
+  })
 
   const injectors = opts.injectors ?? []
   const inputQueue: AgentInput[] = []
@@ -185,6 +189,7 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
         state: "ended",
         ts: Date.now(),
       } satisfies AgentEvent)
+      resolveExit()
     }
   })()
 
@@ -206,16 +211,22 @@ export async function spawnSdk(opts: SpawnSdkOptions = {}): Promise<AgentSession
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    close(): void {
-      // Track 2 runs the SDK in-process; no subprocess to signal. We just
-      // resolve the pending queue iterator with done:true so the SDK's
-      // async generator completes and its internal fibers unwind.
+    close(): Promise<void> {
+      // Track 2 runs the SDK in-process; no subprocess to signal. We resolve
+      // the pending queue iterator with done:true so the SDK's async
+      // generator completes and its internal fibers unwind. The returned
+      // promise settles when the generator's finally block has run.
+      if (closed) return exitPromise
       closed = true
       if (queueResolve) {
         const resolve = queueResolve
         queueResolve = null
         resolve({ value: undefined as unknown as AgentInput, done: true })
       }
+      return exitPromise
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
   }
 

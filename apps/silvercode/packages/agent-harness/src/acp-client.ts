@@ -269,6 +269,9 @@ export interface AcpSpawnedChild {
   readonly stdin: NodeJS.WritableStream | null
   readonly stdout: NodeJS.ReadableStream | null
   readonly stderr: NodeJS.ReadableStream | null
+  /** Liveness fields — `null` while alive, set on exit. Read directly to avoid PID-reuse hazards. */
+  readonly exitCode: number | null
+  readonly signalCode: NodeJS.Signals | null
   kill(signal?: NodeJS.Signals | number): boolean
   on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
   on(event: "error", listener: (err: Error) => void): unknown
@@ -345,9 +348,14 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     }),
   )
 
+  let resolveExit: (() => void) | null = null
+  const exitPromise = new Promise<void>((r) => {
+    resolveExit = r
+  })
   child.on("exit", (code, signal) => {
     exited = true
     dSpawn("child exit code=%s signal=%s", code, signal)
+    resolveExit?.()
   })
   child.on("error", (err) => {
     dSpawn("child error: %s", err.message)
@@ -357,6 +365,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   const bus = new EventEmitter()
   let sessionId: SessionId = "acp-pending" as SessionId
   let closed = false
+  let sentTerm = false
 
   function emit(event: AgentEvent): void {
     // `handoff` lacks `sessionId` — narrow before logging.
@@ -553,14 +562,22 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       return () => bus.off("event", handler)
     },
 
-    close(): void {
-      if (closed) return
+    close(): Promise<void> {
+      if (sentTerm) return exitPromise
+      sentTerm = true
       closed = true
-      try {
-        child.kill("SIGTERM")
-      } catch {
-        /* already gone */
+      const alive = child.exitCode === null && child.signalCode === null
+      if (alive) {
+        try {
+          child.kill("SIGTERM")
+        } catch {
+          /* already gone — exitPromise resolves via the 'exit' listener */
+        }
       }
+      return exitPromise
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
 
     async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {

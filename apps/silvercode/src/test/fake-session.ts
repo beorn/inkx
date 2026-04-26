@@ -99,9 +99,13 @@ export function createFakeSession(opts: CreateFakeSessionOptions = {}): Scripted
       handlers.add(handler)
       return () => handlers.delete(handler)
     },
-    close(): void {
+    close(): Promise<void> {
       closeCount++
       closed = true
+      return Promise.resolve()
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
     emit,
     script(events: ReadonlyArray<AgentEvent>, intervalMs = 10): void {

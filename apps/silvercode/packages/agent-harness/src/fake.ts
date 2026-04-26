@@ -212,13 +212,17 @@ export function createFakeAcpSession(opts: FakeOpts): AgentSession | ManualFakeS
         subscribers.delete(handler)
       }
     },
-    close(): void {
-      if (closed) return
+    close(): Promise<void> {
+      if (closed) return Promise.resolve()
       closed = true
       clearAllTimers()
       pending.length = 0
       // Mirror the real spawn surface: emit nothing here. Tests asserting
       // session-end should script it explicitly.
+      return Promise.resolve()
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
     get closed(): boolean {
       return closed

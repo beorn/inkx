@@ -106,8 +106,14 @@ export type AgentInput =
   | { type: "permission-response"; request_id: string; approved: boolean }
   | { type: "interrupt" }
 
-/** Typed handle returned by spawnClaude / spawnSdk / spawnCodex. */
-export interface AgentSession {
+/**
+ * Typed handle returned by spawnClaude / spawnSdk / spawnCodex.
+ *
+ * Implements `AsyncDisposable` natively — `scope.use(spawnClaude(opts))`
+ * adopts the lifetime; disposal awaits real subprocess exit. No external
+ * `disposable()` / `asyncDisposable()` wrapper at the call site.
+ */
+export interface AgentSession extends AsyncDisposable {
   readonly sessionId: SessionId
   /** Write a user message (already injected, ready for the agent). */
   send(text: string): void
@@ -116,13 +122,14 @@ export interface AgentSession {
   /** Subscribe to events. Returns an unsubscribe function. */
   subscribe(handler: (event: AgentEvent) => void): () => void
   /**
-   * Close the session — sends SIGINT to the child. Claude handles its own
-   * graceful teardown (flush pending events, close its MCP subprocesses),
-   * then exits; its stdio pipes close and our event loop drains.
-   * Synchronous fire-and-forget; listen on 'session-end' for confirmation.
+   * Initiate graceful shutdown. SIGTERM to the whole detached process group;
+   * stdio drained first; SIGKILL fallback at 10s if the child ignores TERM.
+   * The returned promise resolves when the subprocess actually exits (the
+   * `'exit'` event lands). Idempotent — repeat calls return the same promise
+   * without re-issuing signals.
    */
-  close(): void
-  /** True if the subprocess has exited. */
+  close(): Promise<void>
+  /** True once the subprocess has emitted `'exit'`. */
   readonly closed: boolean
 }
 

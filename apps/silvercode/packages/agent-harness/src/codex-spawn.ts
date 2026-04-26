@@ -31,7 +31,12 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
   const bus = new EventEmitter()
   let sessionId: SessionId = ("codex-" + Date.now()) as SessionId
   let closed = false
+  let sentTerm = false
   let proc: ChildProcess
+  let resolveExit: (() => void) | null = null
+  const exitPromise = new Promise<void>((r) => {
+    resolveExit = r
+  })
 
   const binary = opts.binary ?? "codex"
   const args = ["--stream-json", ...(opts.extraArgs ?? [])]
@@ -91,6 +96,7 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
       stopReason: signal ?? (code != null ? `exit-${code}` : undefined),
       ts: Date.now(),
     } satisfies AgentEvent)
+    resolveExit?.()
   })
 
   const injectors = opts.injectors ?? []
@@ -118,15 +124,25 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    close(): void {
-      // Same shape as spawnClaude.close — SIGINT to the child, let it
-      // tear itself down gracefully. Fire-and-forget.
-      if (closed) return
-      try {
-        proc.kill("SIGTERM")
-      } catch {
-        /* already dead */
+    close(): Promise<void> {
+      // Same shape as spawnClaude.close. Idempotent; resolves on real exit.
+      if (sentTerm) return exitPromise
+      sentTerm = true
+      proc.stdin?.destroy()
+      proc.stdout?.destroy()
+      proc.stderr?.destroy()
+      const alive = proc.exitCode === null && proc.signalCode === null
+      if (alive) {
+        try {
+          proc.kill("SIGTERM")
+        } catch {
+          /* already dead — exitPromise resolves via the 'exit' listener */
+        }
       }
+      return exitPromise
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
   }
 

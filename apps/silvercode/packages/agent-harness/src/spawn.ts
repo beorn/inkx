@@ -45,6 +45,56 @@ const dOut = createDebug("agent-harness:stdout")
 const dErr = createDebug("agent-harness:stderr")
 const dEvent = createDebug("agent-harness:event")
 
+/**
+ * Graceful process-group teardown — SIGTERM the pgroup, escalate to SIGKILL
+ * after `fallbackAfterMs` if the child ignores TERM. Fire-and-forget; the
+ * caller observes the actual exit via `proc.on('exit')` (or the exitPromise
+ * the spawn factory returns).
+ *
+ * Negative pid signals the whole detached pgroup in parallel — claude AND
+ * its MCP grandchildren receive the signal at the same tick. The existing
+ * `detached: true` spawn path is the precondition.
+ *
+ * SIGTERM is the conventional programmatic-shutdown signal (`kill <pid>`,
+ * `systemctl stop`, `docker stop` send it). SIGINT means "user interrupted"
+ * and is what the TTY driver synthesizes from Ctrl+C — reserving it for
+ * actual user-interrupts keeps the semantics clean.
+ */
+function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallbackAfterMs: number }): void {
+  try {
+    process.kill(-pid, "SIGTERM")
+  } catch {
+    // ESRCH = group already gone, or a non-POSIX target where -pid is
+    // invalid. Fall back to single-process kill so we still get a
+    // SIGTERM through where possible.
+    try {
+      proc.kill("SIGTERM")
+    } catch {
+      /* already dead — nothing to do */
+    }
+  }
+
+  // Schedule SIGKILL fallback. .unref() so this timer doesn't keep the
+  // event loop alive on its own; the proc 'exit' listener is the real
+  // wait.
+  const sigkillTimer = setTimeout(() => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return
+    try {
+      process.kill(-pid, "SIGKILL")
+    } catch {
+      try {
+        proc.kill("SIGKILL")
+      } catch {
+        /* already dead */
+      }
+    }
+  }, opts.fallbackAfterMs) as unknown as NodeJS.Timeout
+  sigkillTimer.unref?.()
+
+  // Cancel the SIGKILL timer if the child exits cleanly first.
+  proc.once("exit", () => clearTimeout(sigkillTimer))
+}
+
 /** MCP server spec written into settings.json for spawned Claude sessions. */
 export type McpServerSpec = {
   /** Stable identifier; becomes the key under mcpServers. */
@@ -234,11 +284,19 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
   proc.on("close", (code, signal) => {
     dSpawn("close code=%s signal=%s stdin=%s", code, signal, proc.stdin?.destroyed)
   })
+  let resolveExit: (() => void) | null = null
+  const exitPromise = new Promise<void>((r) => {
+    resolveExit = r
+  })
+
   proc.on("exit", (code, signal) => {
     dSpawn("exit code=%s signal=%s", code, signal)
     closed = true
     splitter.flush()
-    if (cleanupMcpConfig) cleanupMcpConfig()
+    if (cleanupMcpConfig) {
+      cleanupMcpConfig()
+      cleanupMcpConfig = null
+    }
     bus.emit("event", {
       kind: "session-lifecycle",
       sessionId,
@@ -251,6 +309,7 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       stopReason: signal ?? (code != null ? `exit-${code}` : undefined),
       ts: Date.now(),
     } satisfies AgentEvent)
+    resolveExit?.()
   })
 
   function writeInput(input: AgentInput): void {
@@ -271,6 +330,13 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
   }
 
   const injectors = opts.injectors ?? []
+
+  // `sentTerm` is a different fact from process liveness — it tracks
+  // "did we initiate teardown" so repeat close() calls don't re-issue
+  // SIGTERM or reset the SIGKILL fallback timer. Liveness itself is read
+  // straight off `proc.exitCode` / `proc.signalCode` (the canonical
+  // truth), not duplicated into a local flag.
+  let sentTerm = false
 
   const session: AgentSession = {
     get sessionId(): SessionId {
@@ -293,56 +359,32 @@ export function spawnClaude(opts: SpawnClaudeOptions = {}): AgentSession {
       bus.on("event", handler)
       return () => bus.off("event", handler)
     },
-    close(): void {
-      // Graceful shutdown: SIGTERM to the whole process group in parallel.
-      //
-      // Because we spawned with `detached: true`, `proc.pid` is also the
-      // process group id. `process.kill(-pid, ...)` with a negative pid
-      // signals every member of that group simultaneously — Claude AND its
-      // MCP grandchildren (km-mcp-server, tribe-mcp, …) all receive SIGTERM
-      // at the same tick. That collapses the old cascade (us → claude →
-      // grandchild, each hop ~100-500ms draining stdio) into a single
-      // parallel teardown, cutting Ctrl+D×2 exit latency from seconds to
-      // <200ms.
-      //
-      // Closing stdin alongside SIGTERM helps stdio-based MCP servers that
-      // exit faster on EOF than on a signal — belt-and-suspenders.
-      //
-      // SIGTERM over SIGINT: SIGTERM is the conventional "programmatic
-      // shutdown" signal (what `kill <pid>`, systemctl stop, docker stop
-      // send). SIGINT semantically means "user interrupted" and is
-      // already what the TTY driver synthesizes from Ctrl+C — reserving
-      // SIGINT for actual user-interrupts keeps the semantics clean.
-      //
-      // Synchronous fire-and-forget. Listeners get 'session-end' via
-      // subscribe() when the child actually exits.
-      if (closed) return
-      try {
-        proc.stdin?.end()
-      } catch {
-        /* already closed */
+    close(): Promise<void> {
+      // Idempotent: second call returns the same exit promise without
+      // re-issuing signals or resetting the SIGKILL fallback timer.
+      if (sentTerm) return exitPromise
+      sentTerm = true
+
+      // Drain stdio FIRST so MCP servers blocked writing to a full
+      // stdout/stderr buffer can reach their signal handler. Don't
+      // swallow errors — if destroy() throws, something is genuinely
+      // racy and we want it surfaced.
+      proc.stdin?.destroy()
+      proc.stdout?.destroy()
+      proc.stderr?.destroy()
+
+      // PID-reuse guard: only signal if proc is still alive. After a
+      // natural exit, proc.pid is still set on the object but signaling
+      // it could hit a recycled pid.
+      const alive = proc.exitCode === null && proc.signalCode === null
+      if (proc.pid !== undefined && alive) {
+        gracefulKillTree(proc.pid, proc, { fallbackAfterMs: 10_000 })
       }
-      try {
-        if (proc.pid !== undefined) {
-          // Negative pid = signal the whole process group. Requires the
-          // child to have been spawned with `detached: true` (see above).
-          process.kill(-proc.pid, "SIGTERM")
-        } else {
-          proc.kill("SIGTERM")
-        }
-      } catch {
-        // ESRCH = group already gone. Fall back to single-process kill in
-        // case the group lookup failed for a non-ESRCH reason.
-        try {
-          proc.kill("SIGTERM")
-        } catch {
-          /* already dead */
-        }
-      }
-      if (cleanupMcpConfig) {
-        cleanupMcpConfig()
-        cleanupMcpConfig = null
-      }
+
+      return exitPromise
+    },
+    [Symbol.asyncDispose](): Promise<void> {
+      return this.close()
     },
   }
 
