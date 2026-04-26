@@ -172,10 +172,16 @@ function MarkdownTable({
   // Per-row `overflow="hidden"` so table cells clip rather than wrap —
   // wrapping would destroy the padded column alignment. Card-level
   // clipping at SessionCard handles layout-expansion prevention.
-  // Inner separators: `│` between cells, `─` underline after headers.
+  // Inner separators: `│` between cells, `─` rule after headers and
+  // (subtle, light) between body rows so dense tables stay scannable.
   const sep = " │ "
   const ruleSegments = widths.map((w) => "─".repeat(w))
-  const ruleLine = ruleSegments.join("─┼─")
+  const headerRule = ruleSegments.join("─┼─")
+  // Body row divider — same shape as header rule. Skipped when there are
+  // 2 rows or fewer (the dividers add more chrome than they're worth on a
+  // tiny table). Drawn in $border-subtle when available to read as a
+  // hairline rather than a hard separator competing with the header rule.
+  const showRowDividers = block.rows.length >= 3
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
       <Box flexDirection="row" overflow="hidden">
@@ -188,16 +194,19 @@ function MarkdownTable({
           </React.Fragment>
         ))}
       </Box>
-      <Text color="$border">{ruleLine}</Text>
+      <Text color="$border">{headerRule}</Text>
       {block.rows.map((row, rowIdx) => (
-        <Box key={rowIdx} flexDirection="row" overflow="hidden">
-          {row.map((cell, col) => (
-            <React.Fragment key={col}>
-              {col > 0 && <Text color="$border">{sep}</Text>}
-              <Text>{pad(cell, col)}</Text>
-            </React.Fragment>
-          ))}
-        </Box>
+        <React.Fragment key={rowIdx}>
+          {showRowDividers && rowIdx > 0 && <Text color="$muted">{headerRule}</Text>}
+          <Box flexDirection="row" overflow="hidden">
+            {row.map((cell, col) => (
+              <React.Fragment key={col}>
+                {col > 0 && <Text color="$border">{sep}</Text>}
+                <Text>{pad(cell, col)}</Text>
+              </React.Fragment>
+            ))}
+          </Box>
+        </React.Fragment>
       ))}
     </Box>
   )
