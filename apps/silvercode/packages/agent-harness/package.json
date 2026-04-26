@@ -14,9 +14,14 @@
     "./event-log": "./src/event-log.ts",
     "./session-store": "./src/session-store.ts",
     "./sdk-adapter": "./src/sdk-adapter.ts",
-    "./codex-spawn": "./src/codex-spawn.ts"
+    "./codex-spawn": "./src/codex-spawn.ts",
+    "./acp-types": "./src/acp-types.ts",
+    "./acp-boundary": "./src/acp-boundary.ts",
+    "./acp-client": "./src/acp-client.ts"
   },
   "dependencies": {
+    "@agentclientprotocol/sdk": "^0.20.0",
+    "@silvery/scope": "workspace:*",
     "alien-signals": "^3.1.2",
     "debug": "^4.4.0"
   },
