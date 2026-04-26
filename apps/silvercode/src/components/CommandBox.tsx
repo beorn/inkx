@@ -114,6 +114,7 @@ export function CommandBox({
                 value={queueText}
                 onChange={onQueueChange}
                 isActive={queueIsFocused}
+                showInactiveCursor={false}
                 height={queueRows}
                 submitKey="enter"
                 onSubmit={() => {
@@ -151,6 +152,7 @@ export function CommandBox({
             value={inputValue}
             onChange={onInputChange}
             isActive={commandIsFocused && !inputDisabled}
+            showInactiveCursor={false}
             height={Math.max(1, Math.min(8, inputValue.split("\n").length))}
             submitKey="enter"
             placeholder={inputDisabled ? "spawning…" : ""}
