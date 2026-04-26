@@ -20,7 +20,7 @@ are organized by date + slug so the history is traceable.
 
 If the same bug class keeps coming back via different components, the
 fix is wrong layer — build a universal invariant. Example: `●` on
-AssistantBlock drifted, now `⚙` on ToolCallBlock is drifting too. That's
+the assistant row drifted, now `⚙` on ToolCall is drifting too. That's
 the icon-family alignment class. Invariant lives in `_invariants.ts`.
 
 A regression file is for the SPECIFIC shape: the exact component, the

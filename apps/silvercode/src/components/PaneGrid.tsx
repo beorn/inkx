@@ -107,14 +107,14 @@ export type PaneGridProps = {
    * minimized its body is hidden — only the header strip renders. */
   minimizedPaneIds?: ReadonlySet<string>
   /**
-   * Registration callback for each pane's MessageList ListViewHandle.
+   * Registration callback for each pane's SessionUpdateList ListViewHandle.
    * App.tsx uses this to maintain a `Map<sessionId, ListViewHandle>` so
    * app-level Shift+Up/Down/PageUp/Down scroll bindings can reach the
    * focused pane's list — keyboard focus lives in the CommandBox by
    * default, so the ListView never receives keys directly. Called with
    * `null` on unmount to drop entries.
    */
-  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
+  onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   /** App-level `/raw` debug toggle. Forwarded to every SessionCard.
    *  Bead: km-silvercode.resume-show-everything-collapsed. */
   showRaw?: boolean
@@ -177,7 +177,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     onClosePane,
     onToggleMinimizePane,
     minimizedPaneIds,
-    onRegisterMessageList,
+    onRegisterScrollList,
     showRaw = false,
   } = props
 
@@ -373,7 +373,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onSplitRight={onSplitRightPane ? () => onSplitRightPane(handle.id) : undefined}
           onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
           onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
-          onRegisterMessageList={onRegisterMessageList}
+          onRegisterScrollList={onRegisterScrollList}
           showRaw={showRaw}
         />
       )
@@ -391,7 +391,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onSplitRightPane,
       onClosePane,
       onToggleMinimizePane,
-      onRegisterMessageList,
+      onRegisterScrollList,
       showRaw,
     ],
   )
@@ -415,7 +415,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onFocus={() => onFocusSession(zoomed.id)}
               onApprove={(rid) => props.onApprovePermission(zoomed.id, rid)}
               onDeny={(rid) => props.onDenyPermission(zoomed.id, rid)}
-              onRegisterMessageList={onRegisterMessageList}
+              onRegisterScrollList={onRegisterScrollList}
               showRaw={showRaw}
             />
           </Box>
@@ -473,7 +473,7 @@ function LeafContainer({
   onSplitRight,
   onClose,
   onToggleMinimize,
-  onRegisterMessageList,
+  onRegisterScrollList,
   showRaw = false,
 }: {
   handle: SessionHandle
@@ -495,7 +495,7 @@ function LeafContainer({
   onSplitRight?: () => void
   onClose?: () => void
   onToggleMinimize?: () => void
-  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
+  onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   showRaw?: boolean
 }): React.ReactElement {
   const rect = useBoxRect()
@@ -526,7 +526,7 @@ function LeafContainer({
           onFocus={onFocus}
           onApprove={onApprove}
           onDeny={onDeny}
-          onRegisterMessageList={onRegisterMessageList}
+          onRegisterScrollList={onRegisterScrollList}
           showRaw={showRaw}
         />
       )}

@@ -1,14 +1,14 @@
 /**
- * MessageList stickyBottom auto-follow.
+ * SessionUpdateList stickyBottom auto-follow.
  *
- * Smoke-tests the wiring of `stickyBottom={true}` on the ListView inside
- * MessageList by driving the real <App/> through a multi-turn scripted
+ * Smoke-tests the wiring of `follow="end"` on the ListView inside
+ * SessionUpdateList by driving the real <App/> through a multi-turn scripted
  * session with more turns than fit in the viewport. After all turns
  * complete, the most recent assistant message must be visible — i.e.
  * the viewport auto-followed the tail.
  *
- * The semantic behaviour of `stickyBottom` is exhaustively tested in
- * `vendor/silvery/tests/features/listview-sticky-bottom.test.tsx`. This
+ * The semantic behaviour of `follow="end"` is exhaustively tested in
+ * `vendor/silvery/tests/features/listview-followpolicy-split.test.tsx`. This
  * test is the silvercode-side wiring smoke: the prop is in place, the
  * real chat stream stays pinned to the latest assistant turn.
  */
@@ -73,7 +73,7 @@ const manyTurns: ReadonlyArray<AgentEvent> = [
   ...turn(8, "FINAL ping", "FINAL pong", 1700),
 ]
 
-describe("MessageList stickyBottom auto-follow (km-silvercode)", () => {
+describe("SessionUpdateList follow-end auto-follow (km-silvercode)", () => {
   test("when conversation fits in viewport, latest assistant message is visible", async () => {
     // With a generous 60-row viewport, all 16 messages fit easily — the
     // latest must be present. This is the baseline "no scroll required"

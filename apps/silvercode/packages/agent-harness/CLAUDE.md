@@ -94,7 +94,7 @@ console.log(result.stopReason)
 
 `connectAcp(scope, opts)` spawns an ACP server child process and returns an
 `AcpAgentSession` — same shape as the legacy `AgentSession`, so the existing
-`session-store.ts` / `MessageList` / `ToolCallBlock` UI works unchanged.
+`session-store.ts` / `SessionUpdateList` UI works unchanged.
 
 ```ts
 import { connectAcp, connectAcpRegistry } from "@km/agent-harness"

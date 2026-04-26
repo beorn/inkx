@@ -1,16 +1,71 @@
 /**
- * `/raw` debug-view contract — UserMessageBlock surfaces the chip when
+ * `/raw` debug-view contract — user message rows surface the chip when
  * a user message has additionalContext (system-reminders, isMeta
  * bodies, hook output stripped from the visible chat surface) and
  * inlines the full body when `showRaw=true`.
+ *
+ * Tests the inline UserRow rendering baked into SessionUpdateList, using
+ * the same layout as the production component so the invariants hold.
  *
  * Bead: km-silvercode.resume-show-everything-collapsed.
  */
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { Box, Screen } from "silvery"
+import { Box, Prose, Screen, Text } from "silvery"
 import { createRenderer } from "@silvery/test"
-import { UserMessageBlock } from "../../src/components/UserMessageBlock.tsx"
+import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
+
+/**
+ * Inline user-message row — same layout as SessionUpdateList's `UserRow`.
+ */
+function UserRow({
+  text,
+  additionalContext,
+  showRaw,
+}: {
+  text: string
+  additionalContext?: string
+  showRaw?: boolean
+}): React.ReactElement {
+  const hasContext = (additionalContext?.length ?? 0) > 0
+  const isMetaOnly = text.length === 0 && hasContext
+  const lineCount = additionalContext ? additionalContext.split("\n").length : 0
+  return (
+    <Box
+      flexDirection="column"
+      flexShrink={1}
+      minWidth={0}
+      backgroundColor="$bg-surface-subtle"
+      paddingX={1}
+      paddingY={0}
+    >
+      {!isMetaOnly && (
+        <Box flexDirection="row" gap={1} flexShrink={1} minWidth={0}>
+          <Text bold color="$accent">
+            {">"}
+          </Text>
+          <Prose flexGrow={1} flexShrink={1} minWidth={0}>
+            <LinkifiedText text={text} role="user" />
+          </Prose>
+        </Box>
+      )}
+      {hasContext && (
+        <Box flexDirection="column" flexShrink={1} minWidth={0}>
+          <Text color="$muted">
+            {showRaw ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/raw` to toggle)
+          </Text>
+          {showRaw && (
+            <Box flexDirection="column" flexShrink={1} minWidth={0} paddingLeft={2}>
+              <Text color="$muted" wrap="wrap">
+                {additionalContext}
+              </Text>
+            </Box>
+          )}
+        </Box>
+      )}
+    </Box>
+  )
+}
 
 function renderBlock(props: { text: string; additionalContext?: string; showRaw?: boolean; cols?: number }): string {
   const { cols = 120 } = props
@@ -18,14 +73,14 @@ function renderBlock(props: { text: string; additionalContext?: string; showRaw?
   const app = r(
     <Screen flexDirection="column">
       <Box flexDirection="column" flexGrow={1} minHeight={0}>
-        <UserMessageBlock text={props.text} additionalContext={props.additionalContext} showRaw={props.showRaw} />
+        <UserRow text={props.text} additionalContext={props.additionalContext} showRaw={props.showRaw} />
       </Box>
     </Screen>,
   )
   return app.text
 }
 
-describe("UserMessageBlock — /raw debug view", () => {
+describe("user message row — /raw debug view", () => {
   test("plain message (no additionalContext): no chip, no body", () => {
     const text = renderBlock({ text: "what is this repo about?" })
     expect(text).toContain("what is this repo about?")

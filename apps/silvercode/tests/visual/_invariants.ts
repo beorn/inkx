@@ -111,7 +111,7 @@ export function assertSidePanelVisible(s: RenderedScenario, opts: { leftWidth?: 
 // inset and MUST appear at the same column. Tool call (⚙) has its own
 // block frame (border stripe + inner padding) and sits in a different
 // alignment family — excluded by default. Drift in the flush family
-// means AssistantBlock / UserMessageBlock / ActivityIndicator went out of
+// means the assistant row / user row / ActivityIndicator went out of
 // sync on paddingX.
 // ----------------------------------------------------------------------------
 

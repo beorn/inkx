@@ -22,7 +22,7 @@ After the migration, **(a)** sites become props, **(b)** sites stay as-is, and *
 | `apps/km-tui/src/views/BodyEditField.tsx:39` | BodyEditField | `width` | (a) | Same as InlineEditField |
 | `apps/km-tui/src/views/BoardView.tsx:359` | BoardView | `parentRect` (full) | (c) | BoardView's column layout depends on actual pane pixel width — keep with caveat. Could potentially move to layout-signals if the column sizing logic moves into the layout phase |
 | `apps/km-tui/src/views/useBoardController.ts:564` | useBoardController | `paneRect` | (c) | Same as BoardView — pane width drives column count |
-| `apps/silvercode/src/components/MessageList.tsx:103` | MessageList | `height` | (a/c) | **Phase 3 of the bead — ListView height-independence.** Rewrite ListView to drop the height prop; use `flex-grow=1 overflow=scroll` + index-window virtualization. `useBoxRect` call disappears |
+| `apps/silvercode/src/components/SessionUpdateList.tsx` | SessionUpdateList | (resolved) | — | MessageList → SessionUpdateList migration (bead km-silvercode.acp-session-update-list) dropped the `useBoxRect` call. ListView now uses `follow="end"` without a height prop. |
 | `apps/silvercode/src/components/CommandBox.tsx:194` | CommandBox | `width: contentWidth` | (a) | Likely for the inline TextArea wrap. If TextArea handles its own width via flex, delete this read |
 | `apps/silvercode/src/components/PaneGrid.tsx:87` | PaneGrid | `gridRect` | (b) | Already mostly callback-shaped (used for drag-resize math); could move to ref+onLayout if the read isn't reactive-required |
 | `vendor/silvery/packages/ag-react/src/ui/components/ProgressBar.tsx:63` | ProgressBar | `layoutRect` | (a) | Progress bar width can be a `width` prop or filled via flex |
@@ -52,7 +52,7 @@ These fire AFTER layout completes via `useBoxRect((rect) => …)` or `useScrollR
 | (b) callback form / ref+onLayout | 7 | No migration — already correct |
 | (c) genuinely reactive | 4 (BoardView, useBoardController, TextArea, Image) | Phase 5 — document with caveats |
 | Internal hook (`useCursor` body) | 1 | Phase 2 (cursor as layout output — deleted) |
-| ListView height-dependence | 1 (MessageList → ListView) | Phase 3 (ListView height-independence) |
+| ListView height-dependence | resolved (SessionUpdateList → ListView) | Phase 3 (ListView height-independence — done) |
 
 **Net Phase 5 work**: ~6 reactive calls become props; ~4 stay as documented `(c)` cases. ~7 callback forms left untouched.
 

@@ -62,7 +62,7 @@ Before rendering, locate `●`, `>`, `◈`, `⚙`, `·`, `»`, `!` in the frame.
 
 ### H5. Component-level matrix tests via createRenderer
 
-Render `<AssistantBlock>`, `<SidePanel>`, `<Welcome>` in isolation at various widths and snapshot.
+Render session update rows, `<SidePanel>`, `<Welcome>` in isolation at various widths and snapshot.
 **Cost**: cheap. **Coverage**: component wrap/render. **Risk**: context-free — misses bugs from interaction with parent.
 
 ### H6. Termless scenarios = visual e2e
@@ -203,7 +203,7 @@ The v1 contract is narrower: **static final-frame composition + layout regressio
 | message-stream icon drift                  | e2e invariant     | `visual/scenarios.test.tsx`              | `assertIconFamilyAligned`                             | ✓   |
 | mode glyph typo / wrong label              | side-panel region | `visual/side-panel.test.tsx`             | `parseFrame().modeRow === { icon, label, color }`     | ✓   |
 | welcome panel missing row                  | region snapshot   | `visual/welcome.test.tsx`                | `.frame.txt` fixture diff                             | ✓   |
-| `paddingX` regression on AssistantBlock    | region snapshot   | `visual/scenarios.test.tsx helloWorld`   | fixture diff — icon column shifts                     | ✓   |
+| `paddingX` regression on assistant row     | region snapshot   | `visual/scenarios.test.tsx helloWorld`   | fixture diff — icon column shifts                     | ✓   |
 | side panel pushed off-screen               | layout invariant  | `visual/scenarios.test.tsx longTool`     | `assertSidePanelVisible`                              | ✓   |
 | markdown wrap broken at narrow width       | region at width   | `visual/markdown.test.tsx`               | rendered at {40, 60, 80, 120}; fixture diff per width | ✓   |
 | queue editor height grows on 3 queued msgs | interactive       | **v2** — needs keystroke simulation      | —                                                     | —   |
@@ -347,7 +347,7 @@ A single bead tag `silvercode-visual-regression` groups all such beads for patte
 
 After shipping this system, every mutation below triggers a specific failing test. `visual/mutations.test.ts` enforces this — proving the tests actually catch what the doc claims:
 
-- [x] Remove `paddingX={1}` from `AssistantBlock` → region fixture diff catches it + icon-align invariant catches it.
+- [x] Remove `paddingX={1}` from an assistant row → region fixture diff catches it + icon-align invariant catches it.
 - [x] Change `MODE_ICONS.plan` from `·` to `.` typo → `assertModeRowWellFormed` catches the wrong glyph; semantic mode-row parse catches it too.
 - [x] Remove `overflow="hidden"` from SessionCard outer Box → `assertNoOverflowIntoSidePanel` + `assertSidePanelVisible` on the longToolResult scenario.
 - [x] Break `MarkdownView` flexWrap so paragraphs overflow → `markdown.test.tsx` at 60 cols, `parseFrame().wrapShape` diff.

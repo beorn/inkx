@@ -42,7 +42,7 @@ export const applyPatchMulti: Story = {
   render() {
     return (
       <ApplyPatch
-        filePath="src/components/MessageList.tsx"
+        filePath="src/components/SessionUpdateList.tsx"
         hunks={[
           {
             header: "rename helper",

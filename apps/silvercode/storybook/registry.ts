@@ -17,22 +17,16 @@
 import type { Story } from "./types.ts"
 
 import { activityIndicatorThinking } from "./stories/ActivityIndicator.thinking.story.tsx"
-import { assistantBlockBasic } from "./stories/AssistantBlock.basic.story.tsx"
-import { assistantBlockCode } from "./stories/AssistantBlock.code.story.tsx"
-import { messageListEmpty } from "./stories/MessageList.empty.story.tsx"
-import { messageListMultiTurn } from "./stories/MessageList.multi-turn.story.tsx"
 import { permissionInboxOnePending } from "./stories/PermissionInbox.one-pending.story.tsx"
 import { slashCommandPaletteOpen } from "./stories/SlashCommandPalette.open.story.tsx"
-import { toolCallBlockBash } from "./stories/ToolCallBlock.bash.story.tsx"
-import { toolCallBlockEdit } from "./stories/ToolCallBlock.edit.story.tsx"
-import { toolCallBlockRunning } from "./stories/ToolCallBlock.running.story.tsx"
 import { toolCallRead } from "./stories/ToolCall.read.story.tsx"
 import { toolCallEdit } from "./stories/ToolCall.edit.story.tsx"
 import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
 import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
 import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
-import { userMessageBlockShort } from "./stories/UserMessageBlock.short.story.tsx"
+import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
+import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
 import { welcomeBasic } from "./stories/Welcome.basic.story.tsx"
 
 /**
@@ -42,19 +36,11 @@ import { welcomeBasic } from "./stories/Welcome.basic.story.tsx"
 export const STORIES: readonly Story[] = [
   // Welcome surface
   welcomeBasic,
-  // Message types
-  userMessageBlockShort,
-  assistantBlockBasic,
-  assistantBlockCode,
   // Activity / status
   activityIndicatorThinking,
-  // Tool calls — most varied surface
-  toolCallBlockBash,
-  toolCallBlockEdit,
-  toolCallBlockRunning,
-  // ACP-named ToolCall family — kind/status variants on the canonical
+  // Tool calls — ACP-named ToolCall family (kind/status variants on the canonical
   // <ToolCall> renderer plus the aggregate <ToolCallSummary> and the
-  // Aider-style <ApplyPatch>. See `hub/silvery/future/ai-terminal/acp-naming.md`.
+  // Aider-style <ApplyPatch>). See `hub/silvery/future/ai-terminal/acp-naming.md`.
   toolCallRead,
   toolCallEdit,
   toolCallExecute,
@@ -62,9 +48,9 @@ export const STORIES: readonly Story[] = [
   toolCallSummary,
   applyPatch,
   applyPatchMulti,
-  // Higher-order: full conversation
-  messageListEmpty,
-  messageListMultiTurn,
+  // Higher-order: full conversation via SessionUpdateList
+  sessionUpdateListEmpty,
+  sessionUpdateListMultiTurn,
   // Dialogs
   slashCommandPaletteOpen,
   permissionInboxOnePending,

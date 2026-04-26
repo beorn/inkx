@@ -6,7 +6,7 @@
  * UI layer consumes. See parse.ts for the Claude-CLI normalizer.
  *
  * Event kinds intentionally model *turns* rather than individual messages. The
- * silvery UI (MessageList, ToolCallBlock, TodoPanel) binds to these events; the
+ * silvery UI (SessionUpdateList, ToolCall, TodoPanel) binds to these events; the
  * session-store (session-store.ts) consumes them and emits signals for reactive
  * rendering.
  */

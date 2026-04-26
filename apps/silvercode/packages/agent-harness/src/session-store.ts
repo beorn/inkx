@@ -2,7 +2,7 @@
  * Reactive session store — consumes AgentEvents, produces the reactive state
  * the silvery UI binds to.
  *
- * One store per session. The MessageList / TodoPanel / StatusLine / ToolCallBlock
+ * One store per session. The SessionUpdateList / TodoPanel / StatusLine / ToolCall
  * components subscribe via the returned signals. alien-signals underpins the
  * reactive layer so updates trigger minimal re-renders (see @silvery/signals).
  *

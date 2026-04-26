@@ -46,7 +46,7 @@ async function expectToFail(fn: () => void | Promise<void>): Promise<void> {
 }
 
 // ============================================================================
-// Mutation 1 — remove paddingX from AssistantBlock-like row.
+// Mutation 1 — remove paddingX from an assistant-row-like component.
 //
 // We simulate this by taking a rendered frame and shifting the `●` glyph
 // one column left (to where paddingX=0 would place it). The flush-family
@@ -54,7 +54,7 @@ async function expectToFail(fn: () => void | Promise<void>): Promise<void> {
 // at the paddingX=1 column.
 // ============================================================================
 
-describe("mutation: AssistantBlock paddingX regression", () => {
+describe("mutation: assistant row paddingX regression", () => {
   test("if ● drifts one col left of >, icon-align invariant fails", async () => {
     const s = await renderScenario({ script: helloWorld, cols: 120, rows: 30 })
     // Sanity: unmutated, invariant passes.

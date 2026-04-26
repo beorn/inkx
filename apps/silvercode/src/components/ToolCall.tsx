@@ -4,7 +4,7 @@
  * Canonical ACP `ToolCall` renderer. Drives header (status-animated title +
  * location chip), body (per-kind layout — Diff for `edit`, TerminalContent
  * for `execute`, TextContent for the rest), and error envelope (failed
- * status). Merges the legacy `ToolResultBlock` directly into the body —
+ * status). Tool result content merged directly into the body —
  * no separate component.
  *
  * Component family (all in `apps/silvercode/src/components/`):
@@ -16,7 +16,7 @@
  *
  * Naming follows ACP exactly per `hub/silvery/future/ai-terminal/acp-naming.md`
  * — variables use `toolCall` / `toolCallId`, status enum from acp-types.ts,
- * file is `ToolCall.tsx` not `ToolCallBlock.tsx`.
+ * file is `ToolCall.tsx` (ACP-aligned naming).
  *
  * Bead: km-silvercode.acp-tool-call.
  */

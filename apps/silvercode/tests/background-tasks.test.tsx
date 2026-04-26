@@ -2,7 +2,7 @@
  * Background tasks — controller unit coverage.
  *
  * Companion to tests/visual/ctrl-b-background.test.tsx. The visual test
- * covers the full key-handler → SidePanel → MessageList round trip; this
+ * covers the full key-handler → SidePanel → SessionUpdateList round trip; this
  * test exercises the controller methods directly so failures point at the
  * controller boundary instead of the rendering layer.
  *

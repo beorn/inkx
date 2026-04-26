@@ -32,13 +32,13 @@ export type KnobValues = Record<string, boolean | string>
 /**
  * One story — a named, fixture-driven render of a single component.
  *
- * Naming convention: `<Component>/<variant>` — e.g. "ToolCallBlock/pending".
+ * Naming convention: `<Component>/<variant>` — e.g. "ToolCall/pending".
  * The runner groups by the slash prefix.
  */
 export interface Story {
   /** `<Component>/<variant>` identifier, unique within the registry. */
   id: string
-  /** Component being demonstrated, e.g. "ToolCallBlock". */
+  /** Component being demonstrated, e.g. "ToolCall". */
   component: string
   /** Variant label, e.g. "pending" / "completed" / "failed". */
   variant: string

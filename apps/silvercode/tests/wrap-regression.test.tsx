@@ -1,5 +1,5 @@
 /**
- * Regression: markdown paragraph text in AssistantBlock must WRAP at the
+ * Regression: markdown paragraph text in the assistant row must WRAP at the
  * card boundary, not render as a single long line.
  *
  * Screenshot 2026-04-24 14.18.36: "This is km (Knowledge Machine) at
@@ -15,9 +15,8 @@
  *      width; per-Text `wrap="wrap"` then receives the row's wide measure
  *      and never wraps.
  *
- *   2. `AssistantBlock` (src/components/AssistantBlock.tsx) outer
- *      `<Box flexDirection="row" paddingX={1}>` was missing the same
- *      props; even after LinkifiedText wraps correctly, the AssistantBlock
+ *   2. The assistant row outer `<Box flexDirection="row" paddingX={1}>` was
+ *      missing the same props; even after LinkifiedText wraps correctly, the
  *      row expands to child-intrinsic width and defeats wrap.
  *
  * silvery's reconciler does NOT apply CSS §4.5's "overflow:hidden ⇒
@@ -48,9 +47,8 @@
  */
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { Box, Text } from "silvery"
+import { Box, Prose, Text } from "silvery"
 import { createRenderer } from "@silvery/test"
-import { AssistantBlock } from "../src/components/AssistantBlock.tsx"
 import { LinkifiedText } from "../src/components/LinkifiedText.tsx"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 
@@ -103,6 +101,23 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
   )
 }
 
+/**
+ * Inline assistant row — same layout as SessionUpdateList's `AssistantRow`:
+ * `●` glyph + Prose + MarkdownView with flexShrink/minWidth chain.
+ */
+function AssistantRow({ text }: { text: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row" gap={1} paddingX={1} flexShrink={1} minWidth={0}>
+      <Text bold color="$primary">
+        ●
+      </Text>
+      <Prose flexGrow={1}>
+        <MarkdownView source={text} />
+      </Prose>
+    </Box>
+  )
+}
+
 describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundary", () => {
   test("LinkifiedText with 5-piece shape wraps onto multiple visual lines", () => {
     // The screenshot text produces 2 detections: `~/Code/pim/km` and
@@ -129,11 +144,11 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
     expect(lines.some((l) => l.includes("React TUI"))).toBe(true)
   })
 
-  test("AssistantBlock + MarkdownView wraps at card boundary", () => {
+  test("assistant row + MarkdownView wraps at card boundary", () => {
     const render = createRenderer({ cols: TOTAL_COLS, rows: 30 })
     const app = render(
       <Shell>
-        <AssistantBlock text={SCREENSHOT_TEXT} />
+        <AssistantRow text={SCREENSHOT_TEXT} />
       </Shell>,
     )
 
@@ -173,7 +188,7 @@ describe("regression: LinkifiedText wraps mixed-token paragraphs at card boundar
               >
                 {/* SessionCard inner */}
                 <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
-                  <AssistantBlock text={SCREENSHOT_TEXT} />
+                  <AssistantRow text={SCREENSHOT_TEXT} />
                 </Box>
               </Box>
             </Box>

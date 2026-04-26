@@ -12,7 +12,7 @@
  *   - Retry chevron on the right (visual affordance — wiring is the
  *     consumer's job, e.g. App-level command bound to a ToolCallId)
  *
- * Distinct from a generic `<ToolResultBlock isError>` because:
+ * Distinct from a generic error result row because:
  *   - Always expanded (errors hide nothing)
  *   - No collapse toggle (a failed call is not a routine result)
  *   - Carries a retry affordance hook (`onRetry` callback)

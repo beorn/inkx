@@ -13,7 +13,7 @@
  *     surfaces with "cancelled".
  *
  * Companion to controller.ts unit tests — this exercises the full wiring
- * from key handler → controller → store → MessageList + SidePanel.
+ * from key handler → controller → store → SessionUpdateList + SidePanel.
  */
 
 import type { AgentEvent, AgentSession, SessionId, TurnId } from "@km/agent-harness"

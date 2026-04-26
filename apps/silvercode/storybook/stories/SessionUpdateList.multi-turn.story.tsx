@@ -1,19 +1,21 @@
 /**
- * MessageList — multi-turn conversation with tool call + result.
+ * SessionUpdateList — multi-turn conversation with tool call + result.
  *
  * Exercises the row variants the chat surface most often shows back-to-
  * back: user prompt → assistant text + tool call → tool result → assistant
  * follow-up.
+ *
+ * Tool calls render via `<ToolCall>` (ACP-canonical).
  */
 import React from "react"
 import { Box, Screen } from "silvery"
-import { MessageList } from "../../src/components/MessageList.tsx"
+import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { MULTI_TURN } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
 
-export const messageListMultiTurn: Story = {
-  id: "MessageList/multi-turn",
-  component: "MessageList",
+export const sessionUpdateListMultiTurn: Story = {
+  id: "SessionUpdateList/multi-turn",
+  component: "SessionUpdateList",
   variant: "multi-turn",
   description: "User → assistant + tool call → result → assistant follow-up.",
   knobs: [
@@ -30,7 +32,7 @@ export const messageListMultiTurn: Story = {
     return (
       <Screen flexDirection="column">
         <Box flexDirection="column" flexGrow={1} minHeight={0}>
-          <MessageList
+          <SessionUpdateList
             messages={MULTI_TURN}
             onApprove={() => {}}
             onDeny={() => {}}

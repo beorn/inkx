@@ -26,7 +26,7 @@ import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 const COLS = 80
 const ROWS = 60
 
-// Mirror the SessionCard/AssistantBlock chain so wrap math matches production.
+// Mirror the SessionCard/assistant row chain so wrap math matches production.
 function Frame({ source }: { source: string }): React.ReactElement {
   return (
     <Box width={COLS} height={ROWS} flexDirection="column">

@@ -29,7 +29,7 @@ import {
 type Layout = "single" | "grid-2" | "grid-4"
 type Track = "claude" | "sdk" | "codex"
 
-// MessageList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
+// SessionUpdateList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
 // matches roughly half a typical chat-pane viewport — large enough to
 // traverse history quickly, small enough that one PageUp doesn't
 // overshoot the user's reading position. ListView has no exposed
@@ -306,9 +306,9 @@ export function App(props: AppProps): React.ReactElement {
   // grid's internal dragRef.
   const paneGridRef = useRef<PaneGridHandle | null>(null)
 
-  // Registry of MessageList ListView handles, keyed by session id. Each
+  // Registry of SessionUpdateList ListView handles, keyed by session id. Each
   // SessionCard registers its forwarded ListViewHandle here on mount via
-  // the `onRegisterMessageList` callback threaded through PaneGrid →
+  // the `onRegisterScrollList` callback threaded through PaneGrid →
   // LeafContainer → SessionCard. App-level Shift+Up/Down/PageUp/Down/
   // Home/End scroll bindings (below) use this map to call scrollBy /
   // scrollToTop / scrollToBottom on the focused pane's list — keyboard
@@ -316,12 +316,12 @@ export function App(props: AppProps): React.ReactElement {
   // receives Arrow / PageUp / PageDown keys directly.
   //
   // Stored on a ref (not state) — registration is a side-effect, not
-  // render input. The handler reads `messageListsRef.current.get(...)`
+  // render input. The handler reads `scrollListsRef.current.get(...)`
   // at keypress time, which always sees the latest value.
-  const messageListsRef = useRef(new Map<string, ListViewHandle>())
-  const registerMessageList = useCallback((sessionId: string, handle: ListViewHandle | null): void => {
-    if (handle) messageListsRef.current.set(sessionId, handle)
-    else messageListsRef.current.delete(sessionId)
+  const scrollListsRef = useRef(new Map<string, ListViewHandle>())
+  const registerScrollList = useCallback((sessionId: string, handle: ListViewHandle | null): void => {
+    if (handle) scrollListsRef.current.set(sessionId, handle)
+    else scrollListsRef.current.delete(sessionId)
   }, [])
 
   // Ctrl+G H/J/K/L — keyboard-driven pane swap (vim-window convention).
@@ -593,10 +593,10 @@ export function App(props: AppProps): React.ReactElement {
       if (lastCtrlDAt.current !== 0 && input.length > 0) {
         lastCtrlDAt.current = 0
       }
-      // ── App-level MessageList scroll bindings ────────────────────────
+      // ── App-level SessionUpdateList scroll bindings ──────────────────
       // CommandBox owns keyboard focus by default and silvery's TextArea
       // consumes ArrowUp/ArrowDown/PageUp/PageDown — without an app-level
-      // intercept the user has no way to scroll the message stream from
+      // intercept the user has no way to scroll the update stream from
       // the keyboard. We use the Shift modifier so plain Arrow keys
       // still reach the textarea for cursor movement.
       //
@@ -605,11 +605,11 @@ export function App(props: AppProps): React.ReactElement {
       //   Shift+Home                  → scrollToTop
       //   Shift+End                   → scrollToBottom (re-engages follow="end")
       //
-      // The bindings target the FOCUSED session's MessageList — multi-pane
+      // The bindings target the FOCUSED session's SessionUpdateList — multi-pane
       // layouts route the keystroke to the pane the user is looking at.
       // Bead: km-silvercode.no-keyboard-scroll-from-command-box.
       if (key.shift && (key.upArrow || key.downArrow || key.pageUp || key.pageDown || key.home || key.end)) {
-        const list = focused ? messageListsRef.current.get(focused.id) : undefined
+        const list = focused ? scrollListsRef.current.get(focused.id) : undefined
         if (list) {
           if (key.upArrow) list.scrollBy(-1)
           else if (key.downArrow) list.scrollBy(1)
@@ -1019,7 +1019,7 @@ export function App(props: AppProps): React.ReactElement {
               onClosePane={closePaneById}
               onToggleMinimizePane={toggleMinimizePane}
               minimizedPaneIds={minimizedPaneIds}
-              onRegisterMessageList={registerMessageList}
+              onRegisterScrollList={registerScrollList}
               showRaw={showRaw}
             />
 

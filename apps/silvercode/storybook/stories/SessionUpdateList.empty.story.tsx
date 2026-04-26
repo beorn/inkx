@@ -1,26 +1,25 @@
 /**
- * MessageList — empty.
+ * SessionUpdateList — empty session.
  *
- * Idle session, no messages. Demonstrates the empty-state row baseline
- * MessageList collapses to (no activity tail when status is "idle").
+ * Renders an empty message list (idle status). No activity tail when idle.
+ *
  */
 import React from "react"
 import { Box, Screen } from "silvery"
-import { MessageList } from "../../src/components/MessageList.tsx"
-import { EMPTY } from "../support/sample-messages.ts"
+import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import type { Story } from "../types.ts"
 
-export const messageListEmpty: Story = {
-  id: "MessageList/empty",
-  component: "MessageList",
+export const sessionUpdateListEmpty: Story = {
+  id: "SessionUpdateList/empty",
+  component: "SessionUpdateList",
   variant: "empty",
-  description: "Idle session with no messages — empty-state baseline.",
+  description: "Empty session — no messages, idle status.",
   render() {
     return (
       <Screen flexDirection="column">
         <Box flexDirection="column" flexGrow={1} minHeight={0}>
-          <MessageList
-            messages={EMPTY}
+          <SessionUpdateList
+            messages={[]}
             onApprove={() => {}}
             onDeny={() => {}}
             sessionId="story-empty"

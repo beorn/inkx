@@ -3,7 +3,7 @@
  *
  * Codex's subprocess protocol is JSON-lines too but the shape differs. This
  * module owns the Codex-specific parser and maps events onto AgentEvent so the
- * UI layer can render Codex sessions in the same MessageList / ToolCallBlock
+ * UI layer can render Codex sessions in the same SessionUpdateList / ToolCall
  * components without branching on backend.
  *
  * This is scaffolded structurally for M12; the event-shape normalization is

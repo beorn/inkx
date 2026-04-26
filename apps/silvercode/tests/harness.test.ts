@@ -3,7 +3,7 @@ import { createSessionStore, createStreamJsonParser, type AgentEvent } from "@km
 
 /**
  * End-to-end M0 contract: feeding a realistic stream-json fixture into the
- * parser + session-store produces the state the UI renders (MessageList
+ * parser + session-store produces the state the UI renders (SessionUpdateList
  * iteration, TodoPanel projection, StatusLine token/cost counts).
  *
  * This is the M0 dogfood assertion expressed as a test so we don't rely on a

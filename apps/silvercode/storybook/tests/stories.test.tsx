@@ -23,7 +23,7 @@ describe("storybook stories — smoke render", () => {
       const element = story.render(knobs)
       // Wrap in Screen if the story didn't already — Screen owns the
       // root layout pin every silvery render needs. Stories that bring
-      // their own Screen (MessageList variants) double-wrap harmlessly.
+      // their own Screen (SessionUpdateList variants) double-wrap harmlessly.
       const app = renderer(<Screen flexDirection="column">{element}</Screen>)
       expect(app.text).toBeTypeOf("string")
       // Stories may legitimately produce a blank frame (e.g. dialogs

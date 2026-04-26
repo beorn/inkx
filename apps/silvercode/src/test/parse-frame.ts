@@ -21,20 +21,19 @@ import type { RenderedScenario } from "./render-harness.tsx"
 import { leftWidthFor } from "./render-harness.tsx"
 
 // Known marker strings used to locate regions. Keep in sync with the
-// actual components (`Welcome.tsx`, `SidePanel.tsx`, `AssistantBlock.tsx`,
-// `UserMessageBlock.tsx`, `ActivityIndicator.tsx`, `ToolCallBlock.tsx`,
-// `CommandBox.tsx`).
+// actual components (`Welcome.tsx`, `SidePanel.tsx`, `SessionUpdateList.tsx`,
+// `ActivityIndicator.tsx`, `ToolCall.tsx`, `CommandBox.tsx`).
 
 /**
  * Message-stream leading glyphs. Two families:
  *
  * - `FLUSH`: glyphs rendered at the card-stream's leading column (the
- *   paddingX={1} inset) — these MUST all align. UserMessageBlock,
- *   AssistantBlock, ActivityIndicator.
+ *   paddingX={1} inset) — these MUST all align. User rows, assistant rows,
+ *   ActivityIndicator.
  *
  * - `INSET`: glyphs rendered with their own block frame (left-border
  *   stripe + internal paddingX). Tool calls sit one column right of the
- *   flush family because ToolCallBlock has `borderStyle="single"
+ *   flush family because `<ToolCall>` has `borderStyle="single"
  *   borderRight={false} borderTop={false} borderBottom={false}` —
  *   leaves a left stripe.
  *

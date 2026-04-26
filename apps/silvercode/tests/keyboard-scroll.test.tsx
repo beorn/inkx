@@ -1,15 +1,15 @@
 /**
  * App-level keyboard scroll bindings — Shift+Up/Down/PageUp/PageDown/
- * Home/End scroll the focused session's MessageList from CommandBox-
+ * Home/End scroll the focused session's SessionUpdateList from CommandBox-
  * focused state.
  *
  * Why: silvery's TextArea consumes plain Arrow keys, and silvercode's
  * default focus lives in the CommandBox (it's the only persistent
  * editor). Without an app-level intercept, the user has no way to
- * scroll the message stream from the keyboard once the buffer fills
+ * scroll the update stream from the keyboard once the buffer fills
  * the viewport. We bind Shift+Arrow / Shift+PageUp/Down / Shift+Home/
  * End at the App's `useInput` and route them to the focused
- * SessionCard's MessageList via the `messageListsRef` registry.
+ * SessionCard's SessionUpdateList via the `messageListsRef` registry.
  *
  * SILVERY_STRICT is disabled for this file because silvery's
  * `follow="end"` snap-to-end interacts with strict incremental rendering

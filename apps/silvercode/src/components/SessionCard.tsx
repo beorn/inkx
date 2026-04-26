@@ -2,12 +2,12 @@ import React from "react"
 import { Box, Text, type ListViewHandle } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
-import { MessageList } from "./MessageList.tsx"
+import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
 
 /**
  * One session's visible card: scrollable message list + inline activity
- * indicator (delegated to MessageList's tail slot when status is active).
+ * indicator (delegated to SessionUpdateList's tail slot when status is active).
  *
  * The card owns overflow clipping — `overflow="hidden"` here + in App.tsx's
  * left column Box form the two boundaries the flex engine honours. Without
@@ -30,7 +30,7 @@ export function SessionCard({
   onFocus,
   onApprove,
   onDeny,
-  onRegisterMessageList,
+  onRegisterScrollList,
   showRaw = false,
 }: {
   handle: SessionHandle
@@ -48,8 +48,8 @@ export function SessionCard({
    * keyboard focus lives in the CommandBox. Called with `null` on
    * unmount to drop the entry.
    */
-  onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
-  /** App-level `/raw` debug toggle. Forwarded to MessageList; expands
+  onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
+  /** App-level `/raw` debug toggle. Forwarded to SessionUpdateList; expands
    *  each user message's `additionalContext` (system-reminders, hook
    *  output, isMeta bodies) inline. Bead:
    *  km-silvercode.resume-show-everything-collapsed. */
@@ -61,11 +61,11 @@ export function SessionCard({
   // app-level Shift+Up/Down scroll bindings can reach this pane's list
   // even though keyboard focus lives in the CommandBox.
   const sessionId = handle.id
-  const messageListRefCb = React.useCallback(
+  const scrollListRefCb = React.useCallback(
     (instance: ListViewHandle | null): void => {
-      onRegisterMessageList?.(sessionId, instance)
+      onRegisterScrollList?.(sessionId, instance)
     },
-    [onRegisterMessageList, sessionId],
+    [onRegisterScrollList, sessionId],
   )
 
   // The most recent tool call that doesn't yet have a matching result is
@@ -111,7 +111,7 @@ export function SessionCard({
           downstream) stays stable across focus changes.
           `overflow="hidden"` is load-bearing: without it, the 200-char wrap
           text's max-content width inflates the column, pushing Welcome /
-          MessageList content right off the visible viewport (verified in
+          SessionUpdateList content right off the visible viewport (verified in
           `tests/welcome-card-hidden.test.tsx`). flexBasis/width=1 alone
           don't clamp — flex needs an overflow boundary on the wrap-content
           item itself. */}
@@ -135,8 +135,8 @@ export function SessionCard({
           {state.messages.length === 0 ? (
             <Welcome handle={handle} />
           ) : (
-            <MessageList
-              ref={messageListRefCb}
+            <SessionUpdateList
+              ref={scrollListRefCb}
               messages={state.messages}
               onApprove={onApprove}
               onDeny={onDeny}

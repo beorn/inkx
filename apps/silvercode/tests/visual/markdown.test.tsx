@@ -31,7 +31,7 @@ describe("markdown rendering at multiple widths", () => {
       // rows=200 is required at narrow widths: at cols=60 the message
       // column is ~16 cols wide once the side panel takes its 40-col
       // share, and the markdown fixture wraps to ~100 rendered lines.
-      // MessageList's `follow="end"` pins the viewport to the tail, so
+      // SessionUpdateList's `follow="end"` pins the viewport to the tail, so
       // a too-short window scrolls the leading `●` glyph out of view
       // and the cardStream parser finds zero assistant blocks.
       const s = await renderScenario({ script: markdownRich, cols, rows: 200 })

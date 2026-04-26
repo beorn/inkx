@@ -135,7 +135,7 @@ function StoryFrame({ story }: { story: Story }): React.ReactElement {
 /**
  * Entry point. Run via `bun apps/silvercode/storybook/runner.tsx` or the
  * `bun storybook` script. Optional first argv: a story id to open directly
- * (e.g. `bun storybook ToolCallBlock/bash`).
+ * (e.g. `bun storybook ToolCall/read`).
  */
 export async function main(): Promise<void> {
   const initial = process.argv[2]

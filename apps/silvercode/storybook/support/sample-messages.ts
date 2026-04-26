@@ -1,8 +1,8 @@
 /**
- * Hand-rolled `MessageEntry[]` fixtures for storybook MessageList stories.
+ * Hand-rolled `MessageEntry[]` fixtures for storybook SessionUpdateList stories.
  *
  * The shape mirrors `session-store.ts MessageEntry` exactly. Kept inline
- * (not loaded via `loadFixture`) because MessageList consumes the
+ * (not loaded via `loadFixture`) because SessionUpdateList consumes the
  * post-aggregation shape, not the raw event-stream shape — fake-fixtures
  * are events, not messages.
  */

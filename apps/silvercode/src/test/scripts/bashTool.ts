@@ -3,7 +3,7 @@
  * status) → tool_result → assistant text → turn-end.
  *
  * Exercises the tool-use / tool-result pairing in the session store. Useful
- * for testing ToolCallBlock rendering and turn status transitions (thinking
+ * for testing ToolCall rendering and turn status transitions (thinking
  * → tool-running → thinking → idle).
  */
 

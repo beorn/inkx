@@ -60,7 +60,7 @@ const MAX_LIVE_SESSIONS = 8
 
 /**
  * Prefix that marks a synthetic "background result" system message stuffed
- * into the conversation by `completeTask`. MessageList recognises this
+ * into the conversation by `completeTask`. SessionUpdateList recognises this
  * prefix and renders the row with a distinct (system) treatment instead of
  * the default user-message styling. Exported so test + UI code stays in
  * lockstep with the controller — the prefix is the contract.
@@ -697,7 +697,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
     // Surface as a system message in the conversation. We send the text
     // through the regular user-message apply path with a `bg-` prefixed
-    // turnId — MessageList recognises the prefix and renders a distinct
+    // turnId — SessionUpdateList recognises the prefix and renders a distinct
     // system-style row. This keeps us from having to extend AgentEvent
     // with a new kind (which would touch @km/agent-harness — out of scope
     // for this bead). See `BACKGROUND_MESSAGE_PREFIX` below.
@@ -1257,7 +1257,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
       // Surface a system message marking the interrupt. Uses the same
       // BACKGROUND_MESSAGE_PREFIX channel as background results so
-      // MessageList renders it with the system treatment.
+      // SessionUpdateList renders it with the system treatment.
       const sysTurnId = `int-${turnId}-${Date.now()}` as never
       handle.store.apply({
         kind: "user-message",

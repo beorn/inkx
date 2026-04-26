@@ -8,7 +8,7 @@
  * → user echo rendered with `/main.ts` and the next word visually adjacent
  * (no visible space). The assistant-response line below the same content
  * rendered with the proper space — so the bug was specific to the user-
- * message path (UserMessageBlock → LinkifiedText with role="user").
+ * message path (LinkifiedText with role="user").
  *
  * Fix: gap text between detections is rendered as `<Text>{gap}</Text>`
  * (a styled silvery-text node), not `<React.Fragment>{gap}</React.Fragment>`
@@ -26,13 +26,40 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { UserMessageBlock } from "../src/components/UserMessageBlock.tsx"
+import { Box, Prose, Text } from "silvery"
+import { LinkifiedText } from "../src/components/LinkifiedText.tsx"
 
-describe("UserMessageBlock — trailing space preserved after autolink", () => {
+/**
+ * Render the user-message row in isolation — same layout as SessionUpdateList's
+ * inline `UserRow` component: `>` glyph + Prose + LinkifiedText with role="user".
+ */
+function UserRow({ text }: { text: string }): React.ReactElement {
+  return (
+    <Box
+      flexDirection="column"
+      flexShrink={1}
+      minWidth={0}
+      backgroundColor="$bg-surface-subtle"
+      paddingX={1}
+      paddingY={0}
+    >
+      <Box flexDirection="row" gap={1} flexShrink={1} minWidth={0}>
+        <Text bold color="$accent">
+          {">"}
+        </Text>
+        <Prose flexGrow={1} flexShrink={1} minWidth={0}>
+          <LinkifiedText text={text} role="user" />
+        </Prose>
+      </Box>
+    </Box>
+  )
+}
+
+describe("user message row — trailing space preserved after autolink", () => {
   test("space character is present at the boundary between /main.ts and 'and'", () => {
     const text = "echo paths: vendor/silvery and /main.ts and https://example.com"
     const render = createRenderer({ cols: 100, rows: 5 })
-    const app = render(<UserMessageBlock text={text} />)
+    const app = render(<UserRow text={text} />)
 
     // Plain text: the space is preserved end-to-end.
     expect(app.text).toContain("/main.ts and")
@@ -78,7 +105,7 @@ describe("UserMessageBlock — trailing space preserved after autolink", () => {
     // two styled link Text nodes was the historical breakage shape.
     const text = "see /a.ts and /b.ts and /c.ts now"
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(<UserMessageBlock text={text} />)
+    const app = render(<UserRow text={text} />)
 
     // Every gap word is intact — no link absorbs an adjacent space.
     expect(app.text).toContain("/a.ts and ")

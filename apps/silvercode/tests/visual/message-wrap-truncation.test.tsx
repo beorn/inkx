@@ -1,23 +1,24 @@
 /**
  * Regression: long assistant message paragraphs truncate at 1 line when
- * rendered through MessageList → ListView. AssistantBlock alone wraps fine;
- * the bug is in ListView's interaction with `useBoxRect` returning 0 on the
- * first render (same root-cause class as `km-silvercode.cursor-startup-position`).
+ * rendered through SessionUpdateList → ListView. The assistant row (inline
+ * in SessionUpdateList) wraps fine in isolation; the bug was in ListView's
+ * interaction with `useBoxRect` returning 0 on the first render (same
+ * root-cause class as `km-silvercode.cursor-startup-position`).
  *
  * Bead: km-silvercode.message-wrap-truncation. Depends on
  * km-silvery.view-as-layout-output for the architectural fix.
  *
  * Two cases:
- *  - AssistantBlock alone: PASSES (proves the flex / Prose chain is correct).
- *  - MessageList with one long assistant message: FAILS today (regression
- *    marker). Will pass when view-as-layout-output lands.
+ *  - Inline assistant row: PASSES (proves the flex / Prose chain is correct).
+ *  - SessionUpdateList with one long assistant message: fixed by Phase 3 of
+ *    km-silvery.view-as-layout-output — ListView height-independence.
  */
 import React from "react"
 import { describe, expect, test, beforeAll } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box } from "silvery"
-import { MessageList } from "../../src/components/MessageList.tsx"
-import { AssistantBlock } from "../../src/components/AssistantBlock.tsx"
+import { Box, Prose } from "silvery"
+import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
+import { MarkdownView } from "../../src/components/MarkdownView.tsx"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import type { MessageEntry } from "@km/agent-harness"
@@ -41,13 +42,17 @@ function fakeAssistantMessage(text: string): MessageEntry {
 }
 
 describe("assistant message wrap (regression — km-silvercode.message-wrap-truncation)", () => {
-  test("AssistantBlock alone wraps long paragraph correctly", () => {
+  test("assistant row inline wraps long paragraph correctly", () => {
     const COLS = 60
     const ROWS = 30
     const render = createRenderer({ cols: COLS, rows: ROWS })
     const app = render(
       <Box width={COLS} height={ROWS} flexDirection="column">
-        <AssistantBlock text={longText} />
+        <Box flexDirection="row" gap={1} paddingX={1} flexShrink={1} minWidth={0}>
+          <Prose flexGrow={1}>
+            <MarkdownView source={longText} />
+          </Prose>
+        </Box>
       </Box>,
     )
     const totalRendered = app.text
@@ -60,9 +65,9 @@ describe("assistant message wrap (regression — km-silvercode.message-wrap-trun
 
   // Regression for km-silvercode.message-wrap-truncation. Closed by Phase 3
   // of km-silvery.view-as-layout-output — ListView height-independence +
-  // MessageList drops `useBoxRect`. Long paragraphs now wrap on the first
-  // render through the real component chain.
-  test("MessageList with long paragraph wraps (km-silvercode.message-wrap-truncation regression)", () => {
+  // SessionUpdateList drops `useBoxRect`. Long paragraphs now wrap on the
+  // first render through the real component chain.
+  test("SessionUpdateList with long paragraph wraps (km-silvercode.message-wrap-truncation regression)", () => {
     const COLS = 60
     const ROWS = 30
     const render = createRenderer({ cols: COLS, rows: ROWS })
@@ -79,7 +84,7 @@ describe("assistant message wrap (regression — km-silvercode.message-wrap-trun
         paddingX={1}
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1}>
-          <MessageList
+          <SessionUpdateList
             messages={[fakeAssistantMessage(longText)]}
             onApprove={() => {}}
             onDeny={() => {}}
@@ -98,7 +103,7 @@ describe("assistant message wrap (regression — km-silvercode.message-wrap-trun
       .split("\n")
       .filter((l) => l.trim().length > 0)
       .join(" ")
-    // Today: only "● A workspace ... unified not" survives; "submodule" / "layout" are clipped.
+    // Long paragraphs wrap on the first render via ListView height-independence.
     expect(totalRendered).toContain("submodule")
   })
 })
