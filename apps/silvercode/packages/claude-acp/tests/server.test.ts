@@ -16,6 +16,9 @@
  * Bead: `km-silvercode.acp-claude-server`.
  */
 
+import { mkdirSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { EventEmitter, PassThrough, Readable, Writable } from "node:stream"
 import * as acp from "@agentclientprotocol/sdk"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
@@ -190,7 +193,7 @@ describe("runClaudeAcpServer — ACP wire end-to-end", () => {
 
     expect(init.protocolVersion).toBe(1)
     expect(init.agentCapabilities).toBeDefined()
-    expect(init.agentCapabilities?.loadSession).toBe(false)
+    expect(init.agentCapabilities?.loadSession).toBe(true)
     expect(init.authMethods).toBeDefined()
     expect(init.authMethods!.some((m) => m.id === "claude-login")).toBe(true)
     expect(init.authMethods!.some((m) => m.id === "anthropic-api-key")).toBe(true)
@@ -498,6 +501,131 @@ describe("runClaudeAcpServer — ACP wire end-to-end", () => {
     wire.clientStdout.end()
     wire.serverStdout.end()
     await settle(20)
+    await serverPromise.catch(() => {})
+  })
+
+  test("loadSession — file not found throws RequestError -32000", async () => {
+    setScript([])
+    const wire = createWirePair()
+    const { runClaudeAcpServer } = await import("../src/server.ts")
+
+    const serverPromise = runClaudeAcpServer({
+      stdin: wire.serverStdin,
+      stdout: wire.serverStdout,
+    })
+
+    const { conn } = buildClient(wire)
+    await conn.initialize({ protocolVersion: 1 })
+
+    // Use a cwd with a real-looking temp path so the encoded dir exists (or
+    // doesn't) — we want the JSONL file to genuinely be absent.
+    const fakeCwd = join(tmpdir(), `claude-acp-test-${Date.now()}`)
+
+    // The ACP SDK logs the RequestError to console.error when it dispatches
+    // the server-side handler failure back to the client. Suppress it so
+    // km's no-console-output vitest rule doesn't fire.
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      await expect(
+        conn.loadSession({
+          sessionId: "nonexistent-session-id-12345" as acp.SessionId,
+          cwd: fakeCwd,
+          mcpServers: [],
+        }),
+      ).rejects.toMatchObject({ code: -32000 })
+    } finally {
+      consoleErrorSpy.mockRestore()
+    }
+
+    wire.clientStdout.end()
+    wire.serverStdout.end()
+    await settle(20)
+    await serverPromise.catch(() => {})
+  })
+
+  test("loadSession — replays JSONL as SessionUpdate notifications then starts live session", async () => {
+    // Build a real JSONL fixture on disk in a location replayJsonl will find.
+    // replayJsonl resolves: join(homedir(), ".claude", "projects", encodedCwd, `${sessionId}.jsonl`)
+    // We pick cwd = "/<unique>" so encodedCwd = "-<unique>" and the fixture
+    // path is ~/.claude/projects/-<unique>/<sessionId>.jsonl.
+    const { homedir: _homedir } = await import("node:os")
+    const uniqueSuffix = `claude-acp-replay-test-${Date.now()}`
+    const testCwd = `/${uniqueSuffix}`
+    const testEncodedCwd = testCwd.replace(/\//g, "-")
+    const sessionId = `test-session-replay-${Date.now()}`
+    const fixtureDir = join(_homedir(), ".claude", "projects", testEncodedCwd)
+    const fixturePath = join(fixtureDir, `${sessionId}.jsonl`)
+    mkdirSync(fixtureDir, { recursive: true })
+
+    // Write an on-disk JSONL fixture using the aggregate "assistant" format
+    // that Claude Code uses on disk (not the streaming stream_event format).
+    writeFileSync(
+      fixturePath,
+      JSON.stringify({
+        type: "assistant",
+        session_id: sessionId,
+        message: {
+          id: "msg-replay-1",
+          role: "assistant",
+          content: [{ type: "text", text: "Hello from replay." }],
+        },
+      }) + "\n",
+      "utf8",
+    )
+
+    // The live claude --resume spawn produces the usual init + empty exit.
+    setScript([
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        cwd: testCwd,
+        session_id: sessionId,
+        tools: [],
+        mcp_servers: [],
+        model: "claude-sonnet-4-6",
+        permissionMode: "auto",
+      }),
+    ])
+
+    const wire = createWirePair()
+    const { runClaudeAcpServer } = await import("../src/server.ts")
+
+    const serverPromise = runClaudeAcpServer({
+      stdin: wire.serverStdin,
+      stdout: wire.serverStdout,
+    })
+
+    const { conn, updates } = buildClient(wire)
+    await conn.initialize({ protocolVersion: 1 })
+
+    const result = await conn.loadSession({
+      sessionId: sessionId as acp.SessionId,
+      cwd: testCwd,
+      mcpServers: [],
+    })
+    expect(result).toBeDefined()
+
+    // Give the replay + live-session events time to propagate.
+    await settle(50)
+
+    // The replayed assistant aggregate should have produced at least one
+    // agent_message_chunk notification — this is the key assertion that
+    // on-disk JSONL replay works (assistant aggregate → agent_message_chunk).
+    const agentChunks = updates.filter((u) => u.update.sessionUpdate === "agent_message_chunk")
+    expect(agentChunks.length).toBeGreaterThanOrEqual(1)
+
+    // Verify the replayed text matches what we wrote to the fixture.
+    const combinedText = agentChunks
+      .map((u) => {
+        const up = u.update as Extract<acp.SessionUpdate, { sessionUpdate: "agent_message_chunk" }>
+        return up.content.type === "text" ? up.content.text : ""
+      })
+      .join("")
+    expect(combinedText).toContain("Hello from replay.")
+
+    wire.clientStdout.end()
+    wire.serverStdout.end()
+    await settle(30)
     await serverPromise.catch(() => {})
   })
 })

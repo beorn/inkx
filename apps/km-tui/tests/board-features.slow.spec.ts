@@ -145,9 +145,26 @@ describe("Text Rendering", () => {
   })
 
   test("truncation shows ellipsis for very long titles", () => {
+    // Long titles get elided somewhere on screen so the user sees the
+    // truncation. Two paths emit ellipsis chars in km/silvery:
+    //
+    //   * Breadcrumb path (apps/km-tui/src/layout/path.ts) \u2014 emits
+    //     U+22EF (`\u22ef` MIDLINE HORIZONTAL ELLIPSIS) when the cursor's
+    //     ancestor path overflows the top-bar width.
+    //   * Silvery's `<Text wrap="truncate">` \u2014 emits U+2026
+    //     (`\u2026` HORIZONTAL ELLIPSIS) when text overflows a fixed-width
+    //     truncate Text.
+    //
+    // Top-level cards in cards view use `wrap="wrap"`, not `truncate`,
+    // so the silvery U+2026 path is not what fires here. The breadcrumb
+    // truncates the long title with U+22EF \u2014 that is the visible signal
+    // the test guarantees. See bead `km-all.fix-sweep-board-features`
+    // for the archaeology that pinned the original commit history.
     const longTitle = "A".repeat(200)
     using app = createTestApp(item("board", item("col", item(longTitle))))
-    expect(app.text).toContain("\u2026") // U+2026 horizontal ellipsis (from silvery truncateText)
+    // Either ellipsis convention satisfies the contract: "user sees truncation".
+    const hasEllipsis = app.text.includes("\u2026") || app.text.includes("\u22ef")
+    expect(hasEllipsis).toBe(true)
   })
 
   test("special characters render correctly", () => {
@@ -614,13 +631,24 @@ describe("Search and Filter", () => {
     expect(app.text).toContain("Task 15")
     expect(app.text).toContain("Task 16")
 
-    // Key check: Each result line should appear only ONCE (no duplicates/overlap)
-    // Count occurrences of "Task" - should be roughly equal to maxVisible (~13)
+    // Key check: Each result line should appear only ONCE in the search dialog
+    // (no duplicates/overlap from stale scroll positions).
+    //
+    // The search dialog is centered with `position="absolute"` over the board
+    // (see CenterDialog in WorkspaceChrome.tsx) — by design, the background
+    // task list remains visible to the left/right of the dialog, faded by
+    // ModalDialog's backdrop (see vendor/silvery .../ModalDialog.tsx). That
+    // is intentional design — the dialog isn't a full-screen takeover.
+    //
+    // So: count duplicates among task IDs to detect scroll artifacts, not
+    // raw match count (which would also count the legitimate background).
     const taskMatches = app.text.match(/Task \d+/g) || []
-    // Should have ~13 matches (one per visible row), not more (no duplicates)
-    expect(taskMatches.length).toBeLessThanOrEqual(15) // Allow small buffer
-    // And definitely not 20+ (which would indicate duplicate rendering)
-    expect(taskMatches.length).toBeLessThan(20)
+    const counts = new Map<string, number>()
+    for (const m of taskMatches) counts.set(m, (counts.get(m) ?? 0) + 1)
+    // Each task ID should appear at most twice: once in the background list,
+    // once in the search results. Three or more = duplicate-rendering artifact.
+    const duplicates = [...counts.entries()].filter(([, n]) => n > 2)
+    expect(duplicates).toEqual([])
   })
 
   test("Enter navigates to visible node (same view)", () => {

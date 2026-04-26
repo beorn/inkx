@@ -24,12 +24,18 @@
  *                  AgentSideConnection ── Agent impl (this file)
  *                                              │
  *                                              ├─ initialize()
- *                                              │   → returns {protocolVersion: 1, ...}
+ *                                              │   → returns {protocolVersion: 1, loadSession: true, ...}
  *                                              │
  *                                              ├─ newSession({cwd, mcpServers})
  *                                              │   → spawnClaude(...) ── AgentSession
  *                                              │   → attachWire(...) ── translates events
  *                                              │   → returns {sessionId}
+ *                                              │
+ *                                              ├─ loadSession({sessionId, cwd, mcpServers})
+ *                                              │   → replayJsonl(...) ── replays JSONL as SessionUpdates
+ *                                              │   → spawnClaude(--resume sessionId) ── AgentSession
+ *                                              │   → attachWire(...) ── translates live events
+ *                                              │   → returns {}
  *                                              │
  *                                              ├─ prompt({sessionId, prompt})
  *                                              │   → session.send(text); awaitTurn()
@@ -42,10 +48,14 @@
  * "just work" as they would for an interactive `claude` invocation.
  */
 
+import { createReadStream } from "node:fs"
+import { stat } from "node:fs/promises"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import { Readable, Writable } from "node:stream"
 import * as acp from "@agentclientprotocol/sdk"
-import type { AgentSession, McpServerSpec } from "@km/agent-harness"
-import { spawnClaude } from "@km/agent-harness"
+import type { AgentEvent, AgentSession, McpServerSpec, ToolCallContent, ToolCallId } from "@km/agent-harness"
+import { createLineSplitter, createStreamJsonParser, silvercodeToAcp, spawnClaude } from "@km/agent-harness"
 import { createScope, type Scope, disposable } from "@silvery/scope"
 import { attachWire, type WireHandle } from "./wire.ts"
 
@@ -122,7 +132,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       return {
         protocolVersion: 1,
         agentCapabilities: {
-          loadSession: false,
+          loadSession: true,
           promptCapabilities: {
             image: false,
             audio: false,
@@ -228,6 +238,92 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       }
     },
 
+    async loadSession(params: acp.LoadSessionRequest): Promise<acp.LoadSessionResponse> {
+      if (!connRef) throw new Error("claude-acp: connection not yet bound")
+
+      const sessionId = params.sessionId as string
+      const cwd = params.cwd ?? process.cwd()
+
+      // Resolve the on-disk JSONL path. Claude Code stores sessions at:
+      //   ~/.claude/projects/<encodedCwd>/<sessionId>.jsonl
+      // where encodedCwd replaces every '/' with '-' (leading '-' is from '/'
+      // at the root — it's the literal encoding Claude Code uses).
+      const encodedCwd = cwd.replace(/\//g, "-")
+      const jsonlPath = join(homedir(), ".claude", "projects", encodedCwd, `${sessionId}.jsonl`)
+
+      // Verify the file exists before doing anything else.
+      try {
+        await stat(jsonlPath)
+      } catch {
+        throw new acp.RequestError(-32000, `session not found: ${sessionId}`)
+      }
+
+      // Per-session scope — ties both the JSONL replay and the live resume
+      // subprocess to a single teardown path.
+      const sessionScope = scope.child(`claude-session-${sessions.size + 1}`)
+
+      // Build the MCP servers list the same way newSession does.
+      const mcpServers: McpServerSpec[] = []
+      for (const m of params.mcpServers ?? []) {
+        const candidate = m as Partial<acp.McpServerStdio> & { name: string }
+        if (typeof candidate.command === "string") {
+          mcpServers.push({
+            name: candidate.name,
+            command: candidate.command,
+            args: candidate.args ?? [],
+            env: Object.fromEntries((candidate.env ?? []).map((e) => [e.name, e.value])),
+          })
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // Phase 1 — Replay the JSONL file as SessionUpdate notifications.
+      //
+      // We pipe the on-disk JSONL through the existing stream-json parser
+      // (the same parser spawnClaude uses for live output). Each recognizable
+      // AgentEvent gets translated to a SessionUpdate notification via the same
+      // silvercodeToAcp boundary adapter that attachWire uses, guaranteeing
+      // the replay and the live stream use identical translation paths.
+      //
+      // Unsupported event kinds are skipped silently — they were already
+      // handled in the original session. On-disk JSONL uses aggregate
+      // "assistant" entries (not streaming text deltas), so assistant-message
+      // events are specially handled to emit agent_message_chunk per block.
+      // -----------------------------------------------------------------------
+
+      await replayJsonl(jsonlPath, sessionId, connRef)
+
+      // -----------------------------------------------------------------------
+      // Phase 2 — Spawn `claude --resume <sessionId>` and attach the wire,
+      // mirroring the newSession path exactly so prompt()/cancel() work the
+      // same way for resumed sessions as for new ones.
+      // -----------------------------------------------------------------------
+
+      const agentSession = spawnClaude({
+        cwd,
+        resume: sessionId,
+        mcpServers: mcpServers.length > 0 ? mcpServers : undefined,
+        ...(opts.claudeBinary ? { binary: opts.claudeBinary } : {}),
+      })
+
+      sessionScope.use(
+        disposable({}, () => {
+          try {
+            agentSession.close()
+          } catch {
+            // already closed
+          }
+        }),
+      )
+
+      const wire = attachWire(connRef, agentSession, sessionId)
+      sessionScope.use(disposable({}, () => wire.detach()))
+
+      sessions.set(sessionId, { agentSession, wire, sessionScope })
+
+      return {}
+    },
+
     async prompt(params: acp.PromptRequest): Promise<acp.PromptResponse> {
       const entry = sessions.get(params.sessionId as string)
       if (!entry) {
@@ -302,4 +398,152 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
   // Resolve when the connection closes. Callers (the bin entry) typically
   // run for the lifetime of the parent ACP client.
   await conn.closed
+}
+
+// ---------------------------------------------------------------------------
+// replayJsonl — read a Claude session JSONL file and emit each recognized
+// AgentEvent as an ACP SessionUpdate notification. Used during loadSession.
+//
+// The same createStreamJsonParser that spawnClaude uses for live output is
+// reused here — it already knows how to skip unrecognized types
+// (permission-mode, attachment, last-prompt, file-history-snapshot, etc.)
+// and correctly handles the on-disk JSONL shapes (assistant aggregate blocks,
+// user echo with wrapper-tag normalization, meta entries with isMeta:true).
+// ---------------------------------------------------------------------------
+
+/**
+ * Emit ACP SessionUpdate notifications for every recognizable event in a
+ * Claude session JSONL file. Resolves when the file is fully read.
+ *
+ * Events that don't map to a SessionUpdate (e.g. session-init, status,
+ * permission-request) are skipped silently — they were already handled in
+ * the original session.
+ */
+async function replayJsonl(jsonlPath: string, sessionId: string, conn: acp.AgentSideConnection): Promise<void> {
+  return new Promise((resolve, reject) => {
+    function emitUpdate(event: AgentEvent): void {
+      let update: acp.SessionUpdate | null = null
+
+      switch (event.kind) {
+        case "user-message": {
+          update = silvercodeToAcp({
+            sessionUpdate: "user_message_chunk",
+            content: { type: "text", text: event.text },
+            messageId: null,
+          })
+          break
+        }
+        case "text-delta": {
+          update = silvercodeToAcp({
+            sessionUpdate: "agent_message_chunk",
+            content: { type: "text", text: event.text },
+            messageId: null,
+          })
+          break
+        }
+        case "thinking-delta": {
+          update = silvercodeToAcp({
+            sessionUpdate: "agent_thought_chunk",
+            content: { type: "text", text: event.text },
+            messageId: null,
+          })
+          break
+        }
+        case "tool-use": {
+          update = silvercodeToAcp({
+            sessionUpdate: "tool_call",
+            toolCallId: String(event.id) as ToolCallId,
+            title: event.name,
+            status: "in_progress",
+            rawInput: event.input,
+          })
+          break
+        }
+        case "tool-result": {
+          const content: ToolCallContent[] = [
+            {
+              type: "content",
+              content: {
+                type: "text",
+                text: typeof event.output === "string" ? event.output : JSON.stringify(event.output ?? ""),
+              },
+            },
+          ]
+          update = silvercodeToAcp({
+            sessionUpdate: "tool_call_update",
+            toolCallId: String(event.id) as ToolCallId,
+            status: event.is_error ? "failed" : "completed",
+            rawOutput: event.output,
+            content,
+          })
+          break
+        }
+        case "assistant-message": {
+          // On-disk JSONL stores assistant turns as aggregate "assistant"
+          // entries rather than streaming text deltas. During replay we
+          // emit each text / thinking content block as the appropriate
+          // chunk notification so clients reconstruct the full conversation
+          // transcript. Tool-use blocks are handled by the separate
+          // tool-use event that parse.ts also emits from the same aggregate.
+          for (const block of event.content) {
+            let blockUpdate: acp.SessionUpdate | null = null
+            if (block.type === "text" && block.text.length > 0) {
+              blockUpdate = silvercodeToAcp({
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: block.text },
+                messageId: null,
+              })
+            } else if (block.type === "thinking" && block.text.length > 0) {
+              blockUpdate = silvercodeToAcp({
+                sessionUpdate: "agent_thought_chunk",
+                content: { type: "text", text: block.text },
+                messageId: null,
+              })
+            }
+            if (blockUpdate) {
+              void conn.sessionUpdate({
+                sessionId: sessionId as acp.SessionId,
+                update: blockUpdate,
+              })
+            }
+          }
+          return
+        }
+        // session-init, turn-start, turn-end, session-end, session-lifecycle,
+        // permission-request, permission-decision, status, error, handoff,
+        // km-reference — no direct ACP SessionUpdate slot; skip silently
+        // (already handled in the original session).
+        default:
+          return
+      }
+
+      if (update) {
+        void conn.sessionUpdate({
+          sessionId: sessionId as acp.SessionId,
+          update,
+        })
+      }
+    }
+
+    const parser = createStreamJsonParser(emitUpdate)
+    const splitter = createLineSplitter((line) => {
+      try {
+        parser.push(line)
+      } catch {
+        // Parser errors are defensive-skipped to match the live wire's stance.
+      }
+    })
+
+    const fileStream = createReadStream(jsonlPath, { encoding: "utf8" })
+    fileStream.on("data", (chunk: string | Buffer) => {
+      splitter.push(typeof chunk === "string" ? chunk : chunk.toString("utf8"))
+    })
+    fileStream.on("end", () => {
+      splitter.flush()
+      resolve()
+    })
+    fileStream.on("error", (err) => {
+      reject(err)
+    })
+  })
 }
