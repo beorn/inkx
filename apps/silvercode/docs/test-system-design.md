@@ -392,12 +392,12 @@ Followups (new beads):
 
 Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
 
-| Boundary           | What's faked                                                                                   | Override entry point                                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Claude CLI version | `spawnSync("claude", "--version")` at module load                                              | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
-| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                        | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                               |
+| Boundary           | What's faked                                                                           | Override entry point                                                                                                    |
+| ------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Claude CLI version | `spawnSync("claude", "--version")` at module load                                      | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
+| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                               |
 | Account / quota    | accountly's `checkProfileQuota`, keychain reads, `~/.cache/km/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })`                                                                      |
-| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                                  |
+| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                                  |
 
 ### How the wiring lands without touching components
 
