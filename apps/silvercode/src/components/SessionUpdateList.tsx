@@ -32,10 +32,10 @@
  * Bead: km-silvercode.acp-session-update-list.
  */
 
-import React from "react"
+import React, { useMemo } from "react"
 import type { MessageEntry, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
-import { Box, ListView, type ListViewHandle, Prose, Text } from "silvery"
+import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { ToolCall } from "./ToolCall.tsx"
@@ -278,6 +278,52 @@ function AssistantRow({ text }: { text: string }): React.ReactElement {
  * Render one `MessageEntry`. Dispatches on role and handles the background-
  * system-message sentinel pattern.
  */
+/**
+ * RawInspector — secret debug trick. Wraps each chat entry so that hovering
+ * with Cmd+Shift held shows a popover with the entry's raw JSON. When the
+ * modifiers aren't held, the wrapper is a transparent passthrough — no popover
+ * trigger, no event cost beyond the modifier-state hook.
+ *
+ * Why: debugging a verbose-tool-result or thinking-loop bug usually means
+ * inspecting what the wire actually delivered. Without this, the only path is
+ * opening the JSONL file directly. The Cmd+Shift gate keeps the affordance
+ * out of the way for normal use.
+ *
+ * Cmd is `super` in silvery's modifier-key tracking (macOS). Most terminals
+ * pass Cmd through in mouse events; the popover gracefully no-ops on terminals
+ * that don't.
+ *
+ * Bead: km-silvercode.raw-entry-inspector.
+ */
+function RawInspector({ payload, children }: { payload: unknown; children: React.ReactNode }): React.ReactElement {
+  const { super: cmdHeld, shift: shiftHeld } = useModifierKeys()
+  const debugMode = cmdHeld && shiftHeld
+  // Always compute a valid PopoverContent (the hook requires non-null), but
+  // only attach mouse handlers when debug mode is active. When the modifiers
+  // aren't held, the wrapper is a transparent fragment — no handlers, no
+  // hover-event cost.
+  const popoverContent = useMemo(() => {
+    const json = JSON.stringify(payload, null, 2)
+    // Trim very long payloads; full payload available via /raw or the JSONL.
+    const lines = json.split("\n")
+    const truncated =
+      lines.length > 40 ? [...lines.slice(0, 40), `… (${lines.length - 40} more lines)`].join("\n") : json
+    return {
+      body: (
+        <Box flexDirection="column" gap={0}>
+          <Text bold color="$muted">
+            raw entry · cmd+shift+hover
+          </Text>
+          <Text>{truncated}</Text>
+        </Box>
+      ),
+      maxWidth: 100,
+    }
+  }, [payload])
+  const handlers = usePopoverHandlers(popoverContent)
+  return debugMode ? <Box {...handlers}>{children}</Box> : <>{children}</>
+}
+
 function ExchangeItem({ m, showRaw }: { m: MessageEntry; showRaw: boolean }): React.ReactElement {
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
@@ -384,7 +430,9 @@ export const SessionUpdateList = React.forwardRef<
             outputTokens={outputTokens}
           />
         ) : (
-          <ExchangeItem m={item} showRaw={showRaw} />
+          <RawInspector payload={item}>
+            <ExchangeItem m={item} showRaw={showRaw} />
+          </RawInspector>
         )
       }
     />
