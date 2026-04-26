@@ -33,6 +33,14 @@ beforeEach(async () => {
   // explicit-input tests — env-fallback gets its own test that sets them.
   delete process.env["SILVERCODE_AGENT"]
   delete process.env["KM_AGENT"]
+  // Seed an ambient credential so the zero-config pre-flight is satisfied
+  // for whichever built-in agent each test happens to resolve to. The
+  // pre-flight's intent is verified in `zero-config.test.ts`; here we
+  // just need *some* cred source so resolution returns a value.
+  process.env["ANTHROPIC_API_KEY"] ||= "sk-test-resolve-fixture"
+  process.env["OPENAI_API_KEY"] ||= "sk-test-resolve-fixture"
+  process.env["GEMINI_API_KEY"] ||= "test-resolve-fixture"
+  process.env["GITHUB_TOKEN"] ||= "ghp-test-resolve-fixture"
 })
 
 afterEach(() => {

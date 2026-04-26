@@ -18,8 +18,12 @@
  * controller contract stays unchanged.
  */
 
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import type { Config } from "@silvery/config"
-import { AcpEntryKind, BUILTIN_AGENTS, isBuiltinAgentId, type AcpEntry } from "./config-schema.ts"
+import { accountExists, accountsRoot, listAccounts } from "./accounts.ts"
+import { AcpEntryKind, BUILTIN_AGENTS, isBuiltinAgentId, type AcpEntry, type BuiltinAgent } from "./config-schema.ts"
 
 export type ResolvedConnection = {
   /** Connection entry — same shape as the `ai.acp.<name>` schema. */
@@ -28,6 +32,10 @@ export type ResolvedConnection = {
   readonly source: "registry-label" | "connection-string" | "builtin" | "default-builtin" | "registry-default"
   /** The label name when source === "registry-label" / "registry-default". */
   readonly label?: string
+  /** When the entry's `account` was auto-discovered (lone `~/.km/accounts/<x>/`),
+   *  the name picked. Undefined when the user named one explicitly or when no
+   *  account dir applies (creds come from `credDir` / `credEnv`). */
+  readonly autoAccount?: string
 }
 
 const ACP_PREFIX = "ai.acp"
@@ -43,6 +51,19 @@ const ACP_PREFIX = "ai.acp"
  * — multi-line, listing what was tried + what's available.
  */
 export function resolveConnection(input: string | undefined, config: Config): ResolvedConnection {
+  const base = resolveBase(input, config)
+  // Auto-discover an account when the entry hasn't named one. Only fires for
+  // built-in agents — custom (free-form) agent ids handle creds themselves.
+  const withAccount = autoResolveAccount(base)
+  // Pre-flight: refuse to mount silvercode when no cred source is reachable
+  // for the chosen built-in agent. Surfaces an actionable error before the
+  // controller spawns the underlying agent, which would otherwise emit a
+  // generic "auth failed" message.
+  preflightCredentials(withAccount)
+  return withAccount
+}
+
+function resolveBase(input: string | undefined, config: Config): ResolvedConnection {
   // Branch A — explicit input.
   if (input !== undefined && input.length > 0) {
     return resolveExplicit(input, config)
@@ -163,4 +184,110 @@ function looksLikeConnectionString(input: string): boolean {
 function listLabels(config: Config): string[] {
   const reg = config.registry(ACP_PREFIX, AcpEntryKind)
   return reg.entries().map((e) => e.name)
+}
+
+/**
+ * Zero-config account discovery. When the resolved entry hasn't named an
+ * account AND `~/.km/accounts/` contains exactly one populated subdir, use
+ * it. The single-account case is the overwhelming majority of first-run
+ * users — picking it silently mirrors how `git`/`ssh` pick their lone
+ * config without prompting.
+ *
+ * Multi-account cases leave `account` undefined on purpose:
+ * - The doctor (`silvercode doctor connections`) will flag the ambiguity.
+ * - Runtime falls through to `credDir` (e.g. `~/.claude/`) or `credEnv`
+ *   so the agent still has *some* path to credentials.
+ *
+ * Custom (non-built-in) agents are passed through unchanged — silvercode
+ * has no opinion on how their creds are stored.
+ */
+function autoResolveAccount(base: ResolvedConnection): ResolvedConnection {
+  if (base.entry.account !== undefined && base.entry.account.length > 0) return base
+  if (!isBuiltinAgentId(base.entry.agent)) return base
+
+  const names = listAccounts().filter(accountExists)
+  if (names.length !== 1) return base
+  const picked = names[0]
+  if (!picked) return base
+
+  return {
+    ...base,
+    entry: { ...base.entry, account: picked },
+    autoAccount: picked,
+  }
+}
+
+/**
+ * True when `path` starts with `~` — expand against `$HOME` (or the OS
+ * homedir as a fallback). Used for `credDir` paths declared on built-in
+ * agents like `~/.claude`.
+ *
+ * Honors `$HOME` first so tests can redirect via `vi.stubEnv("HOME", ...)`,
+ * matching the convention in `accounts.ts`.
+ */
+function expandHome(path: string): string {
+  if (!path.startsWith("~")) return path
+  const home = process.env.HOME ?? homedir()
+  if (path === "~") return home
+  if (path.startsWith("~/")) return join(home, path.slice(2))
+  return path
+}
+
+/**
+ * Pre-flight credential check for built-in agents. Refuses to proceed
+ * when none of the agent's credential sources are reachable:
+ *
+ *   1. `entry.account` → resolved + populated under `~/.km/accounts/`
+ *   2. agent's `credDir` (e.g. `~/.claude/`) exists on disk
+ *   3. any of the agent's `credEnv` env vars is set + non-empty
+ *
+ * The error message names the agent and lists every env var the agent
+ * accepts, plus the one-liner copy command for populating an account
+ * dir. Called *after* `autoResolveAccount` so an auto-picked account
+ * counts as a valid source.
+ *
+ * Skipped entirely for custom (non-built-in) agents — power-user
+ * territory; silvercode shouldn't second-guess their setup.
+ */
+function preflightCredentials(resolved: ResolvedConnection): void {
+  const builtin = BUILTIN_AGENTS[resolved.entry.agent]
+  if (!builtin) return // custom agent — user's responsibility
+
+  if (hasReachableCredentials(resolved, builtin)) return
+
+  throw new Error(buildNoCredsError(resolved, builtin))
+}
+
+function hasReachableCredentials(resolved: ResolvedConnection, builtin: BuiltinAgent): boolean {
+  // 1. Named account dir — populated check (settings.json or .credentials.json).
+  if (typeof resolved.entry.account === "string" && resolved.entry.account.length > 0) {
+    if (accountExists(resolved.entry.account)) return true
+  }
+  // 2. credDir — agent's documented config directory exists.
+  if (builtin.credDir) {
+    if (existsSync(expandHome(builtin.credDir))) return true
+  }
+  // 3. credEnv — any of the named env vars is set + non-empty.
+  for (const name of builtin.credEnv) {
+    const value = process.env[name]
+    if (typeof value === "string" && value.length > 0) return true
+  }
+  return false
+}
+
+function buildNoCredsError(resolved: ResolvedConnection, builtin: BuiltinAgent): string {
+  const envList = builtin.credEnv.join(", ") || "(none documented)"
+  const accountName =
+    typeof resolved.entry.account === "string" && resolved.entry.account.length > 0 ? resolved.entry.account : "<name>"
+  const lines: string[] = [
+    `silvercode: no credentials reachable for agent=${builtin.id}.`,
+    "",
+    `Set one of: ${envList}`,
+    "  or run: silvercode auth login",
+    `  or populate: ${accountsRoot()}/${accountName}/  (e.g. cp -r ~/.claude/. ${accountsRoot()}/${accountName}/)`,
+  ]
+  if (builtin.credDir) {
+    lines.push(`  or ensure ${builtin.credDir} exists with valid credentials`)
+  }
+  return lines.join("\n")
 }
