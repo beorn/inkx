@@ -28,8 +28,18 @@ export type Detection = AutolinksDetection<DetectionKind>
 /** Bead identifiers of the form `bd-<scope>.<slug>`, `bd:<id>`, `km-<scope>.<slug>`. */
 const BEAD_RE = /\b(?:bd[-:]|km-)[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\b/g
 
-/** Absolute and tilde paths. Captures optional `:line[:col]` suffix. */
-const FILE_RE = /(~[A-Za-z0-9/_.-]+|\/[A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
+/**
+ * Absolute and tilde paths. Captures optional `:line[:col]` suffix.
+ *
+ * The `\/[A-Za-z0-9/_.-]+` branch is gated by a negative lookbehind so the
+ * leading `/` is only treated as path-start when it's at start-of-string or
+ * preceded by a non-word character (whitespace, punctuation). Without the
+ * lookbehind, compound paths like `vendor/silvery` would have their `/silvery`
+ * tail matched as a "file" because regex `matchAll` is happy to start
+ * matching mid-token. Real absolute paths (e.g. `cd /Users/foo`) still
+ * match because the `/` there is preceded by space.
+ */
+const FILE_RE = /(~[A-Za-z0-9/_.-]+|(?<![A-Za-z0-9_])\/[A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
 
 /** km node refs: #id or @mention. */
 const KM_REF_RE = /(?:^|\s)(?:#|@)([A-Za-z][A-Za-z0-9_-]{2,})/g
@@ -62,8 +72,7 @@ export function detectReferences(text: string): Detection[] {
     }
     return ranges
   })()
-  const insideURL = (start: number, end: number): boolean =>
-    urlRanges.some(([s, e]) => start >= s && end <= e)
+  const insideURL = (start: number, end: number): boolean => urlRanges.some(([s, e]) => start >= s && end <= e)
 
   for (const m of text.matchAll(BEAD_RE)) {
     const idx = m.index ?? 0

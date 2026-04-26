@@ -48,6 +48,47 @@ describe("detection", () => {
       cursor = det.end
     }
   })
+
+  // Regression: km-silvercode.file-detection-false-positive — the `/foo`
+  // tail of a compound path like `vendor/silvery` was being matched as a
+  // file because FILE_RE's leading `/` had no path-boundary check. The
+  // lookbehind in FILE_RE rejects `/` when it's preceded by a word char.
+  test("compound paths don't yield file detections for inner segments", () => {
+    const text = "vendor/silvery JSX intrinsics"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files).toHaveLength(0)
+  })
+
+  test("relative paths don't trigger file detection", () => {
+    // `pkg/foo/bar.ts` is a relative path with no leading `/` or `~`. It's
+    // not absolute, so we don't match it. (CODE_REF_RE does match
+    // `bar.ts:1` shapes, but plain `pkg/foo/bar.ts` without a `:line` does
+    // not, by design — ambiguous with prose.)
+    const text = "see pkg/foo/bar.ts for the implementation"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files).toHaveLength(0)
+  })
+
+  test("absolute path at start-of-line still detects", () => {
+    const text = "/path/to/file.ts is the entrypoint"
+    const d = detectReferences(text)
+    // Either FILE or CODE_REF kind is acceptable — we just want SOMETHING
+    // to anchor the popover. CODE_REF takes priority via dedup ordering
+    // when both apply (no `:line` here, so FILE wins).
+    const matched = d.filter((x) => x.kind === "file" || x.kind === "code-ref")
+    expect(matched.length).toBeGreaterThan(0)
+    expect(matched.some((m) => m.match.includes("/path/to/file.ts"))).toBe(true)
+  })
+
+  test("absolute path after whitespace still detects", () => {
+    const text = "cd /Users/beorn/foo && ls"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files.length).toBeGreaterThan(0)
+    expect(files[0]?.match).toBe("/Users/beorn/foo")
+  })
 })
 
 describe("markdown tokenizer", () => {
