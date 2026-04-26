@@ -169,7 +169,10 @@ export interface AcpAgentSession extends AgentSession {
    * capability at initialize time. Replaces this handle's `sessionId`
    * with the resumed one.
    */
-  loadSession(sessionId: string, opts?: { cwd?: string; mcpServers?: acp.McpServer[] }): Promise<acp.LoadSessionResponse>
+  loadSession(
+    sessionId: string,
+    opts?: { cwd?: string; mcpServers?: acp.McpServer[] },
+  ): Promise<acp.LoadSessionResponse>
 }
 
 // ---------------------------------------------------------------------------

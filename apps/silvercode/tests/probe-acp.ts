@@ -99,19 +99,19 @@ const baseOpts = {
     fs: { readTextFile: true, writeTextFile: true },
   },
   fsHandler: {
-      async readTextFile({ path }) {
-        try {
-          const content = await Bun.file(path).text()
-          return { content }
-        } catch (err) {
-          throw new Error(`fs/read_text_file failed for ${path}: ${(err as Error).message}`)
-        }
-      },
-      async writeTextFile({ path, content }) {
-        await Bun.write(path, content)
-        return {}
-      },
+    async readTextFile({ path }) {
+      try {
+        const content = await Bun.file(path).text()
+        return { content }
+      } catch (err) {
+        throw new Error(`fs/read_text_file failed for ${path}: ${(err as Error).message}`)
+      }
     },
+    async writeTextFile({ path, content }) {
+      await Bun.write(path, content)
+      return {}
+    },
+  },
   permissionHandler: async (req) => {
     const optionId = req.options[0]?.optionId
     if (!optionId) {
@@ -147,20 +147,27 @@ try {
   const e = err as Error
   if (e instanceof AcpResumeUnsupportedError) {
     console.error(`[probe] connect failed: ${e.message}`)
-    console.error(`[probe] hint: agent '${registryId}' does not support session/load (loadSession capability false). Resume is not supported here.`)
+    console.error(
+      `[probe] hint: agent '${registryId}' does not support session/load (loadSession capability false). Resume is not supported here.`,
+    )
     process.exit(4)
   }
   console.error(`[probe] connect failed: ${e.message}`)
   if (e.message.includes("ENOENT") || e.message.includes("not found")) {
-    console.error(`[probe] hint: the spawn command for '${registryId}' is not on PATH. Check the install instructions for that agent.`)
+    console.error(
+      `[probe] hint: the spawn command for '${registryId}' is not on PATH. Check the install instructions for that agent.`,
+    )
   }
   if (e.message.includes("connection closed")) {
-    console.error(`[probe] hint: the child process exited before negotiating ACP — likely auth/install failure. Run the spawn command manually:`)
+    console.error(
+      `[probe] hint: the child process exited before negotiating ACP — likely auth/install failure. Run the spawn command manually:`,
+    )
     if (registryId === "codex") console.error(`  bun x @zed-industries/codex-acp`)
     else if (registryId === "gemini") console.error(`  bun x @google/gemini-cli --experimental-acp`)
     else if (registryId === "pi-acp") console.error(`  bun x pi-acp`)
     else if (registryId === "github-copilot-cli") console.error(`  copilot`)
-    else if (registryId === "claude-code") console.error(`  bun apps/silvercode/packages/claude-acp/bin/silvercode-claude-acp.js`)
+    else if (registryId === "claude-code")
+      console.error(`  bun apps/silvercode/packages/claude-acp/bin/silvercode-claude-acp.js`)
   }
   process.exit(2)
 }

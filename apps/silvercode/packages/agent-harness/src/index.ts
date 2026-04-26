@@ -101,12 +101,7 @@ export {
 // ACP client — scope-bound ClientSideConnection factory for external ACP
 // servers (Codex, Gemini CLI, GitHub Copilot CLI, pi-acp). NOT for wrapping
 // Claude Code — see acp-adapter-claude bead.
-export {
-  connectAcp,
-  connectAcpRegistry,
-  __setAcpSpawnForTesting,
-  AcpResumeUnsupportedError,
-} from "./acp-client.ts"
+export { connectAcp, connectAcpRegistry, __setAcpSpawnForTesting, AcpResumeUnsupportedError } from "./acp-client.ts"
 export type {
   AcpAgentSession,
   AcpConnectOpts,
