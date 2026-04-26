@@ -112,3 +112,20 @@ export type {
   PermissionHandler,
   TerminalHandler,
 } from "./acp-client.ts"
+
+// ---------------------------------------------------------------------------
+// ACP fake — Layer 1 of `km-silvercode.acp-fake`. Scriptable test double that
+// returns an `AgentSession` driven by a sequence of `AgentEvent`s. Drop-in
+// for `spawnClaude` in tests, storybook, and adapter-replay scenarios.
+// See ./fake.ts.
+// ---------------------------------------------------------------------------
+export { createFakeAcpSession, loadFixture } from "./fake.ts"
+export type {
+  FakeFixtureName,
+  FakeOpts,
+  ManualFakeSession,
+  PermissionPolicy,
+  PermissionPolicyFn,
+  ScriptStep,
+  ScriptedDecisions,
+} from "./fake.ts"

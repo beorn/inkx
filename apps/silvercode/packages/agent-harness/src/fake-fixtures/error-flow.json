@@ -1,0 +1,43 @@
+[
+  {
+    "delayMs": 0,
+    "event": {
+      "kind": "turn-start",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "role": "assistant",
+      "ts": 1000
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "Let me try ",
+      "ts": 1030
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "error",
+      "sessionId": "fake-session",
+      "message": "rate_limit_error: too many requests",
+      "raw": { "code": 429 },
+      "ts": 1060
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "turn-end",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "stopReason": "error",
+      "ts": 1090
+    }
+  }
+]

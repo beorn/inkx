@@ -1,0 +1,33 @@
+[
+  {
+    "delayMs": 0,
+    "event": {
+      "kind": "turn-start",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "role": "assistant",
+      "ts": 1000
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "Hello, world.",
+      "ts": 1050
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "turn-end",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "stopReason": "end_turn",
+      "ts": 1100
+    }
+  }
+]

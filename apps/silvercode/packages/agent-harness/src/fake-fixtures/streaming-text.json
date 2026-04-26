@@ -1,0 +1,121 @@
+[
+  {
+    "delayMs": 0,
+    "event": {
+      "kind": "turn-start",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "role": "assistant",
+      "ts": 1000
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "The ",
+      "ts": 1020
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "quick ",
+      "ts": 1040
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "brown ",
+      "ts": 1060
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "fox ",
+      "ts": 1080
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "jumps ",
+      "ts": 1100
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "over ",
+      "ts": 1120
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "the ",
+      "ts": 1140
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "lazy ",
+      "ts": 1160
+    }
+  },
+  {
+    "delayMs": 20,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "dog.",
+      "ts": 1180
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "turn-end",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "stopReason": "end_turn",
+      "ts": 1230
+    }
+  }
+]

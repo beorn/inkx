@@ -1,0 +1,56 @@
+[
+  {
+    "delayMs": 0,
+    "event": {
+      "kind": "turn-start",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "role": "assistant",
+      "ts": 1000
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "tool-use",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "id": "tool-1",
+      "name": "Bash",
+      "input": { "cmd": "rm -rf /" },
+      "ts": 1030
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "permission-request",
+      "sessionId": "fake-session",
+      "requestId": "perm-bad",
+      "tool": "Bash",
+      "args": { "cmd": "rm -rf /" },
+      "ts": 1060
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "tool-result",
+      "sessionId": "fake-session",
+      "id": "tool-1",
+      "output": { "error": "permission denied" },
+      "is_error": true,
+      "ts": 1110
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "turn-end",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "stopReason": "permission_denied",
+      "ts": 1160
+    }
+  }
+]

@@ -1,0 +1,99 @@
+[
+  {
+    "delayMs": 0,
+    "event": {
+      "kind": "turn-start",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "role": "assistant",
+      "ts": 1000
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "tool-use",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "id": "read-1",
+      "name": "Read",
+      "input": { "path": "src/auth.ts" },
+      "ts": 1030
+    }
+  },
+  {
+    "delayMs": 80,
+    "event": {
+      "kind": "tool-result",
+      "sessionId": "fake-session",
+      "id": "read-1",
+      "output": { "content": "// auth.ts contents" },
+      "ts": 1110
+    }
+  },
+  {
+    "delayMs": 40,
+    "event": {
+      "kind": "text-delta",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "blockIndex": 0,
+      "text": "Now applying the fix.",
+      "ts": 1150
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "tool-use",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "id": "edit-1",
+      "name": "Edit",
+      "input": { "path": "src/auth.ts", "old": "buggy", "new": "fixed" },
+      "ts": 1180
+    }
+  },
+  {
+    "delayMs": 80,
+    "event": {
+      "kind": "tool-result",
+      "sessionId": "fake-session",
+      "id": "edit-1",
+      "output": { "ok": true },
+      "ts": 1260
+    }
+  },
+  {
+    "delayMs": 30,
+    "event": {
+      "kind": "tool-use",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "id": "read-2",
+      "name": "Read",
+      "input": { "path": "src/auth.ts" },
+      "ts": 1290
+    }
+  },
+  {
+    "delayMs": 80,
+    "event": {
+      "kind": "tool-result",
+      "sessionId": "fake-session",
+      "id": "read-2",
+      "output": { "content": "// auth.ts (fixed)" },
+      "ts": 1370
+    }
+  },
+  {
+    "delayMs": 50,
+    "event": {
+      "kind": "turn-end",
+      "sessionId": "fake-session",
+      "turnId": "t1",
+      "stopReason": "end_turn",
+      "ts": 1420
+    }
+  }
+]
