@@ -41,11 +41,22 @@ function scanLogDir(dir: string | undefined): Entry[] {
 }
 
 /**
- * M10 seed — list prior session logs, search over them with a naive includes,
- * replay a selected log. FTS5 + mdtest tape integration come after the MVP
+ * Session prompt history — up/down arrow history scrollback for the prompt
+ * composer. M10 seed: lists prior session logs, searches with a naive includes,
+ * and replays a selected log. FTS5 + mdtest tape integration come after the MVP
  * M10 work expands recall-index coverage; for now this is linear scan.
+ *
+ * Triggered by double-Esc (Claude Code parity). Wired to the `session/prompt`
+ * surface — each listed entry is a prior `session/prompt` body that can be
+ * replayed.
  */
-export function HistoryDialog({ onClose, logDir }: { onClose: () => void; logDir?: string }): React.ReactElement {
+export function SessionPromptHistory({
+  onClose,
+  logDir,
+}: {
+  onClose: () => void
+  logDir?: string
+}): React.ReactElement {
   const [query, setQuery] = useState("")
   const [cursor, setCursor] = useState(0)
 

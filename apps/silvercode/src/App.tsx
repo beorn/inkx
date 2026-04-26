@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AcpRegistryId, AgentSession, SessionStore } from "@km/agent-harness"
 import { Box, type ListViewHandle, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
-import { CommandBox } from "./components/CommandBox.tsx"
-import { HistoryDialog } from "./components/HistoryDialog.tsx"
+import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
+import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
 import { Notifications } from "./components/Notifications.tsx"
 import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
 import { PermissionInbox } from "./components/PermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
-import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
+import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
@@ -235,7 +235,7 @@ export function App(props: AppProps): React.ReactElement {
   // Why Ctrl+G (not Ctrl+W as vim convention would suggest): silvery's
   // TextArea + useReadline consume Ctrl+W as readline word-delete-
   // backwards (vendor/silvery/packages/ag-react/src/hooks/readline-ops.ts
-  // line 131) BEFORE App-level useInput sees it. Since the CommandBox
+  // line 131) BEFORE App-level useInput sees it. Since the SessionPromptComposer
   // owns focus by default, Ctrl+W never reaches this handler. Ctrl+G is
   // not consumed by readline-ops or useTextArea, so it leaks through to
   // the App-level useInput cleanly. "G" mnemonic = grid management.
@@ -312,7 +312,7 @@ export function App(props: AppProps): React.ReactElement {
   // LeafContainer → SessionCard. App-level Shift+Up/Down/PageUp/Down/
   // Home/End scroll bindings (below) use this map to call scrollBy /
   // scrollToTop / scrollToBottom on the focused pane's list — keyboard
-  // focus normally lives in the CommandBox, so the ListView never
+  // focus normally lives in the SessionPromptComposer, so the ListView never
   // receives Arrow / PageUp / PageDown keys directly.
   //
   // Stored on a ref (not state) — registration is a side-effect, not
@@ -450,14 +450,14 @@ export function App(props: AppProps): React.ReactElement {
   // same tick. Guard with a ts ref so the second call is a no-op.
   const lastSubmitAt = useRef<number>(0)
   // Double-Esc detection — Claude Code parity. Two Esc presses within
-  // 500ms open the HistoryDialog (rewind/edit history). The first Esc
+  // 500ms open the SessionPromptHistory (rewind/edit history). The first Esc
   // still does its normal thing per the rules in the useInput handler.
   const lastEscapeAt = useRef<number>(0)
   const DOUBLE_ESC_WINDOW_MS = 500
   // Ctrl+D×2 quit — Claude Code parity. First Ctrl+D arms a 1500ms
   // window; a second Ctrl+D inside the window calls requestExit(). Any
   // other key resets the arm so a stale Ctrl+D doesn't trap the next
-  // keystroke. silvery's multi-line TextArea (used by CommandBox) does
+  // keystroke. silvery's multi-line TextArea (used by SessionPromptComposer) does
   // NOT consume Ctrl+D as delete-forward — only useReadline / single-line
   // TextInput do — so the App-level useInput here reliably receives the
   // chord. See bead km-silvercode.ctrl-d-quit.
@@ -594,7 +594,7 @@ export function App(props: AppProps): React.ReactElement {
         lastCtrlDAt.current = 0
       }
       // ── App-level SessionUpdateList scroll bindings ──────────────────
-      // CommandBox owns keyboard focus by default and silvery's TextArea
+      // SessionPromptComposer owns keyboard focus by default and silvery's TextArea
       // consumes ArrowUp/ArrowDown/PageUp/PageDown — without an app-level
       // intercept the user has no way to scroll the update stream from
       // the keyboard. We use the Shift modifier so plain Arrow keys
@@ -633,7 +633,7 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory(false)
         return
       }
-      // Double-Esc within 500ms → open HistoryDialog (Claude Code parity).
+      // Double-Esc within 500ms → open SessionPromptHistory (Claude Code parity).
       // We check this BEFORE the other Esc branches so a rapid
       // Esc-Esc reliably opens the dialog, even when the first Esc would
       // also have done something (e.g. restored a queue head). The first
@@ -680,7 +680,7 @@ export function App(props: AppProps): React.ReactElement {
         return
       }
       // Cursor-boundary handoff between command and queue is handled by
-      // CommandBox's own `onEdge` callbacks on the silvery TextAreas —
+      // SessionPromptComposer's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
       // Ctrl+E toggles the permission inbox — but only when there's no
       // text to navigate to the end of. With non-empty input we let the
@@ -1033,11 +1033,11 @@ export function App(props: AppProps): React.ReactElement {
                   onClose={() => setShowInbox(false)}
                 />
               )}
-              {showHistory && <HistoryDialog onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+              {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
               <Notifications sessions={sessions} />
 
               {paletteQuery !== null && (
-                <SlashCommandPalette
+                <AvailableCommandsPalette
                   query={paletteQuery}
                   remoteCommands={focused?.store.state.get().slashCommands}
                   remoteSkills={focused?.store.state.get().skills}
@@ -1046,7 +1046,7 @@ export function App(props: AppProps): React.ReactElement {
                 />
               )}
 
-              {/* Unified CommandBox — queue area (when non-empty) stacks on
+              {/* SessionPromptComposer — queue area (when non-empty) stacks on
                 top of the command input inside one filled surface with a
                 horizontal rule between them. Exactly one cursor is visible
                 at a time; focused side is bright, unfocused side dims to
@@ -1054,7 +1054,7 @@ export function App(props: AppProps): React.ReactElement {
               <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
                 <Box flexGrow={1} flexDirection="column">
                   {focused && (
-                    <CommandBox
+                    <SessionPromptComposer
                       queueText={queueText}
                       onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
                       onQueueSubmit={() => {

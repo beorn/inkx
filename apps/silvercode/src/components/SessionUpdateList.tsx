@@ -22,7 +22,7 @@
  * ListView owns scroll (wheel / keyboard / cursor). `follow="end"` is the
  * canonical chat-style auto-follow API. `nav={false}` so ListView does not
  * register a `useInput` that would consume Ctrl+D / j/k / arrows — the
- * CommandBox owns keyboard focus, and app-level Shift+Up/Down/PageUp/Down
+ * SessionPromptComposer owns keyboard focus, and app-level Shift+Up/Down/PageUp/Down
  * are the scroll surface. See bead km-silvercode.ctrl-d-scrolls-to-top
  * for the full rationale.
  *

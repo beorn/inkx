@@ -9,7 +9,7 @@
  *   3. In-flight turn streaming → interrupt the active turn.
  *   4. Queue non-empty + command input empty → restore queue head to
  *      input box (NOT clearQueue).
- *   5. Double-Esc within 500ms → open HistoryDialog.
+ *   5. Double-Esc within 500ms → open SessionPromptHistory.
  *
  * Bead: km-silvercode.esc-claude-parity
  */
@@ -105,22 +105,22 @@ describe("Esc parity (Claude Code)", () => {
     }
   })
 
-  test("Double-Esc within 500ms opens HistoryDialog", async () => {
+  test("Double-Esc within 500ms opens SessionPromptHistory", async () => {
     const fake = createFakeSession()
     const { term, handle, fakes } = await bootApp({ fake })
     try {
       // No queue, no overlay, no in-flight turn — first Esc is a no-op
-      // (passthrough). Second Esc within 500ms triggers HistoryDialog.
+      // (passthrough). Second Esc within 500ms triggers SessionPromptHistory.
       feed(term, ESC)
       await settle(60)
-      // HistoryDialog not yet open (single Esc).
+      // SessionPromptHistory not yet open (single Esc).
       // (We don't assert "not open" because dialog text might render
       // some kind of banner; rely on the second-Esc transition below.)
 
       feed(term, ESC)
       await settle(150)
 
-      // HistoryDialog header / body should render. Different builds may
+      // SessionPromptHistory header / body should render. Different builds may
       // label it differently — check for the "History" / "Resume" sigil.
       const text = term.screen?.getText() ?? ""
       const hasHistory = /history/i.test(text) || /resume/i.test(text)

@@ -108,7 +108,7 @@ Delete these from App.tsx + controller:
 - `holdQueue` / `isHeld` state machinery (queue is always "held" while cursor is in it; flush only fires on explicit Enter-in-queue or turn-end)
 - The Esc / Ctrl+Enter release keybindings (no release concept)
 - The up-arrow-with-inputValue-empty conditional (no conditional entry; Up at top of command always handles the boundary)
-- `QueueEditor` component (its logic moves into the two-TextArea pair directly in CommandBox)
+- `QueueEditor` component (its logic moves into the two-TextArea pair directly in SessionPromptComposer)
 
 Keep:
 

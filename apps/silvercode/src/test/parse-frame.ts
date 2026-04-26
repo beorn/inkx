@@ -22,7 +22,7 @@ import { leftWidthFor } from "./render-harness.tsx"
 
 // Known marker strings used to locate regions. Keep in sync with the
 // actual components (`Welcome.tsx`, `SidePanel.tsx`, `SessionUpdateList.tsx`,
-// `ActivityIndicator.tsx`, `ToolCall.tsx`, `CommandBox.tsx`).
+// `ActivityIndicator.tsx`, `ToolCall.tsx`, `SessionPromptComposer.tsx`).
 
 /**
  * Message-stream leading glyphs. Two families:

@@ -1637,13 +1637,24 @@ describe("Regression: zoom-garble-repro — Zoom-out rendering at wide terminal"
     // Move cursor down to select a different card (j moves to next card)
     app.press("j")
 
-    // Find the bounding box of the currently selected card via [data-cursor]
+    // Find the bounding box of the currently selected CARD (the outer box,
+    // including border + content). [data-cursor] is on the inner title row of
+    // the cursor node which has height=1 — that excludes the card border which
+    // intentionally uses $bg-selected when the card is selected (CardColumn.tsx
+    // line 590, borderColor = "$bg-selected" when isSelected). Using the
+    // outer card via [data-card-id="..."] gives the full visual region we
+    // expect $bg-selected to be confined to.
     const cursorLoc = app.q("[data-cursor]")
     expect(cursorLoc.count(), "cursor element should exist after pressing j").toBeGreaterThan(0)
     const selectedNodeId = cursorLoc.getAttribute("id")
     expect(selectedNodeId, "cursor element should have an id attribute").toBeTruthy()
 
-    const selectedBox = cursorLoc.boundingBox()
+    // Prefer the outer card box; fall back to the cursor element if no
+    // matching [data-card-id] is found (the cursor may be on a column header
+    // or other non-card element in some view modes).
+    const cardLoc = app.q(`[data-card-id="${selectedNodeId}"]`)
+    const selectionLoc = cardLoc.count() > 0 ? cardLoc : cursorLoc
+    const selectedBox = selectionLoc.boundingBox()
     expect(selectedBox, `selected node "${selectedNodeId}" should have a bounding box`).not.toBeNull()
     if (!selectedBox) return
 

@@ -116,7 +116,7 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
       expect(s.text).toContain("QUEUE")
       expect(s.text).not.toContain("QUEUE HELD")
       // Press Up at the top of the (empty) command TextArea — silvery's
-      // onEdge fires "top", CommandBox calls onFocusRegion("queue").
+      // onEdge fires "top", SessionPromptComposer calls onFocusRegion("queue").
       await s.app.press("ArrowUp")
       // Re-sample: divider title should now read "QUEUE HELD" (yellow).
       expect(s.text).toContain("QUEUE HELD")
@@ -145,7 +145,7 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
     const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
     try {
       // No queue, command empty. Press Up — onEdge fires "top" but
-      // CommandBox short-circuits because hasQueue is false; no focus
+      // SessionPromptComposer short-circuits because hasQueue is false; no focus
       // change, divider absent.
       await s.app.press("ArrowUp")
       expect(s.text).not.toContain("QUEUE")

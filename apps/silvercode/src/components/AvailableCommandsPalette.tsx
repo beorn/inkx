@@ -4,15 +4,19 @@ import { useInput } from "silvery/runtime"
 import { filterCommands, mergeRemoteCommands } from "../slash-commands.ts"
 
 /**
- * Slash-command palette. Appears inline above the input whenever the current
- * prompt starts with `/`.
+ * Available-commands palette. Appears inline above the input whenever the
+ * current prompt starts with `/`.
+ *
+ * Backed by `available_commands_update` from the focused session's
+ * session-init event (ACP `session/prompt` surface). Enter executes the
+ * highlighted command; Esc closes the palette.
  *
  * Enter = execute the currently-highlighted command (NOT autocomplete —
  * autocomplete was the old flow and it confused users: "hitting Enter just
  * added a space." Now Enter triggers the real action and clears the input.)
  * Esc = close the palette.
  */
-export function SlashCommandPalette({
+export function AvailableCommandsPalette({
   query,
   remoteCommands,
   remoteSkills: _remoteSkills,

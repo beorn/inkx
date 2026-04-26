@@ -2,7 +2,7 @@
  * Ctrl+D×2 quit — App-level chord detection.
  *
  * Help text says `ctrl-d ctrl-d → exit silvercode`. Before this test, the
- * actual implementation was an empty-Enter ×2 chord inside CommandBox; the
+ * actual implementation was an empty-Enter ×2 chord inside SessionPromptComposer; the
  * literal Ctrl+D byte (`\x04`) never reached the exit path. The fix wires
  * a useInput branch in App.tsx that arms a 1500ms window on the first
  * Ctrl+D and calls `requestExit()` on the second.

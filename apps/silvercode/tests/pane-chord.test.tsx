@@ -1,16 +1,16 @@
 /**
  * Pane chord prefix — Ctrl+G must reach the App-level useInput handler
- * even when CommandBox/TextArea owns focus.
+ * even when SessionPromptComposer/TextArea owns focus.
  *
  * History: the chord was originally Ctrl+W (vim-window convention), but
  * silvery's TextArea + useReadline consume Ctrl+W as readline word-
  * delete-backwards (vendor/silvery/.../readline-ops.ts:131) BEFORE
- * App-level useInput sees it. Since CommandBox owns focus by default,
+ * App-level useInput sees it. Since SessionPromptComposer owns focus by default,
  * Ctrl+W never reached the chord handler. Switching to Ctrl+G — which
  * is not consumed by any TextArea/Readline binding — leaks the chord
  * through cleanly. Bead: km-silvercode.ctrl-w-blocked-by-textarea.
  *
- * This test simulates "Ctrl+G v" with the CommandBox focused (default)
+ * This test simulates "Ctrl+G v" with the SessionPromptComposer focused (default)
  * and asserts a second session is spawned (= the vsplit chord fired).
  * The OLD behaviour with Ctrl+W typed `v` into the input box and never
  * spawned anything.

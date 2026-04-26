@@ -1,5 +1,5 @@
 /**
- * SlashCommandPalette — open with a query.
+ * AvailableCommandsPalette — open with a query.
  *
  * Demonstrates the inline popover above the composer when the user types
  * a slash. The story varies the query text to exercise filter + empty
@@ -7,14 +7,14 @@
  * blank canvas — useful for verifying the no-match branch.)
  */
 import React from "react"
-import { SlashCommandPalette } from "../../src/components/SlashCommandPalette.tsx"
+import { AvailableCommandsPalette } from "../../src/components/AvailableCommandsPalette.tsx"
 import type { Story } from "../types.ts"
 
 const REMOTE = ["help", "model", "compact", "init", "memory"] as const
 
-export const slashCommandPaletteOpen: Story = {
-  id: "SlashCommandPalette/open",
-  component: "SlashCommandPalette",
+export const availableCommandsPaletteOpen: Story = {
+  id: "AvailableCommandsPalette/open",
+  component: "AvailableCommandsPalette",
   variant: "open",
   description: "Slash-command popover with an active query.",
   knobs: [
@@ -29,6 +29,6 @@ export const slashCommandPaletteOpen: Story = {
   render(knobs) {
     const raw = knobs.query as string
     const query = raw === "empty" ? "" : raw
-    return <SlashCommandPalette query={query} remoteCommands={REMOTE} onSubmit={() => {}} onClose={() => {}} />
+    return <AvailableCommandsPalette query={query} remoteCommands={REMOTE} onSubmit={() => {}} onClose={() => {}} />
   },
 }

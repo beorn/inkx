@@ -110,7 +110,7 @@ export type PaneGridProps = {
    * Registration callback for each pane's SessionUpdateList ListViewHandle.
    * App.tsx uses this to maintain a `Map<sessionId, ListViewHandle>` so
    * app-level Shift+Up/Down/PageUp/Down scroll bindings can reach the
-   * focused pane's list — keyboard focus lives in the CommandBox by
+   * focused pane's list — keyboard focus lives in the SessionPromptComposer by
    * default, so the ListView never receives keys directly. Called with
    * `null` on unmount to drop entries.
    */

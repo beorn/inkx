@@ -11,7 +11,7 @@ silvercode today renders AI chat output as text (with a regex syntax highlighter
 Conflating these is the most common pitfall. They have different libraries, different cost profiles, and different unlock surfaces.
 
 | Layer | Question it answers | Today's tooling | Future direction |
-|---|---|---|---|
+|:--|---|---|---|
 | **Refactoring AST** | "How do I mutate code while preserving semantics?" | ts-morph (TS/JS, full type info) + ast-grep (multi-lang, tree-sitter under the hood) + ripgrep + jscodeshift via `vendor/bearly/tools/refactor.ts` and `scripts/codemod.ts` | Stays as-is. Mature, multi-backend, editset-based. |
 | **Rendering AST** | "How do I display code with structure visible?" | silvercode `SyntaxHighlighter.tsx` (regex keywords v0) + planned shiki v1 | shiki for tokens, lezer if folding / outline become load-bearing |
 | **Understanding AST** | "How does the agent retrieve, summarize, and reason about code?" | None | serena-style MCP, aider-style repo-map, AST-anchored memory |

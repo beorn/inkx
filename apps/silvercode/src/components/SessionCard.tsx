@@ -45,7 +45,7 @@ export function SessionCard({
    * Optional registration callback. App.tsx uses this to maintain a
    * Map<sessionId, ListViewHandle> so app-level Shift+Up/Down/PageUp/Down
    * scroll bindings can reach the focused session's ListView even though
-   * keyboard focus lives in the CommandBox. Called with `null` on
+   * keyboard focus lives in the SessionPromptComposer. Called with `null` on
    * unmount to drop the entry.
    */
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
@@ -59,7 +59,7 @@ export function SessionCard({
   // Callback ref — fires with the live ListViewHandle on mount and with
   // null on unmount. Mirrors the handle into App's registration map so
   // app-level Shift+Up/Down scroll bindings can reach this pane's list
-  // even though keyboard focus lives in the CommandBox.
+  // even though keyboard focus lives in the SessionPromptComposer.
   const sessionId = handle.id
   const scrollListRefCb = React.useCallback(
     (instance: ListViewHandle | null): void => {

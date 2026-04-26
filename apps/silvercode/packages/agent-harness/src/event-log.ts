@@ -3,7 +3,7 @@
  *
  * Writes to `<dir>/<sessionId>.jsonl` so the same file format is compatible
  * with recall's FTS5 indexer (see bearly/recall). M10 wires this through to
- * HistoryDialog + replay.
+ * SessionPromptHistory + replay.
  *
  * Keeping this behind a small interface lets tests swap in an in-memory
  * implementation without touching the harness.
@@ -13,7 +13,7 @@
  * When the live file reaches the cap, we rename `.jsonl` → `.jsonl.1`,
  * shifting older generations (`.jsonl.1` → `.jsonl.2`, …) and dropping
  * anything past `keepGenerations`. The live `.jsonl` then restarts empty.
- * HistoryDialog's scan filter (`endsWith(".jsonl")`) naturally ignores the
+ * SessionPromptHistory's scan filter (`endsWith(".jsonl")`) naturally ignores the
  * `.jsonl.N` generations, so one row per session is preserved.
  */
 

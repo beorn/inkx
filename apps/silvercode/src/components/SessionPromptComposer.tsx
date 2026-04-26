@@ -49,12 +49,17 @@ function displayToWire(display: string): string {
  *   - Per-region coloring: focused region pops at $fg; other dims to $fg-muted.
  *
  * Wire format vs display: the controller stores the queue buffer with
- * entries joined by `\n\n` (paragraph break in Claude's input). CommandBox
+ * entries joined by `\n\n` (paragraph break in Claude's input). SessionPromptComposer
  * shows one entry per line with its own `>` prefix — `wireToDisplay`
  * collapses `\n\n` → `\n` for the TextArea, `displayToWire` expands every
  * newline back on edit so the wire format stays canonical.
+ *
+ * Maps to ACP: drives the outbound `session/prompt` request body
+ * (text + ambient resources + image attachments). Slash commands are
+ * surfaced via `<AvailableCommandsPalette>` rendered above when the
+ * input starts with '/'.
  */
-export function CommandBox({
+export function SessionPromptComposer({
   queueText,
   onQueueChange,
   onQueueSubmit,

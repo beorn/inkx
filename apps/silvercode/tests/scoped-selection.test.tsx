@@ -11,7 +11,7 @@
  * from inside one region into another and asserting the clipboard
  * payload contains ONLY content from the origin region.
  *
- * SessionCard, SidePanel, and CommandBox roots each set
+ * SessionCard, SidePanel, and SessionPromptComposer roots each set
  * `userSelect="contain"` to define those boundaries.
  */
 import React from "react"
