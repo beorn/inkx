@@ -41,6 +41,7 @@ src/
   acp-types.ts       # silvercode's canonical ACP-shaped types (no @agentclientprotocol/sdk import)
   acp-boundary.ts    # bidirectional adapter — ONLY file importing @agentclientprotocol/sdk
   acp-client.ts      # connectAcp(scope, opts): scope-bound ClientSideConnection for external ACP servers
+  acp-session.ts     # createAcpSession(scope, agentSession): silvery-style reactive surface (signals/projections/trees)
   events.ts          # legacy AgentEvent union (Claude stream-json shaped, turn-oriented)
   parse.ts           # stream-json → AgentEvent normalizer (legacy path)
   session-store.ts   # AgentEvent consumer; emits signals for silvery components
@@ -51,6 +52,42 @@ src/
   event-log.ts       # append-only event log (file or memory)
   index.ts           # public exports
 tests/               # vitest tests, including round-trip acp-boundary.test.ts
+```
+
+## Migration path: legacy `createSessionStore` → new `createAcpSession`
+
+Two reactive consumers of `AgentSession` co-exist:
+
+- **`createSessionStore(...)`** (legacy) — single mutable `SessionState` snapshot with a `subscribe(state => …)` API. Emits Claude-CLI-shaped state (todos, mcpServers, claudeCodeVersion, etc.). Most existing silvercode UI binds to this.
+- **`createAcpSession(scope, agentSession)`** (new, ACP-shaped) — bundle of `alien-signals` / `alien-projections` / `alien-trees` primitives over silvercode's canonical ACP types. Components subscribe to individual signals (`messages`, `toolCalls`, `plan`, `pendingPermissions`, `status`, `usage`, `mode`, `capabilities`).
+
+Both consume the same underlying `AgentSession` event stream — they can run in parallel against one session without conflict. Migration is per-component:
+
+1. A component currently reads `state.messages` from `createSessionStore`. When migrating, swap to `acp.messages()` and switch `subscribe(...)` → `effect(() => acp.messages())` (or the silvery `useSignal(...)` hook). The shape changes from `MessageEntry[]` (Claude-flavored) to `Message[]` with ACP `ContentBlock[]` content.
+2. Tool-call panels migrate from `state.messages[i].toolCalls` to `acp.toolCalls()` (a projection, key-stable, incrementally maintained).
+3. Permission UI migrates from `state.permissions` to `acp.pendingPermissions()` and `acp.respondToPermission(id, decision)`.
+4. Plan UI migrates from `state.todos` (Claude TodoWrite-flavored) to `acp.plan()` / `acp.planTree` (ACP-shaped, future-nesting-ready).
+5. Status line migrates from `state.status` to `acp.status()` (same five-state enum).
+6. Usage / cost migrates from `state.cost` to `acp.usage()` (ACP shape, `{ used, size, cost? }`).
+
+Once all consumers migrate, retire `createSessionStore`. Until then, both paths are first-class — don't add deprecation warnings or cross-talk between them.
+
+`createAcpSession` is **scope-bound**: pass an `@silvery/scope` `Scope` and disposing it unsubscribes the underlying `AgentSession`, settles any in-flight `prompt(...)` with `stopReason: "cancelled"`, and stops the plan-tree effect. There is no `dispose()` method on the returned object — lifetime ownership lives with the scope, in the silvery house style.
+
+```ts
+import { createAcpSession, spawnClaude } from "@km/agent-harness"
+import { createScope } from "@silvery/scope"
+
+await using scope = createScope("agent")
+const session = spawnClaude({ ... })
+const acp = createAcpSession(scope, session)
+
+// Read reactively in any component:
+effect(() => render(acp.messages()))
+
+// Drive the session:
+const result = await acp.prompt([{ type: "text", text: "fix the failing test" }])
+console.log(result.stopReason)
 ```
 
 ## Consuming an external ACP server (Codex, Gemini CLI, Copilot CLI, pi-acp)

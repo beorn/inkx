@@ -129,3 +129,22 @@ export type {
   ScriptStep,
   ScriptedDecisions,
 } from "./fake.ts"
+
+// ---------------------------------------------------------------------------
+// ACP session — silvery-house-style reactive wrapper around the legacy
+// AgentSession event stream. Drains AgentEvent → signals/projections/trees
+// over silvercode's canonical ACP-shaped types. Components subscribe here
+// instead of pattern-matching SessionUpdate or AgentEvent variants.
+// See ./acp-session.ts. Bead: km-silvercode.acp-session.
+// ---------------------------------------------------------------------------
+export { createAcpSession } from "./acp-session.ts"
+export type {
+  AcpSession,
+  AcpSessionOpts,
+  AcpSessionStatus,
+  Message,
+  PendingPermission,
+  PermissionDecision,
+  ReadProjection,
+  ReadSignal,
+} from "./acp-session.ts"
