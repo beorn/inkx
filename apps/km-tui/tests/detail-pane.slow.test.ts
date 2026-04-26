@@ -743,7 +743,10 @@ describe("detail pane empty state fallback", () => {
     act(() => {
       store.getState().sel.deselect()
     })
-    board.press("Ctrl+l")
+    // NOTE: removed prior `board.press("Ctrl+l")` flush — it routes through
+    // add_link → openOmniboxForVerb → closeDetailPane() (board-actions.ts:569),
+    // tearing down the very pane under test. React reactivity propagates
+    // sel.deselect() without a keypress flush.
 
     // Fallback should show a header bar with DETAIL VIEW label
     const screenshot = board.screenshot()
