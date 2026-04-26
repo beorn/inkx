@@ -102,9 +102,61 @@ function renderExtra(extra: DoctorExtra, t: Term): string[] {
     )
     if (extra.bindings.length > 0) {
       for (const b of extra.bindings) {
-        const status = b.status === "ok" ? t.green("✓") : t.yellow("⚠")
+        const status = b.status === "ok" ? t.green("✓") : t.red("✗")
         lines.push(`    ${status} ${b.pattern} → ${b.inferredScheme}: (${b.resolvesTo})`)
       }
+    }
+    return lines
+  }
+  if (extra.kind === "autolinks-handler-registry") {
+    if (extra.rows.length === 0) return []
+    const headers = ["scheme", "purpose"] as const
+    const rows: string[][] = [[...headers], ...extra.rows.map((r) => [r.scheme, r.purpose])]
+    const widths = computeColumnWidths(rows)
+    const lines: string[] = []
+    lines.push(`  ${t.bold(`handler registry (${extra.rows.length} scheme${extra.rows.length === 1 ? "" : "s"})`)}`)
+    lines.push(`  ${t.dim(divider(widths))}`)
+    lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
+    for (let i = 1; i < rows.length; i++) {
+      lines.push(`  ${formatRow(rows[i]!, widths, (s) => s)}`)
+    }
+    return lines
+  }
+  if (extra.kind === "autolinks-https-host-parsers") {
+    if (extra.rows.length === 0) return []
+    const headers = ["host", "kinds"] as const
+    const rows: string[][] = [[...headers], ...extra.rows.map((r) => [r.host, r.kinds.join(", ")])]
+    const widths = computeColumnWidths(rows)
+    const lines: string[] = []
+    lines.push(
+      `  ${t.bold(`https host parsers (${extra.rows.length} registered)`)}`,
+    )
+    lines.push(`  ${t.dim(divider(widths))}`)
+    lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
+    for (let i = 1; i < rows.length; i++) {
+      lines.push(`  ${formatRow(rows[i]!, widths, (s) => s)}`)
+    }
+    return lines
+  }
+  if (extra.kind === "autolinks-rule-coverage") {
+    if (extra.rows.length === 0) return []
+    const headers = ["pattern", "uri scheme", "handler"] as const
+    const rows: string[][] = [
+      [...headers],
+      ...extra.rows.map((r) => [r.pattern, r.inferredScheme, r.handler]),
+    ]
+    const widths = computeColumnWidths(rows)
+    const lines: string[] = []
+    lines.push(
+      `  ${t.bold(`rule handler coverage (${extra.rows.length} rule${extra.rows.length === 1 ? "" : "s"})`)}`,
+    )
+    lines.push(`  ${t.dim(divider(widths))}`)
+    lines.push(`  ${formatRow(rows[0]!, widths, t.dim)}`)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i]!
+      const status = extra.rows[i - 1]!.status
+      const colorize = status === "no-handler" ? t.red : (s: string) => s
+      lines.push(`  ${formatRow(row, widths, colorize)}`)
     }
     return lines
   }

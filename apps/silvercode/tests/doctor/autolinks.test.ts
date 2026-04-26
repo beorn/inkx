@@ -423,6 +423,122 @@ syntaxlinks:
   })
 })
 
+describe("doctor autolinks — handler-registry sections (km-silvercode.doctor-handlers-section)", () => {
+  let dir: string
+  let wsPath: string
+  let vaultPath: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "silvercode-doctor-"))
+    wsPath = join(dir, "ws-config.yaml")
+    vaultPath = join(dir, "vault-config.yaml")
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test("handler-registry extra lists 5 schemes with purposes", () => {
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const registry = section.extras?.find((e) => e.kind === "autolinks-handler-registry")
+    expect(registry).toBeDefined()
+    if (registry?.kind !== "autolinks-handler-registry") return
+    const schemes = registry.rows.map((r) => r.scheme)
+    expect(schemes).toEqual(["file", "bd", "shell", "https", "mcp"])
+    // Each row carries a non-empty purpose string.
+    for (const row of registry.rows) {
+      expect(row.purpose.length).toBeGreaterThan(0)
+    }
+    // The https row's purpose mentions the host parser count so the next
+    // section is anticipated.
+    const httpsRow = registry.rows.find((r) => r.scheme === "https")
+    expect(httpsRow?.purpose).toMatch(/host parser/)
+  })
+
+  test("https host-parsers extra lists 4 hosts (github, gist, linear, jira)", () => {
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const hostParsers = section.extras?.find((e) => e.kind === "autolinks-https-host-parsers")
+    expect(hostParsers).toBeDefined()
+    if (hostParsers?.kind !== "autolinks-https-host-parsers") return
+    const hosts = hostParsers.rows.map((r) => r.host)
+    expect(hosts).toContain("github.com")
+    expect(hosts).toContain("gist.github.com")
+    expect(hosts).toContain("linear.app")
+    expect(hosts.some((h) => /jira/i.test(h))).toBe(true)
+    expect(hostParsers.rows).toHaveLength(4)
+  })
+
+  test("rule-coverage extra: file: scheme rule maps to file handler ✓", () => {
+    writeFileSync(join(dir, "README.md"), "# Test\n")
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "~repo"
+    resolves_to: "${dir}"
+    preview: readme
+`,
+    )
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const coverage = section.extras?.find((e) => e.kind === "autolinks-rule-coverage")
+    expect(coverage).toBeDefined()
+    if (coverage?.kind !== "autolinks-rule-coverage") return
+    const row = coverage.rows.find((r) => r.pattern === "~repo")
+    expect(row).toBeDefined()
+    expect(row!.inferredScheme).toBe("file")
+    expect(row!.status).toBe("ok")
+    expect(row!.handler).toBe("file")
+  })
+
+  test("rule-coverage extra: https URL maps to https handler ✓", () => {
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "~gh"
+    resolves_to: "https://github.com/foo/bar"
+    preview: readme
+`,
+    )
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    const coverage = section.extras?.find((e) => e.kind === "autolinks-rule-coverage")
+    if (coverage?.kind !== "autolinks-rule-coverage") return
+    const row = coverage.rows.find((r) => r.pattern === "~gh")
+    expect(row).toBeDefined()
+    expect(row!.inferredScheme).toBe("https")
+    expect(row!.status).toBe("ok")
+  })
+
+  test("rule-coverage extra: unknown scheme (slack://) → status 'no-handler' + error item", () => {
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "~slack"
+    resolves_to: "slack://workspace/channel/123"
+    preview: readme
+`,
+    )
+    const section = runAutolinksChecker(dir, { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath })
+    expect(section.severity).toBe("error")
+
+    const coverage = section.extras?.find((e) => e.kind === "autolinks-rule-coverage")
+    expect(coverage).toBeDefined()
+    if (coverage?.kind !== "autolinks-rule-coverage") return
+    const row = coverage.rows.find((r) => r.pattern === "~slack")
+    expect(row).toBeDefined()
+    expect(row!.inferredScheme).toBe("slack")
+    expect(row!.status).toBe("no-handler")
+    expect(row!.handler).toBe("✗")
+
+    // The corresponding doctor item is an error with the expected message.
+    const errorItem = section.items.find(
+      (i) => i.severity === "error" && /no handler registered for scheme `slack`/.test(i.message),
+    )
+    expect(errorItem).toBeDefined()
+  })
+})
+
 describe("doctor autolinks — exit code", () => {
   let dir: string
   let wsPath: string

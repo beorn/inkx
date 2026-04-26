@@ -30,6 +30,27 @@ export const httpsHandler: Handler = {
 }
 
 /**
+ * Metadata for the per-host URL parsers wired into `dispatchByHost`. Exposed
+ * for doctor introspection (see `silvercode doctor autolinks`) so users can
+ * see which hosts get structured webcards vs. the generic placeholder.
+ *
+ * `host` is the canonical hostname or a hostname-pattern description; `kinds`
+ * lists the URL shapes the parser recognises. Keep in sync with the parsers
+ * below — adding a new host means adding a row here too.
+ */
+export type HttpsHostParser = {
+  readonly host: string
+  readonly kinds: readonly string[]
+}
+
+export const HTTPS_HOST_PARSERS: readonly HttpsHostParser[] = [
+  { host: "github.com", kinds: ["repo", "PR", "issue", "file"] },
+  { host: "gist.github.com", kinds: ["gist"] },
+  { host: "linear.app", kinds: ["issue (with-slug, without-slug)"] },
+  { host: "jira-pattern hosts", kinds: ["/browse/KEY-N (atlassian.net + self-hosted /jira/)"] },
+]
+
+/**
  * Sibling for `http:` URIs — same body shape as `https:` since the popover
  * rendering doesn't differ. Registered separately in `index.ts` only if a
  * caller passes an `http:` URI; v1 keeps the registry minimal so `http:` is

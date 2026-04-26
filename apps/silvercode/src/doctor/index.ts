@@ -73,6 +73,45 @@ export type DoctorExtra =
         readonly status: "ok" | "no-handler"
       }>
     }
+  | {
+      /**
+       * Detailed scheme-handler registry table — one row per registered
+       * scheme with a one-line purpose. Sibling to `autolinks-handlers`
+       * which focuses on per-rule coverage; this one focuses on the
+       * registry itself (Section A in bead km-silvercode.doctor-handlers-section).
+       */
+      readonly kind: "autolinks-handler-registry"
+      readonly rows: ReadonlyArray<{
+        readonly scheme: string
+        readonly purpose: string
+      }>
+    }
+  | {
+      /**
+       * Per-host parser table for the `https` handler — one row per host
+       * pattern recognised by `dispatchByHost` in `handlers/https.ts`.
+       * Section B in bead km-silvercode.doctor-handlers-section.
+       */
+      readonly kind: "autolinks-https-host-parsers"
+      readonly rows: ReadonlyArray<{
+        readonly host: string
+        readonly kinds: readonly string[]
+      }>
+    }
+  | {
+      /**
+       * Per-rule handler-coverage table — explicit, tabular companion to the
+       * scattered per-rule items emitted alongside `autolinks-handlers`.
+       * Section C in bead km-silvercode.doctor-handlers-section.
+       */
+      readonly kind: "autolinks-rule-coverage"
+      readonly rows: ReadonlyArray<{
+        readonly pattern: string
+        readonly inferredScheme: string
+        readonly handler: string
+        readonly status: "ok" | "no-handler"
+      }>
+    }
 
 export type DoctorSection = {
   readonly title: string

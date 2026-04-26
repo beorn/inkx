@@ -27,7 +27,7 @@ import {
   type SyntaxlinksDiagnostic,
 } from "../../autolinks/config.ts"
 import { _activeWatcherCount } from "../../autolinks/previews.ts"
-import { findHandler, registeredSchemes } from "../../autolinks/handlers/index.ts"
+import { findHandler, listHandlers, registeredSchemes } from "../../autolinks/handlers/index.ts"
 import { parseResolvesTo } from "../../autolinks/uri.ts"
 import { rollupItems, type DoctorExtra, type DoctorItem, type DoctorSection, type DoctorSeverity } from "../index.ts"
 
@@ -90,6 +90,38 @@ export function runAutolinksChecker(cwd: string, opts: AutolinksCheckerOptions =
   const handlerExtra = buildHandlersExtra(effectiveRules)
   extras.push(handlerExtra)
   items.push(...handlerItems(handlerExtra))
+
+  // Section 4c: handler registry table (scheme → purpose) and the
+  // https host-parser sub-table. Bead km-silvercode.doctor-handlers-section
+  // surfaces these so users can see the full URI dispatch surface
+  // (not just whether their rules match).
+  const listings = listHandlers()
+  extras.push({
+    kind: "autolinks-handler-registry",
+    rows: listings.map((l) => ({ scheme: l.scheme, purpose: l.purpose })),
+  })
+  const httpsListing = listings.find((l) => l.scheme === "https")
+  if (httpsListing?.hostParsers && httpsListing.hostParsers.length > 0) {
+    extras.push({
+      kind: "autolinks-https-host-parsers",
+      rows: httpsListing.hostParsers.map((p) => ({ host: p.host, kinds: p.kinds })),
+    })
+  }
+
+  // Section 4d: per-rule handler coverage table — same data as the inline
+  // bindings but formatted as a tabular extra (Section C in
+  // km-silvercode.doctor-handlers-section).
+  if (handlerExtra.bindings.length > 0) {
+    extras.push({
+      kind: "autolinks-rule-coverage",
+      rows: handlerExtra.bindings.map((b) => ({
+        pattern: b.pattern,
+        inferredScheme: b.inferredScheme,
+        handler: b.status === "ok" ? b.inferredScheme : "✗",
+        status: b.status,
+      })),
+    })
+  }
 
   // Section 5: watcher count (in-process; will be 0 from a fresh CLI run
   // that hasn't resolved any previews yet, but visible if someone wires
@@ -353,9 +385,10 @@ function buildHandlersExtra(rules: readonly AutolinkRule[]): {
 
 /**
  * Promote the handler-registry introspection into doctor items: a single
- * "ok" row summarising registered schemes, plus one "warn" per rule whose
- * inferred URI scheme has no handler. We use warn (not error) because a
- * rule with an inert scheme is still loadable — just won't render a popover.
+ * "ok" row summarising registered schemes, plus one "error" per rule whose
+ * inferred URI scheme has no handler. An unmatched scheme is an error (not
+ * warn) because the rule will silently no-op at runtime — the whole point
+ * of doctor is to surface that.
  */
 function handlerItems(extra: {
   readonly schemes: readonly string[]
@@ -375,8 +408,8 @@ function handlerItems(extra: {
   for (const b of extra.bindings) {
     if (b.status === "no-handler") {
       items.push({
-        severity: "warn",
-        message: `${b.pattern} — no handler for inferred scheme \`${b.inferredScheme}\``,
+        severity: "error",
+        message: `${b.pattern} — no handler registered for scheme \`${b.inferredScheme}\``,
         detail: `resolves_to: ${b.resolvesTo}`,
       })
     }

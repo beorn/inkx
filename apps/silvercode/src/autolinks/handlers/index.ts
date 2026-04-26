@@ -24,7 +24,7 @@ import type { PreviewResult } from "../previews.ts"
 import { fileHandler } from "./file.ts"
 import { bdHandler } from "./bd.ts"
 import { shellHandler } from "./shell.ts"
-import { httpsHandler } from "./https.ts"
+import { httpsHandler, HTTPS_HOST_PARSERS, type HttpsHostParser } from "./https.ts"
 import { mcpHandler } from "./mcp.ts"
 
 /**
@@ -83,6 +83,31 @@ export type Handler = {
 }
 
 /**
+ * Per-handler metadata used by doctor introspection. The `purpose` field is
+ * a human-readable one-liner; `hostParsers` is set only on `https` (where
+ * one handler dispatches across multiple per-host URL parsers). Keep this
+ * table aligned with the registry below — every entry in `HANDLERS` should
+ * have a sibling row here.
+ */
+type HandlerInfo = {
+  readonly handler: Handler
+  readonly purpose: string
+  readonly hostParsers?: readonly HttpsHostParser[]
+}
+
+const HANDLER_INFOS: readonly HandlerInfo[] = [
+  { handler: fileHandler, purpose: "readme / first-paragraph (file-backed)" },
+  { handler: bdHandler, purpose: "bd-active (bead lookup)" },
+  { handler: shellHandler, purpose: "sandboxed argv command" },
+  {
+    handler: httpsHandler,
+    purpose: `webcard + ${HTTPS_HOST_PARSERS.length} host parsers`,
+    hostParsers: HTTPS_HOST_PARSERS,
+  },
+  { handler: mcpHandler, purpose: "stub — see km-silvercode.autolinks-mcp-resolver" },
+]
+
+/**
  * The hardcoded v1 handler registry. Order matters when multiple handlers
  * could claim a scheme: the first match wins. `https` is registered after
  * the more specific schemes so future overrides could shadow it.
@@ -91,13 +116,33 @@ export type Handler = {
  * That landing point is deliberately a separate bead — v1's job is the
  * internal architectural shape, not the new user-facing surface.
  */
-const HANDLERS: readonly Handler[] = [fileHandler, bdHandler, shellHandler, httpsHandler, mcpHandler]
+const HANDLERS: readonly Handler[] = HANDLER_INFOS.map((info) => info.handler)
 
 /**
  * The set of registered schemes — exposed for doctor introspection.
  */
 export function registeredSchemes(): readonly string[] {
   return HANDLERS.map((h) => h.scheme)
+}
+
+/**
+ * Enumerate registered handlers for doctor introspection. Returns each
+ * scheme + purpose, plus (for `https`) the list of host parsers. Pure — no
+ * IO, safe to call from any context.
+ */
+export type HandlerListing = {
+  readonly scheme: string
+  readonly purpose: string
+  readonly hostParsers?: readonly HttpsHostParser[]
+}
+
+export function listHandlers(): readonly HandlerListing[] {
+  return HANDLER_INFOS.map((info) => {
+    const listing: HandlerListing = info.hostParsers
+      ? { scheme: info.handler.scheme, purpose: info.purpose, hostParsers: info.hostParsers }
+      : { scheme: info.handler.scheme, purpose: info.purpose }
+    return listing
+  })
 }
 
 /**
