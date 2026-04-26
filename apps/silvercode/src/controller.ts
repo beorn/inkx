@@ -278,6 +278,31 @@ export type Controller = {
    */
   backgroundActiveTurn(sessionId: string): void
   /**
+   * Interrupt the in-flight turn for `sessionId` (Esc-during-turn parity
+   * with Claude Code). Idempotent + safe to call when no turn is running
+   * (no-op).
+   *
+   * v1 semantics — until `km-agent-harness.per-turn-abort` lands we cannot
+   * surgically abort the subprocess turn without killing the whole
+   * session. Instead:
+   *   - the SessionStore is forced to `idle` via a synthetic turn-end so
+   *     the UI accepts new input,
+   *   - subsequent stream chunks for the interrupted turnId are dropped
+   *     (event mirroring stops),
+   *   - a `[bg] interrupted` system message is appended so the user has
+   *     visible confirmation.
+   * The underlying Claude subprocess keeps running until its turn-end
+   * arrives naturally — at which point the result is suppressed.
+   */
+  interruptActiveTurn(sessionId: string): void
+  /**
+   * Pop the head of the queue (everything before the first `\n\n`),
+   * leaving the rest in place. Returns the popped head; empty string
+   * when the queue is empty. Wire format mirrors `controller.send`'s
+   * `\n\n` delimiter so callers round-trip cleanly.
+   */
+  popQueueHead(sessionId: string): string
+  /**
    * Re-foreground a completed (or running) background task. v1 semantics:
    * inject the captured snippet as a system message into the conversation
    * if it isn't already there (running tasks get a "still running" hint).
@@ -400,6 +425,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const backgroundedTurnIds = new Map<string, Set<string>>() // sessionId → Set<turnId>
   /** Tasks that the user explicitly cancelled — drop the eventual turn-end result. */
   const cancelledTaskIds = new Map<string, Set<string>>()
+  /**
+   * Turns the user explicitly interrupted (Esc during in-flight turn).
+   * Stream events for these turnIds are dropped — they don't get mirrored
+   * into background tasks, and turn-end arrives as a no-op (no synthetic
+   * "completed" message is surfaced because the user already saw the
+   * "interrupted" system message). Tracked per session so the same turnId
+   * across sessions doesn't collide.
+   */
+  const interruptedTurnIds = new Map<string, Set<string>>()
   const backgroundSubs = new Set<(sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void>()
 
   function getTasks(sessionId: string): BackgroundTask[] {
@@ -653,6 +687,21 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     if (opts.logDir) log = createFileEventLog(opts.logDir)
 
     const unsub = session.subscribe((event: AgentEvent) => {
+      // Drop stream events for an interrupted turn — the user already saw
+      // the "interrupted" system message, so we don't want subsequent
+      // text-deltas / tool-uses to repaint that turn after the fact. The
+      // store still receives the eventual turn-end (so any downstream
+      // bookkeeping settles); the messages preceding it are suppressed.
+      const evTurnId = "turnId" in event ? (event.turnId as string | undefined) : undefined
+      if (evTurnId && interruptedTurnIds.get(id)?.has(evTurnId)) {
+        // Allow only terminal events through to keep status accounting
+        // consistent. Everything else (text-delta, tool-use, etc.) is
+        // dropped.
+        if (event.kind !== "turn-end" && event.kind !== "session-end" && event.kind !== "session-lifecycle") {
+          dBackground("interrupt-drop %s/%s event=%s", id, evTurnId, event.kind)
+          return
+        }
+      }
       // Route to the SessionStore first so the foreground UI keeps animating
       // even while a turn is backgrounded — the background pane is a
       // SHADOW, not a replacement.
@@ -943,6 +992,73 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         stopReason: "backgrounded",
         ts: Date.now(),
       })
+    },
+    interruptActiveTurn(sessionId: string): void {
+      const handle = sessions.find((h) => h.id === sessionId)
+      if (!handle) return
+      const status = handle.store.state.get().status
+      if (status === "idle" || status === "ended") {
+        dBackground("interruptActiveTurn %s — no active turn (status=%s)", sessionId, status)
+        return
+      }
+      const turnId = findActiveTurnId(handle)
+      if (!turnId) {
+        dBackground("interruptActiveTurn %s — no active turn id (status=%s)", sessionId, status)
+        return
+      }
+      // Already interrupted? no-op (idempotent).
+      let interrupted = interruptedTurnIds.get(sessionId)
+      if (!interrupted) {
+        interrupted = new Set()
+        interruptedTurnIds.set(sessionId, interrupted)
+      }
+      if (interrupted.has(turnId)) {
+        dBackground("interruptActiveTurn %s/%s — already interrupted", sessionId, turnId)
+        return
+      }
+      interrupted.add(turnId)
+      dBackground("interruptActiveTurn %s/%s — interrupting", sessionId, turnId)
+
+      // Capture a snippet of the partial output so the user sees what
+      // they interrupted — same convention as backgroundActiveTurn.
+      const state = handle.store.state.get()
+      const existing = state.messages.find((m) => m.id === turnId)
+      const seedSnippet = existing?.text.trim().split(/\r?\n/)[0]?.slice(0, 120) ?? "(running)"
+
+      // Force the foreground UI to "idle" via a synthetic turn-end so the
+      // user can keep typing. The real turn-end will arrive later but is
+      // a no-op (stopReason just gets overwritten).
+      handle.store.apply({
+        kind: "turn-end",
+        sessionId: handle.session.sessionId,
+        turnId: turnId as never,
+        stopReason: "interrupted",
+        ts: Date.now(),
+      })
+
+      // Surface a system message marking the interrupt. Uses the same
+      // BACKGROUND_MESSAGE_PREFIX channel as background results so
+      // MessageList renders it with the system treatment.
+      const sysTurnId = `int-${turnId}-${Date.now()}` as never
+      handle.store.apply({
+        kind: "user-message",
+        sessionId: handle.session.sessionId,
+        turnId: sysTurnId,
+        text: `${BACKGROUND_MESSAGE_PREFIX}interrupted by Esc: ${seedSnippet}`,
+        ts: Date.now(),
+      })
+    },
+    popQueueHead(sessionId: string): string {
+      const text = queues.get(sessionId) ?? ""
+      if (text.length === 0) return ""
+      // Wire format: entries joined by `\n\n`. Pop the first entry and
+      // leave the rest in the queue.
+      const sepIdx = text.indexOf("\n\n")
+      const head = sepIdx >= 0 ? text.slice(0, sepIdx) : text
+      const rest = sepIdx >= 0 ? text.slice(sepIdx + 2) : ""
+      queues.set(sessionId, rest)
+      notifyQueue(sessionId)
+      return head
     },
     foregroundTask(sessionId: string, taskId: string): void {
       const handle = sessions.find((h) => h.id === sessionId)
