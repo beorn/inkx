@@ -115,27 +115,22 @@ export function MessageList({
   const showActivity = status !== "idle" && status !== "ended"
   const items: Item[] = showActivity ? [...messages, { __activity: true }] : messages
 
-  // Pin cursor to the last item — chat-style "always tracking the tail".
-  // Previously cursor was useState(-1) with onCursor wired up; the −1 sentinel
-  // collided with ListView's ensure-visible math on certain re-renders (e.g.
-  // when input value changed via Ctrl+U), producing a viewport jump to the
-  // top. Pinning to the last visible key (activity sentinel when active,
-  // otherwise the last message index) keeps auto-follow correct and removes
-  // the controlled-cursor seam entirely. Wheel/keyboard scrolling still moves
-  // the *viewport* via ListView's own scrollRow state — only the cursor is
-  // pinned.
-  const lastKey: string | number =
-    showActivity ? "__activity" : Math.max(0, messages.length - 1)
-
+  // `follow="end"` is the canonical chat-style auto-follow API
+  // (silvery bead `km-silvery.listview-followpolicy-split`). It owns
+  // viewport position via row-space snap math while atEnd; cursor is
+  // a SELECTION marker only and does NOT drive the viewport. We
+  // therefore drop the historical `cursorKey={lastKey}` pin — it was
+  // a workaround for the legacy "cursor and stickyBottom both fight
+  // for scroll authority" race. With `follow="end"`, no pin is
+  // required to land + stay at the tail.
   return (
     <ListView
       items={items}
       getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
       gap={1}
       nav
-      cursorKey={lastKey}
       maxRendered={200}
-      stickyBottom={true}
+      follow="end"
       renderItem={(item) =>
         isActivity(item) ? (
           <ActivityIndicator
