@@ -292,7 +292,25 @@ export function App(props: AppProps): React.ReactElement {
     if (now - lastSubmitAt.current < 50) return
     lastSubmitAt.current = now
     setInputValue("")
-    const trimmed = text.trim()
+    let trimmed = text.trim()
+    // Trailing '&' submits + immediately backgrounds (Claude Code parity).
+    // Strip the '&' (and any whitespace before it), send the cleaned
+    // message, then call backgroundActiveTurn so the turn runs in the
+    // background and the UI is freed for next input. Edge case: text is
+    // just "&" → no message sent, just background the existing turn (same
+    // as Ctrl+B). Slash commands keep their literal '&' if any (rare).
+    let backgroundAfterSubmit = false
+    if (!trimmed.startsWith("/") && trimmed.endsWith("&")) {
+      // Strip the trailing '&' AND any whitespace before it.
+      const stripped = trimmed.slice(0, -1).trimEnd()
+      if (stripped.length === 0) {
+        // "&" alone → background the existing turn, no send.
+        controller.backgroundActiveTurn(focused.id)
+        return
+      }
+      trimmed = stripped
+      backgroundAfterSubmit = true
+    }
     if (trimmed.startsWith("/")) {
       const [cmd, ...rest] = trimmed.split(/\s+/)
       const arg = rest.join(" ")
@@ -344,6 +362,14 @@ export function App(props: AppProps): React.ReactElement {
       }
     } else {
       controller.send(focused.id, injectThinkingKeyword(trimmed, thinking))
+    }
+    // '&' suffix → after-send background. Wait a microtask so the send
+    // has registered as the active turn before we try to background it.
+    // Idempotent + no-op when there's no active turn yet (e.g. send was
+    // queued mid-turn) — the controller checks status internally.
+    if (backgroundAfterSubmit) {
+      const sid = focused.id
+      void Promise.resolve().then(() => controller.backgroundActiveTurn(sid))
     }
   }
 
