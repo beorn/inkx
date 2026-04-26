@@ -280,6 +280,11 @@ export function App(props: AppProps): React.ReactElement {
   // palette's useInput AND TextInput's internal Enter handler fire in the
   // same tick. Guard with a ts ref so the second call is a no-op.
   const lastSubmitAt = useRef<number>(0)
+  // Double-Esc detection — Claude Code parity. Two Esc presses within
+  // 500ms open the HistoryDialog (rewind/edit history). The first Esc
+  // still does its normal thing per the rules in the useInput handler.
+  const lastEscapeAt = useRef<number>(0)
+  const DOUBLE_ESC_WINDOW_MS = 500
 
   function handleSubmit(text: string): void {
     if (!focused) return
@@ -364,12 +369,43 @@ export function App(props: AppProps): React.ReactElement {
         setShowHistory(false)
         return
       }
-      // Esc on empty command input with no overlays open and a non-empty
-      // queue → cancel all queued messages. We only fire when the
-      // command region owns focus; the queue TextArea handles its own
-      // Esc (silvery's native — clears its own selection or no-op).
+      // Double-Esc within 500ms → open HistoryDialog (Claude Code parity).
+      // We check this BEFORE the other Esc branches so a rapid
+      // Esc-Esc reliably opens the dialog, even when the first Esc would
+      // also have done something (e.g. restored a queue head). The first
+      // Esc still does its normal thing — that's expected; double-Esc is
+      // an additive gesture.
+      if (key.escape) {
+        const now = Date.now()
+        const sinceLast = now - lastEscapeAt.current
+        if (sinceLast > 0 && sinceLast < DOUBLE_ESC_WINDOW_MS) {
+          lastEscapeAt.current = 0
+          setShowHistory(true)
+          return
+        }
+        lastEscapeAt.current = now
+      }
+      // Esc during an in-flight turn → interrupt the active turn (Claude
+      // Code parity). Forces UI to idle and emits a system message
+      // marking the interrupt. v1 cannot abort the underlying subprocess
+      // turn surgically (tracked upstream in km-agent-harness.per-turn-abort)
+      // — subsequent stream chunks are dropped instead.
+      if (key.escape && focused) {
+        const status = focused.store.state.get().status
+        const inFlight = status !== "idle" && status !== "ended"
+        if (inFlight && focusedRegion === "command" && inputValue.length === 0) {
+          controller.interruptActiveTurn(focused.id)
+          return
+        }
+      }
+      // Esc on empty command input with non-empty queue → restore the
+      // queue HEAD to the input box (Claude Code parity). Replaces the
+      // older "clearQueue" behavior — letting the user edit the most
+      // recently-queued draft is far more useful than discarding it
+      // outright. The rest of the queue stays in place.
       if (key.escape && focusedRegion === "command" && inputValue.length === 0 && focused && queueText.length > 0) {
-        controller.clearQueue(focused.id)
+        const head = controller.popQueueHead(focused.id)
+        if (head.length > 0) setInputValue(head)
         return
       }
       // Shift+Tab cycles permission modes. index.tsx passes
