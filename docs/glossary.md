@@ -54,7 +54,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **anchor** — The node where a shift-select gesture began, stored as the last element of `Selection.nodes`. In text selection, the text point where a text range began. Contrast with *cursor*.
 
-**autolinks** (a.k.a. *smartlinks*) — Umbrella term for systems that automatically turn matched text into navigable links. Two kinds in km: *syntax linker* (display-layer pattern → popover, run-time, silvercode) and *term linker* (build-time glossary → anchor, website). Distinct from *links* (canonical persistent storage edges). See [docs/design/autolinks.md](design/autolinks.md).
+**autolinks** — Umbrella term for systems that automatically turn matched text into navigable links. Two kinds in km: *syntax linker* (display-layer pattern → popover, run-time, silvercode) and *term linker* (build-time glossary → anchor, website). Distinct from *links* (canonical persistent storage edges). See [docs/design/autolinks.md](design/autolinks.md).
 
 **apply** — The universal verb for state transitions in TEA machines. Every machine uses `.apply(state, op) -> [state, effects]` — pure function, two arguments, returns new state plus effects.
 
