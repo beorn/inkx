@@ -27,6 +27,7 @@
         "@beorn/tap": "workspace:*",
         "@beorn/watcher-chaos": "workspace:*",
         "@km/agent": "workspace:*",
+        "@km/autolinks": "workspace:*",
         "@km/beads": "workspace:*",
         "@km/board": "workspace:*",
         "@km/cli-app": "workspace:*",
@@ -218,6 +219,7 @@
       "dependencies": {
         "@beorn/accountly": "workspace:*",
         "@km/agent-harness": "workspace:*",
+        "@km/autolinks": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/mcp-server": "workspace:*",
         "@km/tribe-mcp": "workspace:*",
@@ -288,6 +290,12 @@
       "optionalPeers": [
         "@anthropic-ai/sdk",
       ],
+    },
+    "packages/km-autolinks": {
+      "name": "@km/autolinks",
+      "dependencies": {
+        "debug": "^4.4.3",
+      },
     },
     "packages/km-beads": {
       "name": "@km/beads",
@@ -583,11 +591,11 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
         "@chenglou/pretext": "^0.0.3",
-        "@silvery/color": "0.19.2",
-        "@silvery/commander": "0.19.2",
+        "@silvery/color": "0.21.0",
+        "@silvery/commander": "0.21.0",
         "css-select": "^7.0.0",
         "css-what": "^8.0.0",
         "loggily": "0.6.0",
@@ -634,20 +642,20 @@
     },
     "vendor/silvery/packages/ag": {
       "name": "@silvery/ag",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/signals": "0.19.2",
+        "@silvery/signals": "0.21.0",
       },
     },
     "vendor/silvery/packages/ag-react": {
       "name": "@silvery/ag-react",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag": "0.19.2",
-        "@silvery/create": "0.19.2",
-        "@silvery/headless": "0.19.2",
-        "@silvery/scope": "0.19.2",
-        "@silvery/theme": "0.19.2",
+        "@silvery/ag": "0.21.0",
+        "@silvery/create": "0.21.0",
+        "@silvery/headless": "0.21.0",
+        "@silvery/scope": "0.21.0",
+        "@silvery/theme": "0.21.0",
       },
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
@@ -655,69 +663,69 @@
     },
     "vendor/silvery/packages/ag-term": {
       "name": "@silvery/ag-term",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag": "0.19.2",
-        "@silvery/ag-react": "0.19.2",
-        "@silvery/ansi": "0.19.2",
-        "@silvery/color": "0.19.2",
-        "@silvery/create": "0.19.2",
-        "@silvery/headless": "0.19.2",
-        "@silvery/scope": "0.19.2",
-        "@silvery/signals": "0.19.2",
-        "@silvery/test": "0.19.2",
-        "@silvery/theme": "0.19.2",
+        "@silvery/ag": "0.21.0",
+        "@silvery/ag-react": "0.21.0",
+        "@silvery/ansi": "0.21.0",
+        "@silvery/color": "0.21.0",
+        "@silvery/create": "0.21.0",
+        "@silvery/headless": "0.21.0",
+        "@silvery/scope": "0.21.0",
+        "@silvery/signals": "0.21.0",
+        "@silvery/test": "0.21.0",
+        "@silvery/theme": "0.21.0",
         "flexily": "0.5.2",
       },
     },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/color": "0.19.2",
+        "@silvery/color": "0.21.0",
         "string-width": "^8.2.0",
       },
     },
     "vendor/silvery/packages/color": {
       "name": "@silvery/color",
-      "version": "0.19.2",
+      "version": "0.21.0",
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ansi": "0.19.2",
+        "@silvery/ansi": "0.21.0",
         "commander": ">=13.0.0",
         "zod": ">=3.0.0",
       },
     },
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag": "0.19.2",
+        "@silvery/ag": "0.21.0",
       },
     },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag": "0.19.2",
-        "@silvery/ag-react": "0.19.2",
-        "@silvery/ag-term": "0.19.2",
-        "@silvery/commands": "0.19.2",
-        "@silvery/headless": "0.19.2",
-        "@silvery/ink": "0.19.2",
-        "@silvery/test": "0.19.2",
+        "@silvery/ag": "0.21.0",
+        "@silvery/ag-react": "0.21.0",
+        "@silvery/ag-term": "0.21.0",
+        "@silvery/commands": "0.21.0",
+        "@silvery/headless": "0.21.0",
+        "@silvery/ink": "0.21.0",
+        "@silvery/test": "0.21.0",
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/headless": {
       "name": "@silvery/headless",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "peerDependencies": {
-        "@silvery/ag": "0.19.2",
-        "@silvery/ag-term": "0.19.2",
+        "@silvery/ag": "0.21.0",
+        "@silvery/ag-term": "0.21.0",
       },
       "optionalPeers": [
         "@silvery/ag",
@@ -726,44 +734,44 @@
     },
     "vendor/silvery/packages/ink": {
       "name": "@silvery/ink",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag-react": "0.19.2",
-        "@silvery/ag-term": "0.19.2",
-        "@silvery/ansi": "0.19.2",
+        "@silvery/ag-react": "0.21.0",
+        "@silvery/ag-term": "0.21.0",
+        "@silvery/ansi": "0.21.0",
       },
     },
     "vendor/silvery/packages/model": {
       "name": "@silvery/model",
-      "version": "0.19.2",
+      "version": "0.21.0",
     },
     "vendor/silvery/packages/scope": {
       "name": "@silvery/scope",
-      "version": "0.19.2",
+      "version": "0.21.0",
     },
     "vendor/silvery/packages/signals": {
       "name": "@silvery/signals",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ag": "0.19.2",
-        "@silvery/ag-react": "0.19.2",
-        "@silvery/ag-term": "0.19.2",
-        "@silvery/create": "0.19.2",
+        "@silvery/ag": "0.21.0",
+        "@silvery/ag-react": "0.21.0",
+        "@silvery/ag-term": "0.21.0",
+        "@silvery/create": "0.21.0",
       },
     },
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
-      "version": "0.19.2",
+      "version": "0.21.0",
       "dependencies": {
-        "@silvery/ansi": "0.19.2",
-        "@silvery/color": "0.19.2",
+        "@silvery/ansi": "0.21.0",
+        "@silvery/color": "0.21.0",
       },
     },
     "vendor/tap": {
@@ -1240,6 +1248,8 @@
     "@km/agent-harness": ["@km/agent-harness@workspace:apps/silvercode/packages/agent-harness"],
 
     "@km/agent-view": ["@km/agent-view@workspace:apps/km-agent-view"],
+
+    "@km/autolinks": ["@km/autolinks@workspace:packages/km-autolinks"],
 
     "@km/beads": ["@km/beads@workspace:packages/km-beads"],
 

@@ -129,6 +129,7 @@
     "@beorn/tap": "workspace:*",
     "@beorn/watcher-chaos": "workspace:*",
     "@km/agent": "workspace:*",
+    "@km/autolinks": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/board": "workspace:*",
     "@km/cli-app": "workspace:*",
