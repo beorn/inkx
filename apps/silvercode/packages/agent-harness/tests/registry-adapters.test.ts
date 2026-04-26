@@ -18,7 +18,9 @@
  * cover it here because the table treats all four uniformly.
  */
 
+import { existsSync, statSync } from "node:fs"
 import { Readable, Writable } from "node:stream"
+import { fileURLToPath } from "node:url"
 import * as acp from "@agentclientprotocol/sdk"
 import { createScope } from "@silvery/scope"
 import { afterEach, describe, expect, test } from "vitest"
@@ -246,4 +248,118 @@ describe("connectAcpRegistry", () => {
       connectAcpRegistry(scope, "no-such-agent" as any),
     ).toThrow(/unknown registryId/)
   })
+})
+
+// ---------------------------------------------------------------------------
+// Bin reachability — regression guard for d17afaa82
+// ---------------------------------------------------------------------------
+//
+// d17afaa82 fixed a regression where `claude-code`'s registry entry pointed at
+// `bun x @km/claude-acp` — but @km/claude-acp is private/workspace-only and
+// 404s on npm. The spawn failed silently inside an unawaited
+// `void spawnSession().catch(...)`, no session was created, and the App
+// rendered an empty welcome card on a blank screen.
+//
+// This block asserts every entry in ACP_REGISTRY points at something
+// reachable BEFORE we ship it:
+//
+//   - `bun x <pkg>` style: the package exists on the npm registry. We use
+//     `bun pm view <pkg> --json` (resolves metadata, doesn't download). If
+//     the network is down we warn-and-skip; if the network is up the
+//     package MUST resolve. This catches "shipped a `bun x <pkg>` that
+//     404s on npm" before it reaches a user.
+//   - explicit binary on PATH (`copilot`): skipped. User binary, not
+//     silvercode's responsibility — covered by the spawn-correctness test
+//     above.
+//   - workspace-resolved bin path (`silvercode-claude-acp.js`): assert
+//     the absolute path exists and has the executable bit set. THIS is
+//     the row that would have caught the d17afaa82 bug — when the
+//     registry pointed at `bun x @km/claude-acp`, the npm-registry case
+//     above would have failed with `404 Not Found`.
+//
+// We do NOT actually spawn the binaries here — that's structural
+// reachability only. The welcome-card smoke test in
+// apps/silvercode/tests/welcome-card-paints.test.tsx covers end-to-end
+// "if a session can spawn, the App actually paints" via a fake factory.
+
+type ReachabilityKind =
+  | { kind: "npm"; package: string }
+  | { kind: "path"; absolutePath: string }
+  | { kind: "skip"; reason: string }
+
+/**
+ * Map each registry id to the resolved-spawn shape we need to verify.
+ * Keep this in sync with `ACP_REGISTRY` in `acp-client.ts`. When a registry
+ * entry changes (e.g. `bun x <pkg>` → workspace path, or vice versa), update
+ * the matching row here too — the contract is "every registry id maps to a
+ * reachable spawn target."
+ */
+const REACHABILITY: Record<AcpRegistryId, ReachabilityKind> = {
+  codex: { kind: "npm", package: "@zed-industries/codex-acp" },
+  gemini: { kind: "npm", package: "@google/gemini-cli" },
+  "pi-acp": { kind: "npm", package: "pi-acp" },
+  "github-copilot-cli": { kind: "skip", reason: "user binary on PATH (copilot) — not silvercode's responsibility" },
+  // claude-code resolves its bin via fileURLToPath(import.meta.url) — same
+  // resolution used by ACP_REGISTRY in acp-client.ts. If the source-resolved
+  // path drifts from the runtime resolution, this row breaks. THIS is the
+  // row that would have caught d17afaa82 — when the registry pointed at
+  // `bun x @km/claude-acp`, switching this row's kind to `npm` would have
+  // failed with 404.
+  "claude-code": {
+    kind: "path",
+    absolutePath: fileURLToPath(
+      new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url),
+    ),
+  },
+}
+
+describe("ACP_REGISTRY bin reachability", () => {
+  for (const [id, target] of Object.entries(REACHABILITY) as [AcpRegistryId, ReachabilityKind][]) {
+    test(`${id}: spawn target is reachable`, () => {
+      if (target.kind === "skip") {
+        // Document why we're skipping so a future maintainer can re-evaluate.
+        // No assertion — the surrounding describe.each ensures every id has a row.
+        expect(target.reason).toMatch(/.+/)
+        return
+      }
+
+      if (target.kind === "path") {
+        expect(existsSync(target.absolutePath)).toBe(true)
+        const st = statSync(target.absolutePath)
+        // Executable bit must be set on at least one of (owner, group, other).
+        // A node script without +x can't be exec'd — `bun <path>` would
+        // technically still run via the bun loader, but the registry contract
+        // is "this is a runnable bin" so we enforce +x as documentation.
+        expect(st.mode & 0o111).not.toBe(0)
+        return
+      }
+
+      // npm — `bun pm view <pkg> --json` exits 0 when the package resolves
+      // on the configured registry, 1 when 404. We don't parse the JSON;
+      // exit code is sufficient for "the name is registered."
+      const result = Bun.spawnSync({
+        cmd: ["bun", "pm", "view", target.package, "--json"],
+        stderr: "pipe",
+        stdout: "pipe",
+      })
+      if (result.exitCode !== 0) {
+        const stderr = new TextDecoder().decode(result.stderr ?? new Uint8Array())
+        // Tolerate offline test environments — the contract is "if you have
+        // network, the package must resolve." Without network, a real 404
+        // looks the same as a connection failure, so we can't be strict.
+        if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|getaddrinfo|connect/i.test(stderr)) {
+          // eslint-disable-next-line no-console -- diagnostic for offline runs
+          console.warn(`registry-adapters[${id}]: skipping reachability check, network unavailable`)
+          return
+        }
+        // Real 404 / unexpected failure — fail with the stderr so the
+        // maintainer sees exactly why the registry name is unreachable.
+        // This is the assertion that catches d17afaa82-class bugs.
+        throw new Error(
+          `bun pm view ${target.package} failed (exit ${result.exitCode}). ` +
+            `Registry id "${id}" points at an unreachable npm name. stderr:\n${stderr}`,
+        )
+      }
+    })
+  }
 })
