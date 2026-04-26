@@ -155,7 +155,7 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
     }
   })
 
-  test("scenario 6: Enter in queue region force-flushes the buffer", async () => {
+  test("scenario 6: Ctrl+J in queue region force-flushes the buffer", async () => {
     const s = await busySession({ initialQueue: "one\n\ntwo\n\nthree" })
     try {
       // Sanity — the seeding sends were queued (mid-turn), nothing
@@ -165,10 +165,12 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
       // Enter queue region.
       await s.app.press("ArrowUp")
       expect(s.text).toContain("QUEUE HELD")
-      // Enter in queue → onQueueSubmit → controller.flushQueue. With
-      // submitKey="enter" silvery's TextArea emits onSubmit on a bare
-      // Enter (Shift+Enter is a newline).
-      await s.app.press("Enter")
+      // Ctrl+J in queue → onQueueSubmit → controller.flushQueue. With
+      // submitKey="ctrl+enter" silvery's TextArea emits onSubmit only
+      // on Ctrl+Enter / Ctrl+J — plain Enter inserts a newline (= adds
+      // a new queued entry), which is what we want for multi-entry
+      // editing.
+      await s.app.press("Ctrl+j")
       // Force-flush sends ONE user message containing all three entries
       // joined by "\n\n".
       expect(s.fake.sent.length).toBe(baseline + 1)

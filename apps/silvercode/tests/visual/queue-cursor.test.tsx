@@ -101,7 +101,7 @@ describe("queue editor — termless interaction", () => {
     }
   })
 
-  test("Enter in queue force-flushes the entire buffer as one send", async () => {
+  test("Ctrl+J in queue force-flushes the entire buffer as one send", async () => {
     const fake = createFakeSession()
     const { term, handle, fakes } = await bootApp({ fake })
     try {
@@ -116,11 +116,13 @@ describe("queue editor — termless interaction", () => {
       await settle(80)
       const baseline = fake.sent.length
       // ArrowUp at top of (now-empty) command → focus moves to queue.
-      // ArrowUp x2 to climb past mid-queue and trigger boundary.
       feed(term, "\x1b[A")
       await settle(60)
-      // Enter in queue region → onQueueSubmit → controller.flushQueue.
-      feed(term, "\r")
+      // Ctrl+J in queue region → onQueueSubmit → controller.flushQueue.
+      // (Plain Enter would insert a newline — that's the multi-entry
+      // editing fix from km-silvercode.queue-ux-tdd A3.) `\n` is the
+      // wire byte for Ctrl+J / Ctrl+Enter in legacy keyboard mode.
+      feed(term, "\n")
       await settle(180)
       // Exactly one new send dispatched, joined by "\n\n".
       expect(fake.sent.length).toBe(baseline + 1)

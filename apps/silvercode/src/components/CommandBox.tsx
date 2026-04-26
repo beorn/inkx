@@ -42,15 +42,17 @@ function displayToWire(display: string): string {
  *
  * Semantics:
  *   - Enter in command: send/enqueue the current buffer (parent's onSubmit).
- *   - Enter in queue: force-flush the entire queue (parent's onQueueSubmit).
- *   - Shift+Enter: native silvery behaviour — newline within the buffer.
+ *   - Enter in queue: insert a newline (= start a new queued entry).
+ *   - Ctrl+Enter / Ctrl+J in queue: force-flush the entire queue
+ *     (parent's onQueueSubmit). Same byte as LF; works in both legacy
+ *     and Kitty keyboard modes.
  *   - Per-region coloring: focused region pops at $fg; other dims to $fg-muted.
  *
  * Wire format vs display: the controller stores the queue buffer with
- * entries joined by `\n\n` (paragraph break in Claude's input). The queue
- * TextArea renders that verbatim — blank rows between entries are part of
- * the wire format. Future polish (single-`\n` display + on-send re-expand)
- * can come later.
+ * entries joined by `\n\n` (paragraph break in Claude's input). CommandBox
+ * shows one entry per line with its own `>` prefix — `wireToDisplay`
+ * collapses `\n\n` → `\n` for the TextArea, `displayToWire` expands every
+ * newline back on edit so the wire format stays canonical.
  */
 export function CommandBox({
   queueText,
@@ -158,11 +160,13 @@ export function CommandBox({
                 isActive={queueIsFocused}
                 showInactiveCursor={false}
                 height={queueRows}
-                submitKey="enter"
+                // Plain Enter inserts a newline (= adds a new queued
+                // entry). Ctrl+J (= Ctrl+Enter on the wire — same byte
+                // as LF) force-flushes the entire buffer. The previous
+                // `submitKey="enter"` flushed on every plain Enter,
+                // making it impossible to edit a multi-entry queue.
+                submitKey="ctrl+enter"
                 onSubmit={() => {
-                  // Plain Enter in the queue region — force-flush.
-                  // Shift+Enter still inserts a newline (silvery's
-                  // submitKey="enter" only fires onSubmit on bare Enter).
                   onQueueSubmit()
                 }}
                 onEdge={(edge) => {
