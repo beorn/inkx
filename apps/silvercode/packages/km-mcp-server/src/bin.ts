@@ -40,6 +40,18 @@ function getTopLevelNodes(db: Database): KNode[] {
   return getAllNodes(db).filter((n) => n.parent_id === null)
 }
 
+function recent(db: Database, opts?: { limit?: number; since?: number }): KNode[] {
+  // Generic implementation over getAllNodes: filter by `since`, sort by
+  // updated_at desc, slice to `limit`. Adequate for v1; large vaults can
+  // swap in a dedicated SQL query later (ORDER BY updated_at DESC LIMIT n).
+  const since = opts?.since ?? 0
+  const limit = opts?.limit ?? 20
+  const all = getAllNodes(db)
+  const filtered = since > 0 ? all.filter((n) => n.updated_at > since) : all
+  filtered.sort((a, b) => b.updated_at - a.updated_at)
+  return filtered.slice(0, Math.max(0, limit))
+}
+
 function renderPath(db: Database, id: string): string[] {
   // Walk parent_id chain, collecting titles root→…→node. Bounded to 64 hops
   // as a cycle guard; km trees are shallow in practice.
@@ -75,6 +87,7 @@ const ctx = createKmContextFromStorage(db, {
   getNode: (d, id) => getNode(d, id),
   getTopLevelNodes,
   renderPath,
+  recent,
 })
 
 await runStdioServer(ctx)

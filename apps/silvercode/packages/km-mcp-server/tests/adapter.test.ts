@@ -85,6 +85,14 @@ function makeCtx(db: Database): KmContext {
       }
       return trail.reverse()
     },
+    recent: (d, opts) => {
+      const since = opts?.since ?? 0
+      const limit = opts?.limit ?? 20
+      const all = getAllNodes(d)
+      const filtered = since > 0 ? all.filter((n) => n.updated_at > since) : all
+      filtered.sort((a, b) => b.updated_at - a.updated_at)
+      return filtered.slice(0, Math.max(0, limit))
+    },
   })
 }
 
@@ -132,5 +140,24 @@ describe("createKmContextFromStorage (in-memory SQLite)", () => {
   test("km_render_path for a root node returns just that node", async () => {
     const path = await ctx.renderPath("board-1")
     expect(path).toEqual(["Inbox"])
+  })
+
+  test("km_recent returns nodes sorted by updated_at desc, capped by limit", async () => {
+    const recent = await ctx.recent({ limit: 2 })
+    expect(recent.length).toBe(2)
+    // All seeded nodes share `now`; just confirm sort + limit shape and
+    // that we got real nodes back.
+    expect(recent.every((n) => typeof n.updated_at === "number")).toBe(true)
+    for (let i = 1; i < recent.length; i++) {
+      const prev = recent[i - 1]?.updated_at ?? 0
+      const curr = recent[i]?.updated_at ?? 0
+      expect(prev).toBeGreaterThanOrEqual(curr)
+    }
+  })
+
+  test("km_recent honours since by filtering out older nodes", async () => {
+    const future = Date.now() + 1_000_000
+    const empty = await ctx.recent({ since: future })
+    expect(empty).toEqual([])
   })
 })
