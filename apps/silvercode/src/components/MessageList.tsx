@@ -65,22 +65,18 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
   if (m.role === "system") {
     return <BackgroundSystemBlock text={m.text} />
   }
-  // `flexShrink={1} minWidth={0}` propagate the wrap chain through this
-  // intermediate column container — without them flexily measures the
-  // wrapper at its children's max-content width, which feeds an
-  // unconstrained width to the wrap-aware Text inside AssistantBlock /
-  // ToolCallBlock and defeats soft-wrapping. Same pattern AssistantBlock
-  // applies on its own row container; the MeasuredItem wrapper inside
-  // ListView keeps `flexShrink=0` for vertical height measurement, so
-  // cross-axis shrinkability has to be declared explicitly here.
+  // Wrap chain is automatic post km-flexily.recursive-min-content —
+  // flexily propagates min-content through Box wrappers, so the
+  // historical `flexShrink={1} minWidth={0}` ceremony is no longer needed
+  // on the intermediate columns.
   return (
-    <Box flexDirection="column" gap={1} flexShrink={1} minWidth={0}>
+    <Box flexDirection="column" gap={1}>
       {m.text.length > 0 && <AssistantBlock text={m.text} />}
       {m.toolCalls.map((c) => {
         const results = m.toolResults.filter((r) => r.id === c.id)
         const running = results.length === 0
         return (
-          <Box key={c.id} flexDirection="column" flexShrink={1} minWidth={0}>
+          <Box key={c.id} flexDirection="column">
             <ToolCallBlock id={c.id} name={c.name} input={c.input} mcpServer={c.mcp_server} running={running} />
             {results.map((r) => (
               <ToolResultBlock key={r.id} output={r.output} isError={r.is_error} />
@@ -107,15 +103,7 @@ export const MessageList = React.forwardRef<
     inFlightTool: string | null
   }
 >(function MessageList(
-  {
-    messages,
-    status,
-    turnStartedAt,
-    inputTokens,
-    outputTokens,
-    pendingPermissions,
-    inFlightTool,
-  },
+  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
@@ -136,13 +124,22 @@ export const MessageList = React.forwardRef<
   // keyboard focus by default, so MessageList never receives Arrow/
   // PageUp/PageDown directly. Mirrors Claude Code's keyboard-only
   // scroll story.
+  // NB: `nav` is intentionally OFF. ListView with `nav={true}` registers a
+  // `useInput` that consumes Ctrl+D / Ctrl+U as vim half-page-down/up
+  // (ListView.tsx:1189) and j/k/arrows as cursor moves. Silvercode's
+  // MessageList has no item-selection — chat messages aren't a select-list.
+  // Leaving `nav` on caused Ctrl+D to scroll-jump because activeCursor
+  // defaulted to 0 (no `cursorKey`) and moveTo(0 + pageStep) drove the
+  // viewport via the cursor-follow scrollTo path. App-level Shift+Up/Down/
+  // PageUp/PageDown/Home/End are the canonical scroll surface — they call
+  // ListView's imperative scrollBy/scrollToTop/scrollToBottom directly.
+  // Bead: km-silvercode.ctrl-d-scrolls-to-top.
   return (
     <ListView
       ref={ref}
       items={items}
       getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
       gap={1}
-      nav
       maxRendered={200}
       follow="end"
       renderItem={(item) =>
