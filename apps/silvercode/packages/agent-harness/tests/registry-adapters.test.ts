@@ -158,16 +158,26 @@ afterEach(() => {
  * the contract. See per-backend docs in `docs/adapter-{pi,codex,gemini}.md`
  * for the rationale behind each command/arg choice.
  */
-const EXPECTED: Record<AcpRegistryId, { command: string; args: string[] }> = {
+const EXPECTED: Record<AcpRegistryId, { command: string; args: string[]; env?: Record<string, string> }> = {
   codex: { command: "bun", args: ["x", "@zed-industries/codex-acp"] },
-  gemini: { command: "bun", args: ["x", "@google/gemini-cli", "--experimental-acp"] },
+  // `--acp` replaced deprecated `--experimental-acp` (gemini-cli 0.38+).
+  // GEMINI_CLI_TRUST_WORKSPACE suppresses info-level stdout pollution that
+  // corrupts the ndJSON-RPC stream (bead km-silvercode.acp-gemini-stdout-pollution).
+  gemini: {
+    command: "bun",
+    args: ["x", "@google/gemini-cli", "--acp"],
+    env: { GEMINI_CLI_TRUST_WORKSPACE: "true" },
+  },
   "github-copilot-cli": { command: "copilot", args: [] },
   "pi-acp": { command: "bun", args: ["x", "pi-acp"] },
   "claude-code": { command: "bun", args: ["x", "@km/claude-acp"] },
 }
 
 describe("connectAcpRegistry", () => {
-  for (const [id, expected] of Object.entries(EXPECTED) as [AcpRegistryId, { command: string; args: string[] }][]) {
+  for (const [id, expected] of Object.entries(EXPECTED) as [
+    AcpRegistryId,
+    { command: string; args: string[]; env?: Record<string, string> },
+  ][]) {
     test(`${id}: spawns the documented command + args`, async () => {
       const { spawn, capture } = createCapturingSpawn()
       __setAcpSpawnForTesting(spawn)
@@ -181,6 +191,12 @@ describe("connectAcpRegistry", () => {
       // Confirm the connection round-tripped to the in-memory server.
       expect(session.protocolVersion).toBe(1)
       expect(session.sessionId).toBe(`sess-${expected.command}`)
+      // Registry-level env vars must be present in the spawned env.
+      if (expected.env) {
+        for (const [k, v] of Object.entries(expected.env)) {
+          expect(capture.env?.[k]).toBe(v)
+        }
+      }
     })
   }
 
@@ -195,7 +211,7 @@ describe("connectAcpRegistry", () => {
     })
 
     expect(capture.command).toBe("bun")
-    expect(capture.args).toEqual(["x", "@google/gemini-cli", "--experimental-acp", "--model", "gemini-2.5-pro"])
+    expect(capture.args).toEqual(["x", "@google/gemini-cli", "--acp", "--model", "gemini-2.5-pro"])
   })
 
   test("env overrides are merged over process.env", async () => {

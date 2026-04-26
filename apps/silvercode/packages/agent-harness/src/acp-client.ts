@@ -195,7 +195,10 @@ export type AcpRegistryId =
 // `$@silvery/ag` workspace overrides that npm can't resolve. `bun x`
 // transparently resolves and runs the package without colliding with our
 // workspace overrides. See feedback-npx-mcp-from-workspace.md.
-const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; description: string }> = {
+const ACP_REGISTRY: Record<
+  AcpRegistryId,
+  { command: string; args: string[]; description: string; env?: Record<string, string> }
+> = {
   codex: {
     command: "bun",
     args: ["x", "@zed-industries/codex-acp"],
@@ -203,7 +206,15 @@ const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; des
   },
   gemini: {
     command: "bun",
-    args: ["x", "@google/gemini-cli", "--experimental-acp"],
+    // `--acp` is the canonical flag as of gemini-cli 0.38+; `--experimental-acp`
+    // is deprecated but still works. We use `--acp` to avoid confusion.
+    args: ["x", "@google/gemini-cli", "--acp"],
+    // GEMINI_CLI_TRUST_WORKSPACE suppresses the "Skipping project agents due to
+    // untrusted folder" info notice that gemini-cli writes to stdout in ACP mode
+    // (via createNonInteractiveUI → process.stdout.write). Without this, that
+    // line corrupts the ndJSON-RPC stream and causes a SyntaxError in the ACP
+    // SDK parser. Same effect as passing --skip-trust on the CLI.
+    env: { GEMINI_CLI_TRUST_WORKSPACE: "true" },
     description: "Google Gemini CLI in ACP mode (Sign in with Google supported).",
   },
   "github-copilot-cli": {
@@ -255,6 +266,9 @@ export function connectAcpRegistry(
     ...rest,
     command: entry.command,
     args: extraArgs ? [...entry.args, ...extraArgs] : entry.args,
+    // Registry-level env (e.g. GEMINI_CLI_TRUST_WORKSPACE) is merged first so
+    // caller opts.env can override it if needed.
+    env: entry.env ? { ...entry.env, ...rest.env } : rest.env,
   })
 }
 
@@ -301,6 +315,69 @@ export function __setAcpSpawnForTesting(fn: AcpSpawn | null): void {
         ...options,
         stdio: ["pipe", "pipe", "pipe"],
       }) as unknown as AcpSpawnedChild)
+}
+
+// ---------------------------------------------------------------------------
+// stdout filter — strip non-JSON lines before the ACP SDK parser sees them
+// ---------------------------------------------------------------------------
+
+/**
+ * Wrap a Readable stdout stream with a line filter that passes only lines
+ * starting with `{` (JSON objects) to the output. All other lines are
+ * considered non-JSON noise (info/warning text from the ACP server process)
+ * and are routed to `onDropped` for surfacing as diagnostic events.
+ *
+ * The ACP ndJSON protocol sends one JSON object per line. Any line that is NOT
+ * a JSON object is out-of-band noise that would corrupt the stream parser.
+ *
+ * Implementation notes:
+ * - Works in streaming mode: buffers a partial line across chunk boundaries.
+ * - Passes the raw chunk through unchanged if it's entirely JSON lines (the
+ *   common case) to avoid unnecessary copies.
+ * - Empty lines are silently dropped (ndJSON allows them as separators).
+ */
+export function buildNonJsonLineFilter(source: Readable, onDropped: (line: string) => void): Readable {
+  let tail = ""
+
+  const output = new Readable({
+    read() {
+      // pull-driven; data is pushed by the source 'data' listener below
+    },
+  })
+
+  source.on("data", (chunk: Buffer | string) => {
+    const text = tail + (typeof chunk === "string" ? chunk : chunk.toString("utf8"))
+    const lines = text.split("\n")
+    // The last element is either empty (chunk ended with \n) or a partial line.
+    tail = lines.pop() ?? ""
+
+    for (const line of lines) {
+      if (line === "") continue // ndJSON separator — drop silently
+      if (line.startsWith("{")) {
+        output.push(Buffer.from(line + "\n", "utf8"))
+      } else {
+        onDropped(line)
+      }
+    }
+  })
+
+  source.on("end", () => {
+    // Flush any partial buffered line.
+    if (tail !== "") {
+      if (tail.startsWith("{")) {
+        output.push(Buffer.from(tail, "utf8"))
+      } else {
+        onDropped(tail)
+      }
+    }
+    output.push(null)
+  })
+
+  source.on("error", (err) => {
+    output.destroy(err)
+  })
+
+  return output
 }
 
 // ---------------------------------------------------------------------------
@@ -384,8 +461,27 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   })
 
   // Stream wiring — convert Node streams to Web streams for the SDK.
+  //
+  // stdout filter: drop any line that does NOT start with `{`. Some ACP
+  // servers (notably `@google/gemini-cli`) write info/warning notices
+  // directly to stdout via their non-interactive UI layer instead of stderr.
+  // Those plain-text lines corrupt the ndJSON-RPC stream and cause
+  // `SyntaxError: JSON Parse error` in the ACP SDK parser. The filter strips
+  // them before the SDK ever sees them. Dropped lines are surfaced as `error`
+  // AgentEvents so they remain visible in the UI.
+  //
+  // Why here and not in the SDK: this is a process-boundary concern — the
+  // spawned binary is breaking the ACP wire contract by writing to stdout.
+  // The filter is the minimal correct fix at the stdio pipe layer.
   const writable = Writable.toWeb(child.stdin as Writable) as WritableStream<Uint8Array>
-  const readable = Readable.toWeb(child.stdout as Readable) as ReadableStream<Uint8Array>
+  const rawReadable = child.stdout as Readable
+  const filteredReadable = buildNonJsonLineFilter(rawReadable, (dropped) => {
+    // Emit after sessionId is assigned (runs asynchronously, so sessionId
+    // will be set by then). The `error` kind surfaces in the UI's error panel.
+    dWire("stdout-filter dropped non-JSON line: %s", dropped)
+    emit({ kind: "error", sessionId, message: `[acp stdout] ${dropped}`, ts: Date.now() })
+  })
+  const readable = Readable.toWeb(filteredReadable) as ReadableStream<Uint8Array>
   const stream = acp.ndJsonStream(writable, readable)
 
   // Build the Client callback bridge.

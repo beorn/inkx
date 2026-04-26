@@ -579,3 +579,76 @@ describe("connectAcp", () => {
     expect(session.sessionId).toBe("resumed-sess")
   })
 })
+
+// ---------------------------------------------------------------------------
+// buildNonJsonLineFilter — stdout filter unit tests
+// ---------------------------------------------------------------------------
+
+import { buildNonJsonLineFilter } from "../src/acp-client.ts"
+
+describe("buildNonJsonLineFilter", () => {
+  function makeSource(chunks: string[]): Readable {
+    const r = new Readable({ read() {} })
+    process.nextTick(() => {
+      for (const c of chunks) r.push(c)
+      r.push(null)
+    })
+    return r
+  }
+
+  async function collect(source: Readable): Promise<{ passed: string[]; dropped: string[] }> {
+    const dropped: string[] = []
+    const filtered = buildNonJsonLineFilter(source, (l) => dropped.push(l))
+    const passed: string[] = []
+    for await (const chunk of filtered) {
+      passed.push((chunk as Buffer).toString("utf8"))
+    }
+    return { passed, dropped }
+  }
+
+  test("passes JSON lines, drops non-JSON lines", async () => {
+    const { passed, dropped } = await collect(
+      makeSource(['{"a":1}\nSkipping project agents due to untrusted folder.\n{"b":2}\n']),
+    )
+    expect(passed.join("")).toBe('{"a":1}\n{"b":2}\n')
+    expect(dropped).toEqual(["Skipping project agents due to untrusted folder."])
+  })
+
+  test("empty lines are silently dropped (not surfaced to onDropped)", async () => {
+    const { passed, dropped } = await collect(makeSource(['{"a":1}\n\n{"b":2}\n']))
+    expect(passed.join("")).toBe('{"a":1}\n{"b":2}\n')
+    expect(dropped).toHaveLength(0)
+  })
+
+  test("all-JSON stream passes through unchanged", async () => {
+    const { passed, dropped } = await collect(makeSource(['{"x":1}\n{"y":2}\n']))
+    expect(passed.join("")).toBe('{"x":1}\n{"y":2}\n')
+    expect(dropped).toHaveLength(0)
+  })
+
+  test("handles partial lines split across chunks", async () => {
+    const { passed, dropped } = await collect(makeSource(['{"a":', "1}\nSkipp", "ing\n", '{"b":2}\n']))
+    expect(passed.join("")).toBe('{"a":1}\n{"b":2}\n')
+    expect(dropped).toEqual(["Skipping"])
+  })
+
+  test("non-JSON-only stream — everything dropped", async () => {
+    const { passed, dropped } = await collect(
+      makeSource(["Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.\n"]),
+    )
+    expect(passed.join("")).toBe("")
+    expect(dropped).toEqual(["Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY."])
+  })
+
+  test("gemini stdout-pollution scenario: info lines before first JSON", async () => {
+    // Reproduces the actual failure: info lines emitted before newSession response.
+    const noise =
+      "Skipping project agents due to untrusted folder. To enable, ensure that the project root is trusted.\n"
+    const json1 = '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1}}\n'
+    const json2 = '{"jsonrpc":"2.0","id":2,"result":{"sessionId":"s1"}}\n'
+    const { passed, dropped } = await collect(makeSource([noise, json1, json2]))
+    expect(passed.join("")).toBe(json1 + json2)
+    expect(dropped).toHaveLength(1)
+    expect(dropped[0]).toContain("Skipping project agents")
+  })
+})
