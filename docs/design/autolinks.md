@@ -4,7 +4,7 @@
 
 | Kind | What it matches | When | Where it lives | Output |
 |---|---|---|---|---|
-| **Syntax linker** | Patterns (regex / literal) in *displayed text* — chat history, knode bodies, prose in any view | Run-time, on render + hover | `apps/silvercode/src/autolinks/` (silvercode's syntax linker) | Hover popover + click action |
+| **Syntax linker** | Patterns (regex / literal) in *displayed text* — chat history, knode bodies, prose in any view | Run-time, on render + hover | `packages/km-autolinks/src/` (the shared substrate; consumed by silvercode and km-tui) | Hover popover + click action |
 | **Term linker** | Glossary-defined terms in static published content | Build-time, during HTML generation | website build pipeline (km.dev / silvery.dev) | Anchor tag with tooltip |
 
 Both are autolinks; they differ in *what* they match (text patterns vs glossary terms), *when* they run (run-time vs build-time), and *what they produce* (interactive popover vs anchor element).
@@ -144,8 +144,8 @@ Watchers are torn down on session dispose via `useScopeEffect` on `AutolinksCont
 
 The implementation factors preview resolution into URI-scheme dispatch — the same shape every OS and editor uses for handler registration (VS Code's `DocumentLinkProvider` + `UriHandler` are the canonical analogue):
 
-- **Stage 1 — linkifier** (`apps/silvercode/src/autolinks/match.ts`): pattern → URI. The matcher emits autolink detections and a separate virtual-detection pass picks up plain `https?://...` tokens that aren't covered by a configured rule.
-- **Stage 2 — handlers** (`apps/silvercode/src/autolinks/handlers/`): URI → preview + action, keyed by URI scheme.
+- **Stage 1 — linkifier** (`packages/km-autolinks/src/match.ts`): pattern → URI. The matcher emits autolink detections and a separate virtual-detection pass picks up plain `https?://...` tokens that aren't covered by a configured rule.
+- **Stage 2 — handlers** (`packages/km-autolinks/src/handlers/`): URI → preview + action, keyed by URI scheme.
 
 The user-facing schema in `.km/config.yaml` is unchanged — rules still carry `pattern` / `resolves_to` / `preview`. The `resolves_to` value is parsed by `parseResolvesTo` into a URI on the way to dispatch:
 
@@ -158,7 +158,7 @@ The user-facing schema in `.km/config.yaml` is unchanged — rules still carry `
 | `bd://km-foo`                | `bd:`           | Explicit scheme passes through |
 | `mcp:rfc.lookup`             | `mcp:`          | Explicit scheme passes through |
 
-The handler registry (`apps/silvercode/src/autolinks/handlers/index.ts`) is hardcoded in v1 with five schemes: `file`, `bd`, `shell`, `https`, `mcp`. Each handler exports a `Handler { scheme, resolve(uri, ctx) }` and is responsible for its own resolve logic; cache + watcher lifecycle stays in `previews.ts`.
+The handler registry (`packages/km-autolinks/src/handlers/index.ts`) is hardcoded in v1 with five schemes: `file`, `bd`, `shell`, `https`, `mcp`. Each handler exports a `Handler { scheme, resolve(uri, ctx) }` and is responsible for its own resolve logic; cache + watcher lifecycle stays in `previews.ts`.
 
 Plain URLs in displayed text flow through the same pipeline. `detectAutolinks` emits a *virtual* autolink detection for any URL-shaped token not already covered by a configured rule; the registry routes it to the `https:` handler (a webcard placeholder in v1). No rule is needed.
 
@@ -166,7 +166,7 @@ Doctor introspection (`silvercode doctor autolinks`) lists registered schemes an
 
 Future direction:
 - v2 will expose `[[handlers]]` in `.km/config.yaml` for user-defined handlers (additive — v1 user-facing schema unchanged).
-- `mcp` will become a fully implemented handler scheme (currently a stub at `apps/silvercode/src/autolinks/handlers/mcp.ts`); see `km-silvercode.autolinks-mcp-resolver`.
+- `mcp` will become a fully implemented handler scheme (currently a stub at `packages/km-autolinks/src/handlers/mcp.ts`); see `km-silvercode.autolinks-mcp-resolver`.
 - The `https:` handler will gain a real webcard fetcher (OG metadata + sandboxed fetch).
 
 Tracking: `km-silvercode.autolinks-uri-pivot` (URI dispatch landed); `km-silvercode.autolinks-mcp-resolver` (mcp handler implementation, deferred).
@@ -193,16 +193,18 @@ A common confusion: "should I add a row to the links table or define a syntax-li
 
 A pattern can graduate from syntax-linker to canonical link: if a user keeps typing `~repo` and wants navigation across sessions, the right move is to add a `Link` row, not refine the syntax-linker rule.
 
-## Future sharing
+## Sharing
 
-Today the syntax linker lives in `apps/silvercode/`. As the system matures it will likely extract to a shared package consumed by silvercode + km-tui (knode body view) + future km surfaces. The term linker is owned by the website build pipeline. Tracking: `km-all.autolinks-extraction`.
+The syntax linker lives in the `@km/autolinks` package (`packages/km-autolinks/`) — a shared substrate consumed by silvercode and km-tui. The package is the umbrella for both run-time syntaxlinks (silvercode's subtype) and future build-time termlinks (website subtype). The YAML config key (`syntaxlinks:`) and existing function names (`parseSyntaxlinksYaml`, etc.) keep their specific names because they describe the silvercode-specific subtype, not the umbrella.
+
+The term linker is owned by the website build pipeline.
 
 ## References
 
-- Implementation: `apps/silvercode/src/autolinks/` (config, match, previews)
-- Tests: `apps/silvercode/tests/autolinks/`, `apps/silvercode/tests/visual/autolinks*`
+- Implementation: `packages/km-autolinks/src/` (config, match, previews, uri, handlers)
+- Tests: `packages/km-autolinks/tests/`, plus silvercode integration tests in `apps/silvercode/tests/autolinks/` and `apps/silvercode/tests/visual/autolinks*`
 - Beads:
   - `km-silvercode.autolinks-config` (parent — v1 ships)
   - `km-silvercode.autolinks-uri-pivot` (URI dispatch refactor)
   - `km-silvercode.autolinks-mcp-resolver` (mcp scheme — superseded by URI pivot)
-  - `km-all.autolinks-extraction` (cross-app sharing)
+  - `km-all.autolinks-extraction` (cross-app sharing — landed)
