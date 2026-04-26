@@ -826,14 +826,15 @@ function TreeNodeImpl({
           </Box>
           {/* Flexible content box */}
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
-          {/* minWidth={0} lets the box shrink past its child Text's content size — */}
-          {/* flexily's auto-min-size only propagates min-content through direct */}
-          {/* measureFunc nodes, not Box wrappers (CSS §4.5 escape hatch). Required */}
-          {/* so a wide title doesn't push sibling badges off-screen. */}
+          {/* `minWidth={0}` is no longer needed here — flexily's recursive
+              min-content (km-flexily.recursive-min-content) propagates true
+              CSS min-content through Box wrappers, so a Box wrapping a
+              wrap-Text reports the longest unbreakable token instead of
+              the full natural width. The historical hint is left as a
+              comment for archaeological context. */}
           <Box
             flexGrow={1}
             flexShrink={1}
-            minWidth={0}
             overflow={isOneliner || isCardChild ? "hidden" : undefined}
             paddingRight={isOneliner || isCardChild ? 2 : 0}
           >

@@ -340,9 +340,16 @@ describe("toBeContainedIn", () => {
   })
 
   test("fails when element is not contained (element too wide)", () => {
+    // `flexShrink={0}` is required because under CSS-correct flex defaults
+    // a child with `width={20}` in a `width={10}` parent shrinks to fit (the
+    // auto-min-size = content-min, which is 10 here for the unbreakable
+    // "Wide child" text). Without flexShrink={0} the child correctly resizes
+    // to 10 and the toBeContainedIn assertion passes — which defeats the
+    // "fails when not contained" intent of this test. Pinning flexShrink={0}
+    // preserves the original overflow scenario.
     const app = render(
       <Box testID="container" width={10} height={5}>
-        <Box testID="child" width={20} height={2}>
+        <Box testID="child" width={20} height={2} flexShrink={0}>
           <Text>Wide child</Text>
         </Box>
       </Box>,
@@ -356,9 +363,10 @@ describe("toBeContainedIn", () => {
   })
 
   test("negation works correctly", () => {
+    // flexShrink={0} required — see comment in "fails when element is not contained" above.
     const app = render(
       <Box testID="container" width={10} height={5}>
-        <Box testID="child" width={20} height={2}>
+        <Box testID="child" width={20} height={2} flexShrink={0}>
           <Text>Wide child</Text>
         </Box>
       </Box>,
