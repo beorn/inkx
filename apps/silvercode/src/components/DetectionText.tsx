@@ -2,9 +2,7 @@ import React from "react"
 import { Box, Muted, Prose, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
-import { detectAutolinks, mergeDetections } from "../autolinks/match.ts"
-import { resolvePreview } from "../autolinks/previews.ts"
-import type { AutolinkPreviewKind } from "../autolinks/config.ts"
+import { detectAutolinks, mergeDetections, resolvePreview, type AutolinkPreviewKind } from "@km/autolinks"
 import { MarkdownView } from "./MarkdownView.tsx"
 
 /** Preview kinds whose body is markdown source — render via MarkdownView. */

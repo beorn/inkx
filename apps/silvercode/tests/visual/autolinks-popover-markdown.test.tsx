@@ -24,7 +24,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Muted, Prose, Text } from "silvery"
 import { MarkdownView } from "../../src/components/MarkdownView.tsx"
-import { clearPreviewCache, resolvePreview } from "../../src/autolinks/previews.ts"
+import { clearPreviewCache, resolvePreview } from "@km/autolinks"
 
 const COLS = 50
 const ROWS = 30

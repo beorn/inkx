@@ -20,9 +20,8 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 import { renderScenario } from "../../src/test/render-harness.tsx"
-import { detectAutolinks, mergeDetections } from "../../src/autolinks/match.ts"
+import { detectAutolinks, loadAutolinksConfig, mergeDetections } from "@km/autolinks"
 import { detectReferences } from "../../src/detection.ts"
-import { loadAutolinksConfig } from "../../src/autolinks/config.ts"
 
 const SESSION = "fake-autolinks-session" as SessionId
 const USER_TURN = "u1" as TurnId

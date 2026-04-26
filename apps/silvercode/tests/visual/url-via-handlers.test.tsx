@@ -10,7 +10,7 @@
  * autolinks handler registry was bypassed.
  *
  * After this migration: there is no `kind: "url"` detection. Plain URLs are
- * matched by `virtualUrlDetections` in `autolinks/match.ts`, become
+ * matched by `virtualUrlDetections` in `@km/autolinks/match`, become
  * `kind: "autolink"` with `payload.virtual === "1"`, and route through the
  * `https:` handler in the registry.
  *
@@ -28,7 +28,7 @@ import { describe, expect, test } from "vitest"
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 import { renderScenario } from "../../src/test/render-harness.tsx"
 import { detectReferences } from "../../src/detection.ts"
-import { detectAutolinks, mergeDetections } from "../../src/autolinks/match.ts"
+import { detectAutolinks, mergeDetections } from "@km/autolinks"
 
 const SESSION = "fake-url-via-handlers" as SessionId
 const USER_TURN = "u1" as TurnId

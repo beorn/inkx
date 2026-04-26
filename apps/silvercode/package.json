@@ -14,6 +14,7 @@
   "dependencies": {
     "@beorn/accountly": "workspace:*",
     "@km/agent-harness": "workspace:*",
+    "@km/autolinks": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/mcp-server": "workspace:*",
     "@km/tribe-mcp": "workspace:*",

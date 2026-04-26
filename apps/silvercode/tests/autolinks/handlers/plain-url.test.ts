@@ -17,9 +17,8 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { detectAutolinks, mergeDetections } from "../../../src/autolinks/match.ts"
+import { clearPreviewCache, detectAutolinks, mergeDetections, resolvePreview } from "@km/autolinks"
 import { detectReferences } from "../../../src/detection.ts"
-import { resolvePreview, clearPreviewCache } from "../../../src/autolinks/previews.ts"
 
 describe("plain URL → handler registry", () => {
   test("detectAutolinks emits a virtual autolink for an unconfigured URL", () => {

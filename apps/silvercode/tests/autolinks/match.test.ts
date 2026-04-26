@@ -5,8 +5,7 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { parseSyntaxlinksYaml } from "../../src/autolinks/config.ts"
-import { detectAutolinks, mergeDetections } from "../../src/autolinks/match.ts"
+import { detectAutolinks, mergeDetections, parseSyntaxlinksYaml } from "@km/autolinks"
 import { detectReferences } from "../../src/detection.ts"
 
 function rulesFromYaml(yaml: string) {

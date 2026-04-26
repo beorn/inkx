@@ -13,7 +13,7 @@ import { SlashCommandPalette } from "./components/SlashCommandPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
-import { loadAutolinksConfig, type AutolinkRule } from "./autolinks/config.ts"
+import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
 import {
   findNeighbor,
   type LayoutNode,

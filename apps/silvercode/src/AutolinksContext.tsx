@@ -20,8 +20,7 @@
 
 import React, { createContext, useContext, useMemo } from "react"
 import { useScopeEffect } from "silvery"
-import type { AutolinkRule } from "./autolinks/config.ts"
-import { disposeAllWatchers } from "./autolinks/previews.ts"
+import { disposeAllWatchers, type AutolinkRule } from "@km/autolinks"
 
 export type AutolinksContextValue = {
   readonly rules: readonly AutolinkRule[]

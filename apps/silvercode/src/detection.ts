@@ -7,23 +7,23 @@
  * `resolver`. Resolvers are async — the popover shows a spinner until content
  * arrives.
  *
- * URL detection lives in `autolinks/match.ts` (`virtualUrlDetections`) and
+ * URL detection lives in `@km/autolinks/match` (`virtualUrlDetections`) and
  * flows through the handler registry; it is NOT a builtin here. See
  * `bd-km-silvercode.url-detection-via-handlers`.
  */
 
+import type { Detection as AutolinksDetection } from "@km/autolinks"
+
 export type DetectionKind = "bead" | "file" | "km-node" | "code-ref" | "autolink"
 
-export type Detection = {
-  kind: DetectionKind
-  /** Matched string exactly as it appeared. */
-  match: string
-  /** Start/end offsets within the input text. */
-  start: number
-  end: number
-  /** Kind-specific payload used by resolvers. */
-  payload: Record<string, string>
-}
+/**
+ * silvercode's narrower `Detection` shape — the same structural type as
+ * `@km/autolinks`'s generic `Detection`, with `kind` constrained to
+ * silvercode's vocabulary. Because the package's `Detection<K>` is generic
+ * over `kind`, silvercode's value-level Detections flow through
+ * `mergeDetections` without an explicit cast.
+ */
+export type Detection = AutolinksDetection<DetectionKind>
 
 /** Bead identifiers of the form `bd-<scope>.<slug>`, `bd:<id>`, `km-<scope>.<slug>`. */
 const BEAD_RE = /\b(?:bd[-:]|km-)[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\b/g
@@ -41,7 +41,7 @@ const CODE_REF_RE = /\b([\w/.-]+\.(?:ts|tsx|js|jsx|py|rs|go|md|json)):(\d+)(?::(
  * Plain URL matcher. Used here only to *exclude* URL ranges from the file
  * detector — `/path/segment` inside `https://host/path/segment` would
  * otherwise trip FILE_RE. URL detections themselves are produced by
- * `autolinks/match.ts:virtualUrlDetections` and routed through the handler
+ * `@km/autolinks/match:virtualUrlDetections` and routed through the handler
  * registry.
  */
 const URL_EXCLUDE_RE = /\bhttps?:\/\/[^\s)\]]+/g

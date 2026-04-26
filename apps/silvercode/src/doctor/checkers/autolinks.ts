@@ -10,25 +10,27 @@
  *   6. mcp-stub list (config-loadable but inert)
  *
  * Exhaustively lists rules — this is the user's only window into why a rule
- * isn't firing. Symbiotic with `parseSyntaxlinksYamlWithDiagnostics` (added
- * to `../../autolinks/config.ts`).
+ * isn't firing. Symbiotic with `parseSyntaxlinksYamlWithDiagnostics` from
+ * `@km/autolinks`.
  */
 
 import { existsSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 import {
+  _activeWatcherCount,
   cascadeAutolinks,
   defaultConfigPath,
+  findHandler,
+  listHandlers,
   loadAutolinksFileWithDiagnostics,
+  parseResolvesTo,
+  registeredSchemes,
   workspaceConfigPath,
   type AutolinkRule,
   type AutolinksFileLoad,
   type SyntaxlinksDiagnostic,
-} from "../../autolinks/config.ts"
-import { _activeWatcherCount } from "../../autolinks/previews.ts"
-import { findHandler, listHandlers, registeredSchemes } from "../../autolinks/handlers/index.ts"
-import { parseResolvesTo } from "../../autolinks/uri.ts"
+} from "@km/autolinks"
 import { rollupItems, type DoctorExtra, type DoctorItem, type DoctorSection, type DoctorSeverity } from "../index.ts"
 
 export type AutolinksCheckerOptions = {

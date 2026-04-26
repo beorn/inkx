@@ -15,7 +15,7 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { runAutolinksChecker } from "../../src/doctor/checkers/autolinks.ts"
 import { runDoctor, severityToExitCode } from "../../src/doctor/index.ts"
-import { _activeWatcherCount, disposeAllWatchers } from "../../src/autolinks/previews.ts"
+import { _activeWatcherCount, disposeAllWatchers } from "@km/autolinks"
 
 describe("doctor autolinks — file presence + parse", () => {
   let dir: string
