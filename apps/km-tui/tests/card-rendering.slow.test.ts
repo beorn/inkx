@@ -5,15 +5,16 @@
  * line truncation, and layout stability across various scenarios:
  * scrolling, narrow terminals, multi-column layouts, and collapsed columns.
  *
- * Two card styles:
- * - Structural cards (oi/sections): always have borders
- * - Virtual body cards (li/p/hr): always have borders (dim gray when unselected,
- *   yellow when selected, cyan when editing)
+ * Two card styles (per CardColumn `classifyFrame`, commit 323f11168 Apr 2026):
+ * - Structural cards (outline items, sections, files): bordered (round border).
+ * - Virtual body cards (li/p/hr): NAKED — no border. Selection signaling comes
+ *   from the cursor row inverse + column-level tint, not from a per-block border.
  *
- * NOTE: app.screen.nodeBox("id") returns the TreeNode content area
- * INSIDE the Card's border. The Card border is 1 cell outside:
+ * NOTE: app.screen.nodeBox("id") returns the TreeNode content area.
+ * For structural cards, the Card's round border is rendered 1 cell outside:
  * - Left border: box.x - 1
  * - Right border: box.x + box.width
+ * Body cards have NO border, so cells around the box are blanks/column bg.
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
@@ -71,9 +72,11 @@ function expectCardBorder(board: BoardLike, nodeId: string, termWidth: number) {
 }
 
 /**
- * Find the border cell for a body card by scanning left from the nodeBox.
- * Body cards always render a border (for layout stability), so the border
- * char may be at box.x - 1 or box.x - 2 depending on internal padding.
+ * Scan left from the nodeBox looking for a border char on the same row.
+ * Returns null when no border is present — which is the expected result for
+ * naked body cards (item.task / item.p / item("foo")). Used both as a
+ * positive helper for structural cards in older tests AND as a negative
+ * assertion for body cards: `expect(findBorderCell(app, id)).toBeNull()`.
  */
 function findBorderCell(board: BoardLike, nodeId: string): { char: string; fg: unknown } | null {
   const box = board.screen.nodeBox(nodeId)
@@ -85,27 +88,11 @@ function findBorderCell(board: BoardLike, nodeId: string): { char: string; fg: u
   return null
 }
 
-// ANSI color numbers used by silvery buffer
-const ANSI_BLACK = 0
-const ANSI_YELLOW = 3
-const ANSI_WHITE = 7 // $text2 in dark theme
-const ANSI_BRIGHT_BLACK = 8 // gray / dim
-
-/**
- * Assert that a virtual body card has a dim gray border when unselected.
- * Body cards always have borders — dim gray when unselected, yellow when selected.
- */
-function expectDimBorder(board: BoardLike, nodeId: string) {
-  const cell = findBorderCell(board, nodeId)
-  expect(cell, `node "${nodeId}" should have a border`).not.toBeNull()
-  if (cell) {
-    // Unselected body card border should be dim gray/white (bright black = 8, black = 0, or white = 7)
-    expect(
-      cell.fg === ANSI_BLACK || cell.fg === ANSI_WHITE || cell.fg === ANSI_BRIGHT_BLACK || cell.fg === null,
-      `node "${nodeId}" border should be dim/gray, got fg=${cell.fg}`,
-    ).toBe(true)
-  }
-}
+// Note: virtual body cards (`item.task`, `item.p`, etc.) intentionally render
+// without a border per the design contract in CardColumn `classifyFrame()`
+// (commit 323f11168, Apr 2026). Use `findBorderCell(...)` returning null to
+// assert that. The previous `expectDimBorder` helper enforced the inverse and
+// was removed when the contract changed.
 
 // ─── Card Border: Structural Cards ───────────────────────────────────────────
 
@@ -142,31 +129,34 @@ describe("card border: structural cards (files)", () => {
 // ─── Card Border: Virtual Body Cards ─────────────────────────────────────────
 
 describe("card border: virtual body cards", () => {
-  // FREEZE: needs createDriverTest — palette color comparison (ANSI_BLACK/ANSI_WHITE/ANSI_BRIGHT_BLACK indices),
-  // createTestApp returns truecolor {r,g,b} objects instead of palette indices
-  test("unselected body cards have dim gray border", () => {
-    const { board } = createDriverTest(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
-      columns: 80,
+  // Body cards (virtual cards for naked body blocks like list items, paragraphs)
+  // are intentionally NAKED — no border. Selection signaling comes from the
+  // cursor row inverse (TreeNode) plus the column-level tint, not from a per-block
+  // border. This matches the design contract documented in CardColumn.tsx
+  // `classifyFrame()` and `computeLeadingGap()` (commit 323f11168, Apr 2026):
+  // body blocks are flat prose, structural cards are bordered.
+  test("unselected body cards render without a border", () => {
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+      cols: 80,
       rows: 24,
     })
-    // 1a is selected; 1b and 1c should have dim gray border
-    expectDimBorder(board, "1b")
-    expectDimBorder(board, "1c")
+    // 1a is the cursor; 1b and 1c are unselected body cards.
+    // No border: scanning left from the box should not find a border char on the same row.
+    expect(findBorderCell(app, "1b")).toBeNull()
+    expect(findBorderCell(app, "1c")).toBeNull()
   })
 
-  // FREEZE: needs createDriverTest — palette color comparison (ANSI_YELLOW index via expectNodeBorder/expectDimBorder),
-  // createTestApp returns truecolor {r,g,b} objects instead of palette indices
-  test("selected body card gets yellow border", () => {
-    const { board } = createDriverTest(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
-      columns: 80,
+  test("selected body card renders without a border (cursor signals via row inverse)", () => {
+    using app = createTestApp(item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+      cols: 80,
       rows: 24,
     })
-    board.press("j")
-    // 1b is now selected — should have a yellow border
-    board.expectNodeBorder("1b")
-    // 1a and 1c should have dim gray border (unselected)
-    expectDimBorder(board, "1a")
-    expectDimBorder(board, "1c")
+    app.press("j")
+    // 1b is now the cursor — selection is signaled by row inverse + column tint,
+    // NOT by a per-card border. Body cards remain naked.
+    expect(findBorderCell(app, "1a")).toBeNull()
+    expect(findBorderCell(app, "1b")).toBeNull()
+    expect(findBorderCell(app, "1c")).toBeNull()
   })
 })
 
@@ -736,8 +726,53 @@ describe("card child line truncation", () => {
 // ─── Card Border: Date Badge Overflow ─────────────────────────────────────────
 
 describe("card border: date badge overflow", () => {
-  test("right border intact when card has date badge", () => {
-    // Create a task with a due date that produces a date badge (e.g., "Sep 30")
+  // Original premise (now stale): "right border missing because date badge
+  // pushes content to fill full width". Investigation revealed the actual
+  // situation: bare task nodes (item.task) are rendered as virtual body cards,
+  // which are intentionally NAKED (no border) per the design contract in
+  // CardColumn `classifyFrame()` (commit 323f11168, Apr 2026). The "missing
+  // border" was simply the absence of a border that was never drawn.
+  //
+  // For STRUCTURAL cards (item.file, sections, etc.) wrapping a date-badged
+  // task, the right border IS drawn correctly even when content+badge span
+  // the full inner width. These tests guard that contract.
+
+  test("structural card right border intact when wrapping a task with date badge", () => {
+    const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
+    if (taskNodes[0]) {
+      taskNodes[0].due_at = "2026-09-30T00:00:00Z"
+    }
+
+    using app = createTestApp(item("board", item("col", item.file("structural-task", taskNodes))), {
+      cols: 40,
+      rows: 12,
+    })
+
+    expectCardBorder(app, "structural-task", 40)
+  })
+
+  test.each([30, 35, 40, 45, 50, 60, 80])(
+    "structural card right border intact at %d cols (long title + date badge)",
+    (termWidth) => {
+      const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
+      if (taskNodes[0]) {
+        taskNodes[0].due_at = "2026-09-30T00:00:00Z"
+      }
+
+      using app = createTestApp(item("board", item("col", item.file("structural-task", taskNodes))), {
+        cols: termWidth,
+        rows: 12,
+      })
+
+      expectCardBorder(app, "structural-task", termWidth)
+    },
+  )
+
+  // Body cards (bare item.task without a structural wrapper) are intentionally
+  // naked. The date badge sits on the title row alongside the content; no
+  // border is drawn. This test pins that contract so future regressions of
+  // "body cards grew an unintended border" are caught.
+  test("body card with date badge renders naked (no border)", () => {
     const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
     if (taskNodes[0]) {
       taskNodes[0].due_at = "2026-09-30T00:00:00Z"
@@ -745,51 +780,9 @@ describe("card border: date badge overflow", () => {
 
     using app = createTestApp(item("board", item("col", taskNodes)), { cols: 40, rows: 12 })
 
-    // Find the task's box
     const taskId = taskNodes[0]!.id
-    const box = app.screen.nodeBox(taskId)
-    expect(box, "task should be visible").not.toBeNull()
-    if (!box) return
-
-    // Check border on the right side (1 cell past the content area)
-    const borderRight = box.x + box.width
-    if (borderRight < 40) {
-      for (let y = box.y; y < box.y + box.height; y++) {
-        const rightCell = app.screen.cell(borderRight, y)
-        expect(
-          isBorderChar(rightCell.char),
-          `Right border at (${borderRight},${y}): got '${rightCell.char}' (content area ends at x=${box.x + box.width - 1})`,
-        ).toBe(true)
-      }
-    }
+    expect(findBorderCell(app, taskId)).toBeNull()
   })
-
-  test.each([30, 35, 40, 45, 50, 60, 80])(
-    "right border intact with long title and date badge at %d cols",
-    (termWidth) => {
-      const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
-      if (taskNodes[0]) {
-        taskNodes[0].due_at = "2026-09-30T00:00:00Z"
-      }
-
-      using app = createTestApp(item("board", item("col", taskNodes)), { cols: termWidth, rows: 12 })
-
-      const taskId = taskNodes[0]!.id
-      const box = app.screen.nodeBox(taskId)
-      if (!box) return
-
-      const borderRight = box.x + box.width
-      if (borderRight < termWidth) {
-        for (let y = box.y; y < box.y + box.height; y++) {
-          const rightCell = app.screen.cell(borderRight, y)
-          expect(
-            isBorderChar(rightCell.char),
-            `termWidth=${termWidth} Right border at (${borderRight},${y}): got '${rightCell.char}'`,
-          ).toBe(true)
-        }
-      }
-    },
-  )
 })
 
 // ─── Card Overflow: Title Wrap Lines ──────────────────────────────────────────
