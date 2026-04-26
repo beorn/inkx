@@ -31,15 +31,17 @@ const BEAD_RE = /\b(?:bd[-:]|km-)[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\b/g
 /**
  * Absolute and tilde paths. Captures optional `:line[:col]` suffix.
  *
- * The `\/[A-Za-z0-9/_.-]+` branch is gated by a negative lookbehind so the
- * leading `/` is only treated as path-start when it's at start-of-string or
- * preceded by a non-word character (whitespace, punctuation). Without the
- * lookbehind, compound paths like `vendor/silvery` would have their `/silvery`
- * tail matched as a "file" because regex `matchAll` is happy to start
- * matching mid-token. Real absolute paths (e.g. `cd /Users/foo`) still
- * match because the `/` there is preceded by space.
+ * The `\/…` branch is gated by:
+ *   1. Negative lookbehind — leading `/` must be at start-of-string or
+ *      preceded by a non-word character. Without this, compound paths like
+ *      `vendor/silvery` would match `/silvery` as a "file" mid-token.
+ *   2. Required separator after the first segment — the path must contain
+ *      a second `/` or a `.` so single-segment slash-commands like `/help`,
+ *      `/quit`, `/inbox` don't render as paths. Real paths (`/Users/foo`,
+ *      `/main.ts`) all have either another `/` or an extension `.`.
  */
-const FILE_RE = /(~[A-Za-z0-9/_.-]+|(?<![A-Za-z0-9_])\/[A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
+const FILE_RE =
+  /(~[A-Za-z0-9/_.-]+|(?<![A-Za-z0-9_])\/[A-Za-z0-9_-]+[/.][A-Za-z0-9/_.-]+)(?::(\d+)(?::(\d+))?)?/g
 
 /** km node refs: #id or @mention. */
 const KM_REF_RE = /(?:^|\s)(?:#|@)([A-Za-z][A-Za-z0-9_-]{2,})/g

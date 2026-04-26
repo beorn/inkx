@@ -169,22 +169,24 @@ function MarkdownTable({
     }
     return text.padEnd(w)
   }
-  // Per-row `overflow="hidden"` so table cells clip rather than wrap —
-  // wrapping would destroy the padded column alignment. Card-level
-  // clipping at SessionCard handles layout-expansion prevention.
-  // Inner separators: `│` between cells, `─` rule after headers and
-  // (subtle, light) between body rows so dense tables stay scannable.
+  // Render each row as a SINGLE <Text> with nested colored spans.
+  // Earlier shape used a per-row <Box flexDirection="row"> with one Text
+  // per cell — silvery's flex defaults pushed each row to ≥2 rows tall in
+  // some contexts, producing a sparse, broken-looking table. Nested Text
+  // is the canonical silvery pattern for inline mixed-style content (see
+  // LinkifiedText) and renders at exactly content height.
+  //
+  // Cells clip via padEnd width — wrap would destroy column alignment.
   const sep = " │ "
   const ruleSegments = widths.map((w) => "─".repeat(w))
   const headerRule = ruleSegments.join("─┼─")
-  // Body row divider — same shape as header rule. Skipped when there are
-  // 2 rows or fewer (the dividers add more chrome than they're worth on a
-  // tiny table). Drawn in $border-subtle when available to read as a
-  // hairline rather than a hard separator competing with the header rule.
-  const showRowDividers = block.rows.length >= 3
+  // Body row divider — only on small tables where it adds clarity.
+  // For dense tables (5+ rows), the dividers turn into visual noise.
+  // Header rule is always present.
+  const showRowDividers = block.rows.length > 0 && block.rows.length < 5
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
-      <Box flexDirection="row" overflow="hidden">
+      <Text>
         {block.headers.map((h, col) => (
           <React.Fragment key={col}>
             {col > 0 && <Text color="$border">{sep}</Text>}
@@ -193,19 +195,19 @@ function MarkdownTable({
             </Text>
           </React.Fragment>
         ))}
-      </Box>
+      </Text>
       <Text color="$border">{headerRule}</Text>
       {block.rows.map((row, rowIdx) => (
         <React.Fragment key={rowIdx}>
           {showRowDividers && rowIdx > 0 && <Text color="$muted">{headerRule}</Text>}
-          <Box flexDirection="row" overflow="hidden">
+          <Text>
             {row.map((cell, col) => (
               <React.Fragment key={col}>
                 {col > 0 && <Text color="$border">{sep}</Text>}
-                <Text>{pad(cell, col)}</Text>
+                {pad(cell, col)}
               </React.Fragment>
             ))}
-          </Box>
+          </Text>
         </React.Fragment>
       ))}
     </Box>

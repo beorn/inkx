@@ -159,7 +159,14 @@ export function CommandBox({
                 onChange={(text) => onQueueChange(displayToWire(text))}
                 isActive={queueIsFocused}
                 showInactiveCursor={false}
-                height={queueRows}
+                // Auto-grow with the content, capped at 12 rows (per
+                // design — scrolls beyond that via TextArea's built-in
+                // scroll tracking). Replaces the hand-rolled
+                // `Math.min(12, Math.max(1, queueDisplayLines.length))`
+                // height calculation.
+                fieldSizing="content"
+                minRows={1}
+                maxRows={12}
                 // Plain Enter inserts a newline (= adds a new queued
                 // entry). Ctrl+J (= Ctrl+Enter on the wire — same byte
                 // as LF) force-flushes the entire buffer. The previous
@@ -199,7 +206,11 @@ export function CommandBox({
             onChange={onInputChange}
             isActive={commandIsFocused && !inputDisabled}
             showInactiveCursor={false}
-            height={Math.max(1, Math.min(8, inputValue.split("\n").length))}
+            // Defaults give chat-input behavior (fieldSizing=content,
+            // minRows=1, maxRows=8). Empty input is 1 row; multi-line
+            // composition grows up to 8 rows then scrolls. Replaces the
+            // hand-rolled `Math.max(1, Math.min(8, lines.length))`
+            // height calculation.
             submitKey="enter"
             placeholder={inputDisabled ? "spawning…" : ""}
             onSubmit={(v) => {
