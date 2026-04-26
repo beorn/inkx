@@ -231,11 +231,11 @@ const ACP_REGISTRY: Record<AcpRegistryId, { command: string; args: string[]; des
  * of `newSession`. Throws `AcpResumeUnsupportedError` if the resolved agent
  * doesn't advertise `loadSession: true`. Per agent (verified 2026-04-26):
  *
- *   codex   — loadSession: true
- *   pi-acp  — loadSession: true
- *   gemini  — partial (advertises true; replay coverage unverified)
- *   claude-code — loadSession: false (until @km/claude-acp ships JSONL replay,
- *                 tracked km-silvercode.acp-claude-acp-loadsession)
+ *   codex        — loadSession: true
+ *   pi-acp       — loadSession: true
+ *   gemini       — partial (advertises true; replay coverage unverified)
+ *   claude-code  — loadSession: true (JSONL replay + claude --resume shipped,
+ *                  bead km-silvercode.acp-claude-acp-loadsession CLOSED)
  *   github-copilot-cli — unverified
  */
 export function connectAcpRegistry(
