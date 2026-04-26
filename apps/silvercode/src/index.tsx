@@ -93,6 +93,7 @@ function buildProgram(): Command {
     .description("Health-check silvercode config + integrations (autolinks, …)")
     .argument("[checker]", `restrict to one checker (${CHECKER_NAMES.join(", ")})`)
     .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
+    .option("--json", "emit the structured DoctorReport as JSON instead of the ANSI report")
     .action((arg: string | undefined, opts: Record<string, unknown>) => {
       const cwd = String(opts.cwd ?? process.cwd())
       const only = arg ? [arg] : undefined
@@ -102,8 +103,11 @@ function buildProgram(): Command {
         return
       }
       const report = runDoctor({ cwd, only })
-      const text = renderReport(report)
-      process.stdout.write(text)
+      if (opts["json"]) {
+        process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+      } else {
+        process.stdout.write(renderReport(report))
+      }
       process.exitCode = severityToExitCode(report.severity)
     })
   // Per-checker subcommand: `silvercode doctor autolinks`. Same outcome as
@@ -115,10 +119,15 @@ function buildProgram(): Command {
       .command(name)
       .description(`Health-check the ${name} subsystem`)
       .option("--cwd <path>", "directory whose .km/config.yaml to inspect", process.cwd())
+      .option("--json", "emit the structured DoctorReport as JSON instead of the ANSI report")
       .action((opts: Record<string, unknown>) => {
         const cwd = String(opts.cwd ?? process.cwd())
         const report = runDoctor({ cwd, only: [name] })
-        process.stdout.write(renderReport(report))
+        if (opts["json"]) {
+          process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+        } else {
+          process.stdout.write(renderReport(report))
+        }
         process.exitCode = severityToExitCode(report.severity)
       })
   }

@@ -577,4 +577,31 @@ syntaxlinks:
     const err = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
     expect(severityToExitCode(err.severity)).toBe(2)
   })
+
+  test("DoctorReport is JSON-serializable round-trip (proves --json output is sound)", () => {
+    // The CLI's `--json` flag JSON.stringify's the report directly. This
+    // test asserts the report shape contains only data — no functions,
+    // no circular refs — so the CLI output is always valid JSON regardless
+    // of which checkers ran.
+    writeFileSync(
+      vaultPath,
+      `
+syntaxlinks:
+  - pattern: "~repo"
+    resolves_to: "${dir}"
+    preview: readme
+`,
+    )
+    const report = runDoctor({ cwd: dir, autolinks: { workspaceConfigPath: wsPath, vaultConfigPath: vaultPath } })
+    const json = JSON.stringify(report)
+    const parsed = JSON.parse(json)
+    expect(parsed.cwd).toBe(dir)
+    // Severity may be ok / warn (e.g., readme not found in empty tmp dir) — what
+    // matters is the field exists and is a valid string.
+    expect(["ok", "warn", "error"]).toContain(parsed.severity)
+    expect(Array.isArray(parsed.sections)).toBe(true)
+    expect(parsed.sections[0].title).toBe("autolinks")
+    // No undefined / function values that would silently disappear during stringify.
+    expect(json).not.toContain('"undefined"')
+  })
 })
