@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { AgentSession, SessionStore } from "@km/agent-harness"
+import type { AcpRegistryId, AgentSession, SessionStore } from "@km/agent-harness"
 import { Box, type ListViewHandle, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
 import { useInput } from "silvery/runtime"
 import { CommandBox } from "./components/CommandBox.tsx"
@@ -111,6 +111,14 @@ export type AppProps = {
   bare: boolean
   layout: Layout
   track: Track
+  /**
+   * ACP registry id. When set, the controller routes the session via
+   * `connectAcpRegistry` instead of the legacy spawn paths. `track` is
+   * ignored. Allowed: codex / gemini / github-copilot-cli / pi-acp /
+   * claude-code. v0 limitations apply (auto-approve permissions, etc.) —
+   * see ControllerOptions.agent docs.
+   */
+  agent?: AcpRegistryId
   logDir?: string
   /**
    * Anthropic account name for per-session credential isolation. Resolves to
@@ -170,6 +178,7 @@ export function App(props: AppProps): React.ReactElement {
       resume: props.resume,
       bare: props.bare,
       track: props.track,
+      agent: props.agent,
       logDir: props.logDir,
       account: props.account,
       initialSessions: props.layout === "grid-4" ? 4 : props.layout === "grid-2" ? 2 : 1,
@@ -197,6 +206,13 @@ export function App(props: AppProps): React.ReactElement {
   const [showInbox, setShowInbox] = useState(false)
   const [showSidePanel, setShowSidePanel] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
+  // `/raw` slash command toggles a debug view that inlines each user
+  // message's `additionalContext` (system-reminders, hook output,
+  // isMeta entries — everything stripped from the visible chat surface
+  // for readability). When false, only a chip "▸ N hidden lines" shows
+  // beneath messages that have hidden context. Bead:
+  // km-silvercode.resume-show-everything-collapsed.
+  const [showRaw, setShowRaw] = useState(false)
   const [inputValue, setInputValue] = useState("")
   // Mirror inputValue into a ref so the App-level input handler can
   // capture the pre-chord value synchronously. Without this, when the
@@ -486,6 +502,14 @@ export function App(props: AppProps): React.ReactElement {
           case "/panel":
           case "/aside":
             return setShowSidePanel((v) => !v)
+          case "/raw":
+          case "/debug":
+            // Toggle the debug view: inline every user message's hidden
+            // context (system-reminders, hook output, isMeta auto-prompts
+            // like "Continue from where you left off."). Lets the user see
+            // exactly what the model received during a resumed session.
+            // Bead: km-silvercode.resume-show-everything-collapsed.
+            return setShowRaw((v) => !v)
           case "/mode": {
             const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
@@ -996,6 +1020,7 @@ export function App(props: AppProps): React.ReactElement {
               onToggleMinimizePane={toggleMinimizePane}
               minimizedPaneIds={minimizedPaneIds}
               onRegisterMessageList={registerMessageList}
+              showRaw={showRaw}
             />
 
             {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}

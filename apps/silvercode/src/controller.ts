@@ -18,6 +18,7 @@ import {
   type PermissionRequestId,
   type SessionStore,
   channelDigestInjector,
+  connectAcpRegistry,
   createFileEventLog,
   createSessionStore,
   cwdInjector,
@@ -25,6 +26,7 @@ import {
   spawnCodex,
   spawnSdk,
   activeBeadInjector,
+  type AcpRegistryId,
 } from "@km/agent-harness"
 import { createScope, type Scope } from "@silvery/scope"
 import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
@@ -176,6 +178,21 @@ export type ControllerOptions = {
    */
   bare: boolean
   track: Track
+  /**
+   * Optional ACP registry id to route the session through `connectAcpRegistry`
+   * instead of the legacy `spawnClaude` / `spawnSdk` / `spawnCodex` paths.
+   * When set, `track` is ignored. Targets external ACP servers
+   * (codex, gemini, github-copilot-cli, pi-acp) and silvercode's own
+   * subscription wrapper (claude-code).
+   *
+   * v0 limitations:
+   * - Permissions auto-approve the first option (no UI integration yet —
+   *   tracked as km-silvercode.acp-permission-ui-wire)
+   * - Multi-account / `--bare` / `resume` are not threaded through ACP path
+   *   yet (resume support added separately via opts.resume + per-agent
+   *   loadSession capability)
+   */
+  agent?: AcpRegistryId
   logDir?: string
   initialSessions: number
   /**
@@ -239,6 +256,8 @@ export type SpawnSessionOptions = {
   id: string
   name: string
   track: Track
+  /** When set, dispatches via connectAcpRegistry instead of track. */
+  agent?: AcpRegistryId
   cwd: string
   model?: string
   resume?: string
@@ -740,6 +759,41 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   async function defaultSpawn(s: SpawnSessionOptions): Promise<AgentSession> {
     const injectors = makeInjectors(s.name)
     const mcpServers = opts.mcpServers ?? defaultMcpServers(s.name, workspaceRoot, findKmDb(s.cwd))
+    // ACP path — when an explicit registry id is set, route through
+    // connectAcpRegistry. Codex/Gemini/Copilot/Pi-acp/Claude-via-@km/claude-acp
+    // all surface the same AgentSession interface, so the rest of the
+    // controller (subscribe, send, close) is unchanged.
+    //
+    // v0 caveats:
+    // - Permissions auto-approve the first option; real UI integration is
+    //   deferred (km-silvercode.acp-permission-ui-wire).
+    // - fs handlers wire to local Bun.file read/write.
+    // - injectors are NOT applied to the prompt (ACP `session/prompt` does
+    //   not include silvercode's bd-prime / cwd / channel-digest text). That
+    //   path is wired separately when the channel pipeline lands on the ACP
+    //   transport (km-silvercode.acp-channels).
+    if (s.agent) {
+      const sessionScope = controllerScope.child(`acp-session-${s.id}`)
+      return connectAcpRegistry(sessionScope, s.agent, {
+        cwd: s.cwd,
+        sessionCwd: s.cwd,
+        clientCapabilities: { fs: { readTextFile: true, writeTextFile: true } },
+        fsHandler: {
+          async readTextFile({ path }) {
+            return { content: await Bun.file(path).text() }
+          },
+          async writeTextFile({ path, content }) {
+            await Bun.write(path, content)
+            return {}
+          },
+        },
+        permissionHandler: async (req) => {
+          const optionId = req.options[0]?.optionId
+          if (!optionId) return { outcome: { outcome: "cancelled" } }
+          return { outcome: { outcome: "selected", optionId } }
+        },
+      })
+    }
     if (s.track === "codex") {
       return spawnCodex({ cwd: s.cwd, injectors })
     }
@@ -796,6 +850,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         id,
         name: givenName,
         track: opts.track,
+        agent: opts.agent,
         cwd: opts.cwd,
         model: opts.model,
         resume: opts.resume,

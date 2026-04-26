@@ -53,6 +53,17 @@ function buildProgram(): Command {
     )
     .option("--layout <mode>", "layout: single | grid-2 | grid-4 (M5+)", "single")
     .option("--track <kind>", "agent track: claude | sdk | codex (M11/M12)", "claude")
+    .option(
+      "--agent <id>",
+      "ACP registry id: codex | gemini | github-copilot-cli | pi-acp | claude-code (v0 — auto-approves permissions, no UI permission flow yet)",
+      (value: string) => {
+        const valid = ["codex", "gemini", "github-copilot-cli", "pi-acp", "claude-code"]
+        if (!valid.includes(value)) {
+          throw new Error(`--agent: unknown registry id "${value}". Allowed: ${valid.join(", ")}`)
+        }
+        return value
+      },
+    )
     .option("--log-dir <path>", "event-log directory for replay", "")
     .option(
       "--account <name>",
@@ -153,6 +164,15 @@ function buildProgram(): Command {
           bare={opts.bare === true}
           layout={effectiveLayout}
           track={opts.track === "sdk" || opts.track === "codex" || opts.track === "claude" ? opts.track : "claude"}
+          agent={
+            opts.agent === "codex" ||
+            opts.agent === "gemini" ||
+            opts.agent === "github-copilot-cli" ||
+            opts.agent === "pi-acp" ||
+            opts.agent === "claude-code"
+              ? opts.agent
+              : undefined
+          }
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
           paneHeaders={opts.paneHeaders === true}
