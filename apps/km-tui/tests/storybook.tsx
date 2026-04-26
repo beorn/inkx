@@ -1621,19 +1621,36 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text dimColor>Toasts appear in bottom-right corner with border and black background</Text>
       <Text> </Text>
 
-      {[
-        { title: "Success: File Sync", idx: 0 },
-        { title: "Info: Log Messages", idx: 1 },
-        { title: "Error with Description: Parse Error", idx: 2 },
-        { title: "Warning with Description: Validation", idx: 3 },
-        { title: "Error: Open Failed", idx: 4 },
-      ].map(({ title, idx }) => (
-        <ViewBox key={idx} title={title}>
-          <Box width={demoTermWidth} height={10} position="relative">
-            <ToastStack toasts={[getToast(idx)]} termWidth={demoTermWidth} termHeight={10} />
-          </Box>
-        </ViewBox>
-      ))}
+      {/* Two columns — vertically more concise than the original 5-row stack.
+          Column 1: first 3 (Success/Info/Error w/ desc); Column 2: last 2
+          (Warning w/ desc, Error: Open Failed). Each column halves the demo
+          width so two ToastStacks fit side-by-side. */}
+      <Box flexDirection="row" gap={1}>
+        {[
+          [
+            { title: "Success: File Sync", idx: 0 },
+            { title: "Info: Log Messages", idx: 1 },
+            { title: "Error with Description: Parse Error", idx: 2 },
+          ],
+          [
+            { title: "Warning with Description: Validation", idx: 3 },
+            { title: "Error: Open Failed", idx: 4 },
+          ],
+        ].map((col, colIdx) => {
+          const colWidth = Math.floor((demoTermWidth - 2) / 2)
+          return (
+            <Box key={colIdx} flexDirection="column" flexGrow={1}>
+              {col.map(({ title, idx }) => (
+                <ViewBox key={idx} title={title}>
+                  <Box width={colWidth} height={10} position="relative">
+                    <ToastStack toasts={[getToast(idx)]} termWidth={colWidth} termHeight={10} />
+                  </Box>
+                </ViewBox>
+              ))}
+            </Box>
+          )
+        })}
+      </Box>
 
       <SubsectionHeader title="Stacked Toasts (shadcn/ui pattern)" />
       <Text dimColor>Multiple toasts stack vertically, newest at bottom</Text>
