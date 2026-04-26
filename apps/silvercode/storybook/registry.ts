@@ -26,6 +26,12 @@ import { slashCommandPaletteOpen } from "./stories/SlashCommandPalette.open.stor
 import { toolCallBlockBash } from "./stories/ToolCallBlock.bash.story.tsx"
 import { toolCallBlockEdit } from "./stories/ToolCallBlock.edit.story.tsx"
 import { toolCallBlockRunning } from "./stories/ToolCallBlock.running.story.tsx"
+import { toolCallRead } from "./stories/ToolCall.read.story.tsx"
+import { toolCallEdit } from "./stories/ToolCall.edit.story.tsx"
+import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
+import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
+import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
+import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { userMessageBlockShort } from "./stories/UserMessageBlock.short.story.tsx"
 import { welcomeBasic } from "./stories/Welcome.basic.story.tsx"
 
@@ -46,6 +52,16 @@ export const STORIES: readonly Story[] = [
   toolCallBlockBash,
   toolCallBlockEdit,
   toolCallBlockRunning,
+  // ACP-named ToolCall family — kind/status variants on the canonical
+  // <ToolCall> renderer plus the aggregate <ToolCallSummary> and the
+  // Aider-style <ApplyPatch>. See `hub/silvery/future/ai-terminal/acp-naming.md`.
+  toolCallRead,
+  toolCallEdit,
+  toolCallExecute,
+  toolCallFailed,
+  toolCallSummary,
+  applyPatch,
+  applyPatchMulti,
   // Higher-order: full conversation
   messageListEmpty,
   messageListMultiTurn,
