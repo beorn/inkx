@@ -33,6 +33,7 @@
 import { spawn as nodeSpawn } from "node:child_process"
 import { EventEmitter } from "node:events"
 import { Readable, Writable } from "node:stream"
+import { fileURLToPath } from "node:url"
 import * as acp from "@agentclientprotocol/sdk"
 import { Scope, disposable } from "@silvery/scope"
 import createDebug from "debug"
@@ -229,9 +230,16 @@ const ACP_REGISTRY: Record<
   },
   "claude-code": {
     command: "bun",
-    args: ["x", "@km/claude-acp"],
+    // @km/claude-acp is private (workspace-only) — `bun x @km/claude-acp` 404s
+    // on npm. Resolve the bin via this file's directory: acp-client.ts lives at
+    // apps/silvercode/packages/agent-harness/src/, so the sibling claude-acp
+    // package's bin is at ../../claude-acp/bin/silvercode-claude-acp.js.
+    // probe-acp.ts uses the same resolution; mirror it here so the production
+    // path matches the test path. Swap to `bun x @km/claude-acp` once the
+    // package is published.
+    args: [fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url))],
     description:
-      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned. NOTE: package is currently private (workspace-only); the probe-acp script provides a local-bin override until publication.",
+      "Claude Code via silvercode's standalone ACP wrapper — subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). The only maintained subscription path; @agentclientprotocol/claude-agent-acp blocks Pro/Max, and carlrannaberg/cc-acp is abandoned. Bin resolved via import.meta.url because the package is private (workspace-only).",
   },
 }
 

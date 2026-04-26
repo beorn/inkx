@@ -170,7 +170,11 @@ const EXPECTED: Record<AcpRegistryId, { command: string; args: string[]; env?: R
   },
   "github-copilot-cli": { command: "copilot", args: [] },
   "pi-acp": { command: "bun", args: ["x", "pi-acp"] },
-  "claude-code": { command: "bun", args: ["x", "@km/claude-acp"] },
+  // claude-code resolves its bin via import.meta.url because @km/claude-acp is
+  // a private workspace package (npm 404). The exact resolved path depends on
+  // where the test runs; assert structure (`bun <…/claude-acp/bin/silvercode-claude-acp.js>`)
+  // rather than a brittle string match.
+  "claude-code": { command: "bun", args: ["__claude-acp-bin__"] },
 }
 
 describe("connectAcpRegistry", () => {
@@ -186,7 +190,13 @@ describe("connectAcpRegistry", () => {
       const session = await connectAcpRegistry(scope, id, { cwd: "/tmp/work" })
 
       expect(capture.command).toBe(expected.command)
-      expect(capture.args).toEqual(expected.args)
+      if (expected.args[0] === "__claude-acp-bin__") {
+        // Workspace-resolved bin — assert shape, not exact path.
+        expect(capture.args).toHaveLength(1)
+        expect(capture.args[0]).toMatch(/\/claude-acp\/bin\/silvercode-claude-acp\.js$/)
+      } else {
+        expect(capture.args).toEqual(expected.args)
+      }
       expect(capture.cwd).toBe("/tmp/work")
       // Confirm the connection round-tripped to the in-memory server.
       expect(session.protocolVersion).toBe(1)
