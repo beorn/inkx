@@ -30,16 +30,20 @@
  * zone. Mouse-up commits via `moveLeafTo` or `swapLeaves`.
  *
  * Zoom: when `zoomedPaneId` is set, the grid renders ONLY that pane
- * full-area with no dividers. Toggle via the Ctrl+W z chord wired in
+ * full-area with no dividers. Toggle via the Ctrl+G z chord wired in
  * App.tsx.
  *
  * Keybindings (in App.tsx, this component is presentation):
- *   Ctrl+W v          — vertical split (row split)
- *   Ctrl+W s          — horizontal split (column split)
- *   Ctrl+W x          — close current pane
- *   Ctrl+W z          — zoom toggle
- *   Ctrl+W H/J/K/L    — swap with neighbor in direction
+ *   Ctrl+G v          — vertical split (row split)
+ *   Ctrl+G s          — horizontal split (column split)
+ *   Ctrl+G x          — close current pane
+ *   Ctrl+G z          — zoom toggle
+ *   Ctrl+G H/J/K/L    — swap with neighbor in direction
  *   Ctrl+N            — cycle focus (left-to-right reading order via leafIds)
+ *
+ * Note: Ctrl+G (not vim's Ctrl+W) — silvery's TextArea consumes Ctrl+W as
+ * readline word-delete-backwards before the App-level useInput sees it. See
+ * bead km-silvercode.ctrl-w-blocked-by-textarea.
  */
 
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
