@@ -9,6 +9,7 @@
     "./test": "./src/test.ts"
   },
   "dependencies": {
+    "@km/autolinks": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",

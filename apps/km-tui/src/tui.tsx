@@ -29,6 +29,8 @@ import { terminalFocused, lastKey, startupPhase, setStartupPhase } from "./diagn
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
+import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
+import { AutolinksProvider } from "./text/AutolinksContext.tsx"
 
 const log = createLogger("km:tui")
 
@@ -310,6 +312,25 @@ export async function runBoard(
       }
     }
 
+    // Load syntaxlinks rules from <vault>/.km/config.yaml + ~/.km/config.yaml.
+    // Per-vault rules cascade onto workspace rules (vault wins on duplicate
+    // pattern). Empty list when no config files exist — autolinks gracefully
+    // degrade to "no extra detections", same as the silvercode path.
+    let autolinkRules: AutolinkRule[] = []
+    {
+      using _ = run.span("load-autolinks")
+      if (vaultPath) {
+        try {
+          autolinkRules = loadAutolinksConfig(vaultPath)
+        } catch (err) {
+          // Don't block startup on a malformed config — log and continue with
+          // an empty rule list. parseSyntaxlinksYaml already swallows per-rule
+          // errors internally; this catch is a defensive belt-and-braces.
+          log.debug?.(`failed to load autolinks config: ${String(err)}`)
+        }
+      }
+    }
+
     // Restore saved workspace (layout, view mode, filters, zoom location).
     // Falls back gracefully if the saved state can't be resolved (deleted nodes, etc.).
     setStartupPhase("load-workspace")
@@ -402,13 +423,15 @@ export async function runBoard(
           emulator={emulator}
           cacheKey={{ program: emulator.program || "unknown", dark: caps.maybeDarkBackground }}
         >
-          <RepoProvider repo={undoableRepo}>
-            <StoreProvider store={reactiveStore}>
-              <InputLayerProvider>
-                <BoardApp initialViewMode={viewMode} patchedConsole={consoleOwner} toastQueue={toastQueue} />
-              </InputLayerProvider>
-            </StoreProvider>
-          </RepoProvider>
+          <AutolinksProvider rules={autolinkRules}>
+            <RepoProvider repo={undoableRepo}>
+              <StoreProvider store={reactiveStore}>
+                <InputLayerProvider>
+                  <BoardApp initialViewMode={viewMode} patchedConsole={consoleOwner} toastQueue={toastQueue} />
+                </InputLayerProvider>
+              </StoreProvider>
+            </RepoProvider>
+          </AutolinksProvider>
         </DeferredThemeProvider>,
         isInteractive
           ? {

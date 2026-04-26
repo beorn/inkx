@@ -176,6 +176,7 @@
     "apps/km-tui": {
       "name": "@km/tui",
       "dependencies": {
+        "@km/autolinks": "workspace:*",
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
