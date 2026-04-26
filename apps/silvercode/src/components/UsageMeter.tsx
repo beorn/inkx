@@ -73,33 +73,29 @@ export interface UsageBreakdownProps {
  */
 export function UsageBreakdown({ usage, rows = [], defaultExpanded = false }: UsageBreakdownProps): React.ReactElement {
   const [expanded, setExpanded] = useState(defaultExpanded)
-
-  const titleNode = (
-    <Box flexDirection="row" gap={1} alignItems="center">
-      <UsageMeter usage={usage} width={16} />
-      <Muted>
-        <AnimatedNumber value={usage.used} duration={300} /> / {usage.size.toLocaleString()} tokens
-      </Muted>
-    </Box>
-  )
+  const pct = usage.size > 0 ? Math.round((usage.used / usage.size) * 100) : 0
+  const title = `Token usage — ${usage.used.toLocaleString()} / ${usage.size.toLocaleString()} (${pct}%)`
 
   return (
-    <Accordion title={titleNode as unknown as string} expanded={expanded} onToggle={setExpanded}>
-      <Box flexDirection="column" paddingLeft={2} gap={0}>
-        {rows.map((row) => (
-          <Box key={row.label} flexDirection="row" gap={1}>
-            <Muted>{row.label}</Muted>
-            <AnimatedNumber value={row.tokens} duration={300} color="$primary" />
-          </Box>
-        ))}
-        {rows.length === 0 && (
-          <Box flexDirection="row" gap={1}>
-            <Muted>Used</Muted>
-            <AnimatedNumber value={usage.used} duration={300} color="$primary" />
-          </Box>
-        )}
-      </Box>
-    </Accordion>
+    <Box flexDirection="column" gap={0}>
+      <UsageMeter usage={usage} width={16} />
+      <Accordion title={title} expanded={expanded} onToggle={setExpanded}>
+        <Box flexDirection="column" paddingLeft={2} gap={0}>
+          {rows.map((row) => (
+            <Box key={row.label} flexDirection="row" gap={1}>
+              <Muted>{row.label}</Muted>
+              <AnimatedNumber value={row.tokens} duration={300} color="$primary" />
+            </Box>
+          ))}
+          {rows.length === 0 && (
+            <Box flexDirection="row" gap={1}>
+              <Muted>Used</Muted>
+              <AnimatedNumber value={usage.used} duration={300} color="$primary" />
+            </Box>
+          )}
+        </Box>
+      </Accordion>
+    </Box>
   )
 }
 
