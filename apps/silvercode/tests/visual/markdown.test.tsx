@@ -28,7 +28,13 @@ describe("markdown rendering at multiple widths", () => {
 
   for (const cols of widths) {
     test(`markdownRich at cols=${cols}: layout invariants hold`, async () => {
-      const s = await renderScenario({ script: markdownRich, cols, rows: 60 })
+      // rows=200 is required at narrow widths: at cols=60 the message
+      // column is ~16 cols wide once the side panel takes its 40-col
+      // share, and the markdown fixture wraps to ~100 rendered lines.
+      // MessageList's `follow="end"` pins the viewport to the tail, so
+      // a too-short window scrolls the leading `●` glyph out of view
+      // and the cardStream parser finds zero assistant blocks.
+      const s = await renderScenario({ script: markdownRich, cols, rows: 200 })
       const p = parseFrame(s)
       const assistants = p.cardStream.filter((b) => b.glyph === "●")
       expect(assistants.length, `no ● assistant block at cols=${cols}.\n${summarize(p)}`).toBeGreaterThan(0)
