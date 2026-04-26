@@ -30,6 +30,15 @@ export type MessageEntry = {
   todos?: Todo[]
   /** End-of-turn stop reason. */
   stopReason?: string
+  /**
+   * Hidden context attached to this message — system-reminder bodies,
+   * hook output, isMeta entries, command-tag wrappers. Stripped from
+   * `text` for chat readability but preserved here so the debug view
+   * (`/raw`) can expose what the model actually received. Populated by
+   * the parser on resume; live messages don't have it.
+   * Bead: km-silvercode.resume-show-everything-collapsed.
+   */
+  additionalContext?: string
   ts: number
 }
 
@@ -172,7 +181,13 @@ export function createSessionStore(): SessionStore {
         next.status = event.role === "assistant" ? "thinking" : "idle"
         break
       case "user-message":
-        upsertMessage(next, event.turnId, (m) => ({ ...m, role: "user", text: event.text, ts: event.ts }))
+        upsertMessage(next, event.turnId, (m) => ({
+          ...m,
+          role: "user",
+          text: event.text,
+          additionalContext: event.additionalContext ?? m.additionalContext,
+          ts: event.ts,
+        }))
         break
       case "text-delta":
         upsertMessage(next, event.turnId, (m) => ({ ...m, text: m.text + event.text }))

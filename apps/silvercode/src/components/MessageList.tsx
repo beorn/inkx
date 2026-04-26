@@ -51,7 +51,7 @@ function BackgroundSystemBlock({ text }: { text: string }): React.ReactElement {
   )
 }
 
-function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
+function MessageItem({ m, showRaw }: { m: MessageEntry; showRaw: boolean }): React.ReactElement {
   // Background-task system messages are stuffed into the store as
   // user-messages with a `bg-` prefixed turnId AND a `▶ Background task `
   // text prefix (see controller.ts: BACKGROUND_MESSAGE_PREFIX). Render
@@ -60,7 +60,7 @@ function MessageItem({ m }: { m: MessageEntry }): React.ReactElement {
     return <BackgroundSystemBlock text={m.text} />
   }
   if (m.role === "user") {
-    return <UserMessageBlock text={m.text} />
+    return <UserMessageBlock text={m.text} additionalContext={m.additionalContext} showRaw={showRaw} />
   }
   if (m.role === "system") {
     return <BackgroundSystemBlock text={m.text} />
@@ -101,9 +101,23 @@ export const MessageList = React.forwardRef<
     outputTokens: number
     pendingPermissions: number
     inFlightTool: string | null
+    /** Toggled by App-level `/raw` slash command. When true, each user
+     *  message inlines its `additionalContext` (system-reminders, hook
+     *  output, isMeta bodies) below the visible prompt. Default false.
+     *  Bead: km-silvercode.resume-show-everything-collapsed. */
+    showRaw?: boolean
   }
 >(function MessageList(
-  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool },
+  {
+    messages,
+    status,
+    turnStartedAt,
+    inputTokens,
+    outputTokens,
+    pendingPermissions,
+    inFlightTool,
+    showRaw = false,
+  },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
@@ -153,7 +167,7 @@ export const MessageList = React.forwardRef<
             outputTokens={outputTokens}
           />
         ) : (
-          <MessageItem m={item} />
+          <MessageItem m={item} showRaw={showRaw} />
         )
       }
     />

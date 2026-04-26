@@ -115,6 +115,9 @@ export type PaneGridProps = {
    * `null` on unmount to drop entries.
    */
   onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
+  /** App-level `/raw` debug toggle. Forwarded to every SessionCard.
+   *  Bead: km-silvercode.resume-show-everything-collapsed. */
+  showRaw?: boolean
 }
 
 /**
@@ -175,6 +178,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     onToggleMinimizePane,
     minimizedPaneIds,
     onRegisterMessageList,
+    showRaw = false,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -370,6 +374,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
           onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
           onRegisterMessageList={onRegisterMessageList}
+          showRaw={showRaw}
         />
       )
     },
@@ -387,6 +392,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onClosePane,
       onToggleMinimizePane,
       onRegisterMessageList,
+      showRaw,
     ],
   )
 
@@ -410,6 +416,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onApprove={(rid) => props.onApprovePermission(zoomed.id, rid)}
               onDeny={(rid) => props.onDenyPermission(zoomed.id, rid)}
               onRegisterMessageList={onRegisterMessageList}
+              showRaw={showRaw}
             />
           </Box>
         </Box>
@@ -467,6 +474,7 @@ function LeafContainer({
   onClose,
   onToggleMinimize,
   onRegisterMessageList,
+  showRaw = false,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -488,6 +496,7 @@ function LeafContainer({
   onClose?: () => void
   onToggleMinimize?: () => void
   onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
+  showRaw?: boolean
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -518,6 +527,7 @@ function LeafContainer({
           onApprove={onApprove}
           onDeny={onDeny}
           onRegisterMessageList={onRegisterMessageList}
+          showRaw={showRaw}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.

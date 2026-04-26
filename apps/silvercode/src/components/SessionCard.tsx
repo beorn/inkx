@@ -31,6 +31,7 @@ export function SessionCard({
   onApprove,
   onDeny,
   onRegisterMessageList,
+  showRaw = false,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -48,6 +49,11 @@ export function SessionCard({
    * unmount to drop the entry.
    */
   onRegisterMessageList?: (sessionId: string, handle: ListViewHandle | null) => void
+  /** App-level `/raw` debug toggle. Forwarded to MessageList; expands
+   *  each user message's `additionalContext` (system-reminders, hook
+   *  output, isMeta bodies) inline. Bead:
+   *  km-silvercode.resume-show-everything-collapsed. */
+  showRaw?: boolean
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Callback ref — fires with the live ListViewHandle on mount and with
@@ -102,8 +108,14 @@ export function SessionCard({
       {/* Left-edge accent bar = active-pane indicator. 1 col wide; visible
           only when this pane is focused. Inactive panes render a same-width
           blank column so the content origin (and any text-wrap math
-          downstream) stays stable across focus changes. */}
-      <Box flexShrink={0} flexGrow={0} flexBasis={1} width={1} flexDirection="column">
+          downstream) stays stable across focus changes.
+          `overflow="hidden"` is load-bearing: without it, the 200-char wrap
+          text's max-content width inflates the column, pushing Welcome /
+          MessageList content right off the visible viewport (verified in
+          `tests/welcome-card-hidden.test.tsx`). flexBasis/width=1 alone
+          don't clamp — flex needs an overflow boundary on the wrap-content
+          item itself. */}
+      <Box flexShrink={0} flexGrow={0} flexBasis={1} width={1} flexDirection="column" overflow="hidden">
         {isFocused ? (
           <Text color="$accent" wrap="wrap">
             {"▎".repeat(200)}
@@ -135,6 +147,7 @@ export function SessionCard({
               outputTokens={state.cost.outputTokens}
               pendingPermissions={state.permissions.length}
               inFlightTool={inFlightTool}
+              showRaw={showRaw}
             />
           )}
         </Box>
