@@ -138,6 +138,19 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
         } catch {
           /* already dead — exitPromise resolves via the 'exit' listener */
         }
+        // SIGKILL fallback — see acp-client.ts close() for full rationale.
+        // codex's stream-json mode can hang on Ctrl+D quit while the
+        // streaming OpenAI request drains; don't make the user wait.
+        const killFallback = setTimeout(() => {
+          if (proc.exitCode === null && proc.signalCode === null) {
+            try {
+              proc.kill("SIGKILL")
+            } catch {
+              /* already gone */
+            }
+          }
+        }, 500)
+        ;(killFallback as unknown as { unref?: () => void }).unref?.()
       }
       return exitPromise
     },

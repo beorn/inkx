@@ -707,6 +707,31 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         } catch {
           /* already gone — exitPromise resolves via the 'exit' listener */
         }
+        // SIGKILL fallback: some ACP agents (notably codex via
+        // `@zed-industries/codex-acp` v0.x) don't promptly exit on
+        // SIGTERM during an in-flight session — they hang on JSON-RPC
+        // queue drain or on the streaming OpenAI request. Without a
+        // hard kill, silvercode's quit path waits indefinitely on
+        // exitPromise. The scope.use() dispose handler does this too,
+        // but only fires when the SCOPE disposes; close() callers
+        // (controller.closeAll, session-end handlers) don't go through
+        // the scope and would block.
+        //
+        // 500ms is conservative — long enough for SIGTERM-friendly
+        // agents (Claude, gemini, copilot) to finish flushing their
+        // log lines and exit cleanly, short enough that a stuck codex
+        // process doesn't keep the user waiting on Ctrl+D. .unref()
+        // so the timer itself doesn't pin the event loop open.
+        const killFallback = setTimeout(() => {
+          if (child.exitCode === null && child.signalCode === null) {
+            try {
+              child.kill("SIGKILL")
+            } catch {
+              /* already gone */
+            }
+          }
+        }, 500)
+        ;(killFallback as unknown as { unref?: () => void }).unref?.()
       }
       return exitPromise
     },
