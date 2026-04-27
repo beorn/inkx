@@ -36,6 +36,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm work <id>`     | Claim + start implementation immediately                     | **do-work** |
 | `/pm do <id>`       | Claim + start implementation immediately                     | **do-work** |
 | `/pm show <id>`     | `bd show <id>`                                               | info        |
+| `/pm verify <id>`   | Run executable acceptance criteria for a bead                | info        |
 | `/pm close <id>`    | `bd close <id>`                                              | action      |
 | `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
 | `/pm my`            | `bd list --assignee $USER`                                   | info        |
@@ -236,6 +237,7 @@ bd update km-tui.foo --parent km-tui                    # Step 2
 | [workflows/review.md](workflows/review.md)     | Backlog grooming (infrequent)              |
 | [workflows/rebase.md](workflows/rebase.md)     | Session reset, context cleanup, planning   |
 | [workflows/upstream.md](workflows/upstream.md) | External dependency bugs                   |
+| [verify.md](verify.md)                         | Run executable acceptance criteria for a bead (`bd-verify`) |
 | [beads.md](beads.md)                           | Full CLI reference, all subcommands        |
 | [beads-ids.md](beads-ids.md)                   | Bead ID conventions, scope tokens          |
 | [labels.md](labels.md)                         | Label taxonomy and usage guidelines        |
