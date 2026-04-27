@@ -85,6 +85,18 @@ function toolTitle(name: string, input: unknown): string {
     // Truncate very long commands in the title — body shows the full text.
     return cmd.length > 80 ? `${cmd.slice(0, 80)}…` : cmd
   }
+  // Codex uses `exec_command` with a `cmd` arg (vs Claude's Bash/`command`).
+  if (name === "exec_command" && typeof o.cmd === "string") {
+    const cmd = o.cmd as string
+    return cmd.length > 80 ? `${cmd.slice(0, 80)}…` : cmd
+  }
+  // Codex file ops: read_file / write_file / apply_patch / list_dir use `path`.
+  if (
+    (name === "read_file" || name === "write_file" || name === "apply_patch" || name === "list_dir") &&
+    typeof o.path === "string"
+  ) {
+    return o.path as string
+  }
   if ((name === "Grep" || name === "Search") && typeof o.pattern === "string") return o.pattern as string
   if (name === "Glob" && typeof o.pattern === "string") return o.pattern as string
   if ((name === "WebFetch" || name === "WebSearch") && typeof o.url === "string") return o.url as string
@@ -434,18 +446,23 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
       {m.ops.map((op, i) => {
         if (op.kind === "text") {
           if (op.text.length === 0) return null
-          return <AssistantRow key={`text-${i}`} text={op.text} />
+          return (
+            <RawInspector key={`text-${i}`} payload={op}>
+              <AssistantRow text={op.text} />
+            </RawInspector>
+          )
         }
         const c = op.toolCall
         const result = op.result
         const running = result === undefined
         const adaptedCall = adaptToolCall(c, result, running)
         return (
-          <ToolCall
-            key={c.id}
-            toolCall={adaptedCall}
-            errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
-          />
+          <RawInspector key={c.id} payload={op}>
+            <ToolCall
+              toolCall={adaptedCall}
+              errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
+            />
+          </RawInspector>
         )
       })}
     </Box>
@@ -628,6 +645,11 @@ export const SessionUpdateList = React.forwardRef<
           />
         ) : isAmbient(item) ? (
           <AmbientCluster entries={item.entries} />
+        ) : item.role === "assistant" ? (
+          // Assistant turns wrap each op (text/tool) individually inside
+          // ExchangeItem so the hover popover shows ONLY the hovered op,
+          // not the whole turn's combined JSON.
+          <ExchangeItem m={item} showDebug={showDebug} />
         ) : (
           <RawInspector payload={item}>
             <ExchangeItem m={item} showDebug={showDebug} />

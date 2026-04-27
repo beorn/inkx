@@ -1026,11 +1026,14 @@ export function SidePanel({
         onMouseLeave={quotaHover.onMouseLeave}
         backgroundColor={hoveredBg(quotaHover.isHovered)}
       >
-        {hasAccount && <Text color="$fg">{planLabel(account.plan)}</Text>}
+        {hasAccount && account.plan && <Text color="$fg">{planLabel(account.plan)}</Text>}
         {account.email && <Muted>{account.email}</Muted>}
         {account.quotas.length > 0 ? (
           filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
-        ) : (
+        ) : totalTokens > 0 || state.cost.usd > 0 ? (
+          // Only show the local ctx fallback bar when we have actual data to
+          // display. An empty 0% / $0.0000 bar is worse than no bar — it
+          // makes the user think the account is misconfigured.
           <Box flexDirection="row" gap={1}>
             <Box flexBasis={4}>
               <Muted>ctx</Muted>
@@ -1043,7 +1046,7 @@ export function SidePanel({
             />
             <Muted>${state.cost.usd.toFixed(4)}</Muted>
           </Box>
-        )}
+        ) : null}
       </Box>
 
       {/* Version block — absolute bottom. Iconography + brand styling:
