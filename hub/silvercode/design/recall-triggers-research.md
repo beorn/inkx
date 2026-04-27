@@ -127,6 +127,66 @@ This is the **Cursor implicit-per-prompt model, gated by salience** — get the 
 - Expose `recall_search(query)` as an MCP tool the agent can call when it has a specific question (Letta-style). Compose with the salience trigger — the agent can call it explicitly OR our salience trigger can pre-fire it.
 - Track which recall events the agent visibly references in its next turn. Use that as a quality signal to tune the salience extractor (more confidence on tokens that produced useful recall hits in the past).
 
+## Option B: hypothesis-based trigger (cheap-LLM planner)
+
+User raised this 2026-04-27 after seeing the regex-based proposal. We **already** have the canonical implementation: `bun recall --agent` (in `vendor/bearly/tools/recall.ts`).
+
+**Existing recall-agent shape** (per `bun recall --agent`):
+
+1. Build context from current session (recent sessions, beads, vocab, last ~300 lines of conversation)
+2. **Planner** (cheap LLM, ~2–4 s): generate 10–29 FTS5 query variants — keywords, phrases, paths, bead IDs, time-hints
+3. **Fanout**: parallel FTS queries (~600 ms for 56–87 queries)
+4. **Coverage rerank**: docs hit by multiple variants dominate
+5. (Optional round 2: wider/deeper variants if round-1 coverage is thin)
+6. **Synthesis** (cheap LLM, ~2–3 s): one-paragraph answer from top-K
+7. **Cost**: ~$0.01 per call end-to-end with `claude-haiku-4-5`
+
+**Productizing this as the silvercode ambient trigger:**
+
+1. **Cheap router** (50ms regex OR 200ms haiku): "is this turn worth recalling against?" Skip on `yes`, `continue`, `pls`, etc.
+2. **If router says yes**: invoke the planner-fanout-rerank-synth pipeline
+3. **Per-token / per-query dedupe** (5-min TTL): same router-hash within window stays silent
+4. **Cap at 1 probe per turn** (same as regex variant)
+5. **Emit ONE digest** with the top synthesis snippet
+
+### Comparison: regex (Option A) vs hypothesis (Option B)
+
+| Dimension              | Option A (regex salience)        | Option B (cheap-LLM planner)                          |
+|------------------------|----------------------------------|-------------------------------------------------------|
+| Latency per probe      | ~600 ms (FTS only)               | ~6–9 s (planner + fanout + synth)                     |
+| Cost per probe         | $0                               | ~$0.01 (claude-haiku) or $0 (local oMLX/lmstudio)     |
+| Trigger coverage       | Only explicit identifiers        | Anything the LLM judges relevant                      |
+| Natural-language input | Misses "that wrap thing"         | Handles via planner LLM understanding                 |
+| False-positive risk    | Low (regex is deterministic)     | Higher (LLM can hallucinate query relevance)          |
+| Predictability         | High (you can read the regex)    | Lower (LLM-driven, harder to reason about)            |
+| Cost amortization      | N/A                              | Daily ~$0.20 at 5 probes/turn × 50 active turns/day   |
+| Local-only             | Yes                              | Only with self-hosted model                           |
+
+### Why Option B might win
+
+- **Recall is already the planner-fanout pattern.** Re-using `bun recall --agent` (or the underlying library function) means we ship one cohesive system, not a parallel regex extractor.
+- **Natural-language coverage.** "What about that wrap thing" should fire recall; regex won't catch it.
+- **Self-tuning.** As the planner LLM improves (or we tune the prompt), recall quality improves automatically.
+- **The router is the only new code.** The pipeline is already shipped, tested, and dogfooded by the user via `bun recall --agent`.
+
+### Why Option A might win
+
+- **Zero cost, zero latency tail.** $0 + 600ms vs $0.01 + 6–9s.
+- **Fully deterministic.** No "why did it probe this?" mysteries.
+- **Ships in a day.** Option B requires the recall-agent CLI/library wired into the adapter cleanly + a router prompt.
+
+### Hybrid Option C (probably the right answer)
+
+Use **Option A as the trigger** (cheap, deterministic, fast) but **Option B as the query expander** (when the trigger fires, run the planner-fanout-rerank-synth on the extracted candidate to find best hits across phrasings).
+
+This gives:
+- Cheap trigger (~50 ms regex)
+- Rich retrieval (~6 s planner + fanout + synth on the candidate)
+- Per-token dedupe (the candidate IS the dedupe key)
+- One probe per turn cap (regex picks the rarest candidate)
+
+In effect: regex picks **WHEN** to recall, LLM picks **WHAT** to recall.
+
 ## Sources
 
 - [Memory FAQ | OpenAI Help Center](https://help.openai.com/en/articles/8590148-memory-faq)
