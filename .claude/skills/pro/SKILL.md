@@ -41,7 +41,14 @@ GPT 5.4 Pro for direct questions and code reviews.
 
 ## Dual-pro mode
 
-`bun llm pro "..."` fires GPT-5.4 Pro **and** Kimi K2.6 in parallel by default. K2.6 adds ~$0.01-0.50 to a $5-15 Pro call (~100× cheaper, competitive on strategy questions). A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl`. To force single-model: `--model gpt-5.4-pro`. Auto-falls-back to single GPT-5.4 Pro if `OPENROUTER_API_KEY` is unset.
+`bun llm pro "..."` fires GPT-5.4 Pro + Kimi K2.6 + a rotating challenger in parallel by default. A cheap judge model rates all three on a rubric (specificity / actionability / correctness / depth). K2.6 adds ~$0.01-0.50 to a $5-15 Pro call. A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl` (v2 schema with judge breakdown).
+
+**Cost dials**: `--no-challenger` (skip leg C, back to 2-leg), `--no-judge` (skip rubric scoring), `--challenger <id>` (override rotation). Force single-model: `--model gpt-5.4-pro`. `--json` envelope for pipe-friendly consumption.
+
+**Admin** (read-only or interactive — no API spend unless `--backtest` fires):
+- `bun llm pro --leaderboard` — ranked table from ab-pro.jsonl
+- `bun llm pro --promote-review` — interactive promotion flow with sample queries
+- `bun llm pro --backtest [--quick] [--no-old-fire] [--sample N]` — replay history through OLD vs NEW config; apples-to-apples promotion gate
 
 ## Anti-patterns
 
