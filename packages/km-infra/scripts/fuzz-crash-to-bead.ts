@@ -40,6 +40,10 @@ function parseArgs(argv: string[]): Args {
 		else if (a === "--run-url") args.runUrl = argv[++i]
 		else if (a === "--dry-run") args.dryRun = true
 		else if (a === "--repo-root") args.repoRoot = argv[++i]
+		else if (!a.startsWith("--") && !args.input) {
+			// Positional: treat first bare arg as input file path.
+			args.input = a
+		}
 	}
 	return args
 }
@@ -62,13 +66,42 @@ interface Crash {
 }
 
 /**
+ * Try to parse input as a structured JSON crash record. Used by callers
+ * (e.g. orchestration scripts, manual smoke tests) that already know
+ * exactly which test failed. Falls through to text parsing on miss.
+ *
+ * Accepted shapes:
+ *   { "testFile": "...", "seed": 1234, "error": "..." }
+ *   { "testFile": "...", "testName": "...", "seed": 1234, "error": "..." }
+ */
+function parseCrashJson(output: string): Crash | undefined {
+	const trimmed = output.trim()
+	if (!trimmed.startsWith("{")) return undefined
+	let obj: unknown
+	try {
+		obj = JSON.parse(trimmed)
+	} catch {
+		return undefined
+	}
+	if (typeof obj !== "object" || obj === null) return undefined
+	const o = obj as Record<string, unknown>
+	if (typeof o.testFile !== "string") return undefined
+	return {
+		testFile: o.testFile,
+		testName: typeof o.testName === "string" ? o.testName : "unknown",
+		seed: typeof o.seed === "number" ? o.seed : undefined,
+		error: typeof o.error === "string" ? o.error.slice(0, 2000) : "",
+	}
+}
+
+/**
  * Parse vitest output for the first failed fuzz test we can extract.
  * Vitest's default reporter prints lines like:
  *   FAIL  apps/km-tui/tests/navigation-fuzz.fuzz.ts > navigation invariants
  *   Error: ...
  *   Seed: 12345 (reproduce with FUZZ_SEED=12345)
  */
-function parseCrash(output: string): Crash | undefined {
+function parseCrashText(output: string): Crash | undefined {
 	const lines = output.split(/\r?\n/)
 	let testFile: string | undefined
 	let testName: string | undefined
@@ -210,6 +243,10 @@ function callBd(args: string[], dryRun: boolean): { ok: boolean; stdout: string;
 		stdout: (r.stdout ?? "").toString(),
 		stderr: (r.stderr ?? "").toString(),
 	}
+}
+
+function parseCrash(output: string): Crash | undefined {
+	return parseCrashJson(output) ?? parseCrashText(output)
 }
 
 function main() {
