@@ -1,16 +1,20 @@
 /**
  * <ToolCall>
  *
- * Canonical ACP `ToolCall` renderer. Drives header (status-animated title +
- * location chip), body (per-kind layout — Diff for `edit`, TerminalContent
- * for `execute`, TextContent for the rest), and error envelope (failed
- * status). Tool result content merged directly into the body —
- * no separate component.
+ * Canonical ACP `ToolCall` renderer. One unified card per call: header
+ * (status-animated title + glyph + location chip), body (per-kind layout —
+ * Diff for `edit`, TerminalContent for `execute`, TextContent for the rest),
+ * and an inline error message when `status === "failed"`. Tool result content
+ * merged directly into the body — no separate result component, no separate
+ * error envelope.
  *
  * Component family (all in `apps/silvercode/src/components/`):
  *   - <ToolCall>             — this component, top-level card
  *   - <ToolCallStatusTitle>  — animated header morph
- *   - <ToolCallError>        — failed-status envelope
+ *   - <ToolCallError>        — standalone error envelope (used directly,
+ *                              NOT composed inside ToolCall — keeps the
+ *                              failure signal in one card with no redundant
+ *                              "Error" header line)
  *   - <ToolCallSummary>      — aggregate "Read 12 files" with rolling count
  *   - <ApplyPatch>           — Aider search/replace renderer
  *
@@ -25,7 +29,7 @@ import React, { useState } from "react"
 import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Small, Spinner, Text } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
-import { ToolCallError } from "./ToolCallError.tsx"
+import { BoundedScroll } from "./BoundedScroll.tsx"
 
 // =============================================================================
 // Constants — summarization thresholds
@@ -102,11 +106,13 @@ function renderTextContent(text: string, key: number | string): React.ReactEleme
         </Text>
       ))}
       <Accordion title={`${moreCount} more line${moreCount === 1 ? "" : "s"}`}>
-        {rest.map((line, i) => (
-          <Text key={i} wrap="wrap">
-            {line}
-          </Text>
-        ))}
+        <BoundedScroll>
+          {rest.map((line, i) => (
+            <Text key={i} wrap="wrap">
+              {line}
+            </Text>
+          ))}
+        </BoundedScroll>
       </Accordion>
     </Box>
   )
@@ -251,25 +257,50 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
         onClick={hasContent ? () => setExpanded((v) => !v) : undefined}
       >
         <Box flexDirection="row" gap={1}>
-          {/* Leading glyph — spinner for in_progress, ⚙ otherwise. The
-              spinner gets eaten by static-frame tests but in real TTY it
-              animates the same way Claude Code's tool-row spinner does. */}
-          {status === "in_progress" ? <Spinner type="dots" /> : <Text color={accentColor}>⚙</Text>}
+          {/* Leading glyph — spinner for in_progress, ✗ for failed, ⚙ otherwise.
+              Failed status uses ✗ so the failure signal lives entirely in the
+              unified header (title says "Bash failed", glyph says ✗) — no
+              redundant secondary "Error" envelope below. The spinner gets eaten
+              by static-frame tests but in real TTY it animates the same way
+              Claude Code's tool-row spinner does. */}
+          {status === "in_progress" ? (
+            <Spinner type="dots" />
+          ) : (
+            <Text bold color={accentColor}>
+              {status === "failed" ? "✗" : "⚙"}
+            </Text>
+          )}
           <ToolCallStatusTitle status={status} kind={kind} title={toolCall.title} />
           {renderLocations(toolCall.locations)}
           <Box flexGrow={1} />
+          {status === "failed" && onRetry ? (
+            <Box onClick={onRetry}>
+              <Muted>↻ retry</Muted>
+            </Box>
+          ) : null}
           {hasContent ? <Small>{expanded ? "▾" : "▸"}</Small> : null}
         </Box>
         {expanded && hasContent ? (
+          // Bounded disclosure: cap visible rows, scroll past the bound.
+          // A long tool result (thousands of lines from `cat` / `grep`)
+          // shouldn't take over the chat scrollback when the user clicks
+          // the chevron; the eye sees a 30-row preview and can scroll
+          // through the rest with the wheel.
           <Box paddingLeft={2} flexDirection="column">
-            {(toolCall.content ?? []).map((c, i) => renderContent(c, i))}
+            <BoundedScroll>{(toolCall.content ?? []).map((c, i) => renderContent(c, i))}</BoundedScroll>
+          </Box>
+        ) : null}
+        {/* Failed calls inline the error message body inside the same card.
+            One header (title + ✗ glyph), one message body — no separate
+            envelope, no second "Error" header line, no redundant border. */}
+        {status === "failed" ? (
+          <Box paddingLeft={2} flexDirection="column">
+            <Text color="$error" wrap="wrap">
+              {errorMessage ?? "Tool call failed"}
+            </Text>
           </Box>
         ) : null}
       </Box>
-      {/* Failed calls render an error envelope below the header. The
-          envelope is structurally part of the same card (no gap), but
-          carries its own border+coloring so the failure stands out. */}
-      {status === "failed" ? <ToolCallError message={errorMessage ?? "Tool call failed"} onRetry={onRetry} /> : null}
     </Box>
   )
 }

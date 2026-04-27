@@ -38,12 +38,7 @@ beforeAll(() => {
  * `installEntryProjections` so the legacy getters resolve to the right
  * values when the renderer reads them.
  */
-function makeEntry(opts: {
-  id: string
-  role: "assistant" | "user"
-  ops: MessageOp[]
-  ts?: number
-}): MessageEntry {
+function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageOp[]; ts?: number }): MessageEntry {
   const out: Record<string, unknown> = {
     id: opts.id,
     role: opts.role,

@@ -46,30 +46,38 @@ function freshRender() {
 // =============================================================================
 
 describe("ToolCallStatusTitle", () => {
-  test("pending renders the bare title", () => {
+  // The title carries the meaning; the parent ToolCall card paints status
+  // via the leading glyph (spinner / ⚙ / ✗) and border. The verb prefix
+  // ("Reading…", "Read 3 files", "Search failed") is intentionally dropped
+  // — the icon already conveys status. Bead: km-silvercode.acp-tool-call.
+
+  test("pending renders the title verbatim", () => {
     const app = freshRender()(<ToolCallStatusTitle status="pending" kind="read" title="src/foo.ts" />)
     expect(app.text).toContain("src/foo.ts")
+    expect(app.text).not.toMatch(/\bRead\b/) // no verb prefix
   })
 
-  test("failed renders verb-failed phrase", () => {
+  test("failed renders the title (no 'Search failed' verb)", () => {
     const app = freshRender()(<ToolCallStatusTitle status="failed" kind="search" title="for grep" />)
-    expect(app.text).toContain("Search failed")
+    expect(app.text).toContain("for grep")
+    expect(app.text).not.toContain("Search failed")
   })
 
-  test("in_progress renders progressive verb (TextShimmer wraps)", () => {
-    // TextShimmer renders Text with the children visible from frame 0.
+  test("in_progress renders the title (no 'Running…' verb)", () => {
     const app = freshRender()(<ToolCallStatusTitle status="in_progress" kind="execute" title="bun fix" />)
-    expect(app.text).toContain("Running…")
+    expect(app.text).toContain("bun fix")
+    expect(app.text).not.toContain("Running")
   })
 
-  test("kind: edit emits 'Edit' family vocabulary", () => {
+  test("kind: edit also renders the title verbatim", () => {
     const app = freshRender()(<ToolCallStatusTitle status="pending" kind="edit" title="src/foo.ts" />)
     expect(app.text).toContain("src/foo.ts")
     const failed = freshRender()(<ToolCallStatusTitle status="failed" kind="edit" title="src/foo.ts" />)
-    expect(failed.text).toContain("Edit failed")
+    expect(failed.text).toContain("src/foo.ts")
+    expect(failed.text).not.toContain("Edit failed")
   })
 
-  test("label override wins over auto-derived phrase", () => {
+  test("label override wins over title", () => {
     const app = freshRender()(
       <ToolCallStatusTitle status="pending" kind="read" title="src/foo.ts" label="Custom label" />,
     )
@@ -264,24 +272,33 @@ describe("ToolCall", () => {
     expect(app.text).toContain("src/foo.ts")
   })
 
-  test("kind=execute in_progress renders the progressive verb", () => {
+  test("kind=execute in_progress renders the title verbatim (no 'Running…' verb)", () => {
     const app = freshRender()(<ToolCall toolCall={tc({ kind: "execute", status: "in_progress", title: "bun fix" })} />)
-    expect(app.text).toContain("Running…")
+    expect(app.text).toContain("bun fix")
+    expect(app.text).not.toContain("Running")
   })
 
-  test("kind=read failed renders the error envelope below the header", () => {
+  test("kind=read failed renders ✗ glyph + title + inline error message", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({ kind: "read", status: "failed", title: "src/foo.ts" })}
         errorMessage="ENOENT: missing file"
       />,
     )
-    expect(app.text).toContain("Read failed")
+    // One header (✗ + title), one inline message body — no separate
+    // "Error" envelope below. Failure signal lives entirely in the unified card.
+    expect(app.text).toContain("src/foo.ts")
     expect(app.text).toContain("✗")
     expect(app.text).toContain("ENOENT: missing file")
+    // The redundant secondary "Error" header that used to render below the
+    // card is gone. ("Error" still appears as a substring of "ENOENT", so we
+    // assert on the full label "✗ Error" pattern rather than the bare word.)
+    expect(app.text).not.toMatch(/✗\s+Error\b/)
+    // No verb prefix on the title.
+    expect(app.text).not.toContain("Read failed")
   })
 
-  test("failed call defaults to expanded but uses ToolCallError envelope as the source of truth", () => {
+  test("failed call inlines the error message in the unified card body", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({
@@ -292,8 +309,9 @@ describe("ToolCall", () => {
         errorMessage="grep: invalid pattern"
       />,
     )
-    expect(app.text).toContain("Search failed")
+    expect(app.text).toContain("for grep")
     expect(app.text).toContain("grep: invalid pattern")
+    expect(app.text).not.toContain("Search failed")
   })
 
   test("text-content body renders inline when expanded", () => {

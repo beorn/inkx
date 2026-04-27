@@ -549,7 +549,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // currently-focused session (one focused pane at a time owns the
     // ambient firehose). Future phases attribute by which session
     // actually drained the queue in `assembleAcpPrompt`.
-    if (focusedId) ambientStream.record(focusedId, event)
+    //
+    // Fallback: if `focusedId` is empty (controller startup window before
+    // any session has spawned + focused), target the first session in the
+    // list. Without this, filewatch / tribe events fired during startup get
+    // silently dropped from the ambient stream — they live in the channel
+    // queue (so prompt-assembly still sees them) but never render inline.
+    // Bead: km-silvercode.claude-acp-wire-bugs.
+    const targetId = focusedId || sessions[0]?.id
+    if (targetId) ambientStream.record(targetId, event)
   })
   controllerScope.defer(() => broadcastUnsub())
   // TODO (acp-adapter-claude): when we wrap Claude Code via the ACP

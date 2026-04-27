@@ -32,6 +32,7 @@
 
 import React from "react"
 import { Box, Muted, Small, Text, useHover, usePopoverHandlers } from "silvery"
+import { BoundedScroll } from "./BoundedScroll.tsx"
 
 /**
  * One ambient observation. Mirrors the wire-shape of `ChannelEvent` but
@@ -119,7 +120,11 @@ function escapeHtmlEntities(s: string): string {
   // Just enough decoding for common entities we might see in sanitized
   // payloads (tribe activity-log writes JSON-escaped content; our raw
   // payloads can carry literal &amp;, &lt;, &gt; from upstream sources).
-  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
 }
 
 function parseRecallMemory(raw: string): FormattedContent | null {
@@ -134,7 +139,10 @@ function parseRecallMemory(raw: string): FormattedContent | null {
   const titles = snippets.map((s) => `"${s.title}"`)
   const more = snippets.length > 2 ? ` (+${snippets.length - 2} more)` : ""
   const previewTitles = titles.slice(0, 2).join(", ")
-  const preview = clip(`memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"} — ${previewTitles}${more}`, 80)
+  const preview = clip(
+    `memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"} — ${previewTitles}${more}`,
+    80,
+  )
   const bodyLines: string[] = [`memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"}`]
   for (const s of snippets) {
     bodyLines.push(`  • [${s.session}] ${s.title}`)
@@ -254,12 +262,16 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
       </Box>
       {/* Expanded body — full payload, indented to align under the
           preview column. Same surface bg so it reads as a continuation
-          of the row, not a separate block. */}
+          of the row, not a separate block. Bounded to 30 visible rows
+          with kinetic-scroll past that bound — a chatty filewatch burst
+          shouldn't push 200 lines of "X changed" into the chat. */}
       {expanded && onToggleExpand ? (
         <Box flexDirection="column" paddingX={1} paddingLeft={15} paddingBottom={0}>
-          <Text wrap="wrap" color="$muted">
-            {formatted.body}
-          </Text>
+          <BoundedScroll>
+            <Text wrap="wrap" color="$muted">
+              {formatted.body}
+            </Text>
+          </BoundedScroll>
         </Box>
       ) : null}
     </Box>

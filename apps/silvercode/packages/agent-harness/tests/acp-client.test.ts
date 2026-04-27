@@ -1038,6 +1038,87 @@ describe("turn lifecycle: turn-end fires on every settle path", () => {
       /* the synthetic turn-end already fired; the real resolve is bonus */
     })
   })
+
+  test("late sessionUpdate after prompt() resolves merges into the same turnId (not a new MessageEntry)", async () => {
+    // Repro for "session reply chunked into multiple sessions" — late
+    // sessionUpdate notifications arriving AFTER prompt() resolves but
+    // BEFORE the next prompt() starts must reuse the prior turnId. Without
+    // the fallback, each late notification mints a fresh
+    // `acp-turn-${Date.now()}` and the chat scrollback splits one logical
+    // turn across multiple message cards.
+    // Bead: km-silvercode.claude-acp-wire-bugs.
+    let lateConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        lateConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-late-straggler" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt({ sessionId }) {
+            // Emit one update during the turn — establishes the active turnId.
+            await conn.sessionUpdate({
+              sessionId,
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "during-turn" },
+              },
+            })
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-late-straggler")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    // First (and only) prompt — turn ends, currentTurnId clears, but
+    // lastMessageTurnId should remain so a late straggler glues onto it.
+    await session.prompt([{ type: "text", text: "ping" }])
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    // Capture the turnId of every text-delta + turn-end so we can compare
+    // pre- and post-turn-end stragglers.
+    const beforeTurnIds = events.filter((e) => e.kind === "text-delta").map((e) => (e as { turnId: string }).turnId)
+    expect(beforeTurnIds.length).toBeGreaterThan(0)
+    const liveTurnId = beforeTurnIds[0]!
+
+    // Now the late straggler — fired AFTER prompt() resolved but before any
+    // subsequent prompt. Without the fallback, this mints a fresh turnId.
+    await lateConn!.sessionUpdate({
+      sessionId: "session-late-straggler" as acp.SessionId,
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text: "post-turn-straggler" },
+      },
+    })
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const stragglerDeltas = events
+      .filter((e) => e.kind === "text-delta")
+      .filter((e) => (e as { text: string }).text === "post-turn-straggler")
+    expect(stragglerDeltas, "the late straggler must surface as a text-delta").toHaveLength(1)
+    const stragglerTurnId = (stragglerDeltas[0] as { turnId: string }).turnId
+    expect(
+      stragglerTurnId,
+      "late straggler must reuse the just-ended turnId — otherwise the UI splits one turn across multiple MessageEntry cards",
+    ).toBe(liveTurnId)
+  })
 })
 
 // ---------------------------------------------------------------------------

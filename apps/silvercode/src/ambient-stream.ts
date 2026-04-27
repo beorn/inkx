@@ -190,7 +190,16 @@ export function createAmbientStream(scope: Scope, opts: CreateAmbientStreamOpts 
       return true
     },
     entries(sessionId: string): readonly AmbientStreamEntry[] {
-      return buffers.get(sessionId) ?? []
+      // Defensive copy: the per-session buffer is mutated in-place by
+      // `record()`, so returning the live reference defeats React's
+      // referential-equality check — the hook's `setEntries(snapshot)` would
+      // see the same array each time and skip the re-render. Symptom: ambient
+      // events arrive in the buffer but don't appear in the chat scrollback
+      // until some OTHER state change forces a parent re-render (e.g. user
+      // sends a prompt → input clears → re-render → mutated array now visible).
+      // Bead: km-silvercode.claude-acp-wire-bugs.
+      const buf = buffers.get(sessionId)
+      return buf ? buf.slice() : []
     },
     subscribe(handler): () => void {
       if (disposed) return () => undefined

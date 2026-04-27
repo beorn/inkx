@@ -17,6 +17,7 @@
  */
 import React, { useState } from "react"
 import { Box, Muted, Small, Spinner, Text } from "silvery"
+import { BoundedScroll } from "./BoundedScroll.tsx"
 
 export interface SubAgentExchangeProps {
   /** Short description of the sub-agent task (from Task tool `description`). */
@@ -66,7 +67,7 @@ export function SubAgentExchange({
         </Box>
         {expanded && children ? (
           <Box paddingLeft={2} flexDirection="column">
-            {children}
+            <BoundedScroll>{children}</BoundedScroll>
           </Box>
         ) : null}
       </Box>

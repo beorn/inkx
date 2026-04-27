@@ -1,9 +1,9 @@
 /**
- * <ToolCall> — failed status, error envelope.
+ * <ToolCall> — failed status, unified card.
  *
- * Demonstrates the `<ToolCallError>` envelope rendered below the header
- * when an ACP tool call's `status === "failed"`. Default-expanded: errors
- * hide nothing.
+ * Demonstrates the failed-status card: one header (✗ glyph + "Read failed"),
+ * one inline error message body — no separate envelope, no second "Error"
+ * header line. Default-expanded: errors hide nothing.
  */
 import React from "react"
 import type { ToolCallId } from "@km/agent-harness"
@@ -16,7 +16,8 @@ export const toolCallFailed: Story = {
   id: "ToolCall/failed",
   component: "ToolCall",
   variant: "failed",
-  description: "ACP tool call with status=failed — ToolCallError envelope renders below header.",
+  description:
+    "ACP tool call with status=failed — unified card with ✗ glyph, failure header, and inline error message.",
   knobs: [
     {
       kind: "toggle",

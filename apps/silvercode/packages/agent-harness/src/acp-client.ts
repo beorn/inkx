@@ -481,7 +481,16 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   let lastActivityTs = 0
   let watchdogTimer: ReturnType<typeof setTimeout> | null = null
   function turnIdForUpdate(): TurnId {
-    return currentTurnId ?? (("acp-turn-" + Date.now()) as TurnId)
+    // During a turn (prompt() in flight): use the active turnId. Between
+    // turns: glue late stragglers onto the most recent turn instead of
+    // minting a fresh `acp-turn-${Date.now()}` per update — without this,
+    // each late notification spawns its own MessageEntry and the chat
+    // scrollback chunks one logical turn into multiple message cards.
+    // The fallback is ONLY hit between turns (i.e. after `prompt()` has
+    // resolved and emitted `turn-end`); during a live turn, `currentTurnId`
+    // always wins.
+    // Bead: km-silvercode.claude-acp-wire-bugs.
+    return currentTurnId ?? lastMessageTurnId ?? (("acp-turn-" + Date.now()) as TurnId)
   }
   function turnIdForPromptEnd(fallback: TurnId): TurnId {
     return lastMessageTurnId ?? fallback
@@ -582,15 +591,24 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       // this, status stays in "thinking" on rejected prompts (the
       // original bug from 2026-04-25 that keeps recurring).
       if (currentTurnId === turnId) {
+        const endTurnId = turnIdForPromptEnd(turnId)
         emit({
           kind: "turn-end",
           sessionId,
-          turnId: turnIdForPromptEnd(turnId),
+          turnId: endTurnId,
           stopReason,
           ts: Date.now(),
         })
+        // Clear the active marker but capture lastMessageTurnId so any late
+        // sessionUpdate stragglers between this turn and the next prompt
+        // glue onto the right MessageEntry. lastMessageTurnId is reset at
+        // the START of the next turn (see the prelude above) — so this
+        // doesn't leak across turns. We have to set it explicitly here
+        // because the sessionUpdate bridge only assigns lastMessageTurnId
+        // on a turnId-mismatch path; a clean turn whose updates all rode
+        // currentTurnId would otherwise leave lastMessageTurnId null.
+        lastMessageTurnId = endTurnId
         currentTurnId = null
-        lastMessageTurnId = null
       }
       clearWatchdog()
     }

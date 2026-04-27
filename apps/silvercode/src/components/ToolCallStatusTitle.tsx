@@ -1,17 +1,27 @@
 /**
  * <ToolCallStatusTitle>
  *
- * Animated tool-call header that morphs label as the ACP `ToolCallStatus`
- * transitions across the lifecycle:
+ * Tool-call header that shows the title verbatim — the parent <ToolCall>
+ * card already paints status via the leading glyph (spinner / ⚙ / ✗) and
+ * border color, so a verb prefix on the title is redundant noise.
  *
- *   pending      → "Read…"           (bare, awaiting kick-off)
- *   in_progress  → "Reading file…"   (TextShimmer pulses between $primary/$muted)
- *   completed    → "Read 3 files"    (TextReveal types the final phrase)
- *   failed       → "Read failed"     ($error coloring, no animation)
+ *   pending      → "src/foo.ts"           ($muted)
+ *   in_progress  → "src/foo.ts" (shimmer between $primary/$muted)
+ *   completed    → "src/foo.ts" (TextReveal types the title in $primary)
+ *   failed       → "src/foo.ts" ($error)
  *
- * The animation framework (TextShimmer, TextReveal) is provided by silvery —
- * this component is just the status-driven wiring. ACP-named: status is
- * `ToolCallStatus` from acp-types, label vocabulary follows the kind.
+ * Earlier the title morphed across lifecycle phases ("Reading file…",
+ * "Read 3 files", "Search failed"). The user's design feedback: the icon
+ * already conveys status — the verb adds nothing the eye can't read from
+ * the spinner / ⚙ / ✗. Keeping the title stable across phases also lets
+ * the eye lock on the identifier (filename, command) instead of chasing
+ * the morph.
+ *
+ * The animation framework (TextShimmer, TextReveal) is still provided by
+ * silvery — we just feed it the unchanged title rather than a verb-decorated
+ * phrase. The `kind` prop is preserved on the API but no longer affects the
+ * rendered text — it's still useful for callers that branch on it
+ * elsewhere.
  *
  * Bead: km-silvercode.acp-tool-call.
  */
@@ -19,53 +29,6 @@
 import React from "react"
 import { Text, TextReveal, TextShimmer } from "silvery"
 import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
-
-// =============================================================================
-// Vocabulary
-// =============================================================================
-
-/**
- * Per-kind verbs for each lifecycle phase. The vocabulary follows ACP's
- * `ToolKind` taxonomy and aims for Claude-Code's familiar phrasing —
- * "Reading file…", "Read 3 files", "Search failed". Unknown kinds fall
- * back to the generic "Running"/"Ran" pair.
- */
-const PHRASES: Record<ToolKind, { progressive: string; pastTense: string; bare: string }> = {
-  read: { progressive: "Reading", pastTense: "Read", bare: "Read" },
-  edit: { progressive: "Editing", pastTense: "Edited", bare: "Edit" },
-  delete: { progressive: "Deleting", pastTense: "Deleted", bare: "Delete" },
-  move: { progressive: "Moving", pastTense: "Moved", bare: "Move" },
-  search: { progressive: "Searching", pastTense: "Searched", bare: "Search" },
-  execute: { progressive: "Running", pastTense: "Ran", bare: "Run" },
-  think: { progressive: "Thinking", pastTense: "Thought", bare: "Think" },
-  fetch: { progressive: "Fetching", pastTense: "Fetched", bare: "Fetch" },
-  switch_mode: { progressive: "Switching mode", pastTense: "Switched mode", bare: "Switch mode" },
-  other: { progressive: "Running", pastTense: "Ran", bare: "Run" },
-}
-
-/**
- * Compose the phrase shown for a given status. Falls back to the supplied
- * `title` when status is `pending` or unknown — `title` is required by ACP
- * so it always exists. Caller may also override the verb directly via the
- * `label` prop (handy for bespoke titles like "Reading CLAUDE.md").
- */
-function phraseFor(status: ToolCallStatus, kind: ToolKind | undefined, title: string): string {
-  const phrase = PHRASES[kind ?? "other"]
-  switch (status) {
-    case "pending":
-      return title
-    case "in_progress":
-      return `${phrase.progressive}…`
-    case "completed":
-      // For execute-kind, the title IS the command — "Ran ls -la" is just
-      // noise. Show the title verbatim; for other kinds the past-tense verb
-      // gives useful "Read /foo/bar.ts" framing the title alone wouldn't.
-      if (kind === "execute") return title
-      return `${phrase.pastTense} ${title}`.trim()
-    case "failed":
-      return `${phrase.bare} failed`
-  }
-}
 
 // =============================================================================
 // Component
@@ -89,8 +52,16 @@ export interface ToolCallStatusTitleProps {
   label?: string
 }
 
-export function ToolCallStatusTitle({ status, kind, title, label }: ToolCallStatusTitleProps): React.ReactElement {
-  const text = label ?? phraseFor(status, kind, title)
+export function ToolCallStatusTitle({
+  status,
+  kind: _kind,
+  title,
+  label,
+}: ToolCallStatusTitleProps): React.ReactElement {
+  // The title carries the meaning — filename for read/edit, command for
+  // execute, query for search. Status is conveyed entirely by the parent
+  // card's leading glyph + border color.
+  const text = label ?? title
 
   if (status === "in_progress") {
     return (
@@ -101,8 +72,8 @@ export function ToolCallStatusTitle({ status, kind, title, label }: ToolCallStat
   }
 
   if (status === "completed") {
-    // Typewriter the past-tense phrase so the eye catches the morph from
-    // shimmer to fixed text. Short duration — anything longer feels laggy.
+    // Typewriter the title so the eye catches the morph from shimmer to
+    // fixed text. Short duration — anything longer feels laggy.
     return <TextReveal text={text} duration={200} bold color="$primary" />
   }
 

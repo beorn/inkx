@@ -259,11 +259,7 @@ export function createSessionStore(): SessionStore {
    * patches without worrying about getter-clobbering); the result is
    * re-wrapped via `makeEntry` to install projections on the new copy.
    */
-  function upsertMessage(
-    next: SessionState,
-    id: TurnId,
-    init: (m: WritableEntry) => WritableEntry,
-  ): MessageEntry {
+  function upsertMessage(next: SessionState, id: TurnId, init: (m: WritableEntry) => WritableEntry): MessageEntry {
     const idx = next.messages.findIndex((m) => m.id === id)
     if (idx >= 0) {
       const prevEntry = next.messages[idx]!
@@ -332,7 +328,7 @@ export function createSessionStore(): SessionStore {
           // text op afterwards, preserving codex-style interleaving.
           const ops = [...m.ops]
           const last = ops[ops.length - 1]
-          if (last && last.kind === "text") {
+          if (last?.kind === "text") {
             ops[ops.length - 1] = { kind: "text", text: last.text + event.text }
           } else {
             ops.push({ kind: "text", text: event.text })
@@ -353,9 +349,7 @@ export function createSessionStore(): SessionStore {
           // When found, replace in place to preserve order; when not,
           // append a new tool op.
           const ops = [...m.ops]
-          const existingIdx = ops.findIndex(
-            (op) => op.kind === "tool" && op.toolCall.id === event.id,
-          )
+          const existingIdx = ops.findIndex((op) => op.kind === "tool" && op.toolCall.id === event.id)
           const call: ToolCallEntry = {
             id: event.id,
             name: event.name,
@@ -429,7 +423,7 @@ export function createSessionStore(): SessionStore {
           for (const b of event.content) {
             if (b.type === "text" && b.text.length > 0) {
               const last = ops[ops.length - 1]
-              if (last && last.kind === "text") {
+              if (last?.kind === "text") {
                 ops[ops.length - 1] = { kind: "text", text: last.text + b.text }
               } else {
                 ops.push({ kind: "text", text: b.text })

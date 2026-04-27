@@ -32,14 +32,9 @@ const tu = (n: number) => `tu_${n}` as ToolUseId
  */
 function turn(
   turnId: TurnId,
-  steps: ReadonlyArray<
-    | { kind: "text"; text: string }
-    | { kind: "tool"; id: ToolUseId; name: string; input?: unknown }
-  >,
+  steps: ReadonlyArray<{ kind: "text"; text: string } | { kind: "tool"; id: ToolUseId; name: string; input?: unknown }>,
 ): AgentEvent[] {
-  const out: AgentEvent[] = [
-    { kind: "turn-start", sessionId: sid, turnId, role: "assistant", ts: 0 },
-  ]
+  const out: AgentEvent[] = [{ kind: "turn-start", sessionId: sid, turnId, role: "assistant", ts: 0 }]
   let blockIndex = 0
   for (const s of steps) {
     if (s.kind === "text") {
@@ -190,15 +185,11 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     })
 
     const msg = store.state.get().messages[0]!
-    const firstToolOp = msg.ops.find(
-      (op) => op.kind === "tool" && op.toolCall.id === tu(1),
-    )
+    const firstToolOp = msg.ops.find((op) => op.kind === "tool" && op.toolCall.id === tu(1))
     if (firstToolOp?.kind !== "tool") throw new Error("expected tool op")
     expect(firstToolOp.result?.output).toBe("contents of a")
     // Other tool ops remain unattached.
-    const otherToolOps = msg.ops.filter(
-      (op) => op.kind === "tool" && op.toolCall.id !== tu(1),
-    )
+    const otherToolOps = msg.ops.filter((op) => op.kind === "tool" && op.toolCall.id !== tu(1))
     for (const op of otherToolOps) {
       if (op.kind === "tool") expect(op.result).toBeUndefined()
     }
