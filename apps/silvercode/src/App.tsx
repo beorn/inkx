@@ -11,6 +11,7 @@ import { PaneGrid, type PaneGridHandle } from "./components/PaneGrid.tsx"
 import { RequestPermissionInbox } from "./components/RequestPermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
+import { prefixSid } from "./sid-prefix.ts"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
@@ -932,9 +933,16 @@ export function App(props: AppProps): React.ReactElement {
       if (printed) return
       printed = true
       try {
+        // Prefix each session id with the agent that minted it, so
+        // `silvercode --resume <id>` is self-describing and routes back
+        // to the correct backend without the user having to remember
+        // `--agent` separately. See sid-prefix.ts for the round-trip
+        // contract.
+        const agentForPrefix = props.agent ?? "claude-code"
         const ids: string[] = sessionsRef.current
           .map((h) => h.session.sessionId)
           .filter((sid) => typeof sid === "string")
+          .map((sid) => (sid === "pending" ? sid : prefixSid(agentForPrefix, sid)))
         process.stdout.write(formatResumeHint(ids))
       } catch {
         // stdout may be torn down on a hard crash path; best-effort.

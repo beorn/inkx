@@ -8,6 +8,7 @@ import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } f
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
 import { renderReport } from "./doctor/render.ts"
 import { resolveConnection } from "./resolve-connection.ts"
+import { parseSid } from "./sid-prefix.ts"
 
 /**
  * Two-phase argv parse: scan `process.argv` for `--config <path>` /
@@ -195,7 +196,32 @@ async function buildProgram(): Promise<Command> {
     .action(async (opts: Record<string, unknown>) => {
       const cwd = expandHomePath(String(opts.cwd ?? process.cwd()))
 
-      const resolved = resolveConnection(opts.agent as string | undefined, config)
+      // --resume parsing: if the input is `<agent>:<bareSid>` (the form
+      // `formatResumeHint` prints on quit), pull out the agent so the
+      // user doesn't have to remember `--agent` separately. An explicit
+      // `--agent` always wins; if it conflicts with the prefix, error
+      // out rather than silently using the wrong backend.
+      const resumeRaw = typeof opts.resume === "string" && opts.resume.length > 0 ? opts.resume : undefined
+      let agentInput = opts.agent as string | undefined
+      let resume: string | undefined = resumeRaw
+      if (resumeRaw !== undefined) {
+        const { agent: prefixAgent, bareSid: bareResume } = parseSid(resumeRaw)
+        if (prefixAgent !== null) {
+          if (agentInput === undefined) {
+            agentInput = prefixAgent
+          } else if (agentInput !== prefixAgent) {
+            process.stderr.write(
+              `silvercode: --agent ${agentInput} conflicts with sid prefix ${prefixAgent}: in --resume.\n` +
+                `Either drop --agent (the prefix selects the right backend) or use --resume ${bareResume}\n`,
+            )
+            process.exitCode = 2
+            return
+          }
+          resume = bareResume
+        }
+      }
+
+      const resolved = resolveConnection(agentInput, config)
 
       const account =
         typeof opts.account === "string" && opts.account.length > 0 ? opts.account : resolved.entry.account
@@ -203,7 +229,6 @@ async function buildProgram(): Promise<Command> {
         typeof opts.model === "string" && opts.model.length > 0
           ? opts.model
           : (resolved.entry.model ?? BUILTIN_AGENTS[resolved.entry.agent]?.defaultModel ?? "")
-      const resume = typeof opts.resume === "string" && opts.resume.length > 0 ? opts.resume : undefined
       const bare = resolved.entry.bare === true || resolved.entry.options?.["bare"] === true
       const acpAgent = builtinToAcpRegistryId(resolved.entry.agent)
 
