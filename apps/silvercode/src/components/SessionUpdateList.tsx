@@ -418,15 +418,26 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
   if (m.role === "system") {
     return <BackgroundSystemRow text={m.text} />
   }
-  // Assistant turn: optional text block + tool calls.
+  // Assistant turn: render `m.ops` in arrival order. Each text op is an
+  // AssistantRow; each tool op is a ToolCall card. Order matters — codex
+  // emits text→tool→text→tool many times in a single ACP turn, and the
+  // legacy "all text first, all tools after" flatten loses that
+  // interleaving. The store coalesces consecutive text deltas into one
+  // text op, so multi-chunk Claude paragraphs still render as one row.
+  // Bead: km-silvercode.codex-bundling-order.
+  //
   // Wrap chain (flexShrink + minWidth=0) propagates min-content through Box
   // wrappers so MarkdownView's per-Text `wrap="wrap"` fires correctly — same
   // structural note: flexShrink + minWidth=0 is load-bearing for soft-wrap.
   return (
     <Box flexDirection="column" gap={1}>
-      {m.text.length > 0 && <AssistantRow text={m.text} />}
-      {m.toolCalls.map((c) => {
-        const result = m.toolResults.find((r) => r.id === c.id)
+      {m.ops.map((op, i) => {
+        if (op.kind === "text") {
+          if (op.text.length === 0) return null
+          return <AssistantRow key={`text-${i}`} text={op.text} />
+        }
+        const c = op.toolCall
+        const result = op.result
         const running = result === undefined
         const adaptedCall = adaptToolCall(c, result, running)
         return (

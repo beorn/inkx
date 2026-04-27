@@ -31,14 +31,25 @@ const longText =
   "A workspace for agentic knowledge workers: unified notes, tasks, and calendar in a TUI, with bidirectional markdown sync and a vendor/ submodule layout."
 
 function fakeAssistantMessage(text: string): MessageEntry {
-  return {
+  // MessageEntry's `text` / `toolCalls` / `toolResults` are getter-only
+  // projections over `ops`. Build the entry around `ops` directly so
+  // SessionUpdateList renders the assistant text as expected.
+  const entry: Record<string, unknown> = {
     id: "m1",
     role: "assistant",
-    text,
-    toolCalls: [],
-    toolResults: [],
+    ops: [{ kind: "text", text }],
     ts: 0,
-  } as unknown as MessageEntry
+  }
+  Object.defineProperty(entry, "text", {
+    get(): string {
+      return text
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(entry, "toolCalls", { value: [], enumerable: true, configurable: true })
+  Object.defineProperty(entry, "toolResults", { value: [], enumerable: true, configurable: true })
+  return entry as unknown as MessageEntry
 }
 
 describe("assistant message wrap (regression — km-silvercode.message-wrap-truncation)", () => {
