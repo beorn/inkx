@@ -631,10 +631,26 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       // Best-effort: caller should typically use prompt() for typed responses.
       // We fire prompt without awaiting to keep `send` synchronous like the
       // legacy AgentSession contract; errors surface through the `error` bus.
+      //
+      // Fix (bead km-silvercode.thinking-loop-after-bash): after the prompt
+      // resolves, emit a `turn-end` event carrying the stop reason so that
+      // `session-store` sets status → "idle" and the ActivityIndicator clears.
+      // Without this, the PromptResponse was silently discarded — no turn-end
+      // ever fired → store stayed in "thinking" → 98% CPU busy-loop.
+      const turnId = ("acp-turn-" + Date.now()) as TurnId
       void agent
         .prompt({
           sessionId,
           prompt: [{ type: "text", text }],
+        })
+        .then((response) => {
+          emit({
+            kind: "turn-end",
+            sessionId,
+            turnId,
+            stopReason: response.stopReason ?? "end_turn",
+            ts: Date.now(),
+          })
         })
         .catch((err: Error) => {
           emit({

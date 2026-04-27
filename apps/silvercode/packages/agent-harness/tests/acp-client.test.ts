@@ -13,6 +13,7 @@ import { createScope } from "@silvery/scope"
 import { afterEach, describe, expect, test } from "vitest"
 import { __setAcpSpawnForTesting, type AcpSpawn, type AcpSpawnedChild, connectAcp } from "../src/acp-client.ts"
 import type { AgentEvent } from "../src/events.ts"
+import { createSessionStore } from "../src/session-store.ts"
 
 // ---------------------------------------------------------------------------
 // In-memory ACP server harness
@@ -577,6 +578,146 @@ describe("connectAcp", () => {
     await session.loadSession("resumed-sess")
     expect(loadCallCount).toBe(1)
     expect(session.sessionId).toBe("resumed-sess")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// send() → turn-end propagation (bead km-silvercode.thinking-loop-after-bash)
+// ---------------------------------------------------------------------------
+//
+// Bug: AcpAgentSession.send() fires agent.prompt() in fire-and-forget mode.
+// The PromptResponse (stopReason: "end_turn") resolves but is discarded —
+// no turn-end event is ever emitted on the bus. SessionStore stays in
+// "thinking" forever → ActivityIndicator never clears → 98% CPU busy loop.
+//
+// Fix: after agent.prompt() resolves, emit a turn-end AgentEvent with the
+// stopReason from the response. SessionStore.apply("turn-end") sets
+// status = "idle" which clears the ActivityIndicator.
+
+describe("send() emits turn-end after prompt resolves", () => {
+  test("send() emits a turn-end event with stopReason=end_turn after prompt completes", async () => {
+    let promptResolve: (() => void) | null = null
+    const promptFinished = new Promise<void>((resolve) => {
+      promptResolve = resolve
+    })
+
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+        },
+        async newSession() {
+          return { sessionId: "session-send-turn-end" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          await promptFinished
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-send-turn-end")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    // send() is fire-and-forget from the caller's perspective; prompt
+    // hasn't resolved yet so no turn-end should have fired.
+    session.send("ls")
+    expect(events.some((e) => e.kind === "turn-end")).toBe(false)
+
+    // Resolve the prompt — turn-end should now arrive on the bus.
+    promptResolve!()
+    // Wait a tick for the microtask / promise chain to settle.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const turnEnd = events.find((e) => e.kind === "turn-end")
+    expect(turnEnd, "turn-end event must arrive after prompt resolves").toBeTruthy()
+    if (turnEnd?.kind === "turn-end") {
+      expect(turnEnd.stopReason).toBe("end_turn")
+    }
+  })
+
+  test("send() transitions SessionStore status to idle after prompt resolves", async () => {
+    let promptResolve: (() => void) | null = null
+    const promptFinished = new Promise<void>((resolve) => {
+      promptResolve = resolve
+    })
+
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-status-idle" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            // Simulate the agent doing work: emit an agent text chunk before completing.
+            await serverConn!.sessionUpdate({
+              sessionId: "session-status-idle",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "listing files" },
+              },
+            })
+            await promptFinished
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-status-idle")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const store = createSessionStore()
+    store.bind(session)
+
+    // send() initiates the turn — store should flip to "thinking" after
+    // the agent_message_chunk notification arrives.
+    session.send("ls")
+
+    // Yield for the sessionUpdate notification chain to fire.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    // Verify the store saw some activity (text-delta from the chunk).
+    // Status may be "thinking" or "tool-running" depending on ordering.
+    const statusBeforeEnd = store.state.get().status
+    expect(["thinking", "tool-running", "idle"]).toContain(statusBeforeEnd)
+
+    // Now resolve the prompt — status must return to idle.
+    promptResolve!()
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const statusAfterEnd = store.state.get().status
+    expect(
+      statusAfterEnd,
+      `SessionStore status must be "idle" after end_turn, got "${statusAfterEnd}". ` +
+        "This is bead km-silvercode.thinking-loop-after-bash: send() discards the " +
+        "PromptResponse so no turn-end event fires and the ActivityIndicator never clears.",
+    ).toBe("idle")
   })
 })
 
