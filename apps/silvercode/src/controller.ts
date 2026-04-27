@@ -996,7 +996,19 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // BEFORE spawning so the card shows prior turns immediately. Claude Code
     // will then --resume from server-side state, and new events stream in on
     // top of the replayed history.
-    if (opts.resume) {
+    //
+    // Only Claude Code stores transcripts at ~/.claude/projects/<cwd>/<sid>.jsonl.
+    // ACP backends (codex, gemini, pi-acp, copilot) store transcripts under
+    // their own homes and use a different schema; for those, loadSession on
+    // the ACP server is responsible for hydrating prior turns via session
+    // updates. Skip the local replay so non-Claude users don't see a
+    // misleading "no transcript at ~/.claude/projects/..." error.
+    const isClaudeAgent =
+      opts.agent === undefined ||
+      opts.agent === "claude-code" ||
+      opts.agent === "claude-code-spawn" ||
+      opts.agent === "claude-code-sdk"
+    if (opts.resume && isClaudeAgent) {
       replaySessionFromDisk(store, opts.cwd, opts.resume)
     }
 
