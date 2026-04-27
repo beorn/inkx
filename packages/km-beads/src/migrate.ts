@@ -119,7 +119,15 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
   if (issue.issue_type) {
     tags.push(`#${issue.issue_type}`)
   }
-  tags.push(`#${issue.priority}`)
+  // bd v1.0 emits numeric priority (0-4); older exports emit "P0"-"P4".
+  // Always render as #P0..#P4 so km bd queries and filters work uniformly.
+  const priorityTag =
+    typeof issue.priority === "number"
+      ? `#P${issue.priority}`
+      : issue.priority.startsWith("P")
+        ? `#${issue.priority}`
+        : `#P${issue.priority}`
+  tags.push(priorityTag)
   if (issue.labels) {
     tags.push(...issue.labels.map((l) => `#${l}`))
   }

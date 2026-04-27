@@ -66,6 +66,57 @@ describe("beadsIssueSchema", () => {
     const result = beadsIssueSchema.safeParse(issue)
     expect(result.success).toBe(false)
   })
+
+  test("accepts deferred status emitted by `bd defer`", () => {
+    const issue = {
+      id: "km-tui.contact-short-names",
+      title: "Test",
+      status: "deferred",
+      priority: 4,
+      created_at: "2026-04-27T00:00:00Z",
+      updated_at: "2026-04-27T00:00:00Z",
+    }
+    const result = beadsIssueSchema.safeParse(issue)
+    expect(result.success).toBe(true)
+  })
+
+  test("accepts real bd export shape (priority as number, dependencies array)", () => {
+    // Real shape emitted by `bd export -o issues.jsonl` (bd v1.0.0).
+    // Captured from .beads/issues.jsonl on 2026-04-27 — see bead km-beads.cutover.
+    const issue = {
+      id: "km-silvercode.ambient-phase-1-thesis-proof",
+      title: "Phase 1: empirical proof of boundary thesis on Anthropic (A vs B)",
+      description: "See hub/silvercode/design/ambient-context-safety.md §4 Phase 1",
+      status: "closed",
+      priority: 0,
+      issue_type: "task",
+      assignee: "claude:4de4a3ab",
+      owner: "bjorn@stabell.org",
+      created_at: "2026-04-27T20:23:07Z",
+      created_by: "claude:4de4a3ab",
+      updated_at: "2026-04-27T20:39:19Z",
+      started_at: "2026-04-27T20:23:14Z",
+      closed_at: "2026-04-27T20:39:19Z",
+      close_reason: "Phase 1 thesis-proof complete",
+      dependencies: [
+        {
+          issue_id: "km-silvercode.ambient-phase-1-thesis-proof",
+          depends_on_id: "km-silvercode.ambient-phase-0",
+          dep_type: "blocks",
+        },
+      ],
+      dependency_count: 1,
+      dependent_count: 0,
+      comment_count: 0,
+      metadata: "{}",
+      acceptance_criteria: "...",
+      design: "...",
+      notes: "...",
+    }
+
+    const result = beadsIssueSchema.safeParse(issue)
+    expect(result.success).toBe(true)
+  })
 })
 
 describe("parseBeadsIssueLine", () => {
@@ -147,6 +198,28 @@ describe("parseBeadsIssuesJsonl", () => {
   test("handles empty content", () => {
     const { issues, errors } = parseBeadsIssuesJsonl("")
     expect(issues).toHaveLength(0)
+    expect(errors).toHaveLength(0)
+  })
+
+  test("silently skips bd memory lines (`_type: 'memory'`) without flagging as errors", () => {
+    const content = [
+      JSON.stringify({
+        id: "km-1",
+        title: "Real issue",
+        status: "open",
+        priority: 1,
+        created_at: "2026-04-27T00:00:00Z",
+        updated_at: "2026-04-27T00:00:00Z",
+      }),
+      JSON.stringify({
+        _type: "memory",
+        key: "some-key",
+        value: "some remembered fact",
+      }),
+    ].join("\n")
+
+    const { issues, errors } = parseBeadsIssuesJsonl(content)
+    expect(issues).toHaveLength(1)
     expect(errors).toHaveLength(0)
   })
 })
