@@ -13,6 +13,7 @@ import {
   modelLabel,
 } from "../context-windows.ts"
 import { gitBranchFor } from "../git-branch.ts"
+import { useAmbientMuteState } from "../hooks/use-ambient-stream.ts"
 import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
@@ -350,6 +351,131 @@ function SectionHeading({ children }: { children: React.ReactNode }): React.Reac
     <Text bold color="$primary">
       {children}
     </Text>
+  )
+}
+
+/**
+ * Known ambient sources surfaced in the side panel. Mirrors the design
+ * doc's source taxonomy. Sources beyond this list still get muted via
+ * `controller.ambientMuteState.toggle(...)` if a future bead surfaces
+ * them programmatically; this constant just controls what the side
+ * panel offers as toggle rows.
+ */
+const AMBIENT_SOURCES: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "tribe", label: "tribe" },
+  { id: "ci", label: "CI" },
+  { id: "recall", label: "recall" },
+  { id: "sub-agent", label: "sub-agent" },
+  { id: "file-watch", label: "file-watch" },
+  { id: "telegram", label: "telegram" },
+]
+
+/**
+ * AmbientMuteRow — one toggle row for a single ambient source. Shows a
+ * `☐` / `☑` checkbox glyph plus the source label. Hover arms a brighter
+ * background and surfaces a help popover; click toggles the mute.
+ */
+function AmbientMuteRow({
+  source,
+  label,
+  isMuted,
+  onToggle,
+}: {
+  source: string
+  label: string
+  isMuted: boolean
+  onToggle: () => void
+}): React.ReactElement {
+  const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+  const popover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+        <Text bold>Mute {label}</Text>
+        <Muted>
+          Hides {label} ambient rows from this chat scrollback. The agent still receives the events — this is a visual
+          filter only.
+        </Muted>
+      </Box>
+    ),
+    maxWidth: 56,
+  })
+  return (
+    <Box
+      flexDirection="row"
+      gap={1}
+      flexShrink={0}
+      onClick={onToggle}
+      onMouseEnter={(e) => {
+        onMouseEnter(e)
+        popover.onMouseEnter(e)
+      }}
+      onMouseLeave={(e) => {
+        onMouseLeave(e)
+        popover.onMouseLeave(e)
+      }}
+      backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
+    >
+      <Text color={isMuted ? "$muted" : "$fg"}>{isMuted ? "☐" : "☑"}</Text>
+      <Text color={isMuted ? "$muted" : "$fg"}>{label}</Text>
+      {/* Use the source key as a hidden accessibility hint via popover only;
+          the visible label is the human-readable form. */}
+      <Box flexBasis={0} minWidth={0}>
+        <Small>{source === label ? "" : ""}</Small>
+      </Box>
+    </Box>
+  )
+}
+
+/**
+ * AmbientMuteSection — heading + per-source mute rows. Heading hover
+ * popover spells out the structural guarantee that mute is UI-only.
+ */
+function AmbientMuteSection({ controller }: { controller: Controller }): React.ReactElement {
+  const muted = useAmbientMuteState(controller)
+  const headingHover = usePopoverHandlers({
+    body: (
+      <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
+        <Text bold>Ambient</Text>
+        <Muted>
+          Ambient observations (tribe broadcasts, CI status, recall hits, sub-agent updates, file changes, telegram
+          messages) flow into the agent's context automatically and render inline in the chat scrollback.
+        </Muted>
+        <Muted>
+          Toggling a source mutes its inline rows for this view only. The agent still receives every event regardless of
+          mute state.
+        </Muted>
+      </Box>
+    ),
+    maxWidth: 60,
+  })
+  const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+  return (
+    <Box flexDirection="column" flexShrink={0}>
+      <Box
+        flexDirection="row"
+        flexShrink={0}
+        onMouseEnter={(e) => {
+          onMouseEnter(e)
+          headingHover.onMouseEnter(e)
+        }}
+        onMouseLeave={(e) => {
+          onMouseLeave(e)
+          headingHover.onMouseLeave(e)
+        }}
+        backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
+      >
+        <SectionHeading>Ambient</SectionHeading>
+      </Box>
+      {AMBIENT_SOURCES.map((s) => (
+        <AmbientMuteRow
+          key={s.id}
+          source={s.id}
+          label={s.label}
+          isMuted={muted.has(s.id)}
+          onToggle={() => controller.ambientMuteState.toggle(s.id)}
+        />
+      ))}
+    </Box>
   )
 }
 
@@ -827,6 +953,15 @@ export function SidePanel({
           </Box>
         </>
       )}
+
+      {/* Ambient — per-source mute toggles for the inline observation
+          rows in the chat scrollback. Mute hides matching rows from the
+          inline view but does NOT prevent the agent from receiving the
+          events. The agent still sees every ambient observation; this
+          is a visual filter only. See
+          hub/silvercode/design/ambient-inline-display.md. */}
+      <Box flexShrink={0} height={1} />
+      <AmbientMuteSection controller={controller} />
 
       {/* Background tasks — Ctrl-B during a running turn pushes the in-flight
           turn into the background so the user can keep typing. The row only
