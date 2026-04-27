@@ -31,7 +31,7 @@ export function SessionCard({
   onApprove,
   onDeny,
   onRegisterScrollList,
-  showRaw = false,
+  showDebug = false,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -53,7 +53,7 @@ export function SessionCard({
    *  each user message's `additionalContext` (system-reminders, hook
    *  output, isMeta bodies) inline. Bead:
    *  km-silvercode.resume-show-everything-collapsed. */
-  showRaw?: boolean
+  showDebug?: boolean
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Callback ref — fires with the live ListViewHandle on mount and with
@@ -147,7 +147,7 @@ export function SessionCard({
               outputTokens={state.cost.outputTokens}
               pendingPermissions={state.permissions.length}
               inFlightTool={inFlightTool}
-              showRaw={showRaw}
+              showDebug={showDebug}
             />
           )}
         </Box>

@@ -240,7 +240,7 @@ export function App(props: AppProps): React.ReactElement {
   // for readability). When false, only a chip "▸ N hidden lines" shows
   // beneath messages that have hidden context. Bead:
   // km-silvercode.resume-show-everything-collapsed.
-  const [showRaw, setShowRaw] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
   const [inputValue, setInputValue] = useState("")
   // Mirror inputValue into a ref so the App-level input handler can
   // capture the pre-chord value synchronously. Without this, when the
@@ -530,14 +530,14 @@ export function App(props: AppProps): React.ReactElement {
           case "/panel":
           case "/aside":
             return togglePanel()
-          case "/raw":
           case "/debug":
             // Toggle the debug view: inline every user message's hidden
             // context (system-reminders, hook output, isMeta auto-prompts
             // like "Continue from where you left off."). Lets the user see
             // exactly what the model received during a resumed session.
-            // Bead: km-silvercode.resume-show-everything-collapsed.
-            return setShowRaw((v) => !v)
+            // Hidden from the empty-query palette by default — see
+            // slash-commands.ts. Bead: km-silvercode.resume-show-everything-collapsed.
+            return setShowDebug((v) => !v)
           case "/mode": {
             const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
             const target = modes.includes(arg) ? arg : modes[(modes.indexOf(mode) + 1) % modes.length]!
@@ -1053,85 +1053,84 @@ export function App(props: AppProps): React.ReactElement {
               to shrink=0 — `minWidth={0}` alone does nothing without an
               overflow boundary in the chain. */}
             <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-            <PaneGrid
-              ref={paneGridRef}
-              sessions={sessions}
-              focusedSessionId={focusedSessionId}
-              zoomedPaneId={zoomedPaneId}
-              tree={paneTree}
-              onTreeChange={onTreeChange}
-              cwd={props.cwd}
-              onFocusSession={(id) => controller.focus(id)}
-              onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
-              onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
-              paneHeaders={props.paneHeaders === true}
-              onSplitRightPane={splitPaneRightById}
-              onClosePane={closePaneById}
-              onToggleMinimizePane={toggleMinimizePane}
-              minimizedPaneIds={minimizedPaneIds}
-              onRegisterScrollList={registerScrollList}
-              showRaw={showRaw}
-            />
+              <PaneGrid
+                ref={paneGridRef}
+                sessions={sessions}
+                focusedSessionId={focusedSessionId}
+                zoomedPaneId={zoomedPaneId}
+                tree={paneTree}
+                onTreeChange={onTreeChange}
+                cwd={props.cwd}
+                onFocusSession={(id) => controller.focus(id)}
+                onApprovePermission={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                onDenyPermission={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                paneHeaders={props.paneHeaders === true}
+                onSplitRightPane={splitPaneRightById}
+                onClosePane={closePaneById}
+                onToggleMinimizePane={toggleMinimizePane}
+                minimizedPaneIds={minimizedPaneIds}
+                onRegisterScrollList={registerScrollList}
+                showDebug={showDebug}
+              />
 
-            {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
-            <Box flexDirection="column" flexShrink={0}>
-              {showInbox && (
-                <RequestPermissionInbox
-                  sessions={sessions}
-                  onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
-                  onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
-                  onSelectOption={(sid, rid, optionId, approved) =>
-                    controller.respondPermissionOption(sid, rid, optionId, approved)
-                  }
-                  onClose={() => setShowInbox(false)}
-                />
-              )}
-              {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
-              <Notifications sessions={sessions} />
+              {/* Bottom chrome (left column). flexShrink=0 prevents overflow. */}
+              <Box flexDirection="column" flexShrink={0}>
+                {showInbox && (
+                  <RequestPermissionInbox
+                    sessions={sessions}
+                    onApprove={(sid, rid) => controller.respondPermission(sid, rid, true)}
+                    onDeny={(sid, rid) => controller.respondPermission(sid, rid, false)}
+                    onSelectOption={(sid, rid, optionId, approved) =>
+                      controller.respondPermissionOption(sid, rid, optionId, approved)
+                    }
+                    onClose={() => setShowInbox(false)}
+                  />
+                )}
+                {showHistory && <SessionPromptHistory onClose={() => setShowHistory(false)} logDir={props.logDir} />}
+                <Notifications sessions={sessions} />
 
-              {paletteQuery !== null && (
-                <AvailableCommandsPalette
-                  query={paletteQuery}
-                  remoteCommands={focused?.store.state.get().slashCommands}
-                  remoteSkills={focused?.store.state.get().skills}
-                  onSubmit={(cmd) => handleSubmit(cmd)}
-                  onClose={() => setInputValue("")}
-                />
-              )}
+                {paletteQuery !== null && (
+                  <AvailableCommandsPalette
+                    query={paletteQuery}
+                    remoteCommands={focused?.store.state.get().slashCommands}
+                    remoteSkills={focused?.store.state.get().skills}
+                    onSubmit={(cmd) => handleSubmit(cmd)}
+                    onClose={() => setInputValue("")}
+                  />
+                )}
 
-              {/* SessionPromptComposer — queue area (when non-empty) stacks on
+                {/* SessionPromptComposer — queue area (when non-empty) stacks on
                 top of the command input inside one filled surface with a
                 horizontal rule between them. Exactly one cursor is visible
                 at a time; focused side is bright, unfocused side dims to
                 $fg-muted. Claude-Code-style. */}
-              <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
-                <Box flexGrow={1} flexDirection="column">
-                  {focused && (
-                    <SessionPromptComposer
-                      queueText={queueText}
-                      onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
-                      onQueueSubmit={() => {
-                        // Force-flush the queue NOW (Enter in queue region).
-                        // After flush, queue is empty so focusedRegion's
-                        // empty-snap effect moves cursor back to command.
-                        controller.flushQueue(focused.id)
-                        setFocusedRegion("command")
-                      }}
-                      focusedRegion={focusedRegion}
-                      onFocusRegion={setFocusedRegion}
-                      inputValue={inputValue}
-                      onInputChange={setInputValue}
-                      inputDisabled={!focused}
-                      onSubmit={handleSubmit}
-                      onExit={requestExit}
-                      promptColor={promptColor}
-                    />
-                  )}
+                <Box paddingX={2} paddingY={1} flexShrink={0} flexDirection="row">
+                  <Box flexGrow={1} flexDirection="column">
+                    {focused && (
+                      <SessionPromptComposer
+                        queueText={queueText}
+                        onQueueChange={(t) => controller.setQueuedText(focused.id, t)}
+                        onQueueSubmit={() => {
+                          // Force-flush the queue NOW (Enter in queue region).
+                          // After flush, queue is empty so focusedRegion's
+                          // empty-snap effect moves cursor back to command.
+                          controller.flushQueue(focused.id)
+                          setFocusedRegion("command")
+                        }}
+                        focusedRegion={focusedRegion}
+                        onFocusRegion={setFocusedRegion}
+                        inputValue={inputValue}
+                        onInputChange={setInputValue}
+                        inputDisabled={!focused}
+                        onSubmit={handleSubmit}
+                        onExit={requestExit}
+                        promptColor={promptColor}
+                      />
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
-
           </AsideLayout>
         </Screen>
       </PopoverProvider>

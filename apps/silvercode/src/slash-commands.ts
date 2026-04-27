@@ -18,6 +18,13 @@ export type SlashCommand = {
   description: string
   /** If true, the command is handled inside silvercode (not sent to Claude). */
   local: boolean
+  /**
+   * If true, the command is hidden from the empty-query palette listing.
+   * Typing the name (or any substring of it) still surfaces it via filter,
+   * so power users can find it; it just doesn't clutter the discoverability
+   * surface for new users.
+   */
+  hidden?: boolean
 }
 
 /** Fixed commands shipped with silvercode (local + well-known Claude-native). */
@@ -26,13 +33,15 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   // Toggle the debug view: inline each user message's `additionalContext`
   // (system-reminders, hook output, isMeta auto-prompts) below the visible
   // prompt. Resumed sessions surface what the model actually received.
+  // Hidden from the empty-query palette so it doesn't clutter discovery
+  // for casual users — power users still surface it by typing "/de".
   // Bead: km-silvercode.resume-show-everything-collapsed.
   {
-    name: "/raw",
+    name: "/debug",
     description: "Toggle debug view: inline hidden context (system-reminders, isMeta) on user messages",
     local: true,
+    hidden: true,
   },
-  { name: "/debug", description: "Alias for /raw — inline hidden context on user messages", local: true },
   { name: "/handoff", description: "Handoff task + context to another session", local: true },
   { name: "/inbox", description: "Open the cross-session permission inbox", local: true },
   { name: "/fork", description: "Fork current session into a new card", local: true },
@@ -101,10 +110,17 @@ export function mergeRemoteCommands(remote: readonly string[]): SlashCommand[] {
   return [...STATIC_COMMANDS, ...extras.sort((a, b) => a.name.localeCompare(b.name))]
 }
 
-/** Fuzzy-ish filter used by the palette. Case-insensitive substring match. */
+/**
+ * Fuzzy-ish filter used by the palette. Case-insensitive substring match.
+ *
+ * When the query is empty, hidden commands are omitted from the listing —
+ * only "discoverable" commands surface. As soon as the user types anything,
+ * hidden commands compete on substring match like everything else (so /debug
+ * shows up the moment "/de" is typed).
+ */
 export function filterCommands(query: string, commands: readonly SlashCommand[] = STATIC_COMMANDS): SlashCommand[] {
   const q = query.trim().toLowerCase()
-  if (q.length === 0) return [...commands]
+  if (q.length === 0) return commands.filter((c) => !c.hidden)
   return commands.filter((c) => c.name.toLowerCase().includes(q))
 }
 

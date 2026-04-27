@@ -117,7 +117,7 @@ export type PaneGridProps = {
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   /** App-level `/raw` debug toggle. Forwarded to every SessionCard.
    *  Bead: km-silvercode.resume-show-everything-collapsed. */
-  showRaw?: boolean
+  showDebug?: boolean
 }
 
 /**
@@ -178,7 +178,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     onToggleMinimizePane,
     minimizedPaneIds,
     onRegisterScrollList,
-    showRaw = false,
+    showDebug = false,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -374,7 +374,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onClose={onClosePane ? () => onClosePane(handle.id) : undefined}
           onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
           onRegisterScrollList={onRegisterScrollList}
-          showRaw={showRaw}
+          showDebug={showDebug}
         />
       )
     },
@@ -392,7 +392,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onClosePane,
       onToggleMinimizePane,
       onRegisterScrollList,
-      showRaw,
+      showDebug,
     ],
   )
 
@@ -416,7 +416,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onApprove={(rid) => props.onApprovePermission(zoomed.id, rid)}
               onDeny={(rid) => props.onDenyPermission(zoomed.id, rid)}
               onRegisterScrollList={onRegisterScrollList}
-              showRaw={showRaw}
+              showDebug={showDebug}
             />
           </Box>
         </Box>
@@ -474,7 +474,7 @@ function LeafContainer({
   onClose,
   onToggleMinimize,
   onRegisterScrollList,
-  showRaw = false,
+  showDebug = false,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -496,7 +496,7 @@ function LeafContainer({
   onClose?: () => void
   onToggleMinimize?: () => void
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
-  showRaw?: boolean
+  showDebug?: boolean
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -527,7 +527,7 @@ function LeafContainer({
           onApprove={onApprove}
           onDeny={onDeny}
           onRegisterScrollList={onRegisterScrollList}
-          showRaw={showRaw}
+          showDebug={showDebug}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.

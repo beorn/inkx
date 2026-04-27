@@ -1,8 +1,8 @@
 /**
- * `/raw` debug-view contract — user message rows surface the chip when
+ * `/debug` debug-view contract — user message rows surface the chip when
  * a user message has additionalContext (system-reminders, isMeta
  * bodies, hook output stripped from the visible chat surface) and
- * inlines the full body when `showRaw=true`.
+ * inlines the full body when `showDebug=true`.
  *
  * Tests the inline UserRow rendering baked into SessionUpdateList, using
  * the same layout as the production component so the invariants hold.
@@ -21,11 +21,11 @@ import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
 function UserRow({
   text,
   additionalContext,
-  showRaw,
+  showDebug,
 }: {
   text: string
   additionalContext?: string
-  showRaw?: boolean
+  showDebug?: boolean
 }): React.ReactElement {
   const hasContext = (additionalContext?.length ?? 0) > 0
   const isMetaOnly = text.length === 0 && hasContext
@@ -52,9 +52,10 @@ function UserRow({
       {hasContext && (
         <Box flexDirection="column" flexShrink={1} minWidth={0}>
           <Text color="$muted">
-            {showRaw ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/raw` to toggle)
+            {showDebug ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/debug` to
+            toggle)
           </Text>
-          {showRaw && (
+          {showDebug && (
             <Box flexDirection="column" flexShrink={1} minWidth={0} paddingLeft={2}>
               <Text color="$muted" wrap="wrap">
                 {additionalContext}
@@ -67,20 +68,20 @@ function UserRow({
   )
 }
 
-function renderBlock(props: { text: string; additionalContext?: string; showRaw?: boolean; cols?: number }): string {
+function renderBlock(props: { text: string; additionalContext?: string; showDebug?: boolean; cols?: number }): string {
   const { cols = 120 } = props
   const r = createRenderer({ cols, rows: 30 })
   const app = r(
     <Screen flexDirection="column">
       <Box flexDirection="column" flexGrow={1} minHeight={0}>
-        <UserRow text={props.text} additionalContext={props.additionalContext} showRaw={props.showRaw} />
+        <UserRow text={props.text} additionalContext={props.additionalContext} showDebug={props.showDebug} />
       </Box>
     </Screen>,
   )
   return app.text
 }
 
-describe("user message row — /raw debug view", () => {
+describe("user message row — /debug debug view", () => {
   test("plain message (no additionalContext): no chip, no body", () => {
     const text = renderBlock({ text: "what is this repo about?" })
     expect(text).toContain("what is this repo about?")
@@ -96,15 +97,15 @@ describe("user message row — /raw debug view", () => {
     // Chip shows with collapsed glyph + line count + the toggle hint.
     expect(text).toContain("▸")
     expect(text).toContain("3 lines of hidden context")
-    expect(text).toContain("/raw")
-    // Body is NOT inlined when showRaw is false.
+    expect(text).toContain("/debug")
+    // Body is NOT inlined when showDebug is false.
     expect(text).not.toContain("cwd: /work")
     expect(text).not.toContain("model: claude-sonnet")
   })
 
-  test("message with additionalContext + showRaw=true: body inlined dimmed", () => {
+  test("message with additionalContext + showDebug=true: body inlined dimmed", () => {
     const ctx = ["[system-reminder]", "cwd: /work", "extra detail here"].join("\n")
-    const text = renderBlock({ text: "hello", additionalContext: ctx, showRaw: true })
+    const text = renderBlock({ text: "hello", additionalContext: ctx, showDebug: true })
     expect(text).toContain("hello")
     // Chip flips to expanded glyph.
     expect(text).toContain("▾")
@@ -129,9 +130,9 @@ describe("user message row — /raw debug view", () => {
     expect(promptLines).toEqual([])
   })
 
-  test("isMeta-only message + showRaw=true: body visible, still no > prompt line", () => {
+  test("isMeta-only message + showDebug=true: body visible, still no > prompt line", () => {
     const ctx = "[isMeta]\nContinue from where you left off."
-    const text = renderBlock({ text: "", additionalContext: ctx, showRaw: true })
+    const text = renderBlock({ text: "", additionalContext: ctx, showDebug: true })
     expect(text).toContain("Continue from where you left off.")
     expect(text).toContain("▾")
   })

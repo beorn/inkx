@@ -208,11 +208,11 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
 function UserRow({
   text,
   additionalContext,
-  showRaw,
+  showDebug,
 }: {
   text: string
   additionalContext?: string
-  showRaw?: boolean
+  showDebug?: boolean
 }): React.ReactElement {
   const hasContext = (additionalContext?.length ?? 0) > 0
   const isMetaOnly = text.length === 0 && hasContext
@@ -240,9 +240,10 @@ function UserRow({
       {hasContext && (
         <Box flexDirection="column" flexShrink={1} minWidth={0}>
           <Text color="$muted">
-            {showRaw ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/raw` to toggle)
+            {showDebug ? "▾" : "▸"} {lineCount} line{lineCount === 1 ? "" : "s"} of hidden context (run `/debug` to
+            toggle)
           </Text>
-          {showRaw && (
+          {showDebug && (
             <Box flexDirection="column" flexShrink={1} minWidth={0} paddingLeft={2}>
               <Text color="$muted" wrap="wrap">
                 {additionalContext}
@@ -324,14 +325,14 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
   return debugMode ? <Box {...handlers}>{children}</Box> : <>{children}</>
 }
 
-function ExchangeItem({ m, showRaw }: { m: MessageEntry; showRaw: boolean }): React.ReactElement {
+function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean }): React.ReactElement {
   // Background-task system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
   if (m.role === "user" && (m.id as string).startsWith("bg-") && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)) {
     return <BackgroundSystemRow text={m.text} />
   }
   if (m.role === "user") {
-    return <UserRow text={m.text} additionalContext={m.additionalContext} showRaw={showRaw} />
+    return <UserRow text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
   }
   if (m.role === "system") {
     return <BackgroundSystemRow text={m.text} />
@@ -391,10 +392,10 @@ export const SessionUpdateList = React.forwardRef<
      *  message inlines its `additionalContext` (system-reminders, hook
      *  output, isMeta bodies) below the visible prompt. Default false.
      *  Bead: km-silvercode.resume-show-everything-collapsed. */
-    showRaw?: boolean
+    showDebug?: boolean
   }
 >(function SessionUpdateList(
-  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool, showRaw = false },
+  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool, showDebug = false },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
@@ -431,7 +432,7 @@ export const SessionUpdateList = React.forwardRef<
           />
         ) : (
           <RawInspector payload={item}>
-            <ExchangeItem m={item} showRaw={showRaw} />
+            <ExchangeItem m={item} showDebug={showDebug} />
           </RawInspector>
         )
       }
