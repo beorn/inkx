@@ -95,6 +95,44 @@ if (
 // Allow explicit SILVERY_STRICT=0 to disable (for benchmarks measuring production perf)
 if (process.env.SILVERY_STRICT !== "0") process.env.SILVERY_STRICT = "1"
 
+// SILVERY_INSTRUMENT: pass-cause histogram capture (km-silvery.renderer-feedback-trace)
+// When enabled, dump the per-test histogram to a file so external tooling
+// (and hub/silvery/design/pass-cause-histogram.md) can analyze pass causes.
+// Default location: /tmp/silvery-pass-histogram-${pid}.jsonl (one JSON record per app teardown).
+//
+// Two emit paths:
+// - per-app teardown: `createApp` cleanup writes a record + resets the
+//   per-app aggregator (covers `createApp`-based tests).
+// - per-test afterEach: writes whatever's left in the per-process aggregator
+//   (covers `render`-based tests that never call `createApp.cleanup()`).
+// - process.exit: catch-all for anything that survived both above hooks.
+if (process.env.SILVERY_INSTRUMENT === "1") {
+  const histogramFile =
+    process.env.SILVERY_INSTRUMENT_FILE ?? `/tmp/silvery-pass-histogram-${process.pid}.jsonl`
+  process.env.SILVERY_INSTRUMENT_FILE = histogramFile
+  // Per-test flush — covers `render`-based tests (no `createApp` teardown).
+  afterEach(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { appendHistogramJson, resetPassHistogram } =
+        require("@silvery/ag-term") as typeof import("@silvery/ag-term")
+      appendHistogramJson(histogramFile)
+      resetPassHistogram()
+    } catch {
+      // Silvery not present in this test scope — ignore.
+    }
+  })
+  process.on("exit", () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { appendHistogramJson } = require("@silvery/ag-term") as typeof import("@silvery/ag-term")
+      appendHistogramJson(histogramFile)
+    } catch {
+      // Silvery not present in this test scope — ignore.
+    }
+  })
+}
+
 // SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
 // Accepts comma-separated list: vt100 (fast internal parser), xterm (xterm.js headless),
 // ghostty (Ghostty WASM). Use "all" for all backends. Example: SILVERY_STRICT_TERMINAL=vt100,xterm
