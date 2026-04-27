@@ -258,6 +258,7 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `priority-drift` — P0/P1 beads older than 1 week
 - [ ] `roadmap-alignment` — epic completion % (`bd epic status`)
 - [ ] `session-promote` — `bun tools/session-promote.ts scan` (extract durable knowledge from recall → gbrain)
+- [ ] `epic-program-close-eligible` — epics with all children closed for >7 days that haven't run `/program-close`. Surfaces meta-retrospective gap.
 **Triggers**: bead closures, session ends
 **Delegates to**: `/pm review`, `bd doctor`, `bun tools/session-promote.ts promote`
 **Execute**: close stale, defer low-priority, archive completed epics, promote session knowledge
@@ -345,6 +346,8 @@ token = resp['access_token']
 - [ ] `llm-quota` — `bun llm quota` (remaining credit + rate-limit per provider; flag if any provider is below 10% remaining or budget exhausted). Tied to the cost-discipline signal from `/pro` — without this, $700 OpenAI months happen invisibly.
 - [ ] `llm-judge-pending` — `bun llm pro --judge-history --quick` dry-run (count of unjudged historical entries; informational — does not auto-fire judge)
 - [ ] `recall-index-staleness` — recall FTS5 index age <7 days (`bun recall status`) — stale index = degraded session-history surface
+- [ ] `tribe-doctor` — `bun tribe doctor` (daemon + MCP + hooks + env health). Tribe is the per-project coordination spine; broken daemon = silent session-coordination loss
+- [ ] `claude-config-drift` — `bun tools/lint-claude-config.ts` (hooks/skills/agents/MCP registration drift across `.claude/`)
 - [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.claude/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
   1. **Run the lint script first**: `bash packages/km-infra/scripts/check-upstream-markers.sh` — surfaces any bead↔code-marker drift (orphan markers, marker-less beads). Resolve mismatches before proceeding.
   2. `bd list --parent km-all.upstream-waiting --status open` — list every open child
