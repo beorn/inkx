@@ -340,6 +340,7 @@ token = resp['access_token']
 - [ ] `cf-domain-expiry` — domains expiring within 60 days (Cloudflare Registrar API)
 - [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
 - [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
+- [ ] `upstream-waiting` — `bd list --parent km-all.upstream-waiting --status open` — for each child, check the linked upstream issue/PR; update "Last checked: <date>" in the bead description; if upstream landed, run the bead's "Unwind when upstream lands" steps and close.
 **Triggers**: tool version updates, new repos, domain expiry approaching
 **Delegates to**: `/infra`, `/claude`
 
