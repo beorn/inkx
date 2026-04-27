@@ -141,7 +141,14 @@ export interface SpawnSilvercodeOptions {
   bare?: boolean
   /** Layout prop. Default: "single". */
   layout?: "single" | "grid-2" | "grid-4"
-  /** Track prop. Default: "claude". */
+  /**
+   * SILVERCODE_TEST_TRACK env value — legacy name. Maps to canonical
+   * agent ids in test-entry.tsx:
+   *   "claude" → undefined (default spawnClaude)
+   *   "sdk"    → "claude-code-sdk"
+   *   "codex"  → "codex-spawn"
+   * Default: "claude".
+   */
   track?: "claude" | "sdk" | "codex"
   /** Model prop. Default: "claude-sonnet-4-6". */
   model?: string

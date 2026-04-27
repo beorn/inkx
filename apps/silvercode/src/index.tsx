@@ -58,59 +58,6 @@ function expandHomePath(p: string): string {
 }
 
 /**
- * Map a `BUILTIN_AGENTS` key (or any free-form `agent` string from a
- * resolved `ai.acp.<name>` entry) to the ACP registry id understood by
- * `<App agent={...}>`. Encodes silvercode's two transport tracks:
- *
- *   - **ACP track** — agent runs over the Agent Client Protocol.
- *     Returns the registry id (e.g. `"claude-code"`, `"codex"`,
- *     `"gemini"`, `"github-copilot-cli"`).
- *   - **Legacy spawn track** — direct stream-json subprocess. Returns
- *     `undefined`; the caller falls back to `track: "claude"` plus
- *     `entry.bare` to drive the legacy controller path.
- *
- * Mapping:
- *
- *   | BUILTIN_AGENTS key     | ACP registry id        | Notes                              |
- *   | ---------------------- | ---------------------- | ---------------------------------- |
- *   | `claude-code`          | `"claude-code"`        | standalone ACP wrapper             |
- *   | `claude-code-spawn`    | `undefined`            | legacy direct spawn (track=claude) |
- *   | `codex`                | `"codex"`              | Zed's Codex ACP wrapper            |
- *   | `gemini`               | `"gemini"`             | Gemini CLI ACP mode                |
- *   | `copilot`              | `"github-copilot-cli"` | registry id ≠ builtin id           |
- *   | _anything else_        | `undefined`            | warn-log + fall back to spawn      |
- *
- * The `copilot → github-copilot-cli` rename is the only point where the
- * built-in id and the registry id diverge. Custom agents from
- * `ai.acp.<name>` entries with a free-form `agent: <id>` field hit the
- * fallback branch — silvercode warns and tries the legacy spawn path,
- * which surfaces a real spawn error if no binary is on PATH.
- */
-export function builtinToAcpRegistryId(agent: string): string | undefined {
-  switch (agent) {
-    case "claude-code":
-      return "claude-code"
-    case "claude-code-spawn":
-      // Legacy direct spawn — caller sets track: "claude" and uses entry.bare.
-      return undefined
-    case "codex":
-      return "codex"
-    case "gemini":
-      return "gemini"
-    case "copilot":
-      // The ACP registry calls this `github-copilot-cli` — divergence
-      // because Zed's Copilot ACP wrapper is keyed on the binary name.
-      return "github-copilot-cli"
-    default:
-      // Custom agents (free-form `agent:` from ai.acp.<name>). We can't
-      // assume an ACP registry entry — fall back to legacy spawn so a real
-      // process attempt produces a real error message.
-      process.stderr.write(`silvercode: unknown agent id "${agent}", falling back to direct spawn\n`)
-      return undefined
-  }
-}
-
-/**
  * Compute what `silvercode` (no --agent flag) would use, for display in
  * `--help`. Mirrors the implicit-path order in `resolveConnection` but
  * doesn't actually resolve creds (so help never throws).

@@ -131,11 +131,16 @@ describe("BUILTIN_AGENTS — Claude variants share CLAUDE_CAPABILITIES", () => {
     expect(c?.capabilities).toBe(CLAUDE_CAPABILITIES)
   })
 
-  test("codex variants reference CODEX_CAPABILITIES; gemini + copilot still undefined", () => {
+  test("codex variants reference CODEX_CAPABILITIES; gemini + github-copilot-cli still undefined", () => {
     expect(BUILTIN_AGENTS["codex"]?.capabilities).toBeDefined()
     expect(BUILTIN_AGENTS["codex-spawn"]?.capabilities).toBe(BUILTIN_AGENTS["codex"]?.capabilities)
     expect(BUILTIN_AGENTS["gemini"]?.capabilities).toBeUndefined()
-    expect(BUILTIN_AGENTS["copilot"]?.capabilities).toBeUndefined()
+    // Note: BUILTIN_AGENTS uses the canonical registry id `github-copilot-cli`,
+    // not the friendly alias `copilot` — the rename happened in the
+    // track-removal commit so the agent id matches AcpRegistryId.
+    expect(BUILTIN_AGENTS["github-copilot-cli"]?.capabilities).toBeUndefined()
+    expect(BUILTIN_AGENTS["github-copilot-cli"]).toBeDefined()
+    expect(BUILTIN_AGENTS["copilot"]).toBeUndefined()
   })
 
   test("codex thinking + planning shapes match the design", () => {
