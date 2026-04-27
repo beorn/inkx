@@ -457,7 +457,7 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
 // =============================================================================
 
 type ActivityItem = { __activity: true }
-type AmbientItem = { __ambient: true; entry: AmbientStreamEntry }
+type AmbientItem = { __ambient: true; entries: AmbientStreamEntry[] }
 type Item = MessageEntry | ActivityItem | AmbientItem
 
 function isActivity(item: Item): item is ActivityItem {
@@ -487,10 +487,21 @@ function messageTimestamp(m: MessageEntry): number {
  * "user, then ambient." That is the conservative read: an ambient
  * observation associated with the *next* turn arrived after the user
  * sent the prompt.
+ *
+ * Consecutive ambient entries coalesce into one `AmbientItem` so the
+ * outer `ListView gap={1}` separates clusters from messages but doesn't
+ * insert a blank line between adjacent ambient observations. A burst of
+ * filewatch events therefore renders as a tight block.
  */
 function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEntry[]): Item[] {
-  if (ambient.length === 0) return [...messages]
-  if (messages.length === 0) return ambient.map((a) => ({ __ambient: true as const, entry: a }))
+  function pushAmbient(out: Item[], entry: AmbientStreamEntry): void {
+    const last = out[out.length - 1]
+    if (last && isAmbient(last)) {
+      last.entries.push(entry)
+      return
+    }
+    out.push({ __ambient: true, entries: [entry] })
+  }
   const out: Item[] = []
   let i = 0
   let j = 0
@@ -501,12 +512,12 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
       out.push(messages[i]!)
       i++
     } else {
-      out.push({ __ambient: true, entry: ambient[j]! })
+      pushAmbient(out, ambient[j]!)
       j++
     }
   }
   while (i < messages.length) out.push(messages[i++]!)
-  while (j < ambient.length) out.push({ __ambient: true, entry: ambient[j++]! })
+  while (j < ambient.length) pushAmbient(out, ambient[j++]!)
   return out
 }
 
@@ -519,6 +530,21 @@ function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEnt
 function AmbientRow({ entry }: { entry: AmbientStreamEntry }): React.ReactElement {
   const [expanded, setExpanded] = React.useState(false)
   return <AmbientEventRow entry={entry} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
+}
+
+/**
+ * Cluster wrapper — a tight stack of ambient rows with no gap between
+ * them, so a burst (e.g. filewatch events for one save) reads as one
+ * coherent block in the chat scrollback.
+ */
+function AmbientCluster({ entries }: { entries: AmbientStreamEntry[] }): React.ReactElement {
+  return (
+    <Box flexDirection="column">
+      {entries.map((e) => (
+        <AmbientRow key={e.id} entry={e} />
+      ))}
+    </Box>
+  )
 }
 
 // =============================================================================
@@ -584,7 +610,9 @@ export const SessionUpdateList = React.forwardRef<
     <ListView
       ref={ref}
       items={items}
-      getKey={(item, i) => (isActivity(item) ? "__activity" : isAmbient(item) ? `ambient:${item.entry.id}` : i)}
+      getKey={(item, i) =>
+        isActivity(item) ? "__activity" : isAmbient(item) ? `ambient-cluster:${item.entries[0]?.id ?? i}` : i
+      }
       gap={1}
       maxRendered={200}
       follow="end"
@@ -599,7 +627,7 @@ export const SessionUpdateList = React.forwardRef<
             outputTokens={outputTokens}
           />
         ) : isAmbient(item) ? (
-          <AmbientRow entry={item.entry} />
+          <AmbientCluster entries={item.entries} />
         ) : (
           <RawInspector payload={item}>
             <ExchangeItem m={item} showDebug={showDebug} />

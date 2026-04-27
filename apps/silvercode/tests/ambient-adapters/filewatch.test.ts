@@ -22,7 +22,31 @@ describe("ambient-adapter/filewatch", () => {
       const result = classifyFilewatchPath(cwd, "/tmp/proj/src/index.ts")
       expect(result).not.toBeNull()
       expect(result!.rel).toBe("src/index.ts")
-      expect(result!.content).toContain("index.ts changed")
+      // Content is just the relative path — short + scannable in chat.
+      expect(result!.content).toBe("src/index.ts")
+    })
+
+    test("filters atomic-write temp files (.tmp, .tmp.<pid>.<ts>)", () => {
+      const cwd = "/tmp/proj"
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/src/foo.tmp")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/controller.ts.tmp.68054.1777327001973")).toBeNull()
+    })
+
+    test("filters editor noise (.swp, .swo, .swx, ~, .bak, .lock, .DS_Store)", () => {
+      const cwd = "/tmp/proj"
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/.foo.swp")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/.foo.swo")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/.foo.swx")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/foo~")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/foo.bak")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/foo.lock")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/.DS_Store")).toBeNull()
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/sub/.DS_Store")).toBeNull()
+    })
+
+    test("filters .claude/worktrees (agent worktree clones)", () => {
+      const cwd = "/tmp/proj"
+      expect(classifyFilewatchPath(cwd, "/tmp/proj/.claude/worktrees/agent-x/src/foo.ts")).toBeNull()
     })
 
     test("filters node_modules", () => {
@@ -96,7 +120,7 @@ describe("ambient-adapter/filewatch", () => {
       const events = queue.peek()
       if (events.length > 0) {
         expect(events[0]?.source).toBe("filewatch")
-        expect(events[0]?.content).toContain("hello.txt")
+        expect(events[0]?.content).toBe("hello.txt")
       }
     })
   })

@@ -34,7 +34,36 @@ const dWatch = createDebug("silvercode:ambient:filewatch")
 
 const SOURCE = "filewatch" as const
 
-const NOISE_PREFIXES: readonly string[] = ["node_modules/", ".git/", "dist/", ".beads/", ".km/", ".vitest/", ".direnv/"]
+const NOISE_PREFIXES: readonly string[] = [
+  "node_modules/",
+  ".git/",
+  "dist/",
+  ".beads/",
+  ".km/",
+  ".vitest/",
+  ".direnv/",
+  ".claude/worktrees/",
+  ".next/",
+  "coverage/",
+]
+
+/**
+ * Patterns matching transient editor / atomic-write artifacts. These fire
+ * many times per save and add nothing to the ambient signal; we drop them
+ * before the per-path debounce.
+ */
+const NOISE_PATTERNS: readonly RegExp[] = [
+  /\.tmp(\.|$)/i, // *.tmp, *.tmp.<pid>.<ts> (atomic-write temps)
+  /\.swp$/i, // vim swap
+  /\.swo$/i, // vim swap (older session)
+  /\.swx$/i, // vim swap (concurrent)
+  /~$/, // editor backup tilde
+  /\.lock$/i, // lockfiles
+  /\.DS_Store$/, // macOS finder
+  /\.bak$/i, // misc backups
+  /^\.#/, // emacs lockfiles (#filename# / .#filename)
+  /^#.*#$/,
+]
 
 export type FilewatchAdapterOptions = AmbientAdapterCtx & {
   /** Directory to watch. Required — usually the session's cwd. */
@@ -53,9 +82,10 @@ function isNoise(rel: string): boolean {
   for (const prefix of NOISE_PREFIXES) {
     if (rel.startsWith(prefix) || rel.includes(`/${prefix}`)) return true
   }
-  // Hidden file at root is fine (e.g. `.envrc`); but `.something/` is a
-  // dotdir and we filter it via the prefixes above. Per-file dotfiles
-  // (`.DS_Store`, lockfiles) get through and then get debounced.
+  const base = basename(rel)
+  for (const re of NOISE_PATTERNS) {
+    if (re.test(base)) return true
+  }
   return false
 }
 
@@ -69,7 +99,7 @@ export function classifyFilewatchPath(cwd: string, abs: string): { rel: string; 
   const rel = relative(cwd, abs)
   if (rel.length === 0 || rel.startsWith("..")) return null
   if (isNoise(rel)) return null
-  return { rel, content: `${basename(abs)} changed (${rel})` }
+  return { rel, content: rel }
 }
 
 /**
@@ -104,7 +134,7 @@ export function registerFilewatchAmbientAdapter(opts: FilewatchAdapterOptions): 
         id: makeAmbientEventId(SOURCE),
         source: SOURCE,
         timestamp: t,
-        content: `${basename(rel)} ${eventType} (${rel})`,
+        content: rel,
         meta: { kind: "fs-change", path: rel, eventType },
       })
     })
