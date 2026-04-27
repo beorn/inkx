@@ -103,6 +103,21 @@ Write a 3-5 sentence synthesis:
 
 ## Phase 7: Final Synthesis
 
+### Quality levels (preferred over "plateau distance %")
+
+When framing how far the current state is from a real fix, **use the L0-L5 rubric, not percentages**. Percentages drift to vibe ("this is 65% to plateau"); the rubric is verifiable per-bead.
+
+- **L0** — workaround / threshold / env tweak
+- **L1** — runtime guard catches it
+- **L2** — invariant asserted + debug diagnostics
+- **L3** — API/lifecycle structure makes invalid state hard
+- **L4** — architecture makes invalid state impossible by construction
+- **L5** — old workaround code deleted + property/fuzz tests cover regression
+
+Full definitions, examples, and anti-patterns: [hub/quality-rubric.md](../../../hub/quality-rubric.md).
+
+State both the **current level** and the **target level** in the recommendation. "Current L1 → target L4" frames the work honestly; "65% → 90%" doesn't.
+
 Write the recommendation:
 
 ```markdown
@@ -110,7 +125,9 @@ Write the recommendation:
 
 **The real problem is**: [1 sentence — what's actually wrong at the design level]
 
-**The solution that makes it unnecessary**: [1-3 sentences — the design change]
+**Current level → target level**: Lx → Ly (see [hub/quality-rubric.md](../../../hub/quality-rubric.md))
+
+**The solution that makes it unnecessary**: [1-3 sentences — the design change that moves the bead from Lx to Ly]
 
 **What it solves beyond the immediate bug**: [list of related problems this also fixes]
 
