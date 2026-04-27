@@ -242,6 +242,22 @@ Use `/commit`. Follow [Conventional Commits](https://conventionalcommits.org): `
 
 **Never use destructive git operations** (`git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`) - multiple agents may be operating on the same worktree concurrently.
 
+## Shipping (push to main, version bumps, npm publish)
+
+**Default: pre-authorized for repos we own.** Push to main, merge feature branches to main, version bumps, and `npm publish` are pre-authorized — agents do not need to ask the user for each one.
+
+**Exception: contributions to external repos.** `gh pr create` against repos we don't own requires explicit user approval. Filing issues / PRs upstream goes through `.claude/skills/pm/workflows/upstream.md`.
+
+**Required: tribe coordination before any action affecting shared state.** Before `git push origin main` / `git merge X main` / version pump / `npm publish`:
+
+1. `bun /Users/beorn/Code/pim/km/vendor/bearly/tools/tribe-cli.ts status` — list active sessions
+2. If other sessions are active: `tribe send <name> "shipping <X> to main in 30s — flag concerns"` to anyone who could collide (same branch, same package, same vendor submodule). Wait briefly.
+3. If concerns surface: pause, resolve, then proceed.
+4. If tribe daemon is down or no other sessions: proceed (you're solo).
+5. After: `tribe send` an "all-clear" with the merged SHA so peers can update.
+
+**Why**: blanket pre-authorization scales for solo work but trips over concurrent agents. Tribe coordination catches the collisions; pre-authorization removes the per-action prompt friction. The defaults are tuned for "act, but don't blindside peers."
+
 ## Session Completion
 
 Before ending: `bun fix && bun run test:all && bd dolt push && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
