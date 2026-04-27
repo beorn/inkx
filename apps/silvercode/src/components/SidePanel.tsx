@@ -18,8 +18,35 @@ import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
 // Probed once at module load — the installed CLI version can't change
 // mid-session. Used as a fallback until session-init arrives with the
-// real version from the running subprocess.
+// real version from the running subprocess. Only relevant for the
+// claude-code agent; other backends (codex/gemini/copilot/...) don't
+// surface a Claude CLI version.
 const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
+
+/**
+ * Per-agent display identity for the bottom-of-side-panel branding row.
+ * `icon` is the leading glyph (✻ for Claude, etc.), `label` is the
+ * vendor-name shown next to it. Versions are agent-specific:
+ * - claude-code: probed via `claude --version` + session-init.
+ * - everything else: not yet plumbed through ACP session-init events,
+ *   so the row reads "<icon> <Label>" without a version suffix until
+ *   ACP `_meta.agentVersion` adoption lands.
+ */
+const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> = {
+  "claude-code": { icon: "✻", label: "Claude Code" },
+  "claude-code-spawn": { icon: "✻", label: "Claude Code" },
+  codex: { icon: "○", label: "Codex" },
+  gemini: { icon: "✦", label: "Gemini" },
+  copilot: { icon: "⊕", label: "Copilot" },
+}
+
+function agentDisplayFor(agent: string | undefined): { icon: string; label: string } {
+  if (!agent) return AGENT_DISPLAY["claude-code"]!
+  const known = AGENT_DISPLAY[agent]
+  if (known) return known
+  // Custom / free-form agent id — show the bare id with a neutral glyph.
+  return { icon: "◆", label: agent }
+}
 
 /**
  * Right-side panel. Layout per user spec:
@@ -291,6 +318,7 @@ export function SidePanel({
   controller,
   thinking,
   onCycleThinking,
+  agent,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -304,6 +332,13 @@ export function SidePanel({
   thinking?: string
   /** Cycle thinking: normal → think → think_hard → ultrathink → normal. */
   onCycleThinking?: () => void
+  /**
+   * Active agent id — drives the bottom branding row (icon + label).
+   * Undefined falls back to claude-code defaults. Set from
+   * `App.props.agent` which originates in `--agent` / config / built-in
+   * fallback (`claude-code`).
+   */
+  agent?: string
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -748,12 +783,28 @@ export function SidePanel({
             <Small>on</Small>
           </Box>
         </Box>
-        <Box flexDirection="row" gap={1}>
-          <Text color="$fg">✻</Text>
-          <Box flexDirection="row">
-            <Text color="$fg">Claude Code v{state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…"}</Text>
-          </Box>
-        </Box>
+        {(() => {
+          const id = agent ?? "claude-code"
+          const { icon, label } = agentDisplayFor(id)
+          // Version suffix is claude-code-only until other agents surface
+          // their version via ACP session-init `_meta.agentVersion`. The
+          // probe + session-init values are both Claude-CLI-shaped so
+          // gating on the agent id keeps the row honest for codex /
+          // gemini / copilot rather than showing a stale Claude version.
+          const isClaudeAgent = id === "claude-code" || id === "claude-code-spawn"
+          const version = isClaudeAgent ? state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…" : null
+          return (
+            <Box flexDirection="row" gap={1}>
+              <Text color="$fg">{icon}</Text>
+              <Box flexDirection="row">
+                <Text color="$fg">
+                  {label}
+                  {version !== null ? ` v${version}` : ""}
+                </Text>
+              </Box>
+            </Box>
+          )
+        })()}
         {/* Model — indent under the Claude Code line so it reads as a
             sub-detail. Uses the humanized slug (e.g. "Opus 4.7" /
             "Opus 4.7 (1M)"); empty string collapses the row. */}

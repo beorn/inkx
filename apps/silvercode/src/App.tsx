@@ -1039,6 +1039,7 @@ export function App(props: AppProps): React.ReactElement {
                   onCycleThinking={cycleThinking}
                   cwd={props.cwd}
                   controller={controller}
+                  agent={props.agent}
                 />
               ) : null
             }
