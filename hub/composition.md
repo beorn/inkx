@@ -90,8 +90,11 @@ const tribe = pipe(
   withDispatch(),                        // wires JSON-RPC dispatcher to socket
 
   // Tool registry — protocol-independent.
-  // withTool() populates the tool registry; surfaces below consume it.
-  withTool(loreTools()),                 // memory + recall (was lore plugin)
+  // withTools() establishes the registry slot on the daemon value;
+  // withTool() is a helper that appends. Plugins may also write to the
+  // registry directly when they have reason to.
+  withTools(),                           // value.tools = new Map()
+  withTool(loreTools()),                 // memory + recall
   withTool(messagingTools()),            // tribe.send / broadcast / members
   withTool(coordinationTools()),         // chief lease, claim, release
 
@@ -117,7 +120,7 @@ Reading top-to-bottom:
 
 ### Tool registry — the load-bearing decoupling
 
-`withTool` is a helper that adds a tool definition to tribe's internal registry. **Surfaces** (MCP server, JSON-RPC dispatcher, future protocols) are independent consumers of that registry:
+The registry is a plain data structure (a `Map<string, ToolDef>`) on the daemon value. `withTools()` establishes it. `withTool(tools)` is a helper that appends. A plugin or surface that needs unusual access can read/write `value.tools` directly without going through the helper. **Surfaces** (MCP server, JSON-RPC dispatcher, future protocols) are independent consumers of that registry:
 
 ```
                   withTool(loreTools)

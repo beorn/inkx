@@ -17,12 +17,13 @@ project root
     │   ├── github      ← GitHub notifications
     │   └── recall      ← session-history search
     │
-    ├── plugins (general-purpose loadable units; not tools)
+    ├── plugins (general-purpose loadable units; mostly observers)
     │   ├── git         ← observe commits, broadcast on the wire
     │   ├── beads       ← observe bead state, broadcast on the wire
     │   ├── github obs  ← poll GitHub, broadcast on the wire
     │   ├── health      ← system pressure monitor
     │   └── accountly   ← Claude Max account rotation
+    │   (a plugin may also register tools; most don't)
     │
     └── surfaces (expose tools over a wire; consume the registry)
         └── MCP server  ← one per daemon; serves all registered tools
@@ -34,6 +35,10 @@ clients of the daemon's MCP server:
     ├── standalone Claude Code   ← stdio adapter, one per session
     ├── silvercode-hosted agents ← same adapter pattern, scoped per pane
     └── ad-hoc CLIs              ← bun tribe …, bun recall … (direct)
+                                   (clients usually connect via tribe-client,
+                                    a convenience library — not required;
+                                    the wire is documented and any client
+                                    can speak it directly)
 
 agent sessions (LLM-bearing subprocesses, hosted by apps):
     ├── silvercode panes  ← claude / codex / gemini, ACP or stream-json
@@ -56,12 +61,12 @@ Three moves shape the rest of the design:
 | **tribe** | The coordination system: daemon + plugins + tools + MCP server + Unix socket. A category, not a running thing. |
 | **tribe instance** | One running tribe for one project root. Two worktrees → two instances. |
 | **tribe-daemon** | The long-running process realizing a tribe instance. Auto-starts on first MCP call, idle-quits after 30 min, SIGHUP-reloadable. |
-| **plugin** | A general-purpose loadable unit inside tribe-daemon. Plugins observe external signals (git, beads, GitHub, system health) and push messages onto the wire. Plugins do not, themselves, expose tools. |
-| **tool** | A protocol-agnostic callable: `{name, schema, handler}`. Registered via `withTool()` into a single tribe-wide registry. Examples: `tribe.send`, `tribe.ask`, `tty.start`. |
+| **plugin** | A general-purpose loadable unit inside tribe-daemon. Most plugins are observers — they watch external signals (git, beads, GitHub, system health) and push messages onto the wire. A plugin *can* also register tools (via `withTool()` or by writing directly to the registry data structure exposed by an earlier `withTools()` step), but typically doesn't. |
+| **tool** | A protocol-agnostic callable: `{name, schema, handler}`. Registered into a single tribe-wide registry — established by `withTools()` (plural; sets up the registry slot on the daemon value) and populated by `withTool()` (singular; adds one tool) or by plugins writing directly to the registry. Tool names use the `tribe.*` prefix to disambiguate from other MCP servers an agent might connect to (`fs.*`, `browser.*`, etc.) — examples: `tribe.send`, `tribe.ask`, `tribe.tty.start`. |
 | **surface** | An adapter that exposes the tool registry over a wire protocol. Today the only surface is the MCP server; future surfaces (raw JSON-RPC, REST) would consume the same registry. |
 | **MCP server** | One per tribe-daemon. Serves every registered tool. Reachable over Unix socket directly, or via the stdio adapter for clients that only speak stdio MCP. |
-| **stdio adapter** | Per-agent process that translates an agent's stdio MCP wire to the daemon's MCP-server-over-Unix-socket. A transport bridge, not a separate server. *(Currently the file `tribe-proxy.ts`; rename pending.)* |
-| **tribe-client** | Library for connecting to and reconnecting against tribe-daemon. *(Currently published as `@bearly/daemon-spine`; rename pending.)* |
+| **stdio adapter** | Per-agent process translating an agent's stdio MCP wire to the daemon's MCP-server-over-Unix-socket. A transport translator, not a separate server. Exists as a compatibility shim because some MCP clients (Claude Code, codex, gemini-cli today) lack Unix-socket transport; expected to sunset as clients gain direct connection. *(Currently `tribe-proxy.ts`; rename pending.)* |
+| **tribe-client** | Convenience library for connecting to and reconnecting against tribe-daemon — JSON-RPC framing, line parser, reconnection. Not required (the wire is documented and any client can speak it directly), but used everywhere we connect today and recommended for new consumers. *(Currently published as `@bearly/daemon-spine`; rename pending.)* |
 | **host app** | A user-facing program that may connect to tribe and may host zero or more agent sessions. |
 | **agent session** | An LLM-backed runtime participant — today a local subprocess speaking ACP or stream-json. |
 | **agent protocol** | Wire protocol between host app and agent session: ACP (Zed) or stream-json (Claude Code legacy). |
@@ -97,7 +102,7 @@ Third-party host apps participate when launched in a tribe-aware project root: *
 | github tools | `plugins/github/` | Stdio MCP server today; migrating to in-daemon tool registration. | GitHub notification surfacing. |
 | recall tools | `plugins/recall/` | Stdio MCP wrapper today; most traffic already goes direct to the daemon's lore tools. | Session-history search. |
 | git/beads/health/accountly plugins | `tools/lib/tribe/*-plugin.ts` | In-process observer plugins. | Watch external signals, push messages onto the wire. Do not register tools. |
-| tribe-client | `packages/daemon-spine/` *(rename pending)* | Shared library. | JSON-RPC framing, line parser, `connectToDaemon`, `createReconnectingClient`, socket path resolution. |
+| tribe-client | `packages/daemon-spine/` *(rename pending)* | Convenience library — not required, but used everywhere we connect today. | JSON-RPC framing, line parser, `connectToDaemon`, `createReconnectingClient`, socket path resolution. New consumers should reach for it; direct wire access stays available for special cases. |
 | silvercode | `apps/silvercode/` | Host app. | Multi-pane workspace; spawns agent sessions per pane; AsyncDisposable + sentTerm + 10s SIGKILL fallback. |
 | agent-harness | `apps/silvercode/packages/agent-harness/` | Library. | `AgentSession` interface; spawn + connect across ACP and stream-json. |
 | claude-acp | `apps/silvercode/packages/claude-acp/` | Subprocess. | Wraps the `claude` binary so it speaks ACP. |
@@ -106,16 +111,19 @@ Paths under `vendor/bearly/` unless noted.
 
 ## Tools and surfaces
 
-Tools register into a single in-process registry:
+Tools register into a single in-process registry. The composition pipe sets up the registry slot once (`withTools()`), then helpers append:
 
 ```ts
-withTool(messagingTools())
+withTools()                        // initializes the tool-registry slot on the daemon value
+withTool(messagingTools())         // appends — equivalent to value.tools.set(name, def) for each
 withTool(loreTools())
 withTool(ttyTools())
 withTool(githubTools())
 ```
 
-A tool is `{ name, inputSchema, handler }`. The same tool definition is exposed over every surface that subscribes to the registry. Today the only surface is `withMCPServer()`; the registry has no opinion on the wire protocol.
+A tool is `{ name, inputSchema, handler }`. The registry is plain data exposed on the daemon value; later steps (including plugins) can call helpers like `withTool()` *or* write to the registry directly when they have reason to. This keeps the data structure honest and the helpers ergonomic. The same tool definition is exposed over every surface that subscribes to the registry. Today the only surface is `withMCPServer()`; the registry has no opinion on the wire protocol.
+
+Tool names carry the `tribe.*` prefix because agents typically connect to multiple MCP servers in a single session (tribe + filesystem + browser + …); the prefix is disambiguation, not redundancy.
 
 Two transports for reaching the MCP server:
 
@@ -184,16 +192,19 @@ const tribe = pipe(
   withSocket(),
   withDispatch(),
 
-  // Tools — protocol-agnostic, register into the daemon's tool registry.
-  withTool(messagingTools()),
+  // Tool registry — initialize the slot, then populate it.
+  withTools(),                          // sets value.tools = new Map()
+  withTool(messagingTools()),           // helper: appends to value.tools
   withTool(loreTools()),
   withTool(ttyTools()),
   withTool(githubTools()),
 
-  // Surface — exposes the registry over MCP.
+  // Surface — exposes the registry over MCP. Future surfaces consume the
+  // same registry without protocol-specific re-implementation.
   withMCPServer(),
 
-  // Plugins — observers; push messages onto the wire, don't register tools.
+  // Plugins — mostly observers. May call withTool() or write to value.tools
+  // directly if they have reason to.
   withPlugin(gitPlugin),
   withPlugin(beadsPlugin),
   withPlugin(healthPlugin),
