@@ -1,0 +1,10 @@
+# Adversarial corpus for ambient-context-safety evaluation.
+# These files contain literal trigger tokens (role-prefix markers, raw
+# ambient-channel injections) extracted from forensic session e8967322.
+# They MUST NOT be indexed by recall — content quarantine is part of the
+# Layer-9 design (see hub/silvercode/design/ambient-context-safety.md §9).
+#
+# Stored as base64 blobs so the literals never appear as plain text in any
+# tool output (grep, ls, file viewer, recall index, git blame UI).
+
+*.b64
