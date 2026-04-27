@@ -902,7 +902,7 @@ export function SidePanel({
                   {label}
                   {version !== null ? ` v${version}` : ""}
                 </Text>
-                {displayModel ? <Small>{modelLabel(displayModel)}</Small> : null}
+                {displayModel ? <Text color="$fg">{modelLabel(displayModel)}</Text> : null}
               </Box>
             </Box>
           )
