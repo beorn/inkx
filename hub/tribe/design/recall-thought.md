@@ -265,7 +265,135 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
-## Open questions for /pro review
+## /pro review verdict (2026-04-27, $1.32 across GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro)
+
+Captured at [`recall-pro-review-thought.md`](recall-pro-review-thought.md). All three models converged on the same critique. **Aggressive simplification, not refinement.**
+
+### Unanimous redirects
+
+1. **Kill the summarizer LLM** — feed last 4–6 turns raw to extraction. Summarization strips concrete identifiers (file paths, error strings, bead IDs) — exactly what we need most.
+2. **Kill or collapse the planner LLM** — Gemini: collapse summarizer+planner into one structured extractor call returning JSON-validated queries with `source_term_from_conversation` field. Kimi/GPT: deterministic anchor extraction (regex for paths, errors, backticks, IDs, quoted phrases) — no LLM at all for query generation.
+3. **Kill the synthesizer LLM** — biggest design flaw. All three:
+   - Kimi: "synth + async = false memory with no provenance — disinformation vector"
+   - Gemini: "synth = tease that triggers Tier 1 follow-up calls — turns async into sync"
+   - GPT-5.4: "raw excerpts + structured sidecar JSON; never inject raw chunks AS instructions, but DO show them"
+   Replace with templated raw-chunk emit.
+4. **Cadence wrong** — tighten to **every 20–30 turns OR 15 min, AND user-idle ≥10 s**. Memory surfaces during human cognitive lulls, not mid-keystroke. 5min/10-turn creates "alert fatigue" — agent learns to ignore the channel.
+5. **FTS5 alone is wrong for "thematic"** — it's keyword echo, will miss "auth middleware" ↔ "login guard" / "deadlock" ↔ "race condition". Either add vector embeddings OR honest framing change ("background grep, not mind wanderer").
+6. **Strict scope partitioning** between Tier 2 and Tier 3 — Kimi: Tier 3 should ONLY query other sessions, preferably >24h old. Clean cognitive lanes; dedupe becomes safety net not primary defense.
+7. **Hard per-session cap (3 cycles)** instead of complex cost-cap math — if it's not valuable in 3 shots, the trigger is broken.
+8. **Framing alone is insufficient against attentional capture** — even labeled `[mem-thought]`, the LLM has no "ignore" executive function. Mitigation: rarity (low cadence) + context-position discipline (wrap in `<system_background_observation>` tags above user prompt, or sort to a non-answer-block channel).
+9. **Outcome status needs a verifiable source** — `RESOLVED/REJECTED/SUPERSEDED` is fine for beads (real metadata) but hand-wavy for raw session content. Stick to bead-derived status; don't fabricate session-level taxonomy.
+10. **No feedback loop** — system emits forever without learning. Add a "follow-up pull" heuristic: if agent calls `tribe.ask` on a referenced bead within N turns of the emit, count it as a win for telemetry tuning. If never referenced, down-rank.
+
+### Refactored v1 (per /pro consensus)
+
+```
+[ Cadence trigger ]
+   • Every 25 user turns OR 15 minutes
+   • AND user-idle ≥ 10 s
+   • AND skip if Tier 2 injected overlap in last 2 turns
+   • Hard cap: 3 cycles per session
+   │
+   ▼
+[ Anchor extraction ]                 ~50 ms, no LLM
+   • Last 4–6 raw turns (no summary)
+   • Deterministic regex: file paths, function/class names, error
+     strings, backticked tokens, kebab-case ≥6 chars, quoted phrases,
+     bead IDs (km-X.Y), issue keys (ABC-1234), SHAs, UUIDs
+   • TF-IDF score by session-local DF
+   • Take top 8–12 anchors
+   │
+   ▼
+[ Lexical query construction ]        ~10 ms, no LLM
+   • Combinations of high-salience anchors:
+     - Single anchor of strong type (bead ID, error, function)
+     - 2-gram pair of different-type anchors (error + file)
+   • Type weights: bead-id 3.0, error 2.5, file 2.0, fn 2.0,
+     pkg 1.5, generic 0.5
+   • Require ≥1 high-weight anchor (≥2.5) OR 2 anchors summing ≥3.0
+   • Max 6 hypotheses
+   │
+   ▼ hypothesis queries
+[ Retrieval (FTS5 + optional vector) ] ~600 ms FTS / +500 ms vector
+   • CROSS-SESSION ONLY — exclude current session
+   • Optional v2: prefer sessions >24h old (clean lane vs Tier 2)
+   • If embedding budget allows: vector search on aggregated
+     anchor-text against session corpus (this is what "thematic"
+     actually means)
+   • If FTS5-only: be honest — this is keyword echo, not thematic
+   │
+   ▼ ranked hits
+[ Outcome + coverage filter ]
+   • Bead status weights (only when bead metadata present):
+       RESOLVED +1.0, EXPLORATORY +0.5, SUPERSEDED +0.3, REJECTED -1.5
+   • Recency: exp(-ageDays/30) × 0.3
+   • Anchor diversity: docs matching ≥2 different anchor TYPES dominate
+   • Skip emit if utility < 1.5 OR no high-weight anchor matched
+   │
+   ▼ filtered hits (or nothing — silent)
+[ Topic-drift gate ]                  ~5 ms
+   • Drop emit if user sent ≥2 new prompts since cycle started
+   • Drop emit if /clear or workspace-change happened during cycle
+   │
+   ▼
+[ Templated raw-chunk emit — NO synthesis LLM ]
+   • One AmbientEvent, source: recall, kind: thought
+   • Format:
+       [mem-thought] Background scan — anchor matched: "<term>"
+       Bead/Session: <id>  Status: <RESOLVED|EXPLORATORY|...>  <date>
+       > <verbatim chunk excerpt, max 5 lines>
+       Pointer: <full-id-for-tribe.ask>
+   • Sidecar JSON payload (not displayed): { beadIds, statuses,
+     anchorsMatched, utilityScores } — agent can pull more via Tier 1
+```
+
+**Cost per cycle**: ~$0 (no LLM calls) to ~$0.005 (single optional embedding call for vector retrieval).
+**Latency per cycle**: ~1–2 s (vs original 5–8 s).
+**Per-session cost**: ~$0.015 max (3 cycles × $0.005).
+**Heavy-use cost**: <$1/dev/month. ~10x cheaper than my original.
+
+### What this preserves from the original
+
+- Cadence + idle/debounce gates (refined)
+- Outcome-aware ranking via bead status (only)
+- Cross-session scope (now strict)
+- Per-session dedupe + Tier 2 coordination (via shared injection set)
+- Async emit with `[mem-thought]` header (framing + rarity together do the safety work)
+- Cancellation on session end + /clear
+
+### What was killed
+
+- Summarizer LLM (information-destroying)
+- Planner LLM (under-constrained, replaced by deterministic anchor extraction)
+- Synthesizer LLM (the "tease" / "false memory" / "disinformation vector" — replaced by templated raw chunk)
+- "≥1 lexical token" grounding (under-constrained — replaced by high-weight anchor requirement)
+- Daily cost-cap complexity (replaced by hard 3-cycles-per-session cap)
+- Topic-shift detection as v1 (deferred — `/clear` + idle gate are enough)
+
+### Open questions resolved
+
+| Q | Original answer | /pro verdict | Final |
+|---|----------------|--------------|-------|
+| 1. Cadence | 10 turns OR 5 min | Tighter, idle-gated | 25 turns OR 15 min, idle ≥10 s |
+| 2. Summarizer scope | last 12 turns LLM | Kill summarizer | Last 4–6 raw turns to anchor extractor |
+| 3. Planner grounding | ≥1 lexical token | Under-constrained — kill or collapse | Deterministic anchor extraction; high-weight requirement |
+| 4. Synth vs raw | Kept synth | Kill synth | Templated raw-chunk emit + sidecar JSON |
+| 5. Dedupe scope | Per-session | Per-session + 24h cool-down per project (opt-in) | Per-session for v1; cool-down deferred |
+| 6. Cancellation | Session end + /clear | Add topic-drift gate AT EMIT TIME | Session end + /clear + ≥2-new-prompts-since-start gate |
+| 7. Tier 2+3 interaction | Shared dedupe | Strict scope partitioning > dedupe | Tier 3 cross-session-only; shared dedupe as safety net |
+| 8. Framing solves causality | "Yes, framing carries the load" | Over-confident — rarity is the real fix | Low cadence + framing TOGETHER; tag wrapping; out-of-answer-block channel |
+
+### One open issue not in original questions
+
+**Embeddings vs FTS5** — Kimi + Gemini both flagged: pure FTS5 is keyword echo, not thematic matching. To genuinely fulfill the "oh wait, that reminds me of..." promise, we need vector search. Two paths:
+
+- **(a) Lower the claim**: ship as "background grep" with FTS5; rename `mem thought` → `mem trace` or similar. Honest but smaller value.
+- **(b) Add embeddings**: one OpenAI / Anthropic / local embedding call per cycle (~$0.001), vector search against session corpus. Requires building/maintaining a vector index alongside FTS5.
+
+**Recommendation**: ship FTS5-only v1, label it clearly as "keyword-anchor recall" (not thematic), measure follow-up-pull rate. If ≥30% of emits get pulled, FTS is enough; if <10%, build the vector path. Defer the build until evidence justifies.
+
+## Open questions for /pro review (resolved above — kept for traceability)
 
 1. **Cadence trigger** — is "every 10 turns OR every 5 min" the right shape? Should it be content-aware (e.g., fire after a major topic shift)? Or even simpler — every turn-end with strong rate-limit?
 2. **Summarizer scope** — last 12 turns, vs last 6 turns + cumulative summary, vs the whole conversation? What gives the planner the right input?
