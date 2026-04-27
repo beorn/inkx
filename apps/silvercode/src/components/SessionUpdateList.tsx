@@ -38,6 +38,7 @@ import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harnes
 import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
+import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
@@ -345,23 +346,17 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     const json = prettyJsonForDebug(payload)
     // Trim very long payloads; full payload available via /debug or the JSONL.
     const allLines = json.split("\n")
-    const lines =
+    const truncated =
       allLines.length > 60
-        ? [...allLines.slice(0, 60), `… (${allLines.length - 60} more lines)`]
-        : allLines
+        ? [...allLines.slice(0, 60), `… (${allLines.length - 60} more lines)`].join("\n")
+        : json
     return {
       body: (
         <Box flexDirection="column" paddingX={2} paddingY={1}>
-          {lines.map((line, i) => (
-            // wrap="wrap" so long content lines flow within the popover
-            // width instead of clipping. Plain default fg — no syntax
-            // highlighter, no per-line color cue. The structure (JSON
-            // shell + indented heredoc body) is the only visual cue
-            // needed; coloring made multi-line text harder to read.
-            <Text key={i} wrap="wrap">
-              {line.length === 0 ? " " : line}
-            </Text>
-          ))}
+          {/* `bare` drops chrome; SyntaxHighlighter's bare mode now uses
+              parent-Text wrap="wrap" so long lines flow within the popover
+              width while keeping shiki token colors. */}
+          <SyntaxHighlighter language="json" code={truncated} bare />
         </Box>
       ),
       // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away

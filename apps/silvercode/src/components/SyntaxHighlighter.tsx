@@ -80,17 +80,36 @@ export function SyntaxHighlighter({
   const lang = (language || "plain").toLowerCase()
   const lines = useSyntaxTokens(code, lang, theme)
 
-  const body = lines.map((line, i) => (
-    // Per-row overflow="hidden" so a long code line clips rather than
-    // wraps — wrapping would destroy source-code visual alignment.
-    <Box key={i} flexDirection="row" overflow="hidden">
-      {line.tokens.map((tok, j) => (
-        <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
-          {tok.text}
-        </Text>
-      ))}
-    </Box>
-  ))
+  // Two render modes:
+  //
+  //  • Default (`bare=false`): per-row Box with overflow="hidden" so a long
+  //    code line clips rather than wraps. Wrapping in source-code rendering
+  //    destroys visual alignment (column layouts, indentation cues).
+  //
+  //  • Wrap-friendly (`bare=true`): parent Text wraps long lines, with
+  //    colored Text spans inside as inline children. Used by the silvercode
+  //    debug popover, where prose-like content (tool output, multi-line
+  //    string values) MUST wrap to be readable. Indentation is preserved
+  //    by leading spaces in the token stream.
+  const body = lines.map((line, i) =>
+    bare ? (
+      <Text key={i} wrap="wrap">
+        {line.tokens.map((tok, j) => (
+          <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
+            {tok.text}
+          </Text>
+        ))}
+      </Text>
+    ) : (
+      <Box key={i} flexDirection="row" overflow="hidden">
+        {line.tokens.map((tok, j) => (
+          <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
+            {tok.text}
+          </Text>
+        ))}
+      </Box>
+    ),
+  )
 
   if (bare) {
     // No surrounding chrome — body sits directly in the parent's frame.
