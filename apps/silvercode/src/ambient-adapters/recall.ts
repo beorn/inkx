@@ -1,36 +1,42 @@
 /**
  * Recall ambient adapter — surfaces session-history hits as ambient
- * events when the active conversation mentions a noun that has prior
+ * events when the active conversation lands on tokens that have prior
  * session context.
  *
- * **Status: stub.** The full surface needs:
+ * Pipeline (per probe):
  *
- *   1. A "rare token" extractor on each tool surface (read file path,
- *      tool result text, etc.) — needs a stable hook point in
- *      controller.ts that adapters can subscribe to. Today the controller
- *      doesn't expose a per-turn token stream.
- *   2. Recall query integration — `@bearly/recall` exposes `recall(...)`
- *      from `vendor/bearly/plugins/recall/src/history/search.ts`. Wiring
- *      it as a workspace dep requires editing `apps/silvercode/package.json`,
- *      which Phase 6.b explicitly defers ("DO NOT modify package.json. Flag
- *      if you need a dep and skip that adapter.").
+ *   1. The controller calls `probe(query)` after every Nth assistant
+ *      `turn-end` (see `controller.ts` — `RECALL_PROBE_TURN_INTERVAL`).
+ *      The query is the most recent user-message text verbatim.
+ *   2. Self rate-limit: at most one query per adapter per
+ *      `MIN_RECALL_INTERVAL_MS` (60s). Recall queries are expensive
+ *      (FTS5 + multiple subprocess hops); we self-limit at the source
+ *      so the global breaker doesn't have to absorb the spike.
+ *   3. Real query path: spawn `bun vendor/bearly/tools/recall.ts <q>
+ *      --raw --json --limit 5 --timeout 3000` from the repo root, parse
+ *      the JSON output. The `query` option is test-injectable; tests
+ *      bypass the subprocess entirely.
+ *   4. Digest emission: one ambient event per probe batch, not per hit.
+ *      Format: `[recall] N prior sessions discussed "<query>": …`.
+ *      This pairs with the per-source debounce (`createDebouncedEmit`)
+ *      and the global breaker so the agent gets one tidy hint instead
+ *      of N noisy rows.
+ *   5. Sanitize: every payload still passes through Layer 2
+ *      (`sanitizeAmbient`) via `createDebouncedEmit`. Recall content
+ *      can include indexed transcripts that themselves contain
+ *      role-prefix bytes — the sanitizer neutralizes those colons.
  *
- * The shape stubbed here is the public API the real implementation will
- * use: `registerRecallAmbientAdapter(opts)` returning a disposer. Tests
- * exercise the *trigger* path (`triggerRecallProbe`) so the rest of the
- * pipeline (sanitize → debounce → enqueue) is verified end-to-end with a
- * mock query function.
+ * Tracking: `km-silvercode.ambient-recall-real` (parent
+ * `km-silvercode.ambient-context-excellence`).
  *
- * Tracking: `km-silvercode.ambient-phase-6-adapters` (Phase 6.b) — once
- * the controller exposes a token stream + we add the recall workspace
- * dep, this stub turns into the real subscription.
- *
- * Per `ambient-context-safety.md` § 3, every payload still passes through
- * Layer 2 (`sanitizeAmbient`) — the recall plugin's own envelope scrub
- * (Layer 0, `vendor/bearly/plugins/recall/src/lib/...`) is in addition to
- * this, not in place of it.
+ * Per `ambient-context-safety.md` § 3, every payload still passes
+ * through Layer 2 (`sanitizeAmbient`) — the recall plugin's own
+ * envelope scrub (Layer 0) is in addition to this, not in place of it.
  */
 
+import { spawn } from "node:child_process"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import createDebug from "debug"
 import type { AmbientAdapterCtx } from "./types.ts"
 import { createDebouncedEmit, makeAmbientEventId } from "./types.ts"
@@ -40,8 +46,23 @@ const dRecall = createDebug("silvercode:ambient:recall")
 const SOURCE = "recall" as const
 
 /**
- * One recall hit summarized for ambient display. Mirrors the fields the
- * eventual real recall query result will carry, narrowed to what an
+ * Self-rate-limit: minimum gap between successive recall queries from
+ * the same adapter. Recall is expensive (FTS5 + multiple subprocess
+ * hops) so we cap aggressively at the source. The global circuit
+ * breaker (`ambient-circuit-breaker.ts`) layers on top.
+ */
+export const MIN_RECALL_INTERVAL_MS = 60_000
+
+/** Default subprocess timeout for the recall CLI. */
+const RECALL_QUERY_TIMEOUT_MS = 5_000
+/** Default `--limit` passed to the recall CLI. */
+const RECALL_QUERY_LIMIT = 5
+/** How many hits to summarize inline in the digest body. */
+const RECALL_DIGEST_HITS = 3
+
+/**
+ * One recall hit summarized for ambient display. Mirrors the fields
+ * returned by `bun recall <q> --raw --json`, narrowed to what an
  * ambient row needs to render.
  */
 export type RecallHit = {
@@ -55,29 +76,42 @@ export type RecallQueryFn = (token: string) => Promise<readonly RecallHit[]>
 
 export type RecallAdapterOptions = AmbientAdapterCtx & {
   /**
-   * Source of rare tokens to probe. The real implementation subscribes
-   * to a controller-level token stream; this stub exposes a manual
-   * `triggerRecallProbe(adapter, token)` for tests + future wiring.
+   * Test-injectable query fn. When provided, the adapter calls this
+   * instead of spawning the recall CLI. Production code leaves it
+   * undefined → falls through to `runRecallCli`.
    */
   readonly query?: RecallQueryFn
+  /**
+   * Repo root for the recall CLI subprocess. Defaults to the nearest
+   * ancestor of `process.cwd()` containing `vendor/bearly/tools/recall.ts`.
+   * Set explicitly for tests or non-default deployments.
+   */
+  readonly repoRoot?: string
+  /**
+   * Override the rate-limit window. Tests use a small value to verify
+   * the limit fires; production uses `MIN_RECALL_INTERVAL_MS`.
+   */
+  readonly minQueryIntervalMs?: number
 }
 
 type RecallHandle = {
   /** Public disposer — invoked by the index barrel + scope.defer. */
   readonly dispose: () => void
   /**
-   * Probe a token against the (test-injected or real) recall surface and
-   * emit one ambient event per hit. Surface for tests; the real path
-   * will call this from a token-stream subscription.
+   * Probe a query string against the recall surface and emit at most
+   * one ambient digest event for the whole batch. Returns the number
+   * of events actually enqueued (0 or 1; >1 is impossible by design).
+   * Returns 0 when the rate-limit window blocks the call, the query
+   * fails, or there are no hits.
    */
-  readonly probe: (token: string) => Promise<number>
+  readonly probe: (query: string) => Promise<number>
 }
 
 /**
- * Register the recall adapter. In Phase 6.b this is a stub — it wires up
- * the dispatch path but doesn't subscribe to a token stream. Returns a
- * disposer; the test-only `probe` handle is exposed via the
- * `triggerRecallProbe` helper below.
+ * Register the recall adapter onto the channel queue. Returns a
+ * synchronous disposer. The registered handle's `probe` is exposed
+ * via `triggerRecallProbe` for tests + the controller token-stream
+ * subscription.
  */
 export function registerRecallAmbientAdapter(opts: RecallAdapterOptions): () => void {
   return registerRecallAmbientAdapterHandle(opts).dispose
@@ -85,34 +119,60 @@ export function registerRecallAmbientAdapter(opts: RecallAdapterOptions): () => 
 
 /**
  * Variant that returns the full handle (with `probe`). Tests use this
- * directly; production code calls `registerRecallAmbientAdapter`.
+ * directly; production code calls `registerRecallAmbientAdapter` and
+ * obtains `probe` via the controller wiring.
  */
 export function registerRecallAmbientAdapterHandle(opts: RecallAdapterOptions): RecallHandle {
   const emit = createDebouncedEmit(opts)
-  const query = opts.query ?? defaultRecallQuery
+  const query = opts.query ?? defaultRecallQuery(opts.repoRoot)
+  const now = opts.now ?? ((): number => Date.now())
+  const rateLimitMs = opts.minQueryIntervalMs ?? MIN_RECALL_INTERVAL_MS
   let disposed = false
+  let lastQueryAt = 0
 
-  async function probe(token: string): Promise<number> {
+  async function probe(rawQuery: string): Promise<number> {
     if (disposed) return 0
-    let hits: readonly RecallHit[]
-    try {
-      hits = await query(token)
-    } catch (err) {
-      dRecall("query failed for %s: %s", token, err)
+    const trimmed = rawQuery.trim()
+    if (trimmed.length === 0) return 0
+    const t = now()
+    // lastQueryAt === 0 means we've never queried yet — always admit
+    // the first probe regardless of how the test clock starts.
+    if (lastQueryAt !== 0 && t - lastQueryAt < rateLimitMs) {
+      dRecall("rate-limited %s (last=%d, now=%d, gap=%d)", trimmed.slice(0, 40), lastQueryAt, t, t - lastQueryAt)
       return 0
     }
-    let emitted = 0
-    for (const hit of hits) {
-      const ok = emit({
-        id: makeAmbientEventId(SOURCE),
-        source: SOURCE,
-        timestamp: Date.now(),
-        content: `[recall ${hit.token}] ${hit.summary}`,
-        meta: { kind: "recall-hit", token: hit.token, fromSessionId: hit.sessionId },
-      })
-      if (ok) emitted++
+    // Reserve the window BEFORE awaiting the query so concurrent
+    // probes can't slip through. If the query fails we still consume
+    // the window — failures are usually transient (daemon down, db
+    // locked) and retrying immediately would not help.
+    lastQueryAt = t
+
+    let hits: readonly RecallHit[]
+    try {
+      hits = await query(trimmed)
+    } catch (err) {
+      dRecall("query failed for %s: %s", trimmed.slice(0, 40), err)
+      return 0
     }
-    return emitted
+    if (hits.length === 0) {
+      dRecall("no hits for %s", trimmed.slice(0, 40))
+      return 0
+    }
+    const content = formatDigest(trimmed, hits)
+    if (content.length === 0) return 0
+    const ok = emit({
+      id: makeAmbientEventId(SOURCE),
+      source: SOURCE,
+      timestamp: Date.now(),
+      content,
+      meta: {
+        kind: "recall-digest",
+        query: trimmed,
+        hitCount: hits.length,
+        sessionIds: hits.map((h) => h.sessionId).filter((s): s is string => typeof s === "string"),
+      },
+    })
+    return ok ? 1 : 0
   }
 
   const dispose = (): void => {
@@ -124,24 +184,184 @@ export function registerRecallAmbientAdapterHandle(opts: RecallAdapterOptions): 
 }
 
 /**
- * Default recall query — currently returns no hits. The real
- * implementation will dispatch to `@bearly/recall`'s `recall(...)` once
- * we add the workspace dep. Until then, `RecallAdapterOptions.query` is
- * how tests inject a query fn, and how a future controller hook can
- * provide one.
+ * Build a one-line digest body summarizing the top recall hits. Format:
+ *
+ *   `[recall] N prior sessions discussed "<query>": <session abc> — <summary>; <session def> — <summary>; …`
+ *
+ * Trimmed to the top `RECALL_DIGEST_HITS` entries; remaining hits get
+ * a `+N more` suffix. Each hit's summary is single-line-folded so a
+ * multi-line transcript snippet doesn't blow up the row.
  */
-function defaultRecallQuery(_token: string): Promise<readonly RecallHit[]> {
-  return Promise.resolve([])
+function formatDigest(query: string, hits: readonly RecallHit[]): string {
+  const top = hits.slice(0, RECALL_DIGEST_HITS)
+  const parts = top.map((h) => {
+    const sid = h.sessionId ? `session ${shortSession(h.sessionId)}` : "session"
+    const summary = h.summary.replace(/\s+/g, " ").trim().slice(0, 120)
+    return `${sid} — ${summary}`
+  })
+  const more = hits.length > top.length ? `; +${hits.length - top.length} more` : ""
+  return `[recall] ${hits.length} prior session${hits.length === 1 ? "" : "s"} discussed "${query}": ${parts.join("; ")}${more}`
+}
+
+function shortSession(id: string): string {
+  // Session ids in the recall output are full UUIDs; an 8-char prefix
+  // is enough to disambiguate within a typical day's worth of history.
+  return id.slice(0, 8)
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Real recall query — subprocess fallback
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Build the production query fn. Spawns `bun
+ * vendor/bearly/tools/recall.ts <query> --raw --json` against
+ * `repoRoot` (auto-detected from `process.cwd()` if not provided).
+ * Returns an empty array on any failure — recall is a best-effort
+ * signal, never blocks the conversation.
+ */
+function defaultRecallQuery(repoRootHint?: string): RecallQueryFn {
+  return async (query: string): Promise<readonly RecallHit[]> => {
+    const root = repoRootHint ?? findRepoRoot(process.cwd())
+    if (!root) {
+      dRecall("no repo root found — recall unavailable")
+      return []
+    }
+    return runRecallCli(query, root)
+  }
 }
 
 /**
- * Test-only: probe a token through a freshly-registered adapter.
- * Returns the number of hits actually enqueued (some may be debounced).
+ * Walk up from `start` looking for an ancestor that contains
+ * `vendor/bearly/tools/recall.ts`. Returns the absolute repo root
+ * path, or `null` if we hit `/` without finding it.
  */
-export async function triggerRecallProbe(opts: RecallAdapterOptions, token: string): Promise<number> {
+function findRepoRoot(start: string): string | null {
+  let dir = start
+  for (let i = 0; i < 16; i++) {
+    if (existsSync(join(dir, "vendor/bearly/tools/recall.ts"))) return dir
+    const parent = join(dir, "..")
+    if (parent === dir) return null
+    dir = parent
+  }
+  return null
+}
+
+/**
+ * Spawn the recall CLI and parse its JSON output. The CLI prints a
+ * banner to stderr (`Searching: "..." last 30d`) and the JSON object
+ * to stdout. We tolerate stderr noise and a missing `results` key.
+ */
+async function runRecallCli(query: string, cwd: string): Promise<readonly RecallHit[]> {
+  return new Promise((resolve) => {
+    const args = [
+      "vendor/bearly/tools/recall.ts",
+      query,
+      "--raw",
+      "--json",
+      "--limit",
+      String(RECALL_QUERY_LIMIT),
+      "--timeout",
+      String(RECALL_QUERY_TIMEOUT_MS),
+    ]
+    const child = spawn("bun", args, { cwd, stdio: ["ignore", "pipe", "pipe"] })
+    let stdout = ""
+    child.stdout?.on("data", (b: Buffer) => {
+      stdout += b.toString("utf8")
+    })
+    // We don't care about stderr — the CLI uses it for logs.
+    child.stderr?.on("data", () => undefined)
+    child.on("error", (err) => {
+      dRecall("spawn error: %s", err.message)
+      resolve([])
+    })
+    const killTimer = setTimeout(() => {
+      try {
+        child.kill()
+      } catch {
+        /* ignore */
+      }
+    }, RECALL_QUERY_TIMEOUT_MS + 2_000)
+    child.on("close", () => {
+      clearTimeout(killTimer)
+      resolve(parseRecallStdout(stdout))
+    })
+  })
+}
+
+/**
+ * Parse the recall CLI stdout. Tolerant of leading/trailing
+ * non-JSON noise — we extract the first balanced `{...}` block.
+ */
+export function parseRecallStdout(stdout: string): readonly RecallHit[] {
+  const json = extractFirstJsonObject(stdout)
+  if (!json) return []
+  try {
+    const parsed = JSON.parse(json) as {
+      results?: Array<{
+        sourceId?: string
+        sessionId?: string
+        snippet?: string
+        title?: string | null
+      }>
+    }
+    const results = parsed.results
+    if (!Array.isArray(results)) return []
+    const hits: RecallHit[] = []
+    for (const r of results) {
+      const summary = r.snippet ?? r.title ?? ""
+      if (!summary || typeof summary !== "string") continue
+      hits.push({
+        token: "recall",
+        summary,
+        sessionId:
+          typeof r.sessionId === "string" ? r.sessionId : typeof r.sourceId === "string" ? r.sourceId : undefined,
+      })
+    }
+    return hits
+  } catch (err) {
+    dRecall("json parse failed: %s", (err as Error).message)
+    return []
+  }
+}
+
+function extractFirstJsonObject(s: string): string | null {
+  const start = s.indexOf("{")
+  if (start < 0) return null
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === "\\") escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === "{") depth++
+    else if (ch === "}") {
+      depth--
+      if (depth === 0) return s.slice(start, i + 1)
+    }
+  }
+  return null
+}
+
+/**
+ * Test + controller surface: probe a query through a freshly-registered
+ * adapter. Returns the number of events actually enqueued (0 or 1).
+ *
+ * The controller wires this up by calling
+ * `triggerRecallProbe({ scope, queue, ... }, query)` from its
+ * per-session message-emit hook. Tests call it with an injected `query`
+ * fn so the subprocess never runs.
+ */
+export async function triggerRecallProbe(opts: RecallAdapterOptions, query: string): Promise<number> {
   const handle = registerRecallAmbientAdapterHandle(opts)
   try {
-    return await handle.probe(token)
+    return await handle.probe(query)
   } finally {
     handle.dispose()
   }

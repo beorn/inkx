@@ -43,6 +43,7 @@ import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
 import { registerAllAmbientAdapters } from "./ambient-adapters/index.ts"
 import { replayCodexSessionFromDisk } from "./codex-resume.ts"
+import { triggerRecallProbe } from "./ambient-adapters/recall.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk } from "./resume.ts"
@@ -54,6 +55,19 @@ import { replaySessionFromDisk } from "./resume.ts"
 // reports — auto-flush should fire on `turn-end`.
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
+const dRecall = createDebug("silvercode:recall")
+
+/**
+ * Trigger a recall probe every Nth assistant `turn-end` per session.
+ * Five matches the design rationale (rare-token extraction is a future
+ * upgrade; the simpler "verbatim every-Nth-turn" rule is the v1 step
+ * defined in the recall adapter docs). Recall itself self-rate-limits
+ * to ≥60s between queries, so a high-frequency conversation hits the
+ * rate limit before this counter wraps.
+ */
+const RECALL_PROBE_TURN_INTERVAL = 5
+/** Cap on how much of the last user prompt we hand to recall. */
+const RECALL_QUERY_MAX_CHARS = 500
 
 /**
  * Hard cap on concurrent live AgentSessions per controller. Each session
@@ -564,6 +578,34 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const queues = new Map<string, string>()
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
 
+  // Recall probe wiring — per-session bookkeeping. We probe recall
+  // every Nth assistant `turn-end` against the most recent user
+  // prompt, so prior-session context surfaces as an ambient digest
+  // event. Recall itself self-rate-limits to ≥60s between queries
+  // (`MIN_RECALL_INTERVAL_MS` in `ambient-adapters/recall.ts`); the
+  // turn counter is the secondary throttle that keeps even a slow
+  // conversation from churning recall on every reply.
+  const lastUserPromptBySession = new Map<string, string>()
+  const turnCountBySession = new Map<string, number>()
+  function recordUserPromptForRecall(sessionId: string, text: string): void {
+    if (text.length === 0) return
+    lastUserPromptBySession.set(sessionId, text.slice(0, RECALL_QUERY_MAX_CHARS))
+  }
+  function maybeProbeRecall(sessionId: string): void {
+    if (opts.disableAmbientAdapters || opts.disableChannelSources) return
+    const next = (turnCountBySession.get(sessionId) ?? 0) + 1
+    turnCountBySession.set(sessionId, next)
+    if (next % RECALL_PROBE_TURN_INTERVAL !== 0) return
+    const query = lastUserPromptBySession.get(sessionId)
+    if (!query || query.trim().length === 0) return
+    dRecall("probe %s turn=%d query=%s", sessionId, next, query.slice(0, 80))
+    // Fire-and-forget — recall is a best-effort signal. Failures are
+    // logged inside the adapter; the conversation never blocks on it.
+    triggerRecallProbe({ scope: controllerScope, queue: channelQueue }, query).catch((err) => {
+      dRecall("probe failed %s: %s", sessionId, err)
+    })
+  }
+
   // ───── ACP per-session permission queue ─────
   //
   // When an ACP session's `permissionHandler` is invoked, we push a
@@ -632,6 +674,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     dQueue("tryFlush %s force=%s — FLUSHING %d chars", sessionId, force, text.length)
     queues.set(sessionId, "")
     notifyQueue(sessionId)
+    recordUserPromptForRecall(sessionId, text)
     const turnId = `u-${Date.now()}` as never
     s.store.apply({
       kind: "user-message",
@@ -1134,6 +1177,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         crossAgentState.updateSessionStatus(id, "thinking")
       } else if (event.kind === "turn-end") {
         crossAgentState.updateSessionStatus(id, "idle")
+        // Per-session recall probe — every Nth assistant turn-end,
+        // query @bearly/recall against the most recent user prompt
+        // and surface a digest as one ambient event. Recall itself
+        // self-rate-limits; this counter is the secondary throttle.
+        // See `ambient-adapters/recall.ts` for the full pipeline.
+        maybeProbeRecall(id)
       } else if (event.kind === "session-end") {
         crossAgentState.updateSessionStatus(id, "ended")
       }
@@ -1241,6 +1290,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const combined = pending ? `${pending}\n\n${text}` : text
       queues.set(sessionId, "")
       notifyQueue(sessionId)
+      recordUserPromptForRecall(sessionId, combined)
       const turnId = `u-${Date.now()}` as never
       s.store.apply({
         kind: "user-message",
