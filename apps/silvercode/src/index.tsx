@@ -3,6 +3,7 @@ import { loadConfig } from "@silvery/config"
 import { mountConfigCommand } from "@silvery/config/commander"
 import React from "react"
 import { run } from "silvery/runtime"
+import { applyActiveAccountEnv } from "./accounts.ts"
 import { App } from "./App.tsx"
 import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } from "./config-schema.ts"
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
@@ -172,6 +173,16 @@ async function buildProgram(): Promise<Command> {
 
       const account =
         typeof opts.account === "string" && opts.account.length > 0 ? opts.account : resolved.entry.account
+
+      // Propagate the requested account to silvercode's OWN process env so
+      // SidePanel's resolveActiveEmail() returns the correct identity. Without
+      // this, the spawned Claude subprocess bills the right account but the
+      // side-panel still shows whatever the user's shell had CLAUDE_CONFIG_DIR
+      // set to (typically the default account from .zshrc). The subprocess
+      // path (spawnClaude) sets its own env explicitly so this doesn't break
+      // anything downstream.
+      applyActiveAccountEnv(account)
+
       const model =
         typeof opts.model === "string" && opts.model.length > 0
           ? opts.model

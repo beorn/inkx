@@ -62,6 +62,27 @@ export function accountExists(name: string): boolean {
 }
 
 /**
+ * Override `process.env.CLAUDE_CONFIG_DIR` for the silvercode process so
+ * SidePanel's `resolveActiveEmail()` returns the requested account.
+ *
+ * Without this, the spawned Claude subprocess correctly bills the
+ * requested account (spawnClaude sets the env on the subprocess only),
+ * but silvercode's own SidePanel reads its OWN process env — which is
+ * inherited from the user's shell. The visible side-panel email then
+ * disagrees with the actual account being billed.
+ *
+ * Pass `name` undefined to leave the env untouched (no `--account` flag
+ * given → use whatever the shell set). Returns the resolved configDir
+ * (or undefined) so callers can pass it through to subprocesses.
+ */
+export function applyActiveAccountEnv(name: string | undefined): string | undefined {
+  if (name === undefined || name.length === 0) return undefined
+  const dir = resolveAccountDir(name)
+  process.env.CLAUDE_CONFIG_DIR = dir
+  return dir
+}
+
+/**
  * List the account names under `~/.km/accounts/`. Returns an empty
  * array when the root doesn't exist yet (first-run case). Only subdirectory
  * names — stray files are ignored.
