@@ -27,6 +27,7 @@
 
 import { defineKind } from "@silvery/config"
 import { z } from "zod"
+import { type AgentCapabilities, assertCapabilities, CLAUDE_CAPABILITIES } from "./agent-capabilities.ts"
 
 // ---------------------------------------------------------------------------
 // ai.acp.<name> — connection registry kind
@@ -143,6 +144,14 @@ export type BuiltinAgent = {
   readonly defaultModel?: string
   /** One-line description for `silvercode config acp list` etc. */
   readonly description: string
+  /**
+   * Per-agent UI capability descriptors (thinking / planning menus).
+   * Optional — agents without exposed knobs (e.g. copilot today) leave
+   * this undefined and the SidePanel hides the corresponding rows. See
+   * `agent-capabilities.ts` for the option shape and Claude's reference
+   * implementation.
+   */
+  readonly capabilities?: AgentCapabilities
 }
 
 export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
@@ -153,6 +162,7 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     credDir: "~/.claude",
     defaultModel: "claude-opus-4-7",
     description: "Claude Code (ACP) — Pro/Max OAuth or ANTHROPIC_API_KEY",
+    capabilities: CLAUDE_CAPABILITIES,
   },
   "claude-code-spawn": {
     id: "claude-code-spawn",
@@ -161,6 +171,7 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     credDir: "~/.claude",
     defaultModel: "claude-opus-4-7",
     description: "Claude Code (legacy stream-json spawn)",
+    capabilities: CLAUDE_CAPABILITIES,
   },
   "claude-code-sdk": {
     id: "claude-code-sdk",
@@ -168,6 +179,7 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     credEnv: ["ANTHROPIC_API_KEY"],
     defaultModel: "claude-opus-4-7",
     description: "Claude Code (in-process Anthropic SDK)",
+    capabilities: CLAUDE_CAPABILITIES,
   },
   codex: {
     id: "codex",
@@ -194,6 +206,11 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     description: "GitHub Copilot (ACP) — Copilot subscription",
   },
 }
+
+// Validate every agent's capability arrays at module load. Catches typos
+// (duplicate ids, multiple defaults, malformed ids) at silvercode startup
+// rather than "first time the user clicks the menu."
+assertCapabilities(BUILTIN_AGENTS)
 
 /**
  * True when `id` is a known built-in agent key.
