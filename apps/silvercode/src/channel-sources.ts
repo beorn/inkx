@@ -159,77 +159,29 @@ export function subscribeTribe(scope: Scope, queue: ChannelQueue, opts: { busPat
 }
 
 // ---------------------------------------------------------------------------
-// Stub sources — wiring lives in follow-up beads.
-// ---------------------------------------------------------------------------
-
-/**
- * Telegram channel — pushes inbound DMs / approved-channel messages as
- * ambient events. TODO: wire telegram bot stream once
- * `apps/silvercode/packages/telegram-channel` (or equivalent) lands.
- * Until then this is a no-op so wireChannelSources can call it
- * unconditionally.
- */
-export function subscribeTelegram(_scope: Scope, _queue: ChannelQueue): void {
-  // TODO: wire telegram — pair with the telegram-access skill /
-  // bot-token configuration from km-silvercode.acp parent epic.
-  dSources("subscribeTelegram — no-op (TODO: wire telegram source)")
-}
-
-/**
- * CI channel — pushes GitHub Actions / pre-push verdicts as ambient
- * events. TODO: wire CI webhook ingest.
- */
-export function subscribeCi(_scope: Scope, _queue: ChannelQueue): void {
-  // TODO: wire CI — listen on a webhook endpoint or periodically poll
-  // `gh run list --branch <head>` for the active branch.
-  dSources("subscribeCi — no-op (TODO: wire CI source)")
-}
-
-/**
- * Lore channel — pushes lore_brief deltas (vault notes added to the
- * active topic) as ambient events. TODO: wire lore-mcp subscription
- * stream.
- */
-export function subscribeLore(_scope: Scope, _queue: ChannelQueue): void {
-  // TODO: wire lore — subscribe to lore-mcp's "delta" stream once the
-  // MCP server exposes it. For now the agent uses lore_brief on demand.
-  dSources("subscribeLore — no-op (TODO: wire lore source)")
-}
-
-/**
- * Sub-agent channel — pushes Task-tool sub-agent status updates (started,
- * progressed, completed) as ambient events so the user sees a coordination
- * trail without context-stuffing. TODO: wire sub-agent reporter once the
- * harness exposes a structured sub-agent event stream.
- */
-export function subscribeSubagent(_scope: Scope, _queue: ChannelQueue): void {
-  // TODO: wire sub-agent — `Task` tool currently returns a final result
-  // only; we want progress events too.
-  dSources("subscribeSubagent — no-op (TODO: wire sub-agent source)")
-}
-
-// ---------------------------------------------------------------------------
 // Convenience wirer — controller calls this once on init.
 // ---------------------------------------------------------------------------
+
+// Other sources (ci, recall, subagent, filewatch) live in
+// `apps/silvercode/src/ambient-adapters/` — that pipeline adds sanitize +
+// debounce + per-source telemetry. The legacy tribe subscriber stays here
+// only as a fallback path; the new tribe adapter (with `~/.local/share/tribe/
+// activity.jsonl` primary + `~/.km/tribe-bus.jsonl` legacy fallback) is the
+// canonical one. Use `disableLegacyTribeSource` on the controller to opt out
+// once the new path is verified for your setup.
 
 export type WireChannelSourcesOptions = {
   /** Override the tribe bus path; default: `$TRIBE_BUS_PATH` or `~/.km/tribe-bus.jsonl`. */
   tribeBusPath?: string
-  /** Disable individual sources by name (e.g. for tests). */
-  disable?: Partial<Record<"tribe" | "telegram" | "ci" | "lore" | "subagent", boolean>>
+  /** Disable the tribe subscriber (e.g. for tests, or to avoid double-emit). */
+  disable?: { tribe?: boolean }
 }
 
 /**
- * Subscribe every available channel source onto `queue`, gated by env /
- * config so sources that aren't yet implemented (or aren't configured in
- * the current shell) stay quiet. Idempotent per scope — call once on
- * controller init. Disposing the scope unsubscribes everything.
+ * Subscribe the legacy tribe channel source onto `queue`. Idempotent per
+ * scope — call once on controller init. Disposing the scope unsubscribes.
  */
 export function wireChannelSources(scope: Scope, queue: ChannelQueue, opts: WireChannelSourcesOptions = {}): void {
-  const disable = opts.disable ?? {}
-  if (!disable.tribe) subscribeTribe(scope, queue, { busPath: opts.tribeBusPath })
-  if (!disable.telegram) subscribeTelegram(scope, queue)
-  if (!disable.ci) subscribeCi(scope, queue)
-  if (!disable.lore) subscribeLore(scope, queue)
-  if (!disable.subagent) subscribeSubagent(scope, queue)
+  if (opts.disable?.tribe) return
+  subscribeTribe(scope, queue, { busPath: opts.tribeBusPath })
 }
