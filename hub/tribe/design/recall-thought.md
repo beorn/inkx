@@ -265,6 +265,306 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## Final framing (2026-04-27 23:35): "intelligently browse a stupid FTS"
+
+User's framing crystallized the design: **mem-thought is an LLM agent that iteratively browses dumb keyword indexes to find useful stuff.** The intelligence is in the iteration (refine query based on what's found), not in the substrate (FTS5 is fine, it's "stupid" but cheap and reliable).
+
+This is the `/big` / `/complete` pattern: LLM has tools, examines results, decides what to query next, synthesizes when satisfied. NOT the one-shot smart-query-expansion that `recallAgent` already does.
+
+### Two search substrates available
+
+| Substrate | What it indexes | Retrieval | Already exposed as tool? |
+|-----------|----------------|-----------|--------------------------|
+| **recall** (bearly tribe) | Claude Code session history | FTS5 lexical only; planner does query expansion | ✅ `tribe.ask` MCP tool, `tribe.brief`, `tribe.plan` |
+| **qmd** | Markdown knowledge bases (vault, design docs) | Hybrid: BM25 + vector + HyDE + cross-encoder rerank | ✅ `qmd mcp` server |
+
+For coding-agent thematic relevance, **recall (sessions) is the primary substrate**. qmd is secondary — useful for surfacing related vault content, but session history is where most "we tried this before" signal lives. v1 uses recall; qmd extends in v2 if telemetry shows pull-through value.
+
+### The agent loop (final shape)
+
+```
+[ Cadence trigger ]                          (same as before: 25 turns OR 15min, idle, cap 3)
+   │
+   ▼
+[ Cheap-LLM agent loop, claude-haiku-4-5 ]   ~10–20s background, ~$0.02–0.05/cycle
+   • System prompt: "You are a memory-browser. Given the recent
+     conversation, search prior session history for context the
+     agent might find useful. You can search up to 5 times. Stop
+     when you find something useful or have ruled it out."
+   • User content: last 4–6 raw turns
+   • Tools available:
+       recall_search(query)  → 5 top FTS hits with bead status + snippets
+       (optional v2: qmd_query, read_chunk)
+   • LLM iterates: search → examine → refine → search → ... → emit-or-skip
+   • Output: structured JSON
+       { useful: bool, summary: string, beadIds: string[],
+         queriesIssued: string[], reason?: "no-signal" | "off-topic" | "stale" }
+   │
+   ▼ structured result (or "no useful signal" → skip)
+[ Outcome-aware filter ]                     ~5ms, no LLM
+   • Apply bead status weights to the LLM's chosen results
+   • Drop emit if all results are REJECTED status, or utility < threshold
+   │
+   ▼
+[ Topic-drift gate at emit time ]
+   • Drop if user sent ≥2 new prompts since cycle started
+   • Drop on /clear or workspace change
+   │
+   ▼
+[ Templated emit ]
+   • One AmbientEvent, source: recall, kind: thought
+   • Header: [mem-thought, cycle N — emitted Zs after start]
+   • Body: LLM's summary + bead/session pointers (status-labeled)
+   • Sidecar JSON: { queriesIssued, beadIds, statuses, durationMs, cost }
+```
+
+### Why the agent loop beats recallAgent for this use case
+
+`recallAgent` (existing): one-shot. Generates 10–29 variants, parallel fanout, optional second round if coverage thresholds say so. Smart **at query expansion**, but doesn't *think about* what it found before deciding next move.
+
+mem-thought agent loop: iterative. After first 1–2 results come back, LLM reasons "ah, this mentions X — maybe X is the actual relevant token, let me search X+Y". The intelligence is at result-examination time, not just plan time.
+
+For "find subtle thematic connections across sessions," iterative wins. For "answer a specific user query as fast as possible" (recall's normal use case), one-shot wins on latency.
+
+### Cost & latency
+
+- Per cycle: ~10–20 s wall-clock (background, zero user impact), 3–6 LLM turns
+- Per cycle cost: ~$0.02–0.05 (claude-haiku-4-5 across iterations)
+- Per session: 3 cycles × ~$0.03 = ~$0.10 max
+- Heavy use (4–6h/day, 2–3 sessions/day): ~$5–10/dev/month
+
+This is **higher than my one-shot wrapper** ($2–3/mo) but the iterative-smart vs one-shot-smart difference is exactly what the user is asking for. Configurable via env vars; user can turn off cycles or cap budget per day.
+
+### Tool definition for the agent loop
+
+```typescript
+// recall_search tool the agent calls
+{
+  name: "recall_search",
+  description: "Search prior Claude Code session history. Returns top 5 FTS5 hits with bead status, date, snippet. Use this to find prior context that might be useful to the agent's current task. You can call this up to 5 times in this cycle.",
+  parameters: {
+    query: { type: "string", required: true,
+             description: "FTS5-style query — keywords, phrases, identifiers" },
+    since: { type: "string", optional: true,
+             description: "Time filter, e.g. '7d' or '30d' (default 30d)" },
+  },
+  // Returns: [{ sessionId, beadId?, status?, date, snippet }, ...]
+}
+```
+
+Implementation: thin wrapper around `recall()` from `@bearly/recall` library (NOT the recallAgent — we want raw FTS hits, not a synthesized answer). Fast (~600 ms per call).
+
+### What this preserves vs prior iterations
+
+| Concern | Preserved how |
+|---------|--------------|
+| Causality (Kimi) | Topic-drift gate at emit; cycle is async-labeled in header |
+| Outcome-aware ranking (all /pro) | Filter applied after LLM's pick, before emit |
+| Cross-session lane (Kimi) | recall_search filters out current session by default |
+| Hard cycle cap (Kimi) | 3/session enforced before agent loop fires |
+| LLM intelligence (user) | The whole loop is intelligence; ground truth is raw turns + raw FTS hits |
+| Stable ground truth (vs telephone game) | Each LLM turn sees raw turns + raw search results — no compounding distillation |
+| Cost discipline | Per-cycle budget cap on total LLM tokens (~5 tool-call rounds max) |
+
+### Implementation sketch
+
+```typescript
+// apps/silvercode/src/ambient-adapters/percolate.ts
+import { recall } from "@bearly/recall"  // raw FTS function, not recallAgent
+import { runAgentLoop } from "./percolate-agent.ts"
+
+export function registerPercolateAdapter(opts: PercolateOpts): () => void {
+  const cadence = createCadence({
+    everyNTurns: 25,
+    everyMinutes: 15,
+    idleMs: 10_000,
+    capPerSession: 3,
+  })
+
+  cadence.onFire(async (turns, cycleN) => {
+    if (alreadyInFlight) return
+    const cycleStart = Date.now()
+
+    const result = await runAgentLoop({
+      turns,
+      tools: { recall_search: makeRecallSearchTool(opts.repoScope, opts.currentSessionId) },
+      maxToolCalls: 5,
+      llmOptions: { model: "claude-haiku-4-5", maxTokens: 1500 },
+    })
+
+    // Topic-drift gate
+    if (turnsSinceCycleStart() >= 2 || clearWasPressed) return
+    // Utility gate
+    const ranked = applyOutcomeRanking(result.beadIds, result.statuses)
+    if (utility(ranked) < THRESHOLD) return
+
+    opts.queue.enqueue(formatThoughtEvent(result, cycleN))
+  })
+
+  return () => cadence.dispose()
+}
+```
+
+`runAgentLoop` is ~80 lines (Anthropic SDK tool-use loop, standard pattern). `makeRecallSearchTool` is ~20 lines.
+
+Total new code: ~150 LOC + tests.
+
+---
+
+## Reality check (2026-04-27 23:30): how `recall --agent` actually works
+
+Before going further with abstract design, I read the actual implementation in `vendor/bearly/plugins/recall/src/lib/agent.ts`. The shipped pipeline is **smart-query-expansion + parallel search + speculative synth** — not a tool-call agent loop. Concrete shape:
+
+```
+recallAgent(query, options) — vendor/bearly/plugins/recall/src/lib/agent.ts
+   │
+   ▼
+[ buildQueryContext() ]               cached by db mtime
+   • Recent sessions, recent beads, rare vocabulary tokens
+   • The "context bundle" the planner sees
+   │
+   ▼
+[ Round 1 planQuery(query, context) ] 1 LLM call (~2–4s)
+   • One-shot generation of 10–29 FTS5 query variants
+   • Returns: keywords, phrases, paths, bead IDs, time hints
+   │
+   ▼
+[ fanoutSearch(variants) ]            parallel FTS5 (~600ms)
+   • All variants run in parallel
+   • Coverage rerank: docs hit by ≥N variants dominate
+   │
+   ▼ round-1 results
+[ Speculative synth ]                 ~2–3s, race-of-2 LLMs
+   • FIRES IN PARALLEL with round-2 planning
+   • If round 2 doesn't add ≥2 new top-K docs → use this answer (saves ~3s)
+   │
+   ▼ (concurrent with)
+[ Decide round 2 ]                    rule-based, no LLM
+   • SHORT_CIRCUIT_COVERAGE_FRACTION = 0.35
+   • SHORT_CIRCUIT_COVERAGE_ABSOLUTE = 6
+   • Modes: off / wider / deeper / auto
+   │
+   ▼ (if needed)
+[ Round 2 planQuery(mode, prior) ]    1 LLM call
+[ fanoutSearch(NEW variants) ]        excludes round-1 variants
+[ mergeFanouts ]                      coverage rerank merged
+   │
+   ▼ final results
+[ Synthesis ]                         either speculative OR fresh-merged
+   • race-of-2 (gpt-5-nano + claude-haiku-4-5)
+   • Returns: text answer + cost
+```
+
+**Total cost per call**: ~$0.01 (planner haiku + speculative synth haiku + fresh-merged synth haiku if needed)
+**Total latency**: ~6–9 s end-to-end, often short-circuited at round 1 to ~4–5 s
+**Existing speculative synth saves ~3s when round 1 is "good enough"**
+
+### Implications for mem-thought
+
+The existing `recallAgent` is **already** the smart-query-expansion + parallel-search + synth pipeline I was reaching for. mem-thought doesn't need to re-implement any of that.
+
+What mem-thought needs is **just three things on top**:
+
+1. **A synthetic query built from the conversation context** — `recallAgent(query)` takes a string. We need to construct a useful query from the running conversation. Options:
+   - LLM call: "Given these last 4–6 turns, what query would surface relevant prior context?" — this is the user's "let the LLM hypothesize" insight
+   - Deterministic anchor extraction (per /pro): top-N anchors joined into a phrase
+   - Hybrid: deterministic anchors as base + 1 LLM call refines if anchors are too generic
+2. **Outcome-aware re-ranking** of `recallAgent`'s returned results before emit (apply bead status weights — RESOLVED/SUPERSEDED/REJECTED/EXPLORATORY)
+3. **Cadence + topic-drift discipline** — the wrapper concerns: 25 turns OR 15 min, idle ≥10 s, hard 3-cycles cap, drop emit if user sent ≥2 new prompts since cycle start
+
+### Refactored mem-thought (with reality check)
+
+```
+[ Cadence trigger ]                   no LLM
+   • 25 turns OR 15 min, idle ≥10s, hard 3 cycles/session
+   │
+   ▼
+[ Build synthetic query ]             1 cheap LLM call (~1–2s, ~$0.001)
+   • Input: last 4–6 raw turns
+   • Prompt: "Given this conversation, what 1–3 word search query
+              would surface relevant prior context from past sessions?"
+   • Constraint via JSON schema: query must contain ≥1 token from
+              the conversation text (drop if hallucinated)
+   • Falls back to deterministic top-anchor extraction if LLM fails
+   │
+   ▼ query string
+[ recallAgent(query, { since: '30d', maxRounds: 1 }) ]
+   • Just call the existing library function
+   • maxRounds: 1 to keep latency reasonable for background work
+   • Internally does plan + fanout + speculative synth — already paid for
+   │
+   ▼ AgentRecallResult { results, summary, ... }
+[ Outcome-aware re-rank ]             ~10ms, no LLM
+   • Apply bead status weights from session-index.db metadata
+   • Filter: skip emit if utility < threshold OR all hits are REJECTED
+   │
+   ▼
+[ Topic-drift gate at emit time ]
+   • Drop if user sent ≥2 new prompts since cycle started
+   • Drop on /clear or workspace change
+   │
+   ▼
+[ Templated emit ]
+   • One AmbientEvent, source: recall, kind: thought
+   • Header: [mem-thought, cycle N — query: "<query>", emitted Zs]
+   • Body: recallAgent's synthesized text + bead/session pointers
+   • Sidecar JSON: { query, beadIds, statuses, cost, durationMs }
+```
+
+**Cost per cycle**: ~$0.001 (query builder) + ~$0.01 (recallAgent does its own synth) ≈ ~$0.011/cycle
+**Per-session**: 3 cycles × $0.011 = ~$0.033 max
+**Heavy use** (4–6h/day, 2–3 sessions/day): ~$2–3/dev/month
+
+This is **simpler than my agent-loop framing** (one wrapper LLM call instead of an iterative tool-call loop) AND **preserves the LLM-driven intelligence** (recallAgent's planner + the synthetic query builder both involve LLM judgment). The existing speculative-synth + multi-round planner pattern is doing the smart work — we just feed it the right query from conversation context.
+
+### Implementation sketch (~100 LOC)
+
+```typescript
+// apps/silvercode/src/ambient-adapters/percolate.ts
+import { recallAgent } from "@bearly/recall"
+
+export function registerPercolateAdapter(opts: PercolateOpts): () => void {
+  const cadence = createCadenceTrigger(opts)  // 25 turns OR 15min, idle gate
+  let cyclesThisSession = 0
+
+  cadence.onFire(async (turns) => {
+    if (cyclesThisSession >= 3) return
+    if (alreadyInFlight) return
+    cyclesThisSession++
+
+    const cycleStartTurn = currentTurn()
+    const query = await buildSyntheticQuery(turns)  // 1 cheap LLM call
+    if (!query) return  // skipped — no salient query
+
+    const result = await recallAgent(query, {
+      since: '30d',
+      maxRounds: 1,           // keep latency bounded
+      limit: 5,
+      projectFilter: opts.repoScope,
+    })
+
+    if (turnsSinceStart(cycleStartTurn) >= 2) return  // topic drifted
+    if (await /clear-pressed) return
+
+    const ranked = applyOutcomeRanking(result.results)  // bead-status weights
+    if (utility(ranked) < THRESHOLD) return  // silent on no-signal
+
+    opts.queue.enqueue({
+      source: "recall",
+      kind: "thought",
+      content: `[mem-thought, cycle ${cyclesThisSession}] ${result.summary}`,
+      meta: { query, beadIds: ranked.map(r => r.beadId), ... },
+    })
+  })
+
+  return () => cadence.dispose()
+}
+```
+
+`recallAgent` is exported from `@bearly/recall` (the package exports it via `index.ts`). No CLI subprocess needed.
+
+---
+
 ## User reframe (2026-04-27 23:25): empower the LLM like `/big` and `/complete`
 
 After reading the /pro verdict below — which killed all three LLM calls in favor of deterministic anchor extraction — the user pushed back: **the value of mem-thought is letting an LLM hypothesize and iterate, not reducing it to keyword echo.** That's how `/big` and `/complete` work:
