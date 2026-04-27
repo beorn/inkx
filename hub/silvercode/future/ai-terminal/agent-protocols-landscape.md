@@ -1,6 +1,6 @@
 # Agent protocol landscape (2026-04-27)
 
-**Status:** design / landscape research. Maps the agent-protocol ecosystem as of April 2026, compares standards across the same dimensions, identifies gaps, and informs naming + positioning for our [ACP gateway venture](../../../ventures/acp-proxy-2026-04-27.md) (#11) and [event-type spec](./acp-event-spec.md).
+**Status:** design / landscape research. Maps the agent-protocol ecosystem as of April 2026, compares standards across the same dimensions, identifies gaps, and informs naming + positioning for our [ACP gateway venture](../../../ventures/acp-proxy-2026-04-27.md) (#11) and [event-type spec](./agentroom-event-spec.md).
 
 **Why this exists:** the space stratified faster than expected. As of mid-2026 there are 9+ named protocols across 3-4 distinct problem layers, plus a load-bearing naming collision (two unrelated standards both called "ACP"). Without an explicit landscape view, our docs and venture analysis were ambiguous.
 
@@ -343,7 +343,7 @@ Layer 4 is genuinely empty. Our [acp-proxy gateway venture](../../../ventures/ac
 
 ### 2. The naming should change
 
-`org.acp.*` is ambiguous given the two-ACPs collision.
+`org.agentroom.*` is ambiguous given the two-ACPs collision.
 
 **`org.a2a.*` is wrong** — A2A literally means *Agent-to-Agent*. The moment a human is in the room, it's no longer A2A by definition. Naming our humans-and-agents events `org.a2a.*` would be a category error and would actively mislead implementers about what the events represent.
 
@@ -423,7 +423,7 @@ Re-read this landscape doc when:
 - Anthropic ships a chat-room-shaped extension to MCP.
 - A2A v2 ships breaking changes.
 - Microsoft makes Copilot Studio multi-agent open / federated.
-- Element / Matrix.org adopts an `org.acp.*` or `org.agentroom.*` MSC from any author.
+- Element / Matrix.org adopts an `org.agentroom.*` or `org.agentroom.*` MSC from any author.
 - Cursor ships multi-agent UI.
 - A new protocol enters the space with credible adoption.
 
@@ -447,5 +447,5 @@ Default re-read cadence: 6 months.
 - [W3C AI Agent Protocol Community Group](https://www.w3.org/community/ai-agent-protocol/)
 - [Matrix Specification](https://spec.matrix.org/)
 - [`hub/silvercode/future/ai-terminal/acp-proxy.md`](./acp-proxy.md) — gateway venture brainstorm
-- [`hub/silvercode/future/ai-terminal/acp-event-spec.md`](./acp-event-spec.md) — event-type sketch (will rename `org.acp.*` → `org.agentroom.*` in next iteration per §3 above)
+- [`hub/silvercode/future/ai-terminal/agentroom-event-spec.md`](./agentroom-event-spec.md) — event-type sketch (will rename `org.agentroom.*` → `org.agentroom.*` in next iteration per §3 above)
 - [`hub/ventures/acp-proxy-2026-04-27.md`](../../../ventures/acp-proxy-2026-04-27.md) — venture #11 + #12 scoring
