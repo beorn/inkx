@@ -132,11 +132,12 @@ project root
     │   └── recall      ← session-history search
     │
     ├── plugins (general-purpose loadable units; mostly observers)
-    │   ├── git         ← observe commits, broadcast on the wire
-    │   ├── beads       ← observe bead state, broadcast on the wire
-    │   ├── github obs  ← poll GitHub, broadcast on the wire
-    │   ├── health      ← system pressure monitor
-    │   └── accountly   ← Claude Max account rotation
+    │   ├── git           ← observe commits, broadcast on the wire
+    │   ├── beads         ← observe bead state, broadcast on the wire
+    │   ├── github        ← poll GitHub, broadcast on the wire
+    │   ├── health        ← system pressure monitor
+    │   ├── accountly     ← Claude Max account rotation
+    │   └── dolt-reaper   ← clean up runaway dolt subprocesses
     │   (a plugin may also register tools; most don't)
     │
     └── surfaces (expose tools over a wire; consume the registry)
@@ -201,9 +202,9 @@ Three architectural moves shape the rest:
 | messaging tools | inside tribe-daemon | `withTool(messagingTools())` | `tribe.send / broadcast / members / history / leadership`. |
 | lore tools | `vendor/bearly/plugins/tribe/lore/` | `withTool(loreTools())` | Memory + recall: `tribe.ask / brief / plan / session / workspace / inject_delta`. |
 | tty tools | `vendor/bearly/plugins/tty/` | Stdio MCP today; migrating in-daemon. | Headless terminal sessions for testing TUIs. |
-| github tools | `vendor/bearly/plugins/github/` | Stdio MCP today; migrating in-daemon. | GitHub notification surfacing. |
+| github tools | `vendor/bearly/plugins/github/` | Stdio MCP today; migrating in-daemon. | GitHub notification surfacing as MCP tools. |
 | recall tools | `vendor/bearly/plugins/recall/` | Stdio MCP wrapper today; most traffic via lore. | Session-history search. |
-| observer plugins | `vendor/bearly/tools/lib/tribe/*-plugin.ts` | In-process. | git/beads/health/accountly observers. Push messages on the wire. |
+| observer plugins | `vendor/bearly/tools/lib/tribe/*-plugin.ts` | In-process. | git, beads, github, health, accountly, dolt-reaper. Watch external signals; broadcast on the wire. The github observer is in-daemon and complementary to the github MCP tools above. |
 | tribe-client | `vendor/bearly/packages/daemon-spine/` *(rename pending)* | Convenience library — recommended, not required. | JSON-RPC framing, parser, reconnection, socket path resolution. |
 | silvercode controller | `apps/silvercode/src/controller.ts` | Host app process. | Pane lifecycle, agent spawning, channel routing, AsyncDisposable cleanup. |
 | agent-harness | `apps/silvercode/packages/agent-harness/` | Library. | `AgentSession` interface; spawn + connect across ACP and stream-json. |
