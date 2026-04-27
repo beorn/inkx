@@ -38,7 +38,6 @@ import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harnes
 import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
-import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
@@ -345,13 +344,24 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     // eyeballing, not parsing.
     const json = prettyJsonForDebug(payload)
     // Trim very long payloads; full payload available via /debug or the JSONL.
-    const lines = json.split("\n")
-    const truncated =
-      lines.length > 40 ? [...lines.slice(0, 40), `… (${lines.length - 40} more lines)`].join("\n") : json
+    const allLines = json.split("\n")
+    const lines =
+      allLines.length > 60
+        ? [...allLines.slice(0, 60), `… (${allLines.length - 60} more lines)`]
+        : allLines
     return {
       body: (
         <Box flexDirection="column" paddingX={2} paddingY={1}>
-          <SyntaxHighlighter language="json" code={truncated} bare />
+          {lines.map((line, i) => (
+            // wrap="wrap" so long content lines flow within the popover
+            // width instead of clipping. Plain default fg — no syntax
+            // highlighter, no per-line color cue. The structure (JSON
+            // shell + indented heredoc body) is the only visual cue
+            // needed; coloring made multi-line text harder to read.
+            <Text key={i} wrap="wrap">
+              {line.length === 0 ? " " : line}
+            </Text>
+          ))}
         </Box>
       ),
       // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
