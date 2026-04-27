@@ -42,6 +42,7 @@ import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
 import { registerAllAmbientAdapters } from "./ambient-adapters/index.ts"
+import { replayCodexSessionFromDisk } from "./codex-resume.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk } from "./resume.ts"
@@ -499,15 +500,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     })
   }
   // Phase 6.b ambient adapters — sanitize + debounce real source signals
-  // (tribe, ci, filewatch; recall + subagent are wired stubs). Disabling
-  // is gated by `disableAmbientAdapters` (default: follow the legacy
-  // channel-sources gate).
+  // (tribe, ci, filewatch, subagent; recall is a wired stub awaiting a
+  // controller token stream). Disabling is gated by
+  // `disableAmbientAdapters` (default: follow the legacy channel-sources
+  // gate). The returned handle bundle exposes per-source surfaces — the
+  // subagent handle below receives Task-tool `tool-use` / `tool-result`
+  // events from the per-session subscribe loop.
+  let subagentAdapter: ReturnType<typeof registerAllAmbientAdapters>["subagent"] | undefined
   if (!opts.disableAmbientAdapters && !opts.disableChannelSources) {
-    registerAllAmbientAdapters({
+    const adapters = registerAllAmbientAdapters({
       scope: controllerScope,
       queue: channelQueue,
       cwd: opts.cwd,
     })
+    subagentAdapter = adapters.subagent
   }
   // Mirror channel-queue events into the cross-agent broadcast ring buffer
   // so the prompt-projection slice (apps/silvercode/src/prompt-cross-agent.ts)
@@ -1008,8 +1014,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       opts.agent === "claude-code" ||
       opts.agent === "claude-code-spawn" ||
       opts.agent === "claude-code-sdk"
+    const isCodexAgent = opts.agent === "codex" || opts.agent === "codex-spawn"
     if (opts.resume && isClaudeAgent) {
       replaySessionFromDisk(store, opts.cwd, opts.resume)
+    } else if (opts.resume && isCodexAgent) {
+      // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
+      // with a different schema than Claude's stream-json. The codex parser
+      // walks them and emits canonical AgentEvents into the store so prior
+      // turns appear in the card. See codex-resume.ts for the mapping table.
+      replayCodexSessionFromDisk(store, opts.resume)
     }
 
     const session = await Promise.resolve(
@@ -1049,6 +1062,28 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // SHADOW, not a replacement.
       store.apply(event)
       if (log) log.append(event)
+
+      // Sub-agent ambient signal — emit start/complete/fail events when
+      // the agent invokes the Task tool. The adapter filters non-Task
+      // tool calls internally, so we forward every tool-use/tool-result
+      // unconditionally. Per-session attribution flows via `sessionId`.
+      if (subagentAdapter) {
+        if (event.kind === "tool-use") {
+          subagentAdapter.notifyTaskToolUse({
+            toolUseId: event.id as unknown as string,
+            toolName: event.name,
+            input: event.input,
+            sessionId: id,
+          })
+        } else if (event.kind === "tool-result") {
+          subagentAdapter.notifyTaskToolResult({
+            toolUseId: event.id as unknown as string,
+            output: event.output,
+            isError: event.is_error,
+            sessionId: id,
+          })
+        }
+      }
 
       // Mirror events for any backgrounded turn into its BackgroundTask
       // event buffer. We match by turnId (events that don't carry a turnId

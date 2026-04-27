@@ -40,7 +40,7 @@ import type { ChannelQueue } from "../channel-queue.ts"
 import { registerCiAmbientAdapter, type CiAdapterOptions } from "./ci.ts"
 import { registerFilewatchAmbientAdapter, type FilewatchAdapterOptions } from "./filewatch.ts"
 import { registerRecallAmbientAdapter, type RecallAdapterOptions } from "./recall.ts"
-import { registerSubagentAmbientAdapter, type SubagentAdapterOptions } from "./subagent.ts"
+import { registerSubagentAmbientAdapterHandle, type SubagentAdapterOptions, type SubagentHandle } from "./subagent.ts"
 import { registerTribeAmbientAdapter, type TribeAdapterOptions } from "./tribe.ts"
 
 export { registerTribeAmbientAdapter, emitTribeLineForTest } from "./tribe.ts"
@@ -60,7 +60,14 @@ export {
   registerSubagentAmbientAdapterHandle,
   emitSubagentEventForTest,
 } from "./subagent.ts"
-export type { SubagentAdapterOptions, SubagentEvent, SubagentEventKind } from "./subagent.ts"
+export type {
+  SubagentAdapterOptions,
+  SubagentEvent,
+  SubagentEventKind,
+  SubagentHandle,
+  TaskToolUseInput,
+  TaskToolResultInput,
+} from "./subagent.ts"
 
 export type { AmbientSource } from "./types.ts"
 export { MIN_INTER_EVENT_MS, makeAmbientEventId } from "./types.ts"
@@ -84,15 +91,29 @@ export type RegisterAllAmbientAdaptersOptions = {
 }
 
 /**
+ * Result of `registerAllAmbientAdapters`. The base call signature is the
+ * disposer (kept for back-compat with existing call sites that did
+ * `const dispose = registerAllAmbientAdapters(...)`); per-source handles
+ * hang off it for the controller to drive (e.g., feeding `tool-use` /
+ * `tool-result` events to the subagent adapter).
+ */
+export type RegisterAllAmbientAdaptersResult = (() => void) & {
+  /** Subagent adapter handle — `undefined` when `disable.subagent` is set. */
+  readonly subagent?: SubagentHandle
+}
+
+/**
  * Wire every available adapter onto `queue` against `scope`. Returns a
- * synchronous disposer; disposing the scope also disposes every adapter.
+ * disposer fn (also exposing per-source handles as properties); disposing
+ * the scope also disposes every adapter.
  *
  * Idempotent per scope — call once per session. Sources that aren't yet
- * wired (recall, subagent stubs) become no-ops and don't error.
+ * wired (recall stub) become no-ops and don't error.
  */
-export function registerAllAmbientAdapters(opts: RegisterAllAmbientAdaptersOptions): () => void {
+export function registerAllAmbientAdapters(opts: RegisterAllAmbientAdaptersOptions): RegisterAllAmbientAdaptersResult {
   const disable = opts.disable ?? {}
   const disposers: Array<() => void> = []
+  let subagentHandle: SubagentHandle | undefined
 
   if (!disable.tribe) {
     disposers.push(
@@ -133,17 +154,16 @@ export function registerAllAmbientAdapters(opts: RegisterAllAmbientAdaptersOptio
     )
   }
   if (!disable.subagent) {
-    disposers.push(
-      registerSubagentAmbientAdapter({
-        scope: opts.scope,
-        queue: opts.queue,
-        ...opts.subagent,
-      }),
-    )
+    subagentHandle = registerSubagentAmbientAdapterHandle({
+      scope: opts.scope,
+      queue: opts.queue,
+      ...opts.subagent,
+    })
+    disposers.push(subagentHandle.dispose)
   }
 
   let disposed = false
-  return (): void => {
+  const dispose = (): void => {
     if (disposed) return
     disposed = true
     for (const fn of disposers) {
@@ -154,4 +174,10 @@ export function registerAllAmbientAdapters(opts: RegisterAllAmbientAdaptersOptio
       }
     }
   }
+  // Attach per-source handles so the controller can drive them.
+  // Casting through unknown is the standard "function with attached
+  // properties" pattern; the public type is `RegisterAllAmbientAdaptersResult`.
+  const result = dispose as RegisterAllAmbientAdaptersResult
+  Object.defineProperty(result, "subagent", { value: subagentHandle, enumerable: true })
+  return result
 }
