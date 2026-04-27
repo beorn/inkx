@@ -288,9 +288,21 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 
 ## 9. Naming — reserved namespaces (2026-04-27)
 
-17 npm names reserved as 0.0.1 placeholders in advance of choosing a final brand. Source of truth: [`.claude/skills/release/npm-packages.md`](../../../../.claude/skills/release/npm-packages.md) "Name Reservations" section. Dispute path is open via npm registry policy if any of the takens (acpd / agentfleet / agenthub / openacp / multiagent / overai / aigent / agentx / xagent — similarity-blocked or held by stale 2022 packages) becomes the strong choice later.
+### 9.a Names actually grabbed (published as 0.0.1 placeholders by `beorno`)
 
-| Theme | Reserved | What it evokes |
+17 unscoped names registered on npm in one batch on 2026-04-27. All live, all owned by `beorno <bjorn@stabell.org>`, all parked at version `0.0.1`. Source of truth: [`.claude/skills/release/npm-packages.md`](../../../../.claude/skills/release/npm-packages.md) "Name Reservations" section.
+
+Verify ownership of any one with `npm view <pkg> maintainers`. Verify the whole set with:
+
+```bash
+for pkg in acproxy acplane acplex acpdock acpmux proxyacp \
+           agentplex agentward interagent crossagent agentanywhere \
+           fleetly brokerly overhear overheard aiwhere aianywhere; do
+  echo "$pkg: $(npm view "$pkg" version 2>/dev/null) — $(npm view "$pkg" maintainers 2>/dev/null | head -1)"
+done
+```
+
+| Theme | Reserved (all live, all `0.0.1`) | What it evokes |
 |---|---|---|
 | **ACP-direct** | `acproxy`, `acplane`, `acplex`, `acpdock`, `acpmux`, `proxyacp` | Literal — what the thing is. Highest signal-to-search-friction. `acproxy` is the simplest. |
 | **Agent-prefix** | `agentplex`, `agentward`, `interagent`, `crossagent`, `agentanywhere` | Broader brand — works if upstream goes beyond ACP (e.g., A2A, future agent protocols). |
@@ -298,7 +310,9 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 | **Ambient / observation** | `overhear`, `overheard` | "I overheard that…" — the framing the agent uses for ambient blocks. Brandable beyond ACP into general observation infrastructure. |
 | **Location-aware** | `aiwhere`, `aianywhere` | The "AI runs anywhere" pitch — works if cross-machine federation matures. |
 
-**Top-3 recommended for the actual product (when it ships):**
+**Maintenance note**: these are placeholder publishes. They have no `repository` field, no real `package.json` content, no README. When the actual product ships, the chosen name's published artifact gets replaced with a real package; the unused names stay as 0.0.1 squats. If a real owner emerges who wants one of the unused names and contacts us, transfer is cheap and worth doing.
+
+### 9.b Top-3 recommended for the actual product (when it ships)
 
 1. **`overhear`** — the user-facing brand. Captures the posture (the agent overhears peer activity, doesn't get instructions from it). Domain memorable. Works in marketing copy: "your agents overhear each other."
 2. **`acproxy`** — the technical/CLI name. Direct, searchable, what it is. Ships as `acproxy` binary; the `overhear` brand is the product wrapper.
@@ -312,18 +326,20 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 
 By that heuristic, an ACP proxy product would be:
 
-- `overhear` (brand / product noun)
-- `acproxy` (CLI)
-- `@bearly/proxy` (npm package; lives under existing bearly scope)
+- `overhear` (brand / product noun) — grabbed
+- `acproxy` (CLI) — grabbed
+- `@bearly/proxy` (npm package; lives under existing bearly scope) — not grabbed yet, scope is owned so it's available on demand
 
 The proxy plugin code itself can live in `vendor/bearly/plugins/proxy/` — same shape as `vendor/bearly/plugins/tribe/`, `vendor/bearly/plugins/recall/`, `vendor/bearly/plugins/llm/`. No new repo needed for the implementation; the standalone names are reserved for marketing surfaces (homepage, npm search, CLI binary).
 
-**Names not taken (still available, lower priority):**
+### 9.c Considered but NOT grabbed (still available)
 
-- `acproxy` namespace expansions: `acpd` (similarity-blocked unscoped; `@beorno/acpd` available).
-- Bare-similarity-blocked names: `agentfleet`, `agenthub`, `openacp`, `anyagent` — all available as `@beorno/<name>`.
+These were on the candidate list but skipped — either because the unscoped name was similarity-blocked by an existing package or because the value proposition was lower than the 17 above. All remain available as `@beorno/<name>` if we want to claim them later.
 
-**Rejected names** (taken or actively-published):
+- `acpd` — similarity-blocked unscoped (collides with `acdc`-class names); `@beorno/acpd` available.
+- `agentfleet`, `agenthub`, `openacp`, `anyagent` — all bare-similarity-blocked unscoped; all available as `@beorno/<name>`.
+
+### 9.d Rejected (taken or actively-published — would need npm dispute)
 
 - `acp` — `samt` 2022 alpha. Could be disputed but takes weeks.
 - `multiagent` — `ahelmberger` 2.1.0 (2022 — dormant but published, dispute uncertain).
