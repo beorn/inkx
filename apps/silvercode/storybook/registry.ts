@@ -39,12 +39,17 @@ import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchang
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
 import { ambientEventRowAllSources, ambientEventRowInlineSequence } from "./stories/AmbientEventRow.story.tsx"
+import { allTogether } from "./stories/All.story.tsx"
 
 /**
  * Canonical, ordered list of stories. Order is the runner's display order;
  * group by component, then by variant complexity (simple → complex).
  */
 export const STORIES: readonly Story[] = [
+  // The "everything" tour — every component pieced together as one
+  // representative conversation. Useful for surveying the surface in a
+  // single pane and for screenshot-driven design review.
+  allTogether,
   // Welcome surface
   welcomeBasic,
   // Activity / status
