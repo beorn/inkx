@@ -259,6 +259,7 @@ When the user's request contains any of the triggers below, **load the listed re
 | DNS / domain / Cloudflare / redirect / Pages | `/sop infra cloudflare` |
 | CI failure / GitHub Actions / workflow | `/sop infra` CI Fix Workflow |
 | hook / SessionStart / PreToolUse / PreCompact | `/sop infra` Hook Debugging |
+| upstream / waiting on / blocked on / unwind workaround / Bun bug / when fix lands / file an issue / report to upstream | [`.claude/skills/pm/workflows/upstream.md`](.claude/skills/pm/workflows/upstream.md) — full filing workflow + §8 mandates registering the workaround in `km-all.upstream-waiting`. Reviewed monthly via `/sop infra` `upstream-waiting` check. |
 | health check / is X outdated / do we have / maintain / groom | [`/sop`](.claude/skills/sop/) — orchestrator picks domain |
 
 **Skip the triage only when the request is narrow and obviously doesn't benefit from load-first context.** In doubt: load first. Memory entries capture the rationale behind each rule (see `feedback-perf-triage-load-first.md`, `feedback-publish-load-release-skills.md`, `reference-alien-family.md`).

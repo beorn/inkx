@@ -1,14 +1,20 @@
 ---
-description: Handle bugs in upstream dependencies - report, vendorize, fix
+description: Handle bugs in upstream dependencies - report, vendorize, fix, track until landed
 ---
 
 # Skill: Handle Upstream Package Bugs
 
-**Keywords**: upstream bug, vendor, submodule, dependency bug, package bug, vendorize, file issue, report bug, github issue, bug report
+**Keywords**: upstream bug, vendor, submodule, dependency bug, package bug, vendorize, file issue, report bug, github issue, bug report, upstream waiting, track upstream, waiting on upstream, blocked on upstream, when fix lands, unwind workaround, oven-sh, bun bug, node bug, register upstream
 
-When encountering a bug in an upstream dependency, follow this systematic workflow to investigate, report, and optionally fix the issue.
+When encountering a bug in an upstream dependency, follow this systematic workflow: investigate, report, apply workaround, **register for tracking**, unwind when upstream lands.
 
-**Activation**: Use this skill whenever filing a bug against an external project. It MUST be loaded before running `gh issue create` on any repo you don't own.
+**Activation**: Use this skill whenever:
+- Filing a bug against an external project (MUST be loaded before `gh issue create` on any repo you don't own).
+- Applying a workaround in our code that depends on an upstream fix.
+- Mentioning "waiting on", "blocked on", "when fix lands", or "unwind" in connection with an upstream package.
+- Reviewing the upstream-waiting backlog (e.g. during `/sop infra`).
+
+The pre-step-1 mental model: filing alone is not enough. A filed bug with a workaround in our code is a permanent debt unless someone tracks it. **Step 8 (Register for tracking) is mandatory whenever a workaround lands in our code** — without it, the workaround outlives the upstream fix and quietly accumulates.
 
 ## Workflow
 
@@ -239,6 +245,64 @@ gh pr create --repo <owner>/<repo> \
   --body "Fixes #<issue-number>"
 ```
 
+### 8. Register for tracking (MANDATORY when a workaround lands)
+
+If steps 5–7 left a workaround in our code, **register the bead in `km-all.upstream-waiting`** so the workaround unwinds when upstream lands. Without this step, workarounds become permanent silent debt — the registry is the only mechanism that ensures revisit.
+
+#### When to register
+- A workaround was applied (any change to our code that exists *because* upstream is broken).
+- A vendorized fix is in place but a PR is open upstream — register so we remove our fork once merged.
+- Even if the project is moribund and you don't expect a fix — register anyway so it gets reviewed monthly and can be promoted to "fork-and-own" if appropriate.
+
+#### How to register
+
+```bash
+# Create or update the tracking bead under the upstream-waiting epic
+bd create --id km-<scope>.<descriptive-slug> \
+  --title "Remove <workaround-description> when <upstream-ref> lands" \
+  --type=bug --priority=3 \
+  --description="<see template below>"
+bd update km-<scope>.<slug> --parent km-all.upstream-waiting
+```
+
+**Description template** (every field is required — the monthly review depends on them):
+
+```
+Workaround tracking. <one-sentence summary of what we did and why>.
+
+Upstream: <URL — issue or PR>
+Status: <open | in-PR | merged-in-version-X | abandoned> as of <YYYY-MM-DD>
+Last checked: <YYYY-MM-DD>
+
+Files affected by the workaround:
+- <path>
+  - <specific change 1: e.g., "URL.toString() in 'new Request(url.toString(), ...)'">
+  - <specific change 2>
+
+Unwind when upstream lands:
+1. <concrete step 1: e.g., "Replace 'new Request(url.toString(), ...)' with 'new Request(url, ...)'">
+2. <concrete step 2: e.g., "Bump <pkg> minimum version in package.json to <patched-release>">
+3. <concrete step 3: e.g., "Run vendor/<pkg> tests; verify the workaround test still passes without the workaround">
+4. Close this bead with the version that fixed it
+```
+
+**Why each field matters**:
+- *Upstream URL*: the only auditable proof a fix has or hasn't landed. Without this, monthly review devolves into guessing.
+- *Status + Last checked*: gives the monthly reviewer a delta to compare against.
+- *Files affected* with specific changes: when the upstream lands months later, the original author may not be available — the bead must be self-contained.
+- *Unwind steps*: removing a workaround is rarely a single line. Spelling out the steps prevents partial unwinds (revert one site, miss two).
+
+#### Cross-references
+- Epic: `km-all.upstream-waiting` (perpetual registry, never closes — children close individually).
+- Cadence: monthly via `/sop infra` → `upstream-waiting` check (`.claude/skills/sop/SKILL.md`).
+- Existing examples: see open children of `km-all.upstream-waiting` for prior-art bead descriptions (e.g. `km-bearly.mcp-plugin-bun-keepalive` for the Bun #7716 keep-alive workaround).
+
+#### Anti-patterns
+- "I'll remember to come back to this" — you won't, and a future maintainer can't read your memory.
+- Filing the upstream issue without a tracking bead — the issue exists upstream; the *workaround in our code* is what we forget.
+- Vague unwind steps ("revert the workaround") — by the time upstream lands, the workaround is woven through more files than you remembered.
+- Closing the bead when upstream merges but before unwind runs — the bead must stay open until our code is back to clean.
+
 ## Examples
 
 ### oxlint stdout panic (oxc-project/oxc#20239)
@@ -295,3 +359,4 @@ gh pr create --repo <owner>/<repo> \
 - [ ] Applied workaround in your code
 - [ ] (Optional) Vendorized and fixed
 - [ ] (Optional) Submitted PR upstream
+- [ ] **Registered in `km-all.upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps

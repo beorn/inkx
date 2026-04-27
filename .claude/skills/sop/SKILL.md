@@ -340,7 +340,13 @@ token = resp['access_token']
 - [ ] `cf-domain-expiry` — domains expiring within 60 days (Cloudflare Registrar API)
 - [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
 - [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
-- [ ] `upstream-waiting` — `bd list --parent km-all.upstream-waiting --status open` — for each child, check the linked upstream issue/PR; update "Last checked: <date>" in the bead description; if upstream landed, run the bead's "Unwind when upstream lands" steps and close.
+- [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.claude/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
+  1. `bd list --parent km-all.upstream-waiting --status open` — list every open child
+  2. For each child, fetch the linked upstream URL (`gh issue view`, `gh pr view`, or `WebFetch`); compare against the bead's "Status:" line
+  3. Update "Last checked: <today>" in the bead description (always — even if nothing changed; this is how we detect orphaned beads later)
+  4. If upstream landed: run the bead's numbered "Unwind when upstream lands" steps in order, then close the bead with the upstream version that fixed it
+  5. If upstream went stale (no movement >6 months): flag for `/big` reframing — should we vendorize, fork, or find an alternative?
+  6. If a workaround exists in our code without a tracking bead, file one now using the §8 template — surfacing untracked workarounds is a primary purpose of this check.
 **Triggers**: tool version updates, new repos, domain expiry approaching
 **Delegates to**: `/infra`, `/claude`
 
