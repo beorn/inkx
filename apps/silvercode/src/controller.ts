@@ -38,6 +38,8 @@ import { createInMemoryTribe, type TribeBackend } from "@km/tribe-mcp"
 import { resolveAccountDir } from "./accounts.ts"
 import { bdPrimeOutput, readActiveBead } from "./bd-prime.ts"
 import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
+import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
+import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
@@ -404,6 +406,24 @@ export type Controller = {
    */
   readonly channelQueue: ChannelQueue
   /**
+   * Ambient stream — per-session journal of ambient observations
+   * delivered to the agent. Used by the chat scrollback to render
+   * inline `AmbientEventRow` rows at injection timestamp. UI-only; no
+   * effect on what the agent receives.
+   *
+   * Bead: km-silvercode.ambient-inline-display.
+   */
+  readonly ambientStream: AmbientStream
+  /**
+   * Visual mute filter for ambient sources. Toggling a source via the
+   * side panel hides matching rows from the inline scrollback but does
+   * NOT prevent the agent from receiving them. Enforced structurally —
+   * no module on the prompt-assembly path imports this.
+   *
+   * Bead: km-silvercode.ambient-inline-display.
+   */
+  readonly ambientMuteState: MuteState
+  /**
    * Cross-agent state — silvercode-owned coordination store shared across
    * every session this controller spawned. Holds file claims, handoffs,
    * active session list, recent peer broadcasts. Each session gets its
@@ -438,6 +458,13 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   const ownsScope = !opts.scope
   const controllerScope: Scope = opts.scope ?? createScope("silvercode-controller")
   const channelQueue = createChannelQueue(controllerScope)
+  // Ambient stream + mute state — UI-only echo of channel events so the
+  // chat scrollback can render inline observation rows at the timestamp
+  // each event arrived. Mute filters operate on the stream, never on
+  // channelQueue or prompt-assembly. See
+  // hub/silvercode/design/ambient-inline-display.md.
+  const ambientStream = createAmbientStream(controllerScope)
+  const ambientMuteState = createMuteState(controllerScope)
   // Cross-agent state — one per controller, shared across every session.
   // Each session's coordinator-mcp delegates to this store; UI panes
   // subscribe to its signals (claims, activeSessions, ...). Channel-queue
@@ -462,6 +489,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // subscribers can populate `meta.fromSessionId` to attribute.
       fromSessionId: typeof event.meta?.fromSessionId === "string" ? (event.meta.fromSessionId as string) : undefined,
     })
+    // Record into the per-session ambient journal so the chat scrollback
+    // can render an inline observation row. Phase 6.a: write to the
+    // currently-focused session (one focused pane at a time owns the
+    // ambient firehose). Future phases attribute by which session
+    // actually drained the queue in `assembleAcpPrompt`.
+    if (focusedId) ambientStream.record(focusedId, event)
   })
   controllerScope.defer(() => broadcastUnsub())
   // TODO (acp-adapter-claude): when we wrap Claude Code via the ACP
@@ -1499,6 +1532,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return () => backgroundSubs.delete(handler)
     },
     channelQueue,
+    ambientStream,
+    ambientMuteState,
     crossAgentState,
   }
 }

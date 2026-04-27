@@ -37,6 +37,7 @@ import type { MessageEntry, ToolCallId, ToolCallStatus, ToolKind } from "@km/age
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
 import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
+import { AmbientEventRow, type AmbientStreamEntry } from "./AmbientEventRow.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
@@ -441,14 +442,72 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
 }
 
 // =============================================================================
-// Sentinel type for the activity tail item
+// Sentinel types for the activity tail and ambient observation rows
 // =============================================================================
 
 type ActivityItem = { __activity: true }
-type Item = MessageEntry | ActivityItem
+type AmbientItem = { __ambient: true; entry: AmbientStreamEntry }
+type Item = MessageEntry | ActivityItem | AmbientItem
 
 function isActivity(item: Item): item is ActivityItem {
   return (item as ActivityItem).__activity === true
+}
+
+function isAmbient(item: Item): item is AmbientItem {
+  return (item as AmbientItem).__ambient === true
+}
+
+/**
+ * Anchor a `MessageEntry` to its scrollback timestamp. Mirrors how
+ * `ts: number` is assigned in `session-store.ts` — a millisecond epoch
+ * timestamp aligned with `AmbientStreamEntry.timestamp` so the merge
+ * sort interleaves correctly.
+ */
+function messageTimestamp(m: MessageEntry): number {
+  return m.ts
+}
+
+/**
+ * Merge messages + ambient entries into one list sorted by timestamp
+ * (ascending). Stable on equal timestamps: messages keep their relative
+ * order, ambient entries keep theirs, and a tie between a message and
+ * ambient resolves by source array order (messages, then ambient) — so a
+ * user prompt and an ambient event with the same `ts` render as
+ * "user, then ambient." That is the conservative read: an ambient
+ * observation associated with the *next* turn arrived after the user
+ * sent the prompt.
+ */
+function interleave(messages: MessageEntry[], ambient: readonly AmbientStreamEntry[]): Item[] {
+  if (ambient.length === 0) return [...messages]
+  if (messages.length === 0) return ambient.map((a) => ({ __ambient: true as const, entry: a }))
+  const out: Item[] = []
+  let i = 0
+  let j = 0
+  while (i < messages.length && j < ambient.length) {
+    const mts = messageTimestamp(messages[i]!)
+    const ats = ambient[j]!.timestamp
+    if (mts <= ats) {
+      out.push(messages[i]!)
+      i++
+    } else {
+      out.push({ __ambient: true, entry: ambient[j]! })
+      j++
+    }
+  }
+  while (i < messages.length) out.push(messages[i++]!)
+  while (j < ambient.length) out.push({ __ambient: true, entry: ambient[j++]! })
+  return out
+}
+
+/**
+ * Inline ambient row wrapper — owns the `expanded` state so toggling one
+ * row does not re-render the whole list. The expand state is local and
+ * resets on remount; rotation through ambient rows is bounded so this is
+ * acceptable for Phase 6.a.
+ */
+function AmbientRow({ entry }: { entry: AmbientStreamEntry }): React.ReactElement {
+  const [expanded, setExpanded] = React.useState(false)
+  return <AmbientEventRow entry={entry} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
 }
 
 // =============================================================================
@@ -473,13 +532,31 @@ export const SessionUpdateList = React.forwardRef<
      *  output, isMeta bodies) below the visible prompt. Default false.
      *  Bead: km-silvercode.resume-show-everything-collapsed. */
     showDebug?: boolean
+    /**
+     * Pre-filtered ambient observations (mute filter applied upstream
+     * in `SessionCard`). Merged with `messages` by timestamp; rendered
+     * inline as styled observation rows between turns.
+     * Bead: km-silvercode.ambient-inline-display.
+     */
+    ambientEntries?: readonly AmbientStreamEntry[]
   }
 >(function SessionUpdateList(
-  { messages, status, turnStartedAt, inputTokens, outputTokens, pendingPermissions, inFlightTool, showDebug = false },
+  {
+    messages,
+    status,
+    turnStartedAt,
+    inputTokens,
+    outputTokens,
+    pendingPermissions,
+    inFlightTool,
+    showDebug = false,
+    ambientEntries,
+  },
   ref,
 ): React.ReactElement {
   const showActivity = status !== "idle" && status !== "ended"
-  const items: Item[] = showActivity ? [...messages, { __activity: true }] : messages
+  const merged = ambientEntries && ambientEntries.length > 0 ? interleave(messages, ambientEntries) : [...messages]
+  const items: Item[] = showActivity ? [...merged, { __activity: true }] : merged
 
   // `follow="end"` is the canonical chat-style auto-follow API
   // (silvery bead `km-silvery.listview-followpolicy-split`). It owns
@@ -496,7 +573,9 @@ export const SessionUpdateList = React.forwardRef<
     <ListView
       ref={ref}
       items={items}
-      getKey={(item, i) => (isActivity(item) ? "__activity" : i)}
+      getKey={(item, i) =>
+        isActivity(item) ? "__activity" : isAmbient(item) ? `ambient:${item.entry.id}` : i
+      }
       gap={1}
       maxRendered={200}
       follow="end"
@@ -510,6 +589,8 @@ export const SessionUpdateList = React.forwardRef<
             inputTokens={inputTokens}
             outputTokens={outputTokens}
           />
+        ) : isAmbient(item) ? (
+          <AmbientRow entry={item.entry} />
         ) : (
           <RawInspector payload={item}>
             <ExchangeItem m={item} showDebug={showDebug} />

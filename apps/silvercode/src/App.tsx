@@ -1149,6 +1149,7 @@ export function App(props: AppProps): React.ReactElement {
               <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
                 <PaneGrid
                   ref={paneGridRef}
+                  controller={controller}
                   sessions={sessions}
                   focusedSessionId={focusedSessionId}
                   zoomedPaneId={zoomedPaneId}

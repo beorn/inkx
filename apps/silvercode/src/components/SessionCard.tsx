@@ -1,6 +1,7 @@
 import React from "react"
 import { Box, Text, type ListViewHandle } from "silvery"
-import type { SessionHandle } from "../controller.ts"
+import type { Controller, SessionHandle } from "../controller.ts"
+import { useAmbientStream } from "../hooks/use-ambient-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
 import { Welcome } from "./Welcome.tsx"
@@ -32,6 +33,7 @@ export function SessionCard({
   onDeny,
   onRegisterScrollList,
   showDebug = false,
+  controller,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -54,8 +56,20 @@ export function SessionCard({
    *  output, isMeta bodies) inline. Bead:
    *  km-silvercode.resume-show-everything-collapsed. */
   showDebug?: boolean
+  /**
+   * Controller — when provided, the SessionCard reads the per-session
+   * ambient stream and merges its events into the chat scrollback as
+   * inline observation rows. Optional so legacy tests / fixture stories
+   * can omit it and get a pure-message scrollback.
+   * Bead: km-silvercode.ambient-inline-display.
+   */
+  controller?: Controller
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
+  // Ambient stream — pre-filtered through the mute set so muted source
+  // rows never reach `SessionUpdateList`. The hook handles a null
+  // controller internally (returns []), keeping rules-of-hooks intact.
+  const ambientEntries = useAmbientStream(controller ?? null, handle.id)
   // Callback ref — fires with the live ListViewHandle on mount and with
   // null on unmount. Mirrors the handle into App's registration map so
   // app-level Shift+Up/Down scroll bindings can reach this pane's list
@@ -148,6 +162,7 @@ export function SessionCard({
               pendingPermissions={state.permissions.length}
               inFlightTool={inFlightTool}
               showDebug={showDebug}
+              ambientEntries={ambientEntries}
             />
           )}
         </Box>

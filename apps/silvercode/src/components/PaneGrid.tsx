@@ -48,7 +48,7 @@
 
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { Box, Text, useBoxRect, useMouseCursor, type ListViewHandle } from "silvery"
-import type { SessionHandle } from "../controller.ts"
+import type { Controller, SessionHandle } from "../controller.ts"
 import {
   type DropEdge,
   type LayoutNode,
@@ -77,6 +77,13 @@ const DIVIDER_SIZE = 1
 const CENTER_ZONE_HALF = 0.25 // [0.25, 0.75] on both axes → center
 
 export type PaneGridProps = {
+  /**
+   * Controller — passed through to each pane's `SessionCard` so it can
+   * read the per-session ambient stream + mute state. Optional today
+   * (legacy callers omit it; ambient inline display falls back to no
+   * rows when omitted). Bead: km-silvercode.ambient-inline-display.
+   */
+  controller?: Controller
   sessions: ReadonlyArray<SessionHandle>
   focusedSessionId: string
   zoomedPaneId: string | null
@@ -179,6 +186,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     minimizedPaneIds,
     onRegisterScrollList,
     showDebug = false,
+    controller,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -375,6 +383,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onToggleMinimize={onToggleMinimizePane ? () => onToggleMinimizePane(handle.id) : undefined}
           onRegisterScrollList={onRegisterScrollList}
           showDebug={showDebug}
+          controller={controller}
         />
       )
     },
@@ -393,6 +402,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onToggleMinimizePane,
       onRegisterScrollList,
       showDebug,
+      controller,
     ],
   )
 
@@ -417,6 +427,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onDeny={(rid) => props.onDenyPermission(zoomed.id, rid)}
               onRegisterScrollList={onRegisterScrollList}
               showDebug={showDebug}
+              controller={controller}
             />
           </Box>
         </Box>
@@ -475,6 +486,7 @@ function LeafContainer({
   onToggleMinimize,
   onRegisterScrollList,
   showDebug = false,
+  controller,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -497,6 +509,7 @@ function LeafContainer({
   onToggleMinimize?: () => void
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   showDebug?: boolean
+  controller?: Controller
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -528,6 +541,7 @@ function LeafContainer({
           onDeny={onDeny}
           onRegisterScrollList={onRegisterScrollList}
           showDebug={showDebug}
+          controller={controller}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.
