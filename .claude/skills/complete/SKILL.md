@@ -18,6 +18,29 @@ benefits-from: [pm, recall, tests]
 - Diffs (truncated): !`git diff -U2 HEAD~5 -- ':!vendor' 2>/dev/null | head -200 || git diff -U2 -- ':!vendor' | head -200`
 - Uncommitted diffs: !`git diff -U2 | head -100`
 
+## Step 0: Detect Epic-Close (route to `/pm retro` if program is shipping)
+
+**Before per-bead verification, check whether this session just closed the last sub-bead of a multi-bead epic.**
+
+A "program" is a multi-week multi-bead epic (e.g., plateau-90, tree-lenses, era2). The session that closes the LAST critical-path sub-bead, or the epic itself, must produce a retrospective — otherwise the post-ship narrative scatters and meta-lessons get re-discovered. `/complete` is session-scoped; it can't write that retro for you. But it MUST detect the condition and route.
+
+```bash
+# For each bead closed this session, check its parent epic
+for id in $(bd list --status closed --closed-after <session-start>); do
+  parent=$(bd show "$id" 2>&1 | grep -A1 PARENT | tail -1 | awk '{print $3}')
+  [ -z "$parent" ] && continue
+  remaining=$(bd list --parent "$parent" --status open 2>&1 | grep -c "^○")
+  closed=$(bd list --parent "$parent" --status closed 2>&1 | grep -c "✓")
+  if [ "$remaining" -eq 0 ] && [ "$closed" -ge 3 ]; then
+    echo "EPIC-CLOSE: $parent has all $closed sub-beads closed — route to /pm retro $parent"
+  fi
+done
+```
+
+If detected: **stop**, surface to user, and recommend `/pm retro <epic-id>` before continuing. Don't auto-run it (it's a 30-60min synthesis task — wrong scale for /complete to absorb). Don't skip it ("we'll do it later" = it never happens).
+
+**False-positive guard**: If the parent epic has <3 closed sub-beads, this isn't a "program" — it's a small project. Skip the retro recommendation and proceed to Step 1.
+
 ## Step 1: Verify Closed Beads (the #1 gap in our process)
 
 **Before investigating anything else, verify every bead closed in this session.**
