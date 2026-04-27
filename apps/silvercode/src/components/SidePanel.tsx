@@ -151,6 +151,39 @@ const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json cha
 // Capability cycler helpers — descriptor-driven thinking + planning rows.
 // ---------------------------------------------------------------------------
 
+/**
+ * Bullet-list row for popover option menus (Mode, Thinking).
+ * Icon column is fixed-width so the description hangs under the label,
+ * not under the icon, when text wraps.
+ */
+function PopoverOption({
+  icon,
+  iconColor,
+  name,
+  children,
+}: {
+  icon: string | undefined
+  iconColor?: string
+  name: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <Box flexDirection="row" gap={1}>
+      <Box width={2} flexShrink={0}>
+        <Text color={iconColor ?? "$muted"}>{icon ?? "?"}</Text>
+      </Box>
+      <Box flexDirection="column" flexGrow={1} minWidth={0}>
+        <Text wrap="wrap">
+          <Text bold color={iconColor ?? "$fg"}>
+            {name}
+          </Text>{" "}
+          <Muted>— {children}</Muted>
+        </Text>
+      </Box>
+    </Box>
+  )
+}
+
 /** Find the descriptor whose `id` matches `selection`. Returns undefined if none. */
 function findOptionFor(arr: ReadonlyArray<CapabilityOption>, selection: string): CapabilityOption | undefined {
   return arr.find((o) => o.id === selection)
@@ -578,34 +611,44 @@ export function SidePanel({
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Text bold>Mode</Text>
         <Muted>Controls what the agent is allowed to do without asking. Click the label to cycle.</Muted>
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {capabilities?.planning && capabilities.planning.length > 0 ? (
             capabilities.planning.map((opt) => (
-              <Text key={opt.id}>
-                <Text color={opt.color ?? "$muted"}>
-                  {opt.icon} {opt.name}
-                </Text>{" "}
-                — {opt.description}
-              </Text>
+              <Box key={opt.id} flexDirection="row" gap={1}>
+                <Box width={2} flexShrink={0}>
+                  <Text color={opt.color ?? "$muted"}>{opt.icon}</Text>
+                </Box>
+                <Box flexDirection="column" flexGrow={1} minWidth={0}>
+                  <Text wrap="wrap">
+                    <Text bold color={opt.color ?? "$fg"}>
+                      {opt.name}
+                    </Text>{" "}
+                    <Muted>— {opt.description}</Muted>
+                  </Text>
+                </Box>
+              </Box>
             ))
           ) : (
             <>
-              <Text>
-                <Text color={MODE_COLORS.ask}>{MODE_ICONS.ask} ask</Text> — every tool prompts for approval
-              </Text>
-              <Text>
-                <Text color={MODE_COLORS.plan}>{MODE_ICONS.plan} plan</Text> — plans but doesn't write
-              </Text>
-              <Text>
-                <Text color={MODE_COLORS["accept-edits"]}>{MODE_ICONS["accept-edits"]} accept-edits</Text> — edits
-                auto-apply; tools still prompt
-              </Text>
-              <Text>
-                <Text color={MODE_COLORS.auto}>{MODE_ICONS.auto} auto</Text> — default; all Claude tools unattended
-              </Text>
-              <Text>
-                <Text color={MODE_COLORS.bypass}>{MODE_ICONS.bypass} bypass</Text> — skip all approvals (sandboxes only)
-              </Text>
+              <PopoverOption icon={MODE_ICONS.ask} iconColor={MODE_COLORS.ask} name="ask">
+                every tool prompts for approval
+              </PopoverOption>
+              <PopoverOption icon={MODE_ICONS.plan} iconColor={MODE_COLORS.plan} name="plan">
+                plans but doesn't write
+              </PopoverOption>
+              <PopoverOption
+                icon={MODE_ICONS["accept-edits"]}
+                iconColor={MODE_COLORS["accept-edits"]}
+                name="accept-edits"
+              >
+                edits auto-apply; tools still prompt
+              </PopoverOption>
+              <PopoverOption icon={MODE_ICONS.auto} iconColor={MODE_COLORS.auto} name="auto">
+                default; all Claude tools unattended
+              </PopoverOption>
+              <PopoverOption icon={MODE_ICONS.bypass} iconColor={MODE_COLORS.bypass} name="bypass">
+                skip all approvals (sandboxes only)
+              </PopoverOption>
             </>
           )}
         </Box>
@@ -620,30 +663,37 @@ export function SidePanel({
         <Muted>
           Reasoning intensity for the agent. Higher = more thorough answers, more tokens spent. Click to cycle.
         </Muted>
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {capabilities?.thinking && capabilities.thinking.length > 0 ? (
             capabilities.thinking.map((opt) => (
-              <Text key={opt.id}>
-                <Text color={opt.color ?? "$muted"}>
-                  {opt.icon} {opt.name}
-                </Text>{" "}
-                — {opt.description}
-              </Text>
+              <Box key={opt.id} flexDirection="row" gap={1}>
+                <Box width={2} flexShrink={0}>
+                  <Text color={opt.color ?? "$muted"}>{opt.icon}</Text>
+                </Box>
+                <Box flexDirection="column" flexGrow={1} minWidth={0}>
+                  <Text wrap="wrap">
+                    <Text bold color={opt.color ?? "$fg"}>
+                      {opt.name}
+                    </Text>{" "}
+                    <Muted>— {opt.description}</Muted>
+                  </Text>
+                </Box>
+              </Box>
             ))
           ) : (
             <>
-              <Text>
-                <Text color="$muted">{THINKING_ICONS.normal} normal</Text> — agent baseline (no extended thinking)
-              </Text>
-              <Text>
-                <Text color="$muted">{THINKING_ICONS.think} think (4K)</Text> — moderate reasoning budget
-              </Text>
-              <Text>
-                <Text color="$muted">{THINKING_ICONS.think_hard} hard (16K)</Text> — deep reasoning
-              </Text>
-              <Text>
-                <Text color="$muted">{THINKING_ICONS.ultrathink} ultra (32K)</Text> — max budget
-              </Text>
+              <PopoverOption icon={THINKING_ICONS.normal} name="normal">
+                agent baseline (no extended thinking)
+              </PopoverOption>
+              <PopoverOption icon={THINKING_ICONS.think} name="think (4K)">
+                moderate reasoning budget
+              </PopoverOption>
+              <PopoverOption icon={THINKING_ICONS.think_hard} name="hard (16K)">
+                deep reasoning
+              </PopoverOption>
+              <PopoverOption icon={THINKING_ICONS.ultrathink} name="ultra (32K)">
+                max budget
+              </PopoverOption>
             </>
           )}
         </Box>
