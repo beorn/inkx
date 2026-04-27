@@ -146,58 +146,51 @@ The rest of this doc focuses on composition specifically. TEA, signals, and Scop
 
 ## Concrete shapes
 
-### tribe (proposed migration)
-
-Today, tribe-daemon's setup is imperative:
-
-```typescript
-// vendor/bearly/tools/tribe-daemon.ts (current, simplified)
-const ctx = createDaemonContext({ ... })
-const socket = bindSocket(socketPath)
-const mcp = mountMCPHandlers(socket, ctx)
-const plugins = loadPlugins([gitPlugin, beadsPlugin, ...], tribeClientApi)
-// ...lots of imperative wiring...
-```
-
-Proposed:
+### tribe
 
 ```typescript
 const tribe = pipe(
-  createBaseTribe({ scope, db: openDb(dbPath) }),
-  withProjectRoot(opts.root),
-  withSocket(),                          // binds socket; defers close on scope
-  withDispatch(),                        // installs the JSON-RPC dispatcher on the socket: routes
-                                         // incoming method calls to handlers, frames responses,
-                                         // emits notifications. The dispatcher is what surfaces
-                                         // (withMCPServer) bridge their requests through.
+  createBaseTribe({ scope }),
+  withConfig(),                          // argv + env → TribeConfig
+  withProjectRoot(),                     // process.cwd()
+  withDatabase(),                        // open SQLite, defer close on scope
+  withDaemonContext(),                   // daemon-role TribeContext bound to daemonSessionId
+  withLore(),                            // memory + recall handlers (closed via scope.signal)
 
-  // Tool registry — protocol-independent.
+  // Tool registry — protocol-agnostic.
   // withTools() establishes the registry slot on the daemon value;
   // withTool() is a helper that appends. Plugins may also write to the
-  // registry directly when they have reason to.
+  // registry directly when they have reason to during composition.
   withTools(),                           // value.tools = new Map()
-  withTool(loreTools()),                 // memory + recall
-  withTool(messagingTools()),            // tribe.send / broadcast / members
-  withTool(coordinationTools()),         // chief lease, claim, release
+  withTool(messagingTools()),            // tribe.send / broadcast / members / history /
+                                         // rename / join / health / reload / retro / chief /
+                                         // claim-chief / release-chief / debug
+  withTool(loreTools(tribe.lore)),       // tribe.ask / brief / plan / session_register /
+                                         // session_heartbeat / sessions_list / workspace_state /
+                                         // session_state / inject_delta / status / hello
 
-  // Surfaces — read tools from the registry, expose them over a wire.
+  // Surface — reads tools from the registry, exposes them over a wire.
   withMCPServer(),                       // serves registered tools over MCP
 
   // Observer plugins — push messages onto the wire, no tools registered.
+  withPluginApi(api),
   withPlugin(gitPlugin),
   withPlugin(beadsPlugin),
   withPlugin(githubPlugin),
   withPlugin(healthPlugin),
   withPlugin(accountlyPlugin),
+  withPlugin(doltReaperPlugin),
 )
+await tribe.run()
 ```
 
 Reading top-to-bottom:
 - Tribe needs a project root and a scope (lifetime owner)
-- It binds a Unix socket (cleaned up via scope)
-- It wires a JSON-RPC dispatcher
-- It registers tool families: lore, messaging, coordination
-- The MCP server reads the tool registry and exposes it as MCP
+- Config + db + daemon ctx + lore handlers (in-process state, all cleaned up via scope)
+- Tool registry — populated by tool families before any surface
+- Messaging tools include the coordination methods (chief lease, claim, release) —
+  no separate coordinationTools family
+- The MCP server reads the tool registry and exposes it over the Unix socket
 - Observer plugins push messages onto the wire (no tools, just events)
 
 ### Tool registry — the load-bearing decoupling
@@ -205,9 +198,8 @@ Reading top-to-bottom:
 The registry is a plain data structure (a `Map<string, ToolDef>`) on the daemon value. `withTools()` establishes it. `withTool(tools)` is a helper that appends. A plugin or surface that needs unusual access can read/write `value.tools` directly without going through the helper, **but only during composition** — once `app.run()` is called, the registry is read-only. Surfaces subscribe to it; they never mutate it from a tool handler or running plugin. **Surfaces** (MCP server, JSON-RPC dispatcher, future protocols) are independent consumers of that registry:
 
 ```
-                  withTool(loreTools)
                   withTool(messagingTools)   ←─ populates registry
-                  withTool(coordinationTools)
+                  withTool(loreTools)
                           │
                           ▼
                   ┌──────────────┐
@@ -372,32 +364,6 @@ TypeScript's intersection types do this automatically. The `pipe` overloads thre
 - **Type errors get verbose.** When step 7 fails because step 4 didn't add the right field, the error is at step 7 mentioning the cumulative intersection type. Mitigation: extract intermediate types as named aliases.
 - **Curry indirection.** `withTool(t)` returns a function — slightly more code than `tribe.addTool(t)`. Real cost; bought back in composability.
 - **Async pipe is not free.** We sidestep entirely: sync `pipe`, async work outside it (before) or in TEA (during runtime).
-
-## What this replaces
-
-- The `TribePluginApi.start(api) → cleanup` shape (still available; `withPlugin(p)` wraps it for backward compat)
-- Imperative wiring in tribe-daemon.ts boot
-- Ad-hoc test fixtures that hand-build a daemon with three constructor calls
-
-## Migration path for tribe
-
-1. Add `vendor/bearly/packages/composition/` with `pipe` + scope plumbing primitives (~50 LOC). Could absorb into `@bearly/tribe-client` since it's tribe-shaped infrastructure.
-2. Wrap existing tribe-daemon setup as `withX` factories one at a time. Existing code keeps working.
-3. Migrate `tribe-daemon.ts` boot to a `pipe(...)` call.
-4. Migrate observer plugins to `withPlugin(p)` (same shape, just composed via pipe).
-5. Tests that build a synthetic tribe switch to the same `pipe(...)` form.
-
-Estimate: 1-2 sessions, low risk (no public-API changes; tribe MCP wire stays identical).
-
-Bead: `km-tribe.composition-pipe` (P2 design+exec).
-
-## Migration path for silvery / km
-
-Lower priority. Both already work. Migrate when:
-- Silvery is ready to standardize the `with*` providers (currently partial)
-- km's app boot needs a refactor for some other reason
-
-Don't force a churn pass for consistency alone — wait for an organic trigger.
 
 ## See also
 
