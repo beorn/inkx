@@ -207,9 +207,7 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     return synth
   }
 
-  let lineNo = 0
   for (const line of raw.split("\n")) {
-    lineNo++
     if (line.length === 0) continue
     let parsed: CodexLine
     try {
@@ -302,7 +300,6 @@ export function replayCodexSessionFromDisk(store: SessionStore, sessionId: strin
     }
 
     // turn_context and any unknown top-level types are silently dropped.
-    void lineNo
   }
 
   // Synthetic turn-end if the transcript ended mid-turn — same rationale as

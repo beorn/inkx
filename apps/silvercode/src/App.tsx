@@ -797,12 +797,15 @@ export function App(props: AppProps): React.ReactElement {
       // Cursor-boundary handoff between command and queue is handled by
       // SessionPromptComposer's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
-      // Ctrl+E toggles the permission inbox — but only when there's no
-      // text to navigate to the end of. With non-empty input we let the
+      // Ctrl+E toggles the permission inbox manually — but only when there's
+      // no text to navigate to the end of. With non-empty input we let the
       // keypress fall through to silvery TextArea's readline binding
       // (Ctrl+E = move cursor to end-of-line), the cross-platform
       // expectation. To open the inbox while typing, clear the buffer
-      // first or use the `/inbox` slash command.
+      // first or use the `/inbox` slash command. Note: the inbox also
+      // auto-surfaces when a permission-request arrives (see the
+      // pendingPermissions effect above), so this manual toggle is mostly a
+      // backup for re-opening after dismissal.
       if (key.ctrl && input === "e" && (inputValue.length === 0 || focusedRegion !== "command")) {
         setShowInbox((v) => !v)
         return
