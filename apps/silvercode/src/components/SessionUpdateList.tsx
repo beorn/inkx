@@ -281,6 +281,39 @@ function AssistantRow({ text }: { text: string }): React.ReactElement {
  * system-message sentinel pattern.
  */
 /**
+ * Pretty-print JSON for the debug popover. Multi-line string values render
+ * as a heredoc-like indented block under the key; single-line values use
+ * `JSON.stringify` so escapes (`\"`, `\\`) and short strings stay tight.
+ * Output is NOT valid JSON — it's optimized for the human reading the popover.
+ */
+function prettyJsonForDebug(value: unknown, indent = 0): string {
+  const pad = "  ".repeat(indent)
+  const pad1 = "  ".repeat(indent + 1)
+  if (value === null) return "null"
+  if (value === undefined) return "undefined"
+  if (typeof value === "string") {
+    if (value.includes("\n")) {
+      const body = value
+        .split("\n")
+        .map((l) => pad1 + l)
+        .join("\n")
+      return "|\n" + body
+    }
+    return JSON.stringify(value)
+  }
+  if (typeof value !== "object") return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]"
+    const items = value.map((v) => pad1 + prettyJsonForDebug(v, indent + 1))
+    return "[\n" + items.join(",\n") + "\n" + pad + "]"
+  }
+  const entries = Object.entries(value as object)
+  if (entries.length === 0) return "{}"
+  const items = entries.map(([k, v]) => pad1 + JSON.stringify(k) + ": " + prettyJsonForDebug(v, indent + 1))
+  return "{\n" + items.join(",\n") + "\n" + pad + "}"
+}
+
+/**
  * RawInspector — secret debug trick. Wraps each chat entry so that hovering
  * with Cmd+Shift held shows a popover with the entry's raw JSON. When the
  * modifiers aren't held, the wrapper is a transparent passthrough — no popover
@@ -305,14 +338,12 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
   // aren't held, the wrapper is a transparent fragment — no handlers, no
   // hover-event cost.
   const popoverContent = useMemo(() => {
-    // Expand JSON's \n / \r / \t escapes to real characters so multi-line
-    // string values (tool output, command, content) render across rows
-    // instead of as literal "\n" runs. Trades JSON syntactic validity for
-    // human readability — the popover is for eyeballing, not parsing.
-    const json = JSON.stringify(payload, null, 2)
-      .replace(/\\n/g, "\n")
-      .replace(/\\r/g, "")
-      .replace(/\\t/g, "  ")
+    // Pretty-print: when a string value contains newlines, render the body
+    // as an indented block under the key (no JSON escapes, no surrounding
+    // quotes) so tool output / commands read like the actual text. Trades
+    // strict JSON validity for human readability — the popover is for
+    // eyeballing, not parsing.
+    const json = prettyJsonForDebug(payload)
     // Trim very long payloads; full payload available via /debug or the JSONL.
     const lines = json.split("\n")
     const truncated =
