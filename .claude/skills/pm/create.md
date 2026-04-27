@@ -174,6 +174,24 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
 **Include acceptance criteria** in the description — explicit "done when" conditions help future sessions know when the bead is truly complete. Anchor to design docs or skill files where relevant (e.g., "See docs/design/X.md for context").
 
+**Acceptance bullet rule — name a current consumer.** Every Acceptance bullet must name a current consumer or workflow. "Field/factory/table X exists" fails the check; "X consumed by Y to do Z" passes. This catches phantom obligations at spec time — work that grows code with no driving caller.
+
+Examples:
+
+- GOOD: `Field responseExpected exists, consumed by tribe-proxy at delivery time to set the channel envelope attribute`
+- BAD: `Field responseExpected exists` (no consumer named — phantom obligation)
+- GOOD: `Table rooms queried by tribe.members to enumerate the project's session roster`
+- BAD: `Table rooms exists` (no query — inert scaffold)
+- GOOD: `withMCPServer factory registered in tribe-daemon's pipe; consumed by stdio-adapter via Unix socket`
+- BAD: `withMCPServer factory exists` (no consumer named — risk: doc-led drift)
+
+If you cannot name a current consumer, the work is speculative. Two options:
+
+1. Move the idea to [hub/futures.md](../../../hub/futures.md) instead of filing it as a committed bead.
+2. If you genuinely need scaffolding before consumers land, file the bead as type `task` with title prefix `scaffold:` and an explicit "Deferred consumer" caveat in the description naming the future bead that will exercise it.
+
+Background: doc-led drift (the 2026-04-27 retrospective) — "(rename pending)" annotations and `withMCPServer` example code drove three concrete drift incidents because nobody required acceptance bullets to name a consumer.
+
 ```bash
 # Step 1: Create (NO --parent flag here!)
 bd create \

@@ -192,6 +192,10 @@ Beads older than **1 week** are suspect — requirements may have drifted. Befor
 6. **Complete**: `bd close <id> --reason "..."`
 7. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
 
+## Acceptance Bullet Rule
+
+Every Acceptance bullet on a new bead must name a current consumer or workflow ("X consumed by Y to do Z"), not just "X exists". If you cannot name a consumer, the work is speculative — file it in [hub/futures.md](../../../hub/futures.md) instead, or use the `scaffold:` title prefix with an explicit deferred-consumer caveat. Full rationale and examples in [create.md](create.md#phase-3-bead-management).
+
 ## Quick Reference: Common Flag Mistakes
 
 **CRITICAL**: `--id` and `--parent` CANNOT be combined on `bd create`. Always two-step:

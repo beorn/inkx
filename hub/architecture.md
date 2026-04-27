@@ -23,31 +23,13 @@ Three runtime products today, sitting on a shared foundation:
                      storage (SQLite + bidirectional markdown sync, km only today)
 ```
 
-- **km** is a knowledge-management TUI for notes, tasks, calendar with bidirectional markdown sync. The original product, the lead showcase for silvery. Doesn't host agent sessions today; expected to (see [convergence](#km--silvercode-convergence-tbd)).
+- **km** is a knowledge-management TUI for notes, tasks, calendar with bidirectional markdown sync. The original product, the lead showcase for silvery. Does not host agent sessions today.
 - **silvercode** is a multi-pane TUI workspace that hosts agent sessions (Claude Code, codex, gemini-cli) with shared state, channels, and coordination across panes.
 - **tribe** is a per-project coordination daemon that brokers messages and exposes shared tools to whichever apps and agents are working in that project root.
 
-silvercode is a **host app** today — user-facing, ships a UI, hosts agent sessions. km is also a host app in role and is expected to host agent sessions as the convergence below lands. tribe is a **system** — headless, infrastructure that the host apps and agent sessions consume.
+silvercode and km are both **host apps** — user-facing, ship a UI; silvercode hosts agent sessions, km does not. tribe is a **system** — headless, infrastructure that the host apps and agent sessions consume.
 
-### km ⇄ silvercode convergence (TBD)
-
-km and silvercode are **converging into one agentic workdesk** — an integrated knowledge environment where the durable knowledge graph (km) and the live agent workspace (silvercode) share the same state, the same UI shell, and the same coordination layer. Today they're separate apps mostly because their MVPs landed on different timelines; the design assumption is that they end up tightly integrated.
-
-What that looks like, per the [km vision](./km/design/vision.md) and the [silvercode MVP brief](./silvery/future/ai-terminal/00-agent-workspace.md):
-
-- **km** already frames itself as *"the environment for knowledge work with AI agents"* — three first-class axes: Knowledge, Communication, Agents. The Agents axis is the silvercode shape, lifted out as a separate codebase for now.
-- **silvercode**'s MVP is "agent workspace, not super-shell" — supervision/replay/memory layers around Claude Code. Naturally fed by, and feeding back into, the durable knowledge graph km already owns.
-- **Tribe** is built per-project precisely because both products want it to be — coordination is a layer they share rather than each rebuilding.
-
-**Open product question** — TBD when (if) we ship to anyone outside Bjørn's daily workflow:
-
-- Does silvercode merge into km as the Agents axis, with one app shipping?
-- Does silvercode stay standalone for users who only want agent supervision?
-- Or both, with the integrated km+silvercode binary as the headline product and the standalone silvercode as a slimmer companion?
-
-The composition pattern keeps all three options open: the same `pipe + with*` factories that build them today can be re-composed into any of those product shapes without architectural surgery. This doc updates when that decision lands.
-
-See also: [hub/roadmap.md](./roadmap.md) (five-track roadmap with km, silvery, knowledge layer, communication, ecosystem), [hub/km/design/vision.md](./km/design/vision.md) (three-axis framing), [hub/silvery/future/ai-terminal/00-agent-workspace.md](./silvery/future/ai-terminal/00-agent-workspace.md) (silvercode MVP committed direction).
+Convergence between km and silvercode (one agentic workdesk vs two separate apps) is an open product question; see [hub/futures.md](./futures.md#km--silvercode-convergence-options).
 
 ## Foundations
 
@@ -67,9 +49,9 @@ Reusable Claude Code tooling: tribe (coordination + memory), tty (headless termi
 
 ### Storage — bidirectional markdown sync
 
-Source: `packages/km-storage/` and surrounding modules. Used by km today; designed to be reusable.
+Source: `packages/km-storage/` and surrounding modules. Used by km today.
 
-SQLite (via `bun:sqlite`, WAL + FTS5) backs a state cache + index over markdown files on disk. Edits flow both ways: TUI mutations write through to markdown; filesystem changes propagate back to the UI. The storage layer never imports UI; the UI never reads files directly. This is the substrate the km vision's Knowledge axis sits on. silvercode does not use it today; convergence will likely have agent sessions read and write through it.
+SQLite (via `bun:sqlite`, WAL + FTS5) backs a state cache + index over markdown files on disk. Edits flow both ways: TUI mutations write through to markdown; filesystem changes propagate back to the UI. The storage layer never imports UI; the UI never reads files directly. silvercode does not use it today.
 
 ### Composition — `pipe + with*` (plus three runtime companions)
 
@@ -81,13 +63,13 @@ Composition (`pipe + with*`), TEA (`apply / dispatch + effects`), reactive signa
 
 Source: `apps/km-tui/`, `apps/km-cli/`, `apps/km-repl/`, `apps/km-web/`. App architecture: [docs/architecture.md](../docs/architecture.md). Vision: [hub/km/design/vision.md](./km/design/vision.md).
 
-A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS → BOARD → TREE → STORAGE → PARSER → FILESYSTEM. UI never touches filesystem; all edits flow both ways. Storage uses `bun:sqlite` with WAL + FTS5. May host agent sessions natively (the Agents axis of the vision) — currently those live in silvercode; expected to converge.
+A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS → BOARD → TREE → STORAGE → PARSER → FILESYSTEM. UI never touches filesystem; all edits flow both ways. Storage uses `bun:sqlite` with WAL + FTS5. Hosting agent sessions natively (the "Agents axis" of the [km vision](./km/design/vision.md)) is parked in [hub/futures.md](./futures.md#km--silvercode-convergence-options); today agent sessions live in silvercode.
 
 ### silvercode
 
 Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md). Design: [hub/silvery/future/ai-terminal/](./silvery/future/ai-terminal/) — full MVP brief, agent integration, multiplex, sessions, supervision.
 
-A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. The product split with km is TBD — see [convergence](#km--silvercode-convergence-tbd) above.
+A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. Whether the product eventually merges into km is an open product question, parked in [hub/futures.md](./futures.md#km--silvercode-convergence-options).
 
 ### tribe
 
@@ -283,6 +265,7 @@ The parent-death orphan gap (`km-silvercode.parent-death-orphan-gap`) is deferre
 |---|---|
 | **System overview** (this doc) | `hub/architecture.md` |
 | **Composition strategy** | [hub/composition.md](./composition.md) |
+| **Futures / parked designs** | [hub/futures.md](./futures.md) |
 | **km app internals** | [docs/architecture.md](../docs/architecture.md) — layers, dependencies, building blocks |
 | **silvery framework** | [silvery CLAUDE.md](../vendor/silvery/CLAUDE.md), [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md), [positioning](../docs/silvery-positioning-brief.md) |
 | **bearly umbrella** | [bearly CLAUDE.md](../vendor/bearly/CLAUDE.md), [bearly README](../vendor/bearly/README.md) |

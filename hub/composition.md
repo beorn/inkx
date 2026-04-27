@@ -10,7 +10,7 @@ How we compose apps and systems across km, silvery, and tribe. The factory funct
 const tribe = pipe(
   createBaseTribe({ scope }),
   withProjectRoot(opts.root),
-  withSocket(),
+  withSocketServer(),
   withTools(),
   withTool(loreTools()),
   withTool(messagingTools()),
@@ -37,7 +37,7 @@ export function pipe<A, B, C>(a: A, ab: (a: A) => B, bc: (b: B) => C): C
 // withX — typed capability extension
 //
 //   withProjectRoot(root): (t: Tribe) => Tribe & { projectRoot: ProjectRoot }
-//   withSocket():          (t: Tribe & { projectRoot }) => Tribe & { socket }
+//   withSocketServer():          (t: Tribe & { projectRoot }) => Tribe & { socket }
 //   withMCPServer():       (t: Tribe & { socket }) => Tribe & { mcpServer }
 //   withTool(tool):        (t: Tribe & { mcpServer }) => same type (mutates registry)
 //
@@ -46,8 +46,8 @@ export function pipe<A, B, C>(a: A, ab: (a: A) => B, bc: (b: B) => C): C
 
 Three rules govern the shape:
 
-1. **Each `withX` only typechecks if its prerequisites are upstream.** `withSocket()` requires `projectRoot` to already exist on the type. The compiler tells you the order.
-2. **Each `withX` registers its own cleanup on the passed `Scope`.** The base value carries a `scope: Scope`; `withSocket` does `scope.defer(() => server.close())`. Closing the root scope cascades cleanup in reverse-registration order.
+1. **Each `withX` only typechecks if its prerequisites are upstream.** `withSocketServer()` requires `projectRoot` to already exist on the type. The compiler tells you the order.
+2. **Each `withX` registers its own cleanup on the passed `Scope`.** The base value carries a `scope: Scope`; `withSocketServer` does `scope.defer(() => server.close())`. Closing the root scope cascades cleanup in reverse-registration order.
 3. **`withX` factories are pure values until applied.** `withTool(loreTools())` is a description; running `pipe(...)` is what actually wires it up. This means tests can introspect the composition before executing it.
 
 ## Why this beats the alternatives
@@ -63,75 +63,75 @@ Three rules govern the shape:
 The four key wins of `pipe + with*`:
 
 1. **Story = code.** The factory function reads as the architecture diagram. No separate "boot order" doc to drift.
-2. **Type-driven prerequisites.** Composition order is enforced by types, not comments or runtime asserts. Try to call `withSocket()` before `withProjectRoot()` and TypeScript stops you.
+2. **Type-driven prerequisites.** Composition order is enforced by types, not comments or runtime asserts. Try to call `withSocketServer()` before `withProjectRoot()` and TypeScript stops you.
 3. **Uniform lifecycle.** Every `withX` participates in the same `Scope` cascade. Hot-reload, shutdown, test teardown all use the same primitive. This aligns with the existing rule from MEMORY.md: *"resource leak / lifecycle / cleanup → `Scope` is the canonical primitive."*
 4. **One pattern across km + silvery + tribe.** Anyone who knows the pattern for one knows it for all three. Reduces onboarding cost and cross-system context-switching.
 
 ## Companion patterns — the canonical runtime stack
 
-Composition is the *structural* layer. It interlocks with three other patterns to form the full app runtime — used uniformly across silvery, km, silvercode, and tribe:
+Composition is the *structural* layer. It interlocks with four other patterns to form the full app runtime — used uniformly across silvery, km, silvercode, and tribe:
 
 | Pattern | Role | Where the doc lives |
 |---|---|---|
 | **Composition** (this doc) | Structure: factory produces the system. `pipe + with*`. | hub/composition.md |
-| **TEA** (`apply` / `dispatch`) | Behavior: pure `(action, state) → [state, effects]` state machines. Effects are serializable data. | [docs/design/tea.md](../docs/design/tea.md) |
-| **Reactive store** (alien-signals + family) | Derived state, projections, subscriptions. Signals are atomic; `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. | `vendor/bearly/packages/alien-*/` |
+| **Inner domain reducers** (`Board.apply`, `Tree.apply`, …) | Pure-state-machine layer. `(state, op) → [state, effects]`, shipped (Phase 2a navigation reducer). The outer app-level dispatch/apply plugin bus is being designed — see [hub/futures.md](./futures.md#tea-effect-emission-shape). | [docs/design/tea.md](../docs/design/tea.md) |
+| **alien-signals** (reactive view generation) | Derived state, projections, subscriptions. `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. Today plugins import `alien-signals` directly and expose signals on their slice of the daemon value. A cross-plugin signal-store API is parked in [hub/futures.md](./futures.md#signal-store-api). | `vendor/bearly/packages/alien-*/` |
 | **Scope** (lifecycle) | Structured concurrency. `AsyncDisposableStack` + `AbortSignal` + child cascade. `withScope()` at the root, `useScopeEffect` in components. | [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) |
+| **Loggily** (observability) | Structured logs through one pipeline. `createLogger("ns:thing")` everywhere; host apps wire `addWriter(createFileWriter(path))` at startup. Namespace IS the separator — never reinvent file-JSONL writes locally. | [.claude/skills/logging/SKILL.md](../.claude/skills/logging/SKILL.md) |
 
 ### How they interlock
+
+There is no special machinery — the entire runtime is just `pipe + with*` plugins composing together. State lives in the plugin that creates it; no centralized dispatch bus. A signal-store primitive for cases where plugins need to share derived state is parked in [hub/futures.md](./futures.md#signal-store-api).
 
 ```
 pipe + with*       ← structure: factory produces the system value
   ├─ withScope()              ← scope: lifetime owner for everything below
-  ├─ withSignalStore()        ← reactive store: signals + projections
-  ├─ withMachines(...)        ← TEA: apply(action, state) → [state, effects]
-  ├─ withTools()
-  ├─ withTool(...)
-  └─ withSurfaces()           ← surfaces read the registry; effects + signals
-                                drive what they emit
-await app.run()    ← run loop: dispatch → apply → emit effects → schedule async
-                    work on scope; signals notify subscribers; cleanup cascades
-                    when scope closes
+  ├─ withProjectRoot()        ← config / env / project-rooted state
+  ├─ withDatabase()           ← persistence layer
+  ├─ withTools()              ← protocol-agnostic tool registry
+  ├─ withTool(...)            ← register tool families
+  └─ withMCPServer()          ← surface: serve registered tools over a wire
+await app.run()    ← scope owns lifetime; cleanup cascades on close
 ```
 
-The four are orthogonal but always-together:
+The patterns each `withX` plugin uses internally — when it needs them:
 
-- **Composition** wires the parts. Without it, "boot order" is implicit.
-- **TEA** owns behavior. Actions are dispatched, state advances purely, effects describe the async work to schedule.
-- **Signals** carry derived/observed state. Components and surfaces (MCP tools, render trees, log streams) subscribe to signals; signals re-compute when their inputs change.
-- **Scope** owns lifetime. Every `withX` registers cleanup. Closing the root scope cascades — sockets close, subprocesses term, subscriptions drop, timers cancel — in reverse-registration order.
+- **Inner domain reducers** — `Board.apply(state, op) → [state, effects]` and friends — are the pure-state-machine layer (shipped per [docs/design/tea.md](../docs/design/tea.md)). Each plugin owns when and how it consults its own reducer. The outer app-level `dispatch/apply` plugin bus that would route ops between plugins is being designed — open questions are parked in [hub/futures.md](./futures.md#tea-effect-emission-shape).
+- **`alien-signals`** — for reactive view generation (derived state, projections, subscriptions). Today plugins import `alien-signals` directly and expose signals on their slice of the daemon value. A shared signal-store is parked in [hub/futures.md](./futures.md#signal-store-api); until then, plugins reach for `alien-signals` themselves.
+- **`scope.defer(...)`** — for cleanup. Every `withX` that allocates a resource registers its own teardown on the passed scope. Closing the root scope cascades in reverse-registration order.
+- **`createLogger("namespace:thing")` from loggily** — for observability. Every subsystem logs through one pipeline; namespaces separate. New subsystems do **not** ship a local `createLogger` or `fs.appendFileSync`.
 
-A minimal interlock — what `withMachines(...)` and a tool handler look like in practice:
+The pattern is uniform: a plugin owns its state, its reducer (if any), its signals (if any), its cleanup, and its observability. The daemon value carries each plugin's slice. `pipe` composes them. Nothing in the middle orchestrates.
+
+A `withX` factory typically does three things: extends the daemon value with a new field, registers cleanup on the scope, and (if needed) reads tools from the registry to wire them. No machine-orchestration layer in the middle.
 
 ```typescript
-// Inside a with* factory: register a TEA machine, expose a signal projection
-function withMessaging() {
-  return <T extends BaseTribe & WithSocket & WithSignalStore>(t: T) => {
-    const [state, dispatch] = withMachines(t.scope, {
-      messaging: messagingMachine, // (action, state) => [state, effects]
+// Inside a with* factory — narrow, additive, scope-aware
+function withSocketServer<T extends BaseTribe & WithProjectRoot>(): (t: T) => T & WithSocket {
+  return (t) => {
+    const path = resolveSocketPath(t.projectRoot)
+    const server = createServer().listen(path)
+    chmodSync(path, 0o600)
+    t.scope.defer(async () => {
+      await new Promise<void>((r) => server.close(() => r()))
+      rmSocketFile(path)
     })
-    // alien-projections: members signal recomputes only when state.members changes
-    const memberRoster = createProjection(state, s => s.members)
-    return { ...t, dispatch, signals: { ...t.signals, memberRoster } }
+    return { ...t, socket: { path, server } }
   }
 }
 
-// Tool handler reads signals, dispatches actions:
+// Tool handler reads tools/state directly — no dispatch wrapper layer:
 const sendTool: ToolDef = {
   name: "tribe.send",
   schema: z.object({ to: z.string(), text: z.string() }),
   handler: (args, ctx) => {
-    if (!ctx.signals.memberRoster.peek().has(args.to)) {
-      throw new Error(`unknown member: ${args.to}`)
-    }
-    ctx.dispatch({ type: "send", to: args.to, text: args.text })
-    // The machine's `apply` produces effects (e.g., write to socket); the runtime
-    // schedules them on ctx.scope.
+    if (!ctx.clients.has(args.to)) throw new Error(`unknown member: ${args.to}`)
+    ctx.broadcast.send(args.to, args.text)
   },
 }
 ```
 
-The pipe wired up dispatch + signals; the tool handler consumes them. No global state, no setup ceremony — every layer is reachable through the daemon value passed into the pipe.
+The pipe wires capabilities onto the daemon value; tool handlers consume them through `ctx`. No global state, no machinery layer — every capability is reachable through the value passed into the pipe.
 
 ### Same shape across the apps
 
@@ -142,7 +142,7 @@ The pipe wired up dispatch + signals; the tool handler consumes them. No global 
 
 You can read the composition pipe top-to-bottom and know what's in the system. You can read a state machine's `apply` and know what it does. You can read a component's signals and know what it observes. You can read the scope's children and know what cleanup is owed. Each layer has one shape; together they describe the app.
 
-The rest of this doc focuses on composition specifically. TEA, signals, and Scope each have their own design doc.
+The rest of this doc focuses on composition specifically. TEA, signals, Scope, and Loggily each have their own design / skill doc.
 
 ## Concrete shapes
 
@@ -273,7 +273,7 @@ km's documented layer stack (APP → COMMANDS → BOARD → TREE → STORAGE →
 Every `with*` accepts (or transitively has access to) the base's `scope: Scope`. Cleanup registration is non-optional and uniform:
 
 ```typescript
-function withSocket() {
+function withSocketServer() {
   return <T extends BaseTribe & WithProjectRoot>(t: T): T & WithSocket => {
     const path = resolveSocketPath(t.projectRoot)
     const server = bindSocket(path)
@@ -304,7 +304,7 @@ const config = await readConfig(opts.configPath)
 const tribe = pipe(
   createBaseTribe({ scope, db, config }),
   withProjectRoot(opts.root),
-  withSocket(),
+  withSocketServer(),
   withTools(),
   withTool(loreTools()),
   // ...
@@ -313,7 +313,7 @@ const tribe = pipe(
 await tribe.run()
 ```
 
-**2. Ongoing async — events, streams, subscriptions, long-running work — is TEA.** `pipe` produces the system as a value; TEA describes its runtime behavior. Every interactive subsystem is `(action, state) → [state, effects]`; effects are the place async runtime concerns live (subscribing to a socket, broadcasting on a channel, polling git). The composition wires them up; TEA runs them.
+**2. Ongoing async — events, streams, subscriptions, long-running work — is TEA.** `pipe` produces the system as a value; TEA describes its runtime behavior. Inner domain reducers (Board, Tree, etc.) follow the shipped contract `(state, op) → [state, effects]` — see [docs/design/tea.md](../docs/design/tea.md). The outer app-level `dispatch/apply` plugin bus is parked in [hub/futures.md](./futures.md#tea-effect-emission-shape).
 
 See [docs/design/tea.md](../docs/design/tea.md) for the TEA pattern. The composition pattern and TEA are complementary: composition is for *structure*, TEA is for *behavior*.
 
@@ -325,7 +325,7 @@ A `withX` that throws aborts composition. Cleanup runs because the scope closes 
 
 ```typescript
 try {
-  const tribe = pipe(createBaseTribe({ scope }), withProjectRoot(...), withSocket(), ...)
+  const tribe = pipe(createBaseTribe({ scope }), withProjectRoot(...), withSocketServer(), ...)
   await tribe.run()
 } catch (err) {
   await scope.close()                     // fires registered cleanups in reverse
@@ -362,7 +362,7 @@ type WithMCP = { mcpServer: McpServer }
 const tribe = pipe(
   createBaseTribe({ scope }),                            // Base
   withProjectRoot(root),                                  // Base & WithProjectRoot
-  withSocket(),                                           // ... & WithSocket
+  withSocketServer(),                                           // ... & WithSocket
   withTools(),                                            // ... & WithTools
   withTool(loreTools()),                                  // ... (no new type; appends to tools)
   withMCPServer(),                                        // ... & WithMCP
@@ -382,5 +382,6 @@ TypeScript's intersection types do this automatically. The `pipe` overloads thre
 ## See also
 
 - [hub/architecture.md](./architecture.md) — the runtime topology these factories produce
+- [hub/futures.md](./futures.md) — open design questions, considered alternatives, and explicitly rejected abstractions (`withMachines`, `withSignalStore`, `withSurfaces`)
 - [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) — the `Scope` primitive every `withX` participates in
 - Effect's `Layer` and Apollo Server's `ApolloServer.create` — same idea, different ecosystems
