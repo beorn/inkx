@@ -121,6 +121,7 @@
     "perf:startup": "hyperfine --warmup 3 --min-runs 10 'bun km --help' --export-json /tmp/km-startup-bench.json",
     "audit:supply-chain": "bunx socket scan create . --org beorn --json",
     "build:info": "bun scripts/generate-build-info.ts",
+    "postinstall": "bun run build:info",
     "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
