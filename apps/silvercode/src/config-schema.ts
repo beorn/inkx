@@ -162,11 +162,24 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     defaultModel: "claude-opus-4-7",
     description: "Claude Code (legacy stream-json spawn)",
   },
+  "claude-code-sdk": {
+    id: "claude-code-sdk",
+    transport: "spawn",
+    credEnv: ["ANTHROPIC_API_KEY"],
+    defaultModel: "claude-opus-4-7",
+    description: "Claude Code (in-process Anthropic SDK)",
+  },
   codex: {
     id: "codex",
     transport: "acp",
     credEnv: ["OPENAI_API_KEY"],
     description: "OpenAI Codex (ACP) — ChatGPT subscription",
+  },
+  "codex-spawn": {
+    id: "codex-spawn",
+    transport: "spawn",
+    credEnv: ["OPENAI_API_KEY"],
+    description: "OpenAI Codex (legacy stream-json spawn)",
   },
   gemini: {
     id: "gemini",
