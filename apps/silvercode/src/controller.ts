@@ -41,6 +41,7 @@ import { type ChannelQueue, createChannelQueue } from "./channel-queue.ts"
 import { type AmbientStream, createAmbientStream } from "./ambient-stream.ts"
 import { type MuteState, createMuteState } from "./mute-state.ts"
 import { wireChannelSources } from "./channel-sources.ts"
+import { registerAllAmbientAdapters } from "./ambient-adapters/index.ts"
 import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordinator-mcp.ts"
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk } from "./resume.ts"
@@ -260,6 +261,27 @@ export type ControllerOptions = {
    * itself is always created so the controller surface is uniform.
    */
   disableChannelSources?: boolean
+
+  /**
+   * Disable Phase 6.b ambient adapters (tribe / recall / subagent / ci /
+   * filewatch — see `apps/silvercode/src/ambient-adapters/`). Defaults to
+   * the same value as `disableChannelSources` so tests that opt out of
+   * the legacy channel pipeline also opt out of the new one.
+   *
+   * The new ambient adapters live alongside (not in place of) the legacy
+   * `wireChannelSources` path. When both are active, the new tribe
+   * adapter and the legacy `subscribeTribe` would both tail the bus —
+   * setting `disableLegacyTribeSource` (below) is the recommended way to
+   * avoid double-emit.
+   */
+  disableAmbientAdapters?: boolean
+  /**
+   * Disable the legacy `subscribeTribe` path inside `wireChannelSources`
+   * — the new ambient-adapters tribe subscriber tails the same bus and
+   * sanitizes/debounces the result. Defaults to `false` to preserve
+   * back-compat; flip to `true` when standing on the new pipeline.
+   */
+  disableLegacyTribeSource?: boolean
 }
 
 export type SpawnSessionOptions = {
@@ -472,7 +494,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // slice has visibility into recent peer activity.
   const crossAgentState = createCrossAgentState(controllerScope)
   if (!opts.disableChannelSources) {
-    wireChannelSources(controllerScope, channelQueue)
+    wireChannelSources(controllerScope, channelQueue, {
+      disable: opts.disableLegacyTribeSource ? { tribe: true } : undefined,
+    })
+  }
+  // Phase 6.b ambient adapters — sanitize + debounce real source signals
+  // (tribe, ci, filewatch; recall + subagent are wired stubs). Disabling
+  // is gated by `disableAmbientAdapters` (default: follow the legacy
+  // channel-sources gate).
+  if (!opts.disableAmbientAdapters && !opts.disableChannelSources) {
+    registerAllAmbientAdapters({
+      scope: controllerScope,
+      queue: channelQueue,
+      cwd: opts.cwd,
+    })
   }
   // Mirror channel-queue events into the cross-agent broadcast ring buffer
   // so the prompt-projection slice (apps/silvercode/src/prompt-cross-agent.ts)

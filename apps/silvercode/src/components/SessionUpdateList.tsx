@@ -584,9 +584,7 @@ export const SessionUpdateList = React.forwardRef<
     <ListView
       ref={ref}
       items={items}
-      getKey={(item, i) =>
-        isActivity(item) ? "__activity" : isAmbient(item) ? `ambient:${item.entry.id}` : i
-      }
+      getKey={(item, i) => (isActivity(item) ? "__activity" : isAmbient(item) ? `ambient:${item.entry.id}` : i)}
       gap={1}
       maxRendered={200}
       follow="end"
