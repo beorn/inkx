@@ -63,6 +63,26 @@ jobs:
         # frozen install fails CI for reasons unrelated to fuzz coverage.
         run: bun install
 
+      - name: Recreate mdspec vitest-plugin stub
+        # vitest.config.ts imports `mdspec/vitest-plugin`, but the
+        # canonical stub lives at node_modules/mdspec/ (git-untracked,
+        # manually placed by local devs). bun install in CI doesn't
+        # recreate it because vendor/mdspec doesn't ship a built
+        # vitest-plugin.js — it only has TS sources, which vitest's
+        # config-loader can't transpile through workspace boundaries.
+        # This step recreates the stub the same way local dev has it.
+        # Tracked: km-infra.continuous-fuzz notes — when mdspec ships a
+        # built dist/, this step can be deleted.
+        run: |
+          mkdir -p node_modules/mdspec
+          cat > node_modules/mdspec/package.json <<'JSON'
+          {"name":"mdspec","version":"0.0.0","exports":{"./vitest-plugin":"./vitest-plugin.js"}}
+          JSON
+          cat > node_modules/mdspec/vitest-plugin.js <<'JS'
+          export function mdspec() { return { name: "mdspec-stub" } }
+          JS
+          echo "mdspec stub recreated at node_modules/mdspec/"
+
       - name: Restore fuzz corpus
         id: corpus-restore
         uses: actions/cache/restore@v4
