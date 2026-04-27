@@ -1,137 +1,55 @@
 ---
 description: "GPT 5.4 Pro — code reviews, direct questions, architectural advice. Use when user says 'pro', '/pro', 'ask pro', or wants GPT 5.4 Pro's opinion on anything."
-argument-hint: [review [<package>] [--fast | --deep] | "<question>" | --history | --dry-run]
+argument-hint: ["<question>" | review [<package>] [--deep]]
 ---
 
-**Keywords**: pro, pro review, gpt pro, gpt 5.4, gpt 5.5, code review, automated review, ask pro, second opinion
+# /pro — second opinion + code review
 
-# Pro — GPT 5.4 Pro
+GPT 5.4 Pro for direct questions and code reviews.
 
-GPT 5.4 Pro for code reviews and direct questions.
+**Keywords**: pro, /pro, ask pro, gpt pro, gpt 5.4, code review, second opinion
 
-> **GPT-5.5 "Spud" note (2026-04-23)**: GPT-5.5 Pro announced ($30/$180 per M tokens). ChatGPT/Codex first; API rollout pending. Once the OpenAI API exposes `gpt-5.5-pro`, opt in with `--model gpt-5.5-pro`; defaults here stay on 5.4 Pro until the API is confirmed live.
+## Decision table
 
-**Cost**: ~$5-15 per package review, ~$1-3 per direct question.
+| User says | Mode | Command |
+|-----------|------|---------|
+| `/pro "question"` | direct query | `bun llm pro -y --no-recover --context-file <ctx> "question"` |
+| `pro, <question>` | direct query | same — casual form |
+| `/pro review <pkg>` | code review (fast) | `bun llm --model gpt-5.4-pro -y --no-recover --context-file <pkg-ctx> "review <pkg>"` |
+| `/pro review --deep <pkg>` | code review (deep) | add `--deep` to the above (~$5-15, 30-50 min, web search) |
+| `/pro review` (no arg) | discover + cost | manual: list `packages/`, `apps/`, `vendor/`, estimate, ask user to pick — future: `bun llm pro --discover` (see km-bearly.llm-cli-json-output) |
 
-## Command Mapping
+## Cost guidance
 
-| User Says | Mode | Action |
-|-----------|------|--------|
-| `/pro review` | **Code review (deep)** | Full workflow: discover → estimate → select → review → triage |
-| `/pro review <package>` | **Code review (deep)** | Review specific package(s) directly |
-| `/pro review --fast <package>` | **Code review (fast)** | Drop `--deep`; review with self-sufficient context only (~10m, ~$1-3) |
-| `/pro review --dry-run` | **Code review** | Discover + estimate only |
-| `/pro review --history` | **Code review** | Show review history dashboard |
-| `/pro review --stale` | **Code review** | Packages needing re-review |
-| `/pro "<question>"` | **Direct query** | Ask GPT 5.4 Pro with project context (no `--deep`, fast by default) |
-| `pro, <question>` | **Direct query** | Same — casual form |
+- Direct query (dual-pro: GPT-5.4 Pro + Kimi K2.6): ~$5-15
+- Direct query single-model (`--model gpt-5.4-pro` or `--model kimi-k2.6`): ~$0.50-3
+- Fast code review: ~$1-3
+- Deep code review (`--deep`): ~$5-15
 
-### Fast vs Deep — when to pick which
+## Context-file rules
 
-| Mode | Flag(s) | Cost | Wall time | Use when |
-|------|---------|------|-----------|----------|
-| **fast** | `--model gpt-5.4-pro -y --no-recover --context-file <ctx>` | ~$1-3 | ~5-10 min | Context file is self-sufficient (you've already gathered the source, principles, prior findings) and you want a focused review. Pro reasons over what you give it; no web search. |
-| **deep** | adds `--deep` to the above | ~$5-15 | ~30-50 min | You want pro to research industry prior art, verify claims against external sources, or survey alternatives the codebase doesn't already document. Triggers OpenAI's deep-research path (web search + extended reasoning), recoverable with `bun llm recover <id>` or `bun llm await <id>`. |
+- **Always `--context-file`, never `--context`** — backticks, `$(...)`, and unmatched quotes in source code break shell quoting.
+- **Pass full files, not snippets** — the trimmed-out section is often where the bug is.
+- **Always include the silvery positioning brief** for any silvery-related question: `--context-file docs/silvery-positioning-brief.md` (or paste the "What silvery is" paragraph).
+- For code reviews: include source + types + callers + test code + exact error output.
 
-**Rule of thumb:** if the context file already contains everything pro needs to answer, `--fast` is the right call. The 2026-04-20 backdrop-hardening review would have been ~10 min with `--fast` instead of ~40 min with `--deep` — the context (silvery pipeline source + prior bead findings) was already self-sufficient. Default to `--fast` for code reviews; reach for `--deep` when external evidence is genuinely needed.
+## Recovery
 
-**Recovery for deep runs**: `bun llm recover <id>` (interactive — TTY spinner, falls back to one line per minute on non-TTY) or `bun llm await <id>` (silent block, only prints final file path — better for claude-code background tasks). Both write `/tmp/llm-*.txt` on success and honour `LLM_RECOVER_MAX_ATTEMPTS` (default 600 = 50 min ceiling).
+- `--no-recover` by default — avoid stale recovered responses from prior unrelated calls.
+- For `--deep` runs (fire-and-forget, exit ~5s): recover with `bun llm recover <id>` (interactive) or `bun llm await <id>` (silent block, prints final file path — better for background tasks).
+- Never restart an interrupted deep run — it continues server-side at OpenAI. Just recover.
 
-### Direct Query Mode
+## Dual-pro mode
 
-When the user says `/pro "question"` or "pro, what do you think about X":
+`bun llm pro "..."` fires GPT-5.4 Pro **and** Kimi K2.6 in parallel by default. K2.6 adds ~$0.01-0.50 to a $5-15 Pro call (~100× cheaper, competitive on strategy questions). A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl`. To force single-model: `--model gpt-5.4-pro`. Auto-falls-back to single GPT-5.4 Pro if `OPENROUTER_API_KEY` is unset.
 
-1. Build a context file with relevant code (read the files, include key sections)
-2. Run: `bun llm pro -y --no-recover --context-file /tmp/pro-context.md "<question>"`
-3. Present the response, synthesize with your own analysis
+## Anti-patterns
 
-**What `bun llm pro` does now (as of 2026-04-20)**: fires GPT-5.4 Pro **and** Kimi K2.6 in parallel and returns a combined report with both responses labeled. Kimi K2.6 costs ~100× less than Pro and is competitive on strategy/review questions — the A/B log at `~/.claude/projects/<project>/memory/ab-pro.jsonl` tracks both for retrospective comparison. K2.6 adds only ~$0.01-0.50 to a $5-15 Pro call, so it's essentially free insurance against Pro missing something.
+- Skipping the positioning brief on silvery questions → answers default to "TUI library author" framing.
+- Using `--context` instead of `--context-file` → shell quoting breaks.
+- Forgetting `--no-recover` → stale results waste money.
+- Restarting an interrupted `--deep` call → wastes $5-15, response is still completing remotely.
 
-To force single-model (skip K2.6): add `--model gpt-5.4-pro`. Dual mode also auto-falls-back to single GPT-5.4 Pro if `OPENROUTER_API_KEY` is unset.
+## Future
 
-**Swap leg B (head-to-head sprints)**: set `LLM_DUAL_PRO_B=<modelId>` to replace Kimi K2.6 with any other registered model. Example once `gpt-5.5-pro` goes API-live:
-```bash
-export LLM_DUAL_PRO_B=gpt-5.5-pro   # 5.4-pro vs 5.5-pro frontier A/B (~$10-30 per call)
-bun llm pro "question"
-unset LLM_DUAL_PRO_B                # revert to K2.6 default
-```
-The A/B log keeps recording both legs under the existing `gpt`/`kimi` buckets — `kimi.model` disambiguates mixed windows when you grep later. Both OpenAI Pros route through the Responses API so a head-to-head call is recoverable with `bun llm recover <id>`.
-
-Use for: architectural decisions, design review, "is this approach sound?", second opinions.
-
-### Code Review Mode
-
-## Workflow
-
-### Step 1: Discovery & Cost Estimation
-
-Load [discover.md](discover.md) and run the discovery process:
-1. Scan `packages/`, `apps/`, `vendor/` for TypeScript packages
-2. Count LOC, estimate tokens and cost
-3. Check review history for prior reviews
-4. Present cost table to user
-
-**Skip this step** if user specified a package name directly.
-
-### Step 2: User Selection
-
-Present the discovery table using `AskUserQuestion`. Support selection shortcuts:
-- Numbers: `2,3,5` or `1-4`
-- `all` — review everything
-- `unreviewed` — only packages never reviewed
-- `stale` — packages reviewed >2 weeks ago or with significant changes since
-
-### Step 3: Create Tracking Bead
-
-**Before launching any reviews**, create a tracking epic:
-
-```bash
-# Find next sequential number
-bd list --id-prefix km-all.pro-review --limit 100
-# Create tracking epic
-bd create --id km-all.pro-review-<N> --type epic --title "Pro Review Round N: <date> — <packages>" --priority 2
-bd update km-all.pro-review-<N> --parent km-all
-bd update km-all.pro-review-<N> --claim
-```
-
-### Step 4: Per-Package Review
-
-For each selected package, load [review.md](review.md) and execute:
-1. Gather context (shared header + package source + prior findings)
-2. Build context file at `/tmp/pro-review-<package>.md`
-3. Launch `bun llm --deep --model gpt-5.4-pro -y --no-recover --context-file /tmp/pro-review-<pkg>.md "GPT 5.4 Pro code review: <package>"` (fire-and-forget, exits in ~5s)
-4. Launch up to 3 concurrently — recover results later with `bun llm recover`
-
-### Step 5: Triage
-
-As each review completes, load [triage.md](triage.md):
-1. Read the output file (NOT the task output — find the `/tmp/llm-*.txt` file)
-2. Classify findings as P0-P3
-3. Create per-package review bead under the tracking epic
-4. Create individual bug beads for P0/P1 findings
-5. Update tracking bead description with cumulative dashboard
-6. Present findings table to user
-7. Ask: "Fix P0/P1 now? (recommended) / Track only / Skip"
-
-### Step 6: Fix (Optional)
-
-If user wants fixes:
-- Launch `/max` with parallel agents for independent P0/P1 fixes
-- TDD enforced: failing test before fix
-- Each agent closes its bug bead when done
-
-### Step 7: Record History
-
-Load [history.md](history.md) and append results to `history.jsonl`.
-
-## Anti-Patterns
-
-| Don't | Why |
-|-------|-----|
-| Skip the tracking bead | Future sessions can't find review results |
-| Launch >3 concurrent reviews | Deep research queue has practical limits |
-| Skip triage, just dump findings | Raw findings are overwhelming — classification enables prioritization |
-| Fix P2/P3 automatically | Low-priority findings need user judgment |
-| Send code without context header | Reviewer needs architecture + principles to give good advice |
-| Use `--context` instead of `--context-file` | Shell quoting breaks on backticks in source code |
-| Forget `--no-recover` | Stale recovered responses from prior calls waste money |
+Review-round workflow (multi-package discovery, triage, per-finding bead creation) lives in the CLI, not this skill. Pointer: `bun llm pro --discover` once km-bearly.llm-cli-json-output lands.
