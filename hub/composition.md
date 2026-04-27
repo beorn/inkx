@@ -202,40 +202,34 @@ When the root scope closes (daemon shutdown, hot-reload, test teardown), the `de
 
 `SILVERY_SCOPE_TRACE=1` instrumentation extends through tribe automatically once tribe migrates to this pattern.
 
-## Async composition
+## Async — outside the pipe, then `app.run()`
 
-`pipe` is synchronous. Two options for async steps:
+`pipe` is synchronous. Two principles handle every async case:
 
-**Option A — `pipeAsync`** (parallel API for fully-async composition):
-
-```typescript
-const tribe = await pipeAsync(
-  createBaseTribe({ scope }),
-  withProjectRoot(opts.root),
-  await withSocket(),                    // binds + listens, awaits ready
-  withDispatch(),
-  // ...
-)
-```
-
-**Option B — sync composition, async start** (preferred for tribe):
+**1. Async setup happens outside the pipe.** If something must be awaited (read config, open a database, fetch keys, resolve a socket path against a remote), do it before `pipe(...)` and pass the result in:
 
 ```typescript
+// Async work BEFORE the pipe — keeps pipe pure and synchronous.
+const db = await openDb(dbPath)
+const config = await readConfig(opts.configPath)
+
 const tribe = pipe(
-  createBaseTribe({ scope }),
+  createBaseTribe({ scope, db, config }),
   withProjectRoot(opts.root),
-  withSocket(),                          // declares intent; doesn't bind yet
-  withDispatch(),
-  withMCPServer(),
-  withPlugin(gitPlugin),
+  withSocket(),
+  withTools(),
+  withTool(loreTools()),
   // ...
 )
-await tribe.start()                       // single async lift, opens sockets
+
+await tribe.run()
 ```
 
-The composition stays synchronous and pure (testable as data). Async work batches into a `start()` that walks the registered initializers. This is the same shape Apollo Server, Fastify, and Effect's `Layer` use.
+**2. Ongoing async — events, streams, subscriptions, long-running work — is TEA.** `pipe` produces the system as a value; TEA describes its runtime behavior. Every interactive subsystem is `(action, state) → [state, effects]`; effects are the place async runtime concerns live (subscribing to a socket, broadcasting on a channel, polling git). The composition wires them up; TEA runs them.
 
-Recommendation: **start with Option B.** Keep `pipe` simple. If a step genuinely needs to await mid-composition (e.g., dynamic plugin discovery), promote that single step to an async pre-fetch outside the pipe.
+See [docs/design/tea.md](../docs/design/tea.md) for the TEA pattern. The composition pattern and TEA are complementary: composition is for *structure*, TEA is for *behavior*.
+
+**The entry point is `app.run()`, not `app.start()`.** Aligns with silvery's runtime (`run(view, …)`) and the era2 lifecycle. `run()` opens sockets, mounts surfaces, fires plugin observers, and returns when the scope closes (shutdown, SIGTERM, fatal error). Tests typically call `run()` and either let it run to completion or close the scope to terminate.
 
 ## Error handling
 
@@ -244,7 +238,7 @@ A `withX` that throws aborts composition. Cleanup runs because the scope closes 
 ```typescript
 try {
   const tribe = pipe(createBaseTribe({ scope }), withProjectRoot(...), withSocket(), ...)
-  await tribe.start()
+  await tribe.run()
 } catch (err) {
   await scope.close()                     // fires registered cleanups in reverse
   throw err
@@ -293,7 +287,7 @@ TypeScript's intersection types do this automatically. The `pipe` overloads thre
 - **Overload boilerplate.** `pipe` needs ~12 overloads to type N-step compositions. One-time cost in a util file.
 - **Type errors get verbose.** When step 7 fails because step 4 didn't add the right field, the error is at step 7 mentioning the cumulative intersection type. Mitigation: extract intermediate types as named aliases.
 - **Curry indirection.** `withTool(t)` returns a function — slightly more code than `tribe.addTool(t)`. Real cost; bought back in composability.
-- **Async pipe is not free.** See above; we sidestep with sync `pipe` + async `start()`.
+- **Async pipe is not free.** We sidestep entirely: sync `pipe`, async work outside it (before) or in TEA (during runtime).
 
 ## What this replaces
 
