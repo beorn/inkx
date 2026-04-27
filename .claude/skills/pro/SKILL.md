@@ -57,6 +57,15 @@ GPT 5.4 Pro for direct questions and code reviews.
 - Forgetting `--no-recover` → stale results waste money.
 - Restarting an interrupted `--deep` call → wastes $5-15, response is still completing remotely.
 
-## Future
+## Multi-package review-round workflow
 
-Review-round workflow (multi-package discovery, triage, per-finding bead creation) lives in the CLI, not this skill. Pointer: `bun llm pro --discover` once km-bearly.llm-cli-json-output lands.
+For "review all packages and triage findings" — the deeper PM-shaped flow with discovery, cost estimation, parallel review, P0–P3 triage, and history dashboard — load these companion docs:
+
+- [discover.md](discover.md) — package scan, cost estimate, history check, AskUserQuestion selection
+- [review.md](review.md) — context-file building, fast vs deep dispatch, parallel execution patterns
+- [triage.md](triage.md) — P0/P1/P2/P3 classification, per-package + per-finding bead creation
+- [history.md](history.md) — `history.jsonl` schema, staleness detection, recurring-pattern aggregation
+
+Daily usage (`/pro "question"`, `/pro review <pkg>`) is in the decision table above and doesn't need these. Reach for them only when running a multi-package round.
+
+These helpers were briefly removed in a 2026-04-27 simplification pass (km-all.pro-skill-strip) and restored after the regression was caught — the `history.jsonl` file has real entries, the workflow is in active use.
