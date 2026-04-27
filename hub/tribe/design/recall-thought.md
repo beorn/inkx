@@ -265,6 +265,273 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## Scope expansion (2026-04-27 23:58): private context maintainer, not just memory
+
+Two user additions reframe the sub-agent from "memory of past sessions" to **"private comprehensive context maintainer for the foreground agent"**:
+
+1. **LSP integration** — the sub-agent loads up the entire repo's structural context via LSP (Language Server Protocol). Symbols, type signatures, callsites, imports/exports, tests, recent diffs — everything the IDE knows.
+2. **Big context budget** — prompt caching makes ~50K-token cached context affordable (~$0.001/event). The sub-agent can carry comprehensive state, not just a brief digest.
+
+This changes what the sub-agent IS. It's no longer just "the memory layer." It's the **always-on private research assistant** that knows:
+- What past sessions did (recall FTS index)
+- What the repo looks like (LSP symbol map)
+- What's in the vault (qmd hybrid index)
+- What beads are open / closed / in-progress
+- What peer sessions are doing (tribe broadcasts)
+- What's changed in this session (file watches, CI events)
+
+Foreground agent stays focused on the immediate task; sub-agent provides whatever broader context becomes relevant. Like having a research librarian alongside the main worker.
+
+### Tools the sub-agent gets
+
+```typescript
+const TOOLS = [
+  // Memory / history
+  { name: "recall_search",   description: "Search Claude Code session history (FTS5)" },
+  { name: "qmd_query",       description: "Search markdown knowledge bases (BM25 + vector + HyDE)" },
+  { name: "read_chunk",      description: "Fetch full content of a session/bead chunk" },
+
+  // Repo structural context (LSP)
+  { name: "lsp_symbol",      description: "Get definition + type of a symbol (function/class/type)" },
+  { name: "lsp_references",  description: "Find all references to a symbol" },
+  { name: "lsp_workspace_symbols", description: "Search workspace symbols by name" },
+  { name: "lsp_hover",       description: "Get hover info (docstring + type) for a position" },
+  { name: "lsp_diagnostics", description: "Get current errors/warnings in workspace" },
+
+  // Bead / issue context
+  { name: "bd_show",         description: "Show a bead by ID with description + notes" },
+  { name: "bd_search",       description: "Search beads by keyword" },
+
+  // File context
+  { name: "read_file",       description: "Read file contents (path-scoped to current repo)" },
+  { name: "git_log",         description: "Get recent commits affecting a path" },
+  { name: "git_diff",        description: "Show diff for a path or range" },
+
+  // Emit
+  { name: "emit_delta",      description: "Push a short ambient observation to the foreground agent" },
+  { name: "emit_full",       description: "Push the complete compiled-knowledge snapshot" },
+]
+```
+
+### Context budget with prompt caching
+
+Anthropic prompt caching: cache writes cost 25% MORE than base tokens (one-time), but cache reads cost 10% of base tokens. Effective cost equation:
+
+```
+cost_per_event ≈ system_prompt_size × 0.1×base_rate    (cache hit)
+                + new_event_tokens × 1.0×base_rate     (uncached append)
+                + tool_results_tokens × 1.0×base_rate  (uncached)
+                + response_tokens × 5×base_rate        (output is more expensive)
+```
+
+For claude-haiku-4-5 (input ~$1/MTok, output ~$5/MTok) with 50K of cached context + 500-token event + 1K tool results + 500-token response:
+
+```
+50,000 × 0.0001 = $0.005   cache hit
+   500 × 0.001  = $0.0005  new event
+ 1,000 × 0.001  = $0.001   tool results
+   500 × 0.005  = $0.0025  response
+                  ─────────
+                  ~$0.009 per event
+```
+
+That's tractable but adding up — 100 events/session × $0.009 = ~$0.90/session. Heavy use ~$50/dev/month. Higher than my earlier estimate.
+
+**Cost optimizations**:
+- Cache the LSP symbol map separately (only changes on workspace edits — 90% of events hit the cache cleanly)
+- Don't include full LSP map in EVERY step — sub-agent fetches symbols on-demand via tools
+- Event coalescing: batch rapid-fire events (e.g., file changes within 500ms) into one step
+- Skip-events filter: don't step the sub-agent on noise (multiple similar file changes, debounced tribe broadcasts)
+- Smaller models for routing: claude-haiku-4-5-mini (if it exists) for "is this event worth processing?" gate before main step
+
+With these: ~$0.002–0.005 per processed event, ~$0.10–0.30/session, **~$5–15/dev/month** at heavy use. Same as my earlier estimate.
+
+### Realistic context shape (50K budget)
+
+```
+─── CACHED (read at 10% rate) ────────────────────────────
+System prompt + tool descriptions     :   3K
+Repo overview (top-level structure)   :   2K
+LSP workspace symbols (truncated)     :  10K  (top 200 symbols)
+Recent git log (last 30 commits)      :   2K
+Open beads list (titles + status)     :   3K
+Compiled knowledge (running)          :   5K  (markdown digest)
+Surfaced beads/sessions (dedup state) :   1K
+Tool result history (last N events)   :  20K
+─── UNCACHED (read at 100% rate) ─────────────────────────
+Latest event                          : 0.5K
+Sub-agent's response (with tool calls): 0.5–2K
+─── TOTAL ─────────────────────────────────────────────────
+Cached:    46K  → cost ~$0.0046 per cache hit
+Uncached:   2K  → cost ~$0.012 (output dominates)
+                  ─────────
+                  ~$0.017 per "active" event (with tool calls)
+                  ~$0.005 per "passive" event (state update only)
+```
+
+For a typical session (maybe 30 active + 70 passive events): ~$0.85/session worst case, more like ~$0.50 with skip-events filter.
+
+### Why bigger context wins here
+
+The sub-agent has stuff the foreground agent doesn't:
+- It can hold the FULL repo symbol map without burning the foreground's prompt budget
+- It can hold every prior session's recall hits considered, not just the chosen ones (so it can change its mind later)
+- It can keep accumulating compiled-knowledge across the whole session without forgetting
+
+The foreground agent gets only what's distilled to be relevant — through delta emits — and stays focused. The sub-agent does the broader thinking with its larger working memory.
+
+This is exactly the cognitive split humans use: foreground attention is narrow and focused; background knowledge is broad and accessible-on-demand. The sub-agent IS the background knowledge.
+
+### Caching implementation
+
+Anthropic's `cache_control` markers on message blocks. The sub-agent's prompt structure becomes:
+
+```typescript
+const messages = [
+  { role: "system", content: [
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    { type: "text", text: TOOL_DESCRIPTIONS, cache_control: { type: "ephemeral" } },
+  ]},
+  { role: "user", content: [
+    { type: "text", text: REPO_CONTEXT, cache_control: { type: "ephemeral" } },
+    { type: "text", text: COMPILED_KNOWLEDGE, cache_control: { type: "ephemeral" } },
+    { type: "text", text: NEW_EVENT },  // not cached — changes every step
+  ]},
+]
+```
+
+When repo changes (file edits, new commits), invalidate the REPO_CONTEXT cache. When compiled knowledge is updated, refresh that block. Carefully placed cache breakpoints keep most hits in steady state.
+
+---
+
+## Prior art audit + visibility design (2026-04-27 23:55)
+
+### Has anyone built this exact shape?
+
+Surveying production memory systems for the specific composition we're describing — **a separate long-running sub-agent watching session events, maintaining compiled-knowledge in its own prompt-cached context, emitting incremental deltas to the foreground**:
+
+| System                    | Sub-agent (vs self-managed) | Reactive to all events | Compiled-knowledge state | Delta emit | Closest match |
+|---------------------------|---------------|------------------------|-----------|-----|--------------|
+| **Letta / MemGPT**        | self-managed                | only tool-driven       | tiers (core/recall/archival) in DB | no — full retrieval | tool-call pattern |
+| **ChatGPT memory**        | self-managed                | only on capture trigger | running summary + facts | inject-at-start only | running summary idea |
+| **Mem0**                  | orchestration layer         | on-demand only         | atomic facts in vector + graph DB | no — on-demand | atomic-fact extraction |
+| **Anthropic memory tool** (claude-agent-sdk) | self-managed | only when tool-called | file-based notes | full inject | file-based notes |
+| **Cursor codebase RAG**   | none (inline RAG)           | per prompt only        | embedding index | inject per prompt | implicit retrieval |
+| **Aider repo map**        | none (static)               | static, rebuilt        | symbol map | full inject | static index |
+| **CrewAI/AutoGen roles**  | yes (separate role)         | depends on orchestration | ad-hoc | depends | separate-role pattern |
+| **MemoryGPT papers (2024–25)** | yes (in some)            | mostly offline batch   | knowledge graph | mostly batch consolidate | offline consolidation |
+
+**No system combines all four traits the way this design does**: separate sub-agent + reactive to all session events + prompt-cached compiled-knowledge in its own context + incremental delta emit.
+
+The novelty is the **composition**, not any individual piece:
+- Separate sub-agent → CrewAI/AutoGen roles
+- Tool-call memory → Letta/MemGPT
+- Running structured digest → ChatGPT chat-history-summary
+- Reactive to events → reactive systems / streaming aggregation
+- Prompt caching for state retention → Anthropic's recent caching capability
+- Multi-source events (prompts + tribe + files + CI) → ambient context safety design (Phase 6.b shipped)
+
+This is worth flagging as a potential differentiation/moat for silvercode positioning. May warrant a `/deep` web-research pass to confirm no recent papers/products land on the same composition, but based on current knowledge this is genuinely novel territory.
+
+### Visibility — making the sub-agent legible in silvercode
+
+A memory sub-agent is opaque if you can't see what it's doing. Three visibility layers, increasing depth:
+
+#### 1. Side-panel "Memory" pane (always-visible)
+
+Sits alongside existing Sessions / Todos / Agents / Mode entries in `apps/silvercode/src/components/SidePanel.tsx`. Default collapsed; click to expand.
+
+```
+Memory · idle  · 14ids · 3hyps · 7emit · $0.04
+  ▸ recallAgent (4 sessions discuss it)         [searched]
+  ▸ mem-thought design                           [active]
+  ▸ Letta tool-call pattern                      [searching]
+  ▸ /pro reviews                                 [surfaced]
+  ▸ compiled knowledge                           [pending]
+```
+
+Status flags:
+- `idle` — between events
+- `searching` — FTS call in flight
+- `reasoning` — LLM step in flight
+- `emitting` — about to push delta
+- `budget-paused` — daily cap hit
+- `disabled` — `SILVERCODE_MEM_DISABLED=1`
+
+Click an identifier → inline expansion shows hits + which ones surfaced, which still pending.
+
+#### 2. Live hover on emitted ambient rows
+
+Each `[mem-thought, delta]` ambient row in the chat scrollback gets a hover popover (uses existing `usePopoverHandlers`):
+
+```
+[mem-thought, delta — emitted 14:55, cycle 3]
+  Query: "compiled knowledge"
+  Hits considered: 5 (3 surfaced before, 2 new)
+  Reasoning: Conversation introduced "compiled knowledge" as new
+            term; recall surfaced Letta-style memory tiers + this
+            session's prior /pro reviews on memory state.
+  Cost: $0.0009 (0.6s)
+```
+
+This makes every emit traceable — user can see why the agent thought this was worth surfacing.
+
+#### 3. Inspector view (`/memory` slash command)
+
+Full-screen inspector showing the sub-agent's complete state:
+
+- **Compiled knowledge** rendered live (the markdown digest the sub-agent maintains)
+- **Conversation log** — system prompt + every event + tool calls + responses (the sub-agent's full LLM context)
+- **Identifier table** — all tracked, with weights, status, last-seen
+- **Hypothesis list** — active queries with hits + coverage
+- **Cost breakdown** — per-event cost, total session cost, daily-cap remaining
+- **Tool-call trace** — every search + result + decision
+- **Manual controls**:
+  - `pause` / `resume` — stop accepting events temporarily
+  - `clear` — reset compiled knowledge (next event re-builds)
+  - `force-emit` — dump current compiled knowledge as full snapshot
+  - `dump-snapshot` — write to file for offline analysis
+  - `kill-budget` — turn off the agent for the rest of session
+
+#### 4. Journal file (durable record)
+
+Sub-agent appends to `~/.claude/<session-id>/memory.md` continuously:
+
+```markdown
+# Memory journal — session 4de4a3ab — started 2026-04-27 14:30
+
+## 14:30:15 — event: user-prompt
+> "let's design recall-thought (tier 3)"
+
+Reasoned: User starting design work on Tier 3.
+Searched: recall("recall-thought tier 3 design") → 2 hits.
+Emitted: delta — past sessions discuss tier framework
+Cost: $0.0011
+
+## 14:32:08 — event: assistant-completion
+> [agent's response on tier 3 design]
+
+Reasoned: No new identifiers; nothing to do.
+Cost: $0.0003 (cache hit)
+
+## 14:35:22 — event: tribe-broadcast
+> [push] beorn/silvery: feat(layout) wrap-policy
+...
+```
+
+`tail -f`-able. Survives session crash. Useful for offline analysis + telemetry training.
+
+### Implementation cost of visibility
+
+- Side-panel pane: ~50 LOC + 1 storybook story
+- Hover tooltip on ambient rows: ~30 LOC (extends existing AmbientEventRow popover)
+- `/memory` inspector view: ~200 LOC (new screen + slash command)
+- Journal file: ~20 LOC (append on each event in the sub-agent loop)
+
+Total ~300 LOC visibility surface on top of ~300 LOC sub-agent core = ~600 LOC for the whole feature.
+
+---
+
 ## Final shape (2026-04-27 23:42): mem-thought as long-running sub-agent with compiled knowledge
 
 The user's full vision crystallizes through three additions:
