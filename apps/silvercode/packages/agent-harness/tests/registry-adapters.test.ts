@@ -307,9 +307,7 @@ const REACHABILITY: Record<AcpRegistryId, ReachabilityKind> = {
   // failed with 404.
   "claude-code": {
     kind: "path",
-    absolutePath: fileURLToPath(
-      new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url),
-    ),
+    absolutePath: fileURLToPath(new URL("../../claude-acp/bin/silvercode-claude-acp.js", import.meta.url)),
   },
 }
 
