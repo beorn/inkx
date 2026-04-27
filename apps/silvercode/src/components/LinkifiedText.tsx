@@ -2,6 +2,7 @@ import React from "react"
 import { Box, Link, Muted, Prose, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
+import { useCwd } from "../CwdContext.tsx"
 import { detectAutolinks, mergeDetections, resolvePreview, type AutolinkPreviewKind } from "@km/autolinks"
 import { MarkdownView } from "./MarkdownView.tsx"
 
@@ -121,6 +122,28 @@ function renderPopoverContent(d: Detection): React.ReactNode {
 }
 
 /**
+ * Resolve a path string into an absolute path, given the silvercode cwd.
+ *
+ *   - `~`              → `$HOME`
+ *   - `~/foo`          → `$HOME/foo`
+ *   - `/abs`           → unchanged
+ *   - `apps/foo.ts`    → `${cwd}/apps/foo.ts` (when cwd is non-empty)
+ *   - relative w/o cwd → `null` (caller falls back to popover-only)
+ *
+ * Returned paths are always absolute and have no `..` segments — that's
+ * a property `file://` URI consumers (LaunchServices) generally tolerate
+ * but that the deduplication in `detection.ts` doesn't normalize.
+ */
+function resolveAbsolute(p: string, cwd: string, home: string | undefined): string | null {
+  if (!p) return null
+  if (p === "~") return home ?? null
+  if (p.startsWith("~/")) return home ? `${home}/${p.slice(2)}` : null
+  if (p.startsWith("/")) return p
+  if (cwd.length > 0) return `${cwd.replace(/\/$/, "")}/${p.replace(/^\.\/+/, "")}`
+  return null
+}
+
+/**
  * Build an OSC 8 hyperlink href for a detection, or `null` for in-app-only
  * kinds (bd://, km://) that the terminal can't open via LaunchServices.
  *
@@ -131,23 +154,19 @@ function renderPopoverContent(d: Detection): React.ReactNode {
  *     `payload.resolves_to` is already a full URI.
  *   - `null` — render with a plain `<Text underline onClick>` so the
  *     in-app popover handler still fires; OSC 8 wouldn't help anyway.
+ *
+ * `cwd` and `home` are required for resolving relative + tilde paths;
+ * they come from `<CwdProvider>` and `process.env.HOME`.
  */
-function hrefFor(d: Detection): string | null {
+function hrefFor(d: Detection, cwd: string, home: string | undefined): string | null {
   switch (d.kind) {
-    case "file": {
-      const path = d.payload.path
-      // Tilde paths and bare relative paths can't be resolved without
-      // process context here — fall back to popover-only.
-      if (!path || !path.startsWith("/")) return null
-      const line = d.payload.line ? `:${d.payload.line}` : ""
-      return `file://${path}${line}`
-    }
+    case "file":
     case "code-ref": {
-      const path = d.payload.path
-      if (!path || !path.startsWith("/")) return null
+      const abs = resolveAbsolute(d.payload.path ?? "", cwd, home)
+      if (!abs) return null
       const line = d.payload.line ? `:${d.payload.line}` : ""
       const col = d.payload.col ? `:${d.payload.col}` : ""
-      return `file://${path}${line}${col}`
+      return `file://${abs}${line}${col}`
     }
     case "autolink": {
       // Virtual=1 → plain URL match — d.match IS the URI.
@@ -184,6 +203,9 @@ function colorFor(d: Detection): string {
 export function LinkifiedText({ text, role }: { text: string; role?: "assistant" | "user" }): React.ReactElement {
   const popover = usePopover()
   const { rules } = useAutolinks()
+  const cwd = useCwd()
+  // `process.env.HOME` is read once at render — stable across the session.
+  const home = process.env["HOME"]
   const detections = React.useMemo(() => {
     const builtins = detectReferences(text)
     if (rules.length === 0) return builtins
@@ -248,21 +270,15 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
           //     paints while Cmd-hovered (arm-on-cmd-hover variant).
           //   - href == null  → in-app schemes (bd://, km://) where OSC 8
           //     can't help; keep the click-to-popover affordance.
-          const href = hrefFor(d)
-          const showPopover = () =>
-            popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })
+          const href = hrefFor(d, cwd, home)
+          const showPopover = () => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })
           pieces.push(
             href ? (
               <Link key={`d${d.start}`} href={href} color={colorFor(d)} onClick={showPopover}>
                 {d.match}
               </Link>
             ) : (
-              <Text
-                key={`d${d.start}`}
-                color={colorFor(d)}
-                underline
-                onClick={showPopover}
-              >
+              <Text key={`d${d.start}`} color={colorFor(d)} underline onClick={showPopover}>
                 {d.match}
               </Text>
             ),

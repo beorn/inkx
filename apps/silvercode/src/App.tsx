@@ -27,6 +27,7 @@ import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
 import { AutolinksProvider } from "./AutolinksContext.tsx"
+import { CwdProvider } from "./CwdContext.tsx"
 import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
 import {
   findNeighbor,
@@ -41,7 +42,6 @@ import {
 } from "./pane-layout.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
-type Track = "claude" | "sdk" | "codex"
 
 // SessionUpdateList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
 // matches roughly half a typical chat-pane viewport — large enough to
@@ -186,15 +186,16 @@ export type AppProps = {
   resume?: string
   bare: boolean
   layout: Layout
-  track: Track
   /**
-   * ACP registry id. When set, the controller routes the session via
-   * `connectAcpRegistry` instead of the legacy spawn paths. `track` is
-   * ignored. Allowed: codex / gemini / github-copilot-cli / pi-acp /
-   * claude-code. v0 limitations apply (auto-approve permissions, etc.) —
-   * see ControllerOptions.agent docs.
+   * Canonical agent id from BUILTIN_AGENTS — drives both UI (SidePanel
+   * branding + capabilities lookup) and controller dispatch. Values:
+   *   - claude-code / claude-code-spawn / claude-code-sdk
+   *   - codex / codex-spawn
+   *   - gemini / copilot / pi-acp
+   *   - any free-form id from `ai.acp.<name>` config entries
+   * Undefined falls back to the legacy spawnClaude path.
    */
-  agent?: AcpRegistryId
+  agent?: string
   logDir?: string
   /**
    * Anthropic account name for per-session credential isolation. Resolves to
@@ -226,7 +227,7 @@ export type AppProps = {
     resume?: string
     bare: boolean
     account?: string
-    track: Track
+    agent?: string
   }) => AgentSession | Promise<AgentSession>
 }
 
@@ -253,7 +254,6 @@ export function App(props: AppProps): React.ReactElement {
       model: props.model,
       resume: props.resume,
       bare: props.bare,
-      track: props.track,
       agent: props.agent,
       logDir: props.logDir,
       account: props.account,
@@ -1067,9 +1067,10 @@ export function App(props: AppProps): React.ReactElement {
   }, [controller, focused])
 
   return (
-    <AutolinksProvider rules={autolinkRules}>
-      <PopoverProvider>
-        <SilvercodeLinkOpener />
+    <CwdProvider value={props.cwd}>
+      <AutolinksProvider rules={autolinkRules}>
+        <PopoverProvider>
+          <SilvercodeLinkOpener />
         {/*
         Layout (opencode-style):
 
@@ -1208,5 +1209,6 @@ export function App(props: AppProps): React.ReactElement {
         </Screen>
       </PopoverProvider>
     </AutolinksProvider>
+    </CwdProvider>
   )
 }

@@ -49,6 +49,22 @@ const KM_REF_RE = /(?:^|\s)(?:#|@)([A-Za-z][A-Za-z0-9_-]{2,})/g
 const CODE_REF_RE = /\b([\w/.-]+\.(?:ts|tsx|js|jsx|py|rs|go|md|json)):(\d+)(?::(\d+))?/g
 
 /**
+ * Relative paths in tool output (e.g. `apps/silvercode/src/parse.ts`,
+ * `./foo`, `src/main.tsx`). Matches when:
+ *   - Optional `./` or `../` prefix
+ *   - At least one `/` separator (so single tokens like `package.json`
+ *     or floating-point literals like `3.14` don't match)
+ *   - Recognized source-file extension (keeps prose like `lib/foo.bar`
+ *     from being treated as a file when `.bar` isn't a code extension)
+ *   - Optional `:line[:col]` suffix
+ *
+ * Negative lookbehind keeps mid-token matches out — `bun-cache/foo.ts`
+ * shouldn't ALSO match `cache/foo.ts` starting at `c`.
+ */
+const RELATIVE_PATH_RE =
+  /(?<![A-Za-z0-9_/.])(?:\.{1,2}\/)?[A-Za-z0-9_-][\w./-]*\/[\w./-]+\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|md|mdx|json|toml|yaml|yml|sh|css|html|sql|txt)(?::(\d+)(?::(\d+))?)?/g
+
+/**
  * Plain URL matcher. Used here only to *exclude* URL ranges from the file
  * detector — `/path/segment` inside `https://host/path/segment` would
  * otherwise trip FILE_RE. URL detections themselves are produced by
@@ -111,6 +127,28 @@ export function detectReferences(text: string): Detection[] {
         line: m[2] ?? "",
         col: m[3] ?? "",
       },
+    })
+  }
+  // Relative paths — emitted as `kind: "file"` with a relative `path`.
+  // Resolution to absolute (for `file://` hrefs) happens in `LinkifiedText`
+  // via the cwd context; detection.ts stays pure.
+  for (const m of text.matchAll(RELATIVE_PATH_RE)) {
+    const idx = m.index ?? 0
+    if (out.some((d) => d.start <= idx && d.end >= idx + m[0].length)) continue
+    if (insideURL(idx, idx + m[0].length)) continue
+    // Strip the optional `:line[:col]` suffix from `match` so the visible
+    // text on the page matches the raw token, while `payload.line/col`
+    // captures the navigation target.
+    const line = m[2] ?? ""
+    const col = m[3] ?? ""
+    const lineSuffixLen = (line ? 1 + line.length : 0) + (col ? 1 + col.length : 0)
+    const pathOnly = m[0].slice(0, m[0].length - lineSuffixLen)
+    out.push({
+      kind: "file",
+      match: m[0],
+      start: idx,
+      end: idx + m[0].length,
+      payload: { path: pathOnly, line, col },
     })
   }
   for (const m of text.matchAll(KM_REF_RE)) {

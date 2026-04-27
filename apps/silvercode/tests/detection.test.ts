@@ -60,12 +60,23 @@ describe("detection", () => {
     expect(files).toHaveLength(0)
   })
 
-  test("relative paths don't trigger file detection", () => {
-    // `pkg/foo/bar.ts` is a relative path with no leading `/` or `~`. It's
-    // not absolute, so we don't match it. (CODE_REF_RE does match
-    // `bar.ts:1` shapes, but plain `pkg/foo/bar.ts` without a `:line` does
-    // not, by design — ambiguous with prose.)
+  test("relative paths with recognized extensions trigger file detection", () => {
+    // Updated 2026-04-26 (bead km-silvercode.osc8-relative-paths): relative
+    // paths in tool output (e.g. `apps/silvercode/.../parse.ts`) are the
+    // overwhelming majority of paths users see, and we want them
+    // OSC-8-clickable. `RELATIVE_PATH_RE` requires a `/` separator and a
+    // recognized source extension to keep prose / version strings out.
     const text = "see pkg/foo/bar.ts for the implementation"
+    const d = detectReferences(text)
+    const files = d.filter((x) => x.kind === "file")
+    expect(files).toHaveLength(1)
+    expect(files[0]!.payload.path).toBe("pkg/foo/bar.ts")
+  })
+
+  test("prose tokens with dots but no /sep don't trigger file detection", () => {
+    // `package.json` mid-sentence and `3.14` literals stay safe — the new
+    // regex requires at least one `/` separator.
+    const text = "version 3.14 in package.json works fine"
     const d = detectReferences(text)
     const files = d.filter((x) => x.kind === "file")
     expect(files).toHaveLength(0)
