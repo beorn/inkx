@@ -65,6 +65,51 @@ The four key wins of `pipe + with*`:
 3. **Uniform lifecycle.** Every `withX` participates in the same `Scope` cascade. Hot-reload, shutdown, test teardown all use the same primitive. This aligns with the existing rule from MEMORY.md: *"resource leak / lifecycle / cleanup → `Scope` is the canonical primitive."*
 4. **One pattern across km + silvery + tribe.** Anyone who knows the pattern for one knows it for all three. Reduces onboarding cost and cross-system context-switching.
 
+## Companion patterns — the canonical runtime stack
+
+Composition is the *structural* layer. It interlocks with three other patterns to form the full app runtime — used uniformly across silvery, km, silvercode, and tribe:
+
+| Pattern | Role | Where the doc lives |
+|---|---|---|
+| **Composition** (this doc) | Structure: factory produces the system. `pipe + with*`. | hub/composition.md |
+| **TEA** (`apply` / `dispatch`) | Behavior: pure `(action, state) → [state, effects]` state machines. Effects are serializable data. | [docs/design/tea.md](../docs/design/tea.md) |
+| **Reactive store** (alien-signals + family) | Derived state, projections, subscriptions. Signals are atomic; `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. | `vendor/bearly/packages/alien-*/`; [reference-alien-family.md](../.config/claude-profiles/...) |
+| **Scope** (lifecycle) | Structured concurrency. `AsyncDisposableStack` + `AbortSignal` + child cascade. `withScope()` at the root, `useScopeEffect` in components. | [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) |
+
+### How they interlock
+
+```
+pipe + with*       ← structure: factory produces the system value
+  ├─ withScope()              ← scope: lifetime owner for everything below
+  ├─ withSignalStore()        ← reactive store: signals + projections
+  ├─ withMachines(...)        ← TEA: apply(action, state) → [state, effects]
+  ├─ withTools()
+  ├─ withTool(...)
+  └─ withSurfaces()           ← surfaces read the registry; effects + signals
+                                drive what they emit
+await app.run()    ← run loop: dispatch → apply → emit effects → schedule async
+                    work on scope; signals notify subscribers; cleanup cascades
+                    when scope closes
+```
+
+The four are orthogonal but always-together:
+
+- **Composition** wires the parts. Without it, "boot order" is implicit.
+- **TEA** owns behavior. Actions are dispatched, state advances purely, effects describe the async work to schedule.
+- **Signals** carry derived/observed state. Components and surfaces (MCP tools, render trees, log streams) subscribe to signals; signals re-compute when their inputs change.
+- **Scope** owns lifetime. Every `withX` registers cleanup. Closing the root scope cascades — sockets close, subprocesses term, subscriptions drop, timers cancel — in reverse-registration order.
+
+### Same shape across the apps
+
+- **silvery apps** — composition wires term/theme/scope; TEA drives view state machines; signals drive derived UI; scope cleans timers + subscriptions
+- **km** — composition wires vault/storage/board/commands; TEA drives the editor + command dispatch; signals drive board projections; scope owns file watchers + DB connections
+- **silvercode** — composition wires controller/harness/sessions; TEA drives session state; signals drive pane projections; scope owns subprocesses + ACP connections
+- **tribe** — composition wires socket/dispatch/tools/MCP/plugins; TEA drives messaging state machines; signals drive member roster + activity log; scope owns the daemon's resources
+
+You can read the composition pipe top-to-bottom and know what's in the system. You can read a state machine's `apply` and know what it does. You can read a component's signals and know what it observes. You can read the scope's children and know what cleanup is owed. Each layer has one shape; together they describe the app.
+
+The rest of this doc focuses on composition specifically. TEA, signals, and Scope each have their own design doc.
+
 ## Concrete shapes
 
 ### tribe (proposed migration)

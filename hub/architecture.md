@@ -4,7 +4,7 @@ What we're building, what ships, and how the pieces fit together. This doc is th
 
 ## What we ship
 
-Three runtime products, sitting on a shared foundation:
+Three runtime products today, sitting on a shared foundation:
 
 ```
 ┌──────────────────┬──────────────────┬──────────────────┐
@@ -29,6 +29,26 @@ Three runtime products, sitting on a shared foundation:
 
 km and silvercode are **host apps**: user-facing, ship a UI, may host or consume agent sessions. tribe is a **system**: headless, infrastructure that other components consume. Calling all three "apps" would invert the dependency graph.
 
+### km ⇄ silvercode convergence (TBD)
+
+km and silvercode are **converging into one agentic workdesk** — an integrated knowledge environment where the durable knowledge graph (km) and the live agent workspace (silvercode) share the same state, the same UI shell, and the same coordination layer. Today they're separate apps mostly because their MVPs landed on different timelines; the design assumption is that they end up tightly integrated.
+
+What that looks like, per the [km vision](./km/design/vision.md) and the [silvercode MVP brief](./silvery/future/ai-terminal/00-agent-workspace.md):
+
+- **km** already frames itself as *"the environment for knowledge work with AI agents"* — three first-class axes: Knowledge, Communication, Agents. The Agents axis is the silvercode shape, lifted out as a separate codebase for now.
+- **silvercode**'s MVP is "agent workspace, not super-shell" — supervision/replay/memory layers around Claude Code. Naturally fed by, and feeding back into, the durable knowledge graph km already owns.
+- **Tribe** is built per-project precisely because both products want it to be — coordination is a layer they share rather than each rebuilding.
+
+**Open product question** — TBD when (if) we ship to anyone outside Bjørn's daily workflow:
+
+- Does silvercode merge into km as the Agents axis, with one app shipping?
+- Does silvercode stay standalone for users who only want agent supervision?
+- Or both, with the integrated km+silvercode binary as the headline product and the standalone silvercode as a slimmer companion?
+
+The composition pattern keeps all three options open: the same `pipe + with*` factories that build them today can be re-composed into any of those product shapes without architectural surgery. This doc updates when that decision lands.
+
+See also: [hub/roadmap.md](./roadmap.md) (five-track roadmap with km, silvery, knowledge layer, communication, ecosystem), [hub/km/design/vision.md](./km/design/vision.md) (three-axis framing), [hub/silvery/future/ai-terminal/00-agent-workspace.md](./silvery/future/ai-terminal/00-agent-workspace.md) (silvercode MVP committed direction).
+
 ## Foundations
 
 ### Silvery — the UI framework
@@ -45,11 +65,18 @@ km and silvercode both render through silvery; their visual languages should con
 
 Reusable Claude Code tooling: tribe (coordination + memory), tty (headless terminal MCP), recall (session-history search), llm (multi-provider dispatch), refactor (batch refactoring), worktree, and more. Each package is independently publishable; tribe is the most complex member.
 
-### Composition — `pipe + with*`
+### Composition — `pipe + with*` (and three companions)
 
-[hub/composition.md](./composition.md).
+[hub/composition.md](./composition.md). Composition is one of four interlocking runtime patterns shared across silvery, km, silvercode, and tribe:
 
-All three apps and tribe itself use the same layered factory pattern. The factory function is the architecture — read top-to-bottom and you understand what the system is, in what order, with what dependencies, and what cleanup is owed:
+1. **Composition** (`pipe + with*`) — structure. The factory produces the system value.
+2. **TEA** (`apply` / `dispatch`) — behavior. Pure `(action, state) → [state, effects]` state machines. See [docs/design/tea.md](../docs/design/tea.md).
+3. **Reactive store** (alien-signals + family) — derived state, projections, subscriptions. See `vendor/bearly/packages/alien-*/`.
+4. **Scope** — structured-concurrency lifecycle. See [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md).
+
+The composition pipe wires all four together: `withScope()`, `withSignalStore()`, `withMachines(…)`, plus tools, plugins, and surfaces. See composition.md → "Companion patterns" for the full picture.
+
+The factory function is the architecture — read top-to-bottom and you understand what the system is, in what order, with what dependencies, and what cleanup is owed:
 
 ```ts
 const tribe = pipe(
@@ -71,15 +98,15 @@ await tribe.run()
 
 ### km
 
-Source: `apps/km-tui/`, `apps/km-cli/`, `apps/km-repl/`, `apps/km-web/`. App architecture: [docs/architecture.md](../docs/architecture.md).
+Source: `apps/km-tui/`, `apps/km-cli/`, `apps/km-repl/`, `apps/km-web/`. App architecture: [docs/architecture.md](../docs/architecture.md). Vision: [hub/km/design/vision.md](./km/design/vision.md).
 
-A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS → BOARD → TREE → STORAGE → PARSER → FILESYSTEM. UI never touches filesystem; all edits flow both ways. Storage uses `bun:sqlite` with WAL + FTS5. May host agent sessions later; doesn't today.
+A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS → BOARD → TREE → STORAGE → PARSER → FILESYSTEM. UI never touches filesystem; all edits flow both ways. Storage uses `bun:sqlite` with WAL + FTS5. May host agent sessions natively (the Agents axis of the vision) — currently those live in silvercode; expected to converge.
 
 ### silvercode
 
-Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md).
+Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md). Design: [hub/silvery/future/ai-terminal/](./silvery/future/ai-terminal/) — full MVP brief, agent integration, multiplex, sessions, supervision.
 
-A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback.
+A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. Internal codename — public name TBD; product split with km is TBD (see "convergence" above).
 
 ### tribe
 
