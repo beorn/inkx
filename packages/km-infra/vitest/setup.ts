@@ -95,6 +95,26 @@ if (
 // Allow explicit SILVERY_STRICT=0 to disable (for benchmarks measuring production perf)
 if (process.env.SILVERY_STRICT !== "0") process.env.SILVERY_STRICT = "1"
 
+// SILVERY_INSTRUMENT: pass-cause histogram capture (km-silvery.renderer-feedback-trace)
+// When enabled, dump the per-process histogram to a file at exit so external
+// tooling (and hub/silvery/design/pass-cause-histogram.md) can analyze pass causes.
+// Default location: /tmp/silvery-pass-histogram-${pid}.jsonl (one JSON record per process).
+if (process.env.SILVERY_INSTRUMENT === "1") {
+  const histogramFile =
+    process.env.SILVERY_INSTRUMENT_FILE ?? `/tmp/silvery-pass-histogram-${process.pid}.jsonl`
+  process.env.SILVERY_INSTRUMENT_FILE = histogramFile
+  process.on("exit", () => {
+    try {
+      // Lazy import — avoids loading silvery in non-instrumented test runs.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { appendHistogramJson } = require("@silvery/ag-term") as typeof import("@silvery/ag-term")
+      appendHistogramJson(histogramFile)
+    } catch {
+      // Silvery not present in this test scope — ignore.
+    }
+  })
+}
+
 // SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
 // Accepts comma-separated list: vt100 (fast internal parser), xterm (xterm.js headless),
 // ghostty (Ghostty WASM). Use "all" for all backends. Example: SILVERY_STRICT_TERMINAL=vt100,xterm
