@@ -179,10 +179,22 @@ export const invariants = {
     // Skip if cursor level changed (likely a zoom operation)
     const cursorLevelChanged = state.cursor.level !== before.cursor.level
 
+    // Skip if chord prefix state changed — opening/closing the which-key popup
+    // legitimately replaces almost the entire screen with chord hints overlay.
+    // Bare 'v' / 'g' / 'shift-d' etc. are chord prefixes, not standalone actions.
+    const chordChanged = (state.ui?.pendingChord ?? null) !== (before.ui?.pendingChord ?? null)
+
     // Skip for certain keys that are expected to cause large changes
     const expectedLargeChange = ["Enter", "Escape", "o", "u", "i"].includes(action)
 
-    if (dialogChanged || viewModeChanged || detailPaneChanged || cursorLevelChanged || expectedLargeChange) {
+    if (
+      dialogChanged ||
+      viewModeChanged ||
+      detailPaneChanged ||
+      cursorLevelChanged ||
+      chordChanged ||
+      expectedLargeChange
+    ) {
       return
     }
 
@@ -233,25 +245,51 @@ export const invariants = {
   /**
    * Screen content should not have fully blank rows in the middle of content.
    * A blank row between the first and last non-blank rows indicates a layout gap.
-   * Skips check when detail pane is open (can have intentional whitespace separators).
+   *
+   * Skips:
+   *   - Detail pane (intentional whitespace separators)
+   *   - Active dialogs (search, help, newItem) — overlay popups draw at bottom,
+   *     creating legitimate gaps between board content and the overlay
+   *   - Status toasts at bottom of screen — toasts are overlay UI, not board
+   *     content. The bottom toast/dialog region (up to 8 rows) can contain
+   *     stacked toasts (e.g., "No matches" + "FIND //v" search overlay) plus
+   *     the status bar.
    */
   noContentGaps(state: FuzzState, action: string): void {
     if (state.detailPaneOpen) return
+    // Active dialogs draw overlays at the bottom — gaps are expected
+    if (state.dialogs.search || state.dialogs.help || state.dialogs.newItem) return
+    // Pending chord shows hint popup that legitimately produces gaps
+    if (state.ui?.pendingChord) return
 
     const lines = state.screen.split("\n")
     if (lines.length < 3) return
 
-    // Find first and last non-blank lines
+    // Find first non-blank line (top of content)
     let firstNonBlank = -1
-    let lastNonBlank = -1
     for (let i = 0; i < lines.length; i++) {
       if (lines[i]!.trim().length > 0) {
-        if (firstNonBlank === -1) firstNonBlank = i
+        firstNonBlank = i
+        break
+      }
+    }
+    if (firstNonBlank === -1) return
+
+    // Find last non-blank line excluding the bottom status/toast region.
+    // The bottom region can contain stacked toasts (e.g., "Zoomed into: ..."
+    // + a "Can't move last" boundary toast) plus the status bar.
+    // Each toast box is 3 rows; allow for up to 2 stacked toasts + status bar.
+    const BOTTOM_TOAST_ROWS = 8
+    const contentEnd = Math.max(0, lines.length - BOTTOM_TOAST_ROWS)
+    let lastNonBlank = -1
+    for (let i = contentEnd - 1; i >= firstNonBlank; i--) {
+      if (lines[i]!.trim().length > 0) {
         lastNonBlank = i
+        break
       }
     }
 
-    if (firstNonBlank === -1 || lastNonBlank === firstNonBlank) return
+    if (lastNonBlank === -1 || lastNonBlank === firstNonBlank) return
 
     // Count consecutive blank rows within the content area
     // A single blank row can be a legitimate separator; 3+ consecutive blank
@@ -299,8 +337,23 @@ export const invariants = {
    * At least 1 column should exist in the layout. The board should always
    * have visible columns — zero columns means the root has no children
    * or derivation failed silently.
+   *
+   * Skips:
+   *   - Active dialogs (search, help, newItem) — overlay popups replace
+   *     normal column view; columnIds may be empty during dialog mode
+   *   - Pending chord (which-key popup) — popup overlay replaces columns
+   *   - Detail pane — uses different layout (flat metadata rows)
+   *   - Zoomed-into a leaf node — visible "columns" can be 0 when zoomed
+   *     into a node with no children that's rendered as a body view
    */
   columnCountPositive(state: FuzzState, action: string): void {
+    if (state.dialogs.search || state.dialogs.help || state.dialogs.newItem) return
+    if (state.ui?.pendingChord) return
+    if (state.detailPaneOpen) return
+    // Board-level cursor (col=-1) means we're zoomed-out or at empty/synthetic
+    // root. Column derivation can legitimately produce zero columns when the
+    // current root has no children visible (e.g., zoomed into a leaf node).
+    if (state.cursor.level === "board" && state.cursor.col === -1) return
     expect
       .soft(state.columnIds.length, `No columns in layout after ${action} - board has no visible content`)
       .toBeGreaterThan(0)

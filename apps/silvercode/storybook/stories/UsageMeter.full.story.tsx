@@ -82,7 +82,7 @@ export const usageMeterFull: Story = {
             tokens:
               usage.used -
               BREAKDOWN_ROWS.slice(0, 2).reduce((acc, r2) => acc + r2.tokens, 0) -
-              BREAKDOWN_ROWS[3].tokens,
+              (BREAKDOWN_ROWS[3]?.tokens ?? 0),
           }
         : r,
     )

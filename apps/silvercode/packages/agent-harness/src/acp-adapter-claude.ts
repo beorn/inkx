@@ -47,7 +47,7 @@
  *
  * - Bead: `km-silvercode.acp-adapter-claude`
  * - Tracking: `km-silvercode.acp`
- * - Architecture: `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * - Architecture: `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  *   § "Recommended path — internal-first, extract later"
  */
 

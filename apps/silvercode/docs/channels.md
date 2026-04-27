@@ -10,7 +10,7 @@ slash command (default), or when an opt-in auto-inject mode is enabled.
 
 This replaces Claude Code's bespoke `<channel source="..." ...>` tag
 injection. See
-[`hub/silvery/future/ai-terminal/10-agent-router-landscape.md`](../../../hub/silvery/future/ai-terminal/10-agent-router-landscape.md)
+[`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`](../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md)
 § "Replacing Claude Code's `<channel>` injection with ACP primitives" for
 the full background.
 

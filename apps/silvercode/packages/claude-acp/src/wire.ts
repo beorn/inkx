@@ -16,7 +16,7 @@
  * lifecycle is owned by the caller (see `server.ts`).
  *
  * Reference:
- * - `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * - `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  *   § "Recommended path — internal-first, extract later"
  * - `apps/silvercode/packages/agent-harness/src/acp-session.ts`
  *   (the in-process equivalent — drains the same events into signals).

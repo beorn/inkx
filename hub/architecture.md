@@ -67,7 +67,7 @@ A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS →
 
 ### silvercode
 
-Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md). Design: [hub/silvery/future/ai-terminal/](./silvery/future/ai-terminal/) — full MVP brief, agent integration, multiplex, sessions, supervision.
+Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md). Public README: [`apps/silvercode/README.md`](../apps/silvercode/README.md). Internal hub: [`hub/silvercode/`](./silvercode/) — design ([ambient-context-safety.md](./silvercode/design/ambient-context-safety.md)), futures ([silvercode-agent-acpp.md](./silvercode/future/ai-terminal/silvercode-agent-acpp.md), [ai-terminal/](./silvercode/future/ai-terminal/) MVP brief).
 
 A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. Whether the product eventually merges into km is an open product question, parked in [hub/futures.md](./futures.md#km--silvercode-convergence-options).
 

@@ -196,7 +196,7 @@ tsdown -W -F "pkg"  # Build specific workspace package
 
 ### Packages without tsdown
 
-`@bearly/tribe` and `@bearly/github` do NOT use tsdown. They publish raw source (`server.ts`) and use a custom `build` script that runs `bun build tools/tribe-proxy.ts --target=bun --outfile=plugins/tribe/server.ts`. Their `files` arrays include `server.ts`, not `dist`.
+`@bearly/tribe` and `@bearly/github` do NOT use tsdown. They publish raw source (`server.ts`) and use a custom `build` script that runs `bun build tools/stdio-adapter.ts --target=bun --outfile=plugins/tribe/server.ts`. Their `files` arrays include `server.ts`, not `dist`.
 
 `terminfo.dev` publishes `src/` and `bin/` directly (`"files": ["src", "bin"]`), no tsdown.
 

@@ -221,6 +221,8 @@ function resolveRegistrationPath(reg: HookRegistration): string | undefined {
     path = path.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1")
     if (path.startsWith("$CLAUDE_PROJECT_DIR/")) path = join(REPO_ROOT, path.slice("$CLAUDE_PROJECT_DIR/".length))
     else if (path.startsWith("$CLAUDE_PROJECT_DIR")) path = join(REPO_ROOT, path.slice("$CLAUDE_PROJECT_DIR".length))
+    else if (path.startsWith("$HOME/")) path = join(homedir(), path.slice("$HOME/".length))
+    else if (path.startsWith("~/")) path = join(homedir(), path.slice(2))
     else if (path.startsWith("./")) path = join(REPO_ROOT, path.slice(2))
     else if (!path.startsWith("/")) path = join(REPO_ROOT, path)
     return path

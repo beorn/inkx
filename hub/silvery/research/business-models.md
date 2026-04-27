@@ -176,7 +176,7 @@ Codex CLI + app + IDE extension still work on ChatGPT login, but they're metered
 
 ### Implication for silvery / Agent Workspace
 
-The subscription-vs-API fork is the most important new constraint in the space and directly reshapes Track 1 vs Track 2 thinking for Agent Workspace. See `hub/silvery/future/ai-terminal/00-agent-workspace.md` for the current architectural response.
+The subscription-vs-API fork is the most important new constraint in the space and directly reshapes Track 1 vs Track 2 thinking for Agent Workspace. See `hub/silvercode/future/ai-terminal/00-agent-workspace.md` for the current architectural response.
 
 ## Patterns worth naming
 
@@ -214,9 +214,9 @@ Foundation-lab agents are the existential threat that's pulling editor-company m
 
 ### 5. The novelty window is shrinking
 
-Per `pro-review-2026-04-24.md` (in `hub/silvery/future/ai-terminal/`): Anthropic now ships subagents, agent teams, checkpointing, hooks, statusline JSON. Codex now ships CLI + app + server + SDK + MCP server + cloud tasks. Warp ships local + cloud agents with a split modality. cmux launched Feb 2026 with multi-agent positioning + socket API.
+Per `pro-review-2026-04-24.md` (in `hub/silvercode/future/ai-terminal/`): Anthropic now ships subagents, agent teams, checkpointing, hooks, statusline JSON. Codex now ships CLI + app + server + SDK + MCP server + cloud tasks. Warp ships local + cloud agents with a split modality. cmux launched Feb 2026 with multi-agent positioning + socket API.
 
-The "supervise multiple agent sessions" wedge — which is the Agent Workspace MVP thesis (`hub/silvery/future/ai-terminal/00-agent-workspace.md`) — is being attacked from the foundation-lab side and from the multiplexer side simultaneously. If we ship, we ship in 2026; if we wait until 2027, the wedge is gone.
+The "supervise multiple agent sessions" wedge — which is the Agent Workspace MVP thesis (`hub/silvercode/future/ai-terminal/00-agent-workspace.md`) — is being attacked from the foundation-lab side and from the multiplexer side simultaneously. If we ship, we ship in 2026; if we wait until 2027, the wedge is gone.
 
 ## Implications for silvery / km / Agent Workspace
 

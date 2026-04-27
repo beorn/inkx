@@ -155,7 +155,7 @@ For each suspicious process found in Phase 1:
 ### Auto-kill rules (no confirmation needed)
 
 - Duplicate `tribe-daemon` (keep newest PID, kill older ones)
-- Orphaned `tribe-watch` / `tribe-proxy` with no parent (PPID=1)
+- Orphaned `tribe-watch` / `stdio-adapter` with no parent (PPID=1)
 - Zombie processes (`Z` state) — `kill -9 <PPID>` to reap
 - Orphaned `node`/`bun` with PPID=1 running >30 min and <1% CPU (leaked, doing nothing)
 - Multiple identical file watchers (fswatch, watchman) — keep 1

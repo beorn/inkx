@@ -2,7 +2,7 @@
 
 **Status**: committed direction (2026-04-24) after GPT-5.4 Pro review. The MVP for the AI-era terminal thesis.
 
-**Naming**: **Silvercode**. Internal codename, decided 2026-04-24. **Keep this internal — do NOT publish on the public silvery site (`vendor/silvery/docs/`) or any external surface.** All design lives in `hub/silvery/future/ai-terminal/`. Public name TBD when (if) we ship; for now everyone refers to it as Silvercode.
+**Naming**: **Silvercode**. Internal codename, decided 2026-04-24. **Keep this internal — do NOT publish on the public silvery site (`vendor/silvery/docs/`) or any external surface.** All design lives in `hub/silvercode/future/ai-terminal/`. Public name TBD when (if) we ship; for now everyone refers to it as Silvercode.
 
 **The pitch in one sentence**: a local-first **agent workspace** that runs Claude Code (and later other agents) in structured mode by default, normalizes all activity into one session/event model, replays and searches everything, and gates risky actions with explicit policy.
 

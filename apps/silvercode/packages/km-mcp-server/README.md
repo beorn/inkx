@@ -22,7 +22,7 @@ This package owns **path 1**. Path 2 lives in the silvercode host
 | **Virtual filesystem** (`km://`) | silvercode acp-client | `km://card/<id>`, `km://selection`, `km://column/<id>`, `km://tree/...` | Agent calls ACP `fs/read_text_file`   |
 
 Path 2 is implemented in silvercode's `WorkspaceProvider` — see
-[`hub/silvery/future/ai-terminal/10-agent-router-landscape.md`](../../../../hub/silvery/future/ai-terminal/10-agent-router-landscape.md)
+[`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`](../../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md)
 § "Board selection — client-mediated FS is the perfect fit". The two are
 complementary: tools for capabilities the agent wants to invoke, virtual files
 for data the agent wants to _read_.

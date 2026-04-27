@@ -207,7 +207,7 @@ is the recommended entry point for new code that consumes ACP-shaped
 state. Migration is per-component: nothing forces existing
 `createSessionStore(spawnClaude(...))` consumers to switch.
 
-Reference: `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+Reference: `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
 § "Recommended path — internal-first, extract later".
 
 ## Tests

@@ -97,7 +97,7 @@ foundational guarantee; everything else is incremental.
 ## Reference
 
 - silvercode internal adapter: `apps/silvercode/packages/agent-harness/src/acp-adapter-claude.ts`
-- design notes: `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+- design notes: `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
   § "Recommended path — internal-first, extract later"
 - tracking bead: `km-silvercode.acp-claude-server`
 

@@ -17,7 +17,7 @@
  * prepend these as typed `EmbeddedResource` blocks on the next user prompt?)
  * lives in `prompt-assembly.ts`. By default the queue holds and the user
  * decides via `/inject-tribe` slash commands — see
- * `hub/silvery/future/ai-terminal/10-agent-router-landscape.md` § "Replacing
+ * `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md` § "Replacing
  * Claude Code's <channel> injection with ACP primitives" for the rationale
  * (Option 1: UI-first / user-mediated).
  */

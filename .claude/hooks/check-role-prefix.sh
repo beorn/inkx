@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Hook-Status: internal
 # Detect if the assistant's most recent text block self-injected a role prefix
 # (Human:/Assistant:/User:), log the incident, alert the user, and broadcast
 # to tribe. Fires on the Stop hook (after each assistant turn ends).

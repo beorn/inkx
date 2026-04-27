@@ -1,6 +1,25 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-26 (scrollTo same-intent recovery — multi-pass layout convergence)
+Last updated: 2026-04-27 (C1 L5 — deterministic handle counter replaces GC memory tests)
+
+## C1 L5 — deterministic handle counter (2026-04-27)
+
+**Bead**: `km-silvery.lifecycle-leak-detection-fossil`. Silvery commit `725ea161` on branch `feat/c1-deterministic-handle-counter`.
+
+**What changed**:
+- `packages/scope/src/handle.ts`: added `let _activeHandleCount = 0` counter + `export function getActiveHandleCount(): number`. Increments in `defineHandle().create()` after `branded.add(handle)`. Decrements in both `Symbol.asyncDispose` and `Symbol.dispose` via a `let _disposed = false` idempotent guard (prevents double-decrement when scope wrapper AND manual dispose both fire).
+- `packages/scope/src/index.ts`: re-exports `getActiveHandleCount` from `@silvery/scope`.
+- `tests/memory/memory.test.tsx`: removed all `Bun.gc` / `getHeapUsedMB` / `warmup` / `runWithPeakTracking` / KB-threshold code. Replaced with 12 deterministic handle-counter tests + 2 scope-leak fuzz tests. The 9 render structural tests (render count, frame linear, useBoxRect cleanup) are preserved but converted to structural assertions (no GC, no heap measurement).
+
+**Key design choices**:
+- Counter is GLOBAL (not per-scope). Per-scope accounting already exists via `getAdoptedHandles(scope)`. The global counter is an orthogonal structural invariant: "after all handles dispose, count returns to baseline."
+- `before = getActiveHandleCount()` snapshot at test start makes tests robust against parallel test-module contamination from other test files that create handles.
+- Fuzz uses mulberry32 seeded PRNG for reproducibility without external deps.
+- The idempotent `_disposed` flag lives in the `create()` closure (not in WeakMap/WeakSet metadata) — captured per-handle, zero overhead for non-disposed handles.
+
+**Worktree module resolution gotcha**: the km worktree's `node_modules` is a symlink to the main repo's `node_modules`. So `@silvery/scope` resolves to the MAIN repo's silvery, not the worktree's silvery checkout. Required applying `handle.ts` + `index.ts` changes to both the worktree's silvery (canonical commit) AND the main repo's silvery (test execution). Do NOT commit the main repo's silvery changes to its feature work-in-progress — leave them as uncommitted modifications for test execution only.
+
+**Test counts**: 97 tests pass (scope tests: 76 + memory tests: 21) with SILVERY_STRICT=1. Main repo full vendor suite: 12298 passing, no regressions.
 
 ## scrollTo same-intent recovery: multi-pass layout convergence (2026-04-26)
 

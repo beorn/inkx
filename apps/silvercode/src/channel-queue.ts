@@ -9,7 +9,7 @@
  * (`prompt-assembly.ts`) decides whether to drain them as typed
  * `EmbeddedResource` blocks on the next user prompt.
  *
- * Design — see `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * Design — see `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  * § "Replacing Claude Code's <channel> injection with ACP primitives". Default
  * disposition: UI-first / user-mediated. Notification badge (powered by
  * `pendingCount`) tells the user there's queued context; the user invokes

@@ -13,7 +13,7 @@
  *   2. ACP's `protocolVersion` bumps to 2 with a real deprecation policy.
  * Until then, keep this layer. Re-evaluate quarterly. See
  * `apps/silvercode/packages/agent-harness/CLAUDE.md` for full rationale and
- * `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  * § "ACP as silvery's internal domain model" / § "Reality check".
  *
  * **Boundary discipline**: only `acp-boundary.ts` may import from

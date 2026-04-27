@@ -286,19 +286,24 @@ describe("TUI Fuzz Tests", () => {
 
   /**
    * View mode switching fuzz
+   *
+   * View mode is cycled with the `v m` chord (v = prefix, m = view-mode suffix).
+   * Bare `v` arms the chord prefix; bare `m` only resolves view mode if a
+   * pending chord exists.
    */
   test.fuzz("view mode switching invariants", async () => {
     const nodes = createStandardBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
-    // Weighted towards view mode switching
+    // Weighted towards view mode chord (v m). Each chord is sent as two
+    // sequential keys via the synthetic "vm" pseudo-action.
     const keys: [number, string][] = [
-      [15, "v"], // High weight for view mode
+      [15, "vm"], // High weight: v m chord cycles view mode
       [5, "j"],
       [5, "k"],
       [3, "h"],
       [3, "l"],
-      [2, "g"],
+      [2, "g g"], // gg first visible
       [2, "G"],
       [3, "Tab"],
       [2, "z"],
@@ -307,14 +312,19 @@ describe("TUI Fuzz Tests", () => {
 
     for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
-      driver.press(key)
+
+      // Multi-key sequences: send each key in order. Used for chords like "v m".
+      const subkeys = key === "vm" ? ["v", "m"] : key.includes(" ") ? key.split(" ") : [key]
+      for (const k of subkeys) {
+        driver.press(k)
+      }
       const after = driver.getState()
 
       checkViewModeInvariants(after, key, before)
 
-      // View mode specific: v should cycle when not in dialog
-      if (key === "v" && !before.dialogs.search && !before.dialogs.help && !before.dialogs.newItem) {
-        expect(after.viewMode, "View mode should change after v").not.toBe(before.viewMode)
+      // The v m chord must cycle view mode when not in a dialog.
+      if (key === "vm" && !before.dialogs.search && !before.dialogs.help && !before.dialogs.newItem) {
+        expect(after.viewMode, "View mode should change after v m chord").not.toBe(before.viewMode)
       }
     }
   })

@@ -127,7 +127,7 @@ Tribe can run as a single daemon process per project. Sessions connect via Unix 
 
 ### Architecture
 - **Daemon** (`tribe-daemon.ts`): Single process, owns DB, plugins, session registry. Unix socket IPC.
-- **Proxy** (`tribe-proxy.ts`): Thin MCP server forwarding to daemon. ~230 lines, no DB access.
-- **Auto-start**: Proxy spawns daemon if not running. Auto-quit after 30s with no clients.
+- **Stdio adapter** (`stdio-adapter.ts`): Per-agent transport translator — bridges Claude Code's stdio MCP to the daemon's Unix-socket MCP. Forwards tool calls; no DB access.
+- **Auto-start**: The adapter spawns daemon if not running. Auto-quit after 30s with no clients.
 - **Hot-reload**: SIGHUP re-execs daemon with socket fd transfer. No connection loss.
 - **Socket**: `~/.local/share/tribe/tribe.sock` (user-global, auto-discovered; `TRIBE_SOCKET` env var overrides)

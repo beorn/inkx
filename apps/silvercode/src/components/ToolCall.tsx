@@ -14,7 +14,7 @@
  *   - <ToolCallSummary>      — aggregate "Read 12 files" with rolling count
  *   - <ApplyPatch>           — Aider search/replace renderer
  *
- * Naming follows ACP exactly per `hub/silvery/future/ai-terminal/acp-naming.md`
+ * Naming follows ACP exactly per `hub/silvercode/future/ai-terminal/acp-naming.md`
  * — variables use `toolCall` / `toolCallId`, status enum from acp-types.ts,
  * file is `ToolCall.tsx` (ACP-aligned naming).
  *

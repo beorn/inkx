@@ -19,7 +19,7 @@
  * because not every session needs the cross-agent slice (single-session
  * silvercode invocations have nothing to project).
  *
- * See `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * See `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  * § "Cross-agent cooperation".
  */
 

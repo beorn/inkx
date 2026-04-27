@@ -18,7 +18,7 @@
  * (handoff, wait, abandon). No automatic mediation. Documented here because
  * the policy is enforced in `claimFile` below.
  *
- * See `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`
+ * See `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`
  * § "Cross-agent cooperation" + § "How OpenClaw does it".
  */
 

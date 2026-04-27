@@ -2,7 +2,7 @@
 
 **Status:** v1, shipped 2026-04-26
 **Bead:** `km-silvercode.acp-multi-agent`
-**Reference:** [hub/silvery/future/ai-terminal/10-agent-router-landscape.md](../../../hub/silvery/future/ai-terminal/10-agent-router-landscape.md) § "Cross-agent cooperation"
+**Reference:** [hub/silvercode/future/ai-terminal/10-agent-router-landscape.md](../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md) § "Cross-agent cooperation"
 
 ## What this layer does
 

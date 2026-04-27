@@ -618,23 +618,34 @@ export function SidePanel({
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Text bold>Thinking</Text>
         <Muted>
-          Extended-thinking budget for Claude's internal reasoning. Higher = more thorough answers, more tokens spent.
-          Click to cycle. Silvercode injects the matching keyword (`think`, `think hard`, `ultrathink`) into your next
-          message — Claude's own magic-keyword recognition activates the budget.
+          Reasoning intensity for the agent. Higher = more thorough answers, more tokens spent. Click to cycle.
         </Muted>
         <Box flexDirection="column">
-          <Text>
-            <Text color="$muted">{THINKING_ICONS.normal} normal</Text> — Claude's baseline (no extended thinking block)
-          </Text>
-          <Text>
-            <Text color="$muted">{THINKING_ICONS.think} think (4K)</Text> — injects `think` keyword for moderate budget
-          </Text>
-          <Text>
-            <Text color="$muted">{THINKING_ICONS.think_hard} hard (16K)</Text> — injects `think hard` for deep reasoning
-          </Text>
-          <Text>
-            <Text color="$muted">{THINKING_ICONS.ultrathink} ultra (32K)</Text> — injects `ultrathink` for max budget
-          </Text>
+          {capabilities?.thinking && capabilities.thinking.length > 0 ? (
+            capabilities.thinking.map((opt) => (
+              <Text key={opt.id}>
+                <Text color={opt.color ?? "$muted"}>
+                  {opt.icon} {opt.name}
+                </Text>{" "}
+                — {opt.description}
+              </Text>
+            ))
+          ) : (
+            <>
+              <Text>
+                <Text color="$muted">{THINKING_ICONS.normal} normal</Text> — agent baseline (no extended thinking)
+              </Text>
+              <Text>
+                <Text color="$muted">{THINKING_ICONS.think} think (4K)</Text> — moderate reasoning budget
+              </Text>
+              <Text>
+                <Text color="$muted">{THINKING_ICONS.think_hard} hard (16K)</Text> — deep reasoning
+              </Text>
+              <Text>
+                <Text color="$muted">{THINKING_ICONS.ultrathink} ultra (32K)</Text> — max budget
+              </Text>
+            </>
+          )}
         </Box>
       </Box>
     ),
@@ -876,29 +887,23 @@ export function SidePanel({
           // gemini / copilot rather than showing a stale Claude version.
           const isClaudeAgent = id === "claude-code" || id === "claude-code-spawn"
           const version = isClaudeAgent ? state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…" : null
+          // Model + agent share one wrappable row: model stays inline if it
+          // fits, wraps to next line aligned under the label otherwise. The
+          // model name is one Text node so flex treats it as an indivisible
+          // unit and won't break it mid-token. paddingLeft={2} on the inner
+          // Box puts the wrap point at column 2 — same column as the label,
+          // so the wrapped model lines up with "Codex" rather than the icon.
+          const displayModel = state.model || defaultModel || ""
           return (
             <Box flexDirection="row" gap={1}>
               <Text color="$fg">{icon}</Text>
-              <Box flexDirection="row">
-                <Text color="$fg">
+              <Box flexDirection="row" flexWrap="wrap" gap={1}>
+                <Text bold color="$fg">
                   {label}
                   {version !== null ? ` v${version}` : ""}
                 </Text>
+                {displayModel ? <Small>{modelLabel(displayModel)}</Small> : null}
               </Box>
-            </Box>
-          )
-        })()}
-        {/* Model — indent under the agent line so it reads as a sub-
-            detail. state.model populates from session-init; falls back
-            to defaultModel when the agent's lifecycle doesn't carry a
-            model field (most ACP agents). Empty string for both →
-            row collapses. */}
-        {(() => {
-          const displayModel = state.model || defaultModel || ""
-          if (!displayModel) return null
-          return (
-            <Box flexDirection="row" paddingLeft={2}>
-              <Small>{modelLabel(displayModel)}</Small>
             </Box>
           )
         })()}

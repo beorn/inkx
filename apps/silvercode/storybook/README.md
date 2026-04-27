@@ -11,7 +11,7 @@ This is the SCAFFOLD bead (`km-silvercode.acp-storybook`). It ships the
 runner, the registry, and ~12 reference stories proving the pattern.
 The full backlog of ~30 silvercode components and ~15 silvery primitives
 lives in
-[`hub/silvery/future/ai-terminal/component-parity-plan.md`](../../../hub/silvery/future/ai-terminal/component-parity-plan.md).
+[`hub/silvercode/future/ai-terminal/component-parity-plan.md`](../../../hub/silvercode/future/ai-terminal/component-parity-plan.md).
 Add stories there as those components ship.
 
 ## Run

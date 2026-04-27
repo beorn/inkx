@@ -39,7 +39,7 @@ Multi-machine, cross-project tribe coordination. Out of scope today — a tribe 
 
 km and silvercode are converging into one agentic workdesk — an integrated knowledge environment where the durable knowledge graph (km) and the live agent workspace (silvercode) share the same state, the same UI shell, and the same coordination layer. Today they're separate apps mostly because their MVPs landed on different timelines; the design assumption is tight integration.
 
-What that looks like, per the [km vision](./km/design/vision.md) and the [silvercode MVP brief](./silvery/future/ai-terminal/00-agent-workspace.md):
+What that looks like, per the [km vision](./km/design/vision.md) and the [silvercode MVP brief](./silvercode/future/ai-terminal/00-agent-workspace.md):
 
 - **km** already frames itself as *"the environment for knowledge work with AI agents"* — three first-class axes: Knowledge, Communication, Agents. The Agents axis is the silvercode shape, lifted out as a separate codebase for now.
 - **silvercode**'s MVP is "agent workspace, not super-shell" — supervision/replay/memory layers around Claude Code. Naturally fed by, and feeding back into, the durable knowledge graph km already owns.
@@ -54,7 +54,7 @@ What that looks like, per the [km vision](./km/design/vision.md) and the [silver
 The composition pattern keeps all three options open: the same `pipe + with*` factories that build them today can be re-composed into any of those product shapes without architectural surgery.
 
 - No bead — product question, not engineering work.
-- See also: [hub/roadmap.md](./roadmap.md), [hub/km/design/vision.md](./km/design/vision.md), [hub/silvery/future/ai-terminal/00-agent-workspace.md](./silvery/future/ai-terminal/00-agent-workspace.md).
+- See also: [hub/roadmap.md](./roadmap.md), [hub/km/design/vision.md](./km/design/vision.md), [hub/silvercode/future/ai-terminal/00-agent-workspace.md](./silvercode/future/ai-terminal/00-agent-workspace.md).
 
 ## Signal-store API
 

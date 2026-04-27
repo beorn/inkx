@@ -6,7 +6,7 @@
  * the two-region layout and the wire-format/display-format round-trip.
  */
 import React, { useState } from "react"
-import { Screen } from "silvery"
+import { Box, Screen } from "silvery"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
 import type { Story } from "../types.ts"
 
@@ -39,18 +39,20 @@ function WithQueueComposerStory({ focusedRegion }: { focusedRegion: "command" | 
   const [region, setRegion] = useState<"command" | "queue">(focusedRegion)
 
   return (
-    <Screen flexDirection="column" justifyContent="flex-end">
-      <SessionPromptComposer
-        queueText={queueText}
-        onQueueChange={setQueueText}
-        onQueueSubmit={() => setQueueText("")}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        onSubmit={() => {}}
-        onExit={() => {}}
-        focusedRegion={region}
-        onFocusRegion={setRegion}
-      />
+    <Screen flexDirection="column">
+      <Box flexGrow={1} flexDirection="column" justifyContent="flex-end">
+        <SessionPromptComposer
+          queueText={queueText}
+          onQueueChange={setQueueText}
+          onQueueSubmit={() => setQueueText("")}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          onSubmit={() => {}}
+          onExit={() => {}}
+          focusedRegion={region}
+          onFocusRegion={setRegion}
+        />
+      </Box>
     </Screen>
   )
 }

@@ -114,8 +114,10 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 3. text editing nodeId exists in the repo (if editing)
+  // Skip virtual/synthetic nodes (__meta__*, __body__*) — they're generated
+  // at display time and don't exist in the repo by design.
   const editText = ctx.sel.text()
-  if (editText) {
+  if (editText && !isVirtualNodeId(editText.nodeId)) {
     const editNode = ctx.repo.getNode(editText.nodeId)
     if (!editNode) {
       violations.push({
@@ -253,17 +255,27 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 9. Inline edit node should be resolvable in columns (if editing)
+  // Skip virtual nodes — synthetic IDs don't exist in the column tree by design.
   // Skip when edit node IS the root — board-level editing is an edge case from fuzz testing.
   // Skip when detail pane is focused — edit node belongs to detail's subtree, not board columns.
   const isDetailFocused = ctx.focusedPaneViewType() === "detail"
-  if (editText && treeColIds.length > 0 && editText.nodeId !== ctx.rootId && !isDetailFocused) {
+  if (
+    editText &&
+    !isVirtualNodeId(editText.nodeId) &&
+    treeColIds.length > 0 &&
+    editText.nodeId !== ctx.rootId &&
+    !isDetailFocused
+  ) {
     const editInIndex = ctx.nodeIndex.has(editText.nodeId)
-    // Walk parents if not directly in index
+    // Walk parents if not directly in index. The parent chain reaches a
+    // column when either (a) a parent is in nodeIndex, or (b) a parent IS
+    // the rootId — the rootId is not in nodeIndex but is a valid landing
+    // for nodes inserted at board level (e.g., fuzz `o` at column cursor).
     let foundInColumns = editInIndex
     if (!foundInColumns) {
       let current = ctx.repo.getNode(editText.nodeId)
       while (current?.parent_id) {
-        if (ctx.nodeIndex.has(current.parent_id)) {
+        if (ctx.nodeIndex.has(current.parent_id) || current.parent_id === ctx.rootId) {
           foundInColumns = true
           break
         }

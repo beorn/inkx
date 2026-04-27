@@ -428,7 +428,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   // Channel pipeline — silvercode-owned ambient-event buffer feeding the
   // typed prompt-assembly path (apps/silvercode/src/prompt-assembly.ts).
   // Replaces Claude Code's free-text `<channel source="..." ...>` tag
-  // injection — see hub/silvery/future/ai-terminal/10-agent-router-landscape.md.
+  // injection — see hub/silvercode/future/ai-terminal/10-agent-router-landscape.md.
   // The scope owns watcher teardown for tribe / telegram / ci / lore /
   // subagent subscribers; closeAll() disposes it.
   //

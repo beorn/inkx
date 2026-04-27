@@ -195,7 +195,7 @@ describe("connectAcpRegistry", () => {
       if (expected.args[0] === "__claude-acp-bin__") {
         // Workspace-resolved bin — assert shape, not exact path.
         expect(capture.args).toHaveLength(1)
-        expect(capture.args[0]).toMatch(/\/claude-acp\/bin\/silvercode-claude-acp\.js$/)
+        expect(capture.args?.[0]).toMatch(/\/claude-acp\/bin\/silvercode-claude-acp\.js$/)
       } else {
         expect(capture.args).toEqual(expected.args)
       }

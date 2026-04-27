@@ -14,10 +14,10 @@ onto MCP tools and adds permission gating.
 Modelled on OpenClaw's `sessions_send` / `sessions_list` /
 `sessions_history` tools, with the same per-tool scope policy and
 "dangerous tool" permission gate. See
-[`hub/silvery/future/ai-terminal/10-agent-router-landscape.md`][router]
+[`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`][router]
 § "How OpenClaw does it" for the full mapping.
 
-[router]: ../../../../hub/silvery/future/ai-terminal/10-agent-router-landscape.md
+[router]: ../../../../hub/silvercode/future/ai-terminal/10-agent-router-landscape.md
 
 ## Tools
 

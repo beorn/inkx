@@ -22,7 +22,7 @@
  *      - `km://tree/<root>/<p>`  → tree subtree
  *    Falls through to real disk for ordinary paths. The implementation lives
  *    in `apps/silvercode/packages/acp-client` (or similar host), NOT here.
- *    See `hub/silvery/future/ai-terminal/10-agent-router-landscape.md` §
+ *    See `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md` §
  *    "Board selection — client-mediated FS is the perfect fit".
  *
  * ## v1 read-only surface (always available)

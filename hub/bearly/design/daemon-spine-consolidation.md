@@ -1,5 +1,12 @@
 # Daemon-spine consolidation — design + roadmap
 
+> **Note (2026-04-27):** The package was renamed from `@bearly/daemon-spine` →
+> `@bearly/tribe-client` and the directory from `packages/daemon-spine/` →
+> `packages/tribe-client/` (km-tribe.refactor post-close package-rename wave).
+> Historical references in this doc retain "daemon-spine" because that was the
+> name when the design was scoped; the actual code now ships as
+> `@bearly/tribe-client`.
+
 ## Status
 
 Scout dated 2026-04-26. Tracked under bead epic `km-bearly.daemon-spine` (4 child phases). Phase 1 is in-progress (bead `km-bearly.daemon-spine-phase1`, in-flight via `bead-d` agent on team `process-mgmt-plateau`, branch `bead-d` of `vendor/bearly` submodule). Pro plateau-distance review's third pillar after spawn-close-hardening + MCP-as-tribe-plugin.
@@ -9,7 +16,7 @@ Scout dated 2026-04-26. Tracked under bead epic `km-bearly.daemon-spine` (4 chil
 | File | LOC | Role | Notable |
 |---|---|---|---|
 | `tools/tribe-daemon.ts` | 1,760 | Main coordination daemon: client registry, plugin loader, chief derivation, session mgmt, activity log, broadcast coalescer, lore handlers (memory RPC surface) | Largest file; absorbs former lore daemon; handles hot-reload, idle-quit, socket cleanup |
-| `tools/tribe-proxy.ts` | 534 | MCP proxy: connects Claude Code → daemon via Unix socket; forwards tools; manages peer sockets for direct proxy-to-proxy messaging | Small thin layer; has hot-reload + peer socket server (lines 72–149) |
+| `tools/stdio-adapter.ts` | 534 | Per-agent stdio↔Unix-socket MCP transport adapter: connects Claude Code → daemon; forwards tools; manages peer sockets for direct adapter-to-adapter messaging | Small thin layer; has hot-reload + peer socket server (lines 72–149) |
 | `tools/lib/tribe/socket.ts` | 402 | JSON-RPC 2.0 wire protocol + daemon client: connect, auto-start, reconnect, peer discovery, line-delimited parser | Core shared utility; `connectOrStart()`, `createReconnectingClient()`, `connectToDaemon()` |
 | `plugins/tribe/lore/server.ts` | 560 | MCP server: lore.ask, lore.brief, lore.plan, lore.session, lore.workspace, lore.inject_delta tools; daemon fallback to library mode | MCP plumbing + tool dispatch; minimal daemon code (mostly tool handlers) |
 | `plugins/tribe/lore/lib/socket.ts` | 364 | **EXACT DUPLICATE** of `tools/lib/tribe/socket.ts`: JSON-RPC types, line parser, client, auto-start, reconnect, `withDaemonCall()` | 95% verbatim copy; trivial diffs only (variable names, callTimeoutMs param) |
@@ -18,7 +25,7 @@ Scout dated 2026-04-26. Tracked under bead epic `km-bearly.daemon-spine` (4 chil
 
 ## Duplication Matrix
 
-| Capability | tribe-daemon | tribe-proxy | lore/socket | lore/server | tty/server | github/server |
+| Capability | tribe-daemon | stdio-adapter | lore/socket | lore/server | tty/server | github/server |
 |---|---|---|---|---|---|---|
 | **Unix socket bind+unlink+chmod** | ✓ (daemon) | ✓ (peer) | ✗ (client only) | ✗ | ✗ | ✗ |
 | **JSON-RPC request/response makers** | ✓ | ✓ | ✓ | ✗ (dispatch only) | ✗ | ✗ |
@@ -148,7 +155,7 @@ export function resolvePeerSocketPath(sessionId: string): string
 
 **`connectOrStart`** — Connect or spawn daemon. Currently in both socket files; consolidate with options for auto-start suppression + script path.
 
-**`createReconnectingClient`** — Proxy pattern with auto-reconnect + notification handler replay. Used by tribe-proxy, lore MCP, and directly by callers. Move to spine; both clients are now the same shape.
+**`createReconnectingClient`** — Proxy pattern with auto-reconnect + notification handler replay. Used by stdio-adapter, lore MCP, and directly by callers. Move to spine; both clients are now the same shape.
 
 **`withDaemonCall`** — Deadline-bounded call with structured error. Currently in lore/socket.ts only (used by hooks). Promote to spine for general use.
 
@@ -188,7 +195,7 @@ export function resolvePeerSocketPath(sessionId: string): string
    ```
    **Result**: ~80 LOC (from 402), pure re-exports
 
-2. Update tribe-proxy.ts + tribe-daemon.ts imports:
+2. Update stdio-adapter.ts + tribe-daemon.ts imports:
    ```ts
    import { connectToDaemon, createLineParser, makeResponse, makeError, isRequest, TRIBE_PROTOCOL_VERSION, type DaemonClient, type JsonRpcMessage, type JsonRpcRequest } from '@bearly/daemon-spine'
    ```
@@ -197,14 +204,14 @@ export function resolvePeerSocketPath(sessionId: string): string
 
 Current state:
 - `tribe-daemon.ts` (lines ~1680–1730): `setupHotReload` import + usage
-- `tribe-proxy.ts` (lines 414–426): same `setupHotReload` import + usage
+- `stdio-adapter.ts` (lines 414–426): same `setupHotReload` import + usage
 
 Both import from `./lib/tribe/hot-reload.ts` (not examined, but likely contains spawn + fd inheritance logic).
 
 **Action**: Move hot-reload to spine or create separate `@bearly/daemon-util` package covering:
 - Hot-reload pattern (re-exec on source change, fd inheritance)
 - Idle-quit timer (QUIT_TIMEOUT pattern)
-- Peer socket setup (mkdirSync + chmod + listen, currently in tribe-proxy 72–147)
+- Peer socket setup (mkdirSync + chmod + listen, currently in stdio-adapter 72–147)
 
 ### Phase 4 — Consolidate idle-quit + cleanup patterns (~80 LOC saved)
 
@@ -216,7 +223,7 @@ Tribe daemon's idle-quit timer (QUIT_TIMEOUT logic) and socket cleanup patterns 
 
 2. **Timeout strategy divergence** — Tribe socket hard-codes 10s timeout; lore socket parameterizes it. Spine should expose both patterns: hard-coded default + override opt-in.
 
-3. **Peer socket complexity** — tribe-proxy manages peer sockets (direct proxy-to-proxy) via startPeerServer() (lines 85–149). Lore has no peer socket. Should peer socket logic be in spine (generic) or stay tribe-specific?
+3. **Peer socket complexity** — stdio-adapter manages peer sockets (direct adapter-to-adapter) via startPeerServer() (lines 85–149). Lore has no peer socket. Should peer socket logic be in spine (generic) or stay tribe-specific?
 
 4. **Plugin system** — tribe-daemon loads plugins; lore/tty/github MCPs don't use a unified plugin loader. Spine should NOT include plugin logic (too domain-specific). Spine is client/protocol only.
 
@@ -229,7 +236,7 @@ Tribe daemon's idle-quit timer (QUIT_TIMEOUT logic) and socket cleanup patterns 
 **Breakdown (conservative):**
 - `lore/lib/socket.ts`: 250 LOC → 100 LOC = **250 saved**
 - `tools/lib/tribe/socket.ts`: 402 LOC → 80 LOC = **320 saved**
-- Hot-reload duplication (tribe-daemon.ts + tribe-proxy.ts): ~100 LOC → ~40 LOC = **60 saved**
+- Hot-reload duplication (tribe-daemon.ts + stdio-adapter.ts): ~100 LOC → ~40 LOC = **60 saved**
 - Idle-quit cleanup duplication: ~80 LOC → ~20 LOC = **60 saved**
 - **Total: ~690 LOC saved, with risk buffer → 750–900 LOC estimate**
 

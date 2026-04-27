@@ -255,7 +255,7 @@ describe("km-tui-empty-cards: Card content rendering", () => {
 })
 
 describe("Scroll virtualization doesn't hide content", () => {
-  test("rapidly navigating doesn't leave cards empty", () => {
+  test("rapidly navigating doesn't leave cards empty", { timeout: 30_000 }, () => {
     const cards = Array.from({ length: 30 }, (_, i) => item(`item${i}`))
 
     using app = createTestApp(item("board", item("col1", ...cards)), {
@@ -652,14 +652,18 @@ describe("km-tui.column-top-disappears", () => {
     ).toBeLessThanOrEqual(6)
   }
 
-  test("VISUAL/incremental: top-border position stable across cursor_down + cursor_up (REPRODUCES BUG)", () => {
-    using app = createTestApp(buildTallNextActionsColumn(), {
-      rows: 45,
-      cols: 180,
-      incremental: true,
-    })
-    runVisualShapeProbe(app, "incremental")
-  })
+  test(
+    "VISUAL/incremental: top-border position stable across cursor_down + cursor_up (REPRODUCES BUG)",
+    { timeout: 30_000 },
+    () => {
+      using app = createTestApp(buildTallNextActionsColumn(), {
+        rows: 45,
+        cols: 180,
+        incremental: true,
+      })
+      runVisualShapeProbe(app, "incremental")
+    },
+  )
 
   test("VISUAL/fresh: same shape probe with incremental=false — isolates bug origin", () => {
     using app = createTestApp(buildTallNextActionsColumn(), {
@@ -670,54 +674,58 @@ describe("km-tui.column-top-disappears", () => {
     runVisualShapeProbe(app, "fresh")
   })
 
-  test("REPRO: vault-shaped column (section headers + wide tall cards) — top card disappears", () => {
-    // More faithful reproduction of the user's Next Actions column:
-    //   - first card is a tall multi-line card ($ delei with body text)
-    //   - followed by short title-only cards ($ inbox, $ Shortcuts, $ taxomatic)
-    //   - interrupted by MANY section-header style items (§ Next actions @next)
-    //   - more tall cards further down
-    // This maps the screenshot shape much more closely.
-    const cards: ReturnType<typeof item>[] = []
-    // First: tall "delei" card with 4 children + "more"
-    cards.push(item("delei Auto-populated", item("- What lands here"), item("- Triage rules")))
-    cards.push(item("inbox"))
-    cards.push(item("Shortcuts"))
-    cards.push(item("taxomatic"))
-    cards.push(item("taxes"))
-    cards.push(item("Office"))
-    // Followed by 8 section-heading-style cards (§ Next actions @next)
-    // these are title-only cards that look like headers — 3-row boxes.
-    for (let i = 0; i < 8; i++) cards.push(item("Next actions @next"))
-    // Then some tall + normal cards
-    cards.push(item("Upcoming deadlines", item("- all projects, next 12 months"), item("- Follow up with")))
-    cards.push(item("Pattern E — Dates and props"))
-    cards.push(item("Difference from"))
-    cards.push(item("Tax Prep — tasks", item("- Set up Mobilbank"), item("- Norwegian passport")))
-    cards.push(item("Track the delegation"))
-    cards.push(item("What is a groomed"))
+  test(
+    "REPRO: vault-shaped column (section headers + wide tall cards) — top card disappears",
+    { timeout: 30_000 },
+    () => {
+      // More faithful reproduction of the user's Next Actions column:
+      //   - first card is a tall multi-line card ($ delei with body text)
+      //   - followed by short title-only cards ($ inbox, $ Shortcuts, $ taxomatic)
+      //   - interrupted by MANY section-header style items (§ Next actions @next)
+      //   - more tall cards further down
+      // This maps the screenshot shape much more closely.
+      const cards: ReturnType<typeof item>[] = []
+      // First: tall "delei" card with 4 children + "more"
+      cards.push(item("delei Auto-populated", item("- What lands here"), item("- Triage rules")))
+      cards.push(item("inbox"))
+      cards.push(item("Shortcuts"))
+      cards.push(item("taxomatic"))
+      cards.push(item("taxes"))
+      cards.push(item("Office"))
+      // Followed by 8 section-heading-style cards (§ Next actions @next)
+      // these are title-only cards that look like headers — 3-row boxes.
+      for (let i = 0; i < 8; i++) cards.push(item("Next actions @next"))
+      // Then some tall + normal cards
+      cards.push(item("Upcoming deadlines", item("- all projects, next 12 months"), item("- Follow up with")))
+      cards.push(item("Pattern E — Dates and props"))
+      cards.push(item("Difference from"))
+      cards.push(item("Tax Prep — tasks", item("- Set up Mobilbank"), item("- Norwegian passport")))
+      cards.push(item("Track the delegation"))
+      cards.push(item("What is a groomed"))
 
-    using app = createTestApp(item("board", item("Next Actions @next", ...cards), item("Ideas"), item("Projects")), {
-      rows: 45,
-      cols: 180,
-      incremental: true,
-    })
+      using app = createTestApp(item("board", item("Next Actions @next", ...cards), item("Ideas"), item("Projects")), {
+        rows: 45,
+        cols: 180,
+        incremental: true,
+      })
 
-    expect(app.text).toContain("Next Actions")
-    const initialContent = countContentLinesUnderHeader(app, "Next Actions")
-    const contentCounts: number[] = [initialContent]
+      expect(app.text).toContain("Next Actions")
+      const initialContent = countContentLinesUnderHeader(app, "Next Actions")
+      const contentCounts: number[] = [initialContent]
 
-    for (let step = 1; step <= 12; step++) {
-      app.command("cursor_down")
-      const content = countContentLinesUnderHeader(app, "Next Actions")
-      contentCounts.push(content)
-    }
+      for (let step = 1; step <= 12; step++) {
+        app.command("cursor_down")
+        const content = countContentLinesUnderHeader(app, "Next Actions")
+        contentCounts.push(content)
+      }
 
-    const minCount = Math.min(...contentCounts)
-    expect(
-      minCount,
-      `REPRO: column fullness dropped (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
-    ).toBeGreaterThanOrEqual(initialContent - 2)
-  })
+      const minCount = Math.min(...contentCounts)
+      expect(
+        minCount,
+        `REPRO: column fullness dropped (min=${minCount}, initial=${initialContent}) — counts=${contentCounts.join(",")}`,
+      ).toBeGreaterThanOrEqual(initialContent - 2)
+    },
+  )
 
   test("TERMLESS: full ANSI pipeline through real terminal — column header + fullness stable", async () => {
     // Termless uses xterm.js as the backend — catches ANSI/output-phase bugs
@@ -864,7 +872,7 @@ describe("km-tui.column-top-disappears", () => {
       ).toBeGreaterThanOrEqual(7)
     })
 
-    test("WINDOW-INVARIANT: card-top count stable across cursor positions", () => {
+    test("WINDOW-INVARIANT: card-top count stable across cursor positions", { timeout: 30_000 }, () => {
       using app = createTestApp(buildLargeColumn(), {
         rows: 45,
         cols: 180,

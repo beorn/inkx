@@ -6,7 +6,7 @@
  * `<channel source="..." ...>` tag injection. Instead of pasting ambient
  * events into the user-role text (where they get treated as commands —
  * the role-confusion problem documented in
- * `hub/silvery/future/ai-terminal/10-agent-router-landscape.md`), we wrap
+ * `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`), we wrap
  * each event in a typed `EmbeddedResource` with strong `[AMBIENT]` framing
  * and `_meta.ambient = true`. ACP-aware UIs render these in a distinct
  * region; the agent-side prompt sees them as resources, not as
@@ -20,7 +20,7 @@
  * TODO (when `acp-adapter-claude` lands): SUPPRESS Claude Code's native
  * `<channel>` tag injection at the spawn level — otherwise both layers
  * inject and confusion gets worse. Per
- * `hub/silvery/future/ai-terminal/10-agent-router-landscape.md` § "For
+ * `hub/silvercode/future/ai-terminal/10-agent-router-landscape.md` § "For
  * Claude Code wrapping specifically".
  */
 

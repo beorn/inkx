@@ -5,7 +5,7 @@
  * command buffer. The `>` prompt adopts the mode color.
  */
 import React, { useState } from "react"
-import { Screen } from "silvery"
+import { Box, Screen } from "silvery"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
 import type { Story } from "../types.ts"
 
@@ -32,19 +32,21 @@ export const sessionPromptComposerWithText: Story = {
 function WithTextComposerStory({ inputDisabled }: { inputDisabled: boolean }): React.ReactElement {
   const [inputValue, setInputValue] = useState("Fix the failing test in apps/silvercode/tests/")
   return (
-    <Screen flexDirection="column" justifyContent="flex-end">
-      <SessionPromptComposer
-        queueText=""
-        onQueueChange={() => {}}
-        onQueueSubmit={() => {}}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        inputDisabled={inputDisabled}
-        onSubmit={() => {}}
-        onExit={() => {}}
-        focusedRegion="command"
-        onFocusRegion={() => {}}
-      />
+    <Screen flexDirection="column">
+      <Box flexGrow={1} flexDirection="column" justifyContent="flex-end">
+        <SessionPromptComposer
+          queueText=""
+          onQueueChange={() => {}}
+          onQueueSubmit={() => {}}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          inputDisabled={inputDisabled}
+          onSubmit={() => {}}
+          onExit={() => {}}
+          focusedRegion="command"
+          onFocusRegion={() => {}}
+        />
+      </Box>
     </Screen>
   )
 }

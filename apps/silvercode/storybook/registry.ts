@@ -50,7 +50,7 @@ export const STORIES: readonly Story[] = [
   activityIndicatorThinking,
   // Tool calls — ACP-named ToolCall family (kind/status variants on the canonical
   // <ToolCall> renderer plus the aggregate <ToolCallSummary> and the
-  // Aider-style <ApplyPatch>). See `hub/silvery/future/ai-terminal/acp-naming.md`.
+  // Aider-style <ApplyPatch>). See `hub/silvercode/future/ai-terminal/acp-naming.md`.
   toolCallRead,
   toolCallEdit,
   toolCallExecute,
