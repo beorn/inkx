@@ -478,6 +478,8 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   // cleared after `turn-end` emits.
   let currentTurnId: TurnId | null = null
   let lastMessageTurnId: TurnId | null = null
+  let lastActivityTs = 0
+  let watchdogTimer: ReturnType<typeof setTimeout> | null = null
   function turnIdForUpdate(): TurnId {
     return currentTurnId ?? (("acp-turn-" + Date.now()) as TurnId)
   }
@@ -489,7 +491,109 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     // `handoff` lacks `sessionId` — narrow before logging.
     const sid = "sessionId" in event ? event.sessionId : "<handoff>"
     dEvent("emit kind=%s session=%s", event.kind, sid)
+    lastActivityTs = Date.now()
     bus.emit("event", event)
+  }
+
+  // ─── Turn lifecycle helper ──────────────────────────────────────────────
+  //
+  // Why this exists:
+  // ACP has no wire-level turn boundary — `prompt(...)` returns a promise,
+  // and its settlement (resolve OR reject) IS the turn end. Three separate
+  // bugs have shipped in this area (km-silvercode.thinking-loop-after-bash,
+  // km-silvercode.claude-acp-wire-bugs) because each call site re-invents
+  // the same try/finally + emit-turn-end pattern and forgets one corner.
+  //
+  // This helper centralizes the pattern so it can't be forgotten:
+  //   - Self-heal: if a prior turn never emitted turn-end (bug elsewhere),
+  //     fire it now so the new turn starts from a clean status=idle.
+  //   - try/catch/finally with turn-end on both success AND failure paths.
+  //   - Watchdog: if no events arrive for ACTIVITY_WATCHDOG_MS during the
+  //     turn, force-emit turn-end + an error so the UI un-sticks.
+  //
+  // Bead: km-silvercode.claude-acp-wire-bugs
+  const ACTIVITY_WATCHDOG_MS = 300_000 // 5 min — generous; only catches truly stuck wires
+  function selfHealStuckTurn(reason: string): void {
+    if (currentTurnId === null) return
+    const stale = currentTurnId
+    emit({
+      kind: "turn-end",
+      sessionId,
+      turnId: turnIdForPromptEnd(stale),
+      stopReason: "end_turn",
+      ts: Date.now(),
+    })
+    emit({
+      kind: "error",
+      sessionId,
+      message: `acp: forced turn-end (${reason}) — prior turn ${stale} never settled`,
+      ts: Date.now(),
+    })
+    currentTurnId = null
+    lastMessageTurnId = null
+  }
+  function clearWatchdog(): void {
+    if (watchdogTimer !== null) {
+      clearTimeout(watchdogTimer)
+      watchdogTimer = null
+    }
+  }
+  function armWatchdog(turnId: TurnId): void {
+    clearWatchdog()
+    watchdogTimer = setTimeout(() => {
+      // Only fire if THIS turn is still the active one. A turn that
+      // resolved cleanly already cleared currentTurnId.
+      if (currentTurnId === turnId) {
+        const idle = Date.now() - lastActivityTs
+        if (idle >= ACTIVITY_WATCHDOG_MS - 1000) {
+          selfHealStuckTurn(`watchdog: ${Math.round(idle / 1000)}s of inactivity`)
+        }
+      }
+    }, ACTIVITY_WATCHDOG_MS)
+  }
+  async function withTurnLifecycle<T>(
+    promptFn: (turnId: TurnId) => Promise<T>,
+    extractStopReason: (result: T) => acp.StopReason | undefined,
+  ): Promise<T> {
+    // Self-heal any stale prior turn — user-initiated activity is the
+    // recovery signal we trust most.
+    if (currentTurnId !== null) selfHealStuckTurn("new prompt while prior turn unsettled")
+    const turnId = ("acp-turn-" + Date.now()) as TurnId
+    currentTurnId = turnId
+    lastMessageTurnId = null
+    lastActivityTs = Date.now()
+    armWatchdog(turnId)
+    let stopReason: acp.StopReason = "end_turn"
+    try {
+      const result = await promptFn(turnId)
+      stopReason = extractStopReason(result) ?? "end_turn"
+      return result
+    } catch (err) {
+      stopReason = "refusal"
+      emit({
+        kind: "error",
+        sessionId,
+        message: `acp prompt failed: ${(err as Error).message}`,
+        ts: Date.now(),
+      })
+      throw err
+    } finally {
+      // Emit turn-end whether the prompt succeeded or failed — without
+      // this, status stays in "thinking" on rejected prompts (the
+      // original bug from 2026-04-25 that keeps recurring).
+      if (currentTurnId === turnId) {
+        emit({
+          kind: "turn-end",
+          sessionId,
+          turnId: turnIdForPromptEnd(turnId),
+          stopReason,
+          ts: Date.now(),
+        })
+        currentTurnId = null
+        lastMessageTurnId = null
+      }
+      clearWatchdog()
+    }
   }
 
   // Surface stderr as legacy `error` events so the UI's existing
@@ -671,45 +775,20 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     protocolVersion: init.protocolVersion,
 
     send(text: string): void {
-      // Best-effort: caller should typically use prompt() for typed responses.
-      // We fire prompt without awaiting to keep `send` synchronous like the
-      // legacy AgentSession contract; errors surface through the `error` bus.
-      //
-      // Fix (bead km-silvercode.thinking-loop-after-bash): after the prompt
-      // resolves, emit a `turn-end` event carrying the stop reason so that
-      // `session-store` sets status → "idle" and the ActivityIndicator clears.
-      // Without this, the PromptResponse was silently discarded — no turn-end
-      // ever fired → store stayed in "thinking" → 98% CPU busy-loop.
-      const turnId = ("acp-turn-" + Date.now()) as TurnId
-      currentTurnId = turnId
-      lastMessageTurnId = null
-      void agent
-        .prompt({
-          sessionId,
-          prompt: [{ type: "text", text }],
-        })
-        .then((response) => {
-          const endTurnId = turnIdForPromptEnd(turnId)
-          emit({
-            kind: "turn-end",
+      // Fire-and-forget wrapper around the typed prompt() path so this stays
+      // synchronous like the legacy AgentSession contract. All lifecycle
+      // bookkeeping happens inside withTurnLifecycle — the caller can't
+      // forget to fire turn-end because there's only one place to put it.
+      void withTurnLifecycle(
+        () =>
+          agent.prompt({
             sessionId,
-            turnId: endTurnId,
-            stopReason: response.stopReason ?? "end_turn",
-            ts: Date.now(),
-          })
-        })
-        .catch((err: Error) => {
-          emit({
-            kind: "error",
-            sessionId,
-            message: `acp prompt failed: ${err.message}`,
-            ts: Date.now(),
-          })
-        })
-        .finally(() => {
-          if (currentTurnId === turnId) currentTurnId = null
-          lastMessageTurnId = null
-        })
+            prompt: [{ type: "text", text }],
+          }),
+        (response) => response.stopReason,
+      ).catch(() => {
+        /* errors surface as `error` AgentEvents inside the helper */
+      })
     },
 
     respondToPermission(_requestId: PermissionRequestId, _approved: boolean): void {
@@ -738,6 +817,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       if (sentTerm) return exitPromise
       sentTerm = true
       closed = true
+      // Clear the watchdog so it doesn't fire after teardown and try to
+      // emit on a closed bus, and so the timer doesn't pin the event loop.
+      clearWatchdog()
+      // Self-heal a turn that was in flight when the user quit so any
+      // listener still draining sees a clean status=idle final event.
+      if (currentTurnId !== null) selfHealStuckTurn("session closed mid-turn")
       // Drain stdio first. EOF on stdin is the documented graceful
       // shutdown signal for ACP JSON-RPC agents — the wrapper sees
       // EOF, flushes, and exits without needing SIGTERM. Draining
@@ -769,28 +854,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     },
 
     async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {
-      // Mirrors the `send()` path — without a synthetic turn-end emitted
-      // when the prompt resolves, session-store's status stays in the
-      // in-progress state forever ("Refining…" indicator never clears).
-      // ACP has no wire-level turn-end; the prompt RPC's resolution IS
-      // the turn boundary. (bead km-silvercode.claude-acp-wire-bugs)
-      const turnId = ("acp-turn-" + Date.now()) as TurnId
-      currentTurnId = turnId
-      lastMessageTurnId = null
-      try {
-        const response = await agent.prompt({ sessionId, prompt: content })
-        emit({
-          kind: "turn-end",
-          sessionId,
-          turnId: turnIdForPromptEnd(turnId),
-          stopReason: response.stopReason ?? "end_turn",
-          ts: Date.now(),
-        })
-        return response
-      } finally {
-        if (currentTurnId === turnId) currentTurnId = null
-        lastMessageTurnId = null
-      }
+      // Single source of truth for turn lifecycle — see withTurnLifecycle
+      // header for why this can't live at the call sites.
+      return withTurnLifecycle(
+        () => agent.prompt({ sessionId, prompt: content }),
+        (response) => response.stopReason,
+      )
     },
 
     async cancel(): Promise<void> {

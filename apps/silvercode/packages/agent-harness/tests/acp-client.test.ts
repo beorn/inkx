@@ -10,7 +10,7 @@
 import { Readable, Writable } from "node:stream"
 import * as acp from "@agentclientprotocol/sdk"
 import { createScope } from "@silvery/scope"
-import { afterEach, describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { __setAcpSpawnForTesting, type AcpSpawn, type AcpSpawnedChild, connectAcp } from "../src/acp-client.ts"
 import type { AgentEvent } from "../src/events.ts"
 import { createSessionStore } from "../src/session-store.ts"
@@ -825,6 +825,218 @@ describe("send() emits turn-end after prompt resolves", () => {
         "This is bead km-silvercode.thinking-loop-after-bash: send() discards the " +
         "PromptResponse so no turn-end event fires and the ActivityIndicator never clears.",
     ).toBe("idle")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Turn lifecycle robustness — see km-silvercode.claude-acp-wire-bugs
+//
+// Regression net for the recurring "stuck in 'doing' mode" bug. The wire
+// has no native turn boundary, so a forgotten or skipped turn-end emission
+// (on rejection, on cancellation, on a half-stuck prior turn) leaves the
+// status FSM trapped. These tests pin every settle path.
+// ---------------------------------------------------------------------------
+
+describe("turn lifecycle: turn-end fires on every settle path", () => {
+  test("prompt() emits turn-end after successful resolve", async () => {
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+        },
+        async newSession() {
+          return { sessionId: "session-prompt-success" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-prompt-success")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    await session.prompt([{ type: "text", text: "ping" }])
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const turnEnd = events.find((e) => e.kind === "turn-end")
+    expect(turnEnd, "prompt() must synthesize turn-end on resolve").toBeTruthy()
+  })
+
+  test("prompt() emits turn-end even when agent.prompt() rejects", async () => {
+    // The ACP SDK logs handler rejections to console.error; suppress that
+    // so the global no-stray-console guard doesn't trip on a deliberate
+    // failure path.
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+        },
+        async newSession() {
+          return { sessionId: "session-prompt-reject" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt(): Promise<acp.PromptResponse> {
+          throw new Error("synthetic agent failure")
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-prompt-reject")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    try {
+      // The SDK transforms thrown errors into JSON-RPC "Internal error"
+      // responses; what propagates to the caller is the framed message,
+      // not the original `synthetic agent failure` text.
+      await expect(session.prompt([{ type: "text", text: "boom" }])).rejects.toThrow()
+      // Wait for the SDK's internal error-logging chain to settle so the
+      // spy (still active) absorbs all of it.
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      await new Promise<void>((resolve) => setImmediate(resolve))
+
+      const turnEnd = events.find((e) => e.kind === "turn-end")
+      expect(turnEnd, "rejected prompt MUST still synthesize turn-end so status can return to idle").toBeTruthy()
+      if (turnEnd?.kind === "turn-end") {
+        // Rejection maps to refusal stopReason — distinct from end_turn.
+        expect(turnEnd.stopReason).toBe("refusal")
+      }
+    } finally {
+      errSpy.mockRestore()
+    }
+  })
+
+  test("send() emits turn-end on prompt rejection (not just success)", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+        },
+        async newSession() {
+          return { sessionId: "session-send-reject" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt(): Promise<acp.PromptResponse> {
+          throw new Error("synthetic send failure")
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-send-reject")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    session.send("boom")
+    // Wait for the rejection chain to settle.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    try {
+      // Wait extra ticks for the rejection chain + SDK error logging to settle.
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      const turnEnd = events.find((e) => e.kind === "turn-end")
+      expect(turnEnd, "fire-and-forget send() must still emit turn-end on rejection").toBeTruthy()
+    } finally {
+      errSpy.mockRestore()
+    }
+  })
+
+  test("self-heal: new prompt while prior turn unsettled fires turn-end for the prior", async () => {
+    // Construct a stuck-prior scenario by holding the first prompt's
+    // sessionUpdate stream open without ever resolving the RPC. A second
+    // prompt arrives — the helper should emit turn-end for the stale turn
+    // before starting the new one, so status doesn't pile up.
+    let firstPromptResolve: (() => void) | null = null
+    const firstFinished = new Promise<void>((resolve) => {
+      firstPromptResolve = resolve
+    })
+    let promptCount = 0
+
+    const { spawn } = createFakeAcpServer({
+      agent: () => ({
+        async initialize() {
+          return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+        },
+        async newSession() {
+          return { sessionId: "session-self-heal" }
+        },
+        async authenticate() {
+          return {}
+        },
+        async prompt() {
+          promptCount++
+          if (promptCount === 1) await firstFinished
+          return { stopReason: "end_turn" as const }
+        },
+        async cancel() {
+          /* no-op */
+        },
+      }),
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-self-heal")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const events: AgentEvent[] = []
+    session.subscribe((e) => events.push(e))
+
+    // Fire the first prompt — it'll hang on firstFinished.
+    const firstPromptPromise = session.prompt([{ type: "text", text: "first" }])
+
+    // Fire a second prompt while the first is still hanging. The helper
+    // should self-heal: emit turn-end for the stuck first turn before
+    // starting the second.
+    void session.prompt([{ type: "text", text: "second" }]).catch(() => {
+      /* may or may not resolve depending on scheduling */
+    })
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const turnEnds = events.filter((e) => e.kind === "turn-end")
+    expect(turnEnds.length, "self-heal must emit turn-end for the stale prior turn").toBeGreaterThanOrEqual(1)
+    const errors = events.filter((e) => e.kind === "error")
+    expect(
+      errors.some((e) => e.kind === "error" && /never settled|unsettled/i.test(e.message)),
+      "self-heal must surface a diagnostic error so the cause is visible",
+    ).toBe(true)
+
+    // Cleanup: let the first prompt resolve so its promise doesn't leak.
+    firstPromptResolve!()
+    await firstPromptPromise.catch(() => {
+      /* the synthetic turn-end already fired; the real resolve is bonus */
+    })
   })
 })
 
