@@ -341,12 +341,15 @@ token = resp['access_token']
 - [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
 - [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
 - [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.claude/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
-  1. `bd list --parent km-all.upstream-waiting --status open` — list every open child
-  2. For each child, fetch the linked upstream URL (`gh issue view`, `gh pr view`, or `WebFetch`); compare against the bead's "Status:" line
-  3. Update "Last checked: <today>" in the bead description (always — even if nothing changed; this is how we detect orphaned beads later)
-  4. If upstream landed: run the bead's numbered "Unwind when upstream lands" steps in order, then close the bead with the upstream version that fixed it
-  5. If upstream went stale (no movement >6 months): flag for `/big` reframing — should we vendorize, fork, or find an alternative?
-  6. If a workaround exists in our code without a tracking bead, file one now using the §8 template — surfacing untracked workarounds is a primary purpose of this check.
+  1. **Run the lint script first**: `bash packages/km-infra/scripts/check-upstream-markers.sh` — surfaces any bead↔code-marker drift (orphan markers, marker-less beads). Resolve mismatches before proceeding.
+  2. `bd list --parent km-all.upstream-waiting --status open` — list every open child
+  3. For each child, fetch the linked upstream URL (`gh issue view`, `gh pr view`, or `WebFetch`); compare against the bead's "Status:" line. Status is now a 3-state enum: `merged-upstream` (PR landed, no release yet) | `released-upstream` (in a tagged release we COULD consume, but our deps still pin older) | `adopted-locally` (our package.json/lockfile actually consumes the fix — only state where unwind can run).
+  4. Update "Last checked: <today>" in the bead description (always — even if nothing changed; this is how we detect orphaned beads later).
+  5. **Check `Escalate by: <YYYY-MM-DD>`** — if within 30 days, surface for re-decision now (don't wait for the date to pass). Re-decision options: `vendorize` | `fork` | `accept owned divergence` | `continue waiting`. If "accept owned divergence" → move bead to `km-all.owned-divergence` (perpetual sibling registry) and update its code marker from `UPSTREAM-WAITING` to `OWNED-DIVERGENCE`. If "continue waiting" → bump `Escalate by` 6 months with a written reason.
+  6. If Status reaches `adopted-locally`: run the bead's numbered "Unwind when upstream lands" steps in order, then close the bead with the upstream version that fixed it.
+  7. If upstream went stale (no movement >6 months) AND `Escalate by` has passed: flag for `/big` reframing — vendorize, fork, accept owned divergence, or find an alternative?
+  8. If a workaround exists in our code without a tracking bead, file one now using the §8 template — surfacing untracked workarounds is a primary purpose of this check (the lint script in step 1 will fail loudly when this happens).
+  9. Also review `km-all.owned-divergence` children — answer "is the divergence still doing its job?" for each. Most cycles this is a no-op check-in; bump "Last reviewed: <today>" regardless.
 **Triggers**: tool version updates, new repos, domain expiry approaching
 **Delegates to**: `/infra`, `/claude`
 
