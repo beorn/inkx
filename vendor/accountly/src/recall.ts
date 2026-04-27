@@ -42,9 +42,18 @@ import {
   type InjectedItem,
 } from "../../bearly/plugins/injection-envelope/src/index.ts"
 import { emitInjectionDebugEvent } from "../../bearly/plugins/injection-envelope/src/debug.ts"
+// Quality gate. Rejects corrupted/decayed/stuck-loop session exports before
+// they reach the qmd index. Same module backstops the query path below
+// (cmdHook drops bad hits silently). Lives in @bearly/recall so the bg-recall
+// daemon can compose with it from the daemon's query layer.
+import { analyzeQuality, isAcceptable } from "../../bearly/plugins/recall/src/lib/quality-gate.ts"
 
 const HOME = homedir()
 const SESSIONS_DIR = process.env.RECALL_SESSIONS_DIR ?? `${HOME}/Bear/Vault/raw/chats`
+// Quarantined / rejected docs land here with a .reason sidecar instead of
+// being indexed. Reversible: an operator can grep through the rejection
+// reasons, validate, and restore by moving back to chats/.
+const REJECTED_DIR = process.env.RECALL_REJECTED_DIR ?? `${HOME}/Bear/Vault/raw/chats-rejected`
 const CLAUDE_PROJECTS_DIR = `${HOME}/.claude/projects`
 const QMD = "qmd"
 
@@ -176,6 +185,13 @@ function renderSessionMarkdown(meta: SessionMeta): string {
       continue
     }
     if (entry.type !== "user" && entry.type !== "assistant" && entry.type !== "system") continue
+    // Cross-session contamination guard. Claude Code occasionally writes
+    // entries from a different sessionId into a JSONL — when this happens,
+    // the rendered markdown ends up with fragments from unrelated sessions
+    // joined mid-conversation, which then gets indexed and surfaces as
+    // jumbled "memory" hits. Filter to entries that match the file's primary
+    // sessionId (set by the first-seen entry in readSessionMeta).
+    if (entry.sessionId && entry.sessionId !== meta.sessionId) continue
     const text = extractText(entry).trim()
     if (!text) continue
     // Skip synthetic user turns that are just tool results wrapped as user
@@ -303,6 +319,7 @@ function cmdExport(args: string[]): void {
   let written = 0
   let skipped = 0
   let empty = 0
+  let rejected = 0
   for (const jsonlPath of jsonlPaths) {
     const meta = readSessionMeta(jsonlPath)
     if (!meta) {
@@ -322,7 +339,38 @@ function cmdExport(args: string[]): void {
       continue
     }
     try {
-      writeFileSync(outPath, renderSessionMarkdown(meta), "utf-8")
+      const md = renderSessionMarkdown(meta)
+      // Quality gate: reject decayed / stuck-loop / corrupted exports BEFORE
+      // they hit qmd's index. Bad docs go to chats-rejected/ with a sidecar
+      // .reason so an operator can audit + restore. Reversible quarantine,
+      // not deletion.
+      const verdict = analyzeQuality(md)
+      if (verdict.rejectReason) {
+        if (!existsSync(REJECTED_DIR)) mkdirSync(REJECTED_DIR, { recursive: true })
+        const rejectedPath = join(REJECTED_DIR, sessionFilename(meta))
+        writeFileSync(rejectedPath, md, "utf-8")
+        writeFileSync(
+          `${rejectedPath}.reason`,
+          JSON.stringify(
+            {
+              sessionId: meta.sessionId,
+              jsonlPath,
+              rejectedAt: new Date().toISOString(),
+              reason: verdict.rejectReason,
+              signals: verdict.signals,
+            },
+            null,
+            2,
+          ),
+          "utf-8",
+        )
+        rejected++
+        if (!all && !isHook && !isCatchup) {
+          process.stderr.write(`rejected (${verdict.rejectReason}): ${rejectedPath}\n`)
+        }
+        continue
+      }
+      writeFileSync(outPath, md, "utf-8")
       written++
       if (!all && !isHook && !isCatchup) process.stderr.write(`exported: ${outPath}\n`)
     } catch (err) {
@@ -333,7 +381,7 @@ function cmdExport(args: string[]): void {
   }
   if (all) {
     process.stderr.write(
-      `recall export: ${written} written, ${skipped} skipped (exists), ${empty} unreadable (of ${jsonlPaths.length} total)\n`,
+      `recall export: ${written} written, ${skipped} skipped (exists), ${rejected} rejected (quality gate), ${empty} unreadable (of ${jsonlPaths.length} total)\n`,
     )
     if (written > 0) {
       process.stderr.write(`run \`recall index\` to refresh qmd's sessions collection\n`)
@@ -526,6 +574,12 @@ function cmdHook(): void {
       const key = path.split("/").pop() ?? path
       if (!key || seen.has(key)) return false
       seen.add(key)
+      // Query-time backstop: drop hits whose snippet/context smells corrupt.
+      // Cheap lexical, no LLM. Catches docs that slipped past the index-time
+      // gate before the gate existed (or before the bad doc was quarantined).
+      // Silent drop — don't spam debug events for routine quality misses.
+      const blob = `${h.snippet ?? ""} ${h.context ?? ""}`.trim()
+      if (blob.length > 0 && !isAcceptable(blob)) return false
       return true
     })
     .slice(0, 3)
