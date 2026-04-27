@@ -1,5 +1,5 @@
 import React, { useMemo } from "react"
-import { Box, Blockquote, Divider, H1, H2, H3, H4, Prose, Text } from "silvery"
+import { Box, Blockquote, Divider, H1, H2, H3, H4, Link, Prose, Text } from "silvery"
 import { parseBlocks, type MdBlock, type MdInline } from "../markdown.ts"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -48,10 +48,15 @@ function InlineRun({ tokens }: { tokens: MdInline[] }): React.ReactElement {
               </Text>
             )
           case "link":
+            // Markdown `[text](href)` → silvery <Link>: emits OSC 8
+            // hyperlink so terminal Cmd-click routes to LaunchServices,
+            // and silvery's `link:open` event fires for terminals that
+            // don't natively consume the click — caught by
+            // <SilvercodeLinkOpener> in App.tsx.
             return (
-              <Text key={i} color="$info" underline>
+              <Link key={i} href={t.href} color="$info">
                 {t.text}
-              </Text>
+              </Link>
             )
           default:
             return <React.Fragment key={i}>{t.text}</React.Fragment>

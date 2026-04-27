@@ -61,8 +61,13 @@ const CODE_REF_RE = /\b([\w/.-]+\.(?:ts|tsx|js|jsx|py|rs|go|md|json)):(\d+)(?::(
  * Negative lookbehind keeps mid-token matches out — `bun-cache/foo.ts`
  * shouldn't ALSO match `cache/foo.ts` starting at `c`.
  */
+// Extensions ordered longest-first so the alternation never stops short
+// (e.g. `bar.json` → `bar.js`, `file.tsx` → `file.ts`). Trailing `\b`
+// pins the end of the extension as a word boundary so we don't gobble
+// adjacent word chars (`bar.jsonc` won't match anything when `jsonc`
+// isn't in the list, instead of matching `.json` and leaving `c`).
 const RELATIVE_PATH_RE =
-  /(?<![A-Za-z0-9_/.])(?:\.{1,2}\/)?[A-Za-z0-9_-][\w./-]*\/[\w./-]+\.(?:ts|tsx|js|jsx|mjs|cjs|py|rs|go|md|mdx|json|toml|yaml|yml|sh|css|html|sql|txt)(?::(\d+)(?::(\d+))?)?/g
+  /(?<![A-Za-z0-9_/.])(?:\.{1,2}\/)?[A-Za-z0-9_-][\w./-]*\/[\w./-]+\.(?:tsx|jsx|mjs|cjs|mdx|json|toml|yaml|html|ts|js|py|rs|go|md|yml|sh|sql|txt|css)\b(?::(\d+)(?::(\d+))?)?/g
 
 /**
  * Plain URL matcher. Used here only to *exclude* URL ranges from the file
