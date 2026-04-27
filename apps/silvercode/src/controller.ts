@@ -1065,8 +1065,21 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
   // Eagerly spawn the requested number of initial sessions.
   for (let i = 0; i < opts.initialSessions; i++) {
-    void spawnSession().catch(() => {
-      /* spawn errors surface via the session's error events */
+    void spawnSession().catch((err: unknown) => {
+      // Surface spawn failures to stderr so silently-failed `--resume`
+      // doesn't look like "it just opened a fresh session". The spawn
+      // can fail because of:
+      //   - AcpResumeUnsupportedError (the agent doesn't advertise
+      //     loadSession in its initialize response)
+      //   - The agent's loadSession returned an error (sid expired,
+      //     session storage gone, etc.)
+      //   - Subprocess spawn failed (binary missing, permission denied)
+      // In all three cases the user wants to know — silent failure
+      // produces an empty-looking session that's indistinguishable from
+      // a fresh start.
+      const message = err instanceof Error ? err.message : String(err)
+      const opname = opts.resume ? `resume ${opts.resume}` : "spawn session"
+      process.stderr.write(`silvercode: ${opname} failed: ${message}\n`)
     })
   }
 

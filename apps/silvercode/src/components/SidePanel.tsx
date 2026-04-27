@@ -366,6 +366,7 @@ export function SidePanel({
   capabilities,
   setThinking,
   setMode,
+  defaultModel,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -397,6 +398,13 @@ export function SidePanel({
   setThinking?: (next: string) => void
   /** Set the planning / permission-mode selection — wired through option.activate(ctx). */
   setMode?: (next: string) => void
+  /**
+   * Fallback model id to show under the agent label when session-init
+   * hasn't (yet) populated `state.model`. Sourced from
+   * BUILTIN_AGENTS[agent].defaultModel by App.tsx — safe stand-in for
+   * agents whose ACP session-init lifecycle doesn't carry a model field.
+   */
+  defaultModel?: string
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -561,28 +569,45 @@ export function SidePanel({
     ),
     maxWidth: 64,
   })
+  // Mode popover body — descriptor-driven when capabilities are set,
+  // legacy Claude-mode help otherwise. Lists every option with its
+  // icon/color/description so the user sees the full menu the agent
+  // exposes (codex has plan/normal; Claude has ask/plan/accept-edits/auto/bypass).
   const modeHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Text bold>Mode</Text>
-        <Muted>Controls what Claude is allowed to do without asking first. Click the label to cycle.</Muted>
+        <Muted>Controls what the agent is allowed to do without asking. Click the label to cycle.</Muted>
         <Box flexDirection="column">
-          <Text>
-            <Text color={MODE_COLORS.ask}>{MODE_ICONS.ask} ask</Text> — every tool prompts for approval
-          </Text>
-          <Text>
-            <Text color={MODE_COLORS.plan}>{MODE_ICONS.plan} plan</Text> — plans but doesn't write
-          </Text>
-          <Text>
-            <Text color={MODE_COLORS["accept-edits"]}>{MODE_ICONS["accept-edits"]} accept-edits</Text> — edits
-            auto-apply; tools still prompt
-          </Text>
-          <Text>
-            <Text color={MODE_COLORS.auto}>{MODE_ICONS.auto} auto</Text> — default; all Claude tools unattended
-          </Text>
-          <Text>
-            <Text color={MODE_COLORS.bypass}>{MODE_ICONS.bypass} bypass</Text> — skip all approvals (sandboxes only)
-          </Text>
+          {capabilities?.planning && capabilities.planning.length > 0 ? (
+            capabilities.planning.map((opt) => (
+              <Text key={opt.id}>
+                <Text color={opt.color ?? "$muted"}>
+                  {opt.icon} {opt.name}
+                </Text>{" "}
+                — {opt.description}
+              </Text>
+            ))
+          ) : (
+            <>
+              <Text>
+                <Text color={MODE_COLORS.ask}>{MODE_ICONS.ask} ask</Text> — every tool prompts for approval
+              </Text>
+              <Text>
+                <Text color={MODE_COLORS.plan}>{MODE_ICONS.plan} plan</Text> — plans but doesn't write
+              </Text>
+              <Text>
+                <Text color={MODE_COLORS["accept-edits"]}>{MODE_ICONS["accept-edits"]} accept-edits</Text> — edits
+                auto-apply; tools still prompt
+              </Text>
+              <Text>
+                <Text color={MODE_COLORS.auto}>{MODE_ICONS.auto} auto</Text> — default; all Claude tools unattended
+              </Text>
+              <Text>
+                <Text color={MODE_COLORS.bypass}>{MODE_ICONS.bypass} bypass</Text> — skip all approvals (sandboxes only)
+              </Text>
+            </>
+          )}
         </Box>
       </Box>
     ),
@@ -863,14 +888,20 @@ export function SidePanel({
             </Box>
           )
         })()}
-        {/* Model — indent under the Claude Code line so it reads as a
-            sub-detail. Uses the humanized slug (e.g. "Opus 4.7" /
-            "Opus 4.7 (1M)"); empty string collapses the row. */}
-        {state.model && (
-          <Box flexDirection="row" paddingLeft={2}>
-            <Small>{modelLabel(state.model)}</Small>
-          </Box>
-        )}
+        {/* Model — indent under the agent line so it reads as a sub-
+            detail. state.model populates from session-init; falls back
+            to defaultModel when the agent's lifecycle doesn't carry a
+            model field (most ACP agents). Empty string for both →
+            row collapses. */}
+        {(() => {
+          const displayModel = state.model || defaultModel || ""
+          if (!displayModel) return null
+          return (
+            <Box flexDirection="row" paddingLeft={2}>
+              <Small>{modelLabel(displayModel)}</Small>
+            </Box>
+          )
+        })()}
         {/* Thinking row — descriptor-driven. Hidden when the active agent
             doesn't expose a thinking capability (e.g. copilot today).
             Falls back to the legacy Claude-only THINKING_ICONS path

@@ -1042,18 +1042,39 @@ export function App(props: AppProps): React.ReactElement {
     [controller],
   )
 
-  // Mode cycler used by the side panel's ⚡ label. Memoized so passing
-  // it to SidePanel doesn't force a new prop identity every render.
-  const cycleMode = useCallback((): void => {
-    setMode((m) => {
-      const modes = ["ask", "plan", "accept-edits", "auto", "bypass"]
-      return modes[(modes.indexOf(m) + 1) % modes.length]!
-    })
-  }, [])
+  // Active agent's capability arrays — drive both Shift-Tab cycler and
+  // the SidePanel cycle button so they always match the active agent.
+  // Without this, codex sessions cycled through Claude's modes (wrong).
+  const agentCapabilities = useMemo(
+    () => (props.agent ? BUILTIN_AGENTS[props.agent]?.capabilities : undefined),
+    [props.agent],
+  )
 
-  // Thinking cycler: normal → think → think_hard → ultrathink → normal.
-  // Also emits the matching slash command to Claude so the budget actually
-  // applies on the next turn. `""` stored = "normal" (baseline).
+  // Mode cycler used by the side panel's ⚡ label AND Shift+Tab. Routes
+  // through the active agent's capabilities.planning array — falls back
+  // to the legacy Claude mode list when no descriptors exist.
+  const cycleMode = useCallback((): void => {
+    const modes = agentCapabilities?.planning?.map((o) => o.id) ?? ["ask", "plan", "accept-edits", "auto", "bypass"]
+    if (modes.length === 0) return
+    setMode((m) => modes[(modes.indexOf(m) + 1) % modes.length] ?? modes[0]!)
+    // Fire the activate hook for the next option so the agent-side
+    // change (e.g. codex's /plan slash command) actually happens.
+    if (focused && agentCapabilities?.planning) {
+      const next = agentCapabilities.planning.find((o) => o.id === modes[(modes.indexOf(mode) + 1) % modes.length])
+      if (next) {
+        void next.activate({
+          controller,
+          sessionId: focused.id,
+          setThinking,
+          setMode,
+        })
+      }
+    }
+  }, [agentCapabilities, controller, focused, mode])
+
+  // Thinking cycler: routes through capabilities.thinking when set,
+  // falls back to Claude's hardcoded tier list. Also emits the matching
+  // slash command to Claude so the budget actually applies on the next turn.
   const cycleThinking = useCallback((): void => {
     setThinking((t) => {
       const tiers = ["normal", "think", "think_hard", "ultrathink"]
@@ -1108,9 +1129,10 @@ export function App(props: AppProps): React.ReactElement {
                     cwd={props.cwd}
                     controller={controller}
                     agent={props.agent}
-                    capabilities={props.agent ? BUILTIN_AGENTS[props.agent]?.capabilities : undefined}
+                    capabilities={agentCapabilities}
                     setThinking={setThinking}
                     setMode={setMode}
+                    defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
                   />
                 ) : null
               }
