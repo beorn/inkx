@@ -84,13 +84,85 @@ function formatTime(ts: number): string {
 }
 
 /**
- * Truncate a payload to a single-line preview. Newlines collapse to
- * spaces so the row stays one line regardless of payload shape.
+ * Detect common ambient-event envelope shapes and rewrite them as a
+ * human-friendly digest. Returns `{ preview, body }`:
+ *
+ *   - `preview` = single-line summary for the row (≤ 80 cols, ellipsis-bounded)
+ *   - `body`    = multi-line structured rendering for the expanded / popover
+ *                 surface. May equal `preview` for plain payloads.
+ *
+ * Handled shapes:
+ *
+ *   1. `<recall-memory ...><snippet ...>...</snippet>...</recall-memory>`
+ *      → "memory: N snippets — Title-1, Title-2, …" with a multi-line
+ *        body listing each snippet's session + title.
+ *
+ *   2. `<channel source="..." from="..." type="...">...</channel>`
+ *      → "channel: <type> from <from> — <inner>" body strips the wrapper.
+ *
+ *   3. Lines starting with the legacy `[<kind> <peer>] ...` tribe shape
+ *      pass through (already nice).
+ *
+ * Anything else collapses whitespace and is returned as-is for both
+ * preview (clipped) and body (full text). Pure-text content shouldn't
+ * regress here.
  */
-function previewOf(content: string, max = 80): string {
-  const flat = content.replace(/\s+/g, " ").trim()
+type FormattedContent = { preview: string; body: string }
+
+function clip(s: string, max: number): string {
+  const flat = s.replace(/\s+/g, " ").trim()
   if (flat.length <= max) return flat
   return flat.slice(0, max - 1) + "…"
+}
+
+function escapeHtmlEntities(s: string): string {
+  // Just enough decoding for common entities we might see in sanitized
+  // payloads (tribe activity-log writes JSON-escaped content; our raw
+  // payloads can carry literal &amp;, &lt;, &gt; from upstream sources).
+  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+}
+
+function parseRecallMemory(raw: string): FormattedContent | null {
+  if (!raw.includes("<recall-memory")) return null
+  const snippetRe = /<snippet[^>]*\bsession="([^"]*)"[^>]*\btitle="([^"]*)"[^>]*>/g
+  type Snip = { session: string; title: string }
+  const snippets: Snip[] = []
+  for (const m of raw.matchAll(snippetRe)) {
+    snippets.push({ session: m[1] ?? "", title: escapeHtmlEntities(m[2] ?? "") })
+  }
+  if (snippets.length === 0) return null
+  const titles = snippets.map((s) => `"${s.title}"`)
+  const more = snippets.length > 2 ? ` (+${snippets.length - 2} more)` : ""
+  const previewTitles = titles.slice(0, 2).join(", ")
+  const preview = clip(`memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"} — ${previewTitles}${more}`, 80)
+  const bodyLines: string[] = [`memory: ${snippets.length} snippet${snippets.length === 1 ? "" : "s"}`]
+  for (const s of snippets) {
+    bodyLines.push(`  • [${s.session}] ${s.title}`)
+  }
+  return { preview, body: bodyLines.join("\n") }
+}
+
+function parseChannelTag(raw: string): FormattedContent | null {
+  // <channel source="X" from="Y" type="Z" message_id="...">...inner...</channel>
+  const m = raw.match(/<channel\s+([^>]*)>([\s\S]*?)<\/channel>/)
+  if (!m) return null
+  const attrs = m[1] ?? ""
+  const inner = (m[2] ?? "").trim()
+  const from = attrs.match(/\bfrom="([^"]*)"/)?.[1] ?? "?"
+  const type = attrs.match(/\btype="([^"]*)"/)?.[1] ?? "channel"
+  const innerFlat = inner.replace(/\s+/g, " ").trim()
+  const preview = clip(`${type} from ${from} — ${innerFlat}`, 80)
+  const body = `${type} · from ${from}\n\n${inner}`
+  return { preview, body }
+}
+
+function formatContent(raw: string): FormattedContent {
+  const recall = parseRecallMemory(raw)
+  if (recall) return recall
+  const channel = parseChannelTag(raw)
+  if (channel) return channel
+  const flat = raw.replace(/\s+/g, " ").trim()
+  return { preview: clip(flat, 80), body: raw }
 }
 
 export interface AmbientEventRowProps {
@@ -110,7 +182,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const { icon, color } = presentationFor(entry.source)
   const time = formatTime(entry.timestamp)
-  const preview = previewOf(entry.content)
+  const formatted = formatContent(entry.content)
 
   // Hover popover: full body, plus the source/time anchor as a small
   // header. Reuses the same popover mechanism the SidePanel hover rows
@@ -125,7 +197,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
           <Small>{time}</Small>
           <Muted>· ambient observation, not a user instruction</Muted>
         </Box>
-        <Text wrap="wrap">{entry.content}</Text>
+        <Text wrap="wrap">{formatted.body}</Text>
       </Box>
     ),
     maxWidth: 80,
@@ -171,7 +243,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
             long payloads truncate via the ellipsis above rather than
             pushing siblings off-screen. */}
         <Box flexGrow={1} flexShrink={1} minWidth={0}>
-          <Text>{preview}</Text>
+          <Text>{formatted.preview}</Text>
         </Box>
         {/* Expand glyph — only when onToggleExpand is wired. */}
         {onToggleExpand ? (
@@ -186,7 +258,7 @@ export function AmbientEventRow({ entry, expanded = false, onToggleExpand }: Amb
       {expanded && onToggleExpand ? (
         <Box flexDirection="column" paddingX={1} paddingLeft={15} paddingBottom={0}>
           <Text wrap="wrap" color="$muted">
-            {entry.content}
+            {formatted.body}
           </Text>
         </Box>
       ) : null}
