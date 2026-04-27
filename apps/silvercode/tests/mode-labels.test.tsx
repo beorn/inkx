@@ -63,6 +63,14 @@ function makeStubController(): Controller {
     cancelBackgroundTask: () => {},
     backgroundTasks: () => [],
     onBackgroundTasksChange: () => () => {},
+    ambientMuteState: {
+      isMuted: () => false,
+      muted: () => new Set<string>(),
+      toggle: () => {},
+      set: () => {},
+      subscribe: () => () => {},
+      version: Object.assign(() => 0, { _signal: true }),
+    },
   } as unknown as Controller
 }
 
