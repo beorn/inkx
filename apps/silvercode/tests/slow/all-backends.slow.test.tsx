@@ -68,47 +68,38 @@ function canRun(id: string): boolean {
 // Per-backend smoke test
 // ---------------------------------------------------------------------------
 
-const REGISTRY_IDS: readonly AcpRegistryId[] = [
-  "claude-code",
-  "codex",
-  "gemini",
-  "github-copilot-cli",
-] as const
+const REGISTRY_IDS: readonly AcpRegistryId[] = ["claude-code", "codex", "gemini", "github-copilot-cli"] as const
 
 describe.each(REGISTRY_IDS)("backend smoke: %s", (id) => {
   const skip = !canRun(id)
 
-  test.skipIf(skip)(
-    "connectAcpRegistry → close() resolves within the 10s window",
-    { timeout: 30_000 },
-    async () => {
-      // Fresh scope per test so dispose-time SIGTERM/SIGKILL teardown
-      // doesn't leak across cases.
-      const scope = createScope(`smoke-${id}`)
-      try {
-        const session = await connectAcpRegistry(scope, id, {
-          cwd: process.cwd(),
-          sessionCwd: process.cwd(),
-          // Minimal capabilities — we're not testing fs/permissions here.
-          clientCapabilities: {},
-          // No-op handlers for any callbacks the agent might fire during init.
-          permissionHandler: async () => ({
-            outcome: { outcome: "cancelled" },
-          }),
-        })
-        // Real test: close() must resolve. Pre-fix codex-acp could hang
-        // here indefinitely waiting for in-flight session work. Post-fix
-        // (c8bc60107: detached spawn + stdio drain + 10s SIGKILL via
-        // gracefulKillTree) it resolves within the 10s window.
-        const closeStart = Date.now()
-        await session.close()
-        const closeMs = Date.now() - closeStart
-        expect(closeMs).toBeLessThan(15_000)
-      } finally {
-        await scope[Symbol.asyncDispose]()
-      }
-    },
-  )
+  test.skipIf(skip)("connectAcpRegistry → close() resolves within the 10s window", { timeout: 30_000 }, async () => {
+    // Fresh scope per test so dispose-time SIGTERM/SIGKILL teardown
+    // doesn't leak across cases.
+    const scope = createScope(`smoke-${id}`)
+    try {
+      const session = await connectAcpRegistry(scope, id, {
+        cwd: process.cwd(),
+        sessionCwd: process.cwd(),
+        // Minimal capabilities — we're not testing fs/permissions here.
+        clientCapabilities: {},
+        // No-op handlers for any callbacks the agent might fire during init.
+        permissionHandler: async () => ({
+          outcome: { outcome: "cancelled" },
+        }),
+      })
+      // Real test: close() must resolve. Pre-fix codex-acp could hang
+      // here indefinitely waiting for in-flight session work. Post-fix
+      // (c8bc60107: detached spawn + stdio drain + 10s SIGKILL via
+      // gracefulKillTree) it resolves within the 10s window.
+      const closeStart = Date.now()
+      await session.close()
+      const closeMs = Date.now() - closeStart
+      expect(closeMs).toBeLessThan(15_000)
+    } finally {
+      await scope[Symbol.asyncDispose]()
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------

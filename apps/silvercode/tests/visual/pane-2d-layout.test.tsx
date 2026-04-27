@@ -66,7 +66,6 @@ async function bootGrid(layout: "single" | "grid-2" = "single"): Promise<{
       cwd="/tmp/silvercode-test-2d"
       bare
       layout={layout}
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => fakes[i++ % fakes.length]! as unknown as AgentSession}
     />,

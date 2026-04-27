@@ -58,7 +58,6 @@ describe("layer 3: queue batching", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -100,7 +99,6 @@ describe("layer 3: queue batching", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -132,7 +130,6 @@ describe("layer 3: queue batching", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -169,7 +166,6 @@ describe("layer 3: queue batching", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -203,7 +199,6 @@ describe("layer 3: queue batching", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })

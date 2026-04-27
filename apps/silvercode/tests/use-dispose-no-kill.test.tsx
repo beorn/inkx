@@ -51,7 +51,6 @@ function DisposeHarness({
     controllerRef.current = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory,
     })
@@ -152,7 +151,6 @@ describe("layer 3: useDispose regression (ca794509)", () => {
         controllerRef.current = createSilvercodeController({
           cwd: "/tmp/fake",
           bare: true,
-          track: "claude",
           initialSessions: 0,
           spawnFactory: () => fake,
         })

@@ -58,7 +58,6 @@ describe("controller: background tasks", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -89,7 +88,6 @@ describe("controller: background tasks", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -122,7 +120,6 @@ describe("controller: background tasks", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -161,7 +158,6 @@ describe("controller: background tasks", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -179,7 +175,6 @@ describe("controller: background tasks", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })

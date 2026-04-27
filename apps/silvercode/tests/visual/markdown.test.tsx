@@ -31,8 +31,7 @@ describe("markdown rendering at multiple widths", () => {
   // need to tell parseFrame that no panel is present (leftWidth = cols).
   const PANEL_AUTO_OPEN_COLS = 120
   const SIDE_PANEL_W = 40
-  const expectedLeftWidth = (cols: number): number =>
-    cols >= PANEL_AUTO_OPEN_COLS ? cols - SIDE_PANEL_W : cols
+  const expectedLeftWidth = (cols: number): number => (cols >= PANEL_AUTO_OPEN_COLS ? cols - SIDE_PANEL_W : cols)
 
   for (const cols of widths) {
     test(`markdownRich at cols=${cols}: layout invariants hold`, async () => {

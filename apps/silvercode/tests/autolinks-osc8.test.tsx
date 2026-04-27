@@ -26,13 +26,7 @@ import { CwdProvider } from "../src/CwdContext.tsx"
 
 const OSC8_OPEN = /\x1b\]8;;([^\x07\x1b]+)(?:\x1b\\|\x07)/g
 
-function Harness({
-  text,
-  cwd,
-}: {
-  text: string
-  cwd?: string
-}): React.ReactElement {
+function Harness({ text, cwd }: { text: string; cwd?: string }): React.ReactElement {
   const tree = (
     <Box flexDirection="column" width={120}>
       <Prose flexShrink={1} minWidth={0}>
@@ -54,27 +48,21 @@ function osc8Hrefs(ansi: string): string[] {
 describe("LinkifiedText → OSC 8 hyperlinks", () => {
   test("relative path is resolved against cwd", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(
-      <Harness cwd="/abs/cwd" text="M apps/silvercode/src/parse.ts" />,
-    )
+    const app = render(<Harness cwd="/abs/cwd" text="M apps/silvercode/src/parse.ts" />)
     const hrefs = osc8Hrefs(app.ansi)
     expect(hrefs).toEqual(["file:///abs/cwd/apps/silvercode/src/parse.ts"])
   })
 
   test("relative path with :line preserves the line target", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(
-      <Harness cwd="/abs/cwd" text="see apps/foo/bar.ts:42 for context" />,
-    )
+    const app = render(<Harness cwd="/abs/cwd" text="see apps/foo/bar.ts:42 for context" />)
     const hrefs = osc8Hrefs(app.ansi)
     expect(hrefs).toEqual(["file:///abs/cwd/apps/foo/bar.ts:42"])
   })
 
   test("absolute path passes through unchanged (cwd ignored)", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(
-      <Harness cwd="/abs/cwd" text="open /Users/beorn/Code/main.ts" />,
-    )
+    const app = render(<Harness cwd="/abs/cwd" text="open /Users/beorn/Code/main.ts" />)
     const hrefs = osc8Hrefs(app.ansi)
     expect(hrefs).toEqual(["file:///Users/beorn/Code/main.ts"])
   })
@@ -95,14 +83,9 @@ describe("LinkifiedText → OSC 8 hyperlinks", () => {
 
   test("exactly one OSC 8 hyperlink per detected path (no double-target)", () => {
     const render = createRenderer({ cols: 120, rows: 5 })
-    const app = render(
-      <Harness cwd="/abs/cwd" text="see apps/foo/a.ts and apps/bar/b.ts now" />,
-    )
+    const app = render(<Harness cwd="/abs/cwd" text="see apps/foo/a.ts and apps/bar/b.ts now" />)
     const hrefs = osc8Hrefs(app.ansi)
-    expect(hrefs).toEqual([
-      "file:///abs/cwd/apps/foo/a.ts",
-      "file:///abs/cwd/apps/bar/b.ts",
-    ])
+    expect(hrefs).toEqual(["file:///abs/cwd/apps/foo/a.ts", "file:///abs/cwd/apps/bar/b.ts"])
     // Ensure each open has a matching close (\x1b]8;;\x1b\\ or \x1b]8;;\x07).
     const opens = (app.ansi.match(/\x1b\]8;;[^\x07\x1b]+(?:\x1b\\|\x07)/g) ?? []).length
     const closes = (app.ansi.match(/\x1b\]8;;(?:\x1b\\|\x07)/g) ?? []).length
@@ -118,5 +101,4 @@ describe("LinkifiedText → OSC 8 hyperlinks", () => {
     // The path text is still rendered — popover-only fallback path.
     expect(app.text).toContain("apps/foo/bar.ts")
   })
-
 })

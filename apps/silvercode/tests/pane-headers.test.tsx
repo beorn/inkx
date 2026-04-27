@@ -123,7 +123,6 @@ async function bootApp(opts: { paneHeaders: boolean }): Promise<{
       cwd="/tmp/silvercode-test-pane-headers"
       bare
       layout="single"
-      track="claude"
       model="claude-sonnet-4-6"
       paneHeaders={opts.paneHeaders}
       spawnFactory={() => fakes[i++ % fakes.length]! as unknown as AgentSession}

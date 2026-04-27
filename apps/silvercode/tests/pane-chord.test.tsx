@@ -55,7 +55,6 @@ async function bootApp(): Promise<{
       cwd="/tmp/silvercode-test-chord"
       bare
       layout="single"
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => {
         spawnCount.value += 1

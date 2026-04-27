@@ -76,14 +76,21 @@ async function main(): Promise<void> {
   const fake = createFakeSession()
 
   const layout = readStr("SILVERCODE_TEST_LAYOUT", "single") as "single" | "grid-2" | "grid-4"
-  const track = readStr("SILVERCODE_TEST_TRACK", "claude") as "claude" | "sdk" | "codex"
+  // SILVERCODE_TEST_TRACK is a legacy env-driven dispatch knob — values
+  // map to canonical agent ids in BUILTIN_AGENTS:
+  //   "claude" → undefined (default spawnClaude path)
+  //   "sdk"    → "claude-code-sdk" (in-process SDK)
+  //   "codex"  → "codex-spawn"    (legacy stream-json codex)
+  const track = readStr("SILVERCODE_TEST_TRACK", "claude")
+  const agentForTrack: string | undefined =
+    track === "sdk" ? "claude-code-sdk" : track === "codex" ? "codex-spawn" : undefined
 
   const handle = await run(
     <App
       cwd={readStr("SILVERCODE_TEST_CWD", process.cwd())}
       bare={readBool("SILVERCODE_TEST_BARE")}
       layout={layout === "grid-2" || layout === "grid-4" ? layout : "single"}
-      track={track === "sdk" || track === "codex" ? track : "claude"}
+      agent={agentForTrack}
       model={readStr("SILVERCODE_TEST_MODEL", "claude-sonnet-4-6")}
       spawnFactory={() => fake as unknown as AgentSession}
     />,

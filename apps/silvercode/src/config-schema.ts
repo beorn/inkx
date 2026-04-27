@@ -208,8 +208,8 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     credEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     description: "Google Gemini (ACP) — Sign in with Google",
   },
-  copilot: {
-    id: "copilot",
+  "github-copilot-cli": {
+    id: "github-copilot-cli",
     transport: "acp",
     credEnv: ["GITHUB_TOKEN"],
     description: "GitHub Copilot (ACP) — Copilot subscription",

@@ -175,9 +175,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.
-  const elementProps = live
-    ? { cwd, bare, layout, track: "claude" as const, model }
-    : { cwd, bare, layout, track: "claude" as const, model, spawnFactory: () => fake }
+  const elementProps = live ? { cwd, bare, layout, model } : { cwd, bare, layout, model, spawnFactory: () => fake }
   // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
   // useScope, shipped with vendor/silvery 7d9ee808) have an ambient scope
   // to register against. createApp/run() do this for production paths;

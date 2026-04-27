@@ -41,7 +41,6 @@ describe("layer 3: permission flow", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -86,7 +85,6 @@ describe("layer 3: permission flow", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })

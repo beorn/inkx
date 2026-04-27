@@ -47,7 +47,6 @@ async function bootGrid(layout: "single" | "grid-2" | "grid-4" = "grid-2"): Prom
       cwd="/tmp/silvercode-test-panes"
       bare
       layout={layout}
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => fakes[i++ % fakes.length]! as unknown as AgentSession}
     />,

@@ -48,7 +48,6 @@ async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
       cwd="/tmp/silvercode-test"
       bare
       layout="single"
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => fake as unknown as AgentSession}
     />,

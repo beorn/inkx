@@ -36,9 +36,11 @@ const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
 const AGENT_DISPLAY: Readonly<Record<string, { icon: string; label: string }>> = {
   "claude-code": { icon: "✻", label: "Claude Code" },
   "claude-code-spawn": { icon: "✻", label: "Claude Code" },
+  "claude-code-sdk": { icon: "✻", label: "Claude Code" },
   codex: { icon: "○", label: "Codex" },
+  "codex-spawn": { icon: "○", label: "Codex" },
   gemini: { icon: "✦", label: "Gemini" },
-  copilot: { icon: "⊕", label: "Copilot" },
+  "github-copilot-cli": { icon: "⊕", label: "Copilot" },
 }
 
 function agentDisplayFor(agent: string | undefined): { icon: string; label: string } {

@@ -18,7 +18,6 @@ describe("controller spawn cap", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/silvercode-cap-test",
       model: "claude-test",
-      track: "claude",
       bare: false,
       initialSessions: 0,
       spawnFactory: () => createFakeSession(),

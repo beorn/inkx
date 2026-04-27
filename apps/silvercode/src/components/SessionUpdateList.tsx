@@ -335,9 +335,7 @@ function prettyYamlForDebug(value: unknown, indent = 0): string {
       .map(([k, v]) => {
         const key = /^[A-Za-z_][\w-]*$/.test(k) ? k : JSON.stringify(k)
         const isBlock =
-          typeof v === "object" &&
-          v !== null &&
-          (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0)
+          typeof v === "object" && v !== null && (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0)
         const inner = prettyYamlForDebug(v, indent + 1)
         return isBlock ? pad + key + ":\n" + inner : pad + key + ": " + inner
       })
@@ -380,9 +378,7 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     // Trim very long payloads; full payload available via /debug or the JSONL.
     const allLines = yaml.split("\n")
     const truncated =
-      allLines.length > 60
-        ? [...allLines.slice(0, 60), `# … (${allLines.length - 60} more lines)`].join("\n")
-        : yaml
+      allLines.length > 60 ? [...allLines.slice(0, 60), `# … (${allLines.length - 60} more lines)`].join("\n") : yaml
     return {
       body: (
         <Box flexDirection="column" paddingX={2} paddingY={1}>

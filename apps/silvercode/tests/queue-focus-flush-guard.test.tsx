@@ -60,7 +60,6 @@ describe("layer 3: queue auto-flush focus guard", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
       getFocusedRegion: () => region,
@@ -107,7 +106,6 @@ describe("layer 3: queue auto-flush focus guard", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
       getFocusedRegion: () => region,
@@ -134,7 +132,6 @@ describe("layer 3: queue auto-flush focus guard", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })

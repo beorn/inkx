@@ -54,7 +54,6 @@ async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
       cwd="/tmp/silvercode-test"
       bare
       layout="single"
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => fake as unknown as AgentSession}
     />,
@@ -158,7 +157,6 @@ describe("controller.interruptActiveTurn", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -187,7 +185,6 @@ describe("controller.interruptActiveTurn", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })

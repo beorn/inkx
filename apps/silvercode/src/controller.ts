@@ -130,8 +130,6 @@ function findKmDb(cwd: string): string | null {
   return null
 }
 
-type Track = "claude" | "sdk" | "codex"
-
 export type SessionHandle = {
   readonly id: string
   readonly name: string
@@ -193,20 +191,16 @@ export type ControllerOptions = {
    * Propagated verbatim through SpawnSessionOptions → spawnClaude.
    */
   bare: boolean
-  track: Track
   /**
-   * Optional ACP registry id to route the session through `connectAcpRegistry`
-   * instead of the legacy `spawnClaude` / `spawnSdk` / `spawnCodex` paths.
-   * When set, `track` is ignored. Targets external ACP servers
-   * (codex, gemini, github-copilot-cli, pi-acp) and silvercode's own
-   * subscription wrapper (claude-code).
-   *
-   * Limitations:
-   * - Multi-account / `--bare` / `resume` are not threaded through ACP path
-   *   yet (resume support added separately via opts.resume + per-agent
-   *   loadSession capability)
+   * Canonical agent id from BUILTIN_AGENTS — drives controller dispatch
+   * to the matching factory:
+   *   - codex-spawn       → spawnCodex (legacy stream-json)
+   *   - claude-code-sdk   → spawnSdk (in-process Anthropic SDK)
+   *   - claude-code-spawn → spawnClaude (default Claude legacy path)
+   *   - undefined         → spawnClaude (default fallback)
+   *   - any other id      → connectAcpRegistry (ACP transport)
    */
-  agent?: AcpRegistryId
+  agent?: string
   logDir?: string
   initialSessions: number
   /**
@@ -269,9 +263,8 @@ export type ControllerOptions = {
 export type SpawnSessionOptions = {
   id: string
   name: string
-  track: Track
-  /** When set, dispatches via connectAcpRegistry instead of track. */
-  agent?: AcpRegistryId
+  /** Canonical agent id from BUILTIN_AGENTS. See ControllerOptions.agent. */
+  agent?: string
   cwd: string
   model?: string
   resume?: string
@@ -802,10 +795,24 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   async function defaultSpawn(s: SpawnSessionOptions): Promise<AgentSession> {
     const injectors = makeInjectors(s.name)
     const mcpServers = opts.mcpServers ?? defaultMcpServers(s.name, workspaceRoot, findKmDb(s.cwd))
-    // ACP path — when an explicit registry id is set, route through
-    // connectAcpRegistry. Codex/Gemini/Copilot/Pi-acp/Claude-via-@km/claude-acp
-    // all surface the same AgentSession interface, so the rest of the
-    // controller (subscribe, send, close) is unchanged.
+    // Spawn-transport agents come first (these are the legacy track
+    // replacements). Each maps to its own factory:
+    //   - codex-spawn       → spawnCodex (legacy stream-json codex)
+    //   - claude-code-sdk   → spawnSdk (in-process Anthropic SDK)
+    //   - claude-code-spawn → spawnClaude (default Claude legacy path)
+    //   - undefined         → spawnClaude (default fallback)
+    if (s.agent === "codex-spawn") {
+      return spawnCodex({ cwd: s.cwd, injectors })
+    }
+    if (s.agent === "claude-code-sdk") {
+      return spawnSdk({ cwd: s.cwd, model: s.model, injectors })
+    }
+
+    // ACP-transport agents — when the agent id is set and isn't one of
+    // the spawn-transport ones, route through connectAcpRegistry.
+    // Codex/Gemini/Copilot/Pi-acp/Claude-via-@km/claude-acp all surface
+    // the same AgentSession interface, so the rest of the controller
+    // (subscribe, send, close) is unchanged.
     //
     // caveats:
     // - fs handlers wire to local Bun.file read/write.
@@ -813,10 +820,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     //   not include silvercode's bd-prime / cwd / channel-digest text). That
     //   path is wired separately when the channel pipeline lands on the ACP
     //   transport (km-silvercode.acp-channels).
-    if (s.agent) {
+    if (s.agent && s.agent !== "claude-code-spawn") {
       const sessionScope = controllerScope.child(`acp-session-${s.id}`)
       const sessionId = s.id
-      return connectAcpRegistry(sessionScope, s.agent, {
+      // Cast: s.agent is the canonical id (string); connectAcpRegistry
+      // accepts known registry ids + any free-form id from a custom
+      // ai.acp.<name> entry. Validation happens inside connectAcpRegistry
+      // (throws on unknown id).
+      return connectAcpRegistry(sessionScope, s.agent as AcpRegistryId, {
         cwd: s.cwd,
         sessionCwd: s.cwd,
         // Surface the resolved model so the SidePanel renders it. ACP
@@ -883,15 +894,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         },
       })
     }
-    if (s.track === "codex") {
-      return spawnCodex({ cwd: s.cwd, injectors })
-    }
-    if (s.track === "sdk") {
-      return spawnSdk({ cwd: s.cwd, model: s.model, injectors })
-    }
+    // Default fallback: spawnClaude — the legacy `claude` stream-json
+    // path. Reached when s.agent is undefined OR === "claude-code-spawn".
     // Multi-account: when an account is bound, the harness spawns claude
     // with CLAUDE_CONFIG_DIR pointing at ~/.km/accounts/<name>/.
-    // Undefined account → claude uses the user's main ~/.claude/ (unchanged).
+    // Undefined account → claude uses the user's main ~/.claude/.
     const configDir = s.account ? resolveAccountDir(s.account) : undefined
     return spawnClaude({
       cwd: s.cwd,
@@ -929,7 +936,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       factory({
         id,
         name: givenName,
-        track: opts.track,
         agent: opts.agent,
         cwd: opts.cwd,
         model: opts.model,

@@ -24,12 +24,6 @@ export function useCwd(): string {
   return useContext(CwdCtx)
 }
 
-export function CwdProvider({
-  value,
-  children,
-}: {
-  value: string
-  children: React.ReactNode
-}): React.ReactElement {
+export function CwdProvider({ value, children }: { value: string; children: React.ReactNode }): React.ReactElement {
   return <CwdCtx.Provider value={value}>{children}</CwdCtx.Provider>
 }

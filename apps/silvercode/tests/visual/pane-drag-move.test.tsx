@@ -58,7 +58,6 @@ async function bootGrid(): Promise<{
       cwd={`/tmp/silvercode-test-drag-${Math.random().toString(36).slice(2, 8)}`}
       bare
       layout="single"
-      track="claude"
       model="claude-sonnet-4-6"
       spawnFactory={() => fakes[i++ % fakes.length]! as unknown as AgentSession}
     />,

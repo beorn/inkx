@@ -135,7 +135,6 @@ describe("--resume: input is accepted (status flips back to idle after replay)",
     const controller = createSilvercodeController({
       cwd,
       bare: true,
-      track: "claude",
       // resume: triggers replaySessionFromDisk inside spawnSession.
       resume: SESSION,
       initialSessions: 0,

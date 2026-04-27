@@ -230,7 +230,6 @@ async function buildProgram(): Promise<Command> {
           ? opts.model
           : (resolved.entry.model ?? BUILTIN_AGENTS[resolved.entry.agent]?.defaultModel ?? "")
       const bare = resolved.entry.bare === true || resolved.entry.options?.["bare"] === true
-      const acpAgent = builtinToAcpRegistryId(resolved.entry.agent)
 
       const handle = await run(
         <App
@@ -239,16 +238,7 @@ async function buildProgram(): Promise<Command> {
           resume={resume}
           bare={bare}
           layout="single"
-          track="claude"
-          agent={
-            acpAgent === "codex" ||
-            acpAgent === "gemini" ||
-            acpAgent === "github-copilot-cli" ||
-            acpAgent === "pi-acp" ||
-            acpAgent === "claude-code"
-              ? acpAgent
-              : undefined
-          }
+          agent={resolved.entry.agent}
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
           paneHeaders={false}

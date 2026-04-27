@@ -43,7 +43,6 @@ function makeOpts() {
   const controller = createSilvercodeController({
     cwd: "/tmp/fake",
     bare: true,
-    track: "claude",
     initialSessions: 0,
     spawnFactory: () => fake,
   })
@@ -101,7 +100,6 @@ describe("ACP permission queue — simulated ACP handler", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -138,7 +136,6 @@ describe("ACP permission queue — simulated ACP handler", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -169,7 +166,6 @@ describe("ACP permission queue — simulated ACP handler", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
@@ -188,7 +184,6 @@ describe("ACP permission queue — multi-option routing", () => {
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
       bare: true,
-      track: "claude",
       initialSessions: 0,
       spawnFactory: () => fake,
     })
