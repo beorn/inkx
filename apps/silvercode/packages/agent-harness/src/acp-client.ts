@@ -477,8 +477,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   // streamed chunk rendered as its own `●` row. Set in `send()`/`prompt()`,
   // cleared after `turn-end` emits.
   let currentTurnId: TurnId | null = null
+  let lastMessageTurnId: TurnId | null = null
   function turnIdForUpdate(): TurnId {
     return currentTurnId ?? (("acp-turn-" + Date.now()) as TurnId)
+  }
+  function turnIdForPromptEnd(fallback: TurnId): TurnId {
+    return lastMessageTurnId ?? fallback
   }
 
   function emit(event: AgentEvent): void {
@@ -528,6 +532,15 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       dWire("sessionUpdate %s", params.update.sessionUpdate)
       try {
         const mapped = mapSessionUpdateToLegacyEvents(params, sessionId, turnIdForUpdate())
+        for (const ev of mapped) {
+          if (
+            currentTurnId !== null &&
+            (ev.kind === "text-delta" || ev.kind === "tool-use") &&
+            ev.turnId !== currentTurnId
+          ) {
+            lastMessageTurnId = ev.turnId
+          }
+        }
         for (const ev of mapped) emit(ev)
       } catch (err) {
         emit({
@@ -669,16 +682,18 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       // ever fired → store stayed in "thinking" → 98% CPU busy-loop.
       const turnId = ("acp-turn-" + Date.now()) as TurnId
       currentTurnId = turnId
+      lastMessageTurnId = null
       void agent
         .prompt({
           sessionId,
           prompt: [{ type: "text", text }],
         })
         .then((response) => {
+          const endTurnId = turnIdForPromptEnd(turnId)
           emit({
             kind: "turn-end",
             sessionId,
-            turnId,
+            turnId: endTurnId,
             stopReason: response.stopReason ?? "end_turn",
             ts: Date.now(),
           })
@@ -693,6 +708,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         })
         .finally(() => {
           if (currentTurnId === turnId) currentTurnId = null
+          lastMessageTurnId = null
         })
     },
 
@@ -755,10 +771,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {
       const turnId = ("acp-turn-" + Date.now()) as TurnId
       currentTurnId = turnId
+      lastMessageTurnId = null
       try {
         return await agent.prompt({ sessionId, prompt: content })
       } finally {
         if (currentTurnId === turnId) currentTurnId = null
+        lastMessageTurnId = null
       }
     },
 
@@ -844,6 +862,10 @@ function mapSessionUpdateToLegacyEvents(
   const sessionId = (params.sessionId as SessionId) ?? fallbackSessionId
   const ts = Date.now()
   const events: AgentEvent[] = []
+  const messageTurnId =
+    "messageId" in scUpdate && typeof scUpdate.messageId === "string" && scUpdate.messageId.length > 0
+      ? (`acp-message:${scUpdate.messageId}` as TurnId)
+      : turnId
 
   switch (scUpdate.sessionUpdate) {
     case "user_message_chunk":
@@ -853,7 +875,7 @@ function mapSessionUpdateToLegacyEvents(
         events.push({
           kind: "text-delta",
           sessionId,
-          turnId,
+          turnId: messageTurnId,
           blockIndex: 0,
           text: block.text,
           ts,
@@ -875,7 +897,7 @@ function mapSessionUpdateToLegacyEvents(
         events.push({
           kind: "thinking-delta",
           sessionId,
-          turnId,
+          turnId: messageTurnId,
           blockIndex: 0,
           text: block.text,
           ts,
@@ -888,7 +910,7 @@ function mapSessionUpdateToLegacyEvents(
       events.push({
         kind: "tool-use",
         sessionId,
-        turnId,
+        turnId: messageTurnId,
         id: String(scUpdate.toolCallId) as ToolUseId,
         name: scUpdate.title,
         input: scUpdate.rawInput,

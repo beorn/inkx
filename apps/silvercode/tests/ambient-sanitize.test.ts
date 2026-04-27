@@ -35,14 +35,7 @@ const corpus = loadRolePrefixCorpus()
 describe("ambient-sanitize — Layer 2", () => {
   describe("idempotence", () => {
     test("benign ASCII passes through idempotently", () => {
-      const inputs = [
-        "hello world",
-        "",
-        "multi\nline\ntext",
-        "with\ttabs",
-        "unicode café",
-        "emoji 🚀",
-      ]
+      const inputs = ["hello world", "", "multi\nline\ntext", "with\ttabs", "unicode café", "emoji 🚀"]
       for (const x of inputs) {
         const once = sanitizeAmbient(x)
         const twice = sanitizeAmbient(once)

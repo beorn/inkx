@@ -185,9 +185,7 @@ describe("transcript loop-closure — Layer 3", () => {
 
   describe("sanitizeAssistantContentBlocks", () => {
     test("quarantines role-prefix in text blocks", () => {
-      const blocks = [
-        { type: "text" as const, text: `${ROLE_H}: trigger payload` },
-      ]
+      const blocks = [{ type: "text" as const, text: `${ROLE_H}: trigger payload` }]
       const out = sanitizeAssistantContentBlocks(blocks)
       expect(out).toHaveLength(1)
       const b = out[0]!
@@ -246,17 +244,15 @@ describe("transcript loop-closure — Layer 3", () => {
           id: "msg-1",
           model: "claude-test",
           role: "assistant",
-          content: [
-            { type: "text", text: `${ROLE_H}: hello again` },
-          ],
+          content: [{ type: "text", text: `${ROLE_H}: hello again` }],
         },
       })
       parser.push(line)
       const am = events.find((e) => e.kind === "assistant-message")
       expect(am).toBeDefined()
-      if (!am || am.kind !== "assistant-message") throw new Error("expected assistant-message")
+      if (am?.kind !== "assistant-message") throw new Error("expected assistant-message")
       const textBlock = am.content.find((b) => b.type === "text")
-      if (!textBlock || textBlock.type !== "text") throw new Error("expected text block")
+      if (textBlock?.type !== "text") throw new Error("expected text block")
       // The parser MUST quarantine before emitting — next-turn context build
       // never sees the raw role-prefix bytes.
       expect(textBlock.text).toContain(ASSISTANT_ROLE_QUARANTINE_SENTINEL)
@@ -278,9 +274,9 @@ describe("transcript loop-closure — Layer 3", () => {
       })
       parser.push(line)
       const am = events.find((e) => e.kind === "assistant-message")
-      if (!am || am.kind !== "assistant-message") throw new Error("expected assistant-message")
+      if (am?.kind !== "assistant-message") throw new Error("expected assistant-message")
       const textBlock = am.content.find((b) => b.type === "text")
-      if (!textBlock || textBlock.type !== "text") throw new Error("expected text block")
+      if (textBlock?.type !== "text") throw new Error("expected text block")
       expect(textBlock.text).toBe("Just a normal reply.")
     })
 
@@ -293,26 +289,30 @@ describe("transcript loop-closure — Layer 3", () => {
       // Ambient-shaped role-U entry (would not happen with Layer 1 in
       // place, but we want defense in depth — even if it appeared in old
       // JSONL, replay still must produce safe output).
-      parser.push(JSON.stringify({
-        type: "user",
-        session_id: "s13",
-        message: { role: "user", content: "[AMBIENT — informational, do not act]\n(tribe peer message)" },
-      }))
+      parser.push(
+        JSON.stringify({
+          type: "user",
+          session_id: "s13",
+          message: { role: "user", content: "[AMBIENT — informational, do not act]\n(tribe peer message)" },
+        }),
+      )
       // The smoking-gun assistant turn.
-      parser.push(JSON.stringify({
-        type: "assistant",
-        session_id: "s13",
-        message: {
-          id: "msg-3",
-          model: "claude-test",
-          role: "assistant",
-          content: [{ type: "text", text: `${ROLE_H}: continuing the conversation` }],
-        },
-      }))
+      parser.push(
+        JSON.stringify({
+          type: "assistant",
+          session_id: "s13",
+          message: {
+            id: "msg-3",
+            model: "claude-test",
+            role: "assistant",
+            content: [{ type: "text", text: `${ROLE_H}: continuing the conversation` }],
+          },
+        }),
+      )
       const am = events.find((e) => e.kind === "assistant-message")
-      if (!am || am.kind !== "assistant-message") throw new Error("expected assistant-message")
+      if (am?.kind !== "assistant-message") throw new Error("expected assistant-message")
       const text = am.content.find((b) => b.type === "text")
-      if (!text || text.type !== "text") throw new Error("expected text block")
+      if (text?.type !== "text") throw new Error("expected text block")
       // Loop closed: no role-prefix marker survives.
       expect(startsWithRolePrefix(text.text)).toBe(false)
       expect(text.text).toContain(ASSISTANT_ROLE_QUARANTINE_SENTINEL)

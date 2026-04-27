@@ -196,8 +196,16 @@ function InlineSequenceStory(): React.ReactElement {
         <StoryUserRow text="what's on the team's plate today?" />
         <StoryAssistantRow text="Here's what I can see so far. Let me check the channel feed." />
 
-        <AmbientEventRow entry={ambient1} expanded={expanded.has(ambient1.id)} onToggleExpand={() => toggle(ambient1.id)} />
-        <AmbientEventRow entry={ambient2} expanded={expanded.has(ambient2.id)} onToggleExpand={() => toggle(ambient2.id)} />
+        <AmbientEventRow
+          entry={ambient1}
+          expanded={expanded.has(ambient1.id)}
+          onToggleExpand={() => toggle(ambient1.id)}
+        />
+        <AmbientEventRow
+          entry={ambient2}
+          expanded={expanded.has(ambient2.id)}
+          onToggleExpand={() => toggle(ambient2.id)}
+        />
 
         <StoryUserRow text="anything else come in while you were thinking?" />
         <StoryAssistantRow text="Two ambient observations landed: a peer PR (alice/#42) and a green CI run on main. Want me to summarise the PR diff?" />

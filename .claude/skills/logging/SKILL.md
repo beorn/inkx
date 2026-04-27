@@ -89,7 +89,7 @@ DEBUG=km:* bun km view          # Namespace filter
 Three-step recipe at host-app startup (not in library code):
 
 ```typescript
-import { addWriterFor, createFileWriter } from "loggily"
+import { addWriter, createFileWriter } from "loggily"
 
 // One file shared across namespaces:
 if (process.env.LOGGILY_FILE) {
@@ -97,12 +97,15 @@ if (process.env.LOGGILY_FILE) {
   addWriter((formatted) => writer.write(formatted))
 }
 
-// Per-namespace files (when scenarios want separation):
+// Per-namespace files (when scenarios want separation) — pass a
+// `{ ns }` config object as the first argument:
 if (process.env.LOGGILY_FILE_BG_RECALL) {
-  addWriterFor("bg-recall:*", createFileWriter(process.env.LOGGILY_FILE_BG_RECALL))
+  const writer = createFileWriter(process.env.LOGGILY_FILE_BG_RECALL)
+  addWriter({ ns: "bg-recall:*" }, (formatted) => writer.write(formatted))
 }
 if (process.env.LOGGILY_FILE_INJECTION) {
-  addWriterFor("injection:*", createFileWriter(process.env.LOGGILY_FILE_INJECTION))
+  const writer = createFileWriter(process.env.LOGGILY_FILE_INJECTION)
+  addWriter({ ns: "injection:*" }, (formatted) => writer.write(formatted))
 }
 ```
 

@@ -147,11 +147,7 @@ async function dispatch(
   throw new Error(`backend ${backend} not implemented`)
 }
 
-async function dispatchAnthropic(
-  variant: Variant,
-  payload: ScenarioPayload,
-  model: string,
-): Promise<TrialOutcome> {
+async function dispatchAnthropic(variant: Variant, payload: ScenarioPayload, model: string): Promise<TrialOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return { emitted: false, text: "", error: "ANTHROPIC_API_KEY missing" }
   const client = new Anthropic({ apiKey })

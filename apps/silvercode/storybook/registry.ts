@@ -38,10 +38,7 @@ import { usageMeterFull } from "./stories/UsageMeter.full.story.tsx"
 import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchangeDivider.between-exchanges.story.tsx"
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subAgentExchangeCollapsed } from "./stories/SubAgentExchange.collapsed.story.tsx"
-import {
-  ambientEventRowAllSources,
-  ambientEventRowInlineSequence,
-} from "./stories/AmbientEventRow.story.tsx"
+import { ambientEventRowAllSources, ambientEventRowInlineSequence } from "./stories/AmbientEventRow.story.tsx"
 
 /**
  * Canonical, ordered list of stories. Order is the runner's display order;

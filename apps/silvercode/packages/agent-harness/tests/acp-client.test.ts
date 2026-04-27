@@ -314,6 +314,113 @@ describe("connectAcp", () => {
     }
   })
 
+  test("keeps distinct ACP messageIds as distinct assistant messages", async () => {
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-message-boundaries" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            await serverConn!.sessionUpdate({
+              sessionId: "session-message-boundaries",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "The underlying bug is likely" },
+                messageId: "msg-progress",
+              },
+            })
+            await serverConn!.sessionUpdate({
+              sessionId: "session-message-boundaries",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "Yes, if the missing space is caused by concatenation." },
+                messageId: "msg-final",
+              },
+            })
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-message-boundaries")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+    const store = createSessionStore()
+    store.bind(session)
+
+    session.send("check boundaries")
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const messages = store.state.get().messages.filter((m) => m.role === "assistant" && m.text.length > 0)
+    expect(messages.map((m) => m.text)).toEqual([
+      "The underlying bug is likely",
+      "Yes, if the missing space is caused by concatenation.",
+    ])
+  })
+
+  test("merges ACP chunks that share a messageId", async () => {
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-message-merge" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            for (const text of ["Hello, ", "world"]) {
+              await serverConn!.sessionUpdate({
+                sessionId: "session-message-merge",
+                update: {
+                  sessionUpdate: "agent_message_chunk",
+                  content: { type: "text", text },
+                  messageId: "msg-one",
+                },
+              })
+            }
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-message-merge")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+    const store = createSessionStore()
+    store.bind(session)
+
+    session.send("check merge")
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const messages = store.state.get().messages.filter((m) => m.role === "assistant" && m.text.length > 0)
+    expect(messages.map((m) => m.text)).toEqual(["Hello, world"])
+  })
+
   test("prompt round-trip — handle.prompt() returns stop reason", async () => {
     let lastPromptText = ""
     const { spawn } = createFakeAcpServer({

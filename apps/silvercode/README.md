@@ -62,7 +62,7 @@ The result: peer activity, CI signals, telegram messages, recall summaries flow 
 
 **This is the feature that makes multi-agent coordination safe and effortless.** Without it, every cross-session broadcast becomes a potential trigger for unintended action. With it, peer activity is genuinely background.
 
-*[See [hub/silvercode/design/ambient-context-safety.md](../../hub/silvercode/design/ambient-context-safety.md) for the full pipeline and the forensic story behind it.]*
+_[See [hub/silvercode/design/ambient-context-safety.md](../../hub/silvercode/design/ambient-context-safety.md) for the full pipeline and the forensic story behind it.]_
 
 ---
 

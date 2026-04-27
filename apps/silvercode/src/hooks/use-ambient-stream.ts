@@ -33,10 +33,7 @@ function snapshot(controller: Controller, sessionId: string): readonly AmbientSt
  * lets callers compose this hook unconditionally even when they don't
  * have a controller yet (rules-of-hooks-friendly).
  */
-export function useAmbientStream(
-  controller: Controller | null,
-  sessionId: string,
-): readonly AmbientStreamEntry[] {
+export function useAmbientStream(controller: Controller | null, sessionId: string): readonly AmbientStreamEntry[] {
   const [entries, setEntries] = useState<readonly AmbientStreamEntry[]>(() =>
     controller && sessionId ? snapshot(controller, sessionId) : [],
   )
