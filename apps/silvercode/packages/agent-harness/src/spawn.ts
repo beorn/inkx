@@ -60,7 +60,7 @@ const dEvent = createDebug("agent-harness:event")
  * and is what the TTY driver synthesizes from Ctrl+C — reserving it for
  * actual user-interrupts keeps the semantics clean.
  */
-function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallbackAfterMs: number }): void {
+export function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallbackAfterMs: number }): void {
   try {
     process.kill(-pid, "SIGTERM")
   } catch {

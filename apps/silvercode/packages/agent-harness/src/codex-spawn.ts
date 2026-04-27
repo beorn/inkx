@@ -13,6 +13,7 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process"
+import { gracefulKillTree } from "./spawn"
 import { EventEmitter } from "node:events"
 import type { AgentEvent, AgentInput, AgentSession, PermissionRequestId, SessionId } from "./events.ts"
 import { runInjectors, type Injector } from "./injectors.ts"
@@ -42,10 +43,16 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
   const args = ["--stream-json", ...(opts.extraArgs ?? [])]
   const env: Record<string, string | undefined> = { ...process.env, ...opts.env }
 
+  // detached: true puts codex in its own process group so we can SIGTERM
+  // the whole tree (codex + any grandchildren) on shutdown via
+  // gracefulKillTree's `process.kill(-pid, …)`. Same precondition as
+  // spawnClaude — without this, SIGTERM only reaches the direct child
+  // and any grandchildren leak.
   proc = spawn(binary, args, {
     cwd: opts.cwd ?? process.cwd(),
     env: env as NodeJS.ProcessEnv,
     stdio: ["pipe", "pipe", "pipe"],
+    detached: true,
   })
 
   const splitter = createLineSplitter((line) => {
@@ -128,29 +135,18 @@ export function spawnCodex(opts: SpawnCodexOptions = {}): AgentSession {
       // Same shape as spawnClaude.close. Idempotent; resolves on real exit.
       if (sentTerm) return exitPromise
       sentTerm = true
+      // Drain stdio first so EOF reaches codex's stdin reader (graceful
+      // shutdown for the JSON-RPC loop) and stdout/stderr backpressure
+      // doesn't block the SIGTERM-to-exit path.
       proc.stdin?.destroy()
       proc.stdout?.destroy()
       proc.stderr?.destroy()
       const alive = proc.exitCode === null && proc.signalCode === null
-      if (alive) {
-        try {
-          proc.kill("SIGTERM")
-        } catch {
-          /* already dead — exitPromise resolves via the 'exit' listener */
-        }
-        // SIGKILL fallback — see acp-client.ts close() for full rationale.
-        // codex's stream-json mode can hang on Ctrl+D quit while the
-        // streaming OpenAI request drains; don't make the user wait.
-        const killFallback = setTimeout(() => {
-          if (proc.exitCode === null && proc.signalCode === null) {
-            try {
-              proc.kill("SIGKILL")
-            } catch {
-              /* already gone */
-            }
-          }
-        }, 500)
-        ;(killFallback as unknown as { unref?: () => void }).unref?.()
+      if (alive && proc.pid !== undefined) {
+        // Same pgroup-SIGTERM + 10 s SIGKILL fallback as spawnClaude.
+        // The 10 s window lets codex finish flushing its OpenAI stream
+        // and write any session transcript before being force-killed.
+        gracefulKillTree(proc.pid, proc, { fallbackAfterMs: 10_000 })
       }
       return exitPromise
     },
