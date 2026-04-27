@@ -165,15 +165,26 @@ Last updated: 2026-04-19 (62 packages live)
 | `agentsee` | Reserved 2026-04-27 — agents-that-see (observation framing) |
 | `seegent` | Reserved 2026-04-27 — see + agent contraction |
 | `@beorno/chatly` | Reserved 2026-04-27 — unscoped `chatly` similarity-blocked vs `chalk`; held under @beorno scope |
+| `cleverly` | Reserved 2026-04-27 — clever-as-a-property brand (ly-suffix family) |
+| `smartly` | Reserved 2026-04-27 — smart-as-a-property brand (ly-suffix family) |
+| `agentplus` | Reserved 2026-04-27 — agent+ premium-tier candidate |
+| `agentfox` | Reserved 2026-04-27 — agent + animal-mascot brand |
+| `agentmonkey` | Reserved 2026-04-27 — agent + animal-mascot brand |
+| `@beorno/iqly` | Reserved 2026-04-27 — unscoped `iqly` similarity-blocked vs `mlly` |
+| `@beorno/memgent` | Reserved 2026-04-27 — unscoped `memgent` similarity-blocked vs `moment`; memory-agent contraction |
 
 **Considered but blocked (2026-04-27)** — kept here so we don't re-attempt:
 
 - `chatly` — similarity-blocked vs `chalk`. Held as `@beorno/chatly`.
+- `iqly` — similarity-blocked vs `mlly`. Held as `@beorno/iqly`.
+- `memgent` — similarity-blocked vs `moment`. Held as `@beorno/memgent`.
 - `agently` — taken (maplemx, 1.1.3, active).
 - `mi6` — taken (rschmukler, 0.3.1).
 - `agentops` — taken (agentops.ai, active).
 - `agent8` — taken (kimwz, 1.0.8).
 - `agentbox` — security-hold (npm `0.0.1-security`); cannot be claimed.
+- `agentiq` — taken (tanishqxsharma, 0.2.0).
+- `smartagent` — taken (dev.smartpricing, 0.0.1).
 
 ## Not Published (local only)
 
