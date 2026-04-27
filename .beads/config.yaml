@@ -3,4 +3,4 @@ repos:
   additional:
     - "/Users/beorn/Code/pim/cloudi"
 
-export.path: ".beads/issues.jsonl"
+export.path: "issues.jsonl"
