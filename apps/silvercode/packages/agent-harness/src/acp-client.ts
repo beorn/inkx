@@ -122,6 +122,15 @@ export type AcpConnectOpts = {
    * advertise `loadSession: true` in its initialize response.
    */
   resume?: { sessionId: string }
+  /**
+   * Model id to surface in the legacy session-init event. ACP itself
+   * doesn't include a model field in its session lifecycle — the agent
+   * picks per turn from the connection — so silvercode passes the
+   * resolved model through here just so the SidePanel and any legacy
+   * `SessionState.model` consumers display something meaningful for
+   * non-Claude backends. Optional; empty string when omitted.
+   */
+  model?: string
 }
 
 /**
@@ -622,7 +631,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       kind: "session-init",
       sessionId,
       cwd: sessionCwd,
-      model: "",
+      model: opts.model ?? "",
       mode: "",
       tools: [],
       mcp_servers: (opts.mcpServers ?? []).map((s) => s.name),
@@ -781,7 +790,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         kind: "session-init",
         sessionId,
         cwd: resolvedCwd,
-        model: "",
+        model: opts.model ?? "",
         mode: "",
         tools: [],
         mcp_servers: (loadOpts?.mcpServers ?? opts.mcpServers ?? []).map((s) => s.name),

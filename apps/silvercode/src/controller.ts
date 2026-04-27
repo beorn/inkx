@@ -819,6 +819,14 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       return connectAcpRegistry(sessionScope, s.agent, {
         cwd: s.cwd,
         sessionCwd: s.cwd,
+        // Surface the resolved model so the SidePanel renders it. ACP
+        // itself doesn't include a model field in its session lifecycle
+        // — the agent picks per turn from the connection — but the
+        // legacy `SessionState.model` consumed by silvercode UI needs
+        // something to display. Empty string is fine when nothing's
+        // resolved (e.g. an entry with no `--model` and no
+        // `defaultModel` on the built-in agent).
+        model: s.model ?? "",
         clientCapabilities: { fs: { readTextFile: true, writeTextFile: true } },
         fsHandler: {
           async readTextFile({ path }) {
