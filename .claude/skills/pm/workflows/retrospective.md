@@ -24,6 +24,30 @@ bd list --parent <epic-id> --status open
 
 If sub-beads remain open: **stop.** Either close them or explicitly defer with reason in epic NOTES. Don't write a retro for a half-shipped program — it ages worse than no retro.
 
+### Step 1b: Retroactively fix mis-parented beads
+
+If `bd list --parent <epic-id>` shows fewer children than the design/retro doc references, the program's beads were mis-parented (parented to slice-level epics or scope backlogs instead of the program epic). Fix this before continuing.
+
+```bash
+# 1. Extract bead IDs from the program's design/retro doc
+grep -oE 'km-[a-z]+\.[a-z0-9-]+' hub/<scope>/design/<program>-retro.md | sort -u
+
+# 2. For each, check current parent
+for id in <bead-ids>; do
+  bd show "$id" 2>&1 | grep -A1 PARENT
+done
+
+# 3. Re-parent the ones that semantically belong to the program
+#    Slice epics (km-silvery.structural-hardening) → parent to program epic
+#    Scope-backlog beads (km-silvery.<follow-up>) → parent if part of the program, else leave
+#    External-blocked beads (km-all.upstream-waiting children) → leave under upstream-waiting
+bd update <slice-epic> --parent <program-epic>
+```
+
+**Don't bulk-rewrite.** Each re-parent is a reporting-hierarchy change. Manual confirmation per bead. Slice epics that are 100% the program → re-parent. Slice epics that contain non-program work too → leave parented to their natural home, accept that the program retro is the canonical aggregator.
+
+**This is the work the original /pm skill missed.** `bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see km-all.bead-parent-discipline (file if not yet created).
+
 ## Step 2: Locate the program's evidence
 
 ```bash

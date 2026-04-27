@@ -24,16 +24,47 @@ benefits-from: [pm, recall, tests]
 
 A "program" is a multi-week multi-bead epic (e.g., plateau-90, tree-lenses, era2). The session that closes the LAST critical-path sub-bead, or the epic itself, must produce a retrospective — otherwise the post-ship narrative scatters and meta-lessons get re-discovered. `/complete` is session-scoped; it can't write that retro for you. But it MUST detect the condition and route.
 
+### Step 0a: Re-parent orphaned program beads (retroactive fix)
+
+Before walking the parent tree, **fix unparented and mis-parented beads from this session.** Beads created mid-program often skip the `bd update <id> --parent <epic>` step (because `bd create --id` and `--parent` can't combine). Or they get parented to a slice-level epic but the cross-cutting program epic stays empty.
+
 ```bash
-# For each bead closed this session, check its parent epic
+# 1. Orphaned beads (no parent) with ID prefix matching a known epic
+bd list --status open 2>&1 | grep "^○" | while read line; do
+  id=$(echo "$line" | awk '{print $2}')
+  parent=$(bd show "$id" 2>&1 | grep -A1 PARENT | tail -1 | awk '{print $3}')
+  [ -n "$parent" ] && continue
+  prefix="${id%%.*}"  # km-silvery.foo → km-silvery
+  if bd show "$prefix" >/dev/null 2>&1; then
+    echo "ORPHAN: $id → suggest --parent $prefix"
+  fi
+done
+
+# 2. Cross-cutting program epics (km-all.<name>) with zero direct children
+#    when sibling slice epics or follow-up beads exist that semantically belong.
+#    Audit by reading the program's design doc / retro doc / bead description
+#    for explicit bead IDs, then verify each bead's current parent.
+```
+
+For each finding: confirm the new parent makes sense, then `bd update <id> --parent <epic>`. **Don't bulk-rewrite** — re-parenting can change reporting hierarchies. Manual confirmation per bead.
+
+### Step 0b: Walk the parent tree
+
+```bash
+# For each bead closed this session, check its parent epic transitively
 for id in $(bd list --status closed --closed-after <session-start>); do
   parent=$(bd show "$id" 2>&1 | grep -A1 PARENT | tail -1 | awk '{print $3}')
   [ -z "$parent" ] && continue
-  remaining=$(bd list --parent "$parent" --status open 2>&1 | grep -c "^○")
-  closed=$(bd list --parent "$parent" --status closed 2>&1 | grep -c "✓")
-  if [ "$remaining" -eq 0 ] && [ "$closed" -ge 3 ]; then
-    echo "EPIC-CLOSE: $parent has all $closed sub-beads closed — route to /pm retro $parent"
-  fi
+  # Walk UP the tree — slice epics may roll up to a program epic
+  while [ -n "$parent" ]; do
+    remaining=$(bd list --parent "$parent" --status open 2>&1 | grep -c "^○")
+    closed=$(bd list --parent "$parent" --status closed 2>&1 | grep -c "✓")
+    if [ "$remaining" -eq 0 ] && [ "$closed" -ge 3 ]; then
+      echo "EPIC-CLOSE: $parent has all $closed sub-beads closed — route to /pm retro $parent"
+      break
+    fi
+    parent=$(bd show "$parent" 2>&1 | grep -A1 PARENT | tail -1 | awk '{print $3}')
+  done
 done
 ```
 
