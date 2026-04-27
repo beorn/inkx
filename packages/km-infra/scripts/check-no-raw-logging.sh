@@ -33,7 +33,16 @@ EXIT=0
 #   /scripts/, /tools/          — build & infra scripts (some grep helpers)
 #   docs/, hub/, README, CHANGELOG, .md  — documentation referencing patterns
 #   .skill                      — skill docs explaining the pattern
-ALLOWLIST_PATTERN='\(/loggily/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|/scripts/\|/tools/\|/docs/\|/hub/\|README\|CHANGELOG\|\.md$\|/\.claude/skills/\)'
+#   .claude/worktrees/          — agent worktree clones (stale snapshots; the
+#                                 lint runs on main, but submodule worktree
+#                                 clones live under .claude/worktrees/<name>/
+#                                 inside vendor/bearly and would otherwise
+#                                 double-count every offender N times)
+#   web/stubs/                  — browser bundle stubs (web build replaces
+#                                 the real loggily import with a noop createLogger;
+#                                 this is exactly the cross-platform shim
+#                                 pattern the lint exists to allow)
+ALLOWLIST_PATTERN='\(/loggily/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|/scripts/\|/tools/\|/docs/\|/hub/\|README\|CHANGELOG\|\.md$\|/\.claude/skills/\|/\.claude/worktrees/\|/web/stubs/\)'
 
 SEARCH_ROOTS='apps packages vendor'
 
@@ -51,16 +60,24 @@ SEARCH_ROOTS='apps packages vendor'
 #   if (process.env.LOGGILY_FILE) {
 #     addWriter(formatted => createFileWriter(process.env.LOGGILY_FILE).write(formatted))
 #   }
-BASELINE_LOCAL_CREATELOGGER=2    # `export function createLogger` outside vendor/loggily
-                                  # Today: bg-recall/src/log.ts + injection-envelope/src/debug.ts
-                                  # Goal: 0 after km-bearly.unified-observability lands.
-BASELINE_APPEND_LOG_FILE=2        # `appendFileSync` writing to .log / .jsonl paths
-                                  # Today: same two subsystems.
-                                  # Goal: 0 after km-bearly.unified-observability lands.
+BASELINE_LOCAL_CREATELOGGER=0    # `export function createLogger` outside vendor/loggily.
+                                  # Was 2 (bg-recall + injection-envelope) pre km-bearly.
+                                  # unified-observability; both deleted/migrated.
+                                  # Goal: stay at 0.
+BASELINE_APPEND_LOG_FILE=6        # `appendFileSync` writing to .log / .jsonl paths.
+                                  # Today's offenders (tracked in km-bearly.llm-loggily-migration):
+                                  #   - apps/km-cli/src/commands/daemon.ts (1)
+                                  #   - vendor/bearly/plugins/llm/src/lib/dual-pro.ts (2 — backtest + promotions JSONL)
+                                  #   - vendor/bearly/plugins/llm/src/lib/dispatch.ts (1 — ab-pro JSONL)
+                                  #   - vendor/silvery/packages/ag-term/src/runtime/create-app.tsx (2 — debug trace)
+                                  # The obs bead's lint baseline missed these; bumping to 6
+                                  # to honestly reflect main today. Migration tracked separately.
 BASELINE_DEBUG_LOG_ENV=2          # `_DEBUG_LOG` env-var literals as log file paths.
-                                  # Today: BG_RECALL_DEBUG_LOG + INJECTION_DEBUG_LOG
-                                  # (counted as definition sites, not consumers).
-                                  # Goal: 0 — replaced by LOGGILY_FILE / LOGGILY_FILE_<NS>.
+                                  # Today: INJECTION_DEBUG_LOG (back-compat shim in
+                                  # plugins/injection-envelope/src/debug.ts:14,71 — lazily
+                                  # registers a namespace-scoped writer if env var is set).
+                                  # BG_RECALL_DEBUG_LOG was deleted in unified-observability.
+                                  # Goal: 0 once back-compat shim is dropped (one release later).
 # =========================================================================
 
 count_pattern() {
