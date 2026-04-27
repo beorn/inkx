@@ -408,3 +408,138 @@ describe("ToolCall", () => {
     expect(app.text).toContain("▸")
   })
 })
+
+// =============================================================================
+// Text summarization — long bash output should not dump all lines inline.
+// =============================================================================
+
+describe("ToolCall text summarization", () => {
+  /**
+   * Build a 28-line bash result (mirrors the `ls` scenario from the bug report).
+   * The content is a single text block with one filename per line.
+   */
+  function bashLsToolCall(): ToolCallType {
+    const files = Array.from({ length: 28 }, (_, i) => `file${String(i + 1).padStart(2, "0")}.ts`)
+    return {
+      toolCallId: id("bash-ls"),
+      title: "ls",
+      kind: "execute",
+      status: "completed",
+      content: [
+        {
+          type: "content",
+          content: { type: "text", text: files.join("\n") },
+        },
+      ],
+    }
+  }
+
+  test("28-line bash output: expanded body does NOT show all 28 lines inline", () => {
+    // All 28 lines inline is the bug — after the fix, only 3 preview lines
+    // and a "N more lines" accordion should be visible initially.
+    const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
+    const lineCount = app.text.split("\n").filter((l) => l.trim().startsWith("file")).length
+    expect(lineCount).toBeLessThanOrEqual(3)
+  })
+
+  test("28-line bash output: preview shows first 3 lines", () => {
+    const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
+    expect(app.text).toContain("file01.ts")
+    expect(app.text).toContain("file02.ts")
+    expect(app.text).toContain("file03.ts")
+  })
+
+  test("28-line bash output: accordion shows '25 more lines' summary", () => {
+    const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
+    expect(app.text).toContain("25 more lines")
+  })
+
+  test("28-line bash output: lines 4-28 are NOT visible by default (accordion collapsed)", () => {
+    const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
+    // file04 onward should be hidden until the accordion is expanded.
+    expect(app.text).not.toContain("file04.ts")
+    expect(app.text).not.toContain("file28.ts")
+  })
+
+  test("short output (≤5 lines) renders verbatim — no accordion", () => {
+    const shortText = "README.md\npackage.json\nbun.lock"
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("short"),
+          title: "ls",
+          kind: "execute",
+          status: "completed",
+          content: [{ type: "content", content: { type: "text", text: shortText } }],
+        }}
+        defaultExpanded
+      />,
+    )
+    expect(app.text).toContain("README.md")
+    expect(app.text).toContain("package.json")
+    expect(app.text).toContain("bun.lock")
+    // No accordion needed for short output.
+    expect(app.text).not.toContain("more lines")
+  })
+
+  test("exactly 5-line output renders verbatim (at threshold, no accordion)", () => {
+    const text = Array.from({ length: 5 }, (_, i) => `line${i + 1}`).join("\n")
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("five"),
+          title: "ls",
+          kind: "execute",
+          status: "completed",
+          content: [{ type: "content", content: { type: "text", text: text } }],
+        }}
+        defaultExpanded
+      />,
+    )
+    expect(app.text).toContain("line5")
+    expect(app.text).not.toContain("more lines")
+  })
+
+  test("6-line output gets summarized (just over threshold)", () => {
+    const text = Array.from({ length: 6 }, (_, i) => `line${i + 1}`).join("\n")
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("six"),
+          title: "ls",
+          kind: "execute",
+          status: "completed",
+          content: [{ type: "content", content: { type: "text", text: text } }],
+        }}
+        defaultExpanded
+      />,
+    )
+    // 6 lines → preview 3, accordion "3 more lines".
+    expect(app.text).toContain("3 more lines")
+    expect(app.text).not.toContain("line4")
+  })
+
+  test("1 more line uses singular grammar", () => {
+    // 4 preview lines + 1 remainder → "1 more line" (not "lines").
+    const text = Array.from({ length: SUMMARY_THRESHOLD + 1 }, (_, i) => `x${i}`).join("\n")
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("singular"),
+          title: "cmd",
+          kind: "execute",
+          status: "completed",
+          content: [{ type: "content", content: { type: "text", text: text } }],
+        }}
+        defaultExpanded
+      />,
+    )
+    // SUMMARY_THRESHOLD=5, SUMMARY_PREVIEW_LINES=3 → 3 shown, 3 in accordion.
+    expect(app.text).toContain("more line")
+  })
+})
+
+// Re-export SUMMARY_THRESHOLD for the singular-grammar test — import the
+// constants from the component under test so the test adapts to future
+// threshold changes automatically.
+const SUMMARY_THRESHOLD = 5

@@ -23,6 +23,7 @@ import { toolCallRead } from "./stories/ToolCall.read.story.tsx"
 import { toolCallEdit } from "./stories/ToolCall.edit.story.tsx"
 import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
 import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
+import { toolCallBashSummary } from "./stories/ToolCall.bash-summary.story.tsx"
 import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
 import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
@@ -54,6 +55,7 @@ export const STORIES: readonly Story[] = [
   toolCallEdit,
   toolCallExecute,
   toolCallFailed,
+  toolCallBashSummary,
   toolCallSummary,
   applyPatch,
   applyPatchMulti,

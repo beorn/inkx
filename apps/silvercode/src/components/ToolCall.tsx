@@ -22,10 +22,28 @@
  */
 
 import React, { useState } from "react"
-import { Box, Diff as SilveryDiff, type DiffHunk, Muted, Small, Spinner, Text } from "silvery"
+import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Small, Spinner, Text } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { ToolCallError } from "./ToolCallError.tsx"
+
+// =============================================================================
+// Constants — summarization thresholds
+// =============================================================================
+
+/**
+ * Text blocks with more than this many lines get summarized: the first
+ * SUMMARY_PREVIEW_LINES are shown inline; the rest are tucked behind an
+ * Accordion so the user can expand on demand.
+ *
+ * Rationale: a `ls` of a 28-file directory should not dump 28 lines inline.
+ * Native Claude Code renders "Listed 1 directory" — we match that terse
+ * spirit while still making the full output accessible with one click.
+ */
+const SUMMARY_THRESHOLD = 5
+
+/** Lines shown verbatim before the "N more lines" accordion. */
+const SUMMARY_PREVIEW_LINES = 3
 
 // =============================================================================
 // Helpers — derive renderable shapes from ACP `ToolCall` content variants.
@@ -54,17 +72,57 @@ function diffContentToHunks(content: { newText: string; oldText?: string | null 
 }
 
 /**
+ * Render a long text block with summary-by-default behaviour.
+ *
+ * If the text has more than SUMMARY_THRESHOLD lines, only the first
+ * SUMMARY_PREVIEW_LINES are shown inline. The remaining lines are hidden
+ * behind a silvery `<Accordion>` with title "N more lines" (collapsed by
+ * default). The user can press Enter / click to expand.
+ *
+ * Short texts (≤ SUMMARY_THRESHOLD lines) render verbatim — no accordion.
+ */
+function renderTextContent(text: string, key: number | string): React.ReactElement {
+  const lines = text.split("\n")
+  if (lines.length <= SUMMARY_THRESHOLD) {
+    return (
+      <Text key={key} wrap="wrap">
+        {text}
+      </Text>
+    )
+  }
+  // Long text: preview + accordion for the remainder.
+  const preview = lines.slice(0, SUMMARY_PREVIEW_LINES)
+  const rest = lines.slice(SUMMARY_PREVIEW_LINES)
+  const moreCount = rest.length
+  return (
+    <Box key={key} flexDirection="column">
+      {preview.map((line, i) => (
+        <Text key={i} wrap="wrap">
+          {line}
+        </Text>
+      ))}
+      <Accordion title={`${moreCount} more line${moreCount === 1 ? "" : "s"}`}>
+        {rest.map((line, i) => (
+          <Text key={i} wrap="wrap">
+            {line}
+          </Text>
+        ))}
+      </Accordion>
+    </Box>
+  )
+}
+
+/**
  * Render a single ACP `ContentBlock`. Image/audio/resource variants render
  * as a placeholder note — terminals can't display images, but we surface
  * the metadata so the user knows content was emitted.
+ *
+ * Text blocks with many lines use `renderTextContent` for summary-by-default
+ * rendering — see that function's doc for the threshold logic.
  */
 function renderContentBlock(block: ContentBlock, key: number | string): React.ReactElement {
   if (block.type === "text") {
-    return (
-      <Text key={key} wrap="wrap">
-        {block.text}
-      </Text>
-    )
+    return renderTextContent(block.text, key)
   }
   if (block.type === "image") {
     return <Muted key={key}>[image: {block.mimeType}]</Muted>
@@ -84,7 +142,7 @@ function renderContentBlock(block: ContentBlock, key: number | string): React.Re
     return (
       <Box key={key} flexDirection="column">
         <Muted>resource: {block.resource.uri}</Muted>
-        <Text wrap="wrap">{block.resource.text}</Text>
+        {renderTextContent(block.resource.text, `${key}-body`)}
       </Box>
     )
   }
