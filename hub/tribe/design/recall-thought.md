@@ -265,6 +265,568 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## Final shape (2026-04-27 23:42): mem-thought as long-running sub-agent with compiled knowledge
+
+The user's full vision crystallizes through three additions:
+
+1. **Per-event LLM review**: every new input triggers an LLM that reviews what it means and what searches to run next. Not just regex extraction — actual interpretation.
+2. **Compiled knowledge**: the agent maintains a running structured digest of relevant prior context. This is the "memory state" — versioned, updateable, queryable.
+3. **Delta vs full injection**: the foreground agent can either receive the whole compiled-knowledge snapshot OR only deltas (what's changed since last time). Memory is **kept in the sub-agent** with only deltas pushed to the foreground.
+
+This makes mem-thought a **persistent in-session sub-agent** with its own LLM context, tools, and state — not a paced batch process and not a stateless reactive function.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│   FOREGROUND AGENT (Claude/Codex via ACP — silvercode user)  │
+│                                                              │
+│   sees ambient deltas:                                       │
+│   [mem-thought, delta]: peer pushed wrap-policy; relevant?   │
+│   [mem-thought, delta]: file change SidePanel.tsx — past...  │
+│   [mem-thought, full] (on /clear or session-start):          │
+│     <whole compiled knowledge digest>                        │
+└──────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ AmbientEvent emit
+                          │
+┌──────────────────────────────────────────────────────────────┐
+│   MEM-THOUGHT SUB-AGENT (cheap LLM, prompt-cached context)   │
+│                                                              │
+│   Long-running conversation with claude-haiku-4-5:           │
+│   ┌────────────────────────────────────────────────────────┐ │
+│   │ system: "You are the memory of this session..."        │ │
+│   │ tools:  recall_search, qmd_query, read_chunk           │ │
+│   │ ─────── PROMPT CACHED BOUNDARY ───────                 │ │
+│   │ user: <event 1: user prompt>                           │ │
+│   │ asst: <reasoned about it, called recall, saved to KB>  │ │
+│   │ user: <event 2: tribe broadcast>                       │ │
+│   │ asst: <updated KB, no emit needed>                     │ │
+│   │ user: <event 3: file change>                           │ │
+│   │ asst: <searched, found connection, emit delta>         │ │
+│   │ ...                                                    │ │
+│   └────────────────────────────────────────────────────────┘ │
+│                                                              │
+│   Compiled knowledge (structured, in agent's context):       │
+│     • Tracked identifiers + their relevance scores           │
+│     • Hypotheses still being explored                        │
+│     • Surfaced beads/sessions (what's been emitted)          │
+│     • Summary of what the conversation is about              │
+│     • Notes on what the foreground agent seems to need       │
+└──────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ session events
+                          │
+   ┌──────────┐  ┌────────┴────────┐  ┌──────────┐  ┌──────────┐
+   │ prompts  │  │ tribe broadcasts │  │  files   │  │    CI    │
+   └──────────┘  └─────────────────┘  └──────────┘  └──────────┘
+```
+
+The sub-agent has its OWN LLM context that grows as events arrive. Anthropic prompt caching means most of this context is cached — each event is a cache-hit + small append, cost is ~$0.001 per event in steady state.
+
+### Compiled-knowledge schema
+
+The sub-agent's state includes a structured "compiled-knowledge" document that gets updated as it reasons:
+
+```markdown
+# Compiled knowledge (cycle 5, 23:42)
+
+## Conversation theme
+Designing recall-thought tier of mem-* architecture. User wants iteratively-smart
+LLM browser of FTS, with sub-agent maintaining compiled context.
+
+## Active identifiers
+- recallAgent (high relevance — 4 sessions discuss it)
+- mem-thought (this design)
+- /pro reviews on memory (3 prior critiques surfaced)
+- "compiled knowledge" (new — searching now)
+
+## Surfaced (already shown)
+- session 6443387f — original recall agent design
+- km-tribe.recall-thought — this bead
+
+## Hypotheses being explored
+- "compiled context" → searching qmd vault
+- "Letta MemGPT memory tiers" → 1 weak hit, low confidence
+- "agent loop with tool calls" → searching
+
+## Open questions for next event
+- Did user mean Letta-style memory tiers?
+- Is there prior /pro work on agent loops to surface?
+```
+
+This is what the sub-agent thinks-out-loud about, in its own context. When emitting to the foreground, it produces either:
+
+- **Delta**: "Since last update: searched X, found Y; new connection: Z." (~1–3 lines)
+- **Full**: dump the compiled-knowledge document as an `[mem-thought, full-snapshot]` event
+
+### Per-event review loop
+
+```
+onEvent(event):
+  // Append event to sub-agent's conversation
+  subAgent.appendUserMessage(formatEvent(event))
+
+  // Step the sub-agent: it sees its full context (cached) + new event,
+  // decides what to do. May call tools, may update internal KB, may emit.
+  response = await subAgent.step({
+    tools: [recall_search, qmd_query, read_chunk, emit_delta, emit_full],
+    cacheStrategy: "prompt-cache",  // 90% cost reduction on cache hits
+  })
+
+  // The sub-agent's tool calls drive everything:
+  for toolCall in response.toolCalls:
+    switch toolCall.name:
+      case "recall_search":
+        result = recall(toolCall.args.query, { excludeSurfaced, ... })
+        subAgent.appendToolResult(toolCall.id, result)
+      case "emit_delta":
+        opts.queue.enqueue({
+          kind: "thought",
+          mode: "delta",
+          content: toolCall.args.summary,
+        })
+      case "emit_full":
+        opts.queue.enqueue({
+          kind: "thought",
+          mode: "full",
+          content: toolCall.args.compiledKnowledge,
+        })
+
+  // If sub-agent did tool calls, step again to let it react to results
+  while response.hasToolCalls:
+    response = await subAgent.step(...)
+```
+
+The sub-agent **decides**:
+- Whether to search at all on this event ("user just said 'ok' — nothing to do")
+- What to search for ("they mentioned 'compiled context' — let me search prior /pro reviews")
+- Whether to emit ("found something relevant + non-stale + not surfaced — emit delta")
+- Whether emit should be delta or full ("on /clear, send full snapshot to re-prime")
+- Whether to update its internal KB without emitting ("noted, will surface if reinforced")
+
+### Cost model with prompt caching
+
+- Sub-agent context grows ~500 tokens/event
+- Anthropic prompt cache: first token of new content = full price; rest = 10% (cache hit)
+- Per event cost: ~$0.0005–0.002 (mostly cache hits + small append + occasional tool result)
+- Per session: 100 events × $0.001 = **~$0.10/session**
+- Heavy use (3 sessions/day, 5 days/week, 4 weeks/month): **~$5–8/dev/month**
+
+This is comparable to my paced-wrapper estimate but with **continuous reactivity** rather than periodic batches.
+
+### Why "delta" matters
+
+The compiled-knowledge document grows over a session — by event 50, it's maybe 1500 tokens of structured notes. Injecting that into the foreground agent's context every emit is wasteful and noisy.
+
+**Delta mode**: "Since last update: searched X, found Y." — 1–3 lines, easy to ignore-or-use.
+**Full mode**: only on session-start, /clear, or explicit user request — re-primes the foreground agent with the whole memory snapshot.
+
+This matches how human conversation works: you don't recite your entire memory on every turn, you mention specific recollections as they become relevant.
+
+### Implementation sketch (~300 LOC)
+
+```typescript
+// apps/silvercode/src/ambient-adapters/memory-agent.ts
+import Anthropic from "@anthropic-ai/sdk"
+import { recall } from "@bearly/recall"
+
+export function createMemoryAgent(opts: MemoryAgentOpts): MemoryAgent {
+  const messages: Anthropic.MessageParam[] = []
+  const surfaced = new Set<string>()
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+  const systemPrompt = `You are the memory sub-agent for this Claude Code session.
+You watch session events (user prompts, assistant completions, tribe broadcasts,
+file changes, CI events) and maintain a compiled-knowledge document about prior
+context that might be relevant to the current work.
+
+You have tools:
+- recall_search(query): search Claude Code session history (FTS5)
+- qmd_query(query): search markdown knowledge bases (hybrid)
+- emit_delta(summary): emit a short ambient event with new findings
+- emit_full(compiledKnowledge): emit the full compiled-knowledge snapshot
+
+On each event:
+1. Decide what it means for the current task
+2. Decide what (if anything) to search for
+3. Update your internal compiled-knowledge mentally
+4. Emit a delta if you find something useful + non-stale + not already surfaced
+
+Bias toward silence. Most events should produce no emit.`
+
+  async function onEvent(event: SessionEvent): Promise<void> {
+    messages.push({ role: "user", content: formatEvent(event) })
+
+    let response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+      tools: TOOLS,
+      messages,
+      max_tokens: 1500,
+    })
+
+    while (response.stop_reason === "tool_use") {
+      const toolResults = []
+      for (const block of response.content) {
+        if (block.type !== "tool_use") continue
+        const result = await dispatchTool(block, opts, surfaced)
+        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result })
+      }
+      messages.push({ role: "assistant", content: response.content })
+      messages.push({ role: "user", content: toolResults })
+      response = await client.messages.create({ ...same as above })
+    }
+    messages.push({ role: "assistant", content: response.content })
+  }
+
+  return { onEvent, dispose: () => { /* clear messages */ } }
+}
+```
+
+Subscribe to events in the controller (same as before — feed everything to `onEvent`).
+
+### Cost discipline
+
+- Per-day cap (default $1/dev/day) — sub-agent stops accepting events when reached
+- Per-event tool-call cap (default 3 per event) — prevents runaway loops
+- Per-session conversation length cap (default 100 events) — clears or hibernates
+
+---
+
+## Reactive evolution (2026-04-27 23:38): mem-thought as stateful in-session agent
+
+User reframe: the memory itself should be a stateful agent that maintains compiled context and updates incrementally on new events (tribe broadcasts, file changes, prompts), instead of re-searching from scratch each cycle.
+
+This is genuinely different architecture: **event-driven push-based reactive agent** vs **time-paced pull-based batch pipeline**. It matches how human memory works in conversation — not a periodic re-evaluation, but a continuous background process that pings on new signal.
+
+### State shape
+
+```typescript
+type MemoryAgentState = {
+  // Running summary: what the conversation is about right now
+  summary: string  // ~6 lines, updated on each event
+
+  // Tracked identifiers extracted from the conversation
+  identifiers: Map<string, {
+    type: "path" | "error" | "bead-id" | "function" | "phrase" | "peer-event"
+    weight: number   // type weight × frequency
+    firstSeen: number
+    lastSeen: number
+    status: "new" | "searched" | "surfaced" | "dropped"
+  }>
+
+  // Active search hypotheses — each is a query that's been run
+  hypotheses: Array<{
+    query: string
+    sourceIdentifiers: string[]
+    hits: Hit[]              // raw FTS results
+    coverageScore: number    // freshness × hit count × outcome weights
+    lastEvaluated: number
+    surfaced: boolean
+  }>
+
+  // Dedupe — what's already been emitted
+  surfaced: Set<beadId>
+
+  // Budget tracking
+  budget: {
+    remainingCycles: number   // cap per session
+    remainingSpend: number    // USD per day
+    lastSearchAt: number      // rate-limit
+  }
+
+  // Emission queue
+  pending: Emission[]
+}
+```
+
+### Event-driven algorithm (pseudocode)
+
+```
+onEvent(event):
+  // Step 1: Mechanical state update (no LLM, no FTS) — runs on every event
+  switch event.type:
+    case "user-prompt" | "assistant-completion":
+      ids = extractIdentifiers(event.text)         // regex: paths, errors, kebab-IDs, etc
+      for id in ids:
+        upsertIdentifier(id, weightedByType(id))
+      summary = updateRollingSummary(summary, event.text)
+
+    case "tribe-broadcast":
+      ids = extractIdentifiers(event.preview)
+      for id in ids:
+        upsertIdentifier(id, weight: 0.7 × weightedByType(id))   // peer signal weighted lower
+      // Special: peer commits / PRs / CI events may directly suggest
+      //   a search: "peer just shipped wrap-policy" → search for "wrap policy"
+
+    case "file-change":
+      upsertIdentifier(event.path, weight: 2.0)   // file paths are high-signal
+      // Also: extract the basename and module name as separate anchors
+
+    case "ci-status":
+      upsertIdentifier(event.checkName, weight: 1.5)
+      if event.failed: upsertIdentifier(event.errorPattern, weight: 2.5)
+
+  // Step 2: Decide if any work needs doing — most events end here
+  newIds = identifiers.where(status === "new")
+  if newIds.empty AND !rateLimitExpired:
+    return    // nothing new, nothing to do
+
+  // Step 3: For each NEW high-weight identifier, search (cheap, no LLM)
+  for id in newIds.where(weight >= HIGH_WEIGHT_THRESHOLD):
+    hits = recall(buildQueryFor(id, identifiers), since: "30d",
+                  excludeCurrentSession: true, excludeSurfaced: surfaced)
+    if hits.empty:
+      identifiers[id].status = "searched-empty"
+    else:
+      hypotheses.push({
+        query: id,
+        sourceIdentifiers: [id],
+        hits,
+        coverageScore: rank(hits, identifiers, surfaced),
+        lastEvaluated: now,
+        surfaced: false,
+      })
+      identifiers[id].status = "searched"
+
+  // Step 4: Optional cheap-LLM cross-pollination (every K events, e.g., K=10)
+  if eventsSinceLastLlm >= K AND newIds.count >= 2:
+    // Single LLM call: "Given these identifiers and current summary,
+    //   are there cross-cutting queries worth running?"
+    //   Returns 1-3 multi-anchor combinations (e.g., "wrap regression mobile")
+    crossQueries = llmCrossPollinate(summary, newIds, hypotheses)
+    for q in crossQueries:
+      hits = recall(q, ...)
+      if hits.length > 0: hypotheses.push({...})
+
+  // Step 5: Re-rank ALL hypotheses (no LLM, just math)
+  for h in hypotheses:
+    h.coverageScore = rerank(h.hits, identifiers, surfaced)
+    // Hypothesis becomes "stale" once most of its hits are surfaced
+
+  // Step 6: Decide what to emit (pick best unmarked hypothesis above threshold)
+  best = hypotheses.where(!surfaced && coverageScore > EMIT_THRESHOLD)
+                   .maxBy(h => h.coverageScore)
+  if best:
+    // Optional cheap-LLM digest composition (or templated if utility is high enough)
+    digest = composeDigest(best, summary)   // ~$0.001 if LLM, else templated
+    emit(digest)
+    best.surfaced = true
+    for hit in best.hits: surfaced.add(hit.beadId)
+    budget.remainingCycles--
+
+  // Step 7: Garbage-collect stale state
+  evictOldHypotheses(hypotheses, AGE_THRESHOLD)
+  evictOldIdentifiers(identifiers, AGE_THRESHOLD)
+```
+
+**Key property**: most events are O(1) — extract identifiers, update map, decide nothing-to-do, return. Only events that introduce new high-weight identifiers trigger FTS calls. Only every-K events trigger an LLM call. Most cycles emit nothing (silent on no-signal). The agent does work *proportional to new signal*, not on a fixed schedule.
+
+### Example surfacing scenarios
+
+**Scenario A — user mentions a known bug**
+```
+event:    user-prompt "remember the wrap regression bug?"
+extract:  identifiers ["wrap regression"] (kebab-phrase, weight 2.5)
+search:   recall("wrap regression") → 3 hits:
+            - km-tui.wrap-regression [RESOLVED] flex-wrap fix, 2026-04-15
+            - session 0420 retest, 2026-04-20
+            - km-flexx.wrap-height [SUPERSEDED]
+hypothesis added, coverage 2.5+1.5+0.6 = 4.6 → above threshold
+emit:     [mem-thought, cycle 1 — query: "wrap regression"]
+            • [RESOLVED 2026-04-15] km-tui.wrap-regression — flex-wrap fix
+            • [follow-up 2026-04-20] session 0420 retested on mobile
+            • [SUPERSEDED] km-flexx.wrap-height — see canonical above
+mark surfaced: {km-tui.wrap-regression, session-0420, km-flexx.wrap-height}
+```
+
+**Scenario B — user says "we should ship this"**
+```
+event:    user-prompt "we should ship this"
+extract:  identifiers ["ship"] (generic, weight 0.5)
+search:   no high-weight new identifiers, skip
+LLM:      no, K-events not reached
+emit:     nothing — silent
+```
+
+**Scenario C — peer commit lands during your work on related file**
+```
+event:    tribe-broadcast {kind: github-push, preview:
+            "feat(layout): wrap-policy improvements in @silvery/flexily"}
+extract:  identifiers ["wrap-policy", "silvery", "flexily"] from preview
+          (peer-event weight × type weights)
+new:      "wrap-policy" is genuinely new and high-weight
+search:   recall("wrap-policy") in cross-sessions → 2 hits:
+            - past discussion of wrap policy semantics, 2026-04-12
+            - design doc on flexily wrap behavior
+hypothesis added, coverage 2.8 → above threshold
+emit:     [mem-thought, cycle 2 — peer activity in @silvery/flexily]
+            Peer just pushed wrap-policy improvements (@silvery/flexily).
+            Past discussions:
+            • Session 0412 — wrap-policy semantics
+            • hub/silvery/design/flexily-wrap.md — design notes
+```
+
+**Scenario D — file change introduces new context**
+```
+event:    file-change "apps/silvercode/src/components/SidePanel.tsx"
+extract:  identifier "apps/silvercode/src/components/SidePanel.tsx" (path, weight 2.0)
+          plus "SidePanel.tsx" basename (weight 1.5)
+new:      yes (file path)
+search:   recall("SidePanel.tsx") → 5 hits across sessions:
+            - past bug fixes, design discussions, focus-bar work
+already surfaced: {km-silvercode.welcome-card-hidden}  // from earlier emit
+filter out surfaced; remaining hits coverage 2.1 → above threshold
+emit:     [mem-thought, cycle 3 — SidePanel.tsx context]
+            Past SidePanel work not previously surfaced this session:
+            • Session 0424 — focus-bar layout decisions
+            • km-silvercode.side-panel-design — Sessions/Todos/Mode shape
+```
+
+**Scenario E — re-firing on the same hypothesis after new event reinforces it**
+```
+event 1:  user-prompt "the wrap thing was broken on mobile"
+extract:  identifier "wrap thing" (weight 1.0), "mobile" (weight 1.0)
+search:   recall("wrap mobile") → 1 weak hit, coverage 0.9 — below threshold
+hypothesis kept as latent (not emitted)
+
+(several events pass without action)
+
+event 5:  assistant-completion mentions "flex-wrap"
+extract:  identifier "flex-wrap" (weight 2.0)
+re-rank:  latent hypothesis "wrap mobile" + new "flex-wrap" combine →
+          cross-pollinate query "flex-wrap mobile wrap regression" via cheap LLM
+          new hits found, combined coverage 3.4 → emit
+emit:     [mem-thought, cycle 1 — pattern recognized across turns]
+            ...
+```
+
+### Deduplication mechanics
+
+Three layers:
+
+1. **Identifier deduplication** — same identifier extracted multiple times just bumps `lastSeen` and `count`; no re-search until `status` resets to "new" via TTL or new context.
+
+2. **Hypothesis surfacing** — once a hypothesis has been emitted, `surfaced: true`. Its hits are added to the global `surfaced` set. Hypotheses are re-ranked on every event but won't re-emit. Stale hypotheses (most hits surfaced) get evicted.
+
+3. **Cross-hypothesis dedup** — when ranking, hits already in the global `surfaced` set get coverage-zeroed. So even if a NEW hypothesis would surface bead-X, if bead-X was already shown, the hypothesis won't include it; if bead-X was the hypothesis's only good hit, the hypothesis falls below threshold and stays silent.
+
+The `surfaced` set is per-session (cleared on new session). Cross-session persistence is opt-in v3.
+
+### Why this beats the paced wrapper
+
+| Property | v1 paced wrapper | v2 reactive agent |
+|----------|------------------|-------------------|
+| Trigger | Every 12 turns / 15 min | Any event with new signal |
+| Most events do | Nothing (waiting for cadence) | O(1) state update only |
+| Re-search cost | Full FTS expansion every cycle | Incremental — search only new IDs |
+| Cross-event signal | Lost between cycles | Accumulates in state.identifiers |
+| Peer-driven recall | Misses unless cycle aligns | Tribe broadcast IS an event — fires immediately |
+| Dedup | Set + recallAgent's internal tracking | Per-session surfaced set + hypothesis lifecycle |
+| Cost ceiling | $0.011/cycle × N cycles | $0.001/event in steady state, $0.01 only on FTS-needed events |
+| Code surface | ~50 LOC | ~200–250 LOC (state machine + handlers) |
+
+### Implementation sketch (~200 LOC)
+
+```typescript
+// apps/silvercode/src/ambient-adapters/memory-agent.ts
+export function createMemoryAgent(opts: MemoryAgentOpts): MemoryAgent {
+  const state: MemoryAgentState = {
+    summary: "",
+    identifiers: new Map(),
+    hypotheses: [],
+    surfaced: new Set(),
+    budget: { remainingCycles: 8, remainingSpend: 1.0, lastSearchAt: 0 },
+    pending: [],
+  }
+
+  function extractIdentifiers(text: string): Anchor[] { /* regex */ }
+  function upsertIdentifier(id: string, weight: number): void { /* state update */ }
+  function rerank(hits: Hit[], state: ...): number { /* outcome + freshness */ }
+
+  async function onEvent(event: SessionEvent): Promise<void> {
+    // Step 1: mechanical state update (no LLM, no FTS)
+    updateStateFromEvent(state, event)
+
+    // Step 2: short-circuit if nothing new
+    const newIds = [...state.identifiers].filter(([_, m]) => m.status === "new" && m.weight >= 1.5)
+    if (newIds.length === 0 && Date.now() - state.budget.lastSearchAt < RATE_LIMIT_MS) return
+
+    // Step 3: search per new high-weight identifier
+    for (const [id, meta] of newIds) {
+      const hits = await recall(buildQuery(id, state), { since: "30d", crossSession: true })
+      if (hits.length > 0) {
+        state.hypotheses.push({ query: id, hits, coverageScore: rerank(hits, state), ... })
+      }
+      meta.status = hits.length > 0 ? "searched" : "searched-empty"
+    }
+
+    // Step 4: optional cross-pollination LLM call (every K events)
+    if (state.eventsSinceLastLlm >= 10 && newIds.length >= 2) {
+      const crossQueries = await llmCrossPollinate(state.summary, newIds, state.hypotheses)
+      for (const q of crossQueries) {
+        const hits = await recall(q, { ... })
+        if (hits.length > 0) state.hypotheses.push({...})
+      }
+    }
+
+    // Step 5: re-rank
+    for (const h of state.hypotheses) h.coverageScore = rerank(h.hits, state)
+
+    // Step 6: emit best
+    const best = pickBest(state.hypotheses, EMIT_THRESHOLD)
+    if (best && state.budget.remainingCycles > 0) {
+      const digest = composeDigest(best, state.summary)
+      opts.queue.enqueue(digest)
+      best.surfaced = true
+      best.hits.forEach((h) => state.surfaced.add(h.beadId))
+      state.budget.remainingCycles--
+    }
+
+    // Step 7: GC
+    evictStale(state)
+  }
+
+  return { onEvent, getState: () => state, dispose: () => { /* cleanup */ } }
+}
+```
+
+Subscribe to events in the controller:
+
+```typescript
+// apps/silvercode/src/controller.ts
+const memoryAgent = createMemoryAgent({ queue: channelQueue, repoScope })
+sessionStore.on("user-prompt", (p) => memoryAgent.onEvent({ type: "user-prompt", text: p }))
+sessionStore.on("assistant-completion", (c) => memoryAgent.onEvent({ type: "assistant-completion", text: c }))
+tribeAdapter.on("broadcast", (e) => memoryAgent.onEvent({ type: "tribe-broadcast", preview: e.preview }))
+filewatchAdapter.on("change", (p) => memoryAgent.onEvent({ type: "file-change", path: p }))
+ciAdapter.on("status", (s) => memoryAgent.onEvent({ type: "ci-status", ...s }))
+```
+
+### Cost & latency
+
+- Steady state (no new identifiers): ~0 ms, $0 per event
+- New high-weight identifier: ~600 ms FTS, $0 per event
+- LLM cross-pollination (every ~10 events): ~1–2 s, ~$0.001
+- LLM digest composition (when emitting): ~1–2 s, ~$0.001
+- Per session: 5–8 emissions × ~$0.005 LLM cost + ~20–50 FTS calls × $0 = **~$0.05/session**
+- Heavy use: ~$5–10/dev/month
+
+Roughly the same cost as the paced wrapper but with: (a) better timing (fires when signal is fresh, not on cadence), (b) accumulated cross-event signal (latent hypothesis from event 1 fires after event 5 reinforces it — Scenario E), (c) reactive to peer activity (tribe broadcasts ARE events).
+
+### Implementation roadmap (revised)
+
+| Phase | Scope | LOC | Dogfood signal |
+|-------|-------|-----|----------------|
+| v1 | Reactive agent skeleton: state + event handlers + identifier extraction + FTS + outcome ranking + emit | ~200 | First emissions on user prompts containing high-weight IDs |
+| v1.5 | Cross-pollination LLM call (every K events) + digest composition LLM call | +50 | Better hypothesis quality, terser emissions |
+| v2 | Persistent dedup across sessions per project | +30 | Don't re-surface same bead in new session within 24h |
+| v3 | qmd as second substrate (besides recall FTS) | +50 | Vault content surfaces alongside session history |
+| v4 | True tool-call agent loop for complex hypotheses (escalation only) | +100 | Catches things v1's structural extraction misses |
+
+---
+
 ## Correction (2026-04-27 23:35): recallAgent IS the design. Tier 2 deferred = more budget.
 
 Two course corrections from the user:
