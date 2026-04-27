@@ -8,8 +8,8 @@ name: Fuzz
 #   2. Persist the corpus (vimonkey __fuzz_cases__/ directories) across runs so
 #      shrunk failure cases stick around as regression seeds.
 #   3. On any failure: upload the corpus + raw vitest log as artifacts, and
-#      auto-file a bead via packages/km-infra/scripts/fuzz-crash-to-bead.ts so
-#      the crash is tracked even if no human is watching.
+#      print a `bd create` command via fuzz-crash-to-bead.ts so the crash is
+#      tracked even if no human is watching.
 #
 # Tracking bead: km-infra.continuous-fuzz (parent: km-infra.guardrails).
 # Source design: km-all.plateau-90 N1.
@@ -34,6 +34,13 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Single consolidated corpus directory. The "Stage corpus" steps copy
+  # to/from this dir so we cache one path instead of a cross-repo glob,
+  # which is both faster and avoids actions/cache/save@v4 hangs when the
+  # glob resolves to zero matches.
+  FUZZ_CORPUS_DIR: .fuzz-corpus
+
 jobs:
   fuzz:
     name: Run fuzz suite
@@ -51,48 +58,81 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        # Don't use --frozen-lockfile: the workspace pulls in submodule
+        # packages whose versions can drift on submodule update; a strict
+        # frozen install fails CI for reasons unrelated to fuzz coverage.
+        run: bun install
 
-      # The fuzz corpus lives in __fuzz_cases__/ directories alongside each
-      # *.fuzz.ts file (vimonkey convention). We cache by branch + run so the
-      # most recent corpus is preferred, falling back to any earlier corpus
-      # for the branch, and then to any corpus on any branch as a last resort.
       - name: Restore fuzz corpus
         id: corpus-restore
         uses: actions/cache/restore@v4
         with:
-          path: |
-            **/__fuzz_cases__/**
+          path: ${{ env.FUZZ_CORPUS_DIR }}
           key: fuzz-corpus-${{ github.ref_name }}-${{ github.run_number }}
           restore-keys: |
             fuzz-corpus-${{ github.ref_name }}-
             fuzz-corpus-
 
+      - name: Hydrate __fuzz_cases__/ from corpus
+        if: steps.corpus-restore.outputs.cache-matched-key != ''
+        run: |
+          if [[ -d "$FUZZ_CORPUS_DIR" ]]; then
+            echo "Hydrating __fuzz_cases__ dirs from $FUZZ_CORPUS_DIR"
+            # Files are stored under <CORPUS_DIR>/<original-relative-path>.
+            # rsync -a preserves structure; --ignore-missing-args keeps the
+            # step idempotent when the corpus is empty.
+            rsync -a "$FUZZ_CORPUS_DIR/" ./
+          else
+            echo "Corpus restore matched but no directory present (empty cache)"
+          fi
+
       - name: Run fuzz suite
         id: fuzz
         env:
-          # Honor a user-supplied seed when present, but only on workflow_dispatch.
           FUZZ_SEED: ${{ inputs.seed }}
           CI: "true"
+        # We DON'T fail-fast here — we want the post-fuzz steps (stage
+        # corpus, upload artifacts, file bead) to run even when fuzz
+        # fails. The `outcome` is captured for the gating later.
+        continue-on-error: true
         run: |
           set -o pipefail
           mkdir -p test-results
           # `bun run test:fuzz` runs `bun vitest run --project fuzz` — see package.json.
-          bun run test:fuzz 2>&1 | tee test-results/fuzz.log
+          # --reporter=verbose makes the per-test FAIL line stable for the
+          # bead-creation script's regex.
+          bun vitest run --project fuzz --reporter=verbose 2>&1 | tee test-results/fuzz.log
 
-      # Always save the corpus, even on failure — the freshly-shrunk failing
-      # cases are the most valuable seeds we can carry forward. Different key
-      # space than the restore step so partial-failure caches still land.
+      - name: Stage corpus for caching
+        if: always()
+        run: |
+          mkdir -p "$FUZZ_CORPUS_DIR"
+          # Find every __fuzz_cases__/ directory and mirror it under the
+          # consolidated corpus dir, preserving the original path so a
+          # subsequent hydrate step can rsync it back into place.
+          # If no dirs exist, leave the corpus dir empty — the cache step
+          # below still saves the (empty) dir, which is fine.
+          mapfile -t cases < <(find . -type d -name '__fuzz_cases__' \
+            -not -path "./$FUZZ_CORPUS_DIR/*" \
+            -not -path './node_modules/*' \
+            -not -path './.git/*')
+          echo "Found ${#cases[@]} __fuzz_cases__ dir(s)"
+          for src in "${cases[@]}"; do
+            rel="${src#./}"
+            dst="$FUZZ_CORPUS_DIR/$rel"
+            mkdir -p "$(dirname "$dst")"
+            rsync -a "$src/" "$dst/"
+          done
+
       - name: Save fuzz corpus
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: |
-            **/__fuzz_cases__/**
+          path: ${{ env.FUZZ_CORPUS_DIR }}
           key: fuzz-corpus-${{ github.ref_name }}-${{ github.run_number }}
 
       - name: Upload fuzz log
-        if: failure()
+        if: steps.fuzz.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: fuzz-log-${{ github.run_number }}
@@ -101,24 +141,23 @@ jobs:
           retention-days: 30
 
       - name: Upload fuzz corpus
-        if: failure()
+        if: steps.fuzz.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: fuzz-corpus-${{ github.run_number }}
-          path: |
-            **/__fuzz_cases__/**
+          path: ${{ env.FUZZ_CORPUS_DIR }}
           if-no-files-found: warn
           retention-days: 30
 
       # The runner doesn't have credentials to push to the Dolt-backed beads
-      # repo, so this step prints the `bd create` command into the workflow log
-      # for human follow-up. The script itself is idempotent — re-runs against
+      # repo, so this step prints the `bd create` command into the workflow
+      # log for human follow-up. The script is idempotent — re-runs against
       # the same seed produce the same bead ID and append-note instead of
       # creating duplicates. When a `BD_DOLT_TOKEN` secret is added to the
-      # repo, the dry-run gate can be removed and the script can `bd dolt push`
-      # directly.
+      # repo, the dry-run gate can be removed and the script can `bd dolt
+      # push` directly.
       - name: File bead for fuzz crash (dry-run)
-        if: failure()
+        if: steps.fuzz.outcome == 'failure'
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -133,4 +172,13 @@ jobs:
             --dry-run \
             || echo "::warning::fuzz-crash-to-bead failed to extract a crash"
           echo "::endgroup::"
-          echo "::notice::Fuzz failed. Reproduce locally; the printed `bd create` command above can be run by a maintainer with bd access to file the bead."
+          echo "::notice::Fuzz failed. Reproduce locally; the printed bd create command above can be run by a maintainer with bd access to file the bead."
+
+      # Final gate: if fuzz failed, fail the job so the run shows red and
+      # GitHub notifies. Without this, `continue-on-error` on the fuzz step
+      # would let the job report green even on real fuzz crashes.
+      - name: Mark job failed if fuzz failed
+        if: steps.fuzz.outcome == 'failure'
+        run: |
+          echo "::error::fuzz suite reported failures — see uploaded log + corpus artifacts"
+          exit 1
