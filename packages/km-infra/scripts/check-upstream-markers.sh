@@ -129,9 +129,15 @@ OPEN_CHILDREN=$(bd list --parent km-all.upstream-waiting --status open --json 2>
 
 if [ -z "$OPEN_CHILDREN" ]; then
   # JSON form may not be supported in all bd versions — fall back to text parse.
+  # bd quirk: `bd list --parent X --status open` ignores --status and returns
+  # every child including closed (✓). Per upstream.md §8, every non-closed child
+  # must have a marker — open (○), in-progress (◐), blocked (●), deferred (❄).
+  # Closed beads are kept under the registry as historical records and don't
+  # need markers (the workaround is gone).
   OPEN_CHILDREN=$(bd list --parent km-all.upstream-waiting --status open 2> /dev/null \
-    | grep -oE '(^|[[:space:]])km-[A-Za-z0-9._-]+' \
-    | tr -d ' ' | sort -u || true)
+    | grep -vE '✓[[:space:]]+km-' \
+    | grep -oE 'km-[A-Za-z0-9._-]+' \
+    | sort -u || true)
 fi
 
 while IFS= read -r bead; do

@@ -276,7 +276,8 @@ bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"   # creation + 30 days
 Workaround tracking. <one-sentence summary of what we did and why>.
 
 Upstream: <URL — issue or PR>
-Status: <merged-upstream | released-upstream | adopted-locally> as of <YYYY-MM-DD>
+Status: <filed-upstream | merged-upstream | released-upstream | adopted-locally> as of <YYYY-MM-DD>
+  - filed-upstream:    issue/PR open upstream, not yet merged — the state every workaround starts in
   - merged-upstream:   PR merged into upstream's main/master, but not yet in a tagged release
   - released-upstream: published in a release we COULD consume, but our package.json/lock still pins an older version
   - adopted-locally:   our deps actually consume the fix in package.json AND lockfile — the only state where the workaround can be removed
@@ -300,7 +301,7 @@ Unwind when upstream lands:
 
 **Why each field matters**:
 - *Upstream URL*: the only auditable proof a fix has or hasn't landed. Without this, monthly review devolves into guessing.
-- *Status (3-state enum)*: `merged ≠ released ≠ adopted`. Closing on "merged-upstream" is the most common false-victory — our code still runs the workaround until our deps actually pull the patched release. Only `adopted-locally` justifies running the unwind steps.
+- *Status (4-state enum)*: `filed → merged → released → adopted`. The progression is monotonic. Closing on `merged-upstream` is the most common false-victory — our code still runs the workaround until our deps actually pull the patched release. Only `adopted-locally` justifies running the unwind steps. Most beads sit at `filed-upstream` for months before any movement; that's the honest default.
 - *Last checked*: gives the monthly reviewer a delta to compare against; updated every review even if nothing changed (this is how we detect orphaned beads).
 - *Escalate by*: forces a re-decision before the bead silently becomes "we gave up but won't admit it." Without this, "waiting" beads accumulate forever and the registry stops being honest.
 - *bd defer date*: parent-grouping makes the bead visible in monthly review; defer-until makes it active in `bd ready` near its review date — both, not either.
@@ -402,7 +403,7 @@ Mismatches fail CI. Either wire up the missing side, or close the bead.
 - [ ] (Optional) Vendorized and fixed
 - [ ] (Optional) Submitted PR upstream
 - [ ] **Registered in `km-all.upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps
-- [ ] Bead `Status:` uses the 3-state enum: `merged-upstream` | `released-upstream` | `adopted-locally`
+- [ ] Bead `Status:` uses the 4-state enum: `filed-upstream` | `merged-upstream` | `released-upstream` | `adopted-locally` (most beads start at `filed-upstream`)
 - [ ] Bead `Escalate by: <YYYY-MM-DD>` set (default = creation + 6 months) with re-decision options documented (vendorize / fork / accept owned divergence / continue waiting)
 - [ ] `bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"` run (default = creation + 30 days) so the bead actively surfaces in `bd ready` near review date
 - [ ] Code marker present at every workaround site: `// UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>` + `// Bead: km-<scope>.<slug>` + `// Escalate by: <YYYY-MM-DD>`
