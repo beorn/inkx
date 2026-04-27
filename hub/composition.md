@@ -11,13 +11,15 @@ const tribe = pipe(
   createBaseTribe({ scope }),
   withProjectRoot(opts.root),
   withSocket(),
-  withMCPServer(),
+  withTools(),
   withTool(loreTools()),
   withTool(messagingTools()),
+  withMCPServer(),
   withPlugin(gitPlugin),
   withPlugin(beadsPlugin),
   withPlugin(githubPlugin),
 )
+await tribe.run()
 ```
 
 Anything that requires reading `init.ts`, `setup.ts`, `bootstrap.ts`, `wire-up.ts`, or eight constructors to understand the boot order has lost the plot.
@@ -52,7 +54,7 @@ Three rules govern the shape:
 
 | Pattern | Reads as | Cleanup story | Test story |
 |---|---|---|---|
-| `pipe + with*` (proposed) | A list of capabilities, top-down | Scope-cascaded, automatic | Each `with*` testable in isolation; whole pipe testable as data |
+| `pipe + with*` | A list of capabilities, top-down | Scope-cascaded, automatic | Each `with*` testable in isolation; whole pipe testable as data |
 | Constructor injection | A pile of dependencies | Manual disposers, easy to forget | Mocking dependency graphs |
 | Builder method-chain (`.withX().withY()`) | Same readable order | Same as pipe but harder to compose programmatically | Same |
 | Imperative setup script | A wall of side effects | Whatever you remembered | Hard — order is implicit |
@@ -73,7 +75,7 @@ Composition is the *structural* layer. It interlocks with three other patterns t
 |---|---|---|
 | **Composition** (this doc) | Structure: factory produces the system. `pipe + with*`. | hub/composition.md |
 | **TEA** (`apply` / `dispatch`) | Behavior: pure `(action, state) → [state, effects]` state machines. Effects are serializable data. | [docs/design/tea.md](../docs/design/tea.md) |
-| **Reactive store** (alien-signals + family) | Derived state, projections, subscriptions. Signals are atomic; `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. | `vendor/bearly/packages/alien-*/`; [reference-alien-family.md](../.config/claude-profiles/...) |
+| **Reactive store** (alien-signals + family) | Derived state, projections, subscriptions. Signals are atomic; `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. | `vendor/bearly/packages/alien-*/` |
 | **Scope** (lifecycle) | Structured concurrency. `AsyncDisposableStack` + `AbortSignal` + child cascade. `withScope()` at the root, `useScopeEffect` in components. | [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) |
 
 ### How they interlock
@@ -189,7 +191,7 @@ Three consequences:
 
 2. **Order between `withTool` and `withMCPServer` is loose.** The MCP server reads the registry at start time (or subscribes for late-additions). You can register tools before or after the server appears in the pipe. We *prefer* tools-before-server in the factory because it matches the reading order, but the architecture doesn't require it.
 
-3. **The same tool can flow over multiple surfaces simultaneously.** A direct tribe client over Unix socket calls `tribe.ask` via JSON-RPC dispatch; an agent connected via tribe MCP bridge calls `tribe.ask` via MCP. Both go through the same handler in the registry. No duplication, no protocol-specific re-implementation.
+3. **The same tool can flow over multiple surfaces simultaneously.** A direct tribe client over Unix socket calls `tribe.ask` via JSON-RPC dispatch; an agent connected via the stdio adapter calls `tribe.ask` via MCP. Both go through the same handler in the registry. No duplication, no protocol-specific re-implementation.
 
 This is the same separation that `@apollo/server` makes between schema (the registry) and `expressMiddleware` / `startStandaloneServer` (the surfaces), and that Effect's `Layer` makes between service definitions and runtime providers.
 
@@ -313,16 +315,18 @@ Each `withX` extends the type. The pipe's final type is the union of all extensi
 type Base = { scope: Scope }
 type WithProjectRoot = { projectRoot: ProjectRoot }
 type WithSocket = { socket: SocketHandle }
-type WithMCP = { mcpServer: McpServer; registerTool(t: Tool): void }
+type WithTools = { tools: Map<string, ToolDef> }
+type WithMCP = { mcpServer: McpServer }
 
 const tribe = pipe(
   createBaseTribe({ scope }),                            // Base
   withProjectRoot(root),                                  // Base & WithProjectRoot
   withSocket(),                                           // ... & WithSocket
+  withTools(),                                            // ... & WithTools
+  withTool(loreTools()),                                  // ... (no new type; appends to tools)
   withMCPServer(),                                        // ... & WithMCP
-  withTool(loreTools()),                                  // ... (no new type, registers)
 )
-// inferred: Base & WithProjectRoot & WithSocket & WithMCP
+// inferred: Base & WithProjectRoot & WithSocket & WithTools & WithMCP
 ```
 
 TypeScript's intersection types do this automatically. The `pipe` overloads thread the types through.

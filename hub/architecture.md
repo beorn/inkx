@@ -27,7 +27,7 @@ Three runtime products today, sitting on a shared foundation:
 - **silvercode** is a multi-pane TUI workspace that hosts agent sessions (Claude Code, codex, gemini-cli) with shared state, channels, and coordination across panes.
 - **tribe** is a per-project coordination daemon that brokers messages and exposes shared tools to whichever apps and agents are working in that project root.
 
-km and silvercode are **host apps**: user-facing, ship a UI, may host or consume agent sessions. tribe is a **system**: headless, infrastructure that other components consume. Calling all three "apps" would invert the dependency graph.
+km and silvercode are **host apps** — user-facing, ship a UI, may host or consume agent sessions. tribe is a **system** — headless, infrastructure that the host apps and agent sessions consume.
 
 ### km ⇄ silvercode convergence (TBD)
 
@@ -106,7 +106,7 @@ A bidirectional TUI ↔ markdown notes app. Layered design: APP → COMMANDS →
 
 Source: `apps/silvercode/`. Component docs: [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md). Design: [hub/silvery/future/ai-terminal/](./silvery/future/ai-terminal/) — full MVP brief, agent integration, multiplex, sessions, supervision.
 
-A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. Internal codename — public name TBD; product split with km is TBD (see "convergence" above).
+A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / gemini) over ACP or stream-json; the pane manages the agent's lifecycle, captures its tool calls, renders progress, and shares context across panes via channels. Subprocess lifecycle hardened with AsyncDisposable + `sentTerm` flag + 10s SIGKILL fallback. The product split with km is TBD — see [convergence](#km--silvercode-convergence-tbd) above.
 
 ### tribe
 
