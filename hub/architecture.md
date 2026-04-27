@@ -23,11 +23,11 @@ Three runtime products today, sitting on a shared foundation:
                      storage (SQLite + bidirectional markdown sync, km only today)
 ```
 
-- **km** is a knowledge-management TUI for notes, tasks, calendar with bidirectional markdown sync. The original product, the lead showcase for silvery.
+- **km** is a knowledge-management TUI for notes, tasks, calendar with bidirectional markdown sync. The original product, the lead showcase for silvery. Doesn't host agent sessions today; expected to (see [convergence](#km--silvercode-convergence-tbd)).
 - **silvercode** is a multi-pane TUI workspace that hosts agent sessions (Claude Code, codex, gemini-cli) with shared state, channels, and coordination across panes.
 - **tribe** is a per-project coordination daemon that brokers messages and exposes shared tools to whichever apps and agents are working in that project root.
 
-km and silvercode are **host apps** — user-facing, ship a UI, may host or consume agent sessions. tribe is a **system** — headless, infrastructure that the host apps and agent sessions consume.
+silvercode is a **host app** today — user-facing, ships a UI, hosts agent sessions. km is also a host app in role and is expected to host agent sessions as the convergence below lands. tribe is a **system** — headless, infrastructure that the host apps and agent sessions consume.
 
 ### km ⇄ silvercode convergence (TBD)
 
@@ -65,34 +65,22 @@ km and silvercode both render through silvery; their visual languages should con
 
 Reusable Claude Code tooling: tribe (coordination + memory), tty (headless terminal MCP), recall (session-history search), llm (multi-provider dispatch), refactor (batch refactoring), worktree, and more. Each package is independently publishable; tribe is the most complex member.
 
+### Storage — bidirectional markdown sync
+
+Source: `packages/km-storage/` and surrounding modules. Used by km today; designed to be reusable.
+
+SQLite (via `bun:sqlite`, WAL + FTS5) backs a state cache + index over markdown files on disk. Edits flow both ways: TUI mutations write through to markdown; filesystem changes propagate back to the UI. The storage layer never imports UI; the UI never reads files directly. This is the substrate the km vision's Knowledge axis sits on. silvercode does not use it today; convergence will likely have agent sessions read and write through it.
+
 ### Composition — `pipe + with*` (and three companions)
 
 [hub/composition.md](./composition.md). Composition is one of four interlocking runtime patterns shared across silvery, km, silvercode, and tribe:
 
 1. **Composition** (`pipe + with*`) — structure. The factory produces the system value.
-2. **TEA** (`apply` / `dispatch`) — behavior. Pure `(action, state) → [state, effects]` state machines. See [docs/design/tea.md](../docs/design/tea.md).
+2. **TEA** (The Elm Architecture: `apply` / `dispatch`) — behavior. Pure `(action, state) → [state, effects]` state machines. See [docs/design/tea.md](../docs/design/tea.md).
 3. **Reactive store** (alien-signals + family) — derived state, projections, subscriptions. See `vendor/bearly/packages/alien-*/`.
 4. **Scope** — structured-concurrency lifecycle. See [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md).
 
-The composition pipe wires all four together: `withScope()`, `withSignalStore()`, `withMachines(…)`, plus tools, plugins, and surfaces. See composition.md → "Companion patterns" for the full picture.
-
-The factory function is the architecture — read top-to-bottom and you understand what the system is, in what order, with what dependencies, and what cleanup is owed:
-
-```ts
-const tribe = pipe(
-  createBaseTribe({ scope }),
-  withProjectRoot(opts.root),
-  withSocket(),
-  withTools(),
-  withTool(messagingTools()),
-  withTool(loreTools()),
-  withMCPServer(),
-  withPlugin(gitPlugin),
-)
-await tribe.run()
-```
-
-`withTool()` populates a protocol-agnostic registry; surfaces (`withMCPServer`, future `withRESTServer`) consume it. Each `withX` registers cleanup on the passed `Scope`. Async setup happens outside the pipe; ongoing async runs in TEA-shaped event loops. See composition.md for the strategy.
+The composition pipe wires all four together: `withScope()`, `withSignalStore()`, `withMachines(…)`, plus tools, plugins, and surfaces. The full pattern with rules, type evolution, and concrete examples lives in [composition.md](./composition.md) — that's the canonical reference. This doc stays topological.
 
 ## The three products
 
@@ -223,6 +211,26 @@ Two transports for reaching the daemon's MCP server:
 | stdio adapter | Per-agent process bridging stdio MCP ↔ daemon's Unix socket | Claude Code, codex, gemini-cli, opencode |
 
 These are the same MCP server reached two ways. Tool names carry the `tribe.*` prefix because agents typically connect to multiple MCP servers in a session — `tribe.send` vs `fs.read` vs `browser.click` is disambiguation, not redundancy.
+
+### How observer plugins reach the wire
+
+When an observer plugin "pushes a message onto the wire," it calls the same messaging tools (`tribe.send`, `tribe.broadcast`) that external clients call — just in-process. The plugin loader hands each plugin a `TribeClientApi` at start time:
+
+```ts
+interface TribeClientApi {
+  send(recipient, content, type, beadId?)
+  broadcast(content, type, beadId?)
+  claimDedup(key)
+  hasRecentMessage(contentPrefix)
+  getActiveSessions()
+  getSessionNames()
+  hasChief()
+}
+```
+
+This surface is intentionally a strict subset of what an out-of-process client gets over the Unix socket. Plugins have no privileged access to the SQLite DB, the connected-clients map, or the daemon's session UUID — *"this matches what a future out-of-process plugin would have access to if it connected as a regular tribe client"* (per `tribe/plugin-api.ts`). Today the plugin runs in-process for performance and convenience; lifting it out-of-process later is a deployment change, not an API change.
+
+There is no separate "internal bus" — the wire is the same wire. Source: `vendor/bearly/tools/lib/tribe/plugin-api.ts`.
 
 ## Memory
 
