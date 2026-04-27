@@ -144,6 +144,23 @@ When an agent claims a bead and tries to close it, it MUST:
 - **@silvery/style** (Case Study 6): 8 phase items marked done that weren't — nobody ran the greps before checking the box.
 - **ColumnState/CardState**: Each session found "still has consumers" and deferred to next phase. The old types survived indefinitely.
 
+## Substrate-Phasing Convention (file the cleanup bead at planning time)
+
+When a refactor splits into "Phase 1: build the new substrate alongside the old; Phase 2/3: delete the old," the substrate-phase bead closes at L4 (new structure proven, old code still present). The cleanup bead that deletes the old code at L5 must be **filed at planning time, before the substrate ships** — not discovered after when /complete catches the residue.
+
+**Why**: Plateau-90 (April 2026) phased C1, C2, C3a as "Phase 1 substrate, Phase 2/3 in notes." Three substrate beads closed at L4 with workaround fossils still in code as planned residue. The cleanup beads (`km-silvery.lifecycle-leak-detection-fossil`, `km-silvery.paint-clear-l5-final`) were filed AFTER the substrate shipped, when residue was rediscovered during /complete. That meant no bead tracked the L4-but-not-L5 state — it was implicit in NOTES, not explicit in the tree.
+
+**Convention**:
+1. When planning a substrate-then-cleanup migration, file BOTH beads at planning time:
+   - `<scope>.<recast>` — substrate bead (Phase 1)
+   - `<scope>.<recast>-cleanup` or `<scope>.<recast>-l5` — cleanup bead (Phase 2/3)
+2. Set `--depends-on <substrate>` on the cleanup bead so it can't close before substrate
+3. The substrate bead's `/complete` criteria includes: **"L5 cleanup bead exists in open state, blocked by this"**
+4. The cleanup bead's description references which fossils remain (function names, env flags, files)
+5. When substrate ships, cleanup bead is automatically the next-actionable item
+
+This makes L4-but-not-L5 fossils tracked from day 0 instead of surface-of-discovery. /complete Step 1 verification can then catch "substrate closed at L4 but cleanup bead missing" as a structural error, not a content gap.
+
 ## Tribe Coordination
 
 When working on the main worktree (not an isolated git worktree), **notify the tribe before starting disruptive work**:
