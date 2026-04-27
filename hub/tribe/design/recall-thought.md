@@ -265,6 +265,86 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## User reframe (2026-04-27 23:25): empower the LLM like `/big` and `/complete`
+
+After reading the /pro verdict below — which killed all three LLM calls in favor of deterministic anchor extraction — the user pushed back: **the value of mem-thought is letting an LLM hypothesize and iterate, not reducing it to keyword echo.** That's how `/big` and `/complete` work:
+
+- **`/big`**: LLM reframes the problem, generates 10–20 hypotheses, runs 2 rounds of investigation, finds the design where the bug can't happen
+- **`/complete`**: LLM generates investigations against acceptance criteria, iterates until done
+- **`bun recall --agent`** (which already ships): LLM planner generates 10–29 query variants, parallel FTS fanout, coverage rerank, optional round 2, synthesizes
+
+The pattern: **LLM as search agent**, with tools (FTS, read), iterating until coverage is good enough. NOT a pipeline that summarizes-then-plans-then-synthesizes serially.
+
+### Reconciling with /pro
+
+What /pro got right (keep):
+- Don't summarize-then-plan-then-synth serially — that IS telephone-game compounding error
+- Cadence tightening (rare, idle-gated, hard cap)
+- Strict cross-session scope (Tier 2/3 lane separation)
+- Bead-status outcome ranking (verifiable metadata)
+- Topic-drift gate at emit time
+- Don't synth as a tease that triggers Tier 1 follow-up
+
+What /pro got wrong (reinstate):
+- Killing the planner LLM loses the whole point — generating hypothesis queries from raw conversation IS the intelligence
+- Killing iteration loses the ability to refine based on what's actually found
+- "Replace with anchor regex" reduces mem-thought to keyword echo, which Kimi & Gemini themselves flagged as the wrong primitive for thematic matching
+
+### The right shape: ONE agent loop, not three serial calls
+
+```
+[ Cadence trigger ]                      (same as /pro: 25 turns OR 15min, idle ≥10s, cap 3/session)
+   │
+   ▼
+[ Single LLM agent loop ]                ~3–6 s, claude-haiku-4-5
+   • Input: last 4–6 raw turns (NOT summarized — raw ground truth)
+   • Available tools:
+       search_recall(query)  → FTS5 results (cross-session, scoped)
+       maybe: read_chunk(id) → full chunk if planner wants more detail
+   • Loop: LLM calls search_recall N times based on what it finds
+     (typically 3–5 queries; stops when coverage is good or 2 rounds done)
+   • Same LLM emits the final digest at end of loop
+   │
+   ▼
+[ Code-level filter ]                    ~10 ms, no LLM
+   • Apply outcome-aware bead status weights
+   • Skip emit if utility < threshold
+   • Drop emit if topic drifted (≥2 new prompts since cycle start)
+   │
+   ▼
+[ Templated emit ]
+   • [mem-thought, cycle N] header
+   • Digest paragraph composed by the agent loop
+   • Sidecar JSON: { beadIds, statuses, queriesIssued, anchorsMatched }
+```
+
+### Why this is better than both prior designs
+
+vs. **my original** (3 serial calls): no telephone game; one LLM sees raw turns + iterates with tool feedback. Same/cheaper cost.
+
+vs. **/pro's verdict** (no LLM, regex only): preserves the LLM's hypothesis-generation intelligence; doesn't reduce thematic matching to keyword echo; matches the proven `/big` and `/complete` pattern.
+
+vs. **`bun recall --agent`** (already ships): adds paced cadence, conversation-context awareness, outcome-aware ranking, Tier 2/3 lane separation, topic-drift gate. Essentially: "agent recall, but as a background process bound to a conversation."
+
+### Cost & latency under agent-loop model
+
+- Per cycle: 1 LLM session with 3–5 tool calls = ~3–6 s wall-clock, ~$0.005–0.015
+- Per session: 3 cycles × ~$0.01 = ~$0.03
+- Heavy use (4–6h/day, multiple sessions): ~$2–5/dev/month — still cheap, ~5x cheaper than my original 3-LLM-pipeline design but with full intelligence preserved
+
+### Implementation sketch
+
+`bun recall --agent` already implements the agent loop pattern. mem-thought becomes:
+
+1. A paced wrapper around it that injects the conversation context as the planner input
+2. Adds outcome-aware ranking on top of the agent's results
+3. Applies the cadence/cap/topic-drift discipline
+4. Emits as ambient event with `[mem-thought]` framing
+
+So in code: `apps/silvercode/src/ambient-adapters/percolate.ts` calls the recall library's `recallAgent({ context, ... })` function (not the CLI subprocess), wrapping in cadence + filter + emit logic. ~150 lines new code, reuses everything existing.
+
+---
+
 ## /pro review verdict (2026-04-27, $1.32 across GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro)
 
 Captured at [`recall-pro-review-thought.md`](recall-pro-review-thought.md). All three models converged on the same critique. **Aggressive simplification, not refinement.**
