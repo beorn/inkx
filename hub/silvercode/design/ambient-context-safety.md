@@ -77,16 +77,27 @@ Phase 0 actions:
 
 **Gate (verified):** `bun recall index --incremental` evicted the forensic session from the FTS5 index (`SELECT id FROM sessions WHERE jsonl_path LIKE '%e8967322%'` returns zero rows); `bun recall --raw "autocatalytic"` returns 10 results, none from the forensic JSONL session id; `bun tools/lint-claude-config.ts` clean; user-level hook fires on a synthetic emission test (logged + sentinel created + `systemMessage` emitted).
 
-### Phase 1 — Empirical proof of the boundary thesis (single-backend)
+### Phase 1 — Empirical proof of the boundary thesis (single-backend) — SHIPPED 2026-04-27, GATE INFORMATIONALLY FAILED
 
-Before building infrastructure, prove the thesis: that a properly-shaped ACP prompt (Variant A) prevents the model from emitting the role-prefix pattern even when fed the smoking-gun S13 sequence on Claude.
+Driver: `apps/silvercode/tests/eval/thesis-proof.ts`. Results: `docs/ambient-thesis-proof-2026-04-27.md`.
 
-- Hardcode Variant A locally in a one-off test driver.
-- Replay the S13 sequence (the three-line forensic capture, sanitized) directly to the Anthropic API.
-- Compare against Variant B (the failure-mode shape: ambient as XML inside role-U).
-- Capture: rate of role-prefix emission per 100 trials, per variant.
+600 live Anthropic trials (3 models × 2 variants × N=100):
 
-**Gate:** Variant A emission rate < 1% AND Variant B emission rate > 10%. If A doesn't beat B by >10×, the boundary thesis is wrong; revisit before proceeding.
+| Model | Variant A (typed) | Variant B (XML in role-U) |
+|---|---|---|
+| claude-opus-4-5 | 0/50 | 0/50 |
+| claude-sonnet-4-6 | 0/100 | 0/100 |
+| claude-opus-4-7 | 0/100 | 0/100 |
+
+**Both variants emitted zero role-prefix markers.** The forensic failure mode does NOT reproduce on a minimal-viable API harness. It apparently required context the harness didn't reconstruct — long history, full CLAUDE.md, accumulated tool output, recall pollution, or some interaction we haven't isolated.
+
+**Load-bearing implication for the design**: the safety load is NOT carried by Layer 1 (boundary). Variant B (the broken old way) is fine on a clean session. Whatever was happening in `e8967322` was emergent at depth, not at the prompt-shape level. **Layer 3 (loop-closure / re-ingestion blocker) is the load-bearing safety layer**, not Layer 1. Phase 3 should prioritize Layer 3 + Layer 4 (telemetry) over further Layer 1 hardening.
+
+This does not invalidate Layer 1 — defense-in-depth still applies, the typed boundary still prevents the *category* of bug, and the bypass-attempt tests still earn their keep. But the empirical case for "boundary fixes the original failure" is unproven; the empirical case for "loop-closure prevents recurrence regardless of cause" is the one we ship on.
+
+**Followup if it ever matters**: a fuller reproduction harness with a real long session (CLAUDE.md + recall + 50 prior tool calls + accumulated assistant output) would test whether the failure scales in. Not currently worth the cost — Layer 3 closes the loop regardless.
+
+The original gate ("A < 1% AND B > 10%") is moot: the failure didn't reproduce, so the comparison is undefined. Recorded as INFORMATIONALLY FAILED in `bd close km-silvercode.ambient-phase-1-thesis-proof` with full evidence.
 
 ### Phase 2 — ACP boundary verification — SHIPPED 2026-04-27
 
@@ -168,11 +179,13 @@ Mute toggles are visual filter only — agent still receives all ambient events;
 | `vendor/bearly` tribe-daemon source scrub | 0 | Active. Keep. |
 | `vendor/bearly` injection-envelope library + 18-shape eval | 0 | Active. Keep. |
 | `vendor/bearly` recall envelope (`<recall-memory>` wrapper) | 0 | Active. Keep. |
-| `apps/silvercode/src/prompt-assembly.ts` + `channel-queue.ts` | 1 | Boundary tests landed (`apps/silvercode/tests/prompt-assembly-boundary.test.ts`). Behavioral verification — Phase 1 + 4. |
+| `apps/silvercode/src/prompt-assembly.ts` + `channel-queue.ts` | 1 | Boundary tests landed (`apps/silvercode/tests/prompt-assembly-boundary.test.ts`). Behavioral test (Phase 1) ran — failure mode did NOT reproduce on minimal harness; safety load reassigned to Layer 3. |
+| `apps/silvercode/src/ambient-sanitize.ts` | 2 | **SHIPPED.** Deterministic regex floor — pattern-break role-markers, size-bound, ANSI strip, NFC normalize. Wired into `prompt-assembly.ts`. Adversarial corpus from binary-blob fixtures. |
+| `apps/silvercode/src/transcript.ts` (loop-closure) | 3 | **SHIPPED — load-bearing per Phase 1 finding.** `safeAppendAssistantTurn` rejects role-prefix-starting assistant text from being re-parsed as synthetic user turn. |
 | `apps/silvercode/packages/agent-harness/src/acp-adapter-*.ts` | 1b | **ACP wire verified — Phase 2 SHIPPED.** All 7 adapters pass `EmbeddedResource` through unchanged (`apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts`). |
 | `apps/silvercode/src/components/AmbientEventRow.tsx` + storybook | UX | **Phase 6.a SHIPPED.** Inline ambient display in chat scrollback. |
-| `apps/silvercode/src/ambient-sanitize.ts` | 2 | **Planned — Phase 3.** |
-| `apps/silvercode/src/transcript.ts` (loop-closure) | 3 | **Planned — Phase 3. New layer.** |
+| `apps/silvercode/src/system-prompt.ts` (`AMBIENT_FRAMING_SYSTEM_CLAUSE`) | 1 | **SHIPPED.** Three-precept system clause: read as memory, mention when relevant, ask before acting on ambiguous content. Injected once per session. |
+| `tools/check-prompt-boundary.ts` | 1 (CI gate) | **SHIPPED.** Wired into `bun fix` and `bun verify-boundary`. Two-stage detection: imports + literal `ContentBlock` construction outside the canonical seam. |
 | `~/.claude/hooks/detect-role-prefix.sh` | 4 | Active. Keep permanently. |
 | `~/.claude/role-prefix-violations.log` + state sentinels | 4 | Active. Listed in `.recall-ignore` (Phase 0). Use as binary-blob eval-corpus source. |
 | `apps/silvercode/.claude/hooks/check-role-prefix.sh` | — | Confirmed non-existent (silvercode has no `.claude/` dir). |
@@ -185,12 +198,13 @@ Mute toggles are visual filter only — agent still receives all ambient events;
 
 | # | Hypothesis | Status | Notes |
 |---|---|---|---|
-| H1 | Ambient content reached role-U slot | **Confirmed** (forensic) | Layer 1 + 1b fix. |
-| H2 | Literal triggers inside `EmbeddedResource` still drive completion | Plausible | Layer 2 mitigates. Test in Phase 1. |
-| H3 | Trained-respond + user-installed-don't-respond rule conflict pressured emission | Untested | Becomes irrelevant once Layer 1+1b hold. |
+| H1 | Ambient content reached role-U slot | **Forensic-confirmed; minimal-harness did NOT reproduce** | Phase 1 (600 trials) showed Variant B (XML-in-role-U) emits 0/100 on a clean session. Failure was emergent at depth, not at prompt-shape. Layer 1 still earns its keep as defense-in-depth + bypass-attempt prevention; not the load-bearing safety layer. |
+| H2 | Literal triggers inside `EmbeddedResource` still drive completion | Did not reproduce on minimal harness | Layer 2 still ships as deterministic floor. |
+| H3 | Trained-respond + user-installed-don't-respond rule conflict pressured emission | Untested; deprioritized | Layer 3 closes the loop regardless. |
 | H4 | Investigation pollutes JSONL → recall surfaces it → cross-session compounding | **Confirmed** | Phase 0 quarantine. |
-| H5 | Re-ingestion: assistant text re-parsed as user turn | **Plausible — load-bearing** | Layer 3 fix. Was missing from prior design. |
-| H6 | Adapter flattens typed boundary to plain user-role text on the wire | **Plausible** | Phase 2 verifies per-backend. If true, Layer 1 is illusory until adapters are fixed. |
+| H5 | Re-ingestion: assistant text re-parsed as user turn | **Load-bearing — confirmed by elimination** | Phase 1 failed to reproduce Bug A on a clean session, so the original failure must have required either depth context or a re-ingestion loop. Layer 3 closes the loop categorically — fix holds regardless of the original cause. |
+| H6 | Adapter flattens typed boundary to plain user-role text on the wire | **Refuted — but only for the ACP wire we own** | Phase 2 verified all 7 adapters preserve `EmbeddedResource` blocks across the silvercode↔ACP boundary. The upstream HTTP body is the spawned ACP server child's responsibility; we don't own that wire. |
+| H7 | Failure required emergent context (long history + CLAUDE.md + tool-call accumulation + recall) | New, untested | A fuller reproduction harness could test this. Not currently worth the cost since Layer 3 holds regardless of cause. |
 
 ---
 
