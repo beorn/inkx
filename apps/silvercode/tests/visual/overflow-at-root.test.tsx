@@ -66,25 +66,15 @@ describe("overflow=hidden at SessionCard root keeps side panel visible", () => {
     ).toHaveLength(0)
   })
 
-  test("60-col: 1KB unwrappable blob does not bleed into the side panel", async () => {
+  test("60-col: panel hidden by default, blob renders in full-width region without crashing", async () => {
+    // Responsive default hides the side panel at cols < lg (120) — at 60
+    // cols there's no panel-column zone for the blob to bleed into. Test
+    // becomes a smoke check: the long blob renders without crashing the
+    // App and without the side panel sneaking back in.
     const COLS = 60
     const ROWS = 30
     const s = await renderScenario({ script: longToolResult, cols: COLS, rows: ROWS })
-    const leftWidth = leftWidthFor(COLS)
-
-    const p = parseFrame(s, { leftWidth })
-    expect(p.sidePanel, `side panel absent at 60-col — the blob pushed it off-screen.\n${summarize(p)}`).not.toBeNull()
-
-    const offenders: Array<{ row: number; col: number }> = []
-    for (let row = 0; row < s.lines.length; row++) {
-      const line = s.lines[row] ?? ""
-      for (let col = leftWidth; col < Math.min(line.length, COLS); col++) {
-        if (line[col] === "x" && line[col + 1] === "x" && line[col + 2] === "x") {
-          offenders.push({ row, col })
-          break
-        }
-      }
-    }
-    expect(offenders, `1KB blob bled past leftWidth=${leftWidth} at 60-col`).toHaveLength(0)
+    const p = parseFrame(s, { leftWidth: COLS })
+    expect(p.sidePanel, `side panel should be hidden at cols=${COLS} (responsive default).\n${summarize(p)}`).toBeNull()
   })
 })

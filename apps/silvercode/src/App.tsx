@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AcpRegistryId, AgentSession, SessionStore } from "@km/agent-harness"
 import { Box, type ListViewHandle, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
+import { AsideLayout } from "./components/AsideLayout.tsx"
+import { useResponsiveDisclosure } from "./hooks/useResponsiveDisclosure.ts"
 import { useInput } from "silvery/runtime"
 import { SessionPromptComposer } from "./components/SessionPromptComposer.tsx"
 import { SessionPromptHistory } from "./components/SessionPromptHistory.tsx"
@@ -37,18 +39,20 @@ type Track = "claude" | "sdk" | "codex"
 // from the (currently-private) trackHeight.
 const MESSAGE_LIST_PAGE_STEP = 10
 
-// Side panel responsive breakpoint (terminal cols).
+// Side panel column count when rendered (inline or overlay).
+const SIDE_PANEL_WIDTH = 40
+
+// Side panel responsive policy:
+//   - cols >= lg (120): panel auto-open, inline as a 40-col gutter beside
+//     the message area (leaves ≥80 cols for code/prose — comfortable).
+//   - cols <  lg (120): panel hidden by default. Manual /panel or Ctrl+O
+//     opens it as an absolute-positioned overlay on top of the message
+//     area (right-anchored, full-height — opencode pattern).
 //
-// At this width and above: panel opens by default and renders inline as
-// a 40-col gutter beside the message area.
-// Below this width: panel is hidden by default. If the user manually
-// opens it (Ctrl+O / /panel), the panel renders as an OVERLAY on top of
-// the message area instead of inline — same pattern as opencode. This
-// keeps the message area readable on narrow terminals while still
-// giving the user access to sessions/todos/agents on demand.
-//
-// User toggle always wins; auto-open only kicks in if no manual choice.
-const SIDE_PANEL_AUTO_OPEN_COLS = 60
+// Manual override pins for the rest of the session — auto-open only
+// applies if the user hasn't expressed a preference yet. Driven through
+// silvery's `useResponsiveValue` (xs=30/sm=60/md=90/lg=120/xl=150) via the
+// silvercode-local `useResponsiveDisclosure` hook.
 
 // Mode → prompt color so the `>` in the command input visibly signals
 // what Claude is allowed to do. Same mapping as SidePanel's Mode label.
@@ -218,34 +222,16 @@ export function App(props: AppProps): React.ReactElement {
   const [thinking, setThinking] = useState<string>("")
   const [showInbox, setShowInbox] = useState(false)
 
-  // Side panel — responsive default + manual override.
-  //
-  // Auto-open when terminal is wide enough that both message area and
-  // panel get comfortable widths. SIDE_PANEL_WIDTH is 40 cols; the
-  // message area is everything to the left. At cols >= SIDE_PANEL_AUTO_OPEN_COLS
-  // (120), the message area gets ≥80 cols which is the standard "comfortable"
-  // width. Below that, hide the panel by default so the message area isn't
-  // squeezed.
-  //
-  // Manual override (Ctrl+O / Ctrl+Y / /panel / /aside / /todos) sticks
-  // for the rest of the session — auto-open only kicks in if the user
-  // hasn't expressed a preference yet.
-  // Reactive terminal cols — live updates on SIGWINCH via useTerm. In test
-  // harnesses where mockTerm has no size, t.size.cols() returns 0; treat 0
-  // as "unknown — assume wide" so the existing visual fixtures (which
-  // assert panel-open layouts) keep matching.
-  //
-  // Side panel state is DERIVED from auto + manual override — no
-  // useEffect, so the render-string harness sees a single stable frame
-  // (an effect-based update would trigger React's "not wrapped in act"
-  // warnings and re-render flicker).
-  const termCols = useTerm((t) => t.size.cols())
-  const isNarrow = termCols > 0 && termCols < SIDE_PANEL_AUTO_OPEN_COLS
-  const [panelOverride, setPanelOverride] = useState<boolean | null>(null)
-  const showSidePanel = panelOverride ?? !isNarrow
-  const togglePanel = useCallback(() => {
-    setPanelOverride((curr) => !(curr ?? !isNarrow))
-  }, [isNarrow])
+  // Side panel disclosure — auto-default driven by viewport breakpoint;
+  // manual toggle pins for the session (Ctrl+O / Ctrl+Y / /panel / /aside / /todos).
+  // Auto-default: open at lg (120 cols) and above; closed below.
+  const panel = useResponsiveDisclosure({
+    defaultOpen: (zone) => zone === "lg" || zone === "xl",
+  })
+  const showSidePanel = panel.open
+  const togglePanel = panel.toggle
+  // Inline when at-or-above the auto-open threshold; overlay below.
+  const isInlinePanel = panel.zone === "lg" || panel.zone === "xl"
 
   const [showHistory, setShowHistory] = useState(false)
   // `/raw` slash command toggles a debug view that inlines each user
@@ -1036,16 +1022,37 @@ export function App(props: AppProps): React.ReactElement {
         so the StatusLine at the very bottom is gone.
       */}
         <Screen flexDirection="row">
-          {/* LEFT: cards + overlays + palette + input. The outer column has
-            `overflow="hidden"` — this is the "cards region vs side panel"
-            boundary. CSS spec §4.5 elevates flexShrink on the overflow
-            container itself, so any wide descendant is clipped here
-            instead of pushing the side panel off-screen.
-            silvery-expert audit (session 2026-04-24): silvery's reconciler
-            never calls setFlexShrink when unspecified, so flexily defaults
-            to shrink=0 — `minWidth={0}` alone does nothing without an
-            overflow boundary in the chain. */}
-          <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
+          <AsideLayout
+            mode={showSidePanel && focused ? (isInlinePanel ? "inline" : "overlay") : "hidden"}
+            asideWidth={SIDE_PANEL_WIDTH}
+            asideBackgroundColor="$bg-surface-subtle"
+            aside={
+              focused ? (
+                <SidePanel
+                  focused={focused}
+                  sessions={sessions}
+                  focusedSessionId={focusedSessionId}
+                  onFocusSession={(id) => controller.focus(id)}
+                  mode={mode}
+                  onCycleMode={cycleMode}
+                  thinking={thinking}
+                  onCycleThinking={cycleThinking}
+                  cwd={props.cwd}
+                  controller={controller}
+                />
+              ) : null
+            }
+          >
+            {/* LEFT: cards + overlays + palette + input. The outer column has
+              `overflow="hidden"` — this is the "cards region vs side panel"
+              boundary. CSS spec §4.5 elevates flexShrink on the overflow
+              container itself, so any wide descendant is clipped here
+              instead of pushing the side panel off-screen.
+              silvery-expert audit (session 2026-04-24): silvery's reconciler
+              never calls setFlexShrink when unspecified, so flexily defaults
+              to shrink=0 — `minWidth={0}` alone does nothing without an
+              overflow boundary in the chain. */}
+            <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
             <PaneGrid
               ref={paneGridRef}
               sessions={sessions}
@@ -1125,56 +1132,7 @@ export function App(props: AppProps): React.ReactElement {
             </Box>
           </Box>
 
-          {/* RIGHT: full-height side panel. Same bg token as the command input
-            so the chrome reads as a single unified surface — opencode uses
-            the same trick.
-            - Wide terminal (cols >= breakpoint): inline as a 40-col gutter
-              beside the message area (default).
-            - Narrow terminal: panel hidden by default; if user manually
-              opened it (Ctrl+O / /panel), render as an absolute-positioned
-              overlay on top of the message area, right-anchored — same
-              pattern as opencode. */}
-          {showSidePanel &&
-            focused &&
-            (isNarrow ? (
-              <Box
-                position="absolute"
-                top={0}
-                bottom={0}
-                right={0}
-                width={40}
-                flexDirection="column"
-                backgroundColor="$bg-surface-subtle"
-              >
-                <SidePanel
-                  focused={focused}
-                  sessions={sessions}
-                  focusedSessionId={focusedSessionId}
-                  onFocusSession={(id) => controller.focus(id)}
-                  mode={mode}
-                  onCycleMode={cycleMode}
-                  thinking={thinking}
-                  onCycleThinking={cycleThinking}
-                  cwd={props.cwd}
-                  controller={controller}
-                />
-              </Box>
-            ) : (
-              <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
-                <SidePanel
-                  focused={focused}
-                  sessions={sessions}
-                  focusedSessionId={focusedSessionId}
-                  onFocusSession={(id) => controller.focus(id)}
-                  mode={mode}
-                  onCycleMode={cycleMode}
-                  thinking={thinking}
-                  onCycleThinking={cycleThinking}
-                  cwd={props.cwd}
-                  controller={controller}
-                />
-              </Box>
-            ))}
+          </AsideLayout>
         </Screen>
       </PopoverProvider>
     </AutolinksProvider>
