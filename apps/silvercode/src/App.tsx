@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { AcpRegistryId, AgentSession, SessionStore } from "@km/agent-harness"
-import { Box, type ListViewHandle, PopoverProvider, Screen, useExit, useScopeEffect, useTerm } from "silvery"
+import {
+  Box,
+  ChainAppContext,
+  type ListViewHandle,
+  PopoverProvider,
+  Screen,
+  useExit,
+  useScopeEffect,
+  useTerm,
+} from "silvery"
+import { spawn as nodeSpawn } from "node:child_process"
 import { AsideLayout } from "./components/AsideLayout.tsx"
 import { useResponsiveDisclosure } from "./hooks/useResponsiveDisclosure.ts"
 import { useInput } from "silvery/runtime"
@@ -120,6 +130,53 @@ export function formatResumeHint(sessionIds: ReadonlyArray<string>): string {
   }
   lines.push("\n")
   return lines.join("")
+}
+
+/**
+ * SilvercodeLinkOpener — single subscriber for silvery `link:open` events.
+ *
+ * silvery's `<Link href={...}>` component emits OSC 8 escapes around its
+ * children AND fires `link:open` on the chain event bus when armed-clicked
+ * (Cmd+click). Two delivery paths:
+ *
+ *   1. **Terminal-side (preferred).** OSC-8-aware terminals (Ghostty, Kitty,
+ *      iTerm2) intercept Cmd-click on the OSC 8 hyperlink range and route
+ *      the URI directly through their own opener (LaunchServices on macOS).
+ *      The click never reaches silvery; this component never fires.
+ *   2. **App-side fallback.** Terminals that don't recognize OSC 8 still
+ *      pass the click to silvery's mouse-event router; `<Link>`'s armed
+ *      handler emits `link:open` on the chain bus. We catch it here and
+ *      shell out to `open` so the same href ends up routed by macOS
+ *      LaunchServices regardless of terminal.
+ *
+ * In-app schemes (`bd://`, `km://`) skip the OSC 8 path in
+ * `LinkifiedText.hrefFor` (they render as plain `<Text underline onClick>`
+ * with a popover preview), so this opener only ever sees terminal-routable
+ * URIs (`file://`, `http(s)://`, autolink-rule resolves_to targets).
+ */
+function SilvercodeLinkOpener(): null {
+  const chain = React.useContext(ChainAppContext)
+  React.useEffect(() => {
+    if (!chain) return undefined
+    const off = chain.events.on("link:open", (...args: unknown[]) => {
+      const href = args[0]
+      if (typeof href !== "string" || href.length === 0) return
+      try {
+        // macOS `open <uri>` routes via LaunchServices — same path Ghostty
+        // takes for OSC 8. Detached + ignored stdio so the child outlives
+        // any pipe handle on this side.
+        const child = nodeSpawn("open", [href], { stdio: "ignore", detached: true })
+        child.on("error", () => {
+          /* opener failed; nothing useful to surface here */
+        })
+        child.unref()
+      } catch {
+        /* swallow — link:open is fire-and-forget */
+      }
+    })
+    return off
+  }, [chain])
+  return null
 }
 
 export type AppProps = {
@@ -1011,6 +1068,7 @@ export function App(props: AppProps): React.ReactElement {
   return (
     <AutolinksProvider rules={autolinkRules}>
       <PopoverProvider>
+        <SilvercodeLinkOpener />
         {/*
         Layout (opencode-style):
 

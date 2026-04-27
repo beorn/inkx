@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Muted, Prose, Text, usePopover } from "silvery"
+import { Box, Link, Muted, Prose, Text, usePopover } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
 import { detectAutolinks, mergeDetections, resolvePreview, type AutolinkPreviewKind } from "@km/autolinks"
@@ -120,6 +120,49 @@ function renderPopoverContent(d: Detection): React.ReactNode {
   }
 }
 
+/**
+ * Build an OSC 8 hyperlink href for a detection, or `null` for in-app-only
+ * kinds (bd://, km://) that the terminal can't open via LaunchServices.
+ *
+ * Schemes:
+ *   - `file://<absolute>[:line[:col]]` — Ghostty / Kitty / iTerm2 route to
+ *     the macOS default-app handler (text editor for `.ts`, etc.).
+ *   - `<scheme>://...` — passthrough for autolink rules whose
+ *     `payload.resolves_to` is already a full URI.
+ *   - `null` — render with a plain `<Text underline onClick>` so the
+ *     in-app popover handler still fires; OSC 8 wouldn't help anyway.
+ */
+function hrefFor(d: Detection): string | null {
+  switch (d.kind) {
+    case "file": {
+      const path = d.payload.path
+      // Tilde paths and bare relative paths can't be resolved without
+      // process context here — fall back to popover-only.
+      if (!path || !path.startsWith("/")) return null
+      const line = d.payload.line ? `:${d.payload.line}` : ""
+      return `file://${path}${line}`
+    }
+    case "code-ref": {
+      const path = d.payload.path
+      if (!path || !path.startsWith("/")) return null
+      const line = d.payload.line ? `:${d.payload.line}` : ""
+      const col = d.payload.col ? `:${d.payload.col}` : ""
+      return `file://${path}${line}${col}`
+    }
+    case "autolink": {
+      // Virtual=1 → plain URL match — d.match IS the URI.
+      if (d.payload.virtual === "1") return d.match
+      // Configured rules — `resolves_to` is the canonical target.
+      const target = d.payload.resolves_to
+      return typeof target === "string" && target.length > 0 ? target : null
+    }
+    case "bead":
+    case "km-node":
+      // In-app schemes; OSC 8 LaunchServices can't open them.
+      return null
+  }
+}
+
 function colorFor(d: Detection): string {
   switch (d.kind) {
     case "bead":
@@ -197,15 +240,32 @@ export function LinkifiedText({ text, role }: { text: string; role?: "assistant"
           if (d.start > cursor) {
             pieces.push(<Text key={`t${cursor}`}>{line.slice(cursor - lineStart, d.start - lineStart)}</Text>)
           }
+          // Two render paths:
+          //   - href != null  → silvery <Link> emits OSC 8; Ghostty / Kitty /
+          //     iTerm2 handle Cmd-click natively via LaunchServices, and
+          //     silvery's `link:open` event is the in-app fallback (routed
+          //     via <SilvercodeLinkOpener> in App.tsx). Underline only
+          //     paints while Cmd-hovered (arm-on-cmd-hover variant).
+          //   - href == null  → in-app schemes (bd://, km://) where OSC 8
+          //     can't help; keep the click-to-popover affordance.
+          const href = hrefFor(d)
+          const showPopover = () =>
+            popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })
           pieces.push(
-            <Text
-              key={`d${d.start}`}
-              color={colorFor(d)}
-              underline
-              onClick={() => popover?.show({ body: renderPopoverContent(d) }, { x: 0, y: 0 })}
-            >
-              {d.match}
-            </Text>,
+            href ? (
+              <Link key={`d${d.start}`} href={href} color={colorFor(d)} onClick={showPopover}>
+                {d.match}
+              </Link>
+            ) : (
+              <Text
+                key={`d${d.start}`}
+                color={colorFor(d)}
+                underline
+                onClick={showPopover}
+              >
+                {d.match}
+              </Text>
+            ),
           )
           cursor = d.end
         }
