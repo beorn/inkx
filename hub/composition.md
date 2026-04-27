@@ -169,17 +169,26 @@ const tribe = pipe(
                                          // session_heartbeat / sessions_list / workspace_state /
                                          // session_state / inject_delta / status / hello
 
-  // Surface — reads tools from the registry, exposes them over a wire.
+  // Wire — registry, broadcast, accept loop. After this the daemon is
+  // listening but only answers JSON-RPC; MCP-spec frames go to default.
+  withClientRegistry(),
+  withBroadcast(),
+  withSocketServer(),
+  withIdleQuit({ … }),
+  withDispatcher({ … }),
+
+  // Surface — reads tools from the registry, exposes them over MCP. Sits
+  // after the dispatcher because it registers MCP-spec method handlers
+  // (initialize, tools/list, tools/call) on `t.dispatcher.register`.
+  // Late-bound handlers run in the dispatcher's default branch, so this
+  // factory is order-loose with respect to withTool() — tools registered
+  // either before or after withMCPServer() show up in tools/list.
   withMCPServer(),                       // serves registered tools over MCP
 
   // Observer plugins — push messages onto the wire, no tools registered.
-  withPluginApi(api),
-  withPlugin(gitPlugin),
-  withPlugin(beadsPlugin),
-  withPlugin(githubPlugin),
-  withPlugin(healthPlugin),
-  withPlugin(accountlyPlugin),
-  withPlugin(doltReaperPlugin),
+  withHotReload({ … }),
+  withSignals({ … }),
+  withRuntime({ plugins: [...] }),
 )
 await tribe.run()
 ```
@@ -190,8 +199,13 @@ Reading top-to-bottom:
 - Tool registry — populated by tool families before any surface
 - Messaging tools include the coordination methods (chief lease, claim, release) —
   no separate coordinationTools family
-- The MCP server reads the tool registry and exposes it over the Unix socket
-- Observer plugins push messages onto the wire (no tools, just events)
+- Wire (client registry, broadcast, socket server, idle-quit, dispatcher) accepts
+  Unix-socket connections and answers JSON-RPC
+- The MCP server registers `initialize` / `tools/list` / `tools/call` on the
+  dispatcher; tools/call routes through the existing per-connection JSON-RPC
+  handler, so the daemon answers MCP-spec frames natively
+- Hot-reload + signals + runtime own lifecycle and observer plugins push
+  messages onto the wire (no tools, just events)
 
 ### Tool registry — the load-bearing decoupling
 

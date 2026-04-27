@@ -161,7 +161,7 @@ Three architectural moves shape the rest:
 | **tool** | A protocol-agnostic callable: `{name, schema, handler}`. Registered into a tribe-wide registry — established by `withTools()` and populated by `withTool()` or by direct registry writes. Tool names use the `tribe.*` prefix to disambiguate from other MCP servers an agent might connect to. |
 | **surface** | An adapter that exposes the tool registry over a wire protocol. Today the only surface is the MCP server; future surfaces (raw JSON-RPC, REST) would consume the same registry. |
 | **MCP server** | One per tribe-daemon. Serves every registered tool. Reachable over Unix socket directly, or via the stdio adapter for clients that only speak stdio MCP. |
-| **stdio adapter** | Per-agent process translating stdio MCP ↔ daemon's Unix-socket MCP server. A transport translator, not a separate server. Compatibility shim; expected to sunset as MCP clients gain Unix-socket transport. |
+| **stdio adapter** | Per-agent process bridging stdio MCP ↔ daemon's Unix-socket MCP server. The daemon answers MCP-spec methods (`initialize`, `tools/list`, `tools/call`) natively via `withMCPServer()`, so the adapter is a transport bridge — it forwards frames; it doesn't own protocol semantics. Compatibility shim; expected to sunset as MCP clients gain Unix-socket transport. |
 | **tribe-client** | Convenience library for connecting to and reconnecting against tribe-daemon. Not required (the wire is documented), but used everywhere we connect today. |
 | **host app** | A user-facing program that may connect to tribe and may host agent sessions. km, silvercode, Claude Code CLI, codex, gemini-cli, opencode. |
 | **agent session** | An LLM-backed runtime participant — today a local subprocess speaking ACP or stream-json. |
@@ -181,14 +181,14 @@ Three architectural moves shape the rest:
 | Component | Path | Process | Owns |
 |---|---|---|---|
 | tribe-daemon | `vendor/bearly/plugins/tribe/tribe-daemon.ts` | One per project root. Auto-starts, idle-quits at 30 min, SIGHUP-reloadable. | Client registry, chief lease, plugin loader, tool registry, MCP server, activity log, broadcast coalescer. |
-| stdio adapter | `vendor/bearly/plugins/tribe/tribe-proxy.ts` | One per agent session, spawned as MCP child via stdio. | stdio MCP wire ↔ daemon Unix-socket MCP server. |
+| stdio adapter | `vendor/bearly/tools/stdio-adapter.ts` | One per agent session, spawned as MCP child via stdio. | Forwards stdio MCP frames to the daemon's Unix-socket MCP server. The daemon answers MCP-spec methods natively via `withMCPServer()`; the adapter does not re-implement them. |
 | messaging tools | inside tribe-daemon | `withTool(messagingTools())` | `tribe.send / broadcast / members / history / leadership`. |
 | lore tools | `vendor/bearly/plugins/tribe/lore/` | `withTool(loreTools())` | Memory + recall: `tribe.ask / brief / plan / session / workspace / inject_delta`. |
 | tty tools | `vendor/bearly/plugins/tty/` | Stdio MCP server. | Headless terminal sessions for testing TUIs. |
 | github tools | `vendor/bearly/plugins/github/` | Stdio MCP server. | GitHub notification surfacing as MCP tools. |
 | recall tools | `vendor/bearly/plugins/recall/` | Stdio MCP wrapper today; most traffic via lore. | Session-history search. |
 | observer plugins | `vendor/bearly/tools/lib/tribe/*-plugin.ts` | In-process. | git, beads, github, health, accountly, dolt-reaper. Watch external signals; broadcast on the wire. The github observer is in-daemon and complementary to the github MCP tools above. |
-| tribe-client | `vendor/bearly/packages/daemon-spine/` | Convenience library — recommended, not required. | JSON-RPC framing, parser, reconnection, socket path resolution, composition primitives (pipe/Scope/Tool registry). |
+| tribe-client | `vendor/bearly/packages/tribe-client/` (npm `@bearly/tribe-client`) | Convenience library — recommended, not required. | JSON-RPC framing, parser, reconnection, socket path resolution, composition primitives (pipe/Scope/Tool registry). |
 | silvercode controller | `apps/silvercode/src/controller.ts` | Host app process. | Pane lifecycle, agent spawning, channel routing, AsyncDisposable cleanup. |
 | agent-harness | `apps/silvercode/packages/agent-harness/` | Library. | `AgentSession` interface; spawn + connect across ACP and stream-json. |
 | claude-acp | `apps/silvercode/packages/claude-acp/` | Subprocess. | Wraps `claude` to speak ACP. |
@@ -202,7 +202,7 @@ Two transports for reaching the daemon's MCP server:
 
 | Transport | Pattern | Used by |
 |---|---|---|
-| direct | HTTP+SSE on the daemon's Unix socket | silvercode, ad-hoc CLIs |
+| direct | Line-delimited JSON-RPC on the daemon's Unix socket — `initialize`, `tools/list`, `tools/call` answered natively by `withMCPServer()` | silvercode, ad-hoc CLIs, future MCP-over-Unix-socket clients |
 | stdio adapter | Per-agent process bridging stdio MCP ↔ daemon's Unix socket | Claude Code, codex, gemini-cli, opencode |
 
 These are the same MCP server reached two ways. Tool names carry the `tribe.*` prefix because agents typically connect to multiple MCP servers in a session — `tribe.send` vs `fs.read` vs `browser.click` is disambiguation, not redundancy.
@@ -254,7 +254,7 @@ We say *workspace* memory rather than *repo* memory because one repo can have mu
 
 ## Status
 
-tribe-daemon runs as the per-root coordinator with messaging + lore tools registered through the in-daemon tool registry; stdio adapter spawned per Claude Code session; tty/github/recall ship as separate stdio MCPs; silvercode spawns agents via ACP or stream-json. Boot uses the `pipe + with*` composition pattern (see [composition.md](./composition.md)).
+tribe-daemon runs as the per-root coordinator with messaging + lore tools registered through the in-daemon tool registry. The MCP-spec surface is native: `withMCPServer()` registers `initialize` / `tools/list` / `tools/call` handlers on the dispatcher and reads the tool registry at call time. Stdio adapter spawned per Claude Code session forwards frames; tty/github/recall ship as separate stdio MCPs; silvercode spawns agents via ACP or stream-json. Boot uses the `pipe + with*` composition pattern (see [composition.md](./composition.md)).
 
 The parent-death orphan gap (`km-silvercode.parent-death-orphan-gap`) is deferred — when silvercode is SIGKILLed/OOMed/power-off'd, spawned agents reparent to init; pgroups don't help. Kernel-level fix (PR_SET_PDEATHSIG / kqueue NOTE_EXIT, ~100 LOC) waits for orphan accumulation to be observed.
 
@@ -274,11 +274,8 @@ The parent-death orphan gap (`km-silvercode.parent-death-orphan-gap`) is deferre
 2. **Stream-json retirement.** Once ACP is silvercode's only Claude path, retire `accounts.ts` / `resolveAccountDir`.
 3. **tribe-client beyond bearly.** Public-npm extraction waits for a third standalone consumer outside the tribe family.
 4. **Cross-machine coordination.** Tribe is per-machine. Out of scope.
-5. **Pending file/package renames** (blast-radius, not risky):
-   - `tribe-proxy.ts` → name matching "stdio adapter" (~15 imports)
-   - `packages/daemon-spine/` → `packages/tribe-client/` (~20+ imports + workspace overrides)
-6. **Lore namespace internally.** Methods are `tribe.*` over MCP since 0.10.0; internal RPC may still be `lore.*`. Whether to unify is open.
-7. **km adopting tribe.** km could host or consume agent sessions via tribe; doesn't today. The composition pattern makes the integration mechanical when motivated by a real need.
+5. **Lore namespace internally.** Methods are `tribe.*` over MCP since 0.10.0; internal RPC may still be `lore.*`. Whether to unify is open.
+6. **km adopting tribe.** km could host or consume agent sessions via tribe; doesn't today. The composition pattern makes the integration mechanical when motivated by a real need.
 
 ## Documentation map
 
@@ -291,7 +288,7 @@ The parent-death orphan gap (`km-silvercode.parent-death-orphan-gap`) is deferre
 | **bearly umbrella** | [bearly CLAUDE.md](../vendor/bearly/CLAUDE.md), [bearly README](../vendor/bearly/README.md) |
 | **tribe daemon detail** | [hub/bearly/design/tribe-daemon.md](./bearly/design/tribe-daemon.md), [tribe README](../vendor/bearly/plugins/tribe/README.md) |
 | **tribe design rationale** | `hub/bearly/design/tribe-{decoupling,minimal}.md` |
-| **daemon-spine extraction** | [hub/bearly/design/daemon-spine-consolidation.md](./bearly/design/daemon-spine-consolidation.md) |
+| **tribe-client extraction** (formerly "daemon-spine") | [hub/bearly/design/daemon-spine-consolidation.md](./bearly/design/daemon-spine-consolidation.md) |
 | **silvercode** | [silvercode CLAUDE.md](../apps/silvercode/CLAUDE.md), [agent-harness CLAUDE.md](../apps/silvercode/packages/agent-harness/CLAUDE.md) |
 | **silvercode internals** | `apps/silvercode/docs/{in-process-mcp,multi-agent,channels}.md` |
 | **per-plugin READMEs** | `vendor/bearly/plugins/{mcp,tty,github,recall,llm,injection-envelope}/README.md` |
