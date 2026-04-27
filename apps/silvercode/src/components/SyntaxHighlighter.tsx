@@ -34,6 +34,12 @@ export interface SyntaxHighlighterProps {
   code: string
   /** Shiki theme ID. Defaults to "github-dark". */
   theme?: ShikiTheme
+  /**
+   * Drop the surrounding card chrome (border, padding, language label).
+   * Use when rendering inside another framing component (e.g. a borderless
+   * popover) that owns the chrome. Default: false.
+   */
+  bare?: boolean
 }
 
 // =============================================================================
@@ -69,26 +75,34 @@ export function SyntaxHighlighter({
   language,
   code,
   theme = "github-dark",
+  bare = false,
 }: SyntaxHighlighterProps): React.ReactElement {
   const lang = (language || "plain").toLowerCase()
   const lines = useSyntaxTokens(code, lang, theme)
+
+  const body = lines.map((line, i) => (
+    // Per-row overflow="hidden" so a long code line clips rather than
+    // wraps — wrapping would destroy source-code visual alignment.
+    <Box key={i} flexDirection="row" overflow="hidden">
+      {line.tokens.map((tok, j) => (
+        <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
+          {tok.text}
+        </Text>
+      ))}
+    </Box>
+  ))
+
+  if (bare) {
+    // No surrounding chrome — body sits directly in the parent's frame.
+    return <Box flexDirection="column">{body}</Box>
+  }
 
   return (
     <Box flexDirection="column" paddingX={1} backgroundColor="$surfacebg" borderStyle="single" borderColor="$border">
       <Box flexDirection="row">
         <Text color="$muted">{lang}</Text>
       </Box>
-      {lines.map((line, i) => (
-        // Per-row overflow="hidden" so a long code line clips rather than
-        // wraps — wrapping would destroy source-code visual alignment.
-        <Box key={i} flexDirection="row" overflow="hidden">
-          {line.tokens.map((tok, j) => (
-            <Text key={j} color={tok.color} bold={tok.bold} italic={tok.italic}>
-              {tok.text}
-            </Text>
-          ))}
-        </Box>
-      ))}
+      {body}
     </Box>
   )
 }

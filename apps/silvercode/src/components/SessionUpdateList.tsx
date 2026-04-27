@@ -311,8 +311,10 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     const truncated =
       lines.length > 40 ? [...lines.slice(0, 40), `… (${lines.length - 40} more lines)`].join("\n") : json
     return {
-      body: <SyntaxHighlighter language="json" code={truncated} />,
-      maxWidth: 100,
+      body: <SyntaxHighlighter language="json" code={truncated} bare />,
+      // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
+      // by the right-edge constraint on typical terminal widths.
+      maxWidth: 80,
       // Borderless + flush-top + 10-col right offset so the popover doesn't
       // cover the immediately-adjacent lines and the user can sweep the
       // cursor down through other entries while debug is active.
