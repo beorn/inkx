@@ -172,6 +172,12 @@ Last updated: 2026-04-19 (62 packages live)
 | `agentmonkey` | Reserved 2026-04-27 — agent + animal-mascot brand |
 | `@beorno/iqly` | Reserved 2026-04-27 — unscoped `iqly` similarity-blocked vs `mlly` |
 | `@beorno/memgent` | Reserved 2026-04-27 — unscoped `memgent` similarity-blocked vs `moment`; memory-agent contraction |
+| `acp-gateway` | Reserved 2026-04-27 — canonical hyphenated name for the ACP gateway venture |
+| `acpmatrix` | Reserved 2026-04-27 — ACP↔Matrix bridge name |
+| `acpservice` | Reserved 2026-04-27 — ACP service framework candidate |
+| `acpchannel` | Reserved 2026-04-27 — channel-plugin framework name |
+| `@beorno/acpgateway` | Reserved 2026-04-27 — unscoped `acpgateway` similarity-blocked vs our own `acp-gateway` |
+| `@beorno/acpsv` | Reserved 2026-04-27 — unscoped `acpsv` similarity-blocked vs `csv` |
 
 **Considered but blocked (2026-04-27)** — kept here so we don't re-attempt:
 
