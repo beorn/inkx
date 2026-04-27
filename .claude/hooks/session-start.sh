@@ -49,15 +49,30 @@ if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
   fi
 fi
 
-# Test cadence reminder — surface fuzz/test:ci freshness at most once per day.
-# Cheap stat-only check; emits hookSpecificOutput.additionalContext if stale.
+# Cadence reminders — surface stale test suites and stale /sop domains
+# at most once per day each. Cheap checks; emit hookSpecificOutput.additionalContext.
 CADENCE=""
 if [ -x "$REPO_ROOT/packages/km-infra/scripts/test-cadence-check.sh" ]; then
   CADENCE=$(bash "$REPO_ROOT/packages/km-infra/scripts/test-cadence-check.sh" 2>/dev/null || true)
 fi
 
-if [ -n "$CADENCE" ]; then
-  jq -n --arg msg "$CADENCE" \
+SOP_CADENCE=""
+if [ -x "$REPO_ROOT/packages/km-infra/scripts/sop-cadence-check.sh" ]; then
+  SOP_CADENCE=$(bash "$REPO_ROOT/packages/km-infra/scripts/sop-cadence-check.sh" 2>/dev/null || true)
+fi
+
+# Combine reminders with a blank-line separator if both fired.
+COMBINED=""
+if [ -n "$CADENCE" ] && [ -n "$SOP_CADENCE" ]; then
+  COMBINED="$CADENCE"$'\n\n'"$SOP_CADENCE"
+elif [ -n "$CADENCE" ]; then
+  COMBINED="$CADENCE"
+elif [ -n "$SOP_CADENCE" ]; then
+  COMBINED="$SOP_CADENCE"
+fi
+
+if [ -n "$COMBINED" ]; then
+  jq -n --arg msg "$COMBINED" \
     '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $msg}}'
 else
   echo '{}'

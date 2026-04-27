@@ -71,6 +71,8 @@ bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 
 **Test cadence reminders.** SessionStart surfaces a once-per-day reminder if `test:fuzz` is stale (>24h) or `test:ci` is stale (>168h). Stamps live in `~/.local/state/km-cadence/`; both `test:fuzz` and `test:ci` touch them on success. Mention the reminder to the user when it appears — don't auto-run multi-minute suites. See `packages/km-infra/scripts/test-cadence-{check,stamp}.sh`.
 
+**SOP cadence reminders.** SessionStart also surfaces a once-per-day reminder when any `/sop` domain is past its cadence window: weekly (`security`, `inbound`, `backlog` >7d), monthly (`packages`, `infra` >30d), quarterly (`legal` >90d). Source of truth is `.claude/skills/sop/state.json` `lastRun.<domain>`, updated automatically by `/sop` runs — no extra stamp needed. Daily-throttle stamp at `~/.local/state/km-cadence/sop-prompted-<date>`. Mention the reminder to the user — don't auto-run multi-minute scans (e.g. `/sop --monthly`). See `packages/km-infra/scripts/sop-cadence-check.sh`.
+
 `bun run test:strictest` runs all projects with `SILVERY_STRICT=2` -- every-action invariants (cursor visibility, border integrity) plus end-of-test checks. SILVERY_STRICT=1 is already the default for all tests.
 
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
