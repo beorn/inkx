@@ -38,6 +38,7 @@ import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harnes
 import { Box, ListView, type ListViewHandle, Prose, Text, useModifierKeys, usePopoverHandlers } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
+import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import { LinkifiedText } from "./LinkifiedText.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
@@ -305,20 +306,19 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
   // hover-event cost.
   const popoverContent = useMemo(() => {
     const json = JSON.stringify(payload, null, 2)
-    // Trim very long payloads; full payload available via /raw or the JSONL.
+    // Trim very long payloads; full payload available via /debug or the JSONL.
     const lines = json.split("\n")
     const truncated =
       lines.length > 40 ? [...lines.slice(0, 40), `… (${lines.length - 40} more lines)`].join("\n") : json
     return {
-      body: (
-        <Box flexDirection="column" gap={0}>
-          <Text bold color="$muted">
-            raw entry · cmd+shift+hover
-          </Text>
-          <Text>{truncated}</Text>
-        </Box>
-      ),
+      body: <SyntaxHighlighter language="json" code={truncated} />,
       maxWidth: 100,
+      // Borderless + flush-top + 10-col right offset so the popover doesn't
+      // cover the immediately-adjacent lines and the user can sweep the
+      // cursor down through other entries while debug is active.
+      borderless: true,
+      flushTop: true,
+      anchorOffsetX: 10,
     }
   }, [payload])
   const handlers = usePopoverHandlers(popoverContent)
