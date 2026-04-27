@@ -265,6 +265,113 @@ percolate:cost         { sessionId, cycleN, costUsd, model }
 - Cost ceiling: cycle costs total < $0.50 per dogfood session
 - No user-facing latency tail (verify by timing user prompts before vs after percolation enabled)
 
+## Correction (2026-04-27 23:35): recallAgent IS the design. Tier 2 deferred = more budget.
+
+Two course corrections from the user:
+
+**1. We already designed this.** `recallAgent` (in `vendor/bearly/plugins/recall/src/lib/agent.ts`) does 2 rounds of LLM-refined FTS searches. I incorrectly called it "one-shot" — actually round 2's `planQuery` receives `priorPlan`, `priorResults`, `priorVariants` as input and generates new variants based on what round 1 found. That's iterative LLM refinement. Already shipped. Already battle-tested via `bun recall --agent`.
+
+**2. Tier 2 is deferred → mem-thought has the whole budget.** My earlier cost-discipline math (~$2–5/mo, 3 cycles/session cap) was constrained by "Tier 2 also runs every prompt." With Tier 2 deferred, mem-thought can be:
+- More cycles per session (e.g., 5–10 instead of 3)
+- More cadence-frequent (every 10–15 turns instead of 25)
+- Full 2-round mode (not capped at maxRounds: 1)
+- ~$0.05–0.15/session, ~$10–20/dev/month at heavy use — fine
+
+### Simpler v1: pace recallAgent against the conversation
+
+Since recallAgent already does 2-round LLM-refined FTS, mem-thought is just **paced invocation of recallAgent against the running conversation**:
+
+```
+[ Cadence trigger ]              every 10–15 turns OR 15 min, idle ≥10s
+   • cap 5–10 cycles/session (not 3 — Tier 2 isn't competing)
+   │
+   ▼
+[ Synthetic query from conversation ] 1 cheap LLM call (~1s, ~$0.001)
+   • Input: last 4–6 raw turns
+   • Prompt: "What 1–3 word query would surface relevant prior context?"
+   • JSON-validated to contain ≥1 token from the conversation
+   • Falls back to top-anchor extraction if LLM fails
+   │
+   ▼
+[ recallAgent(query, { since: '30d', maxRounds: 2 }) ]
+   • The existing 2-round LLM-refined FTS pipeline
+   • planQuery → fanoutSearch → speculative synth → decide round 2
+     → planQuery(round 2, prior context) → fanout → merge → final synth
+   • ~6–9 s background, ~$0.01 per call
+   │
+   ▼
+[ Outcome-aware re-rank ]        ~10ms, no LLM
+   • Bead status weights from session-index.db metadata
+   • Skip if utility < threshold
+   │
+   ▼
+[ Topic-drift gate at emit ]
+   • Drop if user sent ≥2 prompts since cycle started
+   • Drop on /clear or workspace change
+   │
+   ▼
+[ Templated emit ]
+   • [mem-thought, cycle N — query: "<q>", emitted Zs] header
+   • Body: recallAgent's synthesis + bead/session pointers
+   • Sidecar: { query, beadIds, statuses, cost, durationMs }
+```
+
+### Cost & latency
+
+- Per cycle: ~6–9 s background (recallAgent) + ~1 s query builder = 7–10 s, **~$0.011/cycle**
+- Per session: 5–10 cycles × $0.011 = ~$0.05–0.11
+- Heavy use (4–6 h/day, 2–3 sessions): ~$5–10/dev/month
+
+### Implementation: ~50 LOC + tests
+
+```typescript
+// apps/silvercode/src/ambient-adapters/percolate.ts
+import { recallAgent } from "@bearly/recall"
+
+export function registerPercolateAdapter(opts: PercolateOpts): () => void {
+  const cadence = createCadence({
+    everyNTurns: 12,
+    everyMinutes: 15,
+    idleMs: 10_000,
+    capPerSession: 8,
+  })
+
+  cadence.onFire(async (turns, cycleN) => {
+    const cycleStart = Date.now()
+    const query = await buildSyntheticQuery(turns)  // ~1s, ~$0.001
+    if (!query) return
+
+    const result = await recallAgent(query, {
+      since: "30d",
+      maxRounds: 2,
+      limit: 5,
+      projectFilter: opts.repoScope,
+    })
+
+    if (turnsSinceCycleStart() >= 2) return        // topic drifted
+    const ranked = applyOutcomeRanking(result.results)
+    if (utility(ranked) < THRESHOLD) return         // silent on no-signal
+
+    opts.queue.enqueue(formatThoughtEvent(query, result, ranked, cycleN))
+  })
+
+  return () => cadence.dispose()
+}
+```
+
+That's it. The 2-round LLM-refined FTS browsing the user wants is already inside `recallAgent` — we just feed it conversation-derived queries, gate cadence, apply outcome ranking, and emit.
+
+### When to upgrade to a real tool-call loop (v2+)
+
+The simpler design above wins **if the synthetic-query-from-conversation step produces a good enough seed**. If telemetry shows recallAgent is missing relevant content (low pull-through, high "no useful signal" rate), upgrade to:
+
+- **v2**: Multi-query: build 2–3 synthetic queries from different angles of the conversation, run recallAgent on each in parallel, merge with coverage rerank
+- **v3**: True tool-call loop where the LLM examines each round's results and decides what to query next (pure /big pattern). Cost: ~$0.05/cycle. Use only if v1+v2 don't deliver.
+
+Don't build v2/v3 speculatively — measure v1 first.
+
+---
+
 ## Final framing (2026-04-27 23:35): "intelligently browse a stupid FTS"
 
 User's framing crystallized the design: **mem-thought is an LLM agent that iteratively browses dumb keyword indexes to find useful stuff.** The intelligence is in the iteration (refine query based on what's found), not in the substrate (FTS5 is fine, it's "stupid" but cheap and reliable).
