@@ -4,6 +4,7 @@ import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
 import { probeClaudeVersion } from "../claude-version.ts"
+import type { AgentCapabilities, CapabilityContext, CapabilityOption } from "../agent-capabilities.ts"
 import {
   contextUtilizationColor,
   contextUtilizationLevel,
@@ -143,6 +144,47 @@ export const THINKING_LABELS: Record<string, string> = {
 }
 
 const SILVERCODE_VERSION = "0.1.0" // bump when apps/silvercode/package.json changes
+
+// ---------------------------------------------------------------------------
+// Capability cycler helpers — descriptor-driven thinking + planning rows.
+// ---------------------------------------------------------------------------
+
+/** Find the descriptor whose `id` matches `selection`. Returns undefined if none. */
+function findOptionFor(arr: ReadonlyArray<CapabilityOption>, selection: string): CapabilityOption | undefined {
+  return arr.find((o) => o.id === selection)
+}
+
+/**
+ * The "default" option per CapabilityOption convention — the one with
+ * `default: true`, falling back to the first entry when no default is
+ * marked. assertCapabilities() guarantees at most one default per array.
+ */
+function defaultOption(arr: ReadonlyArray<CapabilityOption>): CapabilityOption {
+  const flagged = arr.find((o) => o.default === true)
+  return flagged ?? arr[0]!
+}
+
+/** Advance to the next option by id, wrapping at the end. */
+function nextOption(arr: ReadonlyArray<CapabilityOption>, currentId: string): CapabilityOption {
+  const i = arr.findIndex((o) => o.id === currentId)
+  if (i < 0) return arr[0]!
+  return arr[(i + 1) % arr.length]!
+}
+
+/** Build the CapabilityContext that's handed to `option.activate(ctx)`. */
+function makeCtx(
+  controller: Controller,
+  sessionId: string,
+  setThinking: ((next: string) => void) | undefined,
+  setMode: ((next: string) => void) | undefined,
+): CapabilityContext {
+  return {
+    controller,
+    sessionId,
+    setThinking: setThinking ?? (() => {}),
+    setMode: setMode ?? (() => {}),
+  }
+}
 
 /** Shorten an absolute path using `~` for display. */
 function shortCwd(cwd: string): string {
@@ -319,6 +361,9 @@ export function SidePanel({
   thinking,
   onCycleThinking,
   agent,
+  capabilities,
+  setThinking,
+  setMode,
 }: {
   focused: SessionHandle
   sessions: SessionHandle[]
@@ -339,6 +384,17 @@ export function SidePanel({
    * fallback (`claude-code`).
    */
   agent?: string
+  /**
+   * Per-agent capability descriptors. When set, the thinking + planning
+   * rows render from these arrays (icon / color / name / description /
+   * activate from the descriptor) instead of the hard-coded Claude
+   * vocabulary. Agents without a given capability hide that row.
+   */
+  capabilities?: AgentCapabilities
+  /** Set the thinking selection — wired through option.activate(ctx). */
+  setThinking?: (next: string) => void
+  /** Set the planning / permission-mode selection — wired through option.activate(ctx). */
+  setMode?: (next: string) => void
 }): React.ReactElement | null {
   if (!focused) return null
   const state = useStoreSignal(focused.store)
@@ -813,11 +869,35 @@ export function SidePanel({
             <Small>{modelLabel(state.model)}</Small>
           </Box>
         )}
-        {/* Thinking mode — always rendered. Click to cycle; hover for
-            help popover. Default tier is `normal` (Claude's baseline
-            budget). Neutral grey so attention stays on the colored
-            permission-mode line below. */}
+        {/* Thinking row — descriptor-driven. Hidden when the active agent
+            doesn't expose a thinking capability (e.g. copilot today).
+            Falls back to the legacy Claude-only THINKING_ICONS path
+            when descriptors aren't passed (tests + transition). */}
         {(() => {
+          const arr = capabilities?.thinking
+          if (arr && arr.length > 0) {
+            const current = findOptionFor(arr, thinking ?? "") ?? defaultOption(arr)
+            const onClick = (): void => {
+              const next = nextOption(arr, current.id)
+              const ctx = makeCtx(controller, focused.id, setThinking, setMode)
+              void next.activate(ctx)
+            }
+            return (
+              <Box
+                flexDirection="row"
+                gap={1}
+                flexShrink={0}
+                onClick={onClick}
+                onMouseEnter={thinkingHover.onMouseEnter}
+                onMouseLeave={thinkingHover.onMouseLeave}
+                backgroundColor={hoveredBg(thinkingHover.isHovered)}
+              >
+                <Text color={current.color ?? "$muted"}>{current.icon}</Text>
+                <Text color={current.color ?? "$muted"}>{current.name}</Text>
+              </Box>
+            )
+          }
+          // Legacy fallback (kept for tests + agents not yet on descriptors).
           const key = thinking && THINKING_ICONS[thinking] ? thinking : "normal"
           return (
             <Box
@@ -834,25 +914,58 @@ export function SidePanel({
             </Box>
           )
         })()}
-        {/* Mode — directly under the model, no spacer. Icon in left
-            margin, label aligned with Silver/Claude Code rows.
-            Clickable to cycle, hover shows help + armed bg. */}
-        <Box
-          flexDirection="row"
-          gap={1}
-          flexShrink={0}
-          onClick={onCycleMode}
-          onMouseEnter={modeHover.onMouseEnter}
-          onMouseLeave={modeHover.onMouseLeave}
-          backgroundColor={hoveredBg(modeHover.isHovered)}
-        >
-          <Text color={modeColor} bold>
-            {modeIcon}
-          </Text>
-          <Text color={modeColor} bold>
-            {modeLabel}
-          </Text>
-        </Box>
+        {/* Mode row — descriptor-driven. Hidden when the active agent
+            doesn't expose a planning capability. Legacy fallback for
+            transition/tests. */}
+        {(() => {
+          const arr = capabilities?.planning
+          if (arr && arr.length > 0) {
+            const current = findOptionFor(arr, mode) ?? defaultOption(arr)
+            const onClick = (): void => {
+              const next = nextOption(arr, current.id)
+              const ctx = makeCtx(controller, focused.id, setThinking, setMode)
+              void next.activate(ctx)
+            }
+            const color = current.color ?? "$muted"
+            return (
+              <Box
+                flexDirection="row"
+                gap={1}
+                flexShrink={0}
+                onClick={onClick}
+                onMouseEnter={modeHover.onMouseEnter}
+                onMouseLeave={modeHover.onMouseLeave}
+                backgroundColor={hoveredBg(modeHover.isHovered)}
+              >
+                <Text color={color} bold>
+                  {current.icon}
+                </Text>
+                <Text color={color} bold>
+                  {current.name}
+                </Text>
+              </Box>
+            )
+          }
+          // Legacy fallback — uses MODE_COLORS / MODE_ICONS / MODE_LABELS.
+          return (
+            <Box
+              flexDirection="row"
+              gap={1}
+              flexShrink={0}
+              onClick={onCycleMode}
+              onMouseEnter={modeHover.onMouseEnter}
+              onMouseLeave={modeHover.onMouseLeave}
+              backgroundColor={hoveredBg(modeHover.isHovered)}
+            >
+              <Text color={modeColor} bold>
+                {modeIcon}
+              </Text>
+              <Text color={modeColor} bold>
+                {modeLabel}
+              </Text>
+            </Box>
+          )
+        })()}
       </Box>
       {/* Trailing blank row at the bottom of the side panel. paddingY={1} on
           the outer Box only contributes 1 row; this Spacer adds one more so

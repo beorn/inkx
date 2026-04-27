@@ -67,7 +67,9 @@ bun vitest run <dir> # Tests in directory (excludes .slow. and vendor automatica
 bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
 
-**`test:ci`** is the full suite -- run it periodically (pre-push hook reminds you if >24h since last run). It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
+**`test:ci`** is the full suite -- run it periodically. It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
+
+**Test cadence reminders.** SessionStart surfaces a once-per-day reminder if `test:fuzz` is stale (>24h) or `test:ci` is stale (>168h). Stamps live in `~/.local/state/km-cadence/`; both `test:fuzz` and `test:ci` touch them on success. Mention the reminder to the user when it appears — don't auto-run multi-minute suites. See `packages/km-infra/scripts/test-cadence-{check,stamp}.sh`.
 
 `bun run test:strictest` runs all projects with `SILVERY_STRICT=2` -- every-action invariants (cursor visibility, border integrity) plus end-of-test checks. SILVERY_STRICT=1 is already the default for all tests.
 

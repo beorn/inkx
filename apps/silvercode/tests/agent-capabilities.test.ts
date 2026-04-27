@@ -131,10 +131,19 @@ describe("BUILTIN_AGENTS — Claude variants share CLAUDE_CAPABILITIES", () => {
     expect(c?.capabilities).toBe(CLAUDE_CAPABILITIES)
   })
 
-  test("non-Claude agents (codex/gemini/copilot) have no capabilities yet", () => {
-    expect(BUILTIN_AGENTS["codex"]?.capabilities).toBeUndefined()
+  test("codex variants reference CODEX_CAPABILITIES; gemini + copilot still undefined", () => {
+    expect(BUILTIN_AGENTS["codex"]?.capabilities).toBeDefined()
+    expect(BUILTIN_AGENTS["codex-spawn"]?.capabilities).toBe(BUILTIN_AGENTS["codex"]?.capabilities)
     expect(BUILTIN_AGENTS["gemini"]?.capabilities).toBeUndefined()
     expect(BUILTIN_AGENTS["copilot"]?.capabilities).toBeUndefined()
+  })
+
+  test("codex thinking + planning shapes match the design", () => {
+    const codex = BUILTIN_AGENTS["codex"]?.capabilities
+    expect(codex?.thinking?.map((o) => o.id)).toEqual(["low", "medium", "high"])
+    expect(codex?.planning?.map((o) => o.id)).toEqual(["normal", "plan"])
+    expect(codex?.thinking?.find((o) => o.default === true)?.id).toBe("medium")
+    expect(codex?.planning?.find((o) => o.default === true)?.id).toBe("normal")
   })
 
   test("module load already passed assertCapabilities (no throw at import time)", () => {

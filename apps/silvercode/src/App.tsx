@@ -22,6 +22,7 @@ import { RequestPermissionInbox } from "./components/RequestPermissionInbox.tsx"
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
+import { BUILTIN_AGENTS } from "./config-schema.ts"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
 import { createSilvercodeController, type Controller, type SessionHandle } from "./controller.ts"
 import { isLocal } from "./slash-commands.ts"
@@ -1106,6 +1107,11 @@ export function App(props: AppProps): React.ReactElement {
                   cwd={props.cwd}
                   controller={controller}
                   agent={props.agent}
+                  capabilities={
+                    props.agent && BUILTIN_AGENTS[props.agent] ? BUILTIN_AGENTS[props.agent].capabilities : undefined
+                  }
+                  setThinking={setThinking}
+                  setMode={setMode}
                 />
               ) : null
             }

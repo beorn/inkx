@@ -49,6 +49,17 @@ if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
   fi
 fi
 
-# Hook output (required by Claude Code)
-echo '{}'
+# Test cadence reminder — surface fuzz/test:ci freshness at most once per day.
+# Cheap stat-only check; emits hookSpecificOutput.additionalContext if stale.
+CADENCE=""
+if [ -x "$REPO_ROOT/packages/km-infra/scripts/test-cadence-check.sh" ]; then
+  CADENCE=$(bash "$REPO_ROOT/packages/km-infra/scripts/test-cadence-check.sh" 2>/dev/null || true)
+fi
+
+if [ -n "$CADENCE" ]; then
+  jq -n --arg msg "$CADENCE" \
+    '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $msg}}'
+else
+  echo '{}'
+fi
 exit 0

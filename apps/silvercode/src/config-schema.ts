@@ -27,7 +27,12 @@
 
 import { defineKind } from "@silvery/config"
 import { z } from "zod"
-import { type AgentCapabilities, assertCapabilities, CLAUDE_CAPABILITIES } from "./agent-capabilities.ts"
+import {
+  type AgentCapabilities,
+  assertCapabilities,
+  CLAUDE_CAPABILITIES,
+  CODEX_CAPABILITIES,
+} from "./agent-capabilities.ts"
 
 // ---------------------------------------------------------------------------
 // ai.acp.<name> — connection registry kind
@@ -186,12 +191,14 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     transport: "acp",
     credEnv: ["OPENAI_API_KEY"],
     description: "OpenAI Codex (ACP) — ChatGPT subscription",
+    capabilities: CODEX_CAPABILITIES,
   },
   "codex-spawn": {
     id: "codex-spawn",
     transport: "spawn",
     credEnv: ["OPENAI_API_KEY"],
     description: "OpenAI Codex (legacy stream-json spawn)",
+    capabilities: CODEX_CAPABILITIES,
   },
   gemini: {
     id: "gemini",

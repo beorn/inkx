@@ -254,9 +254,98 @@ export const CLAUDE_CAPABILITIES: AgentCapabilities = {
 }
 
 // ---------------------------------------------------------------------------
-// Future agents — leave fields undefined until we research the convention.
+// Codex capabilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Codex's reasoning-effort tiers — direct map to OpenAI's
+ * `reasoning_effort` parameter on the Responses API. Codex CLI exposes
+ * these as `Alt+,` (lower) / `Alt+.` (raise) shortcuts, plus per-model
+ * defaults that change when the user switches model via `/model`.
+ *
+ * Activation today is purely client-side state (silvercode's App.tsx
+ * stores the selection). Future work: wire through to ACP so the
+ * effective `reasoning_effort` persists across turns. See
+ * developers.openai.com/codex/cli for the live shortcut surface.
+ *
+ * Colors: progressive intensity to match the icon glyphs (○ → ◔ → ◐ → ●).
+ * Codex's own UI doesn't tint reasoning levels, so we mirror Claude's
+ * "neutral grey" approach — visual progression is via the icon, not color.
+ */
+const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
+  {
+    id: "low",
+    name: "reasoning low",
+    icon: "○",
+    color: "$muted",
+    description: "Faster, cheaper. Fine for routine edits + simple searches.",
+    activate: ({ setThinking }) => setThinking("low"),
+  },
+  {
+    id: "medium",
+    name: "reasoning medium",
+    icon: "◐",
+    color: "$muted",
+    description: "Balanced — codex's per-model default for most work.",
+    default: true,
+    activate: ({ setThinking }) => setThinking("medium"),
+  },
+  {
+    id: "high",
+    name: "reasoning high",
+    icon: "●",
+    color: "$muted",
+    description: "Slower, more thorough. Use for design + architecture.",
+    activate: ({ setThinking }) => setThinking("high"),
+  },
+]
+
+/**
+ * Codex's plan-mode toggle — binary. Plan mode tells codex to gather
+ * context + ask clarifying questions before any edits, instead of
+ * jumping straight to implementation. Activated via `/plan` or
+ * Shift+Tab in codex's own TUI.
+ *
+ * Colors: codex doesn't publish a brand color for plan vs normal, so we
+ * use silvercode-house tokens — `$info` (blue) for plan because it's
+ * pre-execution / advisory (matches Claude's plan-mode color), `$muted`
+ * for normal because it's the unmarked default.
+ *
+ * `default: true` is on `normal` since codex starts in execute-first
+ * mode unless the user opts into plan.
+ */
+const CODEX_PLANNING: ReadonlyArray<CapabilityOption> = [
+  {
+    id: "normal",
+    name: "execute mode",
+    icon: "»",
+    color: "$muted",
+    description: "Default — codex implements directly without a planning step.",
+    default: true,
+    activate: ({ setMode }) => setMode("normal"),
+  },
+  {
+    id: "plan",
+    name: "plan mode on",
+    icon: "⏸︎",
+    color: "$info",
+    description: "Codex plans + asks clarifying questions before implementing.",
+    activate: ({ controller, sessionId, setMode }) => {
+      controller.runSlashCommand(sessionId, "/plan")
+      setMode("plan")
+    },
+  },
+]
+
+export const CODEX_CAPABILITIES: AgentCapabilities = {
+  thinking: CODEX_THINKING,
+  planning: CODEX_PLANNING,
+}
+
+// ---------------------------------------------------------------------------
+// Gemini / Copilot — capabilities not yet researched. UI hides their rows.
 //
-// For codex / gemini / copilot we'd add their own thinking/planning arrays
-// here once we've decided how their UI maps to silvercode's cyclers.
-// Until then those agents render neither row.
+// Gemini's CLI exposes per-model variants (Flash vs Pro) but doesn't
+// have a "thinking intensity" cycler in the same shape. Copilot CLI
+// today exposes nothing user-tunable per-turn.
 // ---------------------------------------------------------------------------
