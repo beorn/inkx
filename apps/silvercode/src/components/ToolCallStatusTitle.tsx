@@ -57,6 +57,10 @@ function phraseFor(status: ToolCallStatus, kind: ToolKind | undefined, title: st
     case "in_progress":
       return `${phrase.progressive}…`
     case "completed":
+      // For execute-kind, the title IS the command — "Ran ls -la" is just
+      // noise. Show the title verbatim; for other kinds the past-tense verb
+      // gives useful "Read /foo/bar.ts" framing the title alone wouldn't.
+      if (kind === "execute") return title
       return `${phrase.pastTense} ${title}`.trim()
     case "failed":
       return `${phrase.bare} failed`

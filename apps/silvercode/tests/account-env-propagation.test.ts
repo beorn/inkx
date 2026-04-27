@@ -3,7 +3,7 @@
  * just to spawned subprocesses.
  *
  * Bug: when the user runs `silvercode --account d@delei.org`, spawnClaude
- * correctly sets CLAUDE_CONFIG_DIR=~/.km/accounts/d@delei.org/ for the
+ * correctly sets CLAUDE_CONFIG_DIR=~/.config/claude-profiles/d@delei.org/ for the
  * spawned subprocess. But silvercode's SidePanel calls
  * `resolveActiveEmail()` which reads silvercode's OWN
  * `process.env.CLAUDE_CONFIG_DIR` — which was inherited from the user's
@@ -42,7 +42,7 @@ describe("--account env propagation: SidePanel sees the requested account, not t
 
     // Materialize the requested account so accountExists() would pass — not
     // strictly required for env propagation but mirrors a real run.
-    const accountsRoot = join(tmpHome, ".km", "accounts", "d@delei.org")
+    const accountsRoot = join(tmpHome, ".config", "claude-profiles", "d@delei.org")
     mkdirSync(accountsRoot, { recursive: true })
     writeFileSync(join(accountsRoot, "settings.json"), "{}")
 
@@ -57,7 +57,7 @@ describe("--account env propagation: SidePanel sees the requested account, not t
 
     // Post-condition: env now points at the requested account's dir, and
     // resolveActiveEmail (which the SidePanel uses) returns the new email.
-    expect(process.env.CLAUDE_CONFIG_DIR).toBe(join(tmpHome, ".km", "accounts", "d@delei.org"))
+    expect(process.env.CLAUDE_CONFIG_DIR).toBe(join(tmpHome, ".config", "claude-profiles", "d@delei.org"))
     expect(claudeAccount.resolveActiveEmail()).toBe("d@delei.org")
   })
 
@@ -71,7 +71,7 @@ describe("--account env propagation: SidePanel sees the requested account, not t
   test("applyActiveAccountEnv returns the resolved configDir so callers can pass it down", async () => {
     const accounts = await import("../src/accounts.ts")
     const dir = accounts.applyActiveAccountEnv("work")
-    expect(dir).toBe(join(tmpHome, ".km", "accounts", "work"))
+    expect(dir).toBe(join(tmpHome, ".config", "claude-profiles", "work"))
     expect(process.env.CLAUDE_CONFIG_DIR).toBe(dir)
   })
 })

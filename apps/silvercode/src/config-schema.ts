@@ -52,7 +52,7 @@ import {
  *                 (the agent's default ACP transport is used). Set to
  *                 `spawn` for the legacy stream-json claude path.
  * - `account`   — optional Anthropic account name. Resolves via
- *                 `accounts.ts` to `~/.km/accounts/<name>/`.
+ *                 `accounts.ts` to `~/.config/claude-profiles/<name>/`.
  * - `model`     — optional model id; passed through to the agent.
  * - `bare`      — optional. Spawns claude with `--bare` (deterministic
  *                 mode, no hooks/plugins/skills/CLAUDE.md). Boolean-coerced.

@@ -26,6 +26,15 @@ import { join } from "node:path"
 /**
  * Root of the silvercode account store. Mirrors `~/.claude/` layout per name.
  *
+ * We use `~/.config/claude-profiles/` — the same root accountly uses — so
+ * silvercode and `accountly` share profile dirs (and therefore Keychain
+ * slots, since the slot is `sha256(profileDir).slice(0,8)`). Without this
+ * alignment, an account created via `accountly claude-profile new <email>`
+ * would have valid OAuth in the Keychain that silvercode couldn't read,
+ * because silvercode's hash of the profile dir would resolve to a
+ * different (empty) Keychain slot. SidePanel would then show no plan / no
+ * quotas for an account the user thinks is configured.
+ *
  * Honors `$HOME` first so tests can redirect to a tmp dir via `vi.stubEnv`;
  * falls back to `os.homedir()` (which reads from passwd, not env, on macOS).
  * Production paths still resolve to the user's real home because `$HOME` is
@@ -33,14 +42,14 @@ import { join } from "node:path"
  */
 export function accountsRoot(): string {
   const home = process.env.HOME ?? homedir()
-  return join(home, ".km", "accounts")
+  return join(home, ".config", "claude-profiles")
 }
 
 /**
  * Resolve an account name to its absolute config dir. Ensures the parent
- * `~/.km/accounts/` exists so writes don't race on first run; does
+ * `~/.config/claude-profiles/` exists so writes don't race on first run; does
  * NOT create the account dir itself (the user populates it by copying
- * `~/.claude/` contents — see the stderr hint in index.tsx).
+ * `~/.claude/` contents or via `accountly claude-profile new <email>`).
  */
 export function resolveAccountDir(name: string): string {
   const root = accountsRoot()
@@ -83,7 +92,7 @@ export function applyActiveAccountEnv(name: string | undefined): string | undefi
 }
 
 /**
- * List the account names under `~/.km/accounts/`. Returns an empty
+ * List the account names under `~/.config/claude-profiles/`. Returns an empty
  * array when the root doesn't exist yet (first-run case). Only subdirectory
  * names — stray files are ignored.
  */

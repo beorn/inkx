@@ -199,7 +199,7 @@ export type AppProps = {
   logDir?: string
   /**
    * Anthropic account name for per-session credential isolation. Resolves to
-   * `~/.km/accounts/<account>/` via `CLAUDE_CONFIG_DIR`. Undefined →
+   * `~/.config/claude-profiles/<account>/` via `CLAUDE_CONFIG_DIR`. Undefined →
    * use `~/.claude/` (v1.1 multi-account foundation).
    */
   account?: string

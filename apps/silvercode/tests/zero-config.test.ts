@@ -3,7 +3,7 @@
  * the pre-flight check that runs before silvercode mounts.
  *
  * Strategy: redirect `$HOME` to a tmpdir per test so the resolver's
- * `~/.km/accounts/` and `~/.claude/` lookups hit synthetic fixtures
+ * `~/.config/claude-profiles/` and `~/.claude/` lookups hit synthetic fixtures
  * instead of the developer's real home. Mirrors the pattern in
  * `accounts.ts` (which honors `$HOME` over `os.homedir()` precisely so
  * tests can do this).
@@ -31,9 +31,9 @@ async function configWith(yaml: string) {
   return await loadConfig({ path, searchProject: false, watch: false })
 }
 
-/** Populate `$HOME/.km/accounts/<name>/settings.json` so `accountExists` is true. */
+/** Populate `$HOME/.config/claude-profiles/<name>/settings.json` so `accountExists` is true. */
 function seedAccount(name: string) {
-  const dir = join(homeDir, ".km", "accounts", name)
+  const dir = join(homeDir, ".config", "claude-profiles", name)
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, "settings.json"), "{}")
 }
@@ -112,8 +112,8 @@ describe("resolveConnection — zero-config preflight", () => {
     expect(() => resolveConnection(undefined, config)).toThrowError(/no credentials reachable for agent=claude-code/)
     // The error must name at least one env var so the user knows what to set.
     expect(() => resolveConnection(undefined, config)).toThrowError(/ANTHROPIC_API_KEY/)
-    // And mention the accounts dir copy hint.
-    expect(() => resolveConnection(undefined, config)).toThrowError(/accounts/)
+    // And mention the profile-dir copy hint.
+    expect(() => resolveConnection(undefined, config)).toThrowError(/claude-profiles/)
     config.unwatch()
   })
 

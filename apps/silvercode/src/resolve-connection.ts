@@ -32,7 +32,7 @@ export type ResolvedConnection = {
   readonly source: "registry-label" | "connection-string" | "builtin" | "default-builtin" | "registry-default"
   /** The label name when source === "registry-label" / "registry-default". */
   readonly label?: string
-  /** When the entry's `account` was auto-discovered (lone `~/.km/accounts/<x>/`),
+  /** When the entry's `account` was auto-discovered (lone `~/.config/claude-profiles/<x>/`),
    *  the name picked. Undefined when the user named one explicitly or when no
    *  account dir applies (creds come from `credDir` / `credEnv`). */
   readonly autoAccount?: string
@@ -188,7 +188,7 @@ function listLabels(config: Config): string[] {
 
 /**
  * Zero-config account discovery. When the resolved entry hasn't named an
- * account AND `~/.km/accounts/` contains exactly one populated subdir, use
+ * account AND `~/.config/claude-profiles/` contains exactly one populated subdir, use
  * it. The single-account case is the overwhelming majority of first-run
  * users — picking it silently mirrors how `git`/`ssh` pick their lone
  * config without prompting.
@@ -237,7 +237,7 @@ function expandHome(path: string): string {
  * Pre-flight credential check for built-in agents. Refuses to proceed
  * when none of the agent's credential sources are reachable:
  *
- *   1. `entry.account` → resolved + populated under `~/.km/accounts/`
+ *   1. `entry.account` → resolved + populated under `~/.config/claude-profiles/`
  *   2. agent's `credDir` (e.g. `~/.claude/`) exists on disk
  *   3. any of the agent's `credEnv` env vars is set + non-empty
  *
