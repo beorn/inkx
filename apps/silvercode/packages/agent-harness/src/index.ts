@@ -32,7 +32,15 @@ export type { Injector, InjectorContext } from "./injectors.ts"
 export { createFileEventLog, createMemoryEventLog } from "./event-log.ts"
 export type { EventLog } from "./event-log.ts"
 export { createSessionStore } from "./session-store.ts"
-export type { SessionState, SessionStore, MessageEntry, Todo } from "./session-store.ts"
+export type {
+  SessionState,
+  SessionStore,
+  MessageEntry,
+  MessageOp,
+  ToolCallEntry,
+  ToolResultEntry,
+  Todo,
+} from "./session-store.ts"
 
 // ACP-shaped canonical types (silvercode's own namespace; structurally
 // compatible with @agentclientprotocol/sdk at v1). See ./acp-types.ts.

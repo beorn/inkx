@@ -15,15 +15,54 @@ import type { AgentEvent, AgentSession, ContentBlock, SessionId, ToolUseId, Turn
 
 export type RoleIndicator = "user" | "assistant" | "system"
 
+/**
+ * Inline tool-call entry stored on a `MessageOp` (no `mcp_server` indirection;
+ * the value `name` already includes the namespaced prefix when applicable).
+ */
+export type ToolCallEntry = { id: ToolUseId; name: string; input: unknown; mcp_server?: string }
+
+/**
+ * Inline tool-result entry. Optional — attached to its tool op when the
+ * matching `tool-result` event arrives (often on a later turn).
+ */
+export type ToolResultEntry = { id: ToolUseId; output: unknown; is_error?: boolean }
+
+/**
+ * One operation produced by the agent within a turn. The order of `ops`
+ * preserves the agent's emission order: `text` op for each contiguous run
+ * of text deltas, `tool` op for each tool-use. Result attaches to the
+ * matching tool op when it arrives. This preserves codex-style
+ * text→tool→text→tool interleavings that are flattened away by the legacy
+ * `text` + `toolCalls[]` representation.
+ *
+ * Bead: km-silvercode.codex-bundling-order. See SessionUpdateList.tsx
+ * `ExchangeItem` for the renderer.
+ */
+export type MessageOp =
+  | { kind: "text"; text: string }
+  | { kind: "tool"; toolCall: ToolCallEntry; result?: ToolResultEntry }
+
+/**
+ * Public surface — both the new ordered `ops` field AND the legacy
+ * `text` / `toolCalls` / `toolResults` projections coexist. Existing
+ * consumers that read `.text`, `.toolCalls`, `.toolResults` keep working
+ * through `Object.defineProperty` getters installed on every entry; new
+ * consumers (renderer, harness) read `.ops` directly to preserve order.
+ */
 export type MessageEntry = {
   id: TurnId
   role: RoleIndicator
-  /** Incrementally growing text for streaming assistant text blocks. */
-  text: string
-  /** Tool blocks produced within this turn. */
-  toolCalls: Array<{ id: ToolUseId; name: string; input: unknown; mcp_server?: string }>
-  /** Results keyed by tool_use id; may land in a later turn. */
-  toolResults: Array<{ id: ToolUseId; output: unknown; is_error?: boolean }>
+  /**
+   * Order-preserving op stream — text runs and tool calls in arrival order.
+   * This is the canonical storage; the legacy fields below are derived.
+   */
+  ops: MessageOp[]
+  /** Derived: concatenation of every `text` op's text, in order. */
+  readonly text: string
+  /** Derived: every `tool` op's `toolCall`, in order. */
+  readonly toolCalls: Array<ToolCallEntry>
+  /** Derived: every `tool` op's `result`, when present, in order. */
+  readonly toolResults: Array<ToolResultEntry>
   /** Final blocks once the turn closes (aggregated from assistant-message). */
   blocks?: ContentBlock[]
   /** TodoWrite extracted data, if any, for this turn. */
@@ -40,6 +79,75 @@ export type MessageEntry = {
    */
   additionalContext?: string
   ts: number
+}
+
+/**
+ * Internal mutable shape used while the reducer is building / updating an
+ * entry. The public `MessageEntry` adds derived getters via
+ * {@link installEntryProjections} before the entry leaves the store.
+ */
+type WritableEntry = {
+  id: TurnId
+  role: RoleIndicator
+  ops: MessageOp[]
+  blocks?: ContentBlock[]
+  todos?: Todo[]
+  stopReason?: string
+  additionalContext?: string
+  ts: number
+}
+
+/**
+ * Install the legacy `text` / `toolCalls` / `toolResults` getters on a
+ * just-built entry. Each is a pure projection over `ops`. Computing on
+ * read keeps the projection in lock-step with `ops` without separate
+ * accumulators that could drift.
+ */
+function installEntryProjections<T extends WritableEntry>(entry: T): MessageEntry {
+  Object.defineProperty(entry, "text", {
+    get(this: WritableEntry) {
+      let s = ""
+      for (const op of this.ops) {
+        if (op.kind === "text") s += op.text
+      }
+      return s
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(entry, "toolCalls", {
+    get(this: WritableEntry) {
+      const out: ToolCallEntry[] = []
+      for (const op of this.ops) {
+        if (op.kind === "tool") out.push(op.toolCall)
+      }
+      return out
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  Object.defineProperty(entry, "toolResults", {
+    get(this: WritableEntry) {
+      const out: ToolResultEntry[] = []
+      for (const op of this.ops) {
+        if (op.kind === "tool" && op.result) out.push(op.result)
+      }
+      return out
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  return entry as unknown as MessageEntry
+}
+
+/**
+ * Build a fresh `MessageEntry`. Used everywhere the reducer creates or
+ * updates an entry — guarantees the legacy projections are present so
+ * existing consumers (controller, SessionCard, SidePanel, harness tests,
+ * storybook fixtures) keep working without migration.
+ */
+function makeEntry(init: WritableEntry): MessageEntry {
+  return installEntryProjections({ ...init })
 }
 
 export type Todo = {
@@ -145,14 +253,38 @@ export function createSessionStore(): SessionStore {
   function get(): SessionState {
     return s()
   }
-  function upsertMessage(next: SessionState, id: TurnId, init: (m: MessageEntry) => MessageEntry): MessageEntry {
+  /**
+   * Build an updated entry. The mutator is given a fresh `WritableEntry`
+   * (the input is destructured so callers can return `{ ...m, ... }` style
+   * patches without worrying about getter-clobbering); the result is
+   * re-wrapped via `makeEntry` to install projections on the new copy.
+   */
+  function upsertMessage(
+    next: SessionState,
+    id: TurnId,
+    init: (m: WritableEntry) => WritableEntry,
+  ): MessageEntry {
     const idx = next.messages.findIndex((m) => m.id === id)
     if (idx >= 0) {
-      const updated = init(next.messages[idx]!)
+      const prevEntry = next.messages[idx]!
+      // Strip getters by copying primitive fields explicitly. Spreading
+      // an entry with installed getters silently drops them on the new
+      // object, so we need fresh ops/blocks/etc.
+      const writable: WritableEntry = {
+        id: prevEntry.id,
+        role: prevEntry.role,
+        ops: prevEntry.ops,
+        blocks: prevEntry.blocks,
+        todos: prevEntry.todos,
+        stopReason: prevEntry.stopReason,
+        additionalContext: prevEntry.additionalContext,
+        ts: prevEntry.ts,
+      }
+      const updated = makeEntry(init(writable))
       next.messages = [...next.messages.slice(0, idx), updated, ...next.messages.slice(idx + 1)]
       return updated
     }
-    const fresh = init({ id, role: "assistant", text: "", toolCalls: [], toolResults: [], ts: Date.now() })
+    const fresh = makeEntry(init({ id, role: "assistant", ops: [], ts: Date.now() }))
     next.messages = [...next.messages, fresh]
     return fresh
   }
@@ -184,27 +316,63 @@ export function createSessionStore(): SessionStore {
         upsertMessage(next, event.turnId, (m) => ({
           ...m,
           role: "user",
-          text: event.text,
+          // User messages have a single text op (whole prompt). Replace
+          // any prior ops outright — this isn't a streaming surface.
+          ops: event.text.length > 0 ? [{ kind: "text", text: event.text }] : [],
           additionalContext: event.additionalContext ?? m.additionalContext,
           ts: event.ts,
         }))
         break
       case "text-delta":
-        upsertMessage(next, event.turnId, (m) => ({ ...m, text: m.text + event.text }))
+        upsertMessage(next, event.turnId, (m) => {
+          // Coalesce into the trailing text op when the most recent op
+          // is text — this is how a multi-chunk assistant paragraph
+          // collapses into one `text` op, matching Claude's typical
+          // emission shape. A tool-use op intervening will start a new
+          // text op afterwards, preserving codex-style interleaving.
+          const ops = [...m.ops]
+          const last = ops[ops.length - 1]
+          if (last && last.kind === "text") {
+            ops[ops.length - 1] = { kind: "text", text: last.text + event.text }
+          } else {
+            ops.push({ kind: "text", text: event.text })
+          }
+          return { ...m, ops }
+        })
         break
       case "thinking-delta":
-        upsertMessage(next, event.turnId, (m) => ({ ...m, text: m.text }))
+        // No-op for now: thinking deltas don't surface in the rendered
+        // ops stream. Keeping this case to preserve the message slot for
+        // completeness (so a thinking-only turn still has a MessageEntry).
+        upsertMessage(next, event.turnId, (m) => m)
         break
       case "tool-use": {
         upsertMessage(next, event.turnId, (m) => {
-          const existingIdx = m.toolCalls.findIndex((c) => c.id === event.id)
-          const call = { id: event.id, name: event.name, input: event.input, mcp_server: event.mcp_server }
-          if (existingIdx >= 0) {
-            const calls = [...m.toolCalls]
-            calls[existingIdx] = call
-            return { ...m, toolCalls: calls }
+          // Locate any existing tool op with the same id (rare — only
+          // happens on duplicate tool-use events from buggy adapters).
+          // When found, replace in place to preserve order; when not,
+          // append a new tool op.
+          const ops = [...m.ops]
+          const existingIdx = ops.findIndex(
+            (op) => op.kind === "tool" && op.toolCall.id === event.id,
+          )
+          const call: ToolCallEntry = {
+            id: event.id,
+            name: event.name,
+            input: event.input,
+            mcp_server: event.mcp_server,
           }
-          return { ...m, toolCalls: [...m.toolCalls, call] }
+          if (existingIdx >= 0) {
+            const prev = ops[existingIdx]!
+            ops[existingIdx] = {
+              kind: "tool",
+              toolCall: call,
+              result: prev.kind === "tool" ? prev.result : undefined,
+            }
+          } else {
+            ops.push({ kind: "tool", toolCall: call })
+          }
+          return { ...m, ops }
         })
         if (event.name === "TodoWrite") {
           const t = extractTodos(event.input)
@@ -214,43 +382,70 @@ export function createSessionStore(): SessionStore {
         break
       }
       case "tool-result": {
-        const result = { id: event.id, output: event.output, is_error: event.is_error }
-        // Attach to whichever message contains the originating tool call.
-        const idx = next.messages.findIndex((m) => m.toolCalls.some((c) => c.id === event.id))
+        const result: ToolResultEntry = { id: event.id, output: event.output, is_error: event.is_error }
+        // Attach to whichever message has a matching tool op. Tool
+        // results often arrive on a *later* turn (the model uses the
+        // tool, the harness emits the result, the next assistant turn
+        // begins), so we search every message — not just the most
+        // recent one.
+        const idx = next.messages.findIndex((m) =>
+          m.ops.some((op) => op.kind === "tool" && op.toolCall.id === event.id),
+        )
         if (idx >= 0) {
           const msg = next.messages[idx]!
-          const existing = msg.toolResults.findIndex((r) => r.id === event.id)
-          const results =
-            existing >= 0 ? msg.toolResults.map((r, i) => (i === existing ? result : r)) : [...msg.toolResults, result]
-          const updated = { ...msg, toolResults: results }
+          const ops = msg.ops.map((op) => {
+            if (op.kind === "tool" && op.toolCall.id === event.id) {
+              return { kind: "tool" as const, toolCall: op.toolCall, result }
+            }
+            return op
+          })
+          const updated = makeEntry({
+            id: msg.id,
+            role: msg.role,
+            ops,
+            blocks: msg.blocks,
+            todos: msg.todos,
+            stopReason: msg.stopReason,
+            additionalContext: msg.additionalContext,
+            ts: msg.ts,
+          })
           next.messages = [...next.messages.slice(0, idx), updated, ...next.messages.slice(idx + 1)]
         }
         next.status = "thinking"
         break
       }
       case "assistant-message":
-        // Live streaming builds m.text + m.toolCalls incrementally via
-        // text-delta and tool-use events, then this aggregate arrives at
-        // turn-end. Replay (--resume) skips the streaming events — only
-        // this aggregate fires with the FINAL content blocks. Derive
-        // m.text and m.toolCalls from the blocks when they're missing,
-        // so resumed sessions render the same as live ones.
+        // Live streaming builds m.ops incrementally via text-delta +
+        // tool-use events; this aggregate fires at turn-end with the
+        // FINAL content blocks. Replay (--resume) skips the streaming
+        // events entirely — only this aggregate fires. So when ops is
+        // empty, derive ops from `event.content` *in order*, preserving
+        // any text/tool interleaving the resumed transcript records.
         upsertMessage(next, event.turnId, (m) => {
-          let text = m.text
-          if (text.length === 0) {
-            text = event.content
-              .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
-              .map((b) => b.text)
-              .join("")
+          if (m.ops.length > 0) {
+            return { ...m, blocks: event.content }
           }
-          let toolCalls = m.toolCalls
-          if (toolCalls.length === 0) {
-            const fromBlocks = event.content
-              .filter((b): b is Extract<typeof b, { type: "tool_use" }> => b.type === "tool_use")
-              .map((b) => ({ id: b.id, name: b.name, input: b.input, mcp_server: b.mcp_server }))
-            if (fromBlocks.length > 0) toolCalls = fromBlocks
+          const ops: MessageOp[] = []
+          for (const b of event.content) {
+            if (b.type === "text" && b.text.length > 0) {
+              const last = ops[ops.length - 1]
+              if (last && last.kind === "text") {
+                ops[ops.length - 1] = { kind: "text", text: last.text + b.text }
+              } else {
+                ops.push({ kind: "text", text: b.text })
+              }
+            } else if (b.type === "tool_use") {
+              ops.push({
+                kind: "tool",
+                toolCall: { id: b.id, name: b.name, input: b.input, mcp_server: b.mcp_server },
+              })
+            }
+            // tool_result / thinking / image blocks: not represented in
+            // ops directly. tool_results inside assistant-message are
+            // unusual (claude emits them as separate events); thinking
+            // and image are intentionally skipped at the ops layer.
           }
-          return { ...m, blocks: event.content, text, toolCalls }
+          return { ...m, blocks: event.content, ops }
         })
         break
       case "turn-end":
