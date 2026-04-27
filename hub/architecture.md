@@ -19,7 +19,9 @@ Read this first. The rest of the doc uses these terms precisely.
 | **tribe-daemon** | The actual long-running process that *is* a tribe instance at runtime. Auto-starts on first MCP call, idle-quits after 30 min with no clients. Hot-reloadable via SIGHUP. |
 | **tribe plugin** | A loadable implementation unit inside tribe-daemon. Lives in the daemon's address space. Examples: `lore`, `mcp`, `tty`, `github`, `recall`. |
 | **tribe service** | A capability tribe provides (memory, messaging, MCP serving). Implemented by one or more plugins. |
-| **tribe MCP bridge** | Per-agent stdio MCP adapter that translates Claude Code's stdio MCP wire to the tribe-daemon's Unix socket. Currently `tribe-proxy.ts`; rename pending. |
+| **tribe MCP bridge** | Per-agent stdio MCP adapter that translates Claude Code's stdio MCP wire to the tribe-daemon's Unix socket. Currently `tribe-proxy.ts`; file rename pending. |
+| **tribe-client** | Library for connecting to and reconnecting against tribe-daemon over its Unix-socket JSON-RPC wire. Currently published as `@bearly/daemon-spine`; rename pending. |
+| **shared-mcp** | Tribe plugin that serves multiple MCP tools to multiple agent sessions over a single long-running connection (HTTP+SSE on Unix socket). The "shared MCP server" lifetime, contrasted with stdio MCP (per-session) and tribe MCP bridge (per-agent adapter). Currently `plugins/mcp/`; rename pending. |
 | **tool** | An individual MCP-callable method exposed by a tribe service. Example: `tribe.ask`, `tribe.send`, `tribe.broadcast`. |
 | **host app** | A user-facing program that may connect to tribe and may host zero or more agent sessions. Examples: silvercode (hosts many), km (hosts none), Claude Code CLI (one). |
 | **agent session** | An LLM-backed runtime participant. Today, always a local subprocess speaking ACP or stream-json. Survives a future scheduler/provider that runs them remotely. |
@@ -51,7 +53,7 @@ project root
     │   └── recall     ← session-history search (consumes lore namespace)
     │
     └── shared library
-        └── @bearly/daemon-spine  ← JSON-RPC + parser + reconnect (Phase 1 extracted)
+        └── @bearly/tribe-client  ← JSON-RPC + parser + reconnect (Phase 1 extracted; currently published as @bearly/daemon-spine, rename pending)
 
 clients (connect to tribe-daemon over Unix socket):
     ├── tribe MCP bridge (per-agent stdio adapter; one per Claude Code session)
@@ -99,11 +101,11 @@ These aren't ours but the architecture has to accommodate them.
 | **tribe-daemon** | `vendor/bearly/plugins/tribe/tribe-daemon.ts` | One per project root. Auto-starts on first MCP call, idle-quits after 30 min with no clients. Hot-reloadable via SIGHUP. | Client registry, chief lease, plugin loader, activity log, broadcast coalescer, lore RPC, MCP plugin RPC. |
 | **tribe MCP bridge** | `vendor/bearly/plugins/tribe/tribe-proxy.ts` | One per Claude Code session. Spawned as the session's MCP child via stdio. | Bridges Claude's stdio MCP wire to the per-project tribe-daemon's Unix socket. |
 | **lore** (plugin) | `vendor/bearly/plugins/tribe/lore/` | Plugin inside tribe-daemon (no separate process). | Memory + recall: session indexing, context recall, workspace digest, delta injection. |
-| **mcp** (plugin) | `vendor/bearly/plugins/mcp/` | Plugin inside tribe-daemon. **PROTOTYPE only**, not yet wired into any Claude Code config. | Long-running shared MCP server over HTTP+SSE on a Unix socket. Connection-as-lease lifecycle. |
+| **shared-mcp** (plugin) | `vendor/bearly/plugins/mcp/` (rename to `plugins/shared-mcp/` pending) | Plugin inside tribe-daemon. **PROTOTYPE only**, not yet wired into any Claude Code config. | The serving mechanism for the "shared MCP server" lifetime: long-running, HTTP+SSE on a Unix socket, connection-as-lease. The MCP tools it eventually exposes (e.g., tty, github migrating from stdio) are separate plugins; this one provides the serving infrastructure. |
 | **tty** (MCP server) | `vendor/bearly/plugins/tty/` | Stdio MCP server, spawned per-session by Claude Code. | Headless terminal sessions for testing TUIs (`mcp__tty__start`, etc.). |
 | **github** (MCP server) | `vendor/bearly/plugins/github/` | Stdio MCP server, spawned per-session. | GitHub notification polling + cursor persistence. |
 | **recall** (MCP server) | `vendor/bearly/plugins/recall/` | Stdio MCP server. Most session-recall traffic now bypasses this and goes direct to tribe daemon's lore namespace; the MCP-shaped wrapper still exists for Claude Code's MCP discovery. | Search interface over the recall index. |
-| **@bearly/daemon-spine** | `vendor/bearly/packages/daemon-spine/` | Shared library. Phase 1 of consolidation (extracted 2026-04-26). | JSON-RPC framing, line parser, `connectToDaemon`, `connectOrStart`, `createReconnectingClient`, `withDaemonCall`, socket path resolution. Replaces 95% duplicate `tools/lib/tribe/socket.ts` and `plugins/tribe/lore/lib/socket.ts`. |
+| **@bearly/tribe-client** | `vendor/bearly/packages/daemon-spine/` (rename to `packages/tribe-client/` pending) | Shared library. Phase 1 of consolidation (extracted 2026-04-26). | JSON-RPC framing, line parser, `connectToDaemon`, `connectOrStart`, `createReconnectingClient`, `withDaemonCall`, socket path resolution. Replaces 95% duplicate `tools/lib/tribe/socket.ts` and `plugins/tribe/lore/lib/socket.ts`. The daemon also imports the protocol primitives (parser, paths) since both ends share the wire. |
 | **silvercode** | `apps/silvercode/` | Host app. | Multi-pane workspace; spawns agent sessions per pane; subprocess lifecycle hardened with AsyncDisposable + sentTerm + 10s SIGKILL fallback (commit 08a0989b9). |
 | **agent-harness** | `apps/silvercode/packages/agent-harness/` | Library used by silvercode. | The `AgentSession` interface; `spawnClaude`, `spawnCodex`, `spawnSdk`, `connectAcp`, `connectAcpRegistry`. Bridges between Claude Code's stream-json and ACP's `SessionUpdate`. |
 | **claude-acp** | `apps/silvercode/packages/claude-acp/` | Standalone subprocess spawned by silvercode for ACP-track Claude sessions. | Wraps the `claude` binary so it speaks ACP. Subscription-compatible (Pro/Max OAuth + ANTHROPIC_API_KEY). Resolved via workspace path because the package is private (commit d17afaa82). |
@@ -154,7 +156,7 @@ All daemon ↔ client traffic goes over Unix sockets, framed as line-delimited J
 - Bind-before-publish: bind to a temp path inside a 0700 dir, then atomic `rename` to the published path. Stale-socket cleanup on startup if a previous instance crashed.
 - Mode 0600 on the socket file.
 
-This is what `@bearly/daemon-spine` consolidates — see `hub/bearly/design/daemon-spine-consolidation.md` for the duplication that drove the extraction.
+This is what `@bearly/tribe-client` consolidates — see `hub/bearly/design/daemon-spine-consolidation.md` for the duplication that drove the extraction.
 
 ### Connection-as-lease
 
@@ -170,7 +172,7 @@ The "what kicks the timer" surface is composable: predicates are uniformly `() =
 
 ### Hot-reload
 
-`SIGHUP` on tribe-daemon re-execs the process with the listening socket file descriptor preserved across `execve()`. Existing client connections drop briefly during the re-exec; the reconnecting client (`createReconnectingClient` in @bearly/daemon-spine) replays its notification handlers automatically.
+`SIGHUP` on tribe-daemon re-execs the process with the listening socket file descriptor preserved across `execve()`. Existing client connections drop briefly during the re-exec; the reconnecting client (`createReconnectingClient` in @bearly/tribe-client) replays its notification handlers automatically.
 
 ### silvercode session spawn
 
@@ -195,12 +197,12 @@ The ACP track speaks ACP-over-stdio between silvercode and each agent session. O
 - lore plugin inside tribe (memory + recall RPC)
 - stdio MCP servers per Claude Code session: tribe MCP bridge, tty, github, recall
 - silvercode spawns agent sessions per pane via ACP (`@km/claude-acp` workspace bin) or stream-json
-- @bearly/daemon-spine Phase 1 (extraction) — built, used by lore socket + tribe socket re-exports
+- @bearly/tribe-client Phase 1 (extraction) — built, used by lore socket + tribe socket re-exports
 
 ### Prototype only — not yet wired
 
 - **MCP-as-tribe-plugin** (`vendor/bearly/plugins/mcp/`). The prototype works in tests, but no Claude Code `.mcp.json` points at the new `unix://` MCP wire yet. Migration bead pending.
-- **@bearly/daemon-spine Phases 2-4**. Beaded under `km-bearly.daemon-spine` — Phase 2 (tools/lib/tribe/socket.ts thin re-exports), Phase 3 (consolidate hot-reload across tribe-daemon + tribe MCP bridge), Phase 4 (consolidate idle-quit + cleanup patterns). ~500 LOC of remaining duplication.
+- **@bearly/tribe-client Phases 2-4**. Beaded under `km-bearly.daemon-spine` — Phase 2 (tools/lib/tribe/socket.ts thin re-exports), Phase 3 (consolidate hot-reload across tribe-daemon + tribe MCP bridge), Phase 4 (consolidate idle-quit + cleanup patterns). ~500 LOC of remaining duplication.
 
 ### Deferred (P4 long-term roadmap)
 
@@ -277,11 +279,14 @@ The reactive primitives the apps use share a family with bearly's plugins but ar
 
 2. **claude-code-spawn retirement.** The legacy stream-json path uses `accounts.ts` / `resolveAccountDir` (still wired in `controller.ts:878`). Once ACP is the only Claude path in silvercode, retire the legacy plumbing. Not urgent — both paths work.
 
-3. **Daemon-spine extract beyond bearly.** The daemon-spine package could absorb daemon plumbing in any future tool. Today's scope is "consolidate within bearly"; broader extraction (e.g., a public `@bearly/daemon-spine` on npm) is a separate decision when there's a third standalone consumer outside the tribe family.
+3. **Daemon-spine extract beyond bearly.** The daemon-spine package could absorb daemon plumbing in any future tool. Today's scope is "consolidate within bearly"; broader extraction (e.g., a public `@bearly/tribe-client` on npm) is a separate decision when there's a third standalone consumer outside the tribe family.
 
 4. **Cross-machine coordination.** Tribe is per-project-root per-machine — a single Unix socket. Cross-machine agent coordination (e.g., a shared chief across cmux-on-laptop + ssh-to-server) is out of scope and not on the roadmap.
 
-5. **`tribe-proxy` rename.** The bridge file is still called `tribe-proxy.ts`; the doc calls it `tribe MCP bridge`. Rename is queued as a follow-up — file rename + import updates touch ~15 files.
+5. **Three pending renames** to align disk layout with vocabulary, all blast-radius rather than risky:
+   - `vendor/bearly/plugins/tribe/tribe-proxy.ts` → file rename matching `tribe MCP bridge` (~15 import sites).
+   - `vendor/bearly/packages/daemon-spine/` → `packages/tribe-client/` (~20+ import sites; package.json `name` change cascades through workspace overrides in km root `package.json`).
+   - `vendor/bearly/plugins/mcp/` → `plugins/shared-mcp/` (~5 import sites; package.json `name` from `@bearly/mcp` to `@bearly/shared-mcp`).
 
 6. **Lore namespace.** Lore methods are exposed under `tribe.*` over MCP (since 0.10.0), but internally on the daemon's RPC wire they may still be `lore.*`. Whether to rename internally is open — `tribe.ask` is the user-facing tool name, but the implementation lineage is lore.
 
