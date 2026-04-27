@@ -1,11 +1,11 @@
 ---
-description: Deep research using OpenAI's deep research API. Use when user wants thorough research with web search and citations.
+description: "Long-running web-search research with citations via OpenAI's Deep Research API (~$2-5, 2-15 min, fire-and-forget). Use when prior art / external citations matter. NOT DeepSeek. For multi-model judging without web search use /pro."
 argument-hint: <topic>
 ---
 
-# /deep — OpenAI deep research
+# /deep — OpenAI Deep Research (web search + citations)
 
-OpenAI's deep-research API: web search + extended reasoning + citations. **NOT** DeepSeek.
+OpenAI's Deep Research API: web search + extended reasoning + citations. **NOT** DeepSeek (despite the name). Fire-and-forget — exits in ~5s with a response ID, recover later.
 
 **Keywords**: deep research, thorough research, web search, citations
 

@@ -1,19 +1,21 @@
 ---
-description: "Fresh perspective when stuck on a problem for 20+ minutes. Stops coding, gathers what was tried, and asks an external LLM for architectural advice. NOT for general questions — use /llm for that. NOT for standalone deep research — use /deep for that."
+description: "META-PROTOCOL for being stuck 20+ min on a specific problem — stops coding, gathers context, calls /deep (or /pro) internally with a structured request. Not itself an LLM tool. For unstructured stuck-feelings use /big; for direct questions use /ask, /pro, /deep."
 argument-hint: [<topic>]
 benefits-from: [recall, pm, gbrain]
 ---
 
 # /fresh — Fresh Perspective on a Stuck Problem
 
+**This is a meta-protocol, not an LLM tool.** It calls `/deep` (or `/pro`) internally — its value is the structured "stop, gather, frame the question" workflow, not the model call itself.
+
 **Keywords**: stuck, fresh perspective, step back, rethink, going in circles, each fix breaks something, tried everything
 
-**When to use /fresh vs /big vs /llm vs /pro:**
-- `/fresh` — You're stuck on a **specific problem**. Each fix breaks something else. Structured protocol: gather context → reflect → ask external LLM.
-- `/big` — The problem feels **deeper than a bug** — the fix feels like a patch, or the same area keeps breaking. 10-20 hypotheses, 2 rounds of exploration, reframe the problem. **`/big` subsumes `/fresh`** — if you need both, use `/big`.
-- `/llm` — Quick question for another model. Direct: ask → get answer.
-- `/pro "question"` — GPT 5.4 Pro opinion on code or design (~$1-3). GPT-5.5 Pro announced 2026-04-23; API rollout pending — see [pro/SKILL.md](../pro/SKILL.md) for opt-in.
-- `/deep` — Thorough research with web search and citations. ~$2-5, 2-15 min.
+**When to use /fresh vs /big vs /ask vs /pro vs /deep:**
+- `/fresh` — *meta-protocol.* You're stuck on a **specific problem**. Each fix breaks something else. Structured protocol: gather context → reflect → call /deep.
+- `/big` — *meta-protocol.* The problem feels **deeper than a bug** — the fix feels like a patch, or the same area keeps breaking. 10-20 hypotheses, 2 rounds, reframe. **`/big` subsumes `/fresh`** — if you need both, use `/big`.
+- `/ask` — Direct: single-model quick question (~$0.02).
+- `/pro "question"` — Direct: 3-leg dispatch + judge for hard problems (~$0.20). Default fleet is non-OpenAI (DeepSeek R1 + Kimi K2.6 + rotating challenger); GPT-5.4 Pro is opt-in via `--challenger gpt-5.4-pro`.
+- `/deep` — Direct: web-search research with citations (~$2-5, 2-15 min).
 
 Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/llm --deep`.
 

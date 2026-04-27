@@ -1,23 +1,23 @@
 ---
-description: "Ask other LLMs — questions, pro reviews, deep research, second opinions. Entry points: /ask, /pro, /deep."
+description: "Single-model quick questions to other LLMs — fast, cheap (~$0.02). Use for one-off second opinions and prior-art lookups. For multi-model judging use /pro. For web-search research use /deep."
 argument-hint: "[question]"
 ---
 
-# /ask — multi-model queries
+# /ask — single-model quick questions (~$0.02)
 
-**Keywords**: gpt, chatgpt, openai, gemini, grok, ask, second opinion, consensus, debate
+**Keywords**: gpt, chatgpt, openai, gemini, grok, ask, second opinion, quick
 
-For pro reviews use `/pro`. For deep research use `/deep`. This skill covers everything else.
+One model, one answer, fast and cheap. Use this when you want a quick external opinion or prior-art lookup. **Don't use `/ask` for hard problems where you want models to disagree** — that's `/pro` (~$0.20, 3-leg + judge). **Don't use `/ask` for research with citations** — that's `/deep` (~$2-5, web search).
 
 ## Decision table
 
 | User says | Command | Cost |
 |-----------|---------|------|
 | `/ask "<question>"` | `bun llm "<question>"` | ~$0.02 |
-| `/ask:pro <q>` or "Pro review of X" | `bun llm pro --context-file <ctx> -y "<q>"` (see `/pro`) | ~$5-15 |
 | `/ask:opinion <q>` or "second opinion" | `bun llm opinion "<q>"` | ~$0.02 |
 | `/ask:all <q>` or `debate <q>` | `bun llm debate -y "<q>"` (3 models + synthesis) | ~$1-3 |
-| `/deep <topic>` | `bun llm --deep -y --no-recover "<topic>"` (see `/deep`) | ~$2-5 |
+| `/ask:pro <q>` or "pro review" | escalate to `/pro` (3-leg + judge) | ~$0.20 |
+| `/deep <topic>` | escalate to `/deep` (web search + citations) | ~$2-5 |
 | Image analysis | `bun llm --image <path> "<q>"` | varies |
 | Local model | `bun llm --model ollama:<name> "<q>"` | free |
 
@@ -26,7 +26,7 @@ For pro reviews use `/pro`. For deep research use `/deep`. This skill covers eve
 | Keyword | What | Cost |
 |---------|------|------|
 | *(none)* | Best available cloud model | ~$0.02 |
-| `pro` | Dual-pro: GPT-5.4 Pro + Kimi K2.6 in parallel (A/B logged) | ~$5-15 |
+| `pro` | Escalates to `/pro` (3-leg dispatch + judge — see [/pro](../pro/SKILL.md)) | ~$0.20 |
 | `opinion` | Second opinion from a different provider | ~$0.02 |
 | `debate` | 3 models from different providers + synthesis | ~$1-3 |
 | `quick`/`cheap`/`mini`/`nano` | Fast/cheap (only when needed) | ~$0.01 |
@@ -90,4 +90,4 @@ Stale output files auto-clean after 7 days. **Never restart an interrupted `--de
 - `run_in_background=true` for deep research — output pipe truncates, response ID lost.
 - `--context "$(cat ...)"` for source code — backticks/quotes break the heredoc.
 - Skipping the positioning brief on silvery questions.
-- Sending Pro raw, unreviewed code — read it yourself first (200K context fits a package); fix DRY/complexity issues so Pro's $5-15 buys deep insight, not "extract this duplicated code."
+- Sending `/pro` raw, unreviewed code — read it yourself first (200K context fits a package); fix DRY/complexity issues so the 3 models' time is spent on real insight, not "extract this duplicated code."

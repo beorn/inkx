@@ -1,11 +1,13 @@
 ---
-description: "Think big — reframe the problem, explore 10-20 hypotheses, find the solution that makes the problem unnecessary. Use when stuck, when the fix feels like a patch, or when you suspect the real problem is upstream."
+description: "META-PROTOCOL for reframing the problem (10-20 hypotheses, 2 rounds, find the design where the bug can't happen). Calls /pro or /deep internally — not itself an LLM tool. Use when the fix feels like a patch or the same area keeps breaking. Subsumes /fresh."
 argument-hint: [problem or area]
 benefits-from: [recall, pm, gbrain]
 escalate-to: {arch: "reframing reveals missing abstraction or layer", render: "root cause is in silvery pipeline design"}
 ---
 
 # Think Big — What If This Problem Didn't Need to Exist?
+
+**This is a meta-protocol, not an LLM tool.** It calls `/pro` or `/deep` internally during Phase 3 — its value is the structured 10-20-hypothesis reframing workflow, not the model call.
 
 **STOP fixing. START reframing.**
 
@@ -65,8 +67,8 @@ Your own hypotheses have blind spots. **Always consult at least one external per
 
 | Tool | Best for | Cost |
 |---|---|---|
-| **`/pro "question"`** | "Is this design sound? What am I missing?" — with code context | ~$1-3 |
-| **`/llm "question"`** | Quick prior art — "how does VS Code handle X?" | Free-$0.50 |
+| **`/pro "question"`** | "Is this design sound? What am I missing?" — 3-leg + judge with code context | ~$0.20 |
+| **`/ask "question"`** | Quick prior art — "how does VS Code handle X?" — single model | ~$0.02 |
 | **`/llm --deep`** | Research with web search + citations | ~$2-5 |
 | **`/csw`** | Compare 4+ approaches with decision matrix | Free (internal) |
 | **`bun recall "keywords"`** | Check if prior sessions already explored this | Free |
