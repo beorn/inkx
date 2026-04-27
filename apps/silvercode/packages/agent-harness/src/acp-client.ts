@@ -26,7 +26,7 @@
  * (bead `km-silvercode.acp-session`), this mapping moves to a thin
  * pass-through and the existing inline mapper retires.
  *
- * Reference: hub/silvery/future/ai-terminal/10-agent-router-landscape.md
+ * Reference: hub/silvercode/future/ai-terminal/10-agent-router-landscape.md
  *            § "How ACP is set up and consumed (concrete)".
  */
 
@@ -523,6 +523,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 
   // Build the Client callback bridge.
   const client: acp.Client = {
+    // eslint-disable-next-line @typescript-eslint/require-await
     async sessionUpdate(params: acp.SessionNotification): Promise<void> {
       dWire("sessionUpdate %s", params.update.sessionUpdate)
       try {

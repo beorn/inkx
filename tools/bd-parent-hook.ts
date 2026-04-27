@@ -73,7 +73,7 @@ function parseCreate(cmd: string): { id: string; rest: string; full: string } | 
   if (/\B--parent\b/.test(firstSegment)) return null  // already parented
 
   const idMatch = firstSegment.match(/--id\s+(\S+)/)
-  if (!idMatch) return null
+  if (!idMatch?.[1]) return null
   return { id: idMatch[1], rest: firstSegment, full: cmd }
 }
 
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
 
   let parsed: PreToolUseInput
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(raw) as PreToolUseInput
   } catch {
     emit(passthrough)
   }
