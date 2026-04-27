@@ -311,7 +311,11 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     const truncated =
       lines.length > 40 ? [...lines.slice(0, 40), `… (${lines.length - 40} more lines)`].join("\n") : json
     return {
-      body: <SyntaxHighlighter language="json" code={truncated} bare />,
+      body: (
+        <Box flexDirection="column" paddingX={2} paddingY={1}>
+          <SyntaxHighlighter language="json" code={truncated} bare />
+        </Box>
+      ),
       // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
       // by the right-edge constraint on typical terminal widths.
       maxWidth: 80,
