@@ -12,6 +12,15 @@
 export * from "./events.ts"
 export { createStreamJsonParser, createLineSplitter } from "./parse.ts"
 export type { StreamJsonParser } from "./parse.ts"
+// Layer 3 transcript loop-closure (ambient-context-safety.md § 3 Layer 3).
+// The parser auto-applies `quarantineLeadingRolePrefix` to every assistant
+// text block; these exports let the silvercode transcript builder do the
+// same when it works directly with `messages[]` arrays.
+export {
+  ASSISTANT_ROLE_QUARANTINE_SENTINEL,
+  quarantineLeadingRolePrefix,
+  startsWithRolePrefix,
+} from "./transcript-loop-closure.ts"
 export { spawnClaude } from "./spawn.ts"
 export type { SpawnClaudeOptions, McpServerSpec } from "./spawn.ts"
 export { spawnSdk } from "./sdk-adapter.ts"

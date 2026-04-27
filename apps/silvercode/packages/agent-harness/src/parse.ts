@@ -29,6 +29,7 @@ import type {
   ToolUseId,
   TurnId,
 } from "./events.ts"
+import { quarantineLeadingRolePrefix } from "./transcript-loop-closure.ts"
 
 type Emit = (event: AgentEvent) => void
 
@@ -381,7 +382,14 @@ export function createStreamJsonParser(emit: Emit): StreamJsonParser {
       ? (rawContent as Array<Record<string, unknown>>)
           .map((b): ContentBlock | null => {
             const t = b.type
-            if (t === "text") return { type: "text", text: String(b.text ?? "") }
+            if (t === "text") {
+              // Layer 3 loop-closure: if the assistant text starts with a
+              // role-prefix marker, quarantine it inline so the next
+              // session's transcript builder does not re-ingest it as a
+              // synthetic user turn. See ambient-context-safety.md § 3
+              // Layer 3 / forensic session e8967322.
+              return { type: "text", text: quarantineLeadingRolePrefix(String(b.text ?? "")) }
+            }
             if (t === "thinking") return { type: "thinking", text: String(b.thinking ?? b.text ?? "") }
             if (t === "tool_use") {
               return {
