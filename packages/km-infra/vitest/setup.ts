@@ -107,13 +107,12 @@ if (process.env.SILVERY_STRICT !== "0") process.env.SILVERY_STRICT = "1"
 //   (covers `render`-based tests that never call `createApp.cleanup()`).
 // - process.exit: catch-all for anything that survived both above hooks.
 if (process.env.SILVERY_INSTRUMENT === "1") {
-  const histogramFile =
-    process.env.SILVERY_INSTRUMENT_FILE ?? `/tmp/silvery-pass-histogram-${process.pid}.jsonl`
+  const histogramFile = process.env.SILVERY_INSTRUMENT_FILE ?? `/tmp/silvery-pass-histogram-${process.pid}.jsonl`
   process.env.SILVERY_INSTRUMENT_FILE = histogramFile
+  /* eslint-disable @typescript-eslint/no-require-imports, no-undef -- lazy require avoids loading silvery in non-instrumented test runs */
   // Per-test flush — covers `render`-based tests (no `createApp` teardown).
   afterEach(() => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { appendHistogramJson, resetPassHistogram } =
         require("@silvery/ag-term") as typeof import("@silvery/ag-term")
       appendHistogramJson(histogramFile)
@@ -124,13 +123,13 @@ if (process.env.SILVERY_INSTRUMENT === "1") {
   })
   process.on("exit", () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { appendHistogramJson } = require("@silvery/ag-term") as typeof import("@silvery/ag-term")
       appendHistogramJson(histogramFile)
     } catch {
       // Silvery not present in this test scope — ignore.
     }
   })
+  /* eslint-enable @typescript-eslint/no-require-imports, no-undef */
 }
 
 // SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
