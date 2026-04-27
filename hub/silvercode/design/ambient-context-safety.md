@@ -62,16 +62,20 @@ Layers 1+1b prevent slot contamination. Layer 2 hardens the payload. Layer 3 pre
 
 Tribe + recall ambient injection is currently disabled in the user's daily flow. Each phase has a verification gate; no phase advances until its gate passes.
 
-### Phase 0 — Forensic-content quarantine (immediate, highest leverage)
+### Phase 0 — Forensic-content quarantine (immediate, highest leverage) — SHIPPED 2026-04-27
 
 Stop the active cross-session compounding hazard before doing anything else.
 
-- `.recall-ignore` the forensic JSONL: `~/.config/claude-profiles/bjorn@stabell.org/projects/-Users-beorn-Code-pim-km/e8967322-6b58-43db-80b0-1da644ea964d.jsonl`.
-- `.recall-ignore` the active log: `~/.claude/role-prefix-violations.log`.
-- Re-encode any literal trigger tokens in this design + bead descriptions as descriptions (already done in this revision).
-- Delete the redundant project-level hook `apps/silvercode/.claude/hooks/check-role-prefix.sh` and stale `~/.claude/role-prefix-incidents.log`. Update `tools/lint-claude-config.ts` accordingly.
+**Canonical quarantine mechanism: `~/.claude/.recall-ignore`** (one path/glob per line, `~/` expansion, `**` globs, `#` comments). Implemented in `vendor/bearly/plugins/recall/src/history/indexer.ts` via `loadRecallIgnore()` + `pruneIgnoredSessions()` — applied both at scan time (skip in `findSessionFiles`) and at incremental-rebuild time (prune sessions whose stored `jsonl_path` now matches an ignore entry).
 
-**Gate:** recall index excludes both files (verify with `bun recall --raw "<descriptor of the trigger>"` returning zero hits in those paths); lint clean; user-level hook still fires on a synthetic emission test.
+Phase 0 actions:
+
+- Forensic JSONL added to `.recall-ignore`: `~/.config/claude-profiles/bjorn@stabell.org/projects/-Users-beorn-Code-pim-km/e8967322-6b58-43db-80b0-1da644ea964d.jsonl` (and its hardlinked twin under `~/.claude/projects/`).
+- Active log added to `.recall-ignore`: `~/.claude/role-prefix-violations.log` (defensive — not currently in any indexer's scan path, but listed for any future indexer).
+- Literal trigger tokens already removed from this design + bead descriptions (this revision).
+- Redundant project-level hook `apps/silvercode/.claude/hooks/check-role-prefix.sh` confirmed non-existent (silvercode has no `.claude/` dir); `tools/lint-claude-config.ts` does not reference it. Stale `~/.claude/role-prefix-incidents.log` deleted.
+
+**Gate (verified):** `bun recall index --incremental` evicted the forensic session from the FTS5 index (`SELECT id FROM sessions WHERE jsonl_path LIKE '%e8967322%'` returns zero rows); `bun recall --raw "autocatalytic"` returns 10 results, none from the forensic JSONL session id; `bun tools/lint-claude-config.ts` clean; user-level hook fires on a synthetic emission test (logged + sentinel created + `systemMessage` emitted).
 
 ### Phase 1 — Empirical proof of the boundary thesis (single-backend)
 
@@ -152,9 +156,9 @@ For each of the 7 supported backends:
 | `apps/silvercode/src/ambient-sanitize.ts` | 2 | **Planned — Phase 3.** |
 | `apps/silvercode/src/transcript.ts` (loop-closure) | 3 | **Planned — Phase 3. New layer.** |
 | `~/.claude/hooks/detect-role-prefix.sh` | 4 | Active. Keep permanently. |
-| `~/.claude/role-prefix-violations.log` + state sentinels | 4 | Active. Quarantine in Phase 0. Use as binary-blob eval-corpus source. |
-| `apps/silvercode/.claude/hooks/check-role-prefix.sh` | — | Redundant duplicate. **Delete in Phase 0.** |
-| `~/.claude/role-prefix-incidents.log` | — | Stale. **Delete in Phase 0.** |
+| `~/.claude/role-prefix-violations.log` + state sentinels | 4 | Active. Listed in `.recall-ignore` (Phase 0). Use as binary-blob eval-corpus source. |
+| `apps/silvercode/.claude/hooks/check-role-prefix.sh` | — | Confirmed non-existent (silvercode has no `.claude/` dir). |
+| `~/.claude/role-prefix-incidents.log` | — | Deleted Phase 0 (2026-04-27). |
 | Memory feedback entries (7 files) | — | Planning-time guidance. Keep, don't churn. Not load-bearing for the fix. |
 
 ---
