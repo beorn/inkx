@@ -139,16 +139,19 @@ Checklist before launching the Agent calls:
 | **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | **Worktree** preferred, shared OK |
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
-**Worktree commit rules (CRITICAL):**
-- Agents in worktrees **MUST commit** their changes. Clones live at `.claude/worktrees/<name>/`. As of 2026-04-24, the WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved. Either way, the clone is no longer on main's branch graph — without a commit, the work either stays orphaned (preserved) or vanishes (deleted).
-- **Every worktree agent prompt MUST end with explicit commit instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
+**Worktree commit-AND-push rules (CRITICAL):**
+- Agents in worktrees **MUST commit AND push** their changes. Clones live at `.claude/worktrees/<name>/`. As of 2026-04-24, the WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved. Either way, the clone is no longer on main's branch graph — without a commit AND push, the work either stays orphaned in a stale clone (preserved) or vanishes (deleted).
+- **Every worktree agent prompt MUST end with explicit commit-AND-push instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
 
   > CRITICAL: You are in a worktree at `.claude/worktrees/<your-name>/`.
-  > You MUST commit before finishing. Uncommitted work is invisible to
-  > the parent session. Commit early and often with conventional
-  > commits. Your final message MUST include the commit SHA as proof.
+  > You MUST commit AND push to origin before finishing. Uncommitted
+  > or un-pushed work is invisible to the parent session. Commit early
+  > and often with conventional commits, then `git push origin
+  > <branch>`. Your final message MUST include the SHA reported by
+  > `git ls-remote origin <branch>` as proof of push (NOT from local
+  > `git log` — that doesn't prove the work reached origin).
 
-  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. Even though the WorktreeRemove hook will preserve a clone with uncommitted changes, the parent session can't see that work without an explicit recovery step — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
+  **Why this is mandatory**: In the @silvery/selection session (2026-04), three agents lost ALL their work because they finished without committing. In the plateau-90 session (2026-04-27), feedback-trace's v3.1 (`e0fc140c`) and the C1 fossil-deletion agent's `725ea161` BOTH committed but did NOT push — both required the lead to manually push from the worktree. The 2026-04-24 fix mandated commit; the 2026-04-27 finding mandates push verification via `ls-remote`. The `ls-remote` step is what closes the gap: a commit can exist locally without reaching origin, and the parent session can't see the work until origin has it.
 
 - Integrate clone commits back to main via the branch the agent committed on (e.g. `git fetch .claude/worktrees/<name> main:<branch>` or `git cherry-pick -X theirs <sha>` from main). `bun worktree merge` only applies to `bun worktree`-created branches.
 
