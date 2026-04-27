@@ -4,12 +4,12 @@
  * Manages the km daemon - a background process for sync and automation
  */
 
-import { createLogger } from "loggily"
+import { createLogger, addWriter, createFileWriter } from "loggily"
 import { createServer, connect } from "net"
 import type { Socket } from "net"
 
 const log = createLogger("km:cli:daemon")
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync } from "fs"
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
@@ -332,6 +332,12 @@ class KmDaemon extends EventEmitter {
     this.repoPath = repoPath
     this.paths = getDaemonPaths(kmDir)
 
+    // Wire loggily to mirror to the daemon log file. The km:cli:daemon
+    // namespace + addWriter is the canonical observability path; previously
+    // a parallel raw-fs appendFileSync shadow wrote to the same path.
+    const fileWriter = createFileWriter(this.paths.log)
+    addWriter((formatted) => fileWriter.write(formatted))
+
     // Open database directly from kmDir
     const db = new Database(join(kmDir, "state.db"))
 
@@ -365,18 +371,13 @@ class KmDaemon extends EventEmitter {
   }
 
   /**
-   * Log a message (to console in foreground, or log file in background)
+   * Log a message — routes through the loggily km:cli:daemon namespace.
+   * The constructor wires a file writer at this.paths.log; foreground mode
+   * also surfaces a styled echo to the user's console.
    */
   private log(message: string, level: "info" | "error" = "info"): void {
-    const timestamp = new Date().toISOString()
-    const line = `[${timestamp}] ${level.toUpperCase()}: ${message}\n`
-
-    // Always log to file
-    try {
-      appendFileSync(this.paths.log, line)
-    } catch {
-      // Ignore log errors
-    }
+    if (level === "error") log.error?.(message)
+    else log.info?.(message)
 
     // In foreground mode, also log to console
     if (process.env.KM_DAEMON_FOREGROUND) {

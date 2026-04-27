@@ -42,7 +42,17 @@ EXIT=0
 #                                 the real loggily import with a noop createLogger;
 #                                 this is exactly the cross-platform shim
 #                                 pattern the lint exists to allow)
-ALLOWLIST_PATTERN='\(/loggily/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|/scripts/\|/tools/\|/docs/\|/hub/\|README\|CHANGELOG\|\.md$\|/\.claude/skills/\|/\.claude/worktrees/\|/web/stubs/\)'
+#   backtest-runs.jsonl,
+#   dual-pro-promotions.jsonl,
+#   ab-pro.jsonl              — domain-data JSONL (km-bearly llm dual-pro
+#                                 archive + leaderboard). Schema-versioned
+#                                 application data with explicit `schema:`
+#                                 field, queryable across runs. NOT
+#                                 observability — the regex matches because
+#                                 .jsonl is broad, but loggily is wrong tool
+#                                 for persistent app state. Match patterns
+#                                 anchor on the appendFileSync argument.
+ALLOWLIST_PATTERN='\(/loggily/\|/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|/scripts/\|/tools/\|/docs/\|/hub/\|README\|CHANGELOG\|\.md$\|/\.claude/skills/\|/\.claude/worktrees/\|/web/stubs/\|backtest-runs\.jsonl\|dual-pro-promotions\.jsonl\|ab-pro\.jsonl\)'
 
 SEARCH_ROOTS='apps packages vendor'
 
@@ -64,14 +74,16 @@ BASELINE_LOCAL_CREATELOGGER=0    # `export function createLogger` outside vendor
                                   # Was 2 (bg-recall + injection-envelope) pre km-bearly.
                                   # unified-observability; both deleted/migrated.
                                   # Goal: stay at 0.
-BASELINE_APPEND_LOG_FILE=6        # `appendFileSync` writing to .log / .jsonl paths.
-                                  # Today's offenders (tracked in km-bearly.llm-loggily-migration):
-                                  #   - apps/km-cli/src/commands/daemon.ts (1)
-                                  #   - vendor/bearly/plugins/llm/src/lib/dual-pro.ts (2 — backtest + promotions JSONL)
-                                  #   - vendor/bearly/plugins/llm/src/lib/dispatch.ts (1 — ab-pro JSONL)
+BASELINE_APPEND_LOG_FILE=2        # `appendFileSync` writing to .log / .jsonl paths.
+                                  # Today's remaining offenders:
                                   #   - vendor/silvery/packages/ag-term/src/runtime/create-app.tsx (2 — debug trace)
-                                  # The obs bead's lint baseline missed these; bumping to 6
-                                  # to honestly reflect main today. Migration tracked separately.
+                                  # Migration of the silvery debug trace is tracked in
+                                  # km-bearly.llm-loggily-migration (deferred — touches a
+                                  # vendor submodule with parallel-session WIP).
+                                  # Already migrated/allowlisted:
+                                  #   - apps/km-cli/src/commands/daemon.ts → loggily km:cli:daemon namespace
+                                  #   - vendor/bearly/plugins/llm/src/lib/dual-pro.ts (2) → ALLOWLIST (domain data)
+                                  #   - vendor/bearly/plugins/llm/src/lib/dispatch.ts (1) → ALLOWLIST (domain data)
 BASELINE_DEBUG_LOG_ENV=2          # `_DEBUG_LOG` env-var literals as log file paths.
                                   # Today: INJECTION_DEBUG_LOG (back-compat shim in
                                   # plugins/injection-envelope/src/debug.ts:14,71 — lazily
