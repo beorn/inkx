@@ -1,0 +1,136 @@
+name: Fuzz
+
+# Continuous fuzz harness — runs all *.fuzz.ts files via vitest's `fuzz`
+# project on a nightly schedule and on manual dispatch.
+#
+# Goals:
+#   1. Catch regressions surfaced by random-input testing before they hit a user.
+#   2. Persist the corpus (vimonkey __fuzz_cases__/ directories) across runs so
+#      shrunk failure cases stick around as regression seeds.
+#   3. On any failure: upload the corpus + raw vitest log as artifacts, and
+#      auto-file a bead via packages/km-infra/scripts/fuzz-crash-to-bead.ts so
+#      the crash is tracked even if no human is watching.
+#
+# Tracking bead: km-infra.continuous-fuzz (parent: km-infra.guardrails).
+# Source design: km-all.plateau-90 N1.
+
+on:
+  schedule:
+    # 04:00 UTC every day. Off-hour pick avoids the GH Actions :00 spike.
+    - cron: "7 4 * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Optional FUZZ_SEED to force-reproduce a specific run"
+        required: false
+        type: string
+
+# Only one fuzz run at a time per branch — a slow/long fuzz run shouldn't
+# pile up if cron fires again before it finishes.
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Run fuzz suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The fuzz corpus lives in __fuzz_cases__/ directories alongside each
+      # *.fuzz.ts file (vimonkey convention). We cache by branch + run so the
+      # most recent corpus is preferred, falling back to any earlier corpus
+      # for the branch, and then to any corpus on any branch as a last resort.
+      - name: Restore fuzz corpus
+        id: corpus-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            **/__fuzz_cases__/**
+          key: fuzz-corpus-${{ github.ref_name }}-${{ github.run_number }}
+          restore-keys: |
+            fuzz-corpus-${{ github.ref_name }}-
+            fuzz-corpus-
+
+      - name: Run fuzz suite
+        id: fuzz
+        env:
+          # Honor a user-supplied seed when present, but only on workflow_dispatch.
+          FUZZ_SEED: ${{ inputs.seed }}
+          CI: "true"
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          # `bun run test:fuzz` runs `bun vitest run --project fuzz` — see package.json.
+          bun run test:fuzz 2>&1 | tee test-results/fuzz.log
+
+      # Always save the corpus, even on failure — the freshly-shrunk failing
+      # cases are the most valuable seeds we can carry forward. Different key
+      # space than the restore step so partial-failure caches still land.
+      - name: Save fuzz corpus
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            **/__fuzz_cases__/**
+          key: fuzz-corpus-${{ github.ref_name }}-${{ github.run_number }}
+
+      - name: Upload fuzz log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-log-${{ github.run_number }}
+          path: test-results/fuzz.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload fuzz corpus
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ github.run_number }}
+          path: |
+            **/__fuzz_cases__/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      # The runner doesn't have credentials to push to the Dolt-backed beads
+      # repo, so this step prints the `bd create` command into the workflow log
+      # for human follow-up. The script itself is idempotent — re-runs against
+      # the same seed produce the same bead ID and append-note instead of
+      # creating duplicates. When a `BD_DOLT_TOKEN` secret is added to the
+      # repo, the dry-run gate can be removed and the script can `bd dolt push`
+      # directly.
+      - name: File bead for fuzz crash (dry-run)
+        if: failure()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [[ ! -f test-results/fuzz.log ]]; then
+            echo "::warning::no fuzz log to scan; skipping bead creation"
+            exit 0
+          fi
+          echo "::group::fuzz-crash-to-bead (dry-run)"
+          bun packages/km-infra/scripts/fuzz-crash-to-bead.ts \
+            --input test-results/fuzz.log \
+            --run-url "$RUN_URL" \
+            --dry-run \
+            || echo "::warning::fuzz-crash-to-bead failed to extract a crash"
+          echo "::endgroup::"
+          echo "::notice::Fuzz failed. Reproduce locally; the printed `bd create` command above can be run by a maintainer with bd access to file the bead."
