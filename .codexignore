@@ -1,0 +1,45 @@
+# Codex ignore — paths that add noise during search-driven exploration.
+# Mirrors AGENTS.md "Don't grep / don't read" section.
+
+# Generated
+node_modules/
+.cache/
+dist/
+build/
+out/
+coverage/
+
+# Vendor submodules — generated subdirs only (source files are fair game)
+vendor/*/dist/
+vendor/*/node_modules/
+vendor/*/.cache/
+vendor/*/coverage/
+
+# Issue tracker — opaque dolt DB + jsonl interaction logs (1M+ lines)
+# Use `bd list`, `bd show <id>` instead of grepping these.
+.beads/
+
+# Lockfiles — generated
+bun.lock
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Internal design drafts — reference only, not for editing without explicit ask
+hub/
+
+# Adversarial test fixtures — intentionally opaque base64
+apps/silvercode/tests/eval/fixtures/*.b64
+
+# Worktree clones (km uses .claude/worktrees/ for isolated agents)
+.claude/worktrees/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Misc generated
+*.tsbuildinfo
+.next/
+.turbo/
