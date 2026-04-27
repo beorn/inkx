@@ -26,9 +26,19 @@
  * literal text in this source file. See § 9 of the design doc.
  */
 
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, beforeAll, afterAll } from "vitest"
 import { createStreamJsonParser, type AgentEvent } from "@km/agent-harness"
 import type { ContentBlock } from "@km/agent-harness/events"
+// Layer 3 quarantine fires Layer 4 telemetry on every detection (Phase
+// 6.b — `recordRolePrefixHit` in `ambient-telemetry.ts`). Loggily routes
+// warnings to the console writer at the default level; the harness's
+// afterEach() flags any console output as a test failure. Suppress for
+// the duration of these tests — telemetry is verified separately in
+// `ambient-telemetry.test.ts`.
+import * as _loggily from "loggily"
+const { setSuppressConsole } = _loggily as unknown as {
+  setSuppressConsole: (value: boolean) => void
+}
 import {
   ASSISTANT_ROLE_QUARANTINE_SENTINEL,
   quarantineLeadingRolePrefix,
@@ -47,6 +57,12 @@ const ROLE_U = cc(85, 115, 101, 114)
 const corpus = loadRolePrefixCorpus()
 
 describe("transcript loop-closure — Layer 3", () => {
+  beforeAll(() => {
+    setSuppressConsole(true)
+  })
+  afterAll(() => {
+    setSuppressConsole(false)
+  })
   describe("startsWithRolePrefix", () => {
     test("detects role marker at start of string", () => {
       expect(startsWithRolePrefix(`${ROLE_H}: hi`)).toBe(true)

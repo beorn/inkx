@@ -124,13 +124,56 @@ function sizeBound(s: string, maxBytes: number): string {
  *   4. Size-bound LAST so the truncation marker isn't stripped.
  */
 export function sanitizeAmbient(payload: string, opts: { maxBytes?: number } = {}): string {
+  return sanitizeAmbientWithReport(payload, opts).output
+}
+
+/**
+ * Per-action breakdown of what `sanitizeAmbient` actually did to the
+ * input. Returned by `sanitizeAmbientWithReport` so Layer 4 telemetry
+ * can record exactly which transformations fired (Phase 6.b).
+ *
+ * Each boolean is `true` iff that pass produced a different result —
+ * benign payloads return all-`false`. Order of the booleans matches the
+ * pass order in `sanitizeAmbient`.
+ */
+export type SanitizeReport = {
+  readonly output: string
+  readonly ansiStripped: boolean
+  readonly nfcNormalized: boolean
+  readonly rolePrefixNeutralized: boolean
+  readonly sizeTruncated: boolean
+  /**
+   * First 8 code units of the input — only populated when
+   * `rolePrefixNeutralized` is true, so telemetry has a redacted
+   * snippet to log without storing the full payload.
+   */
+  readonly rolePrefixSnippet?: string
+}
+
+/**
+ * Same as `sanitizeAmbient` but reports which passes fired. Used by
+ * the telemetry-instrumented call-sites; pure-logic call-sites should
+ * keep using `sanitizeAmbient` directly.
+ */
+export function sanitizeAmbientWithReport(payload: string, opts: { maxBytes?: number } = {}): SanitizeReport {
   const maxBytes = opts.maxBytes ?? MAX_AMBIENT_BYTES
-  let s = payload
-  s = stripAnsiAndControls(s)
-  s = s.normalize("NFC")
-  s = neutralizeRolePrefixes(s)
-  s = sizeBound(s, maxBytes)
-  return s
+  const stripped = stripAnsiAndControls(payload)
+  const ansiStripped = stripped !== payload
+  const normalized = stripped.normalize("NFC")
+  const nfcNormalized = normalized !== stripped
+  const neutralized = neutralizeRolePrefixes(normalized)
+  const rolePrefixNeutralized = neutralized !== normalized
+  const bounded = sizeBound(neutralized, maxBytes)
+  const sizeTruncated = bounded !== neutralized
+  const rolePrefixSnippet = rolePrefixNeutralized ? payload.slice(0, 8) : undefined
+  return {
+    output: bounded,
+    ansiStripped,
+    nfcNormalized,
+    rolePrefixNeutralized,
+    sizeTruncated,
+    rolePrefixSnippet,
+  }
 }
 
 /**

@@ -30,6 +30,7 @@ import {
 // pattern-match on `thinking` / `tool_use` blocks too — those flow through
 // assistant messages alongside `text` blocks.
 import type { ContentBlock } from "@km/agent-harness/events"
+import { recordRolePrefixHit } from "./ambient-telemetry.ts"
 
 export { ASSISTANT_ROLE_QUARANTINE_SENTINEL, quarantineLeadingRolePrefix, startsWithRolePrefix }
 
@@ -49,12 +50,24 @@ export type TranscriptMessage = {
  *     message. We never split into a pseudo-user turn.
  *
  * Returns a new array (does not mutate `messages`).
+ *
+ * `opts.sessionId` is forwarded to telemetry when a role-prefix is
+ * detected — Layer 4 ambient observability surface.
  */
 export function safeAppendAssistantTurn(
   messages: readonly TranscriptMessage[],
   assistantText: string,
+  opts: { sessionId?: string } = {},
 ): TranscriptMessage[] {
   const safe = quarantineLeadingRolePrefix(assistantText)
+  if (safe !== assistantText) {
+    recordRolePrefixHit({
+      source: "loop-closure",
+      layer: "loop-closure",
+      snippet: assistantText,
+      sessionId: opts.sessionId,
+    })
+  }
   return [...messages, { role: "assistant", content: safe }]
 }
 
@@ -67,11 +80,20 @@ export function safeAppendAssistantTurn(
  * directly (e.g. when building the next-turn prompt context from a
  * resumed session's parsed assistant message).
  */
-export function sanitizeAssistantContentBlocks(blocks: readonly ContentBlock[]): ContentBlock[] {
+export function sanitizeAssistantContentBlocks(
+  blocks: readonly ContentBlock[],
+  opts: { sessionId?: string } = {},
+): ContentBlock[] {
   return blocks.map((b) => {
     if (b.type !== "text") return b
     const safe = quarantineLeadingRolePrefix(b.text)
     if (safe === b.text) return b
+    recordRolePrefixHit({
+      source: "loop-closure",
+      layer: "loop-closure",
+      snippet: b.text,
+      sessionId: opts.sessionId,
+    })
     return { type: "text", text: safe }
   })
 }
