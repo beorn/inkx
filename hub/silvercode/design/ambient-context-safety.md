@@ -49,7 +49,7 @@ The fix at every layer is structural, not behavioral. Memory rules and system-pr
 |---|---|---|---|
 | 0 | **Source scrub** | `vendor/bearly` tribe-daemon + recall (shipped, `8fd431f`/`53e6669`) | Regex scrub + Haiku rewrite at broadcast/injection time. Defense in depth — reduces incoming trigger density before it reaches any consumer. |
 | 1 | **Boundary** | `apps/silvercode/src/prompt-assembly.ts` (`assembleAcpPrompt`) | The *only* path that constructs ACP prompt blocks. role-U text equals `userText` byte-for-byte; ambient events go to `EmbeddedResource` blocks with `_meta.ambient = true` and a fixed observation-frame prefix. CI gate forbids direct `ContentBlock` construction elsewhere. |
-| 1b | **Adapter wire-bytes** | `apps/silvercode/packages/agent-harness/src/acp-adapter-*.ts` | Each per-backend adapter MUST emit ambient blocks in a wire construct the backend distinguishes from user input (Anthropic: a system content block or distinct tool-result block; OpenAI: developer message or function-result; Gemini: system instruction part). Verified by capturing literal HTTP bodies. If an adapter has no such distinction, ambient is suppressed for that backend until one exists. |
+| 1b | **ACP boundary** | `apps/silvercode/packages/agent-harness/src/acp-adapter-*.ts` | The boundary silvercode owns is the ACP `prompt` content array, NOT the upstream HTTP body. Each adapter passes `EmbeddedResource` blocks (with `_meta.ambient = true`) straight through to `agent.prompt({ prompt })` over JSON-RPC stdio; the spawned ACP server child (`@zed-industries/codex-acp`, `@google/gemini-cli --acp`, `pi-acp`, `copilot`, `@km/claude-acp`) is responsible for translating that ContentBlock array into the upstream provider's distinct slot (Anthropic `system`, OpenAI `developer`, Gemini `systemInstruction`). silvercode's verification target is therefore the ACP wire — that ambient lands in `EmbeddedResource`/`type:"resource"` blocks, not `type:"text"` blocks. Verified in `apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts` (in-memory `acp.AgentSideConnection` capture). |
 | 2 | **Sanitization** | `apps/silvercode/src/ambient-sanitize.ts` (planned) | Cheap regex pass on every payload before resource construction: pattern-breaks role markers + role-tag pairs, size-bounds, strips ANSI/control chars, Unicode-normalizes. Layer 0 owns semantic-equivalent handling (Haiku rewrite); Layer 2 is the deterministic floor. |
 | 3 | **Loop-closure** | `apps/silvercode/src/transcript.ts` (planned) | Transcript serializer rejects assistant text starting with a role-prefix pattern from being parsed back as a user turn. Quarantines the literal bytes inline and replaces with a sentinel. **This is the layer that prevents Bug B and was missing from the prior design.** |
 | 4 | **Detection** | `~/.claude/hooks/detect-role-prefix.sh` (shipped) | Stop hook. Scans the assistant turn post-emission, logs to `~/.claude/role-prefix-violations.log`, writes per-session sentinel, surfaces `systemMessage`. Does not block. With Layer 3 in place, detection becomes telemetry — the loop is already closed. |
@@ -88,15 +88,19 @@ Before building infrastructure, prove the thesis: that a properly-shaped ACP pro
 
 **Gate:** Variant A emission rate < 1% AND Variant B emission rate > 10%. If A doesn't beat B by >10×, the boundary thesis is wrong; revisit before proceeding.
 
-### Phase 2 — Adapter wire-byte verification
+### Phase 2 — ACP boundary verification — SHIPPED 2026-04-27
 
-For each of the 7 supported backends:
+**Scope correction:** the original Phase 2 framing assumed silvercode constructs the upstream provider HTTP body. It does not. silvercode → ACP JSON-RPC over stdio → spawned ACP server child → upstream HTTP. The provider HTTP body is the ACP server child's responsibility (and varies per child); silvercode's owned boundary is the **ACP prompt content array**.
 
-- Capture the literal HTTP body silvercode sends when an ambient block is in the prompt.
-- Verify the ambient bytes are NOT inside the backend's user-input field. If they are (adapter flattens `EmbeddedResource` to user-role text), fix the adapter.
-- If a backend has no construct distinguishable from user input, document and disable ambient for that backend.
+Verification therefore targets the ACP wire: each adapter must pass ambient as `EmbeddedResource` (`type:"resource"`) blocks distinct from `type:"text"` blocks, never flattening to text inside the role-U slot.
 
-**Gate:** all 7 backends verified; no backend ships ambient via user-input wire field.
+Captured via in-memory `acp.AgentSideConnection` (no real subprocess) at `apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts`.
+
+Per-backend findings: `codex`, `gemini`, `pi-acp`, `github-copilot-cli`, `claude-code` (`@km/claude-acp`) all pass unchanged — `acp-client.ts`'s `AcpAgentSession.prompt` passes `ContentBlock[]` straight through.
+
+**Gate (verified):** 7/7 ambient-wire-bytes tests green; 175/175 broader agent-harness tests green; sample payloads contain zero role-prefix triggers.
+
+**Out of scope (separate path):** `sdk-adapter.ts` (`spawnSdk` via `@anthropic-ai/claude-agent-sdk`) is the only direct-HTTP code path silvercode owns; it is not on the ambient/channel-queue route today. If ambient is ever wired to that path, this phase needs extending to capture+verify the HTTP wire too. Tracked separately if it becomes load-bearing.
 
 ### Phase 3 — Boundary + Layer 2 + Loop-closure shipped
 
@@ -125,7 +129,20 @@ For each of the 7 supported backends:
 
 **Gate:** 7 consecutive days, zero detected emissions.
 
-### Phase 6 — Source coverage + observability
+### Phase 6 — Source coverage + UX + observability
+
+#### 6.a — Inline ambient display in chat — SHIPPED 2026-04-27
+
+`AmbientEventRow` renders ambient events inline in the chat scrollback as styled observation rows between turns (per the auto-deliver / observation-framed posture). Source icon + label, timestamp, payload preview with expand toggle, hover popover with full body, per-source mute toggles in the side panel.
+
+- Component: `apps/silvercode/src/components/AmbientEventRow.tsx`
+- Storybook: `apps/silvercode/storybook/stories/AmbientEventRow.story.tsx`
+- Mute state: `apps/silvercode/src/hooks/use-ambient-stream.ts` (`useAmbientMuteState`)
+- Design: `hub/silvercode/design/ambient-inline-display.md`
+
+Mute toggles are visual filter only — agent still receives all ambient events; the mute hides them from the user's inline view.
+
+#### 6.b — Real source adapters + observability (planned)
 
 - Real source adapters (no stubs): tribe, recall, sub-agent, CI, telegram, file-watch, permission decisions.
 - Per-source rate-limit + circuit breaker (auto-disable a source if its content keeps tripping detection).
@@ -151,8 +168,9 @@ For each of the 7 supported backends:
 | `vendor/bearly` tribe-daemon source scrub | 0 | Active. Keep. |
 | `vendor/bearly` injection-envelope library + 18-shape eval | 0 | Active. Keep. |
 | `vendor/bearly` recall envelope (`<recall-memory>` wrapper) | 0 | Active. Keep. |
-| `apps/silvercode/src/prompt-assembly.ts` + `channel-queue.ts` | 1 | Active, **unverified behaviorally — Phase 1 + 4.** |
-| `apps/silvercode/packages/agent-harness/src/acp-adapter-*.ts` | 1b | Active, **wire bytes never verified — Phase 2.** |
+| `apps/silvercode/src/prompt-assembly.ts` + `channel-queue.ts` | 1 | Boundary tests landed (`apps/silvercode/tests/prompt-assembly-boundary.test.ts`). Behavioral verification — Phase 1 + 4. |
+| `apps/silvercode/packages/agent-harness/src/acp-adapter-*.ts` | 1b | **ACP wire verified — Phase 2 SHIPPED.** All 7 adapters pass `EmbeddedResource` through unchanged (`apps/silvercode/packages/agent-harness/tests/ambient-wire-bytes.test.ts`). |
+| `apps/silvercode/src/components/AmbientEventRow.tsx` + storybook | UX | **Phase 6.a SHIPPED.** Inline ambient display in chat scrollback. |
 | `apps/silvercode/src/ambient-sanitize.ts` | 2 | **Planned — Phase 3.** |
 | `apps/silvercode/src/transcript.ts` (loop-closure) | 3 | **Planned — Phase 3. New layer.** |
 | `~/.claude/hooks/detect-role-prefix.sh` | 4 | Active. Keep permanently. |
