@@ -281,6 +281,34 @@ export function App(props: AppProps): React.ReactElement {
   const [thinking, setThinking] = useState<string>("")
   const [showInbox, setShowInbox] = useState(false)
 
+  // Pending-permission count across all sessions, kept in sync via per-store
+  // subscriptions. Bumps on every state.apply() so we can auto-surface the
+  // inbox when a permission-request arrives and disable the composer so
+  // in-flight keystrokes can't accidentally answer the prompt.
+  const [pendingPermissions, setPendingPermissions] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    const recompute = () => {
+      if (cancelled) return
+      let total = 0
+      for (const s of sessions) total += s.store.state.get().permissions.length
+      setPendingPermissions(total)
+    }
+    recompute()
+    const unsubs = sessions.map((s) => s.store.state.subscribe(recompute))
+    return () => {
+      cancelled = true
+      for (const u of unsubs) u()
+    }
+  }, [sessions])
+
+  // Auto-surface the inbox when ANY session has a pending request. Codex /
+  // ACP otherwise hangs forever waiting on a respondPermission write the
+  // user has no UI to trigger.
+  useEffect(() => {
+    if (pendingPermissions > 0) setShowInbox(true)
+  }, [pendingPermissions])
+
   // Side panel disclosure — auto-default driven by viewport breakpoint;
   // manual toggle pins for the session (Ctrl+O / Ctrl+Y / /panel / /aside / /todos).
   // Auto-default: open at lg (120 cols) and above; closed below.
@@ -1216,7 +1244,7 @@ export function App(props: AppProps): React.ReactElement {
                           onFocusRegion={setFocusedRegion}
                           inputValue={inputValue}
                           onInputChange={setInputValue}
-                          inputDisabled={!focused}
+                          inputDisabled={!focused || pendingPermissions > 0}
                           onSubmit={handleSubmit}
                           onExit={requestExit}
                           promptColor={promptColor}
