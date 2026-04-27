@@ -1,6 +1,54 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-26 (flexily explicit-flexShrink=0 fix — gutter-collapse regression)
+Last updated: 2026-04-26 (scrollTo same-intent recovery — multi-pass layout convergence)
+
+## scrollTo same-intent recovery: multi-pass layout convergence (2026-04-26)
+
+**Bead**: `km-silvery.listview-resize-scroll-target` (P2, closed). Fix shipped as silvery `f7adc32b`; regression test added as silvery `a99728e8`.
+
+**Symptom**: SILVERY_STRICT INV-2 fires after viewport resize / multi-pass layout while `scrollTo` is unchanged:
+
+```
+[SILVERY_STRICT] scrollTo target index=20 does not intersect viewport
+(target [158,167), visible [122,146), indicatorReserve=0)
+```
+
+**Root cause**: `calculateScrollState` gated ensure-visible on `scrollToChanged !== prevScrollTo`. During multi-pass layout convergence (resize, ListView measurement loop, virtualizer window shift, layered useLayoutEffects), the first pass writes `scrollOffset` based on partial measurements (small `contentHeight`); subsequent passes grow `contentHeight` as items measure. The cached offset stays stuck — the target is now far below `visibleBottom` even though scrollTo intent didn't change. The "fire on change" guard (commit 671a06b0, prevents click-to-expand viewport yank) blocked the recovery.
+
+**Fix** (silvery `f7adc32b`, `packages/ag-term/src/pipeline/layout-phase.ts:670`):
+
+```ts
+let targetCompletelyOffscreen = false
+if (!scrollToChanged && scrollTo !== undefined && scrollTo >= 0 && scrollTo < childPositions.length) {
+  const target = childPositions.find((c) => c.index === scrollTo)
+  if (target && target.top !== target.bottom) {
+    const visTop = scrollOffset
+    const visBottom = scrollOffset + viewportHeight
+    if (!(target.bottom > visTop && target.top < visBottom)) targetCompletelyOffscreen = true
+  }
+}
+if (
+  scrollTo !== undefined &&
+  scrollTo >= 0 &&
+  scrollTo < childPositions.length &&
+  (scrollToChanged || targetCompletelyOffscreen) // ← recovery
+) { /* …existing ensure-visible block… */ }
+```
+
+Conservative: only re-fires when the target has ZERO intersection with the raw viewport. Partial visibility (target grew, `target.bottom > visibleBottom` but `target.top < visibleBottom`) is left alone — that's the "click-to-expand should not yank viewport" guarantee preserved from the original guard.
+
+Companion fix in same commit: `MAX_SINGLE_PASS_ITERATIONS` 5 → 15 to accommodate multi-stage layout feedback chains where layered `useLayoutEffect`s compound 8+ commits during complex events (Tab focus + fold-state cascade).
+
+**Lessons**:
+- The "fire on change only" semantic (mature scroll APIs: `@tanstack/virtual.scrollToIndex`, react-window, iOS UIScrollView) is correct for click-to-expand but creates a stuck-offset trap during multi-pass measurement convergence. Recovery must be a SEPARATE branch gated on observable invalidity (target off-screen) — not on change detection.
+- `scrollToChanged === prevScrollTo !== scrollTo` is necessary but not sufficient. The cached offset can become invalid for reasons orthogonal to scrollTo intent: viewport resize, late item measurement, sibling growth shifting `contentHeight`. Always pair the change-guard with a "is the cached state still valid?" check.
+- Multi-pass layout convergence is the gap STRICT correctly catches. Without STRICT, the bug appears as "target sometimes invisible after resize" — flaky enough to look like a render race rather than a deterministic offset-clamp issue.
+
+**Where this lives**:
+- `vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts` — `calculateScrollState` (line ~670)
+- `vendor/silvery/tests/features/box-scroll-stable-on-growth.test.tsx` — 6 tests covering both the change-guard AND the recovery (the 6th test, "same-intent recovery: target completely off-screen re-fires ensure-visible", is the focused regression for this bead)
+- `vendor/silvery/tests/features/listview-scroll-properties.fuzz.tsx` — INV-2 fuzz coverage (200 random seeds × 3 tests)
+- `vendor/silvery/packages/ag-term/src/runtime/renderer.ts` — `MAX_SINGLE_PASS_ITERATIONS = 15`
 
 ## flexily explicit-flexShrink=0 must be honored for overflow=hidden boxes (2026-04-26)
 
