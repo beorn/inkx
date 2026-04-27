@@ -769,11 +769,24 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     },
 
     async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {
+      // Mirrors the `send()` path — without a synthetic turn-end emitted
+      // when the prompt resolves, session-store's status stays in the
+      // in-progress state forever ("Refining…" indicator never clears).
+      // ACP has no wire-level turn-end; the prompt RPC's resolution IS
+      // the turn boundary. (bead km-silvercode.claude-acp-wire-bugs)
       const turnId = ("acp-turn-" + Date.now()) as TurnId
       currentTurnId = turnId
       lastMessageTurnId = null
       try {
-        return await agent.prompt({ sessionId, prompt: content })
+        const response = await agent.prompt({ sessionId, prompt: content })
+        emit({
+          kind: "turn-end",
+          sessionId,
+          turnId: turnIdForPromptEnd(turnId),
+          stopReason: response.stopReason ?? "end_turn",
+          ts: Date.now(),
+        })
+        return response
       } finally {
         if (currentTurnId === turnId) currentTurnId = null
         lastMessageTurnId = null
