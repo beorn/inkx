@@ -451,6 +451,16 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   let sessionId: SessionId = "acp-pending" as SessionId
   let closed = false
   let sentTerm = false
+  // Active prompt turn id — shared across every SessionUpdate notification
+  // that lands between `prompt()` start and resolve. Without this, each
+  // notification minted a fresh `acp-turn-${Date.now()}` and the legacy
+  // session-store keyed each `text-delta` to a new MessageEntry → every
+  // streamed chunk rendered as its own `●` row. Set in `send()`/`prompt()`,
+  // cleared after `turn-end` emits.
+  let currentTurnId: TurnId | null = null
+  function turnIdForUpdate(): TurnId {
+    return currentTurnId ?? (("acp-turn-" + Date.now()) as TurnId)
+  }
 
   function emit(event: AgentEvent): void {
     // `handoff` lacks `sessionId` — narrow before logging.
@@ -497,7 +507,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     async sessionUpdate(params: acp.SessionNotification): Promise<void> {
       dWire("sessionUpdate %s", params.update.sessionUpdate)
       try {
-        const mapped = mapSessionUpdateToLegacyEvents(params, sessionId)
+        const mapped = mapSessionUpdateToLegacyEvents(params, sessionId, turnIdForUpdate())
         for (const ev of mapped) emit(ev)
       } catch (err) {
         emit({
@@ -638,6 +648,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       // Without this, the PromptResponse was silently discarded — no turn-end
       // ever fired → store stayed in "thinking" → 98% CPU busy-loop.
       const turnId = ("acp-turn-" + Date.now()) as TurnId
+      currentTurnId = turnId
       void agent
         .prompt({
           sessionId,
@@ -659,6 +670,9 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
             message: `acp prompt failed: ${err.message}`,
             ts: Date.now(),
           })
+        })
+        .finally(() => {
+          if (currentTurnId === turnId) currentTurnId = null
         })
     },
 
@@ -701,7 +715,13 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     },
 
     async prompt(content: acp.ContentBlock[]): Promise<acp.PromptResponse> {
-      return agent.prompt({ sessionId, prompt: content })
+      const turnId = ("acp-turn-" + Date.now()) as TurnId
+      currentTurnId = turnId
+      try {
+        return await agent.prompt({ sessionId, prompt: content })
+      } finally {
+        if (currentTurnId === turnId) currentTurnId = null
+      }
     },
 
     async cancel(): Promise<void> {
@@ -760,7 +780,11 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
 // directly to those updates and this mapper retires.
 // ---------------------------------------------------------------------------
 
-function mapSessionUpdateToLegacyEvents(params: acp.SessionNotification, fallbackSessionId: SessionId): AgentEvent[] {
+function mapSessionUpdateToLegacyEvents(
+  params: acp.SessionNotification,
+  fallbackSessionId: SessionId,
+  turnId: TurnId,
+): AgentEvent[] {
   // Run the canonical adapter so we exercise the boundary code path. The
   // resulting silvercode-shaped update is what richer consumers will use
   // once acp-session ships; we still emit the legacy event for now.
@@ -780,7 +804,6 @@ function mapSessionUpdateToLegacyEvents(params: acp.SessionNotification, fallbac
   }
 
   const sessionId = (params.sessionId as SessionId) ?? fallbackSessionId
-  const turnId = ("acp-turn-" + Date.now()) as TurnId
   const ts = Date.now()
   const events: AgentEvent[] = []
 

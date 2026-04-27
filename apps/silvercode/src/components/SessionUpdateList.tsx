@@ -305,7 +305,14 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
   // aren't held, the wrapper is a transparent fragment — no handlers, no
   // hover-event cost.
   const popoverContent = useMemo(() => {
+    // Expand JSON's \n / \r / \t escapes to real characters so multi-line
+    // string values (tool output, command, content) render across rows
+    // instead of as literal "\n" runs. Trades JSON syntactic validity for
+    // human readability — the popover is for eyeballing, not parsing.
     const json = JSON.stringify(payload, null, 2)
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "")
+      .replace(/\\t/g, "  ")
     // Trim very long payloads; full payload available via /debug or the JSONL.
     const lines = json.split("\n")
     const truncated =
