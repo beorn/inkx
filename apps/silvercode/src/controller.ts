@@ -827,6 +827,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         // resolved (e.g. an entry with no `--model` and no
         // `defaultModel` on the built-in agent).
         model: s.model ?? "",
+        // ACP loadSession path: when the user passes --resume <sid>,
+        // call agent.loadSession({ sessionId, ... }) instead of
+        // newSession. Throws AcpResumeUnsupportedError if the agent
+        // doesn't advertise loadSession capability. Per ACP registry
+        // (verified 2026-04-26): codex / pi-acp / gemini / claude-code
+        // all support loadSession. The bare sid is what we pass — the
+        // <agent>: prefix added by silvercode on the way out has
+        // already been stripped by the index.tsx --resume parser.
+        resume: s.resume ? { sessionId: s.resume } : undefined,
         clientCapabilities: { fs: { readTextFile: true, writeTextFile: true } },
         fsHandler: {
           async readTextFile({ path }) {
