@@ -43,7 +43,13 @@ export interface AsideLayoutProps {
   asideBackgroundColor?: string
 }
 
-export function AsideLayout({ mode, asideWidth, aside, children, asideBackgroundColor }: AsideLayoutProps): React.ReactElement {
+export function AsideLayout({
+  mode,
+  asideWidth,
+  aside,
+  children,
+  asideBackgroundColor,
+}: AsideLayoutProps): React.ReactElement {
   // The caller's `children` is the main region — it owns its own flexGrow / overflow / etc.
   // AsideLayout only handles the row container + the aside placement.
   if (mode === "hidden") {
