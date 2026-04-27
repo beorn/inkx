@@ -2,3 +2,5 @@ repos:
   primary: "."
   additional:
     - "/Users/beorn/Code/pim/cloudi"
+
+export.path: ".beads/issues.jsonl"
