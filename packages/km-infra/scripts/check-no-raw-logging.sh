@@ -74,16 +74,14 @@ BASELINE_LOCAL_CREATELOGGER=0    # `export function createLogger` outside vendor
                                   # Was 2 (bg-recall + injection-envelope) pre km-bearly.
                                   # unified-observability; both deleted/migrated.
                                   # Goal: stay at 0.
-BASELINE_APPEND_LOG_FILE=2        # `appendFileSync` writing to .log / .jsonl paths.
-                                  # Today's remaining offenders:
-                                  #   - vendor/silvery/packages/ag-term/src/runtime/create-app.tsx (2 — debug trace)
-                                  # Migration of the silvery debug trace is tracked in
-                                  # km-bearly.llm-loggily-migration (deferred — touches a
-                                  # vendor submodule with parallel-session WIP).
-                                  # Already migrated/allowlisted:
+BASELINE_APPEND_LOG_FILE=0        # `appendFileSync` writing to .log / .jsonl paths.
+                                  # All call sites either migrated to loggily or allowlisted as domain data.
+                                  # Migration history (km-bearly.llm-loggily-migration):
                                   #   - apps/km-cli/src/commands/daemon.ts → loggily km:cli:daemon namespace
+                                  #   - vendor/silvery/packages/ag-term/src/runtime/create-app.tsx → loggily silvery:trace namespace (silvery b659f486)
                                   #   - vendor/bearly/plugins/llm/src/lib/dual-pro.ts (2) → ALLOWLIST (domain data)
                                   #   - vendor/bearly/plugins/llm/src/lib/dispatch.ts (1) → ALLOWLIST (domain data)
+                                  # Goal achieved: there is no second observability path. L4 by construction.
 BASELINE_DEBUG_LOG_ENV=2          # `_DEBUG_LOG` env-var literals as log file paths.
                                   # Today: INJECTION_DEBUG_LOG (back-compat shim in
                                   # plugins/injection-envelope/src/debug.ts:14,71 — lazily
