@@ -227,9 +227,11 @@ Start here. These are automatable and already have skill implementations.
 - [ ] `unlisted-deps` — `bunx knip --include unlisted` (imported but undeclared) — monthly
 - [ ] `lockfile-consistency` — lockfiles match manifests, no phantom deps
 - [ ] `submodule-state` — vendor submodules clean, not detached, not drifted from remote
+- [ ] `llm-pricing-freshness` — `~/.cache/bearly-llm/pricing.json` age <30 days (stale = wrong cost estimates)
+- [ ] `llm-model-discovery` — `bun llm pro --discover-models` (LLM-classifier vetted candidates from `new-models.json`); `--apply` writes a unified diff to `/tmp/llm-new-models.patch` for human review — never auto-merges
 **Triggers**: code changes, upstream dep bumps
-**Delegates to**: `/release`, `/npm`
-**Execute**: bump, build, verify, publish (`bun release execute`)
+**Delegates to**: `/release`, `/npm`, `/llm`
+**Execute**: bump, build, verify, publish (`bun release execute`); apply vetted llm-model patches manually after review
 
 ### 3. inbound — what needs our attention?
 
@@ -340,6 +342,9 @@ token = resp['access_token']
 - [ ] `cf-domain-expiry` — domains expiring within 60 days (Cloudflare Registrar API)
 - [ ] `cf-dns-health` — zones active, DNS records resolving, no orphan zones
 - [ ] `cf-pages-health` — Pages projects deploying, custom domains attached
+- [ ] `llm-quota` — `bun llm quota` (remaining credit + rate-limit per provider; flag if any provider is below 10% remaining or budget exhausted). Tied to the cost-discipline signal from `/pro` — without this, $700 OpenAI months happen invisibly.
+- [ ] `llm-judge-pending` — `bun llm pro --judge-history --quick` dry-run (count of unjudged historical entries; informational — does not auto-fire judge)
+- [ ] `recall-index-staleness` — recall FTS5 index age <7 days (`bun recall status`) — stale index = degraded session-history surface
 - [ ] `upstream-waiting` — review the perpetual upstream-blocked registry (workarounds awaiting upstream fixes). Authoritative workflow: [.claude/skills/pm/workflows/upstream.md](../pm/workflows/upstream.md) §8 "Register for tracking". Procedure:
   1. **Run the lint script first**: `bash packages/km-infra/scripts/check-upstream-markers.sh` — surfaces any bead↔code-marker drift (orphan markers, marker-less beads). Resolve mismatches before proceeding.
   2. `bd list --parent km-all.upstream-waiting --status open` — list every open child
