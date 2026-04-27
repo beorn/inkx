@@ -290,16 +290,22 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 
 ### 9.a Names actually grabbed (published as 0.0.1 placeholders by `beorno`)
 
-17 unscoped names registered on npm in one batch on 2026-04-27. All live, all owned by `beorno <bjorn@stabell.org>`, all parked at version `0.0.1`. Source of truth: [`.claude/skills/release/npm-packages.md`](../../../../.claude/skills/release/npm-packages.md) "Name Reservations" section.
+24 unscoped names + 1 scoped, all registered on npm on 2026-04-27. All live, all owned by `beorno <bjorn@stabell.org>`, all parked at version `0.0.1`. Source of truth: [`.claude/skills/release/npm-packages.md`](../../../../.claude/skills/release/npm-packages.md) "Name Reservations" section.
+
+- **First batch (17, ACP-direct + agent-prefix + ly-suffix + ambient + location-aware)**: see table 9.a-i below.
+- **Second batch (8, expansion: numeric / observation / pool variants)**: see table 9.a-ii below.
 
 Verify ownership of any one with `npm view <pkg> maintainers`. Verify the whole set with:
 
 ```bash
 for pkg in acproxy acplane acplex acpdock acpmux proxyacp \
            agentplex agentward interagent crossagent agentanywhere \
-           fleetly brokerly overhear overheard aiwhere aianywhere; do
+           fleetly brokerly overhear overheard aiwhere aianywhere \
+           agent7 agent9 agentall agentorb agentsea agentsee seegent; do
   echo "$pkg: $(npm view "$pkg" version 2>/dev/null) — $(npm view "$pkg" maintainers 2>/dev/null | head -1)"
 done
+# scoped:
+npm view @beorno/chatly version
 ```
 
 | Theme | Reserved (all live, all `0.0.1`) | What it evokes |

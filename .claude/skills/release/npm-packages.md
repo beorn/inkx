@@ -157,6 +157,23 @@ Last updated: 2026-04-19 (62 packages live)
 | `aianywhere` | Reserved 2026-04-27 — location-of-AI candidate |
 | `agentanywhere` | Reserved 2026-04-27 — location-of-agent candidate |
 | `aiwhere` | Reserved 2026-04-27 — short location-aware candidate |
+| `agent7` | Reserved 2026-04-27 — agent + lucky-7 numeric brand |
+| `agent9` | Reserved 2026-04-27 — agent + 9 numeric brand |
+| `agentall` | Reserved 2026-04-27 — universal-agent candidate |
+| `agentorb` | Reserved 2026-04-27 — agent-orb / orchestration brand |
+| `agentsea` | Reserved 2026-04-27 — agent-sea (broad pool of agents) |
+| `agentsee` | Reserved 2026-04-27 — agents-that-see (observation framing) |
+| `seegent` | Reserved 2026-04-27 — see + agent contraction |
+| `@beorno/chatly` | Reserved 2026-04-27 — unscoped `chatly` similarity-blocked vs `chalk`; held under @beorno scope |
+
+**Considered but blocked (2026-04-27)** — kept here so we don't re-attempt:
+
+- `chatly` — similarity-blocked vs `chalk`. Held as `@beorno/chatly`.
+- `agently` — taken (maplemx, 1.1.3, active).
+- `mi6` — taken (rschmukler, 0.3.1).
+- `agentops` — taken (agentops.ai, active).
+- `agent8` — taken (kimwz, 1.0.8).
+- `agentbox` — security-hold (npm `0.0.1-security`); cannot be claimed.
 
 ## Not Published (local only)
 
