@@ -4,6 +4,8 @@ How the daemon, plugins, agents, and apps fit together. Cross-cutting topology â
 
 Status: as of 2026-04-26. Snapshot of current state. Some components are prototype-only and explicitly flagged.
 
+**See also: [hub/composition.md](./composition.md)** â€” the layered `pipe + with*` composition strategy that produces the runtime topology described here. The factory functions for tribe, silvery, and km should read top-to-bottom as the architecture; this doc describes the runtime that those factories produce.
+
 ---
 
 ## Vocabulary
