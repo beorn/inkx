@@ -60,6 +60,15 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/silvery-read-gate.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $CLAUDE_PROJECT_DIR/tools/bd-parent-hook.ts"
+          }
+        ]
       }
     ],
     "PostToolUse": [
