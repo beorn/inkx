@@ -281,36 +281,69 @@ function AssistantRow({ text }: { text: string }): React.ReactElement {
  * system-message sentinel pattern.
  */
 /**
- * Pretty-print JSON for the debug popover. Multi-line string values render
- * as a heredoc-like indented block under the key; single-line values use
- * `JSON.stringify` so escapes (`\"`, `\\`) and short strings stay tight.
- * Output is NOT valid JSON — it's optimized for the human reading the popover.
+ * Pretty-print a value as YAML for the debug popover. We emit YAML (not
+ * JSON) because:
+ *
+ *   1. Multi-line string values render as a `|` block scalar — body lines
+ *      are plain text, no `\n` escapes, no surrounding quotes. YAML's
+ *      grammar supports this natively; JSON does not.
+ *   2. shiki's YAML tokenizer correctly classifies block-scalar bodies as
+ *      strings AND keeps them readable. Asking shiki to highlight an
+ *      almost-but-not-quite-JSON string trips up the JSON tokenizer's
+ *      string-fallback path, which applies italic-pink github-dark
+ *      coloring to the entire body — unreadable for prose / markdown.
+ *
+ * Use `language="yaml"` on the SyntaxHighlighter consumer.
  */
-function prettyJsonForDebug(value: unknown, indent = 0): string {
+function prettyYamlForDebug(value: unknown, indent = 0): string {
   const pad = "  ".repeat(indent)
-  const pad1 = "  ".repeat(indent + 1)
-  if (value === null) return "null"
-  if (value === undefined) return "undefined"
+  if (value === null || value === undefined) return "null"
+  if (typeof value === "boolean") return String(value)
+  if (typeof value === "number") return String(value)
   if (typeof value === "string") {
     if (value.includes("\n")) {
       const body = value
         .split("\n")
-        .map((l) => pad1 + l)
+        .map((l) => "  ".repeat(indent + 1) + l)
         .join("\n")
       return "|\n" + body
     }
     return JSON.stringify(value)
   }
-  if (typeof value !== "object") return JSON.stringify(value)
   if (Array.isArray(value)) {
     if (value.length === 0) return "[]"
-    const items = value.map((v) => pad1 + prettyJsonForDebug(v, indent + 1))
-    return "[\n" + items.join(",\n") + "\n" + pad + "]"
+    const childIndent = "  ".repeat(indent + 1)
+    return value
+      .map((v) => {
+        const inner = prettyYamlForDebug(v, indent + 1)
+        const lines = inner.split("\n")
+        // YAML idiom: `- ` substitutes for two chars of leading indent on
+        // the first line. Continuation lines stay at indent+1.
+        if (lines[0]!.startsWith(childIndent)) {
+          lines[0] = pad + "- " + lines[0]!.slice(childIndent.length)
+        } else {
+          lines[0] = pad + "- " + lines[0]
+        }
+        return lines.join("\n")
+      })
+      .join("\n")
   }
-  const entries = Object.entries(value as object)
-  if (entries.length === 0) return "{}"
-  const items = entries.map(([k, v]) => pad1 + JSON.stringify(k) + ": " + prettyJsonForDebug(v, indent + 1))
-  return "{\n" + items.join(",\n") + "\n" + pad + "}"
+  if (typeof value === "object") {
+    const entries = Object.entries(value as object)
+    if (entries.length === 0) return "{}"
+    return entries
+      .map(([k, v]) => {
+        const key = /^[A-Za-z_][\w-]*$/.test(k) ? k : JSON.stringify(k)
+        const isBlock =
+          typeof v === "object" &&
+          v !== null &&
+          (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0)
+        const inner = prettyYamlForDebug(v, indent + 1)
+        return isBlock ? pad + key + ":\n" + inner : pad + key + ": " + inner
+      })
+      .join("\n")
+  }
+  return String(value)
 }
 
 /**
@@ -343,20 +376,22 @@ function RawInspector({ payload, children }: { payload: unknown; children: React
     // quotes) so tool output / commands read like the actual text. Trades
     // strict JSON validity for human readability — the popover is for
     // eyeballing, not parsing.
-    const json = prettyJsonForDebug(payload)
+    const yaml = prettyYamlForDebug(payload)
     // Trim very long payloads; full payload available via /debug or the JSONL.
-    const allLines = json.split("\n")
+    const allLines = yaml.split("\n")
     const truncated =
       allLines.length > 60
-        ? [...allLines.slice(0, 60), `… (${allLines.length - 60} more lines)`].join("\n")
-        : json
+        ? [...allLines.slice(0, 60), `# … (${allLines.length - 60} more lines)`].join("\n")
+        : yaml
     return {
       body: (
         <Box flexDirection="column" paddingX={2} paddingY={1}>
-          {/* `bare` drops chrome; SyntaxHighlighter's bare mode now uses
-              parent-Text wrap="wrap" so long lines flow within the popover
-              width while keeping shiki token colors. */}
-          <SyntaxHighlighter language="json" code={truncated} bare />
+          {/* YAML — shiki's YAML highlighter handles `|` block scalars
+              natively and colors prose bodies as plain string content
+              (no italic-pink JSON-string fallback). `bare` drops chrome
+              and switches to wrap="wrap" so long lines flow within the
+              popover width. */}
+          <SyntaxHighlighter language="yaml" code={truncated} bare />
         </Box>
       ),
       // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
