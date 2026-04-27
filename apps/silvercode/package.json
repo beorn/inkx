@@ -36,6 +36,7 @@
     "silvery": "workspace:*"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@types/debug": "^4.1.12",
     "@types/diff": "^7.0.2",
     "@types/react": "catalog:"

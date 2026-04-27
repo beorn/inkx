@@ -283,3 +283,52 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 - Decide: tribe spawns agents, or silvercode keeps spawning and tribe is a transparent JSON-RPC pass-through? (Probably: tribe spawns once a real second client appears; silvercode-only continues to spawn until then.)
 - Decide: what's the upstream protocol for tribe? Pure ACP, ACP++ (with `_meta` extensions), or a tribe-native superset that translates to ACP downstream?
 - Coordinate with bearly maintainership — adding ACP listener + plugins materially expands tribe's surface area.
+
+---
+
+## 9. Naming — reserved namespaces (2026-04-27)
+
+17 npm names reserved as 0.0.1 placeholders in advance of choosing a final brand. Source of truth: [`.claude/skills/release/npm-packages.md`](../../../../.claude/skills/release/npm-packages.md) "Name Reservations" section. Dispute path is open via npm registry policy if any of the takens (acpd / agentfleet / agenthub / openacp / multiagent / overai / aigent / agentx / xagent — similarity-blocked or held by stale 2022 packages) becomes the strong choice later.
+
+| Theme | Reserved | What it evokes |
+|---|---|---|
+| **ACP-direct** | `acproxy`, `acplane`, `acplex`, `acpdock`, `acpmux`, `proxyacp` | Literal — what the thing is. Highest signal-to-search-friction. `acproxy` is the simplest. |
+| **Agent-prefix** | `agentplex`, `agentward`, `interagent`, `crossagent`, `agentanywhere` | Broader brand — works if upstream goes beyond ACP (e.g., A2A, future agent protocols). |
+| **`-ly` suffix family** | `fleetly`, `brokerly` | Matches `silvery` / `bearly` / `loggily` / `accountly`. Best continuity with the existing house style. |
+| **Ambient / observation** | `overhear`, `overheard` | "I overheard that…" — the framing the agent uses for ambient blocks. Brandable beyond ACP into general observation infrastructure. |
+| **Location-aware** | `aiwhere`, `aianywhere` | The "AI runs anywhere" pitch — works if cross-machine federation matures. |
+
+**Top-3 recommended for the actual product (when it ships):**
+
+1. **`overhear`** — the user-facing brand. Captures the posture (the agent overhears peer activity, doesn't get instructions from it). Domain memorable. Works in marketing copy: "your agents overhear each other."
+2. **`acproxy`** — the technical/CLI name. Direct, searchable, what it is. Ships as `acproxy` binary; the `overhear` brand is the product wrapper.
+3. **`fleetly`** — strong fallback if a single-name product makes more sense than a brand+CLI split. Evokes "fleet management for agents," continuous with the existing namespace family.
+
+**Naming heuristic** (from prior projects in this namespace):
+
+- Library / primitive → ends in `-ly` or `-less` (loggily, termless).
+- App / brand → noun (silvercode, accountly, kimmi).
+- Daemon / tool → short and command-line-friendly (bd, tribe, recall, llm).
+
+By that heuristic, an ACP proxy product would be:
+
+- `overhear` (brand / product noun)
+- `acproxy` (CLI)
+- `@bearly/proxy` (npm package; lives under existing bearly scope)
+
+The proxy plugin code itself can live in `vendor/bearly/plugins/proxy/` — same shape as `vendor/bearly/plugins/tribe/`, `vendor/bearly/plugins/recall/`, `vendor/bearly/plugins/llm/`. No new repo needed for the implementation; the standalone names are reserved for marketing surfaces (homepage, npm search, CLI binary).
+
+**Names not taken (still available, lower priority):**
+
+- `acproxy` namespace expansions: `acpd` (similarity-blocked unscoped; `@beorno/acpd` available).
+- Bare-similarity-blocked names: `agentfleet`, `agenthub`, `openacp`, `anyagent` — all available as `@beorno/<name>`.
+
+**Rejected names** (taken or actively-published):
+
+- `acp` — `samt` 2022 alpha. Could be disputed but takes weeks.
+- `multiagent` — `ahelmberger` 2.1.0 (2022 — dormant but published, dispute uncertain).
+- `agentx` — `jacksontian` 1.10.8 (2022, multi-maintainer, likely active).
+- `overai` — `overai` 1.4.31 (2026-02 — actively published, off-limits).
+- `aigent` — `eumemic` 0.0.1 (2023 — dormant single-version; disputable).
+- `xagent` — `hyj1991` 0.0.0 (2022 — placeholder; disputable).
+- `ensemble`, `murmur`, `acdc` — 2022-era abandoned but published.

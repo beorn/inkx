@@ -140,6 +140,23 @@ Last updated: 2026-04-19 (62 packages live)
 | `@finetea/core` | Reserved |
 | `@finetea/ui` | Reserved |
 | `@termless/term` | Reserved |
+| `acproxy` | Reserved 2026-04-27 — ACP proxy candidate |
+| `acplane` | Reserved 2026-04-27 — ACP control-plane candidate |
+| `acplex` | Reserved 2026-04-27 — ACP multiplexer candidate |
+| `acpdock` | Reserved 2026-04-27 — ACP proxy candidate (dock metaphor) |
+| `acpmux` | Reserved 2026-04-27 — ACP multiplexer candidate |
+| `agentplex` | Reserved 2026-04-27 — agent multiplexer candidate |
+| `agentward` | Reserved 2026-04-27 — agent guardian candidate |
+| `proxyacp` | Reserved 2026-04-27 — alt acproxy ordering |
+| `fleetly` | Reserved 2026-04-27 — fleet-management candidate (ly-suffix family) |
+| `brokerly` | Reserved 2026-04-27 — agent-broker candidate (ly-suffix family) |
+| `overhear` | Reserved 2026-04-27 — ambient/observation candidate |
+| `overheard` | Reserved 2026-04-27 — ambient/observation candidate (past-tense variant) |
+| `interagent` | Reserved 2026-04-27 — inter-agent coordination candidate |
+| `crossagent` | Reserved 2026-04-27 — cross-agent coordination candidate |
+| `aianywhere` | Reserved 2026-04-27 — location-of-AI candidate |
+| `agentanywhere` | Reserved 2026-04-27 — location-of-agent candidate |
+| `aiwhere` | Reserved 2026-04-27 — short location-aware candidate |
 
 ## Not Published (local only)
 
