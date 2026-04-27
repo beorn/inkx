@@ -257,12 +257,17 @@ If steps 5–7 left a workaround in our code, **register the bead in `km-all.ups
 #### How to register
 
 ```bash
-# Create or update the tracking bead under the upstream-waiting epic
+# Create the tracking bead under the upstream-waiting epic
 bd create --id km-<scope>.<descriptive-slug> \
   --title "Remove <workaround-description> when <upstream-ref> lands" \
   --type=bug --priority=3 \
   --description="<see template below>"
 bd update km-<scope>.<slug> --parent km-all.upstream-waiting
+
+# REQUIRED: defer the bead so it surfaces in `bd ready` near its review date.
+# Default = creation date + 30 days. Each /sop infra review re-defers another 30d
+# if upstream hasn't moved.
+bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"   # creation + 30 days
 ```
 
 **Description template** (every field is required — the monthly review depends on them):
@@ -271,8 +276,15 @@ bd update km-<scope>.<slug> --parent km-all.upstream-waiting
 Workaround tracking. <one-sentence summary of what we did and why>.
 
 Upstream: <URL — issue or PR>
-Status: <open | in-PR | merged-in-version-X | abandoned> as of <YYYY-MM-DD>
+Status: <merged-upstream | released-upstream | adopted-locally> as of <YYYY-MM-DD>
+  - merged-upstream:   PR merged into upstream's main/master, but not yet in a tagged release
+  - released-upstream: published in a release we COULD consume, but our package.json/lock still pins an older version
+  - adopted-locally:   our deps actually consume the fix in package.json AND lockfile — the only state where the workaround can be removed
 Last checked: <YYYY-MM-DD>
+Escalate by: <YYYY-MM-DD>     # default = creation + 6 months
+  - At this date re-decide: vendorize | fork | accept owned divergence | continue waiting
+  - If "accept owned divergence" → move bead to km-all.owned-divergence (perpetual sibling registry)
+  - If "continue waiting" → bump Escalate by another 6 months and document why
 
 Files affected by the workaround:
 - <path>
@@ -283,25 +295,55 @@ Unwind when upstream lands:
 1. <concrete step 1: e.g., "Replace 'new Request(url.toString(), ...)' with 'new Request(url, ...)'">
 2. <concrete step 2: e.g., "Bump <pkg> minimum version in package.json to <patched-release>">
 3. <concrete step 3: e.g., "Run vendor/<pkg> tests; verify the workaround test still passes without the workaround">
-4. Close this bead with the version that fixed it
+4. Close this bead with the version that fixed it (only when Status = adopted-locally)
 ```
 
 **Why each field matters**:
 - *Upstream URL*: the only auditable proof a fix has or hasn't landed. Without this, monthly review devolves into guessing.
-- *Status + Last checked*: gives the monthly reviewer a delta to compare against.
+- *Status (3-state enum)*: `merged ≠ released ≠ adopted`. Closing on "merged-upstream" is the most common false-victory — our code still runs the workaround until our deps actually pull the patched release. Only `adopted-locally` justifies running the unwind steps.
+- *Last checked*: gives the monthly reviewer a delta to compare against; updated every review even if nothing changed (this is how we detect orphaned beads).
+- *Escalate by*: forces a re-decision before the bead silently becomes "we gave up but won't admit it." Without this, "waiting" beads accumulate forever and the registry stops being honest.
+- *bd defer date*: parent-grouping makes the bead visible in monthly review; defer-until makes it active in `bd ready` near its review date — both, not either.
 - *Files affected* with specific changes: when the upstream lands months later, the original author may not be available — the bead must be self-contained.
 - *Unwind steps*: removing a workaround is rarely a single line. Spelling out the steps prevents partial unwinds (revert one site, miss two).
 
+#### Code-marker convention (REQUIRED for every workaround site)
+
+Every workaround in code must carry a greppable comment block at the call site:
+
+```ts
+// UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>
+// Bead: km-<scope>.<slug>
+// Escalate by: <YYYY-MM-DD>
+```
+
+- `<repo>#<issue>` is the canonical upstream reference (e.g. `oven-sh/bun#7716`). Match the bead's `Upstream:` URL.
+- `Bead:` line is exactly the bead ID — `packages/km-infra/scripts/check-upstream-markers.sh` greps for it.
+- `Escalate by:` mirrors the bead field. If they drift, the lint script flags it (the bead is the source of truth; update the marker to match).
+- One marker block per workaround site. If a workaround spans multiple files, each file gets its own block.
+- Markers do not need to be on a single line — multiline `/* … */` is fine — but the three labelled lines must be present and contiguous.
+
+The lint script (`packages/km-infra/scripts/check-upstream-markers.sh`, wired into `bun fix`) enforces a two-way binding:
+1. Every `// UPSTREAM-WAITING(<ref>):` comment in apps/, packages/, vendor/ resolves to an open bead under km-all.upstream-waiting.
+2. Every open child of km-all.upstream-waiting has at least one matching code marker (so beads can't outlive their workaround).
+
+Mismatches fail CI. Either wire up the missing side, or close the bead.
+
 #### Cross-references
 - Epic: `km-all.upstream-waiting` (perpetual registry, never closes — children close individually).
+- Sibling epic: `km-all.owned-divergence` — destination when escalation re-decides "accept owned divergence" (upstream dead/declined).
+- Lint: `packages/km-infra/scripts/check-upstream-markers.sh` (two-way bead↔marker binding, runs in `bun fix`).
 - Cadence: monthly via `/sop infra` → `upstream-waiting` check (`.claude/skills/sop/SKILL.md`).
-- Existing examples: see open children of `km-all.upstream-waiting` for prior-art bead descriptions (e.g. `km-bearly.mcp-plugin-bun-keepalive` for the Bun #7716 keep-alive workaround).
+- Existing examples: see open children of `km-all.upstream-waiting` for prior-art bead descriptions (e.g. `km-bearly.bun-keepalive-url-shim` for the Bun #7716 keep-alive workaround).
 
 #### Anti-patterns
 - "I'll remember to come back to this" — you won't, and a future maintainer can't read your memory.
 - Filing the upstream issue without a tracking bead — the issue exists upstream; the *workaround in our code* is what we forget.
 - Vague unwind steps ("revert the workaround") — by the time upstream lands, the workaround is woven through more files than you remembered.
-- Closing the bead when upstream merges but before unwind runs — the bead must stay open until our code is back to clean.
+- Closing the bead when upstream merges but before unwind runs — the bead must stay open until Status = `adopted-locally`.
+- **Bundling upstream-shim with permanent local improvements creates wrong unwind.** Split. When upstream lands, the agent reverts the whole bead — including the local hygiene work that should have stayed. One bead per unwindable unit; permanent improvements get their own non-upstream-waiting bead.
+- Missing code marker — the bead is the *plan*, the marker is the *anchor*. A bead without markers is unenforceable; markers without a bead are orphans. The lint script catches both.
+- Letting `Escalate by` slide silently — six months passed and nothing was decided ≡ "we gave up but won't admit it." Move to `km-all.owned-divergence` or extend the date with a written reason; never let it expire quietly.
 
 ## Examples
 
@@ -360,3 +402,9 @@ Unwind when upstream lands:
 - [ ] (Optional) Vendorized and fixed
 - [ ] (Optional) Submitted PR upstream
 - [ ] **Registered in `km-all.upstream-waiting`** (mandatory whenever a workaround landed) — bead has upstream URL, status, last-checked date, files-affected list, and concrete unwind steps
+- [ ] Bead `Status:` uses the 3-state enum: `merged-upstream` | `released-upstream` | `adopted-locally`
+- [ ] Bead `Escalate by: <YYYY-MM-DD>` set (default = creation + 6 months) with re-decision options documented (vendorize / fork / accept owned divergence / continue waiting)
+- [ ] `bd defer km-<scope>.<slug> --until="<YYYY-MM-DD>"` run (default = creation + 30 days) so the bead actively surfaces in `bd ready` near review date
+- [ ] Code marker present at every workaround site: `// UPSTREAM-WAITING(<repo>#<issue>): Delete when <pkg> >= <version>` + `// Bead: km-<scope>.<slug>` + `// Escalate by: <YYYY-MM-DD>`
+- [ ] Bead is unwindable as a single unit — no permanent local improvements bundled with the upstream-shim (split if needed, otherwise reverting the bead deletes good work)
+- [ ] `bash packages/km-infra/scripts/check-upstream-markers.sh` passes (two-way bead↔marker binding clean)
