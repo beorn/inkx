@@ -101,6 +101,38 @@ The four are orthogonal but always-together:
 - **Signals** carry derived/observed state. Components and surfaces (MCP tools, render trees, log streams) subscribe to signals; signals re-compute when their inputs change.
 - **Scope** owns lifetime. Every `withX` registers cleanup. Closing the root scope cascades — sockets close, subprocesses term, subscriptions drop, timers cancel — in reverse-registration order.
 
+A minimal interlock — what `withMachines(...)` and a tool handler look like in practice:
+
+```typescript
+// Inside a with* factory: register a TEA machine, expose a signal projection
+function withMessaging() {
+  return <T extends BaseTribe & WithSocket & WithSignalStore>(t: T) => {
+    const [state, dispatch] = withMachines(t.scope, {
+      messaging: messagingMachine, // (action, state) => [state, effects]
+    })
+    // alien-projections: members signal recomputes only when state.members changes
+    const memberRoster = createProjection(state, s => s.members)
+    return { ...t, dispatch, signals: { ...t.signals, memberRoster } }
+  }
+}
+
+// Tool handler reads signals, dispatches actions:
+const sendTool: ToolDef = {
+  name: "tribe.send",
+  schema: z.object({ to: z.string(), text: z.string() }),
+  handler: (args, ctx) => {
+    if (!ctx.signals.memberRoster.peek().has(args.to)) {
+      throw new Error(`unknown member: ${args.to}`)
+    }
+    ctx.dispatch({ type: "send", to: args.to, text: args.text })
+    // The machine's `apply` produces effects (e.g., write to socket); the runtime
+    // schedules them on ctx.scope.
+  },
+}
+```
+
+The pipe wired up dispatch + signals; the tool handler consumes them. No global state, no setup ceremony — every layer is reachable through the daemon value passed into the pipe.
+
 ### Same shape across the apps
 
 - **silvery apps** — composition wires term/theme/scope; TEA drives view state machines; signals drive derived UI; scope cleans timers + subscriptions
@@ -134,7 +166,10 @@ const tribe = pipe(
   createBaseTribe({ scope, db: openDb(dbPath) }),
   withProjectRoot(opts.root),
   withSocket(),                          // binds socket; defers close on scope
-  withDispatch(),                        // wires JSON-RPC dispatcher to socket
+  withDispatch(),                        // installs the JSON-RPC dispatcher on the socket: routes
+                                         // incoming method calls to handlers, frames responses,
+                                         // emits notifications. The dispatcher is what surfaces
+                                         // (withMCPServer) bridge their requests through.
 
   // Tool registry — protocol-independent.
   // withTools() establishes the registry slot on the daemon value;
@@ -167,7 +202,7 @@ Reading top-to-bottom:
 
 ### Tool registry — the load-bearing decoupling
 
-The registry is a plain data structure (a `Map<string, ToolDef>`) on the daemon value. `withTools()` establishes it. `withTool(tools)` is a helper that appends. A plugin or surface that needs unusual access can read/write `value.tools` directly without going through the helper. **Surfaces** (MCP server, JSON-RPC dispatcher, future protocols) are independent consumers of that registry:
+The registry is a plain data structure (a `Map<string, ToolDef>`) on the daemon value. `withTools()` establishes it. `withTool(tools)` is a helper that appends. A plugin or surface that needs unusual access can read/write `value.tools` directly without going through the helper, **but only during composition** — once `app.run()` is called, the registry is read-only. Surfaces subscribe to it; they never mutate it from a tool handler or running plugin. **Surfaces** (MCP server, JSON-RPC dispatcher, future protocols) are independent consumers of that registry:
 
 ```
                   withTool(loreTools)
@@ -216,16 +251,16 @@ Already partially shipped: `withScope`, theme injection, focus scopes. Migration
 ```typescript
 const km = pipe(
   createBaseKm({ scope }),
-  withVault(vaultPath),                  // filesystem source of truth
-  withStorage(storage),                  // SQLite + sync layer
-  withTree(treeStore),                   // tree model
-  withBoard(boardStore),                 // board view-model
-  withCommands(kmCommandRegistry),       // command dispatch
-  withRenderer(silveryRuntime),          // mounts silvery app
+  withVault(vaultPath),                  // FILESYSTEM layer: file watchers, atomic writes
+  withStorage(storage),                  // STORAGE layer: SQLite + sync, owns PARSER too
+  withTree(treeStore),                   // TREE layer: in-memory KNode model
+  withBoard(boardStore),                 // BOARD layer: view-models for kanban/outline/tabs
+  withCommands(kmCommandRegistry),       // COMMANDS layer: input dispatch
+  withRenderer(silveryRuntime),          // APP layer: mounts the silvery app
 )
 ```
 
-The km command system stays as-is internally — it's an *output* of `withCommands(...)`, not a replacement for the composition pattern.
+km's documented layer stack (APP → COMMANDS → BOARD → TREE → STORAGE → PARSER → FILESYSTEM) maps directly to these `withX` factories — `withVault` is the FILESYSTEM layer, `withStorage` subsumes both STORAGE and PARSER (parsing happens at the storage boundary), and so on. The layer doc and the factory doc describe the same architecture from two angles. The km command system stays as-is internally — it's an *output* of `withCommands(...)`, not a replacement for the composition pattern.
 
 ## Lifecycle integration
 

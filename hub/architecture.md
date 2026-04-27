@@ -71,16 +71,9 @@ Source: `packages/km-storage/` and surrounding modules. Used by km today; design
 
 SQLite (via `bun:sqlite`, WAL + FTS5) backs a state cache + index over markdown files on disk. Edits flow both ways: TUI mutations write through to markdown; filesystem changes propagate back to the UI. The storage layer never imports UI; the UI never reads files directly. This is the substrate the km vision's Knowledge axis sits on. silvercode does not use it today; convergence will likely have agent sessions read and write through it.
 
-### Composition — `pipe + with*` (and three companions)
+### Composition — `pipe + with*` (plus three runtime companions)
 
-[hub/composition.md](./composition.md). Composition is one of four interlocking runtime patterns shared across silvery, km, silvercode, and tribe:
-
-1. **Composition** (`pipe + with*`) — structure. The factory produces the system value.
-2. **TEA** (The Elm Architecture: `apply` / `dispatch`) — behavior. Pure `(action, state) → [state, effects]` state machines. See [docs/design/tea.md](../docs/design/tea.md).
-3. **Reactive store** (alien-signals + family) — derived state, projections, subscriptions. See `vendor/bearly/packages/alien-*/`.
-4. **Scope** — structured-concurrency lifecycle. See [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md).
-
-The composition pipe wires all four together: `withScope()`, `withSignalStore()`, `withMachines(…)`, plus tools, plugins, and surfaces. The full pattern with rules, type evolution, and concrete examples lives in [composition.md](./composition.md) — that's the canonical reference. This doc stays topological.
+Composition (`pipe + with*`), TEA (`apply / dispatch + effects`), reactive signals (alien-signals family), and Scope (structured-concurrency lifecycle) form the canonical runtime stack — used uniformly across the silvery framework and the three products built on it. See [hub/composition.md](./composition.md) for the strategy with rules, type evolution, concrete examples, and how the four interlock. This doc stays topological.
 
 ## The three products
 
@@ -172,7 +165,9 @@ Three architectural moves shape the rest:
 | **tribe-client** | Convenience library for connecting to and reconnecting against tribe-daemon. Not required (the wire is documented), but used everywhere we connect today. *(Currently `@bearly/daemon-spine`; rename pending.)* |
 | **host app** | A user-facing program that may connect to tribe and may host agent sessions. km, silvercode, Claude Code CLI, codex, gemini-cli, opencode. |
 | **agent session** | An LLM-backed runtime participant — today a local subprocess speaking ACP or stream-json. |
-| **agent protocol** | Wire protocol between host app and agent session: ACP (Zed) or stream-json (Claude Code legacy). |
+| **agent protocol** | Wire protocol between host app and agent session: ACP (Zed's Agent Client Protocol) or stream-json (Claude Code's legacy newline-delimited JSON format). |
+| **bead** | A unit of work tracked in `bd` (Bjørn's beads issue tracker), used for project planning and coordination. The `beads` observer plugin watches `.beads/` and broadcasts state changes on the wire. |
+| **the wire** | The set of messaging tools (`tribe.send`, `tribe.broadcast`) plus the events they emit. Plugins "push messages on the wire" by calling these tools (via `TribeClientApi`); clients receive them as JSON-RPC notifications over the same Unix socket they use for tool calls. There is no separate pub/sub bus — wire = messaging tools + their notification stream. |
 
 **Things this vocabulary deliberately doesn't carry:**
 
@@ -201,7 +196,7 @@ Three architectural moves shape the rest:
 
 ## Tools and surfaces
 
-The tool registry is plain data on the daemon value (a `Map<string, ToolDef>`). `withTools()` establishes the slot; `withTool()` is a helper that appends. Plugins can also write to the registry directly when they need to. Surfaces subscribe to the registry — today, only the MCP server.
+The tool registry is plain data on the daemon value (a `Map<string, ToolDef>`). `withTools()` establishes the slot; `withTool()` is a helper that appends. Plugins can also write to the registry directly when they need to during composition. Once `app.run()` starts, the registry is effectively read-only — surfaces subscribe to it; nothing should mutate it from a tool handler or running plugin. Today only the MCP server consumes it.
 
 Two transports for reaching the daemon's MCP server:
 
@@ -243,13 +238,17 @@ Two scopes, both implemented by the lore tools:
 
 We say *workspace* memory rather than *repo* memory because one repo can have multiple worktrees with diverging state — the cacheable unit is the checkout, not the repo lineage.
 
+**Storage medium.** SQLite via `bun:sqlite` (WAL + FTS5), one DB per project root, default path `~/.local/share/bearly-tribe/<project-id>/lore.db` (override via `BEARLY_LORE_DB`). The session-memory index is global (`~/.local/share/bearly-recall/index.db`) since it spans projects. No flat-file fallback — tribe requires SQLite.
+
 ## IPC and lifecycle
 
 **Unix socket + JSON-RPC.** All daemon ↔ client traffic is line-delimited JSON-RPC 2.0 over Unix sockets. Path resolution: `BEARLY_*_SOCKET` env override → `XDG_RUNTIME_DIR/bearly-*/...` → `~/.local/share/bearly-*/...` → `/tmp/bearly-*/...`. Bind-before-publish to a temp path in a 0700 dir, atomic rename to publish, mode 0600 on the socket file, stale-socket cleanup on startup.
 
-**Connection-as-lease.** Active connections drive idle-quit. Quit predicates are uniformly `() => boolean | Promise<boolean>`; SIGTERM is just another predicate. Anything else (quota exhausted, parent gone, config removed) plugs in the same way.
+**Connection-as-lease.** Active connections drive idle-quit. Quit predicates are uniformly `() => boolean | Promise<boolean>`; SIGTERM is just another predicate. Anything else (quota exhausted, parent gone, config removed) plugs in the same way. When any predicate fires, the daemon closes its root `Scope` — that cascades the deferred cleanups in reverse-registration order (sockets close, plugins stop, subscriptions drop).
 
-**Hot-reload.** SIGHUP re-execs tribe-daemon with the listening socket fd preserved across `execve()`. Existing connections drop briefly; `createReconnectingClient` in tribe-client replays notification handlers automatically.
+**Hot-reload.** SIGHUP re-execs tribe-daemon via `execve()` with the listening socket fd preserved across the call. The new process image inherits the listening fd directly from the kernel. *Note:* `execve()` replaces the process image entirely, so the JS `Scope`'s deferred cleanups don't run on hot-reload — the kernel owns the fd-handover, and any in-process state (in-flight requests, plugin observer state) is reconstructed by the new image. Existing client connections drop briefly during the re-exec; `createReconnectingClient` in tribe-client replays notification handlers automatically. Cleanly-shutdown paths (SIGTERM, idle-quit predicate firing) DO run the Scope cascade — the asymmetry is intentional: hot-reload prioritizes connection continuity, clean shutdown prioritizes cleanup correctness.
+
+**Auto-start vs `app.run()`.** Two layers. The auto-start machinery (a tiny shim, currently in `tribe-daemon.ts`'s entry point) detects when no daemon is running for a project root and spawns a new process. That new process executes the composition pipe and calls `await tribe.run()`, which is the actual blocking entry point. So `tribe.run()` is the explicit, internal-to-the-process entry; auto-start is the convenience wrapper around it that decides when to spawn.
 
 **silvercode session spawn.** `resolveConnection(--agent, config)` produces a `ResolvedConnection`; the controller spawns either via `connectAcpRegistry` (ACP — `claude-acp` / `codex-acp` / `gemini-cli` / `copilot`) or `spawnClaude` (legacy stream-json). Only MCP servers spawned *inside* an agent session reach tribe — the agent-protocol channel between silvercode and the agent is a separate stdio wire.
 
