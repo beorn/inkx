@@ -306,6 +306,44 @@ Specific moat sources identified:
 4. **Visibility + operator UX** — many systems are opaque. The side-panel/tooltip/inspector/journal layers are uncommon.
 5. **Cloud-as-proxy positioning** — agent-in-the-middle on the ACP wire is a fresh wedge ([acp-proxy.md §3.4](../../silvercode/future/ai-terminal/acp-proxy.md))
 
+### Hermes Agent (Nous Research, Feb 2026) — closest shipped product
+
+Discovered via OpenRouter's coding-CLI leaderboard. Hermes Agent is the closest shipped product to mem-thought as of Apr 2026 — and it shipped AFTER GPT-5.4's Oct 2024 knowledge cutoff, exactly what the caveat warned about.
+
+**Striking overlaps**:
+
+- **SQLite + FTS5** session-history search — same substrate as bearly recall
+- **Markdown memory files** (`memory.md`, `user.md`) loaded into context — same operator-readable durability we proposed for the journal file
+- **"Every 10 turns, internal review"** — almost exactly mem-thought's 12-turn cadence
+- **Skill self-improvement** — agents detect better approaches and rewrite skills mid-session
+- **agentskills.io open standard** — skill-format ecosystem play; Hermes is making a market here
+
+**Critical architectural difference**:
+
+| Dimension                  | Hermes Agent                         | mem-thought                                    |
+|----------------------------|--------------------------------------|-------------------------------------------------|
+| Memory locus               | Self-managed (foreground reviews itself) | Separate sub-agent watches events             |
+| Trigger                    | Internal review every 10 turns       | Reactive to multi-source events                 |
+| Event sources              | Conversation only                    | Prompts + completions + tribe + files + CI      |
+| Output                     | Updates own memory.md / creates skills | Delta emits to foreground via ambient channel  |
+| Topology                   | Local CLI (foreground = memory holder) | Topology-portable (10 deployment shapes per acp-proxy.md §4.6) |
+| Cognitive tier             | Tier 4 mem-dream (periodic consolidation) | Tier 3 mem-thought (reactive surfacing)      |
+
+**They're complementary, not competing.** Hermes is Tier 4 flavored (periodic consolidation, skill extraction, self-improvement). mem-thought is Tier 3 (reactive surfacing of relevant prior context). A complete agent could run both — Hermes-style self-managed Tier 1 + Tier 4, plus mem-thought-style separate-sub-agent Tier 3.
+
+**What this changes for the moat thesis**:
+
+- The "no exact match found" verdict from /deep stands — Hermes isn't the same composition. It's adjacent.
+- Hermes **validates the market** for persistent, learned, cumulative agent memory. We don't have to convince anyone the category is interesting; Nous Research has done that.
+- Differentiation tightens around **multi-source reactivity + separate-sub-agent-as-watcher + proxy-deployable**. Hermes can't easily span topologies (it's a foreground CLI agent).
+- **Skill-format compatibility (agentskills.io) is an ecosystem play we could join** rather than compete on. mem-thought could surface "skill X from prior session" via Tier 3 deltas; mem-dream (Tier 4) could write skills in the agentskills.io format.
+- The remaining /deep follow-up sweep with actual Deep Research API on 2025–2026 data is even more important now — if Hermes shipped in Feb 2026 and we missed it, other things may have too.
+
+**References**:
+- https://github.com/nousresearch/hermes-agent
+- https://hermes-agent.nousresearch.com/docs/
+- https://hermesatlas.com/guide/ — Apr 2026 v0.10.0 guide
+
 ### Adjacent reference: Vercel's stack (chat-sdk.dev)
 
 [chat-sdk.dev](https://chat-sdk.dev/) is Vercel's TypeScript framework for cross-platform chatbots (Slack / Teams / Discord / WhatsApp / GitHub). Event-driven, pluggable adapters, integrates with Vercel AI Gateway + AI SDK + Workflows.
