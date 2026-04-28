@@ -19,7 +19,10 @@
 
 import { appendFileSync, mkdirSync, renameSync, statSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
+import { createLogger } from "loggily"
 import type { AgentEvent, SessionId } from "./events.ts"
+
+const log = createLogger("agent-harness:event-log")
 
 export interface EventLog {
   append(event: AgentEvent): void
@@ -57,8 +60,7 @@ function logRotationErrorOnce(err: unknown): void {
   if (rotationErrorLogged) return
   rotationErrorLogged = true
   try {
-    // eslint-disable-next-line no-console
-    console.error("[event-log] rotation failed (subsequent errors suppressed):", err)
+    log.error?.("rotationFailed", { error: err instanceof Error ? err.message : String(err) })
   } catch {
     /* best-effort */
   }

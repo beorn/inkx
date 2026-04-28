@@ -1,9 +1,9 @@
-import React, { useMemo } from "react"
+import React, { Suspense, use, useMemo } from "react"
 import { Box, Muted, ProgressBar, Small, Text, useHover, usePopoverHandlers } from "silvery"
 import { BackgroundPane } from "./BackgroundPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
-import { probeClaudeVersion } from "../claude-version.ts"
+import { getClaudeVersion } from "../claude-version.ts"
 import type { AgentCapabilities, CapabilityContext, CapabilityOption } from "../agent-capabilities.ts"
 import {
   contextUtilizationColor,
@@ -18,12 +18,22 @@ import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 
-// Probed once at module load — the installed CLI version can't change
-// mid-session. Used as a fallback until session-init arrives with the
-// real version from the running subprocess. Only relevant for the
-// claude-code agent; other backends (codex/gemini/copilot/...) don't
-// surface a Claude CLI version.
-const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()
+/**
+ * Claude CLI version suffix — Suspense-aware. The async probe runs once
+ * per process; the first render of this component suspends on it so the
+ * rest of the side-panel mounts immediately. `<Suspense>` parent supplies
+ * the placeholder ("v…") until the spawn settles.
+ *
+ * `override` is `state.claudeCodeVersion` from the live session-init
+ * event — when non-empty, it wins and no probe is awaited. Useful when
+ * resume / restart hands us a session-init before the probe finishes.
+ */
+function ClaudeVersionSuffix({ override }: { override: string }): React.ReactElement {
+  // Live session-init wins. Skip the probe entirely when it's available.
+  if (override.length > 0) return <Text>{` v${override}`}</Text>
+  const probed = use(getClaudeVersion())
+  return <Text>{probed ? ` v${probed}` : ""}</Text>
+}
 
 /**
  * Per-agent display identity for the bottom-of-side-panel branding row.
@@ -1074,7 +1084,6 @@ export function SidePanel({
           // gating on the agent id keeps the row honest for codex /
           // gemini / copilot rather than showing a stale Claude version.
           const isClaudeAgent = id === "claude-code" || id === "claude-code-spawn"
-          const version = isClaudeAgent ? state.claudeCodeVersion || CLAUDE_VERSION_AT_STARTUP || "…" : null
           // Model + agent share one wrappable row: model stays inline if it
           // fits, wraps to next line aligned under the label otherwise. The
           // model name is one Text node so flex treats it as an indivisible
@@ -1088,7 +1097,11 @@ export function SidePanel({
               <Box flexDirection="row" flexWrap="wrap" gap={1}>
                 <Text bold color="$fg">
                   {label}
-                  {version !== null ? ` v${version}` : ""}
+                  {isClaudeAgent ? (
+                    <Suspense fallback={<Text>{" v…"}</Text>}>
+                      <ClaudeVersionSuffix override={state.claudeCodeVersion} />
+                    </Suspense>
+                  ) : null}
                 </Text>
                 {displayModel ? <Text color="$fg">{modelLabel(displayModel)}</Text> : null}
               </Box>

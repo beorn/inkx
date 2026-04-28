@@ -392,18 +392,18 @@ Followups (new beads):
 
 Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
 
-| Boundary           | What's faked                                                                           | Override entry point                                                                                                    |
-| ------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Claude CLI version | `spawnSync("claude", "--version")` at module load                                      | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (for module-load probes captured into a const) |
-| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                               |
-| Account / quota    | accountly's `checkProfileQuota`, keychain reads, `~/.cache/km/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })`                                                                      |
-| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                                  |
+| Boundary           | What's faked                                                                           | Override entry point                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Claude CLI version | async `spawn("claude", "--version")` lazily on first `<Suspense>` consumer             | `setVersionFactoryOverride()` + `SILVERCODE_FAKE_CLAUDE_VERSION` env var (override resets the cached probe promise) |
+| Git branch         | `.git/HEAD` walk in `gitBranchFor(cwd)`                                                | `setGitFactoryOverride((cwd) => name)` + `SILVERCODE_FAKE_BRANCH` env var                                           |
+| Account / quota    | accountly's `checkProfileQuota`, keychain reads, `~/.cache/km/quota-*.json` disk cache | `setAccountFactoryOverride({ readCached, probe })`                                                                  |
+| Filesystem         | `~/.cache/km/`, `~/.km/` writes                                                        | `installFakes({ fsRoot })` allocates a tmp dir and overrides `HOME` + `XDG_CACHE_HOME`                              |
 
 ### How the wiring lands without touching components
 
 The hook `useClaudeAccount(accountFactory?)` accepts an optional factory, but the canonical injection path is **module-level** — `setAccountFactoryOverride` flips a sentinel inside `claude-account.ts`. SidePanel's existing `useClaudeAccount()` call (no prop changes needed) reads the override automatically. `claude-version.ts` and `git-branch.ts` follow the same pattern: a `let xxxOverride` at the top of the file, gated checks at the start of each public fn, and `setXxxFactoryOverride(null)` resets to the production path.
 
-The version probe is captured into a const at SidePanel module load (`const CLAUDE_VERSION_AT_STARTUP = probeClaudeVersion()`). For that one boundary the override has to be in place BEFORE SidePanel imports — handled by `apps/silvercode/src/test/setup-fakes.ts` (loaded as a global vitest setupFile) which sets `SILVERCODE_FAKE_CLAUDE_VERSION` BEFORE any test file runs. Per-test version overrides via `setVersionFactoryOverride` still apply for re-probes.
+The version probe is now lazy and async — `getClaudeVersion()` returns a cached `Promise<string | null>` that the SidePanel reads via `use(...)` inside a `<Suspense>` boundary. The first call in the process kicks off the spawn; subsequent calls reuse the same promise. `SILVERCODE_FAKE_CLAUDE_VERSION` (set by `apps/silvercode/src/test/setup-fakes.ts` as a global vitest setupFile) bypasses the spawn entirely. `setVersionFactoryOverride()` resets the cached promise on each call so per-test version overrides apply on the next consumer.
 
 ### Harness API
 
