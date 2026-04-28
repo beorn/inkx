@@ -140,6 +140,7 @@ describe("wire write-ordering — settleNext drains pending sessionUpdate writes
       kind: "text-delta",
       sessionId: SID as SessionId,
       turnId: TID,
+      blockIndex: 0,
       text: "hello ",
       ts: 1,
     })
