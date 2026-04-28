@@ -64,8 +64,8 @@ describe("replaySessionFromDisk: defensive contract (never throws)", () => {
     // the user sees something instead of a blank screen.
     const state = store.state.get()
     expect(state.lastError).toBeTruthy()
-    expect(state.lastError).toContain("--resume")
-    expect(state.lastError).toContain(sessionId)
+    expect(state.lastError?.message).toContain("--resume")
+    expect(state.lastError?.message).toContain(sessionId)
     // Status is still "idle" — a missing JSONL doesn't disable input
     // (the live session is still spawn-able; the user just doesn't get
     // historical turns backfilled).
@@ -113,7 +113,7 @@ describe("replaySessionFromDisk: defensive contract (never throws)", () => {
     expect(state.messages.length).toBeGreaterThan(0)
     // Parser surfaced a `parse error: ...` via store.apply({ kind: "error" })
     // which the session-store records in lastError.
-    expect(state.lastError).toContain("parse error")
+    expect(state.lastError?.message).toContain("parse error")
   })
 
   test("synthetic claude-acp-<ts>-<n> id is rejected by validateResumeId", () => {

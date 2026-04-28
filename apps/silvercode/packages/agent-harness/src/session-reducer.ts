@@ -31,6 +31,7 @@
 
 import type { AgentEvent, ContentBlock, TurnId } from "./events.ts"
 import type {
+  ErrorEntry,
   MessageEntry,
   MessageOp,
   SessionState,
@@ -40,6 +41,42 @@ import type {
   WritableEntry,
 } from "./session-types.ts"
 import { initialSessionState, makeEntry } from "./session-types.ts"
+
+/**
+ * Window in ms within which consecutive identical error messages fold
+ * into a single `lastError` entry with an incremented `count` rather
+ * than appearing as separate errors. Re-armed on each fold, so a
+ * slow-but-steady drip (an error every 4s) stays folded as long as
+ * gaps stay under the window.
+ *
+ * 5s matches the toast dismissal window in `Notifications.tsx`, so the
+ * dedup horizon is the same one the user already perceives as "this is
+ * the same incident."
+ *
+ * Bead: km-silvercode.error-dedup.
+ */
+const ERROR_DEDUP_WINDOW_MS = 5000
+
+/**
+ * Fold the incoming error event into the most-recent error if the two
+ * are "the same incident" — same message and within the dedup window
+ * of the previous fold. Otherwise produce a fresh entry with
+ * `count = 1`.
+ *
+ * Pure: returns a new {@link ErrorEntry}; never mutates `prev`.
+ *
+ * Bead: km-silvercode.error-dedup.
+ */
+function mergeError(prev: ErrorEntry | null, message: string, ts: number): ErrorEntry {
+  if (
+    prev !== null &&
+    prev.message === message &&
+    ts - prev.ts <= ERROR_DEDUP_WINDOW_MS
+  ) {
+    return { message, count: prev.count + 1, ts }
+  }
+  return { message, count: 1, ts }
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // State
@@ -631,7 +668,10 @@ export function reduce(state: InternalSessionState, action: AgentEvent): [Intern
       break
 
     case "error":
-      next.lastError = action.message
+      // Fold consecutive identical errors within ERROR_DEDUP_WINDOW_MS
+      // into a single entry with count > 1. See `mergeError` and
+      // bead km-silvercode.error-dedup.
+      next.lastError = mergeError(state.lastError, action.message, action.ts)
       break
 
     case "handoff":

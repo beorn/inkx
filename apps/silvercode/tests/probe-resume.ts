@@ -65,7 +65,15 @@ console.log(`  claudeCodeVersion:  ${state.claudeCodeVersion}`)
 console.log(`  status:             ${state.status}`)
 console.log(`  messages:           ${state.messages.length}`)
 console.log(`  todos:              ${state.todos.length}`)
-console.log(`  lastError:          ${state.lastError ?? "(none)"}`)
+console.log(
+  `  lastError:          ${
+    state.lastError === null
+      ? "(none)"
+      : state.lastError.count > 1
+        ? `${state.lastError.message} (×${state.lastError.count})`
+        : state.lastError.message
+  }`,
+)
 
 console.log(`\n[probe] first 3 messages:`)
 for (const [i, m] of state.messages.slice(0, 3).entries()) {

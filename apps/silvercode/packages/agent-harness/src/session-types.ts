@@ -180,8 +180,32 @@ export type SessionState = {
   todos: Todo[]
   /** Running cost + tokens. */
   cost: { usd: number; inputTokens: number; outputTokens: number }
-  /** Last error surfaced by the harness or parser. */
-  lastError: string | null
+  /**
+   * Most recent error surfaced by the harness or parser.
+   *
+   * Consecutive identical errors within a 5s window collapse into one
+   * entry with `count > 1` rather than appearing as separate entries.
+   * "Identical" is by `message`; "consecutive" means no different
+   * error in between. The window is bounded by `ts` of the last fold,
+   * so a slow-but-steady drip (one error every 4s) stays folded.
+   *
+   * Bead: km-silvercode.error-dedup.
+   */
+  lastError: ErrorEntry | null
+}
+
+/**
+ * Public projection of the most recent error.
+ *
+ * `count` is always present (≥ 1) and is `> 1` only when consecutive
+ * identical errors were folded. Renderers display a `(×N)` suffix when
+ * `count > 1`. `ts` is the most recent fold timestamp — used by the
+ * dedup window check and useful for "X seconds ago" style UI.
+ */
+export type ErrorEntry = {
+  message: string
+  count: number
+  ts: number
 }
 
 export function initialSessionState(): SessionState {
