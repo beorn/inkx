@@ -1,6 +1,59 @@
 # Licensing strategy — across the full stack
 
-**Status**: **Decision pivoted 2026-04-27 night** after the user articulated a corrected competitive segmentation /pro hadn't engaged with.
+## TL;DR — the plan (read this first)
+
+**Decision (locked, post-/pro 4-leg final review, 2026-04-27 night)**: open silvery at **Apache-2.0 + CLA**, sharply positioned as **the React-Ink-migration framework**. silvercode + km stay proprietary. tribe = open wire/spec (Apache + CC BY 4.0) + proprietary hosted gateway. The **SDK-with-services** revenue pattern (Stripe Elements / Mapbox SDK) — open silvery components funnel to paid backend services (`<AgentSession>`, `<RecallPanel>`, `<TribeRoom>`, `<SquadView>`, `<ContextSafety>`, etc.).
+
+**Two-layer brand**:
+- *Cluster 1 (open, Apache-2.0 + CLA)*: silvery + flexily + termless + terminfo + loggily + mdspec + emulators + alien-* + minor satellites.
+- *Cluster 2 (proprietary)*: silvercode + km + tribe-internal + hosted services (subscription-auth, ambient-context-safety, recall-hosted, agentroom-hosted).
+
+**Shipped state (much further along than the doc previously implied)**:
+- `silvery/ink` migration shim is **already shipped** (vendor/silvery/packages/ink, v0.21.0, ~3K LOC, covers Box/Text/Spacer/hooks/render/animation/focus/cursor/stdin/measure-text/sanitize/chalk-compat). silvery.dev claims "98.6% Ink compatible" — grounded.
+- Cluster-1 sites live and polished: **silvery.dev** (98.6% Ink-compat hero), **termless.dev**, **loggily.dev** (22× faster than noop), **mdspec.dev** (already a paid SaaS, $9/mo Pro tier), **beorn.codes/flexily/** (1.5-5.5× faster than Yoga, 1561 tests). flexily.org / flexily.dev parked.
+
+**Real critical-path work remaining** (~2-3 weeks if focused):
+1. **Killer demo** — silvery.dev's missing flagship. Top candidates: silvery-system-monitor (htop-class) + silvery-acp-chat (BYO-key coding agent, AI-tailwind). Doing both ≈ 2-3 weeks. Optional fourth path: commission a high-profile Ink user via Migration Assurance Program.
+2. **Migration case study** — pick mid-tier Ink project (2K-15K stars, NOT Wrangler), one-line import swap (`from "ink"` → `from "silvery/ink"`), document diff + perf delta. ~3 days.
+3. **silvery.dev hero rewrite** — promote "98.6% Ink compatible" to hero slot; add "Migrating from Ink" landing-nav alongside "Building new TUIs."
+4. **Cluster-1 cross-promotion** — coherent entry-point navigation + cross-links between cluster-1 sites.
+5. **Codify The Seam Rule** in silvery's repo (framework-vs-application boundary; prevents feature-creep-by-guilt as silvery gains traction).
+6. **Adopt Harmony CLA** (Individual + Entity) via CLA-Assistant; one-page "Why we use a CLA" explainer.
+7. **Launch post + outreach** to 5-10 mid-tier Ink-using projects. Conference angle: *"Beyond Ink: a new rendering contract for AI-era TUIs"* (succession, not patricide).
+8. **Weekly Ink-roadmap watch** — Vadim v5 monitoring; if a major Ink upgrade lands, accelerate launch by 2 weeks.
+9. **Verify factual claims** before launch materials: replace "all big AI labs use Ink" with *"Ink is the de facto standard for AI-era developer CLIs, including Copilot CLI, Wrangler, and a majority of the npx AI tool ecosystem."*
+
+**Review cadence** (dual + strategic):
+- **Day 30**: docs + shim shipped, demo public, 1 successful migration, 3+ engineering signals.
+- **Day 60**: 3 migrations (1 not by us), 1-2 external committers, 3-5 credible inbounds.
+- **Day 90 qualitative**: 5+ migrations OR 1 named reference OR steady ink-compat fix cadence. **Kill criterion**: zero inbound interest AND no Ink project realistically benefits.
+- **Day 180 quantitative**: > 10K DL/wk → continue; flat at < 5K → diagnose distribution-vs-value.
+- **Month 12 strategic**: silvery generating qualified leads for silvercode/km? If not, OSS strategy is hobby, not business.
+
+**Outcome distribution** (conservative recalibration from /pro):
+- 45% — meaningful niche (10-50K DL/wk at 18 months, brand halo intact)
+- 25% — mid-tier reference migration ( > 5K-star project migrates publicly)
+- 5% — Big Tech migration (don't count on it)
+- 25% — nominal traction (silvery becomes resumeware / background infra)
+
+The 75% case (top three) makes the strategy worth running. Decision survives without the 5% miracle.
+
+**Options considered (audit trail — all five preserved below)**:
+1. All-proprietary (Cursor pattern) — rejected: closes Ink-migration market.
+2. Apache silvercode + paid cloud (Confluent pattern) — rejected: opens unproven product code.
+3. Two-cluster Cursor-pattern with silvery-extensions in private monorepo — rejected: no clean architectural seam.
+4. silvery proprietary going forward (JetBrains pattern) — initially recommended by /pro round 3 (GPT-5.4 Pro 19.5/20). Pivoted away after user surfaced corrected competitive segmentation (Ink-migration market, OpenTUI architectural mismatch).
+5. **Open silvery + sharp Ink-migration positioning (current decision)** — 4-of-4 final /pro models confirmed (GPT-5.4 Pro 20/20, Kimi K2.6 17/20, Grok 4 17/20, Gemini 3 Pro 13/20). No Option 6 wins (AGPL toxic, BSL too complex for framework, source-available worst-of-both).
+
+**Key risk + mitigation**:
+- *Ink upgrade* (Vadim ships v5 with mouse + multi-pane) → weekly roadmap watch + accelerate on signal + architectural moat (multi-process rendering, remote panes — features hard for Ink to retrofit).
+- *Open/closed boundary bleed* → The Seam Rule codified before contributors arrive; "Out of scope" GitHub label with polite boilerplate.
+- *Maintenance reality* → 1-2 hrs/week is fantasy if Option 5 succeeds; plan for 5-8 hrs/week or aggressive community delegation.
+- *Killer-demo gap* → call it out; allocate 2-3 weeks; system-monitor + acp-chat candidates.
+
+---
+
+## Status
 
 **The historical arc**: three /deep + /pro passes converged on Option 4 (close silvery; protect 45:1 leverage). The /pro analysis was genuinely strong given its inputs but worked with an incomplete competitive map. After the recommendation landed, the user surfaced a series of considerations that materially shift the call:
 
@@ -72,19 +125,21 @@ Multiple revenue paths, all funneling through the same open framework.
 ### The two-layer brand architecture
 
 **Cluster 1 — Open Terminal R&D and Developer Infrastructure** (all Apache-2.0 + CLA):
-- silvery (the React-Ink-migration TUI framework, the marquee asset)
-- flexily (Yoga-compatible flex layout engine; co-strategic with silvery — powers silvery's multi-target story; ~1.5-2x faster than Yoga per benchmarks)
-- termless (headless terminal testing)
-- terminfo.dev (terminal capability database)
-- vt100.js, vt220.js, vterm.js (emulator backends; support termless; zero-maintenance)
-- loggily (structured logging; user-confirmed low-touch maintenance, "generally nicer to work with")
-- alien-projections, alien-resources, alien-trees (reactive primitives)
-- vimonkey (fuzz testing for Vitest)
-- mdspec (markdown spec testing)
-- vitepress-enrich (VitePress docs tooling)
-- @silvery/{ansi, color, commander} (silvery satellites)
+- **silvery** (the React-Ink-migration TUI framework, marquee asset) — `silvery.dev` (live; hero claims "98.6% Ink compatible", "3-27× faster than Ink in mounted rerenders", 45+ components, AI-coding-agent example)
+- **flexily** (Yoga-compatible flex layout engine; co-strategic with silvery; ~1.5-5.5× faster, 3× smaller, no WASM, 1561 tests) — `beorn.codes/flexily/` (live; flexily.org/flexily.dev parked, redirect-or-leave decision pending)
+- **termless** (headless terminal testing; 10 backends, < 1ms tests, recording → GIF/SVG/APNG/asciicast) — `termless.dev` (live)
+- **terminfo.dev** (terminal capability database) — site live
+- **vt100.js / vt220.js / vterm.js** (emulator backends; support termless; zero-maintenance)
+- **loggily** (unified TS debug/log/span API; ~22× faster than noop loggers, 3KB, OTel/Pino/Sentry transports) — `loggily.dev` (live)
+- **mdspec** (markdown spec publishing — *already commercialized*: $9/mo / $100/yr Pro tier via Claude Haiku transforms, free 1-project tier) — `mdspec.dev` (live)
+- **alien-projections, alien-resources, alien-trees** (reactive primitives at `github.com/beorn/bearly/packages/`)
+- **vimonkey** (fuzz testing for Vitest)
+- **vitepress-enrich** (VitePress docs tooling)
+- **@silvery/{ansi, color, commander}** (silvery satellites)
 
 Brand voice: rigorous, performance-conscious, terminal-native, multi-target-ambitious. Cross-promotional: each repo's docs reference the others. Same brand-pattern as Charm.sh (Bubble Tea + Glamour + Lip Gloss as the open identity).
+
+**Shipped surface as of 2026-04-27**: cluster-1 is **mostly already public** — silvery.dev / flexily(beorn.codes) / termless.dev / loggily.dev / mdspec.dev are all live with polished landing pages and concrete performance receipts. mdspec is already running a paid SaaS tier. The remaining strategic work is *not* "launch these sites" but (a) coherent cross-promotion + entry-point navigation between them, (b) the silvery launch moment specifically (hero rewrite, migration case study, killer demo, outreach), (c) the killer demo itself — silvery.dev lacks a flagship app showcase, since silvercode + km can't fill that role (proprietary; wrong shape).
 
 **Cluster 2 — Proprietary AI Product Line + Service Backends**:
 - silvercode app code (proprietary, private monorepo)
@@ -164,11 +219,13 @@ For audit trail. Five options were considered across three /deep + /pro passes:
 
 ### Three concrete deliverables for executing Option 5
 
+> **Shipped-state correction (2026-04-27)**: the migration shim already exists. `vendor/silvery/packages/ink/` (v0.21.0, ~3K LOC) ships as `silvery/ink` + `silvery/chalk` exports inside the published `silvery` package. Covers Box / Text / Spacer / hooks (563 LOC) / render (846 LOC) / animation / focus / cursor / stdin / measure-text / sanitize / chalk-compat — past 80/20, into 98.6%-claim territory per silvery.dev. The /pro deliverable "build the shim" is not the path; the path is **promote the shipped shim** with a real migration case study and a hero rewrite.
+
 1. **Make "swap-out for Ink" provable, not aspirational.** The claim does the work; without proof, the positioning collapses.
-   - Ink-to-silvery migration guide (concrete API mapping table)
-   - `@silvery/ink-compat` shim package handling 80% of common Ink patterns
+   - Ink-to-silvery migration guide (concrete API mapping table) — write/polish; the shim's surface is the source of truth
+   - ~~`@silvery/ink-compat` shim package handling 80% of common Ink patterns~~ — **already shipped** as `silvery/ink` (98.6% per landing page)
    - Side-by-side demo repo (same app, both frameworks, commits show migration)
-   - **One actual real-world migration**: pick a non-trivial open-source Ink project, migrate it, document honestly. If it takes 3 days, the headline is *"we migrated [popular Ink project] to silvery in 3 days."*
+   - **One actual real-world migration**: pick a non-trivial open-source Ink project, swap `import { Box, Text } from "ink"` → `from "silvery/ink"`, document honestly. With shim shipped, this is ~3 days of work, not weeks. The headline writes itself: *"we migrated [popular Ink project] to silvery in 3 days — one import line."*
 
 2. **Targeted promo, not generic OSS marketing.** Position as Ink-migration path, not generic React TUI framework.
    - Launch post: *"Migrating from Ink: the post-Ink React TUI"* — focus on Ink's specific limitations (mouse, multi-pane, performance, multi-target) and silvery's exact answers
@@ -176,7 +233,15 @@ For audit trail. Five options were considered across three /deep + /pro passes:
    - Conference angle: *"Why Ink is the wrong abstraction for AI-era TUIs"* (sharp, controversial, gets attention)
    - Outreach to 5-10 mid-market Ink-using projects (not BigCo cold)
 
-3. **Time-box but commit.** 3-6 months focused promo *before* silvercode public launch. Real budget, not hedged.
+3. **Killer demo — the missing flagship.** silvery.dev currently lacks a daily-driver showcase app. km + silvercode can't play this role (proprietary; wrong shape — workspace tools don't translate to "look at this beautiful TUI"). Without a flagship the framework reads as a spec, not a product. Candidates in priority order:
+   - **silvery-system-monitor (htop-class)** — universally recognized reference, daily-driver retention, naturally exhibits silvery's Ink-impossible features (multi-pane, mouse-sortable columns, live-streaming updates, color depth). No clear leader in the space; safest splash.
+   - **silvery-acp-chat** — minimal open coding-agent client (BYO API key, no cloud services dependency). Catches AI-tooling zeitgeist, demos `<AgentSession>` / streaming / multi-pane, opens the SDK-with-services mental path toward silvercode. Risk: needs a clear "demo, not product" line vs silvercode.
+   - **silvery-clone-of-popular-Ink-tool** — strongest *migration* argument but the Ink ecosystem skews toward install-wizards / framework demos rather than daily-driver TUIs; candidate pool is thin.
+   - **Commission a high-profile Ink user to migrate their tool via the Migration Assurance Program** — slowest, most expensive, highest-signal. Turns "we need a demo" into "we have a reference customer."
+
+   Doing one wow demo (system-monitor) plus one AI-tailwind demo (acp-chat) ≈ 2-3 weeks combined, probably beats picking either alone. The non-demo move (paid migration) is parallel, not exclusive.
+
+4. **Time-box but commit.** 3-6 months focused promo *before* silvercode public launch. Real budget, not hedged.
    - 3-5 weeks focused work upfront (post + demos + migration guide + compat layer)
    - Sustained 1-2 hrs/week ongoing (social, blog, X engagement)
    - Conference talk submissions to JSConf, ReactConf, OSPOCon, AI-tooling events
