@@ -619,8 +619,17 @@ bdCommand
     // sibling folder `foo/`. Walk both the in-file paragraph children
     // and the path-folder file children so the tree the user sees on
     // disk matches what `bd children` reports.
+    //
+    // The folder lookup must use the node's fs_path (which always ends
+    // in `.md` for file-class nodes) rather than `issue.id` — node ids
+    // can be either path-strings (`issue/silvercode/acp.md`) or ULIDs
+    // (`01KQ…`) depending on how the repo was loaded.
+    const issueNode = repo.getNode(issue.id)
     const inFileChildren = repo.getChildren(issue.id)
-    const folderId = issue.id.endsWith(".md") ? issue.id.slice(0, -3) : null
+    // Folder nodes carry path-string ids matching their fs_path
+    // (e.g. `issue/silvercode/acp`), so the folder for `foo.md` is
+    // simply `<fs_path>` with the `.md` suffix dropped.
+    const folderId = issueNode?.fs_path?.endsWith(".md") ? issueNode.fs_path.slice(0, -3) : null
     const pathChildren = folderId ? repo.getChildren(folderId) : []
     const allChildren = [...inFileChildren, ...pathChildren]
     const childIssues = allChildren
