@@ -11,19 +11,19 @@
 ### defang.io (Defang Labs)
 
 - **Status**: prospect, no contact made yet (as of 2026-04-28).
-- **What they do**: cloud deployment automation, multi-cloud abstraction, IaC. YC alumni (S22 batch).
+- **What they do**: cloud deployment automation, multi-cloud abstraction, IaC. Backing/incorporation: verify before outreach (was previously assumed YC — incorrect; confirm separately).
 - **Why a fit**: cloud-ops + IaC + multi-tenant deployment expertise — exactly the gap in months 6-12 (production agentroom). Their existing infra abstractions could BE the agentroom production substrate.
-- **Founder relationship**: ex-AppAnnie/data.ai alumni network adjacency (TBD — confirm).
+- **Founder relationship**: existing personal connection from prior work; warm intro available.
 - **Possible structures**:
   - Acqui-hire: bring in the team; agentroom production becomes their next product.
   - Reverse: defang acquires us; agentroom becomes the "agent-services" division of their multi-cloud platform.
   - Partnership / advisory: they handle ops infra; we handle agent-coordination domain.
-  - Co-founder bring-in: one of them (Lior Kamrat or another) joins as agentroom co-founder.
+  - Co-founder bring-in: one of them joins as agentroom co-founder.
 - **Risks**:
-  - Defang has their own product roadmap and YC investor expectations. Alignment requires real conversation.
+  - Defang has their own product roadmap and investor expectations. Alignment requires real conversation.
   - Cap table dynamics: bringing them in via acqui-hire vs co-founder vs acquisition vs partnership are very different deals.
   - Their ops focus is *infrastructure deployment*, not *agent coordination* — domain learning needed on their side.
-- **Action**: when months-3-6 phase starts and the first-hire decision is up, reach out to gauge interest. Warm intro likely available via the AppAnnie alumni network.
+- **Action**: when months-3-6 phase starts and the first-hire decision is up, reach out to gauge interest.
 
 ---
 
