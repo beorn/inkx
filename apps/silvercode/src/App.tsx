@@ -5,7 +5,7 @@ import type { AgentSession, SessionStore } from "@km/agent-harness"
 const appStartupLog = createLogger("silvercode:startup")
 const appBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
 function appStartupTick(label: string, extra?: Record<string, unknown>): void {
-  appStartupLog.info?.(label, { elapsedMs: Date.now() - appBootT0, ...(extra ?? {}) })
+  appStartupLog.info?.(label, { elapsedMs: Date.now() - appBootT0, ...extra })
 }
 appStartupTick("App.tsx:moduleEvaluated")
 import {
@@ -40,11 +40,12 @@ import { CwdProvider } from "./CwdContext.tsx"
 import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
 import {
   findNeighbor,
+  freshPlaceholderId,
   type LayoutNode,
   leafIds,
   loadPanes,
   reconcileTree,
-  removeLeaf,
+  renameLeaf,
   savePanes,
   splitLeaf,
   type SplitDirection,
@@ -256,6 +257,13 @@ export function App(props: AppProps): React.ReactElement {
   // queue edit isn't yanked mid-edit. See bead
   // km-silvercode.queue-focus-flush-guard.
   const focusedRegionRef = useRef<"queue" | "command">("command")
+
+  // First-commit marker — fires once after React commits the initial
+  // App tree. The gap between `run:resolved` and this tick is silvery's
+  // alt-screen entry + the first paint cycle.
+  useEffect(() => {
+    appStartupTick("App:firstCommit")
+  }, [])
 
   const controllerRef = useRef<Controller | null>(null)
   if (!controllerRef.current) {
@@ -478,30 +486,32 @@ export function App(props: AppProps): React.ReactElement {
     [focusedSessionId, paneTree, props.cwd],
   )
 
-  // Ctrl+G v / Ctrl+G s — split the focused pane. The new session is
-  // appended to the controller in the usual way; the layout tree gets
-  // the focused leaf replaced by a split with the original session +
-  // the new one. We have to wait for `spawnSession` to resolve so we
-  // know the new session's id before editing the tree.
+  // Ctrl+G v / Ctrl+G s — split the focused pane.
   //
-  // Race guard: between `spawnSession()` firing and its `.then()` callback
-  // running, the controller's subscriber updates `sessions[]`, which fires
-  // the reconcile useEffect (line ~413). reconcileTree's auto-append path
-  // hardcodes 'row' direction (pane-layout.ts:451), so it places the new
-  // leaf in the WRONG direction before this callback runs. If we then
-  // splitLeaf without stripping the duplicate, the tree ends up with two
-  // copies of the same session id — broken. Strip the duplicate leaf
-  // before placing it correctly. Bead: km-silvercode.split-direction-race.
+  // Race-immune placement via placeholder: the chord handler synchronously
+  // inserts a `__pending_*` placeholder leaf in the user's chosen direction,
+  // then renames the placeholder to the real session id when
+  // `controller.spawnSession()` resolves. This makes the chord the SOLE
+  // writer for the new leaf's position — `reconcileTree`'s auto-append
+  // path can't race because it skips placeholders by id prefix
+  // (pane-layout.ts:isPlaceholderLeafId), and the placeholder occupies
+  // the slot synchronously so by the time `sessions[]` updates with the
+  // real id, the slot is already wired (drop loop preserves placeholders;
+  // auto-append's `present.has(id)` skip fires once we rename in the
+  // resolve callback).
+  //
+  // Bead: km-silvercode.split-direction-race.
   const splitFocusedPane = useCallback(
     (direction: SplitDirection): void => {
       const currentFocus = focusedSessionId
       if (!currentFocus) return
+      const placeholder = freshPlaceholderId()
+      // Place placeholder synchronously in the user's chosen direction.
+      setPaneTree((prev) => splitLeaf(prev, currentFocus, placeholder, direction))
+      // When the spawn resolves, rename placeholder → real id (and persist).
       void controller.spawnSession().then((handle) => {
         setPaneTree((prev) => {
-          const stripped = leafIds(prev).includes(handle.id)
-            ? (removeLeaf(prev, handle.id) ?? prev)
-            : prev
-          const next = splitLeaf(stripped, currentFocus, handle.id, direction)
+          const next = renameLeaf(prev, placeholder, handle.id)
           savePanes(props.cwd, next)
           return next
         })
@@ -536,16 +546,15 @@ export function App(props: AppProps): React.ReactElement {
   // Header-button split: spawn a new session as a row-split right-of the
   // named pane. Same effect as splitFocusedPane("row") but parameterised
   // by the pane that owned the click — the user might click `+` on a
-  // non-focused pane. Same reconcileTree race guard as splitFocusedPane —
-  // see that comment for context.
+  // non-focused pane. Uses the same race-immune placeholder pattern as
+  // splitFocusedPane — see that comment for context.
   const splitPaneRightById = useCallback(
     (id: string): void => {
+      const placeholder = freshPlaceholderId()
+      setPaneTree((prev) => splitLeaf(prev, id, placeholder, "row"))
       void controller.spawnSession().then((handle) => {
         setPaneTree((prev) => {
-          const stripped = leafIds(prev).includes(handle.id)
-            ? (removeLeaf(prev, handle.id) ?? prev)
-            : prev
-          const next = splitLeaf(stripped, id, handle.id, "row")
+          const next = renameLeaf(prev, placeholder, handle.id)
           savePanes(props.cwd, next)
           return next
         })

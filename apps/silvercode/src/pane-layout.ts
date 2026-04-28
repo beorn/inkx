@@ -229,6 +229,45 @@ export function removeLeaf(tree: LayoutNode, sessionId: string): LayoutNode | nu
 }
 
 /**
+ * Rename the leaf with `oldId` to `newId`. Pure tree walk — every matching
+ * leaf has its sessionId replaced. Used by chord-spawn flows that synchronously
+ * place a `__pending_*` placeholder leaf, then rename to the resolved session
+ * id when `controller.spawnSession()` returns. This is the race-free
+ * alternative to running `splitLeaf` after the spawn resolves: the placeholder
+ * holds the slot in the tree synchronously, eliminating the window where
+ * `reconcileTree`'s auto-append path could race the chord handler.
+ */
+export function renameLeaf(tree: LayoutNode, oldId: string, newId: string): LayoutNode {
+  if (tree.kind === "leaf") {
+    return tree.sessionId === oldId ? { kind: "leaf", sessionId: newId } : tree
+  }
+  const a = renameLeaf(tree.children[0], oldId, newId)
+  const b = renameLeaf(tree.children[1], oldId, newId)
+  if (a === tree.children[0] && b === tree.children[1]) return tree
+  return { kind: "split", direction: tree.direction, children: [a, b], weight: tree.weight }
+}
+
+/**
+ * Test if a leaf id is a chord-spawn placeholder. Placeholders live in the
+ * tree only between when a chord handler synchronously places them and when
+ * `controller.spawnSession()` resolves with the real handle id. The
+ * reconcile useEffect must preserve them across drops; auto-append must
+ * NOT add them as new sessions.
+ */
+export function isPlaceholderLeafId(id: string): boolean {
+  return id.startsWith("__pending_")
+}
+
+/**
+ * Generate a placeholder leaf id for an in-flight chord spawn. Random
+ * suffix avoids collisions across concurrent chords (rare but possible
+ * during fast keyboard mashing).
+ */
+export function freshPlaceholderId(): string {
+  return `__pending_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/**
  * Update the weight of the split node identified by its path from the
  * root. Path elements are 0 (left/top) or 1 (right/bottom); an empty
  * path targets the root. Pure — caller decides whether to persist.
@@ -434,19 +473,27 @@ export function reconcileTree(loaded: LayoutNode | null, sessionIds: readonly st
       }
     }
   }
-  // Drop leaves for sessions that no longer exist.
+  // Drop leaves for sessions that no longer exist. Chord-spawn placeholders
+  // (`__pending_*`) are NEVER in `sessionIds` (they're not real sessions yet)
+  // — preserve them so the chord handler can rename them to the resolved
+  // handle id when `controller.spawnSession()` resolves.
   const live = new Set(sessionIds)
   for (const id of leafIds(tree)) {
-    if (!live.has(id)) {
-      const next = removeLeaf(tree, id)
-      if (!next) return buildRowFromSessions(sessionIds)
-      tree = next
-    }
+    if (live.has(id) || isPlaceholderLeafId(id)) continue
+    const next = removeLeaf(tree, id)
+    if (!next) return buildRowFromSessions(sessionIds)
+    tree = next
   }
   // Append leaves for new sessions (row-split on the rightmost leaf).
+  // Skip placeholder ids in `sessionIds` (defensive — caller shouldn't
+  // pass them) and skip ids already in the tree (which catches both real
+  // sessions placed by chord handlers AND a session id whose chord placed
+  // a placeholder that hasn't yet been renamed: the chord handler has the
+  // pendingChord intent in its ref so it knows to rename, not add).
   const present = new Set(leafIds(tree))
   for (const id of sessionIds) {
     if (present.has(id)) continue
+    if (isPlaceholderLeafId(id)) continue
     const rightmost = rightmostLeafId(tree)
     tree = splitLeaf(tree, rightmost, id, "row")
   }
