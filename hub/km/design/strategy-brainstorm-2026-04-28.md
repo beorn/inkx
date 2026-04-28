@@ -72,7 +72,7 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
   - **Strategic ceiling**: Docker-shape. Generational-scale if standard adoption happens.
   - **Reframes the portfolio**: silvery = UI for brains; tribe = coordination wire; agentroom = cloud runtime; PlainBrain = the format; km = brain editor; silvercode = canonical reference brain.
 
-**agentroom gateway** — planned ACP↔Matrix bridge, paid managed cloud. Not built. Top venture-rubric score (24/25 alone, 25/25 with cluster). Described in ventures doc as *"candidate generational company."*
+**agentroom gateway** — planned ACP↔Matrix bridge, paid managed cloud. Not built. Top venture-rubric score (24/25 alone, 25/25 with cluster). Described in ventures doc as *"candidate generational company."* Adjacency check (2026-04-28): Open-ACP (280 stars) ships a self-hosted bridge for Claude Code/Codex → Telegram/Discord/Slack. Validates the demand pattern; partially commoditizes the *adapter* surface. agentroom's value prop sharpens toward managed-cloud differentiators (multi-machine routing, SLA, `org.agentroom.*` MSC authorship, multi-tenant) rather than just having connectors.
 
 **bearly tooling family** — recall, tribe-cli, llm CLI, worktrees, hooks. The entire Claude-Code-orchestration toolkit. Itself productizable; pieces can spin out as standalone tools.
 
@@ -189,6 +189,9 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 - **PKM-for-AI**: Notion ($30B+), Obsidian, Logseq, Reflect, Mem, Tana; Cursor Rules / Claude Projects / ChatGPT Memory (the AI-native players).
 - **AI infra services**: Vercel AI SDK + Gateway (~$200M ARR), Auth0 ($6.5B), Algolia ($100M+), Supabase ($50M+), LangChain/LangSmith, Helicone, Portkey, Pinecone, Weaviate, Modal, E2B.
 - **Cross-tool coordination / ACP**: Zed Industries (ACP creator), Anthropic + OpenAI implicit (Claude Code, Codex), Matrix Foundation.
+- **ACP registry + bridges (community-driven, NOT Zed)**:
+  - **[agentclientprotocol.com/registry](https://agentclientprotocol.com/get-started/registry)** — community ACP-agent registry. Lists Claude Agent, Gemini CLI, Copilot, Cline, Cursor, goose. Format: `agent.json` + `icon.svg`; distribution: JSON file at `cdn.agentclientprotocol.com/registry/v1/latest/registry.json`. *Distribution metadata for existing agents — not a portable agent format.*
+  - **[github.com/Open-ACP](https://github.com/Open-ACP)** (280 stars) — self-hosted ACP bridge: Claude Code/Codex/etc → Telegram/Discord/Slack. Has plugin registry, adapters, workspace plugins, git monitoring, TTS. *Validates the bridge category; partially commoditizes the Discord/Slack-adapter portion of the agentroom value prop.*
 
 ### Trends + windows
 
@@ -523,6 +526,8 @@ Docker analog (intentional):
 **Score**: B=4 / T=12-24 / C=very-high (Docker-shape ceiling, generational-scale if standard adoption happens) / R=4 / D=ACP wins; format proposal lands as MSC; agent-portability becomes buyer-felt; execution speed beats labs to publish.
 
 **Window concern**: every Big AI lab will eventually need to standardize agent persistence + travel. `.brain` could be that standard *if shipped first* with operational utility. Window is open *now*; closes when one lab ships theirs.
+
+**Refined wedge given ACP registry exists**: [`agentclientprotocol.com/registry`](https://agentclientprotocol.com/get-started/registry) is *agent distribution metadata for existing agents*, not a portable agent format. `agent.json` describes how to install Claude Code or Cline; `.brain` describes what an agent *is* (knowledge + skills + persona + history) so it can travel and merge. The registry is a place `.brain` artifacts could be distributed *from* — complement, not competitor. The wedge sharpens, not weakens.
 
 **Synergy with S25**: not a replacement — S26 is the protocol layer's *maximum* framing. S25 builds the substrate; S26 names the format the substrate embodies. The two compose.
 
