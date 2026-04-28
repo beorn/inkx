@@ -51,7 +51,37 @@ These are the assets that would appear in a pitch deck, an acquisition conversat
 - **Potential**: precondition for the agentroom gateway and the entire ACP-proxy stack. Could become the canonical agent-coordination protocol if shipped as MSC into Matrix before Anthropic/Google/OpenAI publish theirs. Spec authorship is generational-scale moat (per ventures doc).
 
 **PlainBrain** — markdown-filesystem shape km uses; not yet formalized as spec, currently just km's internal data model. Domains plainbrain.org + plainbrains.com owned.
-- **Potential**: could become a "markdown profile for agentic-work repos" — interoperability standard with Obsidian / Notion / Cursor Rules / Claude Projects. Per /pro v3: *"emphasize compatibility profiles rather than invention."* The PKM-as-md-files-for-AI movement (see Phase 2.D) is real and growing; PlainBrain would be the named substrate.
+- **Potential** (modest framing): a "markdown profile for agentic-work repos" — interoperability standard with Obsidian / Notion / Cursor Rules / Claude Projects.
+- **Potential** (ambitious framing, surfaced 2026-04-28): **`.brain` as the portable agent format** — the agent equivalent of `Dockerfile` (portable container definition) or `package.json` (portable dependency definition). Inside a `.brain`:
+  - Agent knowledge (memories, vault content, prior sessions, recall index)
+  - Rules / skills (how the agent behaves, what tools it can use)
+  - Persona / configuration
+  - Optional: prior conversation transcripts as `org.agentroom.*` JSONL events
+
+  Operations the format defines:
+  - **`run-brain my.brain`** — instantiate the agent with its brain attached
+  - **`run-brain a.brain b.brain c.brain`** — multi-agent runtime, multiple brains in one room
+  - **`merge-brain a.brain b.brain`** — combine knowledge/skills across brains
+  - **`fork-brain my.brain`** — branch a brain like git
+  - **`pack-brain ./vault → my.brain`** — bundle a vault directory into a portable brain
+  - Brains hook into an environment with tools (MCP-style); ACP is one way to talk to a brain, other interfaces possible.
+
+  **What this solves**:
+  - **Agent portability** — your brain travels with you, not locked to Anthropic / Cursor / OpenAI
+  - **Agent interoperability** — any compatible runtime can load any brain
+  - **Agent composability** — `merge-brain` enables ensembles, multi-agent collaboration
+  - **Agent versioning** — git-track `.brain` changes, fork-and-merge brain evolution
+  - **Agent distribution** — share `recall-thought.brain`, `style-watcher.brain`, `tribe-coordinator.brain` like npm packages
+
+  **Strategic ceiling**: Docker captured the container market by being the standard format that enabled portability ($30B+ at peak). `.brain` could capture the *agent* market the same way. This is generational-scale — bigger than "PKM for AI." It reframes the whole portfolio:
+  - silvery = the UI to interact with brains
+  - tribe = the wire by which brains coordinate
+  - agentroom = the cloud runtime for hosted brains
+  - PlainBrain (`.brain`) = the agent format itself
+  - km = the IDE for editing `.brain` files (not just a knowledge workspace)
+  - silvercode = the canonical reference brain (a coding-agent `.brain` you can run-brain)
+
+  Distinct from /pro v3's "PKM profile" recommendation — this isn't compatibility-with-existing-md-tools; it's *defining a new portable agent format* that uses markdown as its substrate.
 
 **agentroom gateway** — planned ACP↔Matrix bridge, paid managed cloud, top-scoring venture (24/25). Not built.
 - **Potential**: see Phase 2.7. Top of a multi-venture stack reaching 25/25 ceiling. *"Candidate generational company."*
@@ -689,6 +719,37 @@ D3 + D4/D5 layered as the strategic lead. Founder's read (2026-04-28): *"there's
 **Sequencing nuance**: solo-doable today in the *spec + agent-layer + ship-now cluster* parts. Production services (auth, ambient-safety pipeline, multi-tenant gateway) wait for first hires. Apps (silvercode, km) ship as open demonstrators throughout — they're not the bottleneck.
 
 **This is the strategy that threads through all the constraints**: cross-elasticity (positive), solo bandwidth (work fits), layers-as-moat (yes), acquirer-readability (yes), open-source posture (silvery + tribe + PlainBrain stay open per the strategic decision), commercial ceiling (services tier scales). It also lines up with where every independent analytical signal has pointed: /pro v3's rubric-validated cluster, Kimi's cross-elasticity argument, the Vercel/Auth0/Algolia precedents, the Confluent/Kafka analog for tribe.
+
+### S26 — "Docker for agents" (the `.brain` portable format play)
+
+PlainBrain elevated from "markdown profile" to **the portable agent format** — `.brain` files containing agent knowledge + skills + persona + history. Operations: `run-brain` (instantiate), `merge-brain` (combine ensembles), `fork-brain` (version), `pack-brain` (bundle a vault into a brain). Hooks into any environment with MCP-style tools; ACP as one transport.
+
+The Docker analog is intentional. Docker captured the container market by:
+1. Defining a portable format (the image) that worked across platforms
+2. Building a runtime (Docker Engine) that ran it
+3. Building a registry (Docker Hub) for distribution
+4. Eventually became the OCI industry standard
+
+`.brain` could play the same role for agents:
+1. Portable format — `.brain` files travel across runtimes
+2. Reference runtime — `run-brain` CLI (open) + agentroom cloud (hosted)
+3. Registry — `brainhub.dev` (or similar) for sharing pre-built brains (`recall-thought.brain`, `style-watcher.brain`, etc.)
+4. Industry standardization — submit as MSC alongside `org.agentroom.*` events; goal: become the OCI of agents
+
+Revenue layers:
+- **Open**: format spec, runtime CLI, basic operations
+- **Paid**: hosted registry (private brains, team sharing), cloud runtime (24/7 agents), enterprise features (audit, compliance, SSO for brains in production)
+
+Customers:
+- Agent builders (anyone making AI tools) — they ship `.brain` artifacts
+- Enterprises running internal agents — they need `.brain` distribution + governance
+- Big AI labs (Anthropic, Google, Microsoft) — they could adopt `.brain` as their portable agent format if it's *good enough* to be the obvious choice; this is the acquihire scenario
+
+**Score**: B=4 / T=12-24 (spec + runtime CLI is solo-doable; hosted registry needs team) / C=very-high (Docker-shape ceiling — generational scale if standard adoption happens) / R=4 (depends on `.brain` becoming the agent-format standard before Anthropic / OpenAI / Google publish theirs) / D=ACP standard wins, the format proposal lands as MSC, agent-portability becomes a buyer-felt need (not just a developer-felt need), execution speed beats the labs to publish
+
+**Window concern**: every Big AI lab will eventually need to standardize how their agents persist + travel. `.brain` could be that standard *if shipped first* with operational utility (run-brain, merge-brain, registry). Window is open *now* and closes when one lab ships their version. Same dynamic as MSC for `org.agentroom.*` events; same urgency.
+
+**Synergy with S25**: not a replacement — S26 is the *protocol layer's* maximum framing. S25 (bottom-stack first) builds the substrate; S26 names the format that the substrate embodies. The two compose.
 
 ---
 
