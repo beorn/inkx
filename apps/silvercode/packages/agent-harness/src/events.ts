@@ -80,6 +80,16 @@ export type AgentEvent =
   | { kind: "assistant-message"; sessionId: SessionId; turnId: TurnId; content: ContentBlock[]; ts: number }
   | { kind: "user-message"; sessionId: SessionId; turnId: TurnId; text: string; additionalContext?: string; ts: number }
   | { kind: "status"; sessionId: SessionId; status: string; ts: number }
+  /**
+   * Mid-session slash-command list update. Emitted whenever the agent
+   * advertises a fresh list (replaces the previous snapshot). For the
+   * stream-json transport this currently only fires inside session-init —
+   * Claude Code doesn't re-emit `slash_commands` mid-session. For the ACP
+   * transport this fires every time the agent sends an
+   * `available_commands_update` SessionUpdate (vault-local commands,
+   * plugin reloads, etc.). Bead: km-silvercode.slash-command-vault-discovery.
+   */
+  | { kind: "slash-commands-update"; sessionId: SessionId; slashCommands: string[]; ts: number }
   | {
       kind: "session-end"
       sessionId: SessionId

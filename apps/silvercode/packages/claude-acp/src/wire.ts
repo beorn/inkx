@@ -239,7 +239,35 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
         return
       }
 
-      case "session-init":
+      case "session-init": {
+        // Surface vault-local + plugin slash commands the underlying claude
+        // subprocess discovered. Without this, silvercode's autocomplete
+        // dropdown only ever shows static (silvercode-local + well-known)
+        // commands — `.claude/commands/<name>.md` files in the workspace
+        // are silently invisible. ACP's `available_commands_update` is the
+        // canonical slot; downstream consumers (silvercode-side acp-client
+        // → session-store → AvailableCommandsPalette) already speak that
+        // shape. Bead: km-silvercode.slash-command-vault-discovery.
+        //
+        // Empty list → no emit. Don't pollute the wire when there's nothing
+        // to advertise (e.g. acp-client's synthetic post-newSession init).
+        if (event.slashCommands.length > 0) {
+          emit({
+            sessionUpdate: "available_commands_update",
+            availableCommands: event.slashCommands.map((name) => ({
+              // ACP's AvailableCommand.name is bare (no leading slash);
+              // silvercode normalizes when rendering. Mirror Claude's raw
+              // shape verbatim — every other ACP server we connect to
+              // (codex, gemini, claude via @agentclientprotocol) emits
+              // bare names too.
+              name,
+              description: "",
+              input: null,
+            })),
+          })
+        }
+        return
+      }
       case "turn-start":
       case "permission-request":
       case "permission-decision":
@@ -248,9 +276,8 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
       case "handoff":
       case "km-reference":
         // Not directly mapped to a SessionUpdate variant. The information is
-        // either irrelevant to the ACP surface (`session-init`'s rich
-        // Claude-CLI-shaped metadata has no ACP slot) or arrives via a
-        // separate channel (permissions go through `requestPermission`, not
+        // either irrelevant to the ACP surface or arrives via a separate
+        // channel (permissions go through `requestPermission`, not
         // `sessionUpdate`). Future work: surface `error` as an ACP error
         // notification once that's modelled in silvercode SessionUpdate.
         return

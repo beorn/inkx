@@ -438,9 +438,14 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
   // text op, so multi-chunk Claude paragraphs still render as one row.
   // Bead: km-silvercode.codex-bundling-order.
   //
-  // Wrap chain (flexShrink + minWidth=0) propagates min-content through Box
-  // wrappers so MarkdownView's per-Text `wrap="wrap"` fires correctly — same
-  // structural note: flexShrink + minWidth=0 is load-bearing for soft-wrap.
+  // Soft-wrap of MarkdownView's per-Text `wrap="wrap"` works without
+  // ceremony under silvery's CSS-correct defaults (flexShrink:1 +
+  // CSS §4.5 auto min-size with recursive intrinsic min-content). The
+  // historical "thread flexShrink={1} minWidth={0} through every Box"
+  // cascade is no longer load-bearing — it was a Yoga-defaults workaround
+  // and is now redundant defense-in-depth where present. See regression
+  // tests in apps/silvercode/tests/wrap-unbreakable-overflow.test.tsx
+  // (bead: km-silvercode.wrap-unbreakable-audit, closed 2026-04-28).
   return (
     <Box flexDirection="column" gap={1}>
       {m.ops.map((op, i) => {

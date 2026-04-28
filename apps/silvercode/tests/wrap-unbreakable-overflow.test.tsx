@@ -45,9 +45,7 @@ const LEFT_WIDTH = TOTAL_COLS - SIDE_WIDTH
 // only way this fits is if some ancestor allows main-axis shrink below
 // the child's content-min size (overflow:hidden, or explicit
 // minWidth=0 + the CSS-preset flexShrink=1).
-const LONG_URL =
-  "https://example.com/" +
-  "x".repeat(180) // total length 200, no whitespace, no path delimiters past `/`
+const LONG_URL = "https://example.com/" + "x".repeat(180) // total length 200, no whitespace, no path delimiters past `/`
 
 const LONG_PATH = "/Users/beorn/Code/pim/km/" + "deeply-nested-segment-".repeat(8) + "end"
 

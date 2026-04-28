@@ -367,6 +367,14 @@ export function createSessionStore(): SessionStore {
         next.apiKeySource = event.apiKeySource
         next.status = "idle"
         break
+      case "slash-commands-update":
+        // Mid-session refresh — the agent advertised a fresh full list of
+        // available commands. ACP semantics: each update REPLACES the
+        // previous list (a plugin unload must drop names from the snapshot
+        // SessionState exposes). Bead: km-silvercode.slash-command-vault-
+        // discovery.
+        next.slashCommands = event.slashCommands
+        break
       case "turn-start":
         upsertMessage(next, event.turnId, (m) => ({ ...m, role: event.role, ts: event.ts }))
         next.status = event.role === "assistant" ? "thinking" : "idle"

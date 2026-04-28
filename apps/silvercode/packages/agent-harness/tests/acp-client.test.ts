@@ -686,6 +686,148 @@ describe("connectAcp", () => {
     expect(loadCallCount).toBe(1)
     expect(session.sessionId).toBe("resumed-sess")
   })
+
+  // -------------------------------------------------------------------------
+  // available_commands_update → SessionStore.slashCommands
+  // (bead km-silvercode.slash-command-vault-discovery)
+  //
+  // The whole point of the autocomplete dropdown is to surface vault-local
+  // and plugin-loaded slash commands that the spawned claude reports via
+  // session-init's `slash_commands`. The ACP transport's analogue is the
+  // `available_commands_update` SessionUpdate. Pre-fix, that update only
+  // emitted a `status` AgentEvent — SessionState.slashCommands stayed [] so
+  // the palette never saw `/file`, `/groom-docs`, etc.
+  //
+  // Post-fix, the update emits `slash-commands-update` and the session-store
+  // applies it, mirroring what the legacy stream-json session-init path
+  // does for the spawnClaude transport.
+  // -------------------------------------------------------------------------
+
+  test("available_commands_update populates SessionState.slashCommands", async () => {
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-cmds" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-slash-commands")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const store = createSessionStore()
+    const unsubscribe = store.bind(session)
+    scope.use({
+      [Symbol.asyncDispose]() {
+        unsubscribe()
+        return Promise.resolve()
+      },
+    })
+
+    await serverConn!.sessionUpdate({
+      sessionId: "session-cmds",
+      update: {
+        sessionUpdate: "available_commands_update",
+        availableCommands: [
+          { name: "file", description: "Open a file" },
+          { name: "groom-docs", description: "Sweep through docs" },
+          { name: "do", description: "" },
+        ],
+      },
+    })
+
+    // Yield a tick so the receiver drains.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const state = store.state.get()
+    expect(state.slashCommands).toEqual(["file", "groom-docs", "do"])
+  })
+
+  test("available_commands_update replaces (not appends) on subsequent updates", async () => {
+    // ACP semantics: each update advertises the FULL current list of
+    // available commands. A plugin reload that drops a command must result
+    // in the dropped command disappearing from SessionState.slashCommands,
+    // not lingering from the previous snapshot.
+    let serverConn: acp.AgentSideConnection | null = null
+    const { spawn } = createFakeAcpServer({
+      agent: (conn) => {
+        serverConn = conn
+        return {
+          async initialize() {
+            return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }
+          },
+          async newSession() {
+            return { sessionId: "session-replace" }
+          },
+          async authenticate() {
+            return {}
+          },
+          async prompt() {
+            return { stopReason: "end_turn" as const }
+          },
+          async cancel() {
+            /* no-op */
+          },
+        }
+      },
+    })
+    __setAcpSpawnForTesting(spawn)
+
+    await using scope = createScope("test-slash-commands-replace")
+    const session = await connectAcp(scope, { command: "fake-acp" })
+
+    const store = createSessionStore()
+    const unsubscribe = store.bind(session)
+    scope.use({
+      [Symbol.asyncDispose]() {
+        unsubscribe()
+        return Promise.resolve()
+      },
+    })
+
+    await serverConn!.sessionUpdate({
+      sessionId: "session-replace",
+      update: {
+        sessionUpdate: "available_commands_update",
+        availableCommands: [
+          { name: "file", description: "" },
+          { name: "old", description: "" },
+        ],
+      },
+    })
+    await serverConn!.sessionUpdate({
+      sessionId: "session-replace",
+      update: {
+        sessionUpdate: "available_commands_update",
+        availableCommands: [
+          { name: "file", description: "" },
+          { name: "fresh", description: "" },
+        ],
+      },
+    })
+
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    const state = store.state.get()
+    expect(state.slashCommands).toEqual(["file", "fresh"])
+  })
 })
 
 // ---------------------------------------------------------------------------
