@@ -127,4 +127,69 @@ describe("session-store — strip echoed prompt from assistant turn", () => {
     const asstMsg = store.state.get().messages[0]!
     expect(asstMsg.text).toBe(reply)
   })
+
+  test("optimistic-dedup path STILL arms the echo strip (regression)", () => {
+    // The bug this pins: in the normal interactive path, the controller
+    // applies an optimistic user-message with `u-<ts>` turnId BEFORE
+    // shipping the prompt to the agent. The agent's stream-json then
+    // emits a second user-message echo with a different (canonical)
+    // turnId 50-200ms later. The store's user-message case re-keys the
+    // optimistic entry onto the canonical turnId AND must arm the strip
+    // for the next assistant turn. Originally the strip-arm assignment
+    // sat AFTER the dedup branch's early `break`, so this path no-arm'd
+    // the strip and `consumeStrip` returned the prompt-prefixed delta
+    // verbatim — the user saw "what repo is this?Vault — …".
+    //
+    // Bead: km-silvercode.prompt-concat-into-reply (regression).
+    const store = createSessionStore()
+    const prompt = "what repo is this?"
+    const reply = "Vault — Knowledge Machine"
+    const ts = 1_700_000_000_000
+    const events: AgentEvent[] = [
+      // 1) Optimistic apply by the controller, synthetic `u-<ts>` turnId.
+      { kind: "user-message", sessionId: sid, turnId: u(`u-${ts}`), text: prompt, ts },
+      // 2) Agent's echo arrives with its own canonical turnId, ~100ms later
+      //    — within the 5s ECHO_WINDOW_MS so dedup hits.
+      { kind: "user-message", sessionId: sid, turnId: u("uuid-canonical-1234"), text: prompt, ts: ts + 100 },
+      // 3) Assistant turn starts.
+      { kind: "turn-start", sessionId: sid, turnId: a("msg_xyz"), role: "assistant", ts: ts + 200 },
+      // 4) First text-delta begins with the echoed prompt prepended to the
+      //    real reply — exactly the bug shape the user reported.
+      {
+        kind: "text-delta",
+        sessionId: sid,
+        turnId: a("msg_xyz"),
+        blockIndex: 0,
+        text: prompt + reply,
+        ts: ts + 300,
+      },
+    ]
+    for (const e of events) store.apply(e)
+
+    const messages = store.state.get().messages
+    // Optimistic-dedup collapsed to one user entry, plus the assistant turn.
+    expect(messages).toHaveLength(2)
+    const asstMsg = messages[1]!
+    expect(asstMsg.role).toBe("assistant")
+    expect(asstMsg.text).toBe(reply)
+    expect(asstMsg.text.startsWith(prompt)).toBe(false)
+  })
+
+  test("non-optimistic path still strips after the assignment move", () => {
+    // Confirm the relocated `pendingPromptForNextAssistantTurn = event.text`
+    // (now at the top of the user-message case, before the dedup branch)
+    // still fires for the simple non-optimistic path. This is the behavior
+    // the original prompt-echo-strip tests cover; this test is the explicit
+    // sibling to the optimistic-dedup regression test above.
+    const store = createSessionStore()
+    const events: AgentEvent[] = [
+      { kind: "user-message", sessionId: sid, turnId: u("u-uuid"), text: "hello", ts: 1 },
+      { kind: "turn-start", sessionId: sid, turnId: a("msg_xyz"), role: "assistant", ts: 2 },
+      { kind: "text-delta", sessionId: sid, turnId: a("msg_xyz"), blockIndex: 0, text: "helloworld", ts: 3 },
+    ]
+    for (const e of events) store.apply(e)
+    const asstMsg = store.state.get().messages[1]!
+    expect(asstMsg.role).toBe("assistant")
+    expect(asstMsg.text).toBe("world")
+  })
 })

@@ -373,6 +373,15 @@ export function createSessionStore(): SessionStore {
         if (event.role === "assistant") armStripForTurn(event.turnId)
         break
       case "user-message": {
+        // Capture the prompt for the next assistant turn's echo strip
+        // BEFORE any branch — both the optimistic-dedup re-key path and
+        // the normal upsert fallback need the strip armed. Previously this
+        // assignment lived after the dedup branch's early `break`, so in
+        // the normal interactive path (where the controller posts an
+        // optimistic user-message before the agent's echo arrives) the
+        // strip was never armed and the prompt leaked into the assistant
+        // reply (km-silvercode.prompt-concat-into-reply regression).
+        if (event.text.length > 0) pendingPromptForNextAssistantTurn = event.text
         // Optimistic-echo dedup. Silvercode's controller applies a
         // user-message with a synthetic `u-<ts>` turnId for instant
         // feedback BEFORE shipping the prompt to the agent. The agent
@@ -431,9 +440,8 @@ export function createSessionStore(): SessionStore {
           additionalContext: event.additionalContext ?? m.additionalContext,
           ts: event.ts,
         }))
-        // Capture the prompt for the next assistant turn's echo strip.
-        // See the `consumeStrip` block at the top of this factory.
-        if (event.text.length > 0) pendingPromptForNextAssistantTurn = event.text
+        // Strip-arming for both branches lives at the top of this case;
+        // see the `pendingPromptForNextAssistantTurn` assignment above.
         break
       }
       case "text-delta": {
