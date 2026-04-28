@@ -1462,16 +1462,19 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // Slash commands pass through verbatim — Claude Code interprets /compact, /clear, etc.
       // Silvercode-specific commands (/handoff, /fork) are intercepted by listeners
       // registered above the controller.
+      //
+      // Bug fix (km-silvercode.prompt-echo-in-chat): do NOT post an optimistic
+      // user-message into the store. Unlike `send()`, slash commands are
+      // consumed silently — Claude Code typically renders the outcome (or
+      // nothing) rather than echoing the slash text back, so an optimistic
+      // echo would never get matched/replaced and would leak into chat as a
+      // permanent fake user row. We also intentionally skip arming the
+      // prompt-echo strip here; if a slash command unexpectedly does echo
+      // back (rare), the dedup window in `applyUserMessage` handles it.
+      // Slash commands that want to render confirmation (e.g. /handoff) opt
+      // in explicitly via their own message-append paths.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
-      const turnId = `u-${Date.now()}` as never
-      s.store.apply({
-        kind: "user-message",
-        sessionId: s.session.sessionId,
-        turnId,
-        text,
-        ts: Date.now(),
-      })
       s.session.send(text)
     },
     // Wrap spawnSession so user-initiated spawns also propagate spawn-error
