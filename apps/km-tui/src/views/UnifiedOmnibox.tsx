@@ -16,11 +16,12 @@
  * See docs/design/omnibox.md and apps/km-tui/src/state/omnibox.ts.
  */
 import React from "react"
-import { Box, ModalDialog, PickerList, Text, TextInput } from "@silvery/ag-react"
+import { Box, ModalDialog, PickerList, Small, Text, TextInput } from "@silvery/ag-react"
 import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
 import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
 import { chipsFromQuery, type Chip } from "../state/omnibox-chips.ts"
+import { ghostFor, type GhostCandidate } from "../state/omnibox-ghost.ts"
 
 // =============================================================================
 // Empty-buffer prefix guide
@@ -160,6 +161,14 @@ export interface UnifiedOmniboxProps {
    * Derived from `buffer.startsWith("/")` by the caller.
    */
   layout?: "center" | "bottom-left"
+  /**
+   * Optional accept-ghost callback (km-tui.omnibox-interactions, Phase 7).
+   * When the connector wires this, Tab / Space / Right-Arrow at the end of
+   * the buffer trigger it with the full ghost-completed buffer. Pure
+   * delegation — the connector decides whether to update via SET_BUFFER
+   * directly or run a follow-up action.
+   */
+  onAcceptGhost?: (completedBuffer: string) => void
 }
 
 // =============================================================================
@@ -232,6 +241,7 @@ function CenterOmnibox({
   selectedIndex,
   onBufferChange,
   onConfirm,
+  onAcceptGhost,
   onRowClick,
   onRowHover,
   width,
@@ -251,6 +261,26 @@ function CenterOmnibox({
   // the chip array reference is stable across renders that don't change the
   // buffer (e.g. selection-only changes).
   const chips = React.useMemo(() => chipsFromQuery(buffer), [buffer])
+
+  // Ghost completion — derive from the top-ranked result. We trim the
+  // leading sigil from the candidate id (commands) so the ghost suffix
+  // is right-aligned to the buffer's text portion. Pure derivation;
+  // the connector wires `onAcceptGhost` to commit the completion.
+  const ghost = React.useMemo(() => {
+    const ghostCandidates: GhostCandidate[] = results.map((r) => ({
+      id: r.id,
+      title: r.title,
+      kind: r.kind,
+    }))
+    return ghostFor(buffer, ghostCandidates)
+  }, [buffer, results])
+  // Build the completed-buffer string callers commit when the user accepts
+  // the ghost (Tab / Space / Right-Arrow). Stable identity — only changes
+  // when buffer or ghost change.
+  const completedBuffer = ghost != null ? buffer + ghost : null
+  const handleAcceptGhost = React.useCallback(() => {
+    if (completedBuffer != null && onAcceptGhost) onAcceptGhost(completedBuffer)
+  }, [completedBuffer, onAcceptGhost])
 
   // Chrome budget (borderless dialog, opencode-style): title(2) + paddingY(2)
   // + input(1 row, borderless) + blank-line gap(1) = 6 rows. No outer border.
@@ -280,6 +310,21 @@ function CenterOmnibox({
           prompt={chrome.prompt}
           promptColor="$fg-accent"
         />
+        {/* Ghost completion — rendered just below the input as a dim
+            "press Tab to complete: <full-id>" hint. Acceptance happens via
+            the parent connector binding Tab/Space/Right-Arrow to
+            onAcceptGhost — we surface the available completion here so the
+            user discovers the chord exists. */}
+        {ghost != null && (
+          <Box flexDirection="row" data-testid="omnibox-ghost" onClick={handleAcceptGhost}>
+            <Small>
+              {"  ↳ "}
+              {buffer}
+              {ghost}
+              {"  (Tab to complete)"}
+            </Small>
+          </Box>
+        )}
         {/* Parse chips — empty when the buffer is empty/whitespace, so this
             gracefully degrades to a single blank line in that case. */}
         <ParseChips chips={chips} />
