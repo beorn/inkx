@@ -38,18 +38,33 @@ import { leftWidthFor } from "./render-harness.tsx"
  *   leaves a left stripe.
  *
  * Alignment invariant applies to FLUSH only.
+ *
+ * Tool calls now use a status-driven palette inside the inset block:
+ *   - spinner during `in_progress` (not a single character — skipped here)
+ *   - `✓` when `completed`
+ *   - `✗` when `failed`
+ *   - `·` when `pending`
+ *
+ * The legacy `⚙` glyph is preserved as a tool-class marker for
+ * back-compat with snapshot fixtures and tests that still match on it.
  */
 export const STREAM_GLYPHS = {
   assistant: "●",
   user: ">",
   activity: "◈",
   tool: "⚙",
+  toolDone: "✓",
+  toolFail: "✗",
 } as const
 
 /** Glyphs whose columns MUST align. Tool call is excluded by design. */
 export const FLUSH_STREAM_GLYPHS = ["●", ">", "◈"] as const
 /** Glyphs in the tool-block visual family — separate alignment. */
-export const INSET_STREAM_GLYPHS = ["⚙"] as const
+export const INSET_STREAM_GLYPHS = ["⚙", "✓", "✗"] as const
+/** True when the glyph belongs to the tool-call family (any status). */
+export function isToolGlyph(g: string): boolean {
+  return INSET_STREAM_GLYPHS.includes(g as (typeof INSET_STREAM_GLYPHS)[number])
+}
 
 /** Mode glyph per mode, per SidePanel.MODE_ICONS. */
 export const MODE_ICONS_EXPECTED: Record<string, string> = {
@@ -166,7 +181,14 @@ function parseCardStream(
   skipRows: ReadonlySet<number> = new Set(),
 ): MessageBlock[] {
   const out: MessageBlock[] = []
-  const glyphs = [STREAM_GLYPHS.assistant, STREAM_GLYPHS.activity, STREAM_GLYPHS.tool, STREAM_GLYPHS.user]
+  const glyphs = [
+    STREAM_GLYPHS.assistant,
+    STREAM_GLYPHS.activity,
+    STREAM_GLYPHS.tool,
+    STREAM_GLYPHS.toolDone,
+    STREAM_GLYPHS.toolFail,
+    STREAM_GLYPHS.user,
+  ]
 
   for (let row = 0; row < lines.length; row++) {
     if (skipRows.has(row)) continue

@@ -215,9 +215,10 @@ function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
 }
 
 /**
- * User turn row. The `>` glyph + prose layout mirrors the user message row layout
- * styling so existing visual tests pass. `additionalContext` carries hidden
- * context (system-reminders, hook output) exposed via the `/raw` toggle.
+ * User turn row. The leading `>` glyph anchors the role visually — paired
+ * with a subtle bg tint, the row reads as "user input" without the heavy
+ * border-card chrome other agents use. `additionalContext` carries hidden
+ * context (system-reminders, hook output) exposed via the `/debug` toggle.
  */
 function UserRow({
   text,
@@ -271,10 +272,9 @@ function UserRow({
 }
 
 /**
- * Assistant turn row. `●` glyph + MarkdownView, mirroring the old
- * The `flexShrink + minWidth=0` chain on the outer
- * row is load-bearing for soft-wrapping long paragraphs — see the original
- * same structural notes apply.
+ * Assistant turn row. Leading `●` glyph in `$primary` for clear role
+ * identity at a glance — same structural notes as UserRow apply
+ * (flexShrink + minWidth=0 chain so MarkdownView's wrap fires).
  */
 function AssistantRow({ text }: { text: string }): React.ReactElement {
   return (

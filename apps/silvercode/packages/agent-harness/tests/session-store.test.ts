@@ -223,3 +223,88 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
   })
 })
+
+describe("user-message — optimistic + echo dedup", () => {
+  test("optimistic apply + agent echo with different turnId → ONE entry, not two", () => {
+    // Repro for the screenshot reported on 2026-04-27. The controller
+    // flushes a user prompt with an optimistic turnId `u-${Date.now()}`
+    // for instant feedback, then `s.session.send(text)` ships the prompt
+    // to Claude. Claude writes it to its JSONL transcript, and parse.ts
+    // emits a *second* `user-message` event with a JSONL-uuid turnId.
+    // Without dedup, the user sees their prompt rendered twice.
+    const store = createSessionStore()
+    const text = "can you fix the bug"
+    const ts = 1_700_000_000_000
+    // Step 1: controller's optimistic apply.
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "u-1700000000000" as TurnId,
+      text,
+      ts,
+    })
+    // Step 2: Claude echoes the same prompt back via stream-json with
+    // its own JSONL uuid as the turnId — arrives ~50-200ms later.
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "uuid-deadbeef-1234" as TurnId,
+      text,
+      ts: ts + 150,
+    })
+    const messages = store.state.get().messages
+    expect(messages).toHaveLength(1)
+    // The single surviving entry MUST be re-keyed to the canonical
+    // (uuid-shaped) turnId so subsequent `tool-result` lookups, scroll
+    // anchors, and turn-end attaches resolve correctly.
+    expect(messages[0]!.id).toBe("uuid-deadbeef-1234")
+    expect(messages[0]!.role).toBe("user")
+    expect(messages[0]!.text).toBe(text)
+  })
+
+  test("two distinct prompts with the same text DO render as two entries", () => {
+    // Dedup is a near-window heuristic, not a content equality. If the
+    // user sends "ok" twice across separate turns, both must appear.
+    const store = createSessionStore()
+    const text = "ok"
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "u-100" as TurnId,
+      text,
+      ts: 100,
+    })
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "uuid-aaa" as TurnId,
+      text,
+      ts: 250, // within 5s window — echo collapses
+    })
+    expect(store.state.get().messages).toHaveLength(1)
+    // Outside the window — second prompt must NOT collapse.
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "u-99999999" as TurnId,
+      text,
+      ts: 300_000,
+    })
+    expect(store.state.get().messages).toHaveLength(2)
+  })
+
+  test("optimistic with empty text + echo with empty text doesn't crash", () => {
+    // Edge case: meta-only entries (additionalContext only) skip dedup
+    // because there's no text to match on.
+    const store = createSessionStore()
+    store.apply({
+      kind: "user-message",
+      sessionId: sid,
+      turnId: "u-1" as TurnId,
+      text: "",
+      additionalContext: "[isMeta]\nhook output",
+      ts: 1,
+    })
+    expect(store.state.get().messages).toHaveLength(1)
+  })
+})

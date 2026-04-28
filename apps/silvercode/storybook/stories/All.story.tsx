@@ -69,11 +69,19 @@ const breakdownRows = [
 ]
 
 function UserRow({ text }: { text: string }): React.ReactElement {
+  // opencode-style ribbon: 1-col left accent border, subtle bg tint, no glyph.
   return (
-    <Box flexDirection="row" gap={1} backgroundColor="$bg-surface-subtle" paddingX={1} paddingY={0}>
-      <Text bold color="$accent">
-        {">"}
-      </Text>
+    <Box
+      flexDirection="row"
+      backgroundColor="$bg-surface-subtle"
+      borderStyle="single"
+      borderColor="$accent"
+      borderTop={false}
+      borderRight={false}
+      borderBottom={false}
+      paddingX={1}
+      paddingY={0}
+    >
       <Prose flexGrow={1}>
         <LinkifiedText text={text} role="user" />
       </Prose>
@@ -82,11 +90,17 @@ function UserRow({ text }: { text: string }): React.ReactElement {
 }
 
 function AssistantRow({ text }: { text: string }): React.ReactElement {
+  // opencode-style ribbon: 1-col left primary border, no glyph.
   return (
-    <Box flexDirection="row" gap={1} paddingX={1}>
-      <Text bold color="$primary">
-        ●
-      </Text>
+    <Box
+      flexDirection="row"
+      borderStyle="single"
+      borderColor="$primary"
+      borderTop={false}
+      borderRight={false}
+      borderBottom={false}
+      paddingX={1}
+    >
       <Prose flexGrow={1}>
         <MarkdownView source={text} />
       </Prose>

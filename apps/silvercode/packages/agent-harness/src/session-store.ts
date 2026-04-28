@@ -308,7 +308,56 @@ export function createSessionStore(): SessionStore {
         upsertMessage(next, event.turnId, (m) => ({ ...m, role: event.role, ts: event.ts }))
         next.status = event.role === "assistant" ? "thinking" : "idle"
         break
-      case "user-message":
+      case "user-message": {
+        // Optimistic-echo dedup. Silvercode's controller applies a
+        // user-message with a synthetic `u-<ts>` turnId for instant
+        // feedback BEFORE shipping the prompt to the agent. The agent
+        // then echoes the same prompt back via stream-json with its own
+        // JSONL uuid as turnId — arriving 50-200ms later. Without this
+        // guard the prompt renders TWICE (one optimistic + one echo)
+        // because the two turnIds don't match and `upsertMessage` appends
+        // a fresh entry for the second.
+        //
+        // Heuristic: if the new turnId isn't already in the store BUT a
+        // prior optimistic entry (id starts with `u-`) carries the same
+        // text within a 5-second window, re-key the optimistic entry to
+        // the canonical turnId so subsequent `tool-result` lookups, turn-
+        // end attaches, and scroll anchors all resolve correctly. The
+        // window is wide enough to cover normal echo latency while narrow
+        // enough that the same word repeated across turns ("ok", "yes")
+        // doesn't collapse incorrectly.
+        const existingIdx = next.messages.findIndex((m) => m.id === event.turnId)
+        if (existingIdx === -1 && event.text.length > 0) {
+          const ECHO_WINDOW_MS = 5_000
+          const optimisticIdx = next.messages.findIndex(
+            (m) =>
+              m.role === "user" &&
+              (m.id as string).startsWith("u-") &&
+              m.ops.length === 1 &&
+              m.ops[0]!.kind === "text" &&
+              m.ops[0]!.text === event.text &&
+              event.ts - m.ts < ECHO_WINDOW_MS,
+          )
+          if (optimisticIdx >= 0) {
+            const optimistic = next.messages[optimisticIdx]!
+            const updated = makeEntry({
+              id: event.turnId,
+              role: "user",
+              ops: [...optimistic.ops],
+              blocks: optimistic.blocks ? [...optimistic.blocks] : undefined,
+              todos: optimistic.todos,
+              stopReason: optimistic.stopReason,
+              additionalContext: event.additionalContext ?? optimistic.additionalContext,
+              ts: optimistic.ts,
+            })
+            next.messages = [
+              ...next.messages.slice(0, optimisticIdx),
+              updated,
+              ...next.messages.slice(optimisticIdx + 1),
+            ]
+            break
+          }
+        }
         upsertMessage(next, event.turnId, (m) => ({
           ...m,
           role: "user",
@@ -319,6 +368,7 @@ export function createSessionStore(): SessionStore {
           ts: event.ts,
         }))
         break
+      }
       case "text-delta":
         upsertMessage(next, event.turnId, (m) => {
           // Coalesce into the trailing text op when the most recent op

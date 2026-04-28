@@ -47,7 +47,7 @@ function freshRender() {
 
 describe("ToolCallStatusTitle", () => {
   // The title carries the meaning; the parent ToolCall card paints status
-  // via the leading glyph (spinner / ⚙ / ✗) and border. The verb prefix
+  // via the leading glyph (spinner / ✓ / ✗ / ·) and border. The verb prefix
   // ("Reading…", "Read 3 files", "Search failed") is intentionally dropped
   // — the icon already conveys status. Bead: km-silvercode.acp-tool-call.
 

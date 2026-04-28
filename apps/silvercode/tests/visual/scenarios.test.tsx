@@ -30,6 +30,7 @@ import { bashTool } from "../../src/test/scripts/bashTool.ts"
 import { longToolResult } from "../../src/test/scripts/longToolResult.ts"
 import { permissionRequest } from "../../src/test/scripts/permissionRequest.ts"
 import { expectLayoutInvariants, parseFrame } from "./_invariants.ts"
+import { isToolGlyph } from "../../src/test/parse-frame.ts"
 
 const COLS = 120
 const ROWS = 30
@@ -67,11 +68,12 @@ describe("visual scenarios — layout invariants hold", () => {
   test("bashTool: tool-call block + assistant text render together", async () => {
     const s = await renderScenario({ script: bashTool, cols: COLS, rows: ROWS })
     const p = parseFrame(s)
-    // Tool-call uses `⚙` glyph (non-running). Running tool uses a Spinner
-    // so ⚙ may or may not be present depending on timing — the bash script
-    // includes a tool-result so the call is complete.
-    const tool = p.cardStream.find((b) => b.glyph === "⚙")
-    expect(tool, `expected ⚙ tool-call glyph in card stream.\n${s.text}`).toBeDefined()
+    // Tool-call status palette: `⚙` (legacy / pending fallback), `✓`
+    // (completed), `✗` (failed), or a Spinner (in_progress, no static
+    // glyph). The bash script includes a tool-result so the call is
+    // complete — accept any of the static tool glyphs.
+    const tool = p.cardStream.find((b) => isToolGlyph(b.glyph))
+    expect(tool, `expected tool-call glyph (⚙/✓/✗) in card stream.\n${s.text}`).toBeDefined()
     expectLayoutInvariants(s)
   })
 

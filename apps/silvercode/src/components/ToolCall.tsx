@@ -257,18 +257,25 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
         onClick={hasContent ? () => setExpanded((v) => !v) : undefined}
       >
         <Box flexDirection="row" gap={1}>
-          {/* Leading glyph — spinner for in_progress, ✗ for failed, ⚙ otherwise.
-              Failed status uses ✗ so the failure signal lives entirely in the
-              unified header (title says "Bash failed", glyph says ✗) — no
-              redundant secondary "Error" envelope below. The spinner gets eaten
-              by static-frame tests but in real TTY it animates the same way
-              Claude Code's tool-row spinner does. */}
+          {/* Leading status glyph — opencode-style: minimal, single character.
+              spinner   → in_progress
+              ✓         → completed (bold $primary)
+              ✗         → failed (bold $error)
+              ·         → pending ($muted, dim)
+              Status lives in the glyph + the colored left border; the title
+              renders verbatim alongside, no verb prefix. */}
           {status === "in_progress" ? (
             <Spinner type="dots" />
-          ) : (
-            <Text bold color={accentColor}>
-              {status === "failed" ? "✗" : "⚙"}
+          ) : status === "failed" ? (
+            <Text bold color="$error">
+              ✗
             </Text>
+          ) : status === "completed" ? (
+            <Text bold color="$primary">
+              ✓
+            </Text>
+          ) : (
+            <Muted>·</Muted>
           )}
           <ToolCallStatusTitle status={status} kind={kind} title={toolCall.title} />
           {renderLocations(toolCall.locations)}
