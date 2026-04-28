@@ -8,15 +8,19 @@
  * - `--resume <missing-uuid>` → exit 2, stderr points to the projdir
  * - `--resume <agent>:<sid>` with conflicting `--agent` → exit 2 with conflict text
  * - `--help` → exit 0, prints help
+ * - SIGTERM during post-mount banner → exits within budget (regression
+ *   guard for km-silvercode.signal-hang-investigate; without bootstrap.ts'
+ *   SIGTERM fast-exit, this test would hang at 100% CPU)
  *
- * The tests do NOT enter alt-screen mode because every failing pre-flight
- * exits BEFORE `await run(...)` gets called. That's the whole point of
- * pre-flight: errors land in the user's normal terminal, not behind alt-screen.
+ * The pre-flight tests do NOT enter alt-screen mode because every failing
+ * pre-flight exits BEFORE `await run(...)` gets called. The post-mount
+ * SIGTERM test DOES enter alt-screen and verifies the bootstrap fast-exit
+ * handler is wired correctly — that is the regression we care about.
  *
- * Bead: km-silvercode.resume-blank-screen.
+ * Bead: km-silvercode.resume-blank-screen, km-silvercode.signal-hang-investigate.
  */
 
-import { spawnSync } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import { join } from "node:path"
 import { describe, expect, test } from "vitest"
 
@@ -81,4 +85,117 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
     expect(r.stdout).toContain("--resume")
     expect(r.stdout).toContain("--agent")
   })
+})
+
+describe("silvercode CLI smoke — SIGTERM mitigation", () => {
+  /**
+   * Regression guard for km-silvercode.signal-hang-investigate.
+   *
+   * Spawns silvercode with no credentials so the controller's
+   * `spawnSession()` rejects with "ACP connection closed", surfacing the
+   * "Spawn failed" banner inside alt-screen. We then send SIGTERM and
+   * assert the process exits within a budget — the bootstrap-level
+   * `installFastExit("SIGTERM", ...)` handler should drain in <=1s.
+   *
+   * Without that handler, only SIGKILL would reap the child (per the
+   * original incident). With a future regression that re-introduces a
+   * wedged-loop after mount, this test would time out and SIGKILL
+   * escalate — failing loudly instead of leaking 100% CPU processes.
+   *
+   * `SILVERCODE_AGENT=fake://does-not-exist` forces a registry lookup
+   * miss so the spawn path runs with no credentials. The connection-string
+   * scheme is rejected by `resolveExplicit`, which exits the program at the
+   * pre-mount gate — for the post-mount path we instead rely on the
+   * default `claude-code` agent + `--account d@delei.org-nonexistent`
+   * combination, which lets mount succeed and spawn fail asynchronously.
+   *
+   * Budget rationale: 500ms grace from `installFastExit` + 500ms slack
+   * for cleanup + 1500ms margin for slow CI = 2500ms wall budget.
+   */
+  test("SIGTERM during post-mount spawn-failure banner exits within budget", async () => {
+    const SIGTERM_BUDGET_MS = 2500
+    // Spawn detached so we own the pgid and can clean up grandchildren.
+    const child = spawn(
+      "bun",
+      [
+        BOOTSTRAP,
+        // Non-existent account ensures spawnClaude fails (no creds dir),
+        // surfacing the "Spawn failed" banner. Mount completes; the
+        // failure happens async via the controller's eager spawnSession.
+        "--account",
+        "definitely-nonexistent-account-zzz-9999",
+      ],
+      {
+        cwd: REPO_ROOT,
+        // Pipe stdin so silvercode doesn't see TTY (no real keystrokes
+        // can interrupt the test). Pipe stdout/stderr so we can check
+        // alt-screen entry was attempted.
+        stdio: ["pipe", "pipe", "pipe"],
+        env: { ...process.env, FORCE_COLOR: "0" },
+      },
+    )
+    let stdout = ""
+    let stderr = ""
+    child.stdout?.on("data", (b: Buffer) => {
+      stdout += b.toString("utf8")
+    })
+    child.stderr?.on("data", (b: Buffer) => {
+      stderr += b.toString("utf8")
+    })
+
+    // Wait for alt-screen entry (\x1b[?1049h) — that confirms mount
+    // started and we're in the post-pre-flight path. Cap the wait so a
+    // pre-flight regression fails fast.
+    const altScreenSeen = await new Promise<boolean>((resolve) => {
+      const deadline = setTimeout(() => resolve(false), 5000)
+      const check = () => {
+        if (stdout.includes("\x1b[?1049h")) {
+          clearTimeout(deadline)
+          resolve(true)
+        }
+      }
+      child.stdout?.on("data", check)
+      check()
+    })
+    expect(altScreenSeen).toBe(true)
+
+    // Send SIGTERM and time the exit.
+    const start = Date.now()
+    const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
+      child.once("exit", (code, signal) => resolve({ code, signal }))
+    })
+    child.kill("SIGTERM")
+
+    const timeoutPromise = new Promise<"timeout">((resolve) => {
+      setTimeout(() => resolve("timeout"), SIGTERM_BUDGET_MS)
+    })
+
+    const result = await Promise.race([exitPromise, timeoutPromise])
+    const elapsed = Date.now() - start
+
+    if (result === "timeout") {
+      // Escalate to SIGKILL so we don't leak a 100% CPU process from a
+      // failing test. This is the EXACT behavior cli-smoke uses and the
+      // exact behavior callers MUST replicate per the bead's contract.
+      child.kill("SIGKILL")
+      await exitPromise.catch(() => undefined)
+      throw new Error(
+        `silvercode failed to exit within ${SIGTERM_BUDGET_MS}ms of SIGTERM (took >${elapsed}ms). ` +
+          `This is the regression guarded by km-silvercode.signal-hang-investigate — ` +
+          `bootstrap.ts' installFastExit("SIGTERM") handler is missing or broken, OR a new wedge ` +
+          `was introduced. stderr=<<<${stderr.slice(0, 500)}>>>`,
+      )
+    }
+
+    // SIGTERM fast-exit uses code 143; bun/node may report code OR signal
+    // depending on whether process.exit() ran before SIGTERM was actually
+    // delivered to the kernel. Either is acceptable.
+    expect(elapsed).toBeLessThan(SIGTERM_BUDGET_MS)
+    const exitedCleanly = result.code === 143 || result.signal === "SIGTERM"
+    if (!exitedCleanly) {
+      // Non-fatal diagnostic — the timing assertion is the load-bearing one.
+      // We still want visibility if the exit path drifts.
+      console.warn(`silvercode SIGTERM smoke: unexpected exit code=${result.code} signal=${result.signal}`)
+    }
+  }, 15_000)
 })
