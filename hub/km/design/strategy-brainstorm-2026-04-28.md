@@ -30,7 +30,7 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 - **[S23](#s23) ★ — The playground for the UI of agentic work**. Integrated app (chat + docs + code + agents + boards + diagrams). One app, multiple panes. [TUI](#g-tui) today → web/native via silvery's multi-target.
 - **[S26](#s26) ★ — Docker for agents**. `.brain` as portable agent format. Spec-authorship moat at the protocol layer. Composes with [S25](#s25).
 
-**Why**: simultaneously cross-elasticity-positive, solo-bandwidth-fitting, /pro-rubric-validated (25/25 cluster math), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
+**Why**: simultaneously [cross-elasticity](#g-cross-elasticity)-positive, solo-bandwidth-fitting, /pro-rubric-validated (25/25 cluster math), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
 
 **What NOT to do**: lock to [S1](#s1) (high cross-elasticity exposure); pursue [Family H](#family-map) (abandons architectural coherence); ship production hosted services solo; promote [PlainBrain](#g-plainbrain) as a standalone "third standard" before silvery validates; pre-form a separate entity for agentroom.
 
@@ -886,6 +886,15 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 <a id="g-kilo-code"></a>
 
 - **Kilo Code** — agentic IDE; April 2026 fork; [OpenTUI](#g-opentui)-based.
+
+### Strategic concepts
+
+<a id="g-cross-elasticity"></a>
+
+- **cross-elasticity** — A measure of how much your free/open-source layer's audience is structurally equipped to build a competing version of your paid/commercial layer themselves. Surfaced as the central analytical frame for this portfolio (per Kimi K2.6 review).
+  - **Negative cross-elasticity (the "trap")**: free-tier adopters cannibalize the paid tier because they can build it. The classic case: [silvery](#g-silvery) framework users are themselves React-TUI-IDE builders — so [silvercode](#g-silvercode) (a paid React TUI IDE) faces an audience that's structurally able to build silvercode-equivalents on top of [silvery](#g-silvery). High exposure → [Family H](#family-map) and [S1](#s1) carry this risk.
+  - **Positive cross-elasticity**: free-tier adopters become *buyers* of the paid tier because the paid layer is something they want to *avoid* doing themselves. Auth, secrets, multi-tenant infra, [SOC2](#g-soc2), recall, ambient-safety — services with operational weight that an individual developer would rather pay than maintain. The [Vercel](#g-vercel)/[Auth0](#g-auth0)/[Algolia](#g-algolia)/[Confluent](#g-confluent) pattern.
+  - **Why this drives the recommendation**: collapsing the [silvery](#g-silvery) → [silvercode](#g-silvercode) bet onto the L4 → L2/L3 layers (services + protocols) flips cross-elasticity from negative to positive without abandoning the architecture. That's the structural argument behind [S25](#s25).
 
 ### Business / legal / financial
 
