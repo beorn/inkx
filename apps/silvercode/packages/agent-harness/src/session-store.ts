@@ -253,6 +253,69 @@ export function createSessionStore(): SessionStore {
   function get(): SessionState {
     return s()
   }
+
+  // ────────────────────────────────────────────────────────────────────
+  // Echoed-prompt strip — adjacent to the duplicate-prompt dedup but for
+  // a different surface. Some agent paths emit the assistant turn's
+  // first text bytes with the user prompt prepended ("what repo is
+  // this?km — Knowledge Machine ..."). The duplicate-prompt heuristic
+  // re-keys an optimistic user-message echo onto the agent's turnId; it
+  // does NOT touch the assistant content. This strip targets that case.
+  //
+  // Bead: km-silvercode.prompt-concat-into-reply.
+  //
+  // Per assistant turn we hold a small consumer state machine: try to
+  // match incoming text-delta bytes against the most-recent user prompt
+  // from the start. While a delta is a prefix-fragment of the remaining
+  // prompt, swallow it. When a delta crosses the prompt boundary, emit
+  // only the post-prompt suffix. On any mismatch, abandon and replay
+  // the suppressed bytes — guarantees byte-exact pass-through whenever
+  // the agent does NOT echo the prompt.
+  type StripState = { fullPrompt: string; consumed: number; abandoned: boolean }
+  const turnStrip = new Map<TurnId, StripState>()
+  // Captured on the most recent user-message; consumed by the next
+  // assistant turn-start (or assistant-message when streaming is
+  // skipped). Cleared after consumption so a follow-up assistant turn
+  // without an intervening user prompt doesn't accidentally re-arm.
+  let pendingPromptForNextAssistantTurn = ""
+
+  function armStripForTurn(turnId: TurnId): void {
+    const prompt = pendingPromptForNextAssistantTurn
+    pendingPromptForNextAssistantTurn = ""
+    if (prompt.length === 0) return
+    if (turnStrip.has(turnId)) return
+    turnStrip.set(turnId, { fullPrompt: prompt, consumed: 0, abandoned: false })
+  }
+
+  /**
+   * Run a chunk of incoming assistant text through the strip state for
+   * `turnId`. Returns the bytes that should actually be appended to the
+   * message's text op. On the first chunk that diverges from the prompt
+   * prefix, the strip abandons and prepends any previously-suppressed
+   * bytes so the rendered text is byte-equal to what the agent emitted.
+   */
+  function consumeStrip(turnId: TurnId, text: string): string {
+    if (text.length === 0) return text
+    const st = turnStrip.get(turnId)
+    if (!st || st.abandoned || st.consumed >= st.fullPrompt.length) return text
+    const remaining = st.fullPrompt.slice(st.consumed)
+    if (remaining.startsWith(text)) {
+      // Whole delta is a prefix-fragment of the remaining prompt. Swallow it.
+      st.consumed += text.length
+      return ""
+    }
+    if (text.startsWith(remaining)) {
+      // Delta crosses the prompt boundary. Emit only the post-prompt suffix.
+      st.consumed = st.fullPrompt.length
+      return text.slice(remaining.length)
+    }
+    // Mismatch — agent isn't echoing. Abandon strip and replay any
+    // bytes we silently swallowed earlier so the on-screen text matches
+    // the agent's actual byte stream.
+    const replay = st.fullPrompt.slice(0, st.consumed)
+    st.abandoned = true
+    return replay + text
+  }
   /**
    * Build an updated entry. The mutator is given a fresh `WritableEntry`
    * (the input is destructured so callers can return `{ ...m, ... }` style
@@ -307,6 +370,7 @@ export function createSessionStore(): SessionStore {
       case "turn-start":
         upsertMessage(next, event.turnId, (m) => ({ ...m, role: event.role, ts: event.ts }))
         next.status = event.role === "assistant" ? "thinking" : "idle"
+        if (event.role === "assistant") armStripForTurn(event.turnId)
         break
       case "user-message": {
         // Optimistic-echo dedup. Silvercode's controller applies a
@@ -367,9 +431,17 @@ export function createSessionStore(): SessionStore {
           additionalContext: event.additionalContext ?? m.additionalContext,
           ts: event.ts,
         }))
+        // Capture the prompt for the next assistant turn's echo strip.
+        // See the `consumeStrip` block at the top of this factory.
+        if (event.text.length > 0) pendingPromptForNextAssistantTurn = event.text
         break
       }
-      case "text-delta":
+      case "text-delta": {
+        // Strip echoed-prompt bytes before applying. When a delta is
+        // entirely consumed by the strip, skip the apply entirely so we
+        // don't push an empty text op or spuriously bump the entry copy.
+        const stripped = consumeStrip(event.turnId, event.text)
+        if (stripped.length === 0) break
         upsertMessage(next, event.turnId, (m) => {
           // Coalesce into the trailing text op when the most recent op
           // is text — this is how a multi-chunk assistant paragraph
@@ -379,13 +451,14 @@ export function createSessionStore(): SessionStore {
           const ops = [...m.ops]
           const last = ops[ops.length - 1]
           if (last?.kind === "text") {
-            ops[ops.length - 1] = { kind: "text", text: last.text + event.text }
+            ops[ops.length - 1] = { kind: "text", text: last.text + stripped }
           } else {
-            ops.push({ kind: "text", text: event.text })
+            ops.push({ kind: "text", text: stripped })
           }
           return { ...m, ops }
         })
         break
+      }
       case "thinking-delta":
         // No-op for now: thinking deltas don't surface in the rendered
         // ops stream. Keeping this case to preserve the message slot for
@@ -474,6 +547,10 @@ export function createSessionStore(): SessionStore {
         // events entirely — only this aggregate fires. So when ops is
         // empty, derive ops from `event.content` *in order*, preserving
         // any text/tool interleaving the resumed transcript records.
+        //
+        // Replay path also needs echoed-prompt strip — message_start
+        // never fires, so arm it on first encounter for this turn.
+        if (!turnStrip.has(event.turnId)) armStripForTurn(event.turnId)
         upsertMessage(next, event.turnId, (m) => {
           if (m.ops.length > 0) {
             return { ...m, blocks: event.content }
@@ -481,11 +558,13 @@ export function createSessionStore(): SessionStore {
           const ops: MessageOp[] = []
           for (const b of event.content) {
             if (b.type === "text" && b.text.length > 0) {
+              const stripped = consumeStrip(event.turnId, b.text)
+              if (stripped.length === 0) continue
               const last = ops[ops.length - 1]
               if (last?.kind === "text") {
-                ops[ops.length - 1] = { kind: "text", text: last.text + b.text }
+                ops[ops.length - 1] = { kind: "text", text: last.text + stripped }
               } else {
-                ops.push({ kind: "text", text: b.text })
+                ops.push({ kind: "text", text: stripped })
               }
             } else if (b.type === "tool_use") {
               ops.push({
