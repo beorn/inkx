@@ -106,7 +106,22 @@ function lastUserPrompt(brief: CurrentBrief): string {
   return userLines[userLines.length - 1]?.replace("[USER]", "").trim() ?? ""
 }
 
-function buildQuery(brief: CurrentBrief): string | null {
+type QueryPlan = {
+  query: string
+  strategy: number
+  strategyName: string
+  rationale: string
+}
+
+const STRATEGY_NAMES = [
+  "latest-user-prompt",
+  "bead+token",
+  "top-tokens",
+  "path+token",
+  "tokens+prompt",
+]
+
+function buildQuery(brief: CurrentBrief): QueryPlan | null {
   const userPrompt = lastUserPrompt(brief)
 
   // Skip-on-no-progress: if exchangeCount AND last user prompt are unchanged,
@@ -119,47 +134,59 @@ function buildQuery(brief: CurrentBrief): string | null {
     return null
   }
 
-  // Rotate focus across cycles to vary what we probe. Five strategies:
-  //   0: latest user prompt (verbatim, trimmed)
-  //   1: latest bead mentioned + 1 distinctive token
-  //   2: top 3 distinctive tokens
-  //   3: latest file path mentioned (if any) + 1 token
-  //   4: prompt + distinctive token (mixed)
+  // Rotate focus across cycles. Each strategy explains what it sampled and why.
   const cycleN = (lastState?.cycleN ?? 0) + 1
   const strategy = cycleN % 5
   const tokens = brief.mentionedTokens.slice(0, 5)
   const trimmedPrompt = userPrompt.length > 100 ? userPrompt.slice(0, 100) : userPrompt
 
   let query: string
+  let rationale: string
   switch (strategy) {
     case 0:
       query = trimmedPrompt || tokens.slice(0, 3).join(" ") || "session"
+      rationale = trimmedPrompt
+        ? `latest user prompt verbatim (chars=${trimmedPrompt.length})`
+        : `no user prompt available — fell back to top-3 tokens [${tokens.slice(0, 3).join(", ")}]`
       break
     case 1: {
       const bead = brief.mentionedBeads[0] ?? ""
       const tok = tokens[0] ?? ""
       query = [bead, tok].filter(Boolean).join(" ") || trimmedPrompt
+      rationale = bead
+        ? `most-recent bead "${bead}" + most-distinctive token "${tok}"`
+        : `no bead mentioned — fell back to user prompt`
       break
     }
     case 2:
       query = tokens.slice(0, 3).join(" ") || trimmedPrompt || "session"
+      rationale = tokens.length
+        ? `top 3 distinctive tokens from brief: [${tokens.slice(0, 3).join(", ")}]`
+        : `no tokens — fell back to prompt`
       break
     case 3: {
       const path = brief.mentionedPaths[0] ?? ""
       const tok = tokens[1] ?? tokens[0] ?? ""
       query = [path, tok].filter(Boolean).join(" ") || trimmedPrompt
+      rationale = path
+        ? `most-recent file path "${path}" + token "${tok}"`
+        : `no path mentioned — fell back to user prompt`
       break
     }
     case 4:
     default:
       query = `${tokens.slice(0, 2).join(" ")} ${trimmedPrompt}`.trim()
+      rationale = `top 2 tokens [${tokens.slice(0, 2).join(", ")}] + user prompt (mixed-signal probe)`
       break
   }
   // Final guard: empty → fallback
-  if (!query.trim()) query = brief.mentionedBeads[0] ?? "session"
+  if (!query.trim()) {
+    query = brief.mentionedBeads[0] ?? "session"
+    rationale = `${rationale} → empty after build, hard fallback`
+  }
 
   lastState = { exchangeCount: brief.exchangeCount, lastUserPrompt: userPrompt, cycleN }
-  return query
+  return { query, strategy, strategyName: STRATEGY_NAMES[strategy] ?? "?", rationale }
 }
 
 async function runRecallAgent(query: string): Promise<RecallResult | null> {
@@ -192,20 +219,35 @@ async function runCycle(): Promise<void> {
     console.error(`[${nowIso()}] cycle ${cycleCounter}: no brief, skipping`)
     return
   }
-  const query = buildQuery(brief)
-  if (query === null) {
+  const plan = buildQuery(brief)
+  if (plan === null) {
     // No conversational progress since last cycle — skip silently.
     // Don't even bump the counter; nothing happened.
     console.error(`[${nowIso()}] cycle ${cycleCounter}: no conversational progress, skipping`)
     return
   }
-  const result = await runRecallAgent(query)
+  const result = await runRecallAgent(plan.query)
+
+  // Tokens that match between the query and a hit's snippet are the FTS
+  // signal the human can use to judge "did this match for the right reasons?"
+  // We approximate by finding the longest query terms (>3 chars) that appear
+  // case-insensitively in the snippet.
+  const queryTerms = plan.query
+    .split(/\s+/)
+    .map((t) => t.replace(/[^a-zA-Z0-9_./-]/g, ""))
+    .filter((t) => t.length > 3)
+  const matchedTerms = (snippet: string): string[] => {
+    const s = snippet.toLowerCase()
+    return queryTerms.filter((t) => s.includes(t.toLowerCase()))
+  }
 
   // Format the digest
   const lines: string[] = []
   lines.push(`=== ${nowIso()} — cycle ${cycleCounter} ===`)
   lines.push(`Session: ${brief.sessionId.slice(0, 8)}  ageMs=${brief.ageMs}  exchanges=${brief.exchangeCount}`)
-  lines.push(`Query: "${query}"`)
+  lines.push(`Brief: tokens=[${brief.mentionedTokens.slice(0, 5).join(", ")}] beads=[${brief.mentionedBeads.slice(0, 3).join(", ")}] paths=[${brief.mentionedPaths.slice(0, 2).join(", ")}]`)
+  lines.push(`Strategy: ${plan.strategyName} (cycle % 5 = ${plan.strategy}) — ${plan.rationale}`)
+  lines.push(`Query: "${plan.query}"`)
   if (!result) {
     lines.push(`(no recall result)`)
   } else {
@@ -214,12 +256,16 @@ async function runCycle(): Promise<void> {
     if (top.length === 0) {
       lines.push(`(no hits)`)
     } else {
-      lines.push(`Top ${top.length} hits:`)
+      lines.push(`Top ${top.length} hits (rank = FTS score, matched = which query terms hit the snippet):`)
       for (const [i, hit] of top.entries()) {
         const sid = (hit.sessionId ?? "?").slice(0, 8)
         const kind = hit.type ?? "?"
+        const rank = hit.rank !== undefined ? hit.rank.toFixed(3) : "?"
         const snippet = (hit.snippet ?? "").replace(/\s+/g, " ").trim().slice(0, 220)
-        lines.push(`  [${i + 1}] ${kind}@${sid}: ${snippet}…`)
+        const matched = matchedTerms(hit.snippet ?? "")
+        const matchStr = matched.length ? `matched=[${matched.join(", ")}]` : `matched=[] (incidental token overlap)`
+        lines.push(`  [${i + 1}] rank=${rank} ${kind}@${sid} ${matchStr}`)
+        lines.push(`      ${snippet}…`)
       }
     }
     if (result.synthesis) {

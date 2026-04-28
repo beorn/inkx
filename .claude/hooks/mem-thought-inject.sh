@@ -14,7 +14,6 @@
 set -euo pipefail
 
 LOG="$HOME/.cache/mem-thought-hypothesis.log"
-MAX_AGE_S=${MEM_THOUGHT_MAX_AGE_S:-600}
 
 # Disabled?
 if [ "${SILVERCODE_MEM_HYPOTHESIS_HOOK:-1}" = "0" ]; then
@@ -28,19 +27,17 @@ if [ ! -f "$LOG" ] || [ ! -s "$LOG" ]; then
   exit 0
 fi
 
-# File freshness check (macOS / Linux compatible)
+# Compute age for the injection banner (no hard cutoff — the probe's
+# skip-on-no-progress guard already prevents cost burn during idle stretches,
+# and a stale "what mem-thought thought last time you spoke" emit is still
+# the right thing to surface on this prompt).
 NOW=$(date +%s)
 if MTIME=$(stat -f %m "$LOG" 2>/dev/null); then :
 elif MTIME=$(stat -c %Y "$LOG" 2>/dev/null); then :
 else
-  echo '{}'
-  exit 0
+  MTIME=$NOW
 fi
 AGE=$((NOW - MTIME))
-if [ "$AGE" -gt "$MAX_AGE_S" ]; then
-  echo '{}'
-  exit 0
-fi
 
 # Extract the LAST cycle (everything from the last "=== " marker to EOF).
 # Trim leading/trailing whitespace.
