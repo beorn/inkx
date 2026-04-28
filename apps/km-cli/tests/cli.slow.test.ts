@@ -1024,6 +1024,31 @@ describe("km move - re-parent nodes", () => {
     expectFailure(result)
     expect(result.stderr).toContain("Specify a parent")
   })
+
+  test("should accept --no-rewrite flag", async () => {
+    const tasks = await getTasks()
+    const inboxTask = findTask(tasks, "Task in inbox")!
+    expect(inboxTask).toBeDefined()
+
+    const nodesResult = await km(["ls", "--type", "file", "--json"])
+    const nodes = parseJson<TaskJson[]>(nodesResult)
+    const workFile = nodes.find((n) => n.fs_path?.includes("work.md"))!
+    expect(workFile).toBeDefined()
+
+    const moveResult = await km(["move", inboxTask.id, workFile.id, "--no-rewrite", "--json"])
+    expect(moveResult.exitCode).toBe(0)
+
+    const output = parseJson<{
+      id: string
+      parent_id: string | null
+      rewroteHosts: number
+      rewroteRefs: number
+    }>(moveResult)
+    expect(output.id).toBe(inboxTask.id)
+    expect(output.parent_id).toBe(workFile.id)
+    expect(output.rewroteHosts).toBe(0)
+    expect(output.rewroteRefs).toBe(0)
+  })
 })
 
 describe("km view - state initialization", () => {

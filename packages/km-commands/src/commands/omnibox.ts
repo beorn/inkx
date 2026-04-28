@@ -35,6 +35,7 @@
  *   - For `omnibox.split_and_reparent`: the picked node's id (same as
  *     `move`).
  */
+import { stripSigil } from "@km/core"
 import type { CommandDef, KmOp } from "../types.ts"
 
 const defaultCommand = {
@@ -73,9 +74,9 @@ const appendTagToSubject = {
     const nodeId = ctx.currentNodeId
     const raw = ctx.targetId
     if (!nodeId || !raw) return null
-    // Strip any leading `#` — APPEND_TAG carries the bare tag text; the
-    // handler re-adds the sigil when writing.
-    const tag = raw.startsWith("#") ? raw.slice(1) : raw
+    // Strip any leading sigil (caller might type `#urgent` or just `urgent`);
+    // APPEND_TAG carries the bare tag text and the handler re-adds `#` when writing.
+    const tag = stripSigil(raw)
     if (!tag) return null
     return { type: "APPEND_TAG", nodeId, tag }
   },
@@ -97,7 +98,9 @@ const setAssigneeOnSubject = {
     const nodeId = ctx.currentNodeId
     const raw = ctx.targetId
     if (!nodeId || !raw) return null
-    const assignee = raw.startsWith("@") ? raw.slice(1) : raw
+    // Strip any leading sigil — caller may type `@bob`, `bob`, or even `#bob`;
+    // assigned_to is a bare-name scalar, the canonical sigil isn't relevant here.
+    const assignee = stripSigil(raw)
     if (!assignee) return null
     return { type: "SET_ASSIGNEE_VALUE", nodeId, assignee }
   },

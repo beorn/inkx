@@ -356,4 +356,23 @@ if [ -n "$hits" ]; then
 fi
 echo ""
 
+# =============================================================================
+# SIGIL HYGIENE (Pattern 42)
+# =============================================================================
+
+echo "=== PATTERN 42: Single-sigil strip-then-readd ==="
+# In km, sigils (@, #, +) are part of node identity, not decoration.
+# Stripping ONE specific sigil only (and not the others) is almost always wrong:
+#   - It treats sigil as decoration ("@issues" and "issues" are DIFFERENT nodes)
+#   - It silently breaks for other sigils (#bug → garbled; +project → garbled)
+#
+# The high-signal shape is `s.startsWith("X") ? s.slice(1) : s` — strip-then-do-something
+# where the next operation is usually re-prefixing with the same sigil (round-trip = bug).
+# If sigil-stripping IS intended (e.g. accept any user-typed sigil), use stripSigil() from
+# @km/core which handles all sigils uniformly.
+grep -rEn 'startsWith\("[@#+]"\) *\? *[A-Za-z_][A-Za-z0-9_]*\.slice\(1\)' \
+  packages apps --include="*.ts" --include="*.tsx" --exclude="*.test.ts" --exclude="*.test.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|stripSigil\|/dist/" || true
+echo ""
+
 echo "Pattern detection complete."

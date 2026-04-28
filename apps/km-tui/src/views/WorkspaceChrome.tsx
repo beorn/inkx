@@ -12,6 +12,7 @@ import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create"
 import type { BoardAppStore } from "../state/board-app-store.ts"
+import { stripSigil } from "@km/core"
 import { useFocusedPaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { PaneSignals } from "../state/pane-signals.ts"
 import { useUndoHandle, useToastQueue } from "../services-context.tsx"
@@ -337,10 +338,10 @@ function UnifiedOmniboxConnector({
       // `#important` as `#important` instead of expanding to the matching
       // node's full title.
       if (commandToRun === "omnibox.append_tag_to_subject" || commandToRun === "omnibox.set_assignee_on_subject") {
+        // Caller types the bare label; strip whatever sigil was typed (any of @ # +).
+        // The downstream command re-adds the canonical sigil for its domain.
         const bufferText = p.state.buffer
-        const rawFromBuffer =
-          bufferText.startsWith("#") || bufferText.startsWith("@") ? bufferText.slice(1) : bufferText
-        targetId = rawFromBuffer.trim() || undefined
+        targetId = stripSigil(bufferText).trim() || undefined
       }
 
       // Dismiss BEFORE dispatching so popDialogMode lands before the command

@@ -950,7 +950,9 @@ bdCommand
   .command("rename")
   .argument("<old-id>", "Current issue ID")
   .argument("<new-id>", "New issue ID")
-  .description("Rename an issue ID (updates all references)")
+  .description("Rename an issue ID (rewrites all incoming references by default)")
+  .option("--no-rewrite", "Skip rewriting incoming references (legacy behaviour: only short_id + blocked-by)")
+  .option("--include-prose", "Also rewrite bare-id mentions in body text (slower; off by default)")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
@@ -961,43 +963,34 @@ bdCommand
       return
     }
 
-    // Update the short_id on the node
-    const node = repo.getNode(issue.id)
-    const data = (node?.data as Record<string, unknown>) ?? {}
-    repo.updateNode(issue.id, {
-      data: { ...data, short_id: opts.newId },
-      updated_at: Date.now(),
-    })
-
-    // Update blocked-by references across all issues
-    const allIssues = queryIssues({}, undefined, undefined, { repo })
-    let refCount = 0
-    for (const other of allIssues) {
-      if (other.blockedBy?.includes(opts.oldId)) {
-        const otherNode = repo.getNode(other.id)
-        const otherData = (otherNode?.data as Record<string, unknown>) ?? {}
-        // Shape mirrors nodeToIssue in @km/beads/queries — km front-matter deps
-        // serialize as either {type:"link",target} or {type:"list",values:[{target}]}
-        const props = otherData.props as
-          | Record<string, { type: string; target?: string; values?: Array<{ target: string }> }>
-          | undefined
-        if (props?.["blocked-by"]) {
-          const bp = props["blocked-by"]
-          if (bp.type === "link" && bp.target === opts.oldId) {
-            bp.target = opts.newId
-          } else if (bp.type === "list" && bp.values) {
-            for (const v of bp.values) {
-              if (v.target === opts.oldId) v.target = opts.newId
-            }
-          }
-          repo.updateNode(other.id, { data: { ...otherData, props }, updated_at: Date.now() })
-          refCount++
-        }
-      }
-    }
+    // Use the canonical move-with-refs primitive. Default behaviour:
+    //   - rewrites wikilinks, transclusions, dep-edges, frontmatter aliases,
+    //     frontmatter parent_id, blocked-by props
+    //   - bare-id prose mentions opt-in via --include-prose
+    //   - --no-rewrite skips the walk entirely (legacy behaviour preserved
+    //     for callers that need it)
+    const result = repo.moveNodeWithRefs(
+      issue.id,
+      { newShortId: opts.newId },
+      {
+        noRewrite: opts.rewrite === false,
+        includeProse: opts.includeProse === true,
+      },
+    )
 
     console.log(term.green(`Renamed ${opts.oldId} → ${opts.newId}`))
-    if (refCount > 0) console.log(`Updated ${refCount} dependency reference${refCount > 1 ? "s" : ""}`)
+    if (result.rewroteRefs > 0) {
+      console.log(
+        `Updated ${result.rewroteRefs} reference${result.rewroteRefs > 1 ? "s" : ""} in ${result.rewroteHosts} file${result.rewroteHosts > 1 ? "s" : ""}`,
+      )
+    }
+    if (result.failedHosts.length > 0) {
+      console.warn(
+        term.yellow(
+          `Warning: ${result.failedHosts.length} host${result.failedHosts.length > 1 ? "s" : ""} failed to rewrite (see logs)`,
+        ),
+      )
+    }
   })
 
 // Add extracted subcommands

@@ -957,42 +957,6 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 
 - **Vercel** — frontend cloud platform. Vercel AI SDK + AI Gateway ~$200M [ARR](#g-arr). Open-spec-but-proprietary-services pattern is the canonical reference for [S25](#s25)/[S2](#s2).
 
-<a id="g-vercel-ai-gw"></a>
-
-- **Vercel AI Gateway** — production multi-provider LLM gateway with observability + caching, used in conjunction with Vercel AI SDK. Strongest direct competitor for the [agentroom](#g-agentroom) gateway slot.
-
-<a id="g-helicone"></a>
-
-- **Helicone** — open-source LLM observability platform. Threat to agentroom's observability differentiator (#1 ship-now venture).
-
-<a id="g-portkey"></a>
-
-- **Portkey** — production LLM gateway with retries, fallbacks, caching, governance. Threat to agentroom's gateway value prop.
-
-<a id="g-openrouter"></a>
-
-- **OpenRouter** — model aggregator and routing service ($1.3B valuation per /pro v3 prior art). Threat to multi-vendor LLM gateway slice of the services tier.
-
-<a id="g-langchain"></a>
-
-- **LangChain Agent Middleware** — orchestration framework positioning multi-agent systems as production-first concepts. Threat to coordination-state layer (#13).
-
-<a id="g-langgraph"></a>
-
-- **LangGraph** — LangChain's stateful, multi-agent graph orchestration. Direct competitor to agentroom's coordination state layer.
-
-<a id="g-llamaindex"></a>
-
-- **LlamaIndex agents** — multi-agent topology framework. Adjacent to agentroom's coordination-layer scope.
-
-<a id="g-acp-registry"></a>
-
-- **Zed ACP Registry** — public registry for ACP-compatible agents shipped by Zed Industries January 2026. Naming/distribution surface for the registry layer is now contested. agentroom's brain-registry differentiator must be the *managed runtime* (provenance, signing, verified publishers, hosted execution), not just a catalog.
-
-<a id="g-crossagentstate"></a>
-
-- **CrossAgentState** — proprietary [agentroom](#g-agentroom) orchestration primitive: shared plan graph with file-claims, real-time conflict resolution, structured handoff between sub-agents. Surfaced via public API but designed primarily for [silvercode](#g-silvercode)'s panes. Clones can talk the API but won't nail the feel without owning the UI layer.
-
 <a id="g-auth0"></a>
 
 - **Auth0** — identity-as-a-service. Acquired by Okta for $6.5B.

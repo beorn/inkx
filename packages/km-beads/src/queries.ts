@@ -224,7 +224,8 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
  * Query ready issues (unblocked, todo status, sorted by priority)
  * @param filter - Optional filters for type, assignee, priority
  * @param scopePath - Optional path to scope results to (e.g., "/repo/Projects")
- * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
+ * @param boardTag - Optional board node name to filter by, sigil included (e.g., "@issues" or "#bug").
+ *                   In km, the sigil is part of the node identity — pass the literal node name.
  * @param options - Optional query options (repo for DI)
  */
 export function queryReady(
@@ -237,11 +238,9 @@ export function queryReady(
   // Build query for open tasks
   let query = "status:todo"
 
-  // Add board tag filter if provided (tasks tagged with @board)
+  // Filter to nodes mentioning the board tag (caller passes the full node name)
   if (boardTag) {
-    // Strip @ prefix if present
-    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag
-    query += ` @${tag}`
+    query += ` ${boardTag}`
   }
 
   if (filter?.type) {
@@ -283,7 +282,8 @@ export function queryReady(
  * Query issues with filters
  * @param filter - Optional filters for status, type, assignee, priority, blocked
  * @param scopePath - Optional path to scope results to (e.g., "/repo/Projects")
- * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
+ * @param boardTag - Optional board node name to filter by, sigil included (e.g., "@issues" or "#bug").
+ *                   In km, the sigil is part of the node identity — pass the literal node name.
  * @param options - Optional query options (repo for DI)
  */
 export function queryIssues(
@@ -295,11 +295,9 @@ export function queryIssues(
   const repo = options?.repo
   let query = ""
 
-  // Add board tag filter if provided (tasks tagged with @board)
+  // Filter to nodes mentioning the board tag (caller passes the full node name)
   if (boardTag) {
-    // Strip @ prefix if present
-    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag
-    query += ` @${tag}`
+    query += ` ${boardTag}`
   }
 
   if (filter?.status) {

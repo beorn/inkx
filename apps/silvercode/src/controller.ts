@@ -1460,7 +1460,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     },
     runSlashCommand(sessionId: string, text: string): void {
       // Slash commands pass through verbatim — Claude Code interprets /compact, /clear, etc.
-      // Silvercode-specific commands (/handoff, /inbox, /fork) are intercepted by listeners
+      // Silvercode-specific commands (/handoff, /fork) are intercepted by listeners
       // registered above the controller.
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return

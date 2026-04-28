@@ -5,14 +5,11 @@
  * Used by both CLI commands and TUI components.
  */
 
-import { KNode, type ItemData } from "@km/core"
+import { hasSigilPrefix, KNode, type ItemData } from "@km/core"
 
-/** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
-const SIGIL_RE = /^[@#+]/
-
-/** Check if a string is a sigil name */
+/** Check if a string is a sigil name (starts with @, #, or +) */
 export function isSigilName(name: string | null | undefined): boolean {
-  return name != null && SIGIL_RE.test(name)
+  return name != null && hasSigilPrefix(name)
 }
 
 export interface StatusIcon {

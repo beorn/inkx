@@ -59,6 +59,12 @@ import {
   toRelativeFsPath,
   withFsWriter,
 } from "@km/fs-mount"
+import {
+  moveNodeWithRefs as moveNodeWithRefsImpl,
+  type MoveOptions,
+  type MoveResult,
+  type MoveSpec,
+} from "./move-with-refs.ts"
 import { executeQuery, parseQuery } from "../query.ts"
 import { type MutationContext, type RepoHooks } from "./hooks.ts"
 import {
@@ -971,6 +977,16 @@ export interface Repo extends Disposable {
 
   /** Rename a node and update all backlinks referencing it */
   renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void): void
+
+  /**
+   * Move and/or rename a node, rewriting every incoming reference in the
+   * same vault. Default behaviour of every move/rename command — the
+   * canonical primitive that subsumes `renameNode` and `moveNode` plus
+   * frontmatter aliases, dep-edges, bare-id mentions, and fs-path moves.
+   *
+   * See hub/km/design/move-rewrite-refs.md for the design.
+   */
+  moveNodeWithRefs(id: string, spec: MoveSpec, options?: MoveOptions): MoveResult
 
   /**
    * Smart node resolver - finds a node by various identifiers.
@@ -2143,6 +2159,22 @@ export function* createRepo(
     ...queryMethods,
     ...mutationMethods,
 
+    moveNodeWithRefs(id, spec, options) {
+      ensureOpen()
+      return moveNodeWithRefsImpl(
+        id,
+        spec,
+        {
+          db,
+          dataStore,
+          mutations: mutationMethods,
+          rootPath,
+          bustChildrenCache: (parentId) => childrenCache.bust(parentId),
+        },
+        options,
+      )
+    },
+
     // Batch mutation helpers
     withDeferredFs(fn) {
       // Temporarily swap emitter.apply to skip FS projection.
@@ -2388,6 +2420,22 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     // Spread shared query and mutation methods
     ...queryMethods,
     ...mutationMethods,
+
+    moveNodeWithRefs(id, spec, options) {
+      ensureOpen()
+      return moveNodeWithRefsImpl(
+        id,
+        spec,
+        {
+          db,
+          dataStore,
+          mutations: mutationMethods,
+          rootPath: undefined, // bare repo: no fs ops
+          bustChildrenCache: (parentId) => childrenCache.bust(parentId),
+        },
+        options,
+      )
+    },
 
     // Batch mutation helpers (no-op for bare repos — no FS)
     withDeferredFs(fn) {

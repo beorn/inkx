@@ -604,6 +604,44 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       }
     },
 
+    moveNodeWithRefs(id, spec, _options) {
+      ensureNotClosed()
+      // Minimal fake: apply the renames/moves via existing methods. No
+      // backlink rewrite walk — the real primitive lives in @km/storage.
+      const node = nodes.get(id)
+      if (!node) throw new Error(`Node ${id} not found`)
+      const oldName = node.name ?? null
+      const oldShortId = (node.data as { short_id?: string } | undefined)?.short_id ?? null
+      const oldFsPath = node.fs_path ?? null
+      let newName = oldName
+      if (spec.newContent !== undefined) {
+        const derived = spec.newContent.replace(/^- \[.\]\s*/, "").trim()
+        this.renameNode(id, spec.newContent)
+        newName = derived
+      }
+      if (spec.newParentId !== undefined) {
+        const targetParent = spec.newParentId ?? "."
+        this.moveNode(id, targetParent, spec.position ?? Date.now())
+      }
+      if (spec.newShortId !== undefined && spec.newShortId !== oldShortId) {
+        const data = (node.data as Record<string, unknown> | undefined) ?? {}
+        this.updateNode(id, { data: { ...data, short_id: spec.newShortId } })
+      }
+      return {
+        nodeId: id,
+        oldName,
+        newName,
+        oldShortId,
+        newShortId: spec.newShortId ?? oldShortId,
+        oldFsPath,
+        newFsPath: oldFsPath,
+        rewroteHosts: 0,
+        rewroteRefs: 0,
+        failedHosts: [],
+        fsRenamed: false,
+      }
+    },
+
     appendTaskToFile(_filePath, _content, _options) {
       ensureNotClosed()
       // No-op in fake repo - filesystem operations not supported
