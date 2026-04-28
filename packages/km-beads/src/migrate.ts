@@ -42,9 +42,13 @@ export function readBeadsIssues(fs: BeadsFs, beadsDir: string): BeadsIssue[] {
 /**
  * Read both issues and memories from .beads/issues.jsonl with validation.
  * `bd export` interleaves both record types in a single file.
+ *
+ * Accepts either a `.beads` directory (resolves to `<dir>/issues.jsonl`)
+ * or a direct path to a `.jsonl` file. The latter form is what `km bd
+ * migrate --file <path>` uses for one-off imports of foreign exports.
  */
-export function readBeadsExport(fs: BeadsFs, beadsDir: string): { issues: BeadsIssue[]; memories: BeadsMemory[] } {
-  const issuesPath = join(beadsDir, "issues.jsonl")
+export function readBeadsExport(fs: BeadsFs, dirOrFile: string): { issues: BeadsIssue[]; memories: BeadsMemory[] } {
+  const issuesPath = dirOrFile.endsWith(".jsonl") ? dirOrFile : join(dirOrFile, "issues.jsonl")
   if (!fs.existsSync(issuesPath)) {
     return { issues: [], memories: [] }
   }

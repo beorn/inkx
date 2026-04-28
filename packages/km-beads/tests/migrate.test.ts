@@ -13,8 +13,10 @@ import {
   bdIdToPathFormWithSlug,
   bdIdToAliases,
   buildIdMap,
+  readBeadsExport,
   rewriteLegacyIdMentions,
 } from "../src/migrate.ts"
+import type { BeadsFs } from "../src/types.ts"
 import type { BeadsIssue } from "../src/schema.ts"
 
 function fakeIssue(id: string, title: string, overrides: Partial<BeadsIssue> = {}): BeadsIssue {
@@ -109,5 +111,49 @@ describe("bdIdToPathForm", () => {
 
   it("parks orphan ids under _orphan/", () => {
     expect(bdIdToPathForm("km-q5hji")).toBe("_orphan/q5hji")
+  })
+})
+
+describe("readBeadsExport", () => {
+  // In-memory fake fs scoped to the path we know we'll be probing. Just
+  // enough surface to cover the dir-or-file branch.
+  function memFs(files: Record<string, string>): BeadsFs {
+    return {
+      existsSync: (p: string) => files[p] !== undefined,
+      readFileSync: (p: string) => files[p] ?? "",
+      writeFileSync: () => {},
+      mkdirSync: () => {},
+    }
+  }
+
+  const sampleLine = JSON.stringify({
+    id: "km-foo",
+    title: "Foo",
+    description: "",
+    status: "open",
+    priority: 2,
+    issue_type: "task",
+    created_at: "2026-04-28T00:00:00Z",
+    updated_at: "2026-04-28T00:00:00Z",
+  })
+
+  it("resolves <dir>/issues.jsonl when given a directory", () => {
+    const fs = memFs({ "/repo/.beads/issues.jsonl": sampleLine })
+    const { issues } = readBeadsExport(fs, "/repo/.beads")
+    expect(issues).toHaveLength(1)
+    expect(issues[0].id).toBe("km-foo")
+  })
+
+  it("reads the file directly when given a .jsonl path", () => {
+    const fs = memFs({ "/tmp/foreign-export.jsonl": sampleLine })
+    const { issues } = readBeadsExport(fs, "/tmp/foreign-export.jsonl")
+    expect(issues).toHaveLength(1)
+    expect(issues[0].id).toBe("km-foo")
+  })
+
+  it("returns empty when the resolved path doesn't exist", () => {
+    const fs = memFs({})
+    expect(readBeadsExport(fs, "/missing/.beads")).toEqual({ issues: [], memories: [] })
+    expect(readBeadsExport(fs, "/missing.jsonl")).toEqual({ issues: [], memories: [] })
   })
 })
