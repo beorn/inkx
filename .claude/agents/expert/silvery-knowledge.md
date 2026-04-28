@@ -1,6 +1,43 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-04-28 (km-yej6 — STRICT multiPassConverged gate + resizeFn drain)
+Last updated: 2026-04-28 (km-silvery.outline-incremental-clear — postState carrier survival across per-frame Ag)
+
+## Outline post-state carrier must survive per-frame Ag recycle (2026-04-28)
+
+**Bead**: `km-silvery.outline-incremental-clear` (P0, closed). Silvery commit pending; km submodule bump to follow.
+
+**Symptom**: 8 STRICT failures across `tests/features/outline-incremental.test.tsx` (6) and `tests/features/outline-postate-cleanup.test.tsx` (2). The diagnostic showed `incremental: char="╭"` vs `fresh: char=" "` at parent-edge cells (e.g. (0,0), (0,1), (31,9)) — incremental kept the previous frame's outline glyph; fresh had a blank. "ALL DIRTY FLAGS FALSE - fast-path likely skipped this node" + `WRITE TRAP: NO WRITES` to the mismatch cell — nothing was clearing the stale pixel.
+
+**Root cause**: same shape as km-yej6 — cross-frame state living on a transient object. The decoration phase needs the previous frame's outline cell snapshots (`RenderPostState.outlineSnapshots`) so `clearPreviousOutlines` can restore those cells before the content phase runs. The carrier was created on `createAg` (`_postState`). But `renderer.ts` and `scheduler.ts` create a FRESH `Ag` per `runPipeline()` / `doRender()` call, so the Ag-internal carrier was empty every frame. `clearPreviousOutlines` found no snapshots, the cloned `prevBuffer` retained the previous frame's outline glyphs at outline positions, and STRICT diverged.
+
+This was masked while only `runtime/renderer.ts` (the long-lived-Ag plugin host) consumed the decoration phase — that path keeps the same `_postState` across frames. The bug was latent until any consumer used `createRenderer` from `@silvery/test` or the `scheduler.ts` path with outlines that toggle.
+
+**Fix** (`vendor/silvery/packages/ag-term/src/{ag,renderer,scheduler}.ts`):
+
+1. **Expose `postState` on the Ag boundary**: add `postState?: RenderPostState` to `AgRenderOptions` and `postState: RenderPostState` (the same reference, mutated in place) to `AgRenderResult`. Re-export `createRenderPostState` + `RenderPostState` from `ag.ts` so consumers can construct their own carrier without reaching into `pipeline/render-post-state.ts`.
+2. **Resolve carrier at `doRender` entry**:
+   - `opts.fresh === true` → fresh empty `createRenderPostState()` (STRICT comparisons must not consume or stomp the incremental carrier).
+   - `opts.postState` provided → use that (renderer / scheduler hold their own at instance level).
+   - default → `_postState` (long-lived-Ag callers).
+3. **`renderer.ts`**: add `instance.postState: RenderPostState = createRenderPostState()`. `runPipeline` accepts a `fresh?: boolean` option; passes `instance.postState` for the incremental path and a throw-away `createRenderPostState()` for fresh. `doFreshRenderFull` passes `fresh: true`. Reset alongside `prevBuffer` in `clearFn` and `resizeFn` (snapshot coordinates are buffer-dimension-bound — keeping them after resize would write at out-of-bounds cells).
+4. **`scheduler.ts`**: add `private postState: RenderPostState = createRenderPostState()`. Pass it via `ag.render({ prevBuffer, postState })`. STRICT `doFreshRender` uses `freshAg.render({ fresh: true })`. Reset alongside `prevBuffer` in `resume`, `clear`, and the resize listener.
+
+**Verification**: 8/8 originally failing tests now pass + 3 new regression tests in `tests/features/outline-postate-carrier-renderer.test.tsx` (parent-edge geometry, twenty toggle cycles, sibling outline migration). Full silvery features suite: 26 baseline failures → 18 after fix (exact 8-test delta, no new regressions). km-tui suite: 2534 / 39 skipped — same as baseline.
+
+**Worktree node_modules trap (re-learned)**: `bun install` from the agent worktree may make `node_modules` a SYMLINK to the main km checkout's node_modules (instead of a real directory inside the worktree). When this happens, every package under `node_modules/<pkg>/` resolves to the MAIN km's vendor source, NOT the worktree's edited vendor source — vitest runs the unmodified baseline files and edits silently have no effect. Symptom: debug logs added to pipeline files don't fire; STRICT failures persist after a "fix"; the test result is identical with and without your changes. **Diagnostic**: `ls -la <worktree>/node_modules` — if it's `node_modules -> /Users/.../km/node_modules` it's pointing at the main checkout. **Fix**: `unlink node_modules` then `bun install` so node_modules becomes a real directory inside the worktree, then verify with `readlink -f node_modules/<pkg>/src/<file>` — the real path must be inside the worktree.
+
+**Lessons**:
+- Cross-frame state must live on the long-lived caller, not the per-frame Ag. Same lesson as km-yej6 (multiPassConverged at instance, not Ag); same lesson as Phase 2 Step 5 (outline snapshots off the buffer onto a carrier). The pattern: any state that must survive a buffer/Ag/event-loop tick MUST be owned by an outer scope and threaded down — and the API contract MUST surface this carrier so per-frame-Ag callers can hold it correctly.
+- The fix is symmetric: the same carrier reset rule (`prevBuffer = null` ⇒ `postState = createRenderPostState()`) applies wherever the buffer is invalidated. New invalidation paths (e.g., a future `pause()` on `renderer.ts`) MUST reset both — a missing-reset there would cause the same outline-leak shape on the post-pause frame at potentially out-of-bounds coordinates.
+- STRICT verification has two flavors: (a) the comparison's fresh path MUST NOT touch the incremental path's mutable cross-frame state. The `{ fresh: true }` option is the explicit opt-in for "use a throw-away empty carrier" — both call sites pass it.
+- When fixing pipeline behavior in an agent worktree: ALWAYS verify `node_modules` resolution before chasing "the fix doesn't work" — many minutes were lost to invisible symlink redirection in this session. Run `readlink -f node_modules/silvery/packages/ag-term/src/renderer.ts` BEFORE adding debug logs.
+
+**Where this lives**:
+- `vendor/silvery/packages/ag-term/src/ag.ts` — `AgRenderOptions.postState` + `AgRenderResult.postState` + `createRenderPostState` re-export + `doRender` carrier resolution
+- `vendor/silvery/packages/ag-term/src/renderer.ts` — `RenderInstance.postState` + `runPipeline` `fresh?` option + clearFn/resizeFn resets
+- `vendor/silvery/packages/ag-term/src/scheduler.ts` — `private postState` + `ag.render({ postState })` + STRICT `freshAg.render({ fresh: true })` + resume/clear/resize resets
+- `vendor/silvery/tests/features/outline-postate-carrier-renderer.test.tsx` — regression test (parent-edge, 20 toggles, sibling migration)
+- `vendor/silvery/packages/ag-term/src/pipeline/CLAUDE.md` — documents the carrier-ownership rule + canonical instance-level pattern + reset rule
 
 ## STRICT multiPassConverged gate + resizeFn drain (2026-04-28)
 
