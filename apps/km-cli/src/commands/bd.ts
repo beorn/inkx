@@ -48,7 +48,7 @@ export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
   .addHelpSection(
     "Note:",
-    "Markdown tasks ARE the issues. Each scope (`km-<scope>.<slug>`) is its own board\n(file `<scope>/<slug>.md`, sigil `@<scope>`).\nSee 'km bd config' for the prefix knob, 'km bd info' for stats.",
+    "Markdown tasks ARE the issues. Each scope (`km-<scope>.<slug>`) is its own board\n(file `<scope>/<slug>.md`, heading sigil `@<prefix>/<scope>`, e.g. `@km/beads`).\nSee 'km bd config' for the prefix knob, 'km bd info' for stats.",
   )
   .allowUnknownOption(false)
 
@@ -831,7 +831,7 @@ bdCommand
 
     console.log()
     console.log(term.bold("How tasks are tracked:"))
-    console.log(`  bd id 'km-<scope>.<slug>' → file '<scope>/<slug>.md' with @<scope> tag.`)
+    console.log(`  bd id 'km-<scope>.<slug>' → file '<scope>/<slug>.md' with @${config.prefix}/<scope> tag.`)
     console.log(`  Cross-vault references use '@${config.prefix}/<scope>/<slug>'.`)
     console.log(`  No board/parent config — the bd id encodes the board by construction.`)
 

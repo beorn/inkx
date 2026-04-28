@@ -218,19 +218,21 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 **Reproduce with the user's actual data** (real vault, not synthetic fixtures) before coding a fix. Bead descriptions are hypotheses, not diagnoses — verify with real data before trusting them. See [docs/lessons/reproduce-first.md](docs/lessons/reproduce-first.md).
 
-## Issue Tracking (bd / beads)
+## Issue Tracking (km bd / beads)
 
-This project uses **bd** (beads v1.0.0, Homebrew) for issue tracking with an embedded Dolt database in `.beads/`. `bd prime` injects workflow context on session start via hooks.
+This project uses **`km bd`** for issue tracking — a km-native CLI that reads/writes the same `.beads/` store the Go `bd` binary maintains during the cutover. `bd prime` injects workflow context on session start via `.claude/hooks/bd-prime.sh` (prefers Go bd while installed for perf, falls back to `km bd prime` otherwise).
 
 ```bash
-bd ready                    # Find available work
-bd show <id>                # View issue details
-bd create "title" -p 2      # Create a bead (P0–P4)
-bd update <id> --claim      # Claim before starting
-bd close <id>               # Complete work
-bd list --status open       # List open beads
-bd dolt push                # Push beads to remote (before git push)
+km bd ready                    # Find available work
+km bd show <id>                # View issue details
+km bd create "title" -p 2      # Create a bead (P0–P4)
+km bd update <id> --claim      # Claim before starting
+km bd close <id>               # Complete work
+km bd list --status open       # List open beads
+bd dolt push                   # Push beads to remote (before git push) — Go bd only for now
 ```
+
+The Go `bd` binary still works as a synonym during the cutover. Advanced subcommands not yet ported to km bd (`defer`, `undefer`, `count`, `epic`, `lint`, `validate`, `search`, `dolt`, `formula`, `mol`, `gate`, `slot`, etc.) still require the Go binary — see `km-beads.split-backend` and `km-beads.dolt-archive` for the cutover plan.
 
 Use `/pm` for the full workflow (create, claim, close, triage). Claim before coding.
 Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
@@ -410,13 +412,13 @@ The hooks directory contains Claude Code hooks. opencode should map these equiva
 
 ### Workflow Integration
 
-Both agents use **bd** (beads) for issue tracking:
+Both agents use **`km bd`** (or the Go `bd` binary as a synonym during the cutover) for issue tracking:
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim before coding
-bd close <id>         # Complete work
+km bd ready              # Find available work
+km bd show <id>          # View issue details
+km bd update <id> --claim  # Claim before coding
+km bd close <id>         # Complete work
 ```
 
 ### Known Differences
