@@ -30,6 +30,7 @@ import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Small, Spinn
 import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
+import { formatPathForDisplay } from "../utils/format-path.ts"
 
 // =============================================================================
 // Constants — summarization thresholds
@@ -48,6 +49,51 @@ const SUMMARY_THRESHOLD = 5
 
 /** Lines shown verbatim before the "N more lines" accordion. */
 const SUMMARY_PREVIEW_LINES = 3
+
+// =============================================================================
+// Title path shortening
+// =============================================================================
+
+/**
+ * Shorten any absolute paths embedded in a tool-call title for display.
+ *
+ * Tool-call titles are agent-supplied strings whose shape varies:
+ *
+ *   1. A bare path:          "/Users/beorn/Bear/Vault/RESOLVER.md"
+ *   2. A path with line:     "/Users/beorn/Bear/Vault/RESOLVER.md:42"
+ *   3. A phrase + path:      "Read /Users/beorn/Bear/Vault/RESOLVER.md"
+ *   4. A shell command:      'ls -la "/Users/beorn/Bear/Vault/@inbox/"'
+ *
+ * v1 covers (1)+(2)+(3): we substitute every occurrence of an absolute
+ * path that starts with `/Users/<name>/` (matching `$HOME`'s shape) using
+ * `formatPathForDisplay`. Quoted paths inside command strings (case 4)
+ * are caught too — the regex doesn't distinguish quoted from bare and
+ * `formatPathForDisplay` is a pure rewrite that's safe to apply to a
+ * substring. Non-path titles ("bun fix", "for grep") fall through
+ * unchanged because the regex doesn't match.
+ *
+ * The home-prefix regex is conservative: it only fires on paths that
+ * start with `$HOME/`. That avoids munging unrelated `/etc/...` or
+ * `/tmp/...` substrings (they'd render verbatim anyway, but we don't
+ * waste a substitution on them) and keeps the regex deterministic.
+ *
+ * Bead: km-silvercode.path-display-friendly.
+ */
+function shortenTitlePath(title: string): string {
+  // Cheap fast path: if the title doesn't look like it could contain an
+  // absolute path under $HOME, skip the regex entirely. This is the hot
+  // path for non-path titles like "bun fix" / "for grep".
+  const home = process.env["HOME"]
+  if (!home || !title.includes(home)) return title
+  // Replace every absolute path under $HOME. The trailing-segment match
+  // is greedy across non-whitespace-non-quote characters so paths with
+  // spaces still need quoting upstream — for the chat-surface use case
+  // titles are never quoted, and tool-call paths don't contain spaces in
+  // practice, so the simple form covers everything we see.
+  const escapedHome = home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const re = new RegExp(`${escapedHome}(?:/[^\\s"']*)?`, "g")
+  return title.replace(re, (match) => formatPathForDisplay(match))
+}
 
 // =============================================================================
 // Helpers — derive renderable shapes from ACP `ToolCall` content variants.
@@ -170,7 +216,7 @@ function renderContent(content: ToolCallContent, key: number): React.ReactElemen
     const hunks = diffContentToHunks(content)
     return (
       <Box key={key} flexDirection="column">
-        <Muted>--- {content.path}</Muted>
+        <Muted>--- {formatPathForDisplay(content.path)}</Muted>
         <SilveryDiff hunks={hunks} mode="unified" showLineNumbers />
       </Box>
     )
@@ -187,12 +233,22 @@ function renderContent(content: ToolCallContent, key: number): React.ReactElemen
  * Compact location chip for the header — "src/foo.ts:42" or "src/foo.ts"
  * if no line. Multiple locations render as a comma-separated list,
  * truncating after 3 to keep the header single-row.
+ *
+ * Absolute paths are tilde-shortened via `formatPathForDisplay` so the
+ * chip reads `~vault/RESOLVER.md:42` rather than the literal
+ * `/Users/beorn/Bear/Vault/RESOLVER.md:42`. The shortener leaves
+ * project-relative paths (`src/foo.ts`) verbatim.
  */
 function renderLocations(locations: ReadonlyArray<ToolCallLocation> | undefined): React.ReactElement | null {
   if (!locations || locations.length === 0) return null
   const visible = locations.slice(0, 3)
   const more = locations.length - visible.length
-  const text = visible.map((loc) => (loc.line != null ? `${loc.path}:${loc.line}` : loc.path)).join(", ")
+  const text = visible
+    .map((loc) => {
+      const display = formatPathForDisplay(loc.path)
+      return loc.line != null ? `${display}:${loc.line}` : display
+    })
+    .join(", ")
   return (
     <Box flexShrink={1} minWidth={0}>
       <Muted wrap="truncate">
@@ -277,7 +333,7 @@ export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: T
           ) : (
             <Muted>·</Muted>
           )}
-          <ToolCallStatusTitle status={status} kind={kind} title={toolCall.title} />
+          <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} />
           {renderLocations(toolCall.locations)}
           <Box flexGrow={1} />
           {status === "failed" && onRetry ? (

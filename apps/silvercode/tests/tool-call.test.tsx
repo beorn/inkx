@@ -561,3 +561,132 @@ describe("ToolCall text summarization", () => {
 // constants from the component under test so the test adapts to future
 // threshold changes automatically.
 const SUMMARY_THRESHOLD = 5
+
+// =============================================================================
+// Path display friendliness — bead km-silvercode.path-display-friendly
+// =============================================================================
+
+describe("ToolCall path display friendliness", () => {
+  /**
+   * The bug report screenshots show absolute paths like
+   * `/Users/beorn/Bear/Vault/RESOLVER.md` rendered verbatim in the tool-call
+   * widget header. The user expects tilde-shortened forms — `~vault/...` for
+   * recognised aliases, `~/...` for HOME-relative paths.
+   *
+   * `formatPathForDisplay` (apps/silvercode/src/utils/format-path.ts) drives
+   * the substitution. These tests pin the user-facing rendering of the
+   * widget. They don't stub HOME — the assertions only fire when running
+   * under a HOME that ends with the expected vault/km prefix, which is
+   * always true for `process.env.HOME` on the developer machine and for the
+   * CI test runner ($HOME is set there too). The substitutions reduce the
+   * visual surface; original paths must NOT appear.
+   */
+  const HOME = process.env["HOME"] ?? ""
+
+  test("title that is an absolute vault path shortens to ~vault/...", () => {
+    if (!HOME) return // skip if test runner has no HOME
+    const fullPath = `${HOME}/Bear/Vault/RESOLVER.md`
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t1"), kind: "read", status: "pending", title: fullPath }} />,
+    )
+    // Either the alias form (~vault/) or HOME fallback (~/Bear/Vault/) is
+    // acceptable depending on the alias map; the literal absolute path
+    // must NOT appear.
+    expect(app.text).not.toContain(fullPath)
+    expect(app.text).toMatch(/~vault\/RESOLVER\.md|~\/Bear\/Vault\/RESOLVER\.md/)
+  })
+
+  test("title that is an absolute km path shortens to ~km/...", () => {
+    if (!HOME) return
+    const fullPath = `${HOME}/Code/pim/km/CLAUDE.md`
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t2"), kind: "read", status: "pending", title: fullPath }} />,
+    )
+    expect(app.text).not.toContain(fullPath)
+    expect(app.text).toMatch(/~km\/CLAUDE\.md|~\/Code\/pim\/km\/CLAUDE\.md/)
+  })
+
+  test("locations chip shortens absolute paths", () => {
+    if (!HOME) return
+    const fullPath = `${HOME}/Bear/Vault/RESOLVER.md`
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("t3"),
+          kind: "read",
+          status: "pending",
+          title: "x",
+          locations: [{ path: fullPath, line: 42 }],
+        }}
+      />,
+    )
+    expect(app.text).not.toContain(fullPath)
+    // Either the alias form or HOME fallback, with `:42` appended.
+    expect(app.text).toMatch(/~vault\/RESOLVER\.md:42|~\/Bear\/Vault\/RESOLVER\.md:42/)
+  })
+
+  test("title with leading verb + path is also shortened", () => {
+    // Some agents pass titles like "Read /Users/.../foo.ts" — the path
+    // substring must be shortened, the rest preserved.
+    if (!HOME) return
+    const fullPath = `${HOME}/Bear/Vault/RESOLVER.md`
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t4"), kind: "read", status: "pending", title: `Read ${fullPath}` }} />,
+    )
+    expect(app.text).not.toContain(fullPath)
+    expect(app.text).toContain("Read ")
+  })
+
+  test("path inside a shell command is shortened", () => {
+    if (!HOME) return
+    const fullPath = `${HOME}/Bear/Vault/@inbox/`
+    const cmd = `ls -la "${fullPath}"`
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t5"), kind: "execute", status: "pending", title: cmd }} />,
+    )
+    // Whichever shortened form the alias map yields, the literal HOME
+    // prefix must not survive.
+    expect(app.text).not.toContain(`${HOME}/Bear/Vault`)
+  })
+
+  test("non-path titles render unchanged", () => {
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t6"), kind: "execute", status: "pending", title: "bun fix" }} />,
+    )
+    expect(app.text).toContain("bun fix")
+  })
+
+  test("relative path in title is left unchanged", () => {
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t7"), kind: "read", status: "pending", title: "src/foo.ts" }} />,
+    )
+    expect(app.text).toContain("src/foo.ts")
+  })
+
+  test("/tmp path in title is left unchanged (outside HOME)", () => {
+    const app = freshRender()(
+      <ToolCall toolCall={{ toolCallId: id("t8"), kind: "read", status: "pending", title: "/tmp/scratch.txt" }} />,
+    )
+    expect(app.text).toContain("/tmp/scratch.txt")
+  })
+
+  test("diff content path is shortened", () => {
+    if (!HOME) return
+    const fullPath = `${HOME}/Code/pim/km/CLAUDE.md`
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("t9"),
+          kind: "edit",
+          status: "in_progress",
+          title: "edit",
+          content: [{ type: "diff", path: fullPath, oldText: "a", newText: "b" }],
+        }}
+        defaultExpanded
+      />,
+    )
+    // The "--- <path>" header inside the diff body must use the shortened form.
+    expect(app.text).not.toContain(`--- ${fullPath}`)
+    expect(app.text).toMatch(/--- ~km\/CLAUDE\.md|--- ~\/Code\/pim\/km\/CLAUDE\.md/)
+  })
+})

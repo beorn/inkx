@@ -18,6 +18,7 @@
 import React from "react"
 import { AnimatedNumber, Box, Muted, Text } from "silvery"
 import type { ToolKind } from "@km/agent-harness"
+import { formatPathForDisplay } from "../utils/format-path.ts"
 
 // =============================================================================
 // Vocabulary — past-tense + plural noun, mirrors ToolCallStatusTitle.
@@ -109,7 +110,11 @@ export function ToolCallSummary({
           {breakdown.map((entry) => (
             <Box key={entry.id} flexDirection="row" gap={1}>
               <Muted>·</Muted>
-              <Text wrap="truncate">{entry.label}</Text>
+              {/* Tilde-shorten breakdown labels — they are typically file
+                  paths the underlying tool calls touched. Non-path labels
+                  (commands, queries) are returned verbatim by
+                  formatPathForDisplay. */}
+              <Text wrap="truncate">{formatPathForDisplay(entry.label)}</Text>
             </Box>
           ))}
         </Box>
