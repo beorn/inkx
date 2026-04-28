@@ -199,33 +199,47 @@ function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; t
 }
 
 /**
- * Close an issue (mark as done)
+ * Close an issue (mark as done).
+ *
+ * Pass the node's full `data` blob via `currentData` when a `reason` is
+ * provided — storage's `updateNode` treats `data: {...}` as a full
+ * replacement, so we MUST merge with the existing data to preserve
+ * sibling keys (`id`, `aliases`, `short_id`, `mentions`, `tags`, …).
+ * Without `currentData`, a `bd close <id> --reason "x"` silently wipes
+ * the canonical id and aliases — the issue stays addressable by its
+ * ULID but vanishes from `bd list` / short-id resolution.
+ *
+ * Bead: km-beads.close-drop-data-wipe.
  */
-export function closeIssueFields(reason?: string): Partial<KNode> {
+export function closeIssueFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
   const updates: Partial<KNode> = {
     item: { task: { status: "done", marker: getMarkerForStatus("done") } },
     updated_at: Date.now(),
   }
 
   if (reason) {
-    // Store close reason in data
-    updates.data = { closeReason: reason }
+    updates.data = { ...currentData, closeReason: reason }
   }
 
   return updates
 }
 
 /**
- * Drop an issue (mark as won't do)
+ * Drop an issue (mark as won't do).
+ *
+ * Same `currentData` discipline as `closeIssueFields`. See its docstring
+ * for the rationale.
+ *
+ * Bead: km-beads.close-drop-data-wipe.
  */
-export function dropIssueFields(reason?: string): Partial<KNode> {
+export function dropIssueFields(reason?: string, currentData?: Record<string, unknown>): Partial<KNode> {
   const updates: Partial<KNode> = {
     item: { task: { status: "dropped", marker: getMarkerForStatus("dropped") } },
     updated_at: Date.now(),
   }
 
   if (reason) {
-    updates.data = { dropReason: reason }
+    updates.data = { ...currentData, dropReason: reason }
   }
 
   return updates

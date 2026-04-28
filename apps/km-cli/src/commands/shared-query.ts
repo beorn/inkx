@@ -101,7 +101,10 @@ export function buildQueryString(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Command's generic slot is unconstrained; narrowing to `unknown` breaks inference downstream for `.option()` chains that need any[] variadic args.
 export function addSharedQueryOptions<T extends Command<any>>(cmd: T) {
   return cmd
-    .option("-s, --status <status>", "Filter by status (open,in_progress,blocked,closed,dropped — bd-flavor; or todo,wip,done km-flavor)")
+    .option(
+      "-s, --status <status>",
+      "Filter by status (open,in_progress,blocked,closed,dropped — bd-flavor; or todo,wip,done km-flavor)",
+    )
     .option("-t, --type <type>", "Filter by type")
     .option("-a, --assignee <name>", "Filter by assignee")
     .option("-p, --priority <value>", "Filter by priority (e.g. P0-P4 or 0-4)")

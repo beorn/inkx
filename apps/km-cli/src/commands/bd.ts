@@ -400,7 +400,9 @@ const closeCmd = bdCommand
       return
     }
 
-    const updates = closeIssueFields(opts.reason)
+    const node = repo.getNode(issue.id)
+    const currentData = node?.data as Record<string, unknown> | undefined
+    const updates = closeIssueFields(opts.reason, currentData)
     repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Closed ${issue.shortId}`))
@@ -428,7 +430,9 @@ const dropCmd = bdCommand
       return
     }
 
-    const updates = dropIssueFields(opts.reason)
+    const node = repo.getNode(issue.id)
+    const currentData = node?.data as Record<string, unknown> | undefined
+    const updates = dropIssueFields(opts.reason, currentData)
     repo.updateNode(issue.id, updates)
 
     console.log(term.yellow(`Dropped ${issue.shortId}`))
