@@ -80,7 +80,12 @@ Reframing the inventory as a *layered architecture* (rather than a flat product 
 UI LAYER             silvery (multi-target: TUI today → web/native)
                      flexily (Yoga-killer layout)
 ─────────────────────────────────────────────────────────────────────
-APP FEATURES         boardliner (tree-as-board, "Super Finder")
+APP FEATURES         Hierarchy X-ray view (working name "Boardliner" /
+                     "Super Finder") — see 1000-2000 items at a glance
+                     across 3-5 levels of nesting, optimized for big
+                     monitors. Solves the "visibility problem" of trees
+                     where you can usually only see one branch at a
+                     time. The repo IS (can be seen as) a tree.
                      code editor / chat panes
                      md editor (Notion-like)
                      diagram editor (silvery+flexily+canvas, novel)
@@ -91,10 +96,18 @@ SUBSTRATE / STORAGE  PlainBrain spec (markdown filesystem shape)
                      product opportunity, no incumbent)
                      bidirectional md↔SQLite + watcher infra
 ─────────────────────────────────────────────────────────────────────
-AGENT LAYER          ACP-wrapper for any coding agent (universal client,
-                     not "another Cursor with our framework")
-                     Multi-agent coordination primitives
-                     Ambient-context-safety, recall, handoff
+AGENT LAYER          (1) ACP-wrapper for any third-party coding agent
+                         (universal client — Claude Code, Codex, Aider,
+                         Cline, Continue — not "another Cursor with our
+                         framework"). Anti-Cursor positioning.
+                     (2) Our own sub-agents that ride the wire (recall-
+                         thought, critic, style-watcher, test-runner,
+                         docs-keeper). The "agent-in-the-middle platform"
+                         (#14 in ACP-proxy ventures, Cloudflare-Workers
+                         analog).
+                     Multi-agent coordination primitives, ambient-context-
+                     safety, recall, handoff. Both wrapping + building
+                     are first-class.
 ─────────────────────────────────────────────────────────────────────
 PROTOCOL LAYER       AUTHORED: tribe wire, org.agentroom.* events,
                      PlainBrain spec (spec-authorship moat)
@@ -114,6 +127,17 @@ SUPPORTING           Standards (CC BY 4.0 spec authorship)
                      Partnerships (distribution, co-marketing, standards
                      bodies, capital/advisory via Palo Alto network)
 ```
+
+**The Hierarchy X-ray view is a candidate killer demo** (relevant to S23 / the missing-flagship gap from /pro v3). Nobody has shipped a UI primitive that exposes 1000-2000 items across 3-5 hierarchy levels at a glance:
+
+- Obsidian outliner: shows tree but doesn't go wide; you scroll vertically through one branch
+- Notion: hierarchical pages but you click into one page at a time
+- VS Code file explorer: tree but a narrow column
+- macOS Finder column view: 3-4 levels but small per-column
+- Mind maps (XMind, Heptabase): hierarchical but optimized for ~50-100 nodes, not thousands
+- Sublime "Goto Anything": flat list, not tree
+
+A wide horizontal hierarchy view that uses the *full big-monitor surface* to make a 5-level repo legible at a glance is genuinely missing — and it's exactly what silvery + flexily + canvas can render. *"See your entire codebase at a glance, 1000-2000 items, 5 levels deep, on a big monitor"* is a visceral demo nobody else has shipped. Worth flagging as the killer-demo candidate the /pro reviews kept asking for.
 
 **The strategic insight from layering**:
 
