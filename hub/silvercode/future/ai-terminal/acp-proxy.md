@@ -48,6 +48,8 @@ A 2-year-old category that's already a billion-dollar segment. What the LLM prox
 - Privacy proxying — own the data, none reaches OpenAI directly.
 - Egress firewall — block secret leaks at the proxy boundary.
 
+**Critical observation** (per /deep prior-art audit 2026-04-28, knowledge cutoff Oct 2024): every product in this category is **transform-only**. None of OpenRouter / LiteLLM Proxy / Portkey / Helicone / Vercel AI Gateway / LangSmith hosts a persistent stateful LLM sub-agent. They route, cache, redact, log, and observe. No agent-in-the-middle. The gap is wide open — see §3.4 and §6.
+
 The originating insight: dozens of LLM providers, hundreds of consumers; the cross product is impossible without a routing layer.
 
 ### 1.c LSP — the editor-side analogue
@@ -302,6 +304,29 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 - Memory + recall infrastructure. Owns the user's relationship with their AI workflow over years.
 - Cross-product agent identity. One memory across coding, knowledge work, personal assistance.
 
+### 6.d Prior-art audit confirms the agent-in-the-middle category is open (2026-04-28)
+
+A /deep prior-art audit on the persistent-sub-agent composition found **no exact match** in the gateway/proxy market. Specifically:
+
+| Product | Category | Hosts persistent stateful sub-agent? |
+|---|---|---|
+| OpenRouter | LLM router | ❌ stateless |
+| LiteLLM Proxy | LLM gateway | ❌ stateless |
+| Portkey | LLM gateway | ❌ stateless |
+| Helicone | LLM observability | ❌ stateless |
+| Vercel AI Gateway | LLM gateway | ❌ stateless |
+| LangSmith | tracing/observability | ❌ stateless |
+| LangGraph Cloud | stateful agent graphs | ⚠️ could *build* it, not packaged |
+| MCP servers / Continue | client-side orchestration | ❌ no proxy |
+
+The gap is unique to the agent-protocol layer (ACP/MCP). LLM-API gateways exist; agent-protocol *transform* gateways exist (the §3.1–3.3 capabilities). What doesn't exist: gateways that **host persistent LLM sub-agents** that watch session events and emit deltas to the foreground agent.
+
+If silvercode + tribe are the first to ship this composition: first-mover claim on a new category — "stateful agent gateways" or "agent-in-the-middle platforms."
+
+Caveat: GPT-5.4 knowledge cutoff is Oct 2024. The 2025–2026 window has not been web-swept. Worth running an actual Deep Research API search before treating the category as definitively open.
+
+Full audit: [`hub/tribe/design/recall-thought-prior-art-deep.md`](../../../tribe/design/recall-thought-prior-art-deep.md). Composition design: [`hub/tribe/design/recall-thought.md`](../../../tribe/design/recall-thought.md).
+
 ---
 
 ## 7. References
@@ -310,9 +335,13 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 - **Live ambient pipeline:** `hub/silvercode/design/ambient-context-safety.md`.
 - **Live tribe composition:** `vendor/bearly/tools/lib/tribe/compose/` — the `withX` factories.
 - **matrix-shape direction:** `km-tribe.matrix-shape` (cross-machine federation).
-- **OpenRouter / LiteLLM / Helicone** — the LLM-proxy reference category.
+- **OpenRouter / LiteLLM / Helicone** — the LLM-proxy reference category. All transform-only — no persistent sub-agents.
 - **Envoy / Istio** — the service-mesh reference category.
 - **LSP** — `microsoft/language-server-protocol` — the editor-side proxy moment.
+- **mem-thought composition design** — [`hub/tribe/design/recall-thought.md`](../../../tribe/design/recall-thought.md) — the persistent sub-agent that materializes the "agent-in-the-middle" pattern.
+- **Prior-art audit** — [`hub/tribe/design/recall-thought-prior-art-deep.md`](../../../tribe/design/recall-thought-prior-art-deep.md) — /deep verdict: no exact match for the 6-trait composition (Oct 2024 knowledge cutoff caveat noted).
+- **Generative Agents** (Stanford 2023) — closest conceptual cluster: agents with episodic memory, reflection, push observations to environment. Validates the "background mind-wandering" idea, doesn't preempt the IDE+proxy composition.
+- **LangGraph Cloud** — could build this composition (stateful graphs + checkpoints), but not packaged with this shape.
 
 ---
 
