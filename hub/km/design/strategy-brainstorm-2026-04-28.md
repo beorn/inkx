@@ -36,6 +36,32 @@ S25 ("Bottom-stack first, apps as demonstrators") is the path that most explicit
 
 ---
 
+## TL;DR — where the workshop landed
+
+**Frame**: portfolio is a layered architecture (UI → features → substrate → agents → protocols → services); strategies are paths through it; multiple paths can coexist; pivots are cheap because the architecture compounds.
+
+**Recommended lead path** (Family C + Family D, with a Family E demonstrator):
+
+- **S25 ★ "Bottom-stack first, apps as demonstrators"** — agent + protocol + services as the lead; silvery + silvercode + km repositioned as open reference implementations that demonstrate the layers. Cross-elasticity becomes positive throughout.
+- **S23 ★ "The playground for the UI of agentic work"** — the integrated app (chat + docs + code + agents + boards + diagrams) as the killer demo. One app, multiple panes. TUI today → web/native tomorrow via silvery's multi-target.
+- **S26 ★ "Docker for agents"** — `.brain` as portable agent format. Spec-authorship moat at the protocol layer. Composes with S25.
+
+**Why this**: simultaneously cross-elasticity-positive, solo-bandwidth-fitting, /pro-rubric-validated (25/25 cluster math via ACP-proxy ventures doc), multi-acquirer-optional, capital-efficient (architecture compounds across paths).
+
+**What NOT to do**: lock to S1 (Option 5 has high cross-elasticity exposure); pursue Family H (abandons architectural coherence); ship production hosted services solo; promote PlainBrain as a standalone "third standard" before silvery validates.
+
+**Sequencing essentials**:
+- *Months 0-3 (solo)*: silvery maintenance + ACP-proxy ship-now cluster (S18) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km.
+- *Months 3-6 (first hire)*: production agentroom gateway, `.brain` registry, S23 demo, services-tier productization begins.
+- *Months 6-12 (small team)*: production services, enterprise readiness, AI-lab outreach.
+- *Months 12+*: signal-driven path deepening — Big-AI-lab inbound → S24; services scaling → S2/S16; `.brain` adoption → S26 standalone; PKM market shifts → Family B.
+
+**Open questions** (tracked in Phase 5): acquihire vs standalone scale; Obsidian acquisition timing; agentroom inside vs outside portfolio; `.brain` MSC submission readiness; fundraise venue if capital needed.
+
+The full reasoning, scoring, alternatives, and 8-family strategy menu live in the rest of this doc.
+
+---
+
 ## Methodology
 
 Four phases, separable to avoid premature commitment:
@@ -520,146 +546,172 @@ Cross-reference: full rubric, prior-art map (Kong $2B, OpenRouter $1.3B, LangCha
 
 Mix-and-match Inventory × Market × Layer → enumerate strategies. Each strategy has an example-driven title (the precedent or analog the strategy resembles) followed by the concrete plan.
 
-Scoring dimensions:
+### Family map (read this for orientation before scanning the strategies)
+
+26 strategies across 8 families. Each family is a distinct structural commitment — different customer segments, commercial models, bandwidth profiles. Choosing within a family is tactical; choosing *across* families is the strategic decision.
+
+- **Family A — Locked-direction variants**: S1, S3
+  *(Current Option 5 + closure variant. Cross-elasticity exposure high. Baseline.)*
+- **Family B — PKM-led**: S4, S7, S17
+  *(km/PlainBrain as the lead product. Notion/Obsidian-adjacent.)*
+- **Family C — Services-led** ★: S2, S16, **S25** ★
+  *(Vercel/Auth0/Algolia pattern. silvercode is open reference, not paid product. Cross-elasticity positive.)*
+- **Family D — Agent + protocol play** ★: S5, S15, S18, S19, S20, S21, S22, **S26** ★
+  *(ACP-proxy stack. tribe + agentroom + .brain. Only family with /pro-validated 25/25 cluster math.)*
+- **Family E — Bundled / integrated demonstrators**: S9, **S23** ★
+  *(One app with multiple panes. The "playground for the UI of agentic work." Primary demonstrator vehicle.)*
+- **Family F — Acquihire-positioned**: S11, S24
+  *(Build for strategic acquisition by AI labs. Optional path overlay.)*
+- **Family G — Capital strategy**: S10, S13
+  *(Multi-venture studio vs single-narrative VC seed. Structural choices about fundraising.)*
+- **Family H — Outside-portfolio shapes**: S6, S8, S12, S14
+  *(Don't lean on the integrated portfolio — donate/foundation/consulting/security-wedge. Lower priority given current architecture.)*
+
+Strategies marked **★** are highlighted candidates per workshop discussion. **S25** is the workshop's recommended lead path; **S23** is its primary demonstrator; **S26** is the ambitious protocol-layer authoring play that composes with S25. **Family C + Family D + S23 from Family E** is the integrated recommendation.
+
+### Scoring dimensions
+
 - **B**andwidth load (1=light, 5=heavy)
 - **T**ime to first revenue (months)
 - **C**eiling (commercial revenue ceiling, qualitative: low / mid / high / very-high)
 - **R**isk (1=low, 5=high)
 - **D**ependencies (what needs to be true for this to work)
 
-### S1 — "Cursor with our framework" (locked Option 5, silvery+silvercode integrated)
+### Strategies (numerical order; family tag inline)
+
+### S1 [A] — "Cursor with our framework" (locked Option 5, silvery+silvercode integrated)
 
 Direction 1. silvery open Apache + CLA, silvercode proprietary IDE, tribe wire open, services proprietary, PlainBrain elevated to portable standard. The integrated portfolio bet.
 
 **Score**: B=5 / T=12-18 / C=mid-high / R=4 (cross-elasticity exposure) / D=silvery validates as Ink-migration target *and* silvercode finds product-market fit *and* services tier scales
 
-### S2 — "Vercel for terminal" (services-led, silvercode is open reference)
+### S2 [C] — "Vercel for terminal" (services-led, silvercode is open reference)
 
 Direction 3. silvery framework Apache. silvercode open-sourced as the *reference* agentic IDE (not paid product). Revenue from services tier (auth, recall, ambient-safety, agentroom, sync). Kubernetes → GKE pattern. The cross-elasticity-aware version.
 
 **Score**: B=5 / T=18-24 / C=very-high / R=4 / D=silvery validates *and* services tier reaches production-grade *and* SOC2/compliance hygiene *and* customer trust
 
-### S3 — "JetBrains pattern" (close silvery, sell silvercode standalone)
+### S3 [A] — "JetBrains pattern" (close silvery, sell silvercode standalone)
 
 silvery stays MIT but unpromoted. silvercode commercial-only, no open showcase. Services are silvercode-internal, not standalone. JetBrains' approach: own the framework privately, sell the IDE.
 
 **Score**: B=4 / T=6-9 / C=mid / R=3 / D=silvercode finds standalone PMF without the silvery brand halo
 
-### S4 — "Notion-for-AI" (km/PlainBrain PKM venture, silvery deferred)
+### S4 [B] — "Notion-for-AI" (km/PlainBrain PKM venture, silvery deferred)
 
 Direction 2. silvery quietly maintained, no big launch. Focus: km + PlainBrain spec + the broader PKM-as-md-files-for-AI category (validated externally by gbrain + Obsidian + the AI-vault movement). Notion/Obsidian-adjacent commercial play. Subscription billing for km-cloud.
 
 **Score**: B=3 / T=12-18 / C=mid / R=3 / D=PKM-for-AI as a category sustains; km finds wedge against Notion/Obsidian
 
-### S5 — "Confluent for AI agents" (agentroom spun out as own venture)
+### S5 [D] — "Confluent for AI agents" (agentroom spun out as own venture)
 
 Direction 5. agentroom Inc as separate entity. Open ACP wire spec + open reference gateway + paid hosted control plane. Standalone fundraise ($3-5M seed). Infrastructure-ops co-founder.
 
 **Score**: B=3 (own venture) / T=12-18 / C=high / R=4 / D=ACP standard wins, hosted gateway demand materializes, infrastructure-ops co-founder, Anthropic/Microsoft/etc don't ship competing protocol
 
-### S6 — "Charm.sh for React" (multi-product OSS infrastructure suite)
+### S6 [H] — "Charm.sh for React" (multi-product OSS infrastructure suite)
 
 silvery + termless + loggily + flexily + mdspec as a coherent "developer infrastructure suite for terminal apps" — Charm Industries' shape but for the React ecosystem. Premium support / hosted versions monetize across the suite.
 
 **Score**: B=3 / T=18-24 / C=mid / R=3 / D=cross-product brand thesis works; the React-TUI-power-user audience is real
 
-### S7 — "Mem.ai but local-first" (PKM-as-md-files-for-AI movement productized)
+### S7 [B] — "Mem.ai but local-first" (PKM-as-md-files-for-AI movement productized)
 
 PlainBrain + km + adjacent tools (gbrain-style, Obsidian-AI plugins) as a *local-first* personal-AI substrate. Markdown + git + LLM. Subscription for cloud sync only; the substrate is local-first. Counter-position to cloud-native PKM-AI tools.
 
 **Score**: B=3 / T=12-18 / C=mid / R=3 / D=local-first AI tool category gains momentum; offline-first wedge holds against cloud-native incumbents
 
-### S8 — "Linux Foundation pattern" (donate silvery to a foundation, focus commercial)
+### S8 [H] — "Linux Foundation pattern" (donate silvery to a foundation, focus commercial)
 
 silvery → CNCF / Apache Foundation / OpenJS Foundation. Strip personal stewardship burden. Focus 100% on silvercode + km + services. Community-led silvery still drives funnel, you don't run it.
 
 **Score**: B=2 / T=12 / C=mid-high / R=3 / D=foundation accepts; silvery community sustains under foundation governance; brand halo persists
 
-### S9 — "Cursor + Notion bundled" (agentic workdesk subscription)
+### S9 [E] — "Cursor + Notion bundled" (agentic workdesk subscription)
 
 silvercode + km bundled as one subscription (the integrated workdesk). One pricing page, one auth, one cloud. Position against Notion + Cursor as *"the integrated thing both companies are trying to be."*
 
 **Score**: B=5 / T=12-18 / C=high / R=4 / D=both products find PMF; the bundle is more valuable than either alone; the integrated story is differentiated
 
-### S10 — "Atomic Inc studio" (multi-venture portfolio, separate raises)
+### S10 [G] — "Atomic Inc studio" (multi-venture portfolio, separate raises)
 
 silvery (community OSS, no commercial), agentroom Inc (Confluent shape, separate raise), silvercode Inc (Cursor shape, separate raise), km Inc (PKM venture, separate raise). Each has its own cap table. Cross-pollination via shared tech, but commercial separation.
 
 **Score**: B=5 / T=18-36 / C=very-high (multiple ARR streams) / R=5 / D=founder can split focus across multiple commercial entities; capital available; co-founders for each
 
-### S11 — "Acquihire optimized" (build for strategic acquisition)
+### S11 [F] — "Acquihire optimized" (build for strategic acquisition)
 
 Build silvery + km + tribe to *just enough* for an acquihire by Anthropic / Vercel / Cursor / Notion. Don't try to scale to standalone businesses. Optimize for visibility + technical credibility + complementary integration with one of those companies' platforms.
 
 **Score**: B=3 / T=24-36 (acquisition timeline) / C=high (single liquidity event) / R=4 / D=at least one target acquirer actually wants what you've built; acquisition happens before runway runs
 
-### S12 — "Bootstrapped consulting first" (build as you bill)
+### S12 [H] — "Bootstrapped consulting first" (build as you bill)
 
 silvery as portfolio piece; primary revenue from custom Ink→silvery migrations + agentic-IDE consulting. Build as you bill. Productize what consulting reveals demand for. Bootstrap-friendly. Patio11 / 37signals / DHH shape.
 
 **Score**: B=4 (consulting eats time) / T=1-3 / C=low-mid / R=2 / D=consulting demand exists; willing to do bespoke work for cash
 
-### S13 — "Devtools VC seed" (pre-launch raise on integrated narrative)
+### S13 [G] — "Devtools VC seed" (pre-launch raise on integrated narrative)
 
 Take the "three open standards + two products + services + agentroom" narrative directly to a devtools-VC ($3-5M seed). Use capital to hire 2-4 engineers and run multiple directions in parallel. Founder stays strategic. Vercel-day-one shape.
 
 **Score**: B=2 (with team) / T=24+ / C=very-high / R=4 / D=narrative is fundable without traction; right VC bites; can hire fast; team integration works
 
-### S14 — "Snyk for AI" (security-first wedge)
+### S14 [H] — "Snyk for AI" (security-first wedge)
 
 Pivot: silvercode is a *security-first* agentic IDE. Ambient-context-safety pipeline becomes the wedge. Sell to enterprises whose developers use AI tools but need leak prevention / audit / compliance. Differentiate from Cursor on security posture. Snyk / Cyera shape but for AI agents.
 
 **Score**: B=4 / T=12-18 / C=mid-high / R=4 / D=enterprise security-for-AI is a real budget; we can deliver SOC2-ready security tooling; security-buyer relationships exist
 
-### S15 — "Anthropic-direct" (silvery + agentroom for AI lab teams)
+### S15 [D] — "Anthropic-direct" (silvery + agentroom for AI lab teams)
 
 Position silvery + agentroom for Anthropic / OpenAI / Google internal-tooling teams. These labs are building AI CLIs (Claude Code, Codex, Gemini-cli) and need exactly what silvery + agentroom offer. Direct enterprise sale or strategic partnership. Don't chase the long tail; chase the 5-10 customers that matter.
 
 **Score**: B=3 / T=6-12 / C=high (per customer) / R=4 / D=AI labs return calls; we can deliver enterprise-grade infra; ACP becomes the wire they want
 
-### S16 — "Auth0 for AI agents" (services-only, silvery is portfolio)
+### S16 [C] — "Auth0 for AI agents" (services-only, silvery is portfolio)
 
 Direction 3, sharper. silvery stays open framework but is *not* the focus. The flagship product is the services tier alone — auth, secrets, BYO-key handling, multi-vendor LLM gateway, ambient safety. Sell to anyone building AI tools (silvery users, OpenTUI users, Ink users, web app builders). Auth0 → Okta acquisition shape.
 
 **Score**: B=4 / T=18-30 / C=very-high / R=4 / D=services market matures; SOC2 hygiene; cross-framework portability of the services SDK
 
-### S17 — "Ghost for PKM" (PKM-for-AI with hosted + self-hosted)
+### S17 [B] — "Ghost for PKM" (PKM-for-AI with hosted + self-hosted)
 
 Direction 2 + Direction 3 hybrid. km/PlainBrain as substrate, with both **hosted km cloud** (subscription, low-friction) and **self-hosted km** (open-source, run-your-own). Mirror Ghost (the publishing platform): hosted is the paid tier, but the open-source is a real alternative. Pulls from the PKM-as-md-files-for-AI movement (gbrain + Obsidian-style power-user community).
 
 **Score**: B=4 / T=12-18 / C=mid-high / R=3 / D=PKM-for-AI as a category sustains; hosted-vs-self-hosted tier serves both segments; power users adopt
 
-### S18 — "tribe-as-control-plane" (ACP-proxy ship-now top-3 cluster)
+### S18 [D] — "tribe-as-control-plane" (ACP-proxy ship-now top-3 cluster)
 
 D4 inside the portfolio. Ship the top-3 ACP-proxy ventures as one v1 product: **#1 observability + #2 cross-agent recall + #3 cost dashboard** as a unified "tribe control-plane plugin pack." All three ride existing silvercode JSON-RPC tap; all three are tribe-side plugins; one sprint ships the trio. Distribution: free silvercode upgrade, fans out to km + future products. The ventures doc identifies this as the "ship-now cluster."
 
 **Score**: B=2 (small package, existing infra) / T=2-3 (one sprint to MVP) / C=mid (Worth=2-3 individually but cluster bonus pushes to mid) / R=2 / D=silvercode launches and creates the JSON-RPC tap; tribe plugin model is real
 
-### S19 — "Confluent stack" (ACP-proxy top-cluster as own venture, D5)
+### S19 [D] — "Confluent stack" (ACP-proxy top-cluster as own venture, D5)
 
 D5 spun out. The top cluster (**#11 gateway + #12 vault storage + #13 coordination layer**) hits 25/25 — packaged as its own venture: open ACP↔Matrix gateway with `org.agentroom.*` spec authorship + canonical km-vault session storage + agent-coordination primitives. Confluent → Apache Kafka shape. $3-5M seed pitch. Infrastructure-ops co-founder. Independent acquihire-ready (GitHub, Microsoft, Vercel, Replit).
 
 **Score**: B=3 (own venture, with co-founder) / T=12-18 / C=very-high (the doc explicitly calls this a "candidate generational company") / R=4 / D=ACP standard wins, infrastructure-ops co-founder, ship MSC for `org.agentroom.*` event vocab before Anthropic/OpenAI/Google ships theirs
 
-### S20 — "Cloudflare Workers for ACP" (compute-platform layer, #14)
+### S20 [D] — "Cloudflare Workers for ACP" (compute-platform layer, #14)
 
 Add the **agent-in-the-middle platform** (#14) on top of S19. The proxy hosts persistent LLM sub-agents (recall-thought, critic, style-watcher, test-runner, docs-keeper) that watch ACP traffic and inject ambient observations. Cloudflare CDN → Workers analog: substrate is the start, compute is the moat (Cloudflare $30B+ valuation came from Workers, not CDN).
 
 **Score**: B=4 (deeper integration than gateway) / T=18-24 / C=very-high / R=4 / D=S19 ships first; recall-thought sub-agent (88KB existing design) productizes; multi-tenant LLM cost economics work; privacy/compliance posture for hosting source
 
-### S21 — "Memory-as-a-Service for AI agents" (cross-agent recall as standalone, #2)
+### S21 [D] — "Memory-as-a-Service for AI agents" (cross-agent recall as standalone, #2)
 
 Pull #2 (cross-agent recall) out as its own product. Mem0 ($24M raised, 52K GitHub stars) and Letta ($10M, 22K stars) prove the market; both are *single-agent*; **nobody has cross-agent memory** because no incumbent has reason to bridge Claude + Codex + Gemini + Copilot. silvery+tribe-bearly already has the recall infrastructure; promoting it from silvercode-internal to a tribe-side plugin gives every ACP client (km, pam, future products, third-party agents) Memory.
 
 **Score**: B=3 / T=6-9 / C=high / R=3 / D=cross-agent-memory category survives Anthropic Memory + OpenAI Memory single-agent versions; tribe plugin model spreads beyond silvercode
 
-### S22 — "ACP-proxy + ship-now cluster combined inside portfolio" (D4 maximum)
+### S22 [D] — "ACP-proxy + ship-now cluster combined inside portfolio" (D4 maximum)
 
 The integrated portfolio version. Ship S18 (top-3 ship-now) + S19's top cluster (#11+#12+#13) + km's PlainBrain spec all together as a unified "tribe control-plane + ACP-proxy + agent collaboration database" stack. All under one entity, one go-to-market, one acquisition outcome. Larger surface than S18 alone, smaller than spinning out (S19).
 
 **Score**: B=5 / T=12-24 / C=very-high (combined cluster sums to 25/25) / R=4 / D=founder bandwidth holds across all components; team can be hired; integrated narrative compels investors/acquirers more than separate parts
 
-### S23 — "The playground for the UI of agentic work" (one app, multiple panes; TUI today → web/native tomorrow)
+### S23 [E] ★ — "The playground for the UI of agentic work" (one app, multiple panes; TUI today → web/native tomorrow)
 
 The deepest framing yet. Stop thinking about specific product categories — silvery + km + silvercode are the **playground where the UX paradigm of agentic work is being invented**. The integrated app is the laboratory. The substrate (PlainBrain markdown repo) + the framework (silvery, multi-target) are what let the paradigm travel.
 
@@ -683,13 +735,13 @@ silvercode can be a pane *in* km. km-board can be panes *in* silvercode. It's th
 
 **Score**: B=5 / T=12-24 / C=very-high (genuinely new category — *"the playground for the UI of agentic work"* — TUI today, web/native tomorrow) / R=4 / D=integrated UX achievable solo + AI-augmented for v1; novel-UI bets land; multi-target architecture stays cheap because it's already designed in
 
-### S24 — "Acquihire-positioned for Big AI labs" (silvery + agentroom as Anthropic/Google/Microsoft target)
+### S24 [F] — "Acquihire-positioned for Big AI labs" (silvery + agentroom as Anthropic/Google/Microsoft target)
 
 Build silvery + the silvery/ink shim + agentroom + tribe to *just* the right size for a strategic acquisition by a Big AI lab that needs to migrate their internal CLI off Ink. Anthropic's Claude Code, Google's Gemini CLI, GitHub's Copilot CLI all have Ink architectural constraints. silvery is the only architecturally-suited replacement. Optimize the portfolio for the conversation: clean architecture, well-documented, strategic complementarity with each lab's tooling. Don't try to win as standalone product; structure for $50-200M acquihire+IP outcome.
 
 **Score**: B=3 / T=18-30 / C=high (single liquidity event; $50-200M plausible) / R=4 / D=at least one Big AI lab decides Ink is a real architectural problem and looks for the migration path; conversation reaches the right people
 
-### S25 — "Bottom-stack first, apps as demonstrators" (the agent+protocol+services emphasis)
+### S25 [C] ★ — "Bottom-stack first, apps as demonstrators" (the agent+protocol+services emphasis)
 
 D3 + D4/D5 layered as the strategic lead. Founder's read (2026-04-28): *"there's a lot of opportunities in the agent+protocol+services layer."* This strategy makes that explicit.
 
@@ -718,7 +770,7 @@ D3 + D4/D5 layered as the strategic lead. Founder's read (2026-04-28): *"there's
 
 **This is the strategy that threads through all the constraints**: cross-elasticity (positive), solo bandwidth (work fits), layers-as-moat (yes), acquirer-readability (yes), open-source posture (silvery + tribe + PlainBrain stay open per the strategic decision), commercial ceiling (services tier scales). It also lines up with where every independent analytical signal has pointed: /pro v3's rubric-validated cluster, Kimi's cross-elasticity argument, the Vercel/Auth0/Algolia precedents, the Confluent/Kafka analog for tribe.
 
-### S26 — "Docker for agents" (the `.brain` portable format play)
+### S26 [D] ★ — "Docker for agents" (the `.brain` portable format play)
 
 PlainBrain elevated from "markdown profile" to **the portable agent format** — `.brain` files containing agent knowledge + skills + persona + history. Operations: `run-brain` (instantiate), `merge-brain` (combine ensembles), `fork-brain` (version), `pack-brain` (bundle a vault into a brain). Hooks into any environment with MCP-style tools; ACP as one transport.
 
@@ -753,37 +805,109 @@ Customers:
 
 ## Phase 4: Sequencing options
 
-[TBD — to be developed collaboratively after Phase 3 strategy candidates are scored / refined]
-
-Sequencing dimensions to consider:
+Sequencing dimensions:
 - **Capital required**: bootstrap → angel → seed → Series A
 - **Bandwidth conflicts**: which strategies can run in parallel without splitting the founder
 - **Signal-gates**: what signal triggers escalation vs pivot
 - **Reversal cost**: which strategies can be reversed cheaply if they fail; which lock you in
 - **Network effects**: which strategies *enable* others later; which foreclose options
 
-Tentative sequencing options to develop:
+### Recommended sequencing (the S25-led path, draft)
 
-- **Path α (current)**: S1 locked. Run silvery + silvercode + km + tribe + PlainBrain in parallel. High bandwidth load, integrated narrative, Day 90 kill.
-- **Path β (focused)**: S1 sub-set — silvery alone for 3 months, then layer silvercode at month 3 if silvery validates, then services tier at month 6. Sequenced, lower bandwidth load.
-- **Path γ (services-first)**: S2 — silvery + open silvercode + paid services. Bigger ceiling but slower lift, requires production infra investment.
-- **Path δ (PKM-first)**: S4 — defer silvery promotion, focus on km/PlainBrain in the AI-vault category. Use the broader PKM-as-md-files-for-AI movement (gbrain, Obsidian-AI plugins, Cursor Rules adoption) as evidence + lean on founder dogfooding for credibility. Faster to revenue if PKM market warmer than expected.
-- **Path ε (multi-venture)**: S10 — agentroom spun out as own thing; silvery donated to foundation; silvercode + km as single bootstrapped product. Clean separation but high coordination overhead.
-- **Path ζ (capital-first)**: S13 — raise first, run multiple paths with hired engineers.
+**Now (solo, months 0-3)** — invest in the architecture, build signal:
+
+- silvery maintenance + light promo (don't burn cycles on big launch; let cluster-1 sites do their work organically)
+- Ship the **ACP-proxy top-3 cluster** (S18 = #1 observability + #2 cross-agent recall + #3 cost dashboard) as tribe-side plugins in silvercode. *"One sprint to MVP"* per the ventures doc.
+- Author **tribe wire v0** (Apache + CC BY 4.0 spec, "unstable draft") and submit `org.agentroom.*` events as Matrix MSC. Spec-authorship work is solo-doable.
+- Author **`.brain` v0 spec** alongside (S26) — `run-brain` CLI + format proposal. Solo-doable.
+- Continue dogfooding km / silvercode in daily workflow. silvercode launches as **open reference IDE** (free, demonstrator-shape).
+- Start building the **agent layer wrapping** (universal ACP-wrapper for Claude Code, Codex, Aider, Cline). Ours-and-theirs both first-class.
+- Network priming for first co-founder / hire / fundraise (Palo Alto warm intros).
+- *No production hosted services yet* — too operationally heavy for solo.
+
+**Month 3-6 (solo → first co-founder/hire)** — productize what dogfooding validates:
+
+- First hire: infrastructure-ops co-founder OR services-product engineer (depending on which path deepens).
+- Production **agentroom hosted gateway v1** — multi-machine routing, basic SLA. *(Family D, S19 inside portfolio or S5 spun-out depending on capital strategy.)*
+- Ship **S23 integrated playground** demo (chat + docs + code + agents + boards + diagrams; one app, multiple panes). The killer demo.
+- Promote `.brain` registry preview (`brainhub.dev` or similar) — open registry, hosted brains.
+- Hardening + outreach on the top-3 cluster (S18 → real customers).
+- Decision-point: services-led-only (S25) vs services-led + standalone-agentroom-spinout (S25 + S5).
+
+**Month 6-12 (small team, ~5 people)** — scale services, deepen path:
+
+- Production services tier: subscription-auth, ambient-context-safety pipeline, hosted recall, multi-device sync. *Each service per Family C/D needs ~2-3 people.*
+- Enterprise readiness: SOC2 progression, audit logs, SSO, regional hosting.
+- silvercode + km integration deepens (S22 = ACP-proxy + ship-now combined inside portfolio); km decomposed into silvercode features OR remains as separate workspace per founder choice.
+- Big AI lab outreach (S15 / S24) — direct enterprise sales conversations with Anthropic / Google / Microsoft.
+- Decide on Obsidian-acquisition-timing-aware moves for Family B (PKM-led).
+
+**Month 12+ (seed-stage to Series A)** — signal-driven path deepening:
+
+- If silvery+agentroom hits AI-lab inbound → S24 path (acquihire-positioned).
+- If services tier scales to mid-six-figure ARR → S25/S2/S16 path (Vercel/Auth0 shape).
+- If `.brain` adoption proves out → S26 (Docker-for-agents independent venture).
+- If PKM market shifts post-Obsidian-acquisition → Family B opens up (S4/S7/S17).
+- If multiple paths show traction simultaneously → S10 (multi-venture studio) becomes plausible.
+
+**The principle**: invest in *architecture* now (silvery + tribe + agentroom + services + .brain) — every layer compounds across multiple future paths. *Don't pre-commit to one final path; generate signal and let signal pick the path.*
+
+### Alternative sequencing paths (preserved)
+
+- **Path α (locked Option 5, S1)**: run silvery + silvercode + km + tribe + PlainBrain in parallel. High bandwidth, integrated narrative, Day 90 kill.
+- **Path β (focused, S1 subset)**: silvery alone for 3 months → silvercode at month 3 → services at month 6. Sequenced, lower bandwidth.
+- **Path γ (services-first, S2)**: services tier as flagship; silvercode open reference. Bigger ceiling but slower lift; requires production infra investment.
+- **Path δ (PKM-first, S4)**: defer silvery promotion; focus on km/PlainBrain in AI-vault category. Faster to revenue if PKM market warmer than expected.
+- **Path ε (multi-venture, S10)**: agentroom spun out; silvery donated to foundation; silvercode + km bootstrapped product. Clean separation, high coordination overhead.
+- **Path ζ (capital-first, S13)**: raise first, run multiple paths with hired engineers.
+- **Path η (the S25 recommended path, above)**: bottom-stack-first, apps as demonstrators, signal-driven path deepening.
 
 ---
 
 ## Phase 5: Recommendation
 
-[TBD — emerges from Phase 3 + Phase 4 collaborative iteration]
+### Lead path: η (S25 + S23 demonstrator + S26 protocol-authoring)
 
-Key open questions for Phase 5:
+The workshop converged on a layered strategy that threads through every constraint:
 
-1. **Do we believe the cross-elasticity argument?** (Kimi: silvery's audience IS silvercode-equivalent builders) — if yes, S1 has a structural problem and we should push toward S2/S3
-2. **Is the PKM-as-md-files-for-AI movement (gbrain, Obsidian-AI, Cursor Rules, Claude Projects) enough validation for the km/PlainBrain play?** — gbrain is third-party (not ours) and dogfooded by the founder; the broader movement is real but fragmented. Does the category have a real wedge for a new entrant, or has it consolidated around Obsidian-as-default? Obsidian acquisition timing matters here.
-3. **Does the user want to / can the user run multiple commercial entities?** — answers S5/S10 (multi-venture) vs S1/S2 (integrated portfolio)
-4. **Is acquihire (S11) an acceptable outcome?** — drives whether to optimize for visibility-and-integration-with-one-platform vs standalone-revenue-maximizing
-5. **Should agentroom be inside or outside the portfolio?** — separable from #3
+- **Lead commercial focus**: Family C (services-led) + Family D (agent + protocol play). Cross-elasticity positive, /pro-validated 25/25 cluster math, multi-stream revenue from one layered foundation.
+- **Demonstrator vehicle**: S23 (the integrated "playground for the UI of agentic work" — one app, multiple panes, TUI today → web/native tomorrow). Shows what the layers enable when fully composed; doesn't have to win standalone.
+- **Ambitious protocol authoring**: S26 (`.brain` portable agent format) — Docker-for-agents framing. Composes with S25 (S25 builds the substrate; S26 names the format the substrate embodies). Window is open *now*; closes when one Big AI lab ships their version.
+- **Apps repositioned**: silvercode + km + the integrated playground are *open reference implementations* that demonstrate the services tier. Not the lead products. This collapses the cross-elasticity trap entirely.
+
+### Why this is the recommendation
+
+It's the only strategy that simultaneously:
+1. Avoids cross-elasticity (services + protocols have positive cross-elasticity)
+2. Fits solo-bandwidth (spec authorship + ship-now cluster + dogfooding are all solo-doable today)
+3. Has rubric-validated commercial ceiling (ACP-proxy stack 25/25 per /pro v3)
+4. Preserves multi-path acquirer optionality (Big AI lab buys silvery slice; infra company buys agentroom; PKM acquirer buys km — all three remain on the table)
+5. Compounds capital efficiency (every layer worked on benefits all future paths)
+6. Aligns with founder's articulated insight that "the agent+protocol+services bottom stack has the most opportunity"
+
+### Path-deepening triggers (after month 3-6 signal)
+
+- **Big AI lab inbound** → tilt toward S24 (acquihire-positioned) + S15 (Anthropic-direct enterprise)
+- **Services revenue scaling fast** → tilt toward S2/S16 (Vercel/Auth0 services-led pure plays)
+- **`.brain` adoption signals** → tilt toward S26 deepening (Docker-for-agents standalone venture)
+- **Obsidian acquired or AI-vault category accelerates** → tilt toward Family B (S4/S7/S17 PKM-led)
+- **Multi-direction simultaneous traction + capital available** → tilt toward S10 (multi-venture studio) or S13 (raise-then-execute)
+
+### What NOT to do
+
+- **Don't lock to S1 (current Option 5)** — cross-elasticity exposure is high and the /pro v3 rubric showed Family D has stronger validation than the locked single-product silvercode bet.
+- **Don't pursue Family H** (S6 / S8 / S12 / S14) — these abandon or decompose the integrated portfolio, wasting the architectural coherence advantage.
+- **Don't try to ship production hosted services solo** — degrade quality and burn out. Demo-grade is fine; production-grade waits for hires.
+- **Don't promote PlainBrain as a standalone "third standard"** before silvery validates — per /pro v3, premature standards proliferation. Frame as `.brain` (S26) which has its own thesis.
+- **Don't pre-form a separate entity** for agentroom — keep optional spinout (S5) on the table but defer formation until Family D services prove out and signal which structure (inside vs outside the portfolio) is right.
+
+### Open questions still worth answering
+
+1. **Is acquihire (Family F: S11/S24) an acceptable outcome, or is the goal standalone IPO scale?** — drives whether silvery + agentroom should be sized for a Big AI lab acquisition specifically, vs sized for a $50-200M ARR services business.
+2. **Does the PKM-for-AI movement consolidate around Obsidian or fragment?** — Obsidian acquisition timing is the canary. If Microsoft/Notion buys Obsidian in next 12 months, Family B becomes more attractive (acquired-Obsidian-is-captive opens the wedge).
+3. **Should agentroom spin out (S5/S19) or stay inside (S22)?** — S25 keeps this optional; the choice is signal-driven (capital availability + co-founder readiness + acquirer interest).
+4. **Is the `.brain` format thesis ready to ship as MSC alongside `org.agentroom.*` events?** — clock is ticking; window closes when one lab ships their version.
+5. **What's the right venue for a fundraise narrative if/when capital is needed?** — devtools VC for S13 path, or strategic conversation with one Big AI lab for S24 path. Different optimization.
 
 ---
 
