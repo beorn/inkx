@@ -5,6 +5,7 @@
  */
 
 import { join, dirname } from "node:path"
+import { stringify as stringifyYaml } from "yaml"
 import { createLogger } from "loggily"
 import type { BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue, type BeadsMemory } from "./schema.ts"
@@ -42,10 +43,7 @@ export function readBeadsIssues(fs: BeadsFs, beadsDir: string): BeadsIssue[] {
  * Read both issues and memories from .beads/issues.jsonl with validation.
  * `bd export` interleaves both record types in a single file.
  */
-export function readBeadsExport(
-  fs: BeadsFs,
-  beadsDir: string,
-): { issues: BeadsIssue[]; memories: BeadsMemory[] } {
+export function readBeadsExport(fs: BeadsFs, beadsDir: string): { issues: BeadsIssue[]; memories: BeadsMemory[] } {
   const issuesPath = join(beadsDir, "issues.jsonl")
   if (!fs.existsSync(issuesPath)) {
     return { issues: [], memories: [] }
@@ -73,12 +71,7 @@ export function readBeadsExport(
 export function memoryToMarkdown(mem: BeadsMemory): { filename: string; content: string } {
   // Title: humanize the slug for display.
   const title = mem.key.split("-").map(capitalizeWord).join(" ").replace(/\s+/g, " ").trim()
-  const lines = [
-    `## ${title || mem.key} @memory`,
-    "",
-    mem.value.trim(),
-    "",
-  ]
+  const lines = [`## ${title || mem.key} @memory`, "", mem.value.trim(), ""]
   return { filename: `${mem.key}.md`, content: lines.join("\n") }
 }
 
@@ -108,57 +101,63 @@ function statusToMark(status: BeadsIssue["status"]): string {
 /**
  * Convert beads issue to markdown content
  *
- * Format: Status expressed via task mark in heading, type/priority via tags
+ * Format: Status expressed via task mark in heading, type/priority via tags.
+ * Board sigil is the prefix-qualified scope (`@<prefix>/<scope>`) — preserves
+ * the vault prefix so cross-vault refs disambiguate (`@km/beads` vs another
+ * vault's `@beads`).
  *
  * ```markdown
  * ---
- * id: km-01c
+ * id: beads/cutover
  * created_by: beorn
  * created_at: 2024-01-15T...
  * ---
  *
- * # [x] Title @issue #feature #P2
+ * # [x] Title @km/beads #feature #P2
  *
  * Description...
  * ```
  */
-export function issueToMarkdown(issue: BeadsIssue, boardTag?: string, sourcePrefix = "km"): string {
+export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: ReadonlyMap<string, string>): string {
   const lines: string[] = []
 
   // Frontmatter — canonical path-form id with bd-form variants as aliases.
   // Falls back to the raw bd id when path-form translation fails (e.g.
-  // unrecognized prefix on a hand-edited entry).
-  const canonicalId = bdIdToPathForm(issue.id, sourcePrefix) ?? issue.id
-  const aliases = bdIdToAliases(issue.id)
+  // unrecognized prefix on a hand-edited entry). idMap (when provided)
+  // supplies the slug-augmented form for numeric-leaf ids.
+  const basePathForm = bdIdToPathForm(issue.id, sourcePrefix)
+  const canonicalId = idMap?.get(issue.id) ?? basePathForm ?? issue.id
+  const aliases = bdIdToAliases(issue.id, basePathForm && basePathForm !== canonicalId ? basePathForm : null)
+  // Board tag = `@<prefix>/<scope>` — first path segment of the canonical id,
+  // qualified with the vault prefix. `km-beads.cutover` → `@km/beads`,
+  // `km-silvery.foo` → `@km/silvery`. Each `@<prefix>/<scope>` IS its own
+  // board; the bd id encodes the board by construction (no global config).
+  const scope = canonicalId.split("/")[0] ?? null
+
+  // Build the frontmatter object and serialize via yaml.stringify so
+  // multi-line values (close_reason commonly contains markdown bullets,
+  // bold text with `*`, embedded quotes) round-trip safely. Hand-rolled
+  // emission previously broke on lines like `**file**: text` — `*` is
+  // YAML alias syntax outside quoted scalars, and our zero-indented
+  // continuation lines fell out of the scalar context entirely
+  // (BAD_ALIAS warning at parse time).
+  const frontmatter: Record<string, unknown> = { id: canonicalId }
+  if (aliases.length > 0) frontmatter.aliases = aliases
+  if (issue.created_by) frontmatter.created_by = issue.created_by
+  frontmatter.created_at = issue.created_at
+  if (issue.closed_at) frontmatter.closed_at = issue.closed_at
+  if (issue.close_reason) frontmatter.close_reason = issue.close_reason
+  if (issue.parent_id) frontmatter.parent_id = issue.parent_id
 
   lines.push("---")
-  lines.push(`id: ${canonicalId}`)
-  if (aliases.length > 0) {
-    lines.push(`aliases:`)
-    for (const a of aliases) {
-      lines.push(`  - ${a}`)
-    }
-  }
-  if (issue.created_by) {
-    lines.push(`created_by: ${issue.created_by}`)
-  }
-  lines.push(`created_at: ${issue.created_at}`)
-  if (issue.closed_at) {
-    lines.push(`closed_at: ${issue.closed_at}`)
-  }
-  if (issue.close_reason) {
-    lines.push(`close_reason: "${issue.close_reason.replace(/"/g, '\\"')}"`)
-  }
-  if (issue.parent_id) {
-    lines.push(`parent_id: ${issue.parent_id}`)
-  }
+  lines.push(stringifyYaml(frontmatter).trimEnd())
   lines.push("---")
   lines.push("")
 
   // Build tags for heading
   const tags: string[] = []
-  if (boardTag) {
-    tags.push(`@${boardTag}`)
+  if (scope) {
+    tags.push(`@${sourcePrefix}/${scope}`)
   }
   if (issue.issue_type) {
     tags.push(`#${issue.issue_type}`)
@@ -199,7 +198,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string, sourcePref
     ["related", relatedEdges] as const,
   ]) {
     if (edges.length > 0) {
-      const links = edges.map((e) => `[[${bdIdToPathForm(e, sourcePrefix) ?? e}]]`).join(", ")
+      const links = edges.map((e) => `[[${idMap?.get(e) ?? bdIdToPathForm(e, sourcePrefix) ?? e}]]`).join(", ")
       lines.push(`${rel}:: ${links}`)
       lines.push("")
     }
@@ -211,7 +210,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string, sourcePref
   // rewrite catches the bulk in one pass at import time so the runtime
   // resolver doesn't need a fallback scanner.
   if (issue.description) {
-    lines.push(rewriteLegacyIdMentions(issue.description, sourcePrefix))
+    lines.push(rewriteLegacyIdMentions(issue.description, sourcePrefix, idMap))
   }
 
   return lines.join("\n")
@@ -228,7 +227,11 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string, sourcePref
  * conservative on word boundaries to avoid mangling unrelated tokens
  * (e.g. `npm-tools-list` won't match unless `npm` is the prefix).
  */
-export function rewriteLegacyIdMentions(text: string, sourcePrefix = "km"): string {
+export function rewriteLegacyIdMentions(
+  text: string,
+  sourcePrefix = "km",
+  idMap?: ReadonlyMap<string, string>,
+): string {
   const prefix = sourcePrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   // Anchor at non-word boundary on both ends; allow `.` and `-` inside slug.
   const pattern = new RegExp(
@@ -239,7 +242,7 @@ export function rewriteLegacyIdMentions(text: string, sourcePrefix = "km"): stri
   )
   return text.replace(pattern, (match, wikilink, code, bdId) => {
     if (wikilink || code) return match
-    const path = bdIdToPathForm(bdId, sourcePrefix)
+    const path = idMap?.get(bdId) ?? bdIdToPathForm(bdId, sourcePrefix)
     if (!path) return match
     return `@${sourcePrefix}/${path}`
   })
@@ -306,14 +309,91 @@ export function bdIdToPathForm(bdId: string, sourcePrefix = "km"): string | null
  * that prose may legitimately reference. Dot-form is the canonical
  * export; dash-form is the variant humans sometimes type when the dot
  * gets eaten by surrounding punctuation.
+ *
+ * `extraPathForm` (optional) is the bare path-form (without slug
+ * augmentation) — included as an alias when numeric-leaf ids get a
+ * title-derived slug appended, so prose using `@km/scope/3` still
+ * resolves alongside `@km/scope/3-fix-the-thing`.
  */
-export function bdIdToAliases(bdId: string): string[] {
+export function bdIdToAliases(bdId: string, extraPathForm?: string | null): string[] {
   const aliases = new Set<string>()
   aliases.add(bdId)
   if (bdId.includes(".")) {
     aliases.add(bdId.replace(/\./g, "-"))
   }
+  if (extraPathForm) {
+    aliases.add(extraPathForm)
+  }
   return [...aliases]
+}
+
+/**
+ * Like {@link bdIdToPathForm} but appends `-<slug>` derived from the
+ * issue title when the trailing path segment is purely numeric.
+ *
+ * bd auto-numbers sub-ids when callers don't supply a custom suffix
+ * (`km-rev-code-0203.1`, `.2`, …); the bare numeric leaf is unhelpful
+ * as a filename or card label after migration. Augmenting with a
+ * title-slug recovers legibility while keeping the bare form as an
+ * alias (back-compat for prose that already references `scope/3`).
+ *
+ *   bdId="km-rev-code-0203.1", title="Add keyboard nav"
+ *     → "rev-code-0203/1-add-keyboard-nav"
+ *
+ *   bdId="km-silvercode.acp.rename", title="…"  (non-numeric leaf)
+ *     → "silvercode/acp/rename"  (unchanged)
+ *
+ * Returns null when the id strips to empty, like {@link bdIdToPathForm}.
+ */
+export function bdIdToPathFormWithSlug(bdId: string, title: string, sourcePrefix = "km"): string | null {
+  const base = bdIdToPathForm(bdId, sourcePrefix)
+  if (!base) return null
+  const slashIdx = base.lastIndexOf("/")
+  const leaf = slashIdx >= 0 ? base.slice(slashIdx + 1) : base
+  if (!/^\d+$/.test(leaf)) return base
+  const slug = _slugify(title)
+  if (!slug) return base
+  return `${base}-${slug}`
+}
+
+/**
+ * Build an `id → path-form` map for a batch of issues, applying
+ * slug-augmentation for numeric-leaf ids. Used by {@link
+ * migrateBeadsToMarkdown} so wikilink targets, frontmatter ids, and
+ * filenames all agree on the same resolved form within a single
+ * migration pass.
+ *
+ * Skips augmentation when the issue is also a parent of other issues
+ * — augmenting `silvery/1` to `silvery/1-foo` would break the
+ * directory path that `silvery/1/child` files live under. The bare
+ * numeric form is kept in those cases (file + sibling directory share
+ * the same name, which km handles natively).
+ *
+ * Only sets entries when augmentation actually changes the path so
+ * callers can fall back via `idMap.get(id) ?? bdIdToPathForm(id)`
+ * without losing accuracy.
+ */
+export function buildIdMap(issues: BeadsIssue[], sourcePrefix = "km"): Map<string, string> {
+  const parentPaths = new Set<string>()
+  for (const issue of issues) {
+    const base = bdIdToPathForm(issue.id, sourcePrefix)
+    if (!base) continue
+    let idx = base.indexOf("/")
+    while (idx >= 0) {
+      parentPaths.add(base.slice(0, idx))
+      idx = base.indexOf("/", idx + 1)
+    }
+  }
+  const map = new Map<string, string>()
+  for (const issue of issues) {
+    const base = bdIdToPathForm(issue.id, sourcePrefix)
+    if (!base || parentPaths.has(base)) continue
+    const resolved = bdIdToPathFormWithSlug(issue.id, issue.title, sourcePrefix)
+    if (resolved && resolved !== base) {
+      map.set(issue.id, resolved)
+    }
+  }
+  return map
 }
 
 /**
@@ -328,10 +408,8 @@ function _slugify(title: string): string {
 }
 
 export interface MigrateOptions {
-  /** Directory to write markdown files to */
+  /** Directory to write markdown files to (typically the vault repoRoot) */
   targetDir: string
-  /** Board tag to add to issues (e.g., "issue") */
-  boardTag?: string
   /** Only migrate issues with these statuses */
   statusFilter?: string[]
   /** Dry run - don't write files */
@@ -348,8 +426,8 @@ export interface MigrateOptions {
   sourcePrefix?: string
   /**
    * Directory for migrated memory files (one `.md` per memory).
-   * Defaults to `<parent-of-targetDir>/mem` so memories live at
-   * vault root alongside the issue tree, not nested inside it.
+   * Defaults to `<targetDir>/mem` so memories live at vault root
+   * alongside the per-scope issue directories.
    */
   memDir?: string
 }
@@ -391,10 +469,14 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
   }
 
   const sourcePrefix = options.sourcePrefix ?? "km"
+  // Resolve every id once up-front so wikilink targets, frontmatter ids,
+  // and filenames agree across the batch (numeric-leaf ids get a
+  // title-derived slug appended; see bdIdToPathFormWithSlug).
+  const idMap = buildIdMap(filtered, sourcePrefix)
   for (const issue of filtered) {
     try {
-      // Path-form filename: km-silvercode.acp-rename → silvercode/acp-rename.md
-      const pathForm = bdIdToPathForm(issue.id, sourcePrefix) ?? issue.id
+      // Path-form filename, slug-augmented when the leaf is numeric.
+      const pathForm = idMap.get(issue.id) ?? bdIdToPathForm(issue.id, sourcePrefix) ?? issue.id
       const filename = `${pathForm}.md`
       const filepath = join(options.targetDir, filename)
 
@@ -404,7 +486,7 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
         continue
       }
 
-      const content = issueToMarkdown(issue, options.boardTag, sourcePrefix)
+      const content = issueToMarkdown(issue, sourcePrefix, idMap)
 
       if (!options.dryRun) {
         // Ensure parent directory exists for nested path-form filenames.
@@ -422,10 +504,11 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
     }
   }
 
-  // Memories — write each to <memDir>/<key>.md (sibling to targetDir).
-  // memDir defaults to <parent-of-targetDir>/mem so memories live at
-  // vault root, not nested inside the issue tree.
-  const memDir = options.memDir ?? join(dirname(options.targetDir), "mem")
+  // Memories — write each to <memDir>/<key>.md. memDir defaults to
+  // <targetDir>/mem so memories live alongside the per-scope issue
+  // directories at vault root (now that targetDir IS the vault root,
+  // not <repoRoot>/issue/).
+  const memDir = options.memDir ?? join(options.targetDir, "mem")
   for (const mem of memories) {
     try {
       const { filename, content } = memoryToMarkdown(mem)
