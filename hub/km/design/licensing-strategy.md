@@ -135,7 +135,9 @@ future)      silvercode +     future Investment LLC)
 10. ~~silvery-system-monitor~~ → demoted to **Q3 evergreen**, not pre-launch. Building both simultaneously is 6-8 weeks per /pro v2 and risks shipping nothing remarkable.
 
 *Week 2-4 (parallel during demo, distribution tooling)*:
-11. **Codemod / PR bot** — rewrites `import "ink"` → `"silvery/ink"`, flags incompatibilities, auto-opens PRs on target Ink projects. Highest-leverage distribution tool we don't have yet (Kimi: *"Throwing a demo at a distribution problem is cathartic but may be avoidance behavior"*).
+11. **PR-opening outreach bot** — *not* a codemod (over-engineered for a one-line import swap). The migration is `sed -i '' 's/from "ink"/from "silvery\/ink"/g' src/**/*.{ts,tsx}` + package.json edit; a Babel/jscodeshift transform isn't needed. What *is* needed is automated outreach: a tool that takes a list of target Ink projects, runs the import-swap on a fork, runs benchmarks against the silvery version, and opens a PR with the diff + perf numbers + a friendly maintainer message. Scales from "manually message 5 maintainers" to "50 PRs with concrete value." This is the high-leverage distribution lever Kimi was actually pointing at.
+
+   Optional companion: a small `silvery doctor` CLI (~1-2 days, 200 LOC) that scans an app and reports compatibility — confidence-builder for skeptical maintainers but skippable.
 12. **`create-silvery` CLI** — two modes: "new app from template" + "wrap existing Ink project to try silvery side-by-side." Table stakes in 2026.
 13. **Discord/Matrix community** + weekly office hours.
 
