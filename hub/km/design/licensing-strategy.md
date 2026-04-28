@@ -23,6 +23,15 @@
 6. **Verify factual claims** for launch: replace "all big AI labs use Ink" with *"Ink is the de facto standard for AI-era developer CLIs, including Copilot CLI, Wrangler, and a majority of the npx AI tool ecosystem."* Move perf multipliers off the hero into a Performance page with reproducible scripts.
 7. **Register Silvery trademark + publish trademark policy** — Apache-2.0 doesn't grant trademark rights; the trademark + "Silvery-compatible" badge program is the fork-risk leverage.
 8. **Public compatibility harness** — pin "98.6%" to methodology + Ink version + measurement date. Reproducible test suite. Avoid vanity-percentage claims.
+9. **Audience-capture stack** — without this the promo wave drives attention to silvery.dev where it bounces. Set up before quiet launch:
+   - **Newsletter** (Buttondown $9/mo or Resend free tier) — hero + footer signup; tagged opt-ins for `silvery-announcements` / `tribe-spec-previews` / `silvercode-early-access`. Highest-intent re-engagement channel.
+   - **X/Twitter handle** — pin "Migrating from Ink" thread. Where Vadim Demedes is, where Ink-fatigue discourse happens, where dev-tooling launches spread.
+   - **GitHub Discussions** enabled on silvery + each cluster-1 repo with pinned Welcome / Migration / FAQ threads.
+   - **Discord server** with focused channels (`#welcome` / `#migration-help` / `#show-and-tell` / per-package channels / `#announcements`). Discord wins over Matrix for early marketing because Bubble Tea / Charm / dev-tooling communities live there. (Matrix bridge via tribe gateway → Tier 3 self-dogfooding.)
+   - **Unified "stay in the loop" footer** on every silvery.dev page offering Newsletter / Discord / X / GitHub — let visitors pick their channel rather than forcing one.
+   - Calendly for Migration Assurance Program → Tier 2 (Week 2-3 alongside loud launch).
+   - Bluesky handle + Matrix bridge + weekly office hours + /showcase + /uses → Tier 3 (post-traction).
+   - **Skip for now**: LinkedIn (silvercode-time, not silvery-time), Slack community (Discord wins), Mastodon as primary, TikTok/Shorts (wrong audience), own subreddit.
 
 *Week 1-3 (one demo, tightly scoped — pick ONE, not two)*:
 9. **silvery-acp-chat demo** (the right first demo per /pro v2 unanimous): minimal coding-agent client, BYO API key, one provider (Claude or GPT), streaming + tool-use rendering + multi-pane layout + retry/error UX. Scope brutally to ship in 2-3 weeks. Record a 60-120s video. Better target-audience match than system monitor (Ink users *are* building agent CLIs).
