@@ -67,6 +67,14 @@ export interface WireHandle {
    * with `stopReason: "cancelled"`.
    */
   awaitTurn(): Promise<acp.PromptResponse>
+  /**
+   * Synchronously translate and forward a single event through the same
+   * pipeline used by the live subscribe. Used by the server's newSession
+   * to replay events that were buffered between `spawnClaude` and
+   * `attachWire` (the window where we awaited session-init to learn the
+   * real sessionId before binding the wire). Idempotent on detached.
+   */
+  replayEvent(event: AgentEvent): void
   /** Detach the wire (stops forwarding events). Idempotent. */
   detach(): void
 }
@@ -80,22 +88,54 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
   // FIFO order.
   const waiters: Array<(r: acp.PromptResponse) => void> = []
 
+  // In-flight sessionUpdate write tracker. Each `emit(...)` registers its
+  // Promise here; `settleNext(...)` drains them all before resolving any
+  // awaiting `awaitTurn()` waiter, so the JSON-RPC write order is
+  // (notifications first, response after) — even when the underlying
+  // AgentSession dispatches multiple events synchronously in one
+  // subscribe-callback frame and then fires `turn-end`. Without this
+  // ordering, the prompt RPC response can land on the wire BEFORE a late
+  // tool_call_update notification, and the consumer side updates state
+  // out-of-order ("stuck thinking" was the canonical user-visible
+  // symptom). Bead: km-silvercode.acp-wire-write-ordering.
+  const pendingWrites = new Set<Promise<unknown>>()
+
+  function trackWrite(p: Promise<unknown>): void {
+    pendingWrites.add(p)
+    p.finally(() => pendingWrites.delete(p))
+  }
+
+  async function drainPendingWrites(): Promise<void> {
+    // Snapshot — Promise.allSettled doesn't await writes that arrive
+    // AFTER it starts. The contract is "drain everything queued up to
+    // this point"; subsequent emits get their own drain on the next
+    // settle.
+    if (pendingWrites.size === 0) return
+    await Promise.allSettled(pendingWrites)
+  }
+
   function settleNext(stopReason: acp.StopReason): void {
     const w = waiters.shift()
     if (!w) return
-    w({ stopReason })
+    // Drain pending sessionUpdate writes BEFORE resolving the waiter so
+    // the prompt RPC response can't overtake any outstanding notification
+    // on the wire. If the drain itself rejects (network error etc.) we
+    // still settle — the consumer needs to un-stick.
+    drainPendingWrites().finally(() => w({ stopReason }))
   }
 
   function emit(update: ScSessionUpdate): void {
     if (detached) return
     const acpUpdate = silvercodeToAcp(update)
-    // `sessionUpdate(...)` returns a Promise. We don't await — fire-and-
-    // forget is the established pattern (matches `acp-client.ts` server-side
-    // path). Errors surface via the connection's own error plumbing.
-    void conn.sessionUpdate({
-      sessionId: sessionId as acp.SessionId,
-      update: acpUpdate,
-    })
+    // Track the write so settleNext() can drain pending writes before
+    // resolving the prompt RPC response. Errors surface via the
+    // connection's own error plumbing — we still un-track on rejection.
+    trackWrite(
+      conn.sessionUpdate({
+        sessionId: sessionId as acp.SessionId,
+        update: acpUpdate,
+      }),
+    )
   }
 
   // Translate legacy AgentEvent → silvercode SessionUpdate(s).
@@ -237,6 +277,15 @@ export function attachWire(conn: acp.AgentSideConnection, agentSession: AgentSes
         }
         waiters.push(resolve)
       })
+    },
+    replayEvent(event: AgentEvent): void {
+      if (detached) return
+      try {
+        applyEvent(event)
+      } catch {
+        // Mirror the live subscribe's defensive try/catch: a translation
+        // bug in one event must not abort the replay loop.
+      }
     },
     detach(): void {
       if (detached) return

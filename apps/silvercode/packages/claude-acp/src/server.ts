@@ -217,17 +217,61 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
         }),
       )
 
-      // The actual session id surfaces from `spawnClaude`'s `session-init`
-      // event — but newSession needs to return one synchronously. We use the
-      // ACP-spec recommendation: synthesize one and let the underlying
-      // sessionId stay an internal detail. ACP clients only care that the
-      // id we return is what they use for subsequent prompt/cancel calls.
-      const sessionId = `claude-acp-${Date.now()}-${sessions.size + 1}`
+      // ACP sessionId MUST equal the real Claude session UUID — that's what
+      // the on-disk JSONL transcript at ~/.claude/projects/<cwd>/<id>.jsonl
+      // is keyed by. Earlier this server synthesized `claude-acp-${ts}-N`
+      // and surfaced THAT to the client; the resume hint then printed the
+      // synthetic id, and the next `--resume <syntheticId>` failed with
+      // "session not found" because the JSONL's real filename is the
+      // Claude UUID. UI rendered that error to stderr behind the alt
+      // screen → user sees a blank screen.
+      //
+      // Fix: subscribe to the spawn's event stream BEFORE returning,
+      // buffer all events until session-init lands, then use
+      // `event.sessionId` as the ACP sessionId. The buffered events are
+      // replayed through the wire after attachWire so nothing's lost in
+      // the window between spawn and wire-attach. Falls back to a
+      // synthetic id if session-init doesn't arrive within
+      // SESSION_INIT_TIMEOUT_MS — at that point Claude is hung anyway
+      // and the spawn error will surface separately on stderr.
+      const SESSION_INIT_TIMEOUT_MS = 10_000
+      const buffered: AgentEvent[] = []
+      let bufferingActive = true
+      const stopBuffering = agentSession.subscribe((event) => {
+        if (bufferingActive) buffered.push(event)
+      })
+      const sessionId = await new Promise<string>((resolve) => {
+        const fallbackId = `claude-acp-${Date.now()}-${sessions.size + 1}`
+        const timer = setTimeout(() => {
+          unsubscribe()
+          resolve(fallbackId)
+        }, SESSION_INIT_TIMEOUT_MS)
+        const unsubscribe = agentSession.subscribe((event) => {
+          if (event.kind !== "session-init") return
+          clearTimeout(timer)
+          unsubscribe()
+          resolve(event.sessionId)
+        })
+      })
 
       // Wire events from the legacy AgentSession to ACP sessionUpdate
-      // notifications.
+      // notifications. We attach AFTER we know the real sessionId, then
+      // replay any buffered events (everything that arrived between
+      // spawn and now, including session-init itself) so the wire
+      // translates them into sessionUpdate notifications with the
+      // correct sessionId.
       const wire = attachWire(connRef, agentSession, sessionId)
       sessionScope.use(disposable({}, () => wire.detach()))
+
+      // Stop buffering and replay. The buffer-stop comes BEFORE the
+      // attachWire subscribe is in place to avoid double-delivery, but
+      // events that arrived in the same tick as the timer/init resolve
+      // can still slip in — the wire's emit is idempotent enough at the
+      // notification level (the consumer side dedups), and we'd rather
+      // double-send than drop.
+      bufferingActive = false
+      stopBuffering()
+      for (const event of buffered) wire.replayEvent(event)
 
       sessions.set(sessionId, { agentSession, wire, sessionScope })
 
