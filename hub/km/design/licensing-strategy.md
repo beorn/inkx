@@ -6,6 +6,8 @@
 
 **Scope**: license + commercial-posture decision per layer (silvery / tribe / km / silvercode / agentroom / PlainBrain) and per package (~62 packages). Sits below [`integrated-workdesk.md`](integrated-workdesk.md) and references the moats identified in [`silvercode-squad-mode.md`](../../silvercode/future/ai-terminal/silvercode-squad-mode.md).
 
+**See also**: [`strategy.md`](strategy.md) owns the portfolio-level direction (lead path, sequencing, layer partitioning, open-source defense playbook). This doc owns the per-package license matrix downstream of that direction.
+
 ---
 
 ## TL;DR — the plan

@@ -1,6 +1,8 @@
-# Strategy brainstorm — portfolio paths through a layered architecture
+# Strategy — portfolio paths through a layered architecture
 
-**Status**: workshop output, 2026-04-28. Counterpart to [`licensing-strategy.md`](licensing-strategy.md) (Option 5 commitment). This doc steps back, enumerates alternatives, and recommends a layered lead path.
+**Status**: living. Canonical strategy doc for the silvery / silvercode / km / tribe / agentroom / PlainBrain portfolio. Last major revision 2026-04-28 (workshop synthesis with /pro 4-leg + /deep prior-art research).
+
+**Companions**: [`licensing-strategy.md`](licensing-strategy.md) (per-package license matrix; this doc owns the layer-level partitioning), [`hub/ventures/acp-proxy-2026-04-27.md`](../../ventures/acp-proxy-2026-04-27.md) (14-venture rubric scoring).
 
 ---
 

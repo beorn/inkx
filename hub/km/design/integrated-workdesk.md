@@ -6,6 +6,8 @@
 
 **Scope**: 3-year direction + 12-month execution path. Below the vision-level abstractions in `vision.md`; above the per-package implementation specs.
 
+**See also**: [`strategy.md`](strategy.md) owns the portfolio-level commercial direction (lead path, sequencing, agentroom positioning, license partitioning). This doc focuses on km-as-product execution; cross-link rather than duplicate.
+
 **One-line summary**: km is the workdesk where humans, LLMs, and custom-built apps share one markdown filesystem — notes, plans, chats, agent sessions, decisions all in plain `.md`, with multiple runtimes (km-storage, Matrix, silvercode panes, tribe, agentroom) layering projections on top.
 
 ## The thesis

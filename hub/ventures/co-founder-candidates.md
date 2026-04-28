@@ -45,6 +45,6 @@
 
 ## Cross-references
 
-- [`hub/km/design/strategy-brainstorm-2026-04-28.md`](../km/design/strategy-brainstorm-2026-04-28.md) — Phase 4 sequencing, first-hire timing
-- [`hub/km/design/agentroom/positioning.md`](../km/design/agentroom/positioning.md) — agentroom production phase requires the ops co-founder
+- [`hub/km/design/strategy.md#phase-4`](../km/design/strategy.md#phase-4) — Phase 4 sequencing, first-hire timing
+- [`hub/km/design/strategy.md#s25`](../km/design/strategy.md#s25) — agentroom production phase requires the ops co-founder
 - `~vault/areas/@office/CHARTER.md` — family-office structure, Wyoming HoldCo plan
