@@ -51,11 +51,28 @@ Orthogonal but worth naming: km could integrate via Matrix chat rooms instead of
 
 ## Recommendation
 
-**A + B now, layer C later, D as an open option.**
+**A + B now, layer C later, D reframed: not "km wins the protocol" but "km hosts the plan."**
 
 - **A + B** (~300 LOC total, shipped through the hook-router) gives km ecosystem presence cheaply. Cline Kanban users get km's PKM for free; km users get kanban's parallel-agent UX for free. Both reversible, no API commitment.
-- **C** (~500–1000 LOC) becomes attractive once silvery can render a kanban board that feels genuinely better than the browser. The multi-target thesis says this is where silvery should shine. Ship when ready.
-- **D** is the ambitious "km wins the protocol" move. Hold off until the signal is clear that kanban-the-protocol (or ACP, or something else) has become the standard. If it has, km either implements it or cedes the orchestrator layer.
+- **C** (~500–1000 LOC) becomes attractive once silvery can render a kanban board that feels genuinely better than the browser. Under the [updated km vision](../design/vision.md), km is *the workspace* for agentic knowledge work; rendering a kanban that's a first-class workspace surface (next to silvercode panes, recall, journal) is exactly what km is for. The multi-target thesis says this is where silvery should shine. Ship when ready — and treat it as a km surface, not just a kanban client.
+- **D — reframed.** Under the old frame "km as peer orchestrator" was an ambitious move because km was positioned as PKM, not orchestration. Under the new frame it's the natural shape: **km hosts plans of any orchestration shape as data; the runtime that executes them lives outside km** (in tribe + agent personas + external schedulers like Cline Kanban, Symphony, or homegrown). km doesn't need to "win the protocol" — it needs to be the **lingua franca planning surface** that any orchestration runtime can read and write. Hooks ingest is one such read-write protocol; ACP is another at a different layer; Symphony's `WORKFLOW.md`-as-repo-contract is a third. km should *speak all of them* over time, exposing beads + facets + recall as the substrate. The bead remains the unit of work; the kanban hook protocol, ACP, and `WORKFLOW.md` are wire formats km speaks at the integration boundary.
+
+## Cross-reference: Symphony (OpenAI, 2026-03)
+
+OpenAI's [Symphony](https://github.com/openai/symphony) (open-sourced 2026-03-05) adds a third candidate to the orchestration-protocol monitoring set alongside Cline Kanban hooks and Zed ACP. Shape: long-running daemon polls Linear, spawns Codex per active issue in a per-issue git workspace, retires on terminal state. Policy lives in a repo-owned `WORKFLOW.md` (YAML front matter + prompt body). Reference impl in Elixir/BEAM; spec is language-agnostic.
+
+Under the updated km vision, Symphony is **a runtime that reads km as the plan**, not a competitor to km. The natural km expression of Symphony's pattern:
+
+- The Linear board → a km bead board with `workflow` facet
+- `WORKFLOW.md` → a KNode with `workflow` facet carrying YAML config + prompt body
+- Per-issue workspace → `bun worktree` per claimed bead (km already has this)
+- Codex spawn → a silvercode pane bound to the worktree, persona-assumed
+- Status updates → structured events in a tribe room linked to the bead
+- "Done"/"Human Review" → bead state transition, surfaced in km's board view
+
+None of this requires Symphony to be inside km. It requires km to **host the plan and render the runtime's progress against it** — which is what the km workspace already does.
+
+Action: track Symphony alongside ACP and Cline Kanban hooks in the orchestration-standard monitoring item below.
 
 ## Composability with the unified hook router
 
@@ -87,8 +104,9 @@ Doing nothing is a legitimate position — but adopting A+B costs almost nothing
 - [ ] Ship `km-infra.hook-router` — the router is the substrate for everything else
 - [ ] Open sibling bead: `km-infra.kanban-runtime` — implements Option A as a listener
 - [ ] Open sibling bead: `km-infra.bead-kanban-sync` — implements Option B
-- [ ] Revisit Options C / D in 3-6 months once kanban protocol adoption signal is clearer
-- [ ] Track: does Zed's ACP (agent↔editor) or kanban hooks (agent↔board) win as the orchestration standard? Different layers but compete for the same "integration substrate" mindshare. Monitor: does Anthropic promote ACP adoption, or stick to MCP-only (tools)? Does OpenAI adopt either? Does another orchestrator clone kanban's protocol?
+- [ ] Revisit Option C in 3–6 months once silvery is ready to render boards as first-class km workspace surfaces (per updated vision: km is the workspace, not a separate kanban client)
+- [ ] Reframe Option D as "km speaks all orchestration wire protocols" — open beads as evidence emerges that any of {kanban hooks, ACP, Symphony WORKFLOW.md, MCP tools} is becoming the de facto integration boundary
+- [ ] Track: which orchestration wire becomes standard? Three candidates today: Zed ACP (agent↔editor), Cline Kanban hooks (agent↔board), OpenAI Symphony `WORKFLOW.md` (repo-owned daemon contract). Different layers; compete for the "integration substrate" mindshare. Monitor: Anthropic ACP/MCP posture, OpenAI Symphony adoption, third-party orchestrator clones
 
 ## Related
 

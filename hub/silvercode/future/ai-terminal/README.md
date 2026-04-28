@@ -4,6 +4,8 @@
 
 **Frame**: this is **not** a product plan, not a commitment, not even a validated hypothesis. It's a catalogue of what the **terminal building blocks we already own + one missing primitive** *technically* enable — with a focus on integrating with, wrapping, and *authoring* coding agents. Whether any of it is *useful* or has *business value* is a separate question we have not yet asked.
 
+**Updated framing (2026-04-27)**: per the [updated km vision](../../../km/design/vision.md), km is the **workspace for agentic knowledge work, including coding**. silvercode is not a separate agent-host product — it is the **coding-flavored surface of the km workspace**, sharing the same substrate (beads, recall, tribe, persona files, silvery rendering) as km-tui's board / notes / calendar surfaces. The orchestration / harness / agent-host layering below remains a useful technical taxonomy, but the product question collapses: there is one workspace (km) with multiple surfaces, of which silvercode is one.
+
 ## What we've done vs what's still open
 
 - **Done**: inventory the building blocks; enumerate what's buildable; identify the one missing primitive (`@silvery/pty`); sketch layered architecture; catalogue use cases; surface hard problems; apply /big lens; phase-plan the engineering.
@@ -29,6 +31,13 @@ Four terms get used throughout these docs. They stack:
 The user opens an **agent host**; inside it, an **orchestrator** manages multiple agents; each agent runs in an **agent harness** (SDK bridge + policy gate + UI bindings); the harness invokes the **agent** (Claude/GPT/etc. via its SDK).
 
 Industry usage is inconsistent — "coding agent" gets used colloquially for all four. In these docs we keep them distinct.
+
+**Updated mapping under the km-as-workspace frame (2026-04-27)**: the four-layer split is still the right *technical* taxonomy, but the product mapping is:
+
+- **agent host** → km, the workspace. The user opens km; silvercode panes are agent-pane *surfaces* inside the workspace, alongside boards / notes / calendar / tribe rooms.
+- **orchestrator** → tribe + km plans. Multi-agent coordination is bottom-up tribe (peers, leases, ambient) plus top-down km plans (boards with deps, autonomous-dispatch boards). External orchestrators (Cline Kanban, Symphony) read km as data; their output renders as workspace surfaces.
+- **agent harness** → silvercode's per-pane harness (`apps/silvercode/src/`). One harness per pane; harnesses share `CrossAgentState` and the ambient-context-safety pipeline.
+- **agent** → Claude / Codex / Gemini / Copilot / opencode, invoked through ACP or vendor SDK.
 
 ---
 
@@ -156,6 +165,7 @@ Stepping back, these dimensions belong in the frame but weren't explicit in the 
 - [08-supervision.md](08-supervision.md) — supervision hierarchy + stdlog (fd3) + stdapi (fd4); alignment-as-deployment-principle (12-factor++); unified tree from mgmt node to in-process fiber
 - [09-agent-host-landscape.md](09-agent-host-landscape.md) — Type-M survey: own-loop agent hosts (Claude Code, Cline, opencode, aider, pi-mono, hermes-agent, …)
 - [10-agent-router-landscape.md](10-agent-router-landscape.md) — Type-A deep dive: meta-orchestrators that wrap other agent CLIs (OpenClaw, claude-squad, opcode, vibe-kanban, happy, conductor, hermes-agent-planned) + Type-R inverse (container-use). MECE taxonomy, transport subspecies, what to steal/avoid.
+- [silvercode-squad-mode.md](silvercode-squad-mode.md) — **the validated near-term wedge** (2026-04-27). Multi-pane parallel-agent execution with CrossAgentState file-claims + shared project index + ambient handoff. Synthesized from /deep + /pro pass on the coding-agent landscape; supersedes the open-ended "build a coding agent" exploration for *immediate* product focus.
 - [big-ideas.md](big-ideas.md) — /big lens additions
 - [feasibility.md](feasibility.md) — blockers, sequencing, critical path
 

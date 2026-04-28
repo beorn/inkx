@@ -117,25 +117,46 @@
 **Strengths**: if you want maximum flexibility + broadest model support, Continue is the reference. Core is portable — we could reuse it.
 **Weaknesses**: no TUI currently; configuration-heavy (more control = more knobs).
 
-### opencode (MIT, sst-org TUI)
+### opencode (MIT, anomalyco / ex-SST team)
 
-**What it is**: TUI coding agent from sst-adjacent team. Strong polish in the terminal.
+**What it is**: TUI coding agent from the Anomaly team (ex-SST: Jay V, Dax Raad, Adam Elmore, Frank Wang). Strong polish in the terminal — and, as of 2026, **the de facto open agent platform** (see Kilo Code below).
 
-**Architecture** (inferred):
-- TypeScript implementation; TUI rendering (Ink or similar; haven't verified)
-- Multi-vendor via own provider abstraction
-- MCP support
+**Architecture**:
+- TypeScript implementation; TUI rendering
+- Multi-vendor via `@ai-sdk/*` (20+ providers — Anthropic, OpenAI, Google, AWS Bedrock, Azure, Vertex, Groq, Mistral, xAI, Perplexity, Cerebras, Cohere, DeepInfra, Alibaba, TogetherAI, Vercel Gateway, OpenAI-compatible)
+- Protocols: **MCP, ACP (Agent Client Protocol), LSP**
 - `opencode.json` for config (providers, models, tools)
-- LSP integration for code navigation awareness
-- Multi-session support (you can have multiple concurrent agent sessions)
+- Multi-session support
+- Server core decoupled from surface — same engine powers TUI, desktop (Tauri), web (`opencode web`), and external consumers
 
 **Notable features**:
 - TUI polish: well-designed for terminal use
+- ACP server — opencode can be consumed *as a backend* by other agent hosts
 - Session management
 - LSP awareness for richer code context
 
-**Strengths**: best-in-class TUI UX; recent + active.
-**Weaknesses**: smaller ecosystem than Continue; younger project; less documented internals.
+**Business**: MIT OSS + hosted inference (`opencode Zen`) → "several million USD ARR" (TFN/Dev Genius, 2025). Multi-surface team of ~10.
+
+**Strengths**: best-in-class TUI UX; recent + active; **server-core / multiple-surfaces architecture proven in production**; speaks ACP natively; has a productized OEM downstream (Kilo Code).
+**Weaknesses**: surface is wide for the team size (TUI + desktop + web + Slack + CLI + extensions); "anomaly" branding less recognized than "opencode" itself.
+
+### Kilo Code (Apache 2.0, Kilo-Org — opencode OEM downstream)
+
+**What it is**: A productized soft fork of opencode shipped as a multi-surface coding-agent product (VS Code + JetBrains + standalone CLI + Cloud Agents). The TUI/extension UX is essentially identical to opencode's; Kilo's value-add is auth + Orchestrator mode + Memory Bank + Agent Manager (multi-session diff reviewer with git-worktree isolation) layered on top via `kilocode_change` markers.
+
+**Architecture**:
+- Core engine package literally lives at `packages/opencode/` in the Kilo repo, published as `@kilocode/cli`
+- Soft fork with CI-enforced annotation discipline: every Kilo-specific change in shared opencode files must be tagged `<!-- kilocode_change start --> ... <!-- kilocode_change end -->` (`check-opencode-annotations.ts` blocks merges otherwise)
+- `@opencode-ai/app`, `@opencode-ai/desktop`, `@opencode-ai/util` package names preserved verbatim from upstream — they sync packages directly
+- Cline-fork lineage from pre-April-2026 is dead code in current main; the runtime is opencode end-to-end
+
+**Distinctive features**: Orchestrator mode (Architect/Coder/Debugger sub-modes), Memory Bank (persistent project context), Agent Manager, MCP Marketplace, Slack bot, voice commands, JetBrains support (the only Cline-family product with JetBrains).
+
+**Company**: kilo.ai. Co-founders **Sid Sijbrandij** (GitLab co-founder/ex-CEO, Executive Chair) + **Scott Breitenother** (Brooklyn Data founder). ~34 people; **$8M seed (Dec 2025)** led by Cota Capital with General Catalyst, Breakers, Quiet Capital, Tokyo Black. Claims 1.5M+ users; "#1 coding agent on OpenRouter" by volume.
+
+**Notable**: **The first publicly productized OEM-style soft fork of opencode.** Validates opencode-as-platform — the way Kilo built a coding-agent product without owning the runtime.
+
+**Implication for silvercode**: see [02-agent-integration.md](02-agent-integration.md) for the ACP-vs-fork decision. Short version: silvercode should consume opencode over ACP (multi-backend host stays multi-backend, runtime outsourced over a wire), not soft-fork it (would commit silvercode to forever-tracking upstream and dilute multi-backend identity).
 
 ### aider (OSS Apache 2.0, Python)
 

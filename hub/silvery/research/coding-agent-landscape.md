@@ -184,10 +184,20 @@ Open-source agents with >20k GitHub stars and real usage.
 
 ### 16. kilocode — Kilo-Org/kilocode
 
-- **Stars**: ~18,334 (2026-04-20)
+- **Stars**: ~18,641 (2026-04-27)
 - **Language**: TypeScript
-- **UI**: VS Code extension (cline/RooCode lineage)
-- **Notable**: Self-described as "#1 coding agent on OpenRouter" with "1.5M+ Kilo Coders". Another entrant in the IDE-agent segment. Branded as an "agentic engineering platform".
+- **UI**: VS Code extension + JetBrains + standalone CLI (`@kilocode/cli`) + Cloud Agents — **the TUI/extension UX is essentially identical to opencode's**, with Kilo branding/auth/Orchestrator-mode/Memory-Bank patches layered on top
+- **Lineage (current, post-April-2026)**: **Soft fork of opencode.** The core engine package literally lives at `packages/opencode/` in their repo and is published as `@kilocode/cli`. AGENTS.md explicitly states *"Kilo CLI / `packages/opencode/` / Core engine. … Fork of upstream OpenCode."* Kilo-specific deltas inside shared opencode files are tagged with `<!-- kilocode_change start -->` markers; CI (`check-opencode-annotations.ts`) enforces that every change in `packages/opencode/` is annotated. Pure soft-fork-with-upstream-sync discipline. Package names like `@opencode-ai/app`, `@opencode-ai/desktop`, `@opencode-ai/util` are preserved verbatim from upstream.
+- **Lineage (historical, pre-April-2026)**: Kilo started as a fork-of-fork in the Cline → Roo → Kilo VS Code extension family. The April-2026 rebuild **dropped the Cline runtime entirely** and rebased onto opencode. The Cline-era code is dead in current main; the Cline lineage now applies only to UX heritage and historical features, not the runtime.
+- **Distinctive features (post-rebuild)**: Orchestrator mode (Architect/Coder/Debugger sub-modes with task routing), Memory Bank (persistent project context in markdown), Agent Manager (multi-session diff reviewer + side-by-side multi-model comparison with git-worktree isolation), MCP Server Marketplace, Slack bot, voice commands.
+- **Company**: Kilo (kilo.ai). Co-founders **Sid Sijbrandij** (GitLab co-founder, ex-CEO, Executive Chair) + **Scott Breitenother** (founder of Brooklyn Data). ~34 people across continents. **$8M seed (Dec 2025)** led by Cota Capital, with General Catalyst, Breakers, Quiet Capital, Tokyo Black participating. GitHub org `Kilo-Org` registered 2025-03-04.
+- **Distribution**: claims 1.5M+ users; "#1 coding agent on OpenRouter" by token volume.
+- **Notable**: **The first publicly productized OEM-style soft fork of opencode.** A Sijbrandij-led, GC-backed company with capital to write its own loop *chose* to fork opencode instead. Strongest single signal that opencode is becoming the de facto open agent engine — the way other vendors can ship a coding-agent product without owning the runtime. CNBC framed Kilo as a Lovable / vibe-coding-tool competitor in mainstream coverage, not just-another-Cline-fork.
+
+**Strategic implication for silvery / silvercode**: opencode is now a *platform* that productized OEM downstreams build on. silvercode has two ways to consume opencode quality without writing its own runtime:
+
+1. **opencode over ACP** — treat opencode as one ACP backend among others (Claude Code, Codex, Gemini, Copilot). silvercode stays a multi-backend host; the runtime is outsourced over a wire; reversibility is high. **Recommended path** (see [`02-agent-integration.md`](../../silvercode/future/ai-terminal/02-agent-integration.md)). silvercode's actual moats — ambient-context-safety, `CrossAgentState`, subscription auth, two-region composer — are host-side and don't need a custom loop.
+2. **Soft-fork opencode (Kilo pattern)** — own a downstream. Full runtime control, deep integration, but commits silvercode to forever-tracking upstream and dilutes the multi-backend identity into "another opencode skin." Reserve for the case where ACP is empirically too narrow for silvercode's needs.
 
 ### 17. plandex — plandex-ai/plandex
 
@@ -322,6 +332,102 @@ Another shape — ride on VS Code or JetBrains as the host.
 
 Minimalist. Aider in particular is a reminder that a good agent doesn't need a full TUI.
 
+## What /pro and /deep flagged about this landscape (2026-04-27 enrichment)
+
+A combined `/deep` (OpenAI deep research, $2-5, 14K-word report at `/tmp/coding-agents-deep-result-2026-04-27.md`) + `/pro` (4-leg dispatch — GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4, $2.56, 562-line response at `/tmp/coding-agents-pro-result-2026-04-27.md`) pass identified specific structural critiques to fold back into how this doc reads competitive data.
+
+### Sanity-check flags on widely-cited numbers
+
+Treat the following classes of metric with explicit skepticism:
+
+- **OpenRouter coding-CLI leaderboard rankings** — a *routing-incentive* leaderboard, not a market-share census. Hosts with affiliate revenue (Kilo's #1 position) push users through their gateway; power users with direct API keys (Claude Code, Aider) are systematically underreported. Background swarm bots (Hermes #2, Codebuff #14) inflate volume relative to human seats — a single recursive-eval loop burns 100× the tokens of a human session. *Demand 30/60/90-day velocity, not point-in-time rank.*
+- **GitHub star counts** — gameable via star farms, referral giveaways, "star-to-unlock" mechanics. opencode's claimed 151k stars would place it in the top 50 GitHub repos of all time on a single source (the repo itself). Treat as directional, not authoritative.
+- **"Monthly developers" / MAU claims** — almost always marketing metrics. opencode's "6.5M monthly developers" is unaudited. Demand telemetry methodology, npm install stats, or VS Code marketplace download counts before quoting.
+- **ARR claims** — Cursor's "$500M ARR," Copilot's "4.7M paid subs," Anthropic's Claude Code revenue impact — none audited. Definitions vary (subscriber counts include free trials, enterprise shelfware, M365 bundles). Cite with explicit "press-reported" hedge or skip.
+- **"Talks toward $50B" valuations** — Cursor's reported ~$50B 2026 talks (Bloomberg) are defensive leaks meant to scare off Microsoft/new entrants. Don't build strategy around floated numbers.
+
+### "Consolidation around three loops" — overconfident vendor narrative
+
+The Mar-Apr 2026 storyline that "everyone is converging on Claude Code, Codex CLI, and OpenCode" is Western/terminal-biased. Counter-evidence:
+
+- IDE-led loops (Cursor, Copilot, Cline, Roo) are expanding their own loop IP, not yielding it.
+- Terminal-first loyalists (Aider, Plandex) thrive on simplicity, determinism, and hackability — not consolidating.
+- Chinese loops (Qwen Code, Kimi-cli, Ernie-Agent, Doubao variants) build incompatible parallel ecosystems with proprietary tool schemas.
+- Academic/research loops (SWE-agent, OpenHands) use entirely different harness architectures.
+- What's actually consolidating: VS-Code-extensions-from-Cline (Roo, Kilo) — *lineage collapse*, not industry consolidation. Kilo's April-2026 OpenCode rebase is a single data point in this lineage; Roo and Cline have not followed.
+
+Better framing: **4–6 loop families coexist** (vendor first-party loops, OpenCode, terminal-first git-CLIs, AI-native IDEs, generalist agents like Hermes, Chinese loops). Cross-compat improves slowly. Plan for diversity, not convergence.
+
+### Kilo/OpenCode framing — "parasitic" is at least as accurate as "symbiotic"
+
+The deep research framed Kilo's OpenCode rebase as symbiotic consolidation. /pro pushback: it's a value-capture maneuver. Kilo extracts margins via Pass + Gateway while OpenCode bears core-loop maintenance costs. The pattern echoes early Docker GUI wrappers — UI/distribution downstream commoditizes the OSS engine upstream. Symbiotic only if Kilo's upstream contributions and reliability funding match OpenCode's effort, which is unverified. The Kilo rebase itself proves the cost of forking fast-moving OSS loops: Kilo soft-forked Cline first, then *capitulated* to OpenCode after maintenance load became untenable.
+
+### The Hermes/Kern/PostQode/JONI/Slate/Codebuff cluster is "headless swarm bots," not human CLIs
+
+The OpenRouter long-tail at #9–17 is mostly GitHub-Action-triggered background agents — the silent shift from "copilot" to "coworker." They burn high token volume from cron-style loops. Specifically:
+- **Kern Agent** — Rust-based, modal-like background runner for headless tasks; #17 ranking driven by low-latency evals.
+- **Slate Agent** — swarm-native (10+ subagents); viral for parallel refactors.
+- **PostQode** — post-processing layer for agent outputs (diff optimization).
+- **JONI** — JavaScript Orchestrator for Node Infrastructure; niche for JS monorepos with swarm modes.
+- **Codebuff** — self-improving via RLHF loops; high volume from viral demos but frequent stalls reported.
+
+These represent a real structural shift — **autonomous coworker daemons** — not a competitive set silvercode plays directly against. Worth tracking as the use case beyond which "coding agent in a pane" might no longer be the dominant shape.
+
+## Chinese coding-agent ecosystem — strategic depth (2026-04-27)
+
+The Western-OpenRouter view captures **25–40% less of global coding-agent traffic than it appears to.** Chinese devs use direct vendor endpoints (Alibaba Cloud, Moonshot, ByteDance), regional aggregators (SiliconFlow, OneAPI-style gateways), and on-prem vLLM/TGI to avoid cross-border latency and compliance friction. The ecosystem has its own dynamics, not a "cheaper inference" footnote:
+
+### It's vertical platform capture, not just cost
+
+- **Moonshot's "agent-only API gating" is a deliberate moat.** Kimi K2.6's coding capabilities are tier-gated to the official `kimi-cli` and Moonshot Cloud. Generic agent hosts (Kilo, opencode) hit 401/429 on advanced features. The intent is to prevent Western hosts from arbitraging Kimi quality and to force users into Moonshot's own surfaces.
+- **Alibaba's strategy mirrors OpenAI's Codex ecosystem, CN-first.** Qwen ships the *full stack* — Qwen3-Coder models + Qwen-Agent orchestration framework + official GitHub Actions + region-locked endpoints. Treating Qwen as "just another OpenRouter provider" misses the native long-document I/O and structured generation features.
+- **Real-name verification, mainland payment methods, per-IP quotas** routinely block third-party hosts. Western multi-backend hosts need *resilient token strategies*, *adaptive fallbacks*, and *region-aware routing* — not just provider config entries.
+
+### MCTS-via-cheap-inference paradigm
+
+Qwen3-Coder at 1/100th the per-token cost of GPT-5.4 enables a fundamentally different approach: **spawn 50 parallel implementations, run all 50 through CI, pick the winner.** The Western "Plan/Act human-in-loop" is bottlenecked by LLM cost; the Chinese "Agent Swarm" is bottlenecked only by compute. For silvercode, this implies **CN-first routing profiles** that map differently to silvery's pane layout (many small panes vs few big ones) and a different cost-routing posture (parallel cheap-model attempts beat sequential expensive-model approval).
+
+### K2.6's actual moat is long-context coherence
+
+Marketing calls it "long-horizon coding." The technical claim: **100k+ token codebase ingestion with low position bias** — brute-force in-context cross-file refactoring vs Western retrieval+repo-mapping (Aider's tree-sitter approach, Claude Code's MCP file servers). If K2.6 maintains cost efficiency at 128k–1M tokens, it redefines the loop: less tool use, more in-context reasoning. Silvercode's tool-call streaming UX would need to adapt — fewer tool calls per turn, longer single-turn outputs.
+
+### Bifurcating protocol war
+
+While Western devs debate ACP vs MCP, Chinese providers push proprietary tool schemas optimized for their own runtimes — overlapping with MCP but differing in auth, async patterns, sandboxing assumptions. Western "multi-backend" hosts hit silent failures: tool calls "rejected for safety" turn out to be competitive gating. Silvercode's adapter layer needs explicit per-vendor schema-translation, not generic ACP-bridges-everything assumptions.
+
+### Names and projects deep-research missed
+
+- **Baidu Ernie-Agent** — terminal + IDE with voice; coupled to Ernie-Coder.
+- **ByteDance Doubao** — code-tuned variants; integrated into Trae IDE.
+- **01.AI Yi-Coder** — open-weights, popular for on-prem.
+- **Tencent Hunyuan** — code variants gaining traction in CN gov/enterprise.
+- **MiniCPM, Baichuan, iFlytek Spark** — region-constrained but cheap; on-prem viable.
+- **DeepSeek-Agent** — DeepSeek's own agent fork integrating R1 for low-cost inference.
+- **Qwen-Agent framework** (vs Qwen Code CLI alone) — RAG, tool use, memory, multi-agent built-in. The framework matters more than the CLI for serious adoption.
+
+### What it means for silvercode
+
+A "CN-first" routing profile that ships first-class Qwen + DeepSeek presets for Edit/Test phases, region-aware endpoints, fallbacks for gating policy churn — captures a 25–40% slice of global coding-agent traffic that current Western hosts handle poorly. The two-region composer aligns with this naturally if it can detect regional gating and adapt mid-session.
+
+## Background-agent compute providers (2026 structural shift)
+
+The deep research underplayed a major shift: **agent runtimes are moving from local laptops to ephemeral cloud micro-VMs.** Indie devs in 2026 increasingly ***buy the IDE (Cursor), build the background swarm (Modal + OpenCode).*** Worth tracking explicitly:
+
+- **Modal** — serverless agent hosting at ~$0.02/min. Powers an estimated ~15% of OpenRouter backend traffic. Spin up 64-core micro-VM, run agent loop for 12 seconds, shut down.
+- **Daytona** — OSS Codespaces alternative; standardized agent-ready VMs with reproducible env boot.
+- **E2B** — de facto OSS sandbox standard for agent runs.
+- **GitHub Codespaces / Dev Containers** — 2026 beta runs agents in ephemeral envs; integrates with Symphony-style orchestrators.
+- **Fly.io, Railway, Render** — used for long-lived/scheduled agents with ephemeral clones per ticket.
+- **Dagger `container-use`** (already covered in this doc as Type R) — MCP-server pattern for agent-side container orchestration.
+
+### Implication for silvercode
+
+silvercode currently assumes local-pane execution. Two options:
+1. Treat cloud sandboxes as **first-class peers**, not afterthoughts. Each pane can target local OR Modal/Daytona/Codespace. ACP boundary stays the same.
+2. Stay local-only and accept that ~30% of "indie agent compute" lives elsewhere by 2027.
+
+Recommendation: prototype cloud-sandbox panes via the Dagger `container-use` MCP server first (lowest-friction adapter); then evaluate Modal/Daytona based on whether silvercode's actual users want it.
+
 ## What this means for silvery and km
 
 1. **The TypeScript TUI lane is crowded at the top** — Claude Code + Gemini CLI both use Ink + React + Yoga. That's ~215k stars of distribution sitting on the exact stack silvery is designed to replace. If silvery ships a credible Ink-compat layer and a migration story (it mostly already has both), that's the highest-value migration target in the ecosystem.
@@ -339,6 +445,8 @@ Minimalist. Aider in particular is a reminder that a good agent doesn't need a f
 4. **Pi joined the from-scratch-TS-TUI club.** As of 2026-04-20 there are now three serious TS TUI substrates in active coding-agent use (Ink, OpenTUI, pi-tui), plus silvery. pi-tui is currently single-app (`pi-coding-agent`); if Mario/Armin generalize it, that's a fourth peer framework on top of the existing three. Watch `badlogic/pi-mono` for any signs of `@mariozechner/pi-tui` getting standalone framework branding, docs, or external adopters.
 5. **Don't build our own coding agent yet.** The space is crowded and the marginal value of another TUI coding agent is low. Silvery's job is to be the **best framework** for building coding agents. Pick a flagship migration target (Ink → silvery) and own that narrative.
 6. **Respect the category's velocity.** This list was essentially empty 18 months ago. It will look materially different in another 18 months. Any internal comparison doc older than ~6 weeks is probably stale.
+7. **Skills marketplaces are where lock-in is forming.** Hermes Skills Atlas, Hugging Face Agent Hub, Cursor rules, Copilot instructions — users with 50 custom skills can't switch hosts. silvercode needs a portable skill format (ACP-packaged with versioned manifests) before users start accumulating non-portable skill libraries elsewhere.
+8. **Cost-routing is becoming a UX surface, not a config flag.** Plan-on-Claude / Edit-on-Qwen / Test-on-DeepSeek routing saves 40–70% on multi-file PRs. Whoever surfaces this clearly in the composer captures cost-sensitive teams. silvercode's two-region composer is positioned for this — formalize the routing profiles.
 
 ## Sources
 
@@ -350,5 +458,6 @@ Minimalist. Aider in particular is a reminder that a good agent doesn't need a f
 - [Cursor funding](https://techcrunch.com/2025/06/05/cursor-funding) and [Windsurf acquisition](https://www.reuters.com/technology/artificial-intelligence/openai-acquire-coding-assistant-windsurf-2025-05-06/) — commercial agent context (generic references; verify with a fresh search before quoting specific dollar amounts).
 - [All Hands AI seed round reporting](https://techcrunch.com/2024/03/24/openhands-ai-formerly-opendevin-raises-5m-seed/) — OpenHands company context.
 - Paired internal docs: [`opentui-vs-silvery.md`](./opentui-vs-silvery.md), [`opentui-opencode.md`](./opentui-opencode.md), [`anomaly-company.md`](./anomaly-company.md), [`svelte-vue-tui-options.md`](./svelte-vue-tui-options.md).
+- 2026-04-27 deep+pro enrichment artifacts: `/tmp/coding-agents-deep-result-2026-04-27.md` (OpenAI deep research, 14K words, fully cited) and `/tmp/coding-agents-pro-result-2026-04-27.md` (4-leg /pro: GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4 + judge breakdown). Tracking bead: `km-all.coding-agent-landscape-2026-04-27`.
 
-Stars, ARR, funding rounds, and launch claims all move fast. Treat specific numbers as 2026-04-20 snapshots, not durable facts.
+Stars, ARR, funding rounds, and launch claims all move fast. Treat specific numbers as 2026-04-20 snapshots, not durable facts. The validation skepticism notes added 2026-04-27 (above) apply throughout — flag any number cited in this doc with the corresponding caveat.

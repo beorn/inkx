@@ -348,6 +348,19 @@ silvercode-acp-fake --script ./fixtures/edit-file-with-permission.json
 
 **Bead**: `km-silvercode.acp-fake` — Layer 1 alongside the foundation; Layer 2 follows the storybook bead.
 
+### A5 — `WORKFLOW.md`-driven daemons (Symphony, 2026-03)
+
+#### Symphony — github.com/openai/symphony
+
+- **Vendor**: OpenAI; open-sourced 2026-03-05; reference impl in Elixir/BEAM, spec language-agnostic; Apache-2.0.
+- **Shape**: long-running daemon that polls Linear for active issues, creates an isolated per-issue git workspace, spawns Codex inside it via `codex` app-server protocol, retires on terminal state. Bounded concurrency, retry queue, reconciliation tick. No human-in-the-loop per-issue; the issue tracker is the only operator surface.
+- **Policy contract**: `WORKFLOW.md` in the repo — YAML front matter (`tracker`, `polling`, `workspace`, `hooks`, `agent`, `codex`) + Markdown prompt body. Lifecycle hooks (`after_create / before_run / after_run / before_remove`) are shell scripts. The repo owns the dispatch contract.
+- **Loop ownership**: L2 (delegated to Codex via `codex` app-server protocol). Spawns one Codex session per active issue; tracks `<thread_id>-<turn_id>` plus token totals.
+- **Transport**: subprocess of `codex` (vendor-specific app-server stream). Architecturally closer to A1 (stream-json subprocess) than A4 (ACP), but the `WORKFLOW.md`-as-repo-contract layer is genuinely new — it elevates the workflow prompt + runtime config into a versioned artifact, decoupled from any orchestrator runtime.
+- **Status surface**: SPEC marks it OPTIONAL. Daemon runs headless; PR/comment writes happen *through Codex* using its own tool surface.
+- **Verdict**: distinct subspecies — A5 in this taxonomy. Not a router (single backend, not a CLI multiplexer); not a host (no UI). It's a **dispatcher over a workflow-as-data contract**. The `WORKFLOW.md` pattern is worth stealing; the Linear-only / Codex-only / Elixir-only stack is not.
+- **Under the km-as-workspace frame**: Symphony is a *runtime* that reads km plans as data and writes outcomes back into the workspace. The natural km expression: bead board with `workflow` facet → KNode with `workflow` facet (config + prompt) → `bun worktree` per claimed bead → silvercode pane bound to the worktree → tribe room for status events. km doesn't compete with Symphony; km is the workspace where the artifacts Symphony executes against live, and where the runtime's progress is rendered.
+
 ### Closed source / unverified
 
 #### Conductor (presumed Type A) — conductor.build

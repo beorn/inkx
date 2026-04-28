@@ -84,6 +84,54 @@ Rough estimate: a few weeks of silvery work on top of a clean stream consumer. E
 
 **Pragmatic**: start with SDK for Claude (richest integration); fall back to CLI + JSON for vendors without a usable SDK.
 
+## Decision (2026-04-27): opencode is consumed via ACP, not soft-forked
+
+**Context**: Kilo Code's April-2026 rebuild revealed that opencode is now a productized OEM platform — Kilo soft-forked opencode (full repo at `packages/opencode/` with `kilocode_change` annotation discipline) and ships it as a multi-surface coding-agent product. Same pattern is open to anyone. The strategic question for silvercode: do we (a) consume opencode as an ACP backend, or (b) soft-fork it the way Kilo did?
+
+**Decision**: **(a) — silvercode treats opencode as an ACP backend, not a runtime base.**
+
+**Reasoning**:
+
+1. **silvercode's moats are host-side, not runtime-side.** ambient-context-safety, `CrossAgentState`, subscription auth, two-region composer, hover-disclosure — none of these need a custom agent loop. They live one layer above whatever runtime we use. ACP is exactly the boundary that lets us keep that layer ours and outsource the runtime.
+2. **Multi-backend is a moat; forking commits us to one engine.** silvercode's product identity is "any coding agent in a polished multi-pane host." Soft-forking opencode would either make silvercode-just-be-Kilo (wasted differentiation) or force us to maintain *both* a fork and ACP backends for other vendors (worst of both worlds).
+3. **Reversibility.** ACP is a wire — if opencode disappoints, swap to Claude Code or Codex on the same socket. A soft fork is a one-way door: every commit deepens the maintenance load.
+4. **The Kilo lesson is about opencode's engine quality, not about forking being inherently right.** Kilo had reasons we don't share (single-backend product, deep IDE-extension chrome to ship, capital to dedicate engineers to the runtime). silvercode is a multi-backend host and should stay one.
+
+**Explicit fork tripwires (added 2026-04-27 from /pro enrichment)**:
+
+The "stay on ACP unless something concrete forces fork" position is correct, but should not be vague. Re-evaluate fork the moment any of the following measurable conditions hits:
+
+1. **The 60–90 day adapter test fails.** If silvercode cannot enforce ambient-context-safety isolation OR replay determinism via ACP adapters within 60–90 days of starting integration with a given backend, that backend's adapter is structurally inadequate. Document the failing scenario; if it's blocking on the backend's wire protocol (not silvercode's adapter logic), fork-or-skip becomes the question.
+2. **Adapter friction exceeds 30% of eng time.** Track per-month: hours spent on adapter shims / hours spent on silvercode features. If ratio crosses 30% sustained for 2+ months, the wire boundary is too narrow. Either upstream the missing hooks (file PRs against opencode/Claude Code/Codex) or carve a maintained shim fork.
+3. **Upstream refuses interfaces silvercode needs.** Specifically: diff-only edit APIs, tool permission gates, event streams for replay, ambient-channel preservation at the wire level. If a PR or issue against the backend gets `wontfix` or sits >90 days, that's a hard signal.
+4. **A feature competitively requires runtime ownership.** Concrete example: if 60fps multi-pane diff-streaming requires synchronous interruption hooks ACP doesn't provide, and the latency cost of network-ACP makes silvercode feel sluggish vs Kilo. (The /pro Gemini take.)
+
+**The "micro-fork" fallback pattern.** If forking ever becomes necessary, do *not* repeat Kilo's mistake of full-codebase divergence. Instead:
+
+- Maintain a **slim shared core** (mirror of upstream, sync regularly)
+- Plus a **maintained patch set** focused narrowly on the missing hooks (ambient-safety, replay events, file-claim integration)
+- Use upstream's `kilocode_change`-style annotation discipline if forking from opencode (CI-enforced markers)
+- Stay rebaseable; never let the patch set drift more than ~2 weeks behind upstream
+
+This is the "stay-light-when-you-must-fork" pattern. Kilo's full April-2026 rebuild on opencode is the cautionary tale: their pre-rebuild Cline soft-fork accumulated enough divergence that they had to abandon it entirely.
+
+**Sidecar pattern as a middle path (worth prototyping).** Per /pro Gemini's suggestion: don't full-fork, but inject a silvercode-specific binary into the backend's execution environment for synchronous state interruption + deep file claims. Avoids both full-fork maintenance and pure-network-ACP latency. Worth building a 2-week prototype against opencode if pure ACP feels sluggish in the squad-mode validation.
+
+That's the rule set. Until any tripwire fires, we stay on ACP. The fork option is documented here, with explicit triggers, not parked vaguely.
+
+**What this means in practice**:
+
+- Implement an ACP client for opencode in silvercode's vendor adapter layer alongside Claude Code, Codex, Gemini, Copilot.
+- opencode becomes one selectable backend per pane (`silvercode --agent opencode`).
+- Ambient-context-safety, cross-agent state, and composer behavior remain silvercode's responsibility — opencode never sees structurally-distinct ambient blocks; silvercode applies the framing before the wire.
+- If/when opencode ships ACP server features that aren't yet specced, file upstream PRs rather than fork.
+
+**Cross-references**:
+
+- Detailed Kilo write-up: [`09-agent-host-landscape.md` § Kilo Code](09-agent-host-landscape.md)
+- ACP wrapper ecosystem: [`10-agent-router-landscape.md` § A4 — ACP as transport](10-agent-router-landscape.md)
+- silvercode ACP approach: [`silvercode-agent-acpp.md`](silvercode-agent-acpp.md)
+
 ## Appendix: the modes we de-scoped
 
 ### Mode B — tail JSONL session files (optional memory layer)
