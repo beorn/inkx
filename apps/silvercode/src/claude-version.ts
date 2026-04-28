@@ -114,3 +114,8 @@ function runClaudeVersion(): Promise<string> {
     })
   })
 }
+
+// Eager warmup — kick off the probe at module-eval so the cached promise
+// is ready by the time SidePanel mounts. Reduces user-visible "Spawning" →
+// "v2.x" transition latency. Safe because probeAsync handles all errors.
+void getClaudeVersion()

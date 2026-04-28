@@ -520,24 +520,31 @@ function SessionRow({
   )
 }
 
-export function SidePanel({
-  focused,
-  sessions,
-  focusedSessionId,
-  onFocusSession,
-  mode,
-  onCycleMode,
-  cwd,
-  controller,
-  thinking,
-  onCycleThinking,
-  agent,
-  capabilities,
-  setThinking,
-  setMode,
-  defaultModel,
-}: {
-  focused: SessionHandle
+/**
+ * SidePanel — public entry point. Renders even before the first session
+ * spawns (focused === undefined) so the user sees structure immediately
+ * instead of a blank screen during the spawn microtask. The two paths share
+ * an identical visual contract; FocusedSidePanel layers session-derived
+ * signals (model, cost, todos, agents, shells, background) on top of the
+ * EmptySidePanel skeleton.
+ *
+ * Bead: km-silvercode.sidepanel-skeleton-mount.
+ */
+export function SidePanel(props: SidePanelProps): React.ReactElement {
+  if (props.focused) {
+    return <FocusedSidePanel {...props} focused={props.focused} />
+  }
+  return <EmptySidePanel {...props} />
+}
+
+type SidePanelProps = {
+  /**
+   * The session whose state drives the per-session signals. Undefined
+   * during the brief startup window before the initial spawn microtask
+   * lands the first SessionHandle — SidePanel renders skeleton chrome
+   * (sessions list, branding, account, mode, cwd) in that case.
+   */
+  focused: SessionHandle | undefined
   sessions: SessionHandle[]
   focusedSessionId: string
   onFocusSession: (id: string) => void
@@ -574,17 +581,109 @@ export function SidePanel({
    * agents whose ACP session-init lifecycle doesn't carry a model field.
    */
   defaultModel?: string
-}): React.ReactElement | null {
-  if (!focused) return null
+}
+
+/**
+ * Skeleton variant. Mounted before the first SessionHandle exists so the
+ * user sees the panel's structure immediately. Identical chrome to the
+ * focused variant but per-session counters render as 0 / pending and the
+ * sessions list is empty.
+ */
+function EmptySidePanel({
+  sessions,
+  focusedSessionId,
+  onFocusSession,
+  mode,
+  onCycleMode,
+  cwd,
+  controller,
+  thinking,
+  onCycleThinking,
+  agent,
+  capabilities,
+  setThinking,
+  setMode,
+  defaultModel,
+}: SidePanelProps): React.ReactElement {
+  return (
+    <SidePanelChrome
+      focusedId=""
+      state={null}
+      sessions={sessions}
+      focusedSessionId={focusedSessionId}
+      onFocusSession={onFocusSession}
+      mode={mode}
+      onCycleMode={onCycleMode}
+      cwd={cwd}
+      controller={controller}
+      thinking={thinking}
+      onCycleThinking={onCycleThinking}
+      agent={agent}
+      capabilities={capabilities}
+      setThinking={setThinking}
+      setMode={setMode}
+      defaultModel={defaultModel}
+      backgroundTasks={EMPTY_BACKGROUND_TASKS}
+    />
+  )
+}
+
+const EMPTY_BACKGROUND_TASKS: ReadonlyArray<never> = []
+
+/**
+ * Focused variant — wires per-session signals (state + background tasks)
+ * and delegates to SidePanelChrome. The hooks live here so they only run
+ * when there's an actual session to subscribe to.
+ */
+function FocusedSidePanel({ focused, ...rest }: SidePanelProps & { focused: SessionHandle }): React.ReactElement {
   const state = useStoreSignal(focused.store)
+  const backgroundTasks = useBackgroundTasks(rest.controller, focused.id)
+  return <SidePanelChrome {...rest} focusedId={focused.id} state={state} backgroundTasks={backgroundTasks} />
+}
+
+type SidePanelChromeProps = Omit<SidePanelProps, "focused"> & {
+  /** Empty string when no focused session — disables click-to-cycle ctx. */
+  focusedId: string
+  /** Null when no focused session. */
+  state: import("@km/agent-harness").SessionState | null
+  backgroundTasks: ReadonlyArray<import("../controller.ts").BackgroundTask>
+}
+
+function SidePanelChrome({
+  focusedId,
+  state,
+  backgroundTasks,
+  sessions,
+  focusedSessionId,
+  onFocusSession,
+  mode,
+  onCycleMode,
+  cwd,
+  controller,
+  thinking,
+  onCycleThinking,
+  agent,
+  capabilities,
+  setThinking,
+  setMode,
+  defaultModel,
+}: SidePanelChromeProps): React.ReactElement {
   const modeColor = MODE_COLORS[mode] ?? "$muted"
   const modeIcon = MODE_ICONS[mode] ?? "?"
   const modeLabel = MODE_LABELS[mode] ?? mode
-  const totalTokens = state.cost.inputTokens + state.cost.outputTokens
-  const window = contextWindowFor(state.model)
+  // Per-session signals collapse to neutral defaults when no focused session
+  // exists yet (initial-spawn window). The skeleton render shows 0 / pending
+  // for everything, identical to a fresh session at status="idle".
+  const cost = state?.cost ?? { inputTokens: 0, outputTokens: 0, usd: 0 }
+  const totalTokens = cost.inputTokens + cost.outputTokens
+  const model = state?.model ?? ""
+  const window = contextWindowFor(model)
   const pct = contextUtilizationPercent(totalTokens, window)
   const ctxColor = contextUtilizationColor(contextUtilizationLevel(pct))
   const ctxValue = Math.max(0, Math.min(1, totalTokens / window))
+  const claudeCodeVersion = state?.claudeCodeVersion ?? ""
+  const todos = state?.todos ?? []
+  const messages = state?.messages ?? []
 
   // Account + quota probe. Email resolves synchronously from CLAUDE_CONFIG_DIR;
   // plan + per-window utilization arrive async from Anthropic's /api/usage
@@ -592,12 +691,12 @@ export function SidePanel({
   const account = useClaudeAccount()
   const hasAccount = account.email !== null || account.quotas.length > 0
 
-  const todosCount = state.todos.length
-  const agentsTotal = state.messages.reduce(
+  const todosCount = todos.length
+  const agentsTotal = messages.reduce(
     (n, m) => n + m.toolCalls.filter((c) => c.name === "Task" || c.name === "Agent").length,
     0,
   )
-  const agentsRunning = state.messages.reduce(
+  const agentsRunning = messages.reduce(
     (n, m) =>
       n +
       m.toolCalls.filter((c) => (c.name === "Task" || c.name === "Agent") && !m.toolResults.some((r) => r.id === c.id))
@@ -609,7 +708,7 @@ export function SidePanel({
   // that don't yet have a matching tool-result. Matches Claude Code's own
   // "N shells" indicator — long-running processes the user spawned and
   // didn't await.
-  const shellsRunning = state.messages.reduce((n, m) => {
+  const shellsRunning = messages.reduce((n, m) => {
     const live = m.toolCalls.filter((c) => {
       if (c.name !== "Bash") return false
       const input = (c.input ?? {}) as Record<string, unknown>
@@ -618,7 +717,7 @@ export function SidePanel({
     })
     return n + live.length
   }, 0)
-  const shellsTotal = state.messages.reduce((n, m) => {
+  const shellsTotal = messages.reduce((n, m) => {
     const bg = m.toolCalls.filter((c) => {
       if (c.name !== "Bash") return false
       const input = (c.input ?? {}) as Record<string, unknown>
@@ -630,7 +729,6 @@ export function SidePanel({
   // Background tasks (Ctrl-B): backgrounded turns for this session. Total =
   // every task in the session's history (running + terminal); running =
   // those still streaming. The Background row only renders when total > 0.
-  const backgroundTasks = useBackgroundTasks(controller, focused.id)
   const bgRunning = backgroundTasks.filter((t) => t.status === "running").length
   const bgTotal = backgroundTasks.length
 
@@ -682,8 +780,8 @@ export function SidePanel({
           Claude writes todos via the TodoWrite tool when planning multi-step work. They appear here as the plan is
           executed.
         </Muted>
-        {state.todos.length > 0 ? (
-          state.todos.map((t, i) => (
+        {todos.length > 0 ? (
+          todos.map((t, i) => (
             <Text key={i} color={t.status === "completed" ? "$success" : "$muted"}>
               {t.status === "completed" ? "✓" : t.status === "in_progress" ? "▸" : "○"} {t.content}
             </Text>
@@ -731,8 +829,8 @@ export function SidePanel({
         </Muted>
         <BackgroundPane
           tasks={backgroundTasks}
-          onCancel={(id) => controller.cancelBackgroundTask(focused.id, id)}
-          onForeground={(id) => controller.foregroundTask(focused.id, id)}
+          onCancel={(id) => focusedId && controller.cancelBackgroundTask(focusedId, id)}
+          onForeground={(id) => focusedId && controller.foregroundTask(focusedId, id)}
         />
       </Box>
     ),
@@ -870,9 +968,9 @@ export function SidePanel({
         </Box>
         <Box flexDirection="row" gap={1}>
           <Muted>cost</Muted>
-          <Text>${state.cost.usd.toFixed(4)}</Text>
+          <Text>${cost.usd.toFixed(4)}</Text>
           <Muted>
-            ({state.cost.inputTokens.toLocaleString()} in / {state.cost.outputTokens.toLocaleString()} out)
+            ({cost.inputTokens.toLocaleString()} in / {cost.outputTokens.toLocaleString()} out)
           </Muted>
         </Box>
       </Box>
@@ -1040,7 +1138,7 @@ export function SidePanel({
         {account.email && <Muted>{account.email}</Muted>}
         {account.quotas.length > 0 ? (
           filterVisibleQuotas(account.quotas).map((w) => <QuotaRow key={w.name} w={w} />)
-        ) : totalTokens > 0 || state.cost.usd > 0 ? (
+        ) : totalTokens > 0 || cost.usd > 0 ? (
           // Only show the local ctx fallback bar when we have actual data to
           // display. An empty 0% / $0.0000 bar is worse than no bar — it
           // makes the user think the account is misconfigured.
@@ -1054,7 +1152,7 @@ export function SidePanel({
               color={pct >= 90 ? "$error" : pct >= 70 ? "$warning" : "$fg-muted"}
               showPercentage
             />
-            <Muted>${state.cost.usd.toFixed(4)}</Muted>
+            <Muted>${cost.usd.toFixed(4)}</Muted>
           </Box>
         ) : null}
       </Box>
@@ -1090,7 +1188,7 @@ export function SidePanel({
           // unit and won't break it mid-token. paddingLeft={2} on the inner
           // Box puts the wrap point at column 2 — same column as the label,
           // so the wrapped model lines up with "Codex" rather than the icon.
-          const displayModel = state.model || defaultModel || ""
+          const displayModel = model || defaultModel || ""
           return (
             <Box flexDirection="row" gap={1}>
               <Text color="$fg">{icon}</Text>
@@ -1099,7 +1197,7 @@ export function SidePanel({
                   {label}
                   {isClaudeAgent ? (
                     <Suspense fallback={<Text>{" v…"}</Text>}>
-                      <ClaudeVersionSuffix override={state.claudeCodeVersion} />
+                      <ClaudeVersionSuffix override={claudeCodeVersion} />
                     </Suspense>
                   ) : null}
                 </Text>
@@ -1118,7 +1216,7 @@ export function SidePanel({
             const current = findOptionFor(arr, thinking ?? "") ?? defaultOption(arr)
             const onClick = (): void => {
               const next = nextOption(arr, current.id)
-              const ctx = makeCtx(controller, focused.id, setThinking, setMode)
+              const ctx = makeCtx(controller, focusedId, setThinking, setMode)
               void next.activate(ctx)
             }
             return (
@@ -1162,7 +1260,7 @@ export function SidePanel({
             const current = findOptionFor(arr, mode) ?? defaultOption(arr)
             const onClick = (): void => {
               const next = nextOption(arr, current.id)
-              const ctx = makeCtx(controller, focused.id, setThinking, setMode)
+              const ctx = makeCtx(controller, focusedId, setThinking, setMode)
               void next.activate(ctx)
             }
             const color = current.color ?? "$muted"

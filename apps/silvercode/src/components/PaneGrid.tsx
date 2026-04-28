@@ -419,6 +419,18 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   // each render.
   void dragVersion
 
+  // Empty-sessions placeholder. The initial spawn is fire-and-forget; until
+  // the first SessionHandle lands the layout tree has no leaves. Without this
+  // placeholder the entire pane area renders as blank space (the bug from
+  // bead km-silvercode.sidepanel-skeleton-mount: ~10s blank on startup).
+  if (sessions.length === 0) {
+    return (
+      <Box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
+        <Text color="$muted">◈ Spawning session…</Text>
+      </Box>
+    )
+  }
+
   // Zoom mode: render only the focused pane, full area, no dividers.
   if (zoomedPaneId) {
     const zoomed = sessions.find((s) => s.id === zoomedPaneId)
