@@ -206,6 +206,69 @@ Every JSON-RPC message logged with timestamp + nonce. Replay session determinist
 
 The same proxy infrastructure is used by silvercode (coding), km (knowledge work), pam (personal assistant), other future products. Agent capability + memory + tribe + governance shared across products. The user has one identity, one memory, one set of policies — independent of which product surface they're using right now.
 
+### 3.21 Coordination layer — shared state across agents
+
+The third architectural shape (after transform-in-the-middle and agent-in-the-middle): **coordination state**. The proxy maintains derived state from agent activity that ALL agents in the room read/write atomically — todos, locks, decisions, findings, dependencies. This is what turns "N agents in a chat" into "N agents collaborating on a project."
+
+ACP already has the signal: `session/update` notifications carry `plan` (a structured todo list with priority + status). Claude Code's `TodoWrite` is the most visible instance; other agents emit similar shapes. The plan event is currently per-agent; lifting it to room-scope unlocks coordination.
+
+**Why coordination is its own category:**
+
+Multi-agent systems fail in predictable ways — both edit the same file, both claim the same task, neither does the boring task. Operating systems solved this with locks/semaphores/queues. Distributed systems extended with consensus/etcd/CRDT. **Multi-agent rooms need the same primitives, agent-scale.** ACP gives the signal; nobody has built the layer. The proxy is the natural host.
+
+**Coordination primitives the proxy exposes:**
+
+| Primitive | Solves |
+|---|---|
+| **Plan / todo board** | Unified task list across agents; humans see who's doing what |
+| **Atomic claim** | Two agents can't both pick "refactor extractBody" |
+| **Dependencies** | "Task B blocks on task A"; gateway computes critical path |
+| **Soft locks** | "I'm editing src/foo.ts" — advisory, agents avoid stomping |
+| **Hard locks** | "No other agent runs migrations until I'm done" — enforced |
+| **Progress events** | "30% done with refactor"; humans see real burndown |
+| **Decisions** | "We decided approach X" — canonical, queryable, inherited by future sessions |
+| **Findings** | "While doing this, I learned Y" — knowledge accumulates passively |
+| **Notifications / handoffs** | "@codex done with my part — your turn" |
+| **Asks** | "I need human decision on Z before continuing" — queues, doesn't block other agents |
+
+**Patterns this enables:**
+
+- **Map-reduce on tasks** — "review these 50 files." Gateway creates 50 plan items; agents claim in parallel; results aggregate; humans see progress live.
+- **Backlog drainer** — humans dump 200 tasks; agents drain autonomously; humans review at end.
+- **Specialization routing** — agent A auto-claims "refactor" tasks (its capability), agent B auto-claims "test" tasks. No human router needed.
+- **Async handoff** — agent A finishes mid-task, agent B (different schedule, machine) picks up.
+- **Failure recovery** — agent crashes, gateway detects, re-queues claimed items.
+- **Pair programming with agent partner** — human + agent share todo list; agent does even, human does odd.
+- **Cross-session continuity** — last session's "in progress" todos = this session's "pickup where we left off."
+- **Postmortem replay** — every claim/complete/fail/handoff is an event; replay the timeline = root-cause analysis.
+
+**The km-node connection — strategic:**
+
+These aren't new concepts to km. km's data model is *not* folders; **everything is a KNode in a tree**. A heading in markdown becomes a node; the heading's body becomes the node's children (sub-headings, paragraphs, list items, etc.). km's tree is the database; markdown is the bidirectional render.
+
+That maps cleanly onto agent-coordination state:
+
+- **Room → KNode** — a chat room is a node titled with the room name (e.g., `# Refactor extractBody`). All room state lives as descendants of that node.
+- **Todos → child item nodes** — `[ ]` markers under the room node, parsed by km-tree as items. Atomic-claim = mutation that flips the marker to `[ ]→[x]` with attribution.
+- **Decisions → tagged sub-nodes** — `## Decision: use early returns` with `#decision` tag, queryable across the vault.
+- **Findings → tagged sub-nodes** — `## Finding: extractBody also called from X` with `#finding`, indexed by FTS5.
+- **Sessions → attached JSONL** — the room node has a `session.jsonl` attachment (per #12) for the wire-event log.
+- **Locks → frontmatter or special marker** — could live as room-scoped state in the room node's frontmatter.
+- **Cross-room search → km vault search** — find every decision tagged `#decision` across all rooms in seconds via FTS5.
+- **Bidirectional editing** — humans edit the room markdown directly (`vim ~vault/rooms/refactor-extractbody.md`); agents see the same state via tree mutations; both stay in sync via the existing markdown ↔ tree pipeline.
+
+The room is a node, not a folder, because **km's whole point is that headings are nodes**. Folders are storage detail; nodes are semantics. Agent rooms inherit km's editing model wholesale.
+
+This reframes km's positioning from "personal knowledge management TUI" to **"the workspace database for human+agent collaboration."** Category-defining.
+
+The combined stack:
+
+- silvercode = IDE-shaped client
+- km-tui = vault-shaped client (browse rooms as nodes; navigate decisions / todos / findings)
+- Element / Cinny / etc. = chat-shaped clients (talking to the same room nodes via Matrix substrate)
+- Slack / Discord (via Matrix bridges) = channel-shaped clients
+- All share: km nodes (storage + semantics) + gateway (runtime) + `org.agentroom.*` events (vocabulary)
+
 ---
 
 ## 4. Should tribe be the proxy?
@@ -264,6 +327,139 @@ silvercode keeps its identity as the user-facing coding workspace; tribe gains a
 - **Trust envelope.** The proxy sees every prompt + response + tool call. Highest-value attack target. Encryption at rest + immutable audit logs are table stakes. Key rotation + HSM for SOC2 if/when that becomes a real customer ask.
 - **Agent-vendor relations.** Anthropic clarified the Claude Code header-spoofing rule already; if tribe spoofs as an "official" client to upstream, that's a violation. Solution: tribe is its own client; users authenticate to tribe; tribe authenticates to providers as itself.
 - **Schema drift.** ACP is young. v2 will break things. The proxy is precisely where v1↔v2 translation lives during the transition window — this is a feature of being the proxy, not a downside.
+
+---
+
+## 4.6 Deployment topologies for persistent sub-agents
+
+The mem-thought design ([`recall-thought.md`](../../../tribe/design/recall-thought.md)) is *one application* of the persistent-sub-agent / agent-in-the-middle pattern. The same architectural shape — a long-running LLM with its own state + tools that watches events and emits deltas — can run in several different deployment topologies, each with different cost / privacy / latency / scale tradeoffs.
+
+The choice isn't "where does mem-thought live"; it's "where does *each* persistent sub-agent live, given its specific job." Memory might run locally for privacy; a critic sub-agent might run in the cloud proxy for multi-agent coverage; a compiler sub-agent might run in the IDE.
+
+### Orthogonal axes
+
+1. **Host** — where the sub-agent process runs
+2. **Event source** — how it learns about session activity
+3. **Delta delivery** — how outputs reach the foreground agent
+4. **Coupling** — silvercode-specific vs editor-agnostic
+5. **Persistence** — per-session / per-project / per-user / shared
+6. **Cadence** — push (reactive) / pull (foreground polls) / hybrid
+
+### Concrete topologies
+
+**A. In-silvercode (local, in-process)**
+- Host: silvercode app, same process
+- Events: subscribe to the session-store directly
+- Delta: ambient channel queue → prompt-assembly
+- Coupling: tight (uses silvercode internals)
+- Best for: shipping fast, single-machine privacy
+- This is the v1 default for mem-thought.
+
+**B. Tribe-daemon-hosted (local, out-of-process)**
+- Host: `bun tribe daemon` (already running per machine)
+- Events: tribe wire (silvercode forwards events; daemon owns state)
+- Delta: tribe push → silvercode injects as ambient
+- Coupling: loose — uses tribe wire protocol
+- Best for: state survives silvercode restarts; sharing across multiple silvercode instances on same machine; lower silvercode RAM
+- Natural Phase-2 shape after A.
+
+**C. ACP-proxy-hosted (cloud agent-in-the-middle)**
+- Host: cloud proxy on the ACP wire
+- Events: intercepts ACP traffic between silvercode and foreground agent
+- Delta: prompt augmentation in-flight (transparent to client)
+- Coupling: protocol-only (silvercode doesn't even know it's there)
+- Best for: multi-tenant, cross-machine continuity, multi-agent coverage by default, scale economics
+- The §3.4 / §6.d agent-in-the-middle play.
+
+**D. MCP server (passive memory service)**
+- Host: anywhere — local daemon or cloud
+- Events: subscribed to incoming MCP traffic
+- Delta: exposes `memory.subscribe`, `memory.query` MCP tools — foreground polls
+- Coupling: standard MCP (works with any MCP client)
+- Best for: IDE-agnostic; works with Cursor / Continue / Claude Code; no push needed
+- Trades reactivity for universality.
+
+**E. Editor extension / VSCode plugin**
+- Host: IDE extension process
+- Events: hooks into editor APIs (file changes, diagnostics, terminal output)
+- Delta: ambient sidebar pane + optional MCP push to active agent
+- Coupling: editor-API-bound
+- Best for: IDE-native UX; editor users who don't run silvercode; ChatGPT/Cursor users
+- Same architectural pattern, different distribution surface.
+
+**F. Per-repo daemon (autostart on `cd`)**
+- Host: small daemon started per-repo (direnv hook or git-aware wrapper)
+- Events: file-watcher + git-hooks + LSP introspection
+- Delta: writes to a per-repo file or local socket; clients pull
+- Coupling: filesystem only
+- Best for: persistent repo-scoped knowledge that any tool can consult; long-lived state independent of any IDE session
+
+**G. Federated / matrix-shape (peer-to-peer team)**
+- Host: per-developer machine, sub-agents sync state via tribe matrix-shape
+- Events: own session + peer broadcasts
+- Delta: emits locally, federated sync to teammates' sub-agents
+- Coupling: tribe wire
+- Best for: team-scoped memory without a central cloud; privacy-preserving "what the team knows" without uploading code
+- Aligns with the matrix-shape direction already in tribe.
+
+**H. Hybrid local + cloud**
+- Host: local sub-agent for index + private state, cloud sub-agent for compute-heavy LLM steps
+- Events: local watches, cloud receives summaries
+- Delta: local injects into foreground; cloud assists local on demand
+- Coupling: medium (custom protocol)
+- Best for: privacy-sensitive code + budget-conscious LLM compute (cloud has cheaper big-model access via prompt cache pools)
+
+**I. Browser extension / web-AI sidecar**
+- Host: browser extension
+- Events: observes user's chats with web-based AI tools (ChatGPT, Claude.ai, Cursor web)
+- Delta: side panel + optional clipboard injection
+- Coupling: browser API
+- Best for: users primarily on web AI tools; cross-tool memory
+- Different distribution but same agent shape.
+
+**J. Phone / sidecar device (always-on personal)**
+- Host: phone app or always-on home device
+- Events: push notifications from any tool that can reach it
+- Delta: query API
+- Coupling: API-only
+- Best for: personal AI memory that follows you across devices; conversational memory beyond coding sessions
+- Furthest from coding workflow but interesting frontier.
+
+### Tradeoff matrix
+
+| Topology | Latency | Privacy | Multi-agent | Multi-machine | Multi-tenant | Engineering complexity |
+|---|---|---|---|---|---|---|
+| A in-silvercode | very low | strong | one app | no | no | low |
+| B tribe daemon | low | strong | per-machine | no | no | medium |
+| C ACP proxy cloud | medium | weak | yes | yes | yes | high |
+| D MCP server | low–medium | configurable | yes | yes | yes | medium |
+| E IDE extension | low | strong | one editor | no | no | medium |
+| F per-repo daemon | low | strong | tool-agnostic | no | no | medium |
+| G federated/matrix | medium | strong | yes | yes (team) | no | high |
+| H hybrid local+cloud | medium | medium | yes | partial | partial | high |
+| I browser extension | low | configurable | one browser | yes (account) | no | medium |
+| J phone/sidecar | high | strong | yes | yes | no | high |
+
+### Mapping topologies to sub-agent jobs
+
+Different sub-agents fit different topologies:
+
+- **Memory (mem-thought)** — A → B → C progression. Local-first, then daemon, then cloud-proxy as the moat play.
+- **Compiler / type-check / lint** — F (per-repo daemon) is natural; LSP-aware editor watching is enough.
+- **Critic ("/pro on every plan")** — D (MCP server) for IDE-agnostic distribution; user can opt in per-tool.
+- **Style / convention** — F (per-repo daemon) again; codebase-bound.
+- **Test runner** — F (per-repo daemon) with file-watch integration.
+- **Doc sync** — F or B; needs git visibility.
+- **Cross-team knowledge** — G (federated/matrix) or C (cloud proxy).
+- **Personal AI memory beyond coding** — J (phone/sidecar) eventually.
+
+The unified product story: **silvercode + tribe is the agent-in-the-middle platform**. Each persistent sub-agent picks its topology based on its job; the platform exposes consistent primitives (events, tools, state, deltas) so they all compose.
+
+### Why this matters strategically
+
+Most prior-art systems are stuck at *one* topology — Cursor is editor-extension only, Mem0 is cloud-orchestration only, Letta is tool-call only. The ones that span topologies get the platform benefits: same memory state visible whether you're in silvercode (A), in another IDE via MCP (D), in a browser via extension (I), or via the proxy from any agent (C).
+
+The platform play is "topology-portable persistent sub-agents." The transport (ACP / MCP / tribe wire / IDE extension API) is plumbing; the sub-agent contract (events in, deltas out, state cached) is the moat.
 
 ---
 
