@@ -1107,4 +1107,46 @@ describe("km view - state initialization", () => {
       await viewAndExpect(task.id, "Task X")
     }
   })
+
+  // Fail-fast on a non-existent explicit path. Pre-fix the user got dragged
+  // through the "memory mode / init / cancel" prompt and then saw a stack
+  // trace flash inside `discoverFiles` after picking any option. Now view
+  // short-circuits when the positional argument looks like an explicit path
+  // (starts with /, ./, ../, ~/) and doesn't exist on disk. Bare ids /
+  // @refs / queries pass through unchanged.
+  test("km view with absolute non-existent path exits 1 with helpful error", async () => {
+    const missing = `/tmp/km-test-definitely-missing-${process.pid}-xyz`
+    const result = await km(["view", missing])
+    expect(result.exitCode).toBe(1)
+    const out = result.stderr + result.stdout
+    expect(out).toMatch(new RegExp(`Path does not exist: ${missing.replace(/\//g, "\\/")}`))
+    expect(out).toMatch(new RegExp(`km init ${missing.replace(/\//g, "\\/")}`))
+    // Fail-fast means no `discoverFiles` / `realpathSync` stack frames.
+    expect(out).not.toMatch(/at discoverFiles/)
+    expect(out).not.toMatch(/at realpathSync/)
+  })
+
+  test("km view with relative ./missing path exits 1", async () => {
+    const result = await km(["view", "./km-test-definitely-missing-xyz789"])
+    expect(result.exitCode).toBe(1)
+    const out = result.stderr + result.stdout
+    expect(out).toMatch(/Path does not exist: \.\/km-test-definitely-missing-xyz789/)
+  })
+
+  test("km view with ~/missing tilde path exits 1", async () => {
+    const result = await km(["view", "~/km-test-definitely-missing-xyz789"])
+    expect(result.exitCode).toBe(1)
+    const out = result.stderr + result.stdout
+    expect(out).toMatch(/Path does not exist:/)
+  })
+
+  test("km view does NOT fail-fast on bare ids (no path prefix)", async () => {
+    // Bare identifiers like "@nonexistent-bead" must NOT trigger the
+    // missing-path gate — only explicit paths do. The command may still fail
+    // for other reasons (no such bead), but the failure must NOT be the
+    // "Path does not exist" pre-flight error.
+    const result = await km(["view", "@nonexistent-bead-xyz"])
+    const out = result.stderr + result.stdout
+    expect(out).not.toMatch(/Path does not exist:/)
+  })
 })
