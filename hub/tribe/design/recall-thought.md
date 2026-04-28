@@ -306,6 +306,18 @@ Specific moat sources identified:
 4. **Visibility + operator UX** — many systems are opaque. The side-panel/tooltip/inspector/journal layers are uncommon.
 5. **Cloud-as-proxy positioning** — agent-in-the-middle on the ACP wire is a fresh wedge ([acp-proxy.md §3.4](../../silvercode/future/ai-terminal/acp-proxy.md))
 
+### Adjacent reference: Vercel's stack (chat-sdk.dev)
+
+[chat-sdk.dev](https://chat-sdk.dev/) is Vercel's TypeScript framework for cross-platform chatbots (Slack / Teams / Discord / WhatsApp / GitHub). Event-driven, pluggable adapters, integrates with Vercel AI Gateway + AI SDK + Workflows.
+
+**Layer mismatch with mem-thought**: chat-sdk is *chatbot transport* — deliver messages to Slack/Discord. mem-thought is *sub-agent state + reactive context*. Different layers; chat-sdk explicitly lacks memory / sub-agents / MCP / ACP per its docs.
+
+What's worth carrying forward:
+
+- **Pluggable-adapter pattern** — chat-sdk's "unified API across platforms" is the same architectural shape as our deployment-topology survey ([acp-proxy.md §4.6](../../silvercode/future/ai-terminal/acp-proxy.md)). Validates "topology-portable contract" as a winning shape.
+- **Vercel as a credible competitor to watch** — they have the AI infrastructure stack (Gateway + SDK + chat-sdk + Workflows) and the distribution. If they extend AI Gateway from transforms to stateful sub-agents, they're the obvious incumbent for the category. They haven't yet — but it's the most-likely-next-shoe.
+- **Doesn't change the prior-art verdict** — none of Vercel's products today host persistent stateful sub-agents.
+
 ### Critical caveat: knowledge cutoff Oct 2024
 
 GPT-5.4's training data cuts off Oct 2024. The agent-memory space has moved fast in 2025–2026 — Anthropic released the memory tool, Letta has shipped updates, Mem0 has a roadmap. **Nothing in /deep's response covers 2025-2026 systems**, which is exactly the timeframe a parallel design might have shipped.

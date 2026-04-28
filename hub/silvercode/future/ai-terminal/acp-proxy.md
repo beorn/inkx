@@ -50,6 +50,8 @@ A 2-year-old category that's already a billion-dollar segment. What the LLM prox
 
 **Critical observation** (per /deep prior-art audit 2026-04-28, knowledge cutoff Oct 2024): every product in this category is **transform-only**. None of OpenRouter / LiteLLM Proxy / Portkey / Helicone / Vercel AI Gateway / LangSmith hosts a persistent stateful LLM sub-agent. They route, cache, redact, log, and observe. No agent-in-the-middle. The gap is wide open — see §3.4 and §6.
 
+**Vercel's stack is the most interesting competitor to watch**: AI Gateway (transform-only LLM router) + [chat-sdk.dev](https://chat-sdk.dev/) (cross-platform chatbot transport, event-driven, pluggable adapters — Slack/Teams/Discord/WhatsApp/GitHub) + Workflows (orchestration) + AI SDK. They have real product motion in AI infrastructure, but none of these land on the persistent-sub-agent shape — chat-sdk explicitly lacks memory / sub-agents / MCP / ACP. Their pluggable-adapter pattern validates the "unified API across platforms" shape as winning, but they haven't extended to stateful agent-in-the-middle. If they ever do, they'd be the obvious party to ship the category given their distribution.
+
 The originating insight: dozens of LLM providers, hundreds of consumers; the cross product is impossible without a routing layer.
 
 ### 1.c LSP — the editor-side analogue
@@ -534,6 +536,7 @@ Full audit: [`hub/tribe/design/recall-thought-prior-art-deep.md`](../../../tribe
 - **OpenRouter / LiteLLM / Helicone** — the LLM-proxy reference category. All transform-only — no persistent sub-agents.
 - **Envoy / Istio** — the service-mesh reference category.
 - **LSP** — `microsoft/language-server-protocol` — the editor-side proxy moment.
+- **Vercel chat-sdk.dev** — https://chat-sdk.dev — Vercel's TypeScript framework for cross-platform chatbots (Slack/Teams/Discord/WhatsApp/GitHub), event-driven, pluggable adapters. Adjacent layer (transport, not memory/agent). Vercel's broader stack (AI Gateway + AI SDK + Workflows + chat-sdk) is the most credible distribution position to watch for an extension into stateful agent-in-the-middle.
 - **mem-thought composition design** — [`hub/tribe/design/recall-thought.md`](../../../tribe/design/recall-thought.md) — the persistent sub-agent that materializes the "agent-in-the-middle" pattern.
 - **Prior-art audit** — [`hub/tribe/design/recall-thought-prior-art-deep.md`](../../../tribe/design/recall-thought-prior-art-deep.md) — /deep verdict: no exact match for the 6-trait composition (Oct 2024 knowledge cutoff caveat noted).
 - **Generative Agents** (Stanford 2023) — closest conceptual cluster: agents with episodic memory, reflection, push observations to environment. Validates the "background mind-wandering" idea, doesn't preempt the IDE+proxy composition.
