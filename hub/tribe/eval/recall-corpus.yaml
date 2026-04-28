@@ -1,0 +1,97 @@
+# Recall Evaluation Corpus — starter pairs (v0)
+#
+# Format: each entry is a labeled retrieval test. The runner
+# (tools/recall-eval.ts) reads this file, runs each query through
+# the recall pipeline, and grades the result against the labels.
+#
+# Bead: km-tribe.recall-eval-corpus
+#
+# v0 design choice: the corpus stores the *query* the system should use,
+# not the conversation prefix it should derive from. That separates two
+# concerns — query-derivation quality (Salience trigger / strategy) from
+# substrate retrieval quality (FTS + planner + reranker). v1 may add a
+# `prefix` field to also test query-derivation.
+#
+# Field reference:
+#   id                        — stable identifier
+#   query                     — the search string to feed the recall pipeline
+#   axis                      — A=conversational, B=external-data, C=multi-turn
+#   expected_relevant         — session IDs / artifact references that SHOULD appear in top-K
+#   expected_irrelevant       — token-overlap traps that must NOT appear
+#   notes                     — why these are/aren't relevant (free text)
+#   conversation_prefix       — optional, for context only — not used by runner v0
+
+pairs:
+  # ── Axis A: conversational retrieval ────────────────────────────
+
+  - id: pair-001
+    axis: A
+    query: "mem-thought hypothesis test ambient injection"
+    expected_relevant_session_ids:
+      - "4de4a3ab"  # this session — designed the four-tier model + Step 1 hypothesis
+    expected_irrelevant_session_ids:
+      - "87d20187"  # bg-recall/tests/relevance.test.ts — incidental "relevance" overlap
+    notes: |
+      Query asks about the mem-thought hypothesis test. Right answer is the
+      session that designed it (this one, 4de4a3ab). Wrong answer is the
+      relevance.test.ts file in bg-recall — it contains the literal token
+      "relevance" but is unrelated infrastructure.
+
+  - id: pair-002
+    axis: A
+    query: "skip-on-no-progress polling probe Jaccard salience"
+    expected_relevant_session_ids:
+      - "4de4a3ab"  # this session — discussed Jaccard-diff salience trigger
+    expected_irrelevant_session_ids: []
+    notes: |
+      Specific to mem-thought design discussion. Should hit the in-progress
+      session and possibly the recall-architecture / recall-thought design docs.
+
+  # ── Axis B: external-data integration ───────────────────────────
+
+  - id: pair-003
+    axis: B
+    query: "ENGRAM cognitive type separation episodic semantic procedural"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "docs/explorations/memory-systems-analysis.md"
+      - kind: doc
+        path: "docs/explorations/plain-brain.md"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Question is about external research findings, not a past conversation.
+      Right answers are the analysis docs in docs/explorations/. Tracks the
+      external-data integration axis (km-tribe.recall-eval-external-data).
+
+  - id: pair-004
+    axis: B
+    query: "LongMemEval LoCoMo benchmark filesystem memory Letta"
+    expected_relevant_artifacts:
+      - kind: doc
+        path: "docs/explorations/memory-systems-analysis.md"
+      - kind: doc
+        path: "docs/explorations/plain-brain.md"
+      - kind: bead
+        id: "km-tribe.recall-eval-longmemeval"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Should surface the prior research docs that mention LoCoMo numbers
+      (Letta 74%, Mem0 graph 68.5%) AND the LongMemEval bead.
+
+  # ── Axis A again: adversarial trap ──────────────────────────────
+
+  - id: pair-005
+    axis: A
+    query: "Tier 3 sub-agent compiled state multi-turn"
+    expected_relevant_session_ids:
+      - "4de4a3ab"  # this session — designed the gate
+    expected_relevant_artifacts:
+      - kind: bead
+        id: "km-tribe.recall-thought"
+      - kind: bead
+        id: "km-tribe.recall-deep-rounds"
+    expected_irrelevant_session_ids: []
+    notes: |
+      Question is specifically about the design state. Right answers are
+      this session + the Tier 3 / deep-rounds beads. Watch for incidental
+      hits on "compiled" (build artifacts) or "state" (state machines).
