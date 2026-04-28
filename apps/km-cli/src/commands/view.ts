@@ -83,6 +83,34 @@ export const viewCommand = new Command("view")
         ])
       }
 
+      // Fail-fast: if the user supplied an explicit path that doesn't exist
+      // on disk, abort here instead of dragging them through the "memory
+      // mode / init / cancel" prompt and then crashing inside `discoverFiles`
+      // with `Cannot resolve repo root: <missing-path>`. The prompt's three
+      // options are all dead ends for a missing directory:
+      //   - memory mode  → discoverFiles realpathSync's the path → throws
+      //   - init         → would mkdir + .km/, but the user almost always
+      //                    means an existing path; silent dir creation is
+      //                    surprising. `km init <path>` is the explicit
+      //                    affordance for that.
+      //   - cancel       → exits anyway
+      // So short-circuit with an actionable error before any I/O happens.
+      // Only fail when the argument itself looks like an explicit path
+      // (starts with /, ./, ~/) — bare ids / @refs / queries pass through
+      // to the normal resolver.
+      if (
+        typeof root === "string" &&
+        root.length > 0 &&
+        (root.startsWith("/") || root.startsWith("./") || root.startsWith("../") || root.startsWith("~"))
+      ) {
+        const probe = root.startsWith("~/") ? join(process.env.HOME ?? "", root.slice(2)) : root
+        if (!existsSync(probe)) {
+          process.stderr.write(`\nFatal error: Path does not exist: ${root}\n`)
+          process.stderr.write(`Hint: run \`km init ${root}\` to create it as a new km vault.\n`)
+          process.exit(1)
+        }
+      }
+
       // Resolve path and set debug root
       const resolved = fsMountModule.resolvePathArg(root, getRootPath())
       setDebugRepoRoot(resolved.repoRoot)
