@@ -234,17 +234,76 @@ Three commercial revenue streams, two open marketing assets, one protocol asset.
 
 ## Phase 2.6: Five strategic directions
 
-Before getting into the 15+ specific strategy candidates in Phase 3, here are the five top-level directional buckets — most strategies fall into one or more of these:
+Before getting into the specific strategy candidates in Phase 3, here are the five top-level directional buckets — most strategies fall into one or more of these:
 
 - **Direction 1 — silvery + silvercode** (locked Option 5 today). Open framework + proprietary IDE + services backing it. Cross-elasticity trap exposure: high.
 - **Direction 2 — km / PlainBrain as PKM-for-AI** (Notion-meets-Obsidian shape). gbrain-validated. Subscription workspace play. Cross-elasticity exposure: low (knowledge workers don't typically build their own PKM platforms).
 - **Direction 3 — Services-led, silvercode is open reference** (Vercel/Auth0/Algolia pattern). silvery open framework + open silvercode-as-reference + paid hosted services tier. Cross-elasticity: positive (services are what users want to *avoid* doing).
-- **Direction 4 — tribe/agentroom protocol play inside the portfolio**. tribe = open spec; agentroom hosted gateway = commercial cluster-2 service alongside silvercode + services.
-- **Direction 5 — agentroom spun out as its own venture** (Confluent shape). Separate entity, separate raise, separate co-founder. Open spec + open ref impl + paid hosted control plane. Decoupled from silvery/silvercode/km success.
+- **Direction 4 — ACP-proxy / tribe stack inside the portfolio** — the protocol-and-coordination cluster sits as cluster-2 alongside silvercode + km. Multi-venture: gateway + storage + coordination + compute platform.
+- **Direction 5 — ACP-proxy / tribe stack spun out as its own venture(s)** (Confluent shape). Separate entity (or entities), separate raise, separate co-founder(s). Decoupled from silvery/silvercode/km success.
 
-Directions 4 and 5 are both protocol plays — they differ on whether agentroom lives *inside* the silvery/silvercode/km portfolio or is *separated*. That's a real fork: D4 keeps capital, brand, and acquisition events together; D5 lets each part rise/fall on its own terms.
+Directions 4 and 5 are both ACP-proxy plays — they differ on whether the stack lives *inside* the silvery/silvercode/km portfolio or is *separated*. D4 keeps capital, brand, and acquisition events together; D5 lets each part rise/fall on its own terms.
 
-The strategies in Phase 3 below combine these directions with specific go-to-market approaches and sequencing.
+---
+
+## Phase 2.7: ACP-proxy is itself a multi-venture cluster
+
+The "ACP-proxy" concept (referenced in D4/D5 above) isn't one product — the canonical inventory at [`hub/ventures/acp-proxy-2026-04-27.md`](../../ventures/acp-proxy-2026-04-27.md) scores **14 distinct ventures** within the proxy concept. The top cluster reaches the 25/25 ceiling and is described in that doc as a *"candidate generational company"*.
+
+**The architectural progression** (each layer is a venture, layered = bigger moat):
+
+```
+Layer 4: Agent-in-the-middle platform   — Cloudflare Workers analog
+                                          recall-thought, critic, style-watcher,
+                                          test-runner, docs-keeper as persistent
+                                          sub-agents. (#14, score 21/25)
+
+Layer 3: Coordination state              — derived todos / locks / decisions /
+                                          findings / handoffs / asks. The
+                                          "agent collaboration database."
+                                          (#13, score 23/25)
+
+Layer 2: Vault session storage           — `org.agentroom.*` events as JSONL +
+                                          markdown round-trip. km vault as
+                                          canonical session store. (#12, score 22/25)
+
+Layer 1: ACP↔Matrix bridge + spec        — gateway routes ACP into Matrix +
+   authorship                              direct Slack/Discord adapters; authors
+                                          `org.agentroom.*` MSC. The substrate.
+                                          (#11, score 24/25)
+```
+
+**Cluster math** (from the ventures doc):
+- #11 alone (gateway + spec): **24/25**
+- #11 + #12 (gateway + storage): **24-25/25**
+- #11 + #12 + #13 (gateway + storage + coordination): **25/25 ceiling**
+- #11 + #12 + #13 + #14 (+ compute platform): **25/25, qualitatively bigger**
+
+**Plus 10 other plug-in ventures** that ride this stack as features:
+
+| # | Venture | Score | Status |
+|---|---|---|---|
+| 1 | Per-session observability dashboard | 19/25 | top-3 ship-now cluster |
+| 2 | Cross-agent recall (Memory-as-a-Service) | 19/25 | top-3 ship-now cluster |
+| 3 | Cost dashboard + budget caps | 18/25 | top-3 ship-now cluster |
+| 4 | Tool governance + universal MCP registry | 17/25 | window closes in 18 months when Anthropic ships native |
+| 5 | Auto-routing / model arbitrage | 15/25 | OpenRouter has 2yr head start; killable |
+| 6 | A/B + replay + shadow (regression-test agent quality) | 15/25 | LangSmith/Helicone adjacent |
+| 7 | Cross-machine federation | 15/25 | high-ceiling, low-demand-signal |
+| 8 | Provenance / signing for code attestation | 15/25 | speculative bet on EU/US AI-coding regulation |
+| 9 | Prompt redaction + egress firewall | 15/25 | wrong customer for us; killable |
+| 10 | Multi-surface output (Slack/voice/REST) | 14/25 | subsumed by #11 |
+
+**What this means for strategy**: D4 and D5 are not "agentroom yes/no" — they're "which subset of these 14 do we ship, in what order, and inside or outside the portfolio?"
+
+**The key insight from the ventures doc** (cross-cutting analysis):
+> *"Three of the top four are the same product: a 'tribe control-plane plugin pack' (observability + recall + cost + governance). The strategy isn't to pick one; it's to ship all four as one v1 of 'tribe-as-control-plane'."*
+
+> *"Build the cross-agent gateway, sell observability + memory + governance as plugins — could clear $50M ARR within 3 years if positioned correctly. That's a $500M+ exit candidate."*
+
+The ACP-proxy cluster has the highest commercial ceiling in the entire portfolio. It's also the only cluster that's *fully validated by rubric scoring* — silvercode and km don't have equivalent venture-scored backing.
+
+Cross-reference: full rubric, prior-art map (Kong $2B, OpenRouter $1.3B, LangChain $1.25B, Mem0 $24M/52K stars, Cursor $50B), and re-score triggers in [`hub/ventures/acp-proxy-2026-04-27.md`](../../ventures/acp-proxy-2026-04-27.md).
 
 ---
 
@@ -360,6 +419,36 @@ Direction 3, sharper. silvery stays open framework but is *not* the focus. The f
 Direction 2 + Direction 3 hybrid. km/PlainBrain as substrate, with both **hosted km cloud** (subscription, low-friction) and **self-hosted km** (open-source, run-your-own). Mirror Ghost (the publishing platform): hosted is the paid tier, but the open-source is a real alternative. Pulls from gbrain validation + Obsidian-style power-user community.
 
 **Score**: B=4 / T=12-18 / C=mid-high / R=3 / D=PKM-for-AI as a category sustains; hosted-vs-self-hosted tier serves both segments; gbrain-style power users adopt
+
+### S18 — "tribe-as-control-plane" (ACP-proxy ship-now top-3 cluster)
+
+D4 inside the portfolio. Ship the top-3 ACP-proxy ventures as one v1 product: **#1 observability + #2 cross-agent recall + #3 cost dashboard** as a unified "tribe control-plane plugin pack." All three ride existing silvercode JSON-RPC tap; all three are tribe-side plugins; one sprint ships the trio. Distribution: free silvercode upgrade, fans out to km + future products. The ventures doc identifies this as the "ship-now cluster."
+
+**Score**: B=2 (small package, existing infra) / T=2-3 (one sprint to MVP) / C=mid (Worth=2-3 individually but cluster bonus pushes to mid) / R=2 / D=silvercode launches and creates the JSON-RPC tap; tribe plugin model is real
+
+### S19 — "Confluent stack" (ACP-proxy top-cluster as own venture, D5)
+
+D5 spun out. The top cluster (**#11 gateway + #12 vault storage + #13 coordination layer**) hits 25/25 — packaged as its own venture: open ACP↔Matrix gateway with `org.agentroom.*` spec authorship + canonical km-vault session storage + agent-coordination primitives. Confluent → Apache Kafka shape. $3-5M seed pitch. Infrastructure-ops co-founder. Independent acquihire-ready (GitHub, Microsoft, Vercel, Replit).
+
+**Score**: B=3 (own venture, with co-founder) / T=12-18 / C=very-high (the doc explicitly calls this a "candidate generational company") / R=4 / D=ACP standard wins, infrastructure-ops co-founder, ship MSC for `org.agentroom.*` event vocab before Anthropic/OpenAI/Google ships theirs
+
+### S20 — "Cloudflare Workers for ACP" (compute-platform layer, #14)
+
+Add the **agent-in-the-middle platform** (#14) on top of S19. The proxy hosts persistent LLM sub-agents (recall-thought, critic, style-watcher, test-runner, docs-keeper) that watch ACP traffic and inject ambient observations. Cloudflare CDN → Workers analog: substrate is the start, compute is the moat (Cloudflare $30B+ valuation came from Workers, not CDN).
+
+**Score**: B=4 (deeper integration than gateway) / T=18-24 / C=very-high / R=4 / D=S19 ships first; recall-thought sub-agent (88KB existing design) productizes; multi-tenant LLM cost economics work; privacy/compliance posture for hosting source
+
+### S21 — "Memory-as-a-Service for AI agents" (cross-agent recall as standalone, #2)
+
+Pull #2 (cross-agent recall) out as its own product. Mem0 ($24M raised, 52K GitHub stars) and Letta ($10M, 22K stars) prove the market; both are *single-agent*; **nobody has cross-agent memory** because no incumbent has reason to bridge Claude + Codex + Gemini + Copilot. silvery+tribe-bearly already has the recall infrastructure; promoting it from silvercode-internal to a tribe-side plugin gives every ACP client (km, pam, future products, third-party agents) Memory.
+
+**Score**: B=3 / T=6-9 / C=high / R=3 / D=cross-agent-memory category survives Anthropic Memory + OpenAI Memory single-agent versions; tribe plugin model spreads beyond silvercode
+
+### S22 — "ACP-proxy + ship-now cluster combined inside portfolio" (D4 maximum)
+
+The integrated portfolio version. Ship S18 (top-3 ship-now) + S19's top cluster (#11+#12+#13) + km's PlainBrain spec all together as a unified "tribe control-plane + ACP-proxy + agent collaboration database" stack. All under one entity, one go-to-market, one acquisition outcome. Larger surface than S18 alone, smaller than spinning out (S19).
+
+**Score**: B=5 / T=12-24 / C=very-high (combined cluster sums to 25/25) / R=4 / D=founder bandwidth holds across all components; team can be hired; integrated narrative compels investors/acquirers more than separate parts
 
 ---
 
