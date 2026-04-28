@@ -10,7 +10,7 @@
 
 **Shipped state (much further along than the doc previously implied)**:
 - `silvery/ink` migration shim is **already shipped** (vendor/silvery/packages/ink, v0.21.0, ~3K LOC, covers Box/Text/Spacer/hooks/render/animation/focus/cursor/stdin/measure-text/sanitize/chalk-compat). silvery.dev claims "98.6% Ink compatible" — grounded.
-- Cluster-1 sites live and polished: **silvery.dev** (98.6% Ink-compat hero), **termless.dev**, **loggily.dev** (22× faster than noop), **mdspec.dev** (already a paid SaaS, $9/mo Pro tier), **beorn.codes/flexily/** (1.5-5.5× faster than Yoga, 1561 tests). flexily.org / flexily.dev parked.
+- Cluster-1 sites live and polished: **silvery.dev** (98.6% Ink-compat hero), **termless.dev**, **loggily.dev** (22× faster than noop), **mdspec.org** (executable markdown testing, pre-release 0.x, used by silvery + termless), **beorn.codes/flexily/** (1.5-5.5× faster than Yoga, 1561 tests). flexily.org / flexily.dev parked.
 
 **Real critical-path work remaining** (~2-3 weeks if focused):
 1. **Killer demo** — silvery.dev's missing flagship. Top candidates: silvery-system-monitor (htop-class) + silvery-acp-chat (BYO-key coding agent, AI-tailwind). Doing both ≈ 2-3 weeks. Optional fourth path: commission a high-profile Ink user via Migration Assurance Program.
@@ -131,7 +131,7 @@ Multiple revenue paths, all funneling through the same open framework.
 - **terminfo.dev** (terminal capability database) — site live
 - **vt100.js / vt220.js / vterm.js** (emulator backends; support termless; zero-maintenance)
 - **loggily** (unified TS debug/log/span API; ~22× faster than noop loggers, 3KB, OTel/Pino/Sentry transports) — `loggily.dev` (live)
-- **mdspec** (markdown spec publishing — *already commercialized*: $9/mo / $100/yr Pro tier via Claude Haiku transforms, free 1-project tier) — `mdspec.dev` (live)
+- **mdspec** (executable markdown testing — make docs executable, fail tests when README examples drift; used internally by silvery + termless) — `mdspec.org` (live, pre-release 0.x)
 - **alien-projections, alien-resources, alien-trees** (reactive primitives at `github.com/beorn/bearly/packages/`)
 - **vimonkey** (fuzz testing for Vitest)
 - **vitepress-enrich** (VitePress docs tooling)
@@ -139,7 +139,7 @@ Multiple revenue paths, all funneling through the same open framework.
 
 Brand voice: rigorous, performance-conscious, terminal-native, multi-target-ambitious. Cross-promotional: each repo's docs reference the others. Same brand-pattern as Charm.sh (Bubble Tea + Glamour + Lip Gloss as the open identity).
 
-**Shipped surface as of 2026-04-27**: cluster-1 is **mostly already public** — silvery.dev / flexily(beorn.codes) / termless.dev / loggily.dev / mdspec.dev are all live with polished landing pages and concrete performance receipts. mdspec is already running a paid SaaS tier. The remaining strategic work is *not* "launch these sites" but (a) coherent cross-promotion + entry-point navigation between them, (b) the silvery launch moment specifically (hero rewrite, migration case study, killer demo, outreach), (c) the killer demo itself — silvery.dev lacks a flagship app showcase, since silvercode + km can't fill that role (proprietary; wrong shape).
+**Shipped surface as of 2026-04-27**: cluster-1 is **mostly already public** — silvery.dev / flexily(beorn.codes) / termless.dev / loggily.dev / mdspec.org are all live with polished landing pages and concrete performance receipts. The remaining strategic work is *not* "launch these sites" but (a) coherent cross-promotion + entry-point navigation between them, (b) the silvery launch moment specifically (hero rewrite, migration case study, killer demo, outreach), (c) the killer demo itself — silvery.dev lacks a flagship app showcase, since silvercode + km can't fill that role (proprietary; wrong shape).
 
 **Cluster 2 — Proprietary AI Product Line + Service Backends**:
 - silvercode app code (proprietary, private monorepo)
