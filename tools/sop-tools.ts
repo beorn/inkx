@@ -283,6 +283,19 @@ const recallEvalBaseline: SopTask = {
   cache: 86400 * 30,
 }
 
+const recallEmitDashboard: SopTask = {
+  id: "recall-emit-dashboard",
+  label: "Tier-2 ambient injection emit/skip dashboard",
+  // Monthly check on Tier-2 V2 health. Reads ~/.cache/recall-emit-log.jsonl
+  // (populated by ~/.claude/hooks/user-prompt-submit.sh INJECTION_DEBUG_LOG)
+  // and prints emit-rate / skip-reason breakdown / recent emits for eyeball
+  // judgment. Targets: ≥40% silent (skip rate), ≥60% useful among emits.
+  // Free (filesystem read only). See bead km-tribe.recall-inject for the
+  // V2 gate spec + targets.
+  command: "bun vendor/bearly/tools/recall-emit-summary.ts --since 30d --recent 10 2>&1",
+  cache: 3600,
+}
+
 // ─── Legal tools ───────────────────────────────────────────────────────────
 
 const licenseFiles: SopTask = {
@@ -313,7 +326,7 @@ export const TASKS: SopTask[] = [
   // Phase 1: external (cache: TTL)
   bunAudit, ghIssues, bdStale, bdOrphans, bdPriority,
   ciHealth, npmRegistry, nixFreshness, toolVersions, depLicenses,
-  recallEvalBaseline,
+  recallEvalBaseline, recallEmitDashboard,
 ]
 
 export const TASK_MAP = new Map(TASKS.map((t) => [t.id, t]))
@@ -329,6 +342,6 @@ export const DOMAIN_TOOLS: Record<string, string[]> = {
   sites: ["doc-links", "doc-freshness"],
   security: ["bun-audit", "secret-scan", "lockfile", "nix-freshness"],
   packaging: ["bundle-sizes", "zero-dep", "cjs-esm"],
-  infra: ["ci-health", "hook-integrity", "tool-versions", "recall-eval-baseline"],
+  infra: ["ci-health", "hook-integrity", "tool-versions", "recall-eval-baseline", "recall-emit-dashboard"],
   legal: ["license-files", "dep-licenses"],
 }
