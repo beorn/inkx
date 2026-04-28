@@ -431,45 +431,68 @@ function ExchangeItem({ m, showDebug }: { m: MessageEntry; showDebug: boolean })
     return <BackgroundSystemRow text={m.text} />
   }
   // Assistant turn: render `m.ops` in arrival order. Each text op is an
-  // AssistantRow; each tool op is a ToolCall card. Order matters — codex
+  // AssistantRow; each tool op is a ToolCall row. Order matters — codex
   // emits text→tool→text→tool many times in a single ACP turn, and the
   // legacy "all text first, all tools after" flatten loses that
   // interleaving. The store coalesces consecutive text deltas into one
   // text op, so multi-chunk Claude paragraphs still render as one row.
   // Bead: km-silvercode.codex-bundling-order.
   //
+  // Gap policy (km-silvercode.tool-call-rendering-v2): consecutive tool
+  // ops cluster with NO blank row between them — a sequence of Read /
+  // Glob / Grep calls reads as one tight block. A blank row separates a
+  // text op from a tool cluster (and vice versa), and separates two text
+  // ops. Implementation: group ops into runs of one kind, render each
+  // run with `gap={0}`, and stack the runs themselves with `gap={1}`.
+  //
   // Soft-wrap of MarkdownView's per-Text `wrap="wrap"` works without
   // ceremony under silvery's CSS-correct defaults (flexShrink:1 +
-  // CSS §4.5 auto min-size with recursive intrinsic min-content). The
-  // historical "thread flexShrink={1} minWidth={0} through every Box"
-  // cascade is no longer load-bearing — it was a Yoga-defaults workaround
-  // and is now redundant defense-in-depth where present. See regression
-  // tests in apps/silvercode/tests/wrap-unbreakable-overflow.test.tsx
+  // CSS §4.5 auto min-size with recursive intrinsic min-content). See
+  // regression tests in apps/silvercode/tests/wrap-unbreakable-overflow.test.tsx
   // (bead: km-silvercode.wrap-unbreakable-audit, closed 2026-04-28).
+  type OpRun = { kind: "text" | "tool"; ops: Array<{ op: (typeof m.ops)[number]; index: number }> }
+  const runs: OpRun[] = []
+  m.ops.forEach((op, i) => {
+    const k = op.kind === "text" ? "text" : "tool"
+    const tail = runs[runs.length - 1]
+    if (tail && tail.kind === k) {
+      tail.ops.push({ op, index: i })
+    } else {
+      runs.push({ kind: k, ops: [{ op, index: i }] })
+    }
+  })
+
   return (
     <Box flexDirection="column" gap={1}>
-      {m.ops.map((op, i) => {
-        if (op.kind === "text") {
-          if (op.text.length === 0) return null
-          return (
-            <RawInspector key={`text-${i}`} payload={op}>
-              <AssistantRow text={op.text} />
-            </RawInspector>
-          )
-        }
-        const c = op.toolCall
-        const result = op.result
-        const running = result === undefined
-        const adaptedCall = adaptToolCall(c, result, running)
-        return (
-          <RawInspector key={c.id} payload={op}>
-            <ToolCall
-              toolCall={adaptedCall}
-              errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
-            />
-          </RawInspector>
-        )
-      })}
+      {runs.map((run, runIdx) => (
+        // gap=0 inside a run → consecutive tool calls (or coalesced text
+        // ops) render contiguously. The outer `gap={1}` only applies
+        // BETWEEN runs.
+        <Box key={runIdx} flexDirection="column">
+          {run.ops.map(({ op, index }) => {
+            if (op.kind === "text") {
+              if (op.text.length === 0) return null
+              return (
+                <RawInspector key={`text-${index}`} payload={op}>
+                  <AssistantRow text={op.text} />
+                </RawInspector>
+              )
+            }
+            const c = op.toolCall
+            const result = op.result
+            const running = result === undefined
+            const adaptedCall = adaptToolCall(c, result, running)
+            return (
+              <RawInspector key={c.id} payload={op}>
+                <ToolCall
+                  toolCall={adaptedCall}
+                  errorMessage={result?.is_error ? String(result.output ?? "Tool call failed") : undefined}
+                />
+              </RawInspector>
+            )
+          })}
+        </Box>
+      ))}
     </Box>
   )
 }

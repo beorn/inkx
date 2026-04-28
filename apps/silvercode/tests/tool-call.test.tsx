@@ -278,23 +278,21 @@ describe("ToolCall", () => {
     expect(app.text).not.toContain("Running")
   })
 
-  test("kind=read failed renders ✗ glyph + title + inline error message", () => {
+  test("kind=read failed renders → glyph + title + inline error message", () => {
     const app = freshRender()(
       <ToolCall
         toolCall={tc({ kind: "read", status: "failed", title: "src/foo.ts" })}
         errorMessage="ENOENT: missing file"
       />,
     )
-    // One header (✗ + title), one inline message body — no separate
-    // "Error" envelope below. Failure signal lives entirely in the unified card.
+    // v2 contract (km-silvercode.tool-call-rendering-v2): one row with `→`
+    // glyph + title (in `$error` color), one inline message body. No
+    // separate "Error" envelope, no `✗` glyph — failure is signaled by the
+    // verb color + the inline message.
     expect(app.text).toContain("src/foo.ts")
-    expect(app.text).toContain("✗")
+    expect(app.text).toMatch(/→\s+src\/foo\.ts/)
     expect(app.text).toContain("ENOENT: missing file")
-    // The redundant secondary "Error" header that used to render below the
-    // card is gone. ("Error" still appears as a substring of "ENOENT", so we
-    // assert on the full label "✗ Error" pattern rather than the bare word.)
     expect(app.text).not.toMatch(/✗\s+Error\b/)
-    // No verb prefix on the title.
     expect(app.text).not.toContain("Read failed")
   })
 
@@ -412,18 +410,22 @@ describe("ToolCall", () => {
     expect(app.text).not.toContain("▾")
   })
 
-  test("content present + collapsed → chevron ▸", () => {
+  test("content present + not hovered → body hidden (no chevron either)", () => {
+    // v2 contract: hover drives reveal, no chevron affordance. With no
+    // hover and no `defaultExpanded`, the body is simply not visible.
     const app = freshRender()(
       <ToolCall
         toolCall={tc({
           kind: "execute",
           status: "in_progress",
           title: "x",
-          content: [{ type: "content", content: { type: "text", text: "body" } }],
+          content: [{ type: "content", content: { type: "text", text: "BODY-TOKEN" } }],
         })}
       />,
     )
-    expect(app.text).toContain("▸")
+    expect(app.text).not.toContain("BODY-TOKEN")
+    expect(app.text).not.toContain("▸")
+    expect(app.text).not.toContain("▾")
   })
 })
 
