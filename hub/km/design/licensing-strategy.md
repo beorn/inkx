@@ -37,6 +37,63 @@ The spec became universal infrastructure. The commercial tier monetized polish +
 - **Month 1-3**: tribe wire v0 preview alongside silvery launch ("unstable draft" disclaimer)
 - **Month 3-6**: PlainBrain spec v0 preview, after silvery has measurable traction. Premature standards proliferation dilutes the silvery launch moment.
 
+### Corporate structure (added 2026-04-28, post finance-agent review)
+
+**Holding-company name**: **Ardentum LLC** (Latin-sounding, evocative without locking to a single product theme; portfolio includes silver-themed silvery + non-silver-themed km/PlainBrain/tribe so a "Silver*" company name was rejected). Domain `ardentum.co` available; reserve at formation.
+
+**Founder residency** (load-bearing for venue): **US / California resident as of 2025-01-25** (Canadian departure return filed same date). Not Norway-resident despite Sparebank1 / Norway citizenship. This makes the structure dramatically simpler than Norway-resident scenarios would have.
+
+**Recommended structure**:
+- **Delaware LLC, single-member (disregarded entity for federal), foreign-registered in California**.
+- NOT Wyoming (no privacy benefit when CA-resident; CA $800 franchise + Form 568 still applies).
+- NOT Norway AS (founder isn't Norway-resident).
+- NOT C-Corp at the holdco layer (premature — kills LLC loss flow-through, mis-starts §1202 QSBS clocks; spin-outs each get fresh QSBS clocks).
+- Delaware specifically because **spin-out friction is the dominant cost**: DE LLC → DE C-Corp is a one-page cert of conversion when the first product hits fundraising readiness; from any other venue it's a multi-step asset transfer or F-reorg.
+
+**Holdco architecture** (Atomic / Pioneer / Betaworks studio pattern):
+
+```
+Ardentum LLC (single-member; CA foreign-registered)
+├── silvery (Apache + CLA, lives in holdco; can be donated to foundation)
+├── tribe (Apache + CC BY 4.0 spec, lives in holdco; can be donated)
+├── PlainBrain (Apache + CC BY 4.0 spec, lives in holdco; can be donated)
+├── Trademarks (Silvery, PlainBrain, Tribe, Ardentum — owned by holdco)
+├── Domains (silvery.dev, knowledgemachine.co, plainbrain.org, plainbrains.com, ardentum.co — owned by holdco)
+├── Migration Assurance Program revenue (early-stage)
+├── silvercode subscription revenue (when launched)
+└── Future C-Corp spin-outs (silvercode Inc, Knowledge Machine Inc, etc.) — each
+    formed when individual product has revenue + market validation, takes VC
+    independently, holdco retains founder-equity in each
+```
+
+**Entities in the existing stack** (clean-slate the new one, don't relate):
+- BeoULC (Canadian ULC, T2 wind-down per vault notes) — wind down on schedule; CRA loss carryforwards aren't useful against US income; continuing US-resident shareholding of a Canadian corp triggers Form 5471 + GILTI risk.
+- EOSC (Early Orbit Software Co, wound down via Whiteboard Law Jan 2025).
+- Mama Muse LLC (Delei's separate dance-fitness business; do not consolidate).
+
+**Cross-border tax notes** (from finance agent):
+- US-domiciled LLC holding US-only assets = clean. No 5471 (domestic entity), no GILTI / Subpart F unless future foreign subs.
+- FBAR / 8938 stay on personal returns for Sparebank1 etc.
+- California taxes worldwide LLC income (~13.3% top marginal CA + ~37% federal pass-through). Migration Assurance Program revenue is CA-source.
+- §351 IP contribution from founder → Ardentum should happen **early** (near-zero basis now → avoid built-in gain at spin-out time). Cover code copyright + trademarks + domains in a single one-page assignment.
+
+**Formation checklist (this week)**:
+1. File Delaware LLC cert of formation (~$300, online, ~24h). Name: Ardentum LLC. Registered agent: Harvard Business Services or Northwest (~$100/yr).
+2. Apply for EIN (immediate, IRS online).
+3. Open Mercury business account once EIN lands (~3 business days).
+4. File **CA SOS LLC-5** (foreign LLC registration) within **90 days** of doing business in CA — hard deadline.
+5. SMLLC operating agreement (standard template; defer custom drafting).
+
+**Wait until LLC + EIN + Mercury live (~1 week)**:
+- Trademark filings (Silvery, PlainBrain, Tribe, Ardentum) — file all together, ~$350/class × 4-5 classes.
+- One-page IP assignment from founder → Ardentum (code copyright + trademarks + domains).
+- §351 contribution structuring (covered by tax CPA review).
+
+**Advisors**:
+- **First**: Jose Chu (existing US tax CPA) — confirm SMLLC disregarded-entity treatment, CA Form 568 mechanics, IP-contribution treatment. ~2-3 hours, $600-900.
+- **Defer**: Cooley / Wilson Sonsini-class corporate counsel until first spin-out is imminent (~$15-25K for clean spin-out + cap table + employee equity).
+- **Not needed**: Norwegian or Canadian tax advisors for go-forward structure (Italo Voso continues only on T1 departure return + BeoULC wind-down).
+
 **Risks**:
 - *Timing*: each standard requires authoring + community-evangelism investment. Three in 6 months is aggressive; cut to two if focus suffers.
 - *Spec quality*: a half-baked PlainBrain spec gets forked or ignored. The km repo shape is currently *implicit* (defined by what km does, not by a written spec). Extracting a clean spec is real work — likely 1-2 weeks of focused design.
