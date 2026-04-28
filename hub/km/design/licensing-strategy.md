@@ -37,62 +37,68 @@ The spec became universal infrastructure. The commercial tier monetized polish +
 - **Month 1-3**: tribe wire v0 preview alongside silvery launch ("unstable draft" disclaimer)
 - **Month 3-6**: PlainBrain spec v0 preview, after silvery has measurable traction. Premature standards proliferation dilutes the silvery launch moment.
 
-### Corporate structure (added 2026-04-28, post finance-agent review)
+### Corporate structure (slot into existing family-office plan, not a new vehicle)
 
-**Holding-company name**: **Ardentum LLC** (Latin-sounding, evocative without locking to a single product theme; portfolio includes silver-themed silvery + non-silver-themed km/PlainBrain/tribe so a "Silver*" company name was rejected). Domain `ardentum.co` available; reserve at formation.
+**Founder residency** (load-bearing for venue): **US / California resident as of 2025-01-25** (Canadian departure return filed same date). Not Norway-resident despite Sparebank1 / Norway citizenship.
 
-**Founder residency** (load-bearing for venue): **US / California resident as of 2025-01-25** (Canadian departure return filed same date). Not Norway-resident despite Sparebank1 / Norway citizenship. This makes the structure dramatically simpler than Norway-resident scenarios would have.
+**The portfolio fits the existing planned PLEP/MEES family-office architecture** documented at `~vault/areas/@office/CHARTER.md` and `~vault/areas/@office/Entities/HoldCo.md`. *Do not form a separate vehicle for the silvery/silvercode/km/tribe/PlainBrain portfolio.* It slots into the planned **Wyoming HoldCo LLC** (Phase 1, Q1 2026) and the **Growth-tier C-Corps** (Phase 2, 2027-2028).
 
-**Recommended structure**:
-- **Delaware LLC, single-member (disregarded entity for federal), foreign-registered in California**.
-- NOT Wyoming (no privacy benefit when CA-resident; CA $800 franchise + Form 568 still applies).
-- NOT Norway AS (founder isn't Norway-resident).
-- NOT C-Corp at the holdco layer (premature — kills LLC loss flow-through, mis-starts §1202 QSBS clocks; spin-outs each get fresh QSBS clocks).
-- Delaware specifically because **spin-out friction is the dominant cost**: DE LLC → DE C-Corp is a one-page cert of conversion when the first product hits fundraising readiness; from any other venue it's a multi-step asset transfer or F-reorg.
-
-**Holdco architecture** (Atomic / Pioneer / Betaworks studio pattern):
+**The PLEP architecture** (canonical reference: `~vault/areas/@office/CHARTER.md`):
 
 ```
-Ardentum LLC (single-member; CA foreign-registered)
-├── silvery (Apache + CLA, lives in holdco; can be donated to foundation)
-├── tribe (Apache + CC BY 4.0 spec, lives in holdco; can be donated)
-├── PlainBrain (Apache + CC BY 4.0 spec, lives in holdco; can be donated)
-├── Trademarks (Silvery, PlainBrain, Tribe, Ardentum — owned by holdco)
-├── Domains (silvery.dev, knowledgemachine.co, plainbrain.org, plainbrains.com, ardentum.co — owned by holdco)
-├── Migration Assurance Program revenue (early-stage)
-├── silvercode subscription revenue (when launched)
-└── Future C-Corp spin-outs (silvercode Inc, Knowledge Machine Inc, etc.) — each
-    formed when individual product has revenue + market validation, takes VC
-    independently, holdco retains founder-equity in each
+INDIVIDUALS (Bjorn + Delei, 50/50 members)
+                  ↓
+CONTROL LAYER (Q1 2026 formation)
+       Wyoming HoldCo LLC
+       — multi-member 50/50 (REQUIRED for QSBS pass-through)
+       — passive holding only (no active income; SE-tax trap)
+       — owns IP, trademarks, domains, growth-C-Corp shares
+                  ↓
+   ┌──────────────┼──────────────┐
+   ↓              ↓              ↓
+OPERATING    GROWTH (QSBS)   INVESTMENT
+LLCs         C-Corps          accounts
+(Mama Muse,  (Kimmi planned;  (personal now;
+future)      silvercode +     future Investment LLC)
+             km future)
 ```
 
-**Entities in the existing stack** (clean-slate the new one, don't relate):
-- BeoULC (Canadian ULC, T2 wind-down per vault notes) — wind down on schedule; CRA loss carryforwards aren't useful against US income; continuing US-resident shareholding of a Canadian corp triggers Form 5471 + GILTI risk.
-- EOSC (Early Orbit Software Co, wound down via Whiteboard Law Jan 2025).
-- Mama Muse LLC (Delei's separate dance-fitness business; do not consolidate).
+**Key constraints from CHARTER**:
+- HoldCo is **multi-member (Bjorn + Delei 50/50)** — required so QSBS exclusion passes through to BOTH spouses (2× $15M = $30M combined tax-free at 5+ year hold). Single-member HoldCo would forfeit half the exclusion.
+- HoldCo **cannot generate active income** (triggers SE tax). Active services revenue (Migration Assurance Program, pre-C-Corp silvercode subscriptions) must flow through Operating LLCs, the future C-Corps, or personal Schedule C — not through HoldCo.
+- HoldCo registers as foreign LLC in California **only when it has CA-source income** — saves the $800/yr franchise tax until then.
+- Wyoming-domiciled (vs Delaware): $60/yr vs $300/yr; explicitly chosen in CHARTER for "better for holding" framing.
+- Both spouses must be HoldCo members **BEFORE** HoldCo acquires any C-Corp shares — order matters for QSBS eligibility.
+- 83(b) election within 30 days of any C-Corp founder share issuance — non-negotiable.
+- Shares issued post-July-2025 get the new tiered QSBS exclusion (50% at 3yr / 75% at 4yr / 100% at 5yr); waiting helps for current-year issuances.
 
-**Cross-border tax notes** (from finance agent):
-- US-domiciled LLC holding US-only assets = clean. No 5471 (domestic entity), no GILTI / Subpart F unless future foreign subs.
-- FBAR / 8938 stay on personal returns for Sparebank1 etc.
-- California taxes worldwide LLC income (~13.3% top marginal CA + ~37% federal pass-through). Migration Assurance Program revenue is CA-source.
-- §351 IP contribution from founder → Ardentum should happen **early** (near-zero basis now → avoid built-in gain at spin-out time). Cover code copyright + trademarks + domains in a single one-page assignment.
+**Where the silvery portfolio lives in this architecture**:
 
-**Formation checklist (this week)**:
-1. File Delaware LLC cert of formation (~$300, online, ~24h). Name: Ardentum LLC. Registered agent: Harvard Business Services or Northwest (~$100/yr).
-2. Apply for EIN (immediate, IRS online).
-3. Open Mercury business account once EIN lands (~3 business days).
-4. File **CA SOS LLC-5** (foreign LLC registration) within **90 days** of doing business in CA — hard deadline.
-5. SMLLC operating agreement (standard template; defer custom drafting).
+- **silvery / tribe / PlainBrain** (open-standard IP — code copyright, trademarks, domains for `silvery.dev`, `plainbrain.org`, `plainbrains.com`, `knowledgemachine.co`, etc.) → **owned by Wyoming HoldCo LLC**. Passive IP holding is allowed; this is what HoldCo is for. Trademark filings (Silvery, PlainBrain, Tribe) get filed by HoldCo once HoldCo + EIN are live.
+- **silvercode** (commercial coding-agent product) → **future Delaware C-Corp**, issued to HoldCo at PMF or investment trigger. Same shape as the Kimmi C-Corp already in the PLEP Phase 2 plan. Founder shares post-July-2025 for new-tier QSBS.
+- **km / Knowledge Machine** → either *folds into Kimmi C-Corp* (since Kimmi is already in the PLEP roadmap as a Growth C-Corp and km/Kimmi are conceptually related), OR forms its own Delaware C-Corp at PMF. **Decision needed**: probably Kimmi-shape because the entity is already in the plan and km is the canonical PlainBrain workspace; product-overlap with Kimmi worth resolving deliberately.
+- **Migration Assurance Program revenue** (this year, pre-C-Corp) → cannot flow through HoldCo (SE tax). Cleanest path: **receive on personal Schedule C** as consulting income for the few-thousand-dollar early stage; **assign the Migration Assurance Program offering to the silvercode C-Corp** when it forms in Phase 2 (2027-2028). Forming an Operating LLC just to receive a few MAP sponsorships is overkill.
+- **Hosted services revenue (recall, ambient-safety, agentroom, PlainBrain cloud)** → flows through whichever C-Corp owns the relevant product (silvercode for silvery-cluster services; Kimmi/km for PlainBrain services).
 
-**Wait until LLC + EIN + Mercury live (~1 week)**:
-- Trademark filings (Silvery, PlainBrain, Tribe, Ardentum) — file all together, ~$350/class × 4-5 classes.
-- One-page IP assignment from founder → Ardentum (code copyright + trademarks + domains).
-- §351 contribution structuring (covered by tax CPA review).
+**HoldCo name** (TBD per the Formation Checklist in `Entities/HoldCo.md`): NOT product-themed (silvery/silver-anything is wrong because HoldCo also holds Mama Muse interests, Kimmi, future investments — family-office vehicle, not portfolio-vehicle). Family-office shape is right: *"Stabell Holdings LLC"*, *"Stabell Family LLC"*, *"[Surname] Family Office LLC"*, etc. Final naming decision should match the family-office identity, not the product-portfolio identity.
 
-**Advisors**:
-- **First**: Jose Chu (existing US tax CPA) — confirm SMLLC disregarded-entity treatment, CA Form 568 mechanics, IP-contribution treatment. ~2-3 hours, $600-900.
-- **Defer**: Cooley / Wilson Sonsini-class corporate counsel until first spin-out is imminent (~$15-25K for clean spin-out + cap table + employee equity).
-- **Not needed**: Norwegian or Canadian tax advisors for go-forward structure (Italo Voso continues only on T1 departure return + BeoULC wind-down).
+**Formation actions** (Q1 2026 per the existing PLEP Phase 1 timeline; not separate from this strategy):
+1. Decide HoldCo name (family-office-shape).
+2. File Wyoming Articles of Organization (~$100, ~$60/yr fee).
+3. Operating Agreement: 50/50 Bjorn + Delei, member-managed.
+4. EIN.
+5. Mercury or Relay business banking.
+6. **Skip CA foreign-reg until CA-source income** — saves $800/yr.
+7. After HoldCo live: file Silvery / PlainBrain / Tribe trademarks under HoldCo, ~$350/class × 4 classes.
+8. One-page IP assignment from Bjorn personally → HoldCo (code copyright + trademarks + domains).
+9. silvercode + km/Kimmi C-Corp formations follow the existing PLEP Phase 2 timeline — only when product reaches PMF or investment interest.
+
+**Advisors per CHARTER's existing plan**: Jose Chu (US tax CPA) confirms SMLLC vs partnership treatment + CA mechanics + IP-contribution structure. Corporate counsel (Cooley / Wilson Sonsini class) defers to first spin-out. Italo Voso continues only on Canadian wind-down (T1 departure + BeoULC).
+
+**Cross-references**:
+- Full charter: `~vault/areas/@office/CHARTER.md`
+- HoldCo formation plan: `~vault/areas/@office/Entities/HoldCo.md`
+- PLEP roadmap: Phase 1 (2026, HoldCo formation), Phase 2 (2027-2028, Kimmi/silvercode C-Corps + 83(b) + QSBS), Phase 3 (2028-2030, additional Operating LLCs + CA registration), Phase 4 (2030+, family office formalization).
 
 **Risks**:
 - *Timing*: each standard requires authoring + community-evangelism investment. Three in 6 months is aggressive; cut to two if focus suffers.
