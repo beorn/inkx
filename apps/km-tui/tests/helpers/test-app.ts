@@ -55,7 +55,7 @@ import { StoreProvider } from "../../src/state/store-context.tsx"
 import { setLogLevel, getLogLevel } from "loggily"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { resetDialogGuard } from "../../src/dialog-guard.ts"
-import { resetHelpStore } from "../../src/plugins/with-help-overlay.ts"
+import { resetHelpV3App } from "../../src/plugins/help-overlay.v3.ts"
 import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
 import { resetDeleteConfirmStore } from "../../src/plugins/with-delete-confirm.ts"
 import { getChordState, type ViewMode } from "@km/commands"
@@ -977,7 +977,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
   resetDialogGuard()
   resetBoardAppState()
   // Plugin singletons — leak across tests under isolate:false without these.
-  resetHelpStore()
+  resetHelpV3App()
   resetSearchStore()
   resetDeleteConfirmStore()
 

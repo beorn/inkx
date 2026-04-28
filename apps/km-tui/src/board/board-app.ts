@@ -38,6 +38,7 @@ import type { PaneUI } from "../state/ui-reducer.ts"
 import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts"
 import { getRecentsStore } from "../state/recents-store.ts"
 import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
+import { getHelpV3App } from "../plugins/help-overlay.v3.ts"
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
@@ -960,6 +961,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (!clickedInsideDialog) {
         const { ui } = opctx
         if (ui.showHelp) {
+          // Mirror to the v3 plugin so the rendered overlay disappears.
+          getHelpV3App().dispatch({ type: "help.hide" })
           opctx.setUI({ showHelp: false })
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y, nodeId: selectId ?? null }
           return

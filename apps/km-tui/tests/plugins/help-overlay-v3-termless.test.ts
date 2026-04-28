@@ -1,9 +1,10 @@
 /**
  * Termless verification — help overlay via `withHelpOverlay()` renders
- * identically to the legacy path through a real terminal emulator.
+ * correctly through a real terminal emulator.
  *
- * Mirrors `help-termless.test.ts` for v1. The invariant under test:
- * nothing in the ANSI pipeline differs when KM_TEA_HELP_V3=1 — the bridge
+ * v3 is the unconditional plugin path after the km-tui.tea-help-overlay-v3
+ * cutover, so no flag setup is required. The invariant under test: nothing
+ * in the ANSI pipeline differs when v3 sources visibility — the bridge
  * swaps the state source, not the rendered component.
  */
 import { afterEach, describe, expect, test } from "vitest"
@@ -22,49 +23,38 @@ afterEach(() => {
 
 describe("help overlay v3 — termless (real terminal emulator)", () => {
   test("? shows overlay, Escape closes, plugin state follows", async () => {
-    const prev = process.env.KM_TEA_HELP_V3
-    process.env.KM_TEA_HELP_V3 = "1"
-    try {
-      using app = createTestApp(item("board", item("col1", item("task1"))))
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-      // Open
-      app.command("show_help")
-      expect(app.state.overlay).toBe("help")
-      expect(app).toContainText("NAVIGATION")
-      expect(getHelpV3App().help.get().visible).toBe(true)
+    // Open
+    app.command("show_help")
+    expect(app.state.overlay).toBe("help")
+    expect(app).toContainText("NAVIGATION")
+    expect(getHelpV3App().help.get().visible).toBe(true)
 
-      // Scroll
-      app.press("j")
-      app.press("j")
-      expect(getHelpV3App().help.get().scrollOffset).toBe(2)
+    // Scroll
+    app.press("j")
+    app.press("j")
+    expect(getHelpV3App().help.get().scrollOffset).toBe(2)
 
-      // Close — overlay state goes back to hidden+offset=0
-      app.press("Escape")
-      expect(app.state.overlay).toBeNull()
-      expect(getHelpV3App().help.get()).toEqual({ visible: false, scrollOffset: 0 })
-    } finally {
-      if (prev === undefined) delete process.env.KM_TEA_HELP_V3
-      else process.env.KM_TEA_HELP_V3 = prev
-    }
+    // Close — overlay state goes back to hidden+offset=0
+    app.press("Escape")
+    expect(app.state.overlay).toBeNull()
+    expect(getHelpV3App().help.get()).toEqual({ visible: false, scrollOffset: 0 })
   })
 
-  test("v3 and legacy paths render the same overlay state label", async () => {
-    const overlayFromPath = (flag: string | undefined): string => {
-      const prev = process.env.KM_TEA_HELP_V3
-      if (flag === undefined) delete process.env.KM_TEA_HELP_V3
-      else process.env.KM_TEA_HELP_V3 = flag
-      resetHelpV3App()
-      try {
-        using app = createTestApp(item("board", item("col1", item("task1"))))
-        app.command("show_help")
-        return String(app.state.overlay)
-      } finally {
-        if (prev === undefined) delete process.env.KM_TEA_HELP_V3
-        else process.env.KM_TEA_HELP_V3 = prev
-      }
-    }
+  test("scroll keys (j/k) update the v3 plugin while help is open", async () => {
+    using app = createTestApp(item("board", item("col1", item("task1"))))
 
-    expect(overlayFromPath(undefined)).toBe(overlayFromPath("1"))
+    app.command("show_help")
+    expect(getHelpV3App().help.get()).toEqual({ visible: true, scrollOffset: 0 })
+
+    app.press("j")
+    app.press("j")
+    app.press("j")
+    expect(getHelpV3App().help.get().scrollOffset).toBe(3)
+
+    app.press("k")
+    expect(getHelpV3App().help.get().scrollOffset).toBe(2)
   })
 })
 
