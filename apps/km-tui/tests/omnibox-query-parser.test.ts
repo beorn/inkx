@@ -56,16 +56,16 @@ describe("parseQuery — phrase (quoted)", () => {
 
 describe("parseQuery — exclude (- and !)", () => {
   it("-foo → negated smart", () => {
-    expect(parseQuery("-foo").terms).toEqual([{ kind: "smart", value: "foo", negated: true }])
+    expect(parseQuery("-foo").terms).toEqual([{ kind: "smart", value: "foo", negated: true, negationChar: "-" }])
   })
   it("!foo → negated smart (fzf)", () => {
-    expect(parseQuery("!foo").terms).toEqual([{ kind: "smart", value: "foo", negated: true }])
+    expect(parseQuery("!foo").terms).toEqual([{ kind: "smart", value: "foo", negated: true, negationChar: "!" }])
   })
   it("include + exclude combination", () => {
     expect(parseQuery("foo -bar !baz").terms).toEqual([
       { kind: "smart", value: "foo", negated: false },
-      { kind: "smart", value: "bar", negated: true },
-      { kind: "smart", value: "baz", negated: true },
+      { kind: "smart", value: "bar", negated: true, negationChar: "-" },
+      { kind: "smart", value: "baz", negated: true, negationChar: "!" },
     ])
   })
   it("lone '-' or '!' is ignored", () => {
@@ -138,7 +138,7 @@ describe("parseQuery — combinations", () => {
     expect(q.terms).toEqual([
       { kind: "smart", value: "delei", negated: false },
       { kind: "phrase", value: "new project", negated: false },
-      { kind: "smart", value: "archived", negated: true },
+      { kind: "smart", value: "archived", negated: true, negationChar: "-" },
     ])
   })
   it("taskFilter + sigil body after → taskFilter wins first, then sigil on next token", () => {

@@ -44,6 +44,12 @@ export interface QueryTerm {
   kind: "smart" | "phrase"
   value: string
   negated: boolean
+  /**
+   * The exact negation char the user typed (`-` or `!`), or undefined when
+   * the term is positive. Surfaced so the parse-chips strip can echo back
+   * the verbatim form (`!foo` stays `!foo`, not `-foo`).
+   */
+  negationChar?: "-" | "!"
 }
 
 /** One of the four sigil families that restrict the candidate pool. */
@@ -175,9 +181,11 @@ function toTerm(tok: string): QueryTerm | null {
   if (!tok) return null
 
   let negated = false
+  let negationChar: "-" | "!" | undefined
   let body = tok
   if (body.startsWith("-") || body.startsWith("!")) {
     negated = true
+    negationChar = body[0] as "-" | "!"
     body = body.slice(1)
   }
   if (!body) return null
@@ -188,11 +196,15 @@ function toTerm(tok: string): QueryTerm | null {
   if (body.startsWith('"') && body.endsWith('"') && body.length >= 2) {
     const inner = body.slice(1, -1)
     if (!inner) return null
-    return { kind: "phrase", value: inner, negated }
+    const term: QueryTerm = { kind: "phrase", value: inner, negated }
+    if (negationChar) term.negationChar = negationChar
+    return term
   }
 
   // TODO(v1.1): ^prefix, suffix$, 'exact, key::value are parsed as smart today.
-  return { kind: "smart", value: body, negated }
+  const term: QueryTerm = { kind: "smart", value: body, negated }
+  if (negationChar) term.negationChar = negationChar
+  return term
 }
 
 // =============================================================================

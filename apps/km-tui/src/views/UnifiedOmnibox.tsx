@@ -20,6 +20,7 @@ import { Box, ModalDialog, PickerList, Text, TextInput } from "@silvery/ag-react
 import { OmniboxRow, type OmniboxRowData } from "./OmniboxRow.tsx"
 import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
+import { chipsFromQuery, type Chip } from "../state/omnibox-chips.ts"
 
 // =============================================================================
 // Empty-buffer prefix guide
@@ -62,6 +63,50 @@ function GuideHeading({ children }: { children: string }): React.ReactElement {
     <Text bold color="$fg-muted">
       {children}
     </Text>
+  )
+}
+
+// =============================================================================
+// Parse chips strip — visible "what the parser understood" legend
+// =============================================================================
+
+/**
+ * One-line strip of chips that mirrors the buffer's parsed structure.
+ * Renders only when the buffer parses to at least one recognized token —
+ * empty buffers fall through to the prefix guide.
+ *
+ * Implements `km-tui.omnibox-parse-chips` — the "visible narrowing legend"
+ * pattern from Emacs Consult and which-key. Pure presentation; the
+ * derivation lives in `state/omnibox-chips.ts` so the same data is
+ * available to tests, the preview pane, and any future debug surface.
+ *
+ * Acceptance:
+ *  (a) chips render above the buffer, one per parsed token
+ *  (b) chips update on every keystroke without jitter (component is pure
+ *      and re-renders only when `chips` changes by reference)
+ *  (c) chip color/style differs per token kind via theme tokens
+ *  (d) typing an unknown token shows it as a `text` chip, not nothing
+ *  (g) chips are display-only; tokens are still edited via the buffer
+ */
+function ParseChips({ chips }: { chips: readonly Chip[] }): React.ReactElement | null {
+  if (chips.length === 0) return null
+  return (
+    <Box
+      flexDirection="row"
+      flexWrap="wrap"
+      data-testid="omnibox-parse-chips"
+      // Single-line strip with vertical breathing room above and below
+      // so it doesn't collide with the input cursor row.
+      marginTop={1}
+      marginBottom={1}
+      gap={1}
+    >
+      {chips.map((chip) => (
+        <Text key={chip.key} color={chip.color} data-chip-kind={chip.kind}>
+          {chip.label}
+        </Text>
+      ))}
+    </Box>
   )
 }
 
@@ -201,6 +246,12 @@ function CenterOmnibox({
   // should still surface favorites, not the guide).
   const showGuide = buffer === "" && mode === "universal" && pane.state.defaultCommand === "default"
 
+  // Live parse chips — strip rendered between the input and the result list
+  // when the buffer parses to at least one token. Memoized on the buffer so
+  // the chip array reference is stable across renders that don't change the
+  // buffer (e.g. selection-only changes).
+  const chips = React.useMemo(() => chipsFromQuery(buffer), [buffer])
+
   // Chrome budget (borderless dialog, opencode-style): title(2) + paddingY(2)
   // + input(1 row, borderless) + blank-line gap(1) = 6 rows. No outer border.
   // paddingX=3 pushes primary content (title, input, results) 2 cols right of
@@ -229,9 +280,12 @@ function CenterOmnibox({
           prompt={chrome.prompt}
           promptColor="$fg-accent"
         />
+        {/* Parse chips — empty when the buffer is empty/whitespace, so this
+            gracefully degrades to a single blank line in that case. */}
+        <ParseChips chips={chips} />
         {/* One-line gap between the input and the results/guide — visual
             breathing room so the input doesn't abut the first row. */}
-        <Text> </Text>
+        {chips.length === 0 && <Text> </Text>}
         {showGuide ? (
           <PrefixGuide />
         ) : (
