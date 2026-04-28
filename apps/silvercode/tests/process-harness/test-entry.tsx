@@ -78,12 +78,13 @@ async function main(): Promise<void> {
   const layout = readStr("SILVERCODE_TEST_LAYOUT", "single") as "single" | "grid-2" | "grid-4"
   // SILVERCODE_TEST_TRACK is a legacy env-driven dispatch knob — values
   // map to canonical agent ids in BUILTIN_AGENTS:
-  //   "claude" → undefined (default spawnClaude path)
+  //   "claude" → "claude-code" (matches the bin's resolved default; the
+  //              old `undefined` value pre-dated BUILTIN_AGENTS and now
+  //              breaks the welcome H1 — bead km-silvercode.welcome-claude-hardcoded)
   //   "sdk"    → "claude-code-sdk" (in-process SDK)
   //   "codex"  → "codex-spawn"    (legacy stream-json codex)
   const track = readStr("SILVERCODE_TEST_TRACK", "claude")
-  const agentForTrack: string | undefined =
-    track === "sdk" ? "claude-code-sdk" : track === "codex" ? "codex-spawn" : undefined
+  const agentForTrack: string = track === "sdk" ? "claude-code-sdk" : track === "codex" ? "codex-spawn" : "claude-code"
 
   const handle = await run(
     <App

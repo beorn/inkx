@@ -26,8 +26,10 @@ import { welcome } from "../src/test/scripts/welcome.ts"
 import { SessionCard } from "../src/components/SessionCard.tsx"
 
 test("Welcome content renders in focused pane (full app)", async () => {
-  const s = await renderScenario({ script: welcome, cols: 120, rows: 30 })
-  // Title is the canonical Welcome marker.
+  const s = await renderScenario({ script: welcome, cols: 120, rows: 30, agent: "claude-code" })
+  // Title is the canonical Welcome marker. With agent=claude-code the
+  // suffix renders; without it the H1 falls back to bare "Silver Code".
+  // Bead: km-silvercode.welcome-claude-hardcoded.
   expect(s.text).toContain("Silver Code for Claude Code")
   // Commands + Keybindings sections must both render.
   expect(s.text).toContain("Commands")
@@ -63,7 +65,14 @@ test("SessionCard with empty messages renders Welcome alongside the focus bar", 
   const app = renderer(
     <Screen flexDirection="row">
       <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
-        <SessionCard handle={handle} isFocused onFocus={() => {}} onApprove={() => {}} onDeny={() => {}} />
+        <SessionCard
+          handle={handle}
+          isFocused
+          agent="claude-code"
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+        />
       </Box>
     </Screen>,
   )

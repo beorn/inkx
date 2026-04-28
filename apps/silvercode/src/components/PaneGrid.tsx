@@ -125,6 +125,10 @@ export type PaneGridProps = {
   /** App-level `/raw` debug toggle. Forwarded to every SessionCard.
    *  Bead: km-silvercode.resume-show-everything-collapsed. */
   showDebug?: boolean
+  /** Canonical agent id from BUILTIN_AGENTS — forwarded to every
+   *  SessionCard so the welcome card can label itself per-agent. Bead:
+   *  km-silvercode.welcome-claude-hardcoded. */
+  agent?: string
 }
 
 /**
@@ -187,6 +191,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     onRegisterScrollList,
     showDebug = false,
     controller,
+    agent,
   } = props
 
   const dragRef = useRef<DragState | null>(null)
@@ -384,6 +389,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           onRegisterScrollList={onRegisterScrollList}
           showDebug={showDebug}
           controller={controller}
+          agent={agent}
         />
       )
     },
@@ -403,6 +409,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onRegisterScrollList,
       showDebug,
       controller,
+      agent,
     ],
   )
 
@@ -428,6 +435,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               onRegisterScrollList={onRegisterScrollList}
               showDebug={showDebug}
               controller={controller}
+              agent={agent}
             />
           </Box>
         </Box>
@@ -487,6 +495,7 @@ function LeafContainer({
   onRegisterScrollList,
   showDebug = false,
   controller,
+  agent,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -510,6 +519,9 @@ function LeafContainer({
   onRegisterScrollList?: (sessionId: string, handle: ListViewHandle | null) => void
   showDebug?: boolean
   controller?: Controller
+  /** Agent id forwarded to SessionCard's Welcome card. Bead:
+   *  km-silvercode.welcome-claude-hardcoded. */
+  agent?: string
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -542,6 +554,7 @@ function LeafContainer({
           onRegisterScrollList={onRegisterScrollList}
           showDebug={showDebug}
           controller={controller}
+          agent={agent}
         />
       )}
       {/* Grab handle — 1×1 cell at top-left, painted over the active-bar.

@@ -67,6 +67,11 @@ export type RenderScenarioOptions = {
   bare?: boolean
   /** Pass-through model. Default: claude-sonnet-4-6. */
   model?: string
+  /** Pass-through agent id (BUILTIN_AGENTS key). Default: undefined.
+   *  When set, the Welcome card's H1 reads "Silver Code for {label}";
+   *  unset falls back to bare "Silver Code". Bead:
+   *  km-silvercode.welcome-claude-hardcoded. */
+  agent?: string
   /** CWD for the App. Default "/tmp/silvercode-test". */
   cwd?: string
   /**
@@ -175,7 +180,10 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
   // ignored — the real subprocess produces the events.
-  const elementProps = live ? { cwd, bare, layout, model } : { cwd, bare, layout, model, spawnFactory: () => fake }
+  const agent = opts.agent
+  const elementProps = live
+    ? { cwd, bare, layout, model, agent }
+    : { cwd, bare, layout, model, agent, spawnFactory: () => fake }
   // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
   // useScope, shipped with vendor/silvery 7d9ee808) have an ambient scope
   // to register against. createApp/run() do this for production paths;

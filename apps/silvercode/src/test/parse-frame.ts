@@ -126,7 +126,10 @@ export type InputBoxRegion = {
 }
 
 export type WelcomeRegion = {
-  /** Whether the Welcome panel is visible (heuristic: contains "Silver Code for Claude Code"). */
+  /** Whether the Welcome panel is visible. The heuristic now anchors on the
+   *  agent-agnostic "Silver Code" prefix so it works for codex / gemini /
+   *  copilot welcome cards too — the suffix is "for {agentLabel}" or empty.
+   *  Bead: km-silvercode.welcome-claude-hardcoded. */
   readonly visible: boolean
   /** All rows belonging to the welcome panel (heuristic: lines from intro heading down to Keybindings end). */
   readonly rows: readonly string[]
@@ -278,7 +281,10 @@ function parseInputBox(lines: readonly string[], leftWidth: number): InputBoxReg
 }
 
 function parseWelcome(lines: readonly string[]): WelcomeRegion {
-  const startRow = lines.findIndex((l) => l.includes("Silver Code for Claude Code"))
+  // Anchor on agent-agnostic "Silver Code" — the H1 reads
+  // "Silver Code for {Codex|Claude Code|Gemini|…}" or bare "Silver Code"
+  // when the agent is unknown. Bead: km-silvercode.welcome-claude-hardcoded.
+  const startRow = lines.findIndex((l) => /\bSilver Code\b/.test(l) && !l.includes("Silver Code v"))
   if (startRow === -1) return { visible: false, rows: [] }
   // Welcome ends when we hit a blank row AFTER we've seen the Keybindings
   // heading, OR at end of frame.

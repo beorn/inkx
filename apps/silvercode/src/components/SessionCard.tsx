@@ -34,6 +34,7 @@ export function SessionCard({
   onRegisterScrollList,
   showDebug = false,
   controller,
+  agent,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -64,6 +65,10 @@ export function SessionCard({
    * Bead: km-silvercode.ambient-inline-display.
    */
   controller?: Controller
+  /** Canonical agent id from BUILTIN_AGENTS — drives the welcome card's
+   *  H1 ("Silver Code for Codex" vs "Silver Code for Claude Code").
+   *  Undefined falls back to bare "Silver Code". */
+  agent?: string
 }): React.ReactElement {
   const state = useStoreSignal(handle.store)
   // Ambient stream — pre-filtered through the mute set so muted source
@@ -147,7 +152,7 @@ export function SessionCard({
       >
         <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} paddingX={1} paddingTop={1}>
           {state.messages.length === 0 ? (
-            <Welcome handle={handle} />
+            <Welcome handle={handle} agent={agent} />
           ) : (
             <SessionUpdateList
               ref={scrollListRefCb}

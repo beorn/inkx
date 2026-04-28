@@ -3,6 +3,25 @@ import { Box, H1, H2, Muted, Text } from "silvery"
 import type { SessionHandle } from "../controller.ts"
 
 /**
+ * Per-agent display label for the welcome heading. Mirrors the
+ * `AGENT_DISPLAY` map in `SidePanel.tsx` so the welcome card and the
+ * side-panel branding row stay in sync. When the active agent is unknown
+ * (custom / free-form id), the heading drops the "for X" suffix instead
+ * of showing the raw id — bare "Silver Code" is the safe fallback.
+ *
+ * Bead: km-silvercode.welcome-claude-hardcoded.
+ */
+const AGENT_LABELS: Readonly<Record<string, string>> = {
+  "claude-code": "Claude Code",
+  "claude-code-spawn": "Claude Code",
+  "claude-code-sdk": "Claude Code",
+  codex: "Codex",
+  "codex-spawn": "Codex",
+  gemini: "Gemini",
+  "github-copilot-cli": "GitHub Copilot",
+}
+
+/**
  * Empty-state card shown when a session has no messages yet. Contains only
  * the help surface users reach for BEFORE they've sent a first message:
  * product title, getting-started hint, command + keybind reference.
@@ -10,14 +29,20 @@ import type { SessionHandle } from "../controller.ts"
  * here was noise; the user lives in the mode indicator once they're past
  * the intro screen.
  */
-export function Welcome(_: { handle: SessionHandle }): React.ReactElement {
+export function Welcome(props: {
+  handle: SessionHandle
+  /** Canonical agent id from BUILTIN_AGENTS — drives the "for X" suffix
+   *  on the H1. Undefined / unknown id falls back to bare "Silver Code". */
+  agent?: string
+}): React.ReactElement {
+  const agentLabel = props.agent ? AGENT_LABELS[props.agent] : undefined
   return (
     <Box flexDirection="column" gap={1} paddingX={1} paddingY={1}>
       <Box flexDirection="row" gap={1}>
         <Text bold color="$accent">
           ◈
         </Text>
-        <H1>Silver Code for Claude Code</H1>
+        <H1>{agentLabel ? `Silver Code for ${agentLabel}` : "Silver Code"}</H1>
       </Box>
 
       <Box flexDirection="column">

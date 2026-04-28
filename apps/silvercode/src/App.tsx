@@ -1220,6 +1220,7 @@ export function App(props: AppProps): React.ReactElement {
                     minimizedPaneIds={minimizedPaneIds}
                     onRegisterScrollList={registerScrollList}
                     showDebug={showDebug}
+                    agent={props.agent}
                   />
                 )}
 
