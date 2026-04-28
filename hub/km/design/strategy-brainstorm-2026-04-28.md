@@ -38,10 +38,10 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 
 | Phase | Team size | Capital posture | Focus |
 |---|---|---|---|
-| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + [ACP](#g-acp)-proxy ship-now cluster ([S18](#s18)) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km |
-| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-[SLA](#g-sla)), `.brain` registry preview, [S23](#s23) demo, design-partner outreach |
-| Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo burn | production services, enterprise readiness, AI-lab outreach |
-| Months 12+ | seed/Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → [S24](#s24); services scaling → [S2](#s2)/[S16](#s16); `.brain` adoption → [S26](#s26) standalone; PKM market shifts → [Family B](#family-map)) |
+| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + [ACP](#g-acp)-proxy ship-now cluster ([S18](#s18)) shipped closed/open-core ([BSL](#g-bsl) on gateway code from day one) + tribe wire as INTERNAL API + conformance harness in private + `.brain` as `run-brain` utility (NOT a spec) + silvercode-as-open-reference (zero-config to agentroom.cloud) + dogfooding km |
+| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-[SLA](#g-sla)), tribe wire published as documentation (NOT formal MSC), `.brain` registry preview with provenance/signing, [S23](#s23) demo, design-partner outreach |
+| Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo burn | production services, enterprise readiness, AI-lab outreach, **submit formal MSC for `org.agentroom.*`** (with dominant impl behind it) |
+| Months 12+ | seed/Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → [S24](#s24); services scaling → [S2](#s2)/[S16](#s16); `.brain` adoption → [S26](#s26) standalone; PKM market shifts → [Family B](#family-map)). **Standardize-to-weaponize** — formalize `.brain` once 10K+ brains in registry. |
 
 *Burn estimates assume Bay-Area engineering rates; remote-only or international hiring shifts ranges 30-50% lower. Timelines are nominal — solo timelines slip 1.5-2× under realistic distraction load.*
 
@@ -147,6 +147,19 @@ SUPPORTING          Standards (CC BY 4.0), feeder sites, bearly
 - **Compose freely**: [silvercode](#g-silvercode), km, future apps. Vehicles for the layers, not the layers themselves.
 - **Open-source generously at the layer level; monetize at the services level + selectively at app-shape.**
 
+**License partitioning by layer** (per /pro 4-leg consensus + /deep prior art — Confluent, Mongo, Elastic, HashiCorp, Redis):
+
+| Layer | License | Why |
+|---|---|---|
+| [silvery](#g-silvery) framework + tribe client SDKs + adapters | [Apache 2.0](#g-apache) | Adoption funnel; permissive maximizes reach |
+| [tribe](#g-tribe) spec text + `org.agentroom.*` + [`.brain`](#g-plainbrain) spec | CC BY 4.0 | Remixability — required for becoming a standard |
+| Reference parsers + reference clients | Apache 2.0 | Working code under spec to prove correctness |
+| **Reference gateway** (single-user, no SLA, runnable demo) | **AGPL** | Viral copyleft scares cloud clones away from repackaging |
+| **Production gateway, CrossAgentState orchestrator, ambient-safety pipeline, multi-machine router, sub-agent compute** | **[BSL 1.1](#g-bsl) OR [Elastic License v2](#g-elastic-l) OR [Confluent Community License](#g-ccl) — from day one** | Source-available, cloud-protective. Pick day one to avoid post-launch fork-risk (OpenSearch, OpenTofu, Valkey) |
+| All server-side repos | [CLA](#g-cla) required | Preserves relicense optionality |
+
+**Key prior-art lesson**: switching licenses *post-adoption* triggers fork risk (Elastic→OpenSearch 2021, HashiCorp→OpenTofu 2023, Redis→Valkey 2024). License the production server correctly day one. Confluent's CCL (selective, since 2018) avoided this; Kafka stayed Apache while ksqlDB/Schema Registry got CCL.
+
 **Vertical-integration insight (added 2026-04-28)**: owning the UI layer creates leverage that pure-services competitors can't match. The full vertical stack — UI ⇄ first-party agent ⇄ ACP-services — lets us ship UI features that *only* compose properly with our agent + our services. Cursor's moat is exactly this shape: Cursor supports any model API but the Composer + Agent UX is first-party and the integrated experience is what people pay for. The strategic move:
 
 - **Universal client (option 1) stays first-class** — silvercode hosts Claude Code, Codex, Aider, Cline, Continue, pi. Gives us the multi-agent coordination story (squad mode, parallel agents, cross-agent state).
@@ -217,11 +230,18 @@ Every JSX tag and hook is differently shaped. Ink → OpenTUI rewrites every UI 
 - **Greenfield React TUI**: OpenTUI, Ink itself, Bubble Tea (cross-pollinates).
 - **Agentic IDE**: Cursor, Claude Code, Aider, Cline, Continue, Goose, Crush, opencode, Kilo Code, Codex CLI, gemini-cli, OpenHands.
 - **PKM-for-AI**: Notion ($30B+), Obsidian, Logseq, Reflect, Mem, Tana; Cursor Rules / Claude Projects / ChatGPT Memory (the AI-native players).
-- **AI infra services**: [Vercel](#g-vercel) AI SDK + Gateway (~$200M ARR), [Auth0](#g-auth0) ($6.5B), [Algolia](#g-algolia) ($100M+), Supabase ($50M+), LangChain/LangSmith, Helicone, Portkey, Pinecone, Weaviate, Modal, E2B.
+- **AI infra services**: [Vercel](#g-vercel) AI SDK + AI Gateway (~$200M ARR), [Auth0](#g-auth0) ($6.5B), [Algolia](#g-algolia) ($100M+), Supabase ($50M+), LangChain/LangSmith, Helicone, Portkey, Pinecone, Weaviate, Modal, E2B.
 - **Cross-tool coordination / ACP**: [Zed Industries](#g-zed-industries) (ACP creator), Anthropic + OpenAI implicit (Claude Code, Codex), Matrix Foundation.
-- **ACP registry + bridges (community-driven, NOT Zed)**:
+- **Agent-coordination layer competitors (April 2026, per /deep prior-art research)**:
+  - **[Zed ACP Registry](#g-acp-registry)** — shipped January 2026 by Zed Industries. Public registry for ACP-compatible agents. *Naming/distribution surface now contested.*
   - **[agentclientprotocol.com/registry](https://agentclientprotocol.com/get-started/registry)** — community ACP-agent registry. Lists Claude Agent, Gemini CLI, Copilot, Cline, Cursor, goose. Format: `agent.json` + `icon.svg`; distribution: JSON file at `cdn.agentclientprotocol.com/registry/v1/latest/registry.json`. *Distribution metadata for existing agents — not a portable agent format.*
   - **[github.com/Open-ACP](https://github.com/Open-ACP)** (280 stars) — self-hosted ACP bridge: Claude Code/Codex/etc → Telegram/Discord/Slack. Has plugin registry, adapters, workspace plugins, git monitoring, TTS. *Validates the bridge category; partially commoditizes the Discord/Slack-adapter portion of the agentroom value prop.*
+  - **[Vercel AI Gateway](#g-vercel-ai-gw)** — already in production, multi-provider integration, observability, caching. Strongest direct competitor for the gateway slot.
+  - **[Helicone](#g-helicone)** (OSS observability), **[Portkey](#g-portkey)** (gateway with retries/fallbacks/caching), **[OpenRouter](#g-openrouter)** (model aggregator/routing) — each occupies a slice of the services tier (observability, gateway, routing).
+  - **[LangChain Agent Middleware](#g-langchain) + [LangGraph](#g-langgraph)** — orchestration as production-first concept; threat to agentroom's coordination-state layer (#13).
+  - **[LlamaIndex agents](#g-llamaindex)** — multi-agent topology support.
+  - **Slack + Anthropic** — deepening "agents in Slack" with [MCP](#g-mcp)-connected assistants; Claude Code routes work from Slack. *Threat: Slack might become the canonical chat-surface bridge, eating part of agentroom's adapter value.*
+  - **Gap (the agentroom window)**: no public production [SLA](#g-sla)'d ACP↔Matrix gateway by Zed/JetBrains. Multiple community MCP servers for Matrix exist but no SLA-bearing managed offering. agentroom's window is real but contested by the registry players above.
 
 ### Trends + windows
 
@@ -620,9 +640,17 @@ Docker analog (intentional):
 
 **Score**: B=4 / T=12-24 / C=very-high (Docker-shape ceiling, generational-scale if standard adoption happens) / R=4 / D=ACP wins; format proposal lands as MSC; agent-portability becomes buyer-felt; execution speed beats labs to publish.
 
-**Window concern**: every Big AI lab will eventually need to standardize agent persistence + travel. `.brain` could be that standard *if shipped first* with operational utility. Window is open *now*; closes when one lab ships theirs.
+**Window concern**: every Big AI lab will eventually need to standardize agent persistence + travel. `.brain` could be that standard *if it has operational utility before anyone tries to standardize*. Window is open *now*; closes when one lab ships theirs.
 
-**Refined wedge given ACP registry exists**: [`agentclientprotocol.com/registry`](https://agentclientprotocol.com/get-started/registry) is *agent distribution metadata for existing agents*, not a portable agent format. `agent.json` describes how to install Claude Code or Cline; `.brain` describes what an agent *is* (knowledge + skills + persona + history) so it can travel and merge. The registry is a place `.brain` artifacts could be distributed *from* — complement, not competitor. The wedge sharpens, not weakens.
+**Sequencing — utility-first, NOT spec-first** (per /pro 4-leg consensus + /deep prior art):
+
+- **Months 0-3**: Ship `run-brain` CLI + `pack-brain`/`merge-brain`/`fork-brain` operations as a **developer utility** with vendor profile. Frame as "developer preview," NOT "the new standard." Ship actual brains in your demos. **Do NOT publish a formal `.brain` spec for public debate** — that triggers third-standard backlash and gifts your R&D to AI labs.
+- **Months 3-6**: Document the format publicly as a markdown spec (not foundation submission). Brainhub.dev preview registry; sign-and-provenance for trusted publishers. Make the registry an actual network, not a list.
+- **Months 6-12+ — standardize-to-weaponize**: Only push for industry standardization when ≥10K brains in registry, ≥2 runtimes load it, ≥1 lab/prominent OSS agent ships brains. By then competitors must adopt *your* standard because the ecosystem has already standardized on it. Docker → OCI worked this way; AWS S3 became de-facto standard the same way.
+
+**Why this beats the original plan**: a brilliant spec published in Month 2 *before* a working network gets read by Anthropic, tweaked 10%, and shipped natively in Claude Code to millions. They do your R&D for free. You don't publish the standard to beat them; you ship the *utility* to beat them. The standard comes after lock-in, as the moat that drowns fast-followers.
+
+**Refined wedge given ACP registries exist**: [Zed's ACP Registry](#g-acp-registry) shipped Jan 2026 and the community [`agentclientprotocol.com/registry`](https://agentclientprotocol.com/get-started/registry) catalogs existing agents — both are *agent distribution metadata for existing agents*, not portable agent formats. `agent.json` describes how to install Claude Code or Cline; `.brain` describes what an agent *is* (knowledge + skills + persona + history) so it can travel, merge, and run anywhere. The registries are places `.brain` artifacts could be distributed *from* — complement, not competitor. But the registry *naming/distribution surface* is now contested, so brainhub.dev's differentiator is the **managed runtime** (provenance, signing, verified publishers, hosted execution), not just the catalog.
 
 **Synergy with [S25](#s25)**: not a replacement — [S26](#s26) is the protocol layer's *maximum* framing. [S25](#s25) builds the substrate; [S26](#s26) names the format the substrate embodies. The two compose.
 
@@ -636,23 +664,25 @@ Docker analog (intentional):
 
 ### Recommended path η (S25 + S23 + S26)
 
-**Months 0-3 (solo)** — invest in architecture, build signal:
+**Months 0-3 (solo)** — build private, ship working code, claim namespace minimally:
 
 - silvery maintenance + light promo (let cluster-1 sites work organically).
-- Ship **ACP-proxy top-3 cluster** ([S18](#s18): #1 observability + #2 cross-agent recall + #3 cost dashboard) as tribe-side plugins in silvercode. *"One sprint to MVP."*
-- Author **tribe wire v0** (Apache + [CC BY 4.0](#g-cc-by)) and submit `org.agentroom.*` events as Matrix MSC.
-- Author **`.brain` v0 spec** + `run-brain` CLI ([S26](#s26)).
-- Continue dogfooding km / silvercode. silvercode launches as **open reference IDE** (free, demonstrator).
-- Build the **agent layer wrapping** (universal ACP-wrapper for Claude Code, Codex, Aider, Cline).
+- Ship **ACP-proxy top-3 cluster** ([S18](#s18): #1 observability + #2 cross-agent recall + #3 cost dashboard) as tribe-side plugins in silvercode — initially **closed or open-core** (BSL/CCL on the gateway code from day one). *"One sprint to MVP."*
+- **Treat tribe wire as INTERNAL API.** Hardcode it between silvercode and your gateway. Iterate fast, break it freely. **Do NOT submit a formal MSC yet** — premature standardization is *architecture astronauting* (per /pro consensus). Specs are extracted from dominant implementations (Docker→OCI, S3→de-facto), not authored ahead.
+- **Minimal namespace land-grab only**: a one-page reservation of `org.agentroom.*` on Matrix is fine if it's an afternoon's work; resist building a v0 spec, event vocabulary, and community-engagement plan in Q1.
+- Ship **`.brain` v0 as a developer-utility** — `run-brain` CLI + `pack-brain`/`merge-brain` operations. Frame as "vendor profile + developer preview," NOT as "the new standard." Ship actual brains in your demos.
+- Build the **conformance test harness** (golden traces + replay + reference validator CLI) in private alongside the wire — this is the *real* spec moat per /pro, not the spec text.
+- Continue dogfooding km / silvercode. silvercode launches as **open reference IDE** (free, demonstrator) with **agentroom.cloud as the zero-config default**. Build the agent layer wrapping (universal ACP-wrapper for [Claude Code](#g-claude-code), Codex, Aider, Cline, pi).
 - Network priming for first co-founder / hire / fundraise (Palo Alto warm intros).
 - **No production hosted services yet** — too operationally heavy for solo.
 
-**Months 3-6 (first hire)** — productize what dogfooding validates:
+**Months 3-6 (first hire)** — productize what dogfooding validates; document but don't standardize:
 
 - First hire: infrastructure-ops co-founder OR services-product engineer.
-- **agentroom preview gateway** — multi-machine routing, single-region, best-effort uptime, no SLA, design-partner-only. *Explicitly NOT production-grade.* Production-grade (multi-region, 99.9% SLA, SOC2, on-call rotation, security review) requires the months 6-12 team — it's structurally impossible with one hire and consistent with the "don't ship production hosted services solo" constraint.
+- **agentroom preview gateway** — multi-machine routing, single-region, best-effort uptime, no SLA, design-partner-only. *Explicitly NOT production-grade.* Production-grade (multi-region, 99.9% SLA, [SOC2](#g-soc2), on-call rotation, security review) requires the months 6-12 team — structurally impossible with one hire.
+- **Now publish tribe wire as documentation** (a public markdown spec, *not* a formal MSC yet). Let design partners pull it into their tooling if they ask. If no one asks, that's signal — your protocol isn't sticky enough yet.
 - Ship **[S23](#s23) integrated playground** demo (chat + docs + code + agents + boards + diagrams). The killer demo.
-- Promote `.brain` registry preview (`brainhub.dev`).
+- Promote `.brain` registry preview (`brainhub.dev`) — still as utility, not "the standard."
 - Hardening + outreach on top-3 cluster ([S18](#s18) → 3-5 design-partner customers, not paid SaaS at scale).
 - **Decision-point**: services-led-only ([S25](#s25)) vs services-led + standalone-agentroom-spinout ([S25](#s25) + [S5](#s5)).
 
@@ -662,9 +692,10 @@ Docker analog (intentional):
 - Enterprise readiness: SOC2 progression, audit logs, SSO, regional hosting.
 - silvercode + km integration deepens ([S22](#s22)); km decomposed into silvercode features OR remains as separate workspace.
 - Big AI lab outreach ([S15](#s15) / [S24](#s24)).
+- **Now submit formal MSC** for `org.agentroom.*` — gated on: ≥2 independent implementations (yours + 1 external), ≥3 design partners in active use, <2 breaking changes in 60 days, passing conformance suite. Submitting MSC *with* dominant implementation behind you forces reviewers to debate working code rather than aspirations.
 - Decide on Obsidian-acquisition-timing-aware moves for [Family B](#family-map).
 
-**Months 12+ (seed → Series A)** — signal-driven path deepening:
+**Months 12+ (seed → Series A)** — signal-driven path deepening + standardize-to-weaponize:
 
 | Signal | Tilt toward |
 |---|---|
@@ -735,6 +766,32 @@ The only strategy that simultaneously:
 - **Don't ship production hosted services solo** — degrade quality and burn out. Demo-grade is fine; production-grade waits for hires.
 - **Don't promote PlainBrain as a standalone "third standard" before silvery validates** — premature standards proliferation per /pro v3. Frame as `.brain` ([S26](#s26)) which has its own thesis.
 - **Don't pre-form a separate entity for agentroom** — keep [S5](#s5) spinout optional; defer formation until [Family D](#family-map) services prove out and signal which structure is right.
+- **Don't submit a formal MSC in months 0-3** ([architecture astronauting](#g-arch-astro), per /pro 4-leg consensus). Ship dominant implementation first; standardize-to-weaponize at month 6+ when you have 5K+ daily active agents using your shape in production. Docker→OCI worked this way; AWS S3→de-facto worked this way.
+- **Don't open-source the production gateway, ambient-safety classifier, sub-agent compute, or multi-tenant orchestrator at production-grade quality**. Ship a *demonstrator* AGPL reference gateway (single-user, no SLA) so the spec has runnable code; keep the production server under [BSL](#g-bsl) / [Elastic License v2](#g-elastic-l) / [CCL](#g-ccl) **from day one** to avoid the post-launch fork-risk that hit Mongo (SSPL → AWS DocumentDB), Elastic ([Elastic License](#g-elastic-l) → OpenSearch), HashiCorp ([BSL](#g-bsl) → OpenTofu), and Redis ([RSAL](#g-rsal)/SSPL → Valkey).
+- **Don't claim spec authorship is a moat without conformance suite + dominant implementation** — [OpenAPI](#g-openapi)/Swagger cautionary tale: Stoplight, Postman, Apigee built more value on top than the spec authors captured. The real moat = (a) default impl everyone uses + (b) conformance tests others respect + (c) production-grade managed service + (d) brand + certification. Without (a) and (b), spec text alone is a paper shield.
+- **Don't switch licenses post-adoption** — every notable case (Mongo 2018, Confluent's selective CCL 2018, Elastic 2021, HashiCorp 2023, Redis 2024) triggered fork-risk; only Confluent's *selective* day-one CCL avoided it (Kafka stayed Apache, only ksqlDB/Schema Registry got CCL). License the production server correctly day one.
+
+<a id="open-source-defense"></a>
+
+### Open-source defense playbook (the structural answer to "what stops a competitor from pointing our open clients at their backend?")
+
+Per /pro 4-leg consensus + /deep prior art (Confluent, Vercel, Auth0, Stripe, Temporal, Supabase, Kong, Apollo, GitLab, Algolia all run variants of this), the defense is **layered** — no single tactic suffices, but six in combination make a fork unprofitable:
+
+**1. Operational moat (strongest)** — multi-region failover, 99.9-99.99% [SLA](#g-sla), [SOC2](#g-soc2)/ISO27001, on-call rotation, SCIM/SSO, PrivateLink/VPC peering, data residency, FedRAMP variants. Tilts calculus toward buying. *"You aren't defending an API; you are defending an SLA."* Confluent Cloud beat self-hosted Kafka here; Vercel beat AWS+CloudFront here.
+
+**2. Spec authorship via conformance, not text** — publish conformance test suite + golden traces + replay harness + reference validator CLI. **The repo where implementers prove correctness is the *de facto* spec editor, even when the spec sits under foundation governance.** Norm-setting moves markets.
+
+**3. Vertical integration via dark extensions** — open the wire ([tribe](#g-tribe)) for chat-relay-grade message passing; agentroom natively handles **[CrossAgentState](#g-crossagentstate) conflict resolution + ambient-safety egress blocking + multi-device vault sync** as proprietary extensions. Self-hosters get a chat relay; we sell the coordination engine. silvercode UI features (squad mode, hierarchy X-ray, ambient channels) are tested against agentroom Cloud — self-hosters get "supported but not certified."
+
+**4. Distribution defaults + trademark** — silvercode ships with `agentroom.cloud` as zero-config default + one-click auth + instant org provisioning. Most users keep defaults (AWS RDS vs MariaDB self-host pattern). Trademark "agentroom", "silvery", "tribe", "[`.brain`](#g-plainbrain)" — competitors can fork code but can't use the names. Run a "Certified Compatible" program — anyone can implement the spec; only those who pass conformance tests get the mark. Buyers ask for the badge; we administer the tests.
+
+**5. Network effect via brain registry** — `brainhub.dev` with provenance, signing, verified publishers, "Trusted Brain Publisher" curation. Once 10K+ brains in registry, switching to a competitor backend means losing distribution. *GitHub is defensible despite git being open-source because GitHub is where the repos live.* agentroom must be where the agents live.
+
+**6. License partitioning + CLA optionality (backstop)** — see Phase 1.A3 license table. Apache for clients, [BSL](#g-bsl)/[CCL](#g-ccl) for production server day one, AGPL for reference gateway, [CC BY 4.0](#g-cc-by) for spec text. CLA on server-side repos preserves relicense optionality. Use sparingly to preserve community goodwill.
+
+**Pricing as deterrent**: free single-user gateway tier with generous limits; paid tiers = org/SSO/policy/[SLA](#g-sla)/analytics — things OSS clones structurally struggle to offer credibly.
+
+**The bet**: standards expand TAM; our cloud captures value because it's the easiest, safest, and best-integrated place to run the standard. *"You can't stop a fork. You can make the fork an inferior, higher-friction choice for most customers."* (GPT-5.4 Pro)
 
 <a id="protocol-failure-modes"></a>
 
@@ -791,6 +848,46 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 <a id="g-mit"></a>
 
 - **MIT**. Permissive open-source license. [tribe](#g-tribe) currently MIT in `vendor/bearly`.
+
+<a id="g-apache"></a>
+
+- **Apache 2.0**. Permissive open-source license with patent-grant clause. Default for client surface (silvery, tribe SDKs).
+
+<a id="g-bsl"></a>
+
+- **BSL — Business Source License (1.1)**. Source-available, cloud-protective license used by Cockroach, Timescale, HashiCorp. Allows broad internal use; prohibits offering "as a service" without commercial license. Auto-converts to permissive (e.g., Apache 2.0) after 3-4 year "Change Date." Recommended for production gateway code from day one.
+
+<a id="g-elastic-l"></a>
+
+- **Elastic License v2 (ELv2)**. Source-available license that explicitly prohibits providing the software as a managed service. Used by Elasticsearch (since 2021). Triggered AWS OpenSearch fork.
+
+<a id="g-ccl"></a>
+
+- **CCL — Confluent Community License**. Source-available license used by Confluent for ksqlDB and Schema Registry (since Dec 2018). Selective application — Kafka itself stayed Apache. Avoided post-launch fork-risk by being day-one selective.
+
+<a id="g-rsal"></a>
+
+- **RSAL — Redis Source Available License (v2)**. Source-available license adopted by Redis 7.4+ (March 2024). Triggered Linux Foundation Valkey fork.
+
+<a id="g-agpl"></a>
+
+- **AGPLv3 — Affero GPL**. Viral copyleft license that requires source disclosure for *network-served* derivatives. Useful for "demonstrator" reference code so the spec has runnable code, but scares enterprises off embedding. Better for toy reference than for strategic server code.
+
+<a id="g-sspl"></a>
+
+- **SSPL — Server Side Public License**. Used by MongoDB (since 2018), Elastic (2021), Redis (2024). Stronger than AGPL; requires open-sourcing the entire management/orchestration layer of any service offering. Considered by OSI as not open-source. Triggers fork-risk if applied post-adoption.
+
+<a id="g-conformance"></a>
+
+- **Conformance test suite / "Certified Compatible"**. The *real* spec moat per /pro 4-leg consensus: golden traces + replay harness + reference validator CLI. Anyone can implement the spec; only those who pass conformance tests get the certification mark. Buyers ask for the badge; the standard editor administers the tests.
+
+<a id="g-arch-astro"></a>
+
+- **architecture astronauting**. (Kimi K2.6 pushback term.) Premature standardization — designing event schemas, formal MSCs, and community-engagement plans for protocols nobody routes yet. The right path is to ship the dominant implementation first; standards are *extracted* from working systems (Docker→OCI, S3→de-facto), not authored ahead.
+
+<a id="g-openapi"></a>
+
+- **OpenAPI / Swagger**. Cautionary spec-authorship example: spec authorship didn't capture the biggest commercial outcomes — Stoplight, Postman, Apigee built more value on top than the spec authors did. Lesson: spec authorship = moat only when paired with reference runtime developers touch daily AND/OR canonical registry/distribution surface.
 
 ### This portfolio's products
 
