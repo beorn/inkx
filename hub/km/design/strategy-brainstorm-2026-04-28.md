@@ -169,9 +169,88 @@ Four phases, separable to avoid premature commitment:
 
 ---
 
+## Phase 2.5: The layered AI stack — which layers can we play in?
+
+A demand-side view of the strategy. Instead of asking "what can we sell?" ask "what layers does the future AI-development stack need, and where do our assets fit?"
+
+The future AI-development stack (consumer + enterprise):
+
+```
+L7  APPLICATIONS                  Cursor, Claude Code, Notion AI, ChatGPT, Perplexity
+                                  Winner-take-most; consumer-facing; crowded.
+
+L6  WORKSPACES / ENVIRONMENTS     Cursor, Claude Code, Notion, Obsidian, VS Code,
+                                  silvercode, km
+                                  Where work happens.
+
+L5  AGENT FRAMEWORKS              LangChain, LlamaIndex, Vercel AI SDK,
+                                  Anthropic Agents SDK
+                                  Build agents from primitives.
+
+L4  UI FRAMEWORKS                 silvery, Ink, OpenTUI, React, Vue, Flutter
+                                  Rendering + interaction primitives.
+
+L3  COORDINATION / PROTOCOLS      MCP, ACP, tribe, Matrix; agentroom plays here
+                                  How things talk to each other.
+
+L2  SERVICES (infrastructure)     Auth0, Vercel AI Gateway, Algolia, Pinecone,
+                                  Helicone, LangSmith
+                                  Auth, secrets, vector DB, safety, telemetry, billing.
+
+L1  MODEL APIs                    Anthropic, OpenAI, Google, Mistral, OSS
+                                  Commoditizing; capital-intensive; race-to-bottom.
+
+L0  COMPUTE / EXECUTION           Modal, Daytona, E2B, Codespaces, AWS, GCP
+                                  Capital-intensive.
+```
+
+### Where a solo founder can realistically play
+
+- **L0, L1**: capital-prohibitive. Out.
+- **L5**: too crowded, no specific wedge. Probably out.
+- **L7**: consumer head-on (Cursor, Notion). Out.
+- **L4** (silvery): open play; brand halo; **no direct revenue path** (cross-elasticity downside on L6 commercialization)
+- **L6** workspaces: cross-elasticity trap when L4-below is open. **silvercode has the trap; km may not** (knowledge workers ≠ workspace builders)
+- **L3** (agentroom): defined market; Confluent shape; **strong play if ACP wins**
+- **L2** (services): high positive cross-elasticity; Vercel/Auth0/Algolia precedents; **strong play**
+
+### The layer-aware strategic insight
+
+silvery (L4) → silvercode (L6) is **where cross-elasticity bites hardest** because L4-framework-users *are* L6-workspace-builders. The same audience that adopts silvery is the audience equipped to build silvercode-equivalents themselves.
+
+But silvery (L4) → services (L2) and agentroom (L3) → enterprise sales sit in layers where **cross-elasticity is positive** (services and protocol coordination are things users want to *avoid* doing).
+
+**The same portfolio, played at different layers, has fundamentally different revenue dynamics.** This collapses the strategy menu:
+
+- **L4 silvery** — open framework, brand halo. No direct revenue path. Accept that.
+- **L3 agentroom** — open spec + paid hosted gateway (Confluent shape). Revenue play.
+- **L2 services** — silvery-cloud / hosted services tier (auth, recall, ambient-safety, sync). Vercel pattern. Revenue play.
+- **L6 km** — PKM-for-AI workspace, gbrain-validated. Less cross-elasticity exposure. Revenue play.
+- **L6 silvercode** — open reference implementation that demonstrates L2/L3 services. Marketing/halo, not revenue.
+
+Three commercial revenue streams, two open marketing assets, one protocol asset. Acquirer-friendly at multiple price points (L2 or L3 can be acquired independently of L6 km).
+
+---
+
+## Phase 2.6: Five strategic directions
+
+Before getting into the 15+ specific strategy candidates in Phase 3, here are the five top-level directional buckets — most strategies fall into one or more of these:
+
+- **Direction 1 — silvery + silvercode** (locked Option 5 today). Open framework + proprietary IDE + services backing it. Cross-elasticity trap exposure: high.
+- **Direction 2 — km / PlainBrain as PKM-for-AI** (Notion-meets-Obsidian shape). gbrain-validated. Subscription workspace play. Cross-elasticity exposure: low (knowledge workers don't typically build their own PKM platforms).
+- **Direction 3 — Services-led, silvercode is open reference** (Vercel/Auth0/Algolia pattern). silvery open framework + open silvercode-as-reference + paid hosted services tier. Cross-elasticity: positive (services are what users want to *avoid* doing).
+- **Direction 4 — tribe/agentroom protocol play inside the portfolio**. tribe = open spec; agentroom hosted gateway = commercial cluster-2 service alongside silvercode + services.
+- **Direction 5 — agentroom spun out as its own venture** (Confluent shape). Separate entity, separate raise, separate co-founder. Open spec + open ref impl + paid hosted control plane. Decoupled from silvery/silvercode/km success.
+
+Directions 4 and 5 are both protocol plays — they differ on whether agentroom lives *inside* the silvery/silvercode/km portfolio or is *separated*. That's a real fork: D4 keeps capital, brand, and acquisition events together; D5 lets each part rise/fall on its own terms.
+
+The strategies in Phase 3 below combine these directions with specific go-to-market approaches and sequencing.
+
+---
+
 ## Phase 3: Strategy candidates
 
-Mix-and-match Inventory × Market → enumerate strategies. Brief scoring at end of each.
+Mix-and-match Inventory × Market × Layer → enumerate strategies. Each strategy has an example-driven title (the precedent or analog the strategy resembles) followed by the concrete plan.
 
 Scoring dimensions:
 - **B**andwidth load (1=light, 5=heavy)
@@ -180,95 +259,107 @@ Scoring dimensions:
 - **R**isk (1=low, 5=high)
 - **D**ependencies (what needs to be true for this to work)
 
-### S1 — Locked Option 5 (silvery framework + silvercode IDE + cluster-2 services + tribe + PlainBrain)
+### S1 — "Cursor with our framework" (locked Option 5, silvery+silvercode integrated)
 
-The current plan. silvery open Apache + CLA, silvercode proprietary, tribe wire open, services proprietary, PlainBrain elevated to a portable standard.
+Direction 1. silvery open Apache + CLA, silvercode proprietary IDE, tribe wire open, services proprietary, PlainBrain elevated to portable standard. The integrated portfolio bet.
 
-**Score**: B=5 / T=12-18 / C=mid-high / R=4 / D=silvery validates as Ink-migration target *and* silvercode finds product-market fit *and* services tier scales
+**Score**: B=5 / T=12-18 / C=mid-high / R=4 (cross-elasticity exposure) / D=silvery validates as Ink-migration target *and* silvercode finds product-market fit *and* services tier scales
 
-### S2 — Direction 3 / Vercel pattern (silvery + open silvercode + paid services as flagship)
+### S2 — "Vercel for terminal" (services-led, silvercode is open reference)
 
-silvery framework Apache. silvercode open-sourced as the *reference* agentic IDE (not paid product). Revenue from services tier (auth, recall, ambient-safety, agentroom, sync). Kubernetes → GKE pattern.
+Direction 3. silvery framework Apache. silvercode open-sourced as the *reference* agentic IDE (not paid product). Revenue from services tier (auth, recall, ambient-safety, agentroom, sync). Kubernetes → GKE pattern. The cross-elasticity-aware version.
 
 **Score**: B=5 / T=18-24 / C=very-high / R=4 / D=silvery validates *and* services tier reaches production-grade *and* SOC2/compliance hygiene *and* customer trust
 
-### S3 — Direction 1 closure (close silvery, sell silvercode only)
+### S3 — "JetBrains pattern" (close silvery, sell silvercode standalone)
 
-silvery stays MIT but unpromoted. silvercode commercial-only, no open showcase. Services are silvercode-internal, not standalone.
+silvery stays MIT but unpromoted. silvercode commercial-only, no open showcase. Services are silvercode-internal, not standalone. JetBrains' approach: own the framework privately, sell the IDE.
 
 **Score**: B=4 / T=6-9 / C=mid / R=3 / D=silvercode finds standalone PMF without the silvery brand halo
 
-### S4 — Direction 2 PKM-only (km + PlainBrain + gbrain as standalone PKM venture)
+### S4 — "Notion-for-AI" (km/PlainBrain PKM venture, silvery deferred)
 
-silvery quietly maintained, no big launch. Focus: km + PlainBrain spec + gbrain-shaped tools. Notion/Obsidian-adjacent commercial play. Subscription billing for km-cloud.
+Direction 2. silvery quietly maintained, no big launch. Focus: km + PlainBrain spec + gbrain-shaped tools. Notion/Obsidian-adjacent commercial play. Subscription billing for km-cloud.
 
 **Score**: B=3 / T=12-18 / C=mid / R=3 / D=PKM-for-AI as a category sustains; km finds wedge against Notion/Obsidian
 
-### S5 — agentroom gateway as own venture (spin-out)
+### S5 — "Confluent for AI agents" (agentroom spun out as own venture)
 
-agentroom Inc. as separate entity. Confluent/Kafka pattern: open spec + open ref impl + paid hosted. Standalone fundraise. Co-founder with infra-ops chops.
+Direction 5. agentroom Inc as separate entity. Open ACP wire spec + open reference gateway + paid hosted control plane. Standalone fundraise ($3-5M seed). Infrastructure-ops co-founder.
 
-**Score**: B=3 (own venture) / T=12-18 / C=high / R=4 / D=ACP standard wins, hosted gateway demand materializes, infrastructure-ops co-founder
+**Score**: B=3 (own venture) / T=12-18 / C=high / R=4 / D=ACP standard wins, hosted gateway demand materializes, infrastructure-ops co-founder, Anthropic/Microsoft/etc don't ship competing protocol
 
-### S6 — Multi-product OSS infrastructure suite
+### S6 — "Charm.sh for React" (multi-product OSS infrastructure suite)
 
-silvery + termless + loggily + flexily as a coherent "developer infrastructure suite for terminal apps" — Stripe Elements pattern but for terminal dev tooling. Premium support / hosted versions monetize.
+silvery + termless + loggily + flexily + mdspec as a coherent "developer infrastructure suite for terminal apps" — Charm Industries' shape but for the React ecosystem. Premium support / hosted versions monetize across the suite.
 
-**Score**: B=3 / T=18-24 / C=mid / R=3 / D=cross-product brand thesis works; "Charm.sh for React" finds an audience
+**Score**: B=3 / T=18-24 / C=mid / R=3 / D=cross-product brand thesis works; the React-TUI-power-user audience is real
 
-### S7 — Local-first PKM-for-AI
+### S7 — "Mem.ai but local-first" (gbrain pattern productized)
 
-PlainBrain + km + gbrain as a *local-first* personal-AI substrate (like Mem.ai but offline-first, file-system-native). Markdown + git + LLM. Subscription for cloud sync, not for the substrate.
+PlainBrain + km + gbrain as a *local-first* personal-AI substrate. Markdown + git + LLM. Subscription for cloud sync only; the substrate is local-first. Counter-position to cloud-native PKM-AI tools.
 
 **Score**: B=3 / T=12-18 / C=mid / R=3 / D=local-first AI tool category gains momentum; offline-first wedge holds against cloud-native incumbents
 
-### S8 — Donate silvery to a foundation, focus on commercial
+### S8 — "Linux Foundation pattern" (donate silvery to a foundation, focus commercial)
 
 silvery → CNCF / Apache Foundation / OpenJS Foundation. Strip personal stewardship burden. Focus 100% on silvercode + km + services. Community-led silvery still drives funnel, you don't run it.
 
 **Score**: B=2 / T=12 / C=mid-high / R=3 / D=foundation accepts; silvery community sustains under foundation governance; brand halo persists
 
-### S9 — Bundled "agentic workdesk" subscription (silvercode + km)
+### S9 — "Cursor + Notion bundled" (agentic workdesk subscription)
 
-silvercode + km bundled as one subscription (the integrated workdesk). One pricing page, one auth, one cloud. Position against Notion + Cursor as "the integrated thing both companies are trying to be."
+silvercode + km bundled as one subscription (the integrated workdesk). One pricing page, one auth, one cloud. Position against Notion + Cursor as *"the integrated thing both companies are trying to be."*
 
-**Score**: B=5 / T=12-18 / C=high / R=4 / D=both products find PMF; the bundle is more valuable than either alone
+**Score**: B=5 / T=12-18 / C=high / R=4 / D=both products find PMF; the bundle is more valuable than either alone; the integrated story is differentiated
 
-### S10 — Multi-venture portfolio (separate raises per venture)
+### S10 — "Atomic Inc studio" (multi-venture portfolio, separate raises)
 
 silvery (community OSS, no commercial), agentroom Inc (Confluent shape, separate raise), silvercode Inc (Cursor shape, separate raise), km Inc (PKM venture, separate raise). Each has its own cap table. Cross-pollination via shared tech, but commercial separation.
 
-**Score**: B=5 / T=18-36 / C=very-high (multiple ARR streams) / R=5 / D=founder can split focus across multiple commercial entities; capital available
+**Score**: B=5 / T=18-36 / C=very-high (multiple ARR streams) / R=5 / D=founder can split focus across multiple commercial entities; capital available; co-founders for each
 
-### S11 — Acquire-first / acquihire-optimized
+### S11 — "Acquihire optimized" (build for strategic acquisition)
 
 Build silvery + km + tribe to *just enough* for an acquihire by Anthropic / Vercel / Cursor / Notion. Don't try to scale to standalone businesses. Optimize for visibility + technical credibility + complementary integration with one of those companies' platforms.
 
-**Score**: B=3 / T=24-36 (acquisition timeline) / C=high (single liquidity event) / R=4 / D=at least one of the target acquirers actually wants what you've built; acquisition happens before runway runs
+**Score**: B=3 / T=24-36 (acquisition timeline) / C=high (single liquidity event) / R=4 / D=at least one target acquirer actually wants what you've built; acquisition happens before runway runs
 
-### S12 — Consulting + Migration Assurance Service-first
+### S12 — "Bootstrapped consulting first" (build as you bill)
 
-silvery as portfolio piece; primary revenue from custom Ink→silvery migrations + agentic-IDE consulting. Build as you bill. Productize what consulting reveals demand for. Bootstrap-friendly.
+silvery as portfolio piece; primary revenue from custom Ink→silvery migrations + agentic-IDE consulting. Build as you bill. Productize what consulting reveals demand for. Bootstrap-friendly. Patio11 / 37signals / DHH shape.
 
 **Score**: B=4 (consulting eats time) / T=1-3 / C=low-mid / R=2 / D=consulting demand exists; willing to do bespoke work for cash
 
-### S13 — Pre-launch raise on integrated narrative
+### S13 — "Devtools VC seed" (pre-launch raise on integrated narrative)
 
-Take the "three open standards + two products + services + agentroom" narrative directly to a devtools-VC ($3-5M seed). Use capital to hire 2-4 engineers and run all directions in parallel. Founder stays strategic.
+Take the "three open standards + two products + services + agentroom" narrative directly to a devtools-VC ($3-5M seed). Use capital to hire 2-4 engineers and run multiple directions in parallel. Founder stays strategic. Vercel-day-one shape.
 
-**Score**: B=2 (with team) / T=24+ / C=very-high / R=4 / D=narrative is fundable without traction; right VC bites; can hire fast
+**Score**: B=2 (with team) / T=24+ / C=very-high / R=4 / D=narrative is fundable without traction; right VC bites; can hire fast; team integration works
 
-### S14 — silvercode + ambient-safety as a security-product wedge
+### S14 — "Snyk for AI" (security-first wedge)
 
-Pivot: silvercode is a *security-first* agentic IDE. Ambient-context-safety pipeline becomes the wedge. Sell to enterprises whose developers use AI tools but need leak prevention / audit / compliance. Differentiate from Cursor on security posture.
+Pivot: silvercode is a *security-first* agentic IDE. Ambient-context-safety pipeline becomes the wedge. Sell to enterprises whose developers use AI tools but need leak prevention / audit / compliance. Differentiate from Cursor on security posture. Snyk / Cyera shape but for AI agents.
 
-**Score**: B=4 / T=12-18 / C=mid-high / R=4 / D=enterprise security-for-AI is a real budget; we can deliver SOC2-ready security tooling
+**Score**: B=4 / T=12-18 / C=mid-high / R=4 / D=enterprise security-for-AI is a real budget; we can deliver SOC2-ready security tooling; security-buyer relationships exist
 
-### S15 — silvery + agentroom + AI lab partnership
+### S15 — "Anthropic-direct" (silvery + agentroom for AI lab teams)
 
 Position silvery + agentroom for Anthropic / OpenAI / Google internal-tooling teams. These labs are building AI CLIs (Claude Code, Codex, Gemini-cli) and need exactly what silvery + agentroom offer. Direct enterprise sale or strategic partnership. Don't chase the long tail; chase the 5-10 customers that matter.
 
 **Score**: B=3 / T=6-12 / C=high (per customer) / R=4 / D=AI labs return calls; we can deliver enterprise-grade infra; ACP becomes the wire they want
+
+### S16 — "Auth0 for AI agents" (services-only, silvery is portfolio)
+
+Direction 3, sharper. silvery stays open framework but is *not* the focus. The flagship product is the services tier alone — auth, secrets, BYO-key handling, multi-vendor LLM gateway, ambient safety. Sell to anyone building AI tools (silvery users, OpenTUI users, Ink users, web app builders). Auth0 → Okta acquisition shape.
+
+**Score**: B=4 / T=18-30 / C=very-high / R=4 / D=services market matures; SOC2 hygiene; cross-framework portability of the services SDK
+
+### S17 — "Ghost for PKM" (PKM-for-AI with hosted + self-hosted)
+
+Direction 2 + Direction 3 hybrid. km/PlainBrain as substrate, with both **hosted km cloud** (subscription, low-friction) and **self-hosted km** (open-source, run-your-own). Mirror Ghost (the publishing platform): hosted is the paid tier, but the open-source is a real alternative. Pulls from gbrain validation + Obsidian-style power-user community.
+
+**Score**: B=4 / T=12-18 / C=mid-high / R=3 / D=PKM-for-AI as a category sustains; hosted-vs-self-hosted tier serves both segments; gbrain-style power users adopt
 
 ---
 
