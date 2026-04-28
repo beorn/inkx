@@ -313,19 +313,37 @@ A 4-leg dual-pro review (GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4) was ru
 
 **The Seam Rule** (codify the open/closed boundary): write down the framework-vs-application heuristic in the silvery repo before contributors start asking for silvercode features.
 
-**Critical correction (2026-04-27 night)**: an earlier draft of the Seam Rule cut at "generic vs agent-shaped" — which would have ceded the entire agentic-chat space to OpenTUI. The Ink-migration target users are *building agentic chat tools* (Claude Code, gemini-cli, Copilot CLI). If silvery doesn't ship agent UI patterns, those teams reach for OpenTUI or stay on Ink. The migration story collapses. **The right cut is "client glue vs operational service"**, which the SDK-with-services revenue pattern was already pointing at.
+**Two corrections (2026-04-27 night → 2026-04-28)** brought this rule to its final form. They're worth preserving as audit trail:
 
-Canonical wording:
+- **First correction**: an early draft cut at "generic vs agent-shaped." User flagged this as ceding the entire agentic-chat space to OpenTUI: the Ink-migration target users are *building agentic chat tools* (Claude Code, gemini-cli, Copilot CLI). If silvery doesn't ship agent UI patterns, those teams reach for OpenTUI or stay on Ink — migration story collapses.
+- **Second correction**: the obvious next cut was "all client-side rendering open / services proprietary," with `<AgentChat>` and `<ConversationPane>` shipping in silvery. **Vercel's AI SDK** (11.9M weekly DLs, 23.8K stars, 620+ contributors) shows this is too generous. They explicitly kept polished UI components (`AI Elements`) **proprietary alongside** their cloud services, while open-sourcing only the *hooks* (`useChat`, `useCompletion`) and the streaming primitives. *"Deliberately minimal on opinionated UI"* is their phrase. Same shape on `chat-sdk.dev` — open platform-abstraction adapters, no pre-built stateful components. Vercel reserved the polished UI as a *separate moat* alongside services. We should too.
 
-> **Client glue** (rendering, components, layout, state primitives, interaction, theming — *including agent-shaped UI patterns* like `<AgentChat>`, `<ToolUseRenderer>`, `<StreamingMessage>`, `<ConversationPane>`, `<RecallPanel>`, `<SquadView>`, `<HandoffViz>`, `<ContextSafetyMonitor>`) → **silvery** (open). BYO API key works out of the box.
+**Final canonical wording**:
+
+> **Open in silvery**:
+> - Generic primitives (`Box`, `Text`, `ListView`, `SelectList`, `TextInput`, `VirtualList`, `Tabs`, `Tree`, etc.)
+> - Agent-domain **hooks** and state machines (`useAgentSession`, `useStreamingMessage`, `useToolUse`, `useRecall`, `useSquad`, `useHandoff`, `useContextSafety`)
+> - **Unopinionated** primitive agent components: minimal `<Message>`, `<ToolCall>`, `<StreamingText>` — barebones rendering, BYO styling, useful as building blocks
+> - All the rendering / interaction / state / theme / focus / mouse / layout machinery
 >
-> **Operational service** (auth flows, secret management, cloud state, network protocols, ambient-context-safety pipeline logic, hosted recall index, CrossAgentState orchestration, agentroom gateway runtime, multi-machine coordination) → **cluster-2 services** (proprietary).
+> **Proprietary in silvercode (cluster-2 application)**:
+> - **Polished, opinionated, branded** components (`<AgentChat>`, `<ConversationPane>`, `<SquadView>`, `<HandoffViz>`, `<ContextSafetyMonitor>`, etc.) — these embody silvercode's specific UX choices and are the *silvercode visual identity*
+> - The integrated silvercode application (workflow, polish, brand)
 >
-> If uncertain, default to silvery for the rendering/interaction half and cluster-2 for the wire/service half. The moat is the operational tier and the integrated polish, **not the widget code**.
+> **Proprietary in cluster-2 services**:
+> - Auth flows, secret management, cloud state, network protocols
+> - Ambient-context-safety pipeline logic, hosted recall index, CrossAgentState orchestration, agentroom gateway runtime, multi-machine coordination
+>
+> **Tiebreaker test for any new component**: *does this embody silvercode's specific UX choices, or is it a generic building block any AI tool would reach for?* Generic building block → silvery. silvercode-specific → silvercode.
 
-Under this rule silvery ships *all* the components that an Ink-using AI-tool team would migrate to. The migration story is preserved because the migration *target* is complete for the actual users. silvercode's defensibility doesn't depend on owning the widgets — it depends on owning the *services* + the *integrated assembly* (Cursor's moat isn't "we own the autocomplete widget"; it's the integration with the model + the workflow + the brand).
+**Why this is the right cut** (validated against Vercel's data):
 
-Add a "Scope and Boundaries" doc to silvery's repo using this canonical wording. Add a GitHub issue label "Out of scope (belongs in service)" with a polite boilerplate that points the user to either the BYO-key path or the cluster-2 service. This prevents feature-creep-by-guilt while keeping the migration target complete.
+1. **Migration target stays complete**: an Ink-using AI tool team migrates and gets all the hooks + primitives they need. The actual migration pain in Ink isn't widget styling — it's streaming, focus, mouse, tool-use rendering, multi-pane state. Hooks + primitives cover all of that. Teams build their own polished UI on top, exactly like Vercel users do.
+2. **silvercode's moat is fatter than services-alone**: polished components + services + brand + integrated assembly. Cursor's moat *is* partly the polished UI (the specific feel of message UX, smart inline diffs, what makes Cursor *Cursor*). Vercel proved at 11.9M DL/wk you can keep that proprietary while open-sourcing the heart.
+3. **Vercel-shaped community dynamics**: open hooks become the standard for AI-tool builders in TS/React (silvery-equivalent of `useChat`); third parties build their own polished component sets (some open, some commercial); silvercode is the canonical-blessed implementation alongside silvery.
+4. **No feature-creep-by-guilt**: when contributors ask "can silvery have `<AgentChat>`?" — the answer is "we ship the hooks and primitives; the polished branded `<AgentChat>` lives in silvercode." This is defensible because it's exactly what Vercel does.
+
+Add a "Scope and Boundaries" doc to silvery's repo using this canonical wording. Add a GitHub issue label "Out of scope (lives in silvercode or cluster-2 service)" with a polite boilerplate pointing users to either the BYO-key path on silvery hooks, the silvercode integrated product, or the cluster-2 service.
 
 **Terminfo data licensing**: do NOT attempt to relicense data derived from ncurses terminfo under CC0/ODbL. Either license could be invalid given upstream provenance. Safer path: publish the *transformation pipeline* under Apache-2.0; document how users fetch terminfo from upstream and transform locally; if hosting compiled artifacts, preserve original license notices (likely permissive-with-attribution, not ODbL). Verify upstream license before shipping.
 
