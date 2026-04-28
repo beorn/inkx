@@ -37,7 +37,6 @@ describe("loadConfig", () => {
       writeFileSync(
         join(testDir, ".km/config.yaml"),
         `beads:
-  board: "@issues"
   prefix: "test"
 tui:
   watch: false
@@ -45,7 +44,6 @@ tui:
       )
 
       const config = loadConfig(testDir)
-      expect(config.beads?.board).toBe("@issues")
       expect(config.beads?.prefix).toBe("test")
       expect(config.tui?.watch).toBe(false)
     }))
@@ -56,12 +54,12 @@ tui:
       writeFileSync(
         join(testDir, ".kmrc.yaml"),
         `beads:
-  parent: "bugs/"
+  prefix: "bugs"
 `,
       )
 
       const config = loadConfig(testDir)
-      expect(config.beads?.parent).toBe("bugs/")
+      expect(config.beads?.prefix).toBe("bugs")
     }))
 
   test("caches config across calls", () =>

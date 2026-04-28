@@ -86,17 +86,19 @@ export const migrateCommand = new Command("migrate")
       return
     }
 
-    // Determine target directory
-    const beadsConfig = configObj.beads
-    const targetDir =
-      opts.target || (beadsConfig.parent ? `${resolved.repoRoot}/${beadsConfig.parent}` : `${resolved.repoRoot}/issue`)
+    // Determine target directory. Default = vault root: each issue lands
+    // at <repoRoot>/<scope>/<slug>.md where scope = first segment of the
+    // path-form id (e.g. km-beads.cutover → beads/cutover.md). The board
+    // sigil is derived from scope per-issue inside issueToMarkdown — no
+    // global board/parent config knob.
+    const targetDir = opts.target || resolved.repoRoot
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
 
     console.log(term.bold("Migration Target"))
     console.log(`  Target dir: ${targetDir}`)
-    console.log(`  Board tag: @${beadsConfig.board}`)
+    console.log(`  Board tag:  derived per-issue from scope (km-beads.X → @km/beads, km-silvery.Y → @km/silvery, …)`)
     if (statusFilter) {
       console.log(`  Status filter: ${statusFilter.join(", ")}`)
     }
@@ -110,7 +112,6 @@ export const migrateCommand = new Command("migrate")
     // Run migration
     const result = migrateBeadsToMarkdown(beadsDir, {
       targetDir,
-      boardTag: beadsConfig.board,
       statusFilter,
       dryRun: opts.dryRun,
       fs: nodeFs,
@@ -144,17 +145,14 @@ export const exportCommand = new Command("export")
   .option("--target <dir>", "Target .beads directory")
   .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = await loadKmBdConfig(resolved.repoRoot)
+    await loadKmBdConfig(resolved.repoRoot)
 
-    // Get issues from km
-    const boardTag = configObj.beads.board || undefined
-    const issues = queryIssues({}, undefined, boardTag)
+    // Get issues from km — no global board filter; scope is derived per-issue
+    // from the canonical id, so every scope-tagged item is an issue.
+    const issues = queryIssues({}, undefined, undefined)
 
     console.log(term.bold("Export Source"))
     console.log(`  km issues: ${issues.length}`)
-    if (boardTag) {
-      console.log(`  Board filter: @${boardTag}`)
-    }
     console.log()
 
     if (issues.length === 0) {

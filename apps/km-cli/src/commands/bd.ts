@@ -39,16 +39,16 @@ import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { attachMemoryCommands } from "./bd-memory.ts"
 import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
 
-/** Format scope/board context for display messages (e.g., " in path" or " on @board") */
-function formatScopeMessage(scopePath?: string, boardTag?: string): string {
-  return scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+/** Format scope context for display messages (e.g., " in path") */
+function formatScopeMessage(scopePath?: string): string {
+  return scopePath ? ` in ${scopePath}` : ""
 }
 
 export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
   .addHelpSection(
     "Note:",
-    "Markdown tasks ARE the issues. Queries filter to @issue by default.\nSee 'km bd config' to customize, 'km bd info' for stats.",
+    "Markdown tasks ARE the issues. Each scope (`km-<scope>.<slug>`) is its own board\n(file `<scope>/<slug>.md`, sigil `@<scope>`).\nSee 'km bd config' for the prefix knob, 'km bd info' for stats.",
   )
   .allowUnknownOption(false)
 
@@ -60,13 +60,12 @@ bdCommand
   .option("-t, --type <type>", "Filter by issue type (bug, feature, etc.)")
   .option("-a, --assignee <name>", "Filter by assignee")
   .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
-  .option("--all", "Show all tasks (ignore board filter)")
+  .option("--all", "Show all tasks (no scope narrowing)")
   .option("--json", "Output as JSON")
   // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(opts.scope)
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     using repo = await loadRepo(resolved.repoRoot)
 
@@ -75,9 +74,10 @@ bdCommand
     if (opts.assignee) filter.assignee = opts.assignee
     if (opts.priority !== undefined) filter.priority = opts.priority
 
-    // Use board filter from config unless --all or explicit scope given
-    const boardTag = (opts.all ?? opts.scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryReady(filter, scopePath, boardTag, { repo })
+    // Scope IS the board in the new convention — no global board filter.
+    // queryReady already returns issue-shaped nodes vault-wide; scope path
+    // narrows to a sub-tree when given.
+    const issues = queryReady(filter, scopePath, undefined, { repo })
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -85,11 +85,11 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      console.log(term.yellow(`No ready issues found${formatScopeMessage(scopePath, boardTag)}.`))
+      console.log(term.yellow(`No ready issues found${formatScopeMessage(scopePath)}.`))
       return
     }
 
-    const scopeMsg = formatScopeMessage(scopePath, boardTag)
+    const scopeMsg = formatScopeMessage(scopePath)
     console.log(term.bold(`📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`))
     issues.forEach((issue, i) => {
       printReadyIssue(issue, i + 1)
@@ -107,7 +107,7 @@ bdCommand
   .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
   .option("--blocked", "Show only blocked issues")
   .option("--unblocked", "Show only unblocked issues")
-  .option("--all", "Show all tasks (ignore board filter)")
+  .option("--all", "Show all tasks (no scope narrowing)")
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const queryParts: string[] = opts.query ?? []
@@ -122,7 +122,6 @@ bdCommand
       // Legacy path-based scope — use old behavior
       const resolved = resolvePathArg(positionalQuery)
       const scopePath = resolved.nodeRef ?? undefined
-      const configObj = await loadKmBdConfig(resolved.repoRoot)
 
       using repo = await loadRepo(resolved.repoRoot)
 
@@ -134,8 +133,9 @@ bdCommand
       if (opts.blocked) filter.blocked = true
       if (opts.unblocked) filter.blocked = false
 
-      const boardTag = (opts.all ?? positionalQuery) ? undefined : configObj.beads.board || undefined
-      const issues = queryIssues(filter, scopePath, boardTag, { repo })
+      // Scope IS the board — no global board filter (queryIssues narrows
+      // by scope path or query string instead).
+      const issues = queryIssues(filter, scopePath, undefined, { repo })
 
       if (opts.json) {
         console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -143,11 +143,11 @@ bdCommand
       }
 
       if (issues.length === 0) {
-        console.log(term.yellow(`No issues found${formatScopeMessage(scopePath, boardTag)}.`))
+        console.log(term.yellow(`No issues found${formatScopeMessage(scopePath)}.`))
         return
       }
 
-      const scopeMsg = formatScopeMessage(scopePath, boardTag)
+      const scopeMsg = formatScopeMessage(scopePath)
       console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
       for (const issue of issues) {
         printIssue(issue)
@@ -157,14 +157,14 @@ bdCommand
 
     // New unified query path
     const resolved = resolvePathArg(undefined)
-    const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     using repo = await loadRepo(resolved.repoRoot)
 
-    // Build query from board config + flags
-    const boardTag = opts.all ? undefined : configObj.beads.board || undefined
+    // Build query from flags. No global board filter — scope is encoded
+    // per-issue via path-form id; queries that need scope use the scope
+    // CLI flag or path argument.
     const flags: SharedQueryFlags = opts
-    const queryStr = buildQueryString(positionalQuery, flags, { boardTag })
+    const queryStr = buildQueryString(positionalQuery, flags, {})
 
     const nodes = repo.query(queryStr)
     let issues = nodes.map((n) => nodeToIssue(n, { repo }))
@@ -254,8 +254,14 @@ bdCommand
       prefix: configObj.beads.prefix,
     })
 
-    // Resolve parent: explicit --parent flag, or config default
-    const parentRef = opts.parent || configObj.beads.parent
+    // Resolve parent: explicit --parent flag wins; otherwise derive from
+    // the customId's scope (km-beads.foo → "beads/"). The bd id encodes
+    // the board by construction — no global beads.parent config knob.
+    const customIdScope =
+      typeof opts.id === "string" && opts.id.includes(".")
+        ? (opts.id.split(".")[0]?.replace(new RegExp(`^${configObj.beads.prefix}-`), "") ?? null)
+        : null
+    const parentRef = (opts.parent as string | undefined) || (customIdScope ? `${customIdScope}/` : null)
     let parentId: string | null = null
     if (parentRef) {
       const parentNode = repo.resolveNode(parentRef)
@@ -544,11 +550,10 @@ bdCommand
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = await loadKmBdConfig(resolved.repoRoot)
+    await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const boardTag = configObj.beads.board || undefined
-    const issues = queryIssues({}, undefined, boardTag, { repo })
+    const issues = queryIssues({}, undefined, undefined, { repo })
     const threshold = Date.now() - opts.days! * 86400000
     const stale = issues.filter((i) => i.updatedAt < threshold && i.status !== "done" && i.status !== "dropped")
 
@@ -659,11 +664,10 @@ bdCommand
   .option("--json", "Output as JSON")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = await loadKmBdConfig(resolved.repoRoot)
+    await loadKmBdConfig(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const boardTag = configObj.beads.board || undefined
-    const issues = queryIssues({}, undefined, boardTag, { repo })
+    const issues = queryIssues({}, undefined, undefined, { repo })
     const blocked = issues.filter(
       (i) => i.blockedBy && i.blockedBy.length > 0 && i.status !== "done" && i.status !== "dropped",
     )
@@ -708,14 +712,11 @@ bdCommand
     const dbPath = join(kmDir, "state.db")
     const repoMode = repo.mode
 
-    // Query with board filter if configured
-    const boardTag = config.board || undefined
-    const issues = queryIssues({}, scopePath, boardTag, { repo })
+    // No global board filter — scope is encoded per-issue via path-form id.
+    const issues = queryIssues({}, scopePath, undefined, { repo })
 
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
-    console.log(`Board:  ${config.board || term.dim("(none - showing all tasks)")}`)
-    console.log(`Parent: ${config.parent || term.dim("(none - create manually)")}`)
     console.log(`Prefix: ${config.prefix}`)
     if (configObj.path) {
       console.log(term.dim(`Config: ${configObj.path}`))
@@ -723,16 +724,9 @@ bdCommand
 
     console.log()
     console.log(term.bold("How tasks are tracked:"))
-    if (config.board) {
-      console.log(`  Tasks tagged @${config.board} are shown by 'km bd' commands.`)
-      console.log(`  View the board with 'km view @${config.board}'.`)
-    } else {
-      console.log(`  All tasks in the repo are shown (no board filter configured).`)
-      console.log(`  Set beads.board in .km/config.yaml to filter to a specific board.`)
-    }
-    if (config.parent) {
-      console.log(`  New issues will be created in ${config.parent}.`)
-    }
+    console.log(`  bd id 'km-<scope>.<slug>' → file '<scope>/<slug>.md' with @<scope> tag.`)
+    console.log(`  Cross-vault references use '@${config.prefix}/<scope>/<slug>'.`)
+    console.log(`  No board/parent config — the bd id encodes the board by construction.`)
 
     console.log()
     console.log(term.bold("Storage"))
@@ -747,7 +741,7 @@ bdCommand
     }
 
     console.log()
-    const scopeMsg = formatScopeMessage(scopePath, boardTag)
+    const scopeMsg = formatScopeMessage(scopePath)
     console.log(term.bold(`Statistics${scopeMsg}`))
     console.log(`  Total: ${issues.length} issues`)
 
@@ -802,8 +796,6 @@ bdCommand
     if (existsSync(kmDir)) {
       console.log(kmDir)
       console.log(`  prefix: ${configObj.beads.prefix}`)
-      console.log(`  board: ${configObj.beads.board || "(none)"}`)
-      console.log(`  parent: ${configObj.beads.parent || "(none)"}`)
       console.log(`  database: ${dbPath}`)
       console.log(`  repo: ${resolved.repoRoot}`)
       if (resolved.nodeRef) {

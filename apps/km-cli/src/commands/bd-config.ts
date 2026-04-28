@@ -2,6 +2,11 @@
  * Beads Config Subcommand
  *
  * View and modify beads configuration.
+ *
+ * The schema is intentionally tiny — only `prefix` (the vault sigil for
+ * cross-vault refs). Board layout is encoded by the bd id itself
+ * (km-<scope>.<slug> → file <scope>/<slug>.md, heading sigil @<scope>),
+ * so there's no `board` or `parent` knob to set.
  */
 
 import { Command } from "@silvery/commander"
@@ -13,6 +18,20 @@ import { loadKmBdConfig } from "./bd-load-config.ts"
 
 export const configCommand = new Command("config").description("View and modify beads configuration")
 
+const VALID_KEYS = ["prefix"] as const
+
+function printConfig(configObj: Awaited<ReturnType<typeof loadKmBdConfig>>): void {
+  console.log(term.bold("Beads Configuration"))
+  console.log(`  prefix: ${configObj.beads.prefix}`)
+  if (configObj.path) {
+    console.log()
+    console.log(term.dim(`Source: ${configObj.path}`))
+  } else {
+    console.log()
+    console.log(term.dim("No config file found. Create .km/config.yaml to customize."))
+  }
+}
+
 configCommand
   .command("list")
   .alias("ls")
@@ -20,55 +39,37 @@ configCommand
   .action(async () => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
-
-    console.log(term.bold("Beads Configuration"))
-    console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)
-    console.log(`  parent: ${configObj.beads.parent || term.dim("(not set)")}`)
-    console.log(`  prefix: ${configObj.beads.prefix}`)
-    if (configObj.path) {
-      console.log()
-      console.log(term.dim(`Source: ${configObj.path}`))
-    } else {
-      console.log()
-      console.log(term.dim("No config file found. Create .km/config.yaml to customize."))
-    }
+    printConfig(configObj)
   })
 
 configCommand
   .command("get")
-  .argument("<key>", "Config key (board, parent, prefix)")
+  .argument("<key>", "Config key (prefix)")
   .description("Get a configuration value")
   .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = await loadKmBdConfig(resolved.repoRoot)
 
     switch (opts.key) {
-      case "board":
-        console.log(configObj.beads.board || "")
-        break
-      case "parent":
-        console.log(configObj.beads.parent || "")
-        break
       case "prefix":
         console.log(configObj.beads.prefix)
         break
       default:
         console.error(term.red(`Unknown config key: ${opts.key}`))
-        console.log(term.dim("Valid keys: board, parent, prefix"))
+        console.log(term.dim(`Valid keys: ${VALID_KEYS.join(", ")}`))
         process.exitCode = 1
     }
   })
 
 configCommand
   .command("set")
-  .argument("<key>", "Config key (board, parent, prefix)")
+  .argument("<key>", "Config key (prefix)")
   .argument("<value>", "Config value")
   .description("Set a configuration value (edits .km/config.yaml)")
   .actionMerged(async (opts) => {
-    // Validate key
-    if (!["board", "parent", "prefix"].includes(opts.key)) {
+    if (!VALID_KEYS.includes(opts.key as (typeof VALID_KEYS)[number])) {
       console.error(term.red(`Unknown config key: ${opts.key}`))
-      console.log(term.dim("Valid keys: board, parent, prefix"))
+      console.log(term.dim(`Valid keys: ${VALID_KEYS.join(", ")}`))
       process.exitCode = 1
       return
     }
@@ -90,16 +91,5 @@ configCommand
 configCommand.action(async () => {
   const resolved = resolvePathArg(undefined)
   const configObj = await loadKmBdConfig(resolved.repoRoot)
-
-  console.log(term.bold("Beads Configuration"))
-  console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)
-  console.log(`  parent: ${configObj.beads.parent || term.dim("(not set)")}`)
-  console.log(`  prefix: ${configObj.beads.prefix}`)
-  if (configObj.path) {
-    console.log()
-    console.log(term.dim(`Source: ${configObj.path}`))
-  } else {
-    console.log()
-    console.log(term.dim("No config file found. Create .km/config.yaml to customize."))
-  }
+  printConfig(configObj)
 })

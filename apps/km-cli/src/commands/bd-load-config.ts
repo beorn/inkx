@@ -2,14 +2,15 @@
  * Bd Config Adapter
  *
  * Thin async helper around `@silvery/config`'s `loadConfig` for `km bd …`
- * subcommands. Returns the same defaulted shape that `loadConfigObject`
- * exposed on the legacy `@km/storage` path, so call sites read identically:
+ * subcommands. Returns a defaulted shape so call sites read identically:
  *
  *   const cfg = await loadKmBdConfig(resolved.repoRoot)
- *   cfg.beads.board     // string, default "issue"
- *   cfg.beads.parent    // string, default "issue/"
- *   cfg.beads.prefix    // string, default "km"
+ *   cfg.beads.prefix    // string, default "km" — the vault sigil for cross-vault refs
  *   cfg.path            // resolved config file path, or null
+ *
+ * The schema is intentionally tiny: the bd id itself encodes board layout
+ * (`km-<scope>.<slug>` → file `<scope>/<slug>.md`, heading sigil `@<scope>`),
+ * so there is no `beads.board` or `beads.parent` knob to configure.
  *
  * Keeps km-cli on the canonical `@silvery/config` loader (multi-source,
  * scoped writes, signals) without forcing every call site to hand-roll the
@@ -25,8 +26,6 @@ export interface BdConfigView {
   /** Resolved config file path (project takes precedence over global), or null. */
   readonly path: string | null
   readonly beads: {
-    readonly board: string
-    readonly parent: string
     readonly prefix: string
   }
   readonly tui: {
@@ -41,8 +40,6 @@ export async function loadKmBdConfig(repoRoot: string): Promise<BdConfigView> {
     raw: config,
     path: config.path,
     beads: {
-      board: config.get<string>("beads.board") ?? "issue",
-      parent: config.get<string>("beads.parent") ?? "issue/",
       prefix: config.get<string>("beads.prefix") ?? "km",
     },
     tui: {

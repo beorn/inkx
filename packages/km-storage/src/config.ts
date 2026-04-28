@@ -35,11 +35,7 @@ import { parse as parseYaml } from "yaml"
 const log = createLogger("km:storage:config")
 
 export interface BeadsConfig {
-  /** Default board for queries (e.g., "@issues") */
-  board?: string
-  /** Directory where new issues are created (e.g., "issues/") */
-  parent?: string
-  /** Issue ID prefix (e.g., "km" for km-xxxx) */
+  /** Issue ID prefix (e.g., "km" for km-xxxx). The vault sigil for cross-vault refs. */
   prefix?: string
 }
 
@@ -218,8 +214,6 @@ export function clearConfigCache(): void {
 export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
   const config = loadConfig(searchFrom)
   return {
-    board: config.beads?.board ?? "issue",
-    parent: config.beads?.parent ?? "issue/",
     prefix: config.beads?.prefix ?? "km",
   }
 }
