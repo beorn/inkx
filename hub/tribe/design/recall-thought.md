@@ -306,6 +306,56 @@ Specific moat sources identified:
 4. **Visibility + operator UX** — many systems are opaque. The side-panel/tooltip/inspector/journal layers are uncommon.
 5. **Cloud-as-proxy positioning** — agent-in-the-middle on the ACP wire is a fresh wedge ([acp-proxy.md §3.4](../../silvercode/future/ai-terminal/acp-proxy.md))
 
+### gbrain (Garry Tan, garrytan/gbrain v0.9.1) — closest validation of the four-tier framework
+
+gbrain (https://github.com/garrytan/gbrain) is a production "personal knowledge brain" that an AI agent reads/writes on every interaction. **It ships 3 of our 4 tiers** for a different corpus (personal life vs coding sessions). Most relevant prior-art find for the four-tier framework — more than Hermes, more than any /deep finding.
+
+**gbrain mapped to the four tiers**:
+
+| Tier | gbrain implementation | Status |
+|---|---|---|
+| **Tier 1 — mem lookup** | `gbrain search` (tsvector keyword) + `gbrain query` (hybrid: tsvector + RRF + pgvector + query expansion) | ✅ ships, hybrid not FTS-only |
+| **Tier 2 — mem inject** | "Brain-first lookup on every message" — permanent agent discipline; reads brain before responding to anything | ✅ ships, more aggressive than UserPromptSubmit hook (it's a behavioral rule, not a system injection) |
+| **Tier 3 — mem thought** | NOT PRESENT — no separate continuous sub-agent watching events. Entity detection runs in the foreground agent on each message, not a separate process. | ❌ the gap |
+| **Tier 4 — mem dream** | Explicit "dream cycle" in `docs/guides/cron-schedule.md`: nightly cron with entity sweep + citation fixes + memory consolidation | ✅ ships, exactly the pattern |
+
+**Striking overlaps with our design**:
+
+- **"Compiled truth + timeline"** — gbrain pages have an above-the-line synthesis (current state) + below-the-line append-only evidence. Exactly the compiled-knowledge format mem-thought's sub-agent maintains. They nailed the convention we sketched.
+- **Multi-source event ingestion** — voice, email, X, calendar, meetings flow into brain pages via integration recipes. Validates our "multi-source events" thesis for mem-thought (file changes, tribe broadcasts, CI, peer activity).
+- **Hybrid search substrate** — PGLite + pgvector. We use SQLite + FTS5 for recall and qmd for hybrid; gbrain proves the value of vector search at this layer. Argues for adding embeddings to recall (per our v2/v3 roadmap).
+- **Operational shape** — cron + integrations + recipes is the mature production pattern. Our `bun tribe install` hook setup is in the same family.
+- **"Compounding thesis"** — every read-write cycle adds knowledge. Our journal file + cumulative compiled-knowledge has the same compounding property.
+
+**Different corpora, same architecture**:
+
+| Corpus | Substrate | Best fit |
+|---|---|---|
+| Personal life (people, meetings, decisions, ideas, calendar, email) | gbrain (PGLite + pgvector) | gbrain |
+| Claude Code session history | bearly recall (SQLite + FTS5) | tribe.ask, mem-thought |
+| Markdown vault knowledge | qmd (BM25 + vector + HyDE) | qmd, mem-thought v2 |
+
+**The four-tier framework is corpus-agnostic.** gbrain proves it works for personal life. Our work demonstrates it for coding sessions + vault. A complete agent system runs the framework on every relevant corpus.
+
+**Critical implication for mem-thought**:
+
+- **Tier 3 is genuinely the gap** — gbrain has shipped 3 of 4 tiers and validated the framework. We are not reinventing wheels for Tier 1/2/4; those are well-trodden territory.
+- **mem-thought as gbrain consumer** — the sub-agent could call `gbrain query` as one of its tools (in addition to recall_search, qmd_query, lsp_*, bd_*). Cross-corpus reactive surfacing.
+- **Adopt gbrain's "compiled truth + timeline" format** — for the compiled-knowledge state in the sub-agent. Already battle-tested.
+- **Adopt gbrain's "dream cycle" patterns for our Tier 4** (mem-dream) — entity sweep, citation fixes, consolidation. We don't need to design from scratch.
+
+**For acp-proxy positioning**:
+
+- gbrain is a **P3 corpus + skills package** the agent consumes. Not P1 (host) or P2 (proxy).
+- silvercode + tribe could **host gbrain as one P3 sub-agent** alongside others (memory-over-sessions, critic, lint, ...).
+- **The four-position thesis becomes**: silvercode is the multi-corpus, multi-sub-agent host; gbrain is one of the corpora; mem-thought is the reactive cross-corpus search agent.
+
+**References**:
+- https://github.com/garrytan/gbrain
+- https://github.com/garrytan/gbrain/blob/master/docs/GBRAIN_SKILLPACK.md — full agent playbook (compounding thesis, brain-agent loop)
+- https://github.com/garrytan/gbrain/blob/master/docs/guides/cron-schedule.md — dream cycle protocol
+- https://github.com/garrytan/gbrain/blob/master/docs/guides/brain-vs-memory.md — three-layer model: brain (world knowledge), agent memory, session
+
 ### Hermes Agent (Nous Research, Feb 2026) — closest shipped product
 
 Discovered via OpenRouter's coding-CLI leaderboard. Hermes Agent is the closest shipped product to mem-thought as of Apr 2026 — and it shipped AFTER GPT-5.4's Oct 2024 knowledge cutoff, exactly what the caveat warned about.
