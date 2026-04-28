@@ -95,6 +95,7 @@ function parseArgs() {
     pair: get("--pair"),
     csv: get("--csv"),
     topK: Number.parseInt(get("--top-k", "5") ?? "5", 10),
+    runs: Number.parseInt(get("--runs", "1") ?? "1", 10),
     quiet: argv.includes("--quiet"),
   }
 }
@@ -206,24 +207,60 @@ async function runHypothesisLoop(query: string): Promise<RecallResult | null> {
   }
 }
 
+/**
+ * Match a hit's `sessionId` against the pair's expected_relevant — both
+ * conversational session UUIDs (8-char prefix match) and external artifacts
+ * (bead IDs, doc paths, commit SHAs).
+ *
+ * Recall encodes source identity in `sessionId`:
+ *   bead@km-tribe.recall-eval-corpus  → sessionId = "km-tribe.recall-eval-corpus"
+ *   doc:docs/explorations/...md       → sessionId starts with "docs/" or "doc:"
+ *   message@<uuid>                    → sessionId = full UUID, prefix-matched at 8 chars
+ *
+ * Match rules:
+ *   - session UUID: 8-char prefix equality
+ *   - artifact: hit's sessionId equals or contains target id/path (substring either way)
+ */
+function hitMatchesExpected(
+  hitSessionId: string,
+  expectedSessionIds: string[],
+  expectedArtifacts: { kind: string; id?: string; path?: string }[],
+): boolean {
+  if (!hitSessionId) return false
+  const hit8 = hitSessionId.slice(0, 8)
+  if (expectedSessionIds.some((s) => s.slice(0, 8) === hit8)) return true
+  for (const a of expectedArtifacts) {
+    const target = (a.id ?? a.path ?? "").trim()
+    if (!target) continue
+    if (hitSessionId === target || hitSessionId.includes(target) || target.includes(hitSessionId)) return true
+  }
+  return false
+}
+
 function scorePair(pair: Pair, result: RecallResult | null, topK: number): PairScore {
   const hits = result?.results ?? []
-  const topK_ids = hits.slice(0, topK).map((h) => (h.sessionId ?? "").slice(0, 8))
-  const expectedRelevant = (pair.expected_relevant_session_ids ?? []).map((s) => s.slice(0, 8))
+  const topKHits = hits.slice(0, topK)
+  const topK_ids = topKHits.map((h) => (h.sessionId ?? "").slice(0, 8))
+
+  const expectedRelevantSessions = pair.expected_relevant_session_ids ?? []
+  const expectedRelevantArtifacts = pair.expected_relevant_artifacts ?? []
   const expectedIrrelevant = (pair.expected_irrelevant_session_ids ?? []).map((s) => s.slice(0, 8))
 
-  const hitRelevant = topK_ids.filter((id) => expectedRelevant.includes(id)).length
+  const hitRelevant = topKHits.filter((h) =>
+    hitMatchesExpected(h.sessionId ?? "", expectedRelevantSessions, expectedRelevantArtifacts),
+  ).length
   const hitIrrelevant = topK_ids.filter((id) => expectedIrrelevant.includes(id)).length
   const trapHit = hitIrrelevant > 0
 
-  const precision = topK_ids.length === 0 ? 0 : hitRelevant / topK_ids.length
-  const recall = expectedRelevant.length === 0 ? 0 : hitRelevant / expectedRelevant.length
+  const totalExpected = expectedRelevantSessions.length + expectedRelevantArtifacts.length
+  const precision = topKHits.length === 0 ? 0 : hitRelevant / topKHits.length
+  const recall = totalExpected === 0 ? 0 : hitRelevant / totalExpected
 
-  // MRR: 1 / (1-indexed rank of first relevant)
+  // MRR: 1 / (1-indexed rank of first relevant) — relevant = matches sessions OR artifacts.
   let mrr = 0
-  for (let i = 0; i < topK_ids.length; i++) {
-    const id = topK_ids[i]!
-    if (expectedRelevant.includes(id)) {
+  for (let i = 0; i < topKHits.length; i++) {
+    const h = topKHits[i]!
+    if (hitMatchesExpected(h.sessionId ?? "", expectedRelevantSessions, expectedRelevantArtifacts)) {
       mrr = 1 / (i + 1)
       break
     }
@@ -277,11 +314,40 @@ function fmtTrace(result: RecallResult | null): string[] {
 
 function fmtScore(score: PairScore): string {
   const verdict = score.trapHit ? "TRAP HIT" : score.hitRelevant > 0 ? "PASS" : "MISS"
-  return `[${score.axis}] ${score.pairId} → ${verdict}  P=${score.precision.toFixed(2)} R=${score.recall.toFixed(2)} MRR=${score.mrr.toFixed(2)} (${score.hitRelevant}/${score.hitRelevant + score.hitIrrelevant} of top-K relevant)`
+  const hr = score.hitRelevant.toFixed(score.hitRelevant === Math.floor(score.hitRelevant) ? 0 : 2)
+  const hi = score.hitIrrelevant.toFixed(score.hitIrrelevant === Math.floor(score.hitIrrelevant) ? 0 : 2)
+  return `[${score.axis}] ${score.pairId} → ${verdict}  P=${score.precision.toFixed(2)} R=${score.recall.toFixed(2)} MRR=${score.mrr.toFixed(2)} (${hr} relevant, ${hi} irrelevant in top-K)`
+}
+
+/**
+ * Average per-pair scores across N runs. With stochastic planners (recall agent
+ * generates different keyword variants each call), single-run scores are noisy
+ * — pair-001 alternated PASS/TRAP across two runs in our smoke tests. With N=5
+ * runs averaged we get stable precision/recall/MRR readings at ~5x the cost.
+ */
+function averageScores(scores: PairScore[]): PairScore {
+  if (scores.length === 0) throw new Error("averageScores: empty input")
+  const first = scores[0]!
+  const n = scores.length
+  return {
+    pairId: first.pairId,
+    axis: first.axis,
+    query: first.query,
+    topKSessionIds: first.topKSessionIds, // representative; could merge across runs but adds noise
+    hitRelevant: scores.reduce((s, x) => s + x.hitRelevant, 0) / n,
+    hitIrrelevant: scores.reduce((s, x) => s + x.hitIrrelevant, 0) / n,
+    precision: scores.reduce((s, x) => s + x.precision, 0) / n,
+    recall: scores.reduce((s, x) => s + x.recall, 0) / n,
+    mrr: scores.reduce((s, x) => s + x.mrr, 0) / n,
+    trapHit: scores.filter((x) => x.trapHit).length / n >= 0.5, // majority vote
+    cost: scores.reduce((s, x) => s + x.cost, 0), // total, not averaged — actual spend
+    durationMs: scores.reduce((s, x) => s + x.durationMs, 0) / n, // mean per-run duration
+    synthesisLen: scores.reduce((s, x) => s + x.synthesisLen, 0) / n,
+  }
 }
 
 async function main(): Promise<void> {
-  const { mode, pair: pairFilter, csv, topK, quiet } = parseArgs()
+  const { mode, pair: pairFilter, csv, topK, runs, quiet } = parseArgs()
 
   const corpusText = await readFile(CORPUS_PATH, "utf8")
   const corpus = yaml.parse(corpusText) as Corpus
@@ -293,7 +359,7 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  console.log(`recall-eval — mode=${mode} pairs=${pairs.length} topK=${topK}`)
+  console.log(`recall-eval — mode=${mode} pairs=${pairs.length} topK=${topK} runs=${runs}`)
   console.log(`corpus: ${CORPUS_PATH}`)
   console.log("")
 
@@ -308,13 +374,27 @@ async function main(): Promise<void> {
       console.log("")
     }
 
-    const result = await runRecall(pair.query, mode)
-    const score = scorePair(pair, result, topK)
+    const perRunScores: PairScore[] = []
+    let firstResult: RecallResult | null = null
+    for (let r = 0; r < runs; r++) {
+      const result = await runRecall(pair.query, mode)
+      if (r === 0) firstResult = result
+      const s = scorePair(pair, result, topK)
+      perRunScores.push(s)
+      if (!quiet && runs > 1) {
+        console.log(`  run ${r + 1}/${runs}: ${fmtScore(s)}`)
+      }
+    }
+    const score = runs === 1 ? perRunScores[0]! : averageScores(perRunScores)
     scores.push(score)
 
     if (!quiet) {
-      for (const line of fmtTrace(result)) console.log(line)
-      console.log("")
+      // Trace from the first run, shown only for single-run mode (multi-run
+      // trace would be noisy and would require N traces).
+      if (runs === 1) {
+        for (const line of fmtTrace(firstResult)) console.log(line)
+        console.log("")
+      }
       console.log(fmtScore(score))
       console.log("")
     } else {
