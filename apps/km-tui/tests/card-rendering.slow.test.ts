@@ -229,6 +229,85 @@ describe("card border: overflow indicator", () => {
     }
     expect(failures).toBe(0)
   })
+
+  // Regression: focused card with overflow children loses bottom border + "+N more".
+  // Symptom (screenshot 2026-04-28):
+  //   - Two stacked cards in one column. Top card unfocused → "+16 more" + ╰─╯.
+  //     Bottom card focused (cursor on a child) → no bottom border, no indicator,
+  //     card just runs past the column viewport.
+  // Root cause: when the cursor is inside a card, `isExpanded = true` raises the
+  //   visible-child cap from `maxContentLines (3)` to `MAX_EXPANDED_CHILDREN (20)`.
+  //   With ≤20 children, `directHidden = 0` → `hasOverflow = false` → falls through
+  //   to the regular card render path. The card renders ALL children, becoming
+  //   taller than the column viewport allocates, so the column's `overflow="hidden"`
+  //   clips the bottom border row.
+  // Contract: a focused card whose content cannot fit must STILL surface an overflow
+  //   indicator (and therefore preserve a closing border) — same as unfocused cards.
+  test("focused card with many children still shows bottom border + overflow indicator", () => {
+    // Mirror the screenshot scenario: two stacked cards. Each has more
+    // children than maxContentLines (3) but ≤ MAX_EXPANDED_CHILDREN (20),
+    // and the column viewport is small enough that an expanded card cannot
+    // fit fully on screen.
+    const flexxKids = Array.from({ length: 8 }, (_, i) => item(`flexx-c${i}`))
+    const sessionKids = Array.from({ length: 8 }, (_, i) => item(`session-c${i}`))
+    using app = createTestApp(
+      item("board", item("col", item.file("flexx", ...flexxKids), item.file("session", ...sessionKids))),
+      { cols: 80, rows: 14, viewMode: "cards" },
+    )
+
+    // Navigate cursor into "session" so cursorInDescendant(session) === true.
+    // `j` (cursor_down) is hierarchical card-level navigation; to descend INTO
+    // a card's body we use Shift+J (block_nav_down — spatial visible-block walk).
+    for (let i = 0; i < 30; i++) {
+      const c = app.state.cursor ?? ""
+      if (c.startsWith("session-c")) break
+      app.press("shift+j")
+    }
+    expect(app.state.cursor).toMatch(/^session-c/)
+
+    // Strip ANSI for character checks.
+    const text = stripAnsi(app.text)
+
+    // The focused card has a visible top border (╭───╮). Find its row, then
+    // confirm there's a matching closing row (╰...╯) BELOW it on screen.
+    // If the card is taller than the viewport, the bottom border must be
+    // replaced with the "+N more" overflow indicator — that's the contract
+    // for unfocused oversized cards (`hasOverflow` branch in CardColumn) and
+    // it must hold for focused cards too.
+    const lines = text.split("\n")
+
+    // Locate the row that contains the focused card's title ("session") — i.e.
+    // the row inside a card body, NOT the breadcrumb at the top of the screen.
+    // The title row starts with "│ <icon> session" — `item.file()` prepends
+    // a file-type icon between the pipe and the title, and the icon is a
+    // private-use codepoint, NOT whitespace. We allow any non-`│` chars
+    // between the opening pipe and the literal "session", and exclude the
+    // child rows ("session-c…").
+    const sessionRowIdx = lines.findIndex((l) => /│[^│]*\bsession\b[^│]*│?/.test(l) && !/session-c|>\s*session/.test(l))
+    expect(
+      sessionRowIdx,
+      `expected to find a 'session' title row inside a card body. Screen:\n${text}`,
+    ).toBeGreaterThanOrEqual(0)
+
+    // Look downward from session's title for either ╰...╯ or "+N more" — that's
+    // the card's closing row. If we hit end-of-screen first, the card lost its
+    // bottom border (the bug).
+    let closingRow = -1
+    for (let i = sessionRowIdx + 1; i < lines.length; i++) {
+      const line = lines[i] ?? ""
+      if (/╰.*╯/.test(line) || /\+\d+ more/.test(line)) {
+        closingRow = i
+        break
+      }
+      // Don't walk past the column footer / status bar.
+      if (/⇧ MEM|CARDS VIEW/.test(line)) break
+    }
+
+    expect(
+      closingRow,
+      `focused card has a top border at row ${sessionRowIdx} but no closing border before viewport edge — bug reproduced.\nScreen:\n${text}`,
+    ).toBeGreaterThanOrEqual(0)
+  })
 })
 
 // ─── Card Border: Multi-Column ───────────────────────────────────────────────

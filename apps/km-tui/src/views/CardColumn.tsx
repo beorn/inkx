@@ -179,6 +179,16 @@ interface CardProps {
   isBodyCard?: boolean
   /** Number of children (pre-computed to avoid DB lookup when folded) */
   childCount?: number
+  /**
+   * Height (in rows) of the column's card area — the column's `height` minus
+   * the header rows. Used as an upper bound when an expanded (focused) card
+   * derives its own row budget so the bottom border + `+N more` indicator
+   * always fit inside the column viewport.
+   *
+   * The Column passes its `height - 2` (header + separator) here. When
+   * undefined the card falls back to the previous unbounded behaviour.
+   */
+  columnHeight?: number
 }
 
 /**
@@ -274,6 +284,7 @@ const Card = React.memo(
     prevCardNodeId,
     isBodyCard: isBodyCardProp = false,
     childCount: childCountProp,
+    columnHeight,
   }: CardProps): React.ReactElement {
     const nodeId = card.id
     // Derive isBody from ViewTree signal when available, fallback to prop
@@ -347,7 +358,36 @@ const Card = React.memo(
 
     const childCount = childCountProp ?? children.length
     // Match TreeNode's "+1 more" elimination: if exactly 1 would be hidden, show it instead.
-    const baseMax = isExpanded ? MAX_EXPANDED_CHILDREN : maxChildren
+    //
+    // Expanded-card cap (regression fix, bead km-tui.focused-card-bottom-border):
+    // when the cursor is inside this card we expand the visible-child cap so
+    // the user has navigation context. Historically that was a fixed
+    // `MAX_EXPANDED_CHILDREN = 20` — but the column has finite height, and if
+    // the rendered card exceeds the column viewport it gets clipped at the
+    // column's `overflow="hidden"` boundary. Result: the bottom border + the
+    // `+N more` indicator silently disappear (see the screenshot in bead
+    // km-tui.focused-card-bottom-border).
+    //
+    // The fix bounds the expanded cap by the column's available height so
+    // the closing row (`╰─ +N more ─╯` for the overflow path or the box's
+    // own `borderStyle="round"` bottom for the regular path) always lands
+    // inside the column viewport. The threshold below
+    // (`MAX_EXPANDED_CHILDREN + 6`) keeps tall columns on the stable
+    // `MAX_EXPANDED_CHILDREN` baseline — only constrained columns
+    // (≤~26 rows) opt into the height-aware cap. This preserves
+    // incremental-render stability for the common case where tests + apps
+    // render at full terminal height, while still fixing the bug for users
+    // on smaller windows / split panes.
+    //
+    // Per-card row budget when constrained: half the column so a sibling
+    // card has visible space too (the user needs h/l navigation context).
+    // Floor at 1 so a degenerate column never zeroes out the cap.
+    const COLUMN_HEIGHT_CONSTRAINT_THRESHOLD = MAX_EXPANDED_CHILDREN + 6
+    const expandedRowBudget =
+      columnHeight !== undefined && columnHeight < COLUMN_HEIGHT_CONSTRAINT_THRESHOLD
+        ? Math.max(1, Math.floor(columnHeight / 2) - 3)
+        : MAX_EXPANDED_CHILDREN
+    const baseMax = isExpanded ? Math.min(MAX_EXPANDED_CHILDREN, expandedRowBudget) : maxChildren
     const effectiveMax = childCount === baseMax + 1 ? baseMax + 1 : baseMax
     const directHidden = Math.max(0, childCount - effectiveMax)
     const { hasOverflow, hiddenCount } = useMemo(() => {
@@ -629,6 +669,7 @@ const Card = React.memo(
               childCount={childCount}
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
+              maxExpandedChildren={baseMax}
             />
           </Box>
           <Box width={width} height={1} flexShrink={0} backgroundColor={cardBg}>
@@ -668,6 +709,7 @@ const Card = React.memo(
           childCount={childCount}
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount
+          maxExpandedChildren={baseMax}
         />
       </Box>
     )
@@ -686,7 +728,8 @@ const Card = React.memo(
       prev.isLastBodyBlock === next.isLastBodyBlock &&
       prev.extraExcludedSigils === next.extraExcludedSigils &&
       prev.isColumnSelected === next.isColumnSelected &&
-      prev.prevCardNodeId === next.prevCardNodeId
+      prev.prevCardNodeId === next.prevCardNodeId &&
+      prev.columnHeight === next.columnHeight
     )
   },
 )
@@ -958,6 +1001,11 @@ export const Column = React.memo(function Column({
     return ids
   }, [viewTree, cardNodes])
 
+  // Card-area height = column height minus the header (header bar + separator
+  // ≈ 2 rows). Passed to each Card so it can bound its own expanded row
+  // budget (focused-card overflow fix, bead km-tui.focused-card-bottom-border).
+  const cardAreaHeight = Math.max(1, height - 2)
+
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from NodeStore self-subscription.
   //
@@ -1000,10 +1048,11 @@ export const Column = React.memo(function Column({
           extraExcludedSigils={extraExcludedSigils}
           isColumnSelected={isColumnSelected}
           prevCardNodeId={prevCard?.id}
+          columnHeight={cardAreaHeight}
         />
       )
     },
-    [colIndex, width, isVirtual, cardNodes, bodyCardIds, extraExcludedSigils, isColumnSelected],
+    [colIndex, width, isVirtual, cardNodes, bodyCardIds, extraExcludedSigils, isColumnSelected, cardAreaHeight],
   )
 
   const getKey = useCallback((card: KNode) => card.id, [])

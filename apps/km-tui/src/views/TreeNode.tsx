@@ -100,6 +100,20 @@ interface TreeNodeProps {
   /** Body content node — render without bullet prefix, dimmed. */
   isBody?: boolean
   /**
+   * Override for the expanded-card child cap (`MAX_EXPANDED_CHILDREN` by
+   * default). The cards-view Card sets this to bound an expanded card to
+   * the column's available height — without it, an expanded card can
+   * render up to 20 children which overflows tight column viewports and
+   * clips the bottom border + `+N more` indicator.
+   *
+   * Only consulted when the node would otherwise expand (cursor inside).
+   * The unfocused / non-expanded cap (`maxContentLines`) is unchanged.
+   *
+   * Undefined (default) preserves the historical `MAX_EXPANDED_CHILDREN`
+   * behaviour for callers that don't want to participate in the bound.
+   */
+  maxExpandedChildren?: number
+  /**
    * Cross-target presentation primitive: maximum number of **wrapped visual
    * rows** the primary content text may occupy. 0 (default) disables the
    * clamp — content renders in full.
@@ -204,6 +218,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (prev.maxRows !== next.maxRows) return false
   if (prev.overflowIndicator !== next.overflowIndicator) return false
 
+  // Expanded-card child cap — re-render when CardColumn re-derives the bound
+  if (prev.maxExpandedChildren !== next.maxExpandedChildren) return false
+
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
   if (prev.childCount !== next.childCount) return false
@@ -243,6 +260,7 @@ function TreeNodeImpl({
   hideChildCount = false,
   remainingDepth = Infinity,
   isBody = false,
+  maxExpandedChildren,
   maxRows = 0,
   overflowIndicator,
 }: TreeNodeProps): React.ReactElement {
@@ -707,8 +725,13 @@ function TreeNodeImpl({
   // rows (depth > 0) keep the oneliner cap as a safety net for very wide
   // outlines. When expanded (cursor/edit), cap to MAX_EXPANDED_CHILDREN to
   // avoid overflow.
+  // Expanded cap: caller can override `MAX_EXPANDED_CHILDREN` via
+  // `maxExpandedChildren` (CardColumn does this to bound an expanded card to
+  // its column's height — see `columnHeight` in CardColumn for the rationale).
+  // Floor at 1 so a degenerate column-height never zeroes out the cap.
+  const expandedCap = maxExpandedChildren !== undefined ? Math.max(1, maxExpandedChildren) : MAX_EXPANDED_CHILDREN
   const maxChildren = shouldExpand
-    ? MAX_EXPANDED_CHILDREN
+    ? expandedCap
     : variant === "multiline" || (variant === "oneliner" && depth === 0)
       ? maxContentLines
       : VARIANT_CONFIG.oneliner.maxChildren
