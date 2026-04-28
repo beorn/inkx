@@ -44,7 +44,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("run `bun fix` first")
       const code = nodes.find((n) => n.type === "code")
       expect(code).toBeDefined()
-      if (code && code.type === "code") {
+      if (code?.type === "code") {
         expect(code.code).toBe("bun fix")
       }
     })
@@ -53,7 +53,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("see [the docs](https://example.com)")
       const link = nodes.find((n) => n.type === "link")
       expect(link).toBeDefined()
-      if (link && link.type === "link") {
+      if (link?.type === "link") {
         expect(link.text).toBe("the docs")
         expect(link.url).toBe("https://example.com")
       }
@@ -63,7 +63,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("see <https://example.com>")
       const bareurl = nodes.find((n) => n.type === "bareurl")
       expect(bareurl).toBeDefined()
-      if (bareurl && bareurl.type === "bareurl") {
+      if (bareurl?.type === "bareurl") {
         expect(bareurl.url).toBe("https://example.com")
       }
     })
@@ -72,7 +72,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("see [[@km/beads/cutover]] for details")
       const wl = nodes.find((n) => n.type === "wikilink")
       expect(wl).toBeDefined()
-      if (wl && wl.type === "wikilink") {
+      if (wl?.type === "wikilink") {
         expect(wl.target).toBe("@km/beads/cutover")
         expect(wl.isEmbed).toBe(false)
       }
@@ -82,7 +82,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("[[@km/beads/cutover|the cutover]]")
       const wl = nodes.find((n) => n.type === "wikilink")
       expect(wl).toBeDefined()
-      if (wl && wl.type === "wikilink") {
+      if (wl?.type === "wikilink") {
         expect(wl.target).toBe("@km/beads/cutover")
         expect(wl.alias).toBe("the cutover")
       }
@@ -94,7 +94,7 @@ describe("@km/text-render — contract", () => {
       expect(types(nodes)).toContain("tag")
       expect(types(nodes)).toContain("project")
       const mention = nodes.find((n) => n.type === "mention")
-      if (mention && mention.type === "mention") {
+      if (mention?.type === "mention") {
         expect(mention.name).toBe("beorn")
       }
     })
@@ -103,7 +103,7 @@ describe("@km/text-render — contract", () => {
       const nodes = parseInlineText("due:: 2026-04-28")
       const f = nodes.find((n) => n.type === "field")
       expect(f).toBeDefined()
-      if (f && f.type === "field") {
+      if (f?.type === "field") {
         expect(f.key).toBe("due")
         expect(f.value).toBe("2026-04-28")
       }
@@ -169,7 +169,7 @@ describe("@km/text-render — contract", () => {
   describe("SIGIL_PATTERN", () => {
     it("matches @, #, + sigils with Unicode names", () => {
       SIGIL_PATTERN.lastIndex = 0
-      const matches = [...("@beorn #task +work".matchAll(SIGIL_PATTERN))]
+      const matches = [..."@beorn #task +work".matchAll(SIGIL_PATTERN)]
       expect(matches.length).toBe(3)
     })
   })
@@ -227,9 +227,7 @@ describe("@km/text-render — silvercode integration smoke test", () => {
   // These shapes mirror what arrives from streaming assistant content.
 
   it("parses a representative paragraph (silvercode block input)", () => {
-    const nodes = parseInlineText(
-      "Run `bun fix` and check [the docs](https://example.com) for **important** updates.",
-    )
+    const nodes = parseInlineText("Run `bun fix` and check [the docs](https://example.com) for **important** updates.")
     const ts = types(nodes)
     expect(ts).toContain("code")
     expect(ts).toContain("link")

@@ -28,7 +28,14 @@ describe("UnifiedOmnibox — parse chips strip", () => {
   it("renders no chip strip when buffer is empty", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
-      <UnifiedOmnibox pane={createOmniboxPane(spec(""))} results={[]} selectedIndex={0} onBufferChange={() => {}} onConfirm={() => {}} layout="center" />,
+      <UnifiedOmnibox
+        pane={createOmniboxPane(spec(""))}
+        results={[]}
+        selectedIndex={0}
+        onBufferChange={() => {}}
+        onConfirm={() => {}}
+        layout="center"
+      />,
     )
     expect(app.locator("[data-testid='omnibox-parse-chips']").count()).toBe(0)
   })

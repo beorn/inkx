@@ -347,8 +347,7 @@ function CenterOmnibox({
   // results) so we don't show an empty pane.
   const selectedRow = results[selectedIndex] ?? null
   const previewContent = React.useMemo(
-    () =>
-      preview ? previewForRow(selectedRow, { effectiveCommand: previewEffectiveCommand }) : null,
+    () => (preview ? previewForRow(selectedRow, { effectiveCommand: previewEffectiveCommand }) : null),
     [preview, selectedRow, previewEffectiveCommand],
   )
 

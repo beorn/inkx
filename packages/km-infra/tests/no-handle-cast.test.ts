@@ -46,10 +46,9 @@ describe("no-handle-cast guard", () => {
     // We can't easily stage a sabotage file (would pollute the working
     // tree), so we exercise the grep pattern directly.
     const offender = "apps/silvercode/src/foo.ts:42:const fake = {} as TickHandle"
-    const matched = execSync(
-      `printf '%s\\n' ${JSON.stringify(offender)} | grep -E ' as (TickHandle)\\b' || true`,
-      { encoding: "utf8" },
-    )
+    const matched = execSync(`printf '%s\\n' ${JSON.stringify(offender)} | grep -E ' as (TickHandle)\\b' || true`, {
+      encoding: "utf8",
+    })
     expect(matched.trim()).toBe(offender)
   })
 
@@ -62,10 +61,9 @@ describe("no-handle-cast guard", () => {
       "vendor/silvery/packages/ag-term/src/runtime/run.tsx:562:/** Wrap AppHandle as RunHandle (subset of the full handle). */",
     ]
     for (const line of cases) {
-      const matched = execSync(
-        `printf '%s\\n' ${JSON.stringify(line)} | grep -E ' as (TickHandle)\\b' || true`,
-        { encoding: "utf8" },
-      )
+      const matched = execSync(`printf '%s\\n' ${JSON.stringify(line)} | grep -E ' as (TickHandle)\\b' || true`, {
+        encoding: "utf8",
+      })
       expect(matched.trim()).toBe("")
     }
   })

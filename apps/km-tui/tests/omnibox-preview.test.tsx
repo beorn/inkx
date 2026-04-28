@@ -26,7 +26,9 @@ function spec(buffer: string): OmniboxInvocationSpec {
   }
 }
 
-function row(overrides: Partial<OmniboxRowData> & Pick<OmniboxRowData, "id" | "kind" | "title" | "icon">): OmniboxRowData {
+function row(
+  overrides: Partial<OmniboxRowData> & Pick<OmniboxRowData, "id" | "kind" | "title" | "icon">,
+): OmniboxRowData {
   return { ...overrides }
 }
 
@@ -42,7 +44,14 @@ describe("previewForRow — null handling", () => {
 
 describe("previewForRow — command rows", () => {
   it("renders command title + description + keybinding hint", () => {
-    const cmd = row({ id: "goto", kind: "command", title: "Go to node", icon: ":", context: "Jump anywhere", hint: "g g" })
+    const cmd = row({
+      id: "goto",
+      kind: "command",
+      title: "Go to node",
+      icon: ":",
+      context: "Jump anywhere",
+      hint: "g g",
+    })
     const preview = previewForRow(cmd, {})
     expect(preview).not.toBeNull()
     expect(preview!.kind).toBe("command")
