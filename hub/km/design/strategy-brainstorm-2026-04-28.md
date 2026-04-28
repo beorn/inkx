@@ -71,6 +71,69 @@ These are individually uplift-able if a market opportunity surfaces (e.g., terml
 
 **Brand presence**: silvery 3K DL/wk; 62 npm packages under maintainer `beorno`.
 
+### A4. The portfolio decomposes into layers, not products
+
+Reframing the inventory as a *layered architecture* (rather than a flat product list) reveals where the durable moats actually are. The user's framing (2026-04-28):
+
+```
+─────────────────────────────────────────────────────────────────────
+UI LAYER             silvery (multi-target: TUI today → web/native)
+                     flexily (Yoga-killer layout)
+─────────────────────────────────────────────────────────────────────
+APP FEATURES         boardliner (tree-as-board, "Super Finder")
+                     code editor / chat panes
+                     md editor (Notion-like)
+                     diagram editor (silvery+flexily+canvas, novel)
+                     agent orchestration UI (squad mode, claims, viz)
+─────────────────────────────────────────────────────────────────────
+SUBSTRATE / STORAGE  PlainBrain spec (markdown filesystem shape)
+                     repo-as-DB (Dropbox-shape sync for AI-vaults — own
+                     product opportunity, no incumbent)
+                     bidirectional md↔SQLite + watcher infra
+─────────────────────────────────────────────────────────────────────
+AGENT LAYER          ACP-wrapper for any coding agent (universal client,
+                     not "another Cursor with our framework")
+                     Multi-agent coordination primitives
+                     Ambient-context-safety, recall, handoff
+─────────────────────────────────────────────────────────────────────
+PROTOCOL LAYER       AUTHORED: tribe wire, org.agentroom.* events,
+                     PlainBrain spec (spec-authorship moat)
+                     INTEROP: ACP, MCP, Matrix, OAuth (baseline)
+─────────────────────────────────────────────────────────────────────
+SERVICES             KM-side: hosted recall, multi-device sync,
+                     vault-cloud, team features
+                     Coding-side: subscription-auth, ambient-safety
+                     pipeline, agentroom hosted gateway,
+                     CrossAgentState orchestration
+─────────────────────────────────────────────────────────────────────
+SUPPORTING           Standards (CC BY 4.0 spec authorship)
+                     Feeder websites (silvery.dev, termless.dev,
+                     loggily.dev, mdspec.org, beorn.codes/flexily/)
+                     Operational infrastructure (bearly tooling: recall,
+                     tribe, llm CLI, hooks, beads, worktrees)
+                     Partnerships (distribution, co-marketing, standards
+                     bodies, capital/advisory via Palo Alto network)
+```
+
+**The strategic insight from layering**:
+
+When the portfolio is framed as layers (not products), the question changes from *"which product wins?"* to *"which layers do we own?"* — and the answer is sharper:
+
+- **Always own**: silvery (UI), tribe + PlainBrain (authored protocols), agentroom (services anchor). These are the layers competitors structurally can't replicate cheaply.
+- **Compose freely**: silvercode, km, future apps. These are *vehicles for the layers*, not the layers themselves. Decomposable, swappable, recombinable.
+- **Open-source generously at the layer level**, monetize at the services level + selectively at app-shape.
+
+**Where the user sees the most opportunity (2026-04-28)**: the **agent + protocol + services bottom stack**. This is consistent with multiple independent signals:
+
+- /pro v3 found the ACP-proxy cluster (gateway + storage + coordination) reaching the only rubric-validated 25/25 ceiling in the portfolio — *"candidate generational company."*
+- Kimi's negative-cross-elasticity argument doesn't apply to services (services are what users want to *avoid* doing — positive cross-elasticity).
+- The team-size analysis (Phase 2.5) shows L3/L2 layers as the cleanest path to revenue at small team sizes.
+- Acquirer-readability: layers are what acquihire targets look like, not apps. silvery + tribe + agentroom is a more legible acquisition surface than silvercode-the-IDE.
+
+**Implication for the strategy menu**: most strategies in Phase 3 collapse to *"which layers to focus on, with apps as demonstrators."* The integrated S23 ("playground for the UI of agentic work") is the *demonstrator*, not the *product*. The real bet is the layers underneath.
+
+---
+
 ### A3. OpenTUI architectural reality check (Ink-migration claim verified)
 
 The "silvery is the only React-TUI framework architecturally suited as drop-in for Ink" claim is verified. OpenTUI's React API is fundamentally incompatible with Ink at the API level:
@@ -548,11 +611,34 @@ Build silvery + the silvery/ink shim + agentroom + tribe to *just* the right siz
 
 **Score**: B=3 / T=18-30 / C=high (single liquidity event; $50-200M plausible) / R=4 / D=at least one Big AI lab decides Ink is a real architectural problem and looks for the migration path; conversation reaches the right people
 
-### S24 — "Acquihire-positioned for Big AI labs" (silvery + agentroom as Anthropic/Google/Microsoft target)
+### S25 — "Bottom-stack first, apps as demonstrators" (the agent+protocol+services emphasis)
 
-Build silvery + the silvery/ink shim + agentroom + tribe to *just* the right size for a strategic acquisition by a Big AI lab that needs to migrate their internal CLI off Ink. Anthropic's Claude Code, Google's Gemini CLI, GitHub's Copilot CLI all have Ink architectural constraints. silvery is the only architecturally-suited replacement. Optimize the portfolio for the conversation: clean architecture, well-documented, strategic complementarity with each lab's tooling. Don't try to win as standalone product; structure for $50-200M acquihire+IP outcome.
+D3 + D4/D5 layered as the strategic lead. Founder's read (2026-04-28): *"there's a lot of opportunities in the agent+protocol+services layer."* This strategy makes that explicit.
 
-**Score**: B=3 / T=18-30 / C=high (single liquidity event; $50-200M plausible) / R=4 / D=at least one Big AI lab decides Ink is a real architectural problem and looks for the migration path; conversation reaches the right people
+**Lead** (where revenue comes from):
+- **Agent layer** as the universal ACP-wrapper for *any* coding agent — anti-Cursor positioning. Don't compete on having an agent, compete on being the best UI for managing any agent. Multi-agent coordination primitives (squad mode, file claims, handoff), ambient-context-safety, recall.
+- **Protocol layer** with tribe wire + `org.agentroom.*` event vocab + PlainBrain substrate spec authored as MSCs / open standards. Spec-authorship moat is generational-scale (HTTP/IRC/MIME/OAuth precedent).
+- **Services layer**: ACP-proxy ship-now cluster (observability + recall + cost) for v1 → full agentroom hosted gateway + CrossAgentState orchestration + ambient-safety pipeline + hosted recall over time.
+
+**Demonstrators (NOT lead products)**:
+- **silvercode** = canonical reference IDE that proves the agent+protocol+services stack works. Open source. Marketing/halo, not revenue.
+- **km** = canonical reference workspace that proves PlainBrain + the substrate. Decomposed into silvercode features OR as separate workspace, but framed as *demonstrator*.
+- **silvery** = the foundation framework. Open Apache. Brand halo, no direct revenue path.
+- **The integrated S23 app ("playground")** = maximum demonstrator: chat + docs + code + agents + boards + diagrams. Shows what the layers enable when fully composed.
+
+**Why this collapses the strategy menu**:
+- Cross-elasticity becomes positive throughout (services tier = what users want to avoid doing)
+- Apps don't have to win standalone — they're showcases
+- Acquirer-readable: layers are what gets acquired (silvery, agentroom-stack, tribe spec authorship), not specific app instances. Multi-acquirer optionality.
+- Multiple commercial revenue streams from one layered foundation (KM-side services + coding-side services + hosted gateway)
+- Solo-doable for spec authorship + agent-layer + ship-now cluster *now*; team scales as services productize
+- Aligns with the entire ACP-proxy ventures rubric (#11+#12+#13 = 25/25 ceiling) — the only rubric-validated 25/25 cluster in the portfolio
+
+**Score**: B=4 / T=12-24 (services productize gradually; spec authorship is solo-doable now; ship-now cluster is days of work) / C=very-high (multi-stream revenue + spec-authorship moat + acquihire-friendly layers) / R=3 (lower than other strategies — cross-elasticity is positive throughout) / D=ACP standard wins, tribe MSCs ship before competitors, services tier reaches production-grade with first hires
+
+**Sequencing nuance**: solo-doable today in the *spec + agent-layer + ship-now cluster* parts. Production services (auth, ambient-safety pipeline, multi-tenant gateway) wait for first hires. Apps (silvercode, km) ship as open demonstrators throughout — they're not the bottleneck.
+
+**This is the strategy that threads through all the constraints**: cross-elasticity (positive), solo bandwidth (work fits), layers-as-moat (yes), acquirer-readability (yes), open-source posture (silvery + tribe + PlainBrain stay open per the strategic decision), commercial ceiling (services tier scales). It also lines up with where every independent analytical signal has pointed: /pro v3's rubric-validated cluster, Kimi's cross-elasticity argument, the Vercel/Auth0/Algolia precedents, the Confluent/Kafka analog for tribe.
 
 ---
 
