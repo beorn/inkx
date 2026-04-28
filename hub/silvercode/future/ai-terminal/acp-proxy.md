@@ -502,7 +502,92 @@ Steps 1–3 don't require structural change to silvercode. Step 4+ start to need
 - Memory + recall infrastructure. Owns the user's relationship with their AI workflow over years.
 - Cross-product agent identity. One memory across coding, knowledge work, personal assistance.
 
-### 6.d Prior-art audit confirms the agent-in-the-middle category is open (2026-04-28)
+### 6.d The four-position thesis — silvercode + tribe spans what no competitor does
+
+The 2026 competitive landscape sorts cleanly into four positions in the agent stack:
+
+```
+                     FOREGROUND AGENTS (commoditizing)
+                     ┌─────────────────────────────────────────┐
+                     │ Claude Code, Codex, Gemini CLI, Cursor, │
+                     │ Cline, Aider, Goose, Kilo, Hermes,      │
+                     │ Codebuff, OpenHands, pi, Continue, ...  │
+                     └─────────────────────────────────────────┘
+                                       ↑
+                                       │ ACP / MCP wire
+                                       ↓
+              ┌─────────────────────────────────────────────────────┐
+              │  POSITION 1: AGENT HOST                             │
+              │  Multi-agent orchestrator — spawns any ACP agent    │
+              │  silvercode today                                   │
+              ├─────────────────────────────────────────────────────┤
+              │  POSITION 2: AGENT-IN-THE-MIDDLE PROXY              │
+              │  Cloud gateway that sits on the wire                │
+              │  Future silvercode + tribe deployment topology      │
+              ├─────────────────────────────────────────────────────┤
+              │  POSITION 3: PERSISTENT SUB-AGENT PLATFORM          │
+              │  Co-resident agents (memory, critic, lint, ...)     │
+              │  mem-thought is the first; platform shape is open   │
+              ├─────────────────────────────────────────────────────┤
+              │  POSITION 4: COORDINATION LAYER                     │
+              │  Cross-session, cross-machine, cross-team           │
+              │  tribe today; matrix-shape future                   │
+              └─────────────────────────────────────────────────────┘
+                                       ↑
+                                       │ provider APIs
+                                       ↓
+                   ┌───────────────────────────────────────┐
+                   │ MODEL LAYER (commoditized)            │
+                   │ Anthropic, OpenAI, Google, DeepSeek,  │
+                   │ xAI, OpenRouter, LiteLLM, Portkey,    │
+                   │ Helicone, Vercel AI Gateway, ...      │
+                   └───────────────────────────────────────┘
+```
+
+### Where each 2026 competitor sits
+
+| Product / category | P1 host | P2 proxy | P3 sub-agent | P4 coord | Notes |
+|---|---|---|---|---|---|
+| **Foreground CLI agents** (Claude Code, Codex, Gemini, Cursor, Cline, Aider, Goose, OpenHands, Qwen, pi, Continue, Codebuff) | ❌ | ❌ | ❌ | ❌ | Above us — they're what we host |
+| **Hermes Agent** (Nous, Feb 2026) | ❌ | ❌ | partial — self-managed memory + skills (Tier 1+4 only) | ❌ | Closest single-agent memory product; doesn't span |
+| **Kilo Code** (Kilo-Org) | partial — VS Code + CLI multi-model | ❌ | ❌ | ❌ | Closest multi-model agent; not ACP-host-shaped |
+| **OpenRouter** | ❌ | partial — transform-only | ❌ | ❌ | Pure model router |
+| **LiteLLM Proxy / Portkey / Helicone / Vercel AI Gateway / LangSmith** | ❌ | partial — transform-only | ❌ | ❌ | LLM gateways, no agent state |
+| **MCP servers / Continue** | ❌ | ❌ | partial — pull tools | ❌ | Client-side orchestration, not a proxy |
+| **AutoGen / CrewAI** | partial — multi-role | ❌ | ❌ | ❌ | Same-process orchestration; not IDE/proxy |
+| **LangGraph Cloud** | ❌ | ❌ | partial — could build | ❌ | Framework, not packaged product with shape |
+| **Vercel chat-sdk** | ❌ | ❌ | ❌ | ❌ | Chatbot transport, different layer |
+| **silvercode + tribe** | ✅ ships | 🎯 in design | 🎯 mem-thought v1 next | ✅ ships (matrix-shape designed) | Spans all four |
+
+**No 2026 competitor spans all four positions.** Hermes is the closest single-quadrant match (P3 partial, self-managed). Kilo is the closest hybrid agent (partial P1). Everything else is single-position.
+
+### The composition is the product
+
+Each individual position has at least one competitor. Some have many. **The product isn't any single position; it's the four-position composition:**
+
+- **P1 (host) without P2 (proxy)** = silvercode today — useful but reach-limited to local installs
+- **P2 (proxy) without P3 (sub-agents)** = OpenRouter / LiteLLM — transform-only commodity
+- **P3 (sub-agents) without P1/P2** = Hermes — self-contained, doesn't compose with other agents
+- **P4 (coordination) without P1/P2/P3** = Slack/Discord — agent-coordination via human comms, not infrastructure
+
+silvercode + tribe + the persistent-sub-agent platform + the proxy deployment topology = the only shape that **multiplies** across positions:
+- Any P3 sub-agent (memory, critic, lint, ...) deployed via P2 (cloud proxy) reaches every user of every P1-hosted agent
+- P4 coordination (tribe wire) lets P3 sub-agents share state across P1 hosts
+- P1 host quality improves as P3 sub-agents accumulate (richer ambient context)
+- P2 proxy is the distribution mechanism for P3 sub-agents to non-silvercode clients (Cursor users, Cline users, etc. via MCP)
+
+**The category to claim**: "Agent host with intelligent middleware" or "Stateful agent gateway" — both are unclaimed. Hermes proves the market wants persistent agent intelligence. Vercel's stack proves there's distribution upside in unified-API-across-platforms. OpenRouter proves there's billing surface in agent-traffic intermediation. None of them composes all of these.
+
+### What this means for the silvercode roadmap
+
+- **Tier 3 mem-thought (this quarter)** — proves the P3 sub-agent platform shape with a concrete first instance. Launches the category internally.
+- **ACP proxy wedge (next quarter)** — small/observability-first per §5; opens P2 for distribution beyond silvercode users.
+- **Sub-agent SDK (later)** — once mem-thought is dogfooded, package the persistent-sub-agent contract so others can build P3 instances (compiler, critic, style, test-runner, doc-sync). This is the platform play.
+- **agentskills.io compatibility** — interop with Hermes's skill format. We're not competing with Hermes; we're hosting it (P1) and adding P2/P3/P4 around it.
+
+The product narrative is: **silvercode is to agents what kubectl is to containers — a thin host that you don't notice, with platform power (persistent sub-agents, cross-session coordination, multi-tenant proxy) that compounds the longer you use it.**
+
+### 6.e Prior-art audit confirms the agent-in-the-middle category is open (2026-04-28)
 
 A /deep prior-art audit on the persistent-sub-agent composition found **no exact match** in the gateway/proxy market. Specifically:
 
