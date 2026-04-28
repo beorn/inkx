@@ -15,6 +15,7 @@
     "storybook": "bun storybook/runner.tsx"
   },
   "dependencies": {
+    "@bearly/recall": "workspace:*",
     "@beorn/accountly": "workspace:*",
     "@km/agent-harness": "workspace:*",
     "@km/autolinks": "workspace:*",

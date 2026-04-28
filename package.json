@@ -16,7 +16,8 @@
     "vendor/*",
     "vendor/termless/packages/*",
     "vendor/silvery/packages/*",
-    "vendor/bearly/packages/*"
+    "vendor/bearly/packages/*",
+    "vendor/bearly/plugins/*"
   ],
   "overrides": {
     "silvery": "$silvery",

@@ -38,6 +38,11 @@ import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import createDebug from "debug"
+import {
+  containsRejectedSignal,
+  hasSalience,
+  LONG_PROMPT_BYPASS_LENGTH,
+} from "@bearly/recall"
 import type { AmbientAdapterCtx } from "./types.ts"
 import { createDebouncedEmit, makeAmbientEventId } from "./types.ts"
 
@@ -57,8 +62,16 @@ export const MIN_RECALL_INTERVAL_MS = 60_000
 const RECALL_QUERY_TIMEOUT_MS = 5_000
 /** Default `--limit` passed to the recall CLI. */
 const RECALL_QUERY_LIMIT = 5
-/** How many hits to summarize inline in the digest body. */
-const RECALL_DIGEST_HITS = 3
+/**
+ * How many hits to summarize inline in the digest body.
+ *
+ * V2 lowered this from 3 → 1: dogfooding the inject-delta V2 gates
+ * showed multi-hit emits dilute the perceived signal (one strong hit +
+ * tangential extras drags the useful-rate down). Same lesson applies
+ * to the ambient digest. The full hit count is still surfaced via the
+ * `+N more` suffix and `meta.hitCount`.
+ */
+const RECALL_DIGEST_HITS = 1
 
 /**
  * One recall hit summarized for ambient display. Mirrors the fields
@@ -134,6 +147,15 @@ export function registerRecallAmbientAdapterHandle(opts: RecallAdapterOptions): 
     if (disposed) return 0
     const trimmed = rawQuery.trim()
     if (trimmed.length === 0) return 0
+    // V2 salience gate: short prompts without recallable identifiers are
+    // meta-questions ("how should we improve?") that produce only
+    // tangential token-overlap matches. Mirrors the inject-delta V2
+    // gate in @bearly/recall — same logic, applied at the silvercode
+    // ambient layer so we don't waste a CLI subprocess.
+    if (trimmed.length < LONG_PROMPT_BYPASS_LENGTH && !hasSalience(trimmed)) {
+      dRecall("low-salience query skipped: %s", trimmed.slice(0, 40))
+      return 0
+    }
     const t = now()
     // lastQueryAt === 0 means we've never queried yet — always admit
     // the first probe regardless of how the test clock starts.
@@ -158,7 +180,17 @@ export function registerRecallAmbientAdapterHandle(opts: RecallAdapterOptions): 
       dRecall("no hits for %s", trimmed.slice(0, 40))
       return 0
     }
-    const content = formatDigest(trimmed, hits)
+    // V2 content gate: drop hits whose summary signals its own
+    // irrelevance — stored verdicts ("orthogonal"/"incidental"),
+    // SUPERSEDED/REJECTED outcomes. Mirrors the inject-delta V2 body
+    // pattern. Conservative — requires the keyword in a labeled
+    // position (e.g., `"verdict": "orthogonal"`).
+    const filtered = hits.filter((h) => !containsRejectedSignal(h.summary))
+    if (filtered.length === 0) {
+      dRecall("all hits filtered by rejected-signal gate for %s", trimmed.slice(0, 40))
+      return 0
+    }
+    const content = formatDigest(trimmed, filtered)
     if (content.length === 0) return 0
     const ok = emit({
       id: makeAmbientEventId(SOURCE),
@@ -168,8 +200,8 @@ export function registerRecallAmbientAdapterHandle(opts: RecallAdapterOptions): 
       meta: {
         kind: "recall-digest",
         query: trimmed,
-        hitCount: hits.length,
-        sessionIds: hits.map((h) => h.sessionId).filter((s): s is string => typeof s === "string"),
+        hitCount: filtered.length,
+        sessionIds: filtered.map((h) => h.sessionId).filter((s): s is string => typeof s === "string"),
       },
     })
     return ok ? 1 : 0
