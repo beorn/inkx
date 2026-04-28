@@ -1,10 +1,10 @@
 ---
-description: Full bd CLI reference
+description: Full km bd CLI reference
 ---
 
-# bd CLI Reference
+# km bd CLI Reference
 
-**Keywords**: bd command, bd list, bd create, bd update, bd show
+**Keywords**: bd command, km bd list, km bd create, km bd update, km bd show
 
 Full reference for the standalone `bd` CLI (v0.50+).
 
@@ -38,7 +38,7 @@ A **bead** is an issue/task/bug with these core fields:
 | `actor`       | string            | Who performed last action (audit trail)                          |
 | `parent`      | string            | Parent bead ID (for hierarchical tracking)                       |
 | `due_at`      | timestamp         | Due date/time                                                    |
-| `defer_until` | timestamp         | Hidden from `bd ready` until this time                           |
+| `defer_until` | timestamp         | Hidden from `km bd ready` until this time                           |
 | `ephemeral`   | bool              | If true, not exported to JSONL (wisp)                            |
 | `created_at`  | timestamp         | When created                                                     |
 | `created_by`  | string            | Who created it                                                   |
@@ -62,50 +62,50 @@ open (no assignee)
 ## Querying Beads
 
 ```bash
-bd show km-abc123           # Human-readable
-bd show km-abc123 --json    # JSON for scripting
-bd show km-abc123 --json | jq -r '.[0].status'
+km bd show km-abc123           # Human-readable
+km bd show km-abc123 --json    # JSON for scripting
+km bd show km-abc123 --json | jq -r '.[0].status'
 ```
 
 ## Listing & Filtering
 
 ```bash
-bd list                     # Open issues (limit 50)
-bd list --status open
-bd list --status in_progress
-bd list --type bug
-bd list --priority 0        # P0 only
-bd list --priority-max 1    # P0 and P1
-bd list --assignee beorn
-bd list --no-assignee       # Unassigned
-bd list --title mdspec      # Search title
-bd list --all               # Include closed
-bd list --limit 0           # Unlimited
-bd list --tree              # Hierarchical tree format
-bd list --long              # Detailed multi-line output
-bd list --parent km-tui     # Children of a parent (replaces grep)
-bd list --ready             # Only ready issues (open, not blocked/deferred)
-bd list --overdue           # Due date in the past
-bd list --deferred          # Deferred issues
-bd list --due-before tomorrow  # Due soon
-bd list --label-any sync,watcher  # OR: has ANY of these labels
-bd list --label sync --label watcher  # AND: has ALL of these labels
-bd list --label-pattern "tech-*"  # Glob pattern match on labels
-bd list --sort updated      # Sort by updated, created, priority, etc.
-bd list --json | jq -r '.[] | "\(.id) \(.title)"'
+km bd list                     # Open issues (limit 50)
+km bd list --status open
+km bd list --status in_progress
+km bd list --type bug
+km bd list --priority 0        # P0 only
+km bd list --priority-max 1    # P0 and P1
+km bd list --assignee beorn
+km bd list --no-assignee       # Unassigned
+km bd list --title mdspec      # Search title
+km bd list --all               # Include closed
+km bd list --limit 0           # Unlimited
+km bd list --tree              # Hierarchical tree format
+km bd list --long              # Detailed multi-line output
+km bd list --parent km-tui     # Children of a parent (replaces grep)
+km bd list --ready             # Only ready issues (open, not blocked/deferred)
+km bd list --overdue           # Due date in the past
+km bd list --deferred          # Deferred issues
+km bd list --due-before tomorrow  # Due soon
+km bd list --label-any sync,watcher  # OR: has ANY of these labels
+km bd list --label sync --label watcher  # AND: has ALL of these labels
+km bd list --label-pattern "tech-*"  # Glob pattern match on labels
+km bd list --sort updated      # Sort by updated, created, priority, etc.
+km bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 ```
 
 ## Query Language
 
-`bd query` supports compound filters with boolean operators:
+`km bd query` supports compound filters with boolean operators:
 
 ```bash
-bd query "status=open AND priority<=2"
-bd query "status=open AND type=bug AND updated>7d"
-bd query "(status=open OR status=blocked) AND priority<2"
-bd query "assignee=none AND type=task"
-bd query "title=authentication AND priority=0"
-bd query "parent=km-tui AND status!=closed"
+km bd query "status=open AND priority<=2"
+km bd query "status=open AND type=bug AND updated>7d"
+km bd query "(status=open OR status=blocked) AND priority<2"
+km bd query "assignee=none AND type=task"
+km bd query "title=authentication AND priority=0"
+km bd query "parent=km-tui AND status!=closed"
 ```
 
 Supports: `=`, `!=`, `>`, `>=`, `<`, `<=`, `AND`, `OR`, `NOT`, `()` grouping.
@@ -138,7 +138,7 @@ bd search "refactor" --sort priority
 
 ```bash
 # See what prefix the database uses
-bd list --limit 1
+km bd list --limit 1
 ```
 
 | Location | Prefix |
@@ -154,50 +154,50 @@ bd list --limit 1
 
 ```bash
 # Full create with metadata
-bd create --id km-storage-15 --type bug --title "Race in file sync" \
+km bd create --id km-storage-15 --type bug --title "Race in file sync" \
   --description "Files occasionally not written when..." \
   --priority 0 --labels sync
 
 # With inline dependencies
-bd create --id km-tui-8.1 --type task --title "Normal mode navigation" \
+km bd create --id km-tui-8.1 --type task --title "Normal mode navigation" \
   --deps "blocks:km-tui-8"
 
 # With due date and deferral
-bd create --id km-infra.ci --type task --title "Setup CI" \
+km bd create --id km-infra.ci --type task --title "Setup CI" \
   --due "next monday" --defer "tomorrow"
 
 # With acceptance criteria and design notes
-bd create --id km-tui.search --type feature --title "Search bar" \
+km bd create --id km-tui.search --type feature --title "Search bar" \
   --acceptance "User can search by title" \
   --design "Use fuzzy matching via fzf algorithm"
 
 # Quick capture (outputs only ID — great for scripting)
-bd q "Quick note about issue"
-bd q "Fix login bug" -t bug -p 1
-ISSUE=$(bd q "New feature")    # Capture ID in variable
+km bd q "Quick note about issue"
+km bd q "Fix login bug" -t bug -p 1
+ISSUE=$(km bd q "New feature")    # Capture ID in variable
 
 # Set parent AFTER creation (--id and --parent cannot be used together)
-bd update km-tui-8.1 --parent km-tui-8
+km bd update km-tui-8.1 --parent km-tui-8
 ```
 
 ## Updating Beads
 
 ```bash
-bd update km-abc123 --status in_progress
-bd update km-abc123 --notes "Progress: fixed X, still need Y"
-bd update km-abc123 --append-notes "Additional context"  # Appends, doesn't overwrite
-bd update km-abc123 --priority 1
-bd update km-abc123 --title "New title"
-bd update km-abc123 --description "Updated description"
-bd update km-abc123 --design "New design notes"
-bd update km-abc123 --acceptance "Updated criteria"
-bd update km-abc123 --due "next friday"
-bd update km-abc123 --due ""       # Clear due date
+km bd update km-abc123 --status in_progress
+km bd update km-abc123 --notes "Progress: fixed X, still need Y"
+km bd update km-abc123 --append-notes "Additional context"  # Appends, doesn't overwrite
+km bd update km-abc123 --priority 1
+km bd update km-abc123 --title "New title"
+km bd update km-abc123 --description "Updated description"
+km bd update km-abc123 --design "New design notes"
+km bd update km-abc123 --acceptance "Updated criteria"
+km bd update km-abc123 --due "next friday"
+km bd update km-abc123 --due ""       # Clear due date
 
 # Label management on update
-bd update km-abc123 --add-label sync,watcher
-bd update km-abc123 --remove-label watcher
-bd update km-abc123 --set-labels sync,parser  # Replace all labels
+km bd update km-abc123 --add-label sync,watcher
+km bd update km-abc123 --remove-label watcher
+km bd update km-abc123 --set-labels sync,parser  # Replace all labels
 ```
 
 ## Claiming & Unclaiming Work
@@ -206,7 +206,7 @@ bd update km-abc123 --set-labels sync,parser  # Replace all labels
 
 ```bash
 # Claim a bead (REQUIRED before starting work)
-bd update <id> --claim
+km bd update <id> --claim
 
 # What --claim does:
 #   1. Sets assignee to $BD_ACTOR or $USER
@@ -214,31 +214,31 @@ bd update <id> --claim
 #   3. Fails if already claimed by someone else (prevents conflicts)
 
 # Unclaim / release a bead (return to pool)
-bd update <id> --assignee "" --status open
+km bd update <id> --assignee "" --status open
 
 # Reassign to someone else
-bd update <id> --assignee "other-person"
+km bd update <id> --assignee "other-person"
 ```
 
 **Workflow:**
 
-1. `bd ready` → find available work
-2. `bd update <id> --claim` → claim before coding
+1. `km bd ready` → find available work
+2. `km bd update <id> --claim` → claim before coding
 3. Do the work
-4. `bd close <id> --reason "..."` → marks done, clears assignee
+4. `km bd close <id> --reason "..."` → marks done, clears assignee
 
 **Stale claim guidelines:**
 
 - Agent claims (`claude:*`): Stale after ~20 min inactivity
 - User claims (`beorn`): Stale after ~24 hours inactivity
-- Check: `bd show <id> --json | jq -r '.updated_at'`
+- Check: `km bd show <id> --json | jq -r '.updated_at'`
 
 ## Closing Beads
 
 ```bash
-bd close km-abc123 --reason "Fixed in commit abc123"
-bd close km-abc123 --suggest-next    # Show newly unblocked issues after closing
-bd close km-abc123 km-def456         # Close multiple at once
+km bd close km-abc123 --reason "Fixed in commit abc123"
+km bd close km-abc123 --suggest-next    # Show newly unblocked issues after closing
+km bd close km-abc123 km-def456         # Close multiple at once
 ```
 
 <a name="user-feedback"></a>
@@ -256,7 +256,7 @@ Together: the description tells you what the bead IS right now, the notes tell y
 
 1. **Log the feedback verbatim** in notes with timestamp:
    ```bash
-   bd update <id> --append-notes "HH:MM — User feedback: <exact feedback as given>"
+   km bd update <id> --append-notes "HH:MM — User feedback: <exact feedback as given>"
    ```
 
 2. **Rewrite/update the bead** to integrate the feedback:
@@ -271,14 +271,14 @@ Together: the description tells you what the bead IS right now, the notes tell y
 **Example:**
 ```bash
 # User says: "actually the HR should also have padding on both sides"
-bd update km-tui.hr-render --append-notes "16:30 — User feedback: HR should also have padding on both sides"
-bd update km-tui.hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
+km bd update km-tui.hr-render --append-notes "16:30 — User feedback: HR should also have padding on both sides"
+km bd update km-tui.hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
 ```
 
 ## Renaming Beads
 
 ```bash
-bd rename km-old-id km-new-id
+km bd rename km-old-id km-new-id
 ```
 
 This updates: the issue's primary ID, all references in other issues (descriptions, titles, notes), dependencies, labels, comments, and events. No need for manual grep + update.
@@ -286,14 +286,14 @@ This updates: the issue's primary ID, all references in other issues (descriptio
 ## Deferring Beads
 
 ```bash
-bd defer km-abc123                     # Defer (status-based, hidden from bd ready)
+bd defer km-abc123                     # Defer (status-based, hidden from km bd ready)
 bd defer km-abc123 --until=tomorrow    # Defer until specific time
 bd defer km-abc123 --until="+1w"       # Defer for 1 week
 bd defer km-abc123 km-def456           # Defer multiple
 bd undefer km-abc123                   # Restore to open
 ```
 
-Deferred issues don't show in `bd ready` but remain visible in `bd list`.
+Deferred issues don't show in `km bd ready` but remain visible in `km bd list`.
 
 ## Comments
 
@@ -316,7 +316,7 @@ bd delete km-abc123 --reason "Created in error"  # With audit trail
 ## Ready Work
 
 ```bash
-bd ready                    # Open, no blockers
+km bd ready                    # Open, no blockers
 ```
 
 ## Counting & Statistics
@@ -335,9 +335,9 @@ bd count --assignee alice --by-status  # Alice's issues by status
 ## Stale Issues
 
 ```bash
-bd stale                    # Issues not updated in 30+ days (default)
-bd stale --days 14          # Not updated in 14+ days
-bd stale --status in_progress  # Only stale in-progress items
+km bd stale                    # Issues not updated in 30+ days (default)
+km bd stale --days 14          # Not updated in 14+ days
+km bd stale --status in_progress  # Only stale in-progress items
 ```
 
 ## Duplicate Detection
@@ -354,21 +354,21 @@ bd find-duplicates --status open         # Only check open issues
 ```bash
 bd epic status                  # Show epic completion status
 bd epic close-eligible          # Close epics where all children are complete
-bd list --parent km-tui         # List children of an epic
-bd children km-tui              # Alternative: list child beads
+km bd list --parent km-tui         # List children of an epic
+km bd children km-tui              # Alternative: list child beads
 ```
 
 ## Dependencies
 
 ```bash
-bd dep add <issue> <depends-on>     # issue depends on depends-on
-bd blocked                          # Show all blocked issues
+km bd dep add <issue> <depends-on>     # issue depends on depends-on
+km bd blocked                          # Show all blocked issues
 bd graph                            # Display dependency graph
 ```
 
 ## JSON Fields
 
-`bd show <id> --json` returns:
+`km bd show <id> --json` returns:
 
 | Field         | Description                                  |
 | ------------- | -------------------------------------------- |
@@ -394,7 +394,7 @@ The `bd` command tracks who performs actions via the `--actor` flag. This is aut
 
 - **User operations**: Uses `$USER` (typically "beorn")
 - **Agent operations**: Uses `$BD_ACTOR` (set by Claude Code session prehook to "claude:sessionId")
-- **Manual override**: `bd update <id> --actor "custom-name"`
+- **Manual override**: `km bd update <id> --actor "custom-name"`
 
 The Claude Code session prehook (in `.claude/settings.json`) automatically exports `BD_ACTOR=claude:<sessionId>` for each agent session, making every Claude instance a distinct actor. All bd commands in that session (update, create, close, etc.) automatically inherit this actor.
 
@@ -402,13 +402,13 @@ No special handling needed in commands - the actor is set automatically based on
 
 ## Renaming / Re-IDing Beads
 
-Use `bd rename <old-id> <new-id>` — this automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
+Use `km bd rename <old-id> <new-id>` — this automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
 
 ```bash
-bd rename km-w382l km-tui.nav      # Rename to descriptive ID
+km bd rename km-w382l km-tui.nav      # Rename to descriptive ID
 ```
 
-No need to manually grep for references — `bd rename` handles everything.
+No need to manually grep for references — `km bd rename` handles everything.
 
 ---
 
@@ -416,27 +416,27 @@ No need to manually grep for references — `bd rename` handles everything.
 
 ### CRITICAL: --id and --parent CANNOT be combined
 
-`bd create --id X --parent Y` **ALWAYS FAILS**. Use two steps:
+`km bd create --id X --parent Y` **ALWAYS FAILS**. Use two steps:
 
 ```bash
-bd create --id km-tui.foo --type task --title "Foo"   # Step 1: create
-bd update km-tui.foo --parent km-tui                    # Step 2: set parent
+km bd create --id km-tui.foo --type task --title "Foo"   # Step 1: create
+km bd update km-tui.foo --parent km-tui                    # Step 2: set parent
 ```
 
 ### Other flag mistakes
 
-These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
+These flags DON'T EXIST - check `km bd <cmd> --help` if unsure:
 
 | Wrong                            | Correct                                                 |
 | -------------------------------- | ------------------------------------------------------- |
-| `bd close --note "x"`            | `bd close --reason "x"`                                 |
-| `bd update --id km-x`            | `bd update km-x` (positional)                           |
-| `bd create --name`               | `bd create --title` or `bd create <title>` (positional) |
-| `bd update --desc`               | `bd update --description` or `-d`                       |
-| `bd create --id km-...` (in vendor) | Check prefix first: `bd list --limit 1`              |
+| `km bd close --note "x"`            | `km bd close --reason "x"`                                 |
+| `km bd update --id km-x`            | `km bd update km-x` (positional)                           |
+| `km bd create --name`               | `km bd create --title` or `km bd create <title>` (positional) |
+| `km bd update --desc`               | `km bd update --description` or `-d`                       |
+| `km bd create --id km-...` (in vendor) | Check prefix first: `km bd list --limit 1`              |
 | Assume dot notation is km-only   | Dot notation works with any prefix (`km-silvery.bg-bleed`) |
 
-**Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
+**Note**: `--description` and `--notes` are BOTH valid on `km bd update` but serve different purposes:
 
 - `--description` / `-d`: Full issue description (main content)
 - `--notes`: Additional status updates, progress notes
@@ -451,7 +451,7 @@ These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 Wisps are ephemeral beads not exported to JSONL — useful for temporary tracking:
 
 ```bash
-bd create --ephemeral --title "Temporary investigation"
+km bd create --ephemeral --title "Temporary investigation"
 bd promote km-abc123              # Promote wisp to permanent bead
 bd promote km-abc123 --reason "Worth tracking long-term"
 ```
@@ -480,9 +480,9 @@ bd swarm list                     # All swarm molecules
 ### Agent State (for multi-agent coordination)
 
 ```bash
-bd agent state <agent-id> running   # Set agent state
-bd agent heartbeat <agent-id>       # Update activity timestamp
-bd agent show <agent-id>            # Show agent details
+km bd agent state <agent-id> running   # Set agent state
+km bd agent heartbeat <agent-id>       # Update activity timestamp
+km bd agent show <agent-id>            # Show agent details
 bd slot set <agent-id> hook <bead>  # Attach work to agent's hook
 bd slot clear <agent-id> hook       # Clear agent's hook
 ```
@@ -499,6 +499,6 @@ bd gate resolve <id>              # Manually resolve a gate
 
 ```bash
 bd backend show                   # Current backend (sqlite or dolt)
-bd --no-db list                   # JSONL-only mode (no SQLite)
-bd --readonly list                # Read-only mode (for sandboxes)
+km bd --no-db list                   # JSONL-only mode (no SQLite)
+km bd --readonly list                # Read-only mode (for sandboxes)
 ```

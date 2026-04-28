@@ -12,7 +12,7 @@ This document defines the ID structure for beads in the km project. All skills t
 
 ```bash
 # See what prefix the database uses
-bd list --limit 1
+km bd list --limit 1
 
 # Or check directly
 sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
@@ -61,7 +61,7 @@ km-<scope>-<N>
 **Metadata carries classification:**
 
 ```bash
-bd create --id km-storage-15 \
+km bd create --id km-storage-15 \
   --type bug \
   --title "Race condition in file sync" \
   --priority 0 \
@@ -138,7 +138,7 @@ km-<4-5 char random>
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
 | Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
 
-**Remember**: Check `bd list --limit 1` to find the correct prefix before creating any bead.
+**Remember**: Check `km bd list --limit 1` to find the correct prefix before creating any bead.
 
 ## Scope Tokens
 
@@ -213,7 +213,7 @@ km-silvery.bg-bleed      # Named subtask
 **Query subtasks:**
 
 ```bash
-bd list | grep "km-storage-8"     # Prefix match
+km bd list | grep "km-storage-8"     # Prefix match
 ```
 
 ## Metadata Usage Guide
@@ -222,14 +222,14 @@ bd list | grep "km-storage-8"     # Prefix match
 
 | Aspect          | ID           | Metadata Field | Query Method                     |
 | --------------- | ------------ | -------------- | -------------------------------- |
-| Project/Epic    | Prefix       | -              | `bd list \| grep "km-storage"`   |
+| Project/Epic    | Prefix       | -              | `km bd list \| grep "km-storage"`   |
 | Sequence        | Number       | -              | Auto-increment                   |
-| Hierarchy       | Dot notation | `dependencies` | `bd list \| grep "km-storage-8"` |
-| Type (bug/feat) | **NO**       | `issue_type`   | `bd list --type bug`             |
-| Scope detail    | **NO**       | `labels`       | `bd list --label storage,sync`   |
-| Priority        | **NO**       | `priority`     | `bd list --priority-max 1`       |
-| Phase/Status    | **NO**       | `labels`       | `bd list --label phase:testing`  |
-| Owner           | **NO**       | `assignee`     | `bd list --assignee beorn`       |
+| Hierarchy       | Dot notation | `dependencies` | `km bd list \| grep "km-storage-8"` |
+| Type (bug/feat) | **NO**       | `issue_type`   | `km bd list --type bug`             |
+| Scope detail    | **NO**       | `labels`       | `km bd list --label storage,sync`   |
+| Priority        | **NO**       | `priority`     | `km bd list --priority-max 1`       |
+| Phase/Status    | **NO**       | `labels`       | `km bd list --label phase:testing`  |
+| Owner           | **NO**       | `assignee`     | `km bd list --assignee beorn`       |
 
 ### Recommended Label Conventions
 
@@ -266,7 +266,7 @@ Before creating a bead, find the next number:
 
 ```bash
 # Check existing beads for a scope
-bd list --all | grep "km-storage"
+km bd list --all | grep "km-storage"
 
 # Example output:
 # km-storage-1  Full event sourcing architecture
@@ -288,11 +288,11 @@ sqlite3 .beads/beads.db "SELECT MAX(CAST(SUBSTR(id, LENGTH('km-storage-')+1) AS 
 
 ```bash
 # 1. Find next number
-bd list --all | grep "km-storage-"
+km bd list --all | grep "km-storage-"
 # km-storage-1, km-storage-2 exist
 
 # 2. Create with full ID
-bd create --id km-storage-10 \
+km bd create --id km-storage-10 \
   --type bug \
   --title "Race condition in file sync" \
   --description "Files occasionally not written when..." \
@@ -304,28 +304,28 @@ bd create --id km-storage-10 \
 
 ```bash
 # Parent feature
-bd create --id km-tui-8 \
+km bd create --id km-tui-8 \
   --type feat \
   --title "Add vim keybindings"
 
 # Subtasks (NOTE: --id and --parent CANNOT be combined, use two steps)
-bd create --id km-tui-8.1 --type task --title "Normal mode navigation"
-bd update km-tui-8.1 --parent km-tui-8
+km bd create --id km-tui-8.1 --type task --title "Normal mode navigation"
+km bd update km-tui-8.1 --parent km-tui-8
 
-bd create --id km-tui-8.2 --type task --title "Visual selection mode"
-bd update km-tui-8.2 --parent km-tui-8
+km bd create --id km-tui-8.2 --type task --title "Visual selection mode"
+km bd update km-tui-8.2 --parent km-tui-8
 ```
 
 ### Cross-Cutting Epic
 
 ```bash
 # Epic (keyword-based, no scope number)
-bd create --id km-dark-mode \
+km bd create --id km-dark-mode \
   --type epic \
   --title "Dark mode support"
 
 # Related feature in specific package
-bd create --id km-tui-9 \
+km bd create --id km-tui-9 \
   --type feat \
   --title "Theme toggle component" \
   --deps "blocks:km-dark-mode"
@@ -335,13 +335,13 @@ bd create --id km-tui-9 \
 
 ```bash
 # Let bd generate opaque ID
-bd create --type bug \
+km bd create --type bug \
   --title "CLI crashes on --help" \
   --priority 0
 # → Creates km-xxxxx
 
 # Or specify a keyword
-bd create --id km-help-crash \
+km bd create --id km-help-crash \
   --type bug \
   --title "CLI crashes on --help" \
   --priority 0
@@ -349,10 +349,10 @@ bd create --id km-help-crash \
 
 ## Renaming IDs
 
-Use `bd rename <old-id> <new-id>` to rename a bead. This automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
+Use `km bd rename <old-id> <new-id>` to rename a bead. This automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
 
 ```bash
-bd rename km-w382l km-tui.nav      # Rename opaque ID to descriptive
+km bd rename km-w382l km-tui.nav      # Rename opaque ID to descriptive
 ```
 
 ## Migration Strategy

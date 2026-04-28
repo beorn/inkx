@@ -27,7 +27,7 @@ Close bead with evidence
 ```bash
 bun run test:fast    # Quick iteration (~8s)
 bun fix              # Lint + format
-bd close <id> --reason "<evidence>"
+km bd close <id> --reason "<evidence>"
 ```
 
 ---
@@ -45,7 +45,7 @@ Check if steps are clear:
 **If unclear:**
 
 ```bash
-bd update <id> --notes "Need reproduction steps. Attempted: <what you tried>"
+km bd update <id> --notes "Need reproduction steps. Attempted: <what you tried>"
 ```
 
 Ask user: "Can you provide steps to reproduce? I need to see the bug before fixing."
@@ -100,7 +100,7 @@ test("reproduces <bug>", () => {
 **If can't reproduce:**
 
 ```bash
-bd update <id> --notes "Cannot reproduce. Tried: <steps>. Need more info."
+km bd update <id> --notes "Cannot reproduce. Tried: <steps>. Need more info."
 ```
 
 Report to user. DO NOT guess at fixes.
@@ -203,7 +203,7 @@ The bead is **NOT closed** until the user confirms. Mark as "awaiting user confi
 **Close with structured reason (mandatory format):**
 
 ```bash
-bd close <id> --reason "Fixed: <what changed, file:line>
+km bd close <id> --reason "Fixed: <what changed, file:line>
 Test: <test file and test name>
 Verified: TUI test + GUI/TTY screenshot + user confirmed"
 ```
@@ -211,7 +211,7 @@ Verified: TUI test + GUI/TTY screenshot + user confirmed"
 Example (visual bug — all three layers):
 
 ```bash
-bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
+km bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
 Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-km-tui.xyz.png) + user confirmed"
 ```
@@ -219,7 +219,7 @@ Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-k
 Example (logic bug — no GUI/TTY or user confirmation needed):
 
 ```bash
-bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
+km bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
 Test: apps/km-tui/tests/keyboard-navigation.test.tsx 'stickyX resets on boundary'
 Verified: TUI tests only — pure state bug, no visual component"
 ```
@@ -240,15 +240,15 @@ without user confirmation but should have had it, re-open and verify.
 ### Hard Gate: Visual Bug Closure Requires All Three Layers
 
 ```
-HARD GATE: A visual bug bead CANNOT be closed (bd close) unless the
+HARD GATE: A visual bug bead CANNOT be closed (km bd close) unless the
 close reason contains ALL THREE:
 1. Test file path (Layer 1)
 2. GUI/TTY screenshot path (Layer 2)
 3. "user confirmed" (Layer 3)
 
 If any layer is missing, use:
-  bd update <id> --append-notes "Awaiting <layer>"
-Do NOT call bd close.
+  km bd update <id> --append-notes "Awaiting <layer>"
+Do NOT call km bd close.
 
 Anti-pattern: "Awaiting user confirmation" in the close reason of a
 CLOSED bead. "Awaiting" = not done = not closable.
@@ -264,10 +264,10 @@ If this bug was found during a tracked session (session bead exists):
 
 ```bash
 # Log to session bead
-bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: TUI test + GUI/TTY"
+km bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: TUI test + GUI/TTY"
 
 # Include session reference in bug close reason
-bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
+km bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
 ```
 
 ## Step 6: Integrate User Feedback
@@ -354,7 +354,7 @@ bun run bench
 ### Step 4: Document in Bead
 
 ```bash
-bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improvement)"
+km bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improvement)"
 ```
 
 ---

@@ -7,7 +7,7 @@
       {
         "hooks": [
           {
-            "command": "bd prime",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/bd-prime.sh",
             "type": "command"
           }
         ],
@@ -18,7 +18,7 @@
       {
         "hooks": [
           {
-            "command": "bd prime",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/bd-prime.sh",
             "type": "command"
           },
           {

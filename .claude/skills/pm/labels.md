@@ -13,7 +13,7 @@ IDs provide grouping prefixes (km-storage-N), while labels provide multi-dimensi
 **Example:**
 
 ```bash
-bd create --id km-storage-15 \
+km bd create --id km-storage-15 \
   --type bug \
   --title "Race condition in file sync" \
   --priority 0 \
@@ -23,9 +23,9 @@ bd create --id km-storage-15 \
 Query by any dimension:
 
 ```bash
-bd list --label sync              # All sync-related work
-bd list --label phase:testing     # All testing phase work
-bd list --label sync --label phase:testing  # Intersection
+km bd list --label sync              # All sync-related work
+km bd list --label phase:testing     # All testing phase work
+km bd list --label sync --label phase:testing  # Intersection
 ```
 
 ## Label Categories
@@ -53,7 +53,7 @@ Use when work spans multiple packages or when the ID prefix isn't specific enoug
 
 ```bash
 # Epic spanning storage + tui
-bd create --id km-domain-refactor \
+km bd create --id km-domain-refactor \
   --type epic \
   --labels storage,tui,cross-pkg
 ```
@@ -83,7 +83,7 @@ Classify by system or feature area within packages.
 
 ```bash
 # Sync-related storage bug
-bd create --id km-storage-16 \
+km bd create --id km-storage-16 \
   --type bug \
   --labels sync,watcher
 ```
@@ -107,13 +107,13 @@ Track progress through large initiatives.
 
 ```bash
 # Epic in testing phase
-bd create --id km-storage-8 \
+km bd create --id km-storage-8 \
   --type epic \
   --title "Supertags: Typed Sigil Links" \
   --labels phase:testing
 
 # Query all testing-phase work
-bd list --label phase:testing
+km bd list --label phase:testing
 ```
 
 ### Priority Labels (Alternative to Priority Field)
@@ -131,7 +131,7 @@ Use when you need more nuance than P0-P4.
 **When to use**: Complement priority field for nuanced prioritization.
 
 ```bash
-bd create --id km-storage-17 \
+km bd create --id km-storage-17 \
   --type bug \
   --priority 0 \
   --labels blocker,sync  # Blocks sync work
@@ -154,7 +154,7 @@ Classify by nature of work.
 **When to use**: Signal approach or impact to others.
 
 ```bash
-bd create --id km-storage-18 \
+km bd create --id km-storage-18 \
   --type task \
   --title "Prototype event sourcing for content" \
   --labels prototype,spike
@@ -222,41 +222,41 @@ bd count --by-label           # Label usage stats
 
 ```bash
 # All sync work
-bd list --label sync
+km bd list --label sync
 
 # All testing phase work
-bd list --label phase:testing
+km bd list --label phase:testing
 
 # Open bugs with sync label
-bd list --type bug --status open --label sync
+km bd list --type bug --status open --label sync
 ```
 
 ### Multiple Labels (AND)
 
 ```bash
 # Sync work in testing phase
-bd list --label sync --label phase:testing
+km bd list --label sync --label phase:testing
 
 # Storage bugs with high priority
-bd list --label storage --type bug --priority-max 1
+km bd list --label storage --type bug --priority-max 1
 ```
 
 ### Label OR Queries
 
 ```bash
 # Beads with ANY of these labels (OR) — no SQL needed
-bd list --label-any sync,watcher,parser --status open
+km bd list --label-any sync,watcher,parser --status open
 ```
 
 ### Label Pattern Matching
 
 ```bash
 # Glob pattern on labels
-bd list --label-pattern "phase:*"        # All phase-labeled beads
-bd list --label-pattern "tech-*"         # All tech-* labels
+km bd list --label-pattern "phase:*"        # All phase-labeled beads
+km bd list --label-pattern "tech-*"         # All tech-* labels
 
 # Regex pattern on labels
-bd list --label-regex "tech-(debt|legacy)"
+km bd list --label-regex "tech-(debt|legacy)"
 ```
 
 ### Label Statistics
@@ -270,8 +270,8 @@ bd count --by-label --status open
 ### Query Language for Labels
 
 ```bash
-# Use bd query for compound label conditions
-bd query "label=sync AND status=open AND priority<=2"
+# Use km bd query for compound label conditions
+km bd query "label=sync AND status=open AND priority<=2"
 ```
 
 ## Managing Labels
@@ -296,7 +296,7 @@ bd label list km-storage-15
 
 ### Batch Add Labels
 
-Use `bd update <id> --add-label <labels>` for individual beads.
+Use `km bd update <id> --add-label <labels>` for individual beads.
 
 ## Label Recommendations by Issue Type
 
@@ -307,7 +307,7 @@ Use `bd update <id> --add-label <labels>` for individual beads.
 - Scope labels if cross-package
 
 ```bash
-bd create --id km-storage-19 \
+km bd create --id km-storage-19 \
   --type bug \
   --title "Watcher misses rapid file changes" \
   --priority 0 \
@@ -321,7 +321,7 @@ bd create --id km-storage-19 \
 - Work type (prototype, breaking) if applicable
 
 ```bash
-bd create --id km-tui-10 \
+km bd create --id km-tui-10 \
   --type feat \
   --title "Mouse click-to-select" \
   --priority 1 \
@@ -335,7 +335,7 @@ bd create --id km-tui-10 \
 - Cross-pkg if spanning multiple packages
 
 ```bash
-bd create --id km-domain \
+km bd create --id km-domain \
   --type epic \
   --title "Domain object refactor" \
   --priority 1 \
@@ -349,7 +349,7 @@ bd create --id km-domain \
 - Scope if multi-package
 
 ```bash
-bd create --id km-storage-20 \
+km bd create --id km-storage-20 \
   --type task \
   --title "Split store.ts into modules" \
   --priority 2 \
@@ -362,7 +362,7 @@ bd create --id km-storage-20 \
 - Work type (migration, cleanup)
 
 ```bash
-bd create --id km-chore-2 \
+km bd create --id km-chore-2 \
   --type chore \
   --title "Migrate all tests to new fake-repo API" \
   --priority 3 \

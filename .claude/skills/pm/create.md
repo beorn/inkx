@@ -133,7 +133,7 @@ Exact match (open)?
 Before creating, verify the intended ID doesn't already exist:
 
 ```bash
-bd show <intended-id> 2>/dev/null || echo "ID available"
+km bd show <intended-id> 2>/dev/null || echo "ID available"
 ```
 
 This prevents accidental duplicates when sessions crash mid-creation or multiple agents work concurrently.
@@ -144,7 +144,7 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
    ```bash
    # See what prefix the database uses (CRITICAL - don't assume km-)
-   bd list --limit 1
+   km bd list --limit 1
    # Or: sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
    ```
 
@@ -158,7 +158,7 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
    ```bash
    # For <prefix><scope>-N pattern:
-   bd list --all | grep "<prefix><scope>-"
+   km bd list --all | grep "<prefix><scope>-"
    # Find highest N, use N+1
    ```
 
@@ -194,7 +194,7 @@ Background: doc-led drift (the 2026-04-27 retrospective) — "(rename pending)" 
 
 ```bash
 # Step 1: Create (NO --parent flag here!)
-bd create \
+km bd create \
   --id <generated-id> \
   --type <type> \
   --title "<concise title from description>" \
@@ -202,7 +202,7 @@ bd create \
   --priority <inferred-priority>
 
 # Step 2: Set parent AFTER creation
-bd update <generated-id> --parent <tracking-epic-id>
+km bd update <generated-id> --parent <tracking-epic-id>
 ```
 
 **Error handling:**
@@ -210,7 +210,7 @@ bd update <generated-id> --parent <tracking-epic-id>
 - If ID conflict → increment sequence, retry (max 3 attempts)
 - If create fails → report error with suggestion
 
-**If replacing an existing bead**: Use `bd rename <old-id> <new-id>` — automatically updates all references.
+**If replacing an existing bead**: Use `km bd rename <old-id> <new-id>` — automatically updates all references.
 
 ### Assign to tracking epic (REQUIRED):
 
@@ -221,10 +221,10 @@ Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope 
 # Example: km-silvery.bg-bleed, km-tui.emptybody, km-infra.ci-fuzz
 
 # Step 1: Create
-bd create --id km-tui.emptybody --type bug --title "Empty body rendering" --priority 2
+km bd create --id km-tui.emptybody --type bug --title "Empty body rendering" --priority 2
 
 # Step 2: Set parent (MUST be separate command)
-bd update km-tui.emptybody --parent km-tui
+km bd update km-tui.emptybody --parent km-tui
 ```
 
 If no tracking epic fits, the bead can be standalone (e.g., `km-<keyword>`).
@@ -233,7 +233,7 @@ If no tracking epic fits, the bead can be standalone (e.g., `km-<keyword>`).
 
 ```bash
 # Add dependency (new-id is blocked by blocking-id)
-bd dep add <new-id> <blocking-id>
+km bd dep add <new-id> <blocking-id>
 ```
 
 ---
@@ -256,7 +256,7 @@ Should I:
 Use AskUserQuestion with two options.
 
 **If "Work on it now"** → Phase 5
-**If "Just track"** → Done, suggest `bd ready` to see in backlog
+**If "Just track"** → Done, suggest `km bd ready` to see in backlog
 
 ---
 
@@ -265,7 +265,7 @@ Use AskUserQuestion with two options.
 ### Claim the bead:
 
 ```bash
-bd update <id> --claim
+km bd update <id> --claim
 ```
 
 (`--claim` atomically sets assignee + status=in_progress)
@@ -307,7 +307,7 @@ When closing a bead, use `--reason` to capture structured results.
 Use structured close reasons. For bugs, follow the Fixed/Test/Verified format in [bugs.md](workflows/bugs.md#close-reason-template). For features and performance work, include what was implemented, test evidence, and impact metrics.
 
 ```bash
-bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Impact: <metrics if applicable>."
+km bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Impact: <metrics if applicable>."
 ```
 
 ### Update Related Beads
@@ -324,7 +324,7 @@ bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Impact: <met
 | ---------------------- | --------------------------------------- |
 | ID conflict            | Auto-increment sequence, retry (max 3)  |
 | Can't reproduce bug    | Update bead, ask user, STOP             |
-| Implementation blocked | `bd update <id> --status blocked`       |
+| Implementation blocked | `km bd update <id> --status blocked`       |
 | Scope expands          | Create separate beads                   |
 | Tests fail             | DO NOT close bead, update with progress |
 
@@ -359,6 +359,6 @@ bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Impact: <met
 
 ## Integration Points
 
-- [beads.md](beads.md) - All bd CLI commands
+- [beads.md](beads.md) - All km bd CLI commands
 - [beads-ids.md](beads-ids.md) - ID conventions and scope tokens
 - [workflows/bugs.md](workflows/bugs.md), [workflows/features.md](workflows/features.md), [workflows/tasks.md](workflows/tasks.md) - Implementation workflows

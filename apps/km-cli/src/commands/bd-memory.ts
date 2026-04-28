@@ -136,27 +136,46 @@ export const memoriesCommand = new Command("memories")
     }
   })
 
-// bd prime — print recent memories as session-priming context
+// bd prime — print workflow context (PRIME.md) + recent memories.
+// Designed as a drop-in for the Go `bd prime` so SessionStart / PreCompact
+// hooks emit equivalent priming text without requiring the bd binary.
 export const primeCommand = new Command("prime")
-  .description("Print recent memories as session-priming context (paste into agent)")
+  .description("Print workflow context + recent memories as session-priming context")
   .option("-n, --limit <n>", "Number of memories to include", "5")
   .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
+    let printedAnything = false
+
+    // 1. Workflow context: prefer vault-root PRIME.md, then .beads/PRIME.md
+    //    (bd binary maintains the latter; emit either for back-compat).
+    const primeCandidates = [join(resolved.repoRoot, "PRIME.md"), join(resolved.repoRoot, ".beads", "PRIME.md")]
+    for (const path of primeCandidates) {
+      if (existsSync(path)) {
+        console.log(readFileSync(path, "utf-8").trimEnd())
+        console.log()
+        printedAnything = true
+        break
+      }
+    }
+
+    // 2. Recent memories from mem/.
     const memDir = resolveMemDir(resolved.repoRoot)
     const memories = readMemories(memDir)
-    if (memories.length === 0) {
-      console.log(term.dim("No memories to prime with."))
-      return
+    if (memories.length > 0) {
+      memories.sort((a, b) => b.mtime - a.mtime)
+      const limit = Number.parseInt((opts.limit as string) ?? "5", 10)
+      console.log("# Recent memories (priming context)\n")
+      for (const m of memories.slice(0, limit)) {
+        console.log(`## ${m.title} @memory`)
+        console.log()
+        console.log(m.body)
+        console.log()
+      }
+      printedAnything = true
     }
-    memories.sort((a, b) => b.mtime - a.mtime)
-    const limit = Number.parseInt((opts.limit as string) ?? "5", 10)
 
-    console.log("# Recent memories (priming context)\n")
-    for (const m of memories.slice(0, limit)) {
-      console.log(`## ${m.title} @memory`)
-      console.log()
-      console.log(m.body)
-      console.log()
+    if (!printedAnything) {
+      console.log(term.dim("No PRIME.md or memories to prime with."))
     }
   })
 

@@ -11,6 +11,16 @@
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
+# Prefer the Go `bd` binary while it's installed (50ms vs km bd's 600ms;
+# the hook loops list/show, so per-call latency matters for the 5s timeout).
+# Fall back to `bun km bd` so the hook still works after dolt-archive cutover
+# in environments where `bd` is uninstalled. Both share the same query surface.
+if command -v bd >/dev/null 2>&1; then
+  BD="bd"
+else
+  BD="bun $REPO_ROOT/apps/km-cli/src/index.ts bd"
+fi
+
 # Get session ID for checkpoint bead matching
 SHORT_ID="${CLAUDE_SESSION_ID:0:8}"
 
@@ -20,10 +30,10 @@ SHORT_ID="${CLAUDE_SESSION_ID:0:8}"
   TRACKING_BEAD=""
   if [ -n "$SHORT_ID" ]; then
     # Search beads claimed by this session that are in_progress
-    TRACKING_BEAD=$(bd list --status=in_progress 2>/dev/null | grep -o 'km-[a-z0-9._-]*' | head -1)
+    TRACKING_BEAD=$($BD list --status=in_progress 2>/dev/null | grep -o 'km-[a-z0-9._-]*' | head -1)
     # Try to find one specifically claimed by this session
-    for bead_id in $(bd list --status=in_progress 2>/dev/null | grep -o 'km-[a-z0-9._-]*'); do
-      if bd show "$bead_id" 2>/dev/null | grep -q "$SHORT_ID"; then
+    for bead_id in $($BD list --status=in_progress 2>/dev/null | grep -o 'km-[a-z0-9._-]*'); do
+      if $BD show "$bead_id" 2>/dev/null | grep -q "$SHORT_ID"; then
         TRACKING_BEAD="$bead_id"
         break
       fi
@@ -41,7 +51,7 @@ SHORT_ID="${CLAUDE_SESSION_ID:0:8}"
   echo "# Session State at Compact Time (session: $SHORT_ID)"
   echo ""
   echo "## In-Progress Beads"
-  bd list --status=in_progress 2>/dev/null || echo "(beads unavailable)"
+  $BD list --status=in_progress 2>/dev/null || echo "(beads unavailable)"
   echo ""
   echo "## Recent Commits"
   git log --oneline -10 2>/dev/null

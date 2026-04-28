@@ -15,7 +15,7 @@ the claim is wrong (which is how plateau-90 left several beads closed-but-broken
 - **During /pm review** — when grooming the backlog, verify "closed" beads
   actually shipped what they claimed.
 
-Phase 1 wraps the existing `bd` CLI — does not modify the binary. `bd close`
+Phase 1 wraps the existing `bd` CLI — does not modify the binary. `km bd close`
 integration is Phase 2 (separate bead).
 
 ## Usage
@@ -125,6 +125,6 @@ $ bun tools/bd-verify.ts km-all.substrate-phasing-convention
 
 ## Phase 2 (future, separate bead)
 
-- `bd close` runs `bd-verify` first; refuses to close if any criterion fails
+- `km bd close` runs `bd-verify` first; refuses to close if any criterion fails
 - `bd lint` flags beads with prose-only acceptance at create-time
 - May require upstream PR or fork

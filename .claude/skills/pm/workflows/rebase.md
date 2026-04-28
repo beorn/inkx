@@ -33,8 +33,8 @@ Assess recent work by running these commands **in parallel**:
 | Command | Purpose |
 |---------|---------|
 | `git log --oneline -20 --since="8 hours ago"` | Recent commits this session |
-| `bd list --status in_progress --long` | Currently claimed beads |
-| `bd list --assignee "$USER" --status closed --limit 10 --sort updated` | Recently closed by me |
+| `km bd list --status in_progress --long` | Currently claimed beads |
+| `km bd list --assignee "$USER" --status closed --limit 10 --sort updated` | Recently closed by me |
 | `git status --short` | Uncommitted changes |
 
 Output summary table:
@@ -60,7 +60,7 @@ If uncommitted changes exist:
 
 For each in_progress bead assigned to current actor:
 
-1. Show bead: `bd show <id>`
+1. Show bead: `km bd show <id>`
 2. Check for related commits: `git log --oneline --grep="<id>" --since="24 hours ago"`
 3. **Auto-determine status:**
    - Has commits mentioning the bead ID → **Close as complete**
@@ -82,11 +82,11 @@ Run these commands **in parallel**:
 
 | Command | Purpose |
 |---------|---------|
-| `bd list --status open --limit 0 --long` | All open beads |
-| `bd ready --limit 30` | Actionable (unblocked, unclaimed) |
-| `bd list --type epic --status open --long` | Active epics |
-| `bd blocked` | Blocked issues |
-| `bd stale --days 7 --limit 20` | Recent but stale |
+| `km bd list --status open --limit 0 --long` | All open beads |
+| `km bd ready --limit 30` | Actionable (unblocked, unclaimed) |
+| `km bd list --type epic --status open --long` | Active epics |
+| `km bd blocked` | Blocked issues |
+| `km bd stale --days 7 --limit 20` | Recent but stale |
 
 ---
 
@@ -99,7 +99,7 @@ Analyze open beads and group by:
 Group by ID prefix (e.g., `km-storage-*`, `km-tui-*`):
 
 ```bash
-bd list --status open --json | jq -r '.[] | .id' | sed 's/-[0-9]*$//' | sort | uniq -c | sort -rn
+km bd list --status open --json | jq -r '.[] | .id' | sed 's/-[0-9]*$//' | sort | uniq -c | sort -rn
 ```
 
 ### 4b. Epic Membership
@@ -112,13 +112,13 @@ Identify beads that belong to epics:
 
 Find chains where completing one unblocks others:
 ```bash
-bd blocked --json | jq -r '.[] | "\(.id) blocked by \(.blocked_by)"'
+km bd blocked --json | jq -r '.[] | "\(.id) blocked by \(.blocked_by)"'
 ```
 
 ### 4d. Thematic Grouping
 
 Search for keyword overlaps in titles/descriptions:
-- Performance: `bd list --status open --json | jq -r '.[] | select(.title | test("perf|slow|fast"; "i"))'`
+- Performance: `km bd list --status open --json | jq -r '.[] | select(.title | test("perf|slow|fast"; "i"))'`
 - Refactoring: similar for "refactor|clean|simplify"
 - Testing: similar for "test|spec|coverage"
 
@@ -168,27 +168,27 @@ For each bead in scope, offer actions via AskUserQuestion:
 **Merge** - Combine duplicates or overlapping beads:
 ```bash
 # Keep target, close source with reference
-bd close km-dupe --reason "Merged into km-target"
-bd update km-target --notes "Absorbed km-dupe scope"
+km bd close km-dupe --reason "Merged into km-target"
+km bd update km-target --notes "Absorbed km-dupe scope"
 ```
 
 **Split** - Break large bead into smaller pieces:
 ```bash
 # Create child beads, update parent to epic
-bd update km-big --type epic
-bd create --id km-big.1 --title "First part" --parent km-big
-bd create --id km-big.2 --title "Second part" --parent km-big
+km bd update km-big --type epic
+km bd create --id km-big.1 --title "First part" --parent km-big
+km bd create --id km-big.2 --title "Second part" --parent km-big
 ```
 
 **Delete** - Remove obsolete or invalid beads:
 ```bash
-bd close km-obsolete --reason "No longer relevant after <context>"
+km bd close km-obsolete --reason "No longer relevant after <context>"
 ```
 
 **Create** - Capture new work that emerged:
 ```bash
 # Work discovered during implementation
-bd create --id km-new-thing --title "Handle edge case X" \
+km bd create --id km-new-thing --title "Handle edge case X" \
   --description "Discovered while working on km-original"
 ```
 
@@ -272,7 +272,7 @@ Based on plan selection and grooming decisions, reorganize beads:
 
 ```bash
 # For beads superseded by selected work
-bd close <old-id> --reason "Superseded by <selected-id>"
+km bd close <old-id> --reason "Superseded by <selected-id>"
 ```
 
 ### 7b. Create Epic (if grouping)
@@ -281,22 +281,22 @@ If user chose to group multiple beads:
 
 ```bash
 # Find next ID
-NEXT_ID=$(bd list --json | jq -r '[.[] | .id | select(startswith("km-epic-"))] | map(split("-")[2] | tonumber) | max + 1')
+NEXT_ID=$(km bd list --json | jq -r '[.[] | .id | select(startswith("km-epic-"))] | map(split("-")[2] | tonumber) | max + 1')
 
-bd create --id "km-epic-$NEXT_ID" --type epic \
+km bd create --id "km-epic-$NEXT_ID" --type epic \
   --title "Sprint: <theme>" \
   --description "Umbrella for related work identified during rebase"
 
 # Add children
-bd update km-child-1 --parent km-epic-$NEXT_ID
-bd update km-child-2 --parent km-epic-$NEXT_ID
+km bd update km-child-1 --parent km-epic-$NEXT_ID
+km bd update km-child-2 --parent km-epic-$NEXT_ID
 ```
 
 ### 7c. Update Dependencies
 
 ```bash
 # If work has natural ordering
-bd dep add km-second km-first  # second depends on first
+km bd dep add km-second km-first  # second depends on first
 ```
 
 ### 7d. Sync Changes
@@ -368,12 +368,12 @@ For fast rebase (skip confirmations):
 
 ```bash
 # Close all my in_progress as complete
-bd list --status in_progress --assignee "$USER" --json | \
+km bd list --status in_progress --assignee "$USER" --json | \
   jq -r '.[].id' | \
-  xargs -I{} bd close {} --reason "Closed during quick rebase"
+  xargs -I{} km bd close {} --reason "Closed during quick rebase"
 
 # Get top ready bead
-TOP=$(bd ready --limit 1 --json | jq -r '.[0].id')
+TOP=$(km bd ready --limit 1 --json | jq -r '.[0].id')
 echo "Start: /pm do $TOP"
 ```
 

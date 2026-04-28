@@ -43,7 +43,7 @@ Close bead with evidence
 ```bash
 bun run test:fast    # Quick iteration (~8s)
 bun fix              # Lint + format
-bd close <id> --reason "<evidence>"
+km bd close <id> --reason "<evidence>"
 ```
 
 ---
@@ -54,7 +54,7 @@ If the bead is **older than 1 week**, re-verify requirements before starting:
 
 1. Check if the codebase has changed in ways that affect this feature
 2. Verify the described behavior/API still matches current architecture
-3. If still relevant: `bd update <id> --notes "Verified YYYY-MM-DD: requirements current"`
+3. If still relevant: `km bd update <id> --notes "Verified YYYY-MM-DD: requirements current"`
 4. If requirements drifted: update the description, then proceed
 5. If no longer needed: close with reason
 
@@ -177,7 +177,7 @@ bun fix            # Clean code
 **Close:**
 
 ```bash
-bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: TUI test + GUI/TTY / TUI tests only."
+km bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: TUI test + GUI/TTY / TUI tests only."
 ```
 
 ---
@@ -216,10 +216,10 @@ bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: TU
 For features needing 5+ subtasks:
 
 ```bash
-bd create --id km-epic-<slug> --type epic --title "<name>"
-bd create --id km-epic-<slug>.a --type task --title "<first>"
-bd update km-epic-<slug>.a --parent km-epic-<slug>  # Set parent AFTER creation (--id and --parent conflict)
-bd update km-epic-<slug>.a --claim
+km bd create --id km-epic-<slug> --type epic --title "<name>"
+km bd create --id km-epic-<slug>.a --type task --title "<first>"
+km bd update km-epic-<slug>.a --parent km-epic-<slug>  # Set parent AFTER creation (--id and --parent conflict)
+km bd update km-epic-<slug>.a --claim
 ```
 
 **Multi-package epics**: Use `/max` to parallelize subtasks across packages.

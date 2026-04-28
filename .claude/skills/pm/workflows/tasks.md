@@ -42,7 +42,7 @@ Close bead with evidence
 ```bash
 bun run test:fast    # Verify behavior preserved
 bun fix              # Lint + format
-bd close <id> --reason "<evidence>"
+km bd close <id> --reason "<evidence>"
 ```
 
 ---
@@ -112,13 +112,13 @@ bun run test:fast   # Smoke test
 **With tests:**
 
 ```bash
-bd close <id> --reason "Completed: <summary>. Tests pass."
+km bd close <id> --reason "Completed: <summary>. Tests pass."
 ```
 
 **Without tests:**
 
 ```bash
-bd close <id> --reason "Completed: <summary>."
+km bd close <id> --reason "Completed: <summary>."
 ```
 
 ---
@@ -130,7 +130,7 @@ bd close <id> --reason "Completed: <summary>."
 ```bash
 bun update <package>
 bun run test:fast  # Verify nothing broke
-bd close <id> --reason "Updated <pkg> from v<old> to v<new>. Tests pass."
+km bd close <id> --reason "Updated <pkg> from v<old> to v<new>. Tests pass."
 ```
 
 **Performance:**
@@ -145,7 +145,7 @@ bun run test:fast  # Note timing
 # Verify
 bun run test:fast  # Faster + passes
 
-bd close <id> --reason "Optimized <what>. Improved from <old> to <new>."
+km bd close <id> --reason "Optimized <what>. Improved from <old> to <new>."
 ```
 
 ---
@@ -176,7 +176,7 @@ bd close <id> --reason "Optimized <what>. Improved from <old> to <new>."
 If scope expands:
 
 ```bash
-bd update <id> --type feature --notes "Scope expanded, needs feature treatment"
+km bd update <id> --type feature --notes "Scope expanded, needs feature treatment"
 # Follow feature-workflow.md instead
 ```
 

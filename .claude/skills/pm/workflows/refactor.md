@@ -108,10 +108,10 @@ If work truly cannot be completed in the current phase (e.g., a dependency hasn'
 
 ### Tracking Bead (the canonical status dashboard)
 
-Every large refactor needs **one canonical tracking bead** (type=epic) that serves as the top-down status dashboard. Anyone should be able to `bd show <tracking-bead>` at any time and understand: what's done, what's in progress, what's blocked, what's next.
+Every large refactor needs **one canonical tracking bead** (type=epic) that serves as the top-down status dashboard. Anyone should be able to `km bd show <tracking-bead>` at any time and understand: what's done, what's in progress, what's blocked, what's next.
 
 ```bash
-bd create --id km-<scope>.<refactor-name> --type epic --priority 1 \
+km bd create --id km-<scope>.<refactor-name> --type epic --priority 1 \
   --title "[epic] <Refactor Name>" \
   --description "<Overview: what, why, target state, design doc link, phase summary>"
 ```
@@ -140,12 +140,12 @@ For each phase, create a child bead:
 - **Notes**: `MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code.`
 
 ```bash
-bd create --id km-<scope>.phase-N-name --type task --priority 1 \
+km bd create --id km-<scope>.phase-N-name --type task --priority 1 \
   --title "Phase N: <Name>" \
   --description "<paste phase template>"
-bd update km-<scope>.phase-N-name --parent km-<scope>.<refactor-name>
-bd dep add km-<scope>.phase-N-name km-<scope>.phase-N-1-name
-bd update km-<scope>.phase-N-name --append-notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
+km bd update km-<scope>.phase-N-name --parent km-<scope>.<refactor-name>
+km bd dep add km-<scope>.phase-N-name km-<scope>.phase-N-1-name
+km bd update km-<scope>.phase-N-name --append-notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
 ```
 
 ## Step 5: Review the Plan
@@ -186,14 +186,14 @@ Ask specifically about:
 
 For each phase:
 
-1. **Claim the bead**: `bd update <id> --claim`
+1. **Claim the bead**: `km bd update <id> --claim`
 2. **Read refactoring lessons**: `Read docs/lessons/refactoring.md` (yes, every time)
 3. **Read the phase description** in the design doc
 4. **Execute**: Update → Absorb → Purge → Remove → Fix
 5. **Verify**: `grep` for old patterns → 0 hits
 6. **Run tests**: `bun fix && bun run test:fast`
 7. **Run /complete**: Full completeness audit
-8. **Close the bead**: `bd close <id> --reason "..."`
+8. **Close the bead**: `km bd close <id> --reason "..."`
 9. **Commit and push**
 
 ### During Execution

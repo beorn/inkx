@@ -2,7 +2,7 @@
 
 Use when closing a multi-week multi-bead epic (e.g., plateau-90, tree-lenses, era2). The session that closes the LAST critical-path sub-bead, OR the epic itself, owns the retrospective.
 
-**Trigger**: `bd close <epic-id>` on an epic with ≥3 closed sub-beads, or closing the last open sub-bead under such an epic.
+**Trigger**: `km bd close <epic-id>` on an epic with ≥3 closed sub-beads, or closing the last open sub-bead under such an epic.
 
 **Don't fire on**: single-session work, ad-hoc explorations, epics with <3 sub-beads (a per-bead /complete is enough).
 
@@ -17,16 +17,16 @@ Use when closing a multi-week multi-bead epic (e.g., plateau-90, tree-lenses, er
 ## Step 1: Verify the program is actually closing
 
 ```bash
-bd show <epic-id>
-bd list --parent <epic-id>
-bd list --parent <epic-id> --status open
+km bd show <epic-id>
+km bd list --parent <epic-id>
+km bd list --parent <epic-id> --status open
 ```
 
 If sub-beads remain open: **stop.** Either close them or explicitly defer with reason in epic NOTES. Don't write a retro for a half-shipped program — it ages worse than no retro.
 
 ### Step 1b: Retroactively fix mis-parented beads
 
-If `bd list --parent <epic-id>` shows fewer children than the design/retro doc references, the program's beads were mis-parented (parented to slice-level epics or scope backlogs instead of the program epic). Fix this before continuing.
+If `km bd list --parent <epic-id>` shows fewer children than the design/retro doc references, the program's beads were mis-parented (parented to slice-level epics or scope backlogs instead of the program epic). Fix this before continuing.
 
 ```bash
 # 1. Extract bead IDs from the program's design/retro doc
@@ -34,25 +34,25 @@ grep -oE 'km-[a-z]+\.[a-z0-9-]+' hub/<scope>/design/<program>-retro.md | sort -u
 
 # 2. For each, check current parent
 for id in <bead-ids>; do
-  bd show "$id" 2>&1 | grep -A1 PARENT
+  km bd show "$id" 2>&1 | grep -A1 PARENT
 done
 
 # 3. Re-parent the ones that semantically belong to the program
 #    Slice epics (km-silvery.structural-hardening) → parent to program epic
 #    Scope-backlog beads (km-silvery.<follow-up>) → parent if part of the program, else leave
 #    External-blocked beads (km-all.upstream-waiting children) → leave under upstream-waiting
-bd update <slice-epic> --parent <program-epic>
+km bd update <slice-epic> --parent <program-epic>
 ```
 
 **Don't bulk-rewrite.** Each re-parent is a reporting-hierarchy change. Manual confirmation per bead. Slice epics that are 100% the program → re-parent. Slice epics that contain non-program work too → leave parented to their natural home, accept that the program retro is the canonical aggregator.
 
-**This is the work the original /pm skill missed.** `bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see km-all.bead-parent-discipline (file if not yet created).
+**This is the work the original /pm skill missed.** `km bd create --id` can't combine with `--parent`, so the second step gets forgotten under load. Future fix: see km-all.bead-parent-discipline (file if not yet created).
 
 ## Step 2: Locate the program's evidence
 
 ```bash
 git log --oneline --since=<start> --until=<end> -- <scope-paths>
-bd list --parent <epic-id> --status closed
+km bd list --parent <epic-id> --status closed
 bun recall --raw "<program-keyword>" -n 30
 ```
 
@@ -66,7 +66,7 @@ Path: `hub/<scope>/design/<program>-retro.md`. Required sections (use plateau-90
 # <Program> — Post-Ship Retrospective
 
 **Status**: shipped <date>
-**Epic**: bd show <epic-id>
+**Epic**: km bd show <epic-id>
 **Window**: <start> → <end>
 
 ## TL;DR
@@ -115,15 +115,15 @@ For each lesson broader than the program, propagate it. A lesson that lives only
 ## Step 5: Link the retro from the epic
 
 ```bash
-bd update <epic-id> --notes "Phase shipped <date>. Retro: hub/<scope>/design/<program>-retro.md (commit <sha>). Process changes: <list>. Follow-up beads: <list>."
+km bd update <epic-id> --notes "Phase shipped <date>. Retro: hub/<scope>/design/<program>-retro.md (commit <sha>). Process changes: <list>. Follow-up beads: <list>."
 ```
 
-This is the durable pointer. Future sessions running `bd show <epic-id>` see it.
+This is the durable pointer. Future sessions running `km bd show <epic-id>` see it.
 
 ## Step 6: Close the epic OR mark complete
 
 ```bash
-bd close <epic-id> --reason "Phase 1 shipped <date>. Retro: <path>."
+km bd close <epic-id> --reason "Phase 1 shipped <date>. Retro: <path>."
 ```
 
 Or, if the epic spans multiple phases, leave it open with notes updated and file a new bead for Phase 2.

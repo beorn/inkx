@@ -44,9 +44,9 @@ Activated by requests about:
 ```bash
 bd count --by-status                     # Quick overview
 bd count --by-priority --status open     # Priority distribution
-bd list --status open --limit 0 --tree   # Hierarchical tree view
-bd list --status in_progress --limit 0 --long
-bd stale --days 14 --limit 0
+km bd list --status open --limit 0 --tree   # Hierarchical tree view
+km bd list --status in_progress --limit 0 --long
+km bd stale --days 14 --limit 0
 ```
 
 Output a comprehensive table of all open beads with these columns (up to 100 beads):
@@ -84,7 +84,7 @@ Flag any concerns (e.g., too many P1s, stale in_progress items).
 ### `ready` - Actionable Work
 
 ```bash
-bd ready --limit 15
+km bd ready --limit 15
 ```
 
 Output the ready list. That's it - quick and focused.
@@ -101,20 +101,20 @@ Run these bash commands **in parallel** (single message, multiple Bash tool call
 
 | Command                                         | Purpose                           |
 | ----------------------------------------------- | --------------------------------- |
-| `bd list --status open --limit 0 --tree`        | Full backlog, hierarchical view   |
-| `bd list --status in_progress --limit 0 --long` | Work claimed but possibly stalled |
-| `bd stale --days 14 --limit 0`                  | Issues needing attention          |
+| `km bd list --status open --limit 0 --tree`        | Full backlog, hierarchical view   |
+| `km bd list --status in_progress --limit 0 --long` | Work claimed but possibly stalled |
+| `km bd stale --days 14 --limit 0`                  | Issues needing attention          |
 | `bd find-duplicates --status open`              | Semantic duplicate detection      |
 | `bd epic status`                                | Epic completion status            |
-| `bd blocked`                                    | Blocked issues and blockers       |
-| `bd ready --limit 20`                           | Currently actionable work         |
+| `km bd blocked`                                    | Blocked issues and blockers       |
+| `km bd ready --limit 20`                           | Currently actionable work         |
 | `bd count --by-status`                          | Quick status distribution         |
 | `bd count --by-priority --status open`          | Priority distribution             |
 
 Then run:
 
 ```bash
-bd list --status closed --limit 20 --sort updated  # Recent completions for context
+km bd list --status closed --limit 20 --sort updated  # Recent completions for context
 ```
 
 #### Tribe Status Sync
@@ -154,7 +154,7 @@ Review survey data. For each open issue, assign to exactly one category:
 Features and tasks **older than 1 week** need requirements re-verification before work begins. Bugs are usually still valid (just verify repro). If verified:
 
 ```bash
-bd update <id> --notes "Verified YYYY-MM-DD: requirements still current. <any context>"
+km bd update <id> --notes "Verified YYYY-MM-DD: requirements still current. <any context>"
 ```
 
 This resets the staleness clock for ~1-2 weeks. During grooming, check the `notes` field — if the last verification is >2 weeks old, re-verify.
@@ -198,15 +198,15 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
 2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "silvery & ansi issues"). Use `bd epic status` to check epic health.
-3. **Rename sub-beads**: Use `bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `bd update <new-id> --parent km-<scope>`
+3. **Rename sub-beads**: Use `km bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `km bd update <new-id> --parent km-<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
-5. **Verify**: `bd children <epic-id>` to confirm structure
+5. **Verify**: `km bd children <epic-id>` to confirm structure
 
 **Bead re-ID pattern** (for beads with random/opaque IDs):
 
 Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During grooming, identify beads with auto-generated 5-char hex IDs and rename them:
 
-1. **Find random IDs**: `bd list --status open | grep -E 'km-[a-z0-9]{5} '`
+1. **Find random IDs**: `km bd list --status open | grep -E 'km-[a-z0-9]{5} '`
 2. **Determine scope**: Which epic does this bead belong to? (silvery, tui, infra, etc.)
 3. **Choose a descriptive suffix**: Short, lowercase, hyphenated (e.g., `scrollback-v2`, `embed-click-jump`)
 4. **Use grouping prefixes** so related beads sort together alphabetically:
@@ -215,9 +215,9 @@ Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During
    - `ai-*` for AI-related features (ai-chat, ai-demo, ai-apis)
    - `tea.*` for TEA sub-beads (tea.migration, tea.standalone)
    - `ink-*` for Ink migration (ink-codemod, ink-migration)
-5. **Rename**: `bd rename km-<random> km-<scope>.<suffix>` — this updates all internal references (deps, descriptions, events)
+5. **Rename**: `km bd rename km-<random> km-<scope>.<suffix>` — this updates all internal references (deps, descriptions, events)
 6. **Search codebase**: `Grep pattern="km-<random>" glob="*.{ts,md,json}"` — update any references in code, docs, or config
-7. **Parent**: `bd update km-<scope>.<suffix> --parent km-<scope>`
+7. **Parent**: `km bd update km-<scope>.<suffix> --parent km-<scope>`
 
 #### E. Organization Review (scope health)
 
@@ -237,13 +237,13 @@ bd epic status  # Shows completion % and child counts
 
 **2. Orphan detection** — beads not under any epic:
 ```bash
-bd list --status open --limit 0 | grep -v "│\|├\|└"  # Top-level beads without tree indentation
+km bd list --status open --limit 0 | grep -v "│\|├\|└"  # Top-level beads without tree indentation
 ```
 Every non-epic bead should have a parent. Assign orphans to the correct scope.
 
 **3. Opaque ID cleanup** — find auto-generated IDs:
 ```bash
-bd list --status open --limit 0 2>&1 | grep -oP 'km-[a-z0-9]{5}\b' | sort -u
+km bd list --status open --limit 0 2>&1 | grep -oP 'km-[a-z0-9]{5}\b' | sort -u
 ```
 Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine).
 
@@ -258,7 +258,7 @@ Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine)
 - Marketing beads under km-silvery → should be km-market
 
 **6. Sub-epic grouping** — when 5+ beads in a scope share a prefix or theme:
-- Group under a sub-epic: `bd create --id km-scope.theme --type epic`
+- Group under a sub-epic: `km bd create --id km-scope.theme --type epic`
 - Example: 9 `examples-*` beads → parent under `km-silvery.demos`
 
 Run this review as part of every groom. Output findings in the Phase 3 report under a "### F. Organization" section.
@@ -276,13 +276,13 @@ Run this review as part of every groom. Output findings in the Phase 3 report un
 
 For each close candidate:
 
-1. **Check children**: `bd children <id>` — are all children closed? Open children = not done.
-2. **Check related beads**: `bd show <id>` — read description for mentioned sub-beads, then `bd show <sub-bead> --short` to verify their status.
+1. **Check children**: `km bd children <id>` — are all children closed? Open children = not done.
+2. **Check related beads**: `km bd show <id>` — read description for mentioned sub-beads, then `km bd show <sub-bead> --short` to verify their status.
 3. **Check code**: For implementation beads, verify the code actually exists (grep for key types/functions mentioned in the description).
 4. **Check notes**: Look for "Next:" or "TODO:" items that indicate remaining work.
 5. **Check in_progress beads**: For beads claimed by `claude:*` agents, the agent session is likely dead. Check if work was committed (`git log --oneline -5 --grep="<bead-id>"`) or if the bead has notes documenting completion.
 
-**Run verifications in parallel** — launch one agent per close candidate, or batch `bd show --short` commands.
+**Run verifications in parallel** — launch one agent per close candidate, or batch `km bd show --short` commands.
 
 **Upgrade or downgrade** based on findings:
 - Children all closed + code exists + review done → **safe to close**
@@ -293,8 +293,8 @@ This step is critical — it catches beads that *look* done from the description
 
 6. **Track deferred items**: When a bead has "deferred", "tracked only", "P2 items", or "P1s deferred" items in its description/notes, these MUST be tracked before closing:
    - For each deferred item, find the covering bead (the one that should eventually address it).
-   - If a covering bead exists: `bd update <covering-bead> --append-notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
-   - If NO covering bead exists: create one with `bd create --id <scope>.<suffix> --type <type> --priority <N> --title "<title>" --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it.
+   - If a covering bead exists: `km bd update <covering-bead> --append-notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
+   - If NO covering bead exists: create one with `km bd create --id <scope>.<suffix> --type <type> --priority <N> --title "<title>" --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it.
    - **Never close a bead with deferred items that have no tracking destination.** This is how work gets lost across sessions.
 
 ### Phase 3: Present Plan
@@ -358,9 +358,9 @@ Output structured report:
 
 ---
 
-## Ready to Work (from `bd ready`)
+## Ready to Work (from `km bd ready`)
 
-[Output of bd ready --limit 10]
+[Output of km bd ready --limit 10]
 ```
 
 **Stop here if `--dry-run`**. Otherwise, proceed to Phase 3½.
@@ -404,22 +404,22 @@ After tribe review (and user confirmation if needed), execute changes in this or
 
 ```bash
 # Close with reason
-bd close <id> --reason "Grooming: <reason>"
+km bd close <id> --reason "Grooming: <reason>"
 
 # Mark as duplicate (auto-closes source)
 bd duplicate <source-id> --of <canonical-id>
 
 # Update priority
-bd update <id> --priority <N>
+km bd update <id> --priority <N>
 
 # Add dependency (issue depends-on blocker)
-bd dep add <issue-id> <depends-on-id>
+km bd dep add <issue-id> <depends-on-id>
 
 # Set parent (for epic membership)
-bd update <id> --parent <epic-id>
+km bd update <id> --parent <epic-id>
 
 # Remove from wrong parent
-bd update <id> --parent ""
+km bd update <id> --parent ""
 ```
 
 ### Verify
@@ -427,9 +427,9 @@ bd update <id> --parent ""
 After execution:
 
 ```bash
-bd list --status open --limit 0 | wc -l   # Should decrease
-bd stale --days 14 --limit 0 | wc -l      # Should decrease
-bd ready --limit 10                        # Should look actionable
+km bd list --status open --limit 0 | wc -l   # Should decrease
+km bd stale --days 14 --limit 0 | wc -l      # Should decrease
+km bd ready --limit 10                        # Should look actionable
 ```
 
 ### Update References
@@ -514,7 +514,7 @@ Propose concrete improvements based on root causes:
 - Create `bd validate` command to check for circular deps, orphans, etc.
 - Add priority health check (warn if >5 P0-P1 issues)
 - Auto-tag stale issues (flag after 30 days)
-- Add `bd search <query>` before `bd create` workflow
+- Add `bd search <query>` before `km bd create` workflow
 - Generate backlog health dashboard (metrics over time)
 
 **Documentation:**
@@ -572,22 +572,22 @@ For significant process gaps identified:
 DATE_SUFFIX=$(date +%m%d)
 
 # Example: Workflow improvement
-bd create --id "km-proc-groom-cadence-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-groom-cadence-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Establish monthly grooming cadence" \
   --body="Review found 50+ stale P4 issues. Add recurring grooming schedule."
 
 # Example: Tooling gap
-bd create --id "km-proc-bd-validate-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-bd-validate-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Add bd validate command for health checks" \
   --body="Auto-detect circular deps, orphans, priority inflation, etc."
 
 # Example: Documentation gap
-bd create --id "km-proc-priority-guide-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-priority-guide-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Document priority decision criteria" \
   --body="Create flowchart: user-facing bug > blocking > standalone > nice-to-have"
 
 # Example: Template improvement
-bd create --id "km-proc-issue-templates-$DATE_SUFFIX" --type=task --priority=3 \
+km bd create --id "km-proc-issue-templates-$DATE_SUFFIX" --type=task --priority=3 \
   --title="Create issue templates for bd" \
   --body="Templates for bug, task, epic, feature with required fields"
 ```
@@ -609,7 +609,7 @@ If the grooming revealed gaps in this review process itself, consider updating [
 
 **Workflow improvements:**
 
-- Example: "Run `bd ready` before and after grooming to show impact"
+- Example: "Run `km bd ready` before and after grooming to show impact"
 - Example: "Add 'health score' calculation based on multiple metrics"
 - Example: "Generate trend chart showing backlog health over time"
 
