@@ -36,6 +36,7 @@ import {
   leafIds,
   loadPanes,
   reconcileTree,
+  removeLeaf,
   savePanes,
   splitLeaf,
   type SplitDirection,
@@ -472,13 +473,25 @@ export function App(props: AppProps): React.ReactElement {
   // the focused leaf replaced by a split with the original session +
   // the new one. We have to wait for `spawnSession` to resolve so we
   // know the new session's id before editing the tree.
+  //
+  // Race guard: between `spawnSession()` firing and its `.then()` callback
+  // running, the controller's subscriber updates `sessions[]`, which fires
+  // the reconcile useEffect (line ~413). reconcileTree's auto-append path
+  // hardcodes 'row' direction (pane-layout.ts:451), so it places the new
+  // leaf in the WRONG direction before this callback runs. If we then
+  // splitLeaf without stripping the duplicate, the tree ends up with two
+  // copies of the same session id — broken. Strip the duplicate leaf
+  // before placing it correctly. Bead: km-silvercode.split-direction-race.
   const splitFocusedPane = useCallback(
     (direction: SplitDirection): void => {
       const currentFocus = focusedSessionId
       if (!currentFocus) return
       void controller.spawnSession().then((handle) => {
         setPaneTree((prev) => {
-          const next = splitLeaf(prev, currentFocus, handle.id, direction)
+          const stripped = leafIds(prev).includes(handle.id)
+            ? (removeLeaf(prev, handle.id) ?? prev)
+            : prev
+          const next = splitLeaf(stripped, currentFocus, handle.id, direction)
           savePanes(props.cwd, next)
           return next
         })
@@ -513,12 +526,16 @@ export function App(props: AppProps): React.ReactElement {
   // Header-button split: spawn a new session as a row-split right-of the
   // named pane. Same effect as splitFocusedPane("row") but parameterised
   // by the pane that owned the click — the user might click `+` on a
-  // non-focused pane.
+  // non-focused pane. Same reconcileTree race guard as splitFocusedPane —
+  // see that comment for context.
   const splitPaneRightById = useCallback(
     (id: string): void => {
       void controller.spawnSession().then((handle) => {
         setPaneTree((prev) => {
-          const next = splitLeaf(prev, id, handle.id, "row")
+          const stripped = leafIds(prev).includes(handle.id)
+            ? (removeLeaf(prev, handle.id) ?? prev)
+            : prev
+          const next = splitLeaf(stripped, id, handle.id, "row")
           savePanes(props.cwd, next)
           return next
         })
