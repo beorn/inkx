@@ -4,7 +4,9 @@
  * Add and remove dependencies between issues.
  */
 
+import type { Repo } from "@km/storage"
 import type { Issue } from "./types.ts"
+import { nodeToIssue } from "./queries.ts"
 
 /**
  * Add a dependency (blocked-by relationship)
@@ -86,10 +88,45 @@ function buildBlockedByProps(blockers: string[]): {
 }
 
 /**
- * Get all dependencies for an issue
+ * Get all dependencies for an issue.
+ *
+ * Returns the union of:
+ *   - `issue.blockedBy` — props-based blockers from `blocked-by::` syntax
+ *   - inbound `blocks::` wikilinks — when a passed-in repo is available,
+ *     look up paragraphs whose content matches `blocks:: …[[<issue>]]…`
+ *     and report each host file as a blocker. Closes the gap that the
+ *     parser doesn't yet emit a typed `rel: "blocks"` taxonomy on the
+ *     links table (tracked at @km/storage/link-rel-taxonomy).
  */
-export function getDependencies(issue: Issue): string[] {
-  return issue.blockedBy || []
+export function getDependencies(issue: Issue, repo?: Repo): string[] {
+  const propsBased = issue.blockedBy ?? []
+  if (!repo) return propsBased
+
+  // Find paragraphs whose content starts with `blocks::` and contains
+  // a wikilink resolving to this issue. Match against the issue's
+  // canonical id (path-form) and short id, both of which can appear
+  // inside `[[...]]`.
+  const idForms = [issue.shortId]
+  const sql = `
+    SELECT DISTINCT parent_id
+    FROM nodes
+    WHERE content LIKE 'blocks::%'
+      AND parent_id IS NOT NULL
+      AND (${idForms.map(() => "content LIKE ?").join(" OR ")})
+  `
+  // The wikilink can be `[[<id>]]`, `[[../slug]]`, or anchored — the
+  // last path component is the most reliable substring to match on.
+  const slug = issue.shortId.split("/").pop() ?? issue.shortId
+  const params = idForms.map(() => `%${slug}%`)
+  const rows = repo.rawQuery<{ parent_id: string }>(sql, params)
+
+  const linkBased = rows
+    .map((r) => repo.getNode(r.parent_id))
+    .filter((n): n is NonNullable<typeof n> => n != null)
+    .map((n) => nodeToIssue(n, { repo }).shortId)
+
+  // Union without duplicates, preserving order.
+  return [...new Set([...propsBased, ...linkBased])]
 }
 
 /**

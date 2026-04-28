@@ -36,7 +36,7 @@ import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from ".
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
-import { buildQueryString, type SharedQueryFlags } from "./shared-query.ts"
+import { buildQueryString, normalizeStatus, type SharedQueryFlags } from "./shared-query.ts"
 
 /** Format scope/board context for display messages (e.g., " in path" or " on @board") */
 function formatScopeMessage(scopePath?: string, boardTag?: string): string {
@@ -126,7 +126,7 @@ bdCommand
       using repo = await loadRepo(resolved.repoRoot)
 
       const filter: IssueFilter = {}
-      if (opts.status) filter.status = opts.status.split(",")
+      if (opts.status) filter.status = opts.status.split(",").map(normalizeStatus)
       if (opts.type) filter.type = opts.type
       if (opts.assignee) filter.assignee = opts.assignee
       if (opts.priority !== undefined) filter.priority = opts.priority
@@ -516,7 +516,7 @@ const depListCmd = depCommand
       return
     }
 
-    const deps = getDependencies(issue)
+    const deps = getDependencies(issue, repo)
     if (deps.length === 0) {
       console.log(term.dim(`${issue.shortId} has no dependencies`))
       return
@@ -609,8 +609,17 @@ bdCommand
       return
     }
 
-    const children = repo.getChildren(issue.id)
-    const childIssues = children.filter((c) => c.item?.task?.status != null).map((c) => nodeToIssue(c, { repo }))
+    // In the path-form hierarchy, sub-issues of `foo.md` live in the
+    // sibling folder `foo/`. Walk both the in-file paragraph children
+    // and the path-folder file children so the tree the user sees on
+    // disk matches what `bd children` reports.
+    const inFileChildren = repo.getChildren(issue.id)
+    const folderId = issue.id.endsWith(".md") ? issue.id.slice(0, -3) : null
+    const pathChildren = folderId ? repo.getChildren(folderId) : []
+    const allChildren = [...inFileChildren, ...pathChildren]
+    const childIssues = allChildren
+      .filter((c) => c.item?.task?.status != null || c.fs_path?.endsWith(".md"))
+      .map((c) => nodeToIssue(c, { repo }))
 
     if (opts.json) {
       console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))

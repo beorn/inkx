@@ -30,6 +30,29 @@ export interface QueryDefaults {
 }
 
 /**
+ * Translate bd-flavor status names (open, in_progress, closed) to the
+ * km-flavor names (todo, wip, done) the query DSL expects. Accepts both
+ * forms because bd CLI output uses bd-flavor and users naturally type
+ * back what they read. Comma-separated lists are translated element-wise.
+ */
+function normalizeStatusFlag(value: string): string {
+  return value
+    .split(",")
+    .map((s) => normalizeStatus(s.trim()))
+    .join(",")
+}
+
+/** Translate a single bd-flavor status name to km-flavor. Idempotent. */
+export function normalizeStatus(value: string): string {
+  const map: Record<string, string> = {
+    open: "todo",
+    in_progress: "wip",
+    closed: "done",
+  }
+  return map[value] ?? value
+}
+
+/**
  * Build a query string from CLI flags + defaults.
  *
  * The resulting string is passed to repo.query() or repo.queryTasks().
@@ -53,7 +76,7 @@ export function buildQueryString(
 
   // Add flag-based filters
   if (flags.status) {
-    parts.push(`status:${flags.status}`)
+    parts.push(`status:${normalizeStatusFlag(flags.status)}`)
   } else if (defaults.statusFilter) {
     parts.push(`status:${defaults.statusFilter}`)
   } else if (defaults.excludeDone && !positionalQuery?.includes("status:")) {
@@ -78,7 +101,7 @@ export function buildQueryString(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Command's generic slot is unconstrained; narrowing to `unknown` breaks inference downstream for `.option()` chains that need any[] variadic args.
 export function addSharedQueryOptions<T extends Command<any>>(cmd: T) {
   return cmd
-    .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
+    .option("-s, --status <status>", "Filter by status (open,in_progress,blocked,closed,dropped — bd-flavor; or todo,wip,done km-flavor)")
     .option("-t, --type <type>", "Filter by type")
     .option("-a, --assignee <name>", "Filter by assignee")
     .option("-p, --priority <value>", "Filter by priority (e.g. P0-P4 or 0-4)")
