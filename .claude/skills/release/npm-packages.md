@@ -178,6 +178,8 @@ Last updated: 2026-04-19 (62 packages live)
 | `acpchannel` | Reserved 2026-04-27 — channel-plugin framework name |
 | `@beorno/acpgateway` | Reserved 2026-04-27 — unscoped `acpgateway` similarity-blocked vs our own `acp-gateway` |
 | `@beorno/acpsv` | Reserved 2026-04-27 — unscoped `acpsv` similarity-blocked vs `csv` |
+| `@beorno/mbrain` | Reserved 2026-04-28 — `.brain` agent format ecosystem; unscoped `mbrain` similarity-blocked vs `mwgain` |
+| `@beorno/braine` | Reserved 2026-04-28 — `.brain` agent format ecosystem; unscoped `braine` similarity-blocked vs `brace`/`byline` |
 
 **Considered but blocked (2026-04-27)** — kept here so we don't re-attempt:
 
