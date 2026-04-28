@@ -751,6 +751,14 @@ function PaneDivider({
   // case; we keep that here too.
   useMouseCursor(hover || isDragging ? "move" : null)
   const color = isDragging || hover ? "$accent" : "$border"
+  // The PaneDivider pattern (`<Box flexGrow=1 flexShrink=1>` around
+  // `<Text wrap="wrap">{repeat(N)}</Text>`) needs `minWidth={0}` /
+  // `minHeight={0}` opt-outs on BOTH the inner Box and the Text. Without them
+  // CSS §4.5 auto-min-size pins each flex item to its content's longest
+  // unbreakable token (200/400 cells), overflowing the divider's pinned cross
+  // size and bleeding `│`/`─` glyphs into sibling pane regions. Regression
+  // covered by vendor/silvery/tests/features/divider-overflow-clear.test.tsx.
+  // Bead: km-silvercode.pane-2d-horizontal-divider.
   if (direction === "row") {
     // Vertical divider — 1-col wide, full height.
     return (
@@ -764,8 +772,8 @@ function PaneDivider({
         onMouseLeave={() => setHover(false)}
         onMouseDown={(e) => onMouseDown(e.clientX)}
       >
-        <Box flexGrow={1} flexShrink={1}>
-          <Text color={color} wrap="wrap">
+        <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+          <Text color={color} wrap="wrap" minWidth={0}>
             {"│".repeat(200)}
           </Text>
         </Box>
@@ -784,8 +792,8 @@ function PaneDivider({
       onMouseLeave={() => setHover(false)}
       onMouseDown={(e) => onMouseDown(e.clientY)}
     >
-      <Box flexGrow={1} flexShrink={1}>
-        <Text color={color} wrap="wrap">
+      <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+        <Text color={color} wrap="wrap" minHeight={0}>
           {"─".repeat(400)}
         </Text>
       </Box>
