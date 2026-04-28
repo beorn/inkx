@@ -11,7 +11,7 @@
  *
  * Why a context (and not a prop drilled through every render path):
  * `LinkifiedText` is invoked from `MarkdownView`, `SessionUpdateList`,
- * `RequestPermissionInbox`, and `AvailableCommandsPalette` — threading
+ * `InlinePermissionPrompt`, and `AvailableCommandsPalette` — threading
  * cwd through every caller chain bloats every props type for one piece
  * of ambient session state.
  */

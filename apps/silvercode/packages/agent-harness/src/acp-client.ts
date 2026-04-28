@@ -1042,8 +1042,25 @@ function mapSessionUpdateToLegacyEvents(
       return events
     }
 
+    case "available_commands_update": {
+      // Mirror what session-init's `slash_commands` does for the stream-json
+      // transport: surface the full list of names so SessionState.slash
+      // Commands populates and AvailableCommandsPalette can show vault-local
+      // + plugin commands. ACP's AvailableCommand carries `description` too,
+      // but the legacy path is name-only — `mergeRemoteCommands` synthesizes
+      // a generic description. When the canonical ACP-shaped UI lands, it
+      // can subscribe to the typed SessionUpdate directly and use the rich
+      // shape. Bead: km-silvercode.slash-command-vault-discovery.
+      events.push({
+        kind: "slash-commands-update",
+        sessionId,
+        slashCommands: scUpdate.availableCommands.map((c) => c.name),
+        ts,
+      })
+      return events
+    }
+
     case "plan":
-    case "available_commands_update":
     case "current_mode_update":
     case "config_option_update":
     case "session_info_update":

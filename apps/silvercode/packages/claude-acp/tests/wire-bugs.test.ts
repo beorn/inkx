@@ -289,6 +289,94 @@ describe("bug 3 — failed tool emits single tool_call_update, no duplicate erro
   })
 })
 
+// ===========================================================================
+// Bug 4 — vault-local slash commands not surfaced through ACP
+// ===========================================================================
+//
+// Bead: km-silvercode.slash-command-vault-discovery (P2 bug).
+//
+// Symptom: a vault containing `.claude/commands/file.md` exposes a `/file`
+// command when run directly via `claude --bare -p`, but silvercode's
+// auto-complete dropdown never lists it. The full chain is:
+//
+//   spawnClaude session-init.slashCommands  (carries `["file", ...]`)
+//      → claude-acp wire.ts session-init   (DROPPED before this fix —
+//                                           the case fell through to the
+//                                           "no SessionUpdate slot" comment
+//                                           and the names never reached the
+//                                           ACP wire)
+//      → silvercode-side acp-client        (already had a no-op branch for
+//                                           available_commands_update)
+//      → AvailableCommandsPalette          (only shows STATIC_COMMANDS)
+//
+// Fix: when session-init carries slashCommands, the wire emits an ACP
+// `available_commands_update` SessionUpdate so downstream consumers see the
+// vault-local + plugin commands the underlying claude subprocess discovered.
+describe("bug 4 — wire surfaces slashCommands from session-init", () => {
+  test("session-init carrying slashCommands emits an available_commands_update SessionUpdate", async () => {
+    const session = makeFakeAgentSession()
+    const { conn, updates } = makeRecordingConnection()
+    const wire = attachWire(conn, session, SID)
+
+    session.push({
+      kind: "session-init",
+      sessionId: SID as SessionId,
+      cwd: "/vault",
+      model: "claude-opus-4-7",
+      mode: "default",
+      tools: [],
+      mcp_servers: [],
+      slashCommands: ["file", "groom-docs", "do"],
+      skills: [],
+      plugins: [],
+      claudeCodeVersion: "test",
+      apiKeySource: "test",
+      ts: 1,
+    })
+
+    await Promise.resolve()
+
+    const cmdUpdates = updates.filter((u) => u.update.sessionUpdate === "available_commands_update")
+    expect(cmdUpdates).toHaveLength(1)
+    const cmdUpdate = cmdUpdates[0]!.update as acp.SessionUpdate & {
+      sessionUpdate: "available_commands_update"
+      availableCommands: acp.AvailableCommand[]
+    }
+    expect(cmdUpdate.availableCommands.map((c) => c.name)).toEqual(["file", "groom-docs", "do"])
+    // Names must NOT carry a leading slash — ACP's AvailableCommand.name is bare.
+    expect(cmdUpdate.availableCommands.every((c) => !c.name.startsWith("/"))).toBe(true)
+    wire.detach()
+  })
+
+  test("session-init with empty slashCommands emits NO available_commands_update", async () => {
+    // Don't pollute the wire when there's nothing to advertise (e.g. the ACP
+    // path's synthetic init from acp-client.ts).
+    const session = makeFakeAgentSession()
+    const { conn, updates } = makeRecordingConnection()
+    const wire = attachWire(conn, session, SID)
+
+    session.push({
+      kind: "session-init",
+      sessionId: SID as SessionId,
+      cwd: "/vault",
+      model: "claude-opus-4-7",
+      mode: "default",
+      tools: [],
+      mcp_servers: [],
+      slashCommands: [],
+      skills: [],
+      plugins: [],
+      claudeCodeVersion: "test",
+      apiKeySource: "test",
+      ts: 1,
+    })
+
+    await Promise.resolve()
+    expect(updates).toHaveLength(0)
+    wire.detach()
+  })
+})
+
 // ---------------------------------------------------------------------------
 
 function makeChannelEvent(id: string, source = "filewatch"): ChannelEvent {

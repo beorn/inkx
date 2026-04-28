@@ -2,7 +2,7 @@
  * Slash-command registry.
  *
  * Three sources feed the palette:
- *   1. Silvercode-local commands (/handoff, /inbox, /fork, /spawn, /history,
+ *   1. Silvercode-local commands (/handoff, /fork, /spawn, /history,
  *      /todos, /mode) — intercepted by the App before the message reaches
  *      the subprocess. `local: true`.
  *   2. Well-known Claude-native commands (/compact, /clear, /agents, /mcp,
@@ -43,7 +43,6 @@ export const STATIC_COMMANDS: SlashCommand[] = [
     hidden: true,
   },
   { name: "/handoff", description: "Handoff task + context to another session", local: true },
-  { name: "/inbox", description: "Open the cross-session permission inbox", local: true },
   { name: "/fork", description: "Fork current session into a new card", local: true },
   { name: "/spawn", description: "Spawn a new session on this workspace", local: true },
   { name: "/history", description: "Open the history view", local: true },

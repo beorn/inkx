@@ -1025,7 +1025,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
          * resolve it. The `acp-client` module already emits a `permission-request`
          * AgentEvent before calling this handler, so `session-store` has already
          * set `status = "awaiting-permission"` and the UI renders the
-         * `<RequestPermissionInbox>` modal.
+         * `<InlinePermissionPrompt>` above the composer.
          *
          * The handler returns a Promise that resolves only when the user
          * approves/denies via the controller's `respondPermission[Option]` methods,

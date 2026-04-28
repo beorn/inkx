@@ -47,7 +47,6 @@ export function Welcome(props: {
 
       <Box flexDirection="column">
         <H2>Commands</H2>
-        <IntroRow name="/inbox" desc="cross-session permission triage" />
         <IntroRow name="/panel" desc="toggle the todos + agents side panel" />
         <IntroRow name="/history" desc="replay + search past sessions" />
         <IntroRow name="/mode [name]" desc="cycle plan / accept-edits / auto / bypass" />
@@ -59,7 +58,6 @@ export function Welcome(props: {
       <Box flexDirection="column">
         <H2>Keybindings</H2>
         <IntroRow name="ctrl-o" desc="toggle the side panel (todos + agents)" />
-        <IntroRow name="ctrl-e" desc="permission inbox" />
         <IntroRow name="ctrl-r" desc="history view" />
         <IntroRow name="ctrl-n" desc="next session (multi-session)" />
         <IntroRow name="ctrl-g v / s / x / z" desc="pane chord: vsplit / hsplit / close / zoom" />

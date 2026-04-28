@@ -1,22 +1,23 @@
 /**
- * RequestPermissionInbox — one pending permission (binary allow/deny).
+ * InlinePermissionPrompt — one pending permission (binary allow/deny).
  *
- * The inbox aggregates pending permission requests across sessions. We
- * synthesize one fake `SessionHandle` with a single permission queued in
- * its store snapshot.
+ * The inline prompt renders the FIRST pending permission for the focused
+ * session as a single bar above the SessionPromptComposer. We synthesize
+ * one fake `SessionHandle` with a single permission queued in its store
+ * snapshot.
  *
- * Renamed from PermissionInbox (bead km-silvercode.acp-usage-and-permission).
+ * Bead: km-silvercode.permission-inline-prompt.
  */
 import React from "react"
-import { RequestPermissionInbox } from "../../src/components/RequestPermissionInbox.tsx"
+import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { fakeSessionHandle } from "../support/fake-session-handle.ts"
 import type { Story } from "../types.ts"
 
-export const requestPermissionInboxOnePending: Story = {
-  id: "RequestPermissionInbox/one-pending",
-  component: "RequestPermissionInbox",
+export const inlinePermissionPromptOnePending: Story = {
+  id: "InlinePermissionPrompt/one-pending",
+  component: "InlinePermissionPrompt",
   variant: "one-pending",
-  description: "Inbox with one pending Bash request awaiting decision.",
+  description: "Inline permission prompt with one pending Bash request awaiting decision.",
   knobs: [
     {
       kind: "select",
@@ -42,6 +43,6 @@ export const requestPermissionInboxOnePending: Story = {
         permissions: [{ requestId: "req-1", tool, args }],
       },
     })
-    return <RequestPermissionInbox sessions={[handle]} onApprove={() => {}} onDeny={() => {}} onClose={() => {}} />
+    return <InlinePermissionPrompt focused={handle} sessions={[handle]} onApprove={() => {}} onDeny={() => {}} />
   },
 }
