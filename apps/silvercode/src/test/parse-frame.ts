@@ -52,6 +52,12 @@ export const STREAM_GLYPHS = {
   assistant: "●",
   user: ">",
   activity: "◈",
+  /**
+   * v2 tool-call leading glyph — opencode-style flat row.
+   * Bead: km-silvercode.tool-call-rendering-v2.
+   */
+  toolV2: "→",
+  /** Legacy tool-call glyphs (pre-v2 contract — kept for back-compat). */
   tool: "⚙",
   toolDone: "✓",
   toolFail: "✗",
@@ -59,8 +65,16 @@ export const STREAM_GLYPHS = {
 
 /** Glyphs whose columns MUST align. Tool call is excluded by design. */
 export const FLUSH_STREAM_GLYPHS = ["●", ">", "◈"] as const
-/** Glyphs in the tool-block visual family — separate alignment. */
-export const INSET_STREAM_GLYPHS = ["⚙", "✓", "✗"] as const
+/**
+ * Glyphs in the tool-call family — separate alignment.
+ *
+ *  - `→` (v2, U+2192): the canonical leading glyph after
+ *    km-silvercode.tool-call-rendering-v2 (opencode-style flat row).
+ *  - `⚙` `✓` `✗` (legacy): pre-v2 status glyphs. Retained so older
+ *    fixtures that still emit them continue to parse, but new code
+ *    should expect `→`.
+ */
+export const INSET_STREAM_GLYPHS = ["→", "⚙", "✓", "✗"] as const
 /** True when the glyph belongs to the tool-call family (any status). */
 export function isToolGlyph(g: string): boolean {
   return INSET_STREAM_GLYPHS.includes(g as (typeof INSET_STREAM_GLYPHS)[number])
@@ -187,6 +201,7 @@ function parseCardStream(
   const glyphs = [
     STREAM_GLYPHS.assistant,
     STREAM_GLYPHS.activity,
+    STREAM_GLYPHS.toolV2,
     STREAM_GLYPHS.tool,
     STREAM_GLYPHS.toolDone,
     STREAM_GLYPHS.toolFail,

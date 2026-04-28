@@ -1,33 +1,47 @@
 /**
  * <ToolCall>
  *
- * Canonical ACP `ToolCall` renderer. One unified card per call: header
- * (status-animated title + glyph + location chip), body (per-kind layout —
- * Diff for `edit`, TerminalContent for `execute`, TextContent for the rest),
- * and an inline error message when `status === "failed"`. Tool result content
- * merged directly into the body — no separate result component, no separate
- * error envelope.
+ * Canonical ACP `ToolCall` renderer — opencode-style flat row.
+ *
+ * Visual contract (v2, bead km-silvercode.tool-call-rendering-v2):
+ *   - One single line per call. NO border, NO bg color on the row.
+ *   - Format: `→ <title>` where `→` (U+2192) is a literal arrow glyph.
+ *   - Verb token (the title) is colored by tool kind via semantic tokens:
+ *       read / search / fetch  → `$info`     (calm cyan)
+ *       edit / move            → `$success`  (calm green)
+ *       execute                → `$muted`    (neutral)
+ *       think / other          → `$accent`   (subtle highlight)
+ *       failed (any kind)      → `$error`    (red)
+ *   - Body (file content / stdout / diff) hidden by default. Reveals on
+ *     mouse hover (`useHover` from silvery). NO "click to expand" affordance
+ *     text. Hover is the entire interaction surface.
+ *   - When the body reveals, it renders dim ($muted), no border, no bg,
+ *     indented 2 cols. Tight density.
+ *   - Failed call: inline error message renders immediately under the row,
+ *     also no border / bg.
  *
  * Component family (all in `apps/silvercode/src/components/`):
- *   - <ToolCall>             — this component, top-level card
- *   - <ToolCallStatusTitle>  — animated header morph
+ *   - <ToolCall>             — this component, top-level row
+ *   - <ToolCallStatusTitle>  — kind-coloured title with shimmer/reveal animations
  *   - <ToolCallError>        — standalone error envelope (used directly,
- *                              NOT composed inside ToolCall — keeps the
- *                              failure signal in one card with no redundant
- *                              "Error" header line)
+ *                              NOT composed inside ToolCall)
  *   - <ToolCallSummary>      — aggregate "Read 12 files" with rolling count
  *   - <ApplyPatch>           — Aider search/replace renderer
  *
- * Naming follows ACP exactly per `hub/silvercode/future/ai-terminal/acp-naming.md`
- * — variables use `toolCall` / `toolCallId`, status enum from acp-types.ts,
- * file is `ToolCall.tsx` (ACP-aligned naming).
+ * Naming follows ACP exactly per `hub/silvercode/future/ai-terminal/acp-naming.md`.
  *
- * Bead: km-silvercode.acp-tool-call.
+ * Bead: km-silvercode.tool-call-rendering-v2 (was: km-silvercode.acp-tool-call).
  */
 
-import React, { useState } from "react"
-import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Small, Spinner, Text } from "silvery"
-import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
+import React from "react"
+import { Accordion, Box, Diff as SilveryDiff, type DiffHunk, Muted, Spinner, Text, useHover } from "silvery"
+import type {
+  ToolCall as ToolCallType,
+  ToolCallContent,
+  ToolCallLocation,
+  ContentBlock,
+  ToolKind,
+} from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll } from "./BoundedScroll.tsx"
 import { formatPathForDisplay } from "../utils/format-path.ts"
@@ -259,6 +273,45 @@ function renderLocations(locations: ReadonlyArray<ToolCallLocation> | undefined)
   )
 }
 
+/**
+ * Map ACP `ToolKind` to a semantic theme token for the verb token color.
+ *
+ * Failed status is handled by the caller (always `$error`, regardless of kind)
+ * so this function only returns the idle-success palette. Tokens chosen
+ * to match opencode's calm density:
+ *
+ *   read / search / fetch  → `$info`     (calm cyan — passive observation)
+ *   edit / move            → `$success`  (calm green — successful mutation)
+ *   execute                → `$muted`    (neutral — shell commands have noisy
+ *                                          output; muting the verb keeps focus
+ *                                          on the command text itself)
+ *   think                  → `$accent`   (subtle highlight)
+ *   delete                 → `$error`    (red — destructive)
+ *   switch_mode / other    → `$accent`
+ *
+ * `$warning` is intentionally NOT used for any idle/success state — yellow
+ * was the loud color the v1 redesign explicitly removed.
+ */
+function kindColor(kind: ToolKind): string {
+  switch (kind) {
+    case "read":
+    case "search":
+    case "fetch":
+      return "$info"
+    case "edit":
+    case "move":
+      return "$success"
+    case "execute":
+      return "$muted"
+    case "think":
+      return "$accent"
+    case "delete":
+      return "$error"
+    default:
+      return "$accent"
+  }
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -286,84 +339,76 @@ export interface ToolCallProps {
 }
 
 /**
- * Canonical ACP `<ToolCall>` renderer — one card, kind/status driven.
+ * Canonical ACP `<ToolCall>` renderer — opencode-style flat row.
+ *
+ * Structure:
+ *   ```
+ *   → src/foo.ts                                    ← always visible row
+ *     content from BoundedScroll if hovered/expanded
+ *     error message if failed
+ *   ```
+ *
+ * Default-expanded is honored when explicitly set (callers may seed a
+ * stream as fully-expanded for replay/debug views). Failed calls keep
+ * their body collapsed-by-default but always render the inline error
+ * message — failure is signaled by the colour + the message, not by an
+ * always-open body.
  */
 export function ToolCall({ toolCall, errorMessage, onRetry, defaultExpanded }: ToolCallProps): React.ReactElement {
   const status = toolCall.status ?? "pending"
   const kind = toolCall.kind ?? "other"
-  // Default expand: failed calls show the body up-front; everything else
-  // collapses so a long stream stays scannable.
-  const initial = defaultExpanded ?? status === "failed"
-  const [expanded, setExpanded] = useState(initial)
-
-  const accentColor = status === "failed" ? "$error" : "$accent"
   const hasContent = (toolCall.content?.length ?? 0) > 0
 
+  // Hover drives body reveal. `defaultExpanded` (when explicitly set) wins
+  // over hover so test fixtures and replay views can pin the body open.
+  const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+  const expanded = defaultExpanded ?? isHovered
+
+  // Verb colour: red for any failure, kind-mapped semantic token otherwise.
+  // No `$warning` — yellow was the loud colour the redesign removed.
+  const verbColor = status === "failed" ? "$error" : kindColor(kind)
+
   return (
-    <Box flexDirection="column">
-      <Box
-        flexDirection="column"
-        paddingX={1}
-        backgroundColor={expanded ? "$surfacebg" : "$mutedbg"}
-        borderStyle="single"
-        borderColor={expanded ? accentColor : "$border"}
-        borderTop={false}
-        borderBottom={false}
-        borderRight={false}
-        onClick={hasContent ? () => setExpanded((v) => !v) : undefined}
-      >
-        <Box flexDirection="row" gap={1}>
-          {/* Leading status glyph — opencode-style: minimal, single character.
-              spinner   → in_progress
-              ✓         → completed (bold $primary)
-              ✗         → failed (bold $error)
-              ·         → pending ($muted, dim)
-              Status lives in the glyph + the colored left border; the title
-              renders verbatim alongside, no verb prefix. */}
-          {status === "in_progress" ? (
-            <Spinner type="dots" />
-          ) : status === "failed" ? (
-            <Text bold color="$error">
-              ✗
-            </Text>
-          ) : status === "completed" ? (
-            <Text bold color="$primary">
-              ✓
-            </Text>
-          ) : (
-            <Muted>·</Muted>
-          )}
-          <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} />
-          {renderLocations(toolCall.locations)}
-          <Box flexGrow={1} />
-          {status === "failed" && onRetry ? (
-            <Box onClick={onRetry}>
-              <Muted>↻ retry</Muted>
-            </Box>
-          ) : null}
-          {hasContent ? <Small>{expanded ? "▾" : "▸"}</Small> : null}
-        </Box>
-        {expanded && hasContent ? (
-          // Bounded disclosure: cap visible rows, scroll past the bound.
-          // A long tool result (thousands of lines from `cat` / `grep`)
-          // shouldn't take over the chat scrollback when the user clicks
-          // the chevron; the eye sees a 30-row preview and can scroll
-          // through the rest with the wheel.
-          <Box paddingLeft={2} flexDirection="column">
-            <BoundedScroll>{(toolCall.content ?? []).map((c, i) => renderContent(c, i))}</BoundedScroll>
-          </Box>
+    <Box flexDirection="column" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      {/* Always-visible row — single line, NO border, NO bg. The leading `→`
+          glyph anchors the row visually; the title carries the meaning;
+          `kindColor` gives the verb a subtle hue. Status (in_progress) is
+          conveyed by `<ToolCallStatusTitle>`'s shimmer wrapper, not by a
+          separate glyph — opencode emits no spinner / ✓ / ✗ here either. */}
+      <Box flexDirection="row" gap={1}>
+        <Text color={verbColor}>→</Text>
+        {status === "in_progress" ? (
+          // Spinner is paired with the title for in-progress signal — small,
+          // unobtrusive, and matches opencode's mid-task signal.
+          <Spinner type="dots" />
         ) : null}
-        {/* Failed calls inline the error message body inside the same card.
-            One header (title + ✗ glyph), one message body — no separate
-            envelope, no second "Error" header line, no redundant border. */}
-        {status === "failed" ? (
-          <Box paddingLeft={2} flexDirection="column">
-            <Text color="$error" wrap="wrap">
-              {errorMessage ?? "Tool call failed"}
-            </Text>
+        <ToolCallStatusTitle status={status} kind={kind} title={shortenTitlePath(toolCall.title)} color={verbColor} />
+        {renderLocations(toolCall.locations)}
+        <Box flexGrow={1} />
+        {status === "failed" && onRetry ? (
+          <Box onClick={onRetry}>
+            <Muted>↻ retry</Muted>
           </Box>
         ) : null}
       </Box>
+      {/* Body reveals on hover (or when defaultExpanded). Indent 2 cols, dim
+          fg, no border, no bg. Tight density — opencode emits tool output as
+          plain text in the chat scrollback. */}
+      {expanded && hasContent ? (
+        <Box paddingLeft={2} flexDirection="column">
+          <BoundedScroll>{(toolCall.content ?? []).map((c, i) => renderContent(c, i))}</BoundedScroll>
+        </Box>
+      ) : null}
+      {/* Failed calls inline the error message immediately under the row.
+          No border, no bg — the `$error` colour on the verb plus the
+          message body carries the failure signal. */}
+      {status === "failed" ? (
+        <Box paddingLeft={2} flexDirection="column">
+          <Text color="$error" wrap="wrap">
+            {errorMessage ?? "Tool call failed"}
+          </Text>
+        </Box>
+      ) : null}
     </Box>
   )
 }

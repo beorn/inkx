@@ -1,29 +1,23 @@
 /**
  * <ToolCallStatusTitle>
  *
- * Tool-call header that shows the title verbatim — the parent <ToolCall>
- * card already paints status via the leading glyph (spinner / ⚙ / ✗) and
- * border color, so a verb prefix on the title is redundant noise.
+ * Tool-call title with status-aware animation. The parent `<ToolCall>` row
+ * paints the verb color (per `ToolKind`); this component owns only the
+ * text + lifecycle animation (shimmer while in progress, typewriter on
+ * completion). No verb prefix — opencode keeps the title stable across
+ * phases so the eye locks on the identifier (filename, command).
  *
- *   pending      → "src/foo.ts"           ($muted)
- *   in_progress  → "src/foo.ts" (shimmer between $primary/$muted)
- *   completed    → "src/foo.ts" (TextReveal types the title in $primary)
- *   failed       → "src/foo.ts" ($error)
+ *   pending      → title in `color`        (caller-supplied kind color)
+ *   in_progress  → title in shimmer (TextShimmer wraps the resolved color)
+ *   completed    → TextReveal in `color`   (typewrites from 0 chars)
+ *   failed       → title in `color`        (caller passes `$error`)
  *
- * Earlier the title morphed across lifecycle phases ("Reading file…",
- * "Read 3 files", "Search failed"). The user's design feedback: the icon
- * already conveys status — the verb adds nothing the eye can't read from
- * the spinner / ⚙ / ✗. Keeping the title stable across phases also lets
- * the eye lock on the identifier (filename, command) instead of chasing
- * the morph.
+ * The animation primitives (TextShimmer, TextReveal) are silvery-owned;
+ * this component just feeds them the title and the caller-supplied color.
+ * The `kind` prop is retained on the API for callers that branch on it
+ * but no longer affects the rendered text.
  *
- * The animation framework (TextShimmer, TextReveal) is still provided by
- * silvery — we just feed it the unchanged title rather than a verb-decorated
- * phrase. The `kind` prop is preserved on the API but no longer affects the
- * rendered text — it's still useful for callers that branch on it
- * elsewhere.
- *
- * Bead: km-silvercode.acp-tool-call.
+ * Bead: km-silvercode.tool-call-rendering-v2 (was: km-silvercode.acp-tool-call).
  */
 
 import React from "react"
@@ -35,21 +29,24 @@ import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
 // =============================================================================
 
 export interface ToolCallStatusTitleProps {
-  /** ACP `ToolCallStatus` — drives both vocabulary and animation choice. */
+  /** ACP `ToolCallStatus` — drives the animation choice. */
   status: ToolCallStatus
-  /** ACP `ToolKind` — drives the verb. Defaults to "other". */
+  /** ACP `ToolKind`. Retained on the API but no longer affects the text. */
   kind?: ToolKind
-  /**
-   * The base title from the `ToolCall.title` field. Used in the `pending`
-   * label verbatim and as the noun appended to the past-tense verb when
-   * the call completes (e.g. `Read /Users/foo/bar.ts`).
-   */
+  /** The base title from the `ToolCall.title` field. */
   title: string
   /**
    * Override the auto-derived label entirely. Use when the ACP title is a
    * structured phrase that doesn't fit the verb scaffolding ("Read 3 files").
    */
   label?: string
+  /**
+   * Verb color token (e.g. `$info`, `$success`, `$error`). The parent
+   * `<ToolCall>` row computes this from `ToolKind` + `status` and passes
+   * it down so the row glyph and the title share one resolved color.
+   * Defaults to `$muted` when no caller opinion.
+   */
+  color?: string
 }
 
 export function ToolCallStatusTitle({
@@ -57,10 +54,8 @@ export function ToolCallStatusTitle({
   kind: _kind,
   title,
   label,
+  color = "$muted",
 }: ToolCallStatusTitleProps): React.ReactElement {
-  // The title carries the meaning — filename for read/edit, command for
-  // execute, query for search. Status is conveyed entirely by the parent
-  // card's leading glyph + border color.
   const text = label ?? title
 
   if (status === "in_progress") {
@@ -72,22 +67,14 @@ export function ToolCallStatusTitle({
   }
 
   if (status === "completed") {
-    // Typewriter the title so the eye catches the morph from shimmer to
-    // fixed text. Short duration — anything longer feels laggy.
-    return <TextReveal text={text} duration={200} bold color="$primary" />
+    // Typewriter the title so the eye catches the lifecycle transition.
+    // Short duration — anything longer feels laggy.
+    return <TextReveal text={text} duration={200} bold color={color} />
   }
 
-  if (status === "failed") {
-    return (
-      <Text bold color="$error">
-        {text}
-      </Text>
-    )
-  }
-
-  // pending
+  // pending and failed share the same shape — caller-supplied color, bold.
   return (
-    <Text bold color="$muted">
+    <Text bold color={color}>
       {text}
     </Text>
   )

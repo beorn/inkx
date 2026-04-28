@@ -139,12 +139,13 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     expect(idxBeta).toBeGreaterThan(idxAlpha)
 
     // Between the two anchors, the rendered frame must contain a tool
-    // card glyph (gear ⚙️ or vertical bar │ from the tool card frame).
-    // This is what makes the arrival order observable — without the
-    // intervening tool card, the two anchors would be adjacent in the
-    // frame (separated only by gap whitespace).
+    // call glyph. v2 contract (km-silvercode.tool-call-rendering-v2):
+    // tool calls render as flat rows prefixed with `→` (no border, no
+    // bg, no ⚙ status glyph). The presence of `→` between anchors is
+    // what makes the arrival order observable — without the intervening
+    // tool call, the two anchors would be adjacent (whitespace only).
     const between = frame.slice(idxAlpha + "ANCHOR_ALPHA".length, idxBeta)
-    expect(between).toMatch(/⚙|│/)
+    expect(between).toMatch(/→/)
   })
 
   test("legacy projections (text/toolCalls/toolResults) reflect ops correctly", () => {
