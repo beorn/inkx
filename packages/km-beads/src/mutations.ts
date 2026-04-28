@@ -176,7 +176,7 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
       priority: changes.priority,
       type: changes.type,
     })
-    updates.data = { ...(changes.currentData ?? {}), tags: nextTags }
+    updates.data = { ...changes.currentData, tags: nextTags }
   }
 
   return updates
