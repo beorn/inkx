@@ -200,6 +200,27 @@ A list of async-fetched trees of plain values uses all four together. Each packa
 
 **Read [docs/design/model/knode.md](docs/design/model/knode.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed). See also [docs/design/ui/selection.md](docs/design/ui/selection.md) for the selection model.
 
+### Vault structure & sigil syntax — load BEFORE designing paths/links
+
+The vault layout is **node-tree-shaped on disk**. Directories and files become km nodes; node lookup is by `node.name`. This has hard implications for any path you design:
+
+- **Sigils are name-matched nodes.** A board sigil like `@km` is a node with `node.name = "@km"`. A directory `@km/` and a directory `km/` are **different nodes** — same letters, different names. Wikilinks `[[@km/beads/cutover]]` traverse `name=@km` → `name=beads` → `name=cutover`. A `km/` directory will not satisfy that lookup, even if it contains `beads/cutover.md`.
+- **Sigil prefix is dynamic.** The `@<prefix>` matches whatever `issue-prefix` the source bd config specifies — `@km/` for our vault, `@pim/` for a `pim`-prefixed vault. Never hardcode `@km`; thread `sourcePrefix` through.
+- **Migrated bead layout.**
+  ```
+  vault-root/
+    mem/<key>.md                    # memories — prefix-agnostic, root-level
+    @km/<scope>/<slug>.md           # canonical bead path (mirrors @km/<scope>/<slug> sigil)
+    @km/_orphan/<id>.md             # bd auto-ids without scope (km-q5hji etc)
+    @pim/...                        # if you ever import a second prefix
+  ```
+- **Path-form == frontmatter id == wikilink target.** All three carry the literal `@<prefix>/`. The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id."
+- **Aliases keep bd-form working.** Frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`) so legacy text still resolves; canonical id is the path-form.
+
+**Trap to avoid (recurring):** "use bare `km/` instead of `@km/` because shell completion / @ is annoying." This is wrong — different node, broken board parenting, broken wikilink resolution. The literal `@` is load-bearing.
+
+Authoritative code: `packages/km-beads/src/migrate.ts` (`bdIdToPathForm`, `bdIdToAliases`, `issueToMarkdown`).
+
 ## Code Style
 
 Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.

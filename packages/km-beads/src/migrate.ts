@@ -132,11 +132,12 @@ export function issueToMarkdown(issue: BeadsIssue, sourcePrefix = "km", idMap?: 
   const basePathForm = bdIdToPathForm(issue.id, sourcePrefix)
   const canonicalId = idMap?.get(issue.id) ?? basePathForm ?? issue.id
   const aliases = bdIdToAliases(issue.id, basePathForm && basePathForm !== canonicalId ? basePathForm : null)
-  // Board tag = `@<prefix>/<scope>` — first path segment of the canonical id,
-  // qualified with the vault prefix. `km-beads.cutover` → `@km/beads`,
-  // `km-silvery.foo` → `@km/silvery`. Each `@<prefix>/<scope>` IS its own
-  // board; the bd id encodes the board by construction (no global config).
-  const scope = canonicalId.split("/")[0] ?? null
+  // Board tag = `@<prefix>/<scope>` — first non-sigil path segment of the
+  // canonical id. Canonical ids start with `@<prefix>/` (the sigil dir),
+  // so the scope sits at index 1 after split: `@km/beads/cutover` →
+  // segments `["@km", "beads", "cutover"]` → scope `beads` → tag `@km/beads`.
+  const segments = canonicalId.split("/")
+  const scope = segments[0]?.startsWith("@") ? (segments[1] ?? null) : (segments[0] ?? null)
 
   // Build the frontmatter object and serialize via yaml.stringify so
   // multi-line values (close_reason commonly contains markdown bullets,
@@ -246,9 +247,12 @@ export function rewriteLegacyIdMentions(
   )
   return text.replace(pattern, (match, wikilink, code, bdId) => {
     if (wikilink || code) return match
+    // path-form already starts with `@<prefix>/` (since bdIdToPathForm and
+    // bdIdToPathFormWithSlug both prepend the sigil). Emit verbatim — no
+    // further wrapping.
     const path = idMap?.get(bdId) ?? bdIdToPathForm(bdId, sourcePrefix)
     if (!path) return match
-    return `@${sourcePrefix}/${path}`
+    return path
   })
 }
 
@@ -288,24 +292,30 @@ function collectDependencyEdges(issue: BeadsIssue, rel: "blocks" | "blocked-by" 
 /**
  * Translate a bd-form id (`<prefix>-<scope>.<slug>`,
  * `<prefix>-<scope>.<sub>.<leaf>`) into the canonical path-form:
- * dots become path separators, the leading `<prefix>-` is stripped,
- * dashes inside slug segments are preserved.
+ * `@<prefix>/` becomes the first path segment (matching the board sigil
+ * 1:1 — `@km` is a name-matched node distinct from a plain `km` folder),
+ * dots become path separators, dashes inside slug segments are preserved.
  *
- *   km-silvercode.acp-rename                 → silvercode/acp-rename
- *   km-silvery.backdrop-hardening.slim-barrel → silvery/backdrop-hardening/slim-barrel
- *   km-q5hji                                  → _orphan/q5hji
+ *   km-silvercode.acp-rename                 → @km/silvercode/acp-rename
+ *   km-silvery.backdrop-hardening.slim-barrel → @km/silvery/backdrop-hardening/slim-barrel
+ *   km-q5hji                                  → @km/_orphan/q5hji
+ *
+ * The literal `@` prefix is load-bearing: wikilink resolution matches by
+ * node.name, so `[[@km/foo/bar]]` resolves to a node named `@km` (the
+ * board sigil). A bare `km/` directory would create a different node.
  *
  * Returns null when the id is empty after stripping the prefix.
  */
 export function bdIdToPathForm(bdId: string, sourcePrefix = "km"): string | null {
   const stripped = bdId.startsWith(`${sourcePrefix}-`) ? bdId.slice(sourcePrefix.length + 1) : bdId
   if (!stripped) return null
-  // No dots → orphan auto-id (km-q5hji etc). Park under _orphan/ so they
-  // round-trip without colliding with scoped issues.
+  const sigilRoot = `@${sourcePrefix}`
+  // No dots → orphan auto-id (km-q5hji etc). Park under @<prefix>/_orphan/
+  // so they round-trip without colliding with scoped issues.
   if (!stripped.includes(".")) {
-    return `_orphan/${stripped}`
+    return `${sigilRoot}/_orphan/${stripped}`
   }
-  return stripped.split(".").join("/")
+  return `${sigilRoot}/${stripped.split(".").join("/")}`
 }
 
 /**

@@ -34,15 +34,17 @@ function fakeIssue(id: string, title: string, overrides: Partial<BeadsIssue> = {
 
 describe("bdIdToPathFormWithSlug", () => {
   it("augments numeric leaf with title-derived slug", () => {
-    expect(bdIdToPathFormWithSlug("km-rev-code-0203.1", "Add keyboard nav")).toBe("rev-code-0203/1-add-keyboard-nav")
+    expect(bdIdToPathFormWithSlug("km-rev-code-0203.1", "Add keyboard nav")).toBe(
+      "@km/rev-code-0203/1-add-keyboard-nav",
+    )
   })
 
   it("leaves non-numeric leaves untouched", () => {
-    expect(bdIdToPathFormWithSlug("km-silvercode.acp.rename", "ACP rename")).toBe("silvercode/acp/rename")
+    expect(bdIdToPathFormWithSlug("km-silvercode.acp.rename", "ACP rename")).toBe("@km/silvercode/acp/rename")
   })
 
   it("falls back to base path-form when slug is empty (title is all symbols)", () => {
-    expect(bdIdToPathFormWithSlug("km-foo.1", "...")).toBe("foo/1")
+    expect(bdIdToPathFormWithSlug("km-foo.1", "...")).toBe("@km/foo/1")
   })
 
   it("returns null for empty stripped id", () => {
@@ -56,8 +58,8 @@ describe("buildIdMap", () => {
       fakeIssue("km-rev-code-0203.1", "Remove ensureOpen anti-pattern"),
       fakeIssue("km-rev-code-0203.2", "Convert getters to plain properties"),
     ])
-    expect(map.get("km-rev-code-0203.1")).toBe("rev-code-0203/1-remove-ensureopen-anti-pattern")
-    expect(map.get("km-rev-code-0203.2")).toBe("rev-code-0203/2-convert-getters-to-plain-properties")
+    expect(map.get("km-rev-code-0203.1")).toBe("@km/rev-code-0203/1-remove-ensureopen-anti-pattern")
+    expect(map.get("km-rev-code-0203.2")).toBe("@km/rev-code-0203/2-convert-getters-to-plain-properties")
   })
 
   it("skips augmenting when the id is also a parent of other ids", () => {
@@ -78,11 +80,11 @@ describe("buildIdMap", () => {
 })
 
 describe("bdIdToAliases", () => {
-  it("includes bd-form, dash variant, and the bare path-form when slug-augmented", () => {
-    const aliases = bdIdToAliases("km-rev-code-0203.1", "rev-code-0203/1")
+  it("includes bd-form, dash variant, and the sigil-prefixed path-form when slug-augmented", () => {
+    const aliases = bdIdToAliases("km-rev-code-0203.1", "@km/rev-code-0203/1")
     expect(aliases).toContain("km-rev-code-0203.1")
     expect(aliases).toContain("km-rev-code-0203-1")
-    expect(aliases).toContain("rev-code-0203/1")
+    expect(aliases).toContain("@km/rev-code-0203/1")
   })
 
   it("omits extra path-form when not provided (non-augmented issue)", () => {
@@ -93,7 +95,7 @@ describe("bdIdToAliases", () => {
 
 describe("rewriteLegacyIdMentions", () => {
   it("rewrites bd-form mentions to slug-augmented path when idMap provides one", () => {
-    const idMap = new Map([["km-rev-code-0203.1", "rev-code-0203/1-remove-ensureopen"]])
+    const idMap = new Map([["km-rev-code-0203.1", "@km/rev-code-0203/1-remove-ensureopen"]])
     const out = rewriteLegacyIdMentions("See km-rev-code-0203.1 for details.", "km", idMap)
     expect(out).toBe("See @km/rev-code-0203/1-remove-ensureopen for details.")
   })
@@ -105,12 +107,16 @@ describe("rewriteLegacyIdMentions", () => {
 })
 
 describe("bdIdToPathForm", () => {
-  it("strips prefix and converts dots to slashes", () => {
-    expect(bdIdToPathForm("km-silvercode.acp.rename")).toBe("silvercode/acp/rename")
+  it("prepends @<prefix>/ and converts dots to slashes", () => {
+    expect(bdIdToPathForm("km-silvercode.acp.rename")).toBe("@km/silvercode/acp/rename")
   })
 
-  it("parks orphan ids under _orphan/", () => {
-    expect(bdIdToPathForm("km-q5hji")).toBe("_orphan/q5hji")
+  it("parks orphan ids under @<prefix>/_orphan/", () => {
+    expect(bdIdToPathForm("km-q5hji")).toBe("@km/_orphan/q5hji")
+  })
+
+  it("honors a non-default sourcePrefix (e.g. @pim/ for pim-prefixed vault)", () => {
+    expect(bdIdToPathForm("pim-tasks.inbox", "pim")).toBe("@pim/tasks/inbox")
   })
 })
 
