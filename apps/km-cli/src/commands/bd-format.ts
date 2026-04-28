@@ -10,15 +10,6 @@ const term = createTerm(process)
 import type { Issue } from "@km/beads"
 
 /**
- * Normalize priority for display: always renders as `P0`..`P4` regardless
- * of whether the upstream value is `1`, `P1`, `p1`, or already prefixed.
- */
-function formatPriority(priority: string): string {
-  const m = priority.match(/^P?([0-4])$/i)
-  return m?.[1] ? `P${m[1]}` : priority
-}
-
-/**
  * Convert internal status to bd-compatible status string
  */
 function bdStatus(status: Issue["status"]): string {
@@ -72,7 +63,7 @@ export function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${term.cyan(issue.shortId)} [${formatPriority(issue.priority)}] [${type}] ${status} - ${issue.title}${location}`)
+  console.log(`${term.cyan(issue.shortId)} [${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
 }
 
 /**
@@ -81,7 +72,7 @@ export function printIssue(issue: Issue): void {
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
-  console.log(`${index}. [${formatPriority(issue.priority)}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`)
+  console.log(`${index}. [${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`)
 }
 
 /**
@@ -90,7 +81,7 @@ export function printReadyIssue(issue: Issue, index: number): void {
 export function printIssueDetails(issue: Issue): void {
   console.log(`${term.bold(issue.shortId)}: ${issue.title}`)
   console.log(`Status: ${bdStatus(issue.status)}`)
-  console.log(`Priority: ${formatPriority(issue.priority)}`)
+  console.log(`Priority: ${issue.priority}`)
   console.log(`Type: ${issue.type || "task"}`)
   console.log(`Created: ${formatDate(issue.createdAt)}`)
   if (issue.createdBy) console.log(`Created by: ${issue.createdBy}`)

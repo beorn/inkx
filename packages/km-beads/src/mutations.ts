@@ -130,8 +130,13 @@ export interface UpdateIssueChanges {
   type?: string
   /** Current sigil tags from the node's data blob (for in-place update). */
   currentTags?: string[]
-  /** Current @mentions from the node's data blob. */
-  currentMentions?: string[]
+  /**
+   * Full current `data` blob from the node. Required when `priority` or
+   * `type` change — without it, the partial-replace semantics of the
+   * storage `updateNode` path would wipe sibling keys (`id`, `aliases`,
+   * `short_id`, `mentions`, …). Pass `node.data` from the caller.
+   */
+  currentData?: Record<string, unknown>
 }
 
 export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Partial<KNode> {
@@ -155,30 +160,23 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
     updates.assigned_to = changes.assignee
   }
 
-  // Sync the derived `data` blob so stale sigil tags / mentions don't out-vote
-  // the authoritative column values on the next read. We only emit a `data`
-  // patch when something actually changed — otherwise other fields in the
-  // blob (short_id, props, propsRaw, …) would be erased by this partial write.
-  const dataPatch: Record<string, unknown> = {}
+  // Sync the derived `data.tags` blob when priority/type change so the
+  // markdown round-trip (`#P1`, `#feature`) stays consistent with the
+  // structural `node.priority` column. Storage's updateNode path treats
+  // `data: {...}` as a full replacement, so we MUST merge with the
+  // node's existing data blob to preserve `id`, `aliases`, `short_id`,
+  // `mentions`, etc. Assignee no longer mirrors into `data.mentions` —
+  // `node.assigned_to` is the authoritative source.
   if (changes.priority !== undefined || changes.type !== undefined) {
-    // `currentTags` is mandatory for priority/type updates — the caller must
-    // read the node's `data.tags` and pass them through. Defaults to a
-    // best-guess from the Issue's known fields when not supplied.
     const currentTags =
       changes.currentTags ??
+      (changes.currentData?.tags as string[] | undefined) ??
       [issue.type, issue.priority].filter((t): t is string => typeof t === "string" && t.length > 0)
     const nextTags = rewriteTypeAndPriorityTags(currentTags, {
       priority: changes.priority,
       type: changes.type,
     })
-    dataPatch.tags = nextTags
-  }
-  if (changes.assignee !== undefined) {
-    const currentMentions = changes.currentMentions ?? (issue.assignee ? [issue.assignee] : [])
-    dataPatch.mentions = rewriteAssigneeMentions(currentMentions, issue.assignee, changes.assignee)
-  }
-  if (Object.keys(dataPatch).length > 0) {
-    updates.data = dataPatch
+    updates.data = { ...(changes.currentData ?? {}), tags: nextTags }
   }
 
   return updates
@@ -198,13 +196,6 @@ function rewriteTypeAndPriorityTags(tags: string[], next: { priority?: string; t
   if (next.type !== undefined) filtered.push(next.type)
   if (next.priority !== undefined) filtered.push(next.priority)
   return filtered
-}
-
-/** Swap the old assignee for the new one, leaving other mentions intact. */
-function rewriteAssigneeMentions(mentions: string[], oldAssignee: string | undefined, newAssignee: string): string[] {
-  const kept = oldAssignee ? mentions.filter((m) => m !== oldAssignee) : [...mentions]
-  if (!kept.includes(newAssignee)) kept.push(newAssignee)
-  return kept
 }
 
 /**

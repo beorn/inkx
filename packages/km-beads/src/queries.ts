@@ -115,18 +115,23 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
 
   // Priority resolution: node.priority (authoritative — matches the
   // serialized `priority::` property) > data.tags (content sigils) >
-  // default. `node.priority` is kept in sync with the markdown by the
-  // parser, so it wins when the two disagree (e.g., after an update that
-  // changed priority via key:: but left stale sigil-tags in data).
+  // default. Always returns canonical `P0`..`P4`: the column may carry
+  // legacy bare-numeric (`1`) or lowercase (`p1`) values from older
+  // imports, and we normalize at this boundary so consumers never need
+  // to.
   const tags = data?.tags as string[] | undefined
   let priority = "P2" // Default to P2 (medium)
+  const normalize = (v: string): string | null => {
+    const m = v.match(/^P?([0-4])$/i)
+    return m?.[1] ? `P${m[1]}` : null
+  }
   if (node.priority) {
-    priority = node.priority
+    priority = normalize(node.priority) ?? node.priority
   } else if (tags) {
     for (const tag of tags) {
-      const pMatch = tag.match(/^P([0-4])$/i)
-      if (pMatch?.[1]) {
-        priority = `P${pMatch[1]}`
+      const n = normalize(tag)
+      if (n) {
+        priority = n
         break
       }
     }

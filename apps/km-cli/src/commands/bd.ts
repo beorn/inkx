@@ -334,6 +334,13 @@ const updateCmd = bdCommand
     if (opts.title) changes.title = opts.title
     if (opts.type) changes.type = opts.type
 
+    // Pass current data blob so partial-replace semantics in storage's
+    // updateNode don't wipe sibling keys (id, aliases, short_id, etc).
+    if (opts.priority !== undefined || opts.type) {
+      const node = repo.getNode(issue.id)
+      changes.currentData = node?.data as Record<string, unknown> | undefined
+    }
+
     const updates = updateIssueFields(issue, changes)
     repo.updateNode(issue.id, updates)
 
