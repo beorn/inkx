@@ -111,7 +111,7 @@ export function InlinePermissionPrompt({
   // here so the option doesn't get dispatched twice. y/n still work as
   // shortcuts for "select the focused option" in multi-option mode.
   useInput(
-    (input, key) => {
+    (input, _key) => {
       if (!current) return
       if (isMultiOption) {
         if (input === "y" || input === "n") {
