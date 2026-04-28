@@ -139,21 +139,28 @@ Checklist before launching the Agent calls:
 | **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | **Worktree** preferred, shared OK |
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
-**Worktree commit-AND-push rules (CRITICAL):**
-- Agents in worktrees **MUST commit AND push** their changes. Clones live at `.claude/worktrees/<name>/`. As of 2026-04-24, the WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved. Either way, the clone is no longer on main's branch graph — without a commit AND push, the work either stays orphaned in a stale clone (preserved) or vanishes (deleted).
-- **Every worktree agent prompt MUST end with explicit commit-AND-push instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
+**Worktree commit + branch convention (eventual-consistency model):**
+- Agents in worktrees **MUST commit incrementally**. Clones live at `.claude/worktrees/<name>/`. The WorktreeRemove hook auto-classifies on finish: clones with no uncommitted/unique work are deleted, clones with uncommitted or unmerged-unique work are preserved as the recovery anchor. The lead session triages preserved clones via `/sop infra wip-triage` (km-infra.orphan-branch-audit).
+- **Do NOT mandate `git push origin`.** The local branch in the clone IS the deliverable. Push-to-origin was scar tissue from past lost-work incidents; the eventual-consistency model handles termination differently — see canonical memory `feedback-agent-isolation-eventual-consistency.md`.
+- **Every worktree agent prompt MUST end with this block** (append to END of every `isolation: "worktree"` prompt):
 
   > CRITICAL: You are in a worktree at `.claude/worktrees/<your-name>/`.
-  > You MUST commit AND push to origin before finishing. Uncommitted
-  > or un-pushed work is invisible to the parent session. Commit early
-  > and often with conventional commits, then `git push origin
-  > <branch>`. Your final message MUST include the SHA reported by
-  > `git ls-remote origin <branch>` as proof of push (NOT from local
-  > `git log` — that doesn't prove the work reached origin).
+  > Commit incrementally to a branch named `wip/<bead-id>` (or
+  > `<type>/<bead-id>` if you're confident the work is finishable in
+  > this session — `bug/`, `feat/`, `fix/`, etc.). Use conventional
+  > commits. **Do NOT push to origin** — the local branch is the
+  > deliverable; the lead session triages and integrates.
+  >
+  > Your final message MUST include: branch name, worktree path
+  > (so the lead can `git fetch <worktree-path> <branch>:<branch>`),
+  > local SHA from `git rev-parse HEAD`, files changed (absolute paths),
+  > tests added/updated (paths + counts), and self-verify output
+  > (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest
+  > pass/skip/fail breakdown — not assertions).
 
-  **Why this is mandatory**: In the @silvery/selection session (2026-04), three agents lost ALL their work because they finished without committing. In the plateau-90 session (2026-04-27), feedback-trace's v3.1 (`e0fc140c`) and the C1 fossil-deletion agent's `725ea161` BOTH committed but did NOT push — both required the lead to manually push from the worktree. The 2026-04-24 fix mandated commit; the 2026-04-27 finding mandates push verification via `ls-remote`. The `ls-remote` step is what closes the gap: a commit can exist locally without reaching origin, and the parent session can't see the work until origin has it.
+  **Why this works**: Any actor (sub-agent, parent session, hook, harness) can stop without notice. The system is eventually consistent. Branches are a triage queue, not an integration API. Lost-work incidents are prevented by *commit incrementally* (the recovery anchor); push-to-origin doesn't help when the parent session — the would-be observer — is itself unreliable.
 
-- Integrate clone commits back to main via the branch the agent committed on (e.g. `git fetch .claude/worktrees/<name> main:<branch>` or `git cherry-pick -X theirs <sha>` from main). `bun worktree merge` only applies to `bun worktree`-created branches.
+- **Integration is the lead's job**, not the agent's. Lead runs `git fetch <worktree-path> <branch>:<branch>` then `git merge --ff-only <branch>` (or `cherry-pick -X theirs <sha>`). Worktree + branch get cleaned up via `/sop infra wip-triage` once the work is integrated.
 
 **If `isolation: "worktree"` fails** (hook error, target already exists, non-APFS + tar failure): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently. Check `/tmp/worktree-create-hook.log` for the failure reason.
 
@@ -171,6 +178,7 @@ Checklist before launching the Agent calls:
 - Let agents batch all commits to the end — require incremental commits per step
 - Give agents 3,000-word prompts that bury the critical step among mechanical ones — lead with the interface/definition change, then consumer updates
 - Spawn worktree agents without the CRITICAL commit block at the end of their prompt
+- Mandate `git push origin` from worktree agents (legacy: this was scar tissue from lost-work incidents; replaced by the eventual-consistency model + `/sop infra wip-triage`)
 
 ## Lead Agent Responsiveness (CRITICAL)
 
