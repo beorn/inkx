@@ -1176,29 +1176,27 @@ export function App(props: AppProps): React.ReactElement {
       */}
           <Screen flexDirection="row">
             <AsideLayout
-              mode={showSidePanel && focused ? (isInlinePanel ? "inline" : "overlay") : "hidden"}
+              mode={showSidePanel ? (isInlinePanel ? "inline" : "overlay") : "hidden"}
               asideWidth={SIDE_PANEL_WIDTH}
               asideBackgroundColor="$bg-surface-subtle"
               aside={
-                focused ? (
-                  <SidePanel
-                    focused={focused}
-                    sessions={sessions}
-                    focusedSessionId={focusedSessionId}
-                    onFocusSession={(id) => controller.focus(id)}
-                    mode={mode}
-                    onCycleMode={cycleMode}
-                    thinking={thinking}
-                    onCycleThinking={cycleThinking}
-                    cwd={props.cwd}
-                    controller={controller}
-                    agent={props.agent}
-                    capabilities={agentCapabilities}
-                    setThinking={setThinking}
-                    setMode={setMode}
-                    defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
-                  />
-                ) : null
+                <SidePanel
+                  focused={focused}
+                  sessions={sessions}
+                  focusedSessionId={focusedSessionId}
+                  onFocusSession={(id) => controller.focus(id)}
+                  mode={mode}
+                  onCycleMode={cycleMode}
+                  thinking={thinking}
+                  onCycleThinking={cycleThinking}
+                  cwd={props.cwd}
+                  controller={controller}
+                  agent={props.agent}
+                  capabilities={agentCapabilities}
+                  setThinking={setThinking}
+                  setMode={setMode}
+                  defaultModel={props.agent ? BUILTIN_AGENTS[props.agent]?.defaultModel : undefined}
+                />
               }
             >
               {/* LEFT: cards + overlays + palette + input. The outer column has
