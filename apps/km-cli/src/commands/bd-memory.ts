@@ -4,6 +4,11 @@
  * Memories live as `mem/<slug>.md` files at vault root. Each file is a
  * single sectioned `## <Title> @memory` block whose body is the insight.
  * The `@memory` sigil makes them queryable via standard sigil sweep.
+ *
+ * Memories are insights (not prefix-tagged); they are NOT scoped under
+ * `@<prefix>/`. Migrated bd memories land in `imports/<source>-<date>/mem/`
+ * (paired with their bd db's `@<prefix>/` import); runtime `bd remember`
+ * writes to `<repoRoot>/mem/`.
  */
 
 import { Command } from "@silvery/commander"

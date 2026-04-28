@@ -17,7 +17,7 @@ import {
   type BeadsFs,
 } from "@km/beads"
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { basename, join, dirname } from "node:path"
 import { spawnSync } from "node:child_process"
 import { getOriginalBeadsConfig } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
@@ -121,19 +121,21 @@ export const migrateCommand = new Command("migrate")
       return
     }
 
-    // Determine target directory. Default = vault root: each issue lands
-    // at <repoRoot>/<scope>/<slug>.md where scope = first segment of the
-    // path-form id (e.g. km-beads.cutover → beads/cutover.md). The board
-    // sigil is derived from scope per-issue inside issueToMarkdown — no
-    // global board/parent config knob.
-    const targetDir = opts.target || resolved.repoRoot
+    // Determine target directory. Default = `<repoRoot>/imports/<source>-<date>/`
+    // so each migration is namespaced and reversible (mirrors the Asana
+    // export convention). Inside it: `@<prefix>/<scope>/<slug>.md` for
+    // beads, `mem/<key>.md` for memories — both children of the same
+    // import root. The vault's existing nodes stay clean of imported
+    // content.
+    const targetDir =
+      opts.target || join(resolved.repoRoot, "imports", deriveImportSlug(beadsDir, fileArg, sourcePrefix))
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
 
     console.log(term.bold("Migration Target"))
     console.log(`  Target dir: ${targetDir}`)
-    console.log(`  Board tag:  derived per-issue from scope (km-beads.X → @km/beads, km-silvery.Y → @km/silvery, …)`)
+    console.log(`  Layout:     <target>/@${sourcePrefix}/<scope>/<slug>.md + <target>/mem/<key>.md`)
     if (statusFilter) {
       console.log(`  Status filter: ${statusFilter.join(", ")}`)
     }
@@ -230,6 +232,35 @@ export const exportCommand = new Command("export")
       console.log(term.green(`✓ Exported ${result.exported} issues to ${result.outputPath}`))
     }
   })
+
+/**
+ * Derive the per-import subdirectory name under `imports/`.
+ *
+ * Format: `<source>-<YYYY-MM-DD>` — mirrors the Asana export convention
+ * (`<workspace>-<date>`). Examples:
+ *
+ *   .beads at /Users/me/Code/km/.beads     → imports/km-2026-04-28/
+ *   .beads at /Users/me/Code/decker/.beads → imports/decker-2026-04-28/
+ *   --file /tmp/foreign-export.jsonl       → imports/foreign-export-2026-04-28/
+ *
+ * Source name = parent dir basename of `.beads`, or the .jsonl basename
+ * (without extension) for --file imports. Falls back to the bd issue
+ * prefix when neither is informative.
+ */
+function deriveImportSlug(beadsDir: string | undefined, fileArg: string | undefined, sourcePrefix: string): string {
+  const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  let source: string
+  if (fileArg) {
+    source = basename(fileArg).replace(/\.jsonl$/i, "")
+  } else if (beadsDir) {
+    source = basename(dirname(beadsDir))
+  } else {
+    source = sourcePrefix
+  }
+  // Sanitize — paths can contain odd chars, esp. for --file inputs.
+  source = source.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || sourcePrefix
+  return `${source}-${date}`
+}
 
 /**
  * Pre-flight checks before reading from a managed `.beads/` directory.

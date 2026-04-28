@@ -218,14 +218,23 @@ The vault layout is **node-tree-shaped on disk**. Directories and files become k
 
 - A directory `@km/` creates `node.name = "@km"`. A directory `km/` creates `node.name = "km"`. Different nodes. Wikilinks `[[@km/beads/cutover]]` traverse `name=@km` → `name=beads` → `name=cutover` and won't resolve under bare `km/`.
 - Sigil **prefix is dynamic** — `@<prefix>` matches whatever `issue-prefix` the source bd config specifies. `@km/` here, `@pim/` for a `pim`-prefixed vault. Thread `sourcePrefix`; never hardcode.
-- **Migrated bead layout:**
+- **Migrated bead layout** — each `km bd migrate` lands under a per-import subdir (mirrors Asana's `<workspace>-<date>` convention) so the existing vault root stays clean:
   ```
   vault-root/
-    mem/<key>.md                    # memories — prefix-agnostic, root-level
-    @km/<scope>/<slug>.md           # canonical bead path (mirrors @km/<scope>/<slug> sigil)
-    @km/_orphan/<id>.md             # bd auto-ids without scope (km-q5hji etc)
-    @pim/...                        # if you ever import a second prefix
+    imports/                                # all migrated bd content lives here
+      km-2026-04-28/                        # one subdir per import (<source>-<YYYY-MM-DD>)
+        @km/<scope>/<slug>.md               # canonical bead path (mirrors @km/<scope>/<slug> sigil)
+        @km/_orphan/<id>.md                 # bd auto-ids without scope (km-q5hji etc)
+        mem/<key>.md                        # memories — insights, not prefix-tagged
+      decker-2026-04-29/                    # second import = own subdir
+        @decker/...
+        mem/...
+    mem/<key>.md                            # runtime `bd remember` writes here (not under imports/)
+    ...existing vault content untouched...
   ```
+  - Imports are containerized — multiple bd dbs don't pollute the vault root.
+  - Memories live next to `@<prefix>/` because they share *provenance* (the same bd db) but they're not prefix-tagged conceptually — they're insights.
+  - Multi-prefix imports stay isolated by import-subdir, not by sigil.
 - **Path-form == frontmatter id == wikilink target.** All three carry the literal sigil. The on-disk path mirrors the link target 1:1 — no mental translation between "path" and "logical id."
 - **Aliases keep legacy forms working.** For migrated beads, frontmatter `aliases:` includes bd-form (`km-beads.cutover`) and dash-form (`km-beads-cutover`); canonical id is the sigil-prefixed path-form.
 

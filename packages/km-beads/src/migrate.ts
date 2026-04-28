@@ -518,10 +518,10 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
     }
   }
 
-  // Memories — write each to <memDir>/<key>.md. memDir defaults to
-  // <targetDir>/mem so memories live alongside the per-scope issue
-  // directories at vault root (now that targetDir IS the vault root,
-  // not <repoRoot>/issue/).
+  // Memories — write each to <memDir>/<key>.md. Default sits next to
+  // `@<prefix>/` under the same `targetDir`. Memories are insights
+  // (not prefix-tagged); the import-root containing both `mem/` and
+  // `@<prefix>/` is the unit of provenance, not the sigil dir.
   const memDir = options.memDir ?? join(options.targetDir, "mem")
   for (const mem of memories) {
     try {
