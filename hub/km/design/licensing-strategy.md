@@ -12,31 +12,50 @@
 - `silvery/ink` migration shim is **already shipped** (vendor/silvery/packages/ink, v0.21.0, ~3K LOC, covers Box/Text/Spacer/hooks/render/animation/focus/cursor/stdin/measure-text/sanitize/chalk-compat). silvery.dev claims "98.6% Ink compatible" — grounded.
 - Cluster-1 sites live and polished: **silvery.dev** (98.6% Ink-compat hero), **termless.dev**, **loggily.dev** (22× faster than noop), **mdspec.org** (executable markdown testing, pre-release 0.x, used by silvery + termless), **beorn.codes/flexily/** (1.5-5.5× faster than Yoga, 1561 tests). flexily.org / flexily.dev parked.
 
-**Real critical-path work remaining** (~2-3 weeks if focused):
-1. **Killer demo** — silvery.dev's missing flagship. Top candidates: silvery-system-monitor (htop-class) + silvery-acp-chat (BYO-key coding agent, AI-tailwind). Doing both ≈ 2-3 weeks. Optional fourth path: commission a high-profile Ink user via Migration Assurance Program.
-2. **Migration case study** — pick mid-tier Ink project (2K-15K stars, NOT Wrangler), one-line import swap (`from "ink"` → `from "silvery/ink"`), document diff + perf delta. ~3 days.
-3. **silvery.dev hero rewrite** — promote "98.6% Ink compatible" to hero slot; add "Migrating from Ink" landing-nav alongside "Building new TUIs."
-4. **Cluster-1 cross-promotion** — coherent entry-point navigation + cross-links between cluster-1 sites.
-5. **Codify The Seam Rule** in silvery's repo (framework-vs-application boundary; prevents feature-creep-by-guilt as silvery gains traction).
-6. **Adopt Harmony CLA** (Individual + Entity) via CLA-Assistant; one-page "Why we use a CLA" explainer.
-7. **Launch post + outreach** to 5-10 mid-tier Ink-using projects. Conference angle: *"Beyond Ink: a new rendering contract for AI-era TUIs"* (succession, not patricide).
-8. **Weekly Ink-roadmap watch** — Vadim v5 monitoring; if a major Ink upgrade lands, accelerate launch by 2 weeks.
-9. **Verify factual claims** before launch materials: replace "all big AI labs use Ink" with *"Ink is the de facto standard for AI-era developer CLIs, including Copilot CLI, Wrangler, and a majority of the npx AI tool ecosystem."*
+**Real critical-path work remaining** (3-6 weeks total, sequenced; corrected by /pro v2 — order-of-operations matters):
 
-**Review cadence** (dual + strategic):
-- **Day 30**: docs + shim shipped, demo public, 1 successful migration, 3+ engineering signals.
-- **Day 60**: 3 migrations (1 not by us), 1-2 external committers, 3-5 credible inbounds.
-- **Day 90 qualitative**: 5+ migrations OR 1 named reference OR steady ink-compat fix cadence. **Kill criterion**: zero inbound interest AND no Ink project realistically benefits.
+*Week 0-1 (start now, days, no demo dependency)*:
+1. **silvery.dev hero rewrite** — promote "98.6% Ink compatible" to hero slot with `import { Box, Text } from "silvery/ink"` snippet. Add "Migrating from Ink" landing-nav alongside "Building new TUIs."
+2. **Migration case study** — pick mid-tier Ink project (2K-15K stars, NOT Wrangler), one-line import swap, document diff + perf delta. ~3 days. Even a small case study counts.
+3. **Outreach to 5-10 maintainers** — start NOW with private DMs/emails. Free engineering time + co-authored write-up. Don't wait for the demo.
+4. **Codify The Seam Rule** with traffic-light rubric in silvery's repo before traffic arrives.
+5. **Adopt Harmony CLA** (Individual + Entity) via CLA-Assistant; one-page "Why we use a CLA" explainer.
+6. **Verify factual claims** for launch: replace "all big AI labs use Ink" with *"Ink is the de facto standard for AI-era developer CLIs, including Copilot CLI, Wrangler, and a majority of the npx AI tool ecosystem."* Move perf multipliers off the hero into a Performance page with reproducible scripts.
+7. **Register Silvery trademark + publish trademark policy** — Apache-2.0 doesn't grant trademark rights; the trademark + "Silvery-compatible" badge program is the fork-risk leverage.
+8. **Public compatibility harness** — pin "98.6%" to methodology + Ink version + measurement date. Reproducible test suite. Avoid vanity-percentage claims.
+
+*Week 1-3 (one demo, tightly scoped — pick ONE, not two)*:
+9. **silvery-acp-chat demo** (the right first demo per /pro v2 unanimous): minimal coding-agent client, BYO API key, one provider (Claude or GPT), streaming + tool-use rendering + multi-pane layout + retry/error UX. Scope brutally to ship in 2-3 weeks. Record a 60-120s video. Better target-audience match than system monitor (Ink users *are* building agent CLIs).
+10. ~~silvery-system-monitor~~ → demoted to **Q3 evergreen**, not pre-launch. Building both simultaneously is 6-8 weeks per /pro v2 and risks shipping nothing remarkable.
+
+*Week 2-4 (parallel during demo, distribution tooling)*:
+11. **Codemod / PR bot** — rewrites `import "ink"` → `"silvery/ink"`, flags incompatibilities, auto-opens PRs on target Ink projects. Highest-leverage distribution tool we don't have yet (Kimi: *"Throwing a demo at a distribution problem is cathartic but may be avoidance behavior"*).
+12. **`create-silvery` CLI** — two modes: "new app from template" + "wrap existing Ink project to try silvery side-by-side." Table stakes in 2026.
+13. **Discord/Matrix community** + weekly office hours.
+
+*Week 4-6 (loud launch + spec leadership)*:
+14. **Loud launch push** — only after demo + 1 case study + 1 positive maintainer signal in hand. Blog *"Beyond Ink: a new rendering contract for AI-era TUIs"* (succession, not patricide). HN, Reddit, JS Weekly, X/Twitter, conference CFPs.
+15. **Tribe Wire v0 preview** (Apache + CC BY 4.0, "unstable draft" disclaimer) — claim "standard" mantle before OpenTUI or others publish their own coordination protocol. Minimal scope: envelopes, stream framing, basic event vocab. Reference gateway in repo. **Don't wait 6 months** — /pro v2 unanimous on this.
+16. **Weekly Ink-roadmap watch** — Vadim v5 monitor; if a major Ink upgrade lands, accelerate launch by 2 weeks; ship "silvery vs Ink v5" comparison post within a week (neutral, factual).
+17. **Migration Assurance Program v0** — public offer for 2-3 sponsored migrations with explicit SLAs (48h triage, 1-week pairing). Free engineering time in exchange for blog write-up.
+
+**Review cadence** (dual + strategic — tightened by /pro v2):
+- **Day 30** (post quiet launch): hero + compat matrix shipped; outreach started; 1 small case study; 3+ substantive engineering signals.
+- **Day 45** (post loud launch): demo public; 1 lighthouse migration evaluation underway; HN traction; first paying Migration Assurance pilot.
+- **Day 60**: 3+ migrations (1 not by us), 1-2 external committers; 3-5 credible inbounds; aim 2-3× DL/wk lift sustained.
+- **Day 90 qualitative kill criterion**: zero inbound interest AND no Ink project realistically benefits AND <20% sustained DL/wk growth → revisit positioning, possibly pivot back to Option 4 (closure).
 - **Day 180 quantitative**: > 10K DL/wk → continue; flat at < 5K → diagnose distribution-vs-value.
 - **Month 12 strategic**: silvery generating qualified leads for silvercode/km? If not, OSS strategy is hobby, not business.
 
-**Outcome distribution** (conservative recalibration from /pro):
-- 45% — meaningful niche (10-50K DL/wk at 18 months, brand halo intact)
-- 25% — mid-tier reference migration ( > 5K-star project migrates publicly)
-- 5% — Big Tech migration (don't count on it)
-- 25% — nominal traction (silvery becomes resumeware / background infra)
+**Outcome distribution** (recalibrated more conservatively by /pro v2 — Kimi's *"demand thermocline"* framing):
+- 25-35% — nominal traction (3-6K DL/wk; silvery becomes resumeware / background infra)
+- 40-50% — meaningful niche (8-15K DL/wk at 18 months; 2-5 case studies; engaged Discord; small services ACV)
+- 20-25% — mid-tier reference migration (15-40K DL/wk; one 5-20K-star project migrates publicly; mid-six to low-seven figure services ACV by month 18-24)
+- 3-7% — Big Tech anchor (80K+ DL/wk; FAANG-ish team migrates; spec referenced in third-party docs)
 
-The 75% case (top three) makes the strategy worth running. Decision survives without the 5% miracle.
+Strategy survives in the 50-75% case (meaningful niche + mid-tier). Mid-tier requires a lighthouse migration, not just artifacts.
+
+**The biggest /pro v2 critique to take seriously** (Kimi): *3K DL/wk has been stable for months despite shipped Ink-compat. The market saw silvery and didn't move. This may be a category failure (Ink users don't feel the migration itch), not a marketing failure. Demo + hero rewrite are betting that distribution + proof closes the gap. If after 90 days of disciplined execution we're still at the thermocline, the diagnosis is "category bet was wrong" — pivot back to Option 4 (closure) with services-only revenue.*
 
 **Options considered (audit trail — all five preserved below)**:
 1. All-proprietary (Cursor pattern) — rejected: closes Ink-migration market.
@@ -277,6 +296,30 @@ The /pro convergence on Option 4 was real but was based on:
 
 The user's empirical corrections — particularly *"silvery is specifically targeted at Ink migration; OpenTUI is not; all big AI labs use Ink; the window is slipping"* — invalidated the assumptions /pro relied on. Once the competitive segmentation was corrected, the recommendation should also flip. The /pro analysis remains a useful audit trail; the conclusion no longer survives the corrected inputs.
 
+### /pro v2 — execution-plan critique (2026-04-28 morning)
+
+Second /pro 4-leg review (GPT-5.4 Pro champion + Kimi K2.6 + GPT-5.4 Pro split-test challenger), $4.36, 22 min, judge winner **Kimi K2.6 (19/20)** with the sharpest critique. GPT-5.4 Pro both legs at 17/17.5. This round **assumed Option 5 was locked** and pressure-tested the execution plan after empirical findings (silvery/ink shipped, cluster-1 sites live, 3K DL/wk plateau, Seam Rule iterating).
+
+**Major critiques worth heeding (consensus across all 3 models)**:
+
+1. **The 3K DL/wk plateau is the dominant signal** (Kimi's *"demand thermocline"*). silvery has been live for months with shipped Ink-compat. The market saw it and didn't move. This may be a category failure, not a marketing failure. The plan optimistically assumes execution closes the gap; /pro is skeptical.
+2. **Demo budget is 2-3× too optimistic.** Two demos in 2-3 weeks combined is delusional. ACP-chat tightly scoped = 2-3 weeks for ONE demo. System monitor that doesn't embarrass = 4-6 weeks alone. Pick ONE: ACP-chat. System monitor → Q3 evergreen.
+3. **Order of operations was inverted.** Hero + outreach + case study + Seam Rule + CLA should start *now* (Week 1, days). Demo follows. Don't gate launch on demo. Quiet launch → loud launch when proof in hand.
+4. **Tribe Wire timing was wrong.** Don't wait 6 months. Ship v0 *preview* in 4-6 weeks, "unstable draft" disclaimer. Claim "standard" mantle before competitors publish theirs.
+5. **High-leverage tooling missing**: codemod / PR bot, `create-silvery` CLI, public compatibility harness, Discord/Matrix community. Kimi: *"throwing a demo at a distribution problem is cathartic but may be avoidance behavior."*
+6. **Fork-risk mitigations needed**: register Silvery trademark + publish trademark policy + "Silvery-compatible" badge tied to conformance suite. Apache doesn't grant trademark rights — that's the leverage.
+7. **Outcome distribution recalibrated lower** (above).
+8. **Seam Rule needs traffic-light rubric** (green/yellow/red) with multi-user / durability / secrets as tiebreaker dimensions.
+9. **Verify perf claims publicly** (3-27× faster than Ink, 1.5-5.5× faster than Yoga, 22× faster than noop). Ship reproducible scripts before launch; perf-claim blowback is expensive.
+
+**Disagreements between models**:
+- **Kimi**: distribution is the bottleneck; demo is avoidance. Build codemod + PR bot + create-silvery CLI + community first.
+- **GPT-5.4 Pro champion**: balanced — demo is one of several levers, ACP-chat first specifically.
+- **Challenger**: agentic chat demo is the only thing that matters; drop everything else for 4 weeks.
+- **All three converge**: focus on ONE proof in next 3 weeks; outreach + case study + hero in parallel; don't wait.
+
+The execution plan above (Week 0-1 / 1-3 / 2-4 / 4-6) integrates these critiques. Strategy doc is the final word; /pro v2 raw is at `/tmp/strategy-pro-v2-final-2026-04-28.md` for audit.
+
 ### Final /pro review of the converged decision (2026-04-27 night)
 
 A 4-leg dual-pro review (GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4) was run on the converged Option 5 plus the per-layer matrix above. **All four models confirmed.** Judge breakdown via GPT-5-Mini: GPT-5.4 Pro 20/20, Kimi K2.6 17/20, Grok 4 17/20, Gemini 3 Pro 13/20. No model recommended pivoting back to Option 4 or to a sixth alternative (AGPL, BSL, source-available all rejected). The strategy is locked. Findings worth integrating:
@@ -351,6 +394,18 @@ A 4-leg dual-pro review (GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4) was ru
 **Note on Vercel**: Vercel AI SDK ships hooks-only because they sell *cloud services*, not a UI framework. They don't have an Apache "we ship polished components" identity to protect. The Vercel pattern works for "SDK as brand halo for our cloud." It doesn't work for "we are a UI framework whose value proposition is polished components." silvery is the latter.
 
 Add a "Scope and Boundaries" doc to silvery's repo using this canonical wording. Add a GitHub issue label "Out of scope (silvercode-specific application assembly)" with a polite boilerplate pointing to silvercode for the integrated product, or the cluster-2 service for the operational tier.
+
+**Traffic-light rubric (publish in repo)** — for ambiguous cases, /pro v2 added a third dimension (multi-user / durability / requires-secrets) and a green/yellow/red classification:
+
+> **Green (always silvery, open)**: rendering, layout, input, local state, theming, streaming components, polished generic agent components (`<AgentChat>`, `<ConversationPane>`, etc.), local-only adapters for custom providers when running with user keys.
+>
+> **Yellow (silvery + service-backed adapter pattern)**: recall visualization, context monitors, transcript storage, timeline inspectors. Provide a *pluggable interface* in silvery; ship a local-only adapter (open) AND a silvercode-cloud adapter (proprietary). Same component renders in both modes.
+>
+> **Red (always cluster-2 service, proprietary)**: secrets / auth / token-bearing flows; multi-tenant or multi-user state; managed tool execution with sandboxing/audit; orchestration across machines/sessions; durable storage and indexing; compliance features (SSO, SAML, KMS, data residency, DPA).
+>
+> **Tiebreaker dimensions**: latency-bound to local human interaction → glue. Multi-user / multi-device → service. Needs durability, audit, or compliance → service. Requires secrets or server-side credentials → service. Single-user, ephemeral, UI-only → glue (with optional path to "lift" into service).
+
+Document the rubric as a first-class doc page in the repo. Show the same UI running in three modes for ambiguous features: local-only, local + file persistence, and cloud-backed. Be proud of the seam — if it looks like pragmatism and taste, people appreciate it; if it looks like a trick to push users into paid tiers, it backfires.
 
 **Terminfo data licensing**: do NOT attempt to relicense data derived from ncurses terminfo under CC0/ODbL. Either license could be invalid given upstream provenance. Safer path: publish the *transformation pipeline* under Apache-2.0; document how users fetch terminfo from upstream and transform locally; if hosting compiled artifacts, preserve original license notices (likely permissive-with-attribution, not ODbL). Verify upstream license before shipping.
 
