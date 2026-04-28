@@ -38,11 +38,7 @@ import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import createDebug from "debug"
-import {
-  containsRejectedSignal,
-  hasSalience,
-  LONG_PROMPT_BYPASS_LENGTH,
-} from "@bearly/recall"
+import { containsRejectedSignal, hasSalience, LONG_PROMPT_BYPASS_LENGTH } from "@bearly/recall"
 import type { AmbientAdapterCtx } from "./types.ts"
 import { createDebouncedEmit, makeAmbientEventId } from "./types.ts"
 

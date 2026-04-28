@@ -908,7 +908,11 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 
 <a id="g-plainbrain"></a>
 
-- **PlainBrain / `.brain`** — markdown-filesystem shape [km](#g-flexily) uses; ambitiously framed as a portable agent format (Docker analog with `run-brain`/`merge-brain`/`fork-brain`/`pack-brain` operations).
+- **PlainBrain / `.brain`** — markdown-filesystem shape [km](#g-km) uses; ambitiously framed as a portable agent format (Docker analog with `run-brain`/`merge-brain`/`fork-brain`/`pack-brain` operations).
+
+<a id="g-km"></a>
+
+- **km — Knowledge Machine** — agentic knowledge workspace (board + calendar + journal + agents + recall, bidirectional md↔SQL sync). knowledgemachine.co. Pre-launch. Canonical [PlainBrain](#g-plainbrain) reference workspace.
 
 <a id="g-flexily"></a>
 
@@ -1097,4 +1101,3 @@ The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` even
 - [`integrated-workdesk.md`](integrated-workdesk.md) — agentic-workdesk vision
 - [`hub/ventures/acp-proxy-2026-04-27.md`](../../ventures/acp-proxy-2026-04-27.md) — 14-venture rubric, 25/25 cluster math
 - `~vault/areas/@office/CHARTER.md` — family-office structure, Wyoming HoldCo plan
-- `/tmp/strategy-pro-v3-final-2026-04-28.md` — most recent /pro critique

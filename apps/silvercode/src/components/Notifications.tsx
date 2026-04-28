@@ -45,10 +45,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
       s.session.subscribe((e) => {
         if (e.kind === "permission-request") {
           const id = seq++
-          setToasts((t) => [
-            ...t,
-            { id, text: `${s.name}: permission requested (${e.tool})`, kind: "warn", count: 1 },
-          ])
+          setToasts((t) => [...t, { id, text: `${s.name}: permission requested (${e.tool})`, kind: "warn", count: 1 }])
           scheduleDismiss(id, 4000)
         } else if (e.kind === "error") {
           const errorKey = `${s.name}::${e.message}`

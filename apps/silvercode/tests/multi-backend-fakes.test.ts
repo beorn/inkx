@@ -52,7 +52,10 @@ describe("layer 3: codex fake session", () => {
       count++
     })
     fake.script(
-      [codexInitEvent({ sessionId: fake.sessionId }), { kind: "status", sessionId: fake.sessionId, status: "ready", ts: 1 }],
+      [
+        codexInitEvent({ sessionId: fake.sessionId }),
+        { kind: "status", sessionId: fake.sessionId, status: "ready", ts: 1 },
+      ],
       0,
     )
     return new Promise<void>((resolve) => {

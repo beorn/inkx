@@ -1,6 +1,6 @@
 # agentroom — competitive landscape
 
-**Status**: maintained. Source: /deep prior-art research 2026-04-28 ([raw output preserved as `/var/folders/x6/.../llm-618d206c-prior-art-for-the-john.txt`](mailto:beorn) — local cache, not repo). Update as the field shifts.
+**Status**: maintained. Source: /deep prior-art research 2026-04-28 (raw output cached locally at `/var/folders/x6/.../llm-618d206c-prior-art-for-the-john.txt`, not in repo). Update as the field shifts.
 
 ---
 
@@ -144,8 +144,6 @@ Update this doc when:
 - Slack (or Notion, or Microsoft Teams) ships a deeper "agents at the chat layer" play that bypasses third-party brokers
 - A new ACP↔Matrix gateway hits 1K+ stars or gets press coverage
 - Vercel AI Gateway adds agent-coordination primitives (vs current LLM-routing focus)
-
-Tracking via `bd` epic `km-tribe.recall` (and adjacent agent-coordination beads).
 
 ## Cross-references
 

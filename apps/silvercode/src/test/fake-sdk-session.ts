@@ -34,7 +34,9 @@ export function createFakeSdkSession(opts: CreateFakeSdkSessionOptions = {}): Sc
  * scenario meant to model the @anthropic-ai/claude-agent-sdk subprocess
  * surface.
  */
-export function sdkInitEvent(opts: { sessionId?: SessionId; model?: string; cwd?: string; ts?: number } = {}): AgentEvent {
+export function sdkInitEvent(
+  opts: { sessionId?: SessionId; model?: string; cwd?: string; ts?: number } = {},
+): AgentEvent {
   const sessionId = (opts.sessionId ?? `sdk-${Date.now()}`) as SessionId
   return {
     kind: "session-init",

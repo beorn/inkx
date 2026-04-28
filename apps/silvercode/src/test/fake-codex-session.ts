@@ -36,7 +36,9 @@ export function createFakeCodexSession(opts: CreateFakeCodexSessionOptions = {})
  * Use as the first event in any scripted scenario meant to model a Codex
  * subprocess.
  */
-export function codexInitEvent(opts: { sessionId?: SessionId; model?: string; cwd?: string; ts?: number } = {}): AgentEvent {
+export function codexInitEvent(
+  opts: { sessionId?: SessionId; model?: string; cwd?: string; ts?: number } = {},
+): AgentEvent {
   const sessionId = (opts.sessionId ?? `codex-${Date.now()}`) as SessionId
   return {
     kind: "session-init",

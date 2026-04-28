@@ -32,9 +32,7 @@ function apply(events: AgentEvent[]) {
 
 describe("queue-stuck-thinking — stray requesting event must not flip idle to thinking", () => {
   test("idle session ignores stray requesting event", () => {
-    const state = apply([
-      { kind: "status", status: "requesting", ts: 1000 } as AgentEvent,
-    ])
+    const state = apply([{ kind: "status", status: "requesting", ts: 1000 } as AgentEvent])
     expect(state.status).toBe("idle")
   })
 

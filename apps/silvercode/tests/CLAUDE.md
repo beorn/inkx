@@ -41,10 +41,10 @@ showing the rendered queue editor.
 `apps/silvercode/src/test/fake-session.ts` exposes `createFakeSession()`
 returning an `AgentSession`-shaped fake with three superpowers:
 
-  - `emit(event)` synchronously dispatches one event to subscribers.
-  - `script(events, intervalMs)` replays a pre-built sequence over time.
-  - `injectError(msg)` / `injectSessionEnd(reason)` simulate failure paths.
-  - `sent` array records every `send()` and `respondToPermission()` call.
+- `emit(event)` synchronously dispatches one event to subscribers.
+- `script(events, intervalMs)` replays a pre-built sequence over time.
+- `injectError(msg)` / `injectSessionEnd(reason)` simulate failure paths.
+- `sent` array records every `send()` and `respondToPermission()` call.
 
 Wire via `Controller.opts.spawnFactory: () => fake`. The controller can't
 tell the difference between a real subprocess and the fake — same surface,
@@ -80,10 +80,10 @@ L4 tests live in `apps/silvercode/tests/visual/`. They render the real
 detection) via `apps/silvercode/src/test/render-harness.tsx`. Assertions
 use:
 
-  - `app.text` — printable characters (drift-detection style snapshots)
-  - `app.locator()` — stable selectors over the rendered tree
-  - `_invariants.ts` — universal invariants every visual test asserts
-    (no overflow, side-panel visible, no double-render artefacts)
+- `app.text` — printable characters (drift-detection style snapshots)
+- `app.locator()` — stable selectors over the rendered tree
+- `_invariants.ts` — universal invariants every visual test asserts
+  (no overflow, side-panel visible, no double-render artefacts)
 
 `mutations.test.tsx` is the canonical example of the "deliberate
 regression" technique — it applies fault patches and asserts each
@@ -117,7 +117,7 @@ Never run `bun test` (it bypasses vitest's project config).
   real timing bugs in controller / store wiring.
 - **Asserting against private controller state.** Tests should only
   observe what UI components observe — the public `Controller` API
-  + `handle.store.state.get()` snapshot.
+  - `handle.store.state.get()` snapshot.
 - **Hardcoding ANSI escape sequences in assertions.** Use
   `app.locator()` and the helpers in `parse-frame.ts`. ANSI codes
   drift when silvery's pipeline changes; semantic selectors don't.

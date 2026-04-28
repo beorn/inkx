@@ -25,12 +25,12 @@ silvercode
 ## Visual checks
 
 - [ ] **Welcome card paints once.** No flicker, no double-bordered title,
-  no cursor artefacts above the input. The card disappears on first
-  user input.
+      no cursor artefacts above the input. The card disappears on first
+      user input.
 - [ ] **Side panel is visible.** Identity row + ctx=0% bar + version
-  string. No truncation, no overflow off-screen.
+      string. No truncation, no overflow off-screen.
 - [ ] **Input cursor blinks.** Not a flat block, not invisible — the
-  shaped block-on-block cursor specific to silvery's TextInput.
+      shaped block-on-block cursor specific to silvery's TextInput.
 - [ ] **Mode label reads "auto"** (or whatever the current default is).
 
 ## Functional flow
@@ -53,7 +53,7 @@ silvercode
 
 - [ ] Type a long shell command that returns >1KB of output.
   - [ ] Side panel STAYS visible (no overflow regression — see
-    `km-silvercode.overflow-at-root`).
+        `km-silvercode.overflow-at-root`).
   - [ ] Tool-result card content stays inside its frame.
 
 ## Tear-down
@@ -74,18 +74,19 @@ silvercode
 - [ ] Side panel shows 5h + 7d quota bars.
 - [ ] When both bars are GREEN, the "Xtra" panel is hidden.
 - [ ] Force a panel show (e.g. `silvercode --debug-quota=overage`) — the
-  Xtra panel renders with a yellow label.
+      Xtra panel renders with a yellow label.
 
 ## Multi-backend (when codex / sdk paths land)
 
 - [ ] `silvercode --backend=codex` spawns the codex CLI; side panel
-  shows the OpenAI model label.
+      shows the OpenAI model label.
 - [ ] `silvercode --backend=sdk` uses the SDK path; `apiKeySource` reads
-  `ANTHROPIC_API_KEY`.
+      `ANTHROPIC_API_KEY`.
 
 ## Reporting a smoke failure
 
 If a step fails, note:
+
 1. The exact step number that failed.
 2. Terminal app + OS (Ghostty, kitty, …).
 3. Stop reason / error message if any.
