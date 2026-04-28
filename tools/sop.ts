@@ -161,8 +161,15 @@ function evaluateTriggers(allFindings: Finding[]): FiredTrigger[] {
 
 // ─── Run tools via sop-runner ───────────────────────────────────────────────
 
-async function runToolsForDomains(domainIds: string[], force: boolean): Promise<void> {
-  const args = ["bun", "tools/sop-runner.ts", "--domains", ...domainIds]
+async function runToolsForDomains(domainIds: string[], force: boolean, taskFilter?: string[]): Promise<void> {
+  // taskFilter: when provided, sop-runner runs only those task IDs (with deps)
+  // instead of every tool the domains map to. Used by `sop scan <domain> <task>`.
+  const args = ["bun", "tools/sop-runner.ts"]
+  if (taskFilter && taskFilter.length > 0) {
+    args.push(...taskFilter)
+  } else {
+    args.push("--domains", ...domainIds)
+  }
   if (force) args.push("--force")
 
   const proc = Bun.spawn(args, {
@@ -352,9 +359,57 @@ function resolveDomains(args: string[], all: boolean, state: State): DomainDef[]
   return DOMAINS.filter((d) => isDue(d, state))
 }
 
+/**
+ * Parse `sop scan <domain> <task...>` style args.
+ *
+ * If the first arg is a known domain AND there is at least one more arg AND
+ * every remaining arg is a valid task within that domain, treat it as a
+ * task filter. Otherwise treat all args as domain names.
+ */
+function parseDomainTaskArgs(args: string[]): { domains: string[]; taskFilter: string[] | undefined } {
+  if (args.length >= 2) {
+    const first = args[0]!
+    const domainTools = DOMAIN_TOOLS[first]
+    if (domainTools && args.slice(1).every((t) => domainTools.includes(t))) {
+      return { domains: [first], taskFilter: args.slice(1) }
+    }
+  }
+  return { domains: args, taskFilter: undefined }
+}
+
+/**
+ * Dispatcher for `sop clean <domain> <task>` — invoke the matching domain
+ * task's cleaner. Currently only `infra wip-triage` is wired (more can be
+ * added by mapping task IDs to CLI subcommands here).
+ */
+async function runDomainTaskClean(
+  taskId: string,
+  opts: { autoSafe?: boolean; integrate?: string; discard?: string }
+): Promise<number> {
+  const cliMap: Record<string, { script: string }> = {
+    "wip-triage": { script: "tools/wip-triage.ts" },
+  }
+  const target = cliMap[taskId]
+  if (!target) {
+    console.error(`task '${taskId}' has no clean dispatcher wired in sop.ts`)
+    return 2
+  }
+  const cmd = ["bun", target.script, "clean"]
+  if (opts.autoSafe) cmd.push("--auto-safe")
+  if (opts.integrate) cmd.push("--integrate", opts.integrate)
+  if (opts.discard) cmd.push("--discard", opts.discard)
+  const proc = Bun.spawn(cmd, {
+    cwd: REPO_ROOT,
+    stdout: "inherit",
+    stderr: "inherit",
+    stdin: "inherit",
+  })
+  return await proc.exited
+}
+
 // ─── Scan command ───────────────────────────────────────────────────────────
 
-async function runScan(domainsToRun: DomainDef[], state: State, force: boolean): Promise<void> {
+async function runScan(domainsToRun: DomainDef[], state: State, force: boolean, taskFilter?: string[]): Promise<void> {
   if (domainsToRun.length === 0) {
     console.log(s.green("No domains due for scanning."))
     renderStatus(state)
@@ -365,7 +420,7 @@ async function runScan(domainsToRun: DomainDef[], state: State, force: boolean):
   const domainIds = domainsToRun.map((d) => d.id)
 
   // Run tools via sop-runner
-  await runToolsForDomains(domainIds, force)
+  await runToolsForDomains(domainIds, force, taskFilter)
 
   // Read results from cache
   state.lastDomainTimings ??= {}
@@ -573,13 +628,14 @@ program
 program
   .command("scan")
   .description("Run checks for specified domains (or all due)")
-  .argument("[domains...]", `Domain(s) to scan (${DOMAIN_NAMES})`)
+  .argument("[args...]", `Domain(s) to scan, or '<domain> <task>' to narrow to one task (${DOMAIN_NAMES})`)
   .option("--all", "Run all domains regardless of cadence")
   .option("--force", "Bypass tool cache")
-  .action(async (domains: string[], opts: { all?: boolean; force?: boolean }) => {
+  .action(async (args: string[], opts: { all?: boolean; force?: boolean }) => {
     const state = loadState()
+    const { domains, taskFilter } = parseDomainTaskArgs(args)
     const domainsToRun = resolveDomains(domains, opts.all ?? false, state)
-    await runScan(domainsToRun, state, opts.force ?? false)
+    await runScan(domainsToRun, state, opts.force ?? false, taskFilter)
   })
 
 program
@@ -604,15 +660,42 @@ program
 program
   .command("clean")
   .description("Prune ephemeral repo state (branches, worktrees, caches). Coordinates with active work.")
-  .argument("[target]", `Single target: ${ALL_TARGETS.join(", ")}`)
+  .argument("[args...]", `[target] or '<domain> <task>' for a domain-scoped cleaner. target: ${ALL_TARGETS.join(", ")}`)
   .option("--execute", "Actually apply cleanups (default: scan-only)")
   .option("--force", "Skip preflight active-work gate (caller has coordinated)")
   .option("--active-sessions <list>", "Comma-separated tribe session names currently active")
+  .option("--auto-safe", "(domain-scoped tasks) only act on auto-discardable rows")
+  .option("--integrate <id>", "(domain-scoped tasks) integrate a single row by id")
+  .option("--discard <id>", "(domain-scoped tasks) discard a single row by id")
   .action(
     async (
-      target: string | undefined,
-      opts: { execute?: boolean; force?: boolean; activeSessions?: string }
+      args: string[],
+      opts: {
+        execute?: boolean
+        force?: boolean
+        activeSessions?: string
+        autoSafe?: boolean
+        integrate?: string
+        discard?: string
+      }
     ) => {
+      // Form 2: `sop clean <domain> <task>` — dispatch to a domain-specific cleaner.
+      if (args.length >= 2 && DOMAIN_MAP.has(args[0]!)) {
+        const domain = args[0]!
+        const task = args[1]!
+        const allowed = DOMAIN_TOOLS[domain] ?? []
+        if (!allowed.includes(task)) {
+          console.error(`task '${task}' is not in domain '${domain}'. Allowed: ${allowed.join(", ")}`)
+          process.exitCode = 2
+          return
+        }
+        const code = await runDomainTaskClean(task, opts)
+        process.exitCode = code
+        return
+      }
+
+      // Form 1: legacy single-target clean (`sop clean worktrees` etc.).
+      const target = args[0]
       if (target && !ALL_TARGETS.includes(target as CleanTarget)) {
         console.error(`unknown target '${target}'. Valid: ${ALL_TARGETS.join(", ")}`)
         process.exitCode = 2
