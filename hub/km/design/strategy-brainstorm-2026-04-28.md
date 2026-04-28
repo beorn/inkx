@@ -32,12 +32,14 @@ The portfolio is a layered architecture. Strategies are *paths* through it, not 
 
 **Sequencing**:
 
-| Phase | Team size | Focus |
-|---|---|---|
-| Months 0-3 | solo | silvery maintenance + ACP-proxy ship-now cluster ([S18](#s18-d--tribe-as-control-plane-acp-proxy-ship-now-top-3-cluster)) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km |
-| Months 3-6 | first hire | production agentroom gateway, `.brain` registry, [S23](#s23-e---the-playground-for-the-ui-of-agentic-work) demo, services-tier productization begins |
-| Months 6-12 | small team (~5) | production services, enterprise readiness, AI-lab outreach |
-| Months 12+ | seed/Series A | signal-driven path deepening (AI-lab inbound → [S24](#s24-f--acquihire-positioned-for-big-ai-labs); services scaling → [S2](#s2-c--vercel-for-terminal-services-led-silvercode-open-reference)/[S16](#s16-c--auth0-for-ai-agents-services-only-silvery-is-portfolio); `.brain` adoption → [S26](#s26-d---docker-for-agents-brain-portable-format) standalone; PKM market shifts → [Family B](#family-map)) |
+| Phase | Team size | Capital posture | Focus |
+|---|---|---|---|
+| Months 0-3 | solo | bootstrap, ~$0 burn | silvery maintenance + ACP-proxy ship-now cluster ([S18](#s18-d--tribe-as-control-plane-acp-proxy-ship-now-top-3-cluster)) + tribe wire v0 spec + `.brain` v0 spec + silvercode-as-open-reference + dogfooding km |
+| Months 3-6 | first hire | personal capital or angel ($0.5-1M); ~$25-40k/mo burn | agentroom *preview* gateway (NOT production-SLA), `.brain` registry preview, [S23](#s23-e---the-playground-for-the-ui-of-agentic-work) demo, design-partner outreach |
+| Months 6-12 | small team (~5) | seed ($3-5M); ~$120-180k/mo burn | production services, enterprise readiness, AI-lab outreach |
+| Months 12+ | seed/Series A | revenue + Series A optional ($8-15M) | signal-driven path deepening (AI-lab inbound → [S24](#s24-f--acquihire-positioned-for-big-ai-labs); services scaling → [S2](#s2-c--vercel-for-terminal-services-led-silvercode-open-reference)/[S16](#s16-c--auth0-for-ai-agents-services-only-silvery-is-portfolio); `.brain` adoption → [S26](#s26-d---docker-for-agents-brain-portable-format) standalone; PKM market shifts → [Family B](#family-map)) |
+
+*Burn estimates assume Bay-Area engineering rates; remote-only or international hiring shifts ranges 30-50% lower. Timelines are nominal — solo timelines slip 1.5-2× under realistic distraction load.*
 
 ---
 
@@ -551,10 +553,10 @@ Docker analog (intentional):
 **Months 3-6 (first hire)** — productize what dogfooding validates:
 
 - First hire: infrastructure-ops co-founder OR services-product engineer.
-- Production **agentroom hosted gateway v1** — multi-machine routing, basic SLA.
+- **agentroom preview gateway** — multi-machine routing, single-region, best-effort uptime, no SLA, design-partner-only. *Explicitly NOT production-grade.* Production-grade (multi-region, 99.9% SLA, SOC2, on-call rotation, security review) requires the months 6-12 team — it's structurally impossible with one hire and consistent with the "don't ship production hosted services solo" constraint.
 - Ship **[S23](#s23-e---the-playground-for-the-ui-of-agentic-work) integrated playground** demo (chat + docs + code + agents + boards + diagrams). The killer demo.
 - Promote `.brain` registry preview (`brainhub.dev`).
-- Hardening + outreach on top-3 cluster ([S18](#s18-d--tribe-as-control-plane-acp-proxy-ship-now-top-3-cluster) → real customers).
+- Hardening + outreach on top-3 cluster ([S18](#s18-d--tribe-as-control-plane-acp-proxy-ship-now-top-3-cluster) → 3-5 design-partner customers, not paid SaaS at scale).
 - **Decision-point**: services-led-only ([S25](#s25-c---bottom-stack-first-apps-as-demonstrators)) vs services-led + standalone-agentroom-spinout ([S25](#s25-c---bottom-stack-first-apps-as-demonstrators) + [S5](#s5-d--confluent-for-ai-agents-agentroom-spun-out)).
 
 **Months 6-12 (small team, ~5)** — scale services, deepen path:
@@ -624,6 +626,18 @@ The only strategy that simultaneously:
 - **Don't ship production hosted services solo** — degrade quality and burn out. Demo-grade is fine; production-grade waits for hires.
 - **Don't promote PlainBrain as a standalone "third standard" before silvery validates** — premature standards proliferation per /pro v3. Frame as `.brain` ([S26](#s26-d---docker-for-agents-brain-portable-format)) which has its own thesis.
 - **Don't pre-form a separate entity for agentroom** — keep [S5](#s5-d--confluent-for-ai-agents-agentroom-spun-out) spinout optional; defer formation until [Family D](#family-map) services prove out and signal which structure is right.
+
+### Protocol failure modes (contingency planning)
+
+The 25/25 cluster math (#11+#12+#13) assumes tribe wire + `org.agentroom.*` event vocab become the canonical agent-coordination protocol. Realistic failure modes and the moves that survive them:
+
+- **MCP extends to cover coordination** (Anthropic ships agent↔agent and ambient-channel semantics natively in MCP). *Survival*: agentroom gateway becomes an MCP-extension service rather than a tribe-wire gateway. Authored event vocab still has authorship moat as an MCP profile. agentroom's value prop shifts from "the wire" to "the hosted broker for the wire."
+- **ACP extends symmetrically** (Zed + ecosystem add coordination/storage primitives directly to ACP). *Survival*: agentroom positions as an ACP-aware bridge to Matrix federation; `org.agentroom.*` becomes an ACP-extension namespace. Same business; different framing.
+- **Anthropic / Google / OpenAI publish a competing format first** for `.brain` (or equivalent). *Survival*: drop the standalone-format ambition (kill [S26](#s26-d---docker-for-agents-brain-portable-format) standalone scenario), keep PlainBrain as km's internal data model + an *interoperability profile* across whichever format wins. The km/silvercode portfolio doesn't depend on `.brain` becoming a standard; only the [S26](#s26-d---docker-for-agents-brain-portable-format) acquihire ceiling does.
+- **Matrix Foundation rejects the MSC** (or sits on it for >12 months). *Survival*: ship `org.agentroom.*` as an Apache + CC BY 4.0 spec independent of Matrix governance. Adoption can still happen — community-driven specs (HTTP, JWT, OAuth2) preceded their formal standardization. Lose the federation story, keep the wire authorship.
+- **Open-ACP or another community-driven bridge eats the gateway commodity layer**. *Survival*: agentroom retreats from "the gateway" toward "the *managed* gateway" — multi-tenant, SLA-bearing, compliance-ready. Confluent vs Apache Kafka shape: the open implementation doesn't preclude a paid hosted service.
+
+**Common pattern**: every failure mode preserves *some* layer of the architecture as still-monetizable — the multi-acquirer-optionality argument from [Phase 0](#phase-0--meta-frame-architecture-as-graph-strategies-as-paths) holds even when the single-canonical-protocol bet doesn't. The cluster ceiling drops from 25/25 to ~18-20/25 in most scenarios; the floor doesn't go to zero.
 
 ### Open questions (signal-driven, defer)
 
