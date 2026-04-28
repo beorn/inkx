@@ -22,6 +22,7 @@ import type { OmniboxPane } from "../state/omnibox.ts"
 import { modeOf } from "../state/omnibox.ts"
 import { chipsFromQuery, type Chip } from "../state/omnibox-chips.ts"
 import { ghostFor, type GhostCandidate } from "../state/omnibox-ghost.ts"
+import { previewForRow, type PreviewContent } from "../state/omnibox-preview.ts"
 
 // =============================================================================
 // Empty-buffer prefix guide
@@ -111,6 +112,50 @@ function ParseChips({ chips }: { chips: readonly Chip[] }): React.ReactElement |
   )
 }
 
+// =============================================================================
+// Preview pane — Telescope/Helm-style detail of the highlighted row
+// =============================================================================
+
+/**
+ * One-line summary + body lines for the currently-highlighted row.
+ * Implements `km-tui.omnibox-preview-pane`. Pure presentation — the
+ * derivation lives in `state/omnibox-preview.ts`.
+ *
+ * Acceptance:
+ *  (a) preview pane renders for node results (content + breadcrumbs)
+ *  (b) preview pane renders for command results (description + summary)
+ *  (c) toggle via `preview` prop (default off)
+ *  (d) doesn't interfere with bottom-left layout (caller suppresses)
+ */
+function PreviewPane({ content }: { content: PreviewContent }): React.ReactElement {
+  return (
+    <Box
+      data-testid="omnibox-preview"
+      flexDirection="column"
+      marginTop={1}
+      paddingX={1}
+      borderStyle="single"
+      borderColor="$border-subtle"
+    >
+      {/* Heading row — title + optional hint */}
+      <Box flexDirection="row" justifyContent="space-between">
+        <Text bold color={content.disabled ? "$fg-muted" : "$fg-accent"}>
+          {content.title}
+        </Text>
+        {content.hint && <Text color="$fg-muted">{content.hint}</Text>}
+      </Box>
+      {/* Body lines (description for commands, breadcrumb for nodes) */}
+      {content.lines.map((line, i) => (
+        <Text key={`line-${i}`} color="$fg-default">
+          {line}
+        </Text>
+      ))}
+      {/* "What Enter will do" summary — always present, dimmed */}
+      <Small>{content.summary}</Small>
+    </Box>
+  )
+}
+
 /** Shown inside the omnibox when the buffer is empty and no sigil is set.
  * Horizontally centered, pushed down a few rows from the input for a quiet
  * "first time here?" feel. */
@@ -169,6 +214,19 @@ export interface UnifiedOmniboxProps {
    * directly or run a follow-up action.
    */
   onAcceptGhost?: (completedBuffer: string) => void
+  /**
+   * Show a preview pane below the result list (km-tui.omnibox-preview-pane).
+   * Default: off. Recommended for center-layout dialogs on terminals
+   * with enough vertical room (>= 24 rows). Bottom-left layout always
+   * suppresses this — the find-bar is a single line and has no preview.
+   */
+  preview?: boolean
+  /**
+   * Effective command id used in the preview's "Enter will run X" summary
+   * for node rows. Connector typically passes the result of
+   * `resolveEffectiveCommand(pane.state)` here.
+   */
+  previewEffectiveCommand?: string
 }
 
 // =============================================================================
@@ -246,6 +304,8 @@ function CenterOmnibox({
   onRowHover,
   width,
   maxHeight,
+  preview,
+  previewEffectiveCommand,
 }: Omit<UnifiedOmniboxProps, "layout"> & { width: number }): React.ReactElement {
   const buffer = pane.state.buffer
   const mode = modeOf(buffer)
@@ -281,6 +341,16 @@ function CenterOmnibox({
   const handleAcceptGhost = React.useCallback(() => {
     if (completedBuffer != null && onAcceptGhost) onAcceptGhost(completedBuffer)
   }, [completedBuffer, onAcceptGhost])
+
+  // Preview-as-selection — derive content from the highlighted row when
+  // the preview pane is enabled. Hidden when no row is selected (empty
+  // results) so we don't show an empty pane.
+  const selectedRow = results[selectedIndex] ?? null
+  const previewContent = React.useMemo(
+    () =>
+      preview ? previewForRow(selectedRow, { effectiveCommand: previewEffectiveCommand }) : null,
+    [preview, selectedRow, previewEffectiveCommand],
+  )
 
   // Chrome budget (borderless dialog, opencode-style): title(2) + paddingY(2)
   // + input(1 row, borderless) + blank-line gap(1) = 6 rows. No outer border.
@@ -350,6 +420,10 @@ function CenterOmnibox({
             )}
           />
         )}
+        {/* Preview pane — Telescope/Helm-style detail of the highlighted
+            row. Only renders for center layout (bottom-left passes through
+            UnifiedOmnibox without ever reaching here). */}
+        {previewContent && <PreviewPane content={previewContent} />}
       </Box>
     </ModalDialog>
   )

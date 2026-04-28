@@ -445,6 +445,11 @@ function UnifiedOmniboxConnector({
     [handleBufferChange],
   )
 
+  // km-tui.omnibox-preview-pane: derive the "Enter will run X" summary
+  // command id from the current pane state so the preview pane reflects
+  // the same effectiveCommand the runSelection path will use.
+  const previewEffectiveCommand = pane.state.buffer.startsWith("/") ? "local_find" : pane.state.defaultCommand
+
   return (
     <UnifiedOmnibox
       pane={pane}
@@ -457,6 +462,8 @@ function UnifiedOmniboxConnector({
       onRowHover={setSelectedIndex}
       width={width}
       maxHeight={maxHeight}
+      preview={true}
+      previewEffectiveCommand={previewEffectiveCommand}
     />
   )
 }
