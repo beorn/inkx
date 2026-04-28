@@ -42,17 +42,19 @@ describe("help overlay v3 — termless (real terminal emulator)", () => {
     expect(getHelpV3App().help.get()).toEqual({ visible: false, scrollOffset: 0 })
   })
 
-  test("show_help is idempotent across invocations (overlay stays in `help`)", async () => {
+  test("scroll keys (j/k) update the v3 plugin while help is open", async () => {
     using app = createTestApp(item("board", item("col1", item("task1"))))
 
     app.command("show_help")
-    const first = String(app.state.overlay)
-
-    // Calling show_help while already visible is a no-op for the slice
-    // (returns the same state ref) — overlay label remains "help".
-    app.command("show_help")
-    expect(String(app.state.overlay)).toBe(first)
     expect(getHelpV3App().help.get()).toEqual({ visible: true, scrollOffset: 0 })
+
+    app.press("j")
+    app.press("j")
+    app.press("j")
+    expect(getHelpV3App().help.get().scrollOffset).toBe(3)
+
+    app.press("k")
+    expect(getHelpV3App().help.get().scrollOffset).toBe(2)
   })
 })
 
