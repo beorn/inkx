@@ -163,6 +163,91 @@ async function llmJson<T>(prompt: string): Promise<{ parsed: T | null; cost: num
   return { parsed: null, cost, durationMs, raw: text }
 }
 
+/**
+ * Tier-1 project context: cheap, dynamic, disambiguates "our/we/today" without
+ * over-anchoring. Includes: branch, recent commits, claimed beads, session ID +
+ * age, brief's mentioned beads/paths/tokens.
+ *
+ * Excluded: conversation transcript (over-anchors LLM to current-vocabulary;
+ * defeats the purpose of recall, which is surfacing forgotten material).
+ *
+ * NOTE (2026-04-28): this multi-source aggregator (git + bd + bun recall) is a
+ * TEMPORARY scaffold. Long-term, when km absorbs cloudi/ADR01's statement
+ * substrate (see hub/tribe/design/recall-cloudi-reconciliation.md and
+ * docs/future/brain.md), all activity sources — commits, beads, tribe peer
+ * activity, file edits — ingest as Statements with cognitive types. Then this
+ * function collapses to a single `memory.recall({ scope: "active-session" })`
+ * call instead of N tool-specific dispatches. Currently we shim each source.
+ */
+async function getProjectContext(): Promise<string> {
+  const [branchRes, commitsRes, beadsRes, briefRes] = await Promise.all([
+    exec("git", ["branch", "--show-current"]),
+    exec("git", ["log", "--oneline", "-5"]),
+    exec("bd", ["list", "--status", "in_progress", "--limit", "5"]),
+    exec("bun", ["recall", "current-brief", "--json"]),
+  ])
+
+  const branch = (branchRes.stdout || "(unknown)").trim()
+
+  const commits = commitsRes.stdout
+    .split("\n")
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((l) => `  - ${l.trim()}`)
+    .join("\n")
+
+  const inProgressBeads = beadsRes.stdout
+    .split("\n")
+    .filter((l) => l.includes("◐") || l.includes("●"))
+    .slice(0, 5)
+    .map((l) => `  - ${l.trim()}`)
+    .join("\n")
+
+  let sessionId = "(unknown)"
+  let ageMs = 0
+  let mentionedBeads: string[] = []
+  let mentionedPaths: string[] = []
+  let mentionedTokens: string[] = []
+  if (briefRes.code === 0) {
+    const jsonStart = briefRes.stdout.indexOf("{")
+    if (jsonStart >= 0) {
+      try {
+        const brief = JSON.parse(briefRes.stdout.slice(jsonStart)) as {
+          sessionId?: string
+          ageMs?: number
+          mentionedBeads?: string[]
+          mentionedPaths?: string[]
+          mentionedTokens?: string[]
+        }
+        sessionId = (brief.sessionId ?? "(unknown)").slice(0, 8)
+        ageMs = brief.ageMs ?? 0
+        mentionedBeads = brief.mentionedBeads ?? []
+        mentionedPaths = brief.mentionedPaths ?? []
+        mentionedTokens = brief.mentionedTokens ?? []
+      } catch {
+        /* keep defaults */
+      }
+    }
+  }
+
+  const ageMin = Math.round(ageMs / 60000)
+
+  return `PROJECT CONTEXT (use to disambiguate "our/we/today"; do NOT use as a query bias):
+
+- Repo: km (Knowledge Machine, TS/Bun/Silvery TUI for knowledge work)
+- Current branch: ${branch}
+- Active session: ${sessionId} (age ~${ageMin} min)
+- Recent commit subjects (oldest → newest):
+${commits || "  (no commits)"}
+- Open beads marked in_progress in this repo:
+${inProgressBeads || "  (none)"}
+- Beads mentioned in this session's recent traffic: [${mentionedBeads.slice(0, 6).join(", ")}]
+- Files touched in this session: [${mentionedPaths.slice(0, 5).join(", ")}]
+- Distinctive tokens this session: [${mentionedTokens.slice(0, 8).join(", ")}]
+
+When the user says "our plan" / "we" / "today" / "this session", they refer to the work in this active session. When they say "previously" / "last week" / "older", they mean session history NOT in the above list — search history-first.`
+}
+
 async function fts(query: string, n: number): Promise<{ snippets: Snippet[]; durationMs: number }> {
   const t0 = Date.now()
   const { stdout, code } = await exec("bun", ["recall", "--raw", "-n", String(n), "--json", query])
@@ -187,10 +272,13 @@ async function formHypothesisAndQuery(
   prevHypothesis: Hypothesis | null,
   prevEvidenceSummary: string | null,
   roundN: number,
+  projectContext: string,
 ): Promise<{ hypothesis: Hypothesis; query: string; queryRationale: string; cost: number; durationMs: number }> {
   const isFirst = roundN === 1
   const prompt = isFirst
     ? `You are a memory-recall agent doing iterative exploratory search over a Claude Code session-history FTS index.
+
+${projectContext}
 
 User asked: "${userQuery}"
 
@@ -201,7 +289,13 @@ Form a hypothesis about what they're looking for, using ENGRAM cognitive types (
 - confidence: your initial confidence (low|medium|high)
 - notes: brief reasoning
 
-Then generate the SINGLE most-discriminating FTS query (1-6 words, prefer rare/distinctive tokens) to test this hypothesis.
+Then generate the SINGLE most-discriminating FTS query.
+
+QUERY RULES (critical for FTS5 substrate):
+- 1 to 3 tokens MAX. Never more than 3.
+- Prefer rare distinctive tokens (kebab-case identifiers, proper nouns, error strings) over common words.
+- Do NOT stack qualifiers ("plan structure design rationale criteria") — FTS5 ANDs them and returns 0.
+- If unsure, ONE highly-specific token beats three generic ones.
 
 Return ONLY this JSON, no prose:
 \`\`\`json
@@ -213,11 +307,13 @@ Return ONLY this JSON, no prose:
     "confidence": "medium",
     "notes": "..."
   },
-  "query": "rare-token1 distinctive-phrase",
+  "query": "rare-token1",
   "query_rationale": "why this query discriminates"
 }
 \`\`\``
     : `You are a memory-recall agent on round ${roundN} of iterative exploratory search.
+
+${projectContext}
 
 User originally asked: "${userQuery}"
 
@@ -232,6 +328,13 @@ Refine the hypothesis based on what the evidence revealed. Hypothesis uses ENGRA
 Keep the same JSON shape.
 
 Then generate a NEW FTS query targeting whatever the previous round's evidence suggested needed deeper investigation. Avoid repeating the previous query verbatim.
+
+QUERY RULES (critical for FTS5 substrate):
+- 1 to 3 tokens MAX. Never more than 3.
+- Prefer rare distinctive tokens (kebab-case identifiers, proper nouns, error strings) over common words.
+- Do NOT stack qualifiers ("plan structure design rationale criteria") — FTS5 ANDs them and returns 0.
+- If round N-1 returned 0 hits, the previous query was TOO LONG. Drop terms, don't add more.
+- If unsure, ONE highly-specific token beats three generic ones.
 
 Return ONLY this JSON, no prose:
 \`\`\`json
@@ -267,8 +370,10 @@ Return ONLY this JSON, no prose:
 }
 
 async function evidenceAndRefine(
+  userQuery: string,
   hypothesis: Hypothesis,
   snippets: Snippet[],
+  projectContext: string,
 ): Promise<{ evidence: EvidenceJudgement[]; summary: string; shouldStop: boolean; stopReason: string; cost: number; durationMs: number }> {
   const snippetList = snippets
     .slice(0, 10)
@@ -277,29 +382,44 @@ async function evidenceAndRefine(
 
   const prompt = `You are evaluating evidence in an iterative recall loop.
 
+${projectContext}
+
+ORIGINAL USER QUERY: "${userQuery}"
 Current hypothesis: ${JSON.stringify(hypothesis)}
 
 Top-10 FTS snippets retrieved this round:
 ${snippetList}
 
-For each snippet, score its relation to the hypothesis: "supports" (clear evidence for), "refutes" (evidence against), "orthogonal" (about something else, not useful).
+For each snippet, decide whether it answers the USER'S ORIGINAL QUERY (not just the hypothesis), then verdict:
 
-Then write a 2-3 sentence summary of what this round revealed.
+- "supports": the snippet is direct, literal evidence about the SPECIFIC THING the user asked about. Test: would showing this snippet to the user genuinely answer their question?
+- "refutes": evidence against the hypothesis (rare in retrieval).
+- "orthogonal": shares vocabulary or concepts but is about a DIFFERENT thing. Conceptual neighbors get "orthogonal", not "supports" — even if they reuse the same tokens.
+
+CRITICAL precision rule: token-overlap is NOT support. A snippet about "ambient-context-safety adversarial corpus" when the user asked about "the recall eval corpus we built today" shares tokens (corpus, eval) but is about a DIFFERENT corpus. Mark as orthogonal. Use the project context to know which referent the user means.
+
+When in doubt, prefer orthogonal over supports.
+
+Then write a 2-3 sentence summary of what this round revealed about the USER'S query (not just the hypothesis).
 
 Then decide: should we stop the loop? Reasons to stop:
-- Strong supporting evidence found, hypothesis confirmed at high confidence
-- All snippets are orthogonal — query was bad, retrying won't help
+- Strong LITERAL supporting evidence found (≥3 snippets directly answer the user's query)
+- All snippets are orthogonal — query was bad, current hypothesis isn't finding the right material; consider reframing in next round (don't stop yet unless we've already tried 2 reframings)
 - Refuting evidence rules out the hypothesis
+
+Reasons to CONTINUE (don't stop):
+- Snippets are conceptually nearby but none literally answers the query — refine the hypothesis to target the specific thing
+- Supports-count is moderate (1-2) — try a sharper query in the next round
 
 Return ONLY this JSON, no prose:
 \`\`\`json
 {
   "evidence": [
-    {"index": 1, "verdict": "supports", "why": "brief reason"},
-    {"index": 2, "verdict": "orthogonal", "why": "..."},
+    {"index": 1, "verdict": "supports", "why": "literal answer to user query"},
+    {"index": 2, "verdict": "orthogonal", "why": "shares tokens but different referent"},
     ... (up to 10 entries)
   ],
-  "summary": "2-3 sentence summary of what this round revealed",
+  "summary": "2-3 sentence summary about the USER'S query specifically",
   "should_stop": false,
   "stop_reason": "(empty if continuing, else reason)"
 }
@@ -379,10 +499,17 @@ async function main(): Promise<void> {
   let prevHypothesis: Hypothesis | null = null
   let prevEvidenceSummary: string | null = null
 
+  // Gather Tier-1 project context once at startup; pass to every LLM call.
+  const t0 = Date.now()
+  const projectContext = await getProjectContext()
+  const ctxDuration = Date.now() - t0
+  totalDuration += ctxDuration
+
   if (!json) {
     console.log(`recall-hypothesis-loop`)
     console.log(`User query: "${query}"`)
     console.log(`Max rounds: ${maxRounds}, max cost: $${maxCost.toFixed(2)}, model: ${MODEL}`)
+    console.log(`Project context loaded in ${ctxDuration}ms (${projectContext.length} chars)`)
     console.log(``)
   }
 
@@ -391,7 +518,7 @@ async function main(): Promise<void> {
 
     // Step 1+2: form/refine hypothesis + generate query
     const { hypothesis, query: ftsQuery, queryRationale, cost: c1, durationMs: d1 } =
-      await formHypothesisAndQuery(query, prevHypothesis, prevEvidenceSummary, n)
+      await formHypothesisAndQuery(query, prevHypothesis, prevEvidenceSummary, n, projectContext)
     totalCost += c1
     totalDuration += d1
 
@@ -401,7 +528,7 @@ async function main(): Promise<void> {
 
     // Step 4: evidence eval + refine decision
     const { evidence, summary, shouldStop, stopReason, cost: c2, durationMs: d3 } =
-      await evidenceAndRefine(hypothesis, snippets)
+      await evidenceAndRefine(query, hypothesis, snippets, projectContext)
     totalCost += c2
     totalDuration += d3
 
