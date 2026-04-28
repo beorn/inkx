@@ -49,6 +49,36 @@ export const viewCommand = new Command("view")
   .option("--as <mode>", `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
+    // Fail-fast: if the user supplied an explicit path that doesn't exist
+    // on disk, abort BEFORE the outer try (whose catch runs handleFatalError
+    // and prints a full stack). Throwing CliError here lets index.ts render
+    // the canonical `error: Vault not found: <path>` + hint format that
+    // `km show` and `km list` already emit via loadRepo() — view doesn't go
+    // through loadRepo because it needs discoverOnly + lazyHydrate options
+    // loadRepo doesn't surface, so this guard is the equivalent gate.
+    //
+    // Without this short-circuit the user gets: prompt for memory/init/
+    // cancel → enters alt-screen → discoverFiles realpathSync's the path →
+    // throws → stack-trace flash before terminal restores. All three prompt
+    // options are dead ends for a missing directory:
+    //   - memory mode  → crashes inside discoverFiles
+    //   - init         → would mkdir + .km/ silently, surprising
+    //   - cancel       → exits anyway
+    //
+    // Only fires when the argument looks like an explicit path (starts with
+    // /, ./, ../, or ~/) — bare ids / @refs / queries pass through.
+    if (
+      typeof root === "string" &&
+      root.length > 0 &&
+      (root.startsWith("/") || root.startsWith("./") || root.startsWith("../") || root.startsWith("~"))
+    ) {
+      const probe = root.startsWith("~/") ? join(process.env.HOME ?? "", root.slice(2)) : root
+      if (!existsSync(probe)) {
+        const { CliError } = await import("../errors.ts")
+        throw new CliError(`Vault not found: ${root}`, `Run \`km init ${root}\` to create it as a new km vault.`)
+      }
+    }
+
     // Register top-level crash handlers early — before alt screen is entered.
     // runBoard() registers its own handlers inside tui.tsx, but these catch errors
     // that occur before runBoard starts or after it cleans up its handlers.
@@ -81,34 +111,6 @@ export const viewCommand = new Command("view")
           import("@km/fs-mount"),
           import("@km/tui"),
         ])
-      }
-
-      // Fail-fast: if the user supplied an explicit path that doesn't exist
-      // on disk, abort here instead of dragging them through the "memory
-      // mode / init / cancel" prompt and then crashing inside `discoverFiles`
-      // with `Cannot resolve repo root: <missing-path>`. The prompt's three
-      // options are all dead ends for a missing directory:
-      //   - memory mode  → discoverFiles realpathSync's the path → throws
-      //   - init         → would mkdir + .km/, but the user almost always
-      //                    means an existing path; silent dir creation is
-      //                    surprising. `km init <path>` is the explicit
-      //                    affordance for that.
-      //   - cancel       → exits anyway
-      // So short-circuit with an actionable error before any I/O happens.
-      // Only fail when the argument itself looks like an explicit path
-      // (starts with /, ./, ~/) — bare ids / @refs / queries pass through
-      // to the normal resolver.
-      if (
-        typeof root === "string" &&
-        root.length > 0 &&
-        (root.startsWith("/") || root.startsWith("./") || root.startsWith("../") || root.startsWith("~"))
-      ) {
-        const probe = root.startsWith("~/") ? join(process.env.HOME ?? "", root.slice(2)) : root
-        if (!existsSync(probe)) {
-          process.stderr.write(`\nFatal error: Path does not exist: ${root}\n`)
-          process.stderr.write(`Hint: run \`km init ${root}\` to create it as a new km vault.\n`)
-          process.exit(1)
-        }
       }
 
       // Resolve path and set debug root
