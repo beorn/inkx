@@ -33,6 +33,70 @@ export function sessionJsonlPath(cwd: string, sessionId: string): string {
 }
 
 /**
+ * Synthetic-id pattern from pre-849b4358d silvercode versions: when
+ * `claude --bare -p` didn't yet emit a `session-init` event before
+ * `newSession` returned, server.ts fell back to a synthesized id of the
+ * form `claude-acp-<unix-millis>-<seq>`. Those ids reference no real
+ * Claude Code transcript and will never resolve via `--resume`.
+ *
+ * Bead: km-silvercode.resume-blank-screen.
+ */
+const SYNTHETIC_ACP_ID_RE = /^claude-acp-\d{10,}-\d+$/
+
+/**
+ * Pre-flight check that runs BEFORE silvercode enters alt-screen mode.
+ *
+ * Returns `null` if the resume id is plausibly resolvable, or an error
+ * message string to print to stderr and exit with non-zero code.
+ *
+ * Why pre-flight (not just in-store error events): once silvercode flips
+ * the terminal into alt-screen, the user sees the empty UI but no error.
+ * The runtime error path (claude subprocess writes "session not found"
+ * to stderr → captured as `kind: "error"` event → set `state.lastError`)
+ * never renders to pixels because no component subscribes to lastError.
+ * A pre-flight failure prints to the user's normal terminal and exits
+ * cleanly — no dangling alt-screen, no blank UI, clear actionable text.
+ *
+ * Scope:
+ * - Synthetic `claude-acp-<ts>-<n>` ids — always rejected
+ * - Claude-Code agents with missing JSONL — rejected
+ * - Other agents (codex, gemini, copilot, pi-acp) — skipped (their
+ *   transcript layouts differ and the in-process loadSession path
+ *   already returns a clean error to the controller, which DOES surface
+ *   as a stderr write via spawnSession's catch)
+ */
+export function validateResumeId(opts: { agent: string | undefined; sessionId: string; cwd: string }): string | null {
+  const { agent, sessionId, cwd } = opts
+
+  if (SYNTHETIC_ACP_ID_RE.test(sessionId)) {
+    return (
+      `silvercode: --resume ${sessionId} cannot be resolved.\n` +
+      `This id was synthesized by an older silvercode version that didn't\n` +
+      `wait for the real Claude session UUID. Older sessions cannot be\n` +
+      `resumed by id; start a fresh session (omit --resume) and the new\n` +
+      `session id will be a real UUID you can resume next time.\n`
+    )
+  }
+
+  const isClaudeAgent =
+    agent === undefined || agent === "claude-code" || agent === "claude-code-spawn" || agent === "claude-code-sdk"
+
+  if (isClaudeAgent) {
+    const path = sessionJsonlPath(cwd, sessionId)
+    if (!existsSync(path)) {
+      return (
+        `silvercode: --resume ${sessionId} not found.\n` +
+        `No transcript at ${path}.\n` +
+        `Check ~/.claude/projects/${claudeProjDir(cwd)}/ for the right session id,\n` +
+        `or omit --resume to start fresh.\n`
+      )
+    }
+  }
+
+  return null
+}
+
+/**
  * Read the JSONL transcript, feed lines through the canonical stream-json
  * parser, and apply every resulting AgentEvent to `store`. Best-effort: a
  * malformed line surfaces as an error event (via the parser) but never

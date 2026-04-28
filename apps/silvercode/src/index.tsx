@@ -9,6 +9,7 @@ import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } f
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
 import { renderReport } from "./doctor/render.ts"
 import { resolveConnection } from "./resolve-connection.ts"
+import { validateResumeId } from "./resume.ts"
 import { parseSid } from "./sid-prefix.ts"
 
 /**
@@ -188,6 +189,23 @@ async function buildProgram(): Promise<Command> {
           ? opts.model
           : (resolved.entry.model ?? BUILTIN_AGENTS[resolved.entry.agent]?.defaultModel ?? "")
       const bare = resolved.entry.bare === true || resolved.entry.options?.["bare"] === true
+
+      // Pre-flight: validate --resume <id> BEFORE entering alt-screen.
+      // A bogus id (synthetic, missing JSONL) would otherwise produce a
+      // blank UI — the runtime error path sets state.lastError but no
+      // component renders it. Bead: km-silvercode.resume-blank-screen.
+      if (resume !== undefined) {
+        const validationError = validateResumeId({
+          agent: resolved.entry.agent,
+          sessionId: resume,
+          cwd,
+        })
+        if (validationError !== null) {
+          process.stderr.write(validationError)
+          process.exitCode = 2
+          return
+        }
+      }
 
       const handle = await run(
         <App

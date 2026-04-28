@@ -25,7 +25,7 @@ import { join } from "node:path"
 import type { SessionId } from "@km/agent-harness"
 import { createSessionStore } from "@km/agent-harness"
 import { afterAll, describe, expect, test } from "vitest"
-import { claudeProjDir, replaySessionFromDisk } from "../src/resume.ts"
+import { claudeProjDir, replaySessionFromDisk, validateResumeId } from "../src/resume.ts"
 
 const TEST_CWD_BASE = join(tmpdir(), `silvercode-resume-blank-${Date.now()}`)
 const createdProjDirs: string[] = []
@@ -114,6 +114,50 @@ describe("replaySessionFromDisk: defensive contract (never throws)", () => {
     // Parser surfaced a `parse error: ...` via store.apply({ kind: "error" })
     // which the session-store records in lastError.
     expect(state.lastError).toContain("parse error")
+  })
+
+  test("synthetic claude-acp-<ts>-<n> id is rejected by validateResumeId", () => {
+    const err = validateResumeId({
+      agent: undefined,
+      sessionId: "claude-acp-1777334914180-1",
+      cwd: "/Users/beorn/Code/pim/km",
+    })
+    expect(err).toBeTruthy()
+    expect(err).toContain("synthesized")
+    expect(err).toContain("older silvercode")
+  })
+
+  test("missing JSONL is rejected by validateResumeId for Claude agents", () => {
+    const cwd = `${TEST_CWD_BASE}-validate-missing`
+    const err = validateResumeId({
+      agent: "claude-code-spawn",
+      sessionId: "00000000-does-not-exist",
+      cwd,
+    })
+    expect(err).toBeTruthy()
+    expect(err).toContain("not found")
+    expect(err).toContain("00000000-does-not-exist")
+  })
+
+  test("existing JSONL passes validateResumeId (returns null)", () => {
+    const cwd = `${TEST_CWD_BASE}-validate-ok`
+    const sessionId = "11111111-2222-3333-4444-555555555555"
+    writeJsonl(cwd, sessionId, JSON.stringify({ type: "system", subtype: "init", session_id: sessionId }) + "\n")
+
+    const err = validateResumeId({ agent: undefined, sessionId, cwd })
+    expect(err).toBeNull()
+  })
+
+  test("non-Claude agents skip JSONL existence check (returns null even when missing)", () => {
+    // Codex stores transcripts elsewhere; pre-flight only validates Claude.
+    // For other agents, the in-process loadSession path returns a clean
+    // error to the controller's spawn catch, which writes to stderr.
+    const err = validateResumeId({
+      agent: "codex",
+      sessionId: "any-id-here",
+      cwd: "/some/cwd",
+    })
+    expect(err).toBeNull()
   })
 
   test("system-only transcript → no synthetic turn-end (avoids phantom empty bubble)", () => {
