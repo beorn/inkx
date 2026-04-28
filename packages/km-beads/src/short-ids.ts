@@ -25,8 +25,39 @@ export function generateShortId(prefix: string = DEFAULT_PREFIX): string {
   return `${prefix}${SEPARATOR}${suffix}`
 }
 
+/**
+ * Normalize a user-supplied id into the canonical bd-form short_id
+ * (`<prefix>-<scope>.<slug>`). Accepts:
+ *
+ *   km-beads.foo            (bd-form, already prefixed — idempotent)
+ *   beads.foo               (bd-form scope, no prefix — prepend)
+ *   beads/foo               (path-form — slashes → dots, then prepend)
+ *   @km/beads/foo           (canonical sigil-prefixed path-form — strip sigil, slashes → dots)
+ *   @km/silvercode/acp/rename → km-silvercode.acp.rename
+ *
+ * Idempotent: passing an already-bd-form id returns it unchanged. This
+ * fixes the double-prefix bug (km-beads.create-double-prefix) where
+ * `--id km-beads.foo` was producing `km-km-beads.foo`.
+ */
 export function generateCustomId(custom: string, prefix: string = DEFAULT_PREFIX): string {
-  return `${prefix}${SEPARATOR}${custom}`
+  let s = custom.trim()
+  // Strip a leading `@<prefix>/` sigil — canonical cross-vault reference.
+  if (s.startsWith(`@${prefix}/`)) {
+    s = s.slice(prefix.length + 2)
+  } else if (s.startsWith("@")) {
+    // Foreign sigil (`@otherprefix/foo/bar`) — drop the `@<…>/` prefix and keep the path.
+    const slashIdx = s.indexOf("/")
+    if (slashIdx > 0) s = s.slice(slashIdx + 1)
+  }
+  // Path-form (slashes) → bd-form (dots).
+  if (s.includes("/")) {
+    s = s.split("/").join(".")
+  }
+  // Idempotent: already bd-form with this prefix → pass through.
+  if (s.startsWith(`${prefix}${SEPARATOR}`)) {
+    return s
+  }
+  return `${prefix}${SEPARATOR}${s}`
 }
 
 export function generateSubId(parentShortId: string, childNumber: number): string {

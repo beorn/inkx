@@ -255,12 +255,28 @@ bdCommand
     })
 
     // Resolve parent: explicit --parent flag wins; otherwise derive from
-    // the customId's scope (km-beads.foo → "beads/"). The bd id encodes
-    // the board by construction — no global beads.parent config knob.
-    const customIdScope =
-      typeof opts.id === "string" && opts.id.includes(".")
-        ? (opts.id.split(".")[0]?.replace(new RegExp(`^${configObj.beads.prefix}-`), "") ?? null)
-        : null
+    // the customId's scope (km-beads.foo → "beads/", @km/silvercode/acp/rename
+    // → "silvercode/"). The bd id encodes the board by construction — no
+    // global beads.parent config knob.
+    const customIdScope = (() => {
+      if (typeof opts.id !== "string") return null
+      const id = opts.id.trim()
+      const prefix = configObj.beads.prefix
+      // `@<prefix>/<scope>/…` — sigil-prefixed canonical path-form.
+      if (id.startsWith(`@${prefix}/`)) {
+        return id.slice(prefix.length + 2).split("/")[0] ?? null
+      }
+      // `<scope>/…` — bare path-form.
+      if (id.includes("/")) {
+        return id.split("/")[0] ?? null
+      }
+      // `<prefix>-<scope>.<…>` (or `<scope>.<…>`) — bd-form with dot separator.
+      if (id.includes(".")) {
+        const head = id.split(".")[0] ?? ""
+        return head.startsWith(`${prefix}-`) ? head.slice(prefix.length + 1) : head || null
+      }
+      return null
+    })()
     const parentRef = (opts.parent as string | undefined) || (customIdScope ? `${customIdScope}/` : null)
     let parentId: string | null = null
     if (parentRef) {
@@ -571,6 +587,97 @@ bdCommand
     for (const issue of stale) {
       printIssue(issue)
     }
+  })
+
+// bd orphans - Find open/in-progress beads referenced in recent commit messages
+//   (i.e. work that's been implemented but not formally closed).
+bdCommand
+  .command("orphans")
+  .description("Find open beads referenced in recent commit messages (likely closed-by-commit)")
+  .option("--days <n>", "Look back this many days in git log", int, 90)
+  .option("--json", "Output as JSON")
+  .option("--details", "Include the matching commits per bead")
+  .actionMerged(async (opts) => {
+    const resolved = resolvePathArg(undefined)
+    await loadKmBdConfig(resolved.repoRoot)
+    using repo = await loadRepo(resolved.repoRoot)
+
+    // Collect open / in-progress / blocked beads — done/dropped are not orphans by definition.
+    const issues = queryIssues({}, undefined, undefined, { repo }).filter(
+      (i) => i.status === "todo" || i.status === "wip" || i.status === "blocked",
+    )
+    if (issues.length === 0) {
+      console.log(term.green("No open issues — nothing to orphan-check."))
+      return
+    }
+
+    // Pull the last `--days` of commit messages once; scan locally per id.
+    // We capture full message bodies (not just subjects) because close-by-commit
+    // ids typically appear in the body, not the title.
+    const { execSync } = await import("child_process")
+    let log: string
+    try {
+      log = execSync(`git log --since=${opts.days!}.days --format=%H%x00%B%x1e`, {
+        cwd: resolved.repoRoot,
+        encoding: "utf-8",
+        maxBuffer: 64 * 1024 * 1024,
+      })
+    } catch (err) {
+      console.error(term.red(`git log failed: ${(err as Error).message}`))
+      process.exitCode = 1
+      return
+    }
+    const commits = log
+      .split("\x1e")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const [sha, ...rest] = entry.split("\x00")
+        return { sha: (sha ?? "").trim(), body: rest.join("\x00").trim() }
+      })
+
+    type Orphan = { issue: (typeof issues)[number]; commits: string[] }
+    const orphans: Orphan[] = []
+    for (const issue of issues) {
+      // Match the canonical bd id as a whole word — `\b` doesn't treat `.`
+      // as a word char, so `km-foo.bar` ends after `bar`. Escape regex
+      // metacharacters in the id (the `.` segment separator most importantly).
+      const pattern = new RegExp(`(?<![\\w-])${issue.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`)
+      const matched = commits.filter((c) => pattern.test(c.body))
+      if (matched.length > 0) {
+        orphans.push({ issue, commits: matched.map((c) => c.sha) })
+      }
+    }
+
+    if (opts.json) {
+      console.log(
+        JSON.stringify(
+          orphans.map((o) => ({ ...issueToBdJson(o.issue), commits: o.commits })),
+          null,
+          2,
+        ),
+      )
+      return
+    }
+
+    if (orphans.length === 0) {
+      console.log(term.green(`No orphaned issues (looked back ${opts.days} days).`))
+      return
+    }
+
+    console.log(term.bold(`⚠ Found ${orphans.length} orphaned issue(s):\n`))
+    orphans.forEach(({ issue, commits: shas }, i) => {
+      console.log(`${i + 1}. ${issue.id}: ${issue.title}`)
+      console.log(term.dim(`   Status: ${issue.status}`))
+      if (opts.details) {
+        for (const sha of shas.slice(0, 5)) {
+          console.log(term.dim(`   - ${sha.slice(0, 9)}`))
+        }
+        if (shas.length > 5) {
+          console.log(term.dim(`   - … (+${shas.length - 5} more)`))
+        }
+      }
+    })
   })
 
 // bd claim <id> - Claim an issue (set status=wip + assignee)
