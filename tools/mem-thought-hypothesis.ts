@@ -92,23 +92,74 @@ async function getBrief(): Promise<CurrentBrief | null> {
 }
 
 /**
- * Build a synthetic query from the brief's distinctive tokens + the most
- * recent user prompt. The recall agent's planner expands it; we just need
- * to give it a salient seed.
+ * Build a synthetic query from the brief, rotating focus across cycles so we
+ * probe different angles of the conversation instead of repeating the same
+ * top-tokens query when the conversation is idle.
+ *
+ * Returns null if conversation hasn't progressed since last cycle (skip).
  */
-function buildQuery(brief: CurrentBrief): string {
-  // Take the top 3-5 distinctive tokens (already ranked by rarity in current-brief)
-  const tokens = brief.mentionedTokens.slice(0, 4)
-  // Grab the last [USER] line from recentMessages if present
-  const userLines = brief.recentMessages
-    .split("\n")
-    .filter((l) => l.startsWith("[USER]"))
-  const lastUserLine = userLines[userLines.length - 1]?.replace("[USER]", "").trim() ?? ""
-  // Trim to keep query short (planner will expand)
-  const trimmedUser = lastUserLine.length > 80 ? lastUserLine.slice(0, 80) : lastUserLine
-  if (tokens.length === 0 && !trimmedUser) return brief.mentionedBeads[0] ?? "session"
-  if (!trimmedUser) return tokens.join(" ")
-  return `${tokens.slice(0, 2).join(" ")} ${trimmedUser}`.trim()
+type LastCycleState = { exchangeCount: number; lastUserPrompt: string; cycleN: number }
+let lastState: LastCycleState | null = null
+
+function lastUserPrompt(brief: CurrentBrief): string {
+  const userLines = brief.recentMessages.split("\n").filter((l) => l.startsWith("[USER]"))
+  return userLines[userLines.length - 1]?.replace("[USER]", "").trim() ?? ""
+}
+
+function buildQuery(brief: CurrentBrief): string | null {
+  const userPrompt = lastUserPrompt(brief)
+
+  // Skip-on-no-progress: if exchangeCount AND last user prompt are unchanged,
+  // there's nothing new to probe. Save cost + log noise.
+  if (
+    lastState &&
+    lastState.exchangeCount === brief.exchangeCount &&
+    lastState.lastUserPrompt === userPrompt
+  ) {
+    return null
+  }
+
+  // Rotate focus across cycles to vary what we probe. Five strategies:
+  //   0: latest user prompt (verbatim, trimmed)
+  //   1: latest bead mentioned + 1 distinctive token
+  //   2: top 3 distinctive tokens
+  //   3: latest file path mentioned (if any) + 1 token
+  //   4: prompt + distinctive token (mixed)
+  const cycleN = (lastState?.cycleN ?? 0) + 1
+  const strategy = cycleN % 5
+  const tokens = brief.mentionedTokens.slice(0, 5)
+  const trimmedPrompt = userPrompt.length > 100 ? userPrompt.slice(0, 100) : userPrompt
+
+  let query: string
+  switch (strategy) {
+    case 0:
+      query = trimmedPrompt || tokens.slice(0, 3).join(" ") || "session"
+      break
+    case 1: {
+      const bead = brief.mentionedBeads[0] ?? ""
+      const tok = tokens[0] ?? ""
+      query = [bead, tok].filter(Boolean).join(" ") || trimmedPrompt
+      break
+    }
+    case 2:
+      query = tokens.slice(0, 3).join(" ") || trimmedPrompt || "session"
+      break
+    case 3: {
+      const path = brief.mentionedPaths[0] ?? ""
+      const tok = tokens[1] ?? tokens[0] ?? ""
+      query = [path, tok].filter(Boolean).join(" ") || trimmedPrompt
+      break
+    }
+    case 4:
+    default:
+      query = `${tokens.slice(0, 2).join(" ")} ${trimmedPrompt}`.trim()
+      break
+  }
+  // Final guard: empty → fallback
+  if (!query.trim()) query = brief.mentionedBeads[0] ?? "session"
+
+  lastState = { exchangeCount: brief.exchangeCount, lastUserPrompt: userPrompt, cycleN }
+  return query
 }
 
 async function runRecallAgent(query: string): Promise<RecallResult | null> {
@@ -142,6 +193,12 @@ async function runCycle(): Promise<void> {
     return
   }
   const query = buildQuery(brief)
+  if (query === null) {
+    // No conversational progress since last cycle — skip silently.
+    // Don't even bump the counter; nothing happened.
+    console.error(`[${nowIso()}] cycle ${cycleCounter}: no conversational progress, skipping`)
+    return
+  }
   const result = await runRecallAgent(query)
 
   // Format the digest
