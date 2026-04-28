@@ -656,17 +656,13 @@ export function WorkspaceChrome({
           />
         </CenterDialog>
       )}
-      {/* Help overlay — bridged through a TEA plugin when any of
-          KM_TEA_HELP_V3 / KM_TEA_HELP_V2 / KM_TEA_HELP is set (v3 wins if
-          multiple are on). Phase 0 mini-cutover: each plugin maintains its
-          own state store; the bridge picks the source. Legacy path reads
-          `ui.showHelp` + `ui.helpScrollOffset` as today. */}
-      <HelpOverlayBridge
-        legacyVisible={ui.showHelp}
-        legacyScrollOffset={ui.helpScrollOffset}
-        width={termWidth}
-        height={contentHeight}
-      />
+      {/* Help overlay — rendered via the v3 `withHelpOverlay()` plugin
+          (km-tui.tea-help-overlay-v3). The bridge subscribes to the plugin's
+          `app.help` capability via `useSyncExternalStore`. The legacy
+          `ui.showHelp` / `ui.helpScrollOffset` zustand fields are still
+          maintained as a mirror so command-bridge predicates and the
+          escape cascade keep working without a wider TEA migration. */}
+      <HelpOverlayBridge width={termWidth} height={contentHeight} />
       {/* Console now uses screen switching (pause/resume) instead of overlay */}
     </>
   )

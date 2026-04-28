@@ -375,4 +375,25 @@ grep -rEn 'startsWith\("[@#+]"\) *\? *[A-Za-z_][A-Za-z0-9_]*\.slice\(1\)' \
   | grep -v "node_modules\|vendor/\|stripSigil\|/dist/" || true
 echo ""
 
+# =============================================================================
+# CUTOVER HYGIENE (Pattern 43) — only meaningful AFTER km bd Phase A cutover
+# =============================================================================
+
+echo "=== PATTERN 43: Stale 'bd <ported-cmd>' in skills/docs/hooks (cutover regression) ==="
+# After cutover Phase A, the 20 ported subcommands MUST invoke km bd, not Go bd.
+# This catches contributors who paste 'bd close' instead of 'km bd close'.
+#
+# Currently a documentation-only addition; before Phase A merges, this prints
+# all current uses (which are intentional — synonym path, Go bd as fallback).
+# After Phase A merges, this should print zero hits, and any new entry is a
+# regression to flag in code review.
+#
+# Track parity matrix in hub/km/design/cutover-runbook.md.
+PORTED_BD_CMDS='ready|list|show|create|update|close|drop|dep|stale|orphans|claim|children|blocked|query|rename|migrate|export|remember|memories|prime'
+grep -rEn "\\bbd\\s+($PORTED_BD_CMDS)\\b" \
+  .claude/skills .claude/hooks docs CLAUDE.md \
+  --include='*.md' --include='*.sh' 2>/dev/null \
+  | grep -v 'node_modules\|/dist/\|cutover-runbook\.md' || true
+echo ""
+
 echo "Pattern detection complete."

@@ -1,9 +1,8 @@
 /**
  * HelpOverlay v3 — `pipe()` + `with*()` + `createSlice` shape.
  *
- * Replaces both:
- *   v1: `with-help-overlay.ts`  (213 LOC, zustand + bridge + hook)
- *   v2: `help-overlay.v2.ts`    ( 33 LOC, definePlugin factory)
+ * The production help-overlay plugin. v1 (zustand singleton) and v2
+ * (definePlugin) were removed by the km-tui.tea-help-overlay-v3 cutover.
  *
  * v3 pattern (validated by aichat composition prototype, 2026-04-21):
  *   - pure reducer via createSlice (typed dispatch, no name string needed)
@@ -11,9 +10,12 @@
  *   - integrates into the existing silvery pipe() substrate
  *   - NO factory, NO name namespace, NO per-plugin zustand store
  *
- * Feature-flagged via KM_TEA_HELP_V3=1 so parity tests exercise all three
- * paths (v1 legacy, v2 definePlugin, v3 pipe/with). v1 and v2 stay in
- * place until v3 cutover lands in production (km-tui.tea-help-overlay-v3).
+ * The legacy `ui.showHelp` / `ui.helpScrollOffset` zustand fields are still
+ * maintained as a mirror in `board-actions.ts` so command-bridge predicates
+ * (e.g. `helpOverlayOpen` for "?" rebinding) and the escape cascade keep
+ * working without a wider TEA migration. Once km-tui adopts a single
+ * top-level `pipe()` chain (km-tui.tea / km-tui.tea-withDialogs), the
+ * mirror can collapse and v3 becomes the sole source of truth.
  *
  * ## Known upstream issue (filed as next-session followup)
  *
@@ -62,12 +64,6 @@ export const helpSlice = createSlice(init, {
 })
 
 export const helpInit = init
-
-// =============================================================================
-// Feature flag
-// =============================================================================
-
-export const isTeaHelpV3Enabled = (): boolean => process.env.KM_TEA_HELP_V3 === "1"
 
 // =============================================================================
 // withHelpOverlay() — AppPlugin<BaseApp, HelpContribution>
@@ -182,15 +178,14 @@ export function useHelpOverlayV3(app: HelpContribution): HelpState {
 }
 
 // =============================================================================
-// Production singleton — shared by board-actions dual-write + React bridge
+// Production singleton — shared by board-actions mirror + React bridge
 // =============================================================================
 //
 // km-tui today doesn't run a single `pipe(createBaseApp, withApp, ...)` chain
-// yet (see tui.tsx:383 TODO). So the production v3 path stands up its own
-// mini-chain as a module-level singleton — same lifetime model v1 and v2
-// use for the same reason. When km graduates to a unified pipe chain (Phase
-// 1 / `withDialogs`), this singleton drops in favor of the real app; the
-// wrapper itself doesn't change.
+// yet (see tui.tsx TODO). So the production v3 path stands up its own
+// mini-chain as a module-level singleton. When km graduates to a unified
+// pipe chain (km-tui.tea / km-tui.tea-withDialogs), this singleton drops in
+// favor of the real app; the wrapper itself doesn't change.
 //
 // Production builds intentionally skip `withApp()` until the upstream
 // spread-break is fixed — see the top-of-file note. Unit tests may still
@@ -201,7 +196,7 @@ export type HelpV3App = BaseApp & HelpContribution
 
 let singleton: HelpV3App | null = null
 
-/** The process-wide v3 app. Built lazily so tests can opt-out by flipping the flag. */
+/** The process-wide v3 app. Built lazily so tests can reset between cases. */
 export function getHelpV3App(): HelpV3App {
   if (!singleton) singleton = pipe(createBaseApp(), withHelpOverlay())
   return singleton
