@@ -16,6 +16,7 @@
     "@km/fs-mount": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
+    "@km/text-render": "workspace:*",
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseInlineText, inlineNodesToPlainText } from "../../src/text/inline-parser.ts"
-import type { InlineNode } from "../../src/text/inline-ast-types.ts"
+import { parseInlineText, inlineNodesToPlainText, type InlineNode } from "@km/text-render"
 
 // Helper to extract just types from a flat parse
 const types = (nodes: InlineNode[]) => nodes.map((n) => n.type)

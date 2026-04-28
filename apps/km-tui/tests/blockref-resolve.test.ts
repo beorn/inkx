@@ -12,7 +12,7 @@ import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { stripAnsi } from "@silvery/test"
 import type { KNode } from "@km/core"
-import { parseInlineText } from "../src/text/inline-parser.ts"
+import { parseInlineText } from "@km/text-render"
 
 /** Create a standalone node with a specific ID and content (for resolution targets) */
 function targetNode(id: string, content: string): KNode {

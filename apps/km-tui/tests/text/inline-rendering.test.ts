@@ -9,13 +9,12 @@
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "@silvery/test"
-import { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "../../src/text/inline-parser.ts"
-import { prettifyUrl } from "../../src/text/text-pipeline.ts"
+import { parseInlineText, parseToPlainText, inlineNodesToPlainText, prettifyUrl } from "@km/text-render"
+import type { InlineNode } from "@km/text-render"
 import { stripKnownMentions } from "../../src/views/detail-pane-helpers.ts"
 import { InlineText } from "../../src/text/InlineComponents.tsx"
 import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
-import type { InlineNode } from "../../src/text/inline-ast-types.ts"
 
 const types = (nodes: InlineNode[]) => nodes.map((n) => n.type)
 

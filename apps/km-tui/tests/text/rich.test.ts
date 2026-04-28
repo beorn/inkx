@@ -4,8 +4,7 @@
 
 import { describe, it, expect } from "vitest"
 import { createTerm } from "@silvery/ag-react"
-import { displayLength, stripAnsi } from "../../src/text/rich.ts"
-import { parseToPlainText } from "../../src/text/inline-parser.ts"
+import { displayLength, stripAnsi, parseToPlainText } from "@km/text-render"
 
 // Create a term with forced color for testing
 const term = createTerm({ colorLevel: "truecolor" })

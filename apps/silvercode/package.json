@@ -21,6 +21,7 @@
     "@km/autolinks": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/mcp-server": "workspace:*",
+    "@km/text-render": "workspace:*",
     "@km/tribe-mcp": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",

@@ -10,7 +10,7 @@
  */
 import React from "react"
 import { Box, Muted, Small, Text } from "@silvery/ag-react"
-import type { TextDecoration } from "../text/inline-ast-types.ts"
+import type { TextDecoration } from "@km/text-render"
 import { InlineText } from "../text/InlineComponents.tsx"
 
 /**

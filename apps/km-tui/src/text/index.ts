@@ -13,7 +13,8 @@
  */
 
 // Text pipeline utilities (extractRefs, prettifyUrl, SIGIL_PATTERN)
-export { extractRefs, prettifyUrl, SIGIL_PATTERN } from "./text-pipeline.ts"
+// Now sourced from @km/text-render (extracted package — see km-shared.text-render-package).
+export { extractRefs, prettifyUrl, SIGIL_PATTERN } from "@km/text-render"
 
 // Icon utilities (moved from @km/tui-core)
 export {
@@ -44,11 +45,13 @@ export { createTerm, term, type Term, type StyleChain } from "@silvery/ag-react"
 // bound at Term construction.
 export { hyperlink, type UnderlineStyle } from "@silvery/ag-term/ansi"
 
-// Inline AST (parser + types + components)
-export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"
-export type { InlineNode, TextDecoration } from "./inline-ast-types.ts"
+// Inline AST (parser + types) — extracted to @km/text-render so silvercode
+// can consume them too. React components (InlineNodes/InlineText) stay in
+// km-tui because they depend on view-tree concerns (Popover, AutolinksContext).
+export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "@km/text-render"
+export type { InlineNode, TextDecoration } from "@km/text-render"
+export { computeSearchDecorations, computeSearchDecorationsFromSource } from "@km/text-render"
 export { InlineNodes, InlineText, InlineRenderProvider, type InlineRenderContext } from "./InlineComponents.tsx"
-export { computeSearchDecorations, computeSearchDecorationsFromSource } from "./search-decorations.ts"
 
 // Board color system
 export {
