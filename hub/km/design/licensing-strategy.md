@@ -8,6 +8,40 @@
 - *Cluster 1 (open, Apache-2.0 + CLA)*: silvery + flexily + termless + terminfo + loggily + mdspec + emulators + alien-* + minor satellites.
 - *Cluster 2 (proprietary)*: silvercode + km + tribe-internal + hosted services (subscription-auth, ambient-context-safety, recall-hosted, agentroom-hosted).
 
+**Three open standards** (the deeper structural play, surfaced 2026-04-28):
+
+The portfolio decomposes into three parallel "open-standard + proprietary canonical implementation + paid services" plays — the same shape Docker, MongoDB, Confluent, Notion-vs-Markdown all use. Each open standard creates a substrate the commercial tier monetizes:
+
+| Open standard | Proprietary canonical implementation | Paid services tier |
+|---|---|---|
+| **silvery** — React TUI framework (Apache-2.0 + CLA); ships polished generic agent components | silvercode (the integrated agentic IDE — the silvercode-shaped *application assembly*) | recall-hosted, ambient-context-safety pipeline, subscription-auth |
+| **tribe** — agent coordination wire + event vocab (Apache + CC BY 4.0); conformance + "tribe-compatible" badge | agentroom hosted gateway (canonical impl) + tribe-internal extensions in private monorepo | multi-machine routing, hosted Matrix bridge, CrossAgentState orchestration |
+| **PlainBrain** — agentic-work repo format spec (Apache code + CC BY 4.0 spec); the markdown-filesystem shape km already uses, elevated to a named portable standard. Domains owned: `plainbrain.org`, `plainbrains.com`. | km (canonical workspace on PlainBrain — the Notion/Linear of the standard) | multi-device sync, recall index, team features, AI ops, hosted PlainBrain gateway |
+
+**The Docker analogy is the right reference**. Docker shipped:
+- An open image-format spec → eventually became OCI (industry standard)
+- An open reference engine (eventually moby/containerd)
+- A paid commercial UX + data-gravity layer (Docker Desktop, Docker Hub team plans)
+
+The spec became universal infrastructure. The commercial tier monetized polish + cloud + data gravity. **Cautionary tale**: when the spec became infrastructure, value flowed *away* from Docker Inc. into Kubernetes/Containerd; Docker survived by pivoting to Docker Desktop + Hub UX + data-gravity moat. km's monetization is structurally Docker-Desktop-shaped (canonical-best-implementation + paid cloud services), not Docker-Engine-shaped (the substrate). If PlainBrain succeeds as a standard, km wins by being the canonical implementation with the best UX + the hosted services tier — *not* by owning the spec.
+
+**Why three standards reinforce each other** (vs three independent plays):
+- silvery captures the React-TUI install base for AI tools
+- tribe captures the agent-coordination wire (cross-tool, cross-machine)
+- PlainBrain captures the agentic-work substrate (durable artifacts as portable .md repos)
+- Each brings traffic to the others — silvery showcases use PlainBrain repos coordinated via tribe; tribe demos read/write PlainBrain repos rendered with silvery
+- The three together are a coherent platform story for fundraising / acquisition: *"we authored the open standards for the next-generation AI-native developer experience, and we run the canonical commercial implementations of all three"*
+
+**Sequencing — don't launch all three at once**:
+- **Month 0-2**: silvery promo (the locked plan above)
+- **Month 1-3**: tribe wire v0 preview alongside silvery launch ("unstable draft" disclaimer)
+- **Month 3-6**: PlainBrain spec v0 preview, after silvery has measurable traction. Premature standards proliferation dilutes the silvery launch moment.
+
+**Risks**:
+- *Timing*: each standard requires authoring + community-evangelism investment. Three in 6 months is aggressive; cut to two if focus suffers.
+- *Spec quality*: a half-baked PlainBrain spec gets forked or ignored. The km repo shape is currently *implicit* (defined by what km does, not by a written spec). Extracting a clean spec is real work — likely 1-2 weeks of focused design.
+- *Substrate commoditization*: see Docker. Defensibility is in canonical implementations + cloud services + brand, not in spec ownership alone.
+
 **Shipped state (much further along than the doc previously implied)**:
 - `silvery/ink` migration shim is **already shipped** (vendor/silvery/packages/ink, v0.21.0, ~3K LOC, covers Box/Text/Spacer/hooks/render/animation/focus/cursor/stdin/measure-text/sanitize/chalk-compat). silvery.dev claims "98.6% Ink compatible" — grounded.
 - Cluster-1 sites live and polished: **silvery.dev** (98.6% Ink-compat hero), **termless.dev**, **loggily.dev** (22× faster than noop), **mdspec.org** (executable markdown testing, pre-release 0.x, used by silvery + termless), **beorn.codes/flexily/** (1.5-5.5× faster than Yoga, 1561 tests). flexily.org / flexily.dev parked.
